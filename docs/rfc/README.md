@@ -15,4 +15,4 @@ N=$(printf "%04d" $(( $(ls docs/rfc/ 2>/dev/null | grep -E '^[0-9]{4}' | sed 's/
 cp docs/_templates/rfc.md docs/rfc/${N}-<kebab-title>.md
 ```
 
-Or, in Claude Code, run `/propose-rfc "<title>"`.
+Or, in Claude Code, run `/new-rfc "<title>"` (defined in `.claude/skills/new-rfc/SKILL.md`).

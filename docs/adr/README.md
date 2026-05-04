@@ -18,4 +18,4 @@ N=$(printf "%04d" $(( $(ls docs/adr/ | grep -E '^[0-9]{4}' | sed 's/-.*//' | sor
 cp docs/_templates/adr.md docs/adr/${N}-<kebab-title>.md
 ```
 
-Or, in Claude Code, run `/new-adr "<title>"` (defined in `.claude/commands/new-adr.md`).
+Or, in Claude Code, run `/new-adr "<title>"` (defined in `.claude/skills/new-adr/SKILL.md`).
