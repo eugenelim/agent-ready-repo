@@ -1,0 +1,41 @@
+name: RFC — Request for Comments
+description: Propose a substantive change. Use this when the change is bigger than a normal PR.
+labels: [rfc]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template **only** if the change touches multiple packages,
+        affects external users, reverses a previous ADR, or modifies a
+        top-level convention. For everything else, just open a PR.
+
+        See [`docs/CONVENTIONS.md`](../docs/CONVENTIONS.md) for the
+        RFC vs. ADR vs. spec vs. PR decision tree.
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      description: Short, declarative. "Move X to Y", not "Should we maybe move X?"
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What's broken, missing, or about to become a problem? Show the cost of inaction.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal (one paragraph)
+      description: The shape of what you're proposing. The full proposal goes in `docs/rfc/NNNN-*.md` once you open the PR.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: At least one. "Do nothing" counts.
+    validations:
+      required: true
