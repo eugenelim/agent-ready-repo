@@ -1,0 +1,56 @@
+name: docs
+
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'docs/**'
+      - 'packages/**/AGENTS.md'
+      - 'apps/**/AGENTS.md'
+      - 'tools/lint-agents-md.sh'
+      - '.github/workflows/docs.yml'
+  push:
+    branches: [main]
+
+jobs:
+  lint-agents-md:
+    name: AGENTS.md hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run AGENTS.md linter
+        run: bash tools/lint-agents-md.sh
+
+  check-adr-immutability:
+    name: ADRs are immutable
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect edits to existing accepted ADRs
+        run: |
+          # ADRs are immutable once accepted (status edits are allowed; body edits are not).
+          # This is a heuristic: warn if any line outside the frontmatter changed
+          # in a file that already had status `Accepted` on main.
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --name-only "$base" "$head" -- 'docs/adr/*.md' || true)
+          fail=0
+          for f in $changed; do
+            # skip new files
+            if ! git cat-file -e "$base:$f" 2>/dev/null; then continue; fi
+            # was it Accepted on base?
+            if git show "$base:$f" | grep -q '^- \*\*Status:\*\* Accepted'; then
+              # diff body lines (skip frontmatter changes — first 10 lines)
+              body_diff=$(git diff "$base" "$head" -- "$f" | tail -n +12 | grep -E '^[+-]' | grep -vE '^\+\+\+|^---|Status:' || true)
+              if [[ -n "$body_diff" ]]; then
+                echo "::warning file=$f::This ADR was Accepted on base. Body edits are not allowed; supersede it with a new ADR instead. (Status-only edits are fine.)"
+                fail=1
+              fi
+            fi
+          done
+          # We warn but don't fail — reviewers make the call. Set to 'exit $fail' to make blocking.
+          exit 0

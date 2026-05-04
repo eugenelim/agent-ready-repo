@@ -1,0 +1,12 @@
+# Ralph runtime state — local-only, never committed
+.ralph/
+
+# Personal Claude Code overrides
+CLAUDE.local.md
+.claude/settings.local.json
+
+# OS / editor noise
+.DS_Store
+*.swp
+.vscode/
+.idea/
