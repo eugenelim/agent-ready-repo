@@ -32,16 +32,14 @@ cases by priority. The first one is the one we will not compromise on.
 ## Behavior
 
 <!--
-The contract. This is the section the implementation must match.
+The contract, in prose, from the perspective of a caller/user.
 
-Structure as a list of behavioral statements that are individually testable:
+One paragraph per coherent piece of behaviour. What inputs produce what
+outputs, what side effects, what guarantees. No internals. No test syntax —
+the test list lives in "Contract tests" below.
 
-- Given <preconditions>, when <action>, then <result>.
-- The system rejects <invalid input> with <specific error>.
-- <Field X> is required; <field Y> defaults to <value>.
-
-Specificity beats prose here. If a behavior can be tested, write it as a
-testable statement.
+The reader of this section should understand what the feature does without
+caring how the test runner is wired up.
 -->
 
 ### Inputs
@@ -55,6 +53,30 @@ testable statement.
 ### Errors and edge cases
 
 <!-- What can go wrong, and what the user/caller sees when it does. -->
+
+## Contract tests
+
+<!--
+The concrete test list — the gate for "done". Black-box: each test exercises
+behaviour described above, not internals. Any valid implementation must pass
+all of them.
+
+Designed up front, *with the spec* — before plan.md or any code. If you
+can't write the test for a Behavior bullet, the bullet is too vague;
+sharpen it before moving on.
+
+One bullet per test. Each bullet should be concrete enough that an
+implementer can name a test function for it. Format:
+
+- **`<test_name>`** — Given <preconditions>, when <action>, then <observable result>.
+- **`<test_name>`** — rejects <invalid input> with <specific error>.
+- **`<test_name>` (property)** — for all <input shape>, <invariant> holds.
+
+These tests are stable against *implementation* change. They evolve with
+*spec* change (behaviour change) during the living phase and freeze when
+the spec freezes. Construction tests — per-step units, fixtures, internal
+helpers — live in `plan.md`, not here.
+-->
 
 ## Non-goals
 
@@ -71,11 +93,13 @@ the feature.
 ## Acceptance criteria
 
 <!--
-The checklist for "done". Usually one or two items per behavioral statement
-above, plus tests, docs, and any migration steps.
+The non-test checklist for "done". Tests are already covered by the Contract
+tests section above (the test list IS the test gate). This section captures
+*everything else* a shipping feature needs:
 
-- [ ] All behavioral statements have at least one test
+- [ ] All Contract tests pass (the test gate)
 - [ ] Public API documented in <location>
 - [ ] CHANGELOG entry
-- [ ] ...
+- [ ] Migration guide / runbook updated (if applicable)
+- [ ] Feature flag / rollout plan (if applicable)
 -->

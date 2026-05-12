@@ -28,9 +28,14 @@ spec — it forces the question "what does done look like?" before any code.
    cp docs/_templates/plan.md docs/specs/<feature>/plan.md
    ```
 
-3. Fill in the spec first. Push back hard on these failure modes:
+3. Fill in the spec first — including the **Contract tests** section. Push
+   back hard on these failure modes:
    - **Behavior section is vague.** "It should be fast" is not a behavior.
      "Returns within 200ms at p99 for payloads under 1KB" is.
+   - **Contract tests section empty or hand-wavy.** Contract tests are part
+     of the spec, not an afterthought — if you can't write the test for a
+     Behavior bullet, the bullet is too vague. Sharpen the bullet, then the
+     test follows.
    - **No non-goals listed.** Specs without explicit non-goals get
      scope-crept by both humans and agents. Make the user list at least
      two things this feature explicitly will not do.
@@ -39,7 +44,8 @@ spec — it forces the question "what does done look like?" before any code.
 4. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
    - Break the work into tasks small enough to be a single PR each.
-   - Name a testing strategy. "We'll test it" is not a strategy.
+   - Carry **construction tests** per task — `Tests:` before `Approach:`
+     in each task, designed up front. "We'll test it" is not a strategy.
 
 5. Update `docs/specs/README.md` to add the feature to the active list.
 

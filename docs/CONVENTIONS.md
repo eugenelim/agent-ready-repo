@@ -208,15 +208,15 @@ or weeks (not months). Each feature gets a directory.
 
 ```
 docs/specs/<feature>/
-├── spec.md      ← what this feature is, for users; the contract
-├── plan.md      ← how we'll build it, broken into tasks
-├── tasks.md     ← (optional) checklist if plan.md is too dense
+├── spec.md      ← contract + contract tests
+├── plan.md      ← strategy + construction tests, broken into tasks
 └── notes/       ← (optional) research, sketches, rejected approaches
 ```
 
 **`spec.md` is the contract.** It defines the externally observable behavior:
 inputs, outputs, error cases, edge cases, non-goals. It is the source of truth
-for what "done" means. Tests should be derivable from it.
+for what "done" means. The `Contract tests` section in the spec lists those
+tests explicitly — they are the gate, not an afterthought.
 
 **`plan.md` is the implementation strategy.** It enumerates the changes —
 "add a `<thing>` to package X, modify `<other thing>` in package Y, write tests
@@ -235,6 +235,30 @@ behavior changes.
 **Cite upward, never downward:** a spec links to the ADRs and RFCs that
 constrain it. ADRs do not link to specs (specs are too small and short-lived
 to be worth citing from an ADR).
+
+### Contract tests vs. construction tests
+
+Tests are designed *up front, before any implementation*. They live in two
+places, with different shapes and different lifecycles:
+
+- **Contract tests** live in `spec.md`. Black-box, behaviour-only — they
+  define "done" for the feature. Any valid implementation must pass them.
+  They are stable against *implementation* change (that's the whole point
+  of a contract); they still evolve with *spec* (behavioural) change during
+  the spec's living phase, and freeze when the spec freezes.
+- **Construction tests** live in `plan.md`, attached to each step. Units,
+  edge cases, property tests, fixtures — they guide the implementer through
+  the build. They are *revisable* if one turns out to over-specify an
+  internal detail the plan changed.
+
+Within a plan step, the **Tests** subsection comes *before* Approach. Tests
+drive implementation, not the other way around. Red-green-refactor: write
+the failing test, make it pass, refactor — separate commits for each when
+the change is non-trivial.
+
+This is the forcing function that keeps specs honest (you can't write a
+contract test for a vague behavioural claim) and keeps implementations
+honest (you can't drift from the spec if the spec's tests are red).
 
 ---
 

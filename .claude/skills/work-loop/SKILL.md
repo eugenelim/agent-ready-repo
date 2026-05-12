@@ -43,21 +43,37 @@ For anything beyond trivial, *think before you write code*. Concretely:
   list is your work-breakdown — don't invent your own.
 - If the task has no spec and is more than a one-file change, **stop and use
   the `new-spec` skill first**. Implementation without a contract drifts.
+  Contract tests are part of the spec — write them *during* `new-spec`, not
+  later. A spec without its Contract tests section filled in is not finished.
 - For architecturally significant work, use extended thinking. In an
   interactive Claude Code session: enter Plan Mode (Shift+Tab twice) and add
   "think hard" or "ultrathink" to your prompt for adaptive thinking depth.
 - Write down: which files you'll touch, what tests will demonstrate "done",
   and what you are *not* changing. Three sentences is enough.
+- **Design tests up front, before any code.** Contract tests live in
+  `spec.md` and are written when the spec is written (see the `new-spec`
+  step above). During PLAN, write construction tests for **every** task
+  into `plan.md` (under each task's `Tests:` subsection) before EXECUTE
+  begins. If you can't write the test, the task is too vague to implement —
+  sharpen the plan first. Discovering a missing or wrong construction test
+  during EXECUTE is fine, but the fix is "update plan.md, then resume
+  EXECUTE", not "skip ahead".
 
-The output of this step is a written plan you can return to. Don't keep it in
-your head — your context will turn over and you'll lose it.
+The output of this step is a written plan (with tests) you can return to.
+Don't keep it in your head — your context will turn over and you'll lose it.
 
 ### 2. EXECUTE — make the change
 
-Implement the smallest coherent unit of work toward the goal. Resist the urge
-to fix unrelated things you notice along the way; note them in `notes/` for
-later. Scope creep is the single biggest source of plan-vs-implementation
-drift.
+**Tests before code.** Red-green-refactor:
+
+1. Write the failing test first (red). Commit it if non-trivial.
+2. Write the minimum code to make it pass (green). Commit.
+3. Refactor with the test as your safety net. Commit.
+
+For each task, implement the smallest coherent unit of work toward the
+goal. Resist the urge to fix unrelated things you notice along the way;
+note them in `notes/` for later. Scope creep is the single biggest source
+of plan-vs-implementation drift.
 
 ### 3. GATES — mechanical verification
 
@@ -184,6 +200,9 @@ before running Ralph.** AFK doesn't mean *unconsidered* — it means
 
 - **Skipping PLAN because "the task is small."** If it's truly small, the
   plan is one sentence — write it anyway. The discipline is the point.
+- **Writing code before tests.** "I'll add the tests after" is how features
+  ship with the wrong contract. Contract tests live in the spec, construction
+  tests in the plan, and *both* exist before any production code does.
 - **Editing the test until it passes.** This makes the gate green by lying.
   If a test is wrong, fix the test in a separate commit with a justification.
 - **Declaring victory because gates pass.** Gates are necessary, not
