@@ -25,31 +25,62 @@ What ADRs, RFCs, or other commitments shape this implementation? Cite them.
 This is what keeps the plan from contradicting prior decisions.
 -->
 
+## Construction tests
+
+Most construction tests live under **Tasks** below (per-task `Tests:`
+subsections). This top-level section is only for cross-cutting tests that
+span tasks.
+
+<!--
+Construction tests guide implementation. They sit in two layers:
+
+1. **Per-task tests** (the majority) live under each Task below, in the
+   `Tests:` subsection. That's where unit, edge-case, and property tests
+   for a single task go.
+2. **Cross-cutting tests** (this section) live here, listed once: integration
+   tests that span tasks, end-to-end smoke tests, and any manual verification
+   steps.
+
+Designed up front, before EXECUTE. Revisable if a test over-specifies an
+internal detail the plan later changes. Contract tests live in `spec.md`,
+not here.
+
+**Integration tests:** <list, or "none beyond per-task tests">
+**Manual verification:** <list, or "none">
+-->
+
 ## Tasks
 
-<!--
 The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
-
-Format each task as something a contributor (human or agent) could pick up
-and complete without asking follow-up questions. Order matters — list them
-in the order they should be done. Mark dependencies inline.
-
-- [ ] T1: <task> — <one-line description>
-- [ ] T2: <task> — depends on T1
-- [ ] T3: <task> — can be done in parallel with T2
--->
-
-## Testing strategy
+**Within each task, `Tests:` comes before `Approach:`** — tests drive
+implementation, not the other way around. Use red-green-refactor with
+separate commits when the change is non-trivial.
 
 <!--
-How do we know it works?
+Order matters — list tasks in the order they should be done. Mark
+dependencies inline. Format each task so a contributor (human or agent)
+could pick it up and complete it without follow-up questions:
 
-- Unit tests for: <list>
-- Integration tests for: <list>
-- Manual verification: <list>
+### T1: <task name>
 
-The spec has acceptance criteria; this section says how we'll satisfy them.
+**Depends on:** <none | T0, ...>
+
+**Tests:**
+- <test 1 — behaviour, edge case, or property; reference a contract test from
+  spec.md if this step implements one>
+- <test 2>
+
+**Approach:**
+- <step 1>
+- <step 2>
+
+**Done when:** <test passes | acceptance criterion ticked>
+
+### T2: <task name>
+
+...
 -->
+
 
 ## Rollout
 

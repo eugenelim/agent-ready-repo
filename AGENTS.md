@@ -50,18 +50,26 @@ non-trivial work. Summary:
    of tasks.
 2. **Specs are validation gates, not write-once docs.** If implementation
    diverges from the spec, update the spec in the same PR. Drift is a bug.
-3. **Run mechanical gates** (lint, typecheck, tests) before declaring done.
+3. **Tests before code.** Contract tests live in `spec.md` (authored with
+   the spec) and construction tests live in `plan.md` (authored with the
+   plan) — *both* exist before any production code. Within a plan task,
+   `Tests:` comes before `Approach:`. Use red-green-refactor with separate
+   commits when the change is non-trivial. The work-loop doesn't apply to
+   spikes or throwaway exploration. See
+   [`CONVENTIONS.md`](docs/CONVENTIONS.md#contract-tests-vs-construction-tests)
+   for the full split.
+4. **Run mechanical gates** (lint, typecheck, tests) before declaring done.
    Self-assessment is unreliable; gates are objective.
-4. **Self-review against the spec.** After gates pass, run the
+5. **Self-review against the spec.** After gates pass, run the
    [`spec-reviewer`](.claude/agents/spec-reviewer.md) subagent. Treat its
    findings as part of "done", not as optional polish.
-5. **Iterate on findings, with a hard cap.** Five in-session iterations is
+6. **Iterate on findings, with a hard cap.** Five in-session iterations is
    the default. If you hit it, the task is bigger than you thought — stop
    and re-plan, don't grind.
-6. **Capture what you learned** before opening the PR — into the right
+7. **Capture what you learned** before opening the PR — into the right
    `AGENTS.md`, skill, or doc. The loop should make the *project* smarter,
    not just this PR.
-7. **Conventional commits.** Format: `<type>(<scope>): <subject>`. See
+8. **Conventional commits.** Format: `<type>(<scope>): <subject>`. See
    [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md#commits).
 
 For unattended/AFK work — overnight runs, large mechanical task lists — the
