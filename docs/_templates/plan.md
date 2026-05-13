@@ -52,9 +52,12 @@ not here.
 ## Tasks
 
 The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
-**Within each task, `Tests:` comes before `Approach:`** — tests drive
-implementation, not the other way around. Use red-green-refactor with
-separate commits when the change is non-trivial.
+**Phrase each task as a verifiable goal, not a procedure.** The task name
+*is* the success criterion: *"Add validation"* → *"All invalid-input tests
+pass"*; *"Refactor X"* → *"Tests for X green before and after; public
+surface unchanged"*. **Within each task, `Tests:` comes before `Approach:`** —
+tests drive implementation, not the other way around. Use red-green-refactor
+with separate commits when the change is non-trivial.
 
 <!--
 Order matters — list tasks in the order they should be done. Mark
@@ -74,7 +77,9 @@ could pick it up and complete it without follow-up questions:
 - <step 1>
 - <step 2>
 
-**Done when:** <test passes | acceptance criterion ticked>
+**Done when:** <name a concrete observable — specific test green, gate
+  passing, behaviour visible at <surface>. Not "looks good" or "feature
+  works".>
 
 ### T2: <task name>
 
