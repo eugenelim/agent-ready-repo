@@ -86,9 +86,15 @@ checklists; verification-mode awareness applies to every review.
    must be updated in the same PR. Otherwise it's drift, not done.
 6. **Security and privacy.** What data does this touch? Is access
    controlled? Is anything logged that shouldn't be?
-7. **Backward compatibility.** If this changes existing behavior, is the
+7. **Architectural fit.** Does this diff introduce a structural pattern
+   (new module boundary, framework, persistence layer, cross-cutting
+   abstraction) that the spec hasn't justified? Premature abstraction at
+   the function level belongs to `quality-engineer`; this is the larger
+   sibling — patterns that shape future work without an ADR or RFC to
+   back them.
+8. **Backward compatibility.** If this changes existing behavior, is the
    migration path explicit?
-8. **Project-specific anti-patterns.** The lists in `AGENTS.md` and
+9. **Project-specific anti-patterns.** The lists in `AGENTS.md` and
    `docs/CONVENTIONS.md` are first-class checks. Cite the convention by
    name when you flag a violation.
 
