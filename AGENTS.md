@@ -57,16 +57,13 @@ non-trivial work. Summary:
    [`CONVENTIONS.md`](docs/CONVENTIONS.md#contract-tests-vs-construction-tests)
    for the full split.
 4. **Run mechanical gates** (lint, typecheck, tests) before declaring done.
-   Self-assessment is unreliable; gates are objective.
 5. **Self-review against the spec.** After gates pass, run the
    [`spec-reviewer`](.claude/agents/spec-reviewer.md) subagent. Treat its
    findings as part of "done", not as optional polish.
-6. **Iterate on findings, with a hard cap.** Five in-session iterations is
-   the default. If you hit it, the task is bigger than you thought — stop
-   and re-plan, don't grind.
+6. **Iterate on findings, with a hard cap of five in-session iterations.**
+   If you hit it, stop and re-plan — don't grind.
 7. **Capture what you learned** before opening the PR — into the right
-   `AGENTS.md`, skill, or doc. The loop should make the *project* smarter,
-   not just this PR.
+   `AGENTS.md`, skill, or doc.
 8. **Conventional commits.** Format: `<type>(<scope>): <subject>`. See
    [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md#commits).
 
@@ -98,11 +95,11 @@ it's covered in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 Use them when relevant — they encode constraints you would otherwise re-derive:
 
 <!-- Keep this list short. The full skill index is .claude/skills/README.md -->
-- `work-loop` — the standard plan/execute/verify/fix loop for non-trivial work; **start here for any feature, fix, or refactor**
-- `new-spec` — open a spec in `docs/specs/` from the template, with the right links
-- `new-adr` — open an ADR with a fresh number and the template
-- `new-rfc` — open an RFC and link it from the index
-- `new-package` — scaffold a new package in `packages/` with the right defaults
+- `work-loop` — **start here for any non-trivial change**
+- `new-spec` — start a feature in `docs/specs/`
+- `new-adr` — record a decision in `docs/adr/`
+- `new-rfc` — open a proposal in `docs/rfc/`
+- `new-package` — scaffold a package in `packages/`
 - `update-conventions` — open an RFC to change governance docs
 
 The full index is in [`.claude/skills/README.md`](.claude/skills/README.md).
