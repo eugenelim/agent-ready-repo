@@ -48,14 +48,24 @@ non-trivial work. Summary:
    steps — the task name should be the success criterion.
 2. **Specs are validation gates, not write-once docs.** If implementation
    diverges from the spec, update the spec in the same PR. Drift is a bug.
-3. **Tests before code.** Contract tests live in `spec.md` (authored with
-   the spec) and construction tests live in `plan.md` (authored with the
-   plan) — *both* exist before any production code. Within a plan task,
-   `Tests:` comes before `Approach:`. Use red-green-refactor with separate
-   commits when the change is non-trivial. The work-loop doesn't apply to
-   spikes or throwaway exploration. See
-   [`CONVENTIONS.md`](docs/CONVENTIONS.md#contract-tests-vs-construction-tests)
-   for the full split.
+3. **Verification before code.** Every plan task declares *how* it'll be
+   verified before the implementer touches the keyboard. Pick the mode that
+   fits the code shape:
+   - **TDD** — pure functions, state machines, protocols, anything with a
+     compressible invariant. Contract tests in `spec.md`, construction tests
+     in `plan.md`, `Tests:` before `Approach:`, red-green-refactor. Default
+     for testable logic. Split detailed in
+     [`CONVENTIONS.md`](docs/CONVENTIONS.md#contract-tests-vs-construction-tests).
+   - **Goal-based check** — build config, scaffolding, generated-code
+     consumption, smoke entry points. The task's `Done when:` is the
+     contract; verify with a one-liner (build command, `grep`, typecheck)
+     instead of a test file. Don't write a test that just asserts what the
+     compiler already proves.
+   - **Visual / manual QA** — UI rendering, end-to-end UX flows. The task
+     records the manual check explicitly. Add automation only when it would
+     catch a regression a human couldn't catch faster.
+
+   Spikes and throwaway exploration are out of scope.
 4. **Run mechanical gates** (lint, typecheck, tests) before declaring done.
 5. **Self-review against the spec.** After gates pass, run the
    [`spec-reviewer`](.claude/agents/spec-reviewer.md) subagent. Treat its
