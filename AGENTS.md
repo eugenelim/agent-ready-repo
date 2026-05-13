@@ -70,6 +70,8 @@ non-trivial work. Summary:
 5. **Self-review against the spec.** After gates pass, run the
    [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md)
    subagent. Treat its findings as part of "done", not as optional polish.
+   See [§ Specialist subagents](#specialist-subagents) for security and
+   quality reviewers to layer on when the change calls for them.
 6. **Iterate on findings, with a hard cap of five in-session iterations.**
    If you hit it, stop and re-plan — don't grind.
 7. **Capture what you learned** before opening the PR — into the right
@@ -113,6 +115,22 @@ Use them when relevant — they encode constraints you would otherwise re-derive
 - `update-conventions` — open an RFC to change governance docs
 
 The full index is in [`.claude/skills/README.md`](.claude/skills/README.md).
+
+## Specialist subagents
+
+`.claude/agents/` contains reviewers with sharp, differentiable lenses.
+Pick the ones the diff actually warrants; don't run all three by default.
+
+- [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md) — spec /
+  plan / implementation drift; missing edge cases; scope creep. Default
+  reviewer; runs after gates pass.
+- [`security-reviewer`](.claude/agents/security-reviewer.md) — OWASP Top
+  10 (web + LLM Apps) and STRIDE lens. Use when the diff touches auth,
+  secrets, user input, deserialization, file/network I/O, dependencies,
+  or LLM/agent code. Complements SAST/SCA scanners; does not replace them.
+- [`quality-engineer`](.claude/agents/quality-engineer.md) — testability,
+  observability, reliability, and maintainability lens. Also drafts
+  contract or construction tests on request.
 
 ## Things you should not do without asking
 

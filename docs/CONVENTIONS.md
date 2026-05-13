@@ -468,7 +468,9 @@ Most folders start carrying content.
   `tutorials/` entry (a quickstart) and a few `how-to/` recipes.
 - ADRs accumulate slowly — maybe 5-15 over the project's first year.
 - `rfc/` may still be unused; PRs are enough for most decisions.
-- `adversarial-reviewer` subagent is worth using.
+- `adversarial-reviewer` subagent is worth using. `security-reviewer` and
+  `quality-engineer` are worth reaching for when a PR warrants them — see
+  [`AGENTS.md § Specialist subagents`](../AGENTS.md#specialist-subagents).
 
 ### Profile C — Medium platform / engine (10-50 contributors)
 

@@ -32,7 +32,7 @@ paragraph why this PR doesn't need one.
 
 - [ ] Tests pass locally (`<test command>`)
 - [ ] Lint and typecheck pass (`<lint command>`, `<typecheck command>`)
-- [ ] Self-review run via the `adversarial-reviewer` subagent (or in-code review for spec-less changes); blockers addressed
+- [ ] Self-review run via the relevant reviewer subagent (`adversarial-reviewer` always; `security-reviewer` if security boundary crossed; `quality-engineer` for non-trivial logic / new test surface) — or in-code review for spec-less changes; blockers addressed
 - [ ] Spec and code agree (or spec was updated in this PR)
 - [ ] Living docs match reality:
   - [ ] `docs/product/changelog.md` updated for any user-visible behavior change
