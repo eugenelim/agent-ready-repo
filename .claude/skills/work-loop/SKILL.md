@@ -109,6 +109,18 @@ celebrating what you did. Findings come back grouped by severity
 (Blockers / Concerns / Nits), each with a one-sentence `Fix:`. Iterate
 until the agent returns `Clean — ready to commit.`
 
+**Specialist reviewers — use after adversarial-reviewer is clean.** Pick
+the ones the diff actually warrants; don't run all three by default.
+
+- `security-reviewer` — for diffs that cross a security boundary (auth,
+  secrets, user input, deserialization, file/network I/O, dependencies,
+  LLM/agent code). OWASP + STRIDE lens. Complements SAST/SCA scanners;
+  does not replace them.
+- `quality-engineer` — testability, observability, reliability, and
+  maintainability lens. Also drafts contract or construction tests on
+  request. Different lens from adversarial-reviewer — don't skip it
+  because the spec already shipped.
+
 If reviewing a spec-less change (a refactor, say), self-review against this
 checklist instead:
 

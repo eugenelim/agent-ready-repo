@@ -232,16 +232,22 @@ fi
 (( DELETE_NEW_PACKAGE_SKILL )) && rm -rf .claude/skills/new-package && echo "  rm -rf .claude/skills/new-package/"
 
 # When adversarial-reviewer was removed, replace its reference in AGENTS.md
-# with the inline-review fallback so the link doesn't dangle.
+# with the inline-review fallback and drop its bullet from the Specialist
+# subagents list so the link doesn't dangle.
 if (( DELETE_ADVERSARIAL_REVIEWER )); then
   python3 - <<'PY'
 import pathlib, re
 p = pathlib.Path("AGENTS.md")
 text = p.read_text()
 new = re.sub(
-  r"5\. \*\*Self-review against the spec\.\*\* After gates pass, run the\n   \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\)\n   subagent\. Treat its findings as part of \"done\", not as optional polish\.",
-  "5. **Self-review against the spec.** After gates pass, walk through the\n   self-review checklist in the `work-loop` skill. Treat its findings as\n   part of \"done\", not as optional polish.",
+  r"5\. \*\*Self-review against the spec\.\*\* After gates pass, run the\n   \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\)\n   subagent\. Treat its findings as part of \"done\", not as optional polish\.\n   See \[§ Specialist subagents\]\(#specialist-subagents\) for security and\n   quality reviewers to layer on when the change calls for them\.",
+  "5. **Self-review against the spec.** After gates pass, walk through the\n   self-review checklist in the `work-loop` skill. Treat its findings as\n   part of \"done\", not as optional polish. See [§ Specialist subagents](#specialist-subagents) for security and quality reviewers.",
   text,
+)
+new = re.sub(
+  r"- \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\) — spec /\n  plan / implementation drift; missing edge cases; scope creep\. Default\n  reviewer; runs after gates pass\.\n",
+  "",
+  new,
 )
 p.write_text(new)
 PY
