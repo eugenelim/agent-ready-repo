@@ -64,11 +64,17 @@ Don't keep it in your head — your context will turn over and you'll lose it.
 
 ### 2. EXECUTE — make the change
 
-**Tests before code.** Red-green-refactor:
+Match the discipline to the task's verification mode (see AGENTS.md §
+Workflow #3):
 
-1. Write the failing test first (red). Commit it if non-trivial.
-2. Write the minimum code to make it pass (green). Commit.
-3. Refactor with the test as your safety net. Commit.
+- **TDD-mode tasks** — red-green-refactor:
+  1. Write the failing test first (red). Commit it if non-trivial.
+  2. Write the minimum code to make it pass (green). Commit.
+  3. Refactor with the test as your safety net. Commit.
+- **Goal-based check** — write the code, then run the one-liner from
+  `Done when:`. No production test file.
+- **Visual / manual QA** — implement, then run the manual check recorded
+  in the task. Record the result.
 
 For each task, implement the smallest coherent unit of work toward the
 goal. Resist the urge to fix unrelated things you notice along the way;
@@ -200,9 +206,10 @@ before running Ralph.** AFK doesn't mean *unconsidered* — it means
 
 - **Skipping PLAN because "the task is small."** If it's truly small, the
   plan is one sentence — write it anyway. The discipline is the point.
-- **Writing code before tests.** "I'll add the tests after" is how features
-  ship with the wrong contract. Contract tests live in the spec, construction
-  tests in the plan, and *both* exist before any production code does.
+- **Writing code before deciding how it'll be verified.** "I'll figure out
+  the test after" is how features ship with the wrong contract. Every task
+  picks its verification mode (TDD / goal-based / manual QA) during PLAN;
+  for TDD-mode tasks, the test exists before the production code does.
 - **Editing the test until it passes.** This makes the gate green by lying.
   If a test is wrong, fix the test in a separate commit with a justification.
 - **Declaring victory because gates pass.** Gates are necessary, not
