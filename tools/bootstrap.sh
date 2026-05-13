@@ -280,9 +280,9 @@ fi
 echo
 echo "Running docs linter..."
 echo
-if bash tools/lint-agents-md.sh; then
+if bash tools/lint-agents-md.sh && bash tools/lint-agent-artifacts.sh; then
   echo
-  echo "✓ Bootstrap complete. Linter: green."
+  echo "✓ Bootstrap complete. Linters: green."
   if (( REMOVE_BOOTSTRAP )); then
     echo "  Removing tools/bootstrap.sh."
     rm -f tools/bootstrap.sh

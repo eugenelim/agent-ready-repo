@@ -197,9 +197,10 @@ rm USING_THIS_TEMPLATE.md
 
 ```bash
 bash tools/lint-agents-md.sh
+bash tools/lint-agent-artifacts.sh
 ```
 
-Expected output: all green checks, "Docs lint: passed."
+Expected output for each: all green checks, "passed."
 
 If anything is red, fix it before your first commit. The linter is
 checking the contracts the rest of the template relies on (AGENTS.md
