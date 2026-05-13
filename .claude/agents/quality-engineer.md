@@ -116,29 +116,34 @@ failure mode.
 17. **Resource cleanup.** File handles, connections, locks, temp
     dirs released on every path including error paths (`defer`,
     `using`, `try/finally`, context managers).
+18. **Graceful degradation.** When a dependency this code calls is
+    unavailable or slow, what happens? Hard failure, retry forever,
+    or fallback (cached value, default, skip)? The choice should be
+    explicit. Flag silently-blocking calls with no bypass, and
+    retries with no cap.
 
 ### Maintainability
 
-18. **Naming that lies.** Function names that promise more or less
+19. **Naming that lies.** Function names that promise more or less
     than the body delivers. Variables named after their type rather
     than their role.
-19. **Premature abstraction.** A `Strategy` / `Manager` / `Helper`
+20. **Premature abstraction.** A `Strategy` / `Manager` / `Helper`
     introduced for one caller. Inline it; abstract when there are
     three.
-20. **Dead code in the diff.** Imports, branches, parameters, or
+21. **Dead code in the diff.** Imports, branches, parameters, or
     feature flags that no longer have a caller.
-21. **Complexity worth a comment.** Non-obvious invariants, hidden
+22. **Complexity worth a comment.** Non-obvious invariants, hidden
     coupling to another module, or a workaround for a specific bug
     deserve a one-line *why* comment. The bar is "would a reader
     misread this", not "would it look more documented".
 
 ### Performance ergonomics
 
-22. **Obvious O(n²) where O(n).** Nested loops over the same
+23. **Obvious O(n²) where O(n).** Nested loops over the same
     collection, repeated linear lookups in a hot path. Flag with the
     data structure that fixes it.
-23. **N+1 queries.** Iterating a result set and querying per row.
-24. **Unbounded growth.** Collections, caches, log buffers, or
+24. **N+1 queries.** Iterating a result set and querying per row.
+25. **Unbounded growth.** Collections, caches, log buffers, or
     queues with no eviction or backpressure.
 
 ## Test-author mode
