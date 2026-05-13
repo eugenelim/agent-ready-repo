@@ -148,8 +148,8 @@ and the project name, description, install/run commands. Delete the
 - Delete `apps/` and `packages/` entirely (your code goes in the repo
   root, or in `src/`).
 - Delete `.claude/skills/new-package/` (no packages).
-- Delete `.claude/agents/spec-reviewer.md` if you're a one-person team
-  (use the in-code review pass in the work-loop skill instead).
+- Delete `.claude/agents/adversarial-reviewer.md` if you're a one-person
+  team (use the in-code review pass in the work-loop skill instead).
 - Trim `docs/CONVENTIONS.md` aggressively — sections on RFCs and
   per-package AGENTS.md don't apply.
 

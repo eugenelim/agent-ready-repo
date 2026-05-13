@@ -68,8 +68,8 @@ non-trivial work. Summary:
    Spikes and throwaway exploration are out of scope.
 4. **Run mechanical gates** (lint, typecheck, tests) before declaring done.
 5. **Self-review against the spec.** After gates pass, run the
-   [`spec-reviewer`](.claude/agents/spec-reviewer.md) subagent. Treat its
-   findings as part of "done", not as optional polish.
+   [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md)
+   subagent. Treat its findings as part of "done", not as optional polish.
 6. **Iterate on findings, with a hard cap of five in-session iterations.**
    If you hit it, stop and re-plan — don't grind.
 7. **Capture what you learned** before opening the PR — into the right

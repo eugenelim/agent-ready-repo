@@ -112,14 +112,14 @@ BUILD_CMD="$(ask "Build command" "npm run build")"
 
 # Profile-driven cleanup choices
 DELETE_APPS=0; DELETE_PACKAGES=0; DELETE_EXAMPLE=1
-DELETE_SPEC_REVIEWER=0; DELETE_NEW_PACKAGE_SKILL=0
+DELETE_ADVERSARIAL_REVIEWER=0; DELETE_NEW_PACKAGE_SKILL=0
 
 case "$PROFILE" in
   A)
     DELETE_APPS=1; DELETE_PACKAGES=1
     DELETE_NEW_PACKAGE_SKILL=1
-    if ask_yn "Profile A: delete spec-reviewer subagent? (recommended for solo/very-small teams)" "y"; then
-      DELETE_SPEC_REVIEWER=1
+    if ask_yn "Profile A: delete adversarial-reviewer subagent? (recommended for solo/very-small teams)" "y"; then
+      DELETE_ADVERSARIAL_REVIEWER=1
     fi
     ;;
   B)
@@ -150,7 +150,7 @@ echo "  Build:           $BUILD_CMD"
 echo "  Delete apps/:    $((DELETE_APPS))"
 echo "  Delete packages/: $((DELETE_PACKAGES))"
 echo "  Delete example package: $((DELETE_EXAMPLE))"
-echo "  Delete spec-reviewer:   $((DELETE_SPEC_REVIEWER))"
+echo "  Delete adversarial-reviewer: $((DELETE_ADVERSARIAL_REVIEWER))"
 echo "  Delete new-package skill: $((DELETE_NEW_PACKAGE_SKILL))"
 echo "  Date stamps:     $TODAY"
 echo
@@ -228,19 +228,19 @@ if (( DELETE_PACKAGES )); then
 elif (( DELETE_EXAMPLE )) && [[ -d packages/_example ]]; then
   rm -rf packages/_example && echo "  rm -rf packages/_example/"
 fi
-(( DELETE_SPEC_REVIEWER )) && rm -f .claude/agents/spec-reviewer.md && echo "  rm .claude/agents/spec-reviewer.md"
+(( DELETE_ADVERSARIAL_REVIEWER )) && rm -f .claude/agents/adversarial-reviewer.md && echo "  rm .claude/agents/adversarial-reviewer.md"
 (( DELETE_NEW_PACKAGE_SKILL )) && rm -rf .claude/skills/new-package && echo "  rm -rf .claude/skills/new-package/"
 
-# When spec-reviewer was removed, replace its reference in AGENTS.md with the
-# inline-review fallback so the link doesn't dangle.
-if (( DELETE_SPEC_REVIEWER )); then
+# When adversarial-reviewer was removed, replace its reference in AGENTS.md
+# with the inline-review fallback so the link doesn't dangle.
+if (( DELETE_ADVERSARIAL_REVIEWER )); then
   python3 - <<'PY'
 import pathlib, re
 p = pathlib.Path("AGENTS.md")
 text = p.read_text()
 new = re.sub(
-  r"4\. \*\*Self-review against the spec\.\*\* After gates pass, run the\n   \[`spec-reviewer`\]\(\.claude/agents/spec-reviewer\.md\) subagent\. Treat its\n   findings as part of \"done\", not as optional polish\.",
-  "4. **Self-review against the spec.** After gates pass, walk through the\n   self-review checklist in the `work-loop` skill. Treat its findings as\n   part of \"done\", not as optional polish.",
+  r"5\. \*\*Self-review against the spec\.\*\* After gates pass, run the\n   \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\)\n   subagent\. Treat its findings as part of \"done\", not as optional polish\.",
+  "5. **Self-review against the spec.** After gates pass, walk through the\n   self-review checklist in the `work-loop` skill. Treat its findings as\n   part of \"done\", not as optional polish.",
   text,
 )
 p.write_text(new)
