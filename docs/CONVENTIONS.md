@@ -448,7 +448,7 @@ something forces them to fill.
 | `docs/CONVENTIONS.md` (trim aggressively) | `docs/architecture/` (the README is enough) |
 | `docs/adr/` (write when you make a real tradeoff) | `docs/product/personas.md` |
 | `docs/specs/` (one spec at a time, or none) | Per-package `AGENTS.md` (no packages) |
-| `docs/product/changelog.md` | `.claude/agents/spec-reviewer.md` (overhead at this size) |
+| `docs/product/changelog.md` | `.claude/agents/adversarial-reviewer.md` (overhead at this size) |
 | `docs/guides/reference/` (API/config docs) | Other Diátaxis buckets — fill as needed |
 | `.claude/skills/work-loop/` | |
 
@@ -468,7 +468,7 @@ Most folders start carrying content.
   `tutorials/` entry (a quickstart) and a few `how-to/` recipes.
 - ADRs accumulate slowly — maybe 5-15 over the project's first year.
 - `rfc/` may still be unused; PRs are enough for most decisions.
-- `spec-reviewer` subagent is worth using.
+- `adversarial-reviewer` subagent is worth using.
 
 ### Profile C — Medium platform / engine (10-50 contributors)
 

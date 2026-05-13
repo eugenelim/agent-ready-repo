@@ -97,16 +97,17 @@ go to FIX. Don't move past a failing gate by editing the gate.
 ### 4. REVIEW — adversarial self-review
 
 After gates pass, run adversarial review against the spec. Use the
-`spec-reviewer` subagent (in `.claude/agents/spec-reviewer.md`):
+`adversarial-reviewer` subagent (in `.claude/agents/adversarial-reviewer.md`):
 
 ```
-Use the spec-reviewer subagent to review my changes against
+Use the adversarial-reviewer subagent to review my changes against
 docs/specs/<feature>/spec.md
 ```
 
 The subagent reads adversarially — it's looking for what you missed, not
-celebrating what you did. Findings come back grouped by severity (Blockers,
-Concerns, Questions).
+celebrating what you did. Findings come back grouped by severity
+(Blockers / Concerns / Nits), each with a one-sentence `Fix:`. Iterate
+until the agent returns `Clean — ready to commit.`
 
 If reviewing a spec-less change (a refactor, say), self-review against this
 checklist instead:
