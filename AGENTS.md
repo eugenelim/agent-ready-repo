@@ -47,7 +47,8 @@ non-trivial work. Summary:
 1. **Plan before acting.** For anything spec-shaped, read the spec first. For
    architecturally significant work, use Plan Mode and "think hard" /
    "ultrathink" — Opus 4.7's adaptive thinking earns its keep on the hard 20%
-   of tasks.
+   of tasks. Phrase every plan task as a verifiable goal, not a list of
+   steps — the task name should be the success criterion.
 2. **Specs are validation gates, not write-once docs.** If implementation
    diverges from the spec, update the spec in the same PR. Drift is a bug.
 3. **Tests before code.** Contract tests live in `spec.md` (authored with
