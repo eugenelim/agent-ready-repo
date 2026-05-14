@@ -64,9 +64,12 @@ non-trivial work. Summary:
    - **Visual / manual QA** — UI rendering, end-to-end UX flows. The task
      records the manual check explicitly. For user-facing flows that are
      part of the spec's contract, the verification artifact — automated
-     or manual — should simulate the user's gesture and assert the
-     observable outcome, not exercise the controller in isolation. Add
-     automation when the regression cost (UI bugs ship invisibly)
+     or manual — should simulate the user's gesture and assert *what the
+     user actually sees* (rendered text, visible elements, navigation),
+     not internal state (store contents, mock-call counts, context-
+     provider values). A test that passes when the on-screen result is
+     wrong is mode-mismatched, regardless of which framework wrote it.
+     Add automation when the regression cost (UI bugs ship invisibly)
      outweighs the cost (flakiness, framework brittleness); the choice
      of tool is the adopter's.
 
