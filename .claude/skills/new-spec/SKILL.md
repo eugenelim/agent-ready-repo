@@ -47,6 +47,23 @@ spec — it forces the question "what does done look like?" before any code.
    - Carry **construction tests** per task — `Tests:` before `Approach:`
      in each task, designed up front. "We'll test it" is not a strategy.
 
+   Push back hard on these plan-stage failure modes (mirror of step 3):
+   - **Task too big.** "Implement the feature" is not a task; "add the
+     validation function for X" is. Each task should fit a single PR
+     and a single context window. Split coarse tasks until they do.
+   - **Verification mode unstated.** Every task must declare its mode —
+     TDD, goal-based check, or visual / manual QA. Silent defaults
+     produce mock-shape tests on config-shape tasks and untested
+     invariants on logic-shape tasks.
+   - **Tasks without spec mapping.** Each task should reference which
+     Behavior bullet (or Contract test) in the spec it implements.
+     Orphan tasks are scope creep in disguise; behaviours with no
+     implementing task are gaps.
+   - **Specificity miss.** Task descriptions should reference exact
+     file paths and function or symbol names where they're known.
+     "Update the parser" is too coarse to verify; "add a null-check
+     in `parser/lex.ts:Lexer.next`" is the right level.
+
 5. Update `docs/specs/README.md` to add the feature to the active list.
 
 6. Remind the user: when implementation diverges from the spec, the spec is
