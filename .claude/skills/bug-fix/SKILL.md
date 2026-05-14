@@ -45,6 +45,11 @@ restructuring.
      caller, their shared assumption, or upstream of both? A null
      that crashes in `parse()` may originate in the loader that
      should never have produced null.
+   - **When did it start?** `git log` and `git blame` on the
+     affected code. For regression-shaped bugs the commit that
+     broke it often tells you why; even for non-regressions, the
+     commit messages surrounding the affected lines surface the
+     original intent and context.
    - **Could the same class of bug exist elsewhere?** Grep for
      similar patterns — same function called from other sites, same
      assumption made elsewhere. If yes, decide whether the fix's
