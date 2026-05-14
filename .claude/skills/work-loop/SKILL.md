@@ -134,7 +134,17 @@ checklist instead:
 - **Blockers from review** → go to FIX, then re-run GATES and REVIEW.
 - **Concerns from review** → fix the ones you can in this PR; capture the
   rest as follow-up issues. Don't let "concerns" rot in chat.
-- **Gates green and review clean** → done. Open the PR.
+- **Gates green and review clean** → ready to ship. Walk this end-of-session
+  checklist; refuse to declare done until every line is true:
+  - GATES were clean (lint, typecheck, tests).
+  - `adversarial-reviewer` (plus `security-reviewer` / `quality-engineer`
+    if the diff warranted them) returned `Clean — ready to commit.`
+  - `git status` shows no uncommitted or untracked files (except
+    gitignored scratch).
+  - Conventional commit format used; no force-push to shared branches.
+  - Learnings captured per the next section (AGENTS.md, skill, or doc).
+  - PR opened — or merged directly, if that's your workflow — with the
+    four-question template filled in.
 
 ## FIX phase
 
