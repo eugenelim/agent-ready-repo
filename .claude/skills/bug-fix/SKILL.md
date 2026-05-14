@@ -85,6 +85,11 @@ restructuring.
    shows *what*; the commit body shows *why*. Future readers care
    more about the latter.
 
+8. **Loop back to the tracker (if any).** Comment the PR URL on the
+   ticket and apply the next transition. The mechanism is
+   adopter-specific (Jira MCP, Linear CLI, `gh issue comment`, etc.);
+   the obligation — keeping the ticket synced — is universal.
+
 ## Anti-patterns to refuse
 
 - **Fixing forward without a reproduction.** The obvious fix is
