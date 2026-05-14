@@ -38,6 +38,21 @@ One paragraph per coherent piece of behaviour. What inputs produce what
 outputs, what side effects, what guarantees. No internals. No test syntax —
 the test list lives in "Contract tests" below.
 
+**Frame behaviors at the boundary your users actually observe.**
+- API behaviors as request → response, or input → effect with status
+  codes and error shapes.
+- UI behaviors as user gesture → visible outcome (not "form validates
+  required fields" but "user sees inline error next to empty required
+  field on submit").
+- CLI behaviors as command → exit code / stdout / stderr.
+- Agentic behaviors as input → evaluable outcome (e.g. "given prompt
+  X, the agent's output passes eval Y" or "agent calls tool T at most
+  N times per turn before returning").
+
+Implementation details ("the form validates required fields", "the
+handler short-circuits on auth failure") belong in `plan.md`;
+behaviors are what users perceive.
+
 The reader of this section should understand what the feature does without
 caring how the test runner is wired up.
 -->

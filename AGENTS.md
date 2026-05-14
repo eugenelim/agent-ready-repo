@@ -62,8 +62,13 @@ non-trivial work. Summary:
      instead of a test file. Don't write a test that just asserts what the
      compiler already proves.
    - **Visual / manual QA** — UI rendering, end-to-end UX flows. The task
-     records the manual check explicitly. Add automation only when it would
-     catch a regression a human couldn't catch faster.
+     records the manual check explicitly. For user-facing flows that are
+     part of the spec's contract, the verification artifact — automated
+     or manual — should simulate the user's gesture and assert the
+     observable outcome, not exercise the controller in isolation. Add
+     automation when the regression cost (UI bugs ship invisibly)
+     outweighs the cost (flakiness, framework brittleness); the choice
+     of tool is the adopter's.
 
    Spikes and throwaway exploration are out of scope.
 4. **Run mechanical gates** (lint, typecheck, tests) before declaring done.
