@@ -18,6 +18,7 @@ adherence.
 | [`new-adr`](new-adr/SKILL.md) | Create a new ADR with the next available number, from the template |
 | [`new-rfc`](new-rfc/SKILL.md) | Create a new RFC with the next available number, from the template |
 | [`new-spec`](new-spec/SKILL.md) | Create a new spec directory with `spec.md` and `plan.md` |
+| [`bug-fix`](bug-fix/SKILL.md) | Fix a defect — reproduce → failing test → root cause → minimum fix → root-vs-symptom verify → commit body documents *why* |
 | [`new-package`](new-package/SKILL.md) | Scaffold a new package in `packages/` |
 | [`update-conventions`](update-conventions/SKILL.md) | Open an RFC to change `docs/CONVENTIONS.md` |
 
