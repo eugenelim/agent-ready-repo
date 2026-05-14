@@ -67,14 +67,16 @@ checklists; verification-mode awareness applies to every review.
    mode — TDD, goal-based check, or visual / manual QA — with the
    verification artifact named. The verification's level of
    abstraction should match the behavior's boundary: UI behaviors
-   need tests that simulate the user's gesture, not unit tests on
-   the controller; API behaviors need tests that hit the interface,
-   not unit tests on the handler in isolation. Mode-mismatched
-   verification produces tests that pass for the wrong reason —
-   default-TDD tasks that should be goal-based produce narcissistic
-   mock-shape tests; goal-based tasks that should be TDD ship without
-   invariants; UI tasks shipped as TDD-on-the-controller pass while
-   the user-facing bug remains.
+   need tests that simulate the user's gesture *and assert on
+   rendered / visible state*, not unit tests on the controller or
+   on store / provider internals; API behaviors need tests that hit
+   the interface *and assert on response shape*, not unit tests on
+   the handler in isolation. Mode-mismatched verification produces
+   tests that pass for the wrong reason — default-TDD tasks that
+   should be goal-based produce narcissistic mock-shape tests;
+   goal-based tasks that should be TDD ship without invariants; UI
+   tasks shipped as TDD-on-the-controller (or asserting on store
+   contents only) pass while the user-facing bug remains.
 
 ### Implementation-stage checks (when code changed in this PR)
 
