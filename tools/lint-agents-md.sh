@@ -11,6 +11,7 @@
 #   7. No legacy docs/constitution/ directory exists.
 #   8. The four Diátaxis subdirectories under docs/guides/ exist.
 #   9. Living docs aren't suspiciously stale (warn-only, not a fail).
+#  10. Drift-watch — phrases that must live in exactly one canonical home.
 
 set -euo pipefail
 
@@ -130,6 +131,47 @@ for f in "${living_docs[@]}"; do
   age=$(( (now_epoch - mtime) / 86400 ))
   if (( age > STALE_DAYS )); then
     warn "$f hasn't been touched in $age days (threshold: $STALE_DAYS). Consider whether it's still accurate."
+  fi
+done
+
+# 10. Drift-watch — single-source phrases.
+# Keep this list short. Each entry: a regex, the file that owns it, and a
+# space-separated list of files that must NOT contain it. Aimed at the
+# load-bearing mechanics we deliberately single-sourced, not stylistic prose.
+drift_check() {
+  local pattern="$1" canonical="$2"; shift 2
+  local forbidden=("$@")
+  if [[ -f "$canonical" ]] && ! grep -qE "$pattern" "$canonical"; then
+    note "drift-watch: '$pattern' missing from canonical home $canonical."
+  fi
+  for f in "${forbidden[@]}"; do
+    [[ -f "$f" ]] || continue
+    if grep -qE "$pattern" "$f"; then
+      note "drift-watch: '$pattern' re-appeared in $f (canonical: $canonical)."
+    fi
+  done
+}
+
+# Iteration cap number: only in the work-loop skill.
+drift_check \
+  'hard cap of (five|5) in-session' \
+  ".claude/skills/work-loop/SKILL.md" \
+  "AGENTS.md" "docs/CONVENTIONS.md"
+
+# Verification-mode triplet (TDD / Goal-based check / Visual / manual QA):
+# the explicit per-mode prose is single-sourced in the work-loop skill.
+# We probe with one mode label that only appears where the prose lives.
+drift_check \
+  '\*\*Goal-based check\*\*' \
+  ".claude/skills/work-loop/SKILL.md" \
+  "AGENTS.md" "docs/CONVENTIONS.md"
+
+# Vendor-specific UX tokens belong under .claude/ only; AGENTS.md and the
+# governance docs stay agent-neutral.
+for f in AGENTS.md docs/CONVENTIONS.md docs/CHARTER.md docs/APPROACH.md; do
+  [[ -f "$f" ]] || continue
+  if grep -qE '\bultrathink\b|Plan Mode \(Shift\+Tab' "$f"; then
+    note "drift-watch: vendor token (ultrathink / 'Plan Mode (Shift+Tab') in $f. Move it under .claude/."
   fi
 done
 

@@ -95,16 +95,6 @@ check("README.md template-intro block (multi-line, DOTALL)", "README.md",
 check("docs/APPROACH.md exists with canonical principles section",
       "docs/APPROACH.md", "The four principles for what we keep")
 
-workflow_5_regex = (
-    r"5\. \*\*Self-review against the spec\.\*\* After gates pass, run the\n"
-    r"   \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\)\n"
-    r"   subagent\. Treat its findings as part of \"done\", not as optional polish\.\n"
-    r"   See \[§ Specialist subagents\]\(#specialist-subagents\) for security and\n"
-    r"   quality reviewers to layer on when the change calls for them\."
-)
-check("AGENTS.md Workflow #5 fallback regex (adversarial-reviewer removal)",
-      "AGENTS.md", workflow_5_regex, regex=True)
-
 adversarial_bullet = (
     r"- \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\) — spec /\n"
     r"  plan / implementation drift; missing edge cases; scope creep\. Default\n"
