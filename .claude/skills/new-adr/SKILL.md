@@ -10,7 +10,7 @@ number.
 
 ## When to invoke
 
-The user wants to record an architectural decision. Before invoking, confirm:
+Before invoking, confirm:
 
 1. The decision is about *architecture or shared infrastructure*, not a
    single feature's internals (that's a spec).

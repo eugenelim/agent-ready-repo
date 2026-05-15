@@ -9,8 +9,7 @@ Open a new RFC in `docs/rfc/` from the template.
 
 ## When to invoke
 
-The user wants to propose a change that's bigger than a normal PR. Before
-invoking, confirm one of:
+Before invoking, confirm one of:
 
 - The change touches multiple packages or affects external users.
 - The change reverses a previous ADR.

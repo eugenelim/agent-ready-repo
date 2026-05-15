@@ -10,8 +10,7 @@ in this monorepo follows.
 
 ## When to invoke
 
-The user wants a new shared library that other packages or apps will depend
-on. Confirm:
+Confirm:
 
 1. It belongs in `packages/` (shared library), not `apps/` (deployable).
 2. Its name is unique within `packages/` and reasonably descriptive.
