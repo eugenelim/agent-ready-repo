@@ -81,7 +81,11 @@ For anything beyond trivial, *think before you write code*. Concretely:
     mode-mismatched, regardless of which framework wrote it. Add
     automation when the regression cost (UI bugs ship invisibly) outweighs
     the cost (flakiness, framework brittleness); the choice of tool is the
-    adopter's.
+    adopter's. A third flavor — *exploratory / visual fuzz* — drives the
+    UI with varied or random input and asserts **invariants** ("didn't
+    crash, didn't render garbage, layout holds, no overflow") rather than
+    specific outputs. Reach for it when the failure mode is open-ended and
+    you can't enumerate the gestures up front.
 
   Spikes and throwaway exploration are out of scope.
 - **Design tests up front, before any code.** Contract tests live in
