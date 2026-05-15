@@ -51,6 +51,10 @@ spec — it forces the question "what does done look like?" before any code.
    - **Task too big.** "Implement the feature" is not a task; "add the
      validation function for X" is. Each task should fit a single PR
      and a single context window. Split coarse tasks until they do.
+   - **`Depends on:` omitted.** Every task must state `Depends on:`
+     explicitly — prior task IDs or `none`. Don't let authors lean on
+     task order to imply dependency; that hides serial-by-default
+     thinking and makes the plan unparseable.
    - **Verification mode unstated.** Every task must declare its mode —
      TDD, goal-based check, or visual / manual QA. Silent defaults
      produce mock-shape tests on config-shape tasks and untested

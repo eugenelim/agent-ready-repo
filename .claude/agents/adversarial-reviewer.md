@@ -63,7 +63,11 @@ checklists; verification-mode awareness applies to every review.
    "given X when Y then Z" assertions; plan carries per-task units, edge
    cases, properties. Mixing them means tests get revised when they should
    be durable.
-8. **Verification-mode declaration.** Each plan task should state its
+8. **Missing `Depends on:` per task.** Every plan task should declare
+   `Depends on:` explicitly — prior task IDs or `none`. Flag tasks that
+   omit the field or use hand-wavy values ("the previous ones", "see
+   above"). `none` is a valid answer; silence is not.
+9. **Verification-mode declaration.** Each plan task should state its
    mode — TDD, goal-based check, or visual / manual QA — with the
    verification artifact named. The verification's level of
    abstraction should match the behavior's boundary: UI behaviors
