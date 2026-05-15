@@ -68,9 +68,20 @@ spec — it forces the question "what does done look like?" before any code.
      "Update the parser" is too coarse to verify; "add a null-check
      in `parser/lex.ts:Lexer.next`" is the right level.
 
-5. Update `docs/specs/README.md` to add the feature to the active list.
+5. Spec-mode adversarial review. Before announcing the spec in the README,
+   invoke `adversarial-reviewer` against the freshly drafted `spec.md` +
+   `plan.md` in spec mode — the agent supports this explicitly (see
+   `.claude/agents/adversarial-reviewer.md`). Iterate on findings until the
+   reviewer returns `Clean — ready to commit.` Spec-mode reviews should
+   converge in 1-2 passes; if you can't reach clean in 3, the spec has a
+   structural problem — surface to a human rather than grinding. This step
+   is contingent on the project using `adversarial-reviewer` at all (Profile
+   B+ per `docs/CONVENTIONS.md`); at Profile A the reviewer is typically
+   absent and this step is moot.
 
-6. Remind the user: when implementation diverges from the spec, the spec is
+6. Update `docs/specs/README.md` to add the feature to the active list.
+
+7. Remind the user: when implementation diverges from the spec, the spec is
    wrong. Update the spec in the same PR.
 
 ## Anti-patterns to refuse
