@@ -6,6 +6,8 @@ AI coding agents are getting good enough to do real engineering, and the work go
 
 It fits any project — service, library, platform — and scales from solo developer up to a team of fifty without restructuring. For the thinking behind each piece, see [`docs/APPROACH.md`](docs/APPROACH.md).
 
+There are two ways to adopt. Bootstrap a new repo from the full template with `bash tools/bootstrap.sh` (Path A — the documented happy path), or cherry-pick a single skill into your existing repo with `python3 tools/install-skill.py <skill-name> /path/to/your-repo` (Path B). Path B reads each skill's `dependencies:` manifest, walks the closure, copies what's needed, and never clobbers files you already have. See [`USING_THIS_TEMPLATE.md`](USING_THIS_TEMPLATE.md) for both.
+
 ---
 
 **For evaluators**: below is the template scaffold an adopter inherits after running `bash tools/bootstrap.sh`. It shows the kinds of documents, conventions, and structure the template installs.
@@ -72,7 +74,7 @@ load on demand.
 │   ├── product/                    # roadmap, changelog (for maintainers)
 │   ├── guides/                     # user-facing docs (Diátaxis-organized)
 │   └── _templates/                 # blank templates for adr / rfc / spec / plan
-├── tools/                          # bootstrap, linters, self-tests, Ralph harness
+├── tools/                          # bootstrap, single-skill installer, linters, self-tests, Ralph harness
 ├── apps/                           # deployable applications (delete if not used)
 └── packages/                       # shared libraries (delete if not used)
 ```
