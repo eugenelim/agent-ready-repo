@@ -35,57 +35,19 @@ exist yet** — ask, or open an RFC. Don't guess. Lifecycle and mechanics
 (living vs. frozen, ADR vs. RFC, etc.) live in
 [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 
-## Workflow
+## How we work
 
 For anything beyond a one-line edit, follow the **plan → execute → verify →
-review** loop. The full mechanics are in the
-[`work-loop`](.claude/skills/work-loop/SKILL.md) skill — load it before
-non-trivial work. Summary:
+review** loop. The mechanics — verification modes, gate sequence, iteration
+cap, capture-learnings, specialist-reviewer pass — live in the
+[`work-loop`](.claude/skills/work-loop/SKILL.md) skill. Load it before
+non-trivial work; that is the canonical source for *how* the loop runs.
+[`docs/CONVENTIONS.md`](docs/CONVENTIONS.md#how-we-do-non-trivial-work)
+covers the *why*. Commits follow Conventional Commits — format and footer
+rules are in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits).
 
-1. **Plan before acting.** For anything spec-shaped, read the spec first. For
-   architecturally significant work, use Plan Mode and "think hard" /
-   "ultrathink". Phrase every plan task as a verifiable goal, not a list of
-   steps — the task name should be the success criterion.
-2. **Specs are validation gates, not write-once docs.** If implementation
-   diverges from the spec, update the spec in the same PR. Drift is a bug.
-3. **Verification before code.** Every plan task declares *how* it'll be
-   verified before the implementer touches the keyboard. Pick the mode that
-   fits the code shape:
-   - **TDD** — pure functions, state machines, protocols, anything with a
-     compressible invariant. Contract tests in `spec.md`, construction tests
-     in `plan.md`, `Tests:` before `Approach:`, red-green-refactor. Default
-     for testable logic. Split detailed in
-     [`CONVENTIONS.md`](docs/CONVENTIONS.md#contract-tests-vs-construction-tests).
-   - **Goal-based check** — build config, scaffolding, generated-code
-     consumption, smoke entry points. The task's `Done when:` is the
-     contract; verify with a one-liner (build command, `grep`, typecheck)
-     instead of a test file. Don't write a test that just asserts what the
-     compiler already proves.
-   - **Visual / manual QA** — UI rendering, end-to-end UX flows. The task
-     records the manual check explicitly. For user-facing flows that are
-     part of the spec's contract, the verification artifact — automated
-     or manual — should simulate the user's gesture and assert *what the
-     user actually sees* (rendered text, visible elements, navigation),
-     not internal state (store contents, mock-call counts, context-
-     provider values). A test that passes when the on-screen result is
-     wrong is mode-mismatched, regardless of which framework wrote it.
-     Add automation when the regression cost (UI bugs ship invisibly)
-     outweighs the cost (flakiness, framework brittleness); the choice
-     of tool is the adopter's.
-
-   Spikes and throwaway exploration are out of scope.
-4. **Run mechanical gates** (lint, typecheck, tests) before declaring done.
-5. **Self-review against the spec.** After gates pass, run the
-   [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md)
-   subagent. Treat its findings as part of "done", not as optional polish.
-   See [§ Specialist subagents](#specialist-subagents) for security and
-   quality reviewers to layer on when the change calls for them.
-6. **Iterate on findings, with a hard cap of five in-session iterations.**
-   If you hit it, stop and re-plan — don't grind.
-7. **Capture what you learned** before opening the PR — into the right
-   `AGENTS.md`, skill, or doc.
-8. **Conventional commits.** Format: `<type>(<scope>): <subject>`. See
-   [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md#commits).
+Specs are validation gates, not write-once docs. If implementation diverges
+from the spec, update the spec in the same PR — drift is a bug.
 
 For unattended/AFK work, the [Ralph harness](tools/RALPH.md) runs the loop
 in fresh sessions. Read it first; Ralph fits *some* tasks, not most.

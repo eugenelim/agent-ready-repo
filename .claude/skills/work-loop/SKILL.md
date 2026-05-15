@@ -48,8 +48,34 @@ For anything beyond trivial, *think before you write code*. Concretely:
 - For architecturally significant work, use extended thinking. In an
   interactive Claude Code session: enter Plan Mode (Shift+Tab twice) and add
   "think hard" or "ultrathink" to your prompt for adaptive thinking depth.
+  Other agents have their own facilities — use the equivalent.
 - Write down: which files you'll touch, what tests will demonstrate "done",
   and what you are *not* changing. Three sentences is enough.
+- **Pick the verification mode for each plan task** before writing code.
+  The mode is the task's contract for "how do we know this is done":
+  - **TDD** — pure functions, state machines, protocols, anything with a
+    compressible invariant. Contract tests in `spec.md`, construction
+    tests in `plan.md`, `Tests:` before `Approach:`, red-green-refactor.
+    Default for testable logic. Split detailed in
+    [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#contract-tests-vs-construction-tests).
+  - **Goal-based check** — build config, scaffolding, generated-code
+    consumption, smoke entry points. The task's `Done when:` is the
+    contract; verify with a one-liner (build command, `grep`, typecheck)
+    instead of a test file. Don't write a test that just asserts what
+    the compiler already proves.
+  - **Visual / manual QA** — UI rendering, end-to-end UX flows. The task
+    records the manual check explicitly. For user-facing flows that are
+    part of the spec's contract, the verification artifact — automated or
+    manual — should simulate the user's gesture and assert *what the user
+    actually sees* (rendered text, visible elements, navigation), not
+    internal state (store contents, mock-call counts, context-provider
+    values). A test that passes when the on-screen result is wrong is
+    mode-mismatched, regardless of which framework wrote it. Add
+    automation when the regression cost (UI bugs ship invisibly) outweighs
+    the cost (flakiness, framework brittleness); the choice of tool is the
+    adopter's.
+
+  Spikes and throwaway exploration are out of scope.
 - **Design tests up front, before any code.** Contract tests live in
   `spec.md` and are written when the spec is written (see the `new-spec`
   step above). During PLAN, write construction tests for **every** task
@@ -72,8 +98,7 @@ Don't keep it in your head — your context will turn over and you'll lose it.
 
 ### 2. EXECUTE — make the change
 
-Match the discipline to the task's verification mode (see AGENTS.md §
-Workflow #3):
+Match the discipline to the verification mode you picked during PLAN:
 
 - **TDD-mode tasks** — red-green-refactor:
   1. Write the failing test first (red). Commit it if non-trivial.
@@ -180,9 +205,9 @@ The loop must terminate. Iteration without termination is how Ralph loops
    Either the fix is wrong or the finding is. Surface it to a human.
 3. **Diff is shrinking but findings aren't** — you're spot-fixing without
    addressing root cause. Stop and rethink the approach (back to PLAN).
-4. **Iteration cap reached** — default 5 in-session iterations. If you hit
-   the cap, the task is bigger than you thought. Stop, write down what you
-   learned, and re-plan.
+4. **Iteration cap reached** — the project's hard cap of 5 in-session
+   iterations. If you hit the cap, the task is bigger than you thought.
+   Stop, write down what you learned, and re-plan.
 
 Never silently expand scope to make a finding go away.
 
