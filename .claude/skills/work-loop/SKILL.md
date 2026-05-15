@@ -137,8 +137,13 @@ checklist instead:
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
   checklist; refuse to declare done until every line is true:
   - GATES were clean (lint, typecheck, tests).
-  - `adversarial-reviewer` (plus `security-reviewer` / `quality-engineer`
-    if the diff warranted them) returned `Clean — ready to commit.`
+  - `adversarial-reviewer` returned `Clean — ready to commit.` Plus
+    `security-reviewer` (security boundary) and `quality-engineer`
+    (maintenance lens) when the diff warrants.
+  - For the final loop of a multi-loop spec: `quality-engineer` ran
+    against the whole spec, not just the last diff, and returned clean.
+    Per-task gates verify N contracts; this is the pass that verifies the
+    integrated journey.
   - `git status` shows no uncommitted or untracked files (except
     gitignored scratch).
   - Conventional commit format used; no force-push to shared branches.
@@ -235,9 +240,21 @@ before running Ralph.** AFK doesn't mean *unconsidered* — it means
   for TDD-mode tasks, the test exists before the production code does.
 - **Editing the test until it passes.** This makes the gate green by lying.
   If a test is wrong, fix the test in a separate commit with a justification.
+- **Deferring a test because the code fails it.** The inverse of editing
+  the test — same lie, opposite direction. If a red test fails because the
+  code under test is wrong, fix the code; plausible-sounding rationales
+  ("flaky", "out of scope for this PR", "covered elsewhere") are how
+  regressions ship. If the test is genuinely wrong, fix it in a separate
+  commit with the reason; if the test is right and the code can't pass it
+  this session, the task isn't done — surface it, don't bury it.
 - **Declaring victory because gates pass.** Gates are necessary, not
   sufficient. Review catches what gates can't (missing edge cases, scope
   creep, spec drift).
+- **Declaring spec-complete from per-task gates.** When a spec is
+  decomposed into N loops, per-task gates verify N contracts — not the
+  integrated journey. Before the final loop's DECIDE, run
+  `quality-engineer` against the whole spec rather than just the last
+  diff, so scenarios the parts test but the whole doesn't get caught.
 - **Running Ralph on a fresh task instead of work-loop.** Ralph compounds
   bad foundations. Do at least one in-session pass first to validate the
   approach.
