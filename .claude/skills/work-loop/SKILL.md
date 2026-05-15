@@ -1,6 +1,14 @@
 ---
 name: work-loop
 description: Use this skill whenever you're implementing a non-trivial change — a feature, a bug fix that touches more than one file, a refactor, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
+dependencies:
+  - docs/CONVENTIONS.md#contract-tests-vs-construction-tests
+  - .claude/agents/adversarial-reviewer.md
+  - .claude/agents/security-reviewer.md
+  - .claude/agents/quality-engineer.md
+  - .claude/skills/new-spec/SKILL.md
+  - tools/ralph.sh
+  - tools/RALPH.md
 ---
 
 # Skill: work-loop
