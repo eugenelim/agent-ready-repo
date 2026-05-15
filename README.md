@@ -2,7 +2,7 @@
 
 A repo template designed to be a place where AI coding agents can do their best work.
 
-AI coding agents are getting good enough to do real engineering, and the work goes better when the repo is set up for them: a clear home for every kind of document, conventions that hold up as the project grows, and review steps that catch what agents typically miss. Most repos aren't built that way. This one is.
+AI coding agents are getting good enough to do real engineering, and the work goes better when the repo is set up for them. This template ships the load-bearing pieces: a tight `AGENTS.md` that every agent reads first, a document layout where every kind of decision has its own home and lifecycle, a plan-execute-verify-review work loop with explicit stop conditions, and three specialist reviewers — adversarial, security, quality — that read each diff from different angles. Most repos aren't built this way. This one is.
 
 It fits any project — service, library, platform — and scales from solo developer up to a team of fifty without restructuring. For the thinking behind each piece, see [`docs/APPROACH.md`](docs/APPROACH.md).
 
@@ -44,22 +44,37 @@ load on demand.
 
 ```
 .
-├── AGENTS.md             # canonical agent context (read this first)
-├── CLAUDE.md             # → AGENTS.md (symlink)
-├── apps/                 # deployable applications        (delete if not used)
-├── packages/             # shared libraries               (delete if not used)
-├── tools/                # build, dev, ops tooling (incl. docs linter, Ralph harness)
-├── docs/                 # all documentation
-│   ├── CHARTER.md        # mission, scope, principles (one page)
-│   ├── CONVENTIONS.md    # how we work in this repo
-│   ├── adr/              # architecture decisions (frozen history)
-│   ├── rfc/              # proposals (governance)
-│   ├── specs/            # feature specs and plans (per-feature)
-│   ├── architecture/     # current code structure (for contributors)
-│   ├── product/          # roadmap, changelog (for maintainers)
-│   ├── guides/           # user-facing docs (Diátaxis: tutorials/how-to/reference/explanation)
-│   └── _templates/       # templates for adr / rfc / spec / plan
-└── .claude/              # Claude Code skills, agents, commands
+├── AGENTS.md                       # canonical agent context (every agent reads this first)
+├── CLAUDE.md                       # → AGENTS.md (symlink)
+├── .claude/                        # agent-side scaffolding
+│   ├── agents/                     # specialist reviewer subagents
+│   │   ├── adversarial-reviewer.md # spec drift, scope creep, edge cases, architectural fit
+│   │   ├── security-reviewer.md    # OWASP + STRIDE; complements SAST/SCA scanners
+│   │   └── quality-engineer.md     # testability, observability, reliability, maintainability
+│   ├── skills/                     # encoded multi-step workflows
+│   │   ├── work-loop/              # plan → execute → gates → review → decide
+│   │   ├── new-spec/               # specs and plans, paired and gated
+│   │   ├── bug-fix/                # reproduce → root cause → minimum fix → tracker loopback
+│   │   ├── new-adr/                # record an architectural decision
+│   │   ├── new-rfc/                # open a cross-cutting proposal
+│   │   ├── new-package/            # scaffold a package
+│   │   └── update-conventions/     # propose convention changes via RFC
+│   └── commands/                   # slash commands
+│       └── conventions-check.md    # run both repo linters
+├── docs/                           # all documentation
+│   ├── CHARTER.md                  # mission, scope, principles (one page)
+│   ├── CONVENTIONS.md              # how we work in this repo
+│   ├── APPROACH.md                 # the thinking behind the template
+│   ├── adr/                        # architecture decisions (frozen history)
+│   ├── rfc/                        # proposals (governance)
+│   ├── specs/                      # feature specs and plans (per-feature)
+│   ├── architecture/               # current code structure (for contributors)
+│   ├── product/                    # roadmap, changelog (for maintainers)
+│   ├── guides/                     # user-facing docs (Diátaxis-organized)
+│   └── _templates/                 # blank templates for adr / rfc / spec / plan
+├── tools/                          # bootstrap, linters, self-tests, Ralph harness
+├── apps/                           # deployable applications (delete if not used)
+└── packages/                       # shared libraries (delete if not used)
 ```
 
 ## License
