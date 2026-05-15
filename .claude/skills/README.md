@@ -37,3 +37,13 @@ Each `SKILL.md` should:
    crowd out the user's actual task.
 3. Link out to scripts in the same directory rather than embedding shell.
    Code in scripts can be tested; code in markdown can't.
+4. Declare a `dependencies:` list in the frontmatter — every file
+   *outside this skill's folder* the body relies on. Sibling agents the
+   skill invokes (`.claude/agents/<name>.md`), templates it generates
+   from (`docs/_templates/<name>.md`), tools it runs (`tools/<name>.sh`),
+   sections of `docs/CONVENTIONS.md` it cites by anchor
+   (`docs/CONVENTIONS.md#anchor`). Empty list (`dependencies: []`) is
+   valid and honest. The manifest powers `tools/install-skill.py` (Path
+   B in [`USING_THIS_TEMPLATE.md`](../../USING_THIS_TEMPLATE.md)) and is
+   validated by `tools/lint-skill-deps.sh`. Keep it accurate as the body
+   changes — drift is what the linter exists to catch.

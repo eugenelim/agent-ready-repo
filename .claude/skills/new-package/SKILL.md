@@ -1,6 +1,7 @@
 ---
 name: new-package
 description: Use this skill when the user wants to scaffold a new package in the monorepo's `packages/` directory. Triggers on "new package", "create a package called…", "add a library for…". Don't use for new top-level directories (those need an RFC) or for new apps (which go in `apps/`, not `packages/`).
+dependencies: []
 ---
 
 # Skill: new-package

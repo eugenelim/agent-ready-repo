@@ -48,8 +48,8 @@ error_count = 0
 KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
 LINK = re.compile(r"\]\(([^)]+)\)")
 
-ALLOWED_SKILL_KEYS = {"name", "description"}
-ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}
+ALLOWED_SKILL_KEYS = {"name", "description", "dependencies"}
+ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model", "dependencies"}
 ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
 
 
@@ -83,8 +83,9 @@ def warn(msg):
 def parse_frontmatter(path):
     """Return (fields, body_start_line, body, error). Frontmatter is the
     block delimited by --- on its own line at the very top of the file.
-    Only supports `key: value` single-line scalars (no nesting, no
-    multiline) — that matches every artifact this repo ships."""
+    Supports `key: value` single-line scalars and `key:` followed by a
+    block-style YAML list (each item on its own line, prefixed `  - `).
+    No deeper nesting — that matches every artifact this repo ships."""
     text = path.read_text()
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
@@ -97,9 +98,11 @@ def parse_frontmatter(path):
     if end is None:
         return None, 0, text, "frontmatter opened with --- but never closed"
     fields = {}
-    for i in range(1, end):
+    i = 1
+    while i < end:
         raw = lines[i]
         if not raw.strip():
+            i += 1
             continue
         m = re.match(r"^([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", raw)
         if not m:
@@ -107,7 +110,30 @@ def parse_frontmatter(path):
         key, val = m.group(1), m.group(2).strip()
         if key in fields:
             return None, 0, text, f"duplicate frontmatter key {key!r} (line {i + 1})"
+        # Flow-list shortcut: `key: []` means empty list.
+        if val == "[]":
+            fields[key] = []
+            i += 1
+            continue
+        # Block-style list: `key:` (empty value) followed by `  - item` lines.
+        if val == "":
+            items = []
+            j = i + 1
+            while j < end:
+                nxt = lines[j]
+                if not nxt.strip():
+                    j += 1
+                    continue
+                lm = re.match(r"^\s+-\s+(.*)$", nxt)
+                if not lm:
+                    break
+                items.append(lm.group(1).strip())
+                j += 1
+            fields[key] = items
+            i = j
+            continue
         fields[key] = val
+        i += 1
     body_start_line = end + 2  # 1-indexed line number where body starts
     body = "\n".join(lines[end + 1 :])
     return fields, body_start_line, body, None

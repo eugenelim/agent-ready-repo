@@ -1,6 +1,8 @@
 ---
 name: new-rfc
 description: Use this skill when the user asks to propose, draft, or open an RFC (request for comments). Triggers on "RFC", "propose a change to…", "let's get input on…", "draft a proposal". Do NOT use for already-decided things (use `new-adr`) or single-feature specs (use `new-spec`).
+dependencies:
+  - docs/_templates/rfc.md
 ---
 
 # Skill: new-rfc
