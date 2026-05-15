@@ -5,13 +5,18 @@ on:
     paths:
       - 'AGENTS.md'
       - 'CLAUDE.md'
+      - 'README.md'
+      - 'LICENSE-MIT'
       - 'docs/**'
       - 'packages/**/AGENTS.md'
       - 'apps/**/AGENTS.md'
       - '.claude/**'
+      - '.github/pull_request_template.md'
       - 'tools/lint-agents-md.sh'
       - 'tools/lint-agent-artifacts.sh'
       - 'tools/test-lint-agent-artifacts.sh'
+      - 'tools/bootstrap.sh'
+      - 'tools/test-bootstrap-targets.sh'
       - '.github/workflows/docs.yml'
   push:
     branches: [main]
@@ -34,6 +39,14 @@ jobs:
         run: bash tools/lint-agent-artifacts.sh
       - name: Self-test the linter (asserts expected errors fire)
         run: bash tools/test-lint-agent-artifacts.sh
+
+  test-bootstrap-targets:
+    name: Bootstrap substitution targets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bootstrap-targets self-test
+        run: bash tools/test-bootstrap-targets.sh
 
   check-adr-immutability:
     name: ADRs are immutable
