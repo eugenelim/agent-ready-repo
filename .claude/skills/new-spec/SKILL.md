@@ -10,9 +10,9 @@ and `plan.md`.
 
 ## When to invoke
 
-The user is about to build something nontrivial. The spec is the contract;
-the plan is the strategy. Even a one-day feature benefits from a one-paragraph
-spec — it forces the question "what does done look like?" before any code.
+The spec is the contract; the plan is the strategy. Even a one-day feature
+benefits from a one-paragraph spec — it forces the question "what does done
+look like?" before any code.
 
 ## Procedure
 
