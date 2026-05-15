@@ -381,9 +381,9 @@ or until it hits a hard cap.
 
 **Why think before acting.** The cost of a wrong start is higher than the
 cost of thinking. For high-stakes changes (architectural choices, multi-file
-refactors, anything touching shared infrastructure), use Plan Mode and
-extended thinking — they catch the wrong assumption *before* it becomes
-14 commits of wrong code. For routine work, skip the ceremony; the
+refactors, anything touching shared infrastructure), use your agent's
+extended-thinking facility — it catches the wrong assumption *before* it
+becomes 14 commits of wrong code. For routine work, skip the ceremony; the
 discipline is "match thinking depth to stakes," not "always think hardest."
 
 **Why iterate, not retry-from-scratch.** Most loops converge: gates fail,
@@ -392,9 +392,9 @@ loses the planning context. We do it the other way only when fresh context
 is the *point* — which is what the Ralph harness in [`tools/ralph.sh`](../tools/ralph.sh)
 is for.
 
-**Why a hard iteration cap.** Without one, you're hoping. Five in-session
-iterations is the default; if you hit it, the task is bigger than you
-thought. Stop, re-plan, or split.
+**Why a hard iteration cap.** Without one, you're hoping. The cap (and its
+exact value) lives in the work-loop skill; if you hit it, the task is
+bigger than you thought — stop, re-plan, or split.
 
 **Why capture learnings.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (Ralph or
