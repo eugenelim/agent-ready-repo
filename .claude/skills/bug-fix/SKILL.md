@@ -11,10 +11,8 @@ identify root vs symptom, minimum diff, commit body documents why.
 
 ## When to invoke
 
-The user is pointing at a defect — observed behavior differs from
-intended behavior in code that already exists. Even a one-line fix
-benefits from walking this discipline; it forces the question "is
-this fixing the cause or hiding it?"
+Even a one-line fix benefits from walking this discipline; it forces
+the question "is this fixing the cause or hiding it?"
 
 For multi-file changes that go beyond fixing one defect — refactors,
 new features triggered by discovering the bug — stop and use

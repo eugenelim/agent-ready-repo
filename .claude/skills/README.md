@@ -29,8 +29,10 @@ tool, used often enough to stick — live in
 
 Each `SKILL.md` should:
 
-1. Have a tight YAML frontmatter `description` (the trigger surface — what
-   makes Claude invoke this skill vs. another).
+1. Have a tight YAML frontmatter `description` — the *trigger surface*
+   that decides invocation. The body answers the disjoint question of
+   what to do once invoked (preconditions, judgment, procedure); it must
+   not restate the trigger.
 2. Be small. Skills are loaded into context when triggered; bloated skills
    crowd out the user's actual task.
 3. Link out to scripts in the same directory rather than embedding shell.
