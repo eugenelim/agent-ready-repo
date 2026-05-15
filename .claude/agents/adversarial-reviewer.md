@@ -123,8 +123,13 @@ When evaluating verification artifacts, classify each:
   exists, codegen output has the expected shape, typecheck is clean). The
   one-liner verification *is* the contract; no extra test file should
   exist for it.
-- **Visual / manual QA** — the task should record the manual check and
-  whoever ran it should record the result.
+- **Visual / manual QA** — manual and assertion-based flavors should
+  record the check and the result. *Exploratory / visual fuzz* flavors
+  assert invariants under varied driving, not specific outputs — verify
+  the invariant is named (e.g. "no crash, no overflow, layout holds")
+  and that the driver's input variation is recorded or seeded
+  reproducibly. An exploratory run with no stated invariant is not a
+  verification artifact; flag it.
 
 If a test asserts what the compiler already proves, or where the test
 assertion math is identical to the production math, flag it.

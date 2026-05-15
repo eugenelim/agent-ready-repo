@@ -203,8 +203,13 @@ When asked to draft tests, follow the repo's split:
   edge cases (empty, max, malformed) explicitly.
 - **Respect the verification mode.** TDD-mode tasks get a failing
   test first. Goal-based tasks get a one-line verifier, not a test
-  file. Visual/manual tasks get a recorded check, not a Playwright
-  script — unless the task is explicitly automation.
+  file. Visual/manual tasks get a recorded check by default;
+  assertion-based automation when a specific gesture has a specific
+  observable outcome; *exploratory / visual fuzz* automation when the
+  contract is an invariant ("no crash, no overflow, layout holds")
+  under varied driving rather than a specific output. Match the
+  artifact to the contract — don't draft a gesture-and-assert script
+  for an invariant, or an invariant-style fuzzer for a single gesture.
 - **Do not commit.** Output proposed tests in code blocks tagged with
   the language, each preceded by a header naming the spec behavior or
   plan task it covers. The orchestrator decides what lands.
