@@ -58,6 +58,14 @@ For anything beyond trivial, *think before you write code*. Concretely:
   sharpen the plan first. Discovering a missing or wrong construction test
   during EXECUTE is fine, but the fix is "update plan.md, then resume
   EXECUTE", not "skip ahead".
+- **Spec-mode adversarial review before EXECUTE.** If PLAN produced or
+  modified a spec (i.e. you ran `new-spec`, or you sharpened an existing
+  `spec.md` / `plan.md`), invoke `adversarial-reviewer` in spec mode
+  against the spec + plan and iterate to clean before EXECUTE begins.
+  Cheap-to-fix-early applies harder to specs than to code — catching a
+  vague behavior, a missing `Depends on:`, or a mismatched verification
+  mode here costs a sentence, not a re-plan. Same Profile-A caveat as
+  the post-impl review: skip if the project doesn't use the reviewer.
 
 The output of this step is a written plan (with tests) you can return to.
 Don't keep it in your head — your context will turn over and you'll lose it.
