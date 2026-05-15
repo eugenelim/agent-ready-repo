@@ -87,13 +87,13 @@ check("LICENSE-MIT <copyright holders>", "LICENSE-MIT", "<copyright holders>")
 print()
 print("── Multi-line regex blocks ──")
 
-banner_regex = (
-    r"<!--\n═══════════════════════════════════════════════════════════════════════\n"
-    r"  IF YOU ARE READING THIS ON THE UNBOOTSTRAPPED TEMPLATE REPO.*?"
-    r"═══════════════════════════════════════════════════════════════════════\n-->\n\n"
+intro_regex = (
+    r"^# agent-ready-repo\n.*?<!-- BOOTSTRAP_TEMPLATE_INTRO_END -->\n\n"
 )
-check("README.md banner block (multi-line, DOTALL)", "README.md",
-      banner_regex, regex=True, flags=re.DOTALL)
+check("README.md template-intro block (multi-line, DOTALL)", "README.md",
+      intro_regex, regex=True, flags=re.DOTALL)
+check("docs/APPROACH.md exists with canonical principles section",
+      "docs/APPROACH.md", "The four principles for what we keep")
 
 workflow_5_regex = (
     r"5\. \*\*Self-review against the spec\.\*\* After gates pass, run the\n"

@@ -180,15 +180,18 @@ echo "Applying..."
 # README.md — replace placeholder header line, drop the "if you are reading this on the template" block.
 substitute README.md "<project-name>" "$PROJECT_NAME"
 substitute README.md "> One-line description of what this project does and who it's for." "> $PROJECT_DESCRIPTION"
-# Strip the template-banner comment block out of README.md (everything between the sentinel markers).
+# Strip the template's evaluator-facing pitch from the top of README.md
+# (everything from the start of the file through the BOOTSTRAP_TEMPLATE_INTRO_END
+# sentinel). What remains is the adopter-facing scaffold.
 python3 - <<PY
 import pathlib, re
 p = pathlib.Path("README.md")
 text = p.read_text()
 new = re.sub(
-  r"<!--\n═══════════════════════════════════════════════════════════════════════\n  IF YOU ARE READING THIS ON THE UNBOOTSTRAPPED TEMPLATE REPO.*?═══════════════════════════════════════════════════════════════════════\n-->\n\n",
+  r"^# agent-ready-repo\n.*?<!-- BOOTSTRAP_TEMPLATE_INTRO_END -->\n\n",
   "",
   text,
+  count=1,
   flags=re.DOTALL,
 )
 p.write_text(new)

@@ -1,20 +1,18 @@
+# agent-ready-repo
+
+A repo template designed to be a place where AI coding agents can do their best work.
+
+AI coding agents are getting good enough to do real engineering, and the work goes better when the repo is set up for them: a clear home for every kind of document, conventions that hold up as the project grows, and review steps that catch what agents typically miss. Most repos aren't built that way. This one is.
+
+It fits any project — service, library, platform — and scales from solo developer up to a team of fifty without restructuring. For the thinking behind each piece, see [`docs/APPROACH.md`](docs/APPROACH.md).
+
+---
+
+**For evaluators**: below is the template scaffold an adopter inherits after running `bash tools/bootstrap.sh`. It shows the kinds of documents, conventions, and structure the template installs.
+
+<!-- BOOTSTRAP_TEMPLATE_INTRO_END -->
+
 # `<project-name>`
-
-<!--
-═══════════════════════════════════════════════════════════════════════
-  IF YOU ARE READING THIS ON THE UNBOOTSTRAPPED TEMPLATE REPO
-
-  This README is what your users will see *after* they bootstrap from
-  the template. The template's own docs are in:
-
-    - USING_THIS_TEMPLATE.md  → step-by-step bootstrap (start here)
-    - docs/CONVENTIONS.md      → the conventions this template encodes
-    - docs/adr/0001-*.md       → why the template is shaped this way
-
-  Once bootstrapped, replace this comment block and the placeholders
-  below with content for your actual project.
-═══════════════════════════════════════════════════════════════════════
--->
 
 > One-line description of what this project does and who it's for.
 
