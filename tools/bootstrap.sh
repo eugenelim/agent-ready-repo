@@ -113,6 +113,7 @@ BUILD_CMD="$(ask "Build command" "npm run build")"
 # Profile-driven cleanup choices
 DELETE_APPS=0; DELETE_PACKAGES=0; DELETE_EXAMPLE=1
 DELETE_ADVERSARIAL_REVIEWER=0; DELETE_NEW_PACKAGE_SKILL=0
+DELETE_SECURITY_REVIEWER=0; DELETE_QUALITY_ENGINEER=0; DELETE_BUG_FIX=0
 
 case "$PROFILE" in
   A)
@@ -120,6 +121,15 @@ case "$PROFILE" in
     DELETE_NEW_PACKAGE_SKILL=1
     if ask_yn "Profile A: delete adversarial-reviewer subagent? (recommended for solo/very-small teams)" "y"; then
       DELETE_ADVERSARIAL_REVIEWER=1
+    fi
+    if ask_yn "Profile A: delete security-reviewer subagent? (keep recommended — solo devs still benefit from threat-model lens)" "n"; then
+      DELETE_SECURITY_REVIEWER=1
+    fi
+    if ask_yn "Profile A: delete quality-engineer subagent? (keep recommended — testability / observability lens; heaviest of the three reviewers)" "n"; then
+      DELETE_QUALITY_ENGINEER=1
+    fi
+    if ask_yn "Profile A: delete bug-fix skill? (keep recommended — every dev fixes bugs)" "n"; then
+      DELETE_BUG_FIX=1
     fi
     ;;
   B)
@@ -151,7 +161,10 @@ echo "  Delete apps/:    $((DELETE_APPS))"
 echo "  Delete packages/: $((DELETE_PACKAGES))"
 echo "  Delete example package: $((DELETE_EXAMPLE))"
 echo "  Delete adversarial-reviewer: $((DELETE_ADVERSARIAL_REVIEWER))"
+echo "  Delete security-reviewer: $((DELETE_SECURITY_REVIEWER))"
+echo "  Delete quality-engineer: $((DELETE_QUALITY_ENGINEER))"
 echo "  Delete new-package skill: $((DELETE_NEW_PACKAGE_SKILL))"
+echo "  Delete bug-fix skill: $((DELETE_BUG_FIX))"
 echo "  Date stamps:     $TODAY"
 echo
 
@@ -229,7 +242,10 @@ elif (( DELETE_EXAMPLE )) && [[ -d packages/_example ]]; then
   rm -rf packages/_example && echo "  rm -rf packages/_example/"
 fi
 (( DELETE_ADVERSARIAL_REVIEWER )) && rm -f .claude/agents/adversarial-reviewer.md && echo "  rm .claude/agents/adversarial-reviewer.md"
+(( DELETE_SECURITY_REVIEWER )) && rm -f .claude/agents/security-reviewer.md && echo "  rm .claude/agents/security-reviewer.md"
+(( DELETE_QUALITY_ENGINEER )) && rm -f .claude/agents/quality-engineer.md && echo "  rm .claude/agents/quality-engineer.md"
 (( DELETE_NEW_PACKAGE_SKILL )) && rm -rf .claude/skills/new-package && echo "  rm -rf .claude/skills/new-package/"
+(( DELETE_BUG_FIX )) && rm -rf .claude/skills/bug-fix && echo "  rm -rf .claude/skills/bug-fix/"
 
 # When adversarial-reviewer was removed, replace its reference in AGENTS.md
 # with the inline-review fallback and drop its bullet from the Specialist
@@ -263,6 +279,56 @@ for path in ("AGENTS.md", ".claude/skills/README.md"):
     text = p.read_text()
     new = re.sub(r".*new-package.*\n", "", text)
     p.write_text(new)
+PY
+fi
+
+# When security-reviewer, quality-engineer, or bug-fix were removed, drop
+# their references from AGENTS.md (and skills/README.md for bug-fix) so the
+# links don't dangle and the linter stays green.
+if (( DELETE_SECURITY_REVIEWER || DELETE_QUALITY_ENGINEER || DELETE_BUG_FIX )); then
+  DELETE_SECURITY_REVIEWER="$DELETE_SECURITY_REVIEWER" \
+  DELETE_QUALITY_ENGINEER="$DELETE_QUALITY_ENGINEER" \
+  DELETE_BUG_FIX="$DELETE_BUG_FIX" \
+  python3 - <<'PY'
+import os, pathlib, re
+
+delete_security = os.environ.get("DELETE_SECURITY_REVIEWER") == "1"
+delete_quality  = os.environ.get("DELETE_QUALITY_ENGINEER") == "1"
+delete_bugfix   = os.environ.get("DELETE_BUG_FIX") == "1"
+
+agents_md = pathlib.Path("AGENTS.md")
+text = agents_md.read_text()
+
+if delete_security:
+    text = re.sub(
+        r"- \[`security-reviewer`\]\(\.claude/agents/security-reviewer\.md\) — OWASP Top\n"
+        r"  10 \(web \+ LLM Apps\) and STRIDE lens\. Use when the diff touches auth,\n"
+        r"  secrets, user input, deserialization, file/network I/O, dependencies,\n"
+        r"  or LLM/agent code\. Complements SAST/SCA scanners; does not replace them\.\n",
+        "",
+        text,
+    )
+
+if delete_quality:
+    text = re.sub(
+        r"- \[`quality-engineer`\]\(\.claude/agents/quality-engineer\.md\) — testability,\n"
+        r"  observability, reliability, and maintainability lens\. Also drafts\n"
+        r"  contract or construction tests on request\.\n",
+        "",
+        text,
+    )
+
+if delete_bugfix:
+    text = re.sub(r"- `bug-fix` — fix a defect with root-cause discipline\n", "", text)
+
+agents_md.write_text(text)
+
+if delete_bugfix:
+    skills_readme = pathlib.Path(".claude/skills/README.md")
+    if skills_readme.exists():
+        text = skills_readme.read_text()
+        text = re.sub(r"\| \[`bug-fix`\]\(bug-fix/SKILL\.md\) \| [^|]+ \|\n", "", text)
+        skills_readme.write_text(text)
 PY
 fi
 
