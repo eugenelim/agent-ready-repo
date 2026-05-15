@@ -1,6 +1,10 @@
 ---
 name: bug-fix
 description: Use this skill when the user wants to fix a bug — a deviation between current behavior and intended behavior in code that already exists. Triggers on "fix bug", "fix this bug", "diagnose and fix", "investigate this regression", "this is broken". Do NOT use for new features (use `new-spec`) or for refactors that don't fix incorrect behavior.
+dependencies:
+  - .claude/skills/new-spec/SKILL.md
+  - .claude/agents/adversarial-reviewer.md
+  - .claude/agents/quality-engineer.md
 ---
 
 # Skill: bug-fix

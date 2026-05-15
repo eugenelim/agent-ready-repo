@@ -3,6 +3,7 @@ name: adversarial-reviewer
 description: Adversarial reviewer for specs, plans, implementations, or any combination ("spec amendment + implementation in the same PR" is the dominant case). Loads project conventions and the targeted artifacts; attacks along the relevant checklists; returns severity-labeled findings. Use after gates pass but before declaring done; also use any time a spec or plan needs an adversarial read before code starts. Re-run iteratively until the agent reports `Clean — ready to commit.`
 tools: Read, Grep, Glob, Bash
 model: opus
+dependencies: []
 ---
 
 # Adversarial reviewer

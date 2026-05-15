@@ -41,7 +41,15 @@ populate more of it.
 
 ## Step 1 — Create your repo from the template
 
-### Option A: GitHub "Use this template" (recommended)
+There are two ways to adopt the template. Pick by what you already have.
+
+### Path A: Bootstrap a fresh repo from the template
+
+The full template — every skill, every reviewer, every doc — wired up
+for a new project. Use this when you're starting greenfield, or when
+you want the structure as a whole.
+
+**Option A1: GitHub "Use this template" (recommended)**
 
 1. On the template's GitHub page, click **Use this template** → **Create a new repository**.
 2. Name your repo, set visibility, click **Create repository from template**.
@@ -51,7 +59,7 @@ populate more of it.
    cd <your-new-repo>
    ```
 
-### Option B: Manual copy
+**Option A2: Manual copy**
 
 ```bash
 # Clone the template
@@ -62,6 +70,37 @@ cd my-project
 rm -rf .git
 git init
 ```
+
+Then continue with Step 2 below.
+
+### Path B: Drop a single skill into an existing repo
+
+Already have a repo and you just want one skill (say, `bug-fix` or
+`work-loop`)? Clone the template anywhere, then run:
+
+```bash
+# macOS / Linux:
+python3 /path/to/template/tools/install-skill.py <skill-name> /path/to/your-repo
+
+# Windows (PowerShell):
+py -3 \path\to\template\tools\install-skill.py <skill-name> \path\to\your-repo
+```
+
+The script reads the skill's dependency manifest, walks the closure,
+and copies every leaf — sibling agents, templates the skill generates
+from, tools it invokes — into your repo at the matching paths. Files
+that already exist are left alone; the script reports each one
+(`= already present` if it matches the source, `! content differs` if
+it doesn't) and moves on. Re-running is safe and shows you the same
+inventory.
+
+A few skills depend on sections of `docs/CONVENTIONS.md` or `AGENTS.md`.
+Those don't get spliced into your governance docs — the script can't
+safely edit prose it didn't write. Instead, it drops the relevant
+slice into `docs/CONVENTIONS.fragments/<skill>.md` and prints a note.
+Merge by hand, then delete the fragment.
+
+Skip the rest of this guide if Path B was all you needed.
 
 ---
 
