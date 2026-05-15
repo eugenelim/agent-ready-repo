@@ -59,6 +59,10 @@ surface unchanged"*. **Within each task, `Tests:` comes before `Approach:`** —
 tests drive implementation, not the other way around. Use red-green-refactor
 with separate commits when the change is non-trivial.
 
+**Every task must declare `Depends on:` explicitly** — list prior task IDs
+or `none`. Don't omit the field; "obvious from order" is the failure mode
+that hides serial-by-default thinking. `none` is a valid and common answer.
+
 <!--
 Order matters — list tasks in the order they should be done. Mark
 dependencies inline. Format each task so a contributor (human or agent)
