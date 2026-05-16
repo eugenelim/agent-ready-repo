@@ -83,6 +83,17 @@ surprise: this-is-not-allowed
 Body.
 EOF
 
+# Agent: frontmatter is otherwise valid but does not declare `model:`.
+cat > "$TMP/.claude/agents/missing-model.md" <<'EOF'
+---
+name: missing-model
+description: Agent has no model declaration. Linter must require one.
+tools: Read, Grep
+---
+
+Body.
+EOF
+
 # Agent: frontmatter opened with --- and never closed.
 cat > "$TMP/.claude/agents/unclosed-frontmatter.md" <<'EOF'
 ---
@@ -127,6 +138,7 @@ EXPECTED_PATTERNS=(
   "unknown frontmatter keys: ['surprise']"
   "frontmatter opened with --- but never closed"
   "body is empty"
+  "missing required key: model"
 )
 
 for pattern in "${EXPECTED_PATTERNS[@]}"; do

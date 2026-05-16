@@ -12,10 +12,11 @@
 #
 #   Subagents (.claude/agents/<name>.md):
 #     - File has valid YAML frontmatter
-#     - Frontmatter has non-empty `name` (kebab-case) and `description`
+#     - Frontmatter has non-empty `name` (kebab-case), `description`,
+#       and `model` (see docs/CONVENTIONS.md#model-selection)
 #     - Filename (sans .md) == frontmatter `name`
 #     - Frontmatter has no unknown keys (allowed: name, description,
-#       tools, model)
+#       tools, model, dependencies)
 #
 #   Commands (.claude/commands/<name>.md):
 #     - File has valid YAML frontmatter (optional but if present,
@@ -199,6 +200,9 @@ def check_agent(path):
                   f"{expected_name!r}")
     if "description" not in fields or not fields["description"]:
         err(path, "frontmatter missing required key: description")
+    if "model" not in fields or not fields["model"]:
+        err(path, "frontmatter missing required key: model "
+                  "(see docs/CONVENTIONS.md#model-selection)")
     unknown = set(fields) - ALLOWED_AGENT_KEYS
     if unknown:
         err(path, f"unknown frontmatter keys: {sorted(unknown)} "

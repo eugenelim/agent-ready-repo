@@ -152,11 +152,24 @@ drift_check() {
   done
 }
 
-# Iteration cap number: only in the work-loop skill.
+# Iteration-cap value lives as data, not prose. The literal number lives
+# in the state.json template; SKILL/CONVENTIONS/AGENTS describe the field
+# conceptually but must not restate the number.
 drift_check \
-  'hard cap of (five|5) in-session' \
-  ".claude/skills/work-loop/SKILL.md" \
-  "AGENTS.md" "docs/CONVENTIONS.md"
+  '"max_iterations":[[:space:]]*[0-9]+' \
+  "docs/_templates/state.json" \
+  ".claude/skills/work-loop/SKILL.md" "AGENTS.md" "docs/CONVENTIONS.md"
+
+# Belt-and-braces prose probe: the original drift-watch caught the number
+# in any prose phrasing. The schema-shaped check above is narrower, so we
+# also forbid common prose restatements anywhere a future contributor
+# might be tempted to re-state the cap value. Empty canonical = no
+# "missing from canonical home" check; the schema (not a prose doc) is
+# the single source.
+drift_check \
+  '(hard )?cap of (five|5) (in-session )?iterations?' \
+  "" \
+  ".claude/skills/work-loop/SKILL.md" "AGENTS.md" "docs/CONVENTIONS.md"
 
 # Verification-mode triplet (TDD / Goal-based check / Visual / manual QA):
 # the explicit per-mode prose is single-sourced in the work-loop skill.

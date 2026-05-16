@@ -3,6 +3,9 @@ name: work-loop
 description: Use this skill whenever you're implementing a non-trivial change — a feature, a bug fix that touches more than one file, a refactor, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
 dependencies:
   - docs/CONVENTIONS.md#contract-tests-vs-construction-tests
+  - docs/CONVENTIONS.md#work-loop-state
+  - docs/_templates/state.json
+  - tools/check-done.py
   - .claude/agents/adversarial-reviewer.md
   - .claude/agents/security-reviewer.md
   - .claude/agents/quality-engineer.md
@@ -104,6 +107,18 @@ For anything beyond trivial, *think before you write code*. Concretely:
   vague behavior, a missing `Depends on:`, or a mismatched verification
   mode here costs a sentence, not a re-plan. Same Profile-A caveat as
   the post-impl review: skip if the project doesn't use the reviewer.
+- **Initialize the loop's state file.** Copy `docs/_templates/state.json`
+  to `docs/specs/<feature>/state.json` and set `feature` to the spec
+  slug. The file is gitignored — it's session-scratch, not history. Write
+  it atomically (tmp-file + rename) on every update so a mid-write read
+  never produces malformed JSON. Run
+  `tools/check-done.py docs/specs/<feature>/state.json --phase plan`; on
+  the first invocation it will exit 1 with `plan not approved` — **this
+  is the expected cue to run the spec-mode reviewer**, not a stop-and-
+  surface signal. Once the reviewer is clean, flip
+  `plan_review_status` to `approved` and re-run; exit 0 unlocks EXECUTE.
+  Schema reference:
+  [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#work-loop-state).
 
 The output of this step is a written plan (with tests) you can return to.
 Don't keep it in your head — your context will turn over and you'll lose it.
@@ -153,6 +168,26 @@ The subagent reads adversarially — it's looking for what you missed, not
 celebrating what you did. Findings come back grouped by severity
 (Blockers / Concerns / Nits), each with a one-sentence `Fix:`. Iterate
 until the agent returns `Clean — ready to commit.`
+
+**After each reviewer pass, update `state.json`** before iterating:
+
+1. Move `finding_fingerprints` → `previous_finding_fingerprints`.
+2. For each surviving finding the reviewer surfaced, compute
+   `sha1("<file>|<line>|<title>")` where:
+   - `<file>` is the cited path exactly as the reviewer wrote it.
+   - `<line>` is the first integer after the first colon in the citation,
+     as a decimal string. `foo.py:88` → `88`; `foo.py:88-92` → `88`.
+   - `<title>` is the reviewer's bolded heading for the finding, e.g.
+     `**3. PLAN-phase exit-1 conflates "not yet done" with "stop".**` —
+     keep the surrounding `**` markers and everything between them.
+
+   Write the resulting hex digests to `finding_fingerprints` (order
+   doesn't matter — `check-done.py` sorts before comparing).
+3. Increment `iteration_count`.
+4. Write the file atomically (tmp + rename).
+5. Run `tools/check-done.py <state-path> --phase review`. Exit 1 with
+   `no progress` means the same findings landed two iterations in a row;
+   stop and surface to a human rather than spinning a third.
 
 **Specialist reviewers — use after adversarial-reviewer is clean.** Pick
 the ones the diff actually warrants; don't run all three by default.
@@ -213,15 +248,19 @@ The loop must terminate. Iteration without termination is how Ralph loops
 (see below) burn money. Stop when **any** of these is true:
 
 1. **Gates green AND review clean** — the normal exit. Ship.
-2. **Same finding two iterations in a row** — you're going in circles. Stop.
-   Either the fix is wrong or the finding is. Surface it to a human.
+2. **`tools/check-done.py` exits non-zero.** The script is the mechanical
+   side of termination, reading from `state.json` (see
+   [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#work-loop-state)). It
+   fires on iteration cap, token-budget cap, consecutive-error counter,
+   pending plan approval (PLAN phase only), and fingerprint stasis
+   (REVIEW phase only). The exit message tells you which.
 3. **Diff is shrinking but findings aren't** — you're spot-fixing without
-   addressing root cause. Stop and rethink the approach (back to PLAN).
-4. **Iteration cap reached** — the project's hard cap of 5 in-session
-   iterations. If you hit the cap, the task is bigger than you thought.
-   Stop, write down what you learned, and re-plan.
+   addressing root cause. This is a judgment call, not in `check-done.py`.
+   Stop and rethink the approach (back to PLAN).
 
-Never silently expand scope to make a finding go away.
+If you hit any of these and the work isn't done, the task is bigger than
+you thought. Stop, write down what you learned, and re-plan. Never
+silently expand scope to make a finding go away.
 
 ## Capture what was learned
 
