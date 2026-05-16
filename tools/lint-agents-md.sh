@@ -188,6 +188,17 @@ for f in AGENTS.md docs/CONVENTIONS.md docs/CHARTER.md docs/APPROACH.md; do
   fi
 done
 
+# Session-scratch artifacts must be gitignored — the docs claim it, the
+# linter verifies. Probe one representative path per glob.
+for probe in \
+  "docs/specs/example/state.json" \
+  "docs/specs/example/notes/implementer-T1-0.md" \
+  ".worktrees/T1/README.md"; do
+  if ! git check-ignore --quiet "$probe" 2>/dev/null; then
+    note "drift-watch: '$probe' should be gitignored (session-scratch — see CONVENTIONS.md#work-loop-state, CONVENTIONS.md#supervisor-mode)."
+  fi
+done
+
 if (( fail )); then
   echo
   echo "Docs lint: failed."

@@ -4,11 +4,13 @@ description: Use this skill whenever you're implementing a non-trivial change �
 dependencies:
   - docs/CONVENTIONS.md#contract-tests-vs-construction-tests
   - docs/CONVENTIONS.md#work-loop-state
+  - docs/CONVENTIONS.md#supervisor-mode
   - docs/_templates/state.json
   - tools/check-done.py
   - .claude/agents/adversarial-reviewer.md
   - .claude/agents/security-reviewer.md
   - .claude/agents/quality-engineer.md
+  - .claude/agents/implementer.md
   - .claude/skills/new-spec/SKILL.md
   - tools/ralph.sh
   - tools/RALPH.md
@@ -20,6 +22,14 @@ This is the project's standard inner loop for non-trivial work. It exists
 because LLM self-assessment is unreliable: agents declare victory when they
 *feel* done, not when objective gates pass. This skill replaces "feel" with
 verifiable termination criteria.
+
+> **Vocabulary.** "Surface" throughout this skill means: stop the
+> current loop, emit a short description of the situation in your final
+> message (what happened, what you tried, what state things are in),
+> and wait for human direction. It is the project's house verb for
+> "stop and report." Do not retry, do not redispatch, do not silently
+> reset. (Reviewers also "surface" findings in the descriptive sense
+> — "raised" — when they return their report; context disambiguates.)
 
 ## When this skill applies
 
@@ -141,6 +151,120 @@ goal. Resist the urge to fix unrelated things you notice along the way;
 note them in `notes/` for later. Scope creep is the single biggest source
 of plan-vs-implementation drift.
 
+#### Parallel dispatch discipline
+
+When this skill fans out — multiple implementers in supervisor mode, or
+multiple specialist reviewers in REVIEW — the rules are the same and
+they live here, single-sourced. Both call sites below reference this
+discipline rather than restating it.
+
+- **One tool-call message, one Agent use per target.** Issue all
+  subagent invocations in a single message. Do not call them
+  sequentially. The participants are independent, the lenses are
+  independent, and sequencing tempts you to react to the first return
+  before the rest land — which gives each subagent a different state.
+- **Barrier-wait.** Don't issue follow-on Agent calls until every
+  subagent in the round has returned.
+- **Harness-level non-returns are failures.** A timeout, a tool error,
+  or a missing report counts as `failed` for that target. Treat it the
+  same as a substantive `failed` status; do not retry silently.
+- **Merge results in your own context.** The subagents return markdown.
+  You read N reports, group findings or status by your own bookkeeping
+  (state.json for implementers; severity buckets for reviewers), then
+  decide.
+
+#### Supervisor mode (parallel implementers)
+
+If the plan has **two or more tasks declaring `Depends on: none`**, the
+loop branches into supervisor mode for EXECUTE. You become the
+supervisor; each independent task gets an `implementer` subagent (see
+[`.claude/agents/implementer.md`](../../../.claude/agents/implementer.md))
+in its own worktree. The full rationale, boundary, and merge discipline
+live in
+[`CONVENTIONS.md § Supervisor mode`](../../../docs/CONVENTIONS.md#supervisor-mode).
+Throughout this procedure, **"task-id order" means numeric where IDs
+look like `T1`, `T2`, … ; lexicographic otherwise.**
+
+The procedure:
+
+0. **Pre-flight: check for stale worktrees.** Run `git worktree list`
+   and `git worktree prune`. If `.worktrees/<task-id>/` exists or the
+   branch `<base-branch>-<task-id>` exists for any task you're about
+   to dispatch, a prior session left scratch behind. **Surface to a
+   human; do not silently reuse or destroy** — the scratch may carry
+   in-flight work the previous run was about to commit. Resume happens
+   manually.
+1. **Set up worktrees.** For each independent task `<task-id>`:
+   ```bash
+   git worktree add .worktrees/<task-id> \
+     -b "$(git branch --show-current)-<task-id>"
+   ```
+   Append
+   `{task_id, branch, path, status: "in-progress", report_path: null}`
+   to `state.json.worktrees`.
+2. **Dispatch implementers in parallel** per the parallel-dispatch
+   discipline above. Each brief includes: the task ID, the plan-task
+   body, the worktree path, and paths to the spec + plan.
+3. **Persist each report and update state.** For each returning
+   subagent, in this order — match first, write second, update state
+   last:
+   1. Parse the report's opening `## Task <task-id>` heading and match
+      that `<task-id>` against `state.json.worktrees[i].task_id`. If
+      no entry matches, surface as `failed` for an unknown task —
+      never silently append a new entry, and never write the file
+      under an unvalidated name.
+   2. Write the report verbatim to
+      `docs/specs/<feature>/notes/implementer-<task-id>-<iteration>.md`,
+      where `<iteration>` is the current `state.json.iteration_count`.
+      On a fresh loop the value is `0`, so the first attempt lands as
+      `…-0.md` ("before any review iteration has run"); subsequent
+      re-plans see the counter bumped (see step 4 below) so reports
+      never overwrite one another. Create `docs/specs/<feature>/notes/`
+      if it doesn't yet exist (the directory is optional per the
+      [Specs and Plans](#4-specs-and-plans--docs-specs-feature)
+      convention).
+   3. Atomically update `state.json.worktrees[i]`: set `status`
+      (`ready` / `blocked` / `failed`) and `report_path` to the path
+      you just wrote.
+
+   The match-first ordering means a parse failure never produces an
+   orphan report on disk; the write-before-update means a crash
+   between substeps 2 and 3 leaves a recoverable signal — the report
+   file exists, the entry still says `in-progress`, and the next
+   supervisor session's stale-worktree pre-flight treats that as
+   leftover scratch and surfaces it.
+4. **Handle non-ready tasks first.** If any implementer reports
+   `blocked` or `failed`, do not merge. Surface the failed-task list
+   (with `report_path` pointers), **increment `state.json.iteration_count`**
+   so the next attempt's report filename won't collide with this
+   one's, then return to PLAN and revise the offending task. Do not
+   redispatch the same implementer on the same task — the assumption
+   that produced the failure is what needs revising, not the attempt.
+5. **Merge ready tasks sequentially.** From the primary worktree, in
+   task-id order:
+   ```bash
+   git merge --no-ff "$(git branch --show-current)-<task-id>"
+   ```
+   A conflict means the tasks weren't actually independent. Abort
+   (`git merge --abort`), return to PLAN, fix the `Depends on:`
+   declarations.
+6. **Clean up worktrees.** After all merges succeed:
+   ```bash
+   git worktree remove .worktrees/<task-id>
+   ```
+   If that fails (uncommitted files, locked index, build artifacts),
+   retry once with `--force`. On persistent failure, leave the
+   directory in place, note the path in your end-of-loop summary, and
+   proceed to gates — don't block on cleanup. Worktree entries in
+   `state.json.worktrees` keep their terminal status for the rest of
+   the loop so the next reader can reconstruct what each task did.
+7. **Run gates yourself** (next phase). The implementers' gate results
+   were advisory; the gates of record run in the primary against the
+   merged state.
+
+In single-agent mode (no independent tasks), skip the supervisor branch
+entirely and execute as the sole agent — that's the default flow above.
+
 ### 3. GATES — mechanical verification
 
 Run, in order, and only proceed if each passes:
@@ -200,6 +324,16 @@ the ones the diff actually warrants; don't run all three by default.
   maintainability lens. Also drafts contract or construction tests on
   request. Different lens from adversarial-reviewer — don't skip it
   because the spec already shipped.
+
+**Dispatch reviewers in parallel when you invoke more than one** per
+the [Parallel dispatch discipline](#parallel-dispatch-discipline)
+documented under EXECUTE — the same rules cover both fan-out sites in
+this skill. Fan-out works here because reviewer output is markdown the
+orchestrator reads, not a structured contract: you read N reports,
+group findings by severity yourself, deduplicate where two reviewers
+caught the same thing, then iterate on the merged list. Fingerprint
+computation (state.json) happens once per fan-out round, not once per
+reviewer.
 
 If reviewing a spec-less change (a refactor, say), self-review against this
 checklist instead:
