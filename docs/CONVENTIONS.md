@@ -524,6 +524,54 @@ schema** must perform an actual `git worktree add` + parallel-dispatch
 round against a throwaway spec before merging — read-only walk-through
 is not sufficient for those surfaces.
 
+### Knowledge base
+
+The repo accumulates practitioner-level lessons in
+`docs/knowledge/patterns.jsonl`: patterns ("when you touch X, also
+remember Y"), gotchas ("the auth middleware caches tokens for 15
+minutes"), and antipatterns ("don't mock the database in integration
+tests"). One JSON object per line, scoped to a file glob. The schema
+and curation conventions live in
+[`docs/knowledge/README.md`](knowledge/README.md).
+
+**Why a separate bucket.** ADRs answer *why we decided X*;
+`architecture/` describes *current structure*; `guides/` is for
+*users*. Knowledge entries are practitioner residue — the things you
+learn by building, not by deciding or documenting. They earn a home
+because they're scoped to globs (an agent priming for `packages/auth`
+should see the auth gotchas, not every lesson the repo ever learned)
+and append-only (a lesson that stops being true gets a *new* entry
+citing the old one, not an edit — which keeps history honest).
+
+**How agents see it.** `tools/hooks/session-start.sh` reads the file
+at session open and prints the entries — optionally filtered by a
+path or narrower glob. Matching uses Python's `fnmatch` with the
+caller's `--scope` value as the *path* argument and the entry's
+stored glob as the *pattern*, so an agent working in
+`packages/auth/server.ts` gets entries scoped to `packages/auth/**`
+plus any repo-wide `*` entries. The work-loop SKILL's
+[`Capture what was learned`](../.claude/skills/work-loop/SKILL.md#capture-what-was-learned)
+section points contributors at this file as the destination for
+pattern/gotcha/antipattern-shaped learnings; other shapes still go
+where they already belong (AGENTS.md, skill bodies, architecture/).
+
+### Enforcement (the triplet)
+
+Three layered mechanisms enforce the project's discipline. They are
+named together so contributors and reviewers can refer to "the
+enforcement triplet" and mean the same three things:
+
+| Layer | Mechanism | What it gates |
+|---|---|---|
+| Caps | [`tools/check-done.py`](../tools/check-done.py) | Iteration cap, token budget, plan approval, fingerprint stasis (see [§ Work-loop state](#work-loop-state)). |
+| Artifacts | `tools/lint-agents-md.sh`, `lint-agent-artifacts.sh`, `lint-skill-deps.sh`, `lint-knowledge.sh` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
+| Aggregation | [`tools/hooks/pre-pr.sh`](../tools/hooks/pre-pr.sh) | Runs caps + artifact linters together before a PR opens. The local gate is a superset of CI today — CI runs `lint-agents-md.sh` and `lint-agent-artifacts.sh`; the local hook adds `lint-skill-deps.sh`, `lint-knowledge.sh`, and `check-done.py`. Keep the local hook green and CI follows. |
+
+`pre-pr.sh` is the hook downstream consumers wire into their tool's
+lifecycle (see [`tools/hooks/README.md`](../tools/hooks/README.md)).
+The template ships the script; it does **not** ship a committed
+`.claude/settings.json` — wiring is consumer-specific.
+
 ### When to reach for Ralph
 
 The same loop can run unattended — fresh Claude Code session per
