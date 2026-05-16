@@ -565,7 +565,7 @@ enforcement triplet" and mean the same three things:
 |---|---|---|
 | Caps | [`tools/check-done.py`](../tools/check-done.py) | Iteration cap, token budget, plan approval, fingerprint stasis (see [§ Work-loop state](#work-loop-state)). |
 | Artifacts | `tools/lint-agents-md.sh`, `lint-agent-artifacts.sh`, `lint-skill-deps.sh`, `lint-knowledge.sh` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
-| Aggregation | [`tools/hooks/pre-pr.sh`](../tools/hooks/pre-pr.sh) | Runs caps + artifact linters together before a PR opens. The local gate is a superset of CI today — CI runs `lint-agents-md.sh` and `lint-agent-artifacts.sh`; the local hook adds `lint-skill-deps.sh`, `lint-knowledge.sh`, and `check-done.py`. Keep the local hook green and CI follows. |
+| Aggregation | [`tools/hooks/pre-pr.sh`](../tools/hooks/pre-pr.sh) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
 
 `pre-pr.sh` is the hook downstream consumers wire into their tool's
 lifecycle (see [`tools/hooks/README.md`](../tools/hooks/README.md)).

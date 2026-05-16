@@ -15,6 +15,14 @@ on:
       - 'tools/lint-agents-md.sh'
       - 'tools/lint-agent-artifacts.sh'
       - 'tools/test-lint-agent-artifacts.sh'
+      - 'tools/lint-skill-deps.sh'
+      - 'tools/lint-knowledge.sh'
+      - 'tools/test-lint-knowledge.sh'
+      - 'tools/check-done.py'
+      - 'tools/test-check-done.sh'
+      - 'tools/hooks/**'
+      - 'tools/test-pre-pr.sh'
+      - 'tools/test-session-start.sh'
       - 'tools/bootstrap.sh'
       - 'tools/test-bootstrap-targets.sh'
       - '.github/workflows/docs.yml'
@@ -47,6 +55,53 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run bootstrap-targets self-test
         run: bash tools/test-bootstrap-targets.sh
+
+  lint-skill-deps:
+    name: Skill-dep manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run skill-dep linter
+        run: bash tools/lint-skill-deps.sh
+
+  lint-knowledge:
+    name: Knowledge base
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run knowledge-base linter
+        run: bash tools/lint-knowledge.sh
+      - name: Self-test the linter (schema-drift + content guards)
+        run: bash tools/test-lint-knowledge.sh
+
+  check-done:
+    name: Caps enforcer self-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test the caps enforcer
+        run: bash tools/test-check-done.sh
+
+  # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
+  # those each surface with their own check name in PR UI; this one catches
+  # regressions in pre-pr.sh's composition (a layer dropped, a reorder
+  # breaking a dependency, exit-code propagation).
+  hooks:
+    name: Lifecycle hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Seed a healthy state.json so the aggregator exercises check-done.py
+        run: |
+          mkdir -p docs/specs/_ci-smoke
+          sed 's/"pending"/"approved"/' docs/_templates/state.json \
+            > docs/specs/_ci-smoke/state.json
+      - name: Run pre-pr aggregator (mirrors local enforcement triplet)
+        run: bash tools/hooks/pre-pr.sh
+      - name: Self-test the aggregator (each layer corruption surfaces)
+        run: bash tools/test-pre-pr.sh
+      - name: Self-test session-start (scope filter + malformed warning)
+        run: bash tools/test-session-start.sh
 
   check-adr-immutability:
     name: ADRs are immutable
