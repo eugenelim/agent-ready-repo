@@ -423,7 +423,7 @@ at [`docs/_templates/state.json`](_templates/state.json).
 | `plan_review_status` | `pending` until the spec-mode adversarial review clears, then `approved`. Enforced as a gate on **all phases** (not just `--phase plan`) — `implement` and `review` also reject a `pending` state. |
 | `last_commit_sha` | latest commit produced by the loop (informational; advisory in Phase 1) |
 | `finding_fingerprints` / `previous_finding_fingerprints` | hashes of reviewer findings, rotated each REVIEW iteration; used to detect circling. Algorithm pinned in the work-loop SKILL §REVIEW. |
-| `worktrees` | reserved for Phase 2 (parallel implementer subagents); empty in single-agent loops |
+| `worktrees` | one entry per `implementer` subagent dispatched in the current session's supervisor pass: `{task_id, branch, path, status, report_path}` where status is `in-progress` / `ready` / `blocked` / `failed` and `report_path` points at the implementer's markdown report under `docs/specs/<feature>/notes/`. Report files are gitignored (`docs/specs/**/notes/implementer-*.md`) — session-scratch like `state.json`, not history. Entries persist with their terminal status for the rest of the loop so a future reader can reconstruct what each task did. Empty in single-agent loops. See [§ Supervisor mode](#supervisor-mode). |
 
 **Exit contract.** `check-done.py` exits 0 when the phase is satisfied
 and non-zero when it isn't, with a one-line reason on stderr. Treat
@@ -461,11 +461,68 @@ enforces this. Reasoning behind each current choice:
 | `adversarial-reviewer` | `opus` | Adversarial judgment; stakes are correctness. Output drives a hard gate. |
 | `security-reviewer` | `opus` | Threat-model reasoning; stakes are security. |
 | `quality-engineer` | `opus` | Maintenance lens; spec-level coverage pass. Reconsider per observation. |
+| `implementer` | `sonnet` | One narrow plan task per dispatch; gates rerun in the primary; supervisor judges merge readiness. Cost beats capability here. |
 
 Changing a subagent's model is a behaviour change, not a configuration
 tweak — note the change in the PR that makes it, with a one-line
 justification. If the change is reversing a previous choice in a way a
 future maintainer would ask "why", surface it in the PR description.
+
+### Supervisor mode
+
+When a plan has multiple tasks declaring `Depends on: none`, the
+work-loop enters **supervisor mode**: one primary orchestrator
+dispatches `implementer` subagents in parallel, each working in its own
+git worktree, then merges the results back and runs gates in the
+primary. The mechanics live in the
+[`work-loop` skill](../.claude/skills/work-loop/SKILL.md) §EXECUTE; this
+section is the why and the boundary.
+
+**Why a separate mode instead of a separate skill.** The trigger is
+structural (the plan's shape), not a choice the user makes. Branching
+inside `work-loop` means contributors never pick the wrong skill, and
+the 80% overlap with single-agent flow stays single-sourced.
+
+**Why an implementer subagent, not a recursive work-loop.** The
+implementer's job is narrow — build one task, run gates, report.
+Reviewing, dispatch decisions, and merge belong to the supervisor. A
+recursive work-loop would let an implementer spawn its own
+implementers; that's nested coordination overhead with no clear win.
+Keep the tree two levels deep: supervisor → leaf implementers.
+
+**Worktrees as the coordination primitive.** Each independent task gets
+`.worktrees/<task-id>/` checked out on its own branch
+(`<base-branch>-<task-id>`). Worktrees are git-native, support parallel
+checkout of the same repo, and avoid lockfile contention. The directory
+is gitignored ([`.gitignore`](../.gitignore)); branches live in git
+history for traceability.
+
+**Merge discipline.** The supervisor merges with `git merge --no-ff
+<base>-<task-id>` into the primary branch, **sequentially in task-id
+order**. The SKILL has the procedural form (including how to order
+non-numeric IDs). If a sequential merge conflicts, the tasks weren't
+actually independent — the plan was wrong. Surface that as a
+PLAN-level escalation, not a `git mergetool` session.
+
+**Gates run in the primary, not the worktree.** Each implementer runs
+gates inside its worktree and reports the result, but those results are
+**advisory**. The supervisor reruns lint / typecheck / tests against
+the merged state — that's the only signal that counts.
+
+**Escalating implementer failures.** If an implementer reports
+`blocked` or `failed`, the supervisor surfaces the failure list to a
+human and returns to PLAN. It does **not** redispatch the same
+implementer on the same task — the assumption that produced the
+failure is what needs revising, not the attempt.
+
+**Known limitation.** This section's procedure has been validated by
+prose walk-through, not by an executed end-to-end dry-run. Any change
+to **pre-flight (SKILL §EXECUTE step 0)**, **worktree creation (step 1)**,
+**report persistence ordering (step 3)**, **merge order (step 5)**,
+**cleanup recovery (step 6)**, or the **`state.json` `worktrees`
+schema** must perform an actual `git worktree add` + parallel-dispatch
+round against a throwaway spec before merging — read-only walk-through
+is not sufficient for those surfaces.
 
 ### When to reach for Ralph
 

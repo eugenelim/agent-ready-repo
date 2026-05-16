@@ -5,6 +5,14 @@
 # See docs/CONVENTIONS.md#work-loop-state.
 docs/specs/**/state.json
 
+# Supervisor-mode worktrees — each task gets its own checkout; never
+# committed. See docs/CONVENTIONS.md#supervisor-mode.
+.worktrees/
+
+# Implementer reports — per-task chatter the supervisor wrote for its
+# own observability; session-scratch like state.json, not history.
+docs/specs/**/notes/implementer-*.md
+
 # Personal Claude Code overrides
 CLAUDE.local.md
 .claude/settings.local.json
