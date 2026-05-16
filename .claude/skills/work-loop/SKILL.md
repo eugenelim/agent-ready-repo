@@ -1,6 +1,6 @@
 ---
 name: work-loop
-description: Use this skill whenever you're implementing a non-trivial change — a feature, a bug fix that touches more than one file, a refactor, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
+description: Use this skill whenever you're implementing a non-trivial change — a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
 dependencies:
   - docs/CONVENTIONS.md#contract-tests-vs-construction-tests
   - docs/CONVENTIONS.md#work-loop-state
@@ -39,8 +39,11 @@ verifiable termination criteria.
 ## When this skill applies
 
 - Implementing a spec from `docs/specs/`.
-- Bug fixes that touch more than one file.
+- Bug fixes that touch more than one file — including security patches and incident hot-fixes.
 - Refactors.
+- Migrations, framework or dependency upgrades, schema or API changes.
+- Performance work, or infrastructure / build-system changes beyond a single config tweak.
+- Reverting and re-doing a previous change.
 - Any task where you'd otherwise be tempted to "just go".
 
 For genuine one-line edits (typo, config tweak), skip the loop — the overhead
