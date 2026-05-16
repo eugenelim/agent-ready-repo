@@ -114,7 +114,12 @@ gap at spec close is the kind of thing that ships an invisible bug.
 6. **Edge-case coverage.** Empty input, max input, malformed input,
    zero / negative / NaN where numeric, concurrent access, partial
    failure. Cite the specific cases tested and the specific cases
-   that aren't.
+   that aren't. When the surface is invariant-shaped — parser,
+   deserializer, schema/protocol boundary, prompt template, or
+   tool-input handler with a "parses-or-rejects, no crash, no
+   overflow" contract — propose a fuzz or property target instead
+   of an enumerated case list. Pure-logic functions with a small
+   enumerable input space get a fixture table, not a fuzzer.
 7. **Flaky-by-design.** Tests that depend on wall-clock time, sleeps,
    network, real DBs without isolation, or test-order. Flag with the
    determinism technique that fixes it (clock injection, fakes,
@@ -200,7 +205,13 @@ When asked to draft tests, follow the repo's split:
   given/when/then, plus a code block if helpful.
 - **Construction tests** go in the package's normal test path.
   Per-task, derived from the plan's task list. Include the boring
-  edge cases (empty, max, malformed) explicitly.
+  edge cases (empty, max, malformed) explicitly. When the surface
+  is invariant-shaped — parser, deserializer, schema/protocol
+  boundary, prompt template, or tool-input handler with a
+  "parses-or-rejects, no crash, no overflow" contract — draft a
+  fuzz or property target instead of an enumerated case list. The
+  UI counterpart (exploratory / visual fuzz) lives in the
+  visual/manual mode below.
 - **Respect the verification mode.** TDD-mode tasks get a failing
   test first. Goal-based tasks get a one-line verifier, not a test
   file. Visual/manual tasks get a recorded check by default;
