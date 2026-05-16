@@ -16,6 +16,7 @@ on:
       - 'tools/lint-agent-artifacts.sh'
       - 'tools/test-lint-agent-artifacts.sh'
       - 'tools/lint-skill-deps.sh'
+      - 'tools/test-lint-skill-deps.sh'
       - 'tools/lint-knowledge.sh'
       - 'tools/test-lint-knowledge.sh'
       - 'tools/check-done.py'
@@ -63,6 +64,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run skill-dep linter
         run: bash tools/lint-skill-deps.sh
+      - name: Self-test the linter (asserts expected errors fire)
+        run: bash tools/test-lint-skill-deps.sh
 
   lint-knowledge:
     name: Knowledge base
