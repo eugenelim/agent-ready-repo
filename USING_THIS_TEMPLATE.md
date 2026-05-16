@@ -277,6 +277,11 @@ A few high-leverage moves for the first week:
    default workflow for any feature, fix, or refactor.
 4. **Don't run Ralph yet.** Get a feel for the in-session loop first.
    Ralph amplifies whatever your conventions are; let those settle.
+5. **Adapting one pattern into an existing repo?** Use
+   `tools/install-skill.py` (Path B in Step 1) for an automated copy, or
+   read the skill's `SKILL.md` plus its `dependencies:` closure and port
+   the pattern by hand. README.md plus this file are enough to get the
+   shape; the dependency closure carries the runtime contract.
 
 ---
 
