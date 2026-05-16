@@ -5,8 +5,13 @@ dependencies:
   - docs/CONVENTIONS.md#contract-tests-vs-construction-tests
   - docs/CONVENTIONS.md#work-loop-state
   - docs/CONVENTIONS.md#supervisor-mode
+  - docs/CONVENTIONS.md#knowledge-base
   - docs/_templates/state.json
+  - docs/knowledge/README.md
+  - docs/knowledge/patterns.jsonl
   - tools/check-done.py
+  - tools/hooks/session-start.sh
+  - tools/hooks/pre-pr.sh
   - .claude/agents/adversarial-reviewer.md
   - .claude/agents/security-reviewer.md
   - .claude/agents/quality-engineer.md
@@ -399,16 +404,27 @@ silently expand scope to make a finding go away.
 ## Capture what was learned
 
 Before the PR is opened, ask: *what would have made this loop go faster?*
-Common answers and where they go:
+Where the answer goes depends on the *shape* of the learning:
 
+- **Practitioner lessons** — a repeatable pattern that worked, a
+  gotcha that bit you, or an antipattern that looked good but rotted —
+  go in [`docs/knowledge/patterns.jsonl`](../../../docs/knowledge/patterns.jsonl)
+  as a new entry. The schema is in
+  [`docs/knowledge/README.md`](../../../docs/knowledge/README.md);
+  one JSON object per line, scoped to a file glob. The
+  `session-start` hook reads these so the next agent starts with the
+  relevant ones already in context.
 - "I had to grep for `<thing>` repeatedly" → add a pointer in
   `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's
   `AGENTS.md`.
-- "I made the same wrong assumption twice" → add a line to the relevant
-  `AGENTS.md` (root or per-package) so the next agent doesn't repeat it.
-  If it's a vocabulary issue (a term that means something specific here),
-  it goes in `docs/guides/reference/` as a glossary entry.
+- "I made the same wrong assumption twice" → if it's a
+  knowledge-base-shaped lesson (a pattern/gotcha/antipattern), record
+  it in `patterns.jsonl`; if it's project-conventions context, add a
+  line to the relevant `AGENTS.md` (root or per-package) so the next
+  agent doesn't repeat it. If it's a vocabulary issue (a term that
+  means something specific here), it goes in `docs/guides/reference/`
+  as a glossary entry.
 - "This workflow is now the third time I've done it" → propose it as a new
   skill in `.claude/skills/`.
 
