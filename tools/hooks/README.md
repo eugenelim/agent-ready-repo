@@ -123,12 +123,10 @@ The umbrella `tools/test-all.sh` runs every self-test in `tools/`
 `test-lint-agent-artifacts.sh`, `test-bootstrap-targets.sh`). Run it
 by hand whenever a linter, hook, or `check-done.py` changes.
 
-**CI parity.** `pre-pr.sh` is a superset of CI: CI runs only the
-agent-artifact and AGENTS.md linters; the local hook also runs the
-skill-dep, knowledge, and `check-done.py` checks. **Self-tests are
-also asymmetric** — CI runs `test-lint-agent-artifacts.sh` and
-`test-bootstrap-targets.sh`; the four self-tests added in later
-phases (`test-check-done.sh`, `test-lint-knowledge.sh`,
-`test-pre-pr.sh`, `test-session-start.sh`) are *not yet* wired into
-CI. Run `tools/test-all.sh` locally before opening a PR so the
-asymmetry doesn't catch you.
+**CI parity.** `pre-pr.sh` and CI run the same set of checks in
+parallel. CI's `.github/workflows/docs.yml` has a job per
+enforcement layer — the four linters, the caps-enforcer self-test,
+and a `hooks` job that exercises the aggregator end-to-end (after
+seeding a healthy `state.json` so `check-done.py` actually runs).
+Run `tools/test-all.sh` and `tools/hooks/pre-pr.sh` locally before
+opening a PR; CI runs the same checks afterward.
