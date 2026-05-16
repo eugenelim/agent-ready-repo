@@ -656,6 +656,30 @@ This is the design target — everything in the template is in active use.
 - ADRs are routine — likely 30+ in the project's history.
 - Multiple specs in flight; spec/plan/review discipline carries weight.
 
+### Multi-agent shape by profile
+
+The mechanisms — supervisor mode, parallel reviewer dispatch, the
+knowledge base — are defined in their own sections above. The mapping
+below says *which of them you actually use* at each profile, so a
+template adopter knows when to wire each one up.
+
+- **Profile A** — single-agent work-loop. Supervisor mode is available
+  but rarely triggers; most plans at this size have sequential
+  `Depends on:` chains, and the parallel-dispatch payoff doesn't beat
+  the coordination overhead. Specialist reviewers are usually skipped,
+  and `adversarial-reviewer` itself is optional at this size.
+- **Profile B** — [supervisor mode](#supervisor-mode) earns its keep
+  when a plan produces two or more `Depends on: none` tasks. Reviewer
+  fan-out follows the
+  [parallel-dispatch discipline](../.claude/skills/work-loop/SKILL.md#parallel-dispatch-discipline)
+  in the work-loop skill: one tool-call message, one Agent use per
+  reviewer, barrier-wait, merge in the orchestrator's context.
+- **Profile C** — same as B, plus the [knowledge base](#knowledge-base)
+  is actively populated (`docs/knowledge/patterns.jsonl`) and the
+  `session-start` hook is wired in the consumer's `.claude/settings.json`
+  per [`tools/hooks/README.md`](../tools/hooks/README.md). The template
+  ships the script, not the wiring.
+
 ### Above Profile C
 
 If your repo is heading past ~50 active contributors with multiple teams
