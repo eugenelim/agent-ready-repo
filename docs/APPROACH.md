@@ -33,6 +33,8 @@ Three review lenses cover the rest. The adversarial reviewer reads the diff agai
 
 There's also a bug-fix discipline worth knowing about. Reproduce first; write a failing test that pins the actual contract being violated; trace where the defect lives and grep for sibling cases; keep the diff minimum; verify you've fixed the root rather than the symptom; document the reasoning in the commit body. If your team uses a tracker, loop back to it when the PR lands.
 
+Skills travel. The workflows under `.claude/skills/` aren't template-only — `tools/install-skill.py` copies a skill and its declared dependency closure into any other repo. The rule that makes this work: skill bodies don't read specific content from adopter-owned files (`AGENTS.md`, `docs/CONVENTIONS.md`, `docs/CHARTER.md`). They reference shape ("your project's lint command, wherever you document it") or read what's there at runtime. That's why the three reviewer agents declare `dependencies: []` even while telling the agent to read AGENTS.md first — the contract is that an AGENTS.md exists, not that ours does. `tools/lint-skill-deps.sh` enforces the constraint so it doesn't drift back in.
+
 Everything above scales without restructuring. Three profiles — microservice, library, medium platform — share the same structure. A small project skips the cross-team governance pieces; a larger one picks them up later without moving anything around. And these disciplines aren't only written down: linters check them, CI gates them, and the bootstrap script has its own self-test so the template doesn't quietly drift over time.
 
 ## What we left out, on purpose

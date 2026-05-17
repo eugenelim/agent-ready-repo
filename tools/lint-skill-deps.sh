@@ -21,6 +21,15 @@ import pathlib, re, sys
 root = pathlib.Path(sys.argv[1]).resolve()
 error_count = 0
 
+# Adopter-owned files: a skill installed elsewhere lands on top of the
+# adopter's own copy of these, and install-skill.py emits whole-file deps
+# as fragments under `*.fragments/<skill>.md` for the adopter to merge by
+# hand. A whole-file dep is almost always a mistake — the skill rarely
+# needs all of our prose. Authors should anchor-cite the specific section
+# they need, or omit the dep and read at runtime (the reviewer pattern).
+# Mirrors FRAGMENT_FILES in tools/install-skill.py.
+FRAGMENT_FILES = {"AGENTS.md", "docs/CONVENTIONS.md", "docs/CHARTER.md"}
+
 
 def err(path, msg):
     global error_count
@@ -114,6 +123,12 @@ def check(manifest_path):
             err(manifest_path,
                 f"dependency points at a directory: {dep} "
                 f"(manifests must list individual files)")
+            continue
+        if path_part in FRAGMENT_FILES and not anchor:
+            err(manifest_path,
+                f"whole-file dep on adopter-owned {path_part} is forbidden — "
+                f"cite a section by anchor (e.g. {path_part}#section-slug) "
+                f"or omit and read at runtime. See .claude/skills/README.md.")
             continue
         if anchor and not file_has_anchor(target, anchor):
             err(manifest_path, f"anchor #{anchor} not found in {path_part}")

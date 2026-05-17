@@ -2,12 +2,13 @@
 # Self-test for tools/lint-skill-deps.sh.
 #
 # Generates broken skill/agent manifests in a tempdir, runs the linter
-# against them, and asserts that each of the linter's three err() sites
-# (missing file, missing anchor, dep-is-a-directory) fires. Then runs the
-# linter against a happy-path fixture and asserts exit 0. Finally runs
-# the linter against the real in-tree state as a regression guard — a
-# refactor that broke the parser would otherwise land green here even
-# while it broke real installs.
+# against them, and asserts that each of the linter's four err() sites
+# (missing file, missing anchor, dep-is-a-directory, whole-file dep on
+# an adopter-owned governance file) fires. Then runs the linter against
+# a happy-path fixture and asserts exit 0. Finally runs the linter
+# against the real in-tree state as a regression guard — a refactor
+# that broke the parser would otherwise land green here even while it
+# broke real installs.
 #
 # Fixtures live in the tempdir, not in the repo, so Claude Code's skill
 # discovery does not pick them up (a broken fixture skill would otherwise
@@ -32,8 +33,16 @@ mkdir -p \
   "$BAD/.claude/skills/missing-file" \
   "$BAD/.claude/skills/missing-anchor" \
   "$BAD/.claude/skills/dep-is-dir" \
+  "$BAD/.claude/skills/whole-file-fragment" \
   "$BAD/docs" \
   "$BAD/some-dir-target"
+
+# An AGENTS.md the whole-file-fragment fixture can point at, so the
+# linter hits the FRAGMENT_FILES check rather than the missing-file
+# check.
+cat > "$BAD/AGENTS.md" <<'EOF'
+# Placeholder adopter-owned AGENTS.md.
+EOF
 
 # A real file the missing-anchor fixture can point at (so we hit the
 # anchor-resolution err(), not the missing-file err()).
@@ -80,6 +89,20 @@ dependencies:
 Body.
 EOF
 
+# Skill: whole-file dep on an adopter-owned governance file. The file
+# exists (and has no anchor cited), so the linter must reject it on the
+# FRAGMENT_FILES rule rather than the missing-file rule.
+cat > "$BAD/.claude/skills/whole-file-fragment/SKILL.md" <<'EOF'
+---
+name: whole-file-fragment
+description: Whole-file dep on AGENTS.md should be refused.
+dependencies:
+  - AGENTS.md
+---
+
+Body.
+EOF
+
 # ── Run linter against broken fixtures ────────────────────────────────────
 
 set +e
@@ -98,6 +121,7 @@ EXPECTED_PATTERNS=(
   "dependency points at missing file: docs/does-not-exist.md"
   "anchor #nope-not-here not found in docs/real.md"
   "dependency points at a directory: some-dir-target"
+  "whole-file dep on adopter-owned AGENTS.md is forbidden"
 )
 
 for pattern in "${EXPECTED_PATTERNS[@]}"; do
