@@ -96,9 +96,44 @@ helpers — live in `plan.md`, not here.
 ## Non-goals
 
 <!--
-What are we explicitly NOT doing? This is the section that prevents scope
-creep — both from humans and from agents who'd otherwise "helpfully" expand
-the feature.
+What *behaviors* are we explicitly NOT shipping? Features, use cases, and
+user-visible capabilities the spec rules out. This is the section that
+prevents behavioral scope creep — both from humans and from agents who'd
+otherwise "helpfully" expand the feature.
+
+If the item is a whole subsystem we're declining to build (telemetry,
+i18n, SSO, offline support), file it here even though it doubles as a
+structural cut — Constraints below is for structures we'd otherwise be
+tempted to *add* in service of this feature.
+-->
+
+## Constraints
+
+<!--
+What *implementation strategies* are off the table for this feature?
+Where Non-goals enumerates behaviors we won't ship, Constraints enumerates
+the structural choices we won't make — the dependencies, module
+boundaries, or architectural surface area that this feature must not
+introduce.
+
+This is what protects the diff from sprawl. A spec can be tight on
+non-goals (no OAuth in v1) and still produce three new abstraction
+layers; Constraints is what prevents that.
+
+Distinct from the `Constrained by:` field in the header above, which
+cites external ADRs/RFCs this spec inherits from. Constraints here are
+self-imposed and feature-scoped.
+
+Each entry should name a *specific* structural choice. Generic
+guardrails ("keep it simple", "avoid over-engineering") belong in code
+review, not here.
+
+Examples:
+- No new persistence layer — extend the existing one or fail closed.
+- No new top-level dependency.
+- No new module boundary under `packages/`.
+- No new MCP server, queue, or out-of-process worker for this feature.
+- No new public API surface beyond the one Behavior describes.
 -->
 
 ## Open questions
