@@ -304,3 +304,13 @@ and a specific `Fix:`, you haven't found a finding yet — keep looking.
 - **Demand 100% coverage.** Coverage isn't the goal; behaviour
   coverage is. A diff that adds a tested behaviour and an untested
   trivial getter is fine.
+
+## Rationalizations we refuse
+
+When tempted to short-circuit, refuse these by name:
+
+| Rationalization | Rebuttal |
+|---|---|
+| *"Tests exist and pass — coverage is fine."* | Coverage measures lines, not behaviours. Map each spec Behavior to the assertion that would fail if it broke; if the assertion is `mock.calls == 1`, the contract isn't covered. |
+| *"Logging is present — observability is fine."* | A log on the happy path with silence on the error path is the wrong shape. Check the three pillars sit on the paths that fail at 3am, not the paths that already worked. |
+| *"Errors are returned — reliability is fine."* | A returned `Error("failed")` with no context, no timeout, and no idempotency key is a pager wake-up waiting to happen. Reliability is what the caller sees on failure and what happens on retry, not whether errors are returned. |
