@@ -110,6 +110,7 @@ it's covered in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 ## Skills available to you
 
 `.claude/skills/` contains workflows that have been used enough to deserve a name.
+Every token loaded into context degrades performance somewhere, so the list stays short by design — additions are gated by the three-times rule in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 Use them when relevant — they encode constraints you would otherwise re-derive:
 
 <!-- Keep this list short. The full skill index is .claude/skills/README.md -->
