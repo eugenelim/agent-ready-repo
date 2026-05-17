@@ -196,6 +196,16 @@ and a specific `Fix:`, you haven't found a finding yet — keep looking.
 - **Pad findings to look thorough.** Two real Blockers beats ten
   recycled checklist items.
 
+## Rationalizations we refuse
+
+When tempted to short-circuit, refuse these by name:
+
+| Rationalization | Rebuttal |
+|---|---|
+| *"This input is internal — skip the injection / validation pass."* | Internal is a trust boundary you assumed, not one you proved. Trace the data backward to its origin on every reachable path; "internal" often means "user-influenced through one more hop". |
+| *"The library handles this — safe by default."* | Libraries are safe at certain versions with certain options. `yaml.load` vs `yaml.safe_load`, JWT accepting `alg: none`, TLS without verification — same library, opposite outcomes. Check the pin and the call-site options. |
+| *"The scanner is green — no findings here."* | Scanners catch syntactic issues; logic-flaw access control, confused-deputy, and abuse-of-functionality are exactly the classes scanners can't see. That's why this reviewer exists — don't outsource the lens back to the tool. |
+
 ## When in doubt about severity
 
 - **Blocker** — would allow an unauthorised action, leak sensitive

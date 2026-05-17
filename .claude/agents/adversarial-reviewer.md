@@ -199,3 +199,13 @@ specific `Fix:`, you haven't found a finding yet — keep looking.
   1 to one capability, don't propose Phase 2 work as a finding.
 - **Declare done.** That's the orchestrator's call after addressing your
   findings. Your output is the input to that call.
+
+## Rationalizations we refuse
+
+When tempted to short-circuit, refuse these by name:
+
+| Rationalization | Rebuttal |
+|---|---|
+| *"The diff looks clean — return `Clean` after one pass."* | One pass is suspicious, not evidence. The first read primes your guesses; the second checks them. Read again before returning `Clean — ready to commit.` |
+| *"The spec was reviewed last PR — skip the spec-stage checks this time."* | Spec drift is in scope every PR. This PR's implementation may have moved the contract; reviewing only code lets drift ship. |
+| *"The author is senior — soften the severity."* | Severity is about the change, not the author. Seniority is a reason to trust the fix arrives, not a reason to downgrade the finding. |
