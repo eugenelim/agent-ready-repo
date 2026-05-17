@@ -16,6 +16,8 @@ The detailed map of what lives where is in [`docs/architecture/overview.md`](doc
 
 ## Keeping changes minimal
 
+Code is a liability, not an asset; the same principle unifies *Add a flag only when a second caller actually needs to differ* (next bullet) and *Dependencies are forever* in [§ Check before acting](#check-before-acting).
+
 Scope each change precisely to the request.
 
 ### Non-negotiables
