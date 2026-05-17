@@ -48,11 +48,13 @@ load on demand.
 .
 ├── AGENTS.md                       # canonical agent context (every agent reads this first)
 ├── CLAUDE.md                       # → AGENTS.md (symlink)
+├── USING_THIS_TEMPLATE.md          # adoption guide: Path A (bootstrap) and Path B (cherry-pick)
 ├── .claude/                        # agent-side scaffolding
-│   ├── agents/                     # specialist reviewer subagents
+│   ├── agents/                     # specialist subagents
 │   │   ├── adversarial-reviewer.md # spec drift, scope creep, edge cases, architectural fit
 │   │   ├── security-reviewer.md    # OWASP + STRIDE; complements SAST/SCA scanners
-│   │   └── quality-engineer.md     # testability, observability, reliability, maintainability
+│   │   ├── quality-engineer.md     # testability, observability, reliability, maintainability
+│   │   └── implementer.md          # single-task executor used by work-loop supervisor mode
 │   ├── skills/                     # encoded multi-step workflows
 │   │   ├── work-loop/              # plan → execute → gates → review → decide
 │   │   ├── new-spec/               # specs and plans, paired and gated
@@ -73,9 +75,10 @@ load on demand.
 │   ├── architecture/               # current code structure (for contributors)
 │   ├── product/                    # roadmap, changelog (for maintainers)
 │   ├── guides/                     # user-facing docs (Diátaxis-organized)
+│   ├── knowledge/                  # patterns, gotchas, antipatterns (patterns.jsonl)
 │   └── _templates/                 # blank templates for adr / rfc / spec / plan
-├── tools/                          # bootstrap, single-skill installer, linters, self-tests, Ralph harness
-├── apps/                           # deployable applications (delete if not used)
+├── tools/                          # bootstrap, single-skill installer, linters, hooks, self-tests, Ralph harness
+├── .github/                        # issue templates, PR template, workflows
 └── packages/                       # shared libraries (delete if not used)
 ```
 
