@@ -137,6 +137,19 @@ Pick the ones the diff actually warrants; don't run all three by default.
 - **Propose new top-level directories via RFC.** The structure is
   intentional.
 
+### Excuses we don't accept
+
+Rationalizations the agent hits *before* the work-loop loads — when it's
+deciding whether to load it at all. The in-loop set lives in
+[`work-loop` § Anti-patterns](.claude/skills/work-loop/SKILL.md#anti-patterns-to-refuse).
+
+| Excuse | What to do instead |
+| --- | --- |
+| "Small enough to not bother loading the work-loop." | Load `work-loop` and write its trio anyway — three sentences. The discipline is the point, not the length. |
+| "I don't need a spec, I understand the task." | If it touches more than one file, run `new-spec`. The spec exists to surface what you don't know you don't know. |
+| "I'll grep the codebase as I go." | Verify APIs *before* you start writing, not while you're writing — same rigor as the *Grep to verify a function exists* bullet above. |
+| "I'll match the surrounding code's pattern." | Check [Source of truth](#source-of-truth) first; local style may already conflict with the canonical convention. |
+
 ## When this file is wrong
 
 Flag drift in your PR — don't silently work around it. AGENTS.md vs. reality
