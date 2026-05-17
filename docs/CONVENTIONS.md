@@ -216,7 +216,10 @@ docs/specs/<feature>/
 **`spec.md` is the contract.** It defines the externally observable behavior:
 inputs, outputs, error cases, edge cases, non-goals. It is the source of truth
 for what "done" means. The `Contract tests` section in the spec lists those
-tests explicitly — they are the gate, not an afterthought.
+tests explicitly — they are the gate, not an afterthought. (Hyrum's Law: with
+enough callers, every observable behavior of this contract — including ones
+the spec doesn't promise — will be depended on, so the contract tests pin
+what's actually intended.)
 
 **`plan.md` is the implementation strategy.** It enumerates the changes —
 "add a `<thing>` to package X, modify `<other thing>` in package Y, write tests
@@ -259,6 +262,9 @@ the change is non-trivial.
 This is the forcing function that keeps specs honest (you can't write a
 contract test for a vague behavioural claim) and keeps implementations
 honest (you can't drift from the spec if the spec's tests are red).
+
+The typical mix follows the test pyramid — roughly 80% fast unit / construction
+tests, 15% integration, 5% end-to-end — a target shape, not a quota.
 
 ---
 
