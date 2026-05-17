@@ -14,6 +14,25 @@ A monorepo for `<project-name>` — a `<one-line description of what it does and
 The detailed map of what lives where is in [`docs/architecture/overview.md`](docs/architecture/overview.md).
 **Read it before exploring.** It will save you 20 minutes of grep.
 
+## Keeping changes minimal
+
+Scope each change precisely to the request.
+
+- **Touch only the files the request requires.** Note unrelated issues
+  you spot in a follow-up PR — fixing them along the way bloats the
+  diff and hides the real change.
+- **Add a flag or option only when a second caller actually needs to
+  differ.** Today's one caller is enough to define the shape.
+- **Add docstrings and types to code the change actually touches.**
+  Leave nearby untouched code as it is.
+- **Validate at boundaries the request crosses** (user input, external
+  APIs). Trust internal callers and framework guarantees.
+- **Inline a single-use operation.** Extract a helper once a second
+  caller actually appears.
+
+For same-area cleanups you considered, note them in the PR description
+and let the reviewer decide.
+
 ## Source of truth
 
 For each kind of decision, there is exactly one place it lives:
@@ -103,18 +122,19 @@ Pick the ones the diff actually warrants; don't run all three by default.
   observability, reliability, and maintainability lens. Also drafts
   contract or construction tests on request.
 
-## Things you should not do without asking
+## Check before acting
 
-- **Don't run destructive commands** (`rm -rf`, `git push --force`, dropping
-  database tables) without explicit confirmation in the same turn.
-- **Don't edit `docs/CHARTER.md` directly** — substantive changes go through
-  an RFC. Trivial edits (typos, broken links) are fine as a normal PR.
-- **Don't add dependencies in package code** without recording the why in the
-  package's `AGENTS.md` or an ADR. Dependencies are forever.
-- **Don't fabricate APIs.** If you're not sure a function exists, grep first.
-  Inventing imports that "look right" wastes everyone's time when the build fails.
-- **Don't create new top-level directories.** The structure is intentional. If you
-  think a new one is needed, propose it in an RFC.
+- **Get user confirmation for destructive commands** (`rm -rf`,
+  `git push --force`, dropping database tables) before running them.
+- **Route substantive `docs/CHARTER.md` edits through an RFC.** Trivial
+  fixes (typos, broken links) are fine as normal PRs.
+- **Record new dependencies in the package's `AGENTS.md` or an ADR**
+  before adding them. Dependencies are forever.
+- **Grep to verify a function exists** before importing it. Imports
+  that "look right" but aren't waste the time of everyone who hits the
+  broken build.
+- **Propose new top-level directories via RFC.** The structure is
+  intentional.
 
 ## When this file is wrong
 
