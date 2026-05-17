@@ -2,6 +2,7 @@
 name: work-loop
 description: Use this skill whenever you're implementing a non-trivial change — a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
 dependencies:
+  - AGENTS.md#check-before-acting
   - docs/CONVENTIONS.md#contract-tests-vs-construction-tests
   - docs/CONVENTIONS.md#work-loop-state
   - docs/CONVENTIONS.md#supervisor-mode
@@ -147,9 +148,9 @@ For anything beyond trivial, *think before you write code*. Concretely:
      - New abstraction layer — a new interface mediating between two
        existing concrete things; a new factory, registry, locator, or
        service-locator pattern.
-     - New top-level directory (already an RFC item per AGENTS.md;
-       restated as a trigger here because it's the most expensive of
-       the four to undo).
+     - New top-level directory — the most expensive of the four to
+       undo. Many projects already gate this through their own RFC or
+       ADR process; the trigger fires here either way.
 
   The structural-change trigger fires even when no spec is amended in
   this PR — the trigger is the **plan's task shape**, not a spec edit.
@@ -160,7 +161,10 @@ For anything beyond trivial, *think before you write code*. Concretely:
   [`docs/_templates/spec.md`](../../../docs/_templates/spec.md)). If
   the spec has no Constraints subsection, fall back in order to: the
   spec's **Non-goals**, the PLAN step's **declined-pattern register**
-  (above), and the AGENTS.md **"Check before acting"** list.
+  (above), and the AGENTS.md **"Check before acting"** list (when
+  installed elsewhere this slug arrives as a fragment under
+  `docs/AGENTS.fragments/`; merge the items the adopter wants into their
+  own AGENTS.md).
 
   **Re-fire on mid-EXECUTE re-plan.** If EXECUTE discovers a missing or
   wrong task and updates `plan.md` per the *Design tests up front* rule
