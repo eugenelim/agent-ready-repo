@@ -18,6 +18,20 @@ The detailed map of what lives where is in [`docs/architecture/overview.md`](doc
 
 Scope each change precisely to the request.
 
+### Non-negotiables
+
+- **Surface assumptions before building.** Name them in PLAN's trio.
+  The declined-pattern register in [`work-loop`](.claude/skills/work-loop/SKILL.md)
+  names temptations; assumptions are different — call them out separately.
+- **Stop and ask when requirements conflict.** Use the Surface verb
+  defined in [`work-loop`](.claude/skills/work-loop/SKILL.md) — emit a
+  short description and wait.
+- **Push back when warranted.** Not a yes-machine. Disagreement goes in
+  the PR description, not in silence.
+- **Prefer the boring, obvious solution.** Cleverness is expensive; see
+  the declined-pattern register in [`work-loop`](.claude/skills/work-loop/SKILL.md).
+- **Touch only what you're asked to touch.** See the rest of this section.
+
 - **Limit the diff to what the request requires — extra changes hide
   the real one from review.** If the request needs it — or would ship
   broken without it — it's in scope, even discoveries you make
