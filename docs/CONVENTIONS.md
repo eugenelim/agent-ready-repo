@@ -361,6 +361,10 @@ A PR description should answer four questions in this order:
 4. **What did you not change that you considered?** (The dog that didn't bark.
    This catches more bugs than any other section.)
 
+Aim for under ~100 lines of diff. PRs that grow beyond ~400 lines should be
+split unless the change is genuinely atomic (e.g. a generated file, a single
+rename across many call-sites).
+
 CI must be green. Specs must match implementation. Public-interface changes
 must be noted in `CHANGELOG.md`.
 
@@ -566,6 +570,12 @@ enforcement triplet" and mean the same three things:
 | Caps | [`tools/check-done.py`](../tools/check-done.py) | Iteration cap, token budget, plan approval, fingerprint stasis (see [§ Work-loop state](#work-loop-state)). |
 | Artifacts | `tools/lint-agents-md.sh`, `lint-agent-artifacts.sh`, `lint-skill-deps.sh`, `lint-knowledge.sh` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
 | Aggregation | [`tools/hooks/pre-pr.sh`](../tools/hooks/pre-pr.sh) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
+
+The triplet is **Shift Left**: catch problems as early as possible,
+locally before CI, at PLAN before EXECUTE. The
+[pre-EXECUTE adversarial review](../.claude/skills/work-loop/SKILL.md) in
+the work-loop skill is the same pattern at a different layer — moving
+review left from after code is written to before it is.
 
 `pre-pr.sh` is the hook downstream consumers wire into their tool's
 lifecycle (see [`tools/hooks/README.md`](../tools/hooks/README.md)).
