@@ -79,7 +79,21 @@ For anything beyond trivial, *think before you write code*. Concretely:
   "think hard" or "ultrathink" to your prompt for adaptive thinking depth.
   Other agents have their own facilities — use the equivalent.
 - Write down: which files you'll touch, what tests will demonstrate "done",
-  and what you are *not* changing. Three sentences is enough.
+  and what you are *not* changing. Three sentences is enough for the trio.
+
+  Then, in a short paragraph below the trio, **name what you were tempted
+  to add and explicitly declined** — usually one to three items, each with
+  a one-sentence reason. *Patterns worth naming* are the structural
+  temptations agents drift toward mid-EXECUTE: new abstractions
+  (factories, locators, registries), structural choices (new module, new
+  layer, new boundary), framework or dependency introductions, defensive
+  scaffolding (validation wrappers, error-mapping layers), and
+  configurability for hypothetical futures (flags, options, env vars). The
+  shape is one line per declination: *"Tempted to add a ServiceLocator;
+  declining — direct construction is fine for now."* This is a commitment,
+  not a checklist — naming a temptation here means REVIEW can catch drift
+  toward it as self-contradiction in the diff. The trio's three-sentence
+  cap doesn't bind this paragraph; brevity still does.
 - **Pick the verification mode for each plan task** before writing code.
   The mode is the task's contract for "how do we know this is done":
   - **TDD** — pure functions, state machines, protocols, anything with a
@@ -471,6 +485,10 @@ before running Ralph.** AFK doesn't mean *unconsidered* — it means
 
 - **Skipping PLAN because "the task is small."** If it's truly small, the
   plan is one sentence — write it anyway. The discipline is the point.
+- **Declaring an empty declined-pattern register on a non-trivial task.**
+  On any non-trivial change something was tempting — a layer, a flag, a
+  helper, a defensive wrapper, a tidy abstraction. A register with nothing
+  in it means you weren't looking, not that there was nothing to find.
 - **Writing code before deciding how it'll be verified.** "I'll figure out
   the test after" is how features ship with the wrong contract. Every task
   picks its verification mode (TDD / goal-based / manual QA) during PLAN;
