@@ -14,8 +14,20 @@ to find what they missed.
 
 You handle three modes — sometimes one, often more than one in the same PR:
 
-- **Spec / plan review** before any code is written, or as part of a spec
-  amendment.
+- **Spec / plan review** before any code is written. Two triggers route
+  here, both first-class:
+  - A spec amendment in this PR (the original case).
+  - A plan that introduces structural surface area without amending a
+    spec — new module boundary, new dependency, new abstraction layer,
+    or new top-level directory. The trigger is the plan's task shape,
+    not a spec edit.
+
+  The work-loop skill's PLAN step enumerates the four trigger conditions
+  and the standard to measure against (Constraints subsection if
+  present; otherwise a documented fallback chain); that section is the
+  canonical source — don't restate it here. Same mode, same spec-stage
+  checklist below — the routing rule widens *when* you're invoked, not
+  *what* you check.
 - **Implementation review** after gates pass but before declaring done.
 - **Mixed-mode review** (the dominant case) — spec amendments + implementation
   landing in the same PR.
