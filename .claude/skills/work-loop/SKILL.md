@@ -131,14 +131,54 @@ For anything beyond trivial, *think before you write code*. Concretely:
   sharpen the plan first. Discovering a missing or wrong construction test
   during EXECUTE is fine, but the fix is "update plan.md, then resume
   EXECUTE", not "skip ahead".
-- **Spec-mode adversarial review before EXECUTE.** If PLAN produced or
-  modified a spec (i.e. you ran `new-spec`, or you sharpened an existing
-  `spec.md` / `plan.md`), invoke `adversarial-reviewer` in spec mode
-  against the spec + plan and iterate to clean before EXECUTE begins.
-  Cheap-to-fix-early applies harder to specs than to code — catching a
-  vague behavior, a missing `Depends on:`, or a mismatched verification
-  mode here costs a sentence, not a re-plan. Same Profile-A caveat as
-  the post-impl review: skip if the project doesn't use the reviewer.
+- **Pre-EXECUTE adversarial review.** Invoke `adversarial-reviewer` in
+  spec/plan-review mode against the spec + plan and iterate to clean
+  before EXECUTE begins when **either** trigger fires:
+
+  1. **Spec amendment.** PLAN produced or modified a spec — you ran
+     `new-spec`, or you sharpened an existing `spec.md` / `plan.md`.
+  2. **Structural change.** Any plan task introduces structural surface
+     area. Walk this checklist; if **any** condition matches, the
+     trigger fires:
+     - New module boundary — a new directory under `packages/` or
+       `apps/`.
+     - New dependency added to package code — especially a framework,
+       ORM, or runtime.
+     - New abstraction layer — a new interface mediating between two
+       existing concrete things; a new factory, registry, locator, or
+       service-locator pattern.
+     - New top-level directory (already an RFC item per AGENTS.md;
+       restated as a trigger here because it's the most expensive of
+       the four to undo).
+
+  The structural-change trigger fires even when no spec is amended in
+  this PR — the trigger is the **plan's task shape**, not a spec edit.
+  Both triggers route to the same reviewer mode and the same spec-stage
+  checklist; what differs is the standard the reviewer measures against.
+  When the structural-change trigger fires, the reviewer checks the
+  plan against the spec's **Constraints** subsection (see
+  [`docs/_templates/spec.md`](../../../docs/_templates/spec.md)). If
+  the spec has no Constraints subsection, fall back in order to: the
+  spec's **Non-goals**, the PLAN step's **declined-pattern register**
+  (above), and the AGENTS.md **"Check before acting"** list.
+
+  **Re-fire on mid-EXECUTE re-plan.** If EXECUTE discovers a missing or
+  wrong task and updates `plan.md` per the *Design tests up front* rule
+  above, re-evaluate the structural-change checklist against the
+  updated plan. If a re-plan introduces any of the four conditions that
+  the original plan did not, the trigger re-fires and the reviewer
+  re-runs before EXECUTE resumes. This is where most over-engineering
+  emerges in practice — a tempting abstraction surfaces mid-flight, not
+  during the original PLAN — so the one-shot trigger is not enough.
+
+  Cheap-to-fix-early applies harder to specs and structural decisions
+  than to code — catching a vague behavior, a missing `Depends on:`,
+  a mismatched verification mode, or a misplaced module boundary here
+  costs a sentence; catching it post-EXECUTE costs a re-do. Gate
+  mechanism is unchanged: `state.json.plan_review_status` flips to
+  `approved` once clean; `check-done.py --phase plan` unlocks EXECUTE.
+  No new state fields. **Both triggers respect the Profile-A opt-out:**
+  skip if the project doesn't use the reviewer at all.
 - **Initialize the loop's state file.** Copy `docs/_templates/state.json`
   to `docs/specs/<feature>/state.json` and set `feature` to the spec
   slug. The file is gitignored — it's session-scratch, not history. Write
@@ -146,7 +186,7 @@ For anything beyond trivial, *think before you write code*. Concretely:
   never produces malformed JSON. Run
   `tools/check-done.py docs/specs/<feature>/state.json --phase plan`; on
   the first invocation it will exit 1 with `plan not approved` — **this
-  is the expected cue to run the spec-mode reviewer**, not a stop-and-
+  is the expected cue to run the pre-EXECUTE reviewer**, not a stop-and-
   surface signal. Once the reviewer is clean, flip
   `plan_review_status` to `approved` and re-run; exit 0 unlocks EXECUTE.
   Schema reference:
@@ -489,6 +529,13 @@ before running Ralph.** AFK doesn't mean *unconsidered* — it means
   On any non-trivial change something was tempting — a layer, a flag, a
   helper, a defensive wrapper, a tidy abstraction. A register with nothing
   in it means you weren't looking, not that there was nothing to find.
+- **Skipping pre-EXECUTE review on a structural change because "the plan
+  looks fine".** That's exactly when it doesn't. The cost of catching a
+  misplaced module boundary or an unjustified abstraction layer at PLAN
+  is a sentence; at REVIEW it's a re-do. The four structural triggers
+  (new module boundary, new dependency, new abstraction layer, new
+  top-level directory) are the cases where over-engineering is most
+  expensive to undo — that's the whole reason the trigger exists.
 - **Writing code before deciding how it'll be verified.** "I'll figure out
   the test after" is how features ship with the wrong contract. Every task
   picks its verification mode (TDD / goal-based / manual QA) during PLAN;
