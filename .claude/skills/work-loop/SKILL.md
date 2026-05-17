@@ -550,7 +550,8 @@ before running Ralph.** AFK doesn't mean *unconsidered* — it means
   the test — same lie, opposite direction. If a red test fails because the
   code under test is wrong, fix the code; plausible-sounding rationales
   ("flaky", "out of scope for this PR", "covered elsewhere") are how
-  regressions ship. If the test is genuinely wrong, fix it in a separate
+  regressions ship. (Beyoncé Rule: if you liked it, you should have put
+  a test on it.) If the test is genuinely wrong, fix it in a separate
   commit with the reason; if the test is right and the code can't pass it
   this session, the task isn't done — surface it, don't bury it.
 - **Declaring victory because gates pass.** Gates are necessary, not

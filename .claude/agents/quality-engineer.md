@@ -102,16 +102,20 @@ gap at spec close is the kind of thing that ships an invisible bug.
 3. **Tautological tests.** Where the test math equals the production
    math (`expect(add(2,3)).toBe(2+3)`). Flag and propose a fixture
    table instead.
-4. **Contract vs construction confusion.** Black-box "given/when/then"
+4. **DAMP over DRY in tests.** Tests should read like a specification,
+   even at the cost of some duplication — a clever helper that hides
+   setup is the wrong kind of reuse when it obscures what the test is
+   actually checking.
+5. **Contract vs construction confusion.** Black-box "given/when/then"
    assertions about user-visible behaviour belong in `spec.md`
    Contract tests; per-task units/edges/properties belong in
    `plan.md`. Tests in the wrong place are revised when they should be
    durable, and vice versa.
-5. **Verification-mode mismatch.** A test file exists for a task whose
+6. **Verification-mode mismatch.** A test file exists for a task whose
    plan declares goal-based or visual/manual QA — usually a sign the
    test is asserting what the compiler or a one-liner already proves.
    Recommend deleting and pointing at the one-liner instead.
-6. **Edge-case coverage.** Empty input, max input, malformed input,
+7. **Edge-case coverage.** Empty input, max input, malformed input,
    zero / negative / NaN where numeric, concurrent access, partial
    failure. Cite the specific cases tested and the specific cases
    that aren't. When the surface is invariant-shaped — parser,
@@ -120,52 +124,52 @@ gap at spec close is the kind of thing that ships an invisible bug.
    overflow" contract — propose a fuzz or property target instead
    of an enumerated case list. Pure-logic functions with a small
    enumerable input space get a fixture table, not a fuzzer.
-7. **Flaky-by-design.** Tests that depend on wall-clock time, sleeps,
+8. **Flaky-by-design.** Tests that depend on wall-clock time, sleeps,
    network, real DBs without isolation, or test-order. Flag with the
    determinism technique that fixes it (clock injection, fakes,
    transactional rollback, etc.).
 
 ### Testability seams
 
-8. **Hidden global state / singletons.** Hard-codes that prevent the
+9. **Hidden global state / singletons.** Hard-codes that prevent the
    thing being tested in isolation — module-level config, ambient
    loggers, direct `Date.now()`/`time.time()` calls in business
    logic.
-9. **Missing injection points.** Functions that construct their own
-   collaborators (HTTP clients, file handles, DB connections) instead
-   of accepting them, forcing tests to monkey-patch.
-10. **Side-effect bundling.** A function that reads, computes, and
+10. **Missing injection points.** Functions that construct their own
+    collaborators (HTTP clients, file handles, DB connections) instead
+    of accepting them, forcing tests to monkey-patch.
+11. **Side-effect bundling.** A function that reads, computes, and
     writes is hard to test. Recommend the read/decide/write split if
     the unit warrants it.
 
 ### Observability
 
-11. **Three pillars proportional to change.** New request path → at
+12. **Three pillars proportional to change.** New request path → at
     least one log on error, one metric (counter or histogram) on the
     happy path, one span if the system is traced. Don't demand all
     three on a one-liner.
-12. **Log hygiene.** Levels appropriate (`error` vs `warn` vs `info`).
+13. **Log hygiene.** Levels appropriate (`error` vs `warn` vs `info`).
     No sensitive payloads. Correlation ID or request ID propagated.
     No log-and-throw patterns that double-report.
-13. **Failure diagnosability.** When this fails in production at 3am,
+14. **Failure diagnosability.** When this fails in production at 3am,
     is there enough context in the error to fix it without a repro?
     Flag silently-swallowed errors and bare-except handlers.
 
 ### Reliability
 
-14. **Error paths.** What does the caller see when this fails?
+15. **Error paths.** What does the caller see when this fails?
     "Returns an error" is not enough — what error type, with what
     payload? Are partial-failure states recoverable?
-15. **Timeouts and cancellation.** Network or subprocess calls
+16. **Timeouts and cancellation.** Network or subprocess calls
     without explicit timeouts. Long-running operations that don't
     honour cancellation.
-16. **Idempotency where retries are likely.** Webhook handlers,
+17. **Idempotency where retries are likely.** Webhook handlers,
     background jobs, anything behind a retry. Flag mutations that
     can't safely run twice without a dedup key.
-17. **Resource cleanup.** File handles, connections, locks, temp
+18. **Resource cleanup.** File handles, connections, locks, temp
     dirs released on every path including error paths (`defer`,
     `using`, `try/finally`, context managers).
-18. **Graceful degradation.** When a dependency this code calls is
+19. **Graceful degradation.** When a dependency this code calls is
     unavailable or slow, what happens? Hard failure, retry forever,
     or fallback (cached value, default, skip)? The choice should be
     explicit. Flag silently-blocking calls with no bypass, and
@@ -173,26 +177,26 @@ gap at spec close is the kind of thing that ships an invisible bug.
 
 ### Maintainability
 
-19. **Naming that lies.** Function names that promise more or less
+20. **Naming that lies.** Function names that promise more or less
     than the body delivers. Variables named after their type rather
     than their role.
-20. **Premature abstraction.** A `Strategy` / `Manager` / `Helper`
+21. **Premature abstraction.** A `Strategy` / `Manager` / `Helper`
     introduced for one caller. Inline it; abstract when there are
     three.
-21. **Dead code in the diff.** Imports, branches, parameters, or
+22. **Dead code in the diff.** Imports, branches, parameters, or
     feature flags that no longer have a caller.
-22. **Complexity worth a comment.** Non-obvious invariants, hidden
+23. **Complexity worth a comment.** Non-obvious invariants, hidden
     coupling to another module, or a workaround for a specific bug
     deserve a one-line *why* comment. The bar is "would a reader
     misread this", not "would it look more documented".
 
 ### Performance ergonomics
 
-23. **Obvious O(n²) where O(n).** Nested loops over the same
+24. **Obvious O(n²) where O(n).** Nested loops over the same
     collection, repeated linear lookups in a hot path. Flag with the
     data structure that fixes it.
-24. **N+1 queries.** Iterating a result set and querying per row.
-25. **Unbounded growth.** Collections, caches, log buffers, or
+25. **N+1 queries.** Iterating a result set and querying per row.
+26. **Unbounded growth.** Collections, caches, log buffers, or
     queues with no eviction or backpressure.
 
 ## Test-author mode
