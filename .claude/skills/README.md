@@ -47,3 +47,17 @@ Each `SKILL.md` should:
    B in [`USING_THIS_TEMPLATE.md`](../../USING_THIS_TEMPLATE.md)) and is
    validated by `tools/lint-skill-deps.sh`. Keep it accurate as the body
    changes — drift is what the linter exists to catch.
+
+   **Adopter-owned files (`AGENTS.md`, `docs/CONVENTIONS.md`,
+   `docs/CHARTER.md`) get special treatment.** A skill installed into
+   another repo lands on top of that repo's own governance docs; we
+   never overwrite them. The linter refuses whole-file deps on these —
+   they'd dump our template prose into the adopter's `*.fragments/`
+   directory and force them to reconcile a doc they wrote themselves.
+   Two patterns are allowed instead: cite a specific section by anchor
+   (`docs/CONVENTIONS.md#supervisor-mode`) when the skill body needs
+   that exact text, or omit the dep entirely and have the body read
+   whatever the adopter has at runtime. The three reviewer agents use
+   the runtime pattern — `dependencies: []` even though their bodies
+   say "read AGENTS.md first." The contract is that an AGENTS.md
+   exists, not that ours does.

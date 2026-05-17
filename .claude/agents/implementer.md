@@ -4,7 +4,6 @@ description: Single-task implementer for the work-loop's supervisor mode. Given 
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 dependencies:
-  - AGENTS.md
   - docs/CONVENTIONS.md#supervisor-mode
   - .claude/skills/work-loop/SKILL.md
 ---
@@ -48,9 +47,9 @@ If the supervisor's brief omits the spec/plan paths, ask — don't guess.
   documented in `AGENTS.md` and the project's root README. Capture
   pass/fail and any failing output. Your gate results are **advisory**
   — the supervisor reruns gates after merging. Don't edit a gate to
-  make it pass. If `AGENTS.md` still contains the template placeholders
-  (`<lint command>`, `<test command>`), the project hasn't wired up its
-  gates yet — report `blocked` rather than guessing.
+  make it pass. If those commands aren't actually documented — empty,
+  placeholder, or missing — the project hasn't wired up its gates yet;
+  report `blocked` rather than guessing.
 - **Commits:** commit inside the worktree using the project's
   Conventional Commits format. One coherent commit per task is the
   default; split if the task body explicitly calls for separate
