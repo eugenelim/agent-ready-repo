@@ -18,9 +18,10 @@ The detailed map of what lives where is in [`docs/architecture/overview.md`](doc
 
 Scope each change precisely to the request.
 
-- **Touch only the files the request requires.** Note unrelated issues
-  you spot in a follow-up PR — fixing them along the way bloats the
-  diff and hides the real change.
+- **Limit the diff to what the request requires — extra changes hide
+  the real one from review.** If the request needs it — or would ship
+  broken without it — it's in scope, even discoveries you make
+  mid-implementation.
 - **Add a flag or option only when a second caller actually needs to
   differ.** Today's one caller is enough to define the shape.
 - **Add docstrings and types to code the change actually touches.**
@@ -30,8 +31,8 @@ Scope each change precisely to the request.
 - **Inline a single-use operation.** Extract a helper once a second
   caller actually appears.
 
-For same-area cleanups you considered, note them in the PR description
-and let the reviewer decide.
+When you defer something out of this PR — unrelated find or same-area
+cleanup — note it in the PR description with a one-line reason.
 
 ## Source of truth
 
