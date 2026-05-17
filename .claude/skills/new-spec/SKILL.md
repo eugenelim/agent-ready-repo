@@ -43,6 +43,12 @@ look like?" before any code.
    - **No non-goals listed.** Specs without explicit non-goals get
      scope-crept by both humans and agents. Make the user list at least
      two things this feature explicitly will not do.
+   - **No constraints listed.** Non-goals control behavioral scope;
+     Constraints control structural scope — a spec tight on behaviors
+     can still produce a diff with three new abstraction layers if
+     implementation strategies aren't ruled out. Make the user name at
+     least one structural choice this feature won't make; examples live
+     in the template.
    - **No acceptance criteria.** Without a checklist, "done" is opinion.
 
 4. Fill in the plan second. The plan should:
