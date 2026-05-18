@@ -54,24 +54,23 @@ look like?" before any code.
    signed off on or revised the list. The scaffolded headers can stay;
    the bodies are gated.
 
-4. Fill in the spec — including the **Contract tests** section. Push
+4. Fill in the spec — including the **Testing Strategy** section. Push
    back hard on these failure modes:
-   - **Behavior section is vague.** "It should be fast" is not a behavior.
-     "Returns within 200ms at p99 for payloads under 1KB" is.
-   - **Contract tests section empty or hand-wavy.** Contract tests are part
-     of the spec, not an afterthought — if you can't write the test for a
-     Behavior bullet, the bullet is too vague. Sharpen the bullet, then the
-     test follows.
-   - **No non-goals listed.** Specs without explicit non-goals get
-     scope-crept by both humans and agents. Make the user list at least
-     two things this feature explicitly will not do.
-   - **No constraints listed.** Non-goals control behavioral scope;
-     Constraints control structural scope — a spec tight on behaviors
-     can still produce a diff with three new abstraction layers if
-     implementation strategies aren't ruled out. Make the user name at
-     least one structural choice this feature won't make; examples live
-     in the template.
-   - **No acceptance criteria.** Without a checklist, "done" is opinion.
+   - **Objective is vague.** "It should be fast" is not an objective.
+     "Returns within 200ms at p99 for payloads under 1KB" is. Every
+     user-visible outcome named in the Objective must be precise
+     enough that a test could be derived from it.
+   - **Testing Strategy left as the template's mode list.** The
+     template shows three modes (TDD, goal-based, manual QA); naming
+     them without pairing each user-visible outcome from the Objective
+     with a mode and a one-sentence why isn't a strategy.
+   - **Boundaries left empty.** The three subsections — `Always do`,
+     `Ask first`, `Never do` — keep an implementing agent inside the
+     lines. Make the user name at least one entry per subsection, and
+     at least one *structural* entry under `Never do` (no new top-level
+     dependency, no new module boundary) so the diff can't sprawl into
+     hypothetical futures.
+   - **No Acceptance Criteria.** Without a checklist, "done" is opinion.
 
 5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
@@ -92,9 +91,9 @@ look like?" before any code.
      produce mock-shape tests on config-shape tasks and untested
      invariants on logic-shape tasks.
    - **Tasks without spec mapping.** Each task should reference which
-     Behavior bullet (or Contract test) in the spec it implements.
-     Orphan tasks are scope creep in disguise; behaviours with no
-     implementing task are gaps.
+     behavior from the spec's Objective it implements, and the Testing
+     Strategy mode for that behavior. Orphan tasks are scope creep in
+     disguise; behaviors with no implementing task are gaps.
    - **Specificity miss.** Task descriptions should reference exact
      file paths and function or symbol names where they're known.
      "Update the parser" is too coarse to verify; "add a null-check
@@ -125,7 +124,8 @@ look like?" before any code.
 - Writing a spec that reads like a design doc (full of implementation) → the
   spec is the contract, not the design. Move implementation detail to
   `plan.md`.
-- Skipping non-goals → mandatory section.
+- Skipping Boundaries → mandatory section. Each of the three
+  subsections needs at least one entry.
 - Writing into the spec body before the assumption list has been
   confirmed → the headers can stay scaffolded; the bodies are the
   commitment and stay empty until the user has signed off on or
