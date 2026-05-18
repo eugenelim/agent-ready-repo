@@ -20,7 +20,7 @@ tool, used often enough to stick — live in
 | [`work-loop`](work-loop/SKILL.md) | The standard plan → execute → verify → review loop for non-trivial work. Start here for any feature, fix, or refactor. |
 | [`new-adr`](new-adr/SKILL.md) | Create a new ADR with the next available number, from the template |
 | [`new-rfc`](new-rfc/SKILL.md) | Create a new RFC with the next available number, from the template |
-| [`new-spec`](new-spec/SKILL.md) | Create a new spec directory with `spec.md` and `plan.md` |
+| [`new-spec`](new-spec/SKILL.md) | Scaffold a new spec directory, surface assumptions, then fill `spec.md` and `plan.md` |
 | [`bug-fix`](bug-fix/SKILL.md) | Fix a defect — reproduce → failing test → root cause → minimum fix → root-vs-symptom verify → commit body documents *why* |
 | [`new-package`](new-package/SKILL.md) | Scaffold a new package in `packages/` |
 | [`update-conventions`](update-conventions/SKILL.md) | Open an RFC to change `docs/CONVENTIONS.md` |

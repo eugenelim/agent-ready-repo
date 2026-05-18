@@ -115,7 +115,7 @@ Use them when relevant — they encode constraints you would otherwise re-derive
 
 <!-- Keep this list short. The full skill index is .claude/skills/README.md -->
 - `work-loop` — **start here for any non-trivial change**
-- `new-spec` — start a feature in `docs/specs/`
+- `new-spec` — start a feature in `docs/specs/`, assumptions first
 - `bug-fix` — fix a defect with root-cause discipline
 - `new-adr` — record a decision in `docs/adr/`
 - `new-rfc` — open a proposal in `docs/rfc/`
