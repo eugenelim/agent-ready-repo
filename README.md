@@ -2,7 +2,7 @@
 
 A repo template designed to be a place where AI coding agents can do their best work.
 
-AI coding agents are getting good enough to do real engineering, and the work goes better when the repo is set up for them. This template ships the load-bearing pieces: a tight `AGENTS.md` that every agent reads first, a document layout where every kind of decision has its own home and lifecycle, a plan-execute-verify-review work loop with explicit stop conditions, and three specialist reviewers — adversarial, security, quality — that read each diff from different angles. Most repos aren't built this way. This one is.
+AI coding agents are getting good enough to do real engineering, and the work goes better when the repo is set up for them. This template ships the load-bearing pieces: a tight `AGENTS.md` that every agent reads first, a document layout where every kind of decision has its own home and lifecycle, a plan-execute-verify-review work loop with explicit stop conditions, and three specialist reviewers — adversarial, security, quality — that read each diff from different angles. The loop is one of a handful of named skills under `.claude/skills/`; the reviewers live as specialist subagents in `.claude/agents/`. Most repos aren't built this way. This one is.
 
 It fits any project — service, library, platform — and scales from solo developer up to a team of fifty without restructuring. For the thinking behind each piece, see [`docs/APPROACH.md`](docs/APPROACH.md).
 
@@ -30,8 +30,24 @@ There are two ways to adopt. Bootstrap a new repo from the full template with `b
 ## For agents (Claude Code, Cursor, Codex, Gemini CLI, Copilot)
 
 Read [`AGENTS.md`](AGENTS.md) first. `CLAUDE.md` is a symlink to it. The
-file is kept short on purpose — it points to deeper docs and skills that
-load on demand.
+file is kept short on purpose — it points to the skills and reviewer
+subagents below, which load on demand.
+
+**Skills** ([`.claude/skills/`](.claude/skills/README.md)) — named multi-step workflows:
+
+- `work-loop` — plan → execute → gates → review, with explicit stop conditions
+- `new-spec` — open a feature directory with paired spec and plan
+- `bug-fix` — reproduce, root-cause, minimum fix
+- `new-adr` — record an architectural decision in frozen history
+- `new-rfc` — open a cross-cutting proposal
+- `new-package` — scaffold a package in `packages/`
+- `update-conventions` — route convention changes through RFC
+
+**Reviewer subagents** ([`.claude/agents/`](.claude/agents/)) — specialist lenses for diff review:
+
+- `adversarial-reviewer` — spec drift, missing edge cases, scope creep; the default reviewer
+- `security-reviewer` — OWASP Top 10 (web + LLM Apps) and STRIDE; complements scanners, doesn't replace them
+- `quality-engineer` — testability, observability, reliability, maintainability
 
 ## Quickstart
 
