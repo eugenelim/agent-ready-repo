@@ -43,15 +43,16 @@ look like?" before any code.
      (runtime, data model, persistence, deployment target, transport).
    - **Product** — who this serves and where the feature ends; surface
      scope you're inferring rather than verifying.
-   - **Process** — review cadence, who signs off on **Non-goals** and
-     **Constraints**, how the spec moves Draft → Approved.
+   - **Process** — review cadence, who signs off on **Boundaries**
+     (especially the `Never do` subsection), how the spec moves Draft
+     → Approved.
 
    The buckets are a coverage check, not a quota; three to seven items
    total is the usual shape. Then **wait for human confirmation or
-   correction.** Do not write into `What this is`, `Behavior`,
-   `Non-goals`, `Constraints`, `Contract tests`, or
-   `Acceptance criteria` until the user has signed off on or revised
-   the list. The scaffolded headers can stay; the bodies are gated.
+   correction.** Do not write into `Objective`, `Boundaries`,
+   `Testing Strategy`, or `Acceptance Criteria` until the user has
+   signed off on or revised the list. The scaffolded headers can stay;
+   the bodies are gated.
 
 4. Fill in the spec — including the **Contract tests** section. Push
    back hard on these failure modes:
