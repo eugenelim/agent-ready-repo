@@ -36,7 +36,7 @@ subagents below, which load on demand.
 **Skills** ([`.claude/skills/`](.claude/skills/README.md)) — named multi-step workflows:
 
 - `work-loop` — plan → execute → gates → review, with explicit stop conditions
-- `new-spec` — open a feature directory with paired spec and plan
+- `new-spec` — open a feature directory with paired spec and plan, assumptions first
 - `bug-fix` — reproduce, root-cause, minimum fix
 - `new-adr` — record an architectural decision in frozen history
 - `new-rfc` — open a cross-cutting proposal
