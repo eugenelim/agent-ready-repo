@@ -723,6 +723,22 @@ of adopting them — not as a precaution.
   if they're hidden inside a structure too big for the team to maintain.
 ---
 
+## Common rationalizations
+
+Four lies an agent tells itself mid-loop, paired with the rebuttal that
+already lives in this repo. These are the in-loop counterparts to the
+[Excuses we don't accept](../AGENTS.md#excuses-we-dont-accept) table in
+`AGENTS.md`, which fires *before* the work-loop loads.
+
+| The lie | The rebuttal |
+| --- | --- |
+| "We'll update the spec after the PR." | Spec drift is a bug, not follow-up work — update spec and code in the same PR. See [`AGENTS.md` § How we work](../AGENTS.md#how-we-work) and the spec lifecycle rule in § 4 above. |
+| "I'll verify this manually, just this once." | Verification mode — TDD, goal-based, or manual QA — is declared in the plan task, not improvised at the keyboard. If manual QA is the right mode, write it down; if it isn't, pick TDD or a goal-based check. See the PLAN phase in [`work-loop`](../.claude/skills/work-loop/SKILL.md). |
+| "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Keeping changes minimal](../AGENTS.md#keeping-changes-minimal). |
+| "This decision doesn't need an ADR — it's obvious." | If you're making it, it isn't obvious to the next person. Writing an ADR now costs less than someone re-litigating the decision in six months. See § 2 above and the `new-adr` skill. |
+
+---
+
 ## When this file is wrong
 
 If a convention here is causing friction, **say so in an RFC**. Don't quietly
