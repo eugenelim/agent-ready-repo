@@ -30,7 +30,7 @@ There are two ways to adopt. Bootstrap a new repo from the full template with `b
 ## For agents (Claude Code, Cursor, Codex, Gemini CLI, Copilot)
 
 Read [`AGENTS.md`](AGENTS.md) first. `CLAUDE.md` is a symlink to it. The
-file is kept short on purpose — it points to the skills and reviewer
+file is kept short on purpose — it points to the skills and specialist
 subagents below, which load on demand.
 
 **Skills** ([`.claude/skills/`](.claude/skills/README.md)) — named multi-step workflows:
@@ -43,11 +43,12 @@ subagents below, which load on demand.
 - `new-package` — scaffold a package in `packages/`
 - `update-conventions` — route convention changes through RFC
 
-**Reviewer subagents** ([`.claude/agents/`](.claude/agents/)) — specialist lenses for diff review:
+**Specialist subagents** ([`.claude/agents/`](.claude/agents/)) — sharp lenses for diff review, plus the executor used by supervisor mode:
 
 - `adversarial-reviewer` — spec drift, missing edge cases, scope creep; the default reviewer
 - `security-reviewer` — OWASP Top 10 (web + LLM Apps) and STRIDE; complements scanners, doesn't replace them
 - `quality-engineer` — testability, observability, reliability, maintainability
+- `implementer` — single-task executor; `work-loop` dispatches one per task in supervisor mode
 
 ## Quickstart
 

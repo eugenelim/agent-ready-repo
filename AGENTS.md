@@ -126,8 +126,9 @@ The full index is in [`.claude/skills/README.md`](.claude/skills/README.md).
 
 ## Specialist subagents
 
-`.claude/agents/` contains reviewers with sharp, differentiable lenses.
-Pick the ones the diff actually warrants; don't run all three by default.
+`.claude/agents/` contains sharp, differentiable lenses for diff review,
+plus the executor used by `work-loop`'s supervisor mode. Pick the
+reviewers the diff actually warrants; don't run all three by default.
 
 - [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md) — spec /
   plan / implementation drift; missing edge cases; scope creep. Default
@@ -139,6 +140,9 @@ Pick the ones the diff actually warrants; don't run all three by default.
 - [`quality-engineer`](.claude/agents/quality-engineer.md) — testability,
   observability, reliability, and maintainability lens. Also drafts
   contract or construction tests on request.
+- [`implementer`](.claude/agents/implementer.md) — single-task executor;
+  `work-loop` dispatches one per task in supervisor mode. Not a
+  reviewer; not selected by hand.
 
 ## Check before acting
 
