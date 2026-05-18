@@ -32,7 +32,28 @@ look like?" before any code.
    cp docs/_templates/plan.md docs/specs/<feature>/plan.md
    ```
 
-3. Fill in the spec first — including the **Contract tests** section. Push
+3. **Surface assumptions before writing any spec body.** With the
+   directory scaffolded, stop. Emit a numbered list under the heading
+   `ASSUMPTIONS I'M MAKING:` covering the three buckets below, generated
+   from this repo's actual context — the template serves multiple
+   project types, so don't pull from generic examples and don't carry
+   assumptions across features:
+
+   - **Technical** — the stack and shape of what's being built
+     (runtime, data model, persistence, deployment target, transport).
+   - **Product** — who this serves and where the feature ends; surface
+     scope you're inferring rather than verifying.
+   - **Process** — review cadence, who signs off on **Non-goals** and
+     **Constraints**, how the spec moves Draft → Approved.
+
+   The buckets are a coverage check, not a quota; three to seven items
+   total is the usual shape. Then **wait for human confirmation or
+   correction.** Do not write into `What this is`, `Behavior`,
+   `Non-goals`, `Constraints`, `Contract tests`, or
+   `Acceptance criteria` until the user has signed off on or revised
+   the list. The scaffolded headers can stay; the bodies are gated.
+
+4. Fill in the spec — including the **Contract tests** section. Push
    back hard on these failure modes:
    - **Behavior section is vague.** "It should be fast" is not a behavior.
      "Returns within 200ms at p99 for payloads under 1KB" is.
@@ -51,13 +72,13 @@ look like?" before any code.
      in the template.
    - **No acceptance criteria.** Without a checklist, "done" is opinion.
 
-4. Fill in the plan second. The plan should:
+5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
    - Break the work into tasks small enough to be a single PR each.
    - Carry **construction tests** per task — `Tests:` before `Approach:`
      in each task, designed up front. "We'll test it" is not a strategy.
 
-   Push back hard on these plan-stage failure modes (mirror of step 3):
+   Push back hard on these plan-stage failure modes (mirror of step 4):
    - **Task too big.** "Implement the feature" is not a task; "add the
      validation function for X" is. Each task should fit a single PR
      and a single context window. Split coarse tasks until they do.
@@ -78,7 +99,7 @@ look like?" before any code.
      "Update the parser" is too coarse to verify; "add a null-check
      in `parser/lex.ts:Lexer.next`" is the right level.
 
-5. Spec-mode adversarial review. Before announcing the spec in the README,
+6. Spec-mode adversarial review. Before announcing the spec in the README,
    invoke `adversarial-reviewer` against the freshly drafted `spec.md` +
    `plan.md` in spec mode — the agent supports this explicitly (see
    `.claude/agents/adversarial-reviewer.md`). Iterate on findings until the
@@ -89,9 +110,9 @@ look like?" before any code.
    B+ per `docs/CONVENTIONS.md`); at Profile A the reviewer is typically
    absent and this step is moot.
 
-6. Update `docs/specs/README.md` to add the feature to the active list.
+7. Update `docs/specs/README.md` to add the feature to the active list.
 
-7. Remind the user: when implementation diverges from the spec, the spec is
+8. Remind the user: when implementation diverges from the spec, the spec is
    wrong. Update the spec in the same PR.
 
 ## Anti-patterns to refuse
@@ -104,3 +125,8 @@ look like?" before any code.
   spec is the contract, not the design. Move implementation detail to
   `plan.md`.
 - Skipping non-goals → mandatory section.
+- Writing into the spec body before the assumption list has been
+  confirmed → the headers can stay scaffolded; the bodies are the
+  commitment and stay empty until the user has signed off on or
+  revised the assumptions, even if the original prompt sounded
+  definitive.
