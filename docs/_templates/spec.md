@@ -5,151 +5,75 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
 
-> **Spec contract:** this document defines what "done" means. The implementing PR
-> must match this spec, or update it. Tests must be derivable from it.
+> **Spec contract:** this document defines what "done" means. The implementing
+> PR must match this spec, or update it. Verification must be derivable from it.
 
-## What this is
+## Objective
 
 <!--
-One paragraph. What does this feature do, from the perspective of someone who
-will use it? No implementation detail.
+One paragraph. What are we building, who is the user, and what does success
+look like for them? Frame from the user's perspective, not the implementer's.
+Implementation detail belongs in `plan.md`.
 -->
 
-## Why
+## Boundaries
+
+The three-tier guard that keeps an implementing agent inside the lines.
+*Always do* applies without asking; *Ask first* requires human sign-off
+before proceeding; *Never do* is a hard rule, even under time pressure.
+
+### Always do
+
+<!-- Defaults the agent applies without asking. -->
+
+-
+-
+-
+
+### Ask first
+
+<!-- Changes that need human sign-off before proceeding. -->
+
+-
+-
+-
+
+### Never do
+
+<!-- Hard rules. No exceptions, no clever workarounds. -->
+
+-
+-
+-
+
+## Testing Strategy
+
+Name the verification mode(s) this spec uses. The
+[`work-loop`](../../../.claude/skills/work-loop/SKILL.md) skill defines three:
+
+- **TDD** — for logic with a compressible invariant.
+- **Goal-based check** — a one-liner verifies the outcome (a build
+  command, a `grep`, a typecheck).
+- **Visual / manual QA** — a recorded gesture and an observable
+  outcome, for UX flows.
+
+A spec may pick one or mix them. State which mode each behavior falls
+under, and why.
 
 <!--
-What problem does this solve? Link to the spec/RFC/issue that motivates it.
-Two sentences.
+e.g. "Validation rules: TDD. Config wiring: goal-based. End-to-end signup
+flow: manual QA." If you can't pick a mode for a behavior, the behavior is
+too vague — sharpen it before moving on.
 -->
 
-## Users and use cases
+## Acceptance Criteria
 
 <!--
-Who uses this, and what are they trying to accomplish? List the top 2-5 use
-cases by priority. The first one is the one we will not compromise on.
--->
+The verifiable goals that close this spec. Each item should be checkable
+without subjective judgement — a reviewer can read it and know whether it
+holds.
 
-## Behavior
-
-<!--
-The contract, in prose, from the perspective of a caller/user.
-
-One paragraph per coherent piece of behaviour. What inputs produce what
-outputs, what side effects, what guarantees. No internals. No test syntax —
-the test list lives in "Contract tests" below.
-
-**Frame behaviors at the boundary your users actually observe.**
-- API behaviors as request → response, or input → effect with status
-  codes and error shapes.
-- UI behaviors as user gesture → visible outcome (not "form validates
-  required fields" but "user sees inline error next to empty required
-  field on submit").
-- CLI behaviors as command → exit code / stdout / stderr.
-- Agentic behaviors as input → evaluable outcome (e.g. "given prompt
-  X, the agent's output passes eval Y" or "agent calls tool T at most
-  N times per turn before returning").
-
-Implementation details ("the form validates required fields", "the
-handler short-circuits on auth failure") belong in `plan.md`;
-behaviors are what users perceive.
-
-The reader of this section should understand what the feature does without
-caring how the test runner is wired up.
--->
-
-### Inputs
-
-<!-- Shape of inputs (request bodies, function arguments, config). -->
-
-### Outputs
-
-<!-- Shape of outputs (response bodies, return values, side effects). -->
-
-### Errors and edge cases
-
-<!-- What can go wrong, and what the user/caller sees when it does. -->
-
-## Contract tests
-
-<!--
-The concrete test list — the gate for "done". Black-box: each test exercises
-behaviour described above, not internals. Any valid implementation must pass
-all of them.
-
-Designed up front, *with the spec* — before plan.md or any code. If you
-can't write the test for a Behavior bullet, the bullet is too vague;
-sharpen it before moving on.
-
-One bullet per test. Each bullet should be concrete enough that an
-implementer can name a test function for it. Format:
-
-- **`<test_name>`** — Given <preconditions>, when <action>, then <observable result>.
-- **`<test_name>`** — rejects <invalid input> with <specific error>.
-- **`<test_name>` (property)** — for all <input shape>, <invariant> holds.
-
-These tests are stable against *implementation* change. They evolve with
-*spec* change (behaviour change) during the living phase and freeze when
-the spec freezes. Construction tests — per-step units, fixtures, internal
-helpers — live in `plan.md`, not here.
--->
-
-## Non-goals
-
-<!--
-What *behaviors* are we explicitly NOT shipping? Features, use cases, and
-user-visible capabilities the spec rules out. This is the section that
-prevents behavioral scope creep — both from humans and from agents who'd
-otherwise "helpfully" expand the feature.
-
-If the item is a whole subsystem we're declining to build (telemetry,
-i18n, SSO, offline support), file it here even though it doubles as a
-structural cut — Constraints below is for structures we'd otherwise be
-tempted to *add* in service of this feature.
--->
-
-## Constraints
-
-<!--
-What *implementation strategies* are off the table for this feature?
-Where Non-goals enumerates behaviors we won't ship, Constraints enumerates
-the structural choices we won't make — the dependencies, module
-boundaries, or architectural surface area that this feature must not
-introduce.
-
-This is what protects the diff from sprawl. A spec can be tight on
-non-goals (no OAuth in v1) and still produce three new abstraction
-layers; Constraints is what prevents that.
-
-Distinct from the `Constrained by:` field in the header above, which
-cites external ADRs/RFCs this spec inherits from. Constraints here are
-self-imposed and feature-scoped.
-
-Each entry should name a *specific* structural choice. Generic
-guardrails ("keep it simple", "avoid over-engineering") belong in code
-review, not here.
-
-Examples:
-- No new persistence layer — extend the existing one or fail closed.
-- No new top-level dependency.
-- No new module boundary under `packages/`.
-- No new MCP server, queue, or out-of-process worker for this feature.
-- No new public API surface beyond the one Behavior describes.
--->
-
-## Open questions
-
-<!-- Anything not yet decided. Resolve these before status moves past Draft. -->
-
-## Acceptance criteria
-
-<!--
-The non-test checklist for "done". Tests are already covered by the Contract
-tests section above (the test list IS the test gate). This section captures
-*everything else* a shipping feature needs:
-
-- [ ] All Contract tests pass (the test gate)
-- [ ] Public API documented in <location>
-- [ ] CHANGELOG entry
-- [ ] Migration guide / runbook updated (if applicable)
-- [ ] Feature flag / rollout plan (if applicable)
+- [ ] <observable outcome>
+- [ ] <observable outcome>
+- [ ] <observable outcome>
 -->
