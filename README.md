@@ -6,7 +6,7 @@ AI coding agents are getting good enough to do real engineering, and the work go
 
 It fits any project — service, library, platform — and scales from solo developer up to a team of fifty without restructuring. For the thinking behind each piece, see [`docs/APPROACH.md`](docs/APPROACH.md).
 
-There are two ways to adopt. Bootstrap a new repo from the full template with `bash tools/bootstrap.sh` (Path A — the documented happy path), or cherry-pick a single skill into your existing repo with `python3 tools/install-skill.py <skill-name> /path/to/your-repo` (Path B). Path B reads each skill's `dependencies:` manifest, walks the closure, copies what's needed, and never clobbers files you already have. See [`USING_THIS_TEMPLATE.md`](USING_THIS_TEMPLATE.md) for both.
+There are three ways to adopt. **Path A** bootstraps a new repo from the full template via `bash tools/bootstrap.sh` (the documented happy path). **Path B** cherry-picks a single skill into your existing repo with `python3 tools/install-skill.py <skill-name> /path/to/your-repo`; it walks the skill's `dependencies:` closure and never clobbers files you already have. **Path C** wraps those installers with an agent that also fills in scope-specific prose and commands. See [`USING_THIS_TEMPLATE.md`](USING_THIS_TEMPLATE.md) for all three, including the prompts that drive Path C.
 
 ---
 
@@ -65,7 +65,7 @@ subagents below, which load on demand.
 .
 ├── AGENTS.md                       # canonical agent context (every agent reads this first)
 ├── CLAUDE.md                       # → AGENTS.md (symlink)
-├── USING_THIS_TEMPLATE.md          # adoption guide: Path A (bootstrap) and Path B (cherry-pick)
+├── USING_THIS_TEMPLATE.md          # adoption guide: Path A (bootstrap), B (cherry-pick), C (agent-driven)
 ├── .claude/                        # agent-side scaffolding
 │   ├── agents/                     # specialist subagents
 │   │   ├── adversarial-reviewer.md # spec drift, scope creep, edge cases, architectural fit

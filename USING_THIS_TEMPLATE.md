@@ -41,7 +41,7 @@ populate more of it.
 
 ## Step 1 — Create your repo from the template
 
-There are two ways to adopt the template. Pick by what you already have.
+There are three ways to adopt the template. Pick by what you already have.
 
 ### Path A: Bootstrap a fresh repo from the template
 
@@ -101,6 +101,243 @@ slice into `docs/CONVENTIONS.fragments/<skill>.md` and prints a note.
 Merge by hand, then delete the fragment.
 
 Skip the rest of this guide if Path B was all you needed.
+
+### Path C: have an agent adapt the template
+
+Path C **wraps Paths A and B** — it doesn't replace them. The
+installers do the mechanical copying safely (Path B respects existing
+files; Path A handles placeholder substitution and profile cleanup).
+The agent does the judgment-only work that those scripts intentionally
+leave to the adopter: enhancing the project's load-bearing files
+(`AGENTS.md`, `README.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`)
+in place, wiring real commands, picking which skills apply, and
+splicing installer fragments into their target files. You review the
+agent's diff before committing.
+
+Use Path C when you want that judgment work done for you — typically a
+retrofit into an existing repo that already has code and history, or a
+fresh project where you'd rather the agent fill the prose-heavy scope
+content (charter, architecture overview, roadmap) than write it by
+hand after the bootstrap script.
+
+Clone `agent-ready-repo` as a sibling of your target so the agent can
+reference it with a relative path:
+
+```bash
+# Retrofit case: your existing repo already exists; clone the template
+# next to it.
+cd /path/to/parent
+git clone <template-url> agent-ready-repo
+cd /path/to/your-existing-repo   # the agent runs here
+
+# Fresh-project case: follow Path A's "Manual copy" to clone the
+# template into your new project directory and reset its history, then
+# keep a separate reference clone alongside it for the agent to read.
+cd /path/to/parent
+git clone <template-url> my-project && cd my-project && rm -rf .git && git init && cd ..
+git clone <template-url> agent-ready-repo   # untouched reference copy
+cd my-project                                # the agent runs here
+```
+
+Keep the sibling `agent-ready-repo` clone in place until Path C
+finishes. Prompt 1 references it heavily (installer paths, linter
+scripts, doc lookups); Prompt 2 references it for a single
+cross-reference back to Step 0 after the local
+`USING_THIS_TEMPLATE.md` is removed.
+
+**Prompt 1 — retrofit into an existing repo.** The agent runs the Path
+B installer for skills, then enhances the project's existing
+load-bearing files in place — preserving their existing content,
+merging in the template's patterns, and leaving a clean diff for the
+user to review:
+
+> Read `../agent-ready-repo/AGENTS.md`, `../agent-ready-repo/README.md`,
+> `../agent-ready-repo/docs/CONVENTIONS.md`, and
+> `../agent-ready-repo/USING_THIS_TEMPLATE.md` first.
+>
+> Install the load-bearing skills using the template's Path B
+> installer — it walks each skill's dependency closure and never
+> overwrites existing files:
+>
+> ```
+> python3 ../agent-ready-repo/tools/install-skill.py work-loop .
+> python3 ../agent-ready-repo/tools/install-skill.py bug-fix .
+> ```
+>
+> `work-loop`'s dependency closure already brings `new-spec`, the three
+> reviewers (`adversarial-reviewer`, `security-reviewer`,
+> `quality-engineer`), and the `implementer` executor — so the second
+> install adds only the `bug-fix` skill itself. Don't port other skills
+> (`new-adr`, `new-rfc`, `new-package`, `update-conventions`) without
+> asking me first.
+>
+> If the installer reports `! <path> — exists with different content,
+> skipping`, diff the source against the destination and flag the
+> divergence in your PR summary — don't silently overwrite, and don't
+> silently ignore. (The `= <path> — already present (identical),
+> skipping` case is a no-op and needs no action.)
+>
+> Whenever you draft a file from the template's shape, **only reference
+> artifacts that actually exist in this repo**. The template's
+> `AGENTS.md` and `docs/CONVENTIONS.md` link to template-only files
+> that no installed skill claims as a dependency — for example
+> `.claude/skills/README.md`, `docs/architecture/overview.md`,
+> `tools/hooks/README.md`, `docs/_templates/adr.md`,
+> `docs/_templates/rfc.md`. Borrow the section structure, then let the
+> docs linter be the authority: for every `broken link →` finding it
+> reports against your drafted files, either install the missing
+> artifact or remove the link. Don't ignore them.
+>
+> Then **enhance the load-bearing files in place** — they already
+> contain content I care about, so don't replace them; merge the
+> template's patterns in alongside what's there. The user will review
+> the diff, so keep edits well-scoped and clearly explained in your PR
+> summary. If a file is missing, draft it from the template's shape.
+> Per-file guidance:
+>
+> - `AGENTS.md` — the canonical agent context. Keep the project's
+>   existing description, commands, and project-specific guidance.
+>   Ensure these load-bearing sections are present, in whatever voice
+>   matches the existing file: a one-sentence "what this repo is", a
+>   "Source of truth" table (or equivalent prose) pointing at `docs/`,
+>   references to the `work-loop` skill and the specialist subagents
+>   you just installed, real install/test/lint/build commands, and a
+>   "Check before acting" list of destructive/cross-cutting actions
+>   that need confirmation. Splice content from any
+>   `AGENTS.fragments/<skill>.md` file the installer dropped into the
+>   relevant section, then delete the fragment. Keep the file under
+>   ~200 lines. If `AGENTS.md` doesn't exist, draft one against the
+>   template's shape, matching this repo's tech stack.
+> - `CLAUDE.md` — must be a symlink to `AGENTS.md` (the docs linter
+>   checks this). If `CLAUDE.md` is already a regular file with content
+>   the project has been maintaining separately, surface it in your PR
+>   summary before swapping; otherwise `rm CLAUDE.md && ln -s AGENTS.md
+>   CLAUDE.md`.
+> - `README.md` — keep the project's existing pitch and structure. Add
+>   one short section pointing agents at `AGENTS.md` and naming the
+>   skills/subagents now available, unless an equivalent pointer is
+>   already there.
+> - `docs/CHARTER.md` — if it exists, keep the mission/scope/principles
+>   as written; conform to the template's shape only where it
+>   genuinely helps. If it doesn't exist, draft a one-page charter
+>   (mission, in-scope/out-of-scope bullets, 5–7 principles) against
+>   this repo's actual scope. (Skills outside the current load-bearing
+>   set can emit `docs/CHARTER.fragments/<skill>.md` — splice and
+>   delete the same way as the AGENTS/CONVENTIONS bullets if you ever
+>   see one.)
+> - `docs/CONVENTIONS.md` — **required**: installed skills link into
+>   anchors inside this file, and the artifact linter resolves those
+>   links. If the file doesn't exist, draft it from the template's
+>   shape, tailored to this repo's process, before running the linters.
+>   Splice content from any `docs/CONVENTIONS.fragments/<skill>.md`
+>   file into the matching section without overwriting existing
+>   conventions, then delete the fragment.
+> - `.gitignore` — append the runtime-state rules the work-loop skill
+>   expects: `.ralph/`, `docs/specs/**/state.json`,
+>   `docs/specs/**/notes/implementer-*.md`, and `.worktrees/`.
+>
+> Then run both template linters against this repo:
+>
+> ```
+> bash ../agent-ready-repo/tools/lint-agents-md.sh
+> bash ../agent-ready-repo/tools/lint-agent-artifacts.sh
+> ```
+>
+> The artifact linter validates frontmatter and resolves relative
+> markdown links inside the skills and subagents you just installed —
+> both must pass. The link check is the other reason `docs/CONVENTIONS.md`
+> above is required: installed skill bodies link into anchors there.
+> The docs linter is opinionated about full template structure —
+> missing Diátaxis subdirectories under `docs/guides/`, a missing
+> `CLAUDE.md` symlink, or stale links inside drafted `AGENTS.md` /
+> `docs/CONVENTIONS.md` will fail it. List each remaining failure in
+> your PR description with a one-line reason ("intentionally skipped",
+> "for follow-up").
+>
+> Cap your PR summary with: what you installed, which files you
+> enhanced in place (with a one-line "what changed" for each), what
+> you skipped, and which linter failures are intentional. Flag any
+> edit you weren't sure about so I can spot-check it.
+
+**Prompt 2 — fill a fresh template clone against a stated scope.** The
+honest split: `tools/bootstrap.sh` handles every mechanical edit —
+placeholder substitution across `AGENTS.md`, `README.md`,
+`docs/CHARTER.md`, `.github/pull_request_template.md`, `LICENSE-MIT`;
+date stamping `docs/product/roadmap.md` and `docs/adr/0001-*.md`;
+profile-specific deletions with their corresponding link cleanup;
+`.ralphrc` creation; self-removal of `USING_THIS_TEMPLATE.md` and the
+script itself. The agent's job is the prose-heavy scope content that
+the script intentionally leaves blank: a real charter (not just its
+one-line description), the architecture overview, the roadmap's themed
+bullets, and any project-specific reasoning to append to ADR-0001.
+
+Run the script first, answering its prompts with the scope-specific
+values:
+
+```bash
+# In the fresh template clone produced by Path A's "Manual copy":
+bash tools/bootstrap.sh
+```
+
+Then open the agent in the same directory and run:
+
+> This is a freshly bootstrapped clone of `agent-ready-repo` —
+> placeholders have been substituted by `tools/bootstrap.sh`, but the
+> prose-heavy scope content has not been written yet. Fill it against
+> this scope:
+>
+> - One-line description: `<what it does and for whom>`
+> - Tech stack: `<language, framework, datastore, deploy target>`
+> - Profile (already chosen at bootstrap): `<A / B / C>` — see Step 0
+>   of `../agent-ready-repo/USING_THIS_TEMPLATE.md` if you need a refresher.
+>
+> Write:
+>
+> - `docs/CHARTER.md` — full charter: mission (one sentence),
+>   in-scope/out-of-scope bullets, 5–7 principles with one example each.
+>   The out-of-scope list is the highest-leverage part; don't skip it.
+> - `docs/architecture/overview.md` — the project map. For Profile A,
+>   one paragraph is enough; for B and C, fill the full structure
+>   sections.
+> - `docs/product/roadmap.md` — replace every `<theme>` and
+>   `<thing we won't do>` placeholder with real content. `Now` and
+>   `Not in scope` are the highest-leverage sections; fill those even
+>   if `Next` and `Later` stay as `(nothing yet — add as items appear)`.
+> - `docs/adr/0001-*.md` — leave the existing rationale alone (it
+>   describes adopting AGENTS.md + the doc hierarchy, which this
+>   project is also adopting). Append any project-specific bullets
+>   under "Consequences" or "Alternatives considered" that the
+>   template's generic list doesn't already cover; if nothing
+>   project-specific applies, leave the ADR as-is.
+>
+> You may also refine the files the bootstrap script already filled
+> (`AGENTS.md`, `README.md`'s scaffold, `LICENSE-MIT`,
+> `.github/pull_request_template.md`, `.ralphrc`) if charter-writing
+> turns up scope-specific details worth landing there — for example,
+> tightening `AGENTS.md`'s "what this repo is" paragraph against the
+> charter you just wrote, or adding project-specific bullets to its
+> "Check before acting" list. Don't redo work the script did
+> correctly; the user will review the diff. If any of those
+> bootstrap-owned files still has a literal `<placeholder>` left in
+> it, flag it in your PR summary instead of fixing it yourself —
+> that's a bug in the bootstrap script. (The placeholders you wrote
+> into the roadmap and elsewhere in the "Write" list above are your
+> job to fill, not flag.)
+>
+> If `tools/bootstrap.sh` or `USING_THIS_TEMPLATE.md` is still present
+> in the working tree, note it in your PR summary: usually it means
+> the user declined the script's cleanup prompt (fine), but it could
+> also mean the script aborted before reaching cleanup (worth a
+> closer look).
+>
+> Then run `bash tools/lint-agents-md.sh` and
+> `bash tools/lint-agent-artifacts.sh`. Both must pass before you
+> declare done.
+
+Path C is not a shortcut around reviewing the result. Treat the agent's
+output like any other PR: read the diff, check that the prose matches
+your repo's reality, and edit `AGENTS.md` rather than working around
+anything that feels off.
 
 ---
 

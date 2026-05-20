@@ -5,7 +5,7 @@
 # the template:
 #   - Prompts for project metadata (name, description, profile, commands).
 #   - Substitutes placeholders in AGENTS.md, README.md, CHARTER.md, etc.
-#   - Sets the date on the changelog and ADR-0001.
+#   - Sets the date on the roadmap and ADR-0001.
 #   - Optionally removes profile-specific scaffolding (apps/, packages/, etc.).
 #   - Runs the docs linter to confirm the result is clean.
 #
