@@ -1,8 +1,6 @@
 # agent-ready-repo
 
-A repo template designed to be a place where AI coding agents can do their best work.
-
-AI coding agents are getting good enough to do real engineering, and the work goes better when the repo is set up for them. This template ships the load-bearing pieces: a tight `AGENTS.md` that every agent reads first, a document layout where every kind of decision has its own home and lifecycle, a plan-execute-verify-review work loop with explicit stop conditions, and three specialist reviewers — adversarial, security, quality — that read each diff from different angles. The loop is one of a handful of named skills under `.claude/skills/`; the reviewers live as specialist subagents in `.claude/agents/`. Most repos aren't built this way. This one is.
+A repo template that helps AI coding agents do real engineering work — and helps teams trust what gets produced. AI-written code is only as good as the repo it's written in, so this template ships the load-bearing pieces: a tight `AGENTS.md` that every agent reads first; a structured lifecycle for technical documents — proposals get reviewed, decisions get recorded, and feature specs drive implementation; a plan-execute-verify-review work loop with explicit stop conditions; and three specialist reviewers — adversarial, security, quality — that read each diff from different angles. The loop is one of a handful of named skills under `.claude/skills/`; the reviewers live as specialist subagents in `.claude/agents/`. Most repos aren't built this way. This one is.
 
 It fits any project — service, library, platform — and scales from solo developer up to a team of fifty without restructuring. For the thinking behind each piece, see [`docs/APPROACH.md`](docs/APPROACH.md).
 
