@@ -208,18 +208,19 @@ or weeks (not months). Each feature gets a directory.
 
 ```
 docs/specs/<feature>/
-├── spec.md      ← contract + contract tests
+├── spec.md      ← contract (objective, boundaries, testing strategy, acceptance criteria)
 ├── plan.md      ← strategy + construction tests, broken into tasks
 └── notes/       ← (optional) research, sketches, rejected approaches
 ```
 
-**`spec.md` is the contract.** It defines the externally observable behavior:
-inputs, outputs, error cases, edge cases, non-goals. It is the source of truth
-for what "done" means. The `Contract tests` section in the spec lists those
-tests explicitly — they are the gate, not an afterthought. (Hyrum's Law: with
-enough callers, every observable behavior of this contract — including ones
-the spec doesn't promise — will be depended on, so the contract tests pin
-what's actually intended.)
+**`spec.md` is the contract.** Its four sections — Objective, Boundaries,
+Testing Strategy, Acceptance Criteria — together define what "done" means.
+The Acceptance Criteria list the observable outcomes that close the spec
+(the gate, not an afterthought); the Testing Strategy names the verification
+mode for each, and the artifact that verifies it lives where that mode
+directs. (Hyrum's Law: with enough callers, every observable behavior of
+this contract — including ones the spec doesn't promise — will be depended
+on, so the criteria pin what's actually intended.)
 
 **`plan.md` is the implementation strategy.** It enumerates the changes —
 "add a `<thing>` to package X, modify `<other thing>` in package Y, write tests
@@ -239,29 +240,32 @@ behavior changes.
 constrain it. ADRs do not link to specs (specs are too small and short-lived
 to be worth citing from an ADR).
 
-### Contract tests vs. construction tests
+### Contract vs. construction tests
 
-Tests are designed *up front, before any implementation*. They live in two
-places, with different shapes and different lifecycles:
+Tests are designed *up front, before any implementation*. The contract and
+the artifacts that verify it have different shapes and different lifecycles:
 
-- **Contract tests** live in `spec.md`. Black-box, behaviour-only — they
-  define "done" for the feature. Any valid implementation must pass them.
-  They are stable against *implementation* change (that's the whole point
-  of a contract); they still evolve with *spec* (behavioural) change during
-  the spec's living phase, and freeze when the spec freezes.
-- **Construction tests** live in `plan.md`, attached to each step. Units,
-  edge cases, property tests, fixtures — they guide the implementer through
-  the build. They are *revisable* if one turns out to over-specify an
-  internal detail the plan changed.
+- **The contract** lives in `spec.md` — Acceptance Criteria name the
+  observable outcomes; Testing Strategy names the verification mode for
+  each (TDD / goal-based check / visual / manual QA); Boundaries names the
+  rails. Any valid implementation must satisfy every criterion. The
+  contract is stable against *implementation* change (that's the whole
+  point); it evolves with *spec* (behavioural) change during the spec's
+  living phase and freezes when the spec freezes.
+- **Construction tests** live in `plan.md`, attached to each task's
+  `Tests:` subsection. Units, edge cases, property tests, fixtures — they
+  guide the implementer through the build and verify the Acceptance
+  Criteria in concrete form. They are *revisable* if one turns out to
+  over-specify an internal detail the plan changed.
 
-Within a plan step, the **Tests** subsection comes *before* Approach. Tests
+Within a plan task, the **Tests** subsection comes *before* Approach. Tests
 drive implementation, not the other way around. Red-green-refactor: write
 the failing test, make it pass, refactor — separate commits for each when
 the change is non-trivial.
 
-This is the forcing function that keeps specs honest (you can't write a
-contract test for a vague behavioural claim) and keeps implementations
-honest (you can't drift from the spec if the spec's tests are red).
+This is the forcing function that keeps specs honest (every Acceptance
+Criterion must be testable in its declared mode) and keeps implementations
+honest (you can't drift from the spec if the criteria's verification artifacts are red).
 
 The typical mix follows the test pyramid — roughly 80% fast unit / construction
 tests, 15% integration, 5% end-to-end — a target shape, not a quota.
