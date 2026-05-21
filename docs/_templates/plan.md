@@ -42,8 +42,9 @@ Construction tests guide implementation. They sit in two layers:
    steps.
 
 Designed up front, before EXECUTE. Revisable if a test over-specifies an
-internal detail the plan later changes. Contract tests live in `spec.md`,
-not here.
+internal detail the plan later changes. The contract itself lives in
+`spec.md` (Acceptance Criteria + Testing Strategy); construction tests
+that verify it live here.
 
 **Integration tests:** <list, or "none beyond per-task tests">
 **Manual verification:** <list, or "none">
@@ -73,8 +74,8 @@ could pick it up and complete it without follow-up questions:
 **Depends on:** <none | T0, ...>
 
 **Tests:**
-- <test 1 — behaviour, edge case, or property; reference a contract test from
-  spec.md if this step implements one>
+- <test 1 — behaviour, edge case, or property; reference the Acceptance
+  Criterion from spec.md this step verifies, if any>
 - <test 2>
 
 **Approach:**

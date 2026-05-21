@@ -29,8 +29,9 @@ from the prompt and say which you picked.
    contract-vs-construction split and the three verification modes
    (TDD / goal-based / visual / manual QA). These are first-class — do
    not invent rival terminology.
-2. The targeted `spec.md` if any — its **Behavior** and **Contract
-   tests** sections are the contract.
+2. The targeted `spec.md` if any — its **Objective**, **Boundaries**,
+   **Testing Strategy**, and **Acceptance Criteria** sections together
+   are the contract.
 3. The targeted `plan.md` if any — task list, per-task **Tests:**
    subsections, declared verification modes.
 4. The diff (`git diff <base>..HEAD` if not enumerated), plus the
@@ -55,30 +56,31 @@ job is to find what the integrated whole misses.
 If your input is a single diff, skip this section and start at *Test
 design* below.
 
-1. **Every Behavior has a passing assertion.** Walk `spec.md`'s Behavior
-   section line by line. For each declared behavior, point at the test
-   (contract or construction) that proves it. Behaviors with no test are
-   Blockers — a spec promise without a test is a regression waiting to
-   land.
-2. **Every Contract test the spec listed is present.** `spec.md`'s
-   Contract tests section is a contract on you, too. Tests promised
-   there but absent get flagged, with the file they should live in.
-3. **Deferred tests carry a reason that survives scrutiny.** "TODO" and
+1. **Every Acceptance Criterion has a passing verification artifact.**
+   Walk `spec.md`'s Acceptance Criteria line by line. For each item,
+   point at the test, goal-based one-liner, or recorded manual / visual
+   QA check (in the mode named by Testing Strategy) that proves it.
+   Criteria with no artifact are Blockers — a spec promise without a
+   verification is a regression waiting to land. If Testing Strategy
+   names specific artifacts by file or function, apply the same
+   existence check to those names too — promised artifacts that aren't
+   present land as findings, with the file they should live in.
+2. **Deferred tests carry a reason that survives scrutiny.** "TODO" and
    plausible-sounding rationales ("flaky", "covered elsewhere", "out of
    scope") are not reasons. If a test was skipped because the code under
    test fails it, that's a Blocker — the code is wrong, not the test
    (see work-loop's anti-pattern of the same name).
-4. **User journeys exercised as journeys.** A spec's primary journey
+3. **User journeys exercised as journeys.** A spec's primary journey
    ("sign up → confirm email → finish onboarding") needs at least one
    assertion that walks the path end-to-end, not the sum of three unit
    tests. Unit tests can all be green while the *join* breaks — auth
    state, navigation, data hand-off across steps. Recommend the smallest
    journey test that exercises the join.
-5. **Cross-loop interactions.** When loops touched shared state (a
+4. **Cross-loop interactions.** When loops touched shared state (a
    router, a store, a database table), is there a test that exercises
    both loops' code paths against the same instance? Per-loop tests use
    fresh state; bugs hide in the carryover.
-6. **Scenarios the spec didn't enumerate.** Adopt the quality-engineer
+5. **Scenarios the spec didn't enumerate.** Adopt the quality-engineer
    mindset for the spec's primary journey: list the realistic scenarios
    — happy path, error paths, empty / partial state, concurrent users,
    slow dependencies, retries, abandonment mid-flow — and check coverage
@@ -106,10 +108,13 @@ gap at spec close is the kind of thing that ships an invisible bug.
    even at the cost of some duplication — a clever helper that hides
    setup is the wrong kind of reuse when it obscures what the test is
    actually checking.
-5. **Contract vs construction confusion.** Black-box "given/when/then"
-   assertions about user-visible behaviour belong in `spec.md`
-   Contract tests; per-task units/edges/properties belong in
-   `plan.md`. Tests in the wrong place are revised when they should be
+5. **Contract vs construction confusion.** The spec carries the contract
+   (Acceptance Criteria as observable outcomes, with the verification
+   mode named in Testing Strategy); the plan's per-task `Tests:`
+   subsections carry the construction tests that verify each criterion.
+   A test pinning a user-visible Acceptance Criterion buried inside a
+   per-task internal test, or a per-task unit assertion elevated as if
+   it were the contract, means tests get revised when they should be
    durable, and vice versa.
 6. **Verification-mode mismatch.** A test file exists for a task whose
    plan declares goal-based or visual/manual QA — usually a sign the
@@ -203,10 +208,15 @@ gap at spec close is the kind of thing that ships an invisible bug.
 
 When asked to draft tests, follow the repo's split:
 
-- **Contract tests** go in or under `docs/specs/<feature>/spec.md`.
-  Black-box, behaviour-only, written from the spec's Behavior section.
-  One assertion per observable post-condition. Language: prose with
-  given/when/then, plus a code block if helpful.
+- **Contract verification artifacts** are derived from `spec.md`'s
+  Acceptance Criteria — one artifact per criterion, in the mode named
+  by Testing Strategy. Black-box, behaviour-only; the artifact lives
+  where its mode directs (a TDD test in the package's test path, a
+  goal-based one-liner in the plan task's `Done when:`, a recorded
+  manual / visual QA gesture). The artifact's level of abstraction
+  must match the criterion — UI gestures get UI tests, not controller
+  tests; API criteria get tests at the interface, not handler unit
+  tests.
 - **Construction tests** go in the package's normal test path.
   Per-task, derived from the plan's task list. Include the boring
   edge cases (empty, max, malformed) explicitly. When the surface
@@ -226,8 +236,9 @@ When asked to draft tests, follow the repo's split:
   artifact to the contract — don't draft a gesture-and-assert script
   for an invariant, or an invariant-style fuzzer for a single gesture.
 - **Do not commit.** Output proposed tests in code blocks tagged with
-  the language, each preceded by a header naming the spec behavior or
-  plan task it covers. The orchestrator decides what lands.
+  the language, each preceded by a header naming the Acceptance
+  Criterion or plan task it covers. The orchestrator decides what
+  lands.
 
 ## Testability audit mode
 
@@ -315,6 +326,6 @@ When tempted to short-circuit, refuse these by name:
 
 | Rationalization | Rebuttal |
 |---|---|
-| *"Tests exist and pass — coverage is fine."* | Coverage measures lines, not behaviours. Map each spec Behavior to the assertion that would fail if it broke; if the assertion is `mock.calls == 1`, the contract isn't covered. |
+| *"Tests exist and pass — coverage is fine."* | Coverage measures lines, not behaviours. Map each Acceptance Criterion to the assertion that would fail if it broke; if the assertion is `mock.calls == 1`, the contract isn't covered. |
 | *"Logging is present — observability is fine."* | A log on the happy path with silence on the error path is the wrong shape. Check the three pillars sit on the paths that fail at 3am, not the paths that already worked. |
 | *"Errors are returned — reliability is fine."* | A returned `Error("failed")` with no context, no timeout, and no idempotency key is a pager wake-up waiting to happen. Reliability is what the caller sees on failure and what happens on retry, not whether errors are returned. |

@@ -8,7 +8,7 @@ Each feature gets a directory:
 
 ```
 docs/specs/<feature>/
-├── spec.md      ← the contract + contract tests: what this feature does
+├── spec.md      ← the contract (objective, boundaries, testing strategy, acceptance criteria): what this feature does
 ├── plan.md      ← the strategy + construction tests: how we'll build it
 └── notes/       ← (optional) research, sketches, rejected approaches
 ```

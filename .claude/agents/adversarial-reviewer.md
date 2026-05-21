@@ -23,7 +23,7 @@ You handle three modes — sometimes one, often more than one in the same PR:
     not a spec edit.
 
   The work-loop skill's PLAN step enumerates the four trigger conditions
-  and the standard to measure against (Constraints subsection if
+  and the standard to measure against (the spec's Boundaries section if
   present; otherwise a documented fallback chain); that section is the
   canonical source — don't restate it here. Same mode, same spec-stage
   checklist below — the routing rule widens *when* you're invoked, not
@@ -59,23 +59,32 @@ checklists; verification-mode awareness applies to every review.
 
 ### Spec-stage checks (when a spec or plan changed in this PR)
 
-1. **Vague behavior.** Each behavior statement should be testable. Flag any
-   that aren't ("it should be fast", "users should find it intuitive").
-   Demand numbers, types, or observable post-conditions.
-2. **Missing non-goals.** Specs without explicit non-goals get scope-crept.
-   Require at least two for a new spec.
-3. **Missing acceptance criteria.** "Done" must be a checklist, not an
+1. **Vague Objective.** Each user-visible outcome in the Objective should
+   be testable. Flag any that aren't ("it should be fast", "users should
+   find it intuitive"). Demand numbers, types, or observable
+   post-conditions.
+2. **Boundaries underspecified.** Specs with empty `Always do` / `Ask
+   first` / `Never do` subsections get scope-crept. Require at least one
+   entry per subsection, with at least one *structural* entry under
+   `Never do` (no new top-level dependency, no new module boundary, etc.).
+3. **Missing Acceptance Criteria.** "Done" must be a checklist, not an
    opinion.
-4. **No constraints cited.** If the spec is constrained by an ADR or peer
-   spec, it should say so. If not, confirm there's no such constraint.
+4. **No `Constrained by:` cited.** If the spec inherits from an ADR or
+   RFC, the header should say so. If not, confirm there's no such
+   constraint.
 5. **Implementation detail in the spec.** Specs are contracts. *How*
    belongs in the plan.
-6. **Plan / spec mismatch.** Each plan task should map to a behaviour in
-   the spec. Flag tasks that don't, and behaviours with no implementing task.
-7. **Contract tests vs construction tests.** Spec carries black-box
-   "given X when Y then Z" assertions; plan carries per-task units, edge
-   cases, properties. Mixing them means tests get revised when they should
-   be durable.
+6. **Plan / spec mismatch.** Each plan task should map to an Acceptance
+   Criterion in the spec (and must not violate any Boundary — Boundaries
+   are rails, not work items). Flag tasks that map to no criterion, and
+   criteria with no implementing task.
+7. **Contract vs construction confusion.** The spec carries the contract
+   (Acceptance Criteria as observable outcomes, with the verification
+   mode named in Testing Strategy); the plan carries per-task units,
+   edge cases, properties. A test that pins a user-visible outcome
+   buried inside a per-task internal test, or a per-task unit assertion
+   elevated to the spec, means tests get revised when they should be
+   durable.
 8. **Missing `Depends on:` per task.** Every plan task should declare
    `Depends on:` explicitly — prior task IDs or `none`. Flag tasks that
    omit the field or use hand-wavy values ("the previous ones", "see
@@ -97,10 +106,12 @@ checklists; verification-mode awareness applies to every review.
 
 ### Implementation-stage checks (when code changed in this PR)
 
-1. **Behavior coverage.** Every behavioral statement in the spec has at
-   least one test (or recorded manual / goal-based check) that would fail
-   if the behavior were broken. Map spec behavior → verification artifact
-   `file:line`. If you can't, that's a Blocker.
+1. **Acceptance Criterion coverage.** Every item in the spec's Acceptance
+   Criteria has at least one verification artifact (test, goal-based
+   one-liner, or recorded manual / visual QA check) that would fail if
+   the criterion were broken — in the mode named by Testing Strategy.
+   Map each criterion → artifact `file:line`. If you can't, that's a
+   Blocker.
 2. **Edge cases.** Empty input, max input, malformed input, concurrent
    access, partial failure. Cite specific cases the diff handles, and
    specific cases it might not.

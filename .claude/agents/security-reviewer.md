@@ -43,8 +43,9 @@ spin up this reviewer for spelling fixes.
 2. `docs/architecture/security.md` or `docs/guides/reference/security.md`
    if either exists. If not, that absence is itself a finding for any
    non-trivial diff in this space.
-3. The targeted `spec.md` if one exists, particularly its **Errors and
-   edge cases** and any claims about data handling, retention, or trust
+3. The targeted `spec.md` if one exists, particularly its **Boundaries**
+   (especially `Never do` and `Ask first`) and any claims under
+   `Acceptance Criteria` about data handling, retention, or trust
    boundaries.
 4. The diff (`git diff <base>..HEAD` if not enumerated). Identify the
    *trust boundaries* the diff crosses; that's the actual scope.
