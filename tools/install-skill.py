@@ -17,7 +17,7 @@ the adopter sees exactly what was and wasn't written:
 
 Docs are special. `docs/CONVENTIONS.md` and `AGENTS.md` belong to the
 adopter, not us. If a skill depends on a section of either (e.g.
-`docs/CONVENTIONS.md#contract-tests-vs-construction-tests`) or on the
+`docs/CONVENTIONS.md#contract-vs-construction-tests`) or on the
 whole file (the `update-conventions` case), the script writes the
 relevant slice to `<dest>/docs/CONVENTIONS.fragments/<skill>.md` rather
 than overwriting. The user merges manually; auto-splicing someone else's

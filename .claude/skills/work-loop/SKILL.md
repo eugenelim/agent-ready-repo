@@ -3,7 +3,7 @@ name: work-loop
 description: Use this skill whenever you're implementing a non-trivial change — a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
 dependencies:
   - AGENTS.md#check-before-acting
-  - docs/CONVENTIONS.md#contract-tests-vs-construction-tests
+  - docs/CONVENTIONS.md#contract-vs-construction-tests
   - docs/CONVENTIONS.md#work-loop-state
   - docs/CONVENTIONS.md#supervisor-mode
   - docs/CONVENTIONS.md#knowledge-base
@@ -73,8 +73,9 @@ For anything beyond trivial, *think before you write code*. Concretely:
   list is your work-breakdown — don't invent your own.
 - If the task has no spec and is more than a one-file change, **stop and use
   the `new-spec` skill first**. Implementation without a contract drifts.
-  Contract tests are part of the spec — write them *during* `new-spec`, not
-  later. A spec without its Contract tests section filled in is not finished.
+  The contract is part of the spec — `Acceptance Criteria` and
+  `Testing Strategy` are written *during* `new-spec`, not later. A spec with
+  either section left empty is not finished.
 - For architecturally significant work, use extended thinking. In an
   interactive Claude Code session: enter Plan Mode (Shift+Tab twice) and add
   "think hard" or "ultrathink" to your prompt for adaptive thinking depth.
@@ -98,10 +99,11 @@ For anything beyond trivial, *think before you write code*. Concretely:
 - **Pick the verification mode for each plan task** before writing code.
   The mode is the task's contract for "how do we know this is done":
   - **TDD** — pure functions, state machines, protocols, anything with a
-    compressible invariant. Contract tests in `spec.md`, construction
-    tests in `plan.md`, `Tests:` before `Approach:`, red-green-refactor.
+    compressible invariant. The contract lives in `spec.md` (Acceptance
+    Criteria + Testing Strategy); construction tests live in `plan.md`,
+    `Tests:` before `Approach:`, red-green-refactor.
     Default for testable logic. Split detailed in
-    [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#contract-tests-vs-construction-tests).
+    [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#contract-vs-construction-tests).
   - **Goal-based check** — build config, scaffolding, generated-code
     consumption, smoke entry points. The task's `Done when:` is the
     contract; verify with a one-liner (build command, `grep`, typecheck)
@@ -124,12 +126,12 @@ For anything beyond trivial, *think before you write code*. Concretely:
     you can't enumerate the gestures up front.
 
   Spikes and throwaway exploration are out of scope.
-- **Design tests up front, before any code.** Contract tests live in
-  `spec.md` and are written when the spec is written (see the `new-spec`
-  step above). During PLAN, write construction tests for **every** task
-  into `plan.md` (under each task's `Tests:` subsection) before EXECUTE
-  begins. If you can't write the test, the task is too vague to implement —
-  sharpen the plan first. Discovering a missing or wrong construction test
+- **Design tests up front, before any code.** The contract lives in
+  `spec.md` (Acceptance Criteria + Testing Strategy) and is written when
+  the spec is written (see the `new-spec` step above). During PLAN, write
+  construction tests for **every** task into `plan.md` (under each task's
+  `Tests:` subsection) before EXECUTE begins. If you can't write the
+  test, the task is too vague to implement — sharpen the plan first. Discovering a missing or wrong construction test
   during EXECUTE is fine, but the fix is "update plan.md, then resume
   EXECUTE", not "skip ahead".
 - **Pre-EXECUTE adversarial review.** Invoke `adversarial-reviewer` in
@@ -157,12 +159,17 @@ For anything beyond trivial, *think before you write code*. Concretely:
   Both triggers route to the same reviewer mode and the same spec-stage
   checklist; what differs is the standard the reviewer measures against.
   When the structural-change trigger fires, the reviewer checks the
-  plan against the spec's **Constraints** subsection (see
-  [`docs/_templates/spec.md`](../../../docs/_templates/spec.md)). If
-  the spec has no Constraints subsection, fall back in order to: the
-  spec's **Non-goals**, the PLAN step's **declined-pattern register**
-  (above), and the AGENTS.md **"Check before acting"** list (when
-  installed elsewhere this slug arrives as a fragment under
+  plan against the spec's **Boundaries** section (see
+  [`docs/_templates/spec.md`](../../../docs/_templates/spec.md)) —
+  primarily `Never do` for hard structural rules and `Ask first` for
+  the ones that require sign-off; `Always do` for positive defaults
+  the plan must honour. If `Boundaries` is empty, that's the
+  finding to surface first — an empty Boundaries section is a
+  spec-stage gap, not a fallback cue. Only when the spec has no
+  Boundaries section at all (an unmigrated template, say) fall back
+  in order to: the PLAN step's **declined-pattern register** (above),
+  and the AGENTS.md **"Check before acting"** list (when installed
+  elsewhere this slug arrives as a fragment under
   `docs/AGENTS.fragments/`; merge the items the adopter wants into their
   own AGENTS.md).
 

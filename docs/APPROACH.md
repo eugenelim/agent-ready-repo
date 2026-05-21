@@ -25,7 +25,7 @@ It works for any project — service, library, platform — and scales from solo
 
 Documentation has eight homes (charter, ADR, RFC, spec, plan, architecture, product, guides), and each one carries a lifecycle. Living documents update with each PR. Frozen documents like accepted ADRs are immutable; CI rejects silent edits. Governance documents move through review. The effect is that nobody — agent or human — has to wonder where a piece of information belongs.
 
-Features go through a spec-and-plan loop tight enough to drive implementation. Specs and plans are written together, contract tests are designed before any code, and each plan task points back to a specific behavior in the spec. The spec-author skill helps you sharpen vague behavior into testable claims early, so the work doesn't drift later.
+Features go through a spec-and-plan loop tight enough to drive implementation. Specs and plans are written together, Acceptance Criteria are written before any code, and each plan task points back to a specific criterion in the spec. The spec-author skill helps you sharpen vague objectives into testable criteria early, so the work doesn't drift later.
 
 The work loop — plan, execute, verify with gates, review, decide — has explicit stop conditions: an iteration cap, a "same finding twice" rule, signals for when you're patching symptoms rather than addressing root cause. These matter because coding agents are good at starting work and less good at recognizing when to stop.
 
