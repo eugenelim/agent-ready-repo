@@ -26,6 +26,7 @@ from pathlib import Path
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.validate import validate as validate_instance
 from agentbundle.build.main import cmd_build
+from agentbundle.build.self_host import cmd_check, cmd_self
 
 __all__ = ["main"]
 
@@ -108,7 +109,53 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     build_parser.set_defaults(func=cmd_build)
 
+    self_parser = subparsers.add_parser(
+        "self",
+        help="Self-host build: render into the working tree (--dry-run for diff).",
+    )
+    self_parser.add_argument("--dry-run", action="store_true")
+    self_parser.add_argument("--force", action="store_true")
+    self_parser.add_argument("--packs-dir", default="packs")
+    self_parser.add_argument("--output-dir", default=".")
+    self_parser.set_defaults(func=cmd_self)
+
+    check_parser = subparsers.add_parser(
+        "check",
+        help="Strict self-host dry-run; non-zero on any drift.",
+    )
+    check_parser.add_argument("--packs-dir", default="packs")
+    check_parser.add_argument("--output-dir", default=".")
+    check_parser.set_defaults(func=cmd_check)
+
+    scaffold_parser = subparsers.add_parser(
+        "scaffold",
+        help="Drop a pack's seeds/ into the named output directory.",
+    )
+    scaffold_parser.add_argument("--packs-dir", default="packs")
+    scaffold_parser.add_argument("--pack", default="core")
+    scaffold_parser.add_argument("--output", required=True)
+    scaffold_parser.set_defaults(func=_cmd_scaffold)
+
     return parser
+
+
+def _cmd_scaffold(args) -> int:
+    pack_seeds = Path(args.packs_dir) / args.pack / "seeds"
+    output = Path(args.output)
+    if not pack_seeds.exists():
+        print(f"scaffold: no seeds/ in pack {args.pack!r}", file=sys.stderr)
+        return 1
+    output.mkdir(parents=True, exist_ok=True)
+    import shutil
+    for entry in pack_seeds.iterdir():
+        destination = output / entry.name
+        if entry.is_dir():
+            if destination.exists():
+                shutil.rmtree(destination)
+            shutil.copytree(entry, destination)
+        else:
+            shutil.copy2(entry, destination)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
