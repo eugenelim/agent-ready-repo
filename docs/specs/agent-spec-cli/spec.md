@@ -7,7 +7,7 @@
   hard-depends on [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md)
   (F-spec + F-build) and the sibling spec
   [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
-  (defines `pack.toml`, `contract.toml`, the **Tier-1/2/3 file-safety
+  (defines `pack.toml`, `adapter.toml`, the **Tier-1/2/3 file-safety
   contract**, the **`.agent-ready-state.toml` schema**, the
   **`.upstream.<ext>` companion semantics**, the **six-recipe enumeration**,
   and the **five primitive types** this CLI honours).
@@ -75,7 +75,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   version` in its `pack.toml`; refuse to operate on packs whose major version
   disagrees with the CLI's own and emit a clear refuse-and-explain message.
   The CLI's own spec version is parsed at import time from the bundled
-  canonical `contract.toml` (`[contract] version`), not hardcoded.
+  canonical `adapter.toml` (`[contract] version`), not hardcoded.
 - Confine every write-capable subcommand to paths under the configured
   `--output <dir>` or the resolved repo root; refuse and exit non-zero on any
   attempt to project outside that root (e.g. a malicious projection rule
@@ -184,9 +184,9 @@ QA tails respectively.
 - [ ] `python -m agentbundle --version` prints both the CLI version and the
       spec version it ships against (`v0.1` at first release). The spec
       version value is parsed **at import time** from the bundled canonical
-      `contract.toml`'s `[contract] version` field. A test proves the
+      `adapter.toml`'s `[contract] version` field. A test proves the
       read-at-import semantics: it captures the on-disk value, imports the
-      package, mutates `contract.toml` on disk to a different version, then
+      package, mutates `adapter.toml` on disk to a different version, then
       asserts that `python -m agentbundle --version` still prints the
       original (import-time) value — not the post-mutation value.
 - [ ] All eleven subcommands from RFC-0003 F-cli, in canonical

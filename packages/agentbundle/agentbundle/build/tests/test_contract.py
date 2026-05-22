@@ -1,10 +1,10 @@
-"""Tests for contract.toml + schema.json (T1b).
+"""Tests for adapter.toml + adapter.schema.json (T1b).
 
 Verifies:
-  - contract.toml validates against schema.json (AC 1).
+  - adapter.toml validates against adapter.schema.json (AC 1).
   - Every (5 primitives × 4 adapters) = 20 pairs is present — no missing,
     no extra (AC 1).
-  - The mode enum in schema.json contains exactly the seven RFC-0001 modes;
+  - The mode enum in adapter.schema.json contains exactly the seven RFC-0001 modes;
     unknown modes are rejected (AC 2).
   - Every projection entry carries an on-conflict value from the legal set,
     matching the per-mode default — except for degraded-info-log and dropped
@@ -25,8 +25,8 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "contract.toml"
-SCHEMA_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "schema.json"
+CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
 
 # All seven RFC-0001 projection modes.
 SEVEN_RFC_MODES = {
@@ -77,7 +77,7 @@ def _load_schema() -> dict:
 
 
 class ContractSchemaValidationTests(unittest.TestCase):
-    """contract.toml must validate against schema.json (AC 1)."""
+    """adapter.toml must validate against adapter.schema.json (AC 1)."""
 
     def test_contract_validates_against_schema(self) -> None:
         from agentbundle.build.validate import validate
@@ -88,7 +88,7 @@ class ContractSchemaValidationTests(unittest.TestCase):
         self.assertEqual(
             errors,
             [],
-            f"contract.toml failed schema validation:\n" + "\n".join(errors),
+            f"adapter.toml failed schema validation:\n" + "\n".join(errors),
         )
 
 
@@ -126,7 +126,7 @@ class AllPairsEnumeratedTests(unittest.TestCase):
 
 
 class ModeEnumTests(unittest.TestCase):
-    """schema.json mode enum must contain exactly the seven RFC-0001 modes."""
+    """adapter.schema.json mode enum must contain exactly the seven RFC-0001 modes."""
 
     def test_mode_enum_contains_exactly_seven_modes(self) -> None:
         schema = _load_schema()

@@ -32,10 +32,10 @@ from agentbundle.build.validate import validate as validate_instance
 PACKAGE_ROOT = Path(__file__).resolve().parent
 RECIPES_DIR = PACKAGE_ROOT / "recipes"
 REPO_ROOT = PACKAGE_ROOT.parent.parent.parent.parent
-CONTRACT_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "contract.toml"
-PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "pack-schema.json"
+CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
+PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
 PLUGIN_MANIFEST_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "specs" / "adapter-contract" / "plugin-manifest-schema.json"
+    REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
 )
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
@@ -107,7 +107,7 @@ def discover_packs(packs_dir: Path) -> list[Pack]:
 
 
 def validate_pack_metadata(pack_toml_path: Path) -> None:
-    """Validate a pack.toml against pack-schema.json. Raise on errors."""
+    """Validate a pack.toml against pack.schema.json. Raise on errors."""
     metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
     schema = json.loads(PACK_SCHEMA_PATH.read_text(encoding="utf-8"))
     errors = validate_instance(metadata, schema)

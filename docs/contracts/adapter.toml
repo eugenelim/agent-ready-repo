@@ -1,5 +1,5 @@
 # Adapter contract — every (primitive × adapter) pair enumerated.
-# Validates against ./schema.json.
+# Validates against ./adapter.schema.json.
 # Managed by: docs/specs/distribution-adapters/spec.md
 # RFC reference: RFC-0001
 
@@ -9,8 +9,8 @@ version = "0.1"
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
 [contract.schemas]
-pack = "pack-schema.json"
-plugin-manifest = "plugin-manifest-schema.json"
+pack = "pack.schema.json"
+plugin-manifest = "plugin-manifest.schema.json"
 
 # ---------------------------------------------------------------------------
 # Primitive types — source paths within a pack's .apm/ directory

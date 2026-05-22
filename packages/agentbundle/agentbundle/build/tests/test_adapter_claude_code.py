@@ -11,7 +11,7 @@ from agentbundle.build.adapters.claude_code import project
 from agentbundle.build.contract import load as load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-CONTRACT_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "contract.toml"
+CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
 
 
 def _seed_pack(root: Path) -> Path:
