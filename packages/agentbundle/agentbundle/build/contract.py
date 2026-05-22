@@ -1,6 +1,6 @@
 """Contract loader.
 
-Reads `docs/specs/adapter-contract/contract.toml` via `tomllib` and
+Reads `docs/contracts/adapter.toml` via `tomllib` and
 returns a dict. No validation logic — `validate.py` does that, and
 the CLI's `validate` subcommand wires the two together.
 

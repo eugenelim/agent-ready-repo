@@ -62,7 +62,7 @@ build-scaffold:
 	$(PYTHON) -m agentbundle.build scaffold --packs-dir $(PACKS_DIR) --output $(OUTPUT)
 
 validate:
-	$(PYTHON) -m agentbundle.build validate docs/specs/adapter-contract/contract.toml
+	$(PYTHON) -m agentbundle.build validate docs/contracts/adapter.toml
 
 clean:
 	rm -rf $(OUTPUT_DIR)

@@ -588,3 +588,8 @@ T6's PR diff.
   `make build --check` references (item 5 in the spec's drafting-drift
   note); `FORCE=1` and `DRY_RUN=1` are the variable equivalents of
   the original `--force` / `--dry-run` flags.
+- 2026-05-22: adapter contract files moved from
+  `docs/specs/adapter-contract/` to `docs/contracts/` (flat layout,
+  `<name>.schema.json` suffix). Spec line 120 updated; field
+  semantics unchanged. See
+  [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments).

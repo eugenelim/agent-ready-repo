@@ -52,7 +52,7 @@ This spec also pins:
 ## Projection modes (defined)
 
 The seven projection modes RFC-0001 enumerates and this spec ships in
-`contract.toml`. Sibling specs reading this spec for projection-mode
+`adapter.toml`. Sibling specs reading this spec for projection-mode
 semantics should find them here; AC #2's enum is defined-by-reference
 to this list.
 
@@ -200,9 +200,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Always do
 
 - Place the canonical adapter contract at
-  `docs/specs/adapter-contract/contract.toml` with a sibling `schema.json`.
-  This path is RFC-0001's convention; do not move it under
-  `docs/specs/distribution-adapters/`.
+  `docs/contracts/adapter.toml` with a sibling
+  `adapter.schema.json`. This supersedes RFC-0001's original
+  `docs/specs/adapter-contract/contract.toml` convention (see
+  [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments));
+  do not move it under `docs/specs/distribution-adapters/`.
 - Use Python stdlib only (target 3.11+ for `tomllib`). Every adapter, every
   recipe consumer, every validator runs without `pip install`.
 - Place build-pipeline code at `packages/agentbundle/agentbundle/build/`,
@@ -217,7 +219,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   (`direct-directory`, `direct-file`, `merge-json`, `instruction-file`,
   `managed-block-inline`, `degraded-info-log`, `dropped`) and honor each
   mode's per-RFC default `on-conflict` value.
-- Enumerate every (primitive, adapter) pair in `contract.toml`. Missing
+- Enumerate every (primitive, adapter) pair in `adapter.toml`. Missing
   pairs default to `dropped` only when the contract states so explicitly.
 - Validate pack-internal name uniqueness (no two skills with the same local
   name inside the same pack) at build time; allow cross-pack name reuse.
@@ -278,7 +280,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   that ships to adopters; this spec produces distribution machinery, not
   template changes.
 - **No silent overwrite semantics encoded outside the contract.** Every
-  projection rule's `on-conflict` value lives in `contract.toml` and is
+  projection rule's `on-conflict` value lives in `adapter.toml` and is
   carried through into the rendered artifact's manifest (so downstream
   install tools and the adapt step honor RFC-0001's per-mode defaults).
   Adapters never hardcode an `on-conflict` policy.
@@ -291,7 +293,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 Three behaviors close this spec; each gets one mode and one verification
 artifact.
 
-- **Contract + schema validation — TDD.** The `contract.toml`/`schema.json`
+- **Contract + schema validation — TDD.** The `adapter.toml`/`adapter.schema.json`
   pair is pure data with a compressible invariant ("the contract validates
   against the schema; every adapter block enumerates every (primitive,
   adapter) pair; every projection rule has a defined `on-conflict`"). TDD
@@ -317,20 +319,20 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Acceptance Criteria
 
-- [ ] `docs/specs/adapter-contract/contract.toml` exists, covers all four
+- [ ] `docs/contracts/adapter.toml` exists, covers all four
   reference adapters (`claude-code`, `kiro`, `copilot`, `codex`), names
   the five primitive types (`skill`, `agent`, `hook-body`, `hook-wiring`,
   `command`), enumerates every (primitive, adapter) pair explicitly, and
-  validates against a sibling `docs/specs/adapter-contract/schema.json`.
+  validates against a sibling `docs/contracts/adapter.schema.json`.
 - [ ] All seven projection modes (`direct-directory`, `direct-file`,
   `merge-json`, `instruction-file`, `managed-block-inline`,
-  `degraded-info-log`, `dropped`) appear in `schema.json` as the enum of
-  legal `mode` values, and every projection rule in `contract.toml`
+  `degraded-info-log`, `dropped`) appear in `adapter.schema.json` as the enum of
+  legal `mode` values, and every projection rule in `adapter.toml`
   carries an `on-conflict` value matching RFC-0001's per-mode default
   table (or an explicit override from the legal set).
 - [ ] `pack.toml` shape is pinned in
-  `docs/specs/adapter-contract/pack-schema.json` and referenced from
-  `contract.toml`. The schema accepts `[pack]`, `[pack.dependencies]`
+  `docs/contracts/pack.schema.json` and referenced from
+  `adapter.toml`. The schema accepts `[pack]`, `[pack.dependencies]`
   (with `required`/`recommended`/`conflicts` keys), `[pack.adaptation]`,
   and `[pack.seeds]` tables per RFC-0001. The schema enforces shape
   only: `[pack.adaptation] infer-from` must be a string (a non-string
@@ -341,7 +343,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   `[pack.seeds]` shape check (entries must be relative-path strings;
   an absolute path or a non-string is rejected).
 - [ ] `.claude-plugin/plugin.json` shape is pinned in a sibling
-  `plugin-manifest-schema.json` validating the hand-authored per-pack
+  `plugin-manifest.schema.json` validating the hand-authored per-pack
   manifests. Each pack's manifest is hand-authored at
   `packs/<pack>/.claude-plugin/plugin.json`; the build copies it
   unmodified into `dist/claude-plugins/<pack>/`.
@@ -355,10 +357,10 @@ No manual QA: there is no UI surface, no human gesture under test.
   array, string, integer, boolean, enum, required, pattern, items,
   `properties` and `additionalProperties` for object recursion — and
   only these). The subset is documented in T1a's *Approach*. AC #1
-  verifies `validate.py` accepts the conforming `contract.toml` and
+  verifies `validate.py` accepts the conforming `adapter.toml` and
   rejects each mutation enumerated in `test_contract.py`. `properties`
   and `additionalProperties` are load-bearing — every shipped schema
-  (`schema.json`, `pack-schema.json`, `plugin-manifest-schema.json`)
+  (`adapter.schema.json`, `pack.schema.json`, `plugin-manifest.schema.json`)
   uses them to recurse into nested objects.
 - [ ] `make build` on a clean checkout, against the four reference
   fixture packs under
@@ -374,7 +376,7 @@ No manual QA: there is no UI surface, no human gesture under test.
 - [ ] Each adapter (`claude_code`, `kiro`, `copilot`, `codex`) has a
   per-adapter unit-test file under
   `packages/agentbundle/agentbundle/build/tests/` covering every
-  projection mode that adapter's `contract.toml` block uses (e.g.
+  projection mode that adapter's `adapter.toml` block uses (e.g.
   Copilot exercises `instruction-file`, `direct-file`, and `dropped`;
   Codex exercises `managed-block-inline`, `direct-file`, and `dropped`)
   plus the named frontmatter mapping or default where the contract
@@ -397,7 +399,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   Boundaries § Never do), **refuses on a dirty tree without `--force`
   and exits non-zero with stderr naming the refusal** (verified by a
   T7 test against a dirty-tree fixture), and (with `--force`) honours
-  each adapter's declared `on-conflict` policy from `contract.toml` —
+  each adapter's declared `on-conflict` policy from `adapter.toml` —
   `--force` overrides only the dirty-tree refusal, never the
   per-adapter on-conflict default. The substitution pass (read
   `.adapt-discovery.toml`, replace `<adapt:NAME>` markers across

@@ -14,11 +14,11 @@ Build inside-out, from data to pipeline. First land the **scaffolds and
 schemas** (T1a) — `packages/agentbundle/` package layout, `pyproject.toml`,
 the shared build-pipeline scaffolds (`build/__init__.py`, `build/contract.py`,
 `build/adapters/__init__.py`, `build/validate.py`, and the fixtures-layout
-convention), plus `schema.json` for the adapter contract. Then populate
+convention), plus `adapter.schema.json` for the adapter contract. Then populate
 the **contract data** (T1b) — every (primitive, adapter) pair in
-`contract.toml`, plus the `kiro-agent-frontmatter-v0.9` mapping and the
+`adapter.toml`, plus the `kiro-agent-frontmatter-v0.9` mapping and the
 Copilot `frontmatter-default`. Then land the **sibling schemas** (T1c) —
-`pack-schema.json` and `plugin-manifest-schema.json`. Splitting T1 into
+`pack.schema.json` and `plugin-manifest.schema.json`. Splitting T1 into
 three keeps each commit reviewable and lets T2–T5 enter supervisor mode
 as soon as T1b lands.
 
@@ -101,7 +101,7 @@ with separate commits when the change is non-trivial.
 or `none`. Don't omit the field; "obvious from order" is the failure mode
 that hides serial-by-default thinking. `none` is a valid and common answer.
 
-### T1a: Package scaffolds + adapter-contract `schema.json` + stdlib validator
+### T1a: Package scaffolds + adapter-contract `adapter.schema.json` + stdlib validator
 
 **Depends on:** none
 
@@ -115,7 +115,7 @@ that hides serial-by-default thinking. `none` is a valid and common answer.
   rejects a malformed one covering each of the supported keywords:
   `type` (`object`, `array`, `string`, `integer`, `boolean`), `enum`,
   `required`, `pattern`, and `items` for arrays.
-- A draft `schema.json` (object + enum + required) loads without error;
+- A draft `adapter.schema.json` (object + enum + required) loads without error;
   a mutated copy (unknown `mode` enum member; missing `required` field)
   is rejected by `validate.py`.
 
@@ -131,9 +131,9 @@ that hides serial-by-default thinking. `none` is a valid and common answer.
     scaffold. `main()` configures a top-level parser with `--help`
     and an `argparse` subparser dispatch. **`validate <path>`
     subcommand lands here in T1a** (loads the contract at `<path>`
-    via `tomllib`, validates against `schema.json`, exits 0 on valid
+    via `tomllib`, validates against `adapter.schema.json`, exits 0 on valid
     and 1 on invalid with a one-line stderr message). T1b's
-    Done-when invokes this subcommand against `contract.toml`.
+    Done-when invokes this subcommand against `adapter.toml`.
     Other subcommands (build, recipe dispatch, `--self`, `--check`,
     `--scaffold`) land in T6–T8.
   - `packages/agentbundle/agentbundle/build/contract.py` — the
@@ -152,7 +152,7 @@ that hides serial-by-default thinking. `none` is a valid and common answer.
   - `packages/agentbundle/agentbundle/build/tests/fixtures/README.md`
     — fixture layout convention (one pack per subdirectory under
     `fixtures/packs/`, named for the test it serves).
-- Author `docs/specs/adapter-contract/schema.json` (JSON-Schema-shaped,
+- Author `docs/contracts/adapter.schema.json` (JSON-Schema-shaped,
   validated by `validate.py`) defining `[contract]`, `[primitive.*]`,
   `[adapter.<target>]` with `[[adapter.<target>.projection]]` array,
   `[frontmatter-mapping.*]`, `[frontmatter-default.*]`.
@@ -164,27 +164,27 @@ that hides serial-by-default thinking. `none` is a valid and common answer.
 
 **Done when:** `python -m agentbundle.build --help` exits zero;
 `python -m agentbundle.build validate --help` exits zero (the
-subparser is wired); `validate.py`'s test file passes; `schema.json`
+subparser is wired); `validate.py`'s test file passes; `adapter.schema.json`
 loads under `validate.py` against itself.
 
 ---
 
-### T1b: Populate `contract.toml` with every (primitive × adapter) pair
+### T1b: Populate `adapter.toml` with every (primitive × adapter) pair
 
 **Depends on:** T1a
 
 **Verification mode:** TDD.
 
 **Tests:**
-- Loading `docs/specs/adapter-contract/contract.toml` with `tomllib` and
-  validating against `schema.json` returns no errors (verifies AC 1).
+- Loading `docs/contracts/adapter.toml` with `tomllib` and
+  validating against `adapter.schema.json` returns no errors (verifies AC 1).
 - Every (5 primitives × 4 adapters) = 20 pairs appears in the contract
   as a `[[adapter.<target>.projection]]` table; the test enumerates the
   expected set and asserts no missing pair, no extra.
-- The `mode` enum in `schema.json` contains exactly the seven RFC-0001
+- The `mode` enum in `adapter.schema.json` contains exactly the seven RFC-0001
   modes; a contract entry with any other mode value is rejected
   (verifies AC 2).
-- Every `[[adapter.<t>.projection]]` table in `contract.toml` carries
+- Every `[[adapter.<t>.projection]]` table in `adapter.toml` carries
   an `on-conflict` value drawn from the legal set
   (`prompt-then-preserve`, `prompt-then-overwrite`,
   `preserve-outside-block`, `merge-managed-key-only`,
@@ -204,7 +204,7 @@ loads under `validate.py` against itself.
   inject when missing).
 
 **Approach:**
-- Populate `docs/specs/adapter-contract/contract.toml`:
+- Populate `docs/contracts/adapter.toml`:
   - `[primitive.skill]`, `[primitive.agent]`, `[primitive.hook-body]`,
     `[primitive.hook-wiring]`, `[primitive.command]` — each with its
     `source-path`.
@@ -217,44 +217,44 @@ loads under `validate.py` against itself.
   — the contract-validation test suite.
 
 **Done when:** `python -m agentbundle.build validate
-docs/specs/adapter-contract/contract.toml` exits zero, and every test
+docs/contracts/adapter.toml` exits zero, and every test
 in `test_contract.py` passes.
 
 ---
 
-### T1c: `pack-schema.json` + `plugin-manifest-schema.json`
+### T1c: `pack.schema.json` + `plugin-manifest.schema.json`
 
 **Depends on:** T1a
 
 **Verification mode:** TDD.
 
 **Tests:**
-- `pack-schema.json` accepts an example `pack.toml` modeled on
+- `pack.schema.json` accepts an example `pack.toml` modeled on
   RFC-0001's `governance-extras` recommended-on-core example
   (verifies AC 3).
-- `pack-schema.json` rejects a `pack.toml` missing `[pack]`.
-- `pack-schema.json` rejects a `pack.toml` whose `[pack.adaptation]
+- `pack.schema.json` rejects a `pack.toml` missing `[pack]`.
+- `pack.schema.json` rejects a `pack.toml` whose `[pack.adaptation]
   infer-from` value is a non-string (shape-only check; the semantic
   set of legal values lives in the `adapt-to-project` skill, out of
   scope here).
-- `pack-schema.json` accepts a `pack.toml` *without* a
+- `pack.schema.json` accepts a `pack.toml` *without* a
   `[pack.dependencies.required]` array — the field is optional
   (negative-case companion: missing-optional ≠ malformed).
-- `pack-schema.json` accepts a `pack.toml` whose `[pack.seeds]`
+- `pack.schema.json` accepts a `pack.toml` whose `[pack.seeds]`
   entries are relative-path strings (e.g. `"AGENTS.md"`,
   `"docs/CHARTER.md"`), and rejects one whose `[pack.seeds]` entry
   is an absolute path (e.g. `"/etc/foo"`) or a non-string (e.g. an
   inline table). Verifies the `[pack.seeds]` shape clause of AC 3.
-- `plugin-manifest-schema.json` accepts a minimal hand-authored
+- `plugin-manifest.schema.json` accepts a minimal hand-authored
   `.claude-plugin/plugin.json` (verifies AC 4).
 
 **Approach:**
-- Author `docs/specs/adapter-contract/pack-schema.json` capturing the
+- Author `docs/contracts/pack.schema.json` capturing the
   `[pack]`, `[pack.dependencies]` (with `required`/`recommended`/
   `conflicts` arrays of `{catalogue, pack, version}` objects),
   `[pack.adaptation]` (substitutions + augmentation-points), and
   `[pack.seeds]` tables.
-- Author `docs/specs/adapter-contract/plugin-manifest-schema.json` for
+- Author `docs/contracts/plugin-manifest.schema.json` for
   `.claude-plugin/plugin.json`.
 - Author the new tests in two **new** files —
   `packages/agentbundle/agentbundle/build/tests/test_pack_schema.py` and
@@ -665,7 +665,7 @@ runtime behavior. The first `make build` run produces `dist/` (added
 to `.gitignore` as part of T6); CI starts running `make build --check`
 once RFC-0002's spec wires it in. Reversible: removing
 `packages/agentbundle/agentbundle/build/`,
-`docs/specs/adapter-contract/`, and the `tools/build/build.py` shim
+`docs/contracts/`, and the `tools/build/build.py` shim
 rolls everything back; no adopter has consumed an artifact yet (the
 catalogue isn't published until follow-on work).
 
@@ -746,3 +746,9 @@ catalogue isn't published until follow-on work).
   to `git merge-base HEAD main` so the check survives merges from
   main. Cited AC 4 in T6's first goal test. Updated the Risks section
   to reflect the new scope.
+- 2026-05-22: adapter contract files moved from
+  `docs/specs/adapter-contract/` to `docs/contracts/` with
+  `<name>.schema.json` filenames (`adapter.toml`, `adapter.schema.json`,
+  `pack.schema.json`, `plugin-manifest.schema.json`). Paths and
+  bare-filename references updated; field semantics unchanged. See
+  [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments).
