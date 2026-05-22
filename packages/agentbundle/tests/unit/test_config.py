@@ -152,3 +152,27 @@ COUNT = 3
 def _write(path: Path, content: str) -> Path:
     path.write_text(content, encoding="utf-8")
     return path
+
+
+# ---------------------------------------------------------------------------
+# State-file corruption tests (Concern 3 from quality-engineer review)
+# ---------------------------------------------------------------------------
+
+
+def test_load_state_rejects_non_string_schema_version(tmp_path):
+    p = tmp_path / "state.toml"
+    p.write_text("schema-version = 42\n", encoding="utf-8")
+    with pytest.raises(config.ConfigError, match="schema-version"):
+        config.load_state(p)
+
+
+def test_load_state_rejects_pack_not_a_table(tmp_path):
+    p = tmp_path / "state.toml"
+    p.write_text(
+        'schema-version = "0.1"\n[pack]\nlooks-like-a-table-but-isnt = "nope"\n[pack.x]\ninstalled-version = ""\n',
+        encoding="utf-8",
+    )
+    # The above IS a valid TOML structure; for an actually-broken case:
+    p.write_text('schema-version = "0.1"\n[pack.x]\ninstalled-version = ""\nfiles = "not-a-table"\n', encoding="utf-8")
+    with pytest.raises(config.ConfigError, match="files"):
+        config.load_state(p)

@@ -40,6 +40,17 @@ class PathJailError(ValueError):
     """Raised when a write would land outside the configured root."""
 
 
+class WriteError(OSError):
+    """Raised when an otherwise-jailed write fails due to OS errors —
+    typically `PermissionError` on a read-only filesystem, `OSError` on
+    a full disk, or `NotADirectoryError` when a parent exists as a file.
+
+    Distinct from `PathJailError` so callers can render different one-line
+    stderr messages: jail violations indicate a malicious or buggy pack,
+    write errors indicate environment problems on the adopter side.
+    """
+
+
 # ---------------------------------------------------------------------------
 # Content hashing
 # ---------------------------------------------------------------------------
@@ -168,18 +179,28 @@ def write_jailed(root: Path, relpath: str, content: bytes | str, *, mode: int | 
     """
     target = root / relpath
     assert_under(root, target)
-    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise WriteError(
+            f"cannot create parent directory {target.parent}: {exc}"
+        ) from exc
 
     if isinstance(content, str):
         data = content.encode("utf-8")
     else:
         data = content
 
-    fd, tmp_str = tempfile.mkstemp(
-        prefix=target.name + ".",
-        suffix=".tmp",
-        dir=str(target.parent),
-    )
+    try:
+        fd, tmp_str = tempfile.mkstemp(
+            prefix=target.name + ".",
+            suffix=".tmp",
+            dir=str(target.parent),
+        )
+    except OSError as exc:
+        raise WriteError(
+            f"cannot write under {target.parent}: {exc}"
+        ) from exc
     tmp = Path(tmp_str)
     try:
         with os.fdopen(fd, "wb") as fh:
@@ -187,6 +208,11 @@ def write_jailed(root: Path, relpath: str, content: bytes | str, *, mode: int | 
         if mode is not None:
             os.chmod(tmp, mode)
         os.replace(tmp, target)
+    except OSError as exc:
+        tmp.unlink(missing_ok=True)
+        raise WriteError(
+            f"cannot write {target}: {exc}"
+        ) from exc
     except Exception:
         tmp.unlink(missing_ok=True)
         raise

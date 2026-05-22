@@ -239,7 +239,13 @@ def load_values_from(path: Path) -> dict[str, str]:
     if not path.exists():
         raise ConfigError(f"--values-from path not found: {path}")
     try:
-        raw = tomllib.loads(path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ConfigError(
+            f"--values-from at {path} is not a readable text file: {exc}"
+        ) from exc
+    try:
+        raw = tomllib.loads(text)
     except tomllib.TOMLDecodeError as exc:
         raise ConfigError(
             f"--values-from at {path} is not valid TOML: {exc}"

@@ -12,7 +12,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold validate clean zipapp
+.PHONY: build build-self build-self-dry-run build-check build-scaffold validate clean zipapp release-preflight
 
 build:
 ifeq ($(RECIPE),)
@@ -80,3 +80,6 @@ zipapp:
 		-p '/usr/bin/env python3'
 	@rm -rf $(OUTPUT_DIR)/_zipapp_stage
 	@echo "built $(OUTPUT_DIR)/agentbundle.pyz"
+
+release-preflight:
+	@bash tools/release-check.sh

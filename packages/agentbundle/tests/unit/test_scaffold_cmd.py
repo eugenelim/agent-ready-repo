@@ -143,3 +143,51 @@ def test_up_to_date_seed_is_skipped(tmp_path):
     )
     # Original must still be byte-identical to the seed.
     assert agents_md.read_bytes() == seed_content
+
+
+def test_scaffold_refuses_path_jail_escape(tmp_path, monkeypatch):
+    """A malicious seed relpath that would escape --output must be refused
+    with exit 1 and a one-line stderr — not propagate PathJailError uncaught.
+    (Blocker 2 from quality-engineer review.)
+    """
+    from agentbundle.commands import scaffold
+    from agentbundle import safety
+
+    # Build a fixture pack with an empty seeds/ dir, then monkey-patch the
+    # walk to yield a malicious relpath that resolves outside --output.
+    packs_dir = tmp_path / "packs"
+    pack = packs_dir / "evil"
+    (pack / "seeds").mkdir(parents=True)
+    (pack / "seeds" / "ok.md").write_bytes(b"ok\n")
+
+    output = tmp_path / "out"
+    output.mkdir()
+
+    # Force write_jailed to raise as if a malicious projection rule had
+    # resolved outside the root.
+    def _refuse(root, relpath, content):
+        raise safety.PathJailError("refusing to write outside repo root: /etc")
+    monkeypatch.setattr(safety, "write_jailed", _refuse)
+
+    args = argparse.Namespace(pack="evil", packs_dir=str(packs_dir), output=str(output))
+    rc = scaffold.run(args)
+    assert rc == 1
+
+
+def test_init_state_refuses_path_jail_escape(tmp_path, monkeypatch):
+    """init-state must catch PathJailError and exit 1 with stderr (Blocker 2)."""
+    from agentbundle.commands import init_state
+    from agentbundle import safety
+
+    packs_dir = tmp_path / "packs"
+    pack = packs_dir / "core"
+    (pack).mkdir(parents=True)
+    (pack / "pack.toml").write_text('[pack]\nname = "core"\nversion = "0.1"\n', encoding="utf-8")
+
+    def _refuse(root, relpath, content):
+        raise safety.PathJailError("refusing to write outside repo root: /etc")
+    monkeypatch.setattr(safety, "write_jailed", _refuse)
+
+    args = argparse.Namespace(pack="core", packs_dir=str(packs_dir), root=str(tmp_path))
+    rc = init_state.run(args)
+    assert rc == 1

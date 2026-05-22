@@ -99,7 +99,11 @@ def run(args: argparse.Namespace) -> int:
     existing_state.packs[pack_name] = new_pack_state
 
     serialised = config.dump_state(existing_state)
-    safety.write_jailed(root, ".agent-ready-state.toml", serialised)
+    try:
+        safety.write_jailed(root, ".agent-ready-state.toml", serialised)
+    except safety.PathJailError as exc:
+        print(f"init-state: {exc}", file=sys.stderr)
+        return 1
 
     hashed_count = len(files)
     print(

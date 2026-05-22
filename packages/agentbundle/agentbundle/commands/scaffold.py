@@ -61,17 +61,21 @@ def run(args: argparse.Namespace) -> int:
         content = seed_file.read_bytes()
 
         on_disk = output / relpath
-        if not on_disk.exists():
-            # Absent → Tier-1 fast-path: write the seed.
-            safety.write_jailed(output, relpath, content)
-            print(f"{relpath}: wrote (new)")
-        elif on_disk.read_bytes() == content:
-            # Present, content matches → already in sync, no-op.
-            print(f"{relpath}: up-to-date (skipped)")
-        else:
-            # Present, content differs → Tier-2 fast-path: drop companion.
-            safety.write_companion(output, relpath, content)
-            companion = safety.companion_path(Path(relpath))
-            print(f"{relpath}: kept original, wrote companion {companion.as_posix()}")
+        try:
+            if not on_disk.exists():
+                # Absent → Tier-1 fast-path: write the seed.
+                safety.write_jailed(output, relpath, content)
+                print(f"{relpath}: wrote (new)")
+            elif on_disk.read_bytes() == content:
+                # Present, content matches → already in sync, no-op.
+                print(f"{relpath}: up-to-date (skipped)")
+            else:
+                # Present, content differs → Tier-2 fast-path: drop companion.
+                safety.write_companion(output, relpath, content)
+                companion = safety.companion_path(Path(relpath))
+                print(f"{relpath}: kept original, wrote companion {companion.as_posix()}")
+        except safety.PathJailError as exc:
+            print(f"scaffold: {exc}", file=sys.stderr)
+            return 1
 
     return 0
