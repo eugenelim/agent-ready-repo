@@ -348,12 +348,16 @@ and the Codex multi-pack aggregation fix land.
 - [x] **AC1a (workflow) — Phase 1.** `.github/workflows/build-check.yml` runs
   `make build-check` on PRs targeting `main` and exits 0 when the
   Phase-1 projection is up-to-date. Verified goal-based by T4.
-- [ ] **AC1b (branch protection) — Phase 1, post-merge.** GitHub branch
+- [x] **AC1b (branch protection) — Phase 1, post-merge.** GitHub branch
   protection on `main` lists `make build-check` (the workflow's job
-  name) as a required status check. Verified manually; the recorded
-  artifact is the output of `gh api repos/{owner}/{repo}/branches/main/protection`
-  showing the job under `required_status_checks.contexts` (or an
-  equivalent screenshot). Captured *after* this PR merges.
+  name) as a required status check. Configured 2026-05-22 via
+  `gh api -X PUT repos/eugenelim/agent-ready-repo/branches/main/protection`
+  with `strict: true` (PRs must be up-to-date with main) and
+  `enforce_admins: false` (admins retain a hotfix escape hatch).
+  Artifact at
+  [`notes/ac1b-branch-protection.json`](notes/ac1b-branch-protection.json)
+  — the captured `gh api .../branches/main/protection` output showing
+  `make build-check` under `required_status_checks.contexts`.
 - [x] **AC2 (no-op build) — Phase 1.** `make build-self` on a clean
   checkout of `main` produces no on-disk change. `git status
   --porcelain` emits zero lines. Verified locally on the
