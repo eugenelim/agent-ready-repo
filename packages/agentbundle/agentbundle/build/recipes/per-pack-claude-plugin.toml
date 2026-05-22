@@ -1,0 +1,7 @@
+# RFC-0001 recipe: project each pack as a Claude Code plugin into dist/claude-plugins/<pack>/.
+
+[recipe]
+name = "per-pack-claude-plugin"
+type = "per-pack"
+adapter = "claude-code"
+output-subdir = "claude-plugins"

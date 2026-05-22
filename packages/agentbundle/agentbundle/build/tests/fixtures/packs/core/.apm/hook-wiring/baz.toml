@@ -1,0 +1,2 @@
+[hooks]
+baz = "tools/hooks/baz.sh"
