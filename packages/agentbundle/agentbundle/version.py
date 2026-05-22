@@ -11,6 +11,7 @@ cites.
 from __future__ import annotations
 
 import tomllib
+from importlib.resources import files
 from pathlib import Path
 
 CLI_VERSION = "0.1.0"
@@ -18,28 +19,30 @@ CLI_VERSION = "0.1.0"
 _HERE = Path(__file__).resolve().parent
 
 
-def _bundled_adapter_toml() -> Path:
-    """Locate the canonical adapter.toml.
+def _read_bundled_adapter_toml_text() -> str:
+    """Read the canonical adapter.toml as text.
 
-    Order:
-      1. `agentbundle/_data/adapter.toml` — bundled inside the package (works
-         in `zipapp` and `pip install`).
-      2. `<repo>/docs/contracts/adapter.toml` — dev checkout fallback when
-         the package hasn't been built / copied yet.
-
-    The Makefile's `zipapp` target copies (1) before building.
+    Resolution:
+      1. `agentbundle._data/adapter.toml` via `importlib.resources` —
+         works inside a `zipapp`, a `pip install`, and a dev checkout
+         that has `_data/` populated.
+      2. `<repo>/docs/contracts/adapter.toml` — dev-checkout fallback
+         for the (rare) case where `_data/` is missing in the source
+         tree (mostly during initial scaffolding).
     """
-    bundled = _HERE / "_data" / "adapter.toml"
-    if bundled.exists():
-        return bundled
-    # Dev fallback: walk up to repo root.
-    candidate = _HERE.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
-    return candidate
+    try:
+        resource = files("agentbundle").joinpath("_data/adapter.toml")
+        if resource.is_file():
+            return resource.read_text(encoding="utf-8")
+    except (FileNotFoundError, ModuleNotFoundError):
+        pass
+
+    fallback = _HERE.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
+    return fallback.read_text(encoding="utf-8")
 
 
 def _read_spec_version() -> str:
-    path = _bundled_adapter_toml()
-    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    data = tomllib.loads(_read_bundled_adapter_toml_text())
     return data["contract"]["version"]
 
 
