@@ -1,0 +1,9 @@
+# RFC-0002 recipe: compose a self-host marketplace listing from each
+# pack's .claude-plugin/plugin.json (distinct from the dist/-aggregating
+# `marketplace` recipe).
+
+[recipe]
+name = "composite-marketplace"
+type = "composite"
+manifest-path = ".claude-plugin/plugin.json"
+output-file = ".claude-plugin/marketplace.json"

@@ -1,0 +1,7 @@
+# RFC-0001 recipe: project each pack as an APM package into dist/apm/<pack>/.
+
+[recipe]
+name = "per-pack-apm-package"
+type = "per-pack"
+adapter = "apm"
+output-subdir = "apm"

@@ -1,0 +1,9 @@
+# Negative-path fixture for T6: an unknown adapter target value. The
+# pipeline loads this recipe explicitly and asserts non-zero exit
+# with a stderr message naming the bogus target.
+
+[recipe]
+name = "bogus-target"
+type = "per-pack"
+adapter = "bogus"
+output-subdir = "bogus"
