@@ -5,7 +5,7 @@
 
 PYTHON ?= python3
 PYTHONPATH := packages/agentbundle:$(PYTHONPATH)
-PACKS_DIR ?= packages/agentbundle/agentbundle/build/tests/fixtures/packs
+PACKS_DIR ?= packs
 OUTPUT_DIR ?= dist
 PACK ?=
 RECIPE ?=
@@ -38,9 +38,17 @@ build-self:
 			fi ;; \
 	esac
 ifeq ($(DRY_RUN),1)
+ifeq ($(FORCE),1)
+	$(PYTHON) -m agentbundle.build self --dry-run --force --packs-dir $(PACKS_DIR)
+else
 	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
+endif
+else
+ifeq ($(FORCE),1)
+	$(PYTHON) -m agentbundle.build self --force --packs-dir $(PACKS_DIR)
 else
 	$(PYTHON) -m agentbundle.build self --packs-dir $(PACKS_DIR)
+endif
 endif
 
 build-self-dry-run:

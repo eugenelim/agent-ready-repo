@@ -1,0 +1,28 @@
+name: build-check
+
+# Self-hosting gate (Phase 1): runs `make build-check` against every PR
+# targeting main. Refuses to merge if any Phase-1 *Projected* path on
+# disk drifted from what the build pipeline emits. See
+# docs/specs/self-hosting/spec.md § Phased rollout.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build-check:
+    name: make build-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run make build-check
+        run: make build-check PACKS_DIR=packs
