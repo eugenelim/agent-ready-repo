@@ -6,6 +6,12 @@
 [contract]
 version = "0.1"
 
+# Sibling schemas this contract references — pack metadata and the
+# per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
+[contract.schemas]
+pack = "pack-schema.json"
+plugin-manifest = "plugin-manifest-schema.json"
+
 # ---------------------------------------------------------------------------
 # Primitive types — source paths within a pack's .apm/ directory
 # ---------------------------------------------------------------------------
