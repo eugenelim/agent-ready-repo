@@ -65,10 +65,13 @@ span tasks.
 
 **Integration tests:**
 - **End-to-end `make build`** (verifies Acceptance Criterion 7).
-  Drives the full pipeline against the four reference packs on a clean
-  checkout (with the four reference packs materialised in `packs/`) in a
-  temp dir; asserts the `dist/apm/<pack>/` and `dist/claude-plugins/<pack>/`
-  shapes and a single `marketplace.json`. Lives at
+  Drives the full pipeline against the four reference fixture packs
+  under `packages/agentbundle/agentbundle/build/tests/fixtures/packs/`
+  on a clean checkout in a temp dir; asserts the `dist/apm/<pack>/`
+  and `dist/claude-plugins/<pack>/` shapes and a single
+  `marketplace.json`. Production-pack migration (a top-level `packs/`)
+  is out of scope here per spec AC #7 — RFC-0001's F-dist follow-on
+  ships it. Lives at
   `packages/agentbundle/agentbundle/build/tests/test_end_to_end_build.py`.
   **Authored by T8**; T7 reads it as a regression check but does not author it.
 - **End-to-end `make build --check`** (verifies Acceptance Criterion 10).
@@ -141,7 +144,9 @@ that hides serial-by-default thinking. `none` is a valid and common answer.
   - `packages/agentbundle/agentbundle/build/validate.py` — the
     stdlib JSON-Schema subset validator. **Subset commitment:**
     `type` (object/array/string/integer/boolean), `enum`, `required`,
-    `pattern` (via `re`), `items`. No `$ref`, no `oneOf`/`anyOf`, no
+    `pattern` (via `re`), `items`, plus `properties` and
+    `additionalProperties` for object recursion (load-bearing — every
+    shipped schema relies on them). No `$ref`, no `oneOf`/`anyOf`, no
     format keywords. Documented in this Approach so reviewers know
     not to ask for more. Spec AC #6 names the same subset.
   - `packages/agentbundle/agentbundle/build/tests/fixtures/README.md`
@@ -251,8 +256,13 @@ in `test_contract.py` passes.
   `[pack.seeds]` tables.
 - Author `docs/specs/adapter-contract/plugin-manifest-schema.json` for
   `.claude-plugin/plugin.json`.
-- Extend `test_contract.py` (or add `test_pack_schema.py` /
-  `test_plugin_manifest_schema.py`) for the new tests.
+- Author the new tests in two **new** files —
+  `packages/agentbundle/agentbundle/build/tests/test_pack_schema.py` and
+  `test_plugin_manifest_schema.py`. **Do not extend `test_contract.py`**
+  — that file is owned by T1b; touching it from T1c would create a merge
+  conflict between parallel-dispatched T1b and T1c worktrees (the work-loop
+  treats merge conflicts as "tasks weren't actually independent" and
+  forces re-plan). Two new files keeps the file-owner boundary clean.
 
 **Done when:** all schema-validation tests pass.
 
@@ -407,9 +417,10 @@ rejected).
 - Goal: `python -m agentbundle.build --recipe per-pack-claude-plugin`
   against a single-pack fixture produces a `dist/claude-plugins/<pack>/`
   directory containing the pack's hand-authored
-  `.claude-plugin/plugin.json` (copied unmodified from
-  `packs/<pack>/.claude-plugin/plugin.json`) and the projected `.apm/`
-  content.
+  `.claude-plugin/plugin.json` (copied unmodified from the fixture's
+  `<pack>/.claude-plugin/plugin.json`) and the projected `.apm/`
+  content. Verifies AC 4's "copies unmodified" half (the schema half
+  is verified by T1c).
 - Goal: `python -m agentbundle.build --recipe per-pack-apm-package`
   produces `dist/apm/<pack>/` with a generated `apm.yml` derived from
   `pack.toml`.
@@ -422,7 +433,14 @@ rejected).
   and a stderr message naming both paths (verifies AC 9 — the rule is
   pipeline-level, not per-adapter).
 - Unit: unknown recipe name → non-zero exit + stderr message.
+  Triggered by passing `--recipe bogus-recipe` on the command line
+  (no fixture file needed).
 - Unit: unknown adapter target in a recipe → non-zero exit + stderr.
+  Triggered by a hand-rolled fixture recipe at
+  `packages/agentbundle/agentbundle/build/tests/fixtures/recipes/bogus-target.toml`
+  whose `target = "bogus"` value isn't in the contract's adapter set;
+  the test loads this recipe explicitly. Defensive — protects against
+  future hand-edits of shipped recipes.
 - Goal (RFC-0002 recipe — `per-pack-overlay`): loading
   `per-pack-overlay.toml` against a fixture pack produces an overlay
   description naming the pack's `.apm/` content and `seeds/` list as
@@ -465,7 +483,7 @@ unknown-recipe path exits non-zero.
 
 ---
 
-### T7: `make build --self --dry-run` writes to temp and emits a diff against on-disk
+### T7: `make build --self` writes to working tree; `--dry-run` emits a diff against on-disk
 
 **Depends on:** T6
 
@@ -492,6 +510,15 @@ working tree is the verification artifact).
   mode (e.g. `merge-managed-key-only` for Claude Code's
   `settings.local.json`); `--force` bypasses the dirty-tree refusal
   only — it never overrides the per-adapter on-conflict policy.
+- Goal: `make build --self` against a dirty fixture worktree exits
+  non-zero with stderr naming the refusal; the same command with
+  `--force` proceeds. The test constructs the dirty worktree via
+  `tempfile.TemporaryDirectory()` initialised as `git init`, with the
+  fixture pack copied in, one tracked file `git add`/`git commit`-ed,
+  then modified in place so `git status --porcelain` is non-empty.
+  The build CLI's dirty-tree detection shells out to `git status
+  --porcelain` against the working tree it would project into.
+  Verifies the dirty-tree refusal clause of AC #11.
 
 **Approach:**
 - Add `--self`, `--dry-run`, and `--force` flags to the build CLI
@@ -503,8 +530,14 @@ working tree is the verification artifact).
   drift one line at a time.
 - `--self` is the *one authorised mode* that runs `<adapt:NAME>`
   marker resolution as a final build step (per spec Boundaries §
-  Never do); the resolver itself lives in `adapt-to-project` and
-  consumes `.adapt-discovery.toml`.
+  Never do). **T7 ships the substitution pass itself** — load
+  `.adapt-discovery.toml` via `tomllib`, walk rendered output, and
+  `str.replace('<adapt:NAME>', value)` per key/value pair. T7 does
+  *not* implement the materialisation of `.adapt-discovery.toml`
+  from this repo's concrete values; that lives in `adapt-to-project`
+  (out of scope here). The fixture for the marker-resolution test
+  ships a hand-authored `.adapt-discovery.toml` so T7's consumer
+  path is exercised without the producer.
 - Author `packages/agentbundle/agentbundle/build/tests/test_self_host_check.py`
   — the cross-cutting self-host integration test. T8 imports this
   file as a regression gate; T7 owns it.
@@ -515,7 +548,10 @@ working tree is the verification artifact).
   `self-hosting` defines for its detector.
 
 **Done when:** test cases above pass; `git status` shows no changes
-after `python -m agentbundle.build --self --dry-run`.
+after `python -m agentbundle.build --self --dry-run`. The
+marker-resolution test and the real-write `--self` cases each run in
+a temp checkout that's discarded after assertion, so the working
+tree's `git status` is unaffected.
 
 ---
 
@@ -534,6 +570,14 @@ end-to-end build).
 - Goal: `make build --check` exits zero on the clean tree (verifies
   AC 10) — imports `test_self_host_check.py` (authored by T7) as a
   regression gate.
+- Goal: plain `make build` (no flags, no `PACK=`, no `RECIPE=`)
+  produces only `dist/apm/<pack>/`, `dist/claude-plugins/<pack>/`,
+  and `dist/claude-plugins/marketplace.json`; the working tree is
+  byte-identical before and after (verified by `git status
+  --porcelain` returning the same content). The three self-host
+  recipes (`per-pack-overlay`, `composite-agents-md`,
+  `composite-marketplace`) are *not* invoked. Verifies the new
+  default-recipe AC.
 - `make build PACK=core` limits output to the `core` pack only.
 - `make build RECIPE=per-pack-claude-plugin` runs that recipe across
   all packs.
@@ -548,10 +592,15 @@ end-to-end build).
 - Extend the build CLI arg parser with `--check`, `--scaffold`,
   `PACK=`, `RECIPE=` (Make-style passthrough).
 - Author `packages/agentbundle/agentbundle/build/tests/test_end_to_end_build.py`
-  — drives the full pipeline against
-  `packs/{core,governance-extras,user-guide-diataxis,monorepo-extras}/`.
-  "Clean checkout" for AC 7 means with the four reference packs
-  materialised in `packs/` (in scope here, per CC4 / RFC-0002).
+  — drives the full pipeline against four reference fixture packs at
+  `packages/agentbundle/agentbundle/build/tests/fixtures/packs/{core,governance-extras,user-guide-diataxis,monorepo-extras}/`.
+  These fixtures ship with this spec (one `.apm/skills/<one>/`,
+  one `pack.toml`, and one hand-authored `.claude-plugin/plugin.json`
+  each — minimal but realistic). **Materialisation of production
+  packs in a top-level `packs/` directory is out of scope** per
+  spec AC #7's amended wording (the migration is RFC-0001's F-dist
+  follow-on). The fixtures exercise the contract end-to-end without
+  pulling in the broader pack-migration work.
 
 **Done when:** `make build && make build --check` exits zero on the
 clean tree; mutating a source file makes `make build --check` exit
@@ -569,21 +618,35 @@ floor).
 **Tests:**
 - Goal: a `pre-pr.sh` hook runs the stdlib-import audit against
   `packages/agentbundle/agentbundle/build/` and exits non-zero on any
-  non-stdlib import. The CI workflow runs the same hook. A wrong
-  `import yaml` surfaces in the offending PR — *not* at end-of-stream.
-  (Verifies AC 5.)
+  non-stdlib import. **The stderr message names the offending file
+  and line** (e.g. `agentbundle/build/foo.py:3: non-stdlib import 'yaml'`)
+  so the failure is actionable, matching the analogous "stderr message
+  naming both paths" in AC 9. The CI workflow runs the same hook. A
+  wrong `import yaml` surfaces in the offending PR — *not* at
+  end-of-stream. (Verifies AC 5.)
 - Goal: the no-new-top-level audit runs as part of `pre-pr.sh`:
-  `comm -23 <(git ls-tree --name-only HEAD | sort) <(git ls-tree
-  --name-only main | sort)` returns empty (verifies the
-  no-new-top-level AC). `dist/` is git-ignored and doesn't count.
-  Both inputs are sorted because `comm` requires sorted input.
+  `comm -23 <(git ls-tree -d --name-only HEAD | sort) <(git ls-tree
+  -d --name-only "$(git merge-base HEAD main)" | sort)` returns empty
+  (verifies the no-new-top-level AC). The `-d` flag scopes the audit
+  to directories so new root-level files like `Makefile` don't trip
+  it. The comparison is against the merge-base so the audit stays
+  correct after a merge from main into the feature branch (a plain
+  `main` comparison would silently pass in that case). `dist/` is
+  git-ignored and doesn't count. Both inputs are sorted because
+  `comm` requires sorted input.
 
 **Approach:**
 - Author `tools/lint-build.sh` with two checks: the stdlib-import
   audit (walks every `.py` under
-  `packages/agentbundle/agentbundle/build/`, parses imports, asserts
-  every top-level package is in `sys.stdlib_module_names`) and the
-  top-level-directory audit.
+  `packages/agentbundle/agentbundle/build/` **except**
+  `packages/agentbundle/agentbundle/build/tests/fixtures/` — fixture
+  files are test data and may include realistic hook payloads that
+  import third-party packages; pipeline code is the only thing the
+  stdlib-only rule binds — parses imports, asserts every top-level
+  package is in `sys.stdlib_module_names`) and the top-level-directory
+  audit (uses `git ls-tree -d --name-only` against the merge-base of
+  HEAD and main, per amended AC #12 — `-d` scopes to directories so
+  new root-level files like `Makefile` don't trip the check).
 - Wire `tools/lint-build.sh` into `pre-pr.sh` (an existing hook in
   this repo) so it runs on every PR. Same script runs in CI.
 - Authoring this task at T1a-time (rather than after T6/T7/T8) means
@@ -626,13 +689,14 @@ catalogue isn't published until follow-on work).
   apply it correctly across skill files with varying frontmatter
   shapes. T3's tests cover the documented mapping; surprises in
   real source primitives surface during T8's end-to-end run.
-- **Recipe globbing on `packs/*/`.** If the repo doesn't yet have
-  the four reference packs materialized (separate work — RFC-0001's
-  F-dist follow-on includes the migration), T8's end-to-end test
-  needs fixture packs under
-  `packages/agentbundle/agentbundle/build/tests/fixtures/`.
-  Mitigation: fixtures ship with this spec; production packs land
-  separately and exercise the pipeline incrementally.
+- **Production packs are out of scope.** This spec ships the pipeline
+  and the fixtures it tests against; the migration of this repo's
+  content into a top-level `packs/` directory is RFC-0001's F-dist
+  follow-on. T8's end-to-end test runs against fixture packs at
+  `packages/agentbundle/agentbundle/build/tests/fixtures/packs/`. When
+  the F-dist migration lands, `make build` will pick up `packs/`
+  alongside the fixtures with no pipeline change required (pack
+  discovery is a glob).
 
 ## Changelog
 
@@ -651,3 +715,34 @@ catalogue isn't published until follow-on work).
   empty-pack edge case; added T7 marker-resolution test; ceded
   comparison-rule unit tests to sibling `self-hosting`; fixed
   `comm -23` to sort inputs.
+- 2026-05-22: pre-EXECUTE review pass 2 (2 Blockers, 4 Concerns).
+  Hardened the no-new-top-level audit to `git ls-tree -d` (directories
+  only) so the new root-level `Makefile` doesn't trip the check.
+  Synced AC #12 with T9 (both now name the `-d` + merge-base form).
+  Replaced the lingering `packs/` reference in § Construction tests
+  with the fixture-pack path. Added an AC and a T8 test pinning the
+  default-recipe behaviour (plain `make build` excludes the
+  self-host trio; working tree unchanged after the run). Scoped
+  T9's import audit to exclude `tests/fixtures/` so realistic hook
+  fixtures don't trip the stdlib-only rule against pipeline code.
+  Pinned T7's dirty-tree fixture construction (`tempfile` + `git
+  init`) so the AC #11 refusal test is feasible.
+- 2026-05-22: pre-EXECUTE review pass 1 (3 Blockers, 8 Concerns, 4 Nits).
+  Resolved `packs/` contradiction by amending AC #7 to point at
+  fixture packs and explicitly scoping out the production-pack
+  migration. Pinned the Tier model as schema-only in this spec
+  (lifecycle behaviour lives in sibling `self-hosting` and RFC-0003's
+  CLI). Added § "Projection modes (defined)" so AC #2's enum is
+  defined-by-reference inside this spec. Added § "Default-recipe
+  behaviour" pinning plain `make build` to the three RFC-0001 recipes
+  (RFC-0002 recipes fire only under `--self`). Extended AC #11 to
+  require a dirty-tree refusal test and named T7 as the owner of the
+  `<adapt:NAME>` substitution pass (`.adapt-discovery.toml`
+  materialisation stays with `adapt-to-project`). Renamed T7 to
+  reflect the dual scope (`--self` writes; `--dry-run` diffs).
+  Locked T1c to new test files (no extension of `test_contract.py`,
+  which would conflict with parallel-dispatched T1b). Added T9
+  stderr file:line requirement and pinned the no-new-top-level audit
+  to `git merge-base HEAD main` so the check survives merges from
+  main. Cited AC 4 in T6's first goal test. Updated the Risks section
+  to reflect the new scope.

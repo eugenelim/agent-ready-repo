@@ -1,0 +1,90 @@
+{
+  "type": "object",
+  "required": ["pack"],
+  "properties": {
+    "pack": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string"},
+        "description": {"type": "string"},
+        "dependencies": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["catalogue", "pack", "version"],
+                "properties": {
+                  "catalogue": {"type": "string"},
+                  "pack": {"type": "string"},
+                  "version": {"type": "string"}
+                }
+              }
+            },
+            "recommended": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["catalogue", "pack", "version"],
+                "properties": {
+                  "catalogue": {"type": "string"},
+                  "pack": {"type": "string"},
+                  "version": {"type": "string"}
+                }
+              }
+            },
+            "conflicts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["catalogue", "pack", "version"],
+                "properties": {
+                  "catalogue": {"type": "string"},
+                  "pack": {"type": "string"},
+                  "version": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "adaptation": {
+          "type": "object",
+          "properties": {
+            "infer-from": {"type": "string"},
+            "substitutions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "marker": {"type": "string"},
+                  "infer-from": {"type": "string"}
+                }
+              }
+            },
+            "augmentation-points": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "target": {"type": "string"},
+                  "section-marker": {"type": "string"},
+                  "describe": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "seeds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[^/].*"
+          }
+        }
+      }
+    }
+  }
+}

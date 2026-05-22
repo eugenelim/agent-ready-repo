@@ -1,0 +1,8 @@
+# RFC-0002 recipe: compose a single AGENTS.md from each pack's
+# seeds/AGENTS.fragment.md, concatenated in declared order.
+
+[recipe]
+name = "composite-agents-md"
+type = "composite"
+fragment-path = "seeds/AGENTS.fragment.md"
+output-file = "AGENTS.md"

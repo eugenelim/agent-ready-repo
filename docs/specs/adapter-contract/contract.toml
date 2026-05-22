@@ -1,0 +1,183 @@
+# Adapter contract — every (primitive × adapter) pair enumerated.
+# Validates against ./schema.json.
+# Managed by: docs/specs/distribution-adapters/spec.md
+# RFC reference: RFC-0001
+
+[contract]
+version = "0.1"
+
+# Sibling schemas this contract references — pack metadata and the
+# per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
+[contract.schemas]
+pack = "pack-schema.json"
+plugin-manifest = "plugin-manifest-schema.json"
+
+# ---------------------------------------------------------------------------
+# Primitive types — source paths within a pack's .apm/ directory
+# ---------------------------------------------------------------------------
+
+[primitive.skill]
+source-path = ".apm/skills/"
+
+[primitive.agent]
+source-path = ".apm/agents/"
+
+[primitive."hook-body"]
+source-path = ".apm/hooks/"
+
+[primitive."hook-wiring"]
+source-path = ".apm/hook-wiring/"
+
+[primitive.command]
+source-path = ".apm/commands/"
+
+# ---------------------------------------------------------------------------
+# Claude Code adapter — 5 projections (one per primitive)
+# ---------------------------------------------------------------------------
+
+[[adapter."claude-code".projection]]
+primitive = "skill"
+mode = "direct-directory"
+target-path = ".claude/skills/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter."claude-code".projection]]
+primitive = "agent"
+mode = "direct-file"
+target-path = ".claude/agents/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter."claude-code".projection]]
+primitive = "hook-body"
+mode = "direct-file"
+target-path = "tools/hooks/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter."claude-code".projection]]
+primitive = "hook-wiring"
+mode = "merge-json"
+target-path = ".claude/settings.local.json"
+managed-key = "hooks"
+on-conflict = "merge-managed-key-only"
+
+[[adapter."claude-code".projection]]
+primitive = "command"
+mode = "direct-file"
+target-path = ".claude/commands/"
+on-conflict = "prompt-then-preserve"
+
+# ---------------------------------------------------------------------------
+# Kiro adapter — 5 projections (one per primitive)
+# ---------------------------------------------------------------------------
+
+[[adapter.kiro.projection]]
+primitive = "skill"
+mode = "direct-directory"
+target-path = ".kiro/skills/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.kiro.projection]]
+primitive = "agent"
+mode = "direct-file"
+target-path = ".kiro/agents/"
+frontmatter-mapping = "kiro-agent-frontmatter-v0.9"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.kiro.projection]]
+primitive = "hook-body"
+mode = "direct-file"
+target-path = "tools/hooks/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.kiro.projection]]
+primitive = "hook-wiring"
+mode = "degraded-info-log"
+info-message = "Kiro hook-wiring schema not yet published (RFC-0001 Open Q1); hook wiring not projected."
+
+[[adapter.kiro.projection]]
+primitive = "command"
+mode = "dropped"
+
+# ---------------------------------------------------------------------------
+# Copilot adapter — 5 projections (one per primitive)
+# ---------------------------------------------------------------------------
+
+[[adapter.copilot.projection]]
+primitive = "skill"
+mode = "instruction-file"
+target-path = ".github/instructions/"
+frontmatter-default = "copilot-instruction"
+on-conflict = "prompt-then-overwrite"
+
+[[adapter.copilot.projection]]
+primitive = "agent"
+mode = "dropped"
+
+[[adapter.copilot.projection]]
+primitive = "hook-body"
+mode = "direct-file"
+target-path = "tools/hooks/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.copilot.projection]]
+primitive = "hook-wiring"
+mode = "dropped"
+
+[[adapter.copilot.projection]]
+primitive = "command"
+mode = "dropped"
+
+# ---------------------------------------------------------------------------
+# Codex adapter — 5 projections (one per primitive)
+# ---------------------------------------------------------------------------
+
+[[adapter.codex.projection]]
+primitive = "skill"
+mode = "managed-block-inline"
+target-path = "AGENTS.md"
+managed-block-delimiter-start = "<!-- agent-skills:start -->"
+managed-block-delimiter-end = "<!-- agent-skills:end -->"
+on-conflict = "preserve-outside-block"
+
+[[adapter.codex.projection]]
+primitive = "agent"
+mode = "dropped"
+
+[[adapter.codex.projection]]
+primitive = "hook-body"
+mode = "direct-file"
+target-path = "tools/hooks/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.codex.projection]]
+primitive = "hook-wiring"
+mode = "dropped"
+
+[[adapter.codex.projection]]
+primitive = "command"
+mode = "dropped"
+
+# ---------------------------------------------------------------------------
+# Frontmatter mappings — rewrite rules applied when projecting a primitive
+# ---------------------------------------------------------------------------
+
+# Kiro agent frontmatter v0.9: renames Claude Code agent fields to Kiro's schema.
+# Adapters consume this table generically; no field dictionary hardcoded in Python.
+[frontmatter-mapping."kiro-agent-frontmatter-v0.9"]
+
+[frontmatter-mapping."kiro-agent-frontmatter-v0.9".description]
+rename = "description"
+
+[frontmatter-mapping."kiro-agent-frontmatter-v0.9".tools]
+normalize = "to-list"
+
+[frontmatter-mapping."kiro-agent-frontmatter-v0.9".model]
+rename = "model"
+
+# ---------------------------------------------------------------------------
+# Frontmatter defaults — fields injected when a primitive has no frontmatter
+# ---------------------------------------------------------------------------
+
+# Copilot instruction file default: applyTo covers the whole repo.
+[frontmatter-default."copilot-instruction"]
+applyTo = "**"
