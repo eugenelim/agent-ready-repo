@@ -41,20 +41,34 @@ if TYPE_CHECKING:
 _MARKER_RE = re.compile(r"<adapt:([A-Z_][A-Z0-9_]*)>")
 
 
-def _find_upstream_companions(root: Path) -> list[Path]:
-    """Walk *root* and return every path matching ``*.upstream.*`` or ``*.upstream``."""
+def _find_upstream_companions(root: Path, projected_paths: set[str] | None = None) -> list[Path]:
+    """Return ``.upstream.<ext>`` companions of paths recorded in state.
+
+    When *projected_paths* is provided, only companions that sit next to
+    a path in the install's projection count — this prevents a stray
+    ``vendor/upstream.tar.gz`` or documentation artifact from making
+    ``adapt --ci`` exit non-zero. When *projected_paths* is ``None``
+    (e.g. no state file present), fall back to the tree walk so the
+    command still does something useful.
+    """
+    from agentbundle.safety import companion_path
+
     companions: list[Path] = []
+    if projected_paths is not None:
+        for relpath in sorted(projected_paths):
+            comp = root / companion_path(Path(relpath))
+            if comp.is_file():
+                companions.append(comp)
+        return companions
+
     for p in sorted(root.rglob("*")):
         if not p.is_file():
             continue
         name = p.name
-        # Matches e.g. AGENTS.upstream.md, CHARTER.upstream, foo.upstream.md
         parts = name.split(".")
         if len(parts) >= 2 and "upstream" in parts:
-            # Only count as companion if "upstream" is a stem/suffix component,
-            # not just a substring (we match on split(".") membership).
             idx = parts.index("upstream")
-            if idx > 0:  # must have something before "upstream"
+            if idx > 0:
                 companions.append(p)
     return companions
 
@@ -124,9 +138,18 @@ def run(args: "argparse.Namespace") -> int:
     state_path = root / ".agent-ready-state.toml"
     discovery_path = root / ".adapt-discovery.toml"
 
+    # Load state up-front so both --ci and default modes can scope the
+    # companion walk to projected paths only (Concern 11).
+    try:
+        _state_for_ci = load_state(state_path) if state_path.exists() else None
+    except ConfigError as exc:
+        print(f"adapt: {exc}", file=sys.stderr)
+        return 1
+    _projected_for_ci = _state_for_ci.projected_paths() if _state_for_ci else None
+
     # ── --ci mode ─────────────────────────────────────────────────────────────
     if args.ci:
-        companions = _find_upstream_companions(root)
+        companions = _find_upstream_companions(root, _projected_for_ci)
         if companions:
             print("adapt --ci: pending .upstream.* companions found:", file=sys.stderr)
             for cp in companions:
@@ -193,7 +216,7 @@ def run(args: "argparse.Namespace") -> int:
                     return 1
 
     # ── Build .adapt-pending.md ───────────────────────────────────────────────
-    companions = _find_upstream_companions(root)
+    companions = _find_upstream_companions(root, state.projected_paths())
     report_lines: list[str] = [
         "# Adapt Pending Report",
         "",

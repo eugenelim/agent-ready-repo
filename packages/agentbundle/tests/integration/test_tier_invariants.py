@@ -45,21 +45,34 @@ UPGRADE_CATALOGUE_V1 = (
 # ---------------------------------------------------------------------------
 
 
+# A relpath the upgrade fixture's `core` pack actually projects under both
+# the `apm/` and `claude-plugins/` recipe trees — used to construct a
+# realistic Tier-2 collision.
+_TIER2_PROJECTED_PATH = "apm/core/.apm/agents/reviewer.md"
+
+
 def _build_brownfield(tmp_path: Path) -> dict[str, bytes]:
     """Stage `tmp_path` as a brownfield adopter repo and return the
     pre-existing Tier-2/Tier-3 content for later byte-identity assertions.
 
     Layout:
       <root>/
-        AGENTS.md                 — adopter-edited, will be Tier-2 once
-                                    install lands an opinion on it
-        src/app.py                — Tier-3 (no pack ever projects this)
-        docs/notes.md             — Tier-3 (no pack ever projects this)
+        AGENTS.md                                 — Tier-3 (no projection
+                                                    touches this)
+        src/app.py                                — Tier-3
+        docs/notes.md                             — Tier-3
+        apm/core/.apm/agents/reviewer.md          — Tier-2 (adopter-edited
+                                                    copy of a real projected
+                                                    path; install/upgrade
+                                                    must produce an
+                                                    .upstream.<ext>
+                                                    companion next to it)
     """
     pre = {
         "AGENTS.md": b"# adopter edits -- do not clobber\n",
         "src/app.py": b"print('adopter code')\n",
         "docs/notes.md": b"adopter docs\n",
+        _TIER2_PROJECTED_PATH: b"# adopter-edited reviewer agent\n",
     }
     for relpath, content in pre.items():
         target = tmp_path / relpath
@@ -77,13 +90,8 @@ def _snapshot_tree(root: Path) -> dict[str, bytes]:
 
 
 def _tier3_relpaths(pre: dict[str, bytes]) -> list[str]:
-    """Tier-3 = paths that no pack projection touches.
-
-    Both `src/app.py` and `docs/notes.md` are adopter-only; the upgrade
-    fixture's `core` pack projects under `.claude/` and `tools/hooks/`,
-    never under `src/` or `docs/notes.md`.
-    """
-    return [p for p in pre if p in ("src/app.py", "docs/notes.md")]
+    """Tier-3 = paths that no pack projection touches."""
+    return [p for p in pre if p in ("AGENTS.md", "src/app.py", "docs/notes.md")]
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +124,23 @@ def _run_install(root: Path, pack_dir: Path) -> int:
 
 
 def _run_render(root: Path, pack_dir: Path) -> int:
+    """Run `render` against `root` after installing once.
+
+    Render's Tier-2 awareness triggers only when `--output` already has
+    a `.agent-ready-state.toml` — the "self-host into adopter root" use
+    case. Without that, render's contract is "write the projection
+    wholesale" (the `make build` semantic). Chain install → render so
+    the T15 row exercises the Tier-honouring branch.
+    """
+    from agentbundle.commands.install import run as install_run
     from agentbundle.commands.render import run
+
+    install_args = argparse.Namespace(
+        pack=pack_dir.name,
+        catalogue=str(pack_dir.parent.parent),
+        output=str(root),
+    )
+    install_run(install_args)
 
     args = argparse.Namespace(
         pack_path=str(pack_dir),
@@ -226,12 +250,24 @@ def test_tier_invariants_per_subcommand(tmp_path: Path, name: str, runner: Subco
 
     runner(tmp_path, pack_dir)
 
-    # Tier-2: AGENTS.md original unchanged (if a companion is dropped,
-    # the original *must* be byte-identical).
-    if (tmp_path / "AGENTS.md").exists():
-        assert (tmp_path / "AGENTS.md").read_bytes() == pre["AGENTS.md"], (
-            f"{name}: clobbered Tier-2 file AGENTS.md"
+    # Tier-2: the projected path's adopter-edited original is byte-identical;
+    # AND for commands that actually project this path, a `.upstream.<ext>`
+    # companion exists next to it. Subcommands that don't write any
+    # projection (init-state, uninstall on an empty install) are exempt
+    # from the companion-exists clause but still must preserve the original.
+    tier2_path = tmp_path / _TIER2_PROJECTED_PATH
+    assert tier2_path.exists(), f"{name}: lost Tier-2 file {_TIER2_PROJECTED_PATH}"
+    assert tier2_path.read_bytes() == pre[_TIER2_PROJECTED_PATH], (
+        f"{name}: clobbered Tier-2 file {_TIER2_PROJECTED_PATH}"
+    )
+    if name in ("install", "render", "upgrade"):
+        from agentbundle.safety import companion_path as _comp
+
+        comp = tmp_path / _comp(Path(_TIER2_PROJECTED_PATH))
+        assert comp.exists(), (
+            f"{name}: Tier-2 collision did not produce companion {comp.name}"
         )
+
     # Tier-3: adopter-only files untouched.
     for relpath in _tier3_relpaths(pre):
         target = tmp_path / relpath

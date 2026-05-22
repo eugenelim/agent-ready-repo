@@ -22,6 +22,8 @@ import sys
 from pathlib import Path
 
 from agentbundle import render, safety
+from agentbundle.commands._common import check_spec_version_gate
+from agentbundle.config import ConfigError, load_pack_toml
 
 
 def run(args: argparse.Namespace) -> int:
@@ -35,6 +37,14 @@ def run(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
+
+    try:
+        gate = check_spec_version_gate(load_pack_toml(pack_path / "pack.toml"))
+    except ConfigError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if gate is not None:
+        return gate
 
     try:
         rendered: dict[str, bytes] = render.render_pack(pack_path)

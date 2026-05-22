@@ -51,6 +51,8 @@ def run(args: "argparse.Namespace") -> int:
         return 0
 
     # ── Parse each pack.toml ──────────────────────────────────────────────────
+    from agentbundle.commands._common import check_spec_version_gate
+
     rows: list[dict] = []
     for pack_dir in pack_dirs:
         try:
@@ -58,6 +60,10 @@ def run(args: "argparse.Namespace") -> int:
         except ConfigError as exc:
             print(f"list-packs: skipping {pack_dir.name}: {exc}", file=sys.stderr)
             continue
+        # Spec-version gate per pack; refuse cataloguing an incompatible
+        # pack with a uniform message rather than silently listing it.
+        if check_spec_version_gate(toml) is not None:
+            return 1
         rows.append(_extract_row(toml))
 
     # Sort deterministically by pack name so output is stable across runs.

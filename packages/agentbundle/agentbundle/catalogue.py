@@ -25,7 +25,9 @@ No subprocess calls anywhere in this module.
 
 from __future__ import annotations
 
+import atexit
 import re
+import shutil
 import tarfile
 import tempfile
 import urllib.error
@@ -54,10 +56,9 @@ def resolve_catalogue(uri: str) -> Path:
     """Resolve *uri* to a local directory rooted at the catalogue.
 
     Returns a ``Path`` to the local directory. For ``git+https://`` URIs
-    the path is inside a freshly-created tempdir (the caller should not
-    delete it while the install is in progress; Python's ``atexit``
-    cleans it up at process exit if the caller uses
-    ``tempfile.TemporaryDirectory``).
+    the path lives inside a per-call tempdir registered with ``atexit``
+    so it's removed at process exit — see ``_resolve_https``. Callers
+    must not assume the directory survives past process termination.
     """
     if uri.startswith(_SSH_PREFIX):
         raise CatalogueError(
@@ -84,6 +85,9 @@ def _resolve_https(uri: str) -> Path:
 
     tarball_url = _github_archive_url(owner, repo, ref)
     tmpdir = Path(tempfile.mkdtemp(prefix="agentbundle-catalogue-"))
+    # Best-effort cleanup at process exit — atexit handlers run on normal
+    # interpreter shutdown; for crash paths the OS reaps /tmp eventually.
+    atexit.register(shutil.rmtree, str(tmpdir), True)
     _fetch_and_extract(tarball_url, tmpdir)
     # The GitHub archive extracts to <repo>-<ref>/ (with '/' → '-' in SHAs).
     inner = _find_inner_dir(tmpdir)

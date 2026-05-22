@@ -25,6 +25,7 @@ import sys
 from pathlib import Path
 
 from agentbundle import config, render, safety
+from agentbundle.commands._common import check_spec_version_gate
 
 
 def run(args: argparse.Namespace) -> int:
@@ -43,15 +44,26 @@ def run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    # Read the pack version from pack.toml (best-effort; empty string if absent).
+    # Read the pack version from pack.toml; refuse if absent (state file with
+    # empty version cascades into useless install/uninstall comparisons).
     pack_toml_path = pack_path / "pack.toml"
     try:
         pack_meta = config.load_pack_toml(pack_toml_path)
-        pack_version: str = (
-            pack_meta.get("pack", {}).get("version", "") or ""
-        )
     except config.ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    gate = check_spec_version_gate(pack_meta)
+    if gate is not None:
+        return gate
+
+    pack_version = pack_meta.get("pack", {}).get("version")
+    if not pack_version:
+        print(
+            f"error: pack {pack_name!r} has no [pack] version; "
+            f"refusing to init-state without a known version anchor",
+            file=sys.stderr,
+        )
         return 1
 
     # Render in-memory to get the relpath set.

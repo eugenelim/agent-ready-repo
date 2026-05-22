@@ -23,8 +23,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-from agentbundle.version import SPEC_VERSION
-from agentbundle.commands._common import check_spec_version
+from agentbundle.commands._common import check_spec_version_gate
 
 # Stdlib only — no third-party deps.
 
@@ -88,8 +87,9 @@ def run(args) -> int:
         return 1
 
     # ── 2. Spec-version gate ──────────────────────────────────────────────
-    if not check_spec_version(pack_data, SPEC_VERSION):
-        return 1
+    gate = check_spec_version_gate(pack_data)
+    if gate is not None:
+        return gate
 
     # ── 3. Schema validation ──────────────────────────────────────────────
     schema_path = _schema_path()

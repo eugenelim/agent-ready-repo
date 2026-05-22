@@ -8,6 +8,7 @@ allowed here — see spec § Never do.
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from typing import Any
 
 from agentbundle.version import SPEC_VERSION
@@ -23,7 +24,10 @@ def check_spec_version_gate(pack_toml: dict[str, Any]) -> int | None:
 
     The pack declares its version under `[pack.adapter-contract] version`;
     the CLI's version comes from `agentbundle.version.SPEC_VERSION` (read
-    at import time from the bundled `adapter.toml`).
+    at import time from the bundled `adapter.toml`). AC #14 in the spec
+    requires every subcommand that consumes a pack manifest to invoke
+    this gate before any I/O the pack would drive — uniform refusal, no
+    partial behaviour.
     """
     from agentbundle.config import pack_spec_version  # local import avoids circular
 
@@ -44,32 +48,18 @@ def check_spec_version_gate(pack_toml: dict[str, Any]) -> int | None:
     return None
 
 
-def check_spec_version(pack_toml: dict[str, Any], cli_spec_version: str) -> bool:
-    """Legacy bool-shaped helper kept for one caller (validate.py).
+def load_pack_and_gate(pack_path: Path) -> tuple[dict[str, Any], int] | tuple[dict[str, Any], None]:
+    """Load a pack's `pack.toml` and apply the spec-version gate.
 
-    New callers should prefer `check_spec_version_gate` which returns the
-    exit-code shape uniformly.
+    Returns `(pack_toml, None)` on accept and `(pack_toml, 1)` on refusal.
+    The pack_toml is returned in both cases so the caller can introspect
+    even on refusal — useful for `validate` which reports schema errors
+    and version errors together.
     """
-    pack_table = pack_toml.get("pack", {})
-    contract_table = pack_table.get("adapter-contract", {})
-    if not isinstance(contract_table, dict):
-        return True
-    pack_version = contract_table.get("version")
-    if pack_version is None:
-        return True
+    from agentbundle.config import load_pack_toml
 
-    pack_major = _major(str(pack_version))
-    cli_major = _major(cli_spec_version)
-
-    if pack_major != cli_major:
-        print(
-            f"validate: pack adapter-contract version {pack_version!r} is "
-            f"incompatible with CLI spec version {cli_spec_version!r} "
-            f"(major: {pack_major} vs {cli_major})",
-            file=sys.stderr,
-        )
-        return False
-    return True
+    pack_toml = load_pack_toml(pack_path / "pack.toml")
+    return pack_toml, check_spec_version_gate(pack_toml)
 
 
 def _major(version: str) -> str:

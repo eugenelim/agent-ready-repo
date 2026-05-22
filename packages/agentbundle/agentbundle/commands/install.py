@@ -99,12 +99,18 @@ def run(args: "argparse.Namespace") -> int:
     # Build a fresh PackState for the pack being installed; we populate
     # ``files`` as we walk the projection.
     pack_version: str = pack_toml.get("pack", {}).get("version", "0.0.0")
+    # Carry forward per-primitive mixed-version overrides from a prior
+    # install/upgrade so a re-install doesn't silently drop the warning
+    # that a subsequent whole-pack upgrade should surface (AC #10's
+    # second clause).
+    prior = state.packs.get(pack_name)
     new_pack_state = PackState(
         installed_version=pack_version,
         source="agent-ready-repo",
         install_route="cli",
         primitives=_collect_primitives(pack_dir),
         files={},
+        primitive_versions=dict(prior.primitive_versions) if prior else {},
     )
 
     # ── Step 5 (walk) ─────────────────────────────────────────────────────────

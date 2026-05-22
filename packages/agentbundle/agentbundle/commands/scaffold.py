@@ -19,7 +19,8 @@ import sys
 from pathlib import Path
 
 from agentbundle import safety
-from agentbundle.config import State, load_state
+from agentbundle.commands._common import check_spec_version_gate
+from agentbundle.config import ConfigError, State, load_pack_toml, load_state
 
 
 def run(args: argparse.Namespace) -> int:
@@ -33,6 +34,16 @@ def run(args: argparse.Namespace) -> int:
 
     pack_dir = packs_dir / pack_name
     seeds_dir = pack_dir / "seeds"
+
+    pack_toml_path = pack_dir / "pack.toml"
+    if pack_toml_path.exists():
+        try:
+            gate = check_spec_version_gate(load_pack_toml(pack_toml_path))
+        except ConfigError as exc:
+            print(f"scaffold: {exc}", file=sys.stderr)
+            return 1
+        if gate is not None:
+            return gate
 
     if not seeds_dir.is_dir():
         print(f"no seeds/ in pack {pack_name}", file=sys.stderr)

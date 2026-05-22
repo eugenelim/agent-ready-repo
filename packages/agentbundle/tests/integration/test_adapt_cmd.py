@@ -120,14 +120,22 @@ def test_marker_substitution_sha_matches_substituted_form(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_adapt_pending_md_lists_companions(tmp_path):
-    """Two .upstream.md companions should both appear in .adapt-pending.md."""
-    _setup_projected(tmp_path, {"AGENTS.md": "# AGENTS\n"})
+    """Two .upstream.md companions should both appear in .adapt-pending.md.
+
+    Both AGENTS.md and docs/CHARTER.md must be recorded as projected paths
+    in the state file — `adapt`'s companion walk is scoped to in-state
+    paths to avoid spurious matches against unrelated `*.upstream.*`
+    files (Concern 11 from the adversarial review).
+    """
+    _setup_projected(
+        tmp_path,
+        {"AGENTS.md": "# AGENTS\n", "docs/CHARTER.md": "# CHARTER\n"},
+    )
 
     # Place two .upstream companions.
     (tmp_path / "AGENTS.upstream.md").write_text(
         "# AGENTS UPSTREAM\nExtra line.\n", encoding="utf-8"
     )
-    (tmp_path / "docs").mkdir(exist_ok=True)
     (tmp_path / "docs" / "CHARTER.upstream.md").write_text(
         "# CHARTER UPSTREAM\n", encoding="utf-8"
     )

@@ -173,32 +173,29 @@ def test_version_mismatch_exits_1_naming_both_versions(capsys):
 
 
 def test_version_mismatch_uses_common_helper():
-    """_common.check_spec_version returns False on major mismatch."""
-    from agentbundle.commands._common import check_spec_version
+    """`check_spec_version_gate` returns 1 on major mismatch."""
+    from agentbundle.commands._common import check_spec_version_gate
     import io
 
     pack_data = {"pack": {"name": "x", "version": "0.1", "adapter-contract": {"version": "99.0"}}}
     captured = io.StringIO()
     with mock.patch("sys.stderr", captured):
-        result = check_spec_version(pack_data, "0.1")
-    assert result is False
+        result = check_spec_version_gate(pack_data)
+    assert result == 1
     assert "99" in captured.getvalue()
-    assert "0.1" in captured.getvalue()
 
 
 def test_version_match_passes_common_helper():
-    """_common.check_spec_version returns True when major versions match."""
-    from agentbundle.commands._common import check_spec_version
+    """`check_spec_version_gate` returns None when major versions match."""
+    from agentbundle.commands._common import check_spec_version_gate
 
     pack_data = {"pack": {"name": "x", "version": "0.1", "adapter-contract": {"version": "0.9"}}}
-    result = check_spec_version(pack_data, "0.1")
-    assert result is True
+    assert check_spec_version_gate(pack_data) is None
 
 
 def test_no_adapter_contract_version_passes():
     """A pack without [pack.adapter-contract] version is accepted (gate is opt-in)."""
-    from agentbundle.commands._common import check_spec_version
+    from agentbundle.commands._common import check_spec_version_gate
 
     pack_data = {"pack": {"name": "x", "version": "0.1"}}
-    result = check_spec_version(pack_data, "0.1")
-    assert result is True
+    assert check_spec_version_gate(pack_data) is None

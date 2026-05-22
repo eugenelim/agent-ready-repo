@@ -18,6 +18,8 @@ from pathlib import Path
 
 from agentbundle import render as _render
 from agentbundle.build.main import DEFAULT_RECIPES, load_recipe
+from agentbundle.commands._common import check_spec_version_gate
+from agentbundle.config import ConfigError, load_pack_toml
 from agentbundle.safety import PathJailError, write_jailed
 
 
@@ -33,6 +35,15 @@ def run(args) -> int:
             file=sys.stderr,
         )
         return 1
+
+    # Spec-version gate (AC #14 — uniform refusal across subcommands).
+    try:
+        gate = check_spec_version_gate(load_pack_toml(pack_path / "pack.toml"))
+    except ConfigError as exc:
+        print(f"render: {exc}", file=sys.stderr)
+        return 1
+    if gate is not None:
+        return gate
 
     # Determine recipe set
     recipes = _select_recipes(getattr(args, "target", None))
@@ -58,9 +69,38 @@ def run(args) -> int:
         print(f"render: schema error: {exc}", file=sys.stderr)
         return 1
 
+    # Tier-2 awareness: when --output already contains a state file, treat
+    # it as an adopter root in self-host mode. Otherwise write wholesale
+    # (the fresh `dist/` use case `make build` matches).
+    state_path = output_dir / ".agent-ready-state.toml"
+    self_host_mode = state_path.exists()
+    state = None
+    if self_host_mode:
+        from agentbundle.config import load_state
+        from agentbundle import safety as _safety
+
+        try:
+            state = load_state(state_path)
+        except ConfigError as exc:
+            print(f"render: {exc}", file=sys.stderr)
+            return 1
+
     # Write each file via write_jailed (path-jail is non-optional)
     output_dir.mkdir(parents=True, exist_ok=True)
     for relpath, content in sorted(file_tree.items()):
+        target = output_dir / relpath
+        if self_host_mode and target.exists():
+            from agentbundle import safety as _safety
+
+            if _safety.sha256_file(target) != _safety.sha256_bytes(content):
+                # Adopter-edited Tier-2; drop companion, leave original.
+                try:
+                    _safety.write_companion(output_dir, relpath, content)
+                except PathJailError as exc:
+                    print(f"render: {exc}", file=sys.stderr)
+                    return 1
+                print(f"{relpath} (companion)")
+                continue
         try:
             write_jailed(output_dir, relpath, content)
         except PathJailError as exc:

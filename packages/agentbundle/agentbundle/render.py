@@ -30,11 +30,12 @@ from pathlib import Path
 from typing import Sequence
 
 from agentbundle.build import adapters as _adapters
-from agentbundle.build.contract import load as _load_contract
+import tomllib
+
 from agentbundle.build.main import (
-    CONTRACT_PATH,
     DEFAULT_RECIPES,
     Pack,
+    _read_bundled,
     discover_packs,
     load_recipe,
     run_recipe,
@@ -48,7 +49,7 @@ def list_adapters() -> Sequence[str]:
 
 
 def _resolve_contract(contract: dict | None) -> dict:
-    return contract if contract is not None else _load_contract(CONTRACT_PATH)
+    return contract if contract is not None else tomllib.loads(_read_bundled("adapter.toml"))
 
 
 def _pack_from_path(pack_path: Path) -> Pack:

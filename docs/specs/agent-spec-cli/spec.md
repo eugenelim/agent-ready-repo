@@ -246,10 +246,16 @@ QA tails respectively.
       moves only the named primitive; `.agent-ready-state.toml` records the
       resulting mixed-version pack state and subsequent whole-pack upgrades
       surface the mixed state before proceeding. The same flag shape works
-      for `--agent`, `--hook`, `--seed`, and `--command` (five primitive
-      types). Naming a non-existent primitive (`--skill foo` where `foo`
-      isn't in the pack) exits non-zero with one-line stderr "primitive
-      'foo' not in pack <pack>".
+      for `--agent`, `--hook`, `--seed`, and `--command`. **Flag-to-primitive
+      mapping:** `--skill` → `skill`, `--agent` → `agent`, `--command` →
+      `command`, `--seed` → `seeds/` content (not a primitive type per the
+      sibling spec, but a movable unit), and `--hook <name>` is atomic over
+      the matching `hook-body` (`.apm/hooks/<name>.{sh,py}`) **and** the
+      matching `hook-wiring` (`.apm/hook-wiring/<name>.toml`) of the same
+      name — wiring co-moves with its body so a per-hook upgrade can never
+      land a torn pair. Naming a non-existent primitive (`--skill foo`
+      where `foo` isn't in the pack) exits non-zero with one-line stderr
+      "primitive 'foo' not in pack <pack>".
 - [ ] `agentbundle validate packs/core` exits 0 on schema-valid v0.1
       fixtures and exits 1 with a one-line reason on a schema-invalid
       fixture. `agentbundle validate --strict packs/core` additionally runs
