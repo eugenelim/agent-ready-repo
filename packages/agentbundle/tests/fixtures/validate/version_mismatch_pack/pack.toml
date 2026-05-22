@@ -1,0 +1,7 @@
+[pack]
+name = "version-mismatch-fixture"
+version = "0.1.0"
+description = "Pack fixture that declares a mismatched adapter-contract version."
+
+[pack.adapter-contract]
+version = "99.0"
