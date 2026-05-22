@@ -132,7 +132,11 @@ def _fetch_and_extract(url: str, dest: Path) -> None:
     try:
         with urllib.request.urlopen(url) as resp:  # noqa: S310 — url is assembled from parsed owner/repo/ref
             with tarfile.open(fileobj=resp, mode="r|gz") as tf:
-                tf.extractall(path=dest)  # noqa: S202 — extraction into a controlled tmpdir
+                # filter="data" rejects unsafe members (absolute paths, ..
+                # links, devices, setuid bits) — Python 3.12+ default but
+                # explicit for 3.11 compatibility and to silence the 3.14
+                # DeprecationWarning. Path-jail is belt; this is braces.
+                tf.extractall(path=dest, filter="data")  # noqa: S202
     except urllib.error.URLError as exc:
         raise CatalogueError(
             f"Failed to fetch catalogue archive: {url} — {exc.reason}"
