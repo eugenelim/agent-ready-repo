@@ -1,0 +1,14 @@
+# Adoption-time concrete values for `<adapt:NAME>` markers in installed
+# packs' seeds. Consumed by `make build-self` only — every other build
+# mode copies markers through unchanged (spec § Boundaries — Never do).
+#
+# This repo is its own first adopter (RFC-0002 § Self-hosting). The
+# values below are this repo's concretes; an adopter's values live in
+# their own `.adapt-discovery.toml` at their repo root, materialized by
+# the `adapt-to-project` skill (stub today; full skill in a follow-on).
+
+[adapt]
+project-name = "agent-ready-repo"
+repo-url = "https://github.com/eugenelim/agent-ready-repo"
+owner = "eugenelim"
+default-branch = "main"

@@ -1,16 +1,18 @@
-"""Self-host build mode — `make build --self` and `make build --check`.
+"""Self-host build mode — `make build-self` and `make build-check`.
 
-Real-write (`--self` without `--dry-run`) projects adapters **directly
-into the working tree**, so the adapters' merge / splice logic operates
-against the working tree's existing content — that's what makes
-`merge-managed-key-only` (Claude Code) and `preserve-outside-block`
-(Codex) correct against the adopter's actual files.
+Real-write (`make build-self`, no `DRY_RUN=1`) projects adapters
+**directly into the working tree**, so the adapters' merge / splice
+logic operates against the working tree's existing content — that's
+what makes `merge-managed-key-only` (Claude Code) and
+`preserve-outside-block` (Codex) correct against the adopter's actual
+files.
 
-Dry-run (`--self --dry-run`, and `--check`) clones the adapter target
-subtree (`.claude/`, `tools/hooks/`, `.github/`, `AGENTS.md`) into a
-fresh temp dir first, projects into the clone, then diffs the clone
-against the working tree. The clone-then-project pattern keeps the
-existing-content merge semantics intact under dry-run too.
+Dry-run (`make build-self DRY_RUN=1`, and `make build-check`) clones
+the adapter target subtree (`.claude/`, `tools/hooks/`, `.github/`,
+`AGENTS.md`) into a fresh temp dir first, projects into the clone,
+then diffs the clone against the working tree. The clone-then-project
+pattern keeps the existing-content merge semantics intact under
+dry-run too.
 
 Marker resolution (`<adapt:NAME>` → discovery value) is the ONE place
 install-time substitution happens — every other build mode copies
@@ -18,6 +20,12 @@ markers through unchanged (spec § Boundaries — Never do). The
 `.adapt-discovery.toml` *materialisation* lives in the
 `adapt-to-project` skill, out of scope here. T7 ships only the
 consumer.
+
+Phase-1 self-host scope (see docs/specs/self-hosting/spec.md
+§ Phased rollout): the `SELF_HOST_ADAPTERS` allow-list below restricts
+the runner to the `claude-code` adapter. Phase 2 widens it to
+include `codex` once the multi-pack managed-block aggregation gap
+closes.
 """
 
 from __future__ import annotations
@@ -48,6 +56,13 @@ TARGET_PATHS = (
     Path(".github") / "instructions",
     Path("AGENTS.md"),
 )
+
+# Phase-1 self-host allow-list (see self-hosting spec § Phased rollout).
+# Only the Claude Code adapter's five direct projections fire under
+# `make build-self`. The Codex / Kiro / Copilot adapters remain in the
+# contract for distribution builds but are excluded from the self-host
+# runner until Phase 2 closes the multi-pack composition gaps.
+SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code",)
 
 
 def is_dirty_tree(working_tree: Path) -> bool:
@@ -137,12 +152,21 @@ def _project_all_adapters(
     packs_dir: Path,
     contract: dict,
 ) -> None:
-    """Run every contract-declared adapter against every discovered pack."""
+    """Run the self-host allow-listed adapters against every discovered pack.
+
+    Phase-1 scope (see spec § Phased rollout): the allow-list contains
+    only `claude-code`. The other contract-declared adapters
+    (`kiro`, `copilot`, `codex`) stay in the contract for distribution
+    builds but are skipped here. Phase 2 widens the allow-list once the
+    Codex multi-pack managed-block aggregation gap is closed.
+    """
     packs = discover_packs(packs_dir)
     for pack in packs:
         validate_pack_uniqueness(pack)
     for adapter_name, project in ADAPTERS.items():
         if adapter_name not in contract["adapter"]:
+            continue
+        if adapter_name not in SELF_HOST_ADAPTERS:
             continue
         for pack in packs:
             project(pack.path, contract, output_root)
