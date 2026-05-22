@@ -91,16 +91,41 @@ merge_base="$(git merge-base HEAD main 2>/dev/null)" || {
   exit "$import_violations"
 }
 
+# Top-level directories explicitly authorised by an Accepted RFC. The
+# audit treats these as pre-existing for comparison purposes so the
+# self-host migration (RFC-0002) doesn't trip on `packs/`. Add entries
+# only when an Accepted RFC authorises the new directory.
+RFC_AUTHORISED_DIRS=(
+  "packs"   # RFC-0002 — self-hosting source-of-truth split
+)
+
 new_dirs="$(comm -23 \
   <(git ls-tree -d --name-only HEAD | sort) \
   <(git ls-tree -d --name-only "$merge_base" | sort))"
 
 if [[ -n "$new_dirs" ]]; then
-  echo "lint-build: new top-level directories introduced (RFC required):" >&2
+  unauthorised=""
   while IFS= read -r dir; do
-    echo "  $dir" >&2
+    [[ -z "$dir" ]] && continue
+    authorised=0
+    for allowed in "${RFC_AUTHORISED_DIRS[@]}"; do
+      if [[ "$dir" == "$allowed" ]]; then
+        authorised=1
+        break
+      fi
+    done
+    if (( authorised == 0 )); then
+      unauthorised+="${dir}"$'\n'
+    fi
   done <<< "$new_dirs"
-  exit 1
+  if [[ -n "$unauthorised" ]]; then
+    echo "lint-build: new top-level directories introduced (RFC required):" >&2
+    while IFS= read -r dir; do
+      [[ -z "$dir" ]] && continue
+      echo "  $dir" >&2
+    done <<< "$unauthorised"
+    exit 1
+  fi
 fi
 
 echo "lint-build: no-new-top-level-directory audit passed"
