@@ -43,6 +43,16 @@ def _seed_pack(root: Path, name: str = "core") -> Path:
     return pack
 
 
+def _seed_discovery(tree: Path) -> Path:
+    """Drop a minimal `.adapt-discovery.toml` into a test working tree so
+    `run_self_host`'s fail-fast (spec AC14) doesn't reject the call.
+    Empty `[adapt]` section is the no-marker case the live repo also uses.
+    """
+    path = tree / ".adapt-discovery.toml"
+    path.write_text("[adapt]\n", encoding="utf-8")
+    return path
+
+
 def _git_init(path: Path) -> None:
     env = os.environ.copy()
     env["GIT_AUTHOR_NAME"] = "test"
@@ -77,13 +87,18 @@ class DryRunCleanTreeTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
 
-            # First project so the working tree matches the rendered output.
-            from agentbundle.build.adapters import ADAPTERS
-            for adapter_name, project in ADAPTERS.items():
-                if adapter_name not in self.contract["adapter"]:
-                    continue
-                project(packs_dir / "core", self.contract, working_tree)
+            # Pre-seed via real-write self-host so the working tree
+            # exactly matches what a subsequent dry-run will produce
+            # (including the new seed/marketplace/symlink outputs).
+            run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
             _git_commit_all(working_tree, "seed")
 
             exit_code = run_self_host(
@@ -107,12 +122,15 @@ class DryRunCleanTreeTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
 
-            from agentbundle.build.adapters import ADAPTERS
-            for adapter_name, project in ADAPTERS.items():
-                if adapter_name not in self.contract["adapter"]:
-                    continue
-                project(packs_dir / "core", self.contract, working_tree)
+            run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
             _git_commit_all(working_tree, "seed")
 
             target = working_tree / ".claude" / "skills" / "foo" / "SKILL.md"
@@ -148,6 +166,7 @@ class DirtyTreeRefusalTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8")
             _git_commit_all(working_tree, "seed")
             (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8")
@@ -171,6 +190,7 @@ class DirtyTreeRefusalTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8")
             _git_commit_all(working_tree, "seed")
             (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8")
@@ -204,6 +224,7 @@ class MarkerResolutionTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             (working_tree / ".adapt-discovery.toml").write_text(
                 '[adapt]\nproject-name = "demo"\n',
                 encoding="utf-8",
@@ -264,6 +285,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             settings_path = working_tree / ".claude" / "settings.local.json"
             settings_path.parent.mkdir(parents=True)
             settings_path.write_text(
@@ -303,6 +325,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             agents_md = working_tree / "AGENTS.md"
             preamble = "# Custom AGENTS.md\n\nDo not lose me.\n"
             agents_md.write_text(preamble, encoding="utf-8")
@@ -353,6 +376,7 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             (working_tree / ".keep").write_text("", encoding="utf-8")
             _git_commit_all(working_tree, "init")
 
@@ -393,6 +417,7 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             (working_tree / ".keep").write_text("", encoding="utf-8")
             _git_commit_all(working_tree, "init")
 
@@ -422,6 +447,400 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             self.assertEqual(sentinel.call_count, 1)
 
 
+class ExcludedGlobTests(unittest.TestCase):
+    """Pin the glob corner cases that the second adversarial sweep caught:
+    `**` must match arbitrary depth (not literal-prefix-startswith), and
+    bare root-only patterns must anchor to the repo root."""
+
+    def test_double_star_matches_arbitrary_depth(self) -> None:
+        from agentbundle.build.self_host import _is_excluded
+
+        # docs/specs/*/notes/** should match a nested notes file
+        self.assertTrue(
+            _is_excluded(Path("docs/specs/self-hosting/notes/foo.md"))
+        )
+        self.assertTrue(
+            _is_excluded(Path("docs/specs/feature/notes/sub/dir/bar.md"))
+        )
+
+    def test_root_only_patterns_do_not_match_nested(self) -> None:
+        from agentbundle.build.self_host import _is_excluded
+
+        # README.md is root-only; nested README.md must NOT be excluded
+        self.assertTrue(_is_excluded(Path("README.md")))
+        self.assertFalse(_is_excluded(Path(".claude/skills/README.md")))
+        self.assertFalse(_is_excluded(Path("docs/random/README.md")))
+
+        # AGENTS.md root-only; nested AGENTS.md must NOT be excluded
+        self.assertTrue(_is_excluded(Path("AGENTS.md")))
+        self.assertFalse(_is_excluded(Path("packages/foo/AGENTS.md")))
+
+        # Makefile, .gitignore, .adapt-discovery.toml — same pattern
+        self.assertTrue(_is_excluded(Path("Makefile")))
+        self.assertFalse(_is_excluded(Path("subdir/Makefile")))
+        self.assertTrue(_is_excluded(Path(".adapt-discovery.toml")))
+
+    def test_directory_double_star_matches_anything_under(self) -> None:
+        from agentbundle.build.self_host import _is_excluded
+
+        # packs/** matches everything under packs/
+        self.assertTrue(_is_excluded(Path("packs/core/pack.toml")))
+        self.assertTrue(
+            _is_excluded(Path("packs/core/.apm/skills/work-loop/SKILL.md"))
+        )
+        # but packs.md at root is NOT under packs/
+        self.assertFalse(_is_excluded(Path("packs.md")))
+
+    def test_projected_overrides_take_precedence(self) -> None:
+        from agentbundle.build.self_host import _is_excluded
+
+        # docs/architecture/*.md would exclude README.md, but
+        # PROJECTED_README_OVERRIDES restores it
+        self.assertFalse(_is_excluded(Path("docs/architecture/README.md")))
+        self.assertFalse(_is_excluded(Path("docs/architecture/overview.md")))
+        # but a contributor-added subsystem doc IS excluded
+        self.assertTrue(_is_excluded(Path("docs/architecture/data-pipeline.md")))
+
+
+class SeedProjectionTests(unittest.TestCase):
+    """Unit tests for `_project_seeds` (spec § Always do, AC7, AC9)."""
+
+    def test_basic_seed_projection_copies_to_root(self) -> None:
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = packs_dir / "core"
+            (pack / "seeds" / "docs").mkdir(parents=True)
+            (pack / "seeds" / "docs" / "CHARTER.md").write_text(
+                "# Charter\n", encoding="utf-8"
+            )
+            (pack / "pack.toml").write_text(
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+            )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            _project_seeds(packs_dir, output)
+
+            self.assertTrue((output / "docs" / "CHARTER.md").exists())
+            self.assertEqual(
+                (output / "docs" / "CHARTER.md").read_text(encoding="utf-8"),
+                "# Charter\n",
+            )
+
+    def test_two_packs_contribute_to_same_dir_without_collision(self) -> None:
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            for name, fname in [("core", "spec.md"), ("governance", "rfc.md")]:
+                pack = packs_dir / name
+                (pack / "seeds" / "docs" / "_templates").mkdir(parents=True)
+                (pack / "seeds" / "docs" / "_templates" / fname).write_text(
+                    f"# {fname}\n", encoding="utf-8"
+                )
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            _project_seeds(packs_dir, output)
+
+            self.assertTrue((output / "docs" / "_templates" / "spec.md").exists())
+            self.assertTrue((output / "docs" / "_templates" / "rfc.md").exists())
+
+    def test_collision_with_different_content_raises(self) -> None:
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            for name, content in [("core", "v1\n"), ("other", "v2\n")]:
+                pack = packs_dir / name
+                (pack / "seeds").mkdir(parents=True)
+                (pack / "seeds" / "AGENTS.md").write_text(content, encoding="utf-8")
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            with self.assertRaises(ValueError) as ctx:
+                _project_seeds(packs_dir, output)
+            self.assertIn("seed collision", str(ctx.exception))
+            self.assertIn("AGENTS.md", str(ctx.exception))
+
+    def test_underscore_prefixed_files_are_composition_fragments_not_projected(
+        self,
+    ) -> None:
+        """Files like `_agents-footer.md` live in seeds for composition;
+        they aren't standalone projection targets."""
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = packs_dir / "core"
+            (pack / "seeds").mkdir(parents=True)
+            (pack / "seeds" / "_agents-footer.md").write_text(
+                "> footer\n", encoding="utf-8"
+            )
+            (pack / "seeds" / "AGENTS.md").write_text(
+                "# AGENTS\n", encoding="utf-8"
+            )
+            (pack / "pack.toml").write_text(
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+            )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            _project_seeds(packs_dir, output)
+
+            self.assertTrue((output / "AGENTS.md").exists())
+            self.assertFalse((output / "_agents-footer.md").exists())
+
+
+class MarketplaceAggregationTests(unittest.TestCase):
+    """Unit tests for `_aggregate_marketplace`."""
+
+    def test_aggregates_all_plugin_jsons(self) -> None:
+        from agentbundle.build.self_host import _aggregate_marketplace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            for name in ("core", "governance-extras"):
+                pack = packs_dir / name
+                (pack / ".claude-plugin").mkdir(parents=True)
+                (pack / ".claude-plugin" / "plugin.json").write_text(
+                    json.dumps({"name": name, "version": "0.1.0"}),
+                    encoding="utf-8",
+                )
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            _aggregate_marketplace(packs_dir, output)
+
+            mp = output / ".claude-plugin" / "marketplace.json"
+            self.assertTrue(mp.exists())
+            payload = json.loads(mp.read_text(encoding="utf-8"))
+            names = {entry["name"] for entry in payload["plugins"]}
+            self.assertEqual(names, {"core", "governance-extras"})
+            self.assertEqual(payload["owner"], {"name": "eugenelim"})
+
+    def test_aggregation_is_deterministic(self) -> None:
+        from agentbundle.build.self_host import _aggregate_marketplace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            for name in ("zeta", "alpha"):
+                pack = packs_dir / name
+                (pack / ".claude-plugin").mkdir(parents=True)
+                (pack / ".claude-plugin" / "plugin.json").write_text(
+                    json.dumps({"name": name, "version": "0.1.0"}),
+                    encoding="utf-8",
+                )
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            output_a = tmp_path / "out_a"
+            output_a.mkdir()
+            output_b = tmp_path / "out_b"
+            output_b.mkdir()
+            _aggregate_marketplace(packs_dir, output_a)
+            _aggregate_marketplace(packs_dir, output_b)
+            self.assertEqual(
+                (output_a / ".claude-plugin" / "marketplace.json").read_bytes(),
+                (output_b / ".claude-plugin" / "marketplace.json").read_bytes(),
+            )
+
+
+class ClaudeSymlinkTests(unittest.TestCase):
+    """Unit tests for `_recreate_claude_symlink`."""
+
+    def test_creates_symlink_when_missing(self) -> None:
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            _recreate_claude_symlink(tree)
+            link = tree / "CLAUDE.md"
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(os.readlink(link), "AGENTS.md")
+
+    def test_idempotent_on_correct_symlink(self) -> None:
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "CLAUDE.md").symlink_to("AGENTS.md")
+            _recreate_claude_symlink(tree)  # should not raise
+            self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
+
+    def test_replaces_wrong_symlink(self) -> None:
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "CLAUDE.md").symlink_to("other.md")
+            _recreate_claude_symlink(tree)
+            self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
+
+
+class MissingDiscoveryFailFastTests(unittest.TestCase):
+    """AC14: missing `.adapt-discovery.toml` causes fail-fast with named message."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_missing_discovery_returns_non_zero_with_named_message(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            # Deliberately do NOT seed .adapt-discovery.toml.
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                exit_code = run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=False,
+                    force=True,
+                    contract=self.contract,
+                )
+            self.assertNotEqual(exit_code, 0)
+            self.assertIn(
+                "missing .adapt-discovery.toml required by --self",
+                buf.getvalue(),
+            )
+
+
+class DriftSourceNamingTests(unittest.TestCase):
+    """AC: drift messages name source path + regeneration command."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_drift_message_includes_source_and_regen_command(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+            _git_commit_all(working_tree, "seed")
+
+            # Introduce drift on a projected path.
+            target = working_tree / ".claude" / "skills" / "foo" / "SKILL.md"
+            target.write_text("drift!\n", encoding="utf-8")
+
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                exit_code = run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=True,
+                    force=False,
+                    contract=self.contract,
+                )
+            self.assertEqual(exit_code, 1)
+            stderr_text = buf.getvalue()
+            self.assertIn("[drift]", stderr_text)
+            self.assertIn(".claude/skills/foo/SKILL.md", stderr_text)
+            # Source path named
+            self.assertIn("packs/core/.apm/skills/foo/SKILL.md", stderr_text)
+            # Regen command named
+            self.assertIn("run: make build-self", stderr_text)
+
+
+class InfoLineUnclassifiedTests(unittest.TestCase):
+    """AC6: paths not in Projected and not in Excluded surface as `[info]`."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_unclassified_path_surfaces_as_info_without_failing(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+
+            # Introduce an unclassified path: not under any Excluded pattern,
+            # not in Projected set.
+            (working_tree / "stray-note.md").write_text("note\n", encoding="utf-8")
+            _git_commit_all(working_tree, "seed + stray")
+
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                exit_code = run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=True,
+                    force=False,
+                    contract=self.contract,
+                )
+            self.assertEqual(exit_code, 0)  # info lines don't fail the build
+            self.assertIn("[info] unclassified: stray-note.md", buf.getvalue())
+
+
 class ForwardFlowIntegrationTests(unittest.TestCase):
     """End-to-end forward-flow (plan T7): mutate a pack-side source,
     re-project, and assert the projection updated AND the gate is clean
@@ -444,6 +863,7 @@ class ForwardFlowIntegrationTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
 
             # Initial real-write seeds the projection.
             exit_code = run_self_host(
@@ -504,6 +924,7 @@ class DirtyTreeStderrMessageTests(unittest.TestCase):
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
+            _seed_discovery(working_tree)
             (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8")
             _git_commit_all(working_tree, "seed")
             (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8")

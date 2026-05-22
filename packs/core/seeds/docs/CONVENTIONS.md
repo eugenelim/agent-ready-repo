@@ -342,6 +342,53 @@ to *orient* a reader, not to duplicate the code or the spec.
 
 ---
 
+## Pack source-of-truth split
+
+Bundle content (skills, agents, hooks, commands, hook-wiring, and pack
+seeds) lives under `packs/<pack>/`. The split is:
+
+- `packs/<pack>/.apm/` — the upstream for every adapter-projected
+  primitive. Sub-directories: `skills/`, `agents/`, `hooks/`,
+  `commands/`, `hook-wiring/`.
+- `packs/<pack>/seeds/` — the upstream for every seed-projected path
+  (the README / template / governance content adopters install).
+  Files whose names start with `_` (e.g. `_agents-footer.md`) are
+  *composition fragments* — they live in seeds for adopter
+  customization but are not projected as standalone files; they're
+  consumed by composite recipes.
+
+*Projected* paths under `make build-check`'s gate (Phase 1):
+- Adapter-driven primitives: `.claude/skills/<name>/`,
+  `.claude/agents/<name>.md`, `.claude/commands/<name>.md`,
+  `tools/hooks/<name>.<ext>`, and the `hooks` key of
+  `.claude/settings.local.json`.
+- Seed-projected paths: `docs/CHARTER.md`, `docs/CONVENTIONS.md`,
+  `docs/APPROACH.md`, `docs/_templates/*`, seed READMEs under
+  `docs/{architecture,specs,knowledge,product,guides,rfc,adr}/`, and
+  the seed content under `packages/`.
+- Aggregated: `.claude-plugin/marketplace.json` from every pack's
+  `.claude-plugin/plugin.json`.
+- Recreated: `CLAUDE.md → AGENTS.md` symlink.
+
+The pipeline regenerates each from its `packs/*/` upstream; direct
+edits to any *Projected* path are caught by `make build-check` and
+bounced with a message naming the source path and regeneration
+command. RFC-0002 is the authority for the source-of-truth split,
+including the *Projected* and *Excluded* tables; the same RFC names
+`make build-check` as the gate that enforces it. The self-hosting
+spec at [`docs/specs/self-hosting/spec.md`](specs/self-hosting/spec.md)
+records the Phase-1 vs Phase-2 scoping (AGENTS.md body+footer
+composition and LF/mode/lstat comparison-rule strengthening remain
+Phase 2).
+
+The muscle memory: to change a *Projected* path's content, edit its
+upstream under `packs/<pack>/.apm/` or `packs/<pack>/seeds/`, then run
+`make build-self` (with `FORCE=1` if the working tree is dirty),
+commit, push. The gate is the contract; the source-of-truth split is
+the convention.
+
+---
+
 ## Commits
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):

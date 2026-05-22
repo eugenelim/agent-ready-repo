@@ -8,21 +8,30 @@
 > (a different approach, not just a re-ordering), note why in the changelog
 > at the bottom.
 
-> **Phase-1 / Phase-2 reading guide (EXECUTE-time amendment).** Task
-> bodies below (T1–T7) were authored pre-EXECUTE against the original
-> spec scope — full projection including seeds, AGENTS.md body+footer
-> composition, root marketplace aggregation, `AGENTS.local.md` split,
-> and `_agents-footer.md`. The 2026-05-22 (EXECUTE) changelog entry
-> partitions this into Phase 1 (this PR — adapter-driven `.apm/`
-> primitives only) and Phase 2 (follow-up). When reading T1–T7:
+> **Phase-1 / Phase-2 reading guide (EXECUTE-time amendment, updated
+> in the easy-Phase-2-lift fix-pass).** Task bodies below (T1–T7) were
+> authored pre-EXECUTE against the original spec scope. The
+> 2026-05-22 (EXECUTE) and 2026-05-22 (EXECUTE fix-pass) changelog
+> entries partition the scope. When reading T1–T7:
 >
-> - Treat any bullet that names seed projection, AGENTS.md composition,
->   `_agents-footer.md`, `AGENTS.local.md`, the `composite-agents-md`
->   or `composite-marketplace` runtime, or the CLAUDE.md symlink as
->   **Phase 2** — out of scope for this PR.
-> - Treat any bullet about LF/mode/lstat comparison rules,
->   drift-message source naming, info-line unclassified enumeration,
->   or missing-discovery-file fail-fast as **Phase 2**.
+> - **In Phase 1** (this PR): adapter-driven `.apm/` primitive
+>   projection (skills, agents, commands, hooks, hook-wiring via the
+>   Claude Code adapter), seed projection (`packs/*/seeds/**` →
+>   repo root, with file-level collision detection), root
+>   marketplace aggregation
+>   (`.claude-plugin/marketplace.json`), `CLAUDE.md → AGENTS.md`
+>   symlink recreation, missing-discovery-file fail-fast,
+>   drift-message source-path + regen-command naming,
+>   `[info]` lines for unclassified paths, and `.adapt-discovery.toml`
+>   marker resolution across the widened scope.
+> - **Deferred to Phase 2** (follow-up PR): AGENTS.md body+footer
+>   composition via the `composite-agents-md` recipe runtime (blocked
+>   on the Codex adapter's last-pack-wins multi-pack splice gap), and
+>   the comparison-rule strengthening — LF normalisation, file-mode
+>   bits, symlink-target via `lstat` (load-bearing for gate
+>   correctness; deserves its own test pass + adversarial review).
+>   `_agents-footer.md` and the body seed at `packs/core/seeds/AGENTS.md`
+>   ship in Phase 1 as authored content; Phase 2 wires the runtime.
 > - CLI surface in task bodies uses RFC-0002's flag form (`--self`,
 >   `--force`, `--dry-run`). The on-disk Makefile equivalents are
 >   `make build-self`, `make build-self FORCE=1`, and
@@ -524,6 +533,24 @@ T6's PR diff.
   hook references in RFC-0002; add ACs anchoring marker
   resolution under `--self` with the stderr failure message
   format).
+- 2026-05-22 (EXECUTE fix-pass): user requested follow-up additions to
+  the same PR. Lifted from Phase 2 to Phase 1: seed projection
+  (`_project_seeds` with collision check), marketplace aggregation
+  (`_aggregate_marketplace`), CLAUDE.md symlink recreation
+  (`_recreate_claude_symlink`), missing-discovery-file fail-fast (exit
+  3), drift-message source-naming
+  (`_build_projected_to_source_map` + `_lookup_source`), and `[info]`
+  lines for unclassified paths (git-tracked + untracked-not-ignored
+  enumeration). ACs 6, 7, 9, 14 → Phase 1; new ACs 15
+  (CLAUDE.md), 16 (marketplace), 17 (drift source-naming) added.
+  AC8 (AGENTS.md composition — needs Codex multi-pack fix) and the
+  comparison-rule strengthening (LF norm / mode / lstat) stay
+  Phase 2. Authored missing seed READMEs
+  (`docs/architecture/README.md`, `docs/_templates/README.md`,
+  `packages/README.md`) and `_agents-footer.md`. Real-write created
+  `.claude-plugin/marketplace.json` and `CLAUDE.md` symlink at the
+  repo root. 131/131 tests pass (+12 new); dry-run + build-check
+  exit 0 against the live repo's `packs/`.
 - 2026-05-22 (EXECUTE): discovered that the sibling
   distribution-adapters spec landed the three composite recipe types
   (`per-pack-overlay`, `composite-agents-md`, `composite-marketplace`)

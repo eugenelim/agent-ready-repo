@@ -76,23 +76,36 @@ EXECUTE and are too large to close in this migration PR.
 
 This spec therefore partitions its scope into **two cutover phases**:
 
-- **Phase 1 (this PR).** Adapter-driven `.apm/` primitives only. The
-  *Projected* set in this phase is exactly the Claude Code adapter's
-  five direct outputs: `.claude/skills/<name>/`, `.claude/agents/<name>.md`,
-  `.claude/commands/<name>.md`, `tools/hooks/<name>.<ext>`, and the
-  `hooks` key of `.claude/settings.local.json`. The Phase-1 PR ships
-  packs/* sources, the recipe TOMLs, `.adapt-discovery.toml`, the
-  `make build-check` workflow, and the CONVENTIONS amendment. Seeds
-  (under `packs/*/seeds/`) are authored but not yet projected — they
-  ship as Source and the gate ignores them.
-- **Phase 2 (follow-up PR).** Seed projection (`docs/CHARTER.md`,
-  `docs/CONVENTIONS.md`, seed READMEs, `docs/_templates/*`,
-  `packages/_example/`, `packages/README.md`), AGENTS.md body+footer
-  composition (with the Codex multi-pack aggregation fix or an
-  alternative composition path), `.claude-plugin/marketplace.json`
-  aggregation, and the `CLAUDE.md → AGENTS.md` symlink projection.
-  Phase 2 lifts these paths from Source to Projected and extends the
-  gate accordingly.
+- **Phase 1 (this PR).** Adapter-driven `.apm/` primitives projected via
+  the Claude Code adapter, plus the seed-projection / marketplace-
+  aggregation / CLAUDE.md-symlink / missing-discovery fail-fast /
+  drift-source-naming / info-line classification additions landed
+  during the EXECUTE fix-pass. The *Projected* set covers:
+  - Claude Code adapter's five direct outputs: `.claude/skills/<name>/`,
+    `.claude/agents/<name>.md`, `.claude/commands/<name>.md`,
+    `tools/hooks/<name>.<ext>`, and the `hooks` key of
+    `.claude/settings.local.json`.
+  - Seed-projected paths: `docs/CHARTER.md`, `docs/CONVENTIONS.md`,
+    `docs/APPROACH.md`, `docs/_templates/{spec,plan,rfc,adr,state.json,README}.md`,
+    seed READMEs under `docs/{architecture,specs,knowledge,product,
+    guides,rfc,adr}/`, `docs/architecture/overview.md`,
+    `docs/knowledge/patterns.jsonl`, `docs/product/{roadmap,changelog}.md`,
+    `docs/guides/{tutorials,how-to,reference,explanation}/README.md`,
+    `packages/README.md`, `packages/_example/{README,AGENTS}.md`.
+  - Aggregated: `.claude-plugin/marketplace.json` from
+    `packs/*/.claude-plugin/plugin.json`.
+  - Recreated: `CLAUDE.md → AGENTS.md` symlink.
+  Phase 1 also ships packs/* sources, the recipe TOMLs,
+  `.adapt-discovery.toml`, the `make build-check` workflow, and the
+  CONVENTIONS amendment.
+- **Phase 2 (follow-up PR).** AGENTS.md body+footer composition (the
+  Codex adapter's last-pack-wins multi-pack splice gap blocks the
+  multi-pack aggregation needed for a correct projection), and the
+  comparison-rule strengthening (LF normalisation, file-mode bits,
+  symlink-target comparison via `lstat`). The body+footer recipe
+  contract (`packs/core/seeds/AGENTS.md` body + `packs/core/seeds/
+  _agents-footer.md` footer) ships in Phase 1 as authored seed
+  content; Phase 2 wires up the composition runtime.
 
 Every *Always do*, *Ask first*, *Never do*, Acceptance Criterion, and
 test below carries an implicit "Phase 1 only" unless it names Phase 2
@@ -103,13 +116,14 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
 - Read source-of-truth from `packs/*/.apm/` (including
   `packs/<pack>/.apm/skills/`, `packs/<pack>/.apm/agents/`,
   `packs/<pack>/.apm/hooks/`, `packs/<pack>/.apm/commands/`, and
-  `packs/<pack>/.apm/hook-wiring/`), `packs/*/seeds/` (authored in
-  Phase 1, projected in Phase 2), the adapter
+  `packs/<pack>/.apm/hook-wiring/`), `packs/*/seeds/`, the adapter
   contract at `docs/specs/adapter-contract/`, and the build pipeline at
   `packages/agentbundle/agentbundle/build/` (with a thin shim at
   `tools/build/build.py`; the user-facing entry points are still
-  `make build-self` and `make build-check`). In Phase 1, project to
-  exactly the five Claude Code adapter outputs enumerated above.
+  `make build-self` and `make build-check`). In Phase 1, project the
+  five Claude Code adapter outputs plus the seed-projected paths
+  enumerated in § *Phased rollout*; aggregate
+  `.claude-plugin/marketplace.json` and recreate the CLAUDE.md symlink.
 - Restrict the self-host runner to the `claude-code` adapter in Phase 1.
   The other contract-declared adapters (`kiro`, `copilot`, `codex`)
   remain in the contract for distribution builds, but the self-host
@@ -144,24 +158,26 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
   for the adapter-driven primitives the gate covers today; the
   LF-normalising / mode-aware / lstat path lands alongside seed
   projection in Phase 2.
-- *(Phase 2)* Enumerate candidate paths from the git-tracked +
-  untracked-but-not-ignored set, so editor scratch and gitignored
-  build outputs do not surface in either the comparison or the
-  unclassified-path report. Phase 1 walks only the shadow projection
-  (every path emitted by the adapters), which is a strict subset of
-  the eventual git-enumeration set and never produces false positives
-  on uncategorised paths.
-- *(Phase 2)* Emit `[info]` lines to stderr for on-disk paths that fall
-  in neither the *Projected* nor *Excluded* categories. Info-level
-  messages do not fail the build; they surface omissions so the next
-  PR can classify them. Phase 1 ships without the unclassified-path
-  enumeration because seed paths aren't yet projected — almost every
-  `docs/` path would surface as `[info]` and bury real signal.
-- *(Phase 2)* On drift, name the source path and the regeneration
-  command in the failure message (`Edit <source>; run: make build-self`).
-  Phase 1 emits `drift: <projected-path>` only; mapping projected→source
-  requires a reverse-index across pack `.apm/` directories that's
-  cheapest to build alongside Phase-2 seed projection.
+- Enumerate candidate paths from the git-tracked + untracked-but-not-
+  ignored set (`git ls-files --cached --others --exclude-standard`), so
+  editor scratch and gitignored build outputs do not surface in either
+  the comparison or the unclassified-path report.
+- Emit `[info]` lines to stderr for on-disk paths that fall in neither
+  the *Projected* nor *Excluded* categories. Info-level messages do
+  not fail the build; they surface omissions so the next PR can
+  classify them. Excluded patterns are enumerated in
+  `agentbundle.build.self_host.EXCLUDED_PATTERNS`; extend that
+  constant when an RFC authorises a new excluded class. Phase-1
+  Projected paths that would otherwise match an excluded glob (the
+  seed READMEs under `docs/architecture/`, `docs/product/`,
+  `docs/knowledge/`, `docs/guides/`) are listed in
+  `PROJECTED_README_OVERRIDES`.
+- On drift, name the source path and the regeneration command in the
+  failure message: `[drift] <projected>: edit <source>; run: make
+  build-self`. The projected→source map is built per dry-run from
+  `packs/*/.apm/` (via the Claude Code adapter's contract projections)
+  and `packs/*/seeds/`; directory-level mappings are walked to find
+  the file-level source.
 - Refuse `make build-self` on a dirty working tree unless `FORCE=1` is
   passed. `FORCE=1` bypasses only the dirty-tree refusal. The
   byte-equality gate runs under `make build-check` and
@@ -360,31 +376,35 @@ and the Codex multi-pack aggregation fix land.
   and `packs/*/seeds/` as the upstream for every projected path,
   cites RFC-0002 as the authority, and cites `make build-check` as
   the enforcing gate.
-- [ ] **AC6 (info-level unclassified) — Phase 2.** On-disk paths that
+- [x] **AC6 (info-level unclassified) — Phase 1.** On-disk paths that
   fall in neither *Projected* nor *Excluded* surface as `[info]` lines
   on stderr during `make build-check`, without failing the build.
-  Deferred until the gate's enumeration walks the git-tracked +
-  untracked-but-not-ignored set (the current implementation only
-  walks shadow output).
-- [ ] **AC7 (seed collisions) — Phase 2.** File-level collisions across
+  Implemented via `_emit_info_for_unclassified` (enumerates via
+  `git ls-files --cached --others --exclude-standard`); excluded
+  patterns enumerated in `EXCLUDED_PATTERNS`.
+- [x] **AC7 (seed collisions) — Phase 1.** File-level collisions across
   packs' `seeds/` trees (same target path, different content) cause
-  `make build-self` to exit non-zero with a named error identifying
-  the colliding source files. Deferred — seed projection lands in
-  Phase 2; until then no seed is projected and the collision check
-  has nothing to enforce.
+  `make build-self` to exit non-zero (exit code 4) with a named error
+  identifying both colliding source paths. Implemented in
+  `_project_seeds`; tested by
+  `SeedProjectionTests::test_collision_with_different_content_raises`.
 - [ ] **AC8 (AGENTS.md composition) — Phase 2.** The projected root
   `AGENTS.md` is composed from BOTH `packs/core/seeds/AGENTS.md` (the
   body) AND `packs/core/seeds/_agents-footer.md` (the pointer footer,
   appended after the body). The composition is performed by the
   `composite-agents-md` recipe; T2 tests verify both the body match
   and the footer append. Deferred — Codex adapter's last-pack-wins
-  multi-pack aggregation must be fixed first.
-- [ ] **AC9 (seed READMEs) — Phase 2.** Seed READMEs under
+  multi-pack aggregation must be fixed first. The footer source ships
+  in this PR (`packs/core/seeds/_agents-footer.md`); seed-projection
+  skips underscore-prefixed files so it stays as a composition
+  fragment for Phase 2.
+- [x] **AC9 (seed READMEs) — Phase 1.** Seed READMEs under
   `docs/architecture/`, `docs/specs/`, `docs/knowledge/`,
   `docs/product/`, `docs/guides/`, `docs/rfc/`, `docs/adr/`,
   `docs/_templates/`, and `packages/` are *Projected*; the gate
-  enforces byte-equality with their pack-side sources. Deferred —
-  seed projection lands in Phase 2.
+  enforces byte-equality with their pack-side sources. Projection
+  performed by `_project_seeds`; collision check enforces AC7
+  simultaneously.
 - [x] **AC10 (commands) — Phase 1.** `.claude/commands/<name>.md` is
   *Projected* from `packs/*/.apm/commands/<name>.md` per the Claude
   Code adapter's `command` primitive projection. The gate enforces
@@ -408,9 +428,27 @@ and the Codex multi-pack aggregation fix land.
 - [x] **AC13 (markers preserved in dist) — Phase 1.** `make build`
   without `--self` copies `<adapt:NAME>` markers through unchanged; no
   resolution runs (delivered by sibling distribution-adapters spec).
-- [ ] **AC14 (missing-config fail-fast) — Phase 2.** Missing
+- [x] **AC14 (missing-config fail-fast) — Phase 1.** Missing
   `.adapt-discovery.toml` under `make build-self` causes fail-fast with
   a named stderr message in the form
-  `missing .adapt-discovery.toml required by --self`. Deferred — today
-  a missing discovery file is a silent no-op rather than fail-fast;
-  Phase 2 adds the fail-fast guard.
+  `missing .adapt-discovery.toml required by --self` (exit code 3).
+  Implemented in `run_self_host`; tested by
+  `MissingDiscoveryFailFastTests`.
+- [x] **AC15 (CLAUDE.md symlink) — Phase 1.** `make build-self`
+  recreates the `CLAUDE.md → AGENTS.md` symlink at the repo root.
+  Idempotent (a correctly-pointing symlink is left alone); a
+  wrong-target symlink or regular file at `CLAUDE.md` is replaced.
+  Implemented by `_recreate_claude_symlink`; tested by
+  `ClaudeSymlinkTests`.
+- [x] **AC16 (marketplace aggregation) — Phase 1.**
+  `.claude-plugin/marketplace.json` at the repo root is aggregated
+  from every `packs/<pack>/.claude-plugin/plugin.json` so this repo is
+  itself a usable marketplace at HEAD. JSON serialised with
+  `sort_keys=True` for byte-determinism. Implemented by
+  `_aggregate_marketplace`; tested by `MarketplaceAggregationTests`.
+- [x] **AC17 (drift source-naming) — Phase 1.** Drift messages take
+  the form `[drift] <projected>: edit <source>; run: make build-self`,
+  naming both the projected path and the pack-side source for direct
+  navigation. Implemented by `_build_projected_to_source_map` +
+  `_lookup_source` in `diff_against_working_tree`; tested by
+  `DriftSourceNamingTests`.
