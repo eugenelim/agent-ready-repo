@@ -105,7 +105,7 @@ edits).
 | `packs/<pack>/.apm/agents/<name>.md` | Source | Subagent definitions, scoped to a pack. |
 | `packs/<pack>/.apm/hooks/<name>.py` | Source | Hook bodies, scoped to a pack. |
 | `packs/<pack>/seeds/**` | Source | Pack seed files (README seeds, layer-0 content templates, `docs/_templates/*`). The upstream for every `docs/`-side projected path. |
-| `docs/specs/adapter-contract/contract.toml` | Source | The adapter contract spec. |
+| `docs/contracts/adapter.toml` | Source | The adapter contract spec. |
 | `tools/build/` | Source | The build pipeline. |
 | `README.md`, `USING_THIS_TEMPLATE.md`, `LICENSE-*`, `.gitignore`, `.github/workflows/*` | Source | Repo-perspective documents and operational files. |
 | `AGENTS.local.md` | Source | This repo's contributor-specific guidance. See [Local addendum](#local-addendum). |
@@ -322,7 +322,7 @@ not file-by-file:
 | `LICENSE-*`, `.gitignore`, `.github/workflows/*` | Repo-specific operational files. |
 | `AGENTS.local.md` | This repo's contributor-specific guidance. |
 | `packs/*/.claude-plugin/plugin.json` | Hand-authored per-pack manifest (Source per the source-of-truth table); never projected. |
-| Anything under `packs/*/.apm/`, `packs/*/.claude-plugin/`, `packs/*/seeds/`, `tools/build/`, `docs/specs/adapter-contract/` | The source-of-truth side. The build pipeline reads from these; they aren't projection targets. |
+| Anything under `packs/*/.apm/`, `packs/*/.claude-plugin/`, `packs/*/seeds/`, `tools/build/`, `docs/contracts/` | The source-of-truth side. The build pipeline reads from these; they aren't projection targets. |
 
 There is no "by default projected" rule — inclusion is opt-in by
 appearing in the *Projected* table above.
@@ -538,3 +538,10 @@ If accepted, this RFC produces one downstream artifact:
   the two unresolved questions above, and the `CONVENTIONS.md`
   edit recording the source-of-truth split as a convention.
   Depends on F-spec and F-build from RFC-0001.
+
+## Amendments
+
+- 2026-05-22 (post-acceptance): adapter contract files relocated to
+  `docs/contracts/`; this RFC's path references updated. Full
+  rationale and the `CONVENTIONS.md:80` exception note live in
+  [RFC-0001 § Amendments](0001-bundle-distribution-by-adapter-spec.md#amendments).

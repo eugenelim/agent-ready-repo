@@ -8,6 +8,9 @@
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 
+> **Post-ship amendments:** the spec body has been amended post-ship; see
+> [Changelog](#changelog).
+
 > **Naming note (drafting drift in RFC-0002).** RFC-0002 contains five
 > drafting-drift items this spec normalises against the on-disk scaffold:
 > (1) it refers to this work as `self-hosting-bootstrap` in some places
@@ -117,7 +120,7 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
   `packs/<pack>/.apm/skills/`, `packs/<pack>/.apm/agents/`,
   `packs/<pack>/.apm/hooks/`, `packs/<pack>/.apm/commands/`, and
   `packs/<pack>/.apm/hook-wiring/`), `packs/*/seeds/`, the adapter
-  contract at `docs/specs/adapter-contract/`, and the build pipeline at
+  contract at `docs/contracts/`, and the build pipeline at
   `packages/agentbundle/agentbundle/build/` (with a thin shim at
   `tools/build/build.py`; the user-facing entry points are still
   `make build-self` and `make build-check`). In Phase 1, project the
@@ -463,3 +466,12 @@ and the Codex multi-pack aggregation fix land.
   navigation. Implemented by `_build_projected_to_source_map` +
   `_lookup_source` in `diff_against_working_tree`; tested by
   `DriftSourceNamingTests`.
+
+## Changelog
+
+- 2026-05-22: typo-class amendment after Phase 1 ship — adapter
+  contract files relocated from `docs/specs/adapter-contract/` to
+  `docs/contracts/` (path-only; field semantics and acceptance
+  criteria unchanged). See
+  [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments)
+  for the full rationale and the `CONVENTIONS.md:80` exception note.

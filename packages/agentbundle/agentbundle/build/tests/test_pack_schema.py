@@ -1,14 +1,14 @@
-"""Tests for pack-schema.json (T1c).
+"""Tests for pack.schema.json (T1c).
 
 Verifies:
-  - pack-schema.json accepts a governance-extras recommended-on-core
+  - pack.schema.json accepts a governance-extras recommended-on-core
     example (AC 3).
-  - pack-schema.json rejects a pack.toml missing [pack].
-  - pack-schema.json rejects a pack.toml whose [pack.adaptation]
+  - pack.schema.json rejects a pack.toml missing [pack].
+  - pack.schema.json rejects a pack.toml whose [pack.adaptation]
     infer-from value is a non-string.
-  - pack-schema.json accepts a pack.toml without [pack.dependencies.required]
+  - pack.schema.json accepts a pack.toml without [pack.dependencies.required]
     (required array is optional).
-  - pack-schema.json accepts [pack.seeds] entries that are relative-path
+  - pack.schema.json accepts [pack.seeds] entries that are relative-path
     strings, and rejects an absolute path or a non-string entry.
 """
 
@@ -21,7 +21,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 PACK_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "specs" / "adapter-contract" / "pack-schema.json"
+    REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
 )
 
 
@@ -34,7 +34,7 @@ def _parse_toml(toml_text: str) -> dict:
 
 
 class PackSchemaAcceptsValidExamplesTests(unittest.TestCase):
-    """pack-schema.json accepts well-formed pack.toml structures."""
+    """pack.schema.json accepts well-formed pack.toml structures."""
 
     def test_accepts_governance_extras_recommended_on_core(self) -> None:
         """Modeled on RFC-0001's governance-extras recommended-on-core example.
@@ -136,7 +136,7 @@ seeds = ["AGENTS.md", "docs/CHARTER.md", "docs/CONVENTIONS.md"]
 
 
 class PackSchemaRejectsInvalidExamplesTests(unittest.TestCase):
-    """pack-schema.json rejects malformed pack.toml structures."""
+    """pack.schema.json rejects malformed pack.toml structures."""
 
     def test_rejects_missing_pack_section(self) -> None:
         """A pack.toml without a [pack] section is rejected."""

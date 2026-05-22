@@ -1,7 +1,7 @@
-"""Tests for plugin-manifest-schema.json (T1c).
+"""Tests for plugin-manifest.schema.json (T1c).
 
 Verifies:
-  - plugin-manifest-schema.json accepts a minimal hand-authored
+  - plugin-manifest.schema.json accepts a minimal hand-authored
     .claude-plugin/plugin.json (AC 4).
   - The schema loads with the expected top-level shape.
 """
@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 PLUGIN_MANIFEST_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "specs" / "adapter-contract" / "plugin-manifest-schema.json"
+    REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
 )
 
 
@@ -23,7 +23,7 @@ def _load_schema() -> dict:
 
 
 class PluginManifestSchemaAcceptsValidExamplesTests(unittest.TestCase):
-    """plugin-manifest-schema.json accepts well-formed plugin.json structures."""
+    """plugin-manifest.schema.json accepts well-formed plugin.json structures."""
 
     def test_accepts_minimal_plugin_manifest(self) -> None:
         """A minimal hand-authored .claude-plugin/plugin.json is accepted.
@@ -85,7 +85,7 @@ class PluginManifestSchemaAcceptsValidExamplesTests(unittest.TestCase):
 
 
 class PluginManifestSchemaRejectsInvalidExamplesTests(unittest.TestCase):
-    """plugin-manifest-schema.json rejects malformed plugin.json structures."""
+    """plugin-manifest.schema.json rejects malformed plugin.json structures."""
 
     def test_rejects_missing_name(self) -> None:
         """A plugin.json without a name field is rejected."""
