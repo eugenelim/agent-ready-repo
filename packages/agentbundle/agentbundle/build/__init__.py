@@ -25,6 +25,7 @@ from pathlib import Path
 
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.validate import validate as validate_instance
+from agentbundle.build.main import cmd_build
 
 __all__ = ["main"]
 
@@ -85,6 +86,27 @@ def _build_parser() -> argparse.ArgumentParser:
         help="path to contract.toml (or any TOML file the schema accepts)",
     )
     validate_parser.set_defaults(func=_cmd_validate)
+
+    build_parser = subparsers.add_parser(
+        "build",
+        help="Run a recipe (or the three RFC-0001 default recipes).",
+    )
+    build_parser.add_argument(
+        "--recipe",
+        help="Recipe name (under build/recipes/) or explicit .toml path.",
+    )
+    build_parser.add_argument("--pack", help="Limit to one pack by name.")
+    build_parser.add_argument(
+        "--packs-dir",
+        default="packs",
+        help="Directory containing pack subdirectories (default: packs/).",
+    )
+    build_parser.add_argument(
+        "--output-dir",
+        default="dist",
+        help="Where to write build artefacts (default: dist/).",
+    )
+    build_parser.set_defaults(func=cmd_build)
 
     return parser
 
