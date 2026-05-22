@@ -533,6 +533,15 @@ T6's PR diff.
   hook references in RFC-0002; add ACs anchoring marker
   resolution under `--self` with the stderr failure message
   format).
+- 2026-05-22 (post-merge, AC1b): registered `make build-check` as a
+  required status check on `main` via
+  `gh api -X PUT repos/eugenelim/agent-ready-repo/branches/main/protection`.
+  Config: `required_status_checks.strict = true`,
+  `required_status_checks.contexts = ["make build-check"]`,
+  `enforce_admins = false`, no required PR reviews, no push
+  restrictions. Artifact captured at
+  `docs/specs/self-hosting/notes/ac1b-branch-protection.json`. AC1b
+  closed.
 - 2026-05-22 (EXECUTE fix-pass): user requested follow-up additions to
   the same PR. Lifted from Phase 2 to Phase 1: seed projection
   (`_project_seeds` with collision check), marketplace aggregation
