@@ -80,12 +80,15 @@ to this list.
 
 Plain `make build` (no flags) invokes only the three RFC-0001 recipes —
 `per-pack-claude-plugin`, `per-pack-apm-package`, and `marketplace` —
-producing `dist/` output without touching the working tree. The three
-RFC-0002 recipes (`per-pack-overlay`, `composite-agents-md`,
-`composite-marketplace`) are self-host recipes; they fire only under
-`make build --self` (and never under `--check`, which is dry-run). This
-keeps `make build` deterministic and side-effect-free against the
-working tree — the property that lets CI run it without pre-cleanup.
+producing `dist/` output without touching the working tree. `make build
+--self` (and `--check`, its dry-run sibling) project the four reference
+adapters directly into the working tree per the spec § Tier model
+contract. The RFC-0002 self-host recipes (`per-pack-overlay`,
+`composite-agents-md`, `composite-marketplace`) ship as recipe metadata
++ expansion-shape API in this spec; their **on-disk writers** are
+implemented by sibling spec `self-hosting`. The split keeps `make
+build` deterministic and side-effect-free against the working tree —
+the property that lets CI run it without pre-cleanup.
 
 ## Tier model and adopter-edit semantics
 

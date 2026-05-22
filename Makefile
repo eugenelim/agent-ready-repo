@@ -30,6 +30,13 @@ endif
 endif
 
 build-self:
+	@case "$(PACKS_DIR)" in \
+		*tests/fixtures/*) \
+			if [ -z "$$ALLOW_FIXTURE_PACKS" ]; then \
+				echo "make build-self: refusing — PACKS_DIR points into tests/fixtures/; this would overwrite your working tree with fixture data. Set ALLOW_FIXTURE_PACKS=1 to override, or set PACKS_DIR=packs (when the F-dist migration lands)." >&2; \
+				exit 1; \
+			fi ;; \
+	esac
 ifeq ($(DRY_RUN),1)
 	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
 else

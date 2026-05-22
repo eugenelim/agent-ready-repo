@@ -94,7 +94,7 @@ class PerPackApmPackageTests(unittest.TestCase):
             run_recipe(recipe, discover_packs(packs_dir), output_dir, self.contract)
             apm_yml = output_dir / "apm" / "core" / "apm.yml"
             self.assertTrue(apm_yml.exists())
-            self.assertIn("name: core", apm_yml.read_text(encoding="utf-8"))
+            self.assertIn('name: "core"', apm_yml.read_text(encoding="utf-8"))
             self.assertTrue((output_dir / "apm" / "core" / ".apm" / "skills" / "foo").exists())
 
 

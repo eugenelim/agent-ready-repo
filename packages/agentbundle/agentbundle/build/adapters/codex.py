@@ -39,7 +39,7 @@ def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str
     target_dir.mkdir(parents=True, exist_ok=True)
     for entry in sorted(source_dir.iterdir()):
         if entry.is_file():
-            shutil.copy2(entry, target_dir / entry.name)
+            shutil.copy2(entry, target_dir / entry.name, follow_symlinks=False)
 
 
 def _project_managed_block(source_dir: Path, output_root: Path, rule: dict) -> None:
@@ -58,6 +58,14 @@ def _project_managed_block(source_dir: Path, output_root: Path, rule: dict) -> N
                 continue
             skill_md = md_candidates[0]
         description = _extract_description(skill_md.read_text(encoding="utf-8"))
+        # Refuse a description that carries either delimiter literal — a
+        # pack-supplied description containing the end-marker would
+        # break the managed-block splice on the next idempotent run.
+        if start_marker in description or end_marker in description:
+            raise ValueError(
+                f"codex: skill {skill_dir.name!r} description contains a "
+                f"managed-block delimiter — refusing to splice."
+            )
         skills.append((skill_dir.name, description))
 
     skills.sort()

@@ -59,6 +59,19 @@ class EndToEndBuildTests(unittest.TestCase):
                 self.assertTrue((tmp_path / "claude-plugins" / pack).exists())
                 self.assertTrue((tmp_path / "apm" / pack).exists())
 
+            # AC #7 + integrated-journey coverage: assert each of the five
+            # primitives lands at its declared output under the `core` pack
+            # — the only fixture that exercises every primitive type.
+            core_plugin = tmp_path / "claude-plugins" / "core"
+            self.assertTrue((core_plugin / ".claude" / "skills" / "example").exists())
+            self.assertTrue((core_plugin / ".claude" / "agents" / "bar.md").exists())
+            self.assertTrue((core_plugin / "tools" / "hooks" / "baz.sh").exists())
+            self.assertTrue((core_plugin / "tools" / "hooks" / "baz.py").exists())
+            self.assertTrue(
+                (core_plugin / ".claude" / "settings.local.json").exists()
+            )
+            self.assertTrue((core_plugin / ".claude" / "commands" / "qux.md").exists())
+
     def test_plain_build_does_not_invoke_self_host_recipes(self) -> None:
         """AC: plain `make build` produces only dist/apm, dist/claude-plugins,
         and dist/claude-plugins/marketplace.json — never the three self-host

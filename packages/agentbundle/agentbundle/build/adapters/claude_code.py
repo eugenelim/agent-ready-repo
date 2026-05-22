@@ -51,7 +51,10 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
             destination = target_dir / entry.name
             if destination.exists():
                 shutil.rmtree(destination)
-            shutil.copytree(entry, destination)
+            # symlinks=True preserves symlinks rather than dereferencing
+            # them — a malicious pack with a symlink to /etc/passwd
+            # cannot exfiltrate the target into the projection.
+            shutil.copytree(entry, destination, symlinks=True)
 
 
 def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str) -> None:
@@ -60,7 +63,7 @@ def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str
     for entry in sorted(source_dir.iterdir()):
         if entry.is_file():
             destination = target_dir / entry.name
-            shutil.copy2(entry, destination)
+            shutil.copy2(entry, destination, follow_symlinks=False)
 
 
 def _project_merge_json(source_dir: Path, output_root: Path, rule: dict) -> None:
