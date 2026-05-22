@@ -8,26 +8,47 @@ allowed here — see spec § Never do.
 from __future__ import annotations
 
 import sys
+from typing import Any
+
+from agentbundle.version import SPEC_VERSION
 
 
-def check_spec_version(pack_toml: dict, cli_spec_version: str) -> bool:
-    """Refuse if the pack's declared adapter-contract major version differs from
-    the CLI's own major version.
-
-    Logic:
-      - If the pack does not declare ``[pack.adapter-contract] version``,
-        silently accept (version gate is opt-in for packs that predate the
-        contract field).
-      - If the major components differ, print a one-line refusal to stderr
-        and return ``False``.
-      - Otherwise return ``True``.
-
-    The ``cli_spec_version`` string is passed in (not imported here directly)
-    so this helper is trivially testable without mutating module-level state.
+def check_spec_version_gate(pack_toml: dict[str, Any]) -> int | None:
+    """Refuse if the pack's declared spec major version differs from ours.
 
     Returns:
-        True  — caller may proceed.
-        False — caller must exit non-zero; message already printed.
+        None — caller may proceed (pack does not gate, or majors agree).
+        1    — caller should `return` this immediately; refusal already
+               printed to stderr with both versions named.
+
+    The pack declares its version under `[pack.adapter-contract] version`;
+    the CLI's version comes from `agentbundle.version.SPEC_VERSION` (read
+    at import time from the bundled `adapter.toml`).
+    """
+    from agentbundle.config import pack_spec_version  # local import avoids circular
+
+    declared = pack_spec_version(pack_toml)
+    if declared is None:
+        return None
+
+    cli_major = _major(SPEC_VERSION)
+    pack_major = _major(declared)
+    if cli_major != pack_major:
+        print(
+            f"error: pack declares adapter-contract version {declared!r} "
+            f"(major {pack_major}), but this CLI ships spec version {SPEC_VERSION!r} "
+            f"(major {cli_major}); refusing to operate on incompatible pack.",
+            file=sys.stderr,
+        )
+        return 1
+    return None
+
+
+def check_spec_version(pack_toml: dict[str, Any], cli_spec_version: str) -> bool:
+    """Legacy bool-shaped helper kept for one caller (validate.py).
+
+    New callers should prefer `check_spec_version_gate` which returns the
+    exit-code shape uniformly.
     """
     pack_table = pack_toml.get("pack", {})
     contract_table = pack_table.get("adapter-contract", {})
@@ -52,11 +73,6 @@ def check_spec_version(pack_toml: dict, cli_spec_version: str) -> bool:
 
 
 def _major(version: str) -> str:
-    """Return the major component of a semver-ish version string.
-
-    '0.1'    → '0'
-    '1.2.3'  → '1'
-    '99.0'   → '99'
-    'abc'    → 'abc'  (non-numeric; returned as-is for comparison)
-    """
-    return version.split(".")[0]
+    """Return the major component of a version string like '0.1' or 'v2.0'."""
+    v = version.lstrip("v")
+    return v.split(".")[0]

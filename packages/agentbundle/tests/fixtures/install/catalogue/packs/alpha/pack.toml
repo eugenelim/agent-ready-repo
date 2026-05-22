@@ -1,0 +1,5 @@
+[pack]
+name = "alpha"
+version = "0.1.0"
+description = "Alpha fixture pack for T5 install tests."
+seeds = []
