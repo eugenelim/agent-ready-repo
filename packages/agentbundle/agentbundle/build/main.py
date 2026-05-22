@@ -269,6 +269,7 @@ def _render_apm_yml(pack_metadata: dict) -> str:
 
 def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
     input_dir = output_dir / recipe.input_subdir
+    _assert_under(input_dir, output_dir)
     entries: list[dict] = []
     if input_dir.exists():
         for plugin_dir in sorted(input_dir.iterdir()):
@@ -276,6 +277,7 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
             if manifest.exists():
                 entries.append(json.loads(manifest.read_text(encoding="utf-8")))
     output_path = output_dir / recipe.output_file
+    _assert_under(output_path, output_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps({"plugins": entries}, indent=2, sort_keys=True) + "\n",
