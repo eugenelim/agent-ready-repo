@@ -1,0 +1,7 @@
+[pack]
+name = "core"
+version = "0.1.0"
+description = "Core agent-ready-repo pack — fixture for T8 end-to-end."
+
+[pack.seeds]
+files = ["AGENTS.md"]
