@@ -6,7 +6,7 @@
 
 | #    | Title | Status | Opened     | Closed |
 | ---- | ----- | ------ | ---------- | ------ |
-| _none yet_ |  |  |  |  |
+| [0001](0001-one-bundle-three-layers.md) | One bundle, three layers — portable agent-template distribution | Accepted | 2026-05-21 | 2026-05-21 |
 
 ## Adding a new RFC
 
