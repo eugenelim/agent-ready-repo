@@ -3,5 +3,7 @@ name = "governance-extras"
 version = "0.1.0"
 description = "Governance fixture for the end-to-end build test."
 
-[pack.dependencies.recommended]
-items = [{ catalogue = "agent-ready-repo", pack = "core", version = "0.1.0" }]
+[[pack.dependencies.recommended]]
+catalogue = "agent-ready-repo"
+pack = "core"
+version = "0.1.0"

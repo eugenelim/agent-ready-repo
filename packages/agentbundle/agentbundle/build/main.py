@@ -27,11 +27,13 @@ from typing import Iterable
 
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
+from agentbundle.build.validate import validate as validate_instance
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 RECIPES_DIR = PACKAGE_ROOT / "recipes"
 REPO_ROOT = PACKAGE_ROOT.parent.parent.parent.parent
 CONTRACT_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "contract.toml"
+PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "pack-schema.json"
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The three RFC-0001 recipes that plain `make build` invokes.
@@ -96,8 +98,21 @@ def discover_packs(packs_dir: Path) -> list[Pack]:
     packs: list[Pack] = []
     for entry in sorted(packs_dir.iterdir()):
         if entry.is_dir() and (entry / "pack.toml").exists():
+            validate_pack_metadata(entry / "pack.toml")
             packs.append(Pack(name=entry.name, path=entry))
     return packs
+
+
+def validate_pack_metadata(pack_toml_path: Path) -> None:
+    """Validate a pack.toml against pack-schema.json. Raise on errors."""
+    metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
+    schema = json.loads(PACK_SCHEMA_PATH.read_text(encoding="utf-8"))
+    errors = validate_instance(metadata, schema)
+    if errors:
+        raise ValueError(
+            f"pack metadata at {pack_toml_path} failed schema: "
+            + "; ".join(errors)
+        )
 
 
 def validate_pack_uniqueness(pack: Pack) -> None:

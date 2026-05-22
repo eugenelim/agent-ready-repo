@@ -156,8 +156,8 @@ recognises without an RFC or spec amendment:
 | `per-pack-apm-package` | RFC-0001 | `dist/apm/<pack>/` (one per pack) |
 | `marketplace` | RFC-0001 | `dist/claude-plugins/marketplace.json` (aggregate) |
 | `per-pack-overlay` | RFC-0002 | self-host overlay of `.apm/` + `seeds/` into the working tree |
-| `composite-agents-md` | RFC-0002 | composed `AGENTS.md` (or any composite text file) at the repo root |
-| `composite-marketplace` | RFC-0002 | composite of per-pack plugin manifests for the self-host marketplace |
+| `composite-agents-md` | RFC-0002 | composed `AGENTS.md` (or any composite text file) at the repo root *(this spec ships the recipe metadata + expansion-shape API; the on-disk writer is implemented by sibling spec `self-hosting`)* |
+| `composite-marketplace` | RFC-0002 | composite of per-pack plugin manifests for the self-host marketplace *(this spec ships the recipe metadata + expansion-shape API; the on-disk writer is implemented by sibling spec `self-hosting`)* |
 
 Any seventh recipe type requires a new RFC or a spec amendment — see
 Boundaries *Ask first*.
@@ -349,10 +349,14 @@ No manual QA: there is no UI surface, no human gesture under test.
   runs `pre-pr.sh` exits non-zero on any non-stdlib import under
   `packages/agentbundle/agentbundle/build/`.
 - [ ] `validate.py` implements a stdlib-only JSON-Schema subset (object,
-  array, string, integer, boolean, enum, required, pattern, items — and
+  array, string, integer, boolean, enum, required, pattern, items,
+  `properties` and `additionalProperties` for object recursion — and
   only these). The subset is documented in T1a's *Approach*. AC #1
   verifies `validate.py` accepts the conforming `contract.toml` and
-  rejects each mutation enumerated in `test_contract.py`.
+  rejects each mutation enumerated in `test_contract.py`. `properties`
+  and `additionalProperties` are load-bearing — every shipped schema
+  (`schema.json`, `pack-schema.json`, `plugin-manifest-schema.json`)
+  uses them to recurse into nested objects.
 - [ ] `make build` on a clean checkout, against the four reference
   fixture packs under
   `packages/agentbundle/agentbundle/build/tests/fixtures/packs/`

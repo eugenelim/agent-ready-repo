@@ -144,7 +144,9 @@ that hides serial-by-default thinking. `none` is a valid and common answer.
   - `packages/agentbundle/agentbundle/build/validate.py` — the
     stdlib JSON-Schema subset validator. **Subset commitment:**
     `type` (object/array/string/integer/boolean), `enum`, `required`,
-    `pattern` (via `re`), `items`. No `$ref`, no `oneOf`/`anyOf`, no
+    `pattern` (via `re`), `items`, plus `properties` and
+    `additionalProperties` for object recursion (load-bearing — every
+    shipped schema relies on them). No `$ref`, no `oneOf`/`anyOf`, no
     format keywords. Documented in this Approach so reviewers know
     not to ask for more. Spec AC #6 names the same subset.
   - `packages/agentbundle/agentbundle/build/tests/fixtures/README.md`
