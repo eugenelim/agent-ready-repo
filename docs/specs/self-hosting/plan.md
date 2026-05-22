@@ -1,7 +1,7 @@
 # Plan: self-hosting
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Implementing (Phase 1)
+- **Status:** Phase 1 shipped; Phase 2 pending
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -533,6 +533,15 @@ T6's PR diff.
   hook references in RFC-0002; add ACs anchoring marker
   resolution under `--self` with the stderr failure message
   format).
+- 2026-05-22 (post-merge, AC3): first real pack-side edit landed
+  through the pipeline.
+  [PR #20](https://github.com/eugenelim/agent-ready-repo/pull/20)
+  (merge commit `92735a1`) edited
+  `packs/core/seeds/docs/architecture/README.md` (a one-paragraph
+  pointer to the source-of-truth split convention) and re-projected
+  to `docs/architecture/README.md` via `make build-self`. The
+  required `make build-check` gate ran green on the PR before merge.
+  AC3 closed.
 - 2026-05-22 (post-merge, AC1b): registered `make build-check` as a
   required status check on `main` via
   `gh api -X PUT repos/eugenelim/agent-ready-repo/branches/main/protection`.
