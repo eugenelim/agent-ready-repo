@@ -35,6 +35,7 @@ run "agents-md hygiene"    bash tools/lint-agents-md.sh
 run "agent-artifact lint"  bash tools/lint-agent-artifacts.sh
 run "skill-deps lint"      bash tools/lint-skill-deps.sh
 run "knowledge lint"       bash tools/lint-knowledge.sh
+run "build lint"           bash tools/lint-build.sh
 
 shopt -s nullglob
 state_files=(docs/specs/*/state.json)
