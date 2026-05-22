@@ -199,7 +199,7 @@ def run_self_host(
     force: bool,
     contract: dict | None = None,
 ) -> int:
-    """Execute `make build --self` (or `--self --dry-run`)."""
+    """Execute `make build-self` (or `make build-self DRY_RUN=1`)."""
     if contract is None:
         contract = load_contract(CONTRACT_PATH)
 
@@ -251,7 +251,7 @@ def cmd_self(args) -> int:
 
 
 def cmd_check(args) -> int:
-    """`make build --check` — strict dry-run against the working tree."""
+    """`make build-check` — strict dry-run against the working tree."""
     return run_self_host(
         working_tree=Path(args.output_dir).resolve(),
         packs_dir=Path(args.packs_dir).resolve(),
