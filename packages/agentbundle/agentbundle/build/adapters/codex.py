@@ -58,14 +58,16 @@ def _project_managed_block(source_dir: Path, output_root: Path, rule: dict) -> N
                 continue
             skill_md = md_candidates[0]
         description = _extract_description(skill_md.read_text(encoding="utf-8"))
-        # Refuse a description that carries either delimiter literal — a
-        # pack-supplied description containing the end-marker would
-        # break the managed-block splice on the next idempotent run.
-        if start_marker in description or end_marker in description:
-            raise ValueError(
-                f"codex: skill {skill_dir.name!r} description contains a "
-                f"managed-block delimiter — refusing to splice."
-            )
+        # Refuse either the directory name or the description carrying a
+        # delimiter literal — both land in the managed block via
+        # f"- **{name}** — {description}" and either would break the
+        # splice on the next idempotent run.
+        for field_name, field_value in (("name", skill_dir.name), ("description", description)):
+            if start_marker in field_value or end_marker in field_value:
+                raise ValueError(
+                    f"codex: skill {skill_dir.name!r} {field_name} contains a "
+                    f"managed-block delimiter — refusing to splice."
+                )
         skills.append((skill_dir.name, description))
 
     skills.sort()
