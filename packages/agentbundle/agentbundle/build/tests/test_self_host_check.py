@@ -286,6 +286,14 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             self.assertIn("baz", data["hooks"])
 
     def test_managed_block_preserves_outside_content_under_self(self) -> None:
+        # Phase-1 self-host runs only the claude-code adapter (see
+        # docs/specs/self-hosting/spec.md § Phased rollout). The Codex
+        # adapter's managed-block splice into AGENTS.md ships in Phase 2
+        # once the multi-pack last-pack-wins aggregation gap is closed.
+        # This test exercises the splice path by widening the runner's
+        # allow-list explicitly for the duration of the call.
+        from unittest.mock import patch
+
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
@@ -299,6 +307,145 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             preamble = "# Custom AGENTS.md\n\nDo not lose me.\n"
             agents_md.write_text(preamble, encoding="utf-8")
 
+            with patch(
+                "agentbundle.build.self_host.SELF_HOST_ADAPTERS",
+                ("claude-code", "codex"),
+            ):
+                exit_code = run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=False,
+                    force=True,
+                    contract=self.contract,
+                )
+            self.assertEqual(exit_code, 0)
+            text = agents_md.read_text(encoding="utf-8")
+            self.assertIn("# Custom AGENTS.md", text)
+            self.assertIn("Do not lose me.", text)
+            self.assertIn("<!-- agent-skills:start -->", text)
+
+
+class SelfHostAdapterAllowListTests(unittest.TestCase):
+    """Phase-1 self-host allow-list (spec § Phased rollout / § Always do).
+
+    The allow-list is load-bearing: a future contributor adding the
+    `kiro` or `copilot` adapter to `ADAPTERS` (the global registry) but
+    not to `SELF_HOST_ADAPTERS` would otherwise produce a silent
+    no-op surprise. These tests pin the contract.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_non_allow_listed_adapter_is_skipped(self) -> None:
+        """An adapter registered in ADAPTERS and the contract but excluded
+        from SELF_HOST_ADAPTERS does not run under run_self_host."""
+        from unittest.mock import MagicMock, patch
+
+        from agentbundle.build import self_host as self_host_module
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            (working_tree / ".keep").write_text("", encoding="utf-8")
+            _git_commit_all(working_tree, "init")
+
+            # Register a sentinel adapter into both ADAPTERS and the
+            # contract; if SELF_HOST_ADAPTERS is honoured, it must not
+            # be invoked.
+            sentinel = MagicMock()
+            patched_adapters = dict(self_host_module.ADAPTERS)
+            patched_adapters["sentinel"] = sentinel
+            patched_contract = dict(self.contract)
+            patched_contract["adapter"] = {
+                **self.contract["adapter"],
+                "sentinel": {"projection": []},
+            }
+            with patch.object(self_host_module, "ADAPTERS", patched_adapters):
+                exit_code = self_host_module.run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=False,
+                    force=True,
+                    contract=patched_contract,
+                )
+            self.assertEqual(exit_code, 0)
+            sentinel.assert_not_called()
+
+    def test_allow_listed_adapter_runs(self) -> None:
+        """An adapter in SELF_HOST_ADAPTERS, registered in ADAPTERS and the
+        contract, IS invoked under run_self_host."""
+        from unittest.mock import MagicMock, patch
+
+        from agentbundle.build import self_host as self_host_module
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            (working_tree / ".keep").write_text("", encoding="utf-8")
+            _git_commit_all(working_tree, "init")
+
+            sentinel = MagicMock()
+            patched_adapters = dict(self_host_module.ADAPTERS)
+            patched_adapters["sentinel"] = sentinel
+            patched_contract = dict(self.contract)
+            patched_contract["adapter"] = {
+                **self.contract["adapter"],
+                "sentinel": {"projection": []},
+            }
+            with patch.object(self_host_module, "ADAPTERS", patched_adapters), \
+                 patch.object(
+                     self_host_module,
+                     "SELF_HOST_ADAPTERS",
+                     ("claude-code", "sentinel"),
+                 ):
+                exit_code = self_host_module.run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=False,
+                    force=True,
+                    contract=patched_contract,
+                )
+            self.assertEqual(exit_code, 0)
+            # Sentinel called once per discovered pack (one here).
+            self.assertEqual(sentinel.call_count, 1)
+
+
+class ForwardFlowIntegrationTests(unittest.TestCase):
+    """End-to-end forward-flow (plan T7): mutate a pack-side source,
+    re-project, and assert the projection updated AND the gate is clean
+    against the new content."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_forward_flow_pack_edit_re_projects_and_gate_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = _seed_pack(packs_dir, "core")
+            (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
+                "---\ndescription: foo\n---\n# foo v1\n",
+                encoding="utf-8",
+            )
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+
+            # Initial real-write seeds the projection.
             exit_code = run_self_host(
                 working_tree=working_tree,
                 packs_dir=packs_dir,
@@ -307,10 +454,37 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
                 contract=self.contract,
             )
             self.assertEqual(exit_code, 0)
-            text = agents_md.read_text(encoding="utf-8")
-            self.assertIn("# Custom AGENTS.md", text)
-            self.assertIn("Do not lose me.", text)
-            self.assertIn("<!-- agent-skills:start -->", text)
+            projected = working_tree / ".claude" / "skills" / "foo" / "SKILL.md"
+            self.assertIn("foo v1", projected.read_text(encoding="utf-8"))
+            _git_commit_all(working_tree, "initial projection")
+
+            # Mutate the pack-side source.
+            (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
+                "---\ndescription: foo\n---\n# foo v2\n",
+                encoding="utf-8",
+            )
+
+            # Re-projection picks up the new content.
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+            self.assertEqual(exit_code, 0)
+            self.assertIn("foo v2", projected.read_text(encoding="utf-8"))
+
+            # Gate is now clean against the freshly-projected content.
+            _git_commit_all(working_tree, "re-projection")
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=True,
+                force=False,
+                contract=self.contract,
+            )
+            self.assertEqual(exit_code, 0)
 
 
 class DirtyTreeStderrMessageTests(unittest.TestCase):

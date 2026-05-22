@@ -1,0 +1,50 @@
+# RFC-0002 self-host recipe — composes the four-pack overlay used by
+# `make build-self`.
+#
+# Phase-1 scope (see docs/specs/self-hosting/spec.md § Phased rollout):
+# the recipe loader recognises this file by name, but the runtime that
+# drives the three composite section types below (per-pack-overlay,
+# composite-agents-md, composite-marketplace) lands in Phase 2. Phase 1
+# uses the Claude Code adapter directly against every discovered pack
+# (see `packages/agentbundle/agentbundle/build/self_host.py:SELF_HOST_ADAPTERS`).
+# This file ships as the recipe-shape contract for the Phase-2 runtime.
+
+[recipe]
+name = "self-host"
+type = "composite"
+description = "Overlay every pack's Claude Code projection onto this repo; in Phase 2, additionally compose AGENTS.md from packs/core/seeds and aggregate .claude-plugin/marketplace.json across packs."
+
+[recipe.adapters]
+# Phase 2 runtime activates both adapters; Phase 1 runtime reads
+# `agentbundle.build.self_host.SELF_HOST_ADAPTERS` instead, which is
+# narrowed to `claude-code` only until the Codex multi-pack
+# managed-block aggregation gap closes.
+targets = ["claude-code", "codex"]
+
+[recipe.iterate]
+over = "packs/*/"
+read-pack-metadata = "pack.toml"
+
+[recipe.per-pack-overlay]
+root = "."
+copy-from-pack-apm = [
+  { from = "{pack.path}/.apm/skills/", to = ".claude/skills/" },
+  { from = "{pack.path}/.apm/agents/", to = ".claude/agents/" },
+  { from = "{pack.path}/.apm/commands/", to = ".claude/commands/" },
+  { from = "{pack.path}/.apm/hooks/", to = "tools/hooks/" },
+]
+copy-from-pack-seeds = [
+  { from = "{pack.path}/seeds/", to = "." },
+]
+
+[recipe.composite-agents-md]
+output-path = "AGENTS.md"
+template-from = "packs/core/seeds/AGENTS.md"
+managed-block-adapter = "codex"
+managed-block-content-source = "all-installed-packs"
+footer-from = "packs/core/seeds/_agents-footer.md"
+
+[recipe.composite-marketplace]
+output-path = ".claude-plugin/marketplace.json"
+aggregate-from = "packs/*/.claude-plugin/plugin.json"
+owner = { name = "eugenelim" }
