@@ -228,6 +228,114 @@ class MarkerResolutionTests(unittest.TestCase):
             self.assertIn("<adapt:unknown>", text)
 
 
+class WorkingTreeOnConflictTests(unittest.TestCase):
+    """`--self` must honour each adapter's on-conflict policy against
+    the working tree. The previous render-to-temp pattern broke this
+    because the temp dir started empty."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_merge_json_preserves_unrelated_keys_under_self(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = _seed_pack(packs_dir, "core")
+            (pack / ".apm" / "hook-wiring").mkdir(parents=True)
+            (pack / ".apm" / "hook-wiring" / "baz.toml").write_text(
+                '[hooks]\nbaz = "tools/hooks/baz.sh"\n',
+                encoding="utf-8",
+            )
+
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            settings_path = working_tree / ".claude" / "settings.local.json"
+            settings_path.parent.mkdir(parents=True)
+            settings_path.write_text(
+                json.dumps({"otherKey": {"preserved": True}}),
+                encoding="utf-8",
+            )
+
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+            self.assertEqual(exit_code, 0)
+            data = json.loads(settings_path.read_text(encoding="utf-8"))
+            # Existing key survives — merge-managed-key-only honoured.
+            self.assertEqual(data["otherKey"], {"preserved": True})
+            # New hooks-key content landed.
+            self.assertIn("baz", data["hooks"])
+
+    def test_managed_block_preserves_outside_content_under_self(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            agents_md = working_tree / "AGENTS.md"
+            preamble = "# Custom AGENTS.md\n\nDo not lose me.\n"
+            agents_md.write_text(preamble, encoding="utf-8")
+
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+            self.assertEqual(exit_code, 0)
+            text = agents_md.read_text(encoding="utf-8")
+            self.assertIn("# Custom AGENTS.md", text)
+            self.assertIn("Do not lose me.", text)
+            self.assertIn("<!-- agent-skills:start -->", text)
+
+
+class DirtyTreeStderrMessageTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_refusal_message_names_dirty_tree(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            (working_tree / "tracked.txt").write_text("a\n", encoding="utf-8")
+            _git_commit_all(working_tree, "seed")
+            (working_tree / "tracked.txt").write_text("b\n", encoding="utf-8")
+
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                exit_code = run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=False,
+                    force=False,
+                    contract=self.contract,
+                )
+            self.assertNotEqual(exit_code, 0)
+            self.assertIn("dirty", buf.getvalue())
+            self.assertIn("refusing", buf.getvalue())
+
+
 class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
     """Spec § Boundaries: only --self resolves markers. Plain `make build`
     must copy `<adapt:NAME>` markers through unchanged."""

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -146,7 +147,6 @@ def _cmd_scaffold(args) -> int:
         print(f"scaffold: no seeds/ in pack {args.pack!r}", file=sys.stderr)
         return 1
     output.mkdir(parents=True, exist_ok=True)
-    import shutil
     for entry in pack_seeds.iterdir():
         destination = output / entry.name
         if entry.is_dir():

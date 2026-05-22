@@ -1,15 +1,23 @@
 """Self-host build mode — `make build --self` and `make build --check`.
 
-Renders projections to a temp directory, optionally diffs against
-on-disk paths in the working tree, and (for the real-write `--self`
-flow) resolves `<adapt:NAME>` markers against `.adapt-discovery.toml`
-as a final step. Marker resolution is the ONE place install-time
-substitution happens — every other build mode copies markers through
-unchanged (spec § Boundaries — Never do).
+Real-write (`--self` without `--dry-run`) projects adapters **directly
+into the working tree**, so the adapters' merge / splice logic operates
+against the working tree's existing content — that's what makes
+`merge-managed-key-only` (Claude Code) and `preserve-outside-block`
+(Codex) correct against the adopter's actual files.
 
-The `.adapt-discovery.toml` *materialisation* (turning this repo's
-concrete values into the toml file) lives in the `adapt-to-project`
-skill, out of scope here. T7 ships only the consumer.
+Dry-run (`--self --dry-run`, and `--check`) clones the adapter target
+subtree (`.claude/`, `tools/hooks/`, `.github/`, `AGENTS.md`) into a
+fresh temp dir first, projects into the clone, then diffs the clone
+against the working tree. The clone-then-project pattern keeps the
+existing-content merge semantics intact under dry-run too.
+
+Marker resolution (`<adapt:NAME>` → discovery value) is the ONE place
+install-time substitution happens — every other build mode copies
+markers through unchanged (spec § Boundaries — Never do). The
+`.adapt-discovery.toml` *materialisation* lives in the
+`adapt-to-project` skill, out of scope here. T7 ships only the
+consumer.
 """
 
 from __future__ import annotations
@@ -32,6 +40,15 @@ from agentbundle.build.main import (
 
 ADAPT_MARKER_RE = re.compile(r"<adapt:([A-Za-z0-9_-]+)>")
 
+# The adapter-target subtree — paths every adapter could touch. Used
+# to clone working-tree state into a dry-run shadow.
+TARGET_PATHS = (
+    Path(".claude"),
+    Path("tools") / "hooks",
+    Path(".github") / "instructions",
+    Path("AGENTS.md"),
+)
+
 
 def is_dirty_tree(working_tree: Path) -> bool:
     """Return True if `git status --porcelain` against working_tree is non-empty."""
@@ -43,16 +60,19 @@ def is_dirty_tree(working_tree: Path) -> bool:
         check=False,
     )
     if result.returncode != 0:
+        # Not a git repo, or git is unavailable — surface and treat as
+        # clean to avoid blocking unrelated tooling, but log it.
+        print(
+            f"self-host: warning — `git status` failed in {working_tree} "
+            f"(exit {result.returncode}); proceeding as if clean.",
+            file=sys.stderr,
+        )
         return False
     return bool(result.stdout.strip())
 
 
 def resolve_markers(root: Path, discovery: dict[str, str]) -> int:
-    """Walk every text file under root and substitute <adapt:NAME> markers.
-
-    Returns the number of files modified. Binary files are skipped
-    (UnicodeDecodeError treated as binary).
-    """
+    """Walk every text file under root and substitute <adapt:NAME> markers."""
     modified = 0
     for path in root.rglob("*"):
         if not path.is_file():
@@ -73,52 +93,53 @@ def resolve_markers(root: Path, discovery: dict[str, str]) -> int:
     return modified
 
 
-def project_to_temp(
-    working_tree: Path,
+def _clone_target_subtree(working_tree: Path, destination: Path) -> None:
+    """Copy adapter-target paths from working_tree into destination."""
+    for relative in TARGET_PATHS:
+        source = working_tree / relative
+        if not source.exists():
+            continue
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, target)
+        else:
+            shutil.copy2(source, target)
+
+
+def _project_all_adapters(
+    output_root: Path,
     packs_dir: Path,
     contract: dict,
-) -> Path:
-    """Render every adapter against every pack into a fresh temp dir.
-
-    Returns the temp dir path; caller cleans up.
-    """
-    temp_dir = Path(tempfile.mkdtemp(prefix="agentbundle-self-"))
+) -> None:
+    """Run every contract-declared adapter against every discovered pack."""
     packs = discover_packs(packs_dir)
     for pack in packs:
         validate_pack_uniqueness(pack)
     for adapter_name, project in ADAPTERS.items():
         if adapter_name not in contract["adapter"]:
             continue
-        adapter_output = temp_dir / adapter_name
-        adapter_output.mkdir()
         for pack in packs:
-            project(pack.path, contract, adapter_output)
-    return temp_dir
+            project(pack.path, contract, output_root)
 
 
-def diff_against_working_tree(temp_dir: Path, working_tree: Path) -> list[str]:
-    """Return a list of per-file drift lines comparing rendered output
-    against the corresponding paths in the working tree."""
+def diff_against_working_tree(shadow: Path, working_tree: Path) -> list[str]:
+    """Compare every file in `shadow` against the corresponding path in
+    `working_tree`. Returns per-file drift lines."""
     drifts: list[str] = []
-    # We compare adapter-by-adapter so each rendered file maps to the
-    # working tree's path 1:1 (the adapter wrote into temp_dir/<adapter>/
-    # and the working tree carries the same relative path).
-    for adapter_root in sorted(temp_dir.iterdir()):
-        if not adapter_root.is_dir():
+    for rendered in shadow.rglob("*"):
+        if not rendered.is_file():
             continue
-        for rendered in adapter_root.rglob("*"):
-            if not rendered.is_file():
-                continue
-            relative = rendered.relative_to(adapter_root)
-            on_disk = working_tree / relative
-            if not on_disk.exists():
-                drifts.append(f"missing: {relative}")
-                continue
-            try:
-                if rendered.read_bytes() != on_disk.read_bytes():
-                    drifts.append(f"drift: {relative}")
-            except OSError as exc:
-                drifts.append(f"unreadable: {relative} ({exc})")
+        relative = rendered.relative_to(shadow)
+        on_disk = working_tree / relative
+        if not on_disk.exists():
+            drifts.append(f"missing: {relative}")
+            continue
+        try:
+            if rendered.read_bytes() != on_disk.read_bytes():
+                drifts.append(f"drift: {relative}")
+        except OSError as exc:
+            drifts.append(f"unreadable: {relative} ({exc})")
     return drifts
 
 
@@ -129,11 +150,7 @@ def run_self_host(
     force: bool,
     contract: dict | None = None,
 ) -> int:
-    """Execute `make build --self` (or `--self --dry-run`).
-
-    Returns an exit code: 0 on success/clean diff, non-zero on
-    refusal/drift.
-    """
+    """Execute `make build --self` (or `--self --dry-run`)."""
     if contract is None:
         contract = load_contract(CONTRACT_PATH)
 
@@ -145,10 +162,12 @@ def run_self_host(
         )
         return 2
 
-    temp_dir = project_to_temp(working_tree, packs_dir, contract)
-    try:
-        if dry_run:
-            drifts = diff_against_working_tree(temp_dir, working_tree)
+    if dry_run:
+        with tempfile.TemporaryDirectory(prefix="agentbundle-shadow-") as shadow_str:
+            shadow = Path(shadow_str)
+            _clone_target_subtree(working_tree, shadow)
+            _project_all_adapters(shadow, packs_dir, contract)
+            drifts = diff_against_working_tree(shadow, working_tree)
             if drifts:
                 print(
                     f"self-host: dry-run found {len(drifts)} drift(s):",
@@ -159,29 +178,18 @@ def run_self_host(
                 return 1
             return 0
 
-        # Real write: copy rendered output into the working tree, then
-        # resolve markers as the final step.
-        for adapter_root in temp_dir.iterdir():
-            if not adapter_root.is_dir():
-                continue
-            for rendered in adapter_root.rglob("*"):
-                if not rendered.is_file():
-                    continue
-                relative = rendered.relative_to(adapter_root)
-                destination = working_tree / relative
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(rendered, destination)
-        discovery_path = working_tree / ".adapt-discovery.toml"
-        if discovery_path.exists():
-            discovery_data = tomllib.loads(discovery_path.read_text(encoding="utf-8"))
-            discovery_flat = {
-                str(key): str(value)
-                for key, value in discovery_data.get("adapt", {}).items()
-            }
-            resolve_markers(working_tree, discovery_flat)
-        return 0
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+    # Real write: project directly into the working tree so adapter
+    # merge/splice logic sees existing content.
+    _project_all_adapters(working_tree, packs_dir, contract)
+    discovery_path = working_tree / ".adapt-discovery.toml"
+    if discovery_path.exists():
+        discovery_data = tomllib.loads(discovery_path.read_text(encoding="utf-8"))
+        discovery_flat = {
+            str(key): str(value)
+            for key, value in discovery_data.get("adapt", {}).items()
+        }
+        resolve_markers(working_tree, discovery_flat)
+    return 0
 
 
 def cmd_self(args) -> int:
@@ -195,11 +203,20 @@ def cmd_self(args) -> int:
 
 def cmd_check(args) -> int:
     """`make build --check` — strict dry-run against the working tree."""
-    args.dry_run = True
-    args.force = False
     return run_self_host(
         working_tree=Path(args.output_dir).resolve(),
         packs_dir=Path(args.packs_dir).resolve(),
         dry_run=True,
         force=False,
     )
+
+
+# Re-export project_to_temp for any external caller that still relies
+# on the older API (tests previously imported this helper). The new
+# self-host implementation uses _project_all_adapters internally
+# against the working tree (or a shadow clone of it).
+def project_to_temp(working_tree: Path, packs_dir: Path, contract: dict) -> Path:
+    temp_dir = Path(tempfile.mkdtemp(prefix="agentbundle-self-"))
+    _clone_target_subtree(working_tree, temp_dir)
+    _project_all_adapters(temp_dir, packs_dir, contract)
+    return temp_dir

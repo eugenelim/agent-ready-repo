@@ -51,7 +51,10 @@ class EndToEndBuildTests(unittest.TestCase):
             marketplace = tmp_path / "claude-plugins" / "marketplace.json"
             self.assertTrue(marketplace.exists())
             entries = json.loads(marketplace.read_text(encoding="utf-8"))
-            self.assertEqual(len(entries["plugins"]), len(REFERENCE_PACKS))
+            self.assertEqual(
+                {entry["name"] for entry in entries["plugins"]},
+                set(REFERENCE_PACKS),
+            )
             for pack in REFERENCE_PACKS:
                 self.assertTrue((tmp_path / "claude-plugins" / pack).exists())
                 self.assertTrue((tmp_path / "apm" / pack).exists())
@@ -60,7 +63,16 @@ class EndToEndBuildTests(unittest.TestCase):
         """AC: plain `make build` produces only dist/apm, dist/claude-plugins,
         and dist/claude-plugins/marketplace.json — never the three self-host
         recipes' artefacts (overlay output in the working tree, composite
-        AGENTS.md, composite marketplace)."""
+        AGENTS.md, composite marketplace). Verifies AC #14: working tree is
+        unchanged after the run (git status --porcelain returns byte-
+        identical output before and after)."""
+        before = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout
         with tempfile.TemporaryDirectory() as tmp:
             result = _run_build(
                 [
@@ -74,10 +86,15 @@ class EndToEndBuildTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             tmp_path = Path(tmp)
             self.assertFalse((tmp_path / "AGENTS.md").exists())
-            # The composite marketplace lives at .claude-plugin/marketplace.json
-            # (distinct from the aggregating marketplace.json at
-            # claude-plugins/marketplace.json).
             self.assertFalse((tmp_path / ".claude-plugin" / "marketplace.json").exists())
+        after = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout
+        self.assertEqual(before, after, "plain `make build` modified the working tree")
 
 
 class CheckCommandTests(unittest.TestCase):
@@ -129,31 +146,36 @@ class CheckCommandTests(unittest.TestCase):
 
 class ScaffoldCommandTests(unittest.TestCase):
     def test_scaffold_copies_seeds_into_output(self) -> None:
-        # core pack has no seeds/ directory in the fixture, so we make one.
-        seeds_dir = FIXTURES_PACKS / "core" / "seeds"
-        created_seeds = not seeds_dir.exists()
-        if created_seeds:
-            seeds_dir.mkdir()
-            (seeds_dir / "AGENTS.md").write_text("# seeded\n", encoding="utf-8")
-        try:
-            with tempfile.TemporaryDirectory() as tmp:
-                result = _run_build(
-                    [
-                        "scaffold",
-                        "--packs-dir",
-                        str(FIXTURES_PACKS),
-                        "--pack",
-                        "core",
-                        "--output",
-                        tmp,
-                    ]
-                )
-                self.assertEqual(result.returncode, 0, msg=result.stderr)
-                self.assertTrue((Path(tmp) / "AGENTS.md").exists())
-        finally:
-            if created_seeds:
-                (seeds_dir / "AGENTS.md").unlink()
-                seeds_dir.rmdir()
+        """Scaffold copies a pack's seeds/ to the named output directory.
+
+        Uses a tempfile-based packs dir so the source fixture tree stays
+        untouched even if the test is interrupted mid-run.
+        """
+        import shutil
+
+        with tempfile.TemporaryDirectory() as workspace:
+            workspace_path = Path(workspace)
+            packs_clone = workspace_path / "packs"
+            shutil.copytree(FIXTURES_PACKS, packs_clone)
+            (packs_clone / "core" / "seeds").mkdir()
+            (packs_clone / "core" / "seeds" / "AGENTS.md").write_text(
+                "# seeded\n", encoding="utf-8"
+            )
+            output_dir = workspace_path / "out"
+
+            result = _run_build(
+                [
+                    "scaffold",
+                    "--packs-dir",
+                    str(packs_clone),
+                    "--pack",
+                    "core",
+                    "--output",
+                    str(output_dir),
+                ]
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertTrue((output_dir / "AGENTS.md").exists())
 
 
 if __name__ == "__main__":
