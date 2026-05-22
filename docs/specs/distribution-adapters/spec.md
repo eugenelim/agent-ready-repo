@@ -39,10 +39,53 @@ This spec also pins:
 - The **Tier-1/2/3 contract** (which files the bundle owns, which it shares
   with adopter edits, which it never touches) and the
   `.agent-ready-state.toml` schema and `.upstream.<ext>` companion semantics
-  that operationalise it. These are bundle-format concerns; sibling specs
-  (self-hosting, CLI) consume the definitions defined here.
+  that operationalise it. **This spec pins the schemas only; the
+  lifecycle behaviour** (companion-file creation/removal,
+  `.agent-ready-state.toml` writes, Tier-2 detection on initial install)
+  **is implemented by sibling specs** — `self-hosting` for `make build
+  --self` and RFC-0003's CLI for install/update flows. No task in this
+  plan implements Tier-2 behaviour; it pins the contract the consumers
+  obey.
 - The enumerated **recipe set** — the six recipe types RFC-0001 and RFC-0002
   jointly define. Any seventh recipe type requires an RFC or spec amendment.
+
+## Projection modes (defined)
+
+The seven projection modes RFC-0001 enumerates and this spec ships in
+`contract.toml`. Sibling specs reading this spec for projection-mode
+semantics should find them here; AC #2's enum is defined-by-reference
+to this list.
+
+- **`direct-directory`** — copy a source directory tree byte-for-byte to
+  the projected path. Default `on-conflict`: `prompt-then-preserve`.
+- **`direct-file`** — copy a single source file byte-for-byte to the
+  projected path. Default `on-conflict`: `prompt-then-preserve`.
+- **`merge-json`** — deep-merge the source's JSON payload into a managed
+  key of a target JSON file. Other keys are untouched. Default
+  `on-conflict`: `merge-managed-key-only`.
+- **`instruction-file`** — wrap source content as a per-file instruction
+  document with adapter-declared frontmatter (e.g. Copilot's `applyTo`).
+  Default `on-conflict`: `prompt-then-overwrite`.
+- **`managed-block-inline`** — write the source content between
+  delimiter strings inside a target text file; content outside the
+  delimiters is preserved. Default `on-conflict`: `preserve-outside-block`.
+- **`degraded-info-log`** — emit an `[info]` line on stderr at build
+  time, write no file. Used when an adapter lacks a schema for a
+  primitive (RFC-0001 Unresolved Q1, Kiro hook wiring).
+- **`dropped`** — explicit no-op; no output file, no warning. The
+  contract carries the `dropped` rule so the missing pair is intentional,
+  not an oversight.
+
+## Default-recipe behaviour
+
+Plain `make build` (no flags) invokes only the three RFC-0001 recipes —
+`per-pack-claude-plugin`, `per-pack-apm-package`, and `marketplace` —
+producing `dist/` output without touching the working tree. The three
+RFC-0002 recipes (`per-pack-overlay`, `composite-agents-md`,
+`composite-marketplace`) are self-host recipes; they fire only under
+`make build --self` (and never under `--check`, which is dry-run). This
+keeps `make build` deterministic and side-effect-free against the
+working tree — the property that lets CI run it without pre-cleanup.
 
 ## Tier model and adopter-edit semantics
 
@@ -310,11 +353,17 @@ No manual QA: there is no UI surface, no human gesture under test.
   only these). The subset is documented in T1a's *Approach*. AC #1
   verifies `validate.py` accepts the conforming `contract.toml` and
   rejects each mutation enumerated in `test_contract.py`.
-- [ ] `make build` on a clean checkout (the four reference packs
-  materialised in `packs/`) produces `dist/apm/<pack>/` and
+- [ ] `make build` on a clean checkout, against the four reference
+  fixture packs under
+  `packages/agentbundle/agentbundle/build/tests/fixtures/packs/`
+  (`core`, `governance-extras`, `user-guide-diataxis`,
+  `monorepo-extras`), produces `dist/apm/<pack>/` and
   `dist/claude-plugins/<pack>/` directories for each of the four
   reference packs and a single `dist/claude-plugins/marketplace.json`
-  listing every per-pack plugin entry; exit code zero.
+  listing every per-pack plugin entry; exit code zero. **Materialisation
+  of production packs in a top-level `packs/` directory is out of
+  scope** — that migration is RFC-0001's F-dist follow-on. This spec
+  ships the pipeline; production packs land separately.
 - [ ] Each adapter (`claude_code`, `kiro`, `copilot`, `codex`) has a
   per-adapter unit-test file under
   `packages/agentbundle/agentbundle/build/tests/` covering every
@@ -338,19 +387,38 @@ No manual QA: there is no UI surface, no human gesture under test.
 - [ ] `make build --self` writes projected output to the working tree,
   resolves `<adapt:NAME>` markers against `.adapt-discovery.toml` as a
   final step (the one authorised mode for marker resolution per
-  Boundaries § Never do), refuses on a dirty tree without `--force`,
-  and (with `--force`) honours each adapter's declared `on-conflict`
-  policy from `contract.toml` — `--force` overrides only the dirty-tree
-  refusal, never the per-adapter on-conflict default. Sibling spec
-  `self-hosting` cites this AC.
+  Boundaries § Never do), **refuses on a dirty tree without `--force`
+  and exits non-zero with stderr naming the refusal** (verified by a
+  T7 test against a dirty-tree fixture), and (with `--force`) honours
+  each adapter's declared `on-conflict` policy from `contract.toml` —
+  `--force` overrides only the dirty-tree refusal, never the
+  per-adapter on-conflict default. The substitution pass (read
+  `.adapt-discovery.toml`, replace `<adapt:NAME>` markers across
+  rendered output) is implemented by T7; the *materialisation* of
+  `.adapt-discovery.toml` from repo values lives in the
+  `adapt-to-project` skill (out of scope here — T7 ships only the
+  consumer). Sibling spec `self-hosting` cites this AC.
 - [ ] The supported recipe set is exactly the six types named in
   § Recipe set (`per-pack-claude-plugin`, `per-pack-apm-package`,
   `marketplace`, `per-pack-overlay`, `composite-agents-md`,
   `composite-marketplace`); a seventh requires an amendment to this
   spec or a new RFC. Sibling specs (self-hosting, CLI) cite this AC
   when consuming the recipe set.
-- [ ] No new top-level source directory is introduced. Verified by
-  `comm -23 <(git ls-tree --name-only HEAD | sort) <(git ls-tree
-  --name-only main | sort)` returning an empty set after the change
-  lands. `dist/` is git-ignored and does not count. No non-stdlib
-  Python import is added (verified by the import-audit check above).
+- [ ] No new top-level source **directory** is introduced. Verified by
+  `comm -23 <(git ls-tree -d --name-only HEAD | sort) <(git ls-tree
+  -d --name-only "$(git merge-base HEAD main)" | sort)` returning an
+  empty set after the change lands — the `-d` flag scopes the audit
+  to directories (so `Makefile`, `.gitignore`, and other root-level
+  files this spec touches do not trip it), and the merge-base
+  comparison keeps the audit correct after a merge from `main` into
+  the feature branch. `dist/` is git-ignored and does not count. No
+  non-stdlib Python import is added (verified by the import-audit
+  check above).
+- [ ] Plain `make build` (no flags) produces only `dist/apm/<pack>/`,
+  `dist/claude-plugins/<pack>/`, and `dist/claude-plugins/marketplace.json`
+  — it does **not** invoke the three self-host recipes
+  (`per-pack-overlay`, `composite-agents-md`, `composite-marketplace`).
+  The working tree is unchanged after the run (verified by `git
+  status` against the working tree before and after, returning byte-
+  identical output). This pins the property § Default-recipe behaviour
+  declares; T8 owns the test.
