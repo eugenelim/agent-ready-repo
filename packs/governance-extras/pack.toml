@@ -1,0 +1,6 @@
+[pack]
+name = "governance-extras"
+version = "0.1.0"
+description = "Governance skills (new-rfc, new-adr, update-conventions) and RFC/ADR templates + seed READMEs."
+recommends = ["core"]
+

@@ -20,15 +20,15 @@ passes; this plan cites by description rather than number, and the
 orchestrator reconciles after both fix-passes merge.
 The build pipeline lives at `packages/agentbundle/agentbundle/build/`
 with a thin shim at `tools/build/build.py`; user-facing entry points
-are `make build --self` and `make build --check`. Once the sibling
+are `make build-self` and `make build-check`. Once the sibling
 amendments and pipeline machinery exist, the self-host work is:
 (1) author the four packs, (2) write the `self-host.toml` recipe using
 the three composite section types defined in the distribution-adapters
-spec, (3) author `.adapt-discovery.toml` so `make build --self` can
+spec, (3) author `.adapt-discovery.toml` so `make build-self` can
 resolve this repo's `<adapt:NAME>` markers as the final build step,
-(4) reconcile pack-side sources until `make build --self --dry-run` is
+(4) reconcile pack-side sources until `make build-self DRY_RUN=1` is
 a byte-identical no-op, (5) flip the cutover commit, then (6) wire
-`make build --check` as a required CI status and amend
+`make build-check` as a required CI status and amend
 `docs/CONVENTIONS.md`. The riskiest piece is the reconcile loop —
 every inadvertent whitespace, line-ending, or ordering delta between
 the current hand-maintained projection and the pack-side source
@@ -37,7 +37,7 @@ surfaces as drift. The migration PR pays that cost once.
 ## Constraints
 
 - [RFC-0002](../../rfc/0002-self-hosting.md) — source-of-truth split,
-  the `--self` flag's semantics, the `make build --check` CI gate, the
+  the `--self` flag's semantics, the `make build-check` CI gate, the
   `self-host.toml` recipe shape, and the migration plan. RFC-0002's
   *Projected* and *Excluded* tables are the load-bearing list this plan
   implements.
@@ -56,8 +56,8 @@ IDs directly. The sibling spec's tasks are: T1a (adapter contract +
 schemas), T1b (`pack.toml` schema), T1c (`plugin.json` schema), T2
 (Claude Code adapter), T3 (Kiro adapter), T4 (Copilot adapter), T5
 (Codex adapter), T6 (build pipeline + recipe dispatch covering all
-six recipe types), T7 (`make build --self --dry-run` + comparison
-gate machinery), T8 (Makefile surface + `make build --check`), T9
+six recipe types), T7 (`make build-self DRY_RUN=1` + comparison
+gate machinery), T8 (Makefile surface + `make build-check`), T9
 (stdlib-only + no-new-top-level audit). The minimum dependency set
 for each self-hosting task is named under its `Depends on:` field.
 
@@ -69,14 +69,14 @@ The cross-cutting ones:
 **Integration tests:**
 
 - End-to-end self-host smoke: from a clean checkout post-cutover,
-  `make build --self` exits 0 with `git status --porcelain` empty.
+  `make build-self` exits 0 with `git status --porcelain` empty.
 - End-to-end drift detection: introduce a one-character edit to a
   projected path (e.g. `.claude/skills/work-loop/SKILL.md`), run `make
   build --check`, assert non-zero exit and a `[drift]` line naming the
   pack-side source.
 - End-to-end forward-flow: introduce a one-character edit to the
-  pack-side source for the same file, run `make build --self`, assert
-  the projected path is updated to match, assert `make build --check`
+  pack-side source for the same file, run `make build-self`, assert
+  the projected path is updated to match, assert `make build-check`
   is then clean.
 
 **Manual verification:**
@@ -203,20 +203,20 @@ machinery), T8 (Makefile + `--check` surface).
 
 **Tests:**
 
-- TDD: `make build --self` on clean tree exits 0; output root is the
+- TDD: `make build-self` on clean tree exits 0; output root is the
   repo (not `dist/`); recipe selection is implicit (`self-host.toml`).
-- TDD: `make build --self` on dirty tree exits non-zero with a stderr
+- TDD: `make build-self` on dirty tree exits non-zero with a stderr
   line containing the named dirty-tree refusal reason. Verifies
   Acceptance Criterion 4.
-- TDD: `make build --self --force` on dirty tree proceeds; the
+- TDD: `make build-self FORCE=1` on dirty tree proceeds; the
   byte-equality comparison still runs (no bypass). Verifies Acceptance
   Criterion 4.
 - TDD: `make build` without `--self` writes to `dist/` (the existing
   distribution build is preserved).
-- TDD: with `.adapt-discovery.toml` present, `make build --self`
+- TDD: with `.adapt-discovery.toml` present, `make build-self`
   resolves every `<adapt:NAME>` marker in source to its repo-local
   concrete value as the final build step (per the distribution-adapters
-  spec's Acceptance Criterion for `make build --self`, which pins that
+  spec's Acceptance Criterion for `make build-self`, which pins that
   `--self` writes to the tree, resolves markers, refuses dirty trees
   without `--force`, and honours on-conflict). Without the file, the
   build fails fast with a stderr message in the form
@@ -243,7 +243,7 @@ distribution build (no `--self`) continues to write into `dist/`;
 `<adapt:NAME>` markers in source resolve to repo-local values only
 under `--self`.
 
-### T4: `make build --check` gate behaviour
+### T4: `make build-check` gate behaviour
 
 **Depends on:** T2, `distribution-adapters` T7 (`--check` command),
 T8 (Makefile surface).
@@ -275,20 +275,20 @@ T8 (Makefile surface).
   regeneration command, per the example in RFC-0002 § Round-trip
   safety.
 - TDD (regression): a fixture injects drift on a projected path;
-  `make build --check` exits non-zero regardless of `--force` or any
+  `make build-check` exits non-zero regardless of `--force` or any
   other flag combination. The gate has no bypass surface.
 - Goal-based (CI lint): `grep -E 'skip|bypass|SKIP_'` over the build
   code under `packages/agentbundle/agentbundle/build/` fails CI if any
   unguarded exit branch with those tokens is introduced.
 - Goal-based: `.github/workflows/build-check.yml` exists and runs
-  `make build --check` on PRs targeting `main`; the workflow exits 0
+  `make build-check` on PRs targeting `main`; the workflow exits 0
   when the projection is up-to-date. Verifies Acceptance Criterion 1a.
 
 **Approach:**
 
-- Implement `make build --check` as a separate sub-command (or as
-  `make build --self --check` — settle in T3's CLI design, but the
-  externally-named contract is `make build --check`). The
+- Implement `make build-check` as a separate sub-command (or as
+  `make build-check` — settle in T3's CLI design, but the
+  externally-named contract is `make build-check`). The
   implementation lives in `packages/agentbundle/agentbundle/build/`;
   `tools/build/build.py` is a thin shim.
 - Implementation: project into a temp directory, walk the *Projected*
@@ -303,14 +303,14 @@ drift on a feature branch produces a red CI status (covers Acceptance
 Criterion 1a); the `--force` regression test and the `grep` lint both
 fail CI when violated.
 
-### T5: Reconcile pack-side sources until `make build --self --dry-run` is a byte-identical no-op
+### T5: Reconcile pack-side sources until `make build-self DRY_RUN=1` is a byte-identical no-op
 
 **Depends on:** T1, T2, T3, T4 (no additional sibling-spec deps
 beyond those carried by T1–T4).
 
 **Tests:**
 
-- Goal-based: `make build --self --dry-run` on the feature branch
+- Goal-based: `make build-self DRY_RUN=1` on the feature branch
   exits 0 and reports zero would-be-changed paths.
 - Goal-based: integration test under *Construction tests* above
   (drift introduction + forward-flow) passes locally.
@@ -333,7 +333,7 @@ beyond those carried by T1–T4).
   enumerating `docs/rfc/NNNN-*.md`, `docs/adr/NNNN-*.md`,
   `docs/specs/<feature>/*` against the *Excluded* table.
 
-**Done when:** `make build --self --dry-run` reports zero changes;
+**Done when:** `make build-self DRY_RUN=1` reports zero changes;
 `git diff` against base shows only `packs/`,
 `packages/agentbundle/agentbundle/build/` (and the `tools/build/`
 shim), and adapter-contract edits.
@@ -344,9 +344,9 @@ shim), and adapter-contract edits.
 
 **Tests:**
 
-- Goal-based: post-merge, `make build --self` on `main` exits 0 with
+- Goal-based: post-merge, `make build-self` on `main` exits 0 with
   `git status --porcelain` empty. Verifies Acceptance Criterion 2.
-- Manual QA: post-merge, `make build --check` is registered as a
+- Manual QA: post-merge, `make build-check` is registered as a
   required status check on branch protection for `main`. Artifact: the
   output of `gh api repos/{owner}/{repo}/branches/main/protection`
   showing the workflow's job under
@@ -356,7 +356,7 @@ shim), and adapter-contract edits.
   `§ Pack source-of-truth split`; the section text mentions both
   `packs/*/.apm/` and `packs/*/seeds/` as upstream sources for
   projected paths; it cites RFC-0002 as the authority; it cites
-  `make build --check` as the enforcing gate. Each claim is verified
+  `make build-check` as the enforcing gate. Each claim is verified
   by a separate `grep` one-liner. Verifies Acceptance Criterion 5.
 - Goal-based: the projected root `AGENTS.md` is composed from BOTH
   `packs/core/seeds/AGENTS.md` (head matches body source) AND
@@ -372,13 +372,13 @@ shim), and adapter-contract edits.
 
 **Approach:**
 
-- Per RFC-0002's *Migration plan* step 3: run `make build --self` for
+- Per RFC-0002's *Migration plan* step 3: run `make build-self` for
   real; commit the result. The commit records that projected content
   matches source.
 - Amend `docs/CONVENTIONS.md` to describe the pack source-of-truth
   split (a new sub-section under § *Document hierarchy* or a sibling
   section, whichever the reviewer prefers). Cite RFC-0002.
-- Per RFC-0002's *Migration plan* step 4: flip `make build --check`
+- Per RFC-0002's *Migration plan* step 4: flip `make build-check`
   to *required* in branch protection for `main`. **PR ordering is
   pinned:** T6's main PR closes Acceptance Criterion 1a (the workflow
   file exists and runs green); Acceptance Criterion 1b's branch-
@@ -391,7 +391,7 @@ shim), and adapter-contract edits.
 - Update `docs/specs/README.md` to mark this spec as Implementing
   (then Shipped after T7).
 
-**Done when:** the post-merge `make build --self` no-op check passes
+**Done when:** the post-merge `make build-self` no-op check passes
 on `main`; the `docs/CONVENTIONS.md` amendment is present with all
 four claims; the `AGENTS.md` composition check passes; the seed
 README byte-equality check passes. Acceptance Criterion 1a is
@@ -405,13 +405,13 @@ recorded in the post-merge Rollout step.
 **Tests:**
 
 - Manual QA: per the spec's *Testing Strategy*, make a small
-  observable edit to a `packs/*/` source, run `make build --self`,
-  commit, open PR, verify `make build --check` green, merge. Record
+  observable edit to a `packs/*/` source, run `make build-self`,
+  commit, open PR, verify `make build-check` green, merge. Record
   the PR URL in this plan's changelog and in the spec's Acceptance
   Criterion 3 artifact.
 - Construction (direct-edit-bounces): on a feature branch, make a
   one-character edit to a *Projected* path (not its source); run
-  `make build --check`; assert non-zero exit and a `[drift]` line.
+  `make build-check`; assert non-zero exit and a `[drift]` line.
   Verifies the gate *enforces*, not merely *runs*. Pair with the
   forward-flow integration test in *Construction tests* above to
   confirm round-trip safety end-to-end on the real repo.
@@ -445,7 +445,7 @@ itself is configured against the merged `main` branch through the
 GitHub repo settings UI (or `gh api ... -X PATCH`); the artifact
 that closes Acceptance Criterion 1b is the output of
 `gh api repos/<repo>/branches/main/protection` showing
-`make build --check` under `required_status_checks.contexts`,
+`make build-check` under `required_status_checks.contexts`,
 captured after the flip and recorded in this plan's Changelog and
 in spec.md's Acceptance Criterion 1b artifact field. This step is
 explicitly post-merge — Acceptance Criterion 1b is not closed by
@@ -471,7 +471,7 @@ T6's PR diff.
   projected path adds seconds to every PR. Implementation cost
   negligible per RFC-0002 § *Drawbacks*; if it grows past ~30s,
   cache the temp-directory projection across CI runs.
-- **`.adapt-discovery.toml` correctness.** `make build --self`
+- **`.adapt-discovery.toml` correctness.** `make build-self`
   resolves `<adapt:NAME>` markers using this file; if a marker in
   source has no entry, the build fails fast (T3 test). Risk is human:
   someone introduces a new marker in `packs/*/seeds/` without updating
@@ -487,7 +487,7 @@ T6's PR diff.
   `## Pack source-of-truth split`; recipes live under
   `packages/agentbundle/agentbundle/build/recipes/`; hook source
   extensions `.sh` and `.py` both valid; `<adapt:NAME>` resolution
-  scoped to `make build --self`). Applied adversarial-reviewer
+  scoped to `make build-self`). Applied adversarial-reviewer
   pass-1 findings (T1 hook-extension preservation, T3
   `.adapt-discovery.toml` and missing-config failure semantics, T6
   branch-protection artifact, composite-recipe field flux risk).
@@ -500,3 +500,22 @@ T6's PR diff.
   hook references in RFC-0002; add ACs anchoring marker
   resolution under `--self` with the stderr failure message
   format).
+- 2026-05-22 (EXECUTE): discovered that the sibling
+  distribution-adapters spec landed the three composite recipe types
+  (`per-pack-overlay`, `composite-agents-md`, `composite-marketplace`)
+  as metadata-only TOMLs without runtime; that the Codex adapter's
+  managed-block splice is last-pack-wins across multiple packs (so a
+  multi-pack AGENTS.md projection is incorrect today); and that seed
+  projection / root marketplace aggregation / CLAUDE.md symlink
+  recreation are not implemented in `self_host.py`. Spec amended to
+  partition into **Phase 1** (adapter-driven `.apm/` primitives only;
+  closed by this PR) and **Phase 2** (seed projection, AGENTS.md
+  composition, marketplace, symlink — follow-up PR). Tasks: T1–T6
+  closed at Phase-1 scope in this PR; T5 reconciles trivially because
+  the only adapter that fires is `claude-code` and packs/ was
+  scaffolded as literal copies. AC6/7/8/9/14 tagged Phase 2 with the
+  reason inlined under each. Makefile target form (`make build-self`,
+  `make build-check`) replaces RFC-0002's `make build --self` /
+  `make build --check` references (item 5 in the spec's drafting-drift
+  note); `FORCE=1` and `DRY_RUN=1` are the variable equivalents of
+  the original `--force` / `--dry-run` flags.
