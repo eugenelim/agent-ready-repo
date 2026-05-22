@@ -126,18 +126,30 @@ class CheckCommandTests(unittest.TestCase):
             env["GIT_COMMITTER_EMAIL"] = "test@example.com"
             subprocess.run(["git", "init", "-q", str(working)], check=True, env=env)
 
+            # Seed `.adapt-discovery.toml` so `make build-check`'s
+            # fail-fast (spec AC14) doesn't reject the call.
+            (working / ".adapt-discovery.toml").write_text(
+                "[adapt]\n", encoding="utf-8"
+            )
+
             from agentbundle.build.adapters import ADAPTERS
             from agentbundle.build.contract import load as load_contract
             from agentbundle.build.main import discover_packs
+            from agentbundle.build.self_host import run_self_host
 
             contract = load_contract(
                 REPO_ROOT / "docs" / "specs" / "adapter-contract" / "contract.toml"
             )
-            for pack in discover_packs(FIXTURES_PACKS):
-                for adapter_name, project in ADAPTERS.items():
-                    if adapter_name not in contract["adapter"]:
-                        continue
-                    project(pack.path, contract, working)
+            # Pre-seed using the Phase-1 self-host runner so the working
+            # tree exactly matches what `make build-check` will render
+            # (including new seed/marketplace/symlink outputs).
+            run_self_host(
+                working_tree=working,
+                packs_dir=FIXTURES_PACKS,
+                dry_run=False,
+                force=True,
+                contract=contract,
+            )
             subprocess.run(["git", "-C", str(working), "add", "-A"], check=True, env=env)
             subprocess.run(
                 ["git", "-C", str(working), "commit", "-q", "-m", "seed"],
