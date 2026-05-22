@@ -1,6 +1,6 @@
 # Spec: self-hosting
 
-- **Status:** Implementing (Phase 1)
+- **Status:** Phase 1 shipped; Phase 2 pending
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md)
@@ -362,10 +362,17 @@ and the Codex multi-pack aggregation fix land.
   checkout of `main` produces no on-disk change. `git status
   --porcelain` emits zero lines. Verified locally on the
   pre-cutover branch and re-verified post-merge.
-- [ ] **AC3 (first real edit) — Phase 1, post-merge.** At least one real
+- [x] **AC3 (first real edit) — Phase 1, post-merge.** At least one real
   pack-side edit has landed on `main` via the pipeline: the merged
   commit modifies both a `packs/*/` source path and its corresponding
-  *Projected* path. A linked PR URL records the manual-QA gesture.
+  *Projected* path. Closed by
+  [PR #20](https://github.com/eugenelim/agent-ready-repo/pull/20)
+  (merge commit `92735a1`), which edited
+  `packs/core/seeds/docs/architecture/README.md` and re-projected to
+  `docs/architecture/README.md` via `make build-self`. The
+  required-status-check gate (`make build-check`) ran green on the
+  PR — meta-verifying both the source-of-truth split *and* the gate
+  enforcement configured under AC1b.
 - [x] **AC4 (dirty-tree refusal) — Phase 1.** `make build-self` refuses
   on a dirty working tree with a named reason (non-zero exit; stderr
   contains the dirty-tree refusal message). `FORCE=1` bypasses the
