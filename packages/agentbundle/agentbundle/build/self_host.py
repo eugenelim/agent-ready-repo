@@ -30,6 +30,9 @@ closes.
 
 from __future__ import annotations
 
+import fnmatch
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -99,16 +102,26 @@ def is_dirty_tree(working_tree: Path) -> bool:
     return bool(result.stdout.strip())
 
 
-def resolve_markers(root: Path, discovery: dict[str, str]) -> int:
-    """Walk adapter-target paths under root and substitute <adapt:NAME>.
+def resolve_markers(
+    root: Path,
+    discovery: dict[str, str],
+    extra_paths: list[Path] | None = None,
+) -> int:
+    """Walk the bundle-owned subtree under `root` and substitute
+    `<adapt:NAME>` markers.
 
-    Scope is restricted to TARGET_PATHS (the adapter-target subtree the
-    build owns) — not the entire working tree. This avoids silently
-    rewriting adopter-private files outside the bundle's owned region.
+    Scope is `TARGET_PATHS` (the adapter-target subtree) plus any
+    `extra_paths` the caller passes — typically the seed-projected
+    paths and the aggregated marketplace path. This avoids silently
+    rewriting adopter-private files outside the bundle's owned region
+    while still covering Phase-1's widened projection.
     """
     modified = 0
     candidates: list[Path] = []
-    for relative in TARGET_PATHS:
+    scope = list(TARGET_PATHS)
+    if extra_paths:
+        scope.extend(extra_paths)
+    for relative in scope:
         target = root / relative
         if target.is_file():
             candidates.append(target)
@@ -172,23 +185,411 @@ def _project_all_adapters(
             project(pack.path, contract, output_root)
 
 
-def diff_against_working_tree(shadow: Path, working_tree: Path) -> list[str]:
+# ---------------------------------------------------------------------------
+# Phase-1 follow-up additions (per docs/specs/self-hosting/spec.md):
+# seed projection, marketplace aggregation, CLAUDE.md symlink recreation,
+# missing-discovery fail-fast, drift source-naming, info-line emission.
+# Comparison-rule strengthening (LF norm / mode bits / lstat) and the
+# AGENTS.md body+footer composition remain Phase 2.
+# ---------------------------------------------------------------------------
+
+# Excluded path patterns per RFC-0002 § What stays out. Phase-1
+# implementation uses glob patterns matched against POSIX-style
+# relative paths. `*` matches one path segment; `**` matches zero or
+# more segments (including empty). Patterns *without* `/` (e.g.
+# `README.md`) are anchored to the repo root — they do NOT match the
+# same filename nested under subdirectories. Reviewers: extend this
+# constant when an RFC authorises a new excluded class.
+EXCLUDED_PATTERNS: tuple[str, ...] = (
+    ".context/**",
+    ".claude/settings.local.json",
+    "docs/rfc/[0-9][0-9][0-9][0-9]-*.md",
+    "docs/adr/[0-9][0-9][0-9][0-9]-*.md",
+    "docs/specs/*/spec.md",
+    "docs/specs/*/plan.md",
+    "docs/specs/*/state.json",
+    "docs/specs/*/notes/**",
+    "docs/specs/adapter-contract/**",
+    "docs/architecture/*.md",
+    "docs/product/*.md",
+    "docs/knowledge/*.md",
+    "docs/guides/**/*.md",
+    "README.md",  # root-level; nested README.md not excluded
+    "USING_THIS_TEMPLATE.md",
+    "LICENSE-*",
+    ".gitignore",
+    ".github/**",
+    "AGENTS.local.md",
+    "AGENTS.md",  # root-level; nested AGENTS.md not excluded
+    ".kiro/**",
+    "packages/agentbundle/**",
+    "packs/**",
+    "tools/**",
+    ".adapt-discovery.toml",
+    "Makefile",
+    "dist/**",
+    ".worktrees/**",
+    "*.upstream.*",  # adopter-local upstream stash sidecars
+)
+
+
+def _glob_to_regex(pattern: str) -> re.Pattern[str]:
+    """Translate an excluded-pattern glob into an anchored regex.
+
+    `*` → one path segment (no slash); `**` → zero or more segments
+    (including empty); `**/` → zero or more leading segments.
+    Anchored to start and end so root-only patterns like `README.md`
+    don't match nested files of the same name.
+    """
+    # Tokenise on `**` first so `*` doesn't grab `**` greedily.
+    out: list[str] = []
+    i = 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out.append("(?:.*/)?")
+            i += 3
+        elif pattern.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif pattern[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif pattern[i] == "?":
+            out.append("[^/]")
+            i += 1
+        elif pattern[i] == "[":
+            # Pass character class through as-is, find closing ']'
+            end = pattern.find("]", i + 1)
+            if end == -1:
+                out.append(re.escape(pattern[i]))
+                i += 1
+            else:
+                out.append(pattern[i : end + 1])
+                i = end + 1
+        else:
+            out.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile(r"\A" + "".join(out) + r"\Z")
+
+
+_EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
+    _glob_to_regex(p) for p in EXCLUDED_PATTERNS
+)
+
+# Hardcoded "Projected README" allow-list — paths classified as
+# *Projected* even when EXCLUDED_PATTERNS would otherwise catch them.
+# These are the seed READMEs RFC-0002 names explicitly. Phase 1 honours
+# them via seed projection; without this allow-list the docs/**/*.md
+# excluded patterns would mask them.
+PROJECTED_README_OVERRIDES: tuple[str, ...] = (
+    "docs/architecture/README.md",
+    "docs/architecture/overview.md",
+    "docs/product/README.md",
+    "docs/product/roadmap.md",
+    "docs/product/changelog.md",
+    "docs/knowledge/README.md",
+    "docs/knowledge/patterns.jsonl",
+    "docs/guides/README.md",
+    "docs/guides/tutorials/README.md",
+    "docs/guides/how-to/README.md",
+    "docs/guides/reference/README.md",
+    "docs/guides/explanation/README.md",
+    "docs/rfc/README.md",
+    "docs/adr/README.md",
+    "docs/specs/README.md",
+    "docs/_templates/README.md",
+    "docs/CHARTER.md",
+    "docs/CONVENTIONS.md",
+    "docs/_templates/spec.md",
+    "docs/_templates/plan.md",
+    "docs/_templates/rfc.md",
+    "docs/_templates/adr.md",
+    "docs/_templates/state.json",
+    "packages/README.md",
+    "packages/_example/README.md",
+    "packages/_example/AGENTS.md",
+)
+
+
+def _is_excluded(relative: Path) -> bool:
+    """Return True if `relative` matches any EXCLUDED_PATTERNS entry, after
+    honouring PROJECTED_README_OVERRIDES (a path appearing there is
+    Projected even if an excluded pattern would also catch it)."""
+    posix = relative.as_posix()
+    if posix in PROJECTED_README_OVERRIDES:
+        return False
+    for regex in _EXCLUDED_REGEXES:
+        if regex.match(posix):
+            return True
+    return False
+
+
+def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
+    """Copy `packs/<pack>/seeds/**` into `output_root` at seed-relative paths.
+
+    Two packs may contribute to the same directory (canonical case:
+    `docs/_templates/` — `core` ships `spec.md`+`plan.md`,
+    `governance-extras` ships `rfc.md`+`adr.md`). File-level collisions
+    (same target path, *different* content) raise `ValueError` naming
+    both source paths — per spec § *Ask first* and AC7.
+
+    Returns a `{relative_target → source}` map for use by the drift
+    source-naming logic.
+    """
+    # Two-pass design (per spec § Always do): build the full
+    # {relative → source} map and detect collisions *before* writing
+    # anything, so a collision-mid-real-write doesn't leave a partial
+    # projection on disk.
+    seen: dict[Path, Path] = {}
+    for pack_path in sorted(packs_dir.iterdir()):
+        if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
+            continue
+        seeds_dir = pack_path / "seeds"
+        if not seeds_dir.is_dir():
+            continue
+        for src in sorted(seeds_dir.rglob("*")):
+            if not src.is_file():
+                continue
+            # Underscore-prefixed files are *composition fragments*
+            # (e.g. `_agents-footer.md`), not standalone projection
+            # targets. They live in seeds so adopters can edit them;
+            # the Phase-2 composite-agents-md recipe consumes them
+            # by reading `packs/core/seeds/_agents-footer.md`
+            # directly. Skip standalone projection. Convention
+            # documented in docs/CONVENTIONS.md § Pack source-of-truth
+            # split.
+            if src.name.startswith("_"):
+                continue
+            relative = src.relative_to(seeds_dir)
+            if relative in seen:
+                if src.read_bytes() != seen[relative].read_bytes():
+                    raise ValueError(
+                        f"seed collision at {relative.as_posix()}: "
+                        f"{seen[relative]} and {src} differ — rename or "
+                        f"consolidate one of them."
+                    )
+                continue
+            seen[relative] = src
+    # Second pass: collisions are clean, now write.
+    for relative, src in seen.items():
+        target = output_root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, target, follow_symlinks=False)
+    return seen
+
+
+def _aggregate_marketplace(
+    packs_dir: Path,
+    output_root: Path,
+    owner: str = "eugenelim",
+) -> Path:
+    """Aggregate `packs/*/.claude-plugin/plugin.json` into
+    `output_root/.claude-plugin/marketplace.json` so this repo is itself
+    a usable marketplace at HEAD. `owner` defaults to this repo's
+    concrete value but `run_self_host` overrides it from
+    `.adapt-discovery.toml[adapt].owner` so adopters get their own."""
+    entries: list[dict] = []
+    for pack_path in sorted(packs_dir.iterdir()):
+        if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
+            continue
+        manifest = pack_path / ".claude-plugin" / "plugin.json"
+        if manifest.exists():
+            entries.append(json.loads(manifest.read_text(encoding="utf-8")))
+    target = output_root / ".claude-plugin" / "marketplace.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "owner": {"name": owner},
+        "plugins": entries,
+    }
+    target.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return target
+
+
+def _recreate_claude_symlink(output_root: Path) -> Path:
+    """Ensure `output_root/CLAUDE.md` is a symlink to `AGENTS.md`.
+    Idempotent — leaves a correctly-pointing symlink alone."""
+    claude = output_root / "CLAUDE.md"
+    desired_target = "AGENTS.md"
+    if claude.is_symlink():
+        try:
+            if os.readlink(claude) == desired_target:
+                return claude
+        except OSError:
+            pass
+        claude.unlink()
+    elif claude.exists():
+        # Regular file at CLAUDE.md — replace with symlink per spec.
+        claude.unlink()
+    claude.symlink_to(desired_target)
+    return claude
+
+
+def _build_projected_to_source_map(
+    packs_dir: Path,
+    contract: dict,
+) -> dict[Path, Path]:
+    """Build `{projected_relative_path → source_path}` for Phase-1
+    self-host output. Used by `diff_against_working_tree` to name the
+    source path + regeneration command in drift messages."""
+    mapping: dict[Path, Path] = {}
+    if "primitive" not in contract or "adapter" not in contract:
+        return mapping
+    for pack_path in sorted(packs_dir.iterdir()):
+        if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
+            continue
+        for adapter_name in SELF_HOST_ADAPTERS:
+            if adapter_name not in contract["adapter"]:
+                continue
+            for rule in contract["adapter"][adapter_name].get("projection", []):
+                primitive_name = rule["primitive"]
+                mode = rule["mode"]
+                if mode in ("dropped", "degraded-info-log"):
+                    continue
+                primitive = contract["primitive"].get(primitive_name, {})
+                source_path = primitive.get("source-path", "").rstrip("/")
+                if not source_path:
+                    continue
+                source_dir = pack_path / source_path
+                if not source_dir.exists():
+                    continue
+                target_prefix = Path(rule["target-path"].rstrip("/"))
+                if mode == "direct-directory":
+                    for entry in source_dir.iterdir():
+                        if entry.is_dir():
+                            mapping[target_prefix / entry.name] = entry
+                elif mode == "direct-file":
+                    for entry in source_dir.iterdir():
+                        if entry.is_file():
+                            mapping[target_prefix / entry.name] = entry
+                elif mode in ("merge-json", "managed-block-inline"):
+                    mapping.setdefault(
+                        Path(rule["target-path"].lstrip("/")),
+                        source_dir,
+                    )
+        # Seeds
+        seeds_dir = pack_path / "seeds"
+        if seeds_dir.is_dir():
+            for entry in seeds_dir.rglob("*"):
+                if entry.is_file():
+                    mapping.setdefault(entry.relative_to(seeds_dir), entry)
+    return mapping
+
+
+def _lookup_source(
+    projected_rel: Path,
+    mapping: dict[Path, Path],
+) -> Path | None:
+    """Find the source path for a projected relative path. Walks up the
+    projected path looking for a directory-level match and appends the
+    remainder (e.g. `.claude/skills/work-loop/SKILL.md` →
+    `packs/core/.apm/skills/work-loop/SKILL.md`)."""
+    if projected_rel in mapping:
+        return mapping[projected_rel]
+    for ancestor in projected_rel.parents:
+        if ancestor == Path("."):
+            continue
+        if ancestor in mapping:
+            anchor = mapping[ancestor]
+            if anchor.is_dir():
+                try:
+                    remainder = projected_rel.relative_to(ancestor)
+                except ValueError:
+                    continue
+                return anchor / remainder
+    return None
+
+
+def _emit_info_for_unclassified(
+    working_tree: Path,
+    projected_paths: set[Path],
+) -> None:
+    """Walk `git ls-files --cached --others --exclude-standard` and emit
+    `[info]` lines for paths that are neither Projected nor Excluded.
+
+    Info-level — does not fail the build. Surfaces omissions so the
+    next PR can classify them (per spec § *Always do*). If the working
+    tree is not a git repo or git is unavailable, emits a single
+    warning rather than silently skipping classification — an operator
+    seeing "zero info lines" should not mis-attribute it to "fully
+    classified."
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            cwd=working_tree,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        print(
+            "self-host: warning — `git` binary not on PATH; "
+            "skipping unclassified-path enumeration.",
+            file=sys.stderr,
+        )
+        return
+    if result.returncode != 0:
+        print(
+            f"self-host: warning — `git ls-files` failed in "
+            f"{working_tree} (exit {result.returncode}); skipping "
+            "unclassified-path enumeration.",
+            file=sys.stderr,
+        )
+        return
+    for line in result.stdout.splitlines():
+        path_str = line.strip()
+        if not path_str:
+            continue
+        relative = Path(path_str)
+        if relative in projected_paths:
+            continue
+        if _is_excluded(relative):
+            continue
+        on_disk = working_tree / relative
+        if on_disk.is_symlink():
+            # CLAUDE.md (projected as symlink) and any other symlinks are
+            # implicitly classified — symlink target comparison is Phase 2.
+            continue
+        print(f"[info] unclassified: {relative.as_posix()}", file=sys.stderr)
+
+
+def diff_against_working_tree(
+    shadow: Path,
+    working_tree: Path,
+    source_map: dict[Path, Path] | None = None,
+) -> list[str]:
     """Compare every file in `shadow` against the corresponding path in
-    `working_tree`. Returns per-file drift lines."""
+    `working_tree`. When `source_map` is provided, drift messages name
+    the source path and regeneration command per spec § *Always do*
+    (`[drift] <projected>: edit <source>; run: make build-self`)."""
     drifts: list[str] = []
     for rendered in shadow.rglob("*"):
         if not rendered.is_file():
             continue
         relative = rendered.relative_to(shadow)
         on_disk = working_tree / relative
+        hint = ""
+        if source_map is not None:
+            source = _lookup_source(relative, source_map)
+            if source is not None:
+                hint = (
+                    f": edit {source.as_posix()}; run: make build-self"
+                )
         if not on_disk.exists():
-            drifts.append(f"missing: {relative}")
+            drifts.append(
+                f"[drift] {relative.as_posix()} (missing on disk){hint}"
+            )
             continue
         try:
             if rendered.read_bytes() != on_disk.read_bytes():
-                drifts.append(f"drift: {relative}")
+                drifts.append(f"[drift] {relative.as_posix()}{hint}")
         except OSError as exc:
-            drifts.append(f"unreadable: {relative} ({exc})")
+            drifts.append(
+                f"[drift] {relative.as_posix()} (unreadable: {exc}){hint}"
+            )
     return drifts
 
 
@@ -199,7 +600,14 @@ def run_self_host(
     force: bool,
     contract: dict | None = None,
 ) -> int:
-    """Execute `make build-self` (or `make build-self DRY_RUN=1`)."""
+    """Execute `make build-self` (or `make build-self DRY_RUN=1`).
+
+    Phase-1 orchestration: dirty-tree refusal → fail-fast on missing
+    `.adapt-discovery.toml` → adapter projection (allow-listed) → seed
+    projection → marketplace aggregation → CLAUDE.md symlink → marker
+    resolution. Under `dry_run`, all writes happen in a shadow temp
+    dir and the result is diffed against the working tree.
+    """
     if contract is None:
         contract = load_contract(CONTRACT_PATH)
 
@@ -211,12 +619,50 @@ def run_self_host(
         )
         return 2
 
+    # AC14: fail-fast when .adapt-discovery.toml is missing. The file is
+    # required by `make build-self` even when no source carries
+    # `<adapt:NAME>` markers today — the contract is "if you run
+    # build-self, you affirm the discovery values exist."
+    discovery_path = working_tree / ".adapt-discovery.toml"
+    if not discovery_path.exists():
+        print(
+            "missing .adapt-discovery.toml required by --self",
+            file=sys.stderr,
+        )
+        return 3
+
+    discovery_data = tomllib.loads(discovery_path.read_text(encoding="utf-8"))
+    discovery_flat = {
+        str(key): str(value)
+        for key, value in discovery_data.get("adapt", {}).items()
+    }
+    owner = discovery_flat.get("owner", "eugenelim")
+
     if dry_run:
         with tempfile.TemporaryDirectory(prefix="agentbundle-shadow-") as shadow_str:
             shadow = Path(shadow_str)
             _clone_target_subtree(working_tree, shadow)
             _project_all_adapters(shadow, packs_dir, contract)
-            drifts = diff_against_working_tree(shadow, working_tree)
+            try:
+                seed_map = _project_seeds(packs_dir, shadow)
+            except ValueError as exc:
+                print(f"self-host: {exc}", file=sys.stderr)
+                return 4
+            _aggregate_marketplace(packs_dir, shadow, owner=owner)
+            _recreate_claude_symlink(shadow)
+            extra_marker_paths = list(seed_map.keys()) + [
+                Path(".claude-plugin") / "marketplace.json",
+            ]
+            resolve_markers(shadow, discovery_flat, extra_paths=extra_marker_paths)
+            source_map = _build_projected_to_source_map(packs_dir, contract)
+            projected_paths = {
+                rendered.relative_to(shadow)
+                for rendered in shadow.rglob("*")
+                if rendered.is_file() or rendered.is_symlink()
+            }
+            drifts = diff_against_working_tree(shadow, working_tree, source_map)
+            # AC6: info-level lines for unclassified paths.
+            _emit_info_for_unclassified(working_tree, projected_paths)
             if drifts:
                 print(
                     f"self-host: dry-run found {len(drifts)} drift(s):",
@@ -230,14 +676,17 @@ def run_self_host(
     # Real write: project directly into the working tree so adapter
     # merge/splice logic sees existing content.
     _project_all_adapters(working_tree, packs_dir, contract)
-    discovery_path = working_tree / ".adapt-discovery.toml"
-    if discovery_path.exists():
-        discovery_data = tomllib.loads(discovery_path.read_text(encoding="utf-8"))
-        discovery_flat = {
-            str(key): str(value)
-            for key, value in discovery_data.get("adapt", {}).items()
-        }
-        resolve_markers(working_tree, discovery_flat)
+    try:
+        seed_map = _project_seeds(packs_dir, working_tree)
+    except ValueError as exc:
+        print(f"self-host: {exc}", file=sys.stderr)
+        return 4
+    _aggregate_marketplace(packs_dir, working_tree, owner=owner)
+    _recreate_claude_symlink(working_tree)
+    extra_marker_paths = list(seed_map.keys()) + [
+        Path(".claude-plugin") / "marketplace.json",
+    ]
+    resolve_markers(working_tree, discovery_flat, extra_paths=extra_marker_paths)
     return 0
 
 

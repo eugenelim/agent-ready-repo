@@ -12,12 +12,6 @@
 │   └── <app-name>/       # one directory per app
 ├── packages/             # shared libraries (consumed by apps and other packages)
 │   └── <package-name>/
-├── packs/                # bundle source-of-truth (RFC-0001 / RFC-0002)
-│   └── <pack-name>/      # one of core / governance-extras / user-guide-diataxis / monorepo-extras
-│       ├── pack.toml
-│       ├── .claude-plugin/plugin.json
-│       ├── .apm/         # skills, agents, hooks, commands, hook-wiring (Projected to .claude/ + tools/hooks/)
-│       └── seeds/        # README / template content (Source today; Projected in Phase 2 of self-hosting)
 ├── tools/                # build, dev, and ops tooling — not shipped to users
 ├── docs/
 │   ├── CHARTER.md        # mission, scope, principles (one page)
