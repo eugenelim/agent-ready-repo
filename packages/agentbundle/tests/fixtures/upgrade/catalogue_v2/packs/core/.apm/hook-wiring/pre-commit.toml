@@ -1,4 +1,4 @@
 [hook]
 name = "pre-commit"
 trigger = "PreToolUse"
-matcher = "Bash"
+matcher = "Bash|Edit"

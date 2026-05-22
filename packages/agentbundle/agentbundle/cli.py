@@ -93,6 +93,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--target",
         help="Optional adapter target (claude-code, kiro, copilot, codex); default: all.",
     )
+    sp.add_argument(
+        "--self-host",
+        action="store_true",
+        help=(
+            "Treat --output as an adopter root: honour Tier-2 paths (write "
+            ".upstream.<ext> companions on collision rather than overwriting). "
+            "Requires a .agent-ready-state.toml at --output. Default: off "
+            "(wholesale rewrite, matching `make build` dist/ semantics)."
+        ),
+    )
     sp.set_defaults(func=_lazy("render"))
 
     # --- adapt ---

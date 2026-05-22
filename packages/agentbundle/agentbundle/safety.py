@@ -75,6 +75,15 @@ def classify(relpath: str, root: Path, state: State) -> Tier:
     The "absent on disk → Tier-1" rule is important for `install` and
     `render` after a Tier-1 file was deleted by the adopter — re-installing
     rewrites it (it's adapter-contract space; the bundle owns it).
+
+    **Carve-out for first-install paths:** `commands/install._classify_for_install`
+    deliberately bypasses this function for the install command's own walk
+    because step 2 here ("not in state → Tier-3") would mark every path
+    in a fresh projection as Tier-3 on a first install, suppressing every
+    write. The install command's contract is different — every path in
+    its incoming projection is adapter-contract space, and the classifier
+    only decides overwrite-vs-companion. Do not "fix" this function to do
+    what install needs; install's contract differs.
     """
     if relpath not in state.projected_paths():
         return Tier.TIER_3

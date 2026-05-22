@@ -157,3 +157,22 @@ def test_init_state_missing_pack_exits_nonzero(tmp_path):
     args = _make_args(pack="nonexistent", root=str(tmp_path))
     rc = init_state.run(args)
     assert rc != 0, "expected non-zero exit for missing pack"
+
+
+def test_init_state_refuses_pack_without_version(tmp_path):
+    """A pack.toml without `[pack] version` must be refused — an empty
+    version anchor cascades into useless install/uninstall comparisons.
+    (Concern 13 from adversarial review.)
+    """
+    packs_dir = tmp_path / "packs"
+    pack_dir = packs_dir / "anon"
+    pack_dir.mkdir(parents=True)
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "anon"\n',  # no version
+        encoding="utf-8",
+    )
+
+    args = _make_args(pack="anon", root=str(tmp_path))
+    args.packs_dir = str(packs_dir)
+    rc = init_state.run(args)
+    assert rc == 1, "expected refusal for pack without version"

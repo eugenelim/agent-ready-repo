@@ -69,15 +69,23 @@ def run(args) -> int:
         print(f"render: schema error: {exc}", file=sys.stderr)
         return 1
 
-    # Tier-2 awareness: when --output already contains a state file, treat
-    # it as an adopter root in self-host mode. Otherwise write wholesale
-    # (the fresh `dist/` use case `make build` matches).
+    # Tier-2 awareness is opt-in via --self-host. Without the flag,
+    # `render` writes the projection wholesale (matching `make build`'s
+    # dist/ semantic) even if a state file happens to sit at --output.
+    # With the flag, --output is treated as an adopter root: collisions
+    # with adopter-edited content produce .upstream.<ext> companions.
+    self_host_mode = bool(getattr(args, "self_host", False))
     state_path = output_dir / ".agent-ready-state.toml"
-    self_host_mode = state_path.exists()
     state = None
     if self_host_mode:
+        if not state_path.exists():
+            print(
+                f"render: --self-host requires .agent-ready-state.toml at {output_dir} "
+                f"(install or init-state first)",
+                file=sys.stderr,
+            )
+            return 1
         from agentbundle.config import load_state
-        from agentbundle import safety as _safety
 
         try:
             state = load_state(state_path)

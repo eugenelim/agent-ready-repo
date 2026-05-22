@@ -146,6 +146,7 @@ def _run_render(root: Path, pack_dir: Path) -> int:
         pack_path=str(pack_dir),
         output=str(root),
         target=None,
+        self_host=True,
     )
     return run(args)
 

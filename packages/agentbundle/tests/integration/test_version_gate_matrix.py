@@ -59,11 +59,18 @@ def _run(module_name: str, **kwargs) -> tuple[int, str]:
 
 
 def _assert_refused(rc: int, stderr: str):
-    """Assert the gate fired: exit 1, both versions named."""
+    """Assert the gate fired: exit 1, both versions named, canonical phrase.
+
+    The canonical phrase ("refusing to operate on incompatible pack") pins
+    that the refusal came from `_common.check_spec_version_gate`, not from
+    some other rc=1 path that coincidentally contains a version string
+    (Nit 8 from adversarial review).
+    """
     assert rc == 1, f"expected exit 1, got {rc}"
     assert "99.0" in stderr, f"pack version not in stderr: {stderr!r}"
-    # CLI's spec version is parsed from adapter.toml at import time;
-    # its major matches the bundle's, so the message names it.
+    assert "refusing to operate on incompatible pack" in stderr, (
+        f"stderr is not the canonical gate refusal: {stderr!r}"
+    )
     from agentbundle.version import SPEC_VERSION
     assert SPEC_VERSION in stderr, f"CLI spec version not in stderr: {stderr!r}"
 

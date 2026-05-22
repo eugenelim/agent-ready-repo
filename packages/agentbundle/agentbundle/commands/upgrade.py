@@ -159,6 +159,13 @@ def run(args: "argparse.Namespace") -> int:
     if is_per_primitive:
         ptype, src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]
         filtered = _filter_for_primitive(projection, prim_name, src_dir)
+        # --hook is atomic over hook-body + matching hook-wiring of the
+        # same name (per spec AC #10 — wiring co-moves with body so a
+        # per-hook upgrade can never land a torn pair).
+        if prim_flag == "hook":
+            filtered.update(
+                _filter_for_primitive(projection, prim_name, "hook-wiring")
+            )
         if not filtered:
             print(
                 f"primitive {prim_name!r} not in pack {pack_name}",

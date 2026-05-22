@@ -143,6 +143,11 @@ def test_per_primitive_upgrade_moves_only_matching_files(
     v1_projection = render_pack(PACK_V1)
     v2_projection = render_pack(PACK_V2)
     prim_paths = set(_filter_for_primitive(v2_projection, prim_name, src_dir).keys())
+    # --hook co-moves the matching hook-wiring of the same name (spec AC #10).
+    if flag_attr == "hook":
+        prim_paths |= set(
+            _filter_for_primitive(v2_projection, prim_name, "hook-wiring").keys()
+        )
     non_prim_paths = set(v1_projection.keys()) - prim_paths
 
     # Capture v1 content for non-matching paths before upgrade.
@@ -283,6 +288,37 @@ def test_hook_extension_preservation_sh(tmp_path):
     # Must not have mutated extension.
     for f in sh_files:
         assert f.suffix == ".sh", f"expected .sh extension, got {f.suffix}"
+
+
+def test_hook_upgrade_co_moves_wiring(tmp_path):
+    """`--hook <name>` is atomic over hook-body AND matching hook-wiring.
+
+    Per spec AC #10 the wiring co-moves with its body so a per-hook
+    upgrade can never land a torn pair (a new hook script paired with
+    the previous matcher/event wiring). The v1→v2 fixture diff includes
+    a wiring change (`matcher = "Bash"` → `matcher = "Bash|Edit"`); a
+    successful `--hook pre-commit --to v0.2` must produce the v2
+    wiring content on disk.
+    """
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+
+    rc = _run_upgrade(
+        pack="core",
+        catalogue=str(CAT_V2),
+        to_version="v0.2",
+        root=str(tmp_path),
+        hook="pre-commit",
+    )
+    assert rc == 0
+
+    # The hook-wiring file is projected under `apm/core/.apm/hook-wiring/`.
+    wiring_files = list(tmp_path.rglob("hook-wiring/pre-commit.toml"))
+    assert wiring_files, "hook-wiring/pre-commit.toml must be co-moved"
+    contents = wiring_files[0].read_text(encoding="utf-8")
+    assert 'matcher = "Bash|Edit"' in contents, (
+        f"--hook pre-commit must co-move wiring; got:\n{contents}"
+    )
 
 
 def test_hook_extension_preservation_py(tmp_path):

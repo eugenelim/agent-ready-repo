@@ -384,3 +384,39 @@ def test_state_records_sha_for_tier1_paths(tmp_path):
         assert recorded_sha == safety.sha256_bytes(expected_bytes), (
             f"SHA mismatch for {relpath!r}"
         )
+
+
+def test_reinstall_preserves_mixed_version_primitives(tmp_path):
+    """Re-installing a pack carries forward `primitive_versions` from prior
+    state so subsequent whole-pack upgrades still surface the mixed state.
+    (Concern 8 from adversarial review.)
+    """
+    import argparse
+    from agentbundle.commands.install import run as install_run
+    from agentbundle.config import PackState, State, dump_state, load_state
+
+    cat = str(Path(__file__).parent.parent / "fixtures" / "upgrade" / "catalogue_v1")
+
+    # 1. Install once.
+    rc = install_run(argparse.Namespace(
+        pack="core", catalogue=cat, output=str(tmp_path),
+    ))
+    assert rc == 0
+
+    # 2. Stamp a mixed-version primitive into the state (simulating a
+    #    prior `upgrade --skill work-loop --to v0.2`).
+    state_path = tmp_path / ".agent-ready-state.toml"
+    state = load_state(state_path)
+    state.packs["core"].primitive_versions["skill"] = {"work-loop": "v0.2"}
+    state_path.write_text(dump_state(state), encoding="utf-8")
+
+    # 3. Re-install. The carry-forward fix must preserve the override.
+    rc = install_run(argparse.Namespace(
+        pack="core", catalogue=cat, output=str(tmp_path),
+    ))
+    assert rc == 0
+
+    after = load_state(state_path)
+    assert after.packs["core"].primitive_versions == {
+        "skill": {"work-loop": "v0.2"}
+    }, "re-install dropped mixed-version overrides"

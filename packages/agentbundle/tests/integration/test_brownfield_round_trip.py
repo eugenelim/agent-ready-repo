@@ -95,13 +95,17 @@ def test_brownfield_install_adapt_diff_round_trip(tmp_path: Path):
         "adapt should list the install-time companion in the pending report"
     )
 
-    # 3. Diff — projection on disk matches a fresh render: exit 0.
-    # (The Tier-2 collision path has the adopter's bytes on disk, NOT the
-    # bundle's — so diff will report it as drifted, which is the correct
-    # signal for the adopter to merge before declaring the install
-    # complete. We assert non-zero with the drifted path listed.)
+    # 3. Diff is intentionally state-blind: it compares the on-disk
+    # projection against a fresh render and reports any divergence. After
+    # a brownfield install the Tier-2 collision path holds adopter bytes
+    # (not bundle bytes), so diff exits 1 with that path listed. This is
+    # by design: diff complements `adapt --ci` rather than replacing it.
+    # `adapt --ci` is the canonical "install completed cleanly" gate
+    # (asserted in the next test); diff is the "render parity" gate
+    # (useful for catching unintended edits to Tier-1 files, not for
+    # signalling install completion).
     rc = _diff(tmp_path)
-    assert rc == 1, "diff should detect the Tier-2 collision as drift"
+    assert rc == 1, "diff intentionally treats Tier-2 collisions as drift"
 
     # 4. Adopter-only files unchanged through the whole chain.
     assert (tmp_path / "AGENTS.md").read_bytes() == b"# adopter notes\n"
