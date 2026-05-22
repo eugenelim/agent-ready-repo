@@ -1,0 +1,5 @@
+{
+  "name": "core",
+  "version": "0.2.0",
+  "description": "Core fixture pack for upgrade tests."
+}
