@@ -1,6 +1,6 @@
 # Spec: self-hosting
 
-- **Status:** Draft
+- **Status:** Implementing (Phase 1)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md)
@@ -400,7 +400,11 @@ and the Codex multi-pack aggregation fix land.
   `<adapt:NAME>` markers under the adapter-target subtree to concrete
   values from `.adapt-discovery.toml` as the final build step before
   writing. The repo ships `.adapt-discovery.toml` at the repo root with
-  this repo's concretes.
+  this repo's concretes. (Today no pack source carries `<adapt:NAME>`
+  markers; the resolver path is verified by fixture tests in
+  `test_self_host_check.py` and runs as a vacuous no-op against the
+  live repo until a pack authors a marker — matching AC11's no-op
+  posture for hook-wiring.)
 - [x] **AC13 (markers preserved in dist) — Phase 1.** `make build`
   without `--self` copies `<adapt:NAME>` markers through unchanged; no
   resolution runs (delivered by sibling distribution-adapters spec).

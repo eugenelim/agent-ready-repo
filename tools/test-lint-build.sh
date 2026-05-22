@@ -130,6 +130,60 @@ else
   echo "ok   [agentbundle-intra-allowed]"
 fi
 
+# ── case 4: RFC_AUTHORISED_DIRS exception allows packs/ but bounces ──────
+#            an unauthorised new top-level directory.
+#
+# The new-top-level audit reads `git ls-tree -d --name-only HEAD` against
+# the merge-base of HEAD and main. To test the exception path, we build
+# two scratch git repos: one with the `packs/` top-level (authorised by
+# RFC-0002, should pass), and one with `unauthorised-newdir/` (should
+# fail with the audit's error message). The LINTER runs against the
+# scratch repo via cd; LINT_BUILD_DIR isn't honoured by the no-new-top-
+# level audit, so we need a real repo with a real merge-base.
+
+run_top_level_case() {
+  # run_top_level_case <name> <dir-to-create> <want-exit> <want-stderr-substr>
+  local name="$1" newdir="$2" want_exit="$3" want_substr="$4"
+  local repo="$TMP/repo_$name"
+  mkdir -p "$repo"
+  (
+    cd "$repo"
+    git init -q
+    git checkout -q -b main 2>/dev/null || git branch -m main 2>/dev/null || true
+    git config user.email "test@example.com"
+    git config user.name "test"
+    # Empty base commit on main so a merge-base exists.
+    git commit -q --allow-empty -m "base"
+    git checkout -q -b feature
+    mkdir "$newdir"
+    touch "$newdir/.keep"
+    git add -A
+    git commit -q -m "introduce $newdir/"
+  )
+  local out got
+  set +e
+  out=$(cd "$repo" && bash "$LINTER" 2>&1)
+  got=$?
+  set -e
+  ran=$((ran + 1))
+  if [[ "$got" -ne "$want_exit" ]]; then
+    echo "FAIL [$name]: expected exit $want_exit, got $got" >&2
+    echo "  output: $out" >&2
+    failures=$((failures + 1))
+    return
+  fi
+  if [[ -n "$want_substr" && "$out" != *"$want_substr"* ]]; then
+    echo "FAIL [$name]: output missing '$want_substr'" >&2
+    echo "  output: $out" >&2
+    failures=$((failures + 1))
+    return
+  fi
+  echo "ok   [$name]"
+}
+
+run_top_level_case "authorised-packs"        "packs"               0 "no-new-top-level-directory audit passed"
+run_top_level_case "unauthorised-newdir"     "unauthorised-newdir" 1 "RFC required"
+
 # ── result ────────────────────────────────────────────────────────────────
 
 echo

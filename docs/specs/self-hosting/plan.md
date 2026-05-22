@@ -1,12 +1,36 @@
 # Plan: self-hosting
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Implementing (Phase 1)
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
 > (a different approach, not just a re-ordering), note why in the changelog
 > at the bottom.
+
+> **Phase-1 / Phase-2 reading guide (EXECUTE-time amendment).** Task
+> bodies below (T1–T7) were authored pre-EXECUTE against the original
+> spec scope — full projection including seeds, AGENTS.md body+footer
+> composition, root marketplace aggregation, `AGENTS.local.md` split,
+> and `_agents-footer.md`. The 2026-05-22 (EXECUTE) changelog entry
+> partitions this into Phase 1 (this PR — adapter-driven `.apm/`
+> primitives only) and Phase 2 (follow-up). When reading T1–T7:
+>
+> - Treat any bullet that names seed projection, AGENTS.md composition,
+>   `_agents-footer.md`, `AGENTS.local.md`, the `composite-agents-md`
+>   or `composite-marketplace` runtime, or the CLAUDE.md symlink as
+>   **Phase 2** — out of scope for this PR.
+> - Treat any bullet about LF/mode/lstat comparison rules,
+>   drift-message source naming, info-line unclassified enumeration,
+>   or missing-discovery-file fail-fast as **Phase 2**.
+> - CLI surface in task bodies uses RFC-0002's flag form (`--self`,
+>   `--force`, `--dry-run`). The on-disk Makefile equivalents are
+>   `make build-self`, `make build-self FORCE=1`, and
+>   `make build-self DRY_RUN=1` per spec drafting-drift note item 5.
+>
+> Spec § Phased rollout names the partition; this plan reading guide
+> applies it to the task-body details so the plan tracks reality
+> without re-writing every bullet.
 
 ## Approach
 
