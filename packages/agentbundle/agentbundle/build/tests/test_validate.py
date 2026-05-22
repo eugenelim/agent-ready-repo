@@ -11,7 +11,7 @@ from pathlib import Path
 from agentbundle.build.validate import validate
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-SCHEMA_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "schema.json"
+SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
 
 
 class TypeKeywordTests(unittest.TestCase):
@@ -110,7 +110,7 @@ class PropertiesAndAdditionalTests(unittest.TestCase):
 
 
 class SchemaJsonSelfValidationTests(unittest.TestCase):
-    """The shipped schema.json must load and validate at least one minimal
+    """The shipped adapter.schema.json must load and validate at least one minimal
     contract — a smoke test for T1a's authored schema."""
 
     def test_schema_loads(self) -> None:
@@ -176,7 +176,7 @@ class CliValidateSubcommandTests(unittest.TestCase):
     """`python -m agentbundle.build validate <path>` smoke test.
 
     Uses subprocess so the test exercises the actual argparse wiring.
-    Does not rely on contract.toml existing (T1b authors that); writes
+    Does not rely on adapter.toml existing (T1b authors that); writes
     a temp TOML and validates it against the shipped schema.
     """
 

@@ -31,7 +31,7 @@
 
 ## Summary
 
-Lift the per-IDE adapter contract from `docs/specs/adapter-contract/contract.toml`
+Lift the per-IDE adapter contract from `docs/contracts/adapter.toml`
 in this repo to a published open standard, with semantic versioning
 and a conformance test suite. Ship a reference CLI — working name
 `agentbundle` — that exposes the contract's executable form:
@@ -84,12 +84,12 @@ just fresh ones."
 
 ### The published spec
 
-The adapter contract — currently at `docs/specs/adapter-contract/contract.toml`
+The adapter contract — currently at `docs/contracts/adapter.toml`
 in this repo per RFC-0001's F-spec — moves to a publishable home with
 versioning, a stable URL, and a license. Three hosting options:
 
 1. **Stay in this repo, treat the path as canonical.** URL is
-   `github.com/<org>/agent-ready-repo/blob/main/docs/specs/adapter-contract/contract.toml`.
+   `github.com/<org>/agent-ready-repo/blob/main/docs/contracts/adapter.toml`.
    Versioned by git tags on the repo.
 2. **Sibling repo (`adapter-contract`).** Clean separation. URL is
    `github.com/<org>/adapter-contract/`. Releases independently of
@@ -257,7 +257,7 @@ publishing the results. The suite lives alongside the spec; its
 version pins to the spec version.
 
 Conformance has two tiers:
-- **Schema conformance** — bundle's `contract.toml` parses
+- **Schema conformance** — bundle's `adapter.toml` parses
   per the published schema. Mechanical, fast.
 - **Semantic conformance** — bundle's projection matches the
   expected output for each target. Requires running the
@@ -284,11 +284,11 @@ When a CLI compiled against spec `v1.2` reads a bundle declaring
 The CLI's `--version` output names the spec version it ships
 against. Packs declare the spec version they conform to in their
 `pack.toml` under `[pack.adapter-contract]` (`version = "0.1"`,
-matching the value in `contract.toml`'s `[contract]` table).
+matching the value in `adapter.toml`'s `[contract]` table).
 
 ### Migration path
 
-This repo's adapter contract — currently `docs/specs/adapter-contract/contract.toml`
+This repo's adapter contract — currently `docs/contracts/adapter.toml`
 under RFC-0001's F-spec — becomes the published spec at `v0.1`. The
 publication step is mechanical: tag the file's location, copy the
 schema definition into a published artifact, update the CLI to read
@@ -319,7 +319,7 @@ tools that don't understand them ignore.
 ## Alternatives considered
 
 **Alt 1 — Don't publish. Keep the contract internal.** Spec stays at
-`docs/specs/adapter-contract/contract.toml`; no versioning, no
+`docs/contracts/adapter.toml`; no versioning, no
 conformance suite, no CLI. **Why not chosen:** the contract is the
 only architectural artifact this template produces that isn't
 already in APM or Claude plugins. Not publishing it gives up the
@@ -426,7 +426,7 @@ If a clearly-better cross-tool CLI emerges, we revisit.
 
 If accepted, this RFC produces:
 
-- **F-spec-publish.** Move `docs/specs/adapter-contract/contract.toml`
+- **F-spec-publish.** Move `docs/contracts/adapter.toml`
   to the publication home (per the hosting decision in Unresolved
   Question 1), tag `v0.1`, write `SPEC.md` overview prose, license
   the spec under a permissive license (CC-BY-4.0 or similar — chosen
@@ -460,3 +460,13 @@ The biggest of the three RFCs *under the old plan* — but
 substantially smaller under the new RFC-0001/RFC-0002 shape because
 the contract extraction is already done. The work that remains is
 publication + CLI + conformance, all of which are well-scoped.
+
+## Amendments
+
+- 2026-05-22 (post-acceptance): adapter contract files relocated to
+  `docs/contracts/`; this RFC's path references updated (the sibling-repo
+  alternative name `adapter-contract`, the `[pack.adapter-contract]`
+  TOML key, and the `adapter-contract: "0.1"` field name are concept
+  identifiers and remain unchanged). Full rationale and the
+  `CONVENTIONS.md:80` exception note live in
+  [RFC-0001 § Amendments](0001-bundle-distribution-by-adapter-spec.md#amendments).

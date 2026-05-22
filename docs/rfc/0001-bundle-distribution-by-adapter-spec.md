@@ -63,7 +63,7 @@ Adopters install à la carte through APM, Claude
 Code plugins, or our CLI; the repo is not a starting-point
 project they fork. The artifact this work produces is a **per-IDE
 adapter contract**, defined in TOML at
-`docs/specs/adapter-contract/contract.toml`, declaring how source
+`docs/contracts/adapter.toml`, declaring how source
 primitives project to per-tool outputs. A build pipeline at
 `tools/build/` is the reference implementation. It reads the
 contract and per-pack recipes, then produces ecosystem-native
@@ -228,8 +228,8 @@ agent-ready-repo/
 │   ├── rfcs/, adrs/                   # ← projected from packs/governance-extras/seeds/docs/{rfcs,adrs}/  (THIS REPO's RFCs and ADRs land here)
 │   ├── guides/                        # ← projected from packs/user-guide-diataxis/seeds/docs/guides/  (this repo's user-facing guides if any)
 │   ├── _templates/                    # ← projected from union of packs/{core,governance-extras}/seeds/docs/_templates/
-│   └── specs/adapter-contract/        # NOT projected — meta-content owned by the catalogue itself
-│       └── contract.toml              # Adapter contract; published standalone via RFC-0003
+│   └── contracts/                     # NOT projected — meta-content owned by the catalogue itself
+│       └── adapter.toml               # Adapter contract; published standalone via RFC-0003
 ├── packages/                          # ← projected from packs/monorepo-extras/seeds/packages/ (only if monorepo-extras is self-hosted; this repo itself doesn't have packages today)
 ├── tools/build/                       # Build pipeline (reference implementation)
 │   ├── build.py                       # entry point
@@ -384,7 +384,7 @@ in everything else in this repo.
 ### The per-IDE adapter contract
 
 The contract is a TOML document at
-`docs/specs/adapter-contract/contract.toml`. TOML chosen because:
+`docs/contracts/adapter.toml`. TOML chosen because:
 
 - **Typed scalars** — strings, ints, booleans, datetimes are
   distinguished by syntax. No Norway problem, no `1.10` parses as
@@ -517,7 +517,7 @@ the contract.
 `tools/build/build.py` is a pure-stdlib Python script that operates
 **per pack**. Its inputs:
 
-- The adapter contract (`docs/specs/adapter-contract/contract.toml`).
+- The adapter contract (`docs/contracts/adapter.toml`).
 - A recipe template (e.g. `tools/build/recipes/per-pack-claude-plugin.toml`).
 - A `packs/<pack>/pack.toml` (the pack's metadata).
 - The pack's `.apm/` (skills, agents, hooks, commands).
@@ -1178,7 +1178,7 @@ tools that traverse it). Subagents drop. Hook bodies project to
 `tools/hooks/`; wiring drops.
 
 Detailed mapping tables, frontmatter transforms, and edge cases live
-in `docs/specs/adapter-contract/contract.toml`; the contract is the
+in `docs/contracts/adapter.toml`; the contract is the
 authoritative source.
 
 ### What we explicitly don't build
@@ -1222,7 +1222,7 @@ design into a reusable, externally-validatable shape:
 
 - **[RFC-0003 — Adapter contract publication + reference CLI](0003-spec-and-cli.md).**
   Lift the adapter contract from
-  `docs/specs/adapter-contract/contract.toml` in this repo to a
+  `docs/contracts/adapter.toml` in this repo to a
   published open standard with versioning, a conformance test
   suite, and a reference CLI (working name `agentbundle`) — see
   the *Reference CLI* section of RFC-0003 for the full eleven-
@@ -1413,7 +1413,7 @@ at RFC-0001's altitude.)
 If accepted, this RFC produces:
 
 - **F-spec — Adapter contract TOML.** Formal definition at
-  `docs/specs/adapter-contract/contract.toml` plus a `schema.json`
+  `docs/contracts/adapter.toml` plus an `adapter.schema.json`
   validating the contract's own shape. Includes the seven projection
   modes (`direct-directory`, `direct-file`, `merge-json`,
   `instruction-file`, `managed-block-inline`, `degraded-info-log`,
@@ -1444,3 +1444,23 @@ If accepted, this RFC produces:
 The earlier draft's F3, F4, F5, F6, F7, F8, F9, F10, F11 all
 collapse — they're either delegated to APM/Claude plugins or
 absorbed into the build pipeline.
+
+## Amendments
+
+- 2026-05-22 (post-acceptance): adapter contract files relocated from
+  `docs/specs/adapter-contract/` to `docs/contracts/` with a flat
+  `<name>.schema.json` layout (`adapter.toml`, `adapter.schema.json`,
+  `pack.schema.json`, `plugin-manifest.schema.json`). Path-only change;
+  field semantics, acceptance criteria, and contract versioning are
+  unchanged. Rationale: the four files are catalogue-level
+  machine-readable artifacts, not per-feature spec content;
+  `docs/specs/` is reserved for the `spec.md + plan.md` shape (see
+  [`AGENTS.md` § Source of truth](../../AGENTS.md#source-of-truth)).
+  Future contracts (`.agent-ready-state.toml`,
+  `.adapt-discovery.toml`, recipe schema) land alongside under
+  `docs/contracts/`. Body path-references in this RFC were edited in
+  place rather than left dangling — treated as typo-class per
+  [`CONVENTIONS.md:80`](../CONVENTIONS.md) (the "Status fields can
+  change, bodies cannot" frozen-doc rule) since paths are convention,
+  not load-bearing decisions. This footnote records the deliberate
+  deviation so a future reader can audit the exception.

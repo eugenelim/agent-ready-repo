@@ -33,7 +33,7 @@ round-trip on a corporate-network sandbox.
 - [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md) defines
   the Tier-1/2/3 file-safety contract.
 - Sibling spec [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
-  owns the canonical `pack.toml` / `contract.toml` schemas, the Tier-1/2/3
+  owns the canonical `pack.toml` / `adapter.toml` schemas, the Tier-1/2/3
   contract details, the `.agent-ready-state.toml` schema, the
   `.upstream.<ext>` companion semantics, the six-recipe enumeration, the
   five primitive types (including `command`), and the location of the
@@ -81,9 +81,9 @@ Per-task tests carry the bulk of coverage. Cross-cutting work:
   as a regular package from this CLI, no `sys.path` tricks (verifies AC #1's
   library-first import boundary).
 - Unit test: `python -m agentbundle --version` prints a value parsed
-  **at import time** from the bundled `contract.toml`'s `[contract] version`
+  **at import time** from the bundled `adapter.toml`'s `[contract] version`
   field. The test reads the on-disk value, imports the package, mutates
-  the on-disk `contract.toml` to a different version, then asserts that
+  the on-disk `adapter.toml` to a different version, then asserts that
   `--version` still prints the original (import-time) value — proves
   read-at-import, not read-on-every-call (verifies AC #2's parsed-and-pinned
   invariant).
@@ -100,7 +100,7 @@ Per-task tests carry the bulk of coverage. Cross-cutting work:
 - Register a `validate` subcommand stub now (sibling `distribution-adapters`
   fix-pass 2 commits to `validate` being present at T1a).
 - Add `version.py` parsing the spec version at import time from the bundled
-  canonical `contract.toml` (`[contract] version`); the CLI version is a
+  canonical `adapter.toml` (`[contract] version`); the CLI version is a
   package-level constant.
 - Assert F-build's location: `agentbundle.build` resolves under
   `packages/agentbundle/agentbundle/build/`. If `distribution-adapters` T1a
@@ -173,7 +173,7 @@ import render_pack`.
 **Tests:**
 - TDD: `agentbundle validate packs/core` exits 0 on a valid fixture pack;
   exits 1 with a one-line stderr reason on a fixture with malformed
-  `contract.toml` (verifies AC #12 happy + sad path, schema portion).
+  `adapter.toml` (verifies AC #12 happy + sad path, schema portion).
 - TDD: `agentbundle validate packs/core` checks recipes against the
   six-recipe enumerated set from the sibling `distribution-adapters` spec
   — a fixture with an unknown recipe type fails with a one-line stderr
@@ -190,7 +190,7 @@ import render_pack`.
 **Approach:**
 - Implement `agentbundle.commands.validate.run(args)`; wire it into the
   `cli.py` dispatcher.
-- Schema conformance: parse `contract.toml`, assert required keys per the
+- Schema conformance: parse `adapter.toml`, assert required keys per the
   schema documented in the sibling `distribution-adapters` spec; validate
   recipe types against the six-type set.
 - Semantic conformance (`--strict`): import conformance fixtures from
@@ -626,3 +626,9 @@ No flag-gating required.
   Added `command` primitive to T3 and T12. Added hook extension
   preservation (`.sh` and `.py`) across T3, T12, and T15. Added
   spec-version-tag risk row.
+- 2026-05-22: adapter contract files moved from
+  `docs/specs/adapter-contract/` to `docs/contracts/` with `<name>.schema.json`
+  filenames. Bare-`contract.toml` references throughout this spec and
+  plan updated to `adapter.toml`; the `[pack.adapter-contract]` TOML
+  key (a conceptual table identifier in pack manifests) is unchanged.
+  See [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments).

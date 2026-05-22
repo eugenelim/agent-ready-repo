@@ -8,7 +8,7 @@ functions exposed through `adapters`.
 
 Subcommands landed in T1a:
   - `validate <path>` — load a TOML contract and check it against
-    schema.json. Exit 0 on valid; 1 on invalid with a one-line stderr
+    adapter.schema.json. Exit 0 on valid; 1 on invalid with a one-line stderr
     message.
 
 Subcommands landing in later tasks (T6–T8):
@@ -44,12 +44,14 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     schema_path = (
         Path(__file__).resolve().parent.parent.parent.parent.parent
         / "docs"
-        / "specs"
-        / "adapter-contract"
-        / "schema.json"
+        / "contracts"
+        / "adapter.schema.json"
     )
     if not schema_path.exists():
-        print(f"validate: schema.json not found at {schema_path}", file=sys.stderr)
+        print(
+            f"validate: adapter.schema.json not found at {schema_path}",
+            file=sys.stderr,
+        )
         return 1
 
     try:
@@ -85,7 +87,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     validate_parser.add_argument(
         "path",
-        help="path to contract.toml (or any TOML file the schema accepts)",
+        help="path to adapter.toml (or any TOML file the schema accepts)",
     )
     validate_parser.set_defaults(func=_cmd_validate)
 
