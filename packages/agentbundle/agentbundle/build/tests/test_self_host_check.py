@@ -96,6 +96,9 @@ class DryRunCleanTreeTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
 
     def test_dry_run_with_drift_returns_non_zero(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
@@ -115,14 +118,20 @@ class DryRunCleanTreeTests(unittest.TestCase):
             target = working_tree / ".claude" / "skills" / "foo" / "SKILL.md"
             target.write_text("drift!\n", encoding="utf-8")
 
-            exit_code = run_self_host(
-                working_tree=working_tree,
-                packs_dir=packs_dir,
-                dry_run=True,
-                force=False,
-                contract=self.contract,
-            )
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                exit_code = run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=True,
+                    force=False,
+                    contract=self.contract,
+                )
             self.assertNotEqual(exit_code, 0)
+            # AC #10: stderr names the drifted file (per-file drift listing).
+            stderr_text = buf.getvalue()
+            self.assertIn(".claude/skills/foo/SKILL.md", stderr_text)
+            self.assertIn("drift", stderr_text)
 
 
 class DirtyTreeRefusalTests(unittest.TestCase):
@@ -217,13 +226,16 @@ class MarkerResolutionTests(unittest.TestCase):
     def test_resolve_markers_helper_leaves_unmatched_markers(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            (tmp_path / "file.md").write_text(
+            # resolve_markers restricts its scope to adapter-target paths
+            # (TARGET_PATHS) — write the fixture under AGENTS.md so the
+            # walk actually visits it.
+            (tmp_path / "AGENTS.md").write_text(
                 "Hello <adapt:name>, also <adapt:unknown>!\n",
                 encoding="utf-8",
             )
             count = resolve_markers(tmp_path, {"name": "World"})
             self.assertEqual(count, 1)
-            text = (tmp_path / "file.md").read_text(encoding="utf-8")
+            text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
             self.assertIn("Hello World", text)
             self.assertIn("<adapt:unknown>", text)
 

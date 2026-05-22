@@ -34,6 +34,9 @@ RECIPES_DIR = PACKAGE_ROOT / "recipes"
 REPO_ROOT = PACKAGE_ROOT.parent.parent.parent.parent
 CONTRACT_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "contract.toml"
 PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "specs" / "adapter-contract" / "pack-schema.json"
+PLUGIN_MANIFEST_SCHEMA_PATH = (
+    REPO_ROOT / "docs" / "specs" / "adapter-contract" / "plugin-manifest-schema.json"
+)
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The three RFC-0001 recipes that plain `make build` invokes.
@@ -115,8 +118,26 @@ def validate_pack_metadata(pack_toml_path: Path) -> None:
         )
 
 
+def validate_plugin_manifest(plugin_json_path: Path) -> None:
+    """Validate a per-pack .claude-plugin/plugin.json against schema."""
+    manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
+    schema = json.loads(PLUGIN_MANIFEST_SCHEMA_PATH.read_text(encoding="utf-8"))
+    errors = validate_instance(manifest, schema)
+    if errors:
+        raise ValueError(
+            f"plugin manifest at {plugin_json_path} failed schema: "
+            + "; ".join(errors)
+        )
+
+
 def validate_pack_uniqueness(pack: Pack) -> None:
-    """Raise if a pack has two primitives with the same local name."""
+    """Raise if a pack has two primitives with the same local name.
+
+    The local name is the stem for most primitives, except `hooks` where
+    `.sh` and `.py` are both legal (the spec § Hook extensions makes both
+    valid in `packs/<pack>/.apm/hooks/`) — so for hooks we key by the
+    full filename so `baz.sh` and `baz.py` coexist.
+    """
     apm_root = pack.path / ".apm"
     if not apm_root.exists():
         return
@@ -126,8 +147,8 @@ def validate_pack_uniqueness(pack: Pack) -> None:
         if not primitive_dir.exists():
             continue
         for child in primitive_dir.iterdir():
-            stem = child.stem
-            key = f"{primitive_dir_name}:{stem}"
+            local_name = child.name if primitive_dir_name == "hooks" else child.stem
+            key = f"{primitive_dir_name}:{local_name}"
             if key in seen:
                 raise ValueError(
                     f"pack {pack.name!r}: duplicate primitive {key!r} — "
@@ -158,6 +179,24 @@ def run_recipe(
     raise ValueError(f"unknown recipe type {recipe.type!r}")
 
 
+def _assert_under(target: Path, base: Path) -> None:
+    """Refuse if `target.resolve()` would escape `base.resolve()`.
+
+    Defense-in-depth against traversal in recipe `output-subdir` and
+    contract `target-path` values. Repo-owned today; the CLI accepts
+    external recipe paths via `--recipe path.toml`, so this guard is
+    load-bearing the moment an operator points the CLI at untrusted TOML.
+    """
+    base_resolved = base.resolve()
+    target_resolved = target.resolve()
+    try:
+        target_resolved.relative_to(base_resolved)
+    except ValueError as exc:
+        raise ValueError(
+            f"refusing to write outside output root: {target_resolved} not under {base_resolved}"
+        ) from exc
+
+
 def _run_per_pack(
     recipe: Recipe, packs: list[Pack], output_dir: Path, contract: dict
 ) -> dict:
@@ -173,13 +212,15 @@ def _run_per_pack(
     produced: dict[str, str] = {}
     for pack in packs:
         per_pack_output = output_dir / recipe.output_subdir / pack.name
+        _assert_under(per_pack_output, output_dir)
         per_pack_output.mkdir(parents=True, exist_ok=True)
         project(pack.path, contract, per_pack_output)
         plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
         if plugin_manifest.exists():
+            validate_plugin_manifest(plugin_manifest)
             destination = per_pack_output / ".claude-plugin" / "plugin.json"
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(plugin_manifest, destination)
+            shutil.copy2(plugin_manifest, destination, follow_symlinks=False)
         produced[pack.name] = str(per_pack_output)
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
 
@@ -188,6 +229,7 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
     produced: dict[str, str] = {}
     for pack in packs:
         per_pack_output = output_dir / recipe.output_subdir / pack.name
+        _assert_under(per_pack_output, output_dir)
         per_pack_output.mkdir(parents=True, exist_ok=True)
         pack_metadata = tomllib.loads((pack.path / "pack.toml").read_text(encoding="utf-8"))
         (per_pack_output / "apm.yml").write_text(
@@ -199,7 +241,10 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
             apm_dest = per_pack_output / ".apm"
             if apm_dest.exists():
                 shutil.rmtree(apm_dest)
-            shutil.copytree(apm_source, apm_dest)
+            # symlinks=True preserves symlinks as symlinks rather than
+            # dereferencing them — a pack containing a symlink to /etc/passwd
+            # cannot exfiltrate the target into the published dist/ tree.
+            shutil.copytree(apm_source, apm_dest, symlinks=True)
         produced[pack.name] = str(per_pack_output)
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
 
@@ -207,16 +252,18 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
 def _render_apm_yml(pack_metadata: dict) -> str:
     """Render the per-pack APM package metadata.
 
-    Stdlib-only — no PyYAML. The output is a tiny YAML-ish file the
-    APM tooling consumes; round-tripping isn't required here.
+    Stdlib-only — no PyYAML. Values are JSON-encoded scalars (YAML is
+    a JSON superset, so a JSON-quoted string is always a valid YAML
+    scalar). This blocks YAML-key injection from a pack name or
+    description containing newlines or YAML control characters.
     """
     lines = [
-        f"name: {pack_metadata.get('name', '')}",
-        f"version: {pack_metadata.get('version', '0.0.0')}",
+        f"name: {json.dumps(pack_metadata.get('name', ''))}",
+        f"version: {json.dumps(pack_metadata.get('version', '0.0.0'))}",
     ]
     description = pack_metadata.get("description")
     if description:
-        lines.append(f"description: {description}")
+        lines.append(f"description: {json.dumps(description)}")
     return "\n".join(lines) + "\n"
 
 

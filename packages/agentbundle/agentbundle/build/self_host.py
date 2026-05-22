@@ -51,30 +51,55 @@ TARGET_PATHS = (
 
 
 def is_dirty_tree(working_tree: Path) -> bool:
-    """Return True if `git status --porcelain` against working_tree is non-empty."""
-    result = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=working_tree,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        # Not a git repo, or git is unavailable — surface and treat as
-        # clean to avoid blocking unrelated tooling, but log it.
+    """Return True if `git status --porcelain` against working_tree is non-empty.
+
+    Fail-closed semantics — if git is missing, the directory isn't a
+    git repo, or the call fails for any reason, return True so the
+    destructive `--self` write still requires `--force`. The operator
+    who knows the directory is safe can always pass `--force`; the
+    operator who doesn't know what's there is protected.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=working_tree,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
         print(
-            f"self-host: warning — `git status` failed in {working_tree} "
-            f"(exit {result.returncode}); proceeding as if clean.",
+            f"self-host: warning — `git` binary not on PATH; treating "
+            f"{working_tree} as dirty.",
             file=sys.stderr,
         )
-        return False
+        return True
+    if result.returncode != 0:
+        print(
+            f"self-host: warning — `git status` failed in {working_tree} "
+            f"(exit {result.returncode}); treating as dirty.",
+            file=sys.stderr,
+        )
+        return True
     return bool(result.stdout.strip())
 
 
 def resolve_markers(root: Path, discovery: dict[str, str]) -> int:
-    """Walk every text file under root and substitute <adapt:NAME> markers."""
+    """Walk adapter-target paths under root and substitute <adapt:NAME>.
+
+    Scope is restricted to TARGET_PATHS (the adapter-target subtree the
+    build owns) — not the entire working tree. This avoids silently
+    rewriting adopter-private files outside the bundle's owned region.
+    """
     modified = 0
-    for path in root.rglob("*"):
+    candidates: list[Path] = []
+    for relative in TARGET_PATHS:
+        target = root / relative
+        if target.is_file():
+            candidates.append(target)
+        elif target.is_dir():
+            candidates.extend(p for p in target.rglob("*") if p.is_file())
+    for path in candidates:
         if not path.is_file():
             continue
         try:

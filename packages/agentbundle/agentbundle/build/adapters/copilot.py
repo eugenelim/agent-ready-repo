@@ -39,7 +39,7 @@ def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str
     target_dir.mkdir(parents=True, exist_ok=True)
     for entry in sorted(source_dir.iterdir()):
         if entry.is_file():
-            shutil.copy2(entry, target_dir / entry.name)
+            shutil.copy2(entry, target_dir / entry.name, follow_symlinks=False)
 
 
 def _project_instruction_file(
