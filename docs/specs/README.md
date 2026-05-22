@@ -17,7 +17,11 @@ docs/specs/<feature>/
 
 <!-- Update this list as features are added. -->
 
-_none yet_
+| Spec | Status | Constrained by | Notes |
+| --- | --- | --- | --- |
+| [`distribution-adapters/`](distribution-adapters/spec.md) | Draft | RFC-0001 | F-spec + F-build: adapter contract, build pipeline, four reference adapters, pack.toml/plugin.json schemas, Tier-1/2/3 model. Format source-of-truth for the other two. |
+| [`self-hosting/`](self-hosting/spec.md) | Draft | RFC-0001, RFC-0002 | `make build --self` + `--check` gate; this repo eats its own dog food. Owns LF/mode/symlink comparison-rule unit tests. Depends on `distribution-adapters`. |
+| [`agent-spec-cli/`](agent-spec-cli/spec.md) | Draft | RFC-0001, RFC-0003 | `agentbundle` CLI at `packages/agentbundle/`. Library-first; stdlib only; zipapp distribution; eleven subcommands incl. `upgrade` with per-primitive granularity. Depends on `distribution-adapters`. |
 
 ## Shipped specs (archived)
 
