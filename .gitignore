@@ -22,3 +22,11 @@ CLAUDE.local.md
 *.swp
 .vscode/
 .idea/
+
+# Python build artefacts
+__pycache__/
+*.egg-info/
+*.pyc
+
+# Build pipeline output — generated, never committed (RFC-0001).
+dist/

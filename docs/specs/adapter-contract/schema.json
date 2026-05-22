@@ -1,0 +1,99 @@
+{
+  "type": "object",
+  "required": ["contract", "primitive", "adapter"],
+  "properties": {
+    "contract": {
+      "type": "object",
+      "required": ["version"],
+      "properties": {
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"}
+      }
+    },
+    "primitive": {
+      "type": "object",
+      "required": ["skill", "agent", "hook-body", "hook-wiring", "command"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["source-path"],
+        "properties": {
+          "source-path": {"type": "string"}
+        }
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["projection"],
+        "properties": {
+          "projection": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["primitive", "mode"],
+              "properties": {
+                "primitive": {
+                  "type": "string",
+                  "enum": ["skill", "agent", "hook-body", "hook-wiring", "command"]
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "direct-directory",
+                    "direct-file",
+                    "merge-json",
+                    "instruction-file",
+                    "managed-block-inline",
+                    "degraded-info-log",
+                    "dropped"
+                  ]
+                },
+                "target-path": {"type": "string"},
+                "on-conflict": {
+                  "type": "string",
+                  "enum": [
+                    "prompt-then-preserve",
+                    "prompt-then-overwrite",
+                    "preserve-outside-block",
+                    "merge-managed-key-only",
+                    "overwrite-without-prompt"
+                  ]
+                },
+                "managed-key": {"type": "string"},
+                "managed-block-delimiter-start": {"type": "string"},
+                "managed-block-delimiter-end": {"type": "string"},
+                "frontmatter-mapping": {"type": "string"},
+                "frontmatter-default": {"type": "string"},
+                "info-message": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "frontmatter-mapping": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "rename": {"type": "string"},
+            "normalize": {
+              "type": "string",
+              "enum": ["to-list", "to-string", "lowercase"]
+            },
+            "default": {"type": "string"}
+          }
+        }
+      }
+    },
+    "frontmatter-default": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {"type": "string"}
+      }
+    }
+  }
+}
