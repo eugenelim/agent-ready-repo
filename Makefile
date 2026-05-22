@@ -12,7 +12,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-check build-scaffold validate clean
+.PHONY: build build-self build-self-dry-run build-check build-scaffold validate clean
 
 build:
 ifeq ($(RECIPE),)
@@ -30,7 +30,14 @@ endif
 endif
 
 build-self:
+ifeq ($(DRY_RUN),1)
+	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
+else
 	$(PYTHON) -m agentbundle.build self --packs-dir $(PACKS_DIR)
+endif
+
+build-self-dry-run:
+	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
 
 build-check:
 	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
