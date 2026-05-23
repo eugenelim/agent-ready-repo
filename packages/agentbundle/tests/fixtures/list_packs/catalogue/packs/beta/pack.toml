@@ -1,0 +1,10 @@
+[pack]
+name = "beta"
+version = "0.2.0"
+description = "Beta fixture pack for list-packs tests."
+seeds = []
+
+[[pack.dependencies.recommended]]
+catalogue = "agent-ready-repo"
+pack = "alpha"
+version = "0.1.0"

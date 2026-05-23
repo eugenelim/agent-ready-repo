@@ -1,0 +1,5 @@
+[pack]
+name = "core"
+version = "v0.2"
+description = "Core fixture pack for T12 upgrade tests."
+seeds = []
