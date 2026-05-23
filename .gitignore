@@ -1,6 +1,11 @@
 # Ralph runtime state — local-only, never committed
 .ralph/
 
+# Install-time scratch — written by `agentbundle install`, consumed by
+# the adapt-to-project skill at session start. Path encodes scope;
+# user-scope marker lives inside ~/.agent-ready/ (outside any repo).
+.adapt-install-marker.toml
+
 # Work-loop session state — per-spec scratch, never committed.
 # See docs/CONVENTIONS.md#work-loop-state.
 docs/specs/**/state.json

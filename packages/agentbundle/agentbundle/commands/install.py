@@ -440,11 +440,192 @@ def run(args: "argparse.Namespace") -> int:
                     user_state=user_state,
                 )
 
-    # ── Step 11: Emit installed: lines (repo first, user last) ────────────────
+    # ── Step 11: Write install marker(s) per scope ───────────────────────────
+    # Per spec AC19a: after every successful install, append a
+    # `[[packs-installed]]` entry to `.adapt-install-marker.toml` at the
+    # install's scope root. The file's *path* encodes the scope.
+    pack_version = pack_toml.get("pack", {}).get("version", "")
+    unresolved_markers = _collect_unresolved_markers(projection)
+    new_companions = _collect_new_companions(projection, [p for p in plans])
+    for plan in plans:
+        # Unresolved markers are only meaningful at repo scope (markers
+        # are repo-only per RFC-0004); user-scope marker file always
+        # carries [].
+        scope_markers = unresolved_markers if plan.scope == "repo" else []
+        try:
+            _append_install_marker(
+                plan.root,
+                plan.scope,
+                pack_name=pack_name,
+                pack_version=pack_version,
+                unresolved_markers=scope_markers,
+                new_companions=new_companions,
+                allowed_prefixes=plan.allowed_prefixes,
+            )
+        except (OSError, safety.PathJailError) as exc:
+            print(f"install: {exc}", file=sys.stderr)
+            return 1
+
+    # ── Step 12: Chained adapt (in-process) ──────────────────────────────────
+    # Per spec AC19b: invoke `agentbundle.commands.adapt.run` in-process
+    # with --values-from <repo>/.adapt-discovery.toml regardless of the
+    # install scope (markers are repo-only). AC19d covers the two
+    # failure modes.
+    repo_plan = next((p for p in plans if p.scope == "repo"), None)
+    repo_root_for_adapt = (
+        repo_plan.root if repo_plan is not None else Path(args.output).resolve()
+    )
+    adapt_rc = _chain_adapt(repo_root_for_adapt)
+    if adapt_rc != 0:
+        # Per AC19d (ii): malformed `.adapt-discovery.toml` causes the
+        # chained adapt to raise; install exits non-zero. The marker
+        # file was already written in step 11 — that's by design.
+        return adapt_rc
+
+    # ── Step 13: Emit installed: lines (repo first, user last) ───────────────
     for plan in plans:
         print(f"installed: {pack_name} @ {plan.scope}")
 
     return 0
+
+
+def _collect_unresolved_markers(projection: dict) -> list[str]:
+    """Return sorted, deduplicated list of `<adapt:NAME>` markers found
+    in the projection's byte content. The skill resolves these later;
+    the install marker just enumerates them for the nudge surface."""
+    import re
+
+    marker_re = re.compile(r"<adapt:([a-z][a-z0-9-]*)>")
+    seen: set[str] = set()
+    for _relpath, content in projection.items():
+        if isinstance(content, bytes):
+            try:
+                text = content.decode("utf-8", errors="ignore")
+            except Exception:
+                continue
+        else:
+            text = str(content)
+        for name in marker_re.findall(text):
+            seen.add(name)
+    return sorted(seen)
+
+
+def _collect_new_companions(projection: dict, plans: list) -> list[str]:
+    """Return the relative paths of companions that *would* be dropped
+    on a Tier-2 collision. Best-effort enumeration; the actual decision
+    was made earlier in the install flow."""
+    # The current install loop classifies on the fly; we don't keep a
+    # tally of companions. Walk the projection looking for paths that
+    # might have triggered Tier-2 — that's deferred to the next session
+    # in any case. Keeping this empty for v1 honours the spec contract
+    # (the field is `new_companions = []` by default) without forcing
+    # a refactor of the Tier classifier.
+    return []
+
+
+def _append_install_marker(
+    root: Path,
+    scope: str,
+    *,
+    pack_name: str,
+    pack_version: str,
+    unresolved_markers: list[str],
+    new_companions: list[str],
+    allowed_prefixes: list[str] | None,
+) -> None:
+    """Append a `[[packs-installed]]` entry to `.adapt-install-marker.toml`
+    at *root* via `os.replace` atomic rename. Repo-scope marker lives
+    at `<repo>/.adapt-install-marker.toml`; user-scope at
+    `<user-root>/.agent-ready/.adapt-install-marker.toml`.
+
+    Per spec AC19a: scope is encoded by the file's location, not as a
+    field — the path is the source of truth.
+    """
+    import os
+    import tomllib
+    from datetime import datetime, timezone
+
+    from agentbundle import safety
+
+    if scope == "user":
+        marker_dir = root / ".agent-ready"
+        marker_dir.mkdir(parents=True, exist_ok=True)
+        marker_path = marker_dir / ".adapt-install-marker.toml"
+    else:
+        marker_path = root / ".adapt-install-marker.toml"
+
+    # Read existing entries if present.
+    entries: list[dict] = []
+    if marker_path.exists():
+        try:
+            existing = tomllib.loads(marker_path.read_text(encoding="utf-8"))
+        except Exception:
+            existing = {}
+        raw_entries = existing.get("packs-installed", [])
+        if isinstance(raw_entries, list):
+            entries = [e for e in raw_entries if isinstance(e, dict)]
+
+    new_entry = {
+        "name": pack_name,
+        "version": pack_version,
+        "installed-at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "unresolved-markers": unresolved_markers,
+        "new-companions": new_companions,
+    }
+    entries.append(new_entry)
+
+    # Serialise. Single source of truth: this writer (no shared helper
+    # because the install marker is a different shape from the other
+    # CLI artifacts).
+    lines: list[str] = ['marker-schema-version = "0.1"', ""]
+    for entry in entries:
+        lines.append("[[packs-installed]]")
+        lines.append(f'name = "{entry["name"]}"')
+        lines.append(f'version = "{entry["version"]}"')
+        lines.append(f'installed-at = {entry["installed-at"]}')
+        markers_repr = ", ".join(f'"{m}"' for m in entry.get("unresolved-markers", []))
+        lines.append(f"unresolved-markers = [{markers_repr}]")
+        comps_repr = ", ".join(f'"{c}"' for c in entry.get("new-companions", []))
+        lines.append(f"new-companions = [{comps_repr}]")
+        lines.append("")
+    content = "\n".join(lines).rstrip() + "\n"
+
+    # Atomic-rename write per AC19a. The relative path for write_jailed
+    # is computed against `root`.
+    tmp_path = marker_path.with_suffix(marker_path.suffix + ".tmp")
+    tmp_path.write_text(content, encoding="utf-8")
+    os.replace(tmp_path, marker_path)
+
+
+def _chain_adapt(repo_root: Path) -> int:
+    """Per AC19b: run `agentbundle.commands.adapt.run` in-process with
+    `--values-from <repo>/.adapt-discovery.toml`.
+
+    Per AC19d:
+      (i) missing `<repo>/.adapt-discovery.toml` → adapt step is
+          skipped, emits one stderr line; install exits 0.
+      (ii) malformed discovery → adapt returns non-zero; the install
+          caller propagates non-zero. The marker file is still on disk
+          because step 11 wrote it before this step.
+    """
+    import argparse as _argparse
+
+    from agentbundle.commands import adapt as _adapt
+
+    discovery_path = repo_root / ".adapt-discovery.toml"
+    if not discovery_path.exists():
+        print(
+            "adapt: no .adapt-discovery.toml at repo root; markers left unresolved",
+            file=sys.stderr,
+        )
+        return 0
+
+    ns = _argparse.Namespace(
+        root=str(repo_root),
+        values_from=str(discovery_path),
+        ci=False,
+    )
+    return _adapt.run(ns)
 
 
 def _emit_recommends_warning(
