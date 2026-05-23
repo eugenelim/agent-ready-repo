@@ -24,7 +24,7 @@ tool, used often enough to stick — live in
 | [`bug-fix`](bug-fix/SKILL.md) | Fix a defect — reproduce → failing test → root cause → minimum fix → root-vs-symptom verify → commit body documents *why* |
 | [`new-package`](new-package/SKILL.md) | Scaffold a new package in `packages/` |
 | [`update-conventions`](update-conventions/SKILL.md) | Open an RFC to change `docs/CONVENTIONS.md` |
-| [`adapt-to-project`](adapt-to-project/SKILL.md) | *(stub — full body in a follow-on PR)* Materialize `.adapt-discovery.toml` with concrete values for `<adapt:NAME>` markers in installed packs' seeds |
+| [`adapt-to-project`](adapt-to-project/SKILL.md) | Walk the adopter through the four classes of post-install change (substitution, `.upstream` companion merges, discovery + restructuring, within-layout consolidation). Per-scope; class-1 shells out to `agentbundle adapt` |
 | [`new-guide`](new-guide/SKILL.md) | *(stub — full body in a follow-on PR)* Draft a new user-facing guide under `docs/guides/<quadrant>/` following the Diátaxis framework |
 
 ## Authoring skills
