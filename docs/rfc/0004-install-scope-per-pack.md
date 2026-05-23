@@ -1,9 +1,9 @@
 # RFC-0004: Install-scope dimension — repo or user — defaulted and constrained per pack
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-05-23
-- **Date closed:**
+- **Date closed:** 2026-05-23
 - **Extends:** [RFC-0001](0001-bundle-distribution-by-adapter-spec.md)
   — adds a scope dimension to the adapter contract and Tier-1/2/3
   file-safety rails.

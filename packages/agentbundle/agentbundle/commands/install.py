@@ -1,22 +1,35 @@
 """``agentbundle install`` — constrained-network pack installer.
 
-Steps:
-  1. Resolve the catalogue URI to a local directory (``catalogue.resolve_catalogue``).
-  2. Locate the pack directory inside the catalogue.
-  3. Spec-version gate: refuse if pack's major spec version != CLI's major.
-  4. Render the pack projection in memory (``render.render_pack``).
-  5. Walk each (relpath, bytes) pair:
-       - Classify against existing state + on-disk content.
-       - Tier-1 (or absent): write via ``safety.write_jailed``; record SHA.
-       - Tier-2: write companion via ``safety.write_companion``; leave original.
-       - Tier-3: skip entirely.
-  6. Merge new pack table into existing ``.agent-ready-state.toml`` leaving
-     other packs untouched; write atomically via ``safety.write_jailed``.
+Per RFC-0004 the install verb is the load-bearing CLI surface for the
+scope dimension. The handler enforces:
+
+  - **Scope resolution** via :mod:`agentbundle.scope` (CLI flag > pack
+    ``default-scope`` > built-in ``"repo"``).
+  - **Cross-scope conflict** with ``--force`` semantics:
+      - Pack already at the *requested* scope → refused (use ``upgrade``).
+      - Pack at the *other* scope, no ``--force`` → refused; stderr
+        names the other scope and the bypass flag.
+      - Pack at the other scope, with ``--force`` → dual-scope install:
+        re-confirms the existing scope and installs at the new scope,
+        printing two ``installed:`` lines in repo-then-user order.
+  - **Pre-flight order**: every scope's preconditions (``~``-expansion,
+    Rails A/B/C re-check, path-jail probe) run **before** any write to
+    either scope. A user-scope failure after a repo write would leave a
+    half-applied install on disk, so we sequence: resolve → check → write.
+  - **State-file v0.1 refusal** is delegated to
+    :func:`config.load_state(..., for_write=True)`.
+
+Tier-1/2/3 classification is unchanged from the pre-RFC-0004 shape;
+both scope roots use :func:`_classify_for_install`. Writes go through
+:func:`safety.write_jailed` with the matching ``scope`` and
+``allowed_prefixes`` so the user-scope jail fires.
 """
 
 from __future__ import annotations
 
+import functools
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -27,15 +40,29 @@ if TYPE_CHECKING:
     from agentbundle.safety import Tier
 
 
+@dataclass
+class _ScopePlan:
+    """One scope's worth of pre-flight + write data.
+
+    Computed during pre-flight and consumed at write time. Keeping the
+    fields in a dataclass lets the dual-scope path assemble *all*
+    plans (and surface any pre-flight failure across either scope)
+    before any side-effect runs.
+    """
+
+    scope: str
+    root: Path  # absolute path of the scope's root
+    state_path: Path  # absolute path of the scope's state file
+    allowed_prefixes: list[str] | None
+    state: "State"  # the loaded state at this scope (read-only mode)
+    already_installed: bool
+
+
 def run(args: "argparse.Namespace") -> int:
     """Entry point for ``agentbundle install``.
 
-    Args:
-        args.pack       — pack name to install (required).
-        args.catalogue  — catalogue URI (local path or git+https://...).
-        args.output     — destination root directory (default '.').
-
-    Returns 0 on success, non-zero on any failure.
+    Returns 0 on success, non-zero on any failure. See module docstring
+    for the dual-scope contract.
     """
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import check_spec_version_gate
@@ -47,20 +74,21 @@ def run(args: "argparse.Namespace") -> int:
         load_state,
     )
     from agentbundle.render import render_pack
-    from agentbundle import safety
+    from agentbundle import safety, scope as scope_mod
+    from agentbundle.build import scope_rails
 
     pack_name: str = args.pack
     catalogue_uri: str = args.catalogue
+    cli_scope: str | None = getattr(args, "scope", None)
+    force: bool = bool(getattr(args, "force", False))
     output_root = Path(args.output).resolve()
 
-    # ── Step 1: Resolve catalogue ─────────────────────────────────────────────
+    # ── Step 1: Resolve catalogue + locate + spec gate ────────────────────────
     try:
         catalogue_dir = resolve_catalogue(catalogue_uri)
     except CatalogueError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
-
-    # ── Step 2: Locate the pack directory ─────────────────────────────────────
     pack_dir = _locate_pack(catalogue_dir, pack_name)
     if pack_dir is None:
         print(
@@ -69,111 +97,515 @@ def run(args: "argparse.Namespace") -> int:
             file=sys.stderr,
         )
         return 1
-
-    # ── Step 3: Spec-version gate ─────────────────────────────────────────────
     try:
         pack_toml = load_pack_toml(pack_dir / "pack.toml")
     except ConfigError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
-
     gate = check_spec_version_gate(pack_toml)
     if gate is not None:
         return gate
 
-    # ── Step 4: Render projection in memory ───────────────────────────────────
+    # ── Step 2: Resolve scope ─────────────────────────────────────────────────
+    # RFC-0004 § *v0.1 vs v0.2 contract acceptance*: a stray
+    # [pack.install] table on a v0.1 pack is *ignored*. We gate the
+    # install table on the declared contract version so a legacy pack
+    # carrying `default-scope = "user"` does NOT resolve to user scope.
+    # Mirrors validate.py:_allowed_scopes, kept in sync intentionally.
+    from agentbundle.config import pack_spec_version
+
+    if pack_spec_version(pack_toml) == "0.2":
+        pack_install = pack_toml.get("pack", {}).get("install")
+    else:
+        pack_install = None
     try:
-        projection = render_pack(pack_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        print(f"install: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
+        requested_scope = scope_mod.resolve(
+            cli_scope, pack_install, pack_name=pack_name
+        )
+    except scope_mod.ScopeRefused as exc:
+        print(
+            f"install: {exc.pack_name}: scope {exc.requested!r} not in "
+            f"allowed-scopes {exc.allowed}",
+            file=sys.stderr,
+        )
         return 1
 
-    # ── Step 5: Load existing state (for Tier classification) ─────────────────
-    state_path = output_root / ".agent-ready-state.toml"
+    # ── Step 3: Pre-flight — load state at *both* scopes ──────────────────────
+    # Read-only loads (for_write=False) — we do the v0.1 refusal *only*
+    # for scopes we're about to write to, after we know which they are.
+    # Loading both is cheap and reveals the cross-scope conflict.
+    repo_state_path = output_root / ".agent-ready-state.toml"
+    user_root: Path | None
+    user_state_path: Path | None
     try:
-        state = load_state(state_path)
+        repo_state = load_state(repo_state_path)
     except ConfigError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
 
-    # Build a fresh PackState for the pack being installed; we populate
-    # ``files`` as we walk the projection.
-    pack_version: str = pack_toml.get("pack", {}).get("version", "0.0.0")
-    # Carry forward per-primitive mixed-version overrides from a prior
-    # install/upgrade so a re-install doesn't silently drop the warning
-    # that a subsequent whole-pack upgrade should surface (AC #10's
-    # second clause).
-    prior = state.packs.get(pack_name)
-    new_pack_state = PackState(
-        installed_version=pack_version,
-        source="agent-ready-repo",
-        install_route="cli",
-        primitives=_collect_primitives(pack_dir),
-        files={},
-        primitive_versions=dict(prior.primitive_versions) if prior else {},
+    # User scope resolution only fires when we actually need it (the
+    # request, the pack's default, or a dual-scope --force path touches
+    # user). Defer the expanduser call to avoid raising on adopters
+    # with $HOME=/ when they're only installing at repo scope.
+    needs_user_state = requested_scope == "user" or (
+        # Conservative pre-load — we don't yet know if the pack is at
+        # user scope until we read the user state file, but if the pack
+        # isn't permitted at user scope, no user state is consulted.
+        "user" in _resolved_allowed_scopes(pack_install)
     )
-
-    # ── Step 5 (walk) ─────────────────────────────────────────────────────────
-    for relpath, content in sorted(projection.items()):
-        # Classify this projected path against the *current* on-disk state:
-        #   - If the path is already in state (from a prior install of this
-        #     same pack) and the on-disk SHA matches → Tier-1 (safe overwrite).
-        #   - If the path is already in state and the SHA has drifted → Tier-2
-        #     (adopter has edited; write companion only).
-        #   - If the path is not in any pack's state yet, but exists on disk
-        #     with content that doesn't match the bundle → Tier-2 (same rule:
-        #     something is there that the CLI didn't put there).
-        #   - If not on disk at all OR matches bundle content → Tier-1.
-        #
-        # Note: we do NOT use safety.classify() here because that function's
-        # Tier-3 branch is "not in state.projected_paths()" — which would
-        # incorrectly mark every newly-installed path as Tier-3 on a fresh
-        # install. The install command's contract is different: EVERY path in
-        # the incoming projection is adapter-contract space; we just need to
-        # know whether it's safe to overwrite or not.
-        tier = _classify_for_install(
-            relpath, output_root, content, state, pack_name=pack_name,
-        )
-
-        if tier is safety.Tier.TIER_2:
-            # Adopter has edited — write companion, leave original untouched.
+    user_state = None
+    if needs_user_state:
+        try:
+            user_root = scope_mod.resolve_user_root()
+        except scope_mod.UserScopeUnresolvable:
+            user_root = None  # surface only if we actually need to write
+        if user_root is not None:
+            user_state_path = user_root / ".agent-ready" / "state.toml"
             try:
-                safety.write_companion(output_root, relpath, content)
-            except safety.PathJailError as exc:
+                user_state = load_state(user_state_path)
+            except ConfigError as exc:
                 print(f"install: {exc}", file=sys.stderr)
                 return 1
-            # Record the bundle's SHA in state; the file itself is adopter-owned.
-            new_pack_state.files[relpath] = {
-                "sha": safety.sha256_bytes(content),
-                "from-pack-version": pack_version,
-            }
         else:
-            # Tier-1 (including absent or not-yet-in-state): write outright.
-            try:
-                safety.write_jailed(output_root, relpath, content)
-            except safety.PathJailError as exc:
-                print(f"install: {exc}", file=sys.stderr)
-                return 1
-            new_pack_state.files[relpath] = {
-                "sha": safety.sha256_bytes(content),
-                "from-pack-version": pack_version,
-            }
+            user_state_path = None
+    else:
+        user_root = None
+        user_state_path = None
 
-    # ── Step 6: Merge state — add/replace this pack's table ───────────────────
-    state.packs[pack_name] = new_pack_state
-    state_toml_content = dump_state(state)
-    try:
-        safety.write_jailed(output_root, ".agent-ready-state.toml", state_toml_content)
-    except safety.PathJailError as exc:
-        print(f"install: {exc}", file=sys.stderr)
+    installed_at_repo = pack_name in repo_state.packs
+    installed_at_user = user_state is not None and pack_name in user_state.packs
+
+    # ── Step 4: Branch on already-installed shape ─────────────────────────────
+    # 4a. Already at requested scope → refuse (use 'upgrade'); --force does
+    #     not bypass this case.
+    if (requested_scope == "repo" and installed_at_repo) or (
+        requested_scope == "user" and installed_at_user
+    ):
+        print(
+            f"install: {pack_name} already installed at {requested_scope}; "
+            "use 'upgrade' to change version",
+            file=sys.stderr,
+        )
         return 1
 
+    # 4b. Already at the *other* scope, no --force → refuse cross-scope.
+    other_scope = "user" if requested_scope == "repo" else "repo"
+    other_already = installed_at_user if requested_scope == "repo" else installed_at_repo
+    if other_already and not force:
+        print(
+            f"install: {pack_name} already installed at {other_scope}; "
+            "pass --force to install at both",
+            file=sys.stderr,
+        )
+        return 1
+
+    # ── Step 5: Build the scope plan(s) ───────────────────────────────────────
+    # Determine which scopes this run will write to. Dual-scope is the
+    # --force-and-pack-already-at-other-scope case; everything else is
+    # single-scope. Pre-flight all of them before any write.
+    scopes_to_install: list[str] = []
+    if force and other_already:
+        # Dual-scope path: repo first, then user (spec § *Output*).
+        scopes_to_install = ["repo", "user"]
+    else:
+        scopes_to_install = [requested_scope]
+
+    # Probe per-adapter scope metadata (for allowed-prefixes at user
+    # scope). The Claude Code adapter is the only one shipping a
+    # [scope] block today; future adapters would map similarly. We
+    # consult the bundled contract.
+    allowed_prefixes_user = _claude_code_allowed_prefixes_user()
+
+    plans: list[_ScopePlan] = []
+    for scope_value in scopes_to_install:
+        if scope_value == "repo":
+            plans.append(
+                _ScopePlan(
+                    scope="repo",
+                    root=output_root,
+                    state_path=repo_state_path,
+                    allowed_prefixes=None,
+                    state=repo_state,
+                    already_installed=installed_at_repo,
+                )
+            )
+        else:
+            # User scope: surface unresolvable $HOME *now* so failures
+            # land in pre-flight, before any write.
+            try:
+                user_root_resolved = scope_mod.resolve_user_root()
+            except scope_mod.UserScopeUnresolvable:
+                print(
+                    "install: cannot resolve user scope: $HOME unset or invalid",
+                    file=sys.stderr,
+                )
+                return 1
+            # Print the resolved root to stderr so the adopter sees
+            # the destination before any side-effect.
+            print(f"install: user scope resolved to {user_root_resolved}", file=sys.stderr)
+            # Re-load user state in for-write mode so a v0.1 file fails
+            # here (after the resolved-root line so adopters see context).
+            try:
+                user_state_for_write = load_state(
+                    user_root_resolved / ".agent-ready" / "state.toml", for_write=True
+                )
+            except ConfigError as exc:
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+            plans.append(
+                _ScopePlan(
+                    scope="user",
+                    root=user_root_resolved,
+                    state_path=user_root_resolved / ".agent-ready" / "state.toml",
+                    allowed_prefixes=allowed_prefixes_user,
+                    state=user_state_for_write,
+                    already_installed=installed_at_user,
+                )
+            )
+
+    # If the repo plan is going to be written to (not just a recap),
+    # also load the state in for-write mode so v0.1 refusal fires.
+    for plan in plans:
+        if plan.scope == "repo" and not plan.already_installed:
+            try:
+                plan.state = load_state(plan.state_path, for_write=True)
+            except ConfigError as exc:
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+
+    # ── Step 6: Pre-flight — rails A/B/C for any user-scope write ────────────
+    for plan in plans:
+        if plan.scope == "user":
+            allowed_scopes = _resolved_allowed_scopes(pack_install)
+            rail_refusal = scope_rails.run_all(pack_dir, allowed_scopes)
+            if rail_refusal is not None:
+                print(
+                    f"install: {pack_name}: {rail_refusal}",
+                    file=sys.stderr,
+                )
+                return 1
+
+    # ── Step 7: Render projection — per-scope shape ───────────────────────────
+    # RFC-0004's user-scope install lands a Claude Code overlay (paths
+    # under `.claude/...`), not the dist-tree shape `render_pack`
+    # produces. We render twice when the run spans both scopes: once for
+    # the dist-tree (consumed by repo-scope writes) and once for the
+    # Claude-Code-only projection (consumed by user-scope writes). The
+    # dist-tree render is cached for the lifetime of this run; the
+    # Claude-Code render uses the same adapter the `make build --self`
+    # path uses (the spec §Tier model defines this as the user-scope
+    # projection target).
+    repo_projection: dict[str, bytes] | None = None
+    user_projection: dict[str, bytes] | None = None
+    try:
+        if any(p.scope == "repo" for p in plans):
+            repo_projection = render_pack(pack_dir)
+        if any(p.scope == "user" for p in plans):
+            user_projection = _render_for_user_scope(pack_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"install: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
+        return 1
+
+    pack_version: str = pack_toml.get("pack", {}).get("version", "0.0.0")
+
+    # ── Step 8: Pre-flight — path-jail probe every projected file ─────────────
+    # The probe is read-only: assert_under + (for user) prefix check.
+    # This catches a pack whose projection rule resolves under
+    # ~/Documents/ before any byte is written.
+    for plan in plans:
+        projection = repo_projection if plan.scope == "repo" else user_projection
+        if projection is None:
+            continue
+        for relpath in projection.keys():
+            target = plan.root / relpath
+            try:
+                safety.assert_under(plan.root, target)
+            except safety.PathJailError as exc:
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+            if plan.scope == "user":
+                target_relpath = target.resolve().relative_to(plan.root.resolve()).as_posix()
+                prefixes = plan.allowed_prefixes or []
+                # Directory-boundary matching only — see safety.py.
+                if not any(target_relpath.startswith(p) for p in prefixes):
+                    print(
+                        f"install: refusing to write outside allowed prefixes "
+                        f"for scope 'user': {target.resolve()}",
+                        file=sys.stderr,
+                    )
+                    return 1
+
+    # ── Step 9: All pre-flight passed — perform writes ────────────────────────
+    for plan in plans:
+        # Skip the write for the already-installed scope in a dual-scope
+        # --force run: the state file is already correct; we re-emit
+        # the `installed:` line for the recap, but we don't rewrite.
+        if plan.already_installed:
+            continue
+
+        projection = repo_projection if plan.scope == "repo" else user_projection
+        if projection is None:
+            projection = {}
+
+        # Reset the PackState for this scope's install.
+        prior = plan.state.packs.get(pack_name)
+        new_pack_state = PackState(
+            installed_version=pack_version,
+            source="agent-ready-repo",
+            install_route="cli",
+            scope=plan.scope,
+            primitives=_collect_primitives(pack_dir),
+            files={},
+            primitive_versions=dict(prior.primitive_versions) if prior else {},
+        )
+
+        for relpath, content in sorted(projection.items()):
+            tier = _classify_for_install(
+                relpath, plan.root, content, plan.state, pack_name=pack_name,
+            )
+            if tier is safety.Tier.TIER_2:
+                try:
+                    safety.write_companion(plan.root, relpath, content)
+                except safety.PathJailError as exc:
+                    print(f"install: {exc}", file=sys.stderr)
+                    return 1
+            else:
+                try:
+                    safety.write_jailed(
+                        plan.root,
+                        relpath,
+                        content,
+                        scope=plan.scope,
+                        allowed_prefixes=plan.allowed_prefixes,
+                    )
+                except safety.PathJailError as exc:
+                    print(f"install: {exc}", file=sys.stderr)
+                    return 1
+            new_pack_state.files[relpath] = {
+                "sha": safety.sha256_bytes(content),
+                "from-pack-version": pack_version,
+            }
+
+        plan.state.packs[pack_name] = new_pack_state
+        # State-file v0.2 is the post-write schema. The state object is
+        # already at v0.2 (load_state sets the default for fresh State,
+        # or migration-time semantics for read-only-as-repo).
+        plan.state.schema_version = "0.2"
+        serialised = dump_state(plan.state)
+        try:
+            safety.write_jailed(
+                plan.root,
+                str(plan.state_path.relative_to(plan.root)),
+                serialised,
+                scope=plan.scope,
+                allowed_prefixes=plan.allowed_prefixes,
+            )
+        except safety.PathJailError as exc:
+            print(f"install: {exc}", file=sys.stderr)
+            return 1
+
+    # ── Step 10: recommends cross-scope warnings (stderr) ─────────────────────
+    # Emitted per scope per recommend per spec § *recommends across
+    # scopes*. The warning text distinguishes three cases (compatible-
+    # present / missing-installable / scope-disjoint). Output goes to
+    # stderr so the `installed:` rail on stdout stays parseable.
+    recommends = pack_toml.get("pack", {}).get("recommends", [])
+    if isinstance(recommends, list):
+        for plan in plans:
+            # The recommending scope is each plan's scope; a dual-scope
+            # --force install emits one warning per scope per recommend.
+            for rec in recommends:
+                if not isinstance(rec, str):
+                    continue
+                _emit_recommends_warning(
+                    rec,
+                    recommending_scope=plan.scope,
+                    catalogue_dir=catalogue_dir,
+                    repo_state=repo_state,
+                    user_state=user_state,
+                )
+
+    # ── Step 11: Emit installed: lines (repo first, user last) ────────────────
+    for plan in plans:
+        print(f"installed: {pack_name} @ {plan.scope}")
+
     return 0
+
+
+def _emit_recommends_warning(
+    rec_name: str,
+    *,
+    recommending_scope: str,
+    catalogue_dir: Path,
+    repo_state,
+    user_state,
+) -> None:
+    """Print the spec-shaped warning for a single `recommends` entry.
+
+    Three cases the spec text distinguishes (all to stderr):
+      * Found at a compatible scope → `(found at <observed-scope> scope)`.
+      * Not installed anywhere, installable at recommending scope →
+        `(not installed)`.
+      * Disjoint scopes (recommending scope ∉ recommended's allowed-scopes)
+        → ``which is <only>-only; install it in your active project`` /
+        ``which is <only>-only; install it at user scope``.
+
+    The dual-scope case (recommended permits both scopes) reduces to one
+    of the first two — disjoint can only fire when the recommended
+    pack's ``allowed-scopes`` is single-valued.
+    """
+    import re
+    import tomllib
+
+    # Pack names follow the catalogue's `^[a-z0-9][a-z0-9-]*$` shape
+    # (CONVENTIONS.md). The contents of `recommends` are not currently
+    # schema-validated, so a malicious pack could declare
+    # ``recommends = ["../../../etc/passwd"]`` and probe the adopter's
+    # filesystem via the lookup below. Refuse anything outside the
+    # name-shape to keep the catalogue path-jail honest.
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", rec_name):
+        print(
+            f"install: warning: ignoring malformed recommends entry "
+            f"{rec_name!r} (not a legal pack name)",
+            file=sys.stderr,
+        )
+        return
+
+    rec_repo_installed = rec_name in repo_state.packs if repo_state else False
+    rec_user_installed = rec_name in user_state.packs if user_state else False
+
+    # Look up the recommended pack's allowed-scopes from the catalogue.
+    # We only need this for the disjoint branch; cache the lookup result.
+    rec_pack_toml = catalogue_dir / "packs" / rec_name / "pack.toml"
+    if not rec_pack_toml.exists():
+        rec_pack_toml = catalogue_dir / rec_name / "pack.toml"
+    rec_allowed: list[str] = ["repo"]  # legacy default
+    if rec_pack_toml.exists():
+        try:
+            rec_data = tomllib.loads(rec_pack_toml.read_text(encoding="utf-8"))
+        except Exception:
+            rec_data = {}
+        rec_install = rec_data.get("pack", {}).get("install")
+        if isinstance(rec_install, dict):
+            raw = rec_install.get("allowed-scopes")
+            if isinstance(raw, list) and raw:
+                rec_allowed = [s for s in raw if isinstance(s, str)]
+            else:
+                default = rec_install.get("default-scope")
+                if isinstance(default, str):
+                    rec_allowed = [default]
+
+    # Case 1: installed at any compatible scope.
+    if rec_repo_installed and "repo" in rec_allowed:
+        print(
+            f"note: recommends {rec_name!r} (found at repo scope)",
+            file=sys.stderr,
+        )
+        return
+    if rec_user_installed and "user" in rec_allowed:
+        print(
+            f"note: recommends {rec_name!r} (found at user scope)",
+            file=sys.stderr,
+        )
+        return
+
+    # Case 3: disjoint allowed-scopes. Reachable only when the
+    # recommended pack's allowed-scopes is single-valued and excludes
+    # the recommending scope (a pack permitting both scopes can never
+    # be disjoint from any recommender).
+    if recommending_scope not in rec_allowed:
+        if rec_allowed == ["repo"]:
+            print(
+                f"note: recommends {rec_name!r}, which is repo-only; "
+                "install it in your active project",
+                file=sys.stderr,
+            )
+            return
+        if rec_allowed == ["user"]:
+            print(
+                f"note: recommends {rec_name!r}, which is user-only; "
+                "install it at user scope",
+                file=sys.stderr,
+            )
+            return
+
+    # Case 2: missing but installable at the recommending scope.
+    print(
+        f"note: recommends {rec_name!r} (not installed)",
+        file=sys.stderr,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _render_for_user_scope(pack_dir: Path) -> dict[str, bytes]:
+    """Project a pack via the Claude Code adapter directly, for user-scope install.
+
+    RFC-0004 § *State file per scope* and § *Adapter-level scope roots*
+    imply that user-scope installs land *Claude Code adapter* outputs
+    (paths under ``.claude/...``) rather than the dist-tree shape
+    ``render.render_pack`` produces. Calling the adapter's ``project``
+    function once into a tempdir gives us the per-primitive layout
+    Claude Code reads at ``~/.claude/``; we collect the result as a
+    relpath→bytes mapping for the install walker.
+
+    Other adapters' projections (apm.yml, plugin manifests, etc.) are
+    intentionally out of scope at user-scope install — they're
+    dist-time build artifacts that the adopter's `~` should never
+    carry.
+    """
+    import tempfile
+    import tomllib
+
+    from agentbundle.build.adapters import claude_code
+    from agentbundle.build.main import _read_bundled
+    from agentbundle.render import _collect_tree
+
+    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    with tempfile.TemporaryDirectory() as raw:
+        out = Path(raw)
+        claude_code.project(pack_dir, contract, out)
+        return _collect_tree(out)
+
+
+def _resolved_allowed_scopes(pack_install: dict | None) -> list[str]:
+    """Mirror the rule the validate command applies for rails A/B/C."""
+    if not isinstance(pack_install, dict):
+        return ["repo"]
+    raw = pack_install.get("allowed-scopes")
+    if isinstance(raw, list) and raw:
+        return [s for s in raw if isinstance(s, str)]
+    default = pack_install.get("default-scope")
+    if isinstance(default, str):
+        return [default]
+    return ["repo"]
+
+
+@functools.cache
+def _claude_code_allowed_prefixes_user() -> list[str]:
+    """Read the Claude Code adapter's `allowed-prefixes.user` from the
+    bundled contract. The function lives here (not in scope.py) so
+    callers depending on `agentbundle.scope` don't pay the cost of
+    parsing the contract for the common repo-scope path. Cached so the
+    five callers (install, uninstall, upgrade, init-state --migrate,
+    adapt) parse the contract at most once per CLI invocation.
+    """
+    import tomllib
+    from agentbundle.build.main import _read_bundled
+
+    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    try:
+        return list(
+            contract["adapter"]["claude-code"]["scope"]["allowed-prefixes"]["user"]
+        )
+    except KeyError:
+        # Defensive: legacy contract without scope table. Fall back to
+        # the conservative single-prefix list — the path-jail probe
+        # will still refuse anything outside `.claude/`.
+        return [".claude/"]
 
 
 def _classify_for_install(
@@ -205,20 +637,13 @@ def _classify_for_install(
     on_disk_sha = _safety.sha256_file(on_disk)
     incoming_sha = _safety.sha256_bytes(incoming_content)
 
-    # If the on-disk file is already the bundle's content → Tier-1 (idempotent).
     if on_disk_sha == incoming_sha:
         return _safety.Tier.TIER_1
 
-    # Check if it matches a recorded SHA in *any* pack (i.e. it's a prior
-    # Tier-1 install that was not edited by the adopter). If the match
-    # comes from a different pack than the one being installed, warn —
-    # silent overwrite of another pack's content would hide a real
-    # projection conflict.
     for other_pack_name, ps in state.packs.items():
         recorded = ps.file_sha(relpath)
         if recorded and on_disk_sha == recorded:
             if pack_name and other_pack_name and other_pack_name != pack_name:
-                import sys
                 print(
                     f"install: warning: {relpath!r} is also recorded under "
                     f"pack {other_pack_name!r}; the two packs project the same path",
@@ -226,20 +651,11 @@ def _classify_for_install(
                 )
             return _safety.Tier.TIER_1
 
-    # On disk, different from the bundle, and no matching prior-install SHA —
-    # the adopter has edited it.
     return _safety.Tier.TIER_2
 
 
 def _locate_pack(catalogue_dir: Path, pack_name: str) -> Path | None:
-    """Find the pack directory inside the resolved catalogue.
-
-    Tries two layouts:
-      1. ``<catalogue_dir>/packs/<pack_name>/`` — standard catalogue layout.
-      2. ``<catalogue_dir>/<pack_name>/``         — catalogue is a pack root.
-
-    Returns ``None`` if neither exists.
-    """
+    """Find the pack directory inside the resolved catalogue."""
     candidate_a = catalogue_dir / "packs" / pack_name
     if candidate_a.is_dir() and (candidate_a / "pack.toml").exists():
         return candidate_a

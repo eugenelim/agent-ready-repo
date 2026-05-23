@@ -387,6 +387,21 @@ upstream under `packs/<pack>/.apm/` or `packs/<pack>/seeds/`, then run
 commit, push. The gate is the contract; the source-of-truth split is
 the convention.
 
+### Install scope is per-pack ([RFC-0004](rfc/0004-install-scope-per-pack.md))
+
+Each pack declares its install **scope** — `repo` (project-local), `user`
+(shared across every repo the adopter opens), or both — in
+`pack.toml`'s `[pack.install]` table. The pack author picks the
+dimension; adopters can override within the publisher's declared set
+via `--scope`. The default landing for every pack we ship today is
+`repo`; user-scope eligibility requires content portability that the
+falsifiable test in [the migration guide](guides/how-to/v01-to-v02-pack-upgrade.md)
+governs. The schema enforces `default-scope ∈ allowed-scopes` so the
+rule holds outside the CLI. `agentbundle install` re-runs the
+contract-level user-scope rails (seeds / hooks / marker) against the
+resolved pack content at install time, closing the
+widen-after-publish gap.
+
 ---
 
 ## Commits

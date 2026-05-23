@@ -4,3 +4,11 @@ version = "0.1.0"
 description = "Governance skills (new-rfc, new-adr, update-conventions) and RFC/ADR templates + seed READMEs."
 recommends = ["core"]
 
+# RFC-0004 v0.2 contract metadata. RFC/ADR ceremony is per-project, so
+# the pack is declared repo-only.
+[pack.adapter-contract]
+version = "0.2"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

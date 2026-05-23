@@ -1,10 +1,10 @@
 # Adapter contract — every (primitive × adapter) pair enumerated.
 # Validates against ./adapter.schema.json.
 # Managed by: docs/specs/distribution-adapters/spec.md
-# RFC reference: RFC-0001
+# RFC reference: RFC-0001 (base contract); RFC-0004 (scope dimension, v0.2)
 
 [contract]
-version = "0.1"
+version = "0.2"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -65,6 +65,18 @@ primitive = "command"
 mode = "direct-file"
 target-path = ".claude/commands/"
 on-conflict = "prompt-then-preserve"
+
+# Scope dimension (RFC-0004). Two roots: repo-local and user-local.
+# `allowed-prefixes.<scope>` fences every write under that scope to a
+# declared prefix list — at user scope this stops a buggy projection
+# rule from resolving under `~/Documents/`. The two-prefix shape covers
+# projected primitives (`.claude/`) and CLI infrastructure writes
+# (`.agent-ready/` — user-scope state file, per-scope discovery and
+# pending artifacts).
+[adapter."claude-code".scope]
+repo = "."
+user = "~"
+allowed-prefixes.user = [".claude/", ".agent-ready/"]
 
 # ---------------------------------------------------------------------------
 # Kiro adapter — 5 projections (one per primitive)

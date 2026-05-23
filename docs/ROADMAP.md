@@ -57,33 +57,48 @@ recorded via PR #21. The remaining work is Phase 2.
   `SELF_HOST_ADAPTERS` once the multi-pack aggregation fix lands so
   AGENTS.md's managed block can project correctly.
 
-## `distribution-adapters` — shipped
+## `distribution-adapters` — shipped (v0.2 contract bump landed)
 
 Spec: [`specs/distribution-adapters/spec.md`](specs/distribution-adapters/spec.md).
 Shipped via the build-pipeline PRs that introduced
-`packages/agentbundle/agentbundle/build/` and the four reference adapters.
+`packages/agentbundle/agentbundle/build/` and the four reference
+adapters. The [RFC-0004](rfc/0004-install-scope-per-pack.md) v0.2
+amendment (install-scope dimension; `[scope]` table on the adapter
+contract; `[pack.install]` table on `pack.toml`; user-scope refusal
+rails A/B/C; state-file v0.2 + `init-state --migrate`; four shipped
+packs declare `[pack.adapter-contract] version = "0.2"`) landed in
+the same PR; ACs #14–#18 are satisfied.
 
-- *No open items of substance.* The spec body's Acceptance Criteria
-  checkboxes are literally `- [ ]` (bookkeeping drift from the
-  shipping PR — the `Status:` line was updated, the checkboxes were
-  not). A small follow-up PR should walk the AC list and check off the
-  boxes that the shipped code already satisfies. Not new work; just
-  reconciliation.
+- *No open items of substance.* The pre-amendment ACs (#1–#13) carry
+  the same bookkeeping drift documented above — checkboxes are still
+  literally `- [ ]` against shipped code. Same as `agent-spec-cli`:
+  reconciliation work, not new scope.
 
-## `agent-spec-cli` — shipped
+## `agent-spec-cli` — shipped (v0.2 CLI surface landed)
 
 Spec: [`specs/agent-spec-cli/spec.md`](specs/agent-spec-cli/spec.md).
 Shipped via PR #23 (commit `cd4f3e5`) — 11 subcommands, library-first
-CLI importing `agentbundle.build`.
+CLI importing `agentbundle.build`. The
+[RFC-0004](rfc/0004-install-scope-per-pack.md) v0.2 amendment
+(argparse `--scope` on six subcommands + `--force` on `install`;
+scope-resolution helper; path-jail per scope; `~`-expansion refusal;
+v0.1 state-file refuse-and-explain at write; dual-scope install
+conflict + `installed: <pack> @ <scope>` rail; `recommends`
+cross-scope warning text split; `adapt` dual-state-file walk) landed
+in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
 
 - *No open items of substance for v1.* Same AC-checkbox bookkeeping
   drift as `distribution-adapters`: a follow-up PR should reconcile.
-- **Deferred to v1.1** (called out in the spec body, not net-new
-  scope): SSH git URL support in `install` (`git+ssh://...` currently
-  exits non-zero with a "deferred to v1.1" message); the full
-  `--strict` `validate` behaviour against the v0.1 conformance fixtures
-  (which themselves are owned by RFC-0003's deferred F-conformance
-  task).
+- **Deferred to a follow-up RFC** (called out in RFC-0004 itself, not
+  net-new scope): user-scope hook-wiring merge story (Rail B keeps
+  hook-bearing packs user-scope-refused until that lands); `global`
+  (system-wide) scope (not reserved, not refused — absent); new
+  user-scope packs (the dimension lands without a consumer).
+- **Deferred to v1.1** (carried over from the prior roadmap entry):
+  SSH git URL support in `install` (`git+ssh://...` currently exits
+  non-zero with a "deferred to v1.1" message); the full `--strict`
+  `validate` behaviour against the v0.1 conformance fixtures (which
+  themselves are owned by RFC-0003's deferred F-conformance task).
 
 ---
 

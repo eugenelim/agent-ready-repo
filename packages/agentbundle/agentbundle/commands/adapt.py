@@ -1,36 +1,32 @@
 """``agentbundle adapt`` — marker resolution and pending-companion report.
 
-Two modes:
+RFC-0004 turned this into a **dual-state-file** walk:
 
-  **Default (``--values-from`` optional):**
-  1. Load values from ``--values-from <file.toml>`` (if supplied) via
-     ``config.load_values_from``.
-  2. Merge with ``.adapt-discovery.toml`` accepted entries from
-     ``config.load_adapt_discovery`` (CLI never writes this file).
-  3. Walk every file recorded in ``.agent-ready-state.toml``; substitute
-     ``<adapt:NAME>`` markers with the merged dict.  Skip binary files
-     (decode error → warning + skip). Leave unresolved markers in place
-     and warn to stderr.
-  4. Write substituted content via ``safety.write_jailed`` (atomic).
-  5. Walk for ``.upstream.*`` companions and produce ``.adapt-pending.md``
-     listing each with a one-line diff summary.
-  6. ``.adapt-pending.md`` is written via ``safety.write_jailed``.
+  - Read both ``<repo>/.agent-ready-state.toml`` and
+    ``~/.agent-ready/state.toml``. Either may be absent (a fresh repo,
+    or no user-scope installs yet).
+  - Read marker values from both ``<repo>/.adapt-discovery.toml`` and
+    ``~/.agent-ready/.adapt-discovery.toml`` (user-scope discovery
+    lives inside the namespaced dot-directory, not as a bare dotfile).
+    ``--values-from`` still wins as an explicit override.
+  - Walk for ``.upstream.<ext>`` companions per scope; write per-scope
+    ``.adapt-pending.md`` reports at the same per-scope locations.
+  - ``adapt --ci`` exits non-zero when *either* scope's pending file
+    would be non-empty (or any companion is on disk).
 
-  Without ``--values-from``, steps 3–4 are skipped (read-only walk; only
-  the pending report is emitted).
+Findings are routed by the scope of the state file that recorded them —
+a squatter under ``~/.claude/`` is a user-scope finding, a
+``.upstream.<ext>`` companion in ``<repo>/`` is a repo-scope finding.
 
-  **``--ci`` mode (read-only):**
-  Walk ``args.root`` for any ``*.upstream.*`` (or ``*.upstream``)
-  companion file.  If any are found, list them on stderr and exit 1.
-  If none, exit 0.
-
-Spec rail: ``.adapt-discovery.toml`` is **never written** here.
+Spec rail: ``.adapt-discovery.toml`` is **never written** here. The
+``adapt-to-project`` LLM skill owns the write side.
 """
 
 from __future__ import annotations
 
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -39,6 +35,22 @@ if TYPE_CHECKING:
 
 # Marker regex: <adapt:UPPER_CASE_IDENTIFIER>
 _MARKER_RE = re.compile(r"<adapt:([A-Z_][A-Z0-9_]*)>")
+
+
+@dataclass
+class _Scope:
+    """Per-scope artifact paths the adapt verb operates on."""
+
+    name: str
+    root: Path
+    state_path: Path
+    discovery_path: Path
+    pending_path: Path
+    # User-scope writes must pass the adapter's `allowed-prefixes.user`
+    # list through to `safety.write_jailed` so the path-jail rail
+    # fires. Repo-scope leaves this as None (the repo-jail is the
+    # repo root; no additional prefix gate).
+    allowed_prefixes: list[str] | None = None
 
 
 def _find_upstream_companions(root: Path, projected_paths: set[str] | None = None) -> list[Path]:
@@ -110,83 +122,111 @@ def _apply_markers(text: str, values: dict[str, str], *, src_label: str) -> str:
             f"adapt: warning: no value for marker <adapt:{name}> in {src_label}; leaving in place",
             file=sys.stderr,
         )
-        return m.group(0)  # leave unchanged
+        return m.group(0)
 
     return _MARKER_RE.sub(_replace, text)
+
+
+def _resolve_scopes(args: "argparse.Namespace") -> list[_Scope]:
+    """Return the per-scope artifact descriptions adapt walks.
+
+    The repo scope is always present (rooted at ``args.root``). The
+    user scope is only added if ``~`` can be resolved — when
+    ``$HOME=/`` or otherwise unresolvable, the user scope is silently
+    skipped (a repo-only fixture should not refuse on a malformed
+    user-scope environment).
+    """
+    from agentbundle import scope as scope_mod
+
+    repo_root = Path(args.root).resolve()
+    scopes: list[_Scope] = [
+        _Scope(
+            name="repo",
+            root=repo_root,
+            state_path=repo_root / ".agent-ready-state.toml",
+            discovery_path=repo_root / ".adapt-discovery.toml",
+            pending_path=repo_root / ".adapt-pending.md",
+        ),
+    ]
+    try:
+        user_root = scope_mod.resolve_user_root()
+    except scope_mod.UserScopeUnresolvable:
+        return scopes
+    # User-scope dot-directory: `<user_root>/.agent-ready/`. We don't
+    # *create* it here; we only operate on it if it already exists
+    # (i.e. some prior user-scope install set it up).
+    user_dir = user_root / ".agent-ready"
+    if user_dir.is_dir():
+        from agentbundle.commands.install import _claude_code_allowed_prefixes_user
+
+        scopes.append(
+            _Scope(
+                name="user",
+                root=user_root,
+                state_path=user_dir / "state.toml",
+                discovery_path=user_dir / ".adapt-discovery.toml",
+                pending_path=user_dir / ".adapt-pending.md",
+                allowed_prefixes=_claude_code_allowed_prefixes_user(),
+            )
+        )
+    return scopes
 
 
 def run(args: "argparse.Namespace") -> int:
     """Entry point for ``agentbundle adapt``.
 
-    Args:
-        args.values_from  — optional path to a ``--values-from`` TOML file.
-        args.ci           — bool; ``--ci`` gate mode.
-        args.root         — repo root directory (default ``'.'``).
-
-    Returns 0 on success; 1 on ``--ci`` with pending companions or path-jail
-    refusal.
+    Returns 0 on success; 1 on ``--ci`` with pending companions or
+    path-jail refusal at write time.
     """
-    from agentbundle.config import (
-        ConfigError,
-        load_adapt_discovery,
-        load_state,
-        load_values_from,
-    )
+    from agentbundle.config import ConfigError, load_adapt_discovery, load_state, load_values_from
     from agentbundle import safety
 
-    root = Path(args.root).resolve()
-    state_path = root / ".agent-ready-state.toml"
-    discovery_path = root / ".adapt-discovery.toml"
-
-    # Load state up-front so both --ci and default modes can scope the
-    # companion walk to projected paths only (Concern 11).
-    try:
-        _state_for_ci = load_state(state_path) if state_path.exists() else None
-    except ConfigError as exc:
-        print(f"adapt: {exc}", file=sys.stderr)
-        return 1
-    _projected_for_ci = _state_for_ci.projected_paths() if _state_for_ci else None
+    scopes = _resolve_scopes(args)
 
     # ── --ci mode ─────────────────────────────────────────────────────────────
     if args.ci:
-        companions = _find_upstream_companions(root, _projected_for_ci)
-        if companions:
-            print("adapt --ci: pending .upstream.* companions found:", file=sys.stderr)
-            for cp in companions:
-                try:
-                    rel = cp.relative_to(root)
-                except ValueError:
-                    rel = cp
-                print(f"  {rel}", file=sys.stderr)
-            return 1
-        return 0
+        any_pending = False
+        for s in scopes:
+            try:
+                state = load_state(s.state_path) if s.state_path.exists() else None
+            except ConfigError as exc:
+                print(f"adapt: {exc}", file=sys.stderr)
+                return 1
+            projected = state.projected_paths() if state else None
+            companions = _find_upstream_companions(s.root, projected)
+            if companions:
+                if not any_pending:
+                    print(
+                        "adapt --ci: pending .upstream.* companions found:",
+                        file=sys.stderr,
+                    )
+                    any_pending = True
+                for cp in companions:
+                    try:
+                        rel = cp.relative_to(s.root)
+                    except ValueError:
+                        rel = cp
+                    print(f"  [{s.name}] {rel}", file=sys.stderr)
+        return 1 if any_pending else 0
 
     # ── Default mode ──────────────────────────────────────────────────────────
-
-    # Load state: walk projected paths for marker substitution.
-    try:
-        state = load_state(state_path)
-    except ConfigError as exc:
-        print(f"adapt: {exc}", file=sys.stderr)
-        return 1
-
-    # Merge values: --values-from (higher priority) merged with discovery accepted.
+    # Build the merged marker-values dict across both scopes' discovery
+    # files. --values-from (when supplied) wins as the explicit
+    # override. Repo discovery takes precedence over user discovery so
+    # project-specific resolutions override personal defaults.
     values: dict[str, str] = {}
+    for s in reversed(scopes):  # user first → repo overrides
+        try:
+            discovery = load_adapt_discovery(s.discovery_path)
+        except ConfigError as exc:
+            print(f"adapt: {exc}", file=sys.stderr)
+            return 1
+        accepted = discovery.get("accepted", {})
+        if isinstance(accepted, dict):
+            for k, v in accepted.items():
+                if isinstance(v, str):
+                    values[str(k)] = v
 
-    # Layer 1: .adapt-discovery.toml accepted entries (lower priority).
-    try:
-        discovery = load_adapt_discovery(discovery_path)
-    except ConfigError as exc:
-        print(f"adapt: {exc}", file=sys.stderr)
-        return 1
-
-    accepted = discovery.get("accepted", {})
-    if isinstance(accepted, dict):
-        for k, v in accepted.items():
-            if isinstance(v, str):
-                values[str(k)] = v
-
-    # Layer 2: --values-from (higher priority; overrides discovery).
     if getattr(args, "values_from", None):
         try:
             explicit = load_values_from(Path(args.values_from))
@@ -195,60 +235,78 @@ def run(args: "argparse.Namespace") -> int:
             return 1
         values.update(explicit)
 
-    # ── Marker substitution (only when --values-from supplied) ────────────────
-    if getattr(args, "values_from", None) and values:
-        projected = state.projected_paths()
-        for relpath in sorted(projected):
-            target = root / relpath
-            if not target.exists() or not target.is_file():
-                continue
-            try:
-                text = target.read_bytes().decode("utf-8")
-            except (UnicodeDecodeError, ValueError):
-                print(f"adapt: skipping binary file: {relpath}", file=sys.stderr)
-                continue
-            substituted = _apply_markers(text, values, src_label=relpath)
-            if substituted != text:
+    # ── Per-scope walk: substitute markers + emit pending report ─────────────
+    for s in scopes:
+        try:
+            state = load_state(s.state_path) if s.state_path.exists() else None
+        except ConfigError as exc:
+            print(f"adapt: {exc}", file=sys.stderr)
+            return 1
+        projected = state.projected_paths() if state else set()
+
+        # Substitute markers only when --values-from was given (preserve
+        # the read-only-without-values-from contract).
+        if getattr(args, "values_from", None) and values and projected:
+            for relpath in sorted(projected):
+                target = s.root / relpath
+                if not target.exists() or not target.is_file():
+                    continue
                 try:
-                    safety.write_jailed(root, relpath, substituted)
-                except safety.PathJailError as exc:
-                    print(f"adapt: {exc}", file=sys.stderr)
-                    return 1
+                    text = target.read_bytes().decode("utf-8")
+                except (UnicodeDecodeError, ValueError):
+                    print(f"adapt: skipping binary file: [{s.name}] {relpath}", file=sys.stderr)
+                    continue
+                substituted = _apply_markers(text, values, src_label=f"[{s.name}] {relpath}")
+                if substituted != text:
+                    try:
+                        safety.write_jailed(
+                            s.root, relpath, substituted,
+                            scope=s.name,
+                            allowed_prefixes=s.allowed_prefixes,
+                        )
+                    except safety.PathJailError as exc:
+                        print(f"adapt: {exc}", file=sys.stderr)
+                        return 1
 
-    # ── Build .adapt-pending.md ───────────────────────────────────────────────
-    companions = _find_upstream_companions(root, state.projected_paths())
-    report_lines: list[str] = [
-        "# Adapt Pending Report",
-        "",
-        "Companions awaiting human merge:",
-        "",
-    ]
-    if companions:
-        for cp in sorted(companions):
-            try:
-                rel_companion = cp.relative_to(root)
-            except ValueError:
-                rel_companion = cp
+        # Build the per-scope pending report.
+        companions = _find_upstream_companions(s.root, projected)
+        report_lines: list[str] = [
+            f"# Adapt Pending Report ({s.name} scope)",
+            "",
+            "Companions awaiting human merge:",
+            "",
+        ]
+        if companions:
+            for cp in sorted(companions):
+                try:
+                    rel_companion = cp.relative_to(s.root)
+                except ValueError:
+                    rel_companion = cp
+                original = _original_from_companion(cp)
+                if original.exists():
+                    summary = _diff_summary(original, cp)
+                else:
+                    summary = "original file not found"
+                report_lines.append(f"- `{rel_companion}`: {summary}")
+        else:
+            report_lines.append("_No pending companions._")
+        report_lines.append("")
+        report_content = "\n".join(report_lines)
 
-            # Derive the original path: AGENTS.upstream.md → AGENTS.md
-            original = _original_from_companion(cp)
-            if original.exists():
-                summary = _diff_summary(original, cp)
-            else:
-                summary = "original file not found"
-
-            report_lines.append(f"- `{rel_companion}`: {summary}")
-    else:
-        report_lines.append("_No pending companions._")
-
-    report_lines.append("")
-    report_content = "\n".join(report_lines)
-
-    try:
-        safety.write_jailed(root, ".adapt-pending.md", report_content)
-    except safety.PathJailError as exc:
-        print(f"adapt: {exc}", file=sys.stderr)
-        return 1
+        # Write the pending report through the per-scope path-jail. At
+        # user scope this routes through `allowed-prefixes.user` —
+        # `.adapt-pending.md` lives at `.agent-ready/.adapt-pending.md`
+        # under the user root, which the `.agent-ready/` prefix admits.
+        report_relpath = s.pending_path.relative_to(s.root).as_posix()
+        try:
+            safety.write_jailed(
+                s.root, report_relpath, report_content,
+                scope=s.name,
+                allowed_prefixes=s.allowed_prefixes,
+            )
+        except safety.PathJailError as exc:
+            print(f"adapt: {exc}", file=sys.stderr)
+            return 1
 
     return 0
 
@@ -263,7 +321,6 @@ def _original_from_companion(companion: Path) -> Path:
     """
     name = companion.name
     parts = name.split(".")
-    # Find "upstream" in parts and remove it.
     if "upstream" in parts:
         idx = parts.index("upstream")
         new_parts = parts[:idx] + parts[idx + 1:]
