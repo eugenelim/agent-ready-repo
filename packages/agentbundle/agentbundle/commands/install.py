@@ -175,6 +175,21 @@ def run(args: "argparse.Namespace") -> int:
     installed_at_repo = pack_name in repo_state.packs
     installed_at_user = user_state is not None and pack_name in user_state.packs
 
+    # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
+    # Resolves required deps against the union of repo + user state (AC17).
+    # Gate runs before any write (and before the already-installed check, so
+    # dep errors surface even when another early-exit would fire).
+    from agentbundle.config import State as _State
+
+    _effective_user_state: "State" = user_state if user_state is not None else _State()
+    try:
+        validate_dependencies_required(
+            pack_toml, repo_state=repo_state, user_state=_effective_user_state
+        )
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
     # ── Step 4: Branch on already-installed shape ─────────────────────────────
     # 4a. Already at requested scope → refuse (use 'upgrade'); --force does
     #     not bypass this case.
@@ -663,6 +678,98 @@ def _locate_pack(catalogue_dir: Path, pack_name: str) -> Path | None:
     if candidate_b.is_dir() and (candidate_b / "pack.toml").exists():
         return candidate_b
     return None
+
+
+def validate_dependencies_required(
+    pack_toml: dict,
+    *,
+    repo_state: "State",
+    user_state: "State",
+) -> None:
+    """Enforce [pack.dependencies.required] before any file write.
+
+    Reads the required entries from the installing pack's manifest and
+    resolves each one against the *union* of repo_state.packs and
+    user_state.packs (key by pack name; a pack at either scope satisfies
+    the gate).
+
+    Version-range grammar: exactly ``^X.Y`` (caret-minor). An installed
+    version ``A.B.C`` satisfies ``^X.Y`` when ``A == X AND (B > Y OR (B
+    == Y AND C >= 0))``, i.e. ``>= X.Y.0 AND < (X+1).0.0``.
+
+    Raises:
+        RuntimeError: on unsupported range grammar or missing/out-of-range dep.
+            Caller is expected to print str(exc) to stderr and exit 1.
+    """
+    import re
+
+    _CARET_RE = re.compile(r"^\^([0-9]+)\.([0-9]+)$")
+
+    pack_name = pack_toml.get("pack", {}).get("name", "<unknown>")
+    deps = pack_toml.get("pack", {}).get("dependencies", {})
+    if not isinstance(deps, dict):
+        return
+    required = deps.get("required")
+    if not required:
+        return
+
+    # Union of installed packs across both scopes (pack name → installed version string).
+    installed: dict[str, str] = {}
+    for name, ps in repo_state.packs.items():
+        installed[name] = ps.installed_version
+    for name, ps in user_state.packs.items():
+        if name not in installed:
+            installed[name] = ps.installed_version
+
+    for entry in required:
+        if not isinstance(entry, dict):
+            continue
+        dep_name = entry.get("pack", "")
+        dep_range = entry.get("version", "")
+
+        # Validate grammar first (even before checking if the dep is installed).
+        m = _CARET_RE.match(dep_range)
+        if m is None:
+            raise RuntimeError(
+                f"install: unsupported version range {dep_range!r} for required pack "
+                f"{dep_name!r}; only ^X.Y is supported"
+            )
+
+        req_major = int(m.group(1))
+        req_minor = int(m.group(2))
+
+        dep_version = installed.get(dep_name)
+        if dep_version is None:
+            raise RuntimeError(
+                f"install: pack {pack_name!r} requires {dep_name!r} "
+                f"(version {dep_range}); install {dep_name} first"
+            )
+
+        # Parse installed version X.Y.Z (allow fewer components).
+        parts = dep_version.split(".")
+        try:
+            inst_major = int(parts[0]) if len(parts) > 0 else 0
+            inst_minor = int(parts[1]) if len(parts) > 1 else 0
+            inst_patch = int(parts[2]) if len(parts) > 2 else 0
+        except (ValueError, IndexError):
+            raise RuntimeError(
+                f"install: pack {pack_name!r} requires {dep_name!r} "
+                f"(version {dep_range}); install {dep_name} first"
+            )
+
+        # Satisfy: major must match AND version >= X.Y.0 AND < (X+1).0.0.
+        satisfies = (
+            inst_major == req_major
+            and (
+                inst_minor > req_minor
+                or (inst_minor == req_minor and inst_patch >= 0)
+            )
+        )
+        if not satisfies:
+            raise RuntimeError(
+                f"install: pack {pack_name!r} requires {dep_name!r} "
+                f"(version {dep_range}); install {dep_name} first"
+            )
 
 
 def _collect_primitives(pack_dir: Path) -> list[str]:
