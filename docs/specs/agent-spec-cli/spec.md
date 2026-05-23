@@ -4,13 +4,21 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0003](../../rfc/0003-spec-and-cli.md) (source);
-  hard-depends on [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md)
+  [RFC-0004](../../rfc/0004-install-scope-per-pack.md) (contract-v0.2
+  amendment — `--scope` surface, `allowed-scopes` refusal, path-jail
+  per scope, `~`-expansion, v0.1 state-file refuse-and-explain,
+  dual-state-file walking); hard-depends on
+  [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md)
   (F-spec + F-build) and the sibling spec
   [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
   (defines `pack.toml`, `adapter.toml`, the **Tier-1/2/3 file-safety
-  contract**, the **`.agent-ready-state.toml` schema**, the
-  **`.upstream.<ext>` companion semantics**, the **six-recipe enumeration**,
-  and the **five primitive types** this CLI honours).
+  contract**, the **`.agent-ready-state.toml` schema** (v0.1 and v0.2,
+  with the v0.2 scope column), the **`.upstream.<ext>` companion
+  semantics**, the **six-recipe enumeration**, the **five primitive
+  types**, the **`[scope]` table** on the adapter contract, the
+  **`[pack.install]` table** on `pack.toml`, the **three contract-
+  level user-scope refusal rails** (seeds / hooks / marker), and the
+  **path-jail-per-scope** rule this CLI honours).
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -40,6 +48,199 @@ never touched. The CLI handles **five** primitive types (`skill`, `agent`,
 `hook-body`, `hook-wiring`, `command`) and **six** recipe types as enumerated
 in the sibling spec. No LLM calls, no third-party Python dependencies, no
 writes outside the adopter's repo root.
+
+## Install-scope dimension (CLI surface, contract v0.2)
+
+Per [RFC-0004](../../rfc/0004-install-scope-per-pack.md) the adapter
+contract grows a `scope` dimension (`repo` | `user`). The contract,
+schema, state-file v0.2 format, and three user-scope refusal rails
+(seeds / hooks / marker) are owned by the sibling
+[`distribution-adapters`](../distribution-adapters/spec.md) spec; this
+section pins the CLI surface that consumes them.
+
+### `--scope` per subcommand
+
+| Subcommand     | `--scope` behaviour                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `install`      | **Override.** Defaults to the pack's `default-scope`; refused if the value is not in the pack's `allowed-scopes`. |
+| `uninstall`    | **Disambiguator.** Required if the pack is installed at both scopes; inferred otherwise.                       |
+| `upgrade`      | **Disambiguator.** Same rule as `uninstall`.                                                                   |
+| `diff`         | **Disambiguator.** Same rule.                                                                                  |
+| `init-state`   | **Selector.** Which scope's state file to initialize / migrate.                                                |
+| `list-targets` | **Read-only filter.** Restricts output to one scope; omitting `--scope` shows both with a scope column.        |
+| `list-packs`   | No `--scope` — catalogue query; scope is not yet bound.                                                        |
+| `scaffold`     | No `--scope` — always repo-targeted. Refused if `"repo" ∉ allowed-scopes`. Ignores `default-scope`.            |
+| `validate`     | No `--scope` — validates the pack's declared `default-scope ∈ allowed-scopes`, the seeds/hooks/`allowed-scopes` consistency, and the schema. |
+| `render`       | No `--scope` — pack-local primitive rendering; scope only matters at install.                                  |
+| `adapt`        | No `--scope` — walks **both** state files; reads `<repo>/.adapt-discovery.toml` at repo scope and `~/.agent-ready/.adapt-discovery.toml` at user scope. |
+
+### Scope-resolution precedence
+
+**CLI flag > pack `default-scope` > built-in `repo`.** A `--scope`
+value outside the pack's `allowed-scopes` is refused non-zero with
+stderr naming the pack, the requested scope, and the declared set:
+`<pack>: scope '<requested>' not in allowed-scopes <declared-set>`.
+
+### Path-jail per scope
+
+Two rails fence every write:
+
+1. **Per-scope root.** At repo scope, the jail is the repo root
+   (unchanged). At user scope, the jail is `expanduser("~")`.
+2. **Constrained to declared prefixes at user scope.** Every user-
+   scope write must resolve under one of the
+   `allowed-prefixes.<scope>` entries declared on the adapter's
+   `[scope]` table (defined in the sibling spec). A write resolving
+   under `~/Documents/` is refused even though it's "inside `~`."
+   The CLI exits non-zero with stderr `refusing to write outside
+   allowed prefixes for scope '<scope>': <path>`.
+
+### `~`-expansion
+
+`pathlib.Path.expanduser()` runs **once, at scope-resolution time**
+— when `install`, `uninstall`, `upgrade`, or `adapt` resolves
+`--scope user` to a concrete root. If the result equals the literal
+`"~"` (expansion failed) or resolves to `"/"` (corporate sandbox
+with `$HOME=/`), the CLI refuses with stderr `cannot resolve user
+scope: $HOME unset or invalid`. The resolved absolute scope root is
+printed **to stderr** before any write so adopters see the
+destination explicitly. The stream choice (stderr, not stdout)
+keeps the `installed:` rail's stdout assertions clean.
+
+Windows support is deferred per the existing stdlib-only commitment;
+`pathlib.expanduser` handles `%USERPROFILE%`, but cross-platform
+conformance is not gated by this amendment.
+
+### `.agent-ready-state.toml` write-time refusal at v0.1
+
+The CLI **reads** any `schema-version = "0.1"` state file as
+all-repo-scope without forcing migration. Any **write-capable**
+invocation (`install`, `uninstall`, `upgrade`, `init-state` *without*
+`--migrate`) against a v0.1 file exits non-zero with stderr `state
+file at <path> is schema-version 0.1; run 'agentbundle init-state
+--migrate' first`. No silent rewrite — migration is destructive
+(irreversible without backup) and an adopter running mixed CLI
+versions across CI and local must opt into the file-format change
+explicitly. The refuse-and-explain shape matches the major-version
+refusal rail this spec already pins.
+
+### `installed: <pack> @ <scope>` output
+
+On every successful install the CLI prints `installed: <pack> @
+<scope>` to stdout so the adopter sees the scope explicitly.
+
+- *Single-scope install:* one `installed:` line; it is the last
+  stdout line before exit zero.
+- *Dual-scope `--force` install:* two `installed:` lines, one per
+  scope, **in repo-then-user order**, both on stdout. The user-
+  scope line is the last stdout line before exit zero.
+- *Pre-flight order in dual-scope `--force`.* All preconditions
+  for **both** scopes (scope refusal, `~`-expansion, Rails A/B/C
+  re-check against resolved pack content, path-jail probe) are
+  evaluated **before** any write to either scope's state file. A
+  user-scope precondition that fails after the repo write would
+  leave a half-applied install on disk; checking both scopes up
+  front means a `--force` invocation either writes both scopes
+  or writes neither, and the failure mode prints **zero**
+  `installed:` lines plus the failing scope's stderr message.
+- *`recommends` warnings* (when emitted) go to **stderr** — the
+  `note:` convention used elsewhere in this spec is informational
+  and stream-separate from the `installed:` rail. Adopter tooling
+  can parse stdout for `installed:` lines independently of stderr.
+
+### Dual-scope install conflict + `--force`
+
+Installing pack `<P>` at scope `<S>` when `<P>` is already
+installed at the other scope exits non-zero with stderr `<P>
+already installed at <other-scope>; pass --force to install at
+both`. `--force` carries semantics only on `install`; passing it to
+any other verb is rejected with stderr `unknown flag for <verb>:
+--force`.
+`install` against a pack *already installed at the requested scope*
+is refused with stderr `<P> already installed at <scope>; use
+'upgrade' to change version`; `--force` does not override that
+refusal — it addresses only the cross-scope conflict case, not
+in-place re-install. A `--force` install against a pack *not*
+already installed at the other scope is accepted as a normal
+install (no-op effect from the flag) so wrapper scripts can pass
+`--force` idempotently.
+
+After a dual-scope install:
+
+- `uninstall --scope <s>` removes only the named scope's entry; the
+  other scope is untouched.
+- `upgrade --scope <s>` upgrades only the named scope; per-verb,
+  per-scope.
+- `diff --scope <s>` reports against the named scope's state file.
+- All three verbs require explicit `--scope` while a pack is
+  installed at both scopes; the inferred-disambiguator from the
+  *§ `--scope` per subcommand* table applies only when the pack is
+  at exactly one scope.
+
+### `recommends` across scopes
+
+A pack's `recommends = [...]` is satisfied by an install of the
+recommended pack at **any** scope. `install` warns (does not refuse)
+when a recommended pack is missing entirely, and lists the scope(s)
+the recommended pack is installed at when present.
+
+All warnings are emitted to **stderr** (the `note:` informational
+convention; stream-separate from the `installed:` rail). The
+warning text distinguishes three cases:
+
+- *Installed at a compatible scope* — the recommended pack is
+  present at any scope in its own `allowed-scopes`:
+  `note: recommends '<rec>' (found at <observed-scope> scope)`.
+- *Missing but installable at the recommending pack's scope* —
+  the recommended pack is not installed anywhere **and** the
+  recommending pack's installed scope is in the recommended
+  pack's `allowed-scopes`:
+  `note: recommends '<rec>' (not installed)`.
+- *Disjoint `allowed-scopes`* — the recommending pack's installed
+  scope is **not** in the recommended pack's `allowed-scopes`.
+  Reachable only when `allowed-scopes` is single-valued (a pack
+  permitting both scopes can never be disjoint from any
+  recommender, so the dual-scope case reduces to one of the two
+  cases above). The text names the recommended pack's allowed
+  scope:
+  - Recommended is repo-only → `note: recommends '<rec>', which
+    is repo-only; install it in your active project`.
+  - Recommended is user-only → `note: recommends '<rec>', which
+    is user-only; install it at user scope`.
+
+The split exists so adopters can tell "I forgot something" apart
+from "this combination has a structural mismatch." `recommends` is
+informational; it never gates install. A dual-scope install
+(`--force`) emits one warning per scope per recommend (so a
+single-recommend dual-scope install emits up to two stderr lines).
+
+### `adapt` dual-state-file walk
+
+`adapt` walks **both** state files (`<repo>/.agent-ready-state.toml`
+and `~/.agent-ready/state.toml`) and reads
+`<repo>/.adapt-discovery.toml` at repo scope and
+`~/.agent-ready/.adapt-discovery.toml` at user scope (user-scope
+artifacts all live inside the `~/.agent-ready/` namespaced
+dot-directory). Findings are recorded against the scope of the
+file they were observed in:
+
+- A squatter under `~/.claude/` is a user-scope finding.
+- A `.upstream.<ext>` companion in `<repo>/` is a repo-scope
+  finding.
+
+`adapt --ci` exits non-zero if **either** scope's
+`.adapt-pending.md` is non-empty. The per-scope report locations
+match the per-scope state-file locations from the sibling
+`distribution-adapters` spec:
+
+| Scope  | Report path                              |
+| ------ | ---------------------------------------- |
+| `repo` | `<repo>/.adapt-pending.md`               |
+| `user` | `~/.agent-ready/.adapt-pending.md`       |
+
+User-scope reports live inside the namespaced
+`~/.agent-ready/` dot-directory (the same one that holds the
+user-scope state file), not as a bare dotfile in `$HOME`.
 
 ## Boundaries
 
@@ -88,6 +289,25 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   was satisfied.
 - Read configuration and state exclusively from TOML files (`pack.toml`,
   `.agent-ready-state.toml`, `.adapt-discovery.toml`, `--values-from <file.toml>`).
+- Resolve `--scope` per § *Install-scope dimension*: CLI flag > pack
+  `default-scope` > built-in `repo`. Refuse non-zero when the
+  resolved value is not in the pack's `allowed-scopes` with a stderr
+  line naming the pack, the requested scope, and the declared set.
+- Run the per-scope path-jail on every write: at user scope, the
+  jail combines `expanduser("~")` with the adapter's declared
+  `allowed-prefixes.<scope>` array; a write resolving inside `~` but
+  outside the prefix list is refused.
+- Apply `pathlib.Path.expanduser()` to the user-scope root once at
+  scope-resolution time; refuse with `cannot resolve user scope:
+  $HOME unset or invalid` when the result is literal `"~"` or `"/"`.
+  Print the resolved absolute scope root before any write.
+- Print `installed: <pack> @ <scope>` on every successful install.
+- Walk both state files (`<repo>/.agent-ready-state.toml` and
+  `~/.agent-ready/state.toml`) in `adapt`; record findings against
+  the scope of the file they were observed in.
+- Require explicit `--scope` for `uninstall`, `upgrade`, and `diff`
+  when a pack is installed at both scopes; infer when the pack is
+  at exactly one scope.
 
 ### Ask first
 
@@ -98,7 +318,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   package path from `packages/agentbundle/`.
 - Introducing a new persisted on-disk artifact (file the CLI writes that
   isn't already in this list: Tier-1 projected files, `.agent-ready-state.toml`,
-  `.adapt-pending.md`, `.upstream.<ext>` companions).
+  `.adapt-pending.md`, `.upstream.<ext>` companions, the user-scope
+  state file `~/.agent-ready/state.toml`).
+- Extending `--scope` to a subcommand not listed in § *Install-scope
+  dimension* — *§ `--scope` per subcommand* is the closed set at
+  v0.2.
+- Extending `--force` semantics beyond the cross-scope-conflict case
+  on `install`. `--force` is bound to `install` only; binding it to
+  another verb (or making it override the in-place re-install
+  refusal) is an Ask-first change.
 
 ### Never do
 
@@ -127,6 +355,18 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   markers unresolved for `agentbundle adapt` to consume). Plugin-installed
   pack marker resolution is deferred to the `adapt-to-project` LLM skill;
   out of scope for v1 (RFC-0001 Open Q3).
+- Never silently rewrite a `schema-version = "0.1"`
+  `.agent-ready-state.toml`. Any write-capable invocation against a
+  v0.1 file exits non-zero with the
+  `init-state --migrate` refuse-and-explain message defined in
+  § *Install-scope dimension*. Reads of a v0.1 file are fine and
+  treat every entry as repo-scope.
+- Never install a `seeds/`-bearing, hook-bearing, or `<adapt:NAME>`-
+  marker-bearing pack at user scope. The three rails live in
+  `validate` (sibling `distribution-adapters` spec); `install`
+  re-runs each rail against the resolved pack content whenever
+  `--scope user` is requested or the pack's `default-scope` is
+  `"user"`, closing the widen-after-publish gap.
 
 ## Testing Strategy
 
@@ -288,3 +528,102 @@ QA tails respectively.
 - [ ] A version-mismatch fixture (pack declares spec `v2.0`, CLI ships
       `v0.1`) causes every subcommand to refuse with a stderr line naming
       both versions; no partial behaviour observed.
+- [ ] **(RFC-0004)** `--scope {repo,user}` is accepted on `install`,
+      `uninstall`, `upgrade`, `diff`, `init-state`, and
+      `list-targets` only. Passing `--scope` to `list-packs`,
+      `scaffold`, `validate`, `render`, or `adapt` exits non-zero
+      with stderr `unknown flag for <verb>: --scope`. The flag's
+      semantics match the table in § *Install-scope dimension*:
+      override on `install`; disambiguator on `uninstall` / `upgrade`
+      / `diff`; selector on `init-state`; read-only filter on
+      `list-targets`.
+- [ ] **(RFC-0004)** Scope resolution follows CLI flag > pack
+      `default-scope` > built-in `repo`. A `--scope <s>` value not
+      in the pack's `allowed-scopes` exits non-zero with stderr
+      `<pack>: scope '<requested>' not in allowed-scopes
+      <declared-set>`. A test pins the precedence: a pack declaring
+      `default-scope = "repo"` resolves to repo when no flag is
+      given; passing `--scope user` against an `allowed-scopes`
+      that excludes user is refused; passing `--scope user` against
+      a pack declaring `allowed-scopes = ["repo", "user"]` resolves
+      to user.
+- [ ] **(RFC-0004)** Path-jail extended: every user-scope write
+      resolves under one of the adapter's
+      `allowed-prefixes.<scope>` entries (declared in the sibling
+      spec's `[scope]` table) or the CLI refuses non-zero with
+      stderr `refusing to write outside allowed prefixes for scope
+      '<scope>': <path>`. The repo-scope jail (writes under repo
+      root) is unchanged. A test fixture with a projection rule
+      resolving under `~/Documents/` (inside `~`, outside the
+      declared `[".claude/", ".agent-ready/"]` prefixes) is refused.
+- [ ] **(RFC-0004)** `~`-expansion runs once at scope-resolution
+      time. When the result is literal `"~"` (expansion failed) or
+      `"/"` ($HOME=/), every `--scope user` invocation exits non-
+      zero with stderr `cannot resolve user scope: $HOME unset or
+      invalid`. When expansion succeeds, the CLI prints the
+      resolved absolute scope root to stderr before any write.
+- [ ] **(RFC-0004)** Write-capable invocations against a v0.1
+      `.agent-ready-state.toml` exit non-zero with stderr `state
+      file at <path> is schema-version 0.1; run 'agentbundle
+      init-state --migrate' first`. Read-only invocations
+      (`list-targets`, `diff`, `adapt` without `--values-from`)
+      against the same v0.1 file succeed, treating every entry as
+      repo-scope. `init-state --migrate` rewrites a v0.1 file to
+      v0.2 idempotently; the writer's contract is owned by the
+      sibling `distribution-adapters` spec.
+- [ ] **(RFC-0004)** Every successful `install` prints `installed:
+      <pack> @ <scope>` to stdout. A single-scope install emits one
+      line as the last stdout content before exit zero. A
+      dual-scope `--force` install emits two lines, **repo first,
+      user second**, both on stdout; the user-scope line is the
+      last stdout content. Verified by capturing stdout and
+      asserting the exact line sequence per case.
+- [ ] **(RFC-0004)** Dual-scope conflict on `install`: when pack
+      `<P>` is already installed at the other scope, the install
+      exits non-zero with stderr `<P> already installed at
+      <other-scope>; pass --force to install at both`. `--force`
+      install proceeds in this case; `--force` install of a pack
+      *not* already at the other scope succeeds as a normal install
+      (idempotent flag). `--force` against a pack *already*
+      installed at the requested scope is refused with stderr `<P>
+      already installed at <scope>; use 'upgrade' to change
+      version`. Passing `--force` to any verb other than `install`
+      exits non-zero with stderr `unknown flag for <verb>:
+      --force`. After a dual-scope install, `uninstall --scope`,
+      `upgrade --scope`, and `diff --scope` are required (refused
+      with `<P> installed at multiple scopes; pass --scope {repo,
+      user}` when omitted).
+- [ ] **(RFC-0004)** `recommends` cross-scope: an `install` warns
+      (does not refuse) on **stderr** when a recommended pack is
+      missing or scope-disjoint. Warning text per § *`recommends`
+      across scopes*:
+      `note: recommends '<rec>' (found at <observed-scope> scope)`,
+      `note: recommends '<rec>' (not installed)`,
+      `note: recommends '<rec>', which is repo-only; install it in
+      your active project`, or
+      `note: recommends '<rec>', which is user-only; install it at
+      user scope`. The disjoint-case text names the *recommended*
+      pack's allowed scope, not the recommending pack's installed
+      scope. A dual-scope `--force` install emits one warning per
+      scope per recommend.
+- [ ] **(RFC-0004)** `adapt` walks **both**
+      `<repo>/.agent-ready-state.toml` and
+      `~/.agent-ready/state.toml`, reads
+      `<repo>/.adapt-discovery.toml` at repo scope and
+      `~/.agent-ready/.adapt-discovery.toml` at user scope, and
+      writes the pending report to `<repo>/.adapt-pending.md` at
+      repo scope and `~/.agent-ready/.adapt-pending.md` at user
+      scope. `adapt --ci` exits non-zero if *either* scope's
+      `.adapt-pending.md` is non-empty. Findings are recorded
+      against the scope of the file they were observed in (a
+      squatter under `~/.claude/` is a user-scope finding; a
+      `.upstream.<ext>` companion in `<repo>/` is a repo-scope
+      finding).
+- [ ] **(RFC-0004)** `validate` against a v0.2 pack whose
+      `default-scope` is not in `allowed-scopes` exits non-zero
+      with stderr `pack <name>: default-scope '<requested>' not
+      in allowed-scopes <declared-set>`. The schema-level
+      `default-scope ∈ allowed-scopes` invariant (owned by the
+      sibling `distribution-adapters` spec's `pack.schema.json`)
+      is the structural enforcement; this AC pins the CLI's
+      user-facing stderr text.

@@ -3,7 +3,7 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md)
+- **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md), [RFC-0004](../../rfc/0004-install-scope-per-pack.md) (contract-v0.2 amendment — install-scope dimension)
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -191,6 +191,265 @@ to merge into `.claude/settings.local.json` (Claude Code) under the
 `merge-managed-key-only` on-conflict policy. Other adapters consume the
 same source path and project per the table above.
 
+## Install-scope dimension (contract v0.2)
+
+Per [RFC-0004](../../rfc/0004-install-scope-per-pack.md) the adapter
+contract grows a **scope** dimension. The dimension lives in the
+contract (not the CLI) so catalogue indexers, third-party validators,
+and `agentbundle validate` all agree on what a malformed pack looks
+like. The CLI surface that consumes the dimension — `--scope`
+precedence, refusal text, dual-state-file walking, the
+`installed: <pack> @ <scope>` rail — is owned by the sibling
+[`agent-spec-cli`](../agent-spec-cli/spec.md) spec; this spec ships the
+contract, the schemas, and the validation rails.
+
+### Scope enum
+
+A new enum `scope` with two values:
+
+| Value  | Meaning                                                | Root path (Claude Code adapter) |
+| ------ | ------------------------------------------------------ | ------------------------------- |
+| `repo` | Project-local — lives next to the code it governs.     | `<repo>/.claude/`               |
+| `user` | User-local — shared across every repo the user opens.  | `~/.claude/`                    |
+
+`global` (system-wide) is deliberately absent — no adapter has a
+system-wide root, and adding it later is a one-line schema bump against
+an already-versioned contract.
+
+### `[scope]` table on the adapter contract
+
+Each `[adapter.<name>]` block gains an optional `[adapter.<name>.scope]`
+table. Adapters omitting it are repo-only; new adapters that want
+user-scope support declare both roots and the user-scope
+prefix-allow-list.
+
+```toml
+[adapter."claude-code".scope]
+repo = "."
+user = "~"
+allowed-prefixes.user = [".claude/", ".agent-ready/"]
+```
+
+Two prefixes ship in the v0.2 contract for Claude Code's user
+scope: `.claude/` (where projected primitives land) and
+`.agent-ready/` (the namespaced dot-directory holding CLI
+infrastructure — user-scope state file, per-scope
+`.adapt-discovery.toml`, per-scope `.adapt-pending.md`, and any
+`.upstream.<ext>` companions the CLI writes at user scope). The
+two-prefix shape exists so the path-jail rail covers *every*
+write the CLI performs, including its own state-file and pending-
+report writes; carving out CLI infrastructure paths from the
+jail would be a foot-gun, so the prefixes carry both surfaces
+declaratively.
+
+`allowed-prefixes.<scope>` is constrained at the schema level, not
+adapter-trusted. Each entry must be a non-empty, forward-slash-relative
+path that:
+
+- does not equal `"/"`,
+- does not begin with `/`,
+- contains no `..` segments after normalisation,
+- ends with `/` to force prefix matching at directory boundaries.
+
+The array must be non-empty for any scope it declares. The conformance
+suite refuses adapters declaring `["/"]`, `[""]`, `["../"]`, `[".."]`,
+or empty arrays — without this rail an adapter author could neuter the
+jail by listing a root-equivalent prefix.
+
+### `[pack.install]` table on `pack.toml`
+
+`pack.toml` gains a `[pack.install]` table:
+
+```toml
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+```
+
+- **`default-scope`** — the scope used when the adopter passes no
+  `--scope`. One of `"repo"` | `"user"`. Required.
+- **`allowed-scopes`** — the scopes this pack permits, as an array
+  subset of `{"repo", "user"}`. Defaults to `[default-scope]` (i.e.
+  "only the default") when omitted.
+
+The cross-field invariant **`default-scope ∈ allowed-scopes`** is
+enforced in `pack.schema.json` as a jsonschema `if`/`then` block so the
+rule holds outside the CLI — every consumer of the schema refuses a
+malformed pack identically.
+
+### v0.1 vs v0.2 contract acceptance
+
+A pack's contract version is declared in its `pack.toml`'s
+`[pack.adapter-contract] version` field (per RFC-0001). The v0.2 CLI
+applies two acceptance rules:
+
+- **v0.1 packs** (`[pack.adapter-contract] version = "0.1"`) — accepted
+  with implied defaults: `default-scope = "repo"`,
+  `allowed-scopes = ["repo"]`. Any `[pack.install]` table on a v0.1
+  pack is ignored — the implied defaults apply uniformly to all v0.1
+  packs. A pack omitting `[pack.adapter-contract] version` is treated
+  as `"0.1"` for legacy-acceptance.
+- **v0.2 packs** (`[pack.adapter-contract] version = "0.2"`) — refused
+  by `validate` if `[pack.install]` is missing.
+
+The legacy default exists *only* for the legacy contract version. The
+silent-default temptation is cheaper one PR but worse forever — pack
+authors who never open their `pack.toml` would be implicitly opted *out*
+of user scope without intent.
+
+### Contract-level user-scope refusal rails
+
+Three rails refuse a user-scope install at the **contract** level —
+they fire regardless of CLI flags, hold for any v0.2 pack the build
+pipeline or `agentbundle` produces or consumes, and re-check at install
+time against the resolved pack content (closing the
+widen-after-publish gap). Each rail is necessary; together they are
+not sufficient — content-portability bugs the rails can't see
+(hardcoded `AGENTS.md` references, vocabulary leakage) are the broader
+*falsifiable test* defined in RFC-0004 § Per-pack default and
+allowance.
+
+**Rail A — `seeds/`-bearing packs.** A pack whose source tree contains
+a non-empty `seeds/` directory cannot declare `"user"` in
+`allowed-scopes`. `seeds/docs/`, `seeds/packages/` at user scope would
+project to `~/docs/_templates/`, `~/packages/_example/` — nonsense
+paths. `validate` rejects mismatches.
+
+**Rail B — hook-shaped primitives.** A pack whose source tree
+contains a non-empty `.apm/hooks/` or `.apm/hook-wiring/` directory
+cannot declare `"user"` in `allowed-scopes`. (Source-tree presence
+is the detectable surface; every adapter projects `hook-body` per
+the projection table above, so the projected-set form is constant.)
+Under Claude Code, hook bodies are read from
+`~/.claude/` (not `~/tools/`) at user scope, and the user-scope
+settings file is `~/.claude/settings.json` (no `.local`); the merge
+semantics for hooks under a hand-edited user settings file are not
+designed. Until the user-scope hook-wiring merge story is designed (a
+follow-up RFC, not this one), hook-shaped primitives are refused at
+user scope.
+
+**Rail C — `<adapt:NAME>`-marker-bearing primitives.** A primitive
+file containing one or more `<adapt:NAME>` markers cannot install at
+user scope: markers resolve from `.adapt-discovery.toml` to per-repo
+values, and a single file at `~/.claude/` can only carry one
+resolution. A pack with `"user"` in `allowed-scopes` must contain no
+`<adapt:NAME>` markers in its projected primitive files.
+
+- *Scope of the rail.* Rail C fires **only when the pack declares
+  `"user" ∈ allowed-scopes`.** Repo-only packs are not inspected, so
+  SKILL.md files that *document* the marker syntax (e.g. the
+  `adapt-to-project` skill) are not refused.
+- *Grep semantics.* Strict regex `<adapt:[A-Z_][A-Z0-9_]*>` in any
+  byte position of any primitive file under the pack's source paths
+  (`.apm/skills/`, `.apm/agents/`, `.apm/commands/`). Skill
+  directories are walked **in `sorted(os.walk(...))` order** so the
+  "first offending path" reported in the stderr message is
+  deterministic across runs and platforms. Non-UTF-8 files
+  (binaries) are skipped silently.
+  `hook-body`/`hook-wiring` are already user-scope-refused
+  by Rail B, so a marker check on them is unreachable; `seeds/` is
+  already user-scope-refused by Rail A, so the marker rail's input
+  never includes `seeds/`. No markdown parsing — the grep runs
+  against raw file bytes.
+
+**Enforcement points.** `validate` runs all three rails at
+pack-validation time. `install` re-runs each rail against the resolved
+pack content whenever `--scope user` is requested or the pack's
+`default-scope` is `"user"`. The double-check closes the
+widen-after-publish gap: a pack published as `["repo"]` (not
+inspected) cannot install at user scope after flipping its
+`allowed-scopes` to include `"user"` without passing every rail at
+install time.
+
+### Path-jail per scope
+
+Two extensions to the write-jail rail:
+
+1. **Per-scope root.** At repo scope, the jail is the repo root
+   (unchanged). At user scope, the jail is `expanduser("~")`.
+2. **Constrained to declared prefixes at user scope.** A `..`-escape
+   check alone is insufficient at user scope — a buggy projection
+   rule resolving under `~/Documents/` stays "inside the jail." Every
+   user-scope write must resolve under one of the
+   `allowed-prefixes.<scope>` entries declared on the adapter's
+   `[scope]` table or the CLI refuses non-zero. Repo-scope writes are
+   unchanged — the repo root *is* the prefix.
+
+### State file per scope
+
+| Scope  | Location                                  |
+| ------ | ----------------------------------------- |
+| `repo` | `<repo>/.agent-ready-state.toml`          |
+| `user` | `~/.agent-ready/state.toml`               |
+
+User-scope state lives inside a namespaced dot-directory
+(`~/.agent-ready/`), not as a bare dotfile in `$HOME`. The
+dot-directory is the future home for other user-scope artifacts
+(`.adapt-discovery.toml`, `.upstream.<ext>` companions, pending
+reports). Repo-scope state location is unchanged. Each file records
+only the packs installed at *that* scope.
+
+### `.agent-ready-state.toml` schema (v0.2)
+
+```toml
+schema-version = "0.2"
+
+[pack.<name>]                        # one section per installed pack
+installed-version = "0.2.0"
+source = "agent-ready-repo"
+install-route = "cli"
+scope = "repo"                       # new in v0.2: "repo" | "user"
+primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
+
+[pack.<name>.files]
+"<projected-path>" = { sha = "<hex64>", from-pack-version = "<semver>" }
+```
+
+The `scope` column is required on every `[pack.<name>]` entry in
+v0.2. Other fields are unchanged from v0.1.
+
+**Read-time compatibility.** The CLI reads any `schema-version = "0.1"`
+state file as *all entries at repo scope* (no migration forced at
+read).
+
+**Write-time refusal.** Any write-capable invocation against a v0.1
+state file exits non-zero with stderr `state file at <path> is
+schema-version 0.1; run 'agentbundle init-state --migrate' first`.
+No silent rewrite — migration is destructive (irreversible without
+backup) and an adopter running mixed CLI versions across CI and local
+must opt into the file-format change explicitly. The refuse-and-
+explain shape matches the major-version refusal rail in the sibling
+CLI spec.
+
+**`init-state --migrate`.** Rewrites a v0.1 state file to v0.2,
+adding an explicit `scope = "repo"` column to each entry and bumping
+`schema-version`. Idempotent and additive.
+
+- *No automatic backup.* The migration is destructive (the v0.1
+  file is replaced in place via tmp + `os.replace`); no
+  `<path>.v01.bak` is written. Adopters running mixed CLI
+  versions across CI and local must back up the file
+  out-of-band before invoking `--migrate`. The
+  refuse-and-explain rail above gives the adopter that signal
+  before any write; an explicit `--migrate` is the consent
+  gesture.
+
+The `agent-ready-state.toml` `schema-version` is a separate version
+axis from the adapter contract `[contract] version`. Both bump in
+this amendment, but they gate different things — contract version
+drives the major-version-disagreement refusal for *packs*; state-file
+schema-version drives the refuse-and-explain at write-time. An
+adopter must reason about both.
+
+### `[contract] version` bump 0.1 → 0.2
+
+`docs/contracts/adapter.toml`'s `[contract] version` bumps from
+`"0.1"` to `"0.2"`. The conformance suite (sibling spec
+`agent-spec-cli` §`validate --strict`, when its fixtures land) adds
+per-scope cases: every contract change above (allowed-prefixes
+constraints, scope-keyed state-file rule, Rails A/B/C, path-jail per
+scope) appears as a conformance case the v0.2 contract must satisfy.
+
 ## Boundaries
 
 The three-tier guard that keeps an implementing agent inside the lines.
@@ -238,6 +497,21 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - When sibling specs reference `pack.toml` or `.claude-plugin/plugin.json`
   shapes, they must link to this spec — flag in PR review if they inline
   the schema instead.
+- Enforce the `default-scope ∈ allowed-scopes` invariant in
+  `pack.schema.json` (jsonschema `if`/`then`), not in CLI code, so
+  catalogue indexers and third-party validators refuse a malformed
+  pack identically.
+- Run the three contract-level user-scope refusal rails (Rails A/B/C
+  in § *Install-scope dimension*) at `validate` time **and** re-run
+  each rail at `install` time against the resolved pack content
+  whenever the install resolves to user scope.
+- Apply `pathlib.Path.expanduser()` to the `[scope]` table's `user`
+  root **once, at scope-resolution time** (when an `install`,
+  `uninstall`, `upgrade`, or `adapt` invocation resolves `--scope
+  user` to a concrete root). If the result equals literal `"~"`
+  (expansion failed) or resolves to `"/"` (corporate sandbox with
+  `$HOME=/`), refuse with stderr `cannot resolve user scope: $HOME
+  unset or invalid`.
 
 ### Ask first
 
@@ -251,6 +525,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `--scaffold OUTPUT=`).
 - Promoting Kiro hook *wiring* projection out of `degraded-info-log`
   (RFC-0001 Unresolved Q1 keeps it degraded until Kiro publishes a schema).
+- Adding a `global` (system-wide) value to the `scope` enum. Not
+  reserved, not refused — absent. RFC-0004 § Alternatives considered
+  §6 rejects pre-emptive reservation; adding `global` later is a
+  one-line schema bump against an already-versioned contract.
+- Promoting hook-shaped primitives out of user-scope refusal (Rail B).
+  The user-scope hook-wiring merge story is deferred to a follow-up
+  RFC; landing it requires that RFC, not a unilateral relaxation.
 
 ### Never do
 
@@ -287,6 +568,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **No conformance test suite in this spec.** A *full* per-adapter
   conformance suite is RFC-0003's work; this spec ships unit-level
   projection tests per adapter only.
+- **No silent rewrite of a `schema-version = "0.1"` state file.** A
+  write-capable invocation against a v0.1 state file exits non-zero
+  with the `init-state --migrate` refuse-and-explain message defined
+  in § *Install-scope dimension*. Migration is destructive
+  (irreversible without backup); an adopter running mixed CLI versions
+  across CI and local must opt into the file-format change
+  explicitly.
+- **No user-scope install of a `seeds/`-bearing, hook-bearing, or
+  `<adapt:NAME>`-marker-bearing pack** (Rails A/B/C in § *Install-scope
+  dimension*). Each rail is checked at `validate` time **and** re-run
+  at `install` time against the resolved pack content.
 
 ## Testing Strategy
 
@@ -431,3 +723,70 @@ No manual QA: there is no UI surface, no human gesture under test.
   status` against the working tree before and after, returning byte-
   identical output). This pins the property § Default-recipe behaviour
   declares; T8 owns the test.
+- [ ] **(RFC-0004)** `docs/contracts/adapter.toml` carries
+  `[contract] version = "0.2"` and a `[adapter."claude-code".scope]`
+  table declaring `repo = "."`, `user = "~"`, and
+  `allowed-prefixes.user = [".claude/", ".agent-ready/"]` (the
+  two-prefix shape covers both projected primitives and CLI
+  infrastructure writes — see § *`[scope]` table on the adapter
+  contract*). `adapter.schema.json`
+  defines the optional `[scope]` table and enforces the
+  `allowed-prefixes.<scope>` constraints (non-empty array; each
+  entry forward-slash-relative, not `"/"`, not beginning with `/`,
+  no `..` after normalisation, trailing `/`). A test asserts the
+  schema rejects each of `["/"]`, `[""]`, `["../"]`, `[".."]`, and
+  `[]` for `allowed-prefixes.user`.
+- [ ] **(RFC-0004)** `docs/contracts/pack.schema.json` requires
+  `[pack.install]` on any pack declaring
+  `[pack.adapter-contract] version = "0.2"` (jsonschema `if`/`then`
+  on the contract-version field), with `default-scope ∈ {"repo",
+  "user"}` and `allowed-scopes` a non-empty array subset of
+  `{"repo", "user"}` defaulting to `[default-scope]`. A second
+  `if`/`then` block enforces `default-scope ∈ allowed-scopes`.
+  Tests pin: a v0.2 pack without `[pack.install]` is rejected;
+  a v0.2 pack with `default-scope = "user"` and
+  `allowed-scopes = ["repo"]` is rejected; a v0.1 pack without
+  `[pack.install]` is accepted; a v0.1 pack *with* a stray
+  `[pack.install]` table is accepted (the table is ignored at
+  CLI consumption per § *Install-scope dimension*).
+- [ ] **(RFC-0004)** `validate.py` runs Rails A/B/C against every
+  pack: Rail A refuses any pack containing a non-empty `seeds/`
+  directory and declaring `"user" ∈ allowed-scopes`; Rail B refuses
+  any pack whose source tree contains a non-empty `.apm/hooks/` or
+  `.apm/hook-wiring/` directory and declaring `"user" ∈
+  allowed-scopes`; Rail C refuses any pack declaring `"user" ∈
+  allowed-scopes` and containing one or more files matching
+  `<adapt:[A-Z_][A-Z0-9_]*>` under `.apm/skills/`, `.apm/agents/`,
+  or `.apm/commands/`. Rail C walks those directories in
+  `sorted(os.walk(...))` order (deterministic across runs and
+  platforms) and skips non-UTF-8 (binary) files silently. Each
+  rail's stderr message names the offending pack and the first
+  offending path. Tests pin one positive case (rail accepts a
+  clean pack) and one negative case (rail rejects with the named
+  stderr) per rail, plus one binary-file skip test for Rail C.
+- [ ] **(RFC-0004)** `.agent-ready-state.toml` `schema-version`
+  bumps to `"0.2"`. Every `[pack.<name>]` entry in v0.2 carries a
+  required `scope = "repo" | "user"` column. The CLI **reads** any
+  v0.1 file as all-repo-scope without forcing migration; any
+  **write-capable** invocation against a v0.1 file exits non-zero
+  with stderr `state file at <path> is schema-version 0.1; run
+  'agentbundle init-state --migrate' first`. The
+  `init-state --migrate` writer rewrites a v0.1 file to v0.2
+  idempotently (adding `scope = "repo"` to each entry; bumping
+  `schema-version`); running it twice against the same v0.2 file
+  is a no-op exit-zero. The user-scope state file lives at
+  `~/.agent-ready/state.toml` (a namespaced dot-directory under
+  `$HOME`, not a bare dotfile).
+- [ ] **(RFC-0004)** The four shipped packs at
+  `packs/{core,governance-extras,monorepo-extras,user-guide-diataxis}/pack.toml`
+  **add** an explicit `[pack.adapter-contract] version = "0.2"`
+  field (the field was previously absent — packs were
+  legacy-treated as `"0.1"` per § *Install-scope dimension*'s
+  acceptance rule) and **add** an explicit `[pack.install]` table
+  with `default-scope = "repo"` and `allowed-scopes = ["repo"]`.
+  The values are written out even though both are the built-in
+  defaults so adopters reading the TOML see the constraint
+  declared, not implied. The `[pack.adapter-contract]` version
+  addition and the `[pack.install]` declaration land in the **same
+  PR** as the contract / schema amendment so the catalogue's
+  published packs and the CLI release land in lockstep.
