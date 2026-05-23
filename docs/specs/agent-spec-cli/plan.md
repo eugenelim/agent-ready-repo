@@ -30,6 +30,14 @@ round-trip on a corporate-network sandbox.
 
 - [RFC-0003](../../rfc/0003-spec-and-cli.md) is the source RFC; its F-cli
   enumerates the eleven subcommands and their semantics.
+- [RFC-0004](../../rfc/0004-install-scope-per-pack.md) amends the
+  contract to v0.2 — adds the `[scope]` table, the `[pack.install]`
+  table, three user-scope refusal rails (seeds / hooks / marker), a
+  scope-keyed state file, path-jail-per-scope, `~`-expansion rules,
+  and the `installed: <pack> @ <scope>` output rail. The sibling
+  `distribution-adapters` spec owns the contract / schema / rail
+  implementation (its tasks T10–T14); this plan's tasks T16–T21
+  ship the CLI surface that consumes them.
 - [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md) defines
   the Tier-1/2/3 file-safety contract.
 - Sibling spec [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
@@ -534,6 +542,376 @@ succeeded; AC #11's manual QA tail holds.
 
 **Done when:** matrix of (subcommand × tier × hook-extension) all green.
 
+### T16: argparse surface gains `--scope` on six subcommands + `--force` on `install`
+
+**Depends on:** none (additive against the existing argparse
+skeleton from T1a).
+
+**Tests:**
+- Unit: `--scope {repo,user}` is accepted on `install`,
+  `uninstall`, `upgrade`, `diff`, `init-state`, and `list-targets`
+  (argparse parses without error; the value lands in the parsed
+  namespace).
+- Unit: passing `--scope` to any forbidden subcommand
+  (`list-packs`, `scaffold`, `validate`, `render`, `adapt`) exits
+  non-zero with stderr `unknown flag for <verb>: --scope` (bare
+  flag, no `=value` suffix in the re-emitted message). The test
+  parametrises across the five forbidden subcommands ×
+  {space-separated `--scope user`, value-glued `--scope=user`}.
+- Unit: `--force` is accepted only on `install`; passing it to any
+  other verb exits non-zero with stderr `unknown flag for <verb>:
+  --force`. The test parametrises across the ten non-install verbs.
+- Unit: `--scope <bogus>` (anything other than `repo` or `user`)
+  exits non-zero with argparse's `invalid choice` error naming the
+  legal values.
+
+**Approach:**
+- In `cli.py`, register `--scope` as a `choices=["repo", "user"]`
+  argument on the six subparsers above. Register `--force` as
+  `action="store_true"` on `install` only.
+- For the five forbidden subcommands, do not register the flag.
+  Subclass `argparse.ArgumentParser` with an overridden `error()`
+  that detects "unrecognized arguments: <token>" where `<token>`
+  starts with `--scope` or `--force` (after stripping any
+  `=value` suffix — argparse emits `--scope=user` as a single
+  token when value-glued, but the contract's stderr text names
+  the bare flag), and re-emits the message in the form
+  `unknown flag for <verb>: <flag>` to match the spec's exact
+  stderr contract. The subparser's `prog` carries the verb name.
+  Do not rely on argparse's default `error: unrecognized
+  arguments:` text — it omits the verb and uses a different
+  prefix.
+
+**Done when:** all four test rows green; existing subcommand tests
+unaffected; the stderr text matches the spec's exact contract
+byte-for-byte for both `--scope` value-glued and space-separated
+forms.
+
+---
+
+### T17: Scope-resolution helper + `allowed-scopes` refusal + path-jail-per-scope + `~`-expansion
+
+**Depends on:** T16; **also depends on** sibling
+`distribution-adapters` T10 (the `[scope]` table on the adapter
+contract — supplies `allowed-prefixes.<scope>`), T11 (the
+`[pack.install]` table on `pack.toml` — supplies `default-scope`
+and `allowed-scopes`), and T12 (the three user-scope refusal rails
+that `install` re-runs against resolved pack content per AC and
+spec § *Path-jail per scope*).
+
+**Tests:**
+- Unit: `agentbundle.scope.resolve(cli_flag, pack_install,
+  builtin_default)` returns `"repo"` when no CLI flag is passed and
+  the pack declares `default-scope = "repo"`; returns `"user"` when
+  CLI passes `--scope user` against an `allowed-scopes` that
+  includes `"user"`; raises `ScopeRefused` when the CLI flag is not
+  in `allowed-scopes`. The error carries the pack name, the
+  requested scope, and the declared set; the CLI top-level handler
+  formats it as `<pack>: scope '<requested>' not in
+  allowed-scopes <declared-set>`.
+- Unit: `agentbundle.safety.write_jailed` extended to accept a
+  `scope` parameter. At `scope="user"` with
+  `allowed_prefixes=[".claude/", ".agent-ready/"]` (the v0.2
+  shipped Claude Code shape), a write resolving inside `~` but
+  outside *both* prefixes (e.g. `~/Documents/foo`) is refused
+  with stderr `refusing to write outside allowed prefixes for
+  scope 'user': <path>`. Counter-rows: a write under
+  `~/.claude/skills/foo/` is accepted (first prefix matches); a
+  write under `~/.agent-ready/state.toml` is accepted (second
+  prefix matches). At `scope="repo"`, the existing repo-root jail
+  behaviour is unchanged (regression check against the existing
+  T1b tests).
+- Unit: `agentbundle.scope.resolve_user_root()` calls
+  `pathlib.Path.expanduser("~")` once and raises
+  `UserScopeUnresolvable` when the result is literal `"~"` or
+  `"/"`. Two test rows pin the failure modes:
+  - *`$HOME=/` (or `$HOME` set to a path that resolves to root).*
+    `monkeypatch.setenv("HOME", "/")`; the helper observes the
+    `/` expansion and raises. This row reaches the helper through
+    the natural environment path.
+  - *`expanduser` returns literal `"~"`.* On POSIX, `expanduser`
+    falls back to `pwd.getpwuid(os.getuid()).pw_dir` when `$HOME`
+    is unset, so unset-HOME alone won't produce a literal `"~"`.
+    The test simulates the genuinely-unresolvable case by
+    `monkeypatch.delenv("HOME", raising=False)` **and**
+    `monkeypatch.setattr("pwd.getpwuid", lambda _: (_ for _ in
+    ()).throw(KeyError("no entry")))` so `expanduser` returns
+    `"~"` literally. Documents in a test comment that this
+    combined-mutation case is the actual `expanduser` failure
+    contract; the simpler environment-only mutation is
+    insufficient on POSIX.
+  - On Windows, the equivalent is `monkeypatch.delenv("HOME",
+    raising=False)` + `monkeypatch.delenv("USERPROFILE",
+    raising=False)`; the project's stdlib-only commitment defers
+    cross-platform conformance, so a Windows row is documented
+    but skipped from CI.
+  - In both reached cases, the CLI top-level handler maps
+    `UserScopeUnresolvable` to stderr `cannot resolve user scope:
+    $HOME unset or invalid` and exits non-zero.
+- Integration: a fixture `install --scope user` against a pack
+  declaring `allowed-scopes = ["repo"]` exits non-zero with the
+  stderr above and writes nothing.
+- Integration: on a successful user-scope install the CLI emits
+  the resolved absolute scope root to **stderr** before any
+  write. The test captures stderr and stdout independently and
+  asserts the resolved-root stderr line exists and precedes any
+  `note:` recommends warning; stdout is checked separately for
+  the `installed:` line.
+
+**Approach:**
+- Add `packages/agentbundle/agentbundle/scope.py` with `resolve`
+  (precedence: CLI > pack default > builtin `"repo"`) and
+  `resolve_user_root` (one `expanduser` call + failure detection).
+- Define `ScopeRefused` and `UserScopeUnresolvable` exceptions in
+  the same module; the CLI's top-level error handler maps them to
+  the documented stderr messages.
+- Extend `safety.write_jailed(root, relpath, content, *,
+  scope="repo", allowed_prefixes=None)`. The function asserts the
+  resolved path stays under `root` (existing repo-jail) **and**
+  starts with one of `allowed_prefixes` when `scope="user"`.
+  `allowed_prefixes` is **required** whenever `scope="user"`;
+  passing `scope="user"` with `allowed_prefixes=None` raises
+  `TypeError("allowed_prefixes is required when scope='user'")`.
+  This is a programming error in CLI code (not an adopter-facing
+  refusal) — the rail must never silently degrade. The call sites
+  in T2–T12 pass `scope` and `allowed_prefixes` derived from
+  `scope.resolve`; backward-compat: omitting both at repo scope
+  keeps the existing repo-jail-only behaviour.
+- New tests at
+  `packages/agentbundle/tests/test_scope.py` and
+  `packages/agentbundle/tests/test_safety_user_scope.py`.
+
+**Done when:** all five test rows green; existing write-capable
+subcommand tests still pass with `scope="repo"` defaults.
+
+---
+
+### T18: v0.1 state-file refuse-and-explain at write; read remains compatible
+
+**Depends on:** T17; **also depends on** sibling
+`distribution-adapters` T13 (the v0.2 state-file reader/writer and
+`init-state --migrate` semantics).
+
+**Tests:**
+- Unit: every write-capable subcommand (`install`, `uninstall`,
+  `upgrade`, `init-state` without `--migrate`) against a v0.1
+  `.agent-ready-state.toml` fixture exits non-zero with stderr
+  `state file at <path> is schema-version 0.1; run 'agentbundle
+  init-state --migrate' first`. Parametrised across the four
+  write-capable invocations.
+- Unit: read-only subcommands (`list-targets`, `diff`, `adapt`
+  without `--values-from`) against the same v0.1 fixture succeed
+  with exit zero; the in-memory state treats every `[pack.<name>]`
+  entry as `scope = "repo"`.
+- Integration: `agentbundle init-state --migrate` rewrites the
+  v0.1 fixture to v0.2 (file content matches the expected v0.2
+  shape byte-for-byte modulo timestamps if any); subsequent
+  write-capable invocations against the migrated file succeed.
+
+**Approach:**
+- In every write-capable subcommand handler, call
+  `agentbundle.config.load_state` (extended in sibling T13). When
+  the loader detects `schema-version = "0.1"` on a write path, it
+  raises `StateFileLegacy(path)`; the CLI top-level handler
+  formats the documented stderr message.
+- Read paths (where `load_state` is called from `list-targets`,
+  `diff`, read-only `adapt`) call the loader with a `read_only=True`
+  flag; the loader returns the v0.1 content with implicit
+  repo-scope without raising.
+- Wire `init-state --migrate` to call the sibling-spec writer.
+- New tests at
+  `packages/agentbundle/tests/test_state_v01_refuse_write.py`.
+
+**Done when:** all three test rows green; no write-capable
+subcommand silently rewrites a v0.1 file.
+
+---
+
+### T19: Dual-scope `install` conflict + `--force` + `installed: <pack> @ <scope>` output
+
+**Depends on:** T17, T18; **also depends on** sibling
+`distribution-adapters` T12 — `install` re-runs Rails A/B/C
+against resolved pack content whenever the install resolves to
+user scope (the rails themselves live in the sibling spec; this
+task wires them into the install handler at the user-scope
+branch).
+
+**Tests:**
+- Integration: `install --pack <P> --scope <S>` against a fixture
+  where `<P>` is already installed at the other scope exits
+  non-zero with stderr `<P> already installed at <other-scope>;
+  pass --force to install at both`.
+- Integration: same setup with `--force` appended proceeds; both
+  state files (`<repo>/.agent-ready-state.toml` and
+  `~/.agent-ready/state.toml`) record the pack after the run.
+- Integration: `install --pack <P> --scope <S> --force` where
+  `<P>` is not already installed at the other scope succeeds
+  (the `--force` flag is a no-op in this case; the install is a
+  normal first-time install at `<S>`).
+- Integration: `install --pack <P> --scope <S>` against a fixture
+  where `<P>` is already installed at `<S>` (in-place re-install,
+  no other scope involved) exits non-zero with stderr `<P>
+  already installed at <scope>; use 'upgrade' to change version`.
+- Integration: same setup with `--force` appended — exit code
+  and stderr are byte-identical to the previous row (the
+  `--force` flag does not change the message, and the in-place
+  refusal is not bypassable).
+- Integration: `install --pack <P> --scope <S> --force` where
+  `<P>` is already at `<S>` **and also** at the other scope —
+  the in-place refusal still wins; the cross-scope branch is not
+  entered (a pack already at both scopes has no install path).
+  Same stderr as the in-place rows above.
+- Integration: after a dual-scope install, `uninstall --pack <P>`
+  (no `--scope`) exits non-zero with stderr `<P> installed at
+  multiple scopes; pass --scope {repo, user}`. Same refusal shape
+  for `upgrade` and `diff`.
+- Integration: every successful single-scope `install` prints
+  exactly one `installed: <pack> @ <scope>` line to stdout as the
+  **last** non-empty stdout line before exit zero.
+- Integration: a successful dual-scope `--force` install prints
+  exactly two `installed:` lines to stdout in **repo-then-user**
+  order; the second (user) line is the last non-empty stdout
+  line. The test captures stdout, splits on newlines, and pins
+  the exact pair sequence.
+- Integration: a dual-scope `--force` install where the
+  user-scope precondition fails (test parametrises over
+  `~`-expansion failure, a Rail-C marker fixture, and a
+  path-jail probe) writes **zero** `installed:` lines and
+  **neither** state file is modified. The pre-flight checks for
+  both scopes run before any write, so a user-scope failure
+  cannot leave a half-applied repo-scope install on disk. The
+  test asserts: both state-file paths are byte-identical
+  before/after the run, stdout is empty (no `installed:` line),
+  and stderr names the failing scope.
+
+**Approach:**
+- In `agentbundle.commands.install`, before any write, read both
+  state files via `config.load_state`. Compute the
+  already-installed scope set for the pack. Branch:
+  - Already at requested scope → refuse with the
+    `use 'upgrade'` message.
+  - Already at the other scope → if `--force` not passed, refuse
+    with the cross-scope message; if passed, proceed.
+  - Not installed at either scope → proceed (the `--force` flag
+    has no effect in this branch).
+- In `uninstall`, `upgrade`, `diff` handlers: when the pack is
+  installed at both scopes and `--scope` is omitted, exit non-zero
+  with the multi-scope refusal message.
+- On successful install completion, write `installed: <pack> @
+  <scope>` to `sys.stdout` as the last action before the handler
+  returns.
+- New tests at
+  `packages/agentbundle/tests/test_install_dual_scope.py`.
+
+**Done when:** all test rows green (three in-place re-install
+rows including the dual-scope-already-installed guard; two
+cross-scope rows — no-`--force` refusal and `--force` proceed;
+one no-op `--force` first-time-install row; one multi-scope
+verb-disambiguator row; two `installed:` stdout rows including
+the dual-scope pair sequence; and the pre-flight
+partial-failure row); the cross-scope conflict flow is the only
+place `--force` carries semantics.
+
+---
+
+### T20: `recommends` cross-scope warning text split
+
+**Depends on:** T17, T19.
+
+**Tests:** all warnings asserted on **stderr** (informational
+`note:` convention; stdout carries `installed:` lines only).
+
+- *Disjoint, recommended is repo-only.* Fixture pack `A` declares
+  `recommends = ["B"]`, `B` declares `allowed-scopes = ["repo"]`.
+  Installing `A` at user scope emits `note: recommends 'B', which
+  is repo-only; install it in your active project` on stderr;
+  exit zero.
+- *Disjoint, recommended is user-only.* Fixture pack `A` declares
+  `recommends = ["B"]`, `B` declares `allowed-scopes = ["user"]`.
+  Installing `A` at repo scope emits `note: recommends 'B',
+  which is user-only; install it at user scope` on stderr; exit
+  zero. This symmetrical case pins that the disjoint message
+  names the *recommended* pack's allowed scope, not the
+  recommending pack's installed scope.
+- *Compatible-scope present.* Same `A`/`B` shapes (B repo-only)
+  with `B` already installed at repo scope. Installing `A` at
+  any scope emits `note: recommends 'B' (found at repo scope)`
+  on stderr.
+- *Missing entirely.* `B` not installed anywhere; installing `A`
+  emits `note: recommends 'B' (not installed)` on stderr.
+- *Dual-scope `--force` install.* A `--force` dual-scope install
+  of `A` (where `B` is repo-only and missing) emits two stderr
+  warnings — one per scope of the install — both with the
+  disjoint repo-only text.
+
+**Approach:**
+- In `agentbundle.commands.install`, after writing the state file,
+  iterate `recommends`. For each, query both state files for
+  presence; cross-reference against the recommended pack's
+  `allowed-scopes` (resolved by re-reading its `pack.toml` from
+  the catalogue, cached at install time). Emit one of the three
+  warning strings.
+- The two-warnings-per-`--force`-install case follows from the
+  install loop running twice in dual-scope mode.
+- New tests at
+  `packages/agentbundle/tests/test_recommends_cross_scope.py`.
+
+**Done when:** all five test rows green; warnings exit zero (no
+gating).
+
+---
+
+### T21: `adapt` walks both state files; per-scope reports
+
+**Depends on:** T17, T18.
+
+**Tests:**
+- Integration: with both state files present and each carrying
+  unresolved `.upstream.<ext>` companions in their respective
+  scopes, `adapt` writes the per-scope reports at
+  `<repo>/.adapt-pending.md` (repo scope) and
+  `~/.agent-ready/.adapt-pending.md` (user scope — inside the
+  same namespaced dot-directory as the user-scope state file).
+  Each report names only the companions observed at that scope.
+  No `~/.adapt-pending.md` bare dotfile is ever created.
+- Integration: `adapt --ci` exits non-zero when either scope's
+  `.adapt-pending.md` is non-empty; the test parametrises across
+  three cases (repo only non-empty, user only non-empty, both
+  non-empty).
+- Integration: a squatter under `~/.claude/` (a Tier-3 finding at
+  user scope) is recorded against the user-scope pending file;
+  a `.upstream.<ext>` companion under `<repo>/` is recorded
+  against the repo-scope pending file. Cross-scope writes are
+  refused (a finding at user scope cannot land in the repo
+  pending file).
+- Integration: a fixture missing one of the two state files
+  walks the present one and reports against its scope only;
+  no error.
+- Integration: `adapt` reads `<repo>/.adapt-discovery.toml` at
+  repo scope and `~/.agent-ready/.adapt-discovery.toml` at user
+  scope. The fixture places a `<adapt:PROJECT_NAME>` marker in
+  a user-scope-projected file and a value entry in
+  `~/.agent-ready/.adapt-discovery.toml`; substitution picks it
+  up. A counter-fixture placing the value entry at
+  `~/.adapt-discovery.toml` (bare dotfile) is **not** consulted
+  — the test asserts the marker remains unresolved (proving the
+  reader picks the namespaced dot-directory path, not the bare
+  one).
+
+**Approach:**
+- In `agentbundle.commands.adapt`, replace the single
+  state-file read with `[config.load_state(p) for p in
+  state_paths_for_both_scopes()]`. Walk both lists. For each
+  finding, route to the per-scope `.adapt-pending.md` writer.
+- The `--ci` exit logic ORs the two per-scope non-empty checks.
+- New tests at
+  `packages/agentbundle/tests/test_adapt_dual_scope.py`.
+
+**Done when:** all five test rows green; the existing
+single-scope `adapt` tests (T6) still pass.
+
+---
+
 ## Rollout
 
 `packages/agentbundle/` lands as a new package — no behaviour change to
@@ -632,3 +1010,33 @@ No flag-gating required.
   plan updated to `adapter.toml`; the `[pack.adapter-contract]` TOML
   key (a conceptual table identifier in pack manifests) is unchanged.
   See [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments).
+- 2026-05-23: v0.2 CLI amendment per
+  [RFC-0004](../../rfc/0004-install-scope-per-pack.md). Spec grows
+  § *Install-scope dimension (CLI surface, contract v0.2)* pinning
+  the `--scope` per-subcommand table, scope-resolution precedence,
+  path-jail per scope, `~`-expansion, v0.1 state-file refuse-and-
+  explain at write, `installed: <pack> @ <scope>` output,
+  dual-scope conflict + `--force` shape, `recommends` cross-scope
+  warning text split, and `adapt` dual-state-file walk. Ten new
+  ACs appended (the `(RFC-0004)`-tagged entries: `--scope` per-
+  subcommand surface; scope-resolution precedence + `allowed-scopes`
+  refusal; path-jail extension with user-scope `allowed-prefixes`;
+  `~`-expansion + refusal; v0.1 state-file refuse-and-explain at
+  write; `installed: <pack> @ <scope>` output; dual-scope conflict +
+  `--force` shape; `recommends` cross-scope warning split; `adapt`
+  dual-state-file walk; `validate` refusal stderr for the
+  schema-level `default-scope ∈ allowed-scopes` invariant).
+  Boundaries gain scope rails on
+  *Always do* (resolve precedence, path-jail per scope, `~`-
+  expansion, installed-output, dual-state-file walk), *Ask first*
+  (new user-scope artifact, extending `--scope` or `--force` shape),
+  and *Never do* (silent v0.1 state-file rewrite, user-scope install
+  of seeds/hook/marker-bearing packs). Plan tasks T16
+  (argparse `--scope`/`--force` wiring), T17 (scope-resolution
+  helper + path-jail + `~`-expansion), T18 (v0.1 state-file
+  refuse-and-explain at write), T19 (dual-scope install conflict +
+  `--force` + installed-output), T20 (recommends cross-scope
+  warnings), T21 (`adapt` dual-state-file walk) added. Contract /
+  schema / rail implementation (the build-side) is owned by the
+  sibling [`distribution-adapters`](../distribution-adapters/plan.md)
+  spec's tasks T10–T14.

@@ -53,6 +53,16 @@ right *before* writing any adapter, or every adapter re-derives them.
   `agentbundle.build` as a library (no `sys.path` tricks, no fork). The
   CLI is `packages/agentbundle/`'s public surface; this spec ships the
   build module under the same package.
+- **RFC-0004** — [Install-scope dimension](../../rfc/0004-install-scope-per-pack.md).
+  Bumps `[contract] version` 0.1 → 0.2 and
+  `.agent-ready-state.toml` `schema-version` 0.1 → 0.2; adds the
+  `[scope]` table on adapter contracts, the `[pack.install]` table on
+  `pack.toml`, the three user-scope refusal rails (seeds, hooks,
+  marker), the scope-keyed state file, and the path-jail-per-scope
+  rule. Tasks T10–T14 below implement the contract / schema / build-
+  side; the sibling `agent-spec-cli` spec implements the CLI surface
+  (`--scope` flag, dual-state-file walking, refuse-and-explain at
+  v0.1 write, `installed: <pack> @ <scope>` output).
 - **CONVENTIONS.md** — Profile B+ work-loop discipline applies. Tests
   before approach; `Depends on:` on every task; verification mode
   named per task.
@@ -658,6 +668,255 @@ non-zero.
 
 ---
 
+### T10: `adapter.schema.json` + `adapter.toml` gain `[scope]` table; `[contract] version` 0.1 → 0.2
+
+**Depends on:** none (additive against T1a/T1b output; touches the
+contract files only).
+
+**Verification mode:** TDD.
+
+**Tests:**
+- `adapter.schema.json` accepts a `[scope]` block declaring
+  `repo = "."`, `user = "~"`, and
+  `allowed-prefixes.user = [".claude/", ".agent-ready/"]`; rejects
+  `allowed-prefixes.user` values of `["/"]`, `[""]`, `["../"]`,
+  `[".."]`, `["no-trailing-slash"]`, `["/begins-with-slash/"]`, and
+  `[]` (one assertion per case, named for readability). Verifies the
+  `[scope]` half of new AC #14.
+- `docs/contracts/adapter.toml` loads with
+  `[contract] version = "0.2"` and the
+  `[adapter."claude-code".scope]` block above (two prefixes:
+  `.claude/` and `.agent-ready/`); validates against the
+  updated schema.
+- The other three reference adapters (`kiro`, `copilot`, `codex`)
+  omit `[scope]` — the schema accepts them as repo-only (omitting
+  `[scope]` is legal and means "repo only" per § *Install-scope
+  dimension*).
+
+**Approach:**
+- Extend `docs/contracts/adapter.schema.json`:
+  - At each `[adapter.<name>]` block, add an optional `scope` property
+    of type object with required keys `repo` and `user` (both
+    strings) and an optional `allowed-prefixes` property whose values
+    are non-empty arrays of strings.
+  - Encode the per-string constraints — non-empty, no leading `/`,
+    not `"/"`, no `..` segment, trailing `/` — in a `pattern` keyword
+    on each array's `items`. The validator's regex subset is enough
+    (T1a's commitment: `pattern` is supported).
+- Bump `[contract] version` in `adapter.toml` from `"0.1"` to `"0.2"`.
+  Add `[adapter."claude-code".scope]` as shown in § *Install-scope
+  dimension*.
+- New tests land in
+  `packages/agentbundle/agentbundle/build/tests/test_contract_scope.py`
+  (a new file — avoids merge churn against the existing
+  `test_contract.py` which T1b owns).
+
+**Done when:** schema tests green; the v0.2 contract validates against
+the v0.2 schema.
+
+---
+
+### T11: `pack.schema.json` requires `[pack.install]` under contract v0.2
+
+**Depends on:** none (additive; touches the schema and its tests).
+
+**Verification mode:** TDD.
+
+**Tests:**
+- A v0.2 pack (declares `[pack.adapter-contract] version = "0.2"`)
+  with no `[pack.install]` table is rejected.
+- A v0.2 pack with `[pack.install] default-scope = "repo",
+  allowed-scopes = ["repo"]` is accepted.
+- A v0.2 pack with `[pack.install] default-scope = "user",
+  allowed-scopes = ["repo"]` is rejected by the
+  `default-scope ∈ allowed-scopes` invariant.
+- A v0.2 pack omitting `allowed-scopes` (only `default-scope`
+  declared) is accepted with the implied
+  `allowed-scopes = [default-scope]` — verified by reading the parsed
+  result and asserting the default landed.
+- A v0.1 pack (declares `[pack.adapter-contract] version = "0.1"` or
+  omits the field) without `[pack.install]` is accepted (legacy).
+- A v0.1 pack carrying a stray `[pack.install]` table is accepted —
+  the table is ignored at CLI consumption time (per § *Install-scope
+  dimension* — implied defaults apply uniformly to all v0.1 packs).
+
+**Approach:**
+- Extend `docs/contracts/pack.schema.json` with two jsonschema
+  `if`/`then` blocks under `[pack]`:
+  1. `if [pack.adapter-contract] version == "0.2" then require
+     [pack.install]`.
+  2. `if [pack.install] is present then require default-scope and
+     enforce default-scope ∈ allowed-scopes`.
+- New tests at
+  `packages/agentbundle/agentbundle/build/tests/test_pack_schema_install.py`.
+  Do not extend `test_pack_schema.py` (owned by T1c — same merge-
+  conflict reasoning as T1c's two-new-files rule).
+
+**Done when:** all six test rows green.
+
+---
+
+### T12: `validate` runs the three user-scope refusal rails (A/B/C)
+
+**Depends on:** T10, T11.
+
+**Verification mode:** TDD.
+
+**Tests:**
+- *Rail A — seeds.* A fixture pack containing a non-empty `seeds/`
+  directory and declaring `"user" ∈ allowed-scopes` is rejected by
+  `agentbundle validate` with stderr naming the pack and the
+  `seeds/` path. A counter-fixture (same pack with `seeds/` empty,
+  or with `allowed-scopes = ["repo"]`) is accepted.
+- *Rail B — hooks.* A fixture pack containing
+  `.apm/hooks/<name>.sh` (a `hook-body` primitive) and declaring
+  `"user" ∈ allowed-scopes` is rejected with stderr naming the pack
+  and the hook path. Same for a pack with
+  `.apm/hook-wiring/<name>.toml`. A counter-fixture without hook
+  primitives is accepted.
+- *Rail C — markers.* A fixture pack containing a primitive file
+  with `<adapt:PROJECT_NAME>` somewhere in its bytes and declaring
+  `"user" ∈ allowed-scopes` is rejected with stderr naming the pack
+  and the first offending file path. The grep must match
+  `<adapt:[A-Z_][A-Z0-9_]*>` only — `<adapt:lowercase>` and
+  `<ADAPT:NAME>` (wrong prefix) are not matches. A counter-fixture
+  with the same marker in a `seeds/` file (not a primitive) is
+  accepted (Rail A already refused user-scope above; Rail C's input
+  excludes `seeds/`).
+- *Repo-only packs are not inspected by Rail C.* A pack declaring
+  `allowed-scopes = ["repo"]` with `<adapt:NAME>` markers in
+  `.apm/skills/` is accepted by `validate` (the rail's scope clause
+  fires only when `"user" ∈ allowed-scopes`). Verifies the *Scope of
+  the rail* clause in § *Install-scope dimension*.
+- *Binary files skipped.* A pack carrying a non-UTF-8 file under
+  `.apm/skills/` (constructed via raw bytes in the fixture) is
+  accepted by Rail C — non-UTF-8 files are skipped silently.
+
+**Approach:**
+- Add a new module
+  `packages/agentbundle/agentbundle/build/scope_rails.py` exporting
+  `check_seeds(pack_path, allowed_scopes) -> Result`,
+  `check_hooks(pack_manifest, allowed_scopes) -> Result`, and
+  `check_markers(pack_path, allowed_scopes) -> Result`. Each returns
+  `Ok` or `Refused(pack, offender_path)`. The marker grep walks
+  `.apm/skills/`, `.apm/agents/`, `.apm/commands/` recursively, opens
+  each file with `errors="strict"` and catches `UnicodeDecodeError`
+  to skip non-UTF-8.
+- Wire `validate` (in `agentbundle/build/__main__.py`) to call all
+  three rails after schema validation. The CLI's `install` subcommand
+  re-runs the same module against resolved pack content (the wiring
+  lives in sibling spec's task T19 — *Dual-scope install conflict +
+  `--force` + `installed:` output* — which carries the install-time
+  rail re-check explicitly in its dependency list).
+- New tests at
+  `packages/agentbundle/agentbundle/build/tests/test_scope_rails.py`.
+
+**Done when:** every test row above is green; `agentbundle validate`
+runs the three rails sequentially and reports the first offender per
+rail.
+
+---
+
+### T13: `.agent-ready-state.toml` schema v0.2 + `init-state --migrate` writer
+
+**Depends on:** T10 (the contract bump is the trigger for the state-
+file bump).
+
+**Verification mode:** TDD.
+
+**Tests:**
+- *Read v0.1.* `agentbundle.config.load_state` reads a
+  `schema-version = "0.1"` fixture file and returns all entries with
+  an implicit `scope = "repo"` column on every `[pack.<name>]` entry
+  (no migration forced at read).
+- *Refuse v0.1 write.* Any write-capable invocation against the v0.1
+  fixture (the helper is called by `install`, `uninstall`, `upgrade`,
+  `init-state`) exits non-zero with stderr `state file at <path> is
+  schema-version 0.1; run 'agentbundle init-state --migrate' first`.
+  The test parametrises over the four write-capable invocations.
+- *Migrate v0.1 → v0.2.* `agentbundle init-state --migrate` against
+  the v0.1 fixture rewrites the file to v0.2: every `[pack.<name>]`
+  gains `scope = "repo"`; `schema-version` flips to `"0.2"`; all
+  other fields are byte-identical to the v0.1 originals.
+- *Migrate is idempotent.* Running `init-state --migrate` twice
+  against the same v0.2 file is a no-op (byte-identical output, exit
+  zero).
+- *User-scope state file location.* When a write resolves to user
+  scope, the state file is `~/.agent-ready/state.toml` (a namespaced
+  dot-directory under `$HOME`, not a bare `~/.agent-ready-state.toml`).
+  The directory is created with `0o700` permissions if absent. Test
+  asserts the resolved path and the permissions bit.
+
+**Approach:**
+- Extend `agentbundle.config.load_state` to branch on
+  `schema-version`: read 0.1 with implicit-repo-scope; read 0.2 with
+  explicit `scope` column.
+- Add `agentbundle.config.save_state` and route every write through
+  the refuse-and-explain when `schema-version` on disk is `"0.1"`.
+  The refuse-and-explain message is shared across `install`,
+  `uninstall`, `upgrade`, and (when called on an existing file)
+  `init-state` without `--migrate`.
+- Implement `init-state --migrate` in
+  `agentbundle.commands.init_state` (the existing module from sibling
+  spec T10): when `--migrate` is passed, read the v0.1 file, augment
+  each `[pack.<name>]` with `scope = "repo"`, set
+  `schema-version = "0.2"`, write atomically (tmp + `os.replace`).
+- User-scope state-file directory creation lives in
+  `agentbundle.safety.user_state_path()` (a helper that returns the
+  resolved path and ensures the dot-directory exists).
+- New tests at
+  `packages/agentbundle/tests/test_state_v02.py` (under the CLI tests
+  tree — state-file handling is consumed by CLI subcommands).
+
+**Done when:** every test row above green; an adopter running
+`init-state --migrate` against a v0.1 file gets a parseable v0.2 file
+on disk and subsequent writes proceed.
+
+---
+
+### T14: Four shipped packs gain explicit `[pack.install]` + bump `[pack.adapter-contract] version` to `"0.2"`
+
+**Depends on:** T10, T11 (the schema must accept the new shape
+before the packs adopt it).
+
+**Verification mode:** Goal-based check.
+
+**Tests:**
+- Goal: every `packs/{core,governance-extras,monorepo-extras,user-guide-diataxis}/pack.toml`
+  parses with `tomllib` and validates against the updated
+  `pack.schema.json` — `[pack.adapter-contract] version = "0.2"`,
+  `[pack.install] default-scope = "repo"`,
+  `[pack.install] allowed-scopes = ["repo"]`.
+- Goal: `agentbundle validate packs/<pack>` exits zero for each of
+  the four shipped packs against the v0.2 schema. The Rails A/B/C
+  checks fire harmlessly — every shipped pack declares
+  `allowed-scopes = ["repo"]`, so Rail C's scope clause never fires
+  (the rail's input is empty by construction), Rail A passes
+  trivially (the packs do carry `seeds/`, but `allowed-scopes` is
+  `["repo"]`), and Rail B passes trivially (the `core` pack carries
+  hooks, but `allowed-scopes` is `["repo"]`).
+
+**Approach:**
+- Edit each of the four `pack.toml` files to add the two stanzas
+  exactly:
+  ```toml
+  [pack.adapter-contract]
+  version = "0.2"
+
+  [pack.install]
+  default-scope = "repo"
+  allowed-scopes = ["repo"]
+  ```
+- The values are written even though both are the built-in defaults
+  (per new AC) — adopters reading the TOML see the constraint
+  declared, not implied.
+- No code change in this task — purely metadata.
+
+**Done when:** all four packs validate against the v0.2 schema;
+`agentbundle validate packs/<pack>` exits zero for each.
+
+---
+
 ## Rollout
 
 The pipeline ships once, behind no flag — it's developer tooling, not
@@ -752,3 +1011,25 @@ catalogue isn't published until follow-on work).
   `pack.schema.json`, `plugin-manifest.schema.json`). Paths and
   bare-filename references updated; field semantics unchanged. See
   [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments).
+- 2026-05-23: v0.2 amendment per
+  [RFC-0004](../../rfc/0004-install-scope-per-pack.md). Spec grows
+  the § *Install-scope dimension* section pinning the scope enum,
+  the `[scope]` table on the adapter contract, the `[pack.install]`
+  table on `pack.toml`, the three contract-level user-scope refusal
+  rails (seeds / hooks / marker), the path-jail per scope, the
+  state-file v0.2 schema with explicit `scope` column, and the
+  `init-state --migrate` refuse-and-explain. Five new ACs appended
+  (#14 adapter.toml + adapter.schema.json `[scope]`; #15
+  pack.schema.json `[pack.install]`; #16 validate Rails A/B/C; #17
+  state-file v0.2 + `init-state --migrate`; #18 four shipped packs
+  declare `[pack.install]`). Boundaries gain
+  scope-rail enforcement + `~`-expansion refusal + the no-`global`
+  + no-silent-rewrite + no-user-scope-hook-bearing-pack rules.
+  Plan tasks T10 (adapter.schema.json + adapter.toml gain `[scope]`
+  + version bump), T11 (pack.schema.json requires `[pack.install]`
+  under v0.2 with cross-field invariant), T12 (validate runs Rails
+  A/B/C), T13 (state-file v0.2 + `init-state --migrate`), T14
+  (four shipped packs adopt the new metadata) added. CLI surface
+  (the `--scope` flag, dual-state-file walking, `installed: <pack>
+  @ <scope>` output) is owned by the sibling
+  [`agent-spec-cli`](../agent-spec-cli/spec.md) spec's amendment.
