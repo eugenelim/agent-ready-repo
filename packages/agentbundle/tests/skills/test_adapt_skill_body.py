@@ -92,11 +92,30 @@ def test_body_pre_flight_section_references_user_scope_state(body):
 
 def test_body_names_split_into_two_prompt(body):
     """T17: SKILL.md body contains the literal phrase
-    `split into two same-scope operations` exactly once."""
+    `split into two same-scope operations` exactly once and within
+    the Class 3 section bounded by the next H2 (tightened per
+    quality-review concern 11)."""
     assert body.count("split into two same-scope operations") == 1
+    start = body.find("## Class 3")
+    assert start >= 0, "Class 3 section missing"
+    end = body.find("\n## ", start + 1)
+    section = body[start:end] if end >= 0 else body[start:]
+    assert "split into two same-scope operations" in section
 
 
 def test_body_forbids_cross_scope_execution(body):
     """T17: SKILL.md body contains the literal phrase
     `cross-scope restructure is never executed as a single move`."""
     assert "cross-scope restructure is never executed as a single move" in body
+
+
+def test_body_pre_flight_names_v01_migration_prereq(body):
+    """Quality-review pin for AC22 v0.1 detection sub-clause:
+    the SKILL.md body's Pre-flight section names
+    `agentbundle init-state --migrate` as the prereq for write
+    operations against legacy state files."""
+    start = body.find("## Pre-flight")
+    assert start >= 0, "Pre-flight section missing"
+    end = body.find("\n## ", start + 1)
+    section = body[start:end] if end >= 0 else body[start:]
+    assert "agentbundle init-state --migrate" in section

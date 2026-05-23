@@ -145,11 +145,25 @@ def test_install_chained_adapt_failure_returns_nonzero_preserves_marker(tmp_path
 
 
 def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
-    """Per AC19b: the chained `adapt` runs in-process, not via subprocess."""
+    """Per AC19b: the chained `adapt` runs in-process *and* substitutes
+    markers. Both halves are asserted — the negative (no subprocess)
+    *and* the positive (the chain actually executed and applied
+    `[markers]` values to a projected file)."""
     import subprocess
 
     cat = tmp_path / "cat"
-    _stage_pack(cat, "addon", ADDON_NO_DEPENDENCIES)
+    # Stage a pack with an `<adapt:owner>` marker in a primitive file
+    # that the projection picks up. The chain runs adapt with
+    # --values-from <repo>/.adapt-discovery.toml; after install, the
+    # projected file must contain the substituted value, not the
+    # literal marker.
+    pack_body = ADDON_NO_DEPENDENCIES
+    pack = _stage_pack(cat, "addon", pack_body)
+    (pack / ".apm" / "skills" / "demo").mkdir(parents=True)
+    (pack / ".apm" / "skills" / "demo" / "SKILL.md").write_text(
+        "---\nname: demo\ndescription: x\n---\nowner=<adapt:owner>\n",
+        encoding="utf-8",
+    )
     target = tmp_path / "repo"
     target.mkdir()
     # Pre-seed canonical discovery so the chain has values to apply.
@@ -172,6 +186,30 @@ def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
         dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
     )
     assert rc == 0
+    # Positive assertion: the projected file got the substituted value
+    # (chained adapt actually executed), not the literal `<adapt:owner>`.
+    # The projection target depends on the adapter's projection rule;
+    # walk the install target for the substituted token.
+    found_substituted = False
+    found_unsubstituted = False
+    for p in target.rglob("*"):
+        if not p.is_file():
+            continue
+        try:
+            text = p.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, ValueError):
+            continue
+        if "owner=octocat" in text:
+            found_substituted = True
+        if "<adapt:owner>" in text:
+            found_unsubstituted = True
+    assert found_substituted, (
+        "chained adapt did not substitute <adapt:owner>; the chain "
+        "may have been skipped entirely"
+    )
+    assert not found_unsubstituted, (
+        "chained adapt left an unsubstituted <adapt:owner> marker on disk"
+    )
 
 
 def test_marker_in_seed_gitignore(tmp_path):

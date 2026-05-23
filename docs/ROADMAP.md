@@ -125,6 +125,54 @@ chained in-process `adapt.run`, the session-start hook's dual-scope
 marker walk, and the SKILL.md body authoring (class-1 shell-out;
 classes 2–4 LLM-judgment writes under the per-scope path-jail).
 
+- **Security: TOML-injection via unescaped pack metadata
+  (pre-existing).** `dump_state` and `_append_install_marker`
+  interpolate `pack.name` / `version` / projection relpaths into
+  TOML output via plain f-strings. A malicious pack manifesting a
+  `version` string containing TOML metacharacters can land phantom
+  TOML structure in `<repo>/.agent-ready-state.toml` and
+  `.adapt-install-marker.toml`. Pre-existing in `config.dump_state`;
+  amplified by the install-marker addition. **Unblocks when:** the
+  catalogue trust model formalises (today's CLI assumes trusted
+  catalogues); fix shape is a tested `_emit_basic_string`
+  serialiser + a runtime regex assertion on every pack-sourced
+  field that lands in a TOML basic-string position.
+- **AC18 schema-validation tests for shipped packs.** `make
+  build-self` already invokes `validate_pack_metadata` per pack at
+  build time, so a malformed shipped manifest breaks CI. There is
+  no separate pytest pinning the four manifests carry
+  `[pack.adapter-contract] version = "0.2"` + `[[pack.dependencies.required]]`
+  (addons) + `[pack.install]` (all four). **Unblocks when:**
+  someone adds a parametrised `test_addon_manifests_carry_required_dependency`
+  + `test_all_packs_declare_install_table` against
+  `packs/{core,governance-extras,user-guide-diataxis,monorepo-extras}/pack.toml`.
+- **AC19c scaffold-driven test.** `tests/integration/test_install_adapt_chain.py::test_marker_in_seed_gitignore`
+  checks the seed file directly rather than invoking
+  `agentbundle scaffold` against a tmp output dir. A refactor that
+  silently dropped dotfile projection would not trip the test.
+  **Unblocks when:** the test is rewritten to invoke
+  `scaffold_run` and assert `(tmp/.gitignore).read_text()`.
+- **AC10 deterministic-pending-md byte-identity with non-empty
+  state.** `test_idempotent_re_run` exercises the trivial empty-
+  companion case. The interesting case (sorted lexicographically,
+  no timestamps, byte-identical across re-runs) is unpinned.
+  **Unblocks when:** a fixture seeds two `.upstream.<ext>` files
+  and a test asserts the pending.md is byte-identical *and*
+  contains the companion paths in lex order.
+- **User-scope-only install chain test.** `_chain_adapt`'s
+  fallback `Path(args.output).resolve()` is the path used when an
+  adopter runs `agentbundle install --pack <user-pack> --scope user`
+  (no repo plan). No test exercises this. **Unblocks when:** a
+  test seeds a user-scope-only install and asserts the chained
+  adapt either fires correctly against the install's output root
+  or is skipped explicitly.
+- **APM / Claude-plugins install-route nudge parity.** Adopters
+  installing via APM or Claude-plugins routes (rather than
+  `agentbundle install`) never hit the install marker write, never
+  see the session-start nudge, and never get the chained
+  `adapt.run`. The spec is explicit (CLI-only contract), but the
+  RFC-0004 parity work would close this gap. **Unblocks when:**
+  APM/Claude-plugins adapter parity lands.
 - **Install-marker `new-companions` tally.** `commands/install.py`'s
   install loop classifies Tier-2 collisions on the fly and doesn't
   keep a tally; `_append_install_marker` writes `new-companions = []`

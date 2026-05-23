@@ -638,7 +638,9 @@ Per the work-loop's three-mode taxonomy:
       narrows to `<adapt:([a-z][a-z0-9-]*)>` for symmetry. Existing
       CLI fixtures (`OWNER` → `owner`) migrate. Both consumers
       leave UPPER_SNAKE markers unchanged with a single stderr
-      warning. **The cross-spec dependency on
+      warning **per file** (one warning per scanned file containing
+      one or more UPPER_SNAKE markers; an adopter with N affected
+      files sees N warning lines). **The cross-spec dependency on
       `distribution-adapters/spec.md`'s marker-refusal grep (RFC-0004
       line 272) is resolved by AC21.**
 - [ ] **AC15 (`--values-from` accepts `[markers]`; refuses
@@ -811,12 +813,14 @@ Per the work-loop's three-mode taxonomy:
       No "execute as cross-scope" outcome exists; this sidesteps
       the recording-scope ambiguity (the source-scope recording
       would mutate user scope invisibly to a user-scope re-run).
-      No user-scope-eligible packs ship in v1 so this AC is
-      exercised by the AC4a *cross-scope-restructure × decline* row
-      against the synthetic user-scope fixture; the *split-into-two*
-      path is exercised by code review against the SKILL.md body
-      (the body must document the split-into-two prompt verbatim;
-      T17 grep asserts this).
+      No user-scope-eligible packs ship in v1, so this AC's *(b)*
+      grep verification — the SKILL.md body documents both prompts
+      verbatim — is the v1 pin (matrix row 4 + T17 greps
+      `test_body_names_split_into_two_prompt` +
+      `test_body_forbids_cross_scope_execution`, both bounded to
+      the Class 3 section). End-to-end exercise of both
+      same-scope halves is deferred to AC4b row 28 under the
+      user-scope-pack trigger.
 
 ## Changelog
 

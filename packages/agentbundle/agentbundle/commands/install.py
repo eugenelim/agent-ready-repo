@@ -544,9 +544,12 @@ def _append_install_marker(
     from agentbundle import safety
 
     if scope == "user":
-        marker_dir = root / ".agent-ready"
-        marker_dir.mkdir(parents=True, exist_ok=True)
-        marker_path = marker_dir / ".adapt-install-marker.toml"
+        # Route through `safety.user_state_path` so the dot-directory
+        # is created with mode 0o700 + symlink/non-directory probe.
+        # The helper returns `<home>/.agent-ready/state.toml`; we sit
+        # the marker next to it.
+        state_path = safety.user_state_path(home=root)
+        marker_path = state_path.parent / ".adapt-install-marker.toml"
         marker_relpath = ".agent-ready/.adapt-install-marker.toml"
     else:
         marker_path = root / ".adapt-install-marker.toml"
@@ -557,7 +560,16 @@ def _append_install_marker(
     if marker_path.exists():
         try:
             existing = tomllib.loads(marker_path.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as exc:
+            # Spec rail: silent discard would hide prior pack adaptations
+            # from the next session's nudge. Warn explicitly so the
+            # override is auditable; proceed with the fresh entry.
+            print(
+                f"install: warning: existing install marker at {marker_path} "
+                f"is malformed ({exc}); prior entries lost — re-run install "
+                f"for any earlier packs",
+                file=sys.stderr,
+            )
             existing = {}
         raw_entries = existing.get("packs-installed", [])
         if isinstance(raw_entries, list):

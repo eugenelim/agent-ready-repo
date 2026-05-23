@@ -39,7 +39,7 @@ reads the user-scope state and discovery files, and the CLI's
 
 | # | Row | Method | Pinned at |
 | - | --- | ------ | --------- |
-| 5 | user-scope path-jail refusal | (a) automation | `safety.write_jailed` with `scope="user"` + `allowed_prefixes` is exercised by the existing safety tests (`tests/unit/test_safety.py`); a class-3 destination escaping `~/.claude/`/`~/.agent-ready/` raises `PathJailError`. |
+| 5 | user-scope path-jail refusal | (a) automation | `safety.write_jailed` with `scope="user"` + `allowed_prefixes` is exercised by `tests/unit/test_scope.py::test_write_jailed_user_scope_refuses_outside_prefix` (and the four sibling `test_write_jailed_user_scope_*` cases); a class-3 destination escaping `~/.claude/`/`~/.agent-ready/` raises `PathJailError`. |
 | 6 | dirty-state-user | (b) grep | SKILL.md body's Pre-flight section documents the content-hash divergence check against `~/.agent-ready/state.toml`. End-to-end fixture deferred to AC4b. |
 | 7 | Tier-2 detection-user | (b) grep | SKILL.md body's Pre-flight section names `~/.agent-ready/`, `state.toml`, and `Tier-2` (`test_body_pre_flight_section_references_user_scope_state`). |
 
