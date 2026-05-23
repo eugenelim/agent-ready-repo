@@ -839,3 +839,11 @@ Per the work-loop's three-mode taxonomy:
   `notes/manual-qa-matrix.md` under AC4b's enumeration. Brownfield
   fixture seeds class-2 only (`AGENTS.upstream.md`); class-3 and
   class-4 surfaces ship in a follow-up.
+- 2026-05-23: round-2 amendment — AC4a closing clause re-tightened
+  to mandate every row's artifact MUST exist in the repo
+  (automation test, grep test, or inline transcript). The four
+  class-2 transition rows are moved out of AC4a's required-rows
+  list and enumerated under AC4b deferral with the trigger
+  "follow-up captures an adopter session against
+  `brownfield-adapt/AGENTS.upstream.md` and attaches transcript +
+  tree fragment inline". No AC4a row uses method *(c)* in v1.
