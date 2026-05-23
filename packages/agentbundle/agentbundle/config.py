@@ -19,10 +19,12 @@ sanctioned write surface.
 
 from __future__ import annotations
 
+import hashlib
 import tomllib
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 
 STATE_SCHEMA_VERSION = "0.2"
@@ -282,6 +284,242 @@ def load_adapt_discovery(path: Path) -> dict[str, Any]:
         raise ConfigError(
             f".adapt-discovery.toml at {path} is not valid TOML: {exc}"
         ) from exc
+
+
+# ---------------------------------------------------------------------------
+# .adapt-discovery.toml — typed schema (v0.1)
+#
+# Dual-name note (temporary, T1 only):
+#   - `load_adapt_discovery` (below, unchanged) returns a raw dict and is
+#     kept in place so existing call sites in commands/adapt.py and
+#     build/self_host.py keep compiling until T2/T3 migrates them.
+#   - `load_adapt_discovery_typed` is the new typed loader. T2/T3 will
+#     switch callers to `load_adapt_discovery_typed` and then a follow-up
+#     commit renames typed -> primary.
+# ---------------------------------------------------------------------------
+
+_KNOWN_DISCOVERY_SCHEMA_VERSIONS = {"0.1"}
+_KNOWN_FINDING_KINDS = {"companion-merge", "restructure", "consolidate"}
+
+
+@dataclass(frozen=True)
+class Finding:
+    """One structural finding in `.adapt-discovery.toml`.
+
+    `accepted` is True when the finding lives under ``[[findings.accepted]]``
+    and False when it lives under ``[[findings.declined]]``.
+    `recorded_at` holds `accepted-at` or `declined-at` (whichever is present);
+    None when the timestamp was omitted.
+    """
+
+    finding_id: str
+    kind: str  # one of: "companion-merge" | "restructure" | "consolidate"
+    source_path: str
+    destination_path: str
+    action: str | None
+    recorded_at: datetime | None
+    accepted: bool
+
+
+@dataclass
+class AdaptDiscovery:
+    """Parsed `.adapt-discovery.toml` in typed form.
+
+    `markers` is always a dict; it is empty ``{}`` for user-scope files
+    (which must not carry a ``[markers]`` table per RFC-0004).
+    """
+
+    schema_version: str
+    markers: dict[str, str] = field(default_factory=dict)
+    findings_accepted: list[Finding] = field(default_factory=list)
+    findings_declined: list[Finding] = field(default_factory=list)
+
+
+def finding_id_for(
+    pack: str,
+    kind: str,
+    source_paths: list[str],
+    dest_paths: list[str],
+) -> str:
+    """Return the canonical finding-id for the given inputs.
+
+    Visible form  : ``<pack>/<kind>:<8-hex>``
+    Hashed input  : ``<pack>:<kind>:<sorted-source-paths>:<sorted-dest-paths>``
+                    (fields joined by ``:``, paths within a field joined by
+                    ``:`` after sorting — mirrors the spec's hash grammar).
+    Hash algorithm: SHA-1; first 8 hex chars form the visible tail.
+
+    Per spec AC2: ``/`` separates pack from kind (pack names never contain
+    ``/``); ``:`` separates the hash-input fields because path values may
+    contain ``/``.
+    """
+    raw = f"{pack}:{kind}:{':'.join(sorted(source_paths))}:{':'.join(sorted(dest_paths))}"
+    digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:8]
+    return f"{pack}/{kind}:{digest}"
+
+
+def load_adapt_discovery_typed(
+    path: Path,
+    *,
+    scope: Literal["repo", "user"] = "repo",
+) -> AdaptDiscovery:
+    """Read `.adapt-discovery.toml` and return a typed ``AdaptDiscovery``.
+
+    Raises ``ConfigError`` on any of:
+      - File not valid TOML.
+      - Top-level ``[accepted]`` table (legacy CLI shape, AC8).
+      - Top-level ``[adapt]`` table (legacy self-host shape, AC9).
+      - Unknown ``discovery-schema-version`` (AC16).
+      - ``scope="user"`` and file contains a ``[markers]`` table (AC2/RFC-0004).
+      - A ``[[findings.*]]`` entry with an unknown ``kind``.
+
+    Returns an ``AdaptDiscovery`` with ``markers={}`` when the file lacks a
+    ``[markers]`` table (valid for both scopes).
+
+    Missing file returns ``AdaptDiscovery(schema_version="0.1")`` (no
+    markers, no findings) rather than raising — absent is not an error.
+    """
+    if not path.exists():
+        return AdaptDiscovery(schema_version="0.1")
+
+    try:
+        raw = tomllib.loads(path.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(
+            f".adapt-discovery.toml at {path} is not valid TOML: {exc}"
+        ) from exc
+
+    # AC8: legacy [accepted] top-level table (old CLI shape).
+    if "accepted" in raw:
+        raise ConfigError(
+            "legacy [accepted] table; migrate to [markers] per "
+            "docs/specs/adapt-to-project/spec.md"
+        )
+
+    # AC9: legacy [adapt] top-level table (old self-host shape).
+    if "adapt" in raw:
+        raise ConfigError(
+            "legacy [adapt] table; migrate to [markers] per "
+            "docs/specs/adapt-to-project/spec.md"
+        )
+
+    # AC16: unknown schema version.
+    schema_version = raw.get("discovery-schema-version")
+    if schema_version not in _KNOWN_DISCOVERY_SCHEMA_VERSIONS:
+        known = ", ".join(sorted(_KNOWN_DISCOVERY_SCHEMA_VERSIONS))
+        raise ConfigError(
+            f"unknown discovery-schema-version {schema_version!r}; "
+            f"known: {known}"
+        )
+
+    # AC2 / RFC-0004: user-scope files must not carry [markers].
+    if scope == "user" and "markers" in raw:
+        raise ConfigError(
+            "user-scope .adapt-discovery.toml may not contain a [markers] table; "
+            "markers are repo-only per RFC-0004"
+        )
+
+    markers: dict[str, str] = {}
+    raw_markers = raw.get("markers", {})
+    if isinstance(raw_markers, dict):
+        for k, v in raw_markers.items():
+            if not isinstance(v, str):
+                raise ConfigError(
+                    f"markers[{k!r}] must be a string, got {type(v).__name__}"
+                )
+            markers[k] = v
+
+    findings_raw = raw.get("findings", {})
+    findings_accepted = _parse_findings(findings_raw.get("accepted", []), accepted=True)
+    findings_declined = _parse_findings(findings_raw.get("declined", []), accepted=False)
+
+    return AdaptDiscovery(
+        schema_version=schema_version,
+        markers=markers,
+        findings_accepted=findings_accepted,
+        findings_declined=findings_declined,
+    )
+
+
+def _parse_findings(entries: list[Any], *, accepted: bool) -> list[Finding]:
+    out: list[Finding] = []
+    for i, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise ConfigError(f"findings entry {i} must be a table")
+
+        kind = entry.get("kind", "")
+        if kind not in _KNOWN_FINDING_KINDS:
+            raise ConfigError(
+                f"unknown finding kind {kind!r}; "
+                f"known: {', '.join(sorted(_KNOWN_FINDING_KINDS))}"
+            )
+
+        # Timestamps: accepted-at or declined-at depending on bucket.
+        ts_key = "accepted-at" if accepted else "declined-at"
+        ts_raw = entry.get(ts_key)
+        recorded_at: datetime | None = None
+        if isinstance(ts_raw, datetime):
+            recorded_at = ts_raw if ts_raw.tzinfo is not None else ts_raw.replace(tzinfo=timezone.utc)
+
+        out.append(
+            Finding(
+                finding_id=str(entry.get("finding-id", "")),
+                kind=kind,
+                source_path=str(entry.get("source-path", "")),
+                destination_path=str(entry.get("destination-path", "")),
+                action=entry.get("action") if isinstance(entry.get("action"), str) else None,
+                recorded_at=recorded_at,
+                accepted=accepted,
+            )
+        )
+    return out
+
+
+def adapt_discovery_to_toml(d: AdaptDiscovery) -> str:
+    """Serialise an ``AdaptDiscovery`` to a TOML string.
+
+    Deterministic key order: schema-version, markers (keys sorted),
+    findings.accepted (sorted by finding-id), findings.declined (sorted
+    by finding-id). Timestamps are omitted when ``recorded_at`` is None.
+
+    This helper is used by the round-trip test (T1) and will be used by
+    T13's idempotency story.
+    """
+    lines: list[str] = [f'discovery-schema-version = "{d.schema_version}"', ""]
+
+    if d.markers:
+        lines.append("[markers]")
+        for k in sorted(d.markers):
+            lines.append(f'{k} = "{d.markers[k]}"')
+        lines.append("")
+
+    for finding in sorted(d.findings_accepted, key=lambda f: f.finding_id):
+        lines.append("[[findings.accepted]]")
+        lines.append(f'finding-id       = "{finding.finding_id}"')
+        lines.append(f'kind             = "{finding.kind}"')
+        lines.append(f'source-path      = "{finding.source_path}"')
+        lines.append(f'destination-path = "{finding.destination_path}"')
+        if finding.action is not None:
+            lines.append(f'action           = "{finding.action}"')
+        if finding.recorded_at is not None:
+            ts = finding.recorded_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            lines.append(f"accepted-at      = {ts}")
+        lines.append("")
+
+    for finding in sorted(d.findings_declined, key=lambda f: f.finding_id):
+        lines.append("[[findings.declined]]")
+        lines.append(f'finding-id       = "{finding.finding_id}"')
+        lines.append(f'kind             = "{finding.kind}"')
+        lines.append(f'source-path      = "{finding.source_path}"')
+        lines.append(f'destination-path = "{finding.destination_path}"')
+        if finding.action is not None:
+            lines.append(f'action           = "{finding.action}"')
+        if finding.recorded_at is not None:
+            ts = finding.recorded_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+            lines.append(f"declined-at      = {ts}")
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
 
 
 # ---------------------------------------------------------------------------
