@@ -9,6 +9,16 @@
         "name": {"type": "string"},
         "version": {"type": "string"},
         "description": {"type": "string"},
+        "adapter-contract": {
+          "type": "object",
+          "properties": {
+            "version": {"type": "string"}
+          }
+        },
+        "recipes": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
         "dependencies": {
           "type": "object",
           "properties": {
@@ -82,6 +92,51 @@
           "items": {
             "type": "string",
             "pattern": "^[^/].*"
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "adapter-contract": {
+            "type": "object",
+            "properties": {"version": {"enum": ["0.2"]}},
+            "required": ["version"]
+          }
+        },
+        "required": ["adapter-contract"]
+      },
+      "then": {
+        "required": ["install"],
+        "properties": {
+          "install": {
+            "type": "object",
+            "required": ["default-scope"],
+            "properties": {
+              "default-scope": {"enum": ["repo", "user"]},
+              "allowed-scopes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"enum": ["repo", "user"]}
+              }
+            },
+            "if": {
+              "properties": {"default-scope": {"enum": ["user"]}},
+              "required": ["default-scope"]
+            },
+            "then": {
+              "properties": {
+                "allowed-scopes": {
+                  "contains": {"enum": ["user"]}
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "allowed-scopes": {
+                  "contains": {"enum": ["repo"]}
+                }
+              }
+            }
           }
         }
       }

@@ -723,7 +723,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   status` against the working tree before and after, returning byte-
   identical output). This pins the property § Default-recipe behaviour
   declares; T8 owns the test.
-- [ ] **(RFC-0004)** `docs/contracts/adapter.toml` carries
+- [x] **(RFC-0004)** `docs/contracts/adapter.toml` carries
   `[contract] version = "0.2"` and a `[adapter."claude-code".scope]`
   table declaring `repo = "."`, `user = "~"`, and
   `allowed-prefixes.user = [".claude/", ".agent-ready/"]` (the
@@ -736,7 +736,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   no `..` after normalisation, trailing `/`). A test asserts the
   schema rejects each of `["/"]`, `[""]`, `["../"]`, `[".."]`, and
   `[]` for `allowed-prefixes.user`.
-- [ ] **(RFC-0004)** `docs/contracts/pack.schema.json` requires
+- [x] **(RFC-0004)** `docs/contracts/pack.schema.json` requires
   `[pack.install]` on any pack declaring
   `[pack.adapter-contract] version = "0.2"` (jsonschema `if`/`then`
   on the contract-version field), with `default-scope ∈ {"repo",
@@ -749,7 +749,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   `[pack.install]` is accepted; a v0.1 pack *with* a stray
   `[pack.install]` table is accepted (the table is ignored at
   CLI consumption per § *Install-scope dimension*).
-- [ ] **(RFC-0004)** `validate.py` runs Rails A/B/C against every
+- [x] **(RFC-0004)** `validate.py` runs Rails A/B/C against every
   pack: Rail A refuses any pack containing a non-empty `seeds/`
   directory and declaring `"user" ∈ allowed-scopes`; Rail B refuses
   any pack whose source tree contains a non-empty `.apm/hooks/` or
@@ -764,7 +764,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   offending path. Tests pin one positive case (rail accepts a
   clean pack) and one negative case (rail rejects with the named
   stderr) per rail, plus one binary-file skip test for Rail C.
-- [ ] **(RFC-0004)** `.agent-ready-state.toml` `schema-version`
+- [x] **(RFC-0004)** `.agent-ready-state.toml` `schema-version`
   bumps to `"0.2"`. Every `[pack.<name>]` entry in v0.2 carries a
   required `scope = "repo" | "user"` column. The CLI **reads** any
   v0.1 file as all-repo-scope without forcing migration; any
@@ -777,7 +777,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   is a no-op exit-zero. The user-scope state file lives at
   `~/.agent-ready/state.toml` (a namespaced dot-directory under
   `$HOME`, not a bare dotfile).
-- [ ] **(RFC-0004)** The four shipped packs at
+- [x] **(RFC-0004)** The four shipped packs at
   `packs/{core,governance-extras,monorepo-extras,user-guide-diataxis}/pack.toml`
   **add** an explicit `[pack.adapter-contract] version = "0.2"`
   field (the field was previously absent — packs were

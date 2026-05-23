@@ -80,7 +80,51 @@ def run(args: "argparse.Namespace") -> int:
     pack_name: str = args.pack
     catalogue_uri: str = args.catalogue
     to_version: str = args.to_version
+    cli_scope: str | None = getattr(args, "scope", None)
     root = Path(args.root).resolve()
+
+    # ── Multi-scope disambiguator (RFC-0004) ──────────────────────────────────
+    # If the pack is at both scopes, --scope is required; at one scope, infer.
+    from agentbundle import scope as scope_mod
+
+    repo_state_path = root / ".agent-ready-state.toml"
+    repo_state_for_check = load_state(repo_state_path)
+    installed_at_repo = pack_name in repo_state_for_check.packs
+    user_state_path = None
+    installed_at_user = False
+    try:
+        user_root_resolved = scope_mod.resolve_user_root()
+        user_state_path = user_root_resolved / ".agent-ready" / "state.toml"
+        user_state_for_check = load_state(user_state_path)
+        installed_at_user = pack_name in user_state_for_check.packs
+    except scope_mod.UserScopeUnresolvable:
+        pass
+
+    if installed_at_repo and installed_at_user and cli_scope is None:
+        print(
+            f"upgrade: {pack_name} installed at multiple scopes; "
+            "pass --scope {repo, user}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Effective scope is "user" only when the CLI explicitly asked or
+    # the pack is installed at user only. At user scope, `root` is the
+    # user's home and the state file is `<root>/.agent-ready/state.toml`.
+    effective_scope = "repo"
+    user_prefixes: list[str] | None = None
+    if cli_scope == "user" or (cli_scope is None and installed_at_user and not installed_at_repo):
+        if user_state_path is None:
+            print(
+                "upgrade: cannot resolve user scope: $HOME unset or invalid",
+                file=sys.stderr,
+            )
+            return 1
+        root = user_state_path.parent.parent
+        effective_scope = "user"
+        from agentbundle.commands.install import _claude_code_allowed_prefixes_user
+
+        user_prefixes = _claude_code_allowed_prefixes_user()
 
     # ── Detect per-primitive flag ─────────────────────────────────────────────
     prim_flag: str | None = None
@@ -123,9 +167,15 @@ def run(args: "argparse.Namespace") -> int:
         return gate
 
     # ── Load current state ────────────────────────────────────────────────────
-    state_path = root / ".agent-ready-state.toml"
+    # upgrade is a write — refuse-and-explain on a v0.1 file (RFC-0004).
+    # At user scope, the state file lives at `<root>/.agent-ready/state.toml`,
+    # not the repo-style `<root>/.agent-ready-state.toml`.
+    if effective_scope == "user":
+        state_path = user_state_path  # already resolved above
+    else:
+        state_path = root / ".agent-ready-state.toml"
     try:
-        state = load_state(state_path)
+        state = load_state(state_path, for_write=True)
     except ConfigError as exc:
         print(f"upgrade: {exc}", file=sys.stderr)
         return 1
@@ -149,8 +199,18 @@ def run(args: "argparse.Namespace") -> int:
         )
 
     # ── Render new projection in memory ──────────────────────────────────────
+    # At user scope, render via the Claude Code adapter directly (paths
+    # under `.claude/...`) — the dist-tree shape `render_pack` produces
+    # (`apm/...`, `claude-plugins/...`) would fail the user-scope
+    # `allowed-prefixes` jail and wouldn't match the user-scope-installed
+    # state's `.claude/...` paths. Mirrors `install._render_for_user_scope`.
     try:
-        projection = render_pack(pack_dir)
+        if effective_scope == "user":
+            from agentbundle.commands.install import _render_for_user_scope
+
+            projection = _render_for_user_scope(pack_dir)
+        else:
+            projection = render_pack(pack_dir)
     except (FileNotFoundError, ValueError) as exc:
         print(f"upgrade: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
         return 1
@@ -198,7 +258,11 @@ def run(args: "argparse.Namespace") -> int:
             }
         else:
             try:
-                safety.write_jailed(root, relpath, content)
+                safety.write_jailed(
+                    root, relpath, content,
+                    scope=effective_scope,
+                    allowed_prefixes=user_prefixes,
+                )
             except safety.PathJailError as exc:
                 print(f"upgrade: {exc}", file=sys.stderr)
                 return 1
@@ -218,8 +282,13 @@ def run(args: "argparse.Namespace") -> int:
         pack_state.installed_version = to_version
 
     state_toml_content = dump_state(state)
+    state_relpath = state_path.relative_to(root).as_posix()
     try:
-        safety.write_jailed(root, ".agent-ready-state.toml", state_toml_content)
+        safety.write_jailed(
+            root, state_relpath, state_toml_content,
+            scope=effective_scope,
+            allowed_prefixes=user_prefixes,
+        )
     except safety.PathJailError as exc:
         print(f"upgrade: {exc}", file=sys.stderr)
         return 1

@@ -4,3 +4,11 @@ version = "0.1.0"
 description = "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template."
 recommends = ["core"]
 
+# RFC-0004 v0.2 contract metadata. new-package scaffolds in `packages/`
+# — meaningless without a monorepo — so the pack is repo-only.
+[pack.adapter-contract]
+version = "0.2"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

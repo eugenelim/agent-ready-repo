@@ -78,37 +78,31 @@ def _make_tarball(root: Path, inner_name: str) -> io.BytesIO:
 # ---------------------------------------------------------------------------
 
 def test_brownfield_tier2_gets_companion_not_overwrite(tmp_path):
-    """A pre-existing adopter-edited AGENTS.md (Tier-2) must not be
-    overwritten; a .upstream.md companion must appear instead."""
-    # Pick a projected relpath that alpha's render produces.
-    # render_pack(alpha) includes: claude-plugins/alpha/.claude/agents/helper.md
-    # We'll use one that comes from the apm subtree for simplicity.
-    # The simplest Tier-2 test uses a path that IS in the projection.
+    """A pre-existing adopter-edited file (Tier-2) must not be
+    overwritten; a .upstream.<ext> companion must appear instead.
+
+    Pre-RFC-0004 this test pre-seeded `.agent-ready-state.toml` with the
+    same pack at an old SHA to force Tier-2 detection. Post-RFC-0004
+    install refuses against a pack already installed at the requested
+    scope (spec § *Dual-scope install conflict*); pre-seeding the same
+    pack would short-circuit before Tier classification. The new shape
+    relies on `_classify_for_install`'s fallback: a file on disk that
+    differs from the incoming bundle *and* has no matching SHA in any
+    pack's state is Tier-2 by construction (first-install collision).
+    """
     from agentbundle.render import render_pack
-    from agentbundle.config import PackState, State, dump_state
     from agentbundle import safety
 
     projection = render_pack(ALPHA_PACK_DIR)
-    # Pick the first projected file as our "Tier-2 collision".
     tier2_relpath = sorted(projection.keys())[0]
     original_content = b"adopter-edited content not from the bundle"
 
-    # Write the file with adopter content.
     target = tmp_path / tier2_relpath
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(original_content)
 
-    # Pre-seed a state that records this path under a fake prior sha
-    # (different from the adopter content) so classify() sees it as Tier-2.
-    fake_prior_sha = "0" * 64
-    state = State()
-    state.packs["alpha"] = PackState(
-        installed_version="0.0.9",
-        files={tier2_relpath: {"sha": fake_prior_sha, "from-pack-version": "0.0.9"}},
-    )
-    state_path = tmp_path / ".agent-ready-state.toml"
-    state_path.write_text(dump_state(state), encoding="utf-8")
-
+    # No state pre-seed — alpha is a first-time install. The classifier
+    # sees on-disk SHA ≠ bundle SHA and no matching prior pack → Tier-2.
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
     assert rc == 0, "install should succeed even with Tier-2 collision"
 
@@ -392,34 +386,33 @@ def test_reinstall_preserves_mixed_version_primitives(tmp_path):
     (Concern 8 from adversarial review.)
     """
     import argparse
+    import contextlib
+    import io
     from agentbundle.commands.install import run as install_run
-    from agentbundle.config import PackState, State, dump_state, load_state
 
     cat = str(Path(__file__).parent.parent / "fixtures" / "upgrade" / "catalogue_v1")
 
     # 1. Install once.
     rc = install_run(argparse.Namespace(
-        pack="core", catalogue=cat, output=str(tmp_path),
+        pack="core", catalogue=cat, output=str(tmp_path), scope=None, force=False,
     ))
     assert rc == 0
 
-    # 2. Stamp a mixed-version primitive into the state (simulating a
-    #    prior `upgrade --skill work-loop --to v0.2`).
-    state_path = tmp_path / ".agent-ready-state.toml"
-    state = load_state(state_path)
-    state.packs["core"].primitive_versions["skill"] = {"work-loop": "v0.2"}
-    state_path.write_text(dump_state(state), encoding="utf-8")
-
-    # 3. Re-install. The carry-forward fix must preserve the override.
-    rc = install_run(argparse.Namespace(
-        pack="core", catalogue=cat, output=str(tmp_path),
-    ))
-    assert rc == 0
-
-    after = load_state(state_path)
-    assert after.packs["core"].primitive_versions == {
-        "skill": {"work-loop": "v0.2"}
-    }, "re-install dropped mixed-version overrides"
+    # 2. Post-RFC-0004: re-install is refused with the spec-named message.
+    #    The previous shape of this test (re-install carries forward
+    #    `primitive_versions` from prior state) is incompatible with the
+    #    RFC-0004 contract; primitive-version carry-forward is now
+    #    `upgrade`'s job, not `install`'s.
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        rc = install_run(argparse.Namespace(
+            pack="core", catalogue=cat, output=str(tmp_path),
+            scope=None, force=False,
+        ))
+    assert rc != 0
+    err = buf.getvalue()
+    assert "already installed at repo" in err
+    assert "use 'upgrade' to change version" in err
 
 
 def test_install_warns_on_pack_collision(tmp_path, capsys):
