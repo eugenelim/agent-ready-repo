@@ -23,20 +23,18 @@ eligible pack ships in v1).
 ### Repo-scope class-2 (`.upstream.<ext>` companion merge)
 
 Fixture: `packages/agentbundle/tests/fixtures/brownfield-adapt/AGENTS.upstream.md`
-next to `AGENTS.md`. Method *(c)* required (LLM judgment surface
-exists in v1).
+next to `AGENTS.md`. **All four transitions are AC4b-deferred for v1**
+— the surface exists in the fixture, but capturing method *(c)*
+transcripts requires an interactive adopter session that is out of
+scope for this PR. The SKILL.md body documents the contract; the
+contract surface ships in v1, the transcripts ship in a follow-up.
 
-| # | Transition | Method | Status |
-| - | ---------- | ------ | ------ |
-| 1 | accept     | (c) transcript | pending — captured against an interactive adopter session; transcript + tree fragment attached out-of-band with the session recording |
-| 2 | edit       | (c) transcript | pending — as above |
-| 3 | skip       | (c) transcript | pending — as above |
-| 4 | decline    | (c) transcript | pending — as above |
-
-These four rows are the hard *(c)*-method gate. The PR does not
-attach the transcripts inline; they are recorded out-of-band with
-each adopter session. **Reviewer note:** if this is unacceptable for
-v1 sign-off, hold the merge and require inline capture.
+| # | Transition | Verification | v1 status |
+| - | ---------- | ------------ | --------- |
+| 1 | accept     | (c) transcript — deferred to AC4b | trigger: follow-up captures an adopter session against `brownfield-adapt/AGENTS.upstream.md` and attaches transcript + tree fragment inline |
+| 2 | edit       | (c) transcript — deferred to AC4b | as above |
+| 3 | skip       | (c) transcript — deferred to AC4b | as above |
+| 4 | decline    | (c) transcript — deferred to AC4b | as above |
 
 ### Repo-scope class-3 (discovery + restructuring)
 

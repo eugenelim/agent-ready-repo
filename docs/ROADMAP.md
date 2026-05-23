@@ -125,6 +125,15 @@ chained in-process `adapt.run`, the session-start hook's dual-scope
 marker walk, and the SKILL.md body authoring (class-1 shell-out;
 classes 2–4 LLM-judgment writes under the per-scope path-jail).
 
+- **Install-marker `new-companions` tally.** `commands/install.py`'s
+  install loop classifies Tier-2 collisions on the fly and doesn't
+  keep a tally; `_append_install_marker` writes `new-companions = []`
+  unconditionally. The spec's install-marker schema example names
+  this field as load-bearing, but the session-start nudge doesn't
+  surface companion paths in v1. **Unblocks when:** the first Tier-2
+  collision needs to surface through the install→adapt nudge — at
+  that point, capture the relpaths during the step-9 write loop and
+  pass them through.
 - **AC4b — deferred manual-QA rows (user-scope LLM-judgment).**
   Rows: user-scope class-2 × {accept, edit, skip, decline},
   user-scope class-3 × {accept, edit, decline}, user-scope class-4

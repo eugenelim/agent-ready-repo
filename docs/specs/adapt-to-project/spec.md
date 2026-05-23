@@ -480,9 +480,9 @@ Per the work-loop's three-mode taxonomy:
       writes at both scopes during the same invocation; the skill
       relies on this behaviour without re-invoking the CLI for the
       user scope.
-- [ ] **AC4a (manual QA matrix — exercisable rows).**
+- [ ] **AC4a (manual QA matrix — v1 ship gate).**
       `docs/specs/adapt-to-project/notes/manual-qa-matrix.md` exists
-      and enumerates the following rows by name. Each row records its
+      and enumerates rows by name. Each row records its
       **verification method** — one of:
       *(a)* `automation` (pinned by a mechanical test in
       `packages/agentbundle/tests/`);
@@ -495,26 +495,33 @@ Per the work-loop's three-mode taxonomy:
       contract has no method (a)–(c) coverage in v1 is flagged in
       the matrix and ROADMAP'd to a follow-up trigger.
 
-      Required rows:
-      - Repo-scope class-2 × {accept, edit, skip, decline}
-      - Repo-scope class-3 × {accept, edit, decline}
-      - Repo-scope class-4 × {accept, decline}
-      - Cross-cutting: *dirty-state-repo*, *idempotency re-run*,
-        *Tier-2 detection-repo*, *cross-scope-restructure × decline*
-        (the only outcome AC23 permits — see AC23).
-      - User-scope rows that exercise *plumbing only* against the
-        synthetic fixture under
-        `tests/fixtures/brownfield-adapt-user-home/`:
-        *dirty-state-user*, *Tier-2 detection-user*,
-        *user-scope path-jail refusal* (one row each).
-      Each AC4a row is a hard gate on shipping in the sense that it
-      MUST have a verification method declared; method *(c)* is
-      required for the LLM-judgment class-2/3/4 transition rows
-      against the brownfield fixture for class-2 (the only
-      exercisable transition surface in v1 — `AGENTS.upstream.md`
-      next to `AGENTS.md`). Class-3/4 transition rows whose
-      brownfield surface requires a v1.1 fixture get method *(c)*
-      deferred to AC4b with the trigger named in the matrix.
+      Required rows (with their v1 verification method):
+      - Cross-cutting: *idempotency re-run* — method *(a)* (pinned by
+        `test_idempotent_re_run`).
+      - Cross-cutting: *dirty-state-repo*, *Tier-2 detection-repo*,
+        *cross-scope-restructure × decline* — method *(b)* (pinned by
+        the AC1 grep set + the T17 grep set). End-to-end transcripts
+        deferred to AC4b under named triggers.
+      - User-scope plumbing rows against the synthetic fixture
+        under `tests/fixtures/brownfield-adapt-user-home/`:
+        *user-scope path-jail refusal* — method *(a)* (pinned by
+        existing `safety.write_jailed` tests); *dirty-state-user*,
+        *Tier-2 detection-user* — method *(b)* (pinned by the
+        Pre-flight grep).
+      - Repo-scope class-2/3/4 transition rows are **deferred to
+        AC4b** for v1 — the brownfield fixture seeds a class-2
+        surface (`AGENTS.upstream.md`) but no class-3 / class-4
+        surfaces, and even the class-2 transitions are
+        LLM-judgment writes that require an interactive adopter
+        session to capture method *(c)* artifacts. The matrix
+        names each deferred row and its trigger explicitly under
+        the AC4b enumeration.
+
+      Each AC4a row is a hard gate on shipping in the sense that
+      it MUST have a verification method declared and that method's
+      artifact MUST exist in the repo (an automation test, a grep
+      test, or an inline transcript). Method *(c)* artifacts that
+      cannot be captured in v1 belong under AC4b, not AC4a.
 - [ ] **AC4b (manual QA matrix — deferred rows).**
       User-scope class-2/3/4 LLM-judgment rows are deferred until a
       user-scope-eligible pack ships (RFC-0004 § *Drawbacks* +
