@@ -4,3 +4,12 @@ version = "0.1.0"
 description = "Di\u00e1taxis-shaped user-guide skeleton: guides/ + tutorials/how-to/reference/explanation seed READMEs, new-guide skill."
 recommends = ["core"]
 
+# RFC-0004 v0.2 contract metadata. Scaffolds `docs/guides/` for *this*
+# project's users \u2014 no project, no scaffolding target \u2014 so the pack is
+# repo-only.
+[pack.adapter-contract]
+version = "0.2"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

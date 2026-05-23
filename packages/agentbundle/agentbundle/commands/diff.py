@@ -30,6 +30,55 @@ def run(args: argparse.Namespace) -> int:
     """Entry point called by the CLI dispatcher. Returns exit code."""
     pack_path = Path(args.pack_path).resolve()
     root = Path(args.root).resolve()
+    cli_scope: str | None = getattr(args, "scope", None)
+
+    # ── Multi-scope disambiguator (RFC-0004) ──────────────────────────────────
+    # diff is read-only but still subject to the --scope rule: pick which
+    # scope's projection to compare against. If the pack is at both
+    # scopes, --scope is required.
+    from agentbundle import scope as scope_mod
+    from agentbundle.config import load_state
+
+    # Best-effort pack name lookup from pack.toml for the multi-scope check.
+    try:
+        pack_toml_data = load_pack_toml(pack_path / "pack.toml")
+        pack_name = pack_toml_data.get("pack", {}).get("name", "")
+    except ConfigError:
+        pack_name = ""
+
+    installed_at_repo = False
+    installed_at_user = False
+    user_root_resolved: Path | None = None
+    if pack_name:
+        repo_state_for_check = load_state(root / ".agent-ready-state.toml")
+        installed_at_repo = pack_name in repo_state_for_check.packs
+        try:
+            user_root_resolved = scope_mod.resolve_user_root()
+            user_state_for_check = load_state(
+                user_root_resolved / ".agent-ready" / "state.toml"
+            )
+            installed_at_user = pack_name in user_state_for_check.packs
+        except scope_mod.UserScopeUnresolvable:
+            pass
+
+        if installed_at_repo and installed_at_user and cli_scope is None:
+            print(
+                f"diff: {pack_name} installed at multiple scopes; "
+                "pass --scope {repo, user}",
+                file=sys.stderr,
+            )
+            return 1
+
+        if cli_scope == "user" or (
+            cli_scope is None and installed_at_user and not installed_at_repo
+        ):
+            if user_root_resolved is None:
+                print(
+                    "diff: cannot resolve user scope: $HOME unset or invalid",
+                    file=sys.stderr,
+                )
+                return 1
+            root = user_root_resolved
 
     if not (pack_path / "pack.toml").exists():
         print(

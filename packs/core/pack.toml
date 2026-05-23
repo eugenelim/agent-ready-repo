@@ -3,3 +3,15 @@ name = "core"
 version = "0.1.0"
 description = "Core agent-ready-repo: work-loop, new-spec, bug-fix skills; reviewer/implementer agents; pre-pr + session-start hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
 
+# RFC-0004 ships the v0.2 contract bump alongside this pack's metadata.
+# The four shipped packs all declare the same shape so the catalogue's
+# published packs and the CLI release land in lockstep. core is
+# repo-only by content — it ships hooks (Rail B would refuse user
+# scope) and AGENTS.md / CONVENTIONS seeds that reference this
+# project's vocabulary by name (the falsifiable user-scope test fails).
+[pack.adapter-contract]
+version = "0.2"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

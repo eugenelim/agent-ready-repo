@@ -528,7 +528,7 @@ QA tails respectively.
 - [ ] A version-mismatch fixture (pack declares spec `v2.0`, CLI ships
       `v0.1`) causes every subcommand to refuse with a stderr line naming
       both versions; no partial behaviour observed.
-- [ ] **(RFC-0004)** `--scope {repo,user}` is accepted on `install`,
+- [x] **(RFC-0004)** `--scope {repo,user}` is accepted on `install`,
       `uninstall`, `upgrade`, `diff`, `init-state`, and
       `list-targets` only. Passing `--scope` to `list-packs`,
       `scaffold`, `validate`, `render`, or `adapt` exits non-zero
@@ -537,7 +537,7 @@ QA tails respectively.
       override on `install`; disambiguator on `uninstall` / `upgrade`
       / `diff`; selector on `init-state`; read-only filter on
       `list-targets`.
-- [ ] **(RFC-0004)** Scope resolution follows CLI flag > pack
+- [x] **(RFC-0004)** Scope resolution follows CLI flag > pack
       `default-scope` > built-in `repo`. A `--scope <s>` value not
       in the pack's `allowed-scopes` exits non-zero with stderr
       `<pack>: scope '<requested>' not in allowed-scopes
@@ -547,7 +547,7 @@ QA tails respectively.
       that excludes user is refused; passing `--scope user` against
       a pack declaring `allowed-scopes = ["repo", "user"]` resolves
       to user.
-- [ ] **(RFC-0004)** Path-jail extended: every user-scope write
+- [x] **(RFC-0004)** Path-jail extended: every user-scope write
       resolves under one of the adapter's
       `allowed-prefixes.<scope>` entries (declared in the sibling
       spec's `[scope]` table) or the CLI refuses non-zero with
@@ -556,13 +556,13 @@ QA tails respectively.
       root) is unchanged. A test fixture with a projection rule
       resolving under `~/Documents/` (inside `~`, outside the
       declared `[".claude/", ".agent-ready/"]` prefixes) is refused.
-- [ ] **(RFC-0004)** `~`-expansion runs once at scope-resolution
+- [x] **(RFC-0004)** `~`-expansion runs once at scope-resolution
       time. When the result is literal `"~"` (expansion failed) or
       `"/"` ($HOME=/), every `--scope user` invocation exits non-
       zero with stderr `cannot resolve user scope: $HOME unset or
       invalid`. When expansion succeeds, the CLI prints the
       resolved absolute scope root to stderr before any write.
-- [ ] **(RFC-0004)** Write-capable invocations against a v0.1
+- [x] **(RFC-0004)** Write-capable invocations against a v0.1
       `.agent-ready-state.toml` exit non-zero with stderr `state
       file at <path> is schema-version 0.1; run 'agentbundle
       init-state --migrate' first`. Read-only invocations
@@ -571,14 +571,14 @@ QA tails respectively.
       repo-scope. `init-state --migrate` rewrites a v0.1 file to
       v0.2 idempotently; the writer's contract is owned by the
       sibling `distribution-adapters` spec.
-- [ ] **(RFC-0004)** Every successful `install` prints `installed:
+- [x] **(RFC-0004)** Every successful `install` prints `installed:
       <pack> @ <scope>` to stdout. A single-scope install emits one
       line as the last stdout content before exit zero. A
       dual-scope `--force` install emits two lines, **repo first,
       user second**, both on stdout; the user-scope line is the
       last stdout content. Verified by capturing stdout and
       asserting the exact line sequence per case.
-- [ ] **(RFC-0004)** Dual-scope conflict on `install`: when pack
+- [x] **(RFC-0004)** Dual-scope conflict on `install`: when pack
       `<P>` is already installed at the other scope, the install
       exits non-zero with stderr `<P> already installed at
       <other-scope>; pass --force to install at both`. `--force`
@@ -593,7 +593,7 @@ QA tails respectively.
       `upgrade --scope`, and `diff --scope` are required (refused
       with `<P> installed at multiple scopes; pass --scope {repo,
       user}` when omitted).
-- [ ] **(RFC-0004)** `recommends` cross-scope: an `install` warns
+- [x] **(RFC-0004)** `recommends` cross-scope: an `install` warns
       (does not refuse) on **stderr** when a recommended pack is
       missing or scope-disjoint. Warning text per § *`recommends`
       across scopes*:
@@ -606,7 +606,7 @@ QA tails respectively.
       pack's allowed scope, not the recommending pack's installed
       scope. A dual-scope `--force` install emits one warning per
       scope per recommend.
-- [ ] **(RFC-0004)** `adapt` walks **both**
+- [x] **(RFC-0004)** `adapt` walks **both**
       `<repo>/.agent-ready-state.toml` and
       `~/.agent-ready/state.toml`, reads
       `<repo>/.adapt-discovery.toml` at repo scope and
@@ -619,7 +619,7 @@ QA tails respectively.
       squatter under `~/.claude/` is a user-scope finding; a
       `.upstream.<ext>` companion in `<repo>/` is a repo-scope
       finding).
-- [ ] **(RFC-0004)** `validate` against a v0.2 pack whose
+- [x] **(RFC-0004)** `validate` against a v0.2 pack whose
       `default-scope` is not in `allowed-scopes` exits non-zero
       with stderr `pack <name>: default-scope '<requested>' not
       in allowed-scopes <declared-set>`. The schema-level

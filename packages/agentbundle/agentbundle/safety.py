@@ -165,7 +165,15 @@ def assert_under(root: Path, target: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def write_jailed(root: Path, relpath: str, content: bytes | str, *, mode: int | None = None) -> Path:
+def write_jailed(
+    root: Path,
+    relpath: str,
+    content: bytes | str,
+    *,
+    mode: int | None = None,
+    scope: str = "repo",
+    allowed_prefixes: list[str] | None = None,
+) -> Path:
     """Write `content` to `root / relpath` atomically; refuse outside-root.
 
     Atomic: writes to a sibling tmpfile then `os.replace`s into place. The
@@ -176,9 +184,62 @@ def write_jailed(root: Path, relpath: str, content: bytes | str, *, mode: int | 
     the resolved target escapes `root`. Caller is responsible for any
     write_atomic backups / Tier-2 companion logic — `write_jailed` is the
     primitive, not the policy.
+
+    RFC-0004 extensions:
+      ``scope`` — when ``"user"``, the resolved path must additionally
+      lie under one of the entries in ``allowed_prefixes`` (each
+      relative to ``root``). The two-layer jail (under `~`, under a
+      declared prefix) stops a buggy projection rule resolving under
+      ``~/Documents/`` from passing the basic `..`-escape check.
+      Passing ``scope="user"`` with ``allowed_prefixes=None`` is a
+      *programming* error — the function raises ``TypeError`` rather
+      than silently degrading to the bare `~`-jail.
+
+      ``allowed_prefixes`` — the spec's declared list (e.g.
+      ``[".claude/", ".agent-ready/"]`` for Claude Code at v0.2). Each
+      entry is expected to end in ``/``; the function compares against
+      the relpath-from-root with a directory-boundary check so
+      ``allowed-prefixes = [".claude/"]`` rejects a write to a top-
+      level file named ``.claudefoo``.
     """
+    if scope == "user" and allowed_prefixes is None:
+        # Programming error in CLI code (not adopter-facing). The rail
+        # must never silently degrade — surfacing forces the caller to
+        # pass the declared prefix list from the adapter's [scope]
+        # block. Documented in the spec.
+        raise TypeError(
+            "allowed_prefixes is required when scope='user'"
+        )
+
     target = root / relpath
     assert_under(root, target)
+
+    if scope == "user":
+        # Check the resolved target is under one of the declared
+        # prefixes relative to root. Use directory-boundary matching:
+        # the prefix's trailing slash is mandatory, so ``.claude/``
+        # admits ``.claude/skills/foo`` but rejects a top-level
+        # ``.claude`` file (which would otherwise let a pack replace
+        # the directory with a file).
+        prefixes = allowed_prefixes or []
+        # Defense-in-depth: the adapter contract schema enforces a
+        # trailing slash on every `allowed-prefixes` entry; assert it
+        # at runtime so a future caller that bypasses the schema
+        # (e.g. constructing the list in code) cannot silently widen
+        # the jail. A `.claude` (no slash) prefix would otherwise
+        # admit `.claudefoo` — exactly the bug the equality-clause
+        # removal was meant to fix.
+        if not all(p.endswith("/") for p in prefixes):
+            raise PathJailError(
+                f"refusing to write at scope 'user': allowed_prefixes "
+                f"must each end with '/'; got {prefixes!r}"
+            )
+        target_relpath = target.resolve().relative_to(root.resolve()).as_posix()
+        if not any(target_relpath.startswith(p) for p in prefixes):
+            raise PathJailError(
+                f"refusing to write outside allowed prefixes for scope 'user': "
+                f"{target.resolve()}"
+            )
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
@@ -244,3 +305,64 @@ def projected_files_in_state(state: State, pack_name: str) -> Iterable[str]:
     if ps is None:
         return ()
     return tuple(ps.files.keys())
+
+
+# ---------------------------------------------------------------------------
+# User-scope artifact root (RFC-0004)
+# ---------------------------------------------------------------------------
+
+
+def user_state_path(home: Path | None = None) -> Path:
+    """Return the user-scope state file path: `~/.agent-ready/state.toml`.
+
+    Per RFC-0004 § *State file per scope*, user-scope artifacts live inside
+    the namespaced `~/.agent-ready/` dot-directory — not as bare dotfiles
+    in `$HOME`. The dot-directory is the future home for
+    `.adapt-discovery.toml`, `.adapt-pending.md`, and `.upstream.<ext>`
+    companions at user scope; pinning the location here keeps every
+    caller agreeing on the layout.
+
+    Creates the dot-directory with mode `0o700` if it does not exist. The
+    mode mirrors `ssh`'s `~/.ssh/` — user-readable only — because state
+    contains paths the CLI knows are present under the user's home, which
+    is sensitive enough to keep out of other accounts on shared hosts.
+    Existing directories are left alone (no chmod) so adopters who chose
+    a more permissive mode on purpose keep their choice.
+
+    The `home` argument exists for testing — production callers omit it
+    and the helper reads `~` via `pathlib.Path.home()`.
+
+    Race-safety: previously this used ``if not base.exists():`` followed
+    by ``mkdir(exist_ok=False)`` — a TOCTOU window where another
+    process could insert a hostile entry (symlink, regular file)
+    between the check and the create. The current shape is
+    ``mkdir(exist_ok=True)`` plus a symlink / regular-directory probe
+    via ``lstat``; an attacker who pre-creates the path as a symlink
+    or a non-directory file is detected at the probe rather than
+    silently honoured.
+    """
+    import os
+    import stat as _stat
+
+    base = (home if home is not None else Path.home()) / ".agent-ready"
+    try:
+        base.mkdir(parents=True, exist_ok=True, mode=0o700)
+    except OSError as exc:
+        raise OSError(
+            f"cannot create user-scope state directory {base}: {exc}"
+        ) from exc
+    # Refuse a pre-existing entry that is not a regular directory
+    # (e.g. a symlink to an attacker-controlled location, or a stray
+    # file). Existing real directories are honoured even if their mode
+    # is more permissive than 0o700 — the doc-comment promises not to
+    # chmod existing dirs.
+    try:
+        st = os.lstat(base)
+    except OSError as exc:
+        raise OSError(f"cannot stat user-scope state directory {base}: {exc}") from exc
+    if _stat.S_ISLNK(st.st_mode) or not _stat.S_ISDIR(st.st_mode):
+        raise OSError(
+            f"user-scope state directory {base} is not a regular directory; "
+            f"refusing to use it"
+        )
+    return base / "state.toml"

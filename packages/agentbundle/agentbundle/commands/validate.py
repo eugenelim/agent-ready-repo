@@ -107,6 +107,24 @@ def run(args) -> int:
 
     errors = validate_instance(pack_data, schema)
     if errors:
+        # RFC-0004 § *Install-scope dimension* names a specific stderr
+        # text for the cross-field invariant: `pack <name>: default-scope
+        # '<requested>' not in allowed-scopes <declared-set>`. The
+        # schema's `contains` failure on `$.pack.install.allowed-scopes`
+        # is the structural form of that violation; surface it with the
+        # spec-named text instead of the generic schema message so
+        # adopters get the actionable line.
+        if _is_default_scope_invariant_violation(pack_data, errors[0]):
+            pack_name = pack_data.get("pack", {}).get("name", pack_path.name)
+            install = pack_data.get("pack", {}).get("install", {})
+            requested = install.get("default-scope")
+            allowed = install.get("allowed-scopes", [])
+            print(
+                f"validate: pack {pack_name}: default-scope {requested!r} "
+                f"not in allowed-scopes {allowed}",
+                file=sys.stderr,
+            )
+            return 1
         # One-line stderr: first error only (spec says "one-line reason").
         print(
             f"validate: schema error — {errors[0]}",
@@ -125,6 +143,27 @@ def run(args) -> int:
             )
             return 1
 
+    # ── 4b. User-scope refusal rails (RFC-0004 A/B/C) ─────────────────────
+    # Rails fire only when the pack declares "user" ∈ allowed-scopes. The
+    # rails run *after* schema validation so we know `[pack.install]`'s
+    # shape (when present) is well-formed before we read it. v0.1 packs
+    # have implied `allowed-scopes = ["repo"]`, so the rails are
+    # vacuously satisfied — `_allowed_scopes` returns `["repo"]` for
+    # them.
+    from agentbundle.build.scope_rails import run_all as run_scope_rails
+
+    allowed = _allowed_scopes(pack_data)
+    rail_refusal = run_scope_rails(pack_path, allowed)
+    if rail_refusal is not None:
+        pack_name = (
+            pack_data.get("pack", {}).get("name") or pack_path.name
+        )
+        print(
+            f"validate: {pack_name}: {rail_refusal}",
+            file=sys.stderr,
+        )
+        return 1
+
     # ── 5. Strict / conformance mode ─────────────────────────────────────
     if strict:
         conformance_dir = _conformance_fixtures_dir()
@@ -141,6 +180,70 @@ def run(args) -> int:
             return rc
 
     return 0
+
+
+def _is_default_scope_invariant_violation(pack_data: dict, first_error: str) -> bool:
+    """Return True when the first schema error is the cross-field invariant.
+
+    The schema's `if`/`then` block for `default-scope ∈ allowed-scopes`
+    surfaces as a `contains` failure on `$.pack.install.allowed-scopes`.
+    We also confirm the pack actually has the shape that triggered the
+    error (default-scope declared, allowed-scopes declared, default not
+    in allowed) so we don't mis-attribute an unrelated `contains`
+    failure to this rule.
+    """
+    install = pack_data.get("pack", {}).get("install")
+    if not isinstance(install, dict):
+        return False
+    default = install.get("default-scope")
+    allowed = install.get("allowed-scopes")
+    if not isinstance(default, str) or not isinstance(allowed, list):
+        return False
+    if default in allowed:
+        return False
+    # Match the validator's error path heuristically.
+    return (
+        "pack.install.allowed-scopes" in first_error
+        or "allowed-scopes" in first_error
+    )
+
+
+def _allowed_scopes(pack_data: dict) -> list[str]:
+    """Return the pack's resolved allowed-scopes list.
+
+    Resolution mirrors RFC-0004 § *v0.1 vs v0.2 contract acceptance*:
+
+      - v0.1 packs (declared version "0.1", or no `[pack.adapter-contract]`)
+        get the implied `["repo"]`. Any stray `[pack.install]` table is
+        ignored.
+      - v0.2 packs read `[pack.install].allowed-scopes` when present; when
+        only `default-scope` is declared, the implied default is
+        `[default-scope]`.
+
+    The cross-field `default-scope ∈ allowed-scopes` invariant is owned
+    by the schema; we trust the schema's verdict here and only resolve
+    the list.
+    """
+    pack = pack_data.get("pack", {})
+    if not isinstance(pack, dict):
+        return ["repo"]
+    contract_version = (
+        pack.get("adapter-contract", {}).get("version")
+        if isinstance(pack.get("adapter-contract"), dict)
+        else None
+    )
+    if contract_version != "0.2":
+        return ["repo"]
+    install = pack.get("install", {})
+    if not isinstance(install, dict):
+        return ["repo"]
+    allowed = install.get("allowed-scopes")
+    if isinstance(allowed, list) and allowed:
+        return [s for s in allowed if isinstance(s, str)]
+    default = install.get("default-scope")
+    if isinstance(default, str):
+        return [default]
+    return ["repo"]
 
 
 def _extract_recipes(pack_data: dict) -> list[str]:

@@ -12,6 +12,12 @@ Supported keywords:
   - `pattern`: regex string applied to strings (via `re`)
   - `items`: schema applied element-wise (only meaningful when type=array)
   - `additionalProperties`: bool or schema (only meaningful when type=object)
+  - `minItems`: integer; array must have at least this many items
+  - `contains`: subschema; array must have at least one item matching it
+  - `if` / `then` / `else`: conditional subschemas (all three applied to
+    the same instance as the parent). RFC-0004's pack.schema.json uses
+    this trio to express "v0.2 packs require `[pack.install]`" and
+    "default-scope ∈ allowed-scopes."
 
 Unsupported by design: `$ref`, `$defs`, `oneOf`, `anyOf`, `allOf`,
 `not`, `format`, `minimum`/`maximum`, `minLength`/`maxLength`. If the
@@ -74,7 +80,15 @@ def validate(instance: Any, schema: dict, path: str = "$") -> list[str]:
                 f"{path}: value {instance!r} does not match pattern {schema['pattern']!r}"
             )
 
-    if expected_type == "object" and isinstance(instance, dict):
+    # `required`, `properties`, `additionalProperties` apply whenever the
+    # instance is a dict — per JSON-Schema 2020-12, these keywords are
+    # vacuously true for non-object instances. Gating on `expected_type ==
+    # "object"` (the previous shape) caused subschemas with no `type`
+    # declaration (e.g. RFC-0004's `if`/`then` blocks) to silently skip
+    # their constraints — surprising callers and breaking the cross-field
+    # `default-scope ∈ allowed-scopes` invariant. Stay safe-by-default:
+    # apply when the instance matches.
+    if isinstance(instance, dict):
         for required_key in schema.get("required", []):
             if required_key not in instance:
                 errors.append(f"{path}: missing required property {required_key!r}")
@@ -90,10 +104,38 @@ def validate(instance: Any, schema: dict, path: str = "$") -> list[str]:
                 elif isinstance(additional, dict):
                     errors.extend(validate(value, additional, subpath))
 
-    if expected_type == "array" and isinstance(instance, list):
+    if isinstance(instance, list):
         item_schema = schema.get("items")
         if isinstance(item_schema, dict):
             for index, element in enumerate(instance):
                 errors.extend(validate(element, item_schema, f"{path}[{index}]"))
+        min_items = schema.get("minItems")
+        # bool is a subclass of int in Python — accept only true integers.
+        if isinstance(min_items, int) and not isinstance(min_items, bool):
+            if len(instance) < min_items:
+                errors.append(
+                    f"{path}: array has {len(instance)} item(s), minItems={min_items}"
+                )
+        contains_schema = schema.get("contains")
+        if isinstance(contains_schema, dict):
+            if not any(
+                not validate(element, contains_schema, f"{path}[{index}]")
+                for index, element in enumerate(instance)
+            ):
+                errors.append(
+                    f"{path}: no item matches the 'contains' subschema"
+                )
+
+    # Conditional subschemas — applied last so type/required/enum errors on
+    # the instance surface before any conditional branch fires. The 'if'
+    # subschema is evaluated silently (its errors are not surfaced); only
+    # the chosen branch's errors propagate. Per JSON-Schema 2020-12,
+    # missing 'then' or 'else' is a no-op for that branch.
+    if "if" in schema and isinstance(schema["if"], dict):
+        if_errors = validate(instance, schema["if"], path)
+        branch_key = "then" if not if_errors else "else"
+        branch_schema = schema.get(branch_key)
+        if isinstance(branch_schema, dict):
+            errors.extend(validate(instance, branch_schema, path))
 
     return errors

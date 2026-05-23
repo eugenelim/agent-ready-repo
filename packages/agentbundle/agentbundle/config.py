@@ -25,11 +25,33 @@ from pathlib import Path
 from typing import Any
 
 
-STATE_SCHEMA_VERSION = "0.1"
+STATE_SCHEMA_VERSION = "0.2"
 
 
 class ConfigError(ValueError):
     """Raised when a TOML source fails to load or fails schema invariants."""
+
+
+class StateFileLegacy(ConfigError):
+    """Raised when a write-capable invocation hits a v0.1 state file.
+
+    Migration to v0.2 is destructive (irreversible without backup), so the
+    CLI never silently rewrites — instead, every write-capable handler
+    surfaces this exception as a one-line refuse-and-explain pointing the
+    adopter at `agentbundle init-state --migrate`. Read-only paths
+    catch-and-treat as repo-scope per RFC-0004 § *Backward compatibility*.
+
+    Carries the path on disk so the formatter can name it in the stderr
+    message — adopters with multiple checkouts or scopes need to know
+    which file is the legacy one.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        super().__init__(
+            f"state file at {path} is schema-version 0.1; "
+            f"run 'agentbundle init-state --migrate' first"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +98,11 @@ class PackState:
     installed_version: str
     source: str = "agent-ready-repo"
     install_route: str = "cli"
+    # RFC-0004: every v0.2 entry carries an explicit scope. v0.1 state
+    # files are read as all-`"repo"` (the legacy implicit default);
+    # `init-state --migrate` writes the column out so the file is
+    # readable by both v0.1 and v0.2 consumers identically.
+    scope: str = "repo"
     primitives: list[str] = field(default_factory=list)
     files: dict[str, dict[str, str]] = field(default_factory=dict)
     # Per-primitive overrides for mixed-version packs (T12). Optional;
@@ -101,12 +128,25 @@ class State:
         return out
 
 
-def load_state(path: Path) -> State:
+def load_state(path: Path, *, for_write: bool = False) -> State:
     """Load `.agent-ready-state.toml`. Returns empty State if file is absent.
 
     Absent is **not** an error — fresh repos legitimately have no state file
     before the first install / init-state. Callers distinguish "absent" from
     "present but empty" via `path.exists()` if they need to.
+
+    RFC-0004 read-vs-write split:
+      - Read paths (``for_write=False``, default): a v0.1 file is loaded
+        with every ``[pack.<name>]`` entry getting an implicit
+        ``scope = "repo"``; the returned ``State.schema_version`` preserves
+        ``"0.1"`` so the caller can detect legacy state without re-reading
+        the file. No migration is forced at read.
+      - Write paths (``for_write=True``): a v0.1 file raises
+        ``StateFileLegacy(path)``. The CLI's top-level handler formats this
+        as ``state file at <path> is schema-version 0.1; run 'agentbundle
+        init-state --migrate' first``. Migration is destructive — adopters
+        running mixed CLI versions across CI and local must opt into it
+        explicitly via ``init-state --migrate``.
     """
     if not path.exists():
         return State()
@@ -120,6 +160,12 @@ def load_state(path: Path) -> State:
     schema_version = raw.get("schema-version", STATE_SCHEMA_VERSION)
     if not isinstance(schema_version, str):
         raise ConfigError(f"schema-version must be a string, got {type(schema_version)!r}")
+
+    # Refuse-and-explain on writes to a legacy state file. We check this
+    # *before* parsing pack entries so callers can rely on the exception
+    # type alone — no half-parsed State leaks out.
+    if for_write and schema_version == "0.1":
+        raise StateFileLegacy(path)
 
     state = State(schema_version=schema_version)
     pack_table = raw.get("pack", {})
@@ -147,10 +193,19 @@ def load_state(path: Path) -> State:
                     if isinstance(pbody, dict)
                 }
 
+        # RFC-0004 scope column. v0.2 carries it explicitly; v0.1 files
+        # imply repo scope for every pack (read-time compatibility). A
+        # v0.2 file with an unknown scope value falls back to "repo" so
+        # readers never trip on a typo — schema validation catches that
+        # earlier in the write path.
+        raw_scope = body.get("scope") if schema_version != "0.1" else None
+        scope = raw_scope if isinstance(raw_scope, str) and raw_scope in ("repo", "user") else "repo"
+
         ps = PackState(
             installed_version=body.get("installed-version", ""),
             source=body.get("source", "agent-ready-repo"),
             install_route=body.get("install-route", "cli"),
+            scope=scope,
             primitives=list(body.get("primitives", []) or []),
             files={k: dict(v) for k, v in files.items() if isinstance(v, dict)},
             primitive_versions=primitive_versions,
@@ -174,6 +229,13 @@ def dump_state(state: State) -> str:
         lines.append(f'installed-version = "{ps.installed_version}"')
         lines.append(f'source = "{ps.source}"')
         lines.append(f'install-route = "{ps.install_route}"')
+        # RFC-0004: emit `scope` only when the state file's schema is v0.2+.
+        # A v0.1 file round-trips unchanged (no scope column) because the
+        # read-only-as-repo-scope contract works at *read* time; the only
+        # write path through this branch is `init-state --migrate`, which
+        # bumps schema_version before calling dump_state.
+        if state.schema_version != "0.1":
+            lines.append(f'scope = "{ps.scope}"')
         primitives_repr = ", ".join(f'"{p}"' for p in ps.primitives)
         lines.append(f"primitives = [{primitives_repr}]")
         lines.append("")
