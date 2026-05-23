@@ -1,0 +1,5 @@
+[pack]
+name = "bad-recipe-fixture"
+version = "0.1.0"
+description = "Pack fixture that declares an unknown recipe."
+recipes = ["bogus-recipe"]

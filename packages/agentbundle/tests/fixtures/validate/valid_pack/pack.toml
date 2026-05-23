@@ -1,0 +1,4 @@
+[pack]
+name = "valid-fixture"
+version = "0.1.0"
+description = "Minimal valid pack fixture for T2 validate tests."

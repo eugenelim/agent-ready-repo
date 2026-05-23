@@ -1,0 +1,6 @@
+[pack]
+name = "incompatible"
+version = "0.1.0"
+
+[pack.adapter-contract]
+version = "99.0"
