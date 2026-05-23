@@ -474,9 +474,9 @@ QA tails respectively.
       every `<adapt:NAME>` marker in projected files (the CLI is the
       resolver for adopter installs, per the sibling spec's carve-out),
       writes a `.adapt-pending.md` report listing each `.upstream.<ext>`
-      companion with a one-line diff summary, and reads
-      `.adapt-discovery.toml` accepted/declined entries without writing to
-      it.
+      companion with a one-line diff summary, and reads the `[markers]` table in `.adapt-discovery.toml`
+      per docs/specs/adapt-to-project/spec.md, without writing
+      to it.
 - [ ] `agentbundle adapt --ci` exits non-zero whenever any `.upstream.<ext>`
       companion remains on disk (so CI flags pending companions for human
       review). "Resolved" means the companion file no longer exists; the

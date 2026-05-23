@@ -339,8 +339,12 @@ resolution. A pack with `"user"` in `allowed-scopes` must contain no
   `"user" ∈ allowed-scopes`.** Repo-only packs are not inspected, so
   SKILL.md files that *document* the marker syntax (e.g. the
   `adapt-to-project` skill) are not refused.
-- *Grep semantics.* Strict regex `<adapt:[A-Z_][A-Z0-9_]*>` in any
-  byte position of any primitive file under the pack's source paths
+- *Grep semantics.* Strict regex `<adapt:[a-z][a-z0-9-]*>`
+  (canonical lowercase-hyphen form, per adapt-to-project AC14/AC21) **or** the legacy
+  UPPER_SNAKE form `<adapt:[A-Z_][A-Z0-9_]*>`. Implementations
+  MAY use a union regex `<adapt:([A-Z_][A-Z0-9_]*|[a-z][a-z0-9-]*)>`
+  or two separate grep passes; both forms refuse Rail C. Markers in
+  any byte position of any primitive file under the pack's source paths
   (`.apm/skills/`, `.apm/agents/`, `.apm/commands/`). Skill
   directories are walked **in `sorted(os.walk(...))` order** so the
   "first offending path" reported in the stderr message is
@@ -756,7 +760,9 @@ No manual QA: there is no UI surface, no human gesture under test.
   `.apm/hook-wiring/` directory and declaring `"user" ∈
   allowed-scopes`; Rail C refuses any pack declaring `"user" ∈
   allowed-scopes` and containing one or more files matching
-  `<adapt:[A-Z_][A-Z0-9_]*>` under `.apm/skills/`, `.apm/agents/`,
+  the canonical lowercase-hyphen form `<adapt:[a-z][a-z0-9-]*>`
+  **or** the legacy UPPER_SNAKE form `<adapt:[A-Z_][A-Z0-9_]*>`
+  (per adapt-to-project AC14/AC21) under `.apm/skills/`, `.apm/agents/`,
   or `.apm/commands/`. Rail C walks those directories in
   `sorted(os.walk(...))` order (deterministic across runs and
   platforms) and skips non-UTF-8 (binary) files silently. Each

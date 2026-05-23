@@ -1,37 +1,33 @@
-# Ralph runtime state — local-only, never committed
-.ralph/
-
-# Install-time scratch — written by `agentbundle install`, consumed by
-# the adapt-to-project skill at session start. Path encodes scope;
-# user-scope marker lives inside ~/.agent-ready/ (outside any repo).
+# Local install-time scratch — written by `agentbundle install`,
+# consumed by the adapt-to-project skill at session start. The path
+# *is* the scope (repo-scope marker only here — user-scope marker
+# lives inside ~/.agent-ready/, outside any repo).
 .adapt-install-marker.toml
 
 # Work-loop session state — per-spec scratch, never committed.
-# See docs/CONVENTIONS.md#work-loop-state.
 docs/specs/**/state.json
 
-# Supervisor-mode worktrees — each task gets its own checkout; never
-# committed. See docs/CONVENTIONS.md#supervisor-mode.
+# Supervisor-mode worktrees.
 .worktrees/
 
-# Implementer reports — per-task chatter the supervisor wrote for its
-# own observability; session-scratch like state.json, not history.
+# Implementer reports — session-scratch.
 docs/specs/**/notes/implementer-*.md
 
-# Personal Claude Code overrides
+# Personal Claude Code overrides.
 CLAUDE.local.md
 .claude/settings.local.json
+AGENTS.local.md
 
-# OS / editor noise
+# OS / editor noise.
 .DS_Store
 *.swp
 .vscode/
 .idea/
 
-# Python build artefacts
+# Python build artefacts.
 __pycache__/
 *.egg-info/
 *.pyc
 
-# Build pipeline output — generated, never committed (RFC-0001).
+# Build pipeline output.
 dist/

@@ -14,7 +14,8 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-23 (adapt-to-project spec lands; cross-spec
+`adapt-to-project` bullet re-cited as a per-spec section)
 
 ## How this file is maintained
 
@@ -73,6 +74,15 @@ the same PR; ACs #14–#18 are satisfied.
   the same bookkeeping drift documented above — checkboxes are still
   literally `- [ ]` against shipped code. Same as `agent-spec-cli`:
   reconciliation work, not new scope.
+- **Rail C grep widening to canonical syntax — paired with AC21 of
+  adapt-to-project.** The spec text (line ~342 and the contract-load-
+  bearing AC near line ~759) widens to also match the canonical
+  lowercase-hyphen form per `adapt-to-project/spec.md` AC21. The
+  code-side widening of the Rail-C validate-time grep is deferred per
+  AC21's carve-out; until then, a user-scope pack carrying lowercase-
+  hyphen markers passes `validate` in code even though the contract
+  refuses it. Unblocks when `distribution-adapters`'s next
+  implementation pass picks up the widened AC.
 
 ## `agent-spec-cli` — shipped (v0.2 CLI surface landed)
 
@@ -100,6 +110,30 @@ in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
   `validate` behaviour against the v0.1 conformance fixtures (which
   themselves are owned by RFC-0003's deferred F-conformance task).
 
+## `adapt-to-project` — drafted
+
+Spec: [`specs/adapt-to-project/spec.md`](specs/adapt-to-project/spec.md).
+Drafted per RFC-0001 § *Post-install adaptation* and RFC-0004 § *Drawbacks
+→ `adapt-to-project` discovery doubles its artifact surface*. Cross-
+references: `self-hosting`, `agent-spec-cli`, **and RFC-0004**.
+
+The v1 implementation lands the typed `AdaptDiscovery` schema, the
+`adapt`/self-host consumers' migration from legacy `[accepted]` /
+`[adapt]` tables to canonical `[markers]`, install-gate enforcement
+of `[pack.dependencies.required]`, the install→adapt marker-write +
+chained in-process `adapt.run`, the session-start hook's dual-scope
+marker walk, and the SKILL.md body authoring (class-1 shell-out;
+classes 2–4 LLM-judgment writes under the per-scope path-jail).
+
+- **AC4b — deferred manual-QA rows (user-scope LLM-judgment).**
+  Rows: user-scope class-2 × {accept, edit, skip, decline},
+  user-scope class-3 × {accept, edit, decline}, user-scope class-4
+  × {accept, decline}, *cross-scope-restructure × split-into-two*.
+  **Trigger to unblock:** first pack declaring `allowed-scopes =
+  ["user"]` lands. Until then, v1 ships the synthetic-fixture
+  plumbing rows (AC4a) and a placeholder section in
+  `notes/manual-qa-matrix.md` enumerating the deferred rows by name.
+
 ---
 
 ## Cross-spec / outside-the-spec-tree
@@ -107,12 +141,6 @@ in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
 These are open items called out by accepted RFCs or by multiple specs,
 but don't have a spec of their own yet.
 
-- **`adapt-to-project` skill.** Deferred per RFC-0001 Open Q3 and
-  referenced by both `self-hosting` and `agent-spec-cli`. Owns
-  `<adapt:NAME>` marker resolution for plugin-installed packs and
-  materialises `.adapt-discovery.toml` from a repo's concrete values.
-  Skill stub exists at `.claude/skills/adapt-to-project/SKILL.md` (per
-  the skills index); the resolver itself is not implemented.
 - **F-conformance fixtures (RFC-0003).** The per-adapter conformance
   suite that `agentbundle validate --strict` would consume. RFC-0003
   scoped this out of v1; needs its own spec when prioritised.
