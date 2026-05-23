@@ -523,16 +523,25 @@ Per the work-loop's three-mode taxonomy:
       test, or an inline transcript). Method *(c)* artifacts that
       cannot be captured in v1 belong under AC4b, not AC4a.
 - [ ] **AC4b (manual QA matrix — deferred rows).**
-      User-scope class-2/3/4 LLM-judgment rows are deferred until a
-      user-scope-eligible pack ships (RFC-0004 § *Drawbacks* +
-      *Unresolved questions* — APM/Claude-plugins adapter parity
-      lands later). The deferred rows are enumerated by name in
-      `docs/ROADMAP.md` under this spec's section with the trigger
-      "first pack declaring `allowed-scopes = ['user']` lands"; no
-      row is silently dropped. AC4b ships as the ROADMAP enumeration
-      plus a placeholder section in `manual-qa-matrix.md` naming
-      each deferred row and citing the trigger; no fixture, no
-      transcript required.
+      The deferred rows are enumerated by name in `docs/ROADMAP.md`
+      under this spec's section; no row is silently dropped. The
+      matrix file is the per-row trigger source — multiple deferral
+      triggers apply:
+      - **User-scope-pack eligibility** — user-scope class-2/3/4
+        LLM-judgment rows defer until a pack declaring
+        `allowed-scopes = ["user"]` lands (RFC-0004 § *Drawbacks*
+        + *Unresolved questions* — APM/Claude-plugins adapter
+        parity lands later).
+      - **Brownfield fixture surface availability** — repo-scope
+        class-3 and class-4 end-to-end rows defer until the
+        brownfield fixture seeds a class-3 / class-4 surface.
+      - **Interactive adopter session** — repo-scope class-2
+        transcript artifacts and end-to-end transcripts for the
+        cross-cutting rows (dirty-state-repo, Tier-2-repo) defer
+        until a follow-up captures an interactive session.
+      AC4b ships as the ROADMAP enumeration plus the AC4b section
+      in `manual-qa-matrix.md` naming each deferred row and its
+      trigger; no fixture, no transcript required in this PR.
 - [ ] **AC5 (idempotency at byte level).** A second skill session
       against a fixture where (a) every pack-declared marker is in
       the repo-scope `[markers]`, (b) every `.upstream.<ext>`

@@ -134,14 +134,29 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   collision needs to surface through the install→adapt nudge — at
   that point, capture the relpaths during the step-9 write loop and
   pass them through.
-- **AC4b — deferred manual-QA rows (user-scope LLM-judgment).**
-  Rows: user-scope class-2 × {accept, edit, skip, decline},
-  user-scope class-3 × {accept, edit, decline}, user-scope class-4
-  × {accept, decline}, *cross-scope-restructure × split-into-two*.
-  **Trigger to unblock:** first pack declaring `allowed-scopes =
-  ["user"]` lands. Until then, v1 ships the synthetic-fixture
-  plumbing rows (AC4a) and a placeholder section in
-  `notes/manual-qa-matrix.md` enumerating the deferred rows by name.
+- **AC4b — deferred manual-QA rows (three trigger classes).**
+  v1 ships the AC4a automation/grep rows; AC4b enumerates 21 rows
+  deferred under three trigger classes (see
+  `notes/manual-qa-matrix.md` for the canonical per-row table):
+  - **Repo-scope class-2 transcripts (rows 8–11).** Brownfield
+    fixture seeds the `AGENTS.upstream.md` surface; only the inline
+    transcripts are deferred. *Trigger:* follow-up captures an
+    adopter session against `brownfield-adapt/AGENTS.upstream.md`
+    and attaches transcript + tree fragment inline.
+  - **Repo-scope class-3 transcripts (rows 12–14).** *Trigger:*
+    brownfield fixture seeds a class-3 surface (e.g., overlapping
+    `DESIGN.md` + `docs/CHARTER.md`) and an adopter session is
+    captured.
+  - **Repo-scope class-4 transcripts (rows 15–16).** *Trigger:*
+    brownfield fixture seeds a class-4 surface (overlapping
+    `docs/howto/` + `docs/guides/how-to/`) and an adopter session
+    is captured.
+  - **Cross-cutting end-to-end transcripts (rows 17–18).**
+    *Trigger:* follow-up captures interactive adopter sessions for
+    dirty-state-repo and Tier-2 detection-repo.
+  - **User-scope LLM-judgment rows (rows 19–28).** *Trigger:* first
+    pack declaring `allowed-scopes = ["user"]` lands (RFC-0004 §
+    *Drawbacks* + *Unresolved questions*).
 
 ---
 
