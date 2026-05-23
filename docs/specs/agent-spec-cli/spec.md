@@ -1,6 +1,6 @@
 # Spec: agent-spec-cli (`agentbundle`)
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0003](../../rfc/0003-spec-and-cli.md) (source);
