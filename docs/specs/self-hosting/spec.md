@@ -101,14 +101,10 @@ This spec therefore partitions its scope into **two cutover phases**:
   Phase 1 also ships packs/* sources, the recipe TOMLs,
   `.adapt-discovery.toml`, the `make build-check` workflow, and the
   CONVENTIONS amendment.
-- **Phase 2 (follow-up PR).** AGENTS.md body+footer composition (the
-  Codex adapter's last-pack-wins multi-pack splice gap blocks the
-  multi-pack aggregation needed for a correct projection), and the
-  comparison-rule strengthening (LF normalisation, file-mode bits,
-  symlink-target comparison via `lstat`). The body+footer recipe
-  contract (`packs/core/seeds/AGENTS.md` body + `packs/core/seeds/
-  _agents-footer.md` footer) ships in Phase 1 as authored seed
-  content; Phase 2 wires up the composition runtime.
+- **Phase 2 (follow-up PR).** AGENTS.md body+footer composition and
+  Codex multi-pack managed-block aggregation have landed. The remaining
+  Phase-2 work is comparison-rule strengthening (LF normalisation,
+  file-mode bits, symlink-target comparison via `lstat`).
 
 Every *Always do*, *Ask first*, *Never do*, Acceptance Criterion, and
 test below carries an implicit "Phase 1 only" unless it names Phase 2
@@ -127,19 +123,16 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
   five Claude Code adapter outputs plus the seed-projected paths
   enumerated in § *Phased rollout*; aggregate
   `.claude-plugin/marketplace.json` and recreate the CLAUDE.md symlink.
-- Restrict the self-host runner to the `claude-code` adapter in Phase 1.
-  The other contract-declared adapters (`kiro`, `copilot`, `codex`)
-  remain in the contract for distribution builds, but the self-host
-  runner's `SELF_HOST_ADAPTERS` allow-list contains only `claude-code`
-  so projections into `.kiro/`, `.github/instructions/`, and AGENTS.md's
-  managed block do not fire under `make build-self`. Phase 2 widens the
-  allow-list once the Codex multi-pack aggregation gap is closed.
-- *(Phase 2)* Compose root `AGENTS.md` from BOTH `packs/core/seeds/AGENTS.md`
+- Run the `claude-code` and `codex` adapters under self-host. The other
+  contract-declared adapters (`kiro`, `copilot`) remain in the contract
+  for distribution builds but stay excluded from `SELF_HOST_ADAPTERS`, so
+  projections into `.kiro/` and `.github/instructions/` do not fire under
+  `make build-self`.
+- Compose root `AGENTS.md` from BOTH `packs/core/seeds/AGENTS.md`
   (the body) AND `packs/core/seeds/_agents-footer.md` (the pointer
   footer, appended after the body, LF-normalised). The
   `composite-agents-md` recipe defined in the distribution-adapters
-  spec drives this composition. Authored as a recipe TOML in Phase 1;
-  the runtime that consumes it ships in Phase 2.
+  spec drives this composition.
 - Preserve hook source extension. A hook is a script; the build pipeline's
   `[primitive.hook-body]` projection copies `.sh` or `.py` through
   unchanged. Today's `tools/hooks/*.sh` are valid; future `.py` hooks are
@@ -238,15 +231,12 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
   byte-equality comparison regardless of `FORCE=1`; there is no
   flag-or-variable that turns the comparison off.
 - **Adapters or recipes beyond the enumerated set.** `make build-self`
-  uses only the `claude-code` adapter in Phase 1 (per the *Always do*
-  allow-list) and `claude-code` + `codex` in Phase 2 once the Codex
-  multi-pack aggregation gap closes. The six enumerated projection
-  recipes from the distribution-adapters spec
+  uses only the `claude-code` and `codex` adapters. The six enumerated
+  projection recipes from the distribution-adapters spec
   (`per-pack-claude-plugin`, `per-pack-apm-package`, `marketplace`,
   `per-pack-overlay`, `composite-agents-md`, `composite-marketplace`)
-  stay as the enumerated set; the three composite types are
-  metadata-only today and gain runtime in Phase 2. New adapters or
-  recipes beyond this enumeration require an RFC.
+  stay as the enumerated set. New adapters or recipes beyond this
+  enumeration require an RFC.
 
 ### Excluded paths
 
@@ -402,16 +392,13 @@ and the Codex multi-pack aggregation fix land.
   identifying both colliding source paths. Implemented in
   `_project_seeds`; tested by
   `SeedProjectionTests::test_collision_with_different_content_raises`.
-- [ ] **AC8 (AGENTS.md composition) — Phase 2.** The projected root
+- [x] **AC8 (AGENTS.md composition) — Phase 2.** The projected root
   `AGENTS.md` is composed from BOTH `packs/core/seeds/AGENTS.md` (the
   body) AND `packs/core/seeds/_agents-footer.md` (the pointer footer,
   appended after the body). The composition is performed by the
-  `composite-agents-md` recipe; T2 tests verify both the body match
-  and the footer append. Deferred — Codex adapter's last-pack-wins
-  multi-pack aggregation must be fixed first. The footer source ships
-  in this PR (`packs/core/seeds/_agents-footer.md`); seed-projection
-  skips underscore-prefixed files so it stays as a composition
-  fragment for Phase 2.
+  `composite-agents-md` recipe; tests verify the body match, the
+  multi-pack Codex-managed block, and the footer append. Closed by the
+  Codex multi-pack aggregation fix and self-host composition runtime.
 - [x] **AC9 (seed READMEs) — Phase 1.** Seed READMEs under
   `docs/architecture/`, `docs/specs/`, `docs/knowledge/`,
   `docs/product/`, `docs/guides/`, `docs/rfc/`, `docs/adr/`,
@@ -469,6 +456,14 @@ and the Codex multi-pack aggregation fix land.
 
 ## Changelog
 
+- 2026-05-23: Phase-2 AC8 closed. Codex now aggregates skill
+  descriptions across every discovered pack before splicing the
+  `AGENTS.md` managed block, self-host runs both `claude-code` and
+  `codex`, and `make build-self` composes root `AGENTS.md` from
+  `packs/core/seeds/AGENTS.md`, the Codex-managed block, and
+  `packs/core/seeds/_agents-footer.md`. Focused unit tests and
+  `make build-check` passed. Comparison-rule strengthening remains
+  open.
 - 2026-05-22: typo-class amendment after Phase 1 ship — adapter
   contract files relocated from `docs/specs/adapter-contract/` to
   `docs/contracts/` (path-only; field semantics and acceptance

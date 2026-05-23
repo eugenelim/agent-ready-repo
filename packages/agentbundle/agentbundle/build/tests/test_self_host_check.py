@@ -43,6 +43,20 @@ def _seed_pack(root: Path, name: str = "core") -> Path:
     return pack
 
 
+def _seed_pack_with_skill(root: Path, name: str, skill: str, description: str) -> Path:
+    pack = root / name
+    (pack / ".apm" / "skills" / skill).mkdir(parents=True)
+    (pack / ".apm" / "skills" / skill / "SKILL.md").write_text(
+        f"---\ndescription: {description}\n---\n# {skill}\n",
+        encoding="utf-8",
+    )
+    (pack / "pack.toml").write_text(
+        f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+        encoding="utf-8",
+    )
+    return pack
+
+
 def _seed_discovery(tree: Path) -> Path:
     """Drop a minimal `.adapt-discovery.toml` into a test working tree so
     `run_self_host`'s fail-fast (spec AC14) doesn't reject the call.
@@ -309,14 +323,6 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             self.assertIn("baz", data["hooks"])
 
     def test_managed_block_preserves_outside_content_under_self(self) -> None:
-        # Phase-1 self-host runs only the claude-code adapter (see
-        # docs/specs/self-hosting/spec.md § Phased rollout). The Codex
-        # adapter's managed-block splice into AGENTS.md ships in Phase 2
-        # once the multi-pack last-pack-wins aggregation gap is closed.
-        # This test exercises the splice path by widening the runner's
-        # allow-list explicitly for the duration of the call.
-        from unittest.mock import patch
-
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
@@ -331,17 +337,13 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             preamble = "# Custom AGENTS.md\n\nDo not lose me.\n"
             agents_md.write_text(preamble, encoding="utf-8")
 
-            with patch(
-                "agentbundle.build.self_host.SELF_HOST_ADAPTERS",
-                ("claude-code", "codex"),
-            ):
-                exit_code = run_self_host(
-                    working_tree=working_tree,
-                    packs_dir=packs_dir,
-                    dry_run=False,
-                    force=True,
-                    contract=self.contract,
-                )
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
             self.assertEqual(exit_code, 0)
             text = agents_md.read_text(encoding="utf-8")
             self.assertIn("# Custom AGENTS.md", text)
@@ -350,7 +352,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
 
 
 class SelfHostAdapterAllowListTests(unittest.TestCase):
-    """Phase-1 self-host allow-list (spec § Phased rollout / § Always do).
+    """Self-host allow-list (spec § Phased rollout / § Always do).
 
     The allow-list is load-bearing: a future contributor adding the
     `kiro` or `copilot` adapter to `ADAPTERS` (the global registry) but
@@ -446,6 +448,54 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             # Sentinel called once per discovered pack (one here).
             self.assertEqual(sentinel.call_count, 1)
+
+
+class AgentsMdCompositionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_self_host_composes_agents_body_codex_block_and_footer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            core = _seed_pack_with_skill(
+                packs_dir, "core", "core-skill", "core skill description"
+            )
+            _seed_pack_with_skill(
+                packs_dir,
+                "governance",
+                "governance-skill",
+                "governance skill description",
+            )
+            (core / "seeds").mkdir()
+            (core / "seeds" / "AGENTS.md").write_text(
+                "# Body\n\nBody source.\n", encoding="utf-8"
+            )
+            (core / "seeds" / "_agents-footer.md").write_text(
+                "> Footer source.\n", encoding="utf-8"
+            )
+
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+
+            self.assertEqual(exit_code, 0)
+            text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertTrue(text.startswith("# Body\n\nBody source.\n"))
+            self.assertIn("core skill description", text)
+            self.assertIn("governance skill description", text)
+            self.assertTrue(text.endswith("> Footer source.\n"))
 
 
 class ExcludedGlobTests(unittest.TestCase):
