@@ -1,0 +1,12 @@
+# Synthetic user-scope discovery file. NO [markers] table — markers
+# are repo-only per RFC-0004; consumers refuse [markers] at this
+# scope. A single declined finding seeded so re-run dedup paths can
+# exercise it.
+
+discovery-schema-version = "0.1"
+
+[[findings.declined]]
+finding-id       = "future-pack/restructure:00000000"
+kind             = "restructure"
+source-path      = ".claude/agents/old-bot.md"
+destination-path = ".claude/agents/bot.md"
