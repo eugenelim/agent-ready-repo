@@ -9,6 +9,7 @@
 | [0001](0001-bundle-distribution-by-adapter-spec.md) | Bundle distribution by adapter spec + ecosystem build pipeline | Accepted | 2026-05-21 | 2026-05-22 |
 | [0002](0002-self-hosting.md) | Self-hosting via the ecosystem build pipeline | Accepted | 2026-05-21 | 2026-05-22 |
 | [0003](0003-spec-and-cli.md) | Adapter contract publication + reference CLI | Accepted | 2026-05-21 | 2026-05-22 |
+| [0004](0004-install-scope-per-pack.md) | Install-scope dimension — repo or user — defaulted and constrained per pack | Draft | 2026-05-23 | |
 
 ## Adding a new RFC
 
