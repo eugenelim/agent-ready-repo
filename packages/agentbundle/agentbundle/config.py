@@ -527,14 +527,28 @@ def adapt_discovery_to_toml(d: AdaptDiscovery) -> str:
 # ---------------------------------------------------------------------------
 
 
+_VALUES_DISCOVERY_RESERVED = frozenset(
+    {"discovery-schema-version", "findings", "marker-schema-version"}
+)
+
+
 def load_values_from(path: Path) -> dict[str, str]:
     """Load `--values-from` TOML; return a flat dict of marker → value.
 
-    The file shape is a single table of string values:
+    Accepts (in order tried):
 
-      [values]
-      PROJECT_NAME = "myproj"
-      OWNER        = "octocat"
+      1. A ``[markers]`` table — canonical ``.adapt-discovery.toml`` shape
+         when the skill hands a discovery file directly to the CLI.
+      2. A ``[values]`` table — original ``--values-from`` shape kept
+         for hand-authored override files.
+      3. A flat top-level table — keys at the root, skipping the
+         reserved discovery keys (``discovery-schema-version``,
+         ``findings``, ``marker-schema-version``) so a canonical
+         user-scope discovery file (no ``[markers]``, no ``[values]``)
+         passes through cleanly as an empty mapping.
+
+    Presence of *both* ``[markers]`` and ``[values]`` is ambiguous and
+    refused — per AC15.
     """
     if not path.exists():
         raise ConfigError(f"--values-from path not found: {path}")
@@ -550,7 +564,24 @@ def load_values_from(path: Path) -> dict[str, str]:
         raise ConfigError(
             f"--values-from at {path} is not valid TOML: {exc}"
         ) from exc
-    values = raw.get("values", raw)
+
+    has_markers = isinstance(raw.get("markers"), dict)
+    has_values = isinstance(raw.get("values"), dict)
+    if has_markers and has_values:
+        raise ConfigError(
+            "ambiguous --values-from file: both [markers] and [values] "
+            "tables present; use one"
+        )
+
+    if has_markers:
+        values = raw["markers"]
+    elif has_values:
+        values = raw["values"]
+    else:
+        values = {
+            k: v for k, v in raw.items()
+            if k not in _VALUES_DISCOVERY_RESERVED
+        }
     if not isinstance(values, dict):
         raise ConfigError("expected a [values] table of string entries")
     out: dict[str, str] = {}
