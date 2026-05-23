@@ -266,36 +266,10 @@ def _toml_key(name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# .adapt-discovery.toml  (CLI reads, never writes)
-# ---------------------------------------------------------------------------
-
-
-def load_adapt_discovery(path: Path) -> dict[str, Any]:
-    """Read `.adapt-discovery.toml` if present; return {} otherwise.
-
-    Spec rail: the CLI may **read** this file but must never write it. The
-    `adapt-to-project` LLM skill owns the write side.
-    """
-    if not path.exists():
-        return {}
-    try:
-        return tomllib.loads(path.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as exc:
-        raise ConfigError(
-            f".adapt-discovery.toml at {path} is not valid TOML: {exc}"
-        ) from exc
-
-
-# ---------------------------------------------------------------------------
 # .adapt-discovery.toml — typed schema (v0.1)
 #
-# Dual-name note (temporary, T1 only):
-#   - `load_adapt_discovery` (below, unchanged) returns a raw dict and is
-#     kept in place so existing call sites in commands/adapt.py and
-#     build/self_host.py keep compiling until T2/T3 migrates them.
-#   - `load_adapt_discovery_typed` is the new typed loader. T2/T3 will
-#     switch callers to `load_adapt_discovery_typed` and then a follow-up
-#     commit renames typed -> primary.
+# Spec rail: the CLI may **read** this file but must never write it.
+# The `adapt-to-project` LLM skill owns the write side.
 # ---------------------------------------------------------------------------
 
 _KNOWN_DISCOVERY_SCHEMA_VERSIONS = {"0.1"}
@@ -422,7 +396,18 @@ def load_adapt_discovery_typed(
     markers: dict[str, str] = {}
     raw_markers = raw.get("markers", {})
     if isinstance(raw_markers, dict):
+        import re as _re
+
+        marker_key_re = _re.compile(r"^[a-z][a-z0-9-]*$")
         for k, v in raw_markers.items():
+            # Spec § Canonical .adapt-discovery.toml schemas (v0.1):
+            # "a repo-scope file with [markers] that contains keys
+            # violating the lowercase-hyphen grammar is refused".
+            if not marker_key_re.fullmatch(str(k)):
+                raise ConfigError(
+                    f"marker key {k!r} violates lowercase-hyphen grammar "
+                    f"^[a-z][a-z0-9-]*$ per docs/specs/adapt-to-project/spec.md"
+                )
             if not isinstance(v, str):
                 raise ConfigError(
                     f"markers[{k!r}] must be a string, got {type(v).__name__}"

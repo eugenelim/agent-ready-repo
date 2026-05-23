@@ -46,10 +46,11 @@ def _seed_pack(root: Path, name: str = "core") -> Path:
 def _seed_discovery(tree: Path) -> Path:
     """Drop a minimal `.adapt-discovery.toml` into a test working tree so
     `run_self_host`'s fail-fast (spec AC14) doesn't reject the call.
-    Empty `[adapt]` section is the no-marker case the live repo also uses.
+    Canonical v0.1 shape per adapt-to-project AC9 — no `[markers]`
+    table needed for the no-marker case.
     """
     path = tree / ".adapt-discovery.toml"
-    path.write_text("[adapt]\n", encoding="utf-8")
+    path.write_text('discovery-schema-version = "0.1"\n', encoding="utf-8")
     return path
 
 
@@ -226,7 +227,7 @@ class MarkerResolutionTests(unittest.TestCase):
             _git_init(working_tree)
             _seed_discovery(working_tree)
             (working_tree / ".adapt-discovery.toml").write_text(
-                '[adapt]\nproject-name = "demo"\n',
+                'discovery-schema-version = "0.1"\n[markers]\nproject-name = "demo"\n',
                 encoding="utf-8",
             )
 

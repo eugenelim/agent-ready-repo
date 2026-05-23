@@ -143,15 +143,20 @@ def run(args: "argparse.Namespace") -> int:
         print(f"install: {exc}", file=sys.stderr)
         return 1
 
-    # User scope resolution only fires when we actually need it (the
-    # request, the pack's default, or a dual-scope --force path touches
-    # user). Defer the expanduser call to avoid raising on adopters
-    # with $HOME=/ when they're only installing at repo scope.
-    needs_user_state = requested_scope == "user" or (
-        # Conservative pre-load — we don't yet know if the pack is at
-        # user scope until we read the user state file, but if the pack
-        # isn't permitted at user scope, no user state is consulted.
-        "user" in _resolved_allowed_scopes(pack_install)
+    # User scope resolution fires when the install itself touches user
+    # scope, OR when the installing pack declares
+    # `[[pack.dependencies.required]]` (AC17 union-of-scopes resolution
+    # requires user_state to be consulted even for repo-only addons —
+    # otherwise a `core` install at user scope is invisible to the
+    # gate). Defer the expanduser call to avoid raising on adopters
+    # with $HOME=/ when neither condition fires.
+    _pack_has_required = bool(
+        pack_toml.get("pack", {}).get("dependencies", {}).get("required")
+    )
+    needs_user_state = (
+        requested_scope == "user"
+        or "user" in _resolved_allowed_scopes(pack_install)
+        or _pack_has_required
     )
     user_state = None
     if needs_user_state:
@@ -445,13 +450,17 @@ def run(args: "argparse.Namespace") -> int:
     # `[[packs-installed]]` entry to `.adapt-install-marker.toml` at the
     # install's scope root. The file's *path* encodes the scope.
     pack_version = pack_toml.get("pack", {}).get("version", "")
-    unresolved_markers = _collect_unresolved_markers(projection)
-    new_companions = _collect_new_companions(projection, [p for p in plans])
+    # Per AC19a: markers are repo-only, so unresolved-markers is computed
+    # off the **repo-scope** projection regardless of which scopes the
+    # install touched. User-scope marker files always carry [].
+    repo_unresolved_markers = (
+        _collect_unresolved_markers(repo_projection)
+        if repo_projection is not None
+        else []
+    )
+    new_companions: list[str] = []  # AC19a field; v1 tally deferred (ROADMAP).
     for plan in plans:
-        # Unresolved markers are only meaningful at repo scope (markers
-        # are repo-only per RFC-0004); user-scope marker file always
-        # carries [].
-        scope_markers = unresolved_markers if plan.scope == "repo" else []
+        scope_markers = repo_unresolved_markers if plan.scope == "repo" else []
         try:
             _append_install_marker(
                 plan.root,
@@ -510,19 +519,6 @@ def _collect_unresolved_markers(projection: dict) -> list[str]:
     return sorted(seen)
 
 
-def _collect_new_companions(projection: dict, plans: list) -> list[str]:
-    """Return the relative paths of companions that *would* be dropped
-    on a Tier-2 collision. Best-effort enumeration; the actual decision
-    was made earlier in the install flow."""
-    # The current install loop classifies on the fly; we don't keep a
-    # tally of companions. Walk the projection looking for paths that
-    # might have triggered Tier-2 — that's deferred to the next session
-    # in any case. Keeping this empty for v1 honours the spec contract
-    # (the field is `new_companions = []` by default) without forcing
-    # a refactor of the Tier classifier.
-    return []
-
-
 def _append_install_marker(
     root: Path,
     scope: str,
@@ -551,8 +547,10 @@ def _append_install_marker(
         marker_dir = root / ".agent-ready"
         marker_dir.mkdir(parents=True, exist_ok=True)
         marker_path = marker_dir / ".adapt-install-marker.toml"
+        marker_relpath = ".agent-ready/.adapt-install-marker.toml"
     else:
         marker_path = root / ".adapt-install-marker.toml"
+        marker_relpath = ".adapt-install-marker.toml"
 
     # Read existing entries if present.
     entries: list[dict] = []
@@ -590,11 +588,18 @@ def _append_install_marker(
         lines.append("")
     content = "\n".join(lines).rstrip() + "\n"
 
-    # Atomic-rename write per AC19a. The relative path for write_jailed
-    # is computed against `root`.
-    tmp_path = marker_path.with_suffix(marker_path.suffix + ".tmp")
-    tmp_path.write_text(content, encoding="utf-8")
-    os.replace(tmp_path, marker_path)
+    # Atomic-rename write per AC19a, routed through the per-scope
+    # path-jail (safety.write_jailed) so user-scope marker writes
+    # honour `allowed-prefixes.user` and a future contract change
+    # cannot let the marker escape the jail without code review
+    # noticing.
+    safety.write_jailed(
+        root,
+        marker_relpath,
+        content,
+        scope=scope,
+        allowed_prefixes=allowed_prefixes,
+    )
 
 
 def _chain_adapt(repo_root: Path) -> int:

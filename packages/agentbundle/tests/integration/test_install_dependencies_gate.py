@@ -227,6 +227,36 @@ def test_install_proceeds_when_required_at_user_scope(tmp_path, monkeypatch):
     )
 
 
+def test_install_proceeds_when_required_at_user_scope_repo_only_addon(
+    tmp_path, monkeypatch
+):
+    """Regression for adversarial-review Blocker 3: a repo-only addon
+    (`allowed-scopes = ["repo"]`, no `"user"` in the set) installing
+    while `core` lives only at user scope. The union rule must consult
+    user_state even though the installing pack itself is repo-only —
+    otherwise the gate refuses spuriously.
+    """
+    cat = tmp_path / "cat"
+    _stage_pack(cat, "addon", ADDON_WITH_REQUIRED)  # repo-only
+    target = tmp_path / "repo"
+    target.mkdir()
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    monkeypatch.setenv("HOME", str(fake_home))
+
+    _pre_install_core(
+        cat, target, version="0.1.0", scope="user",
+        monkeypatch=monkeypatch, fake_home=fake_home,
+    )
+
+    rc, _, err = _install(
+        dict(pack="addon", catalogue=str(cat), output=str(target), scope=None, force=False)
+    )
+    assert "requires 'core'" not in err, (
+        f"repo-only addon gate fired spuriously when core is at user scope; stderr: {err!r}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Test 4: refuse when required dep is out of version range
 # ---------------------------------------------------------------------------

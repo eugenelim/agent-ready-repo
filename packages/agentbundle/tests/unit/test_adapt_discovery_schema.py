@@ -268,3 +268,27 @@ def test_findings_round_trip_preserves_fields(tmp_path):
     assert rd.kind == f_dec.kind
     assert rd.action is None
     assert rd.accepted is False
+
+
+def test_marker_key_must_follow_lowercase_hyphen_grammar(tmp_path):
+    """Spec § Canonical schemas: a repo-scope file with a marker key
+    violating the lowercase-hyphen grammar is refused (adversarial-
+    review concern 5)."""
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        'discovery-schema-version = "0.1"\n'
+        '[markers]\nProjectName = "x"\n',  # UPPER prefix violates ^[a-z]...
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="lowercase-hyphen grammar"):
+        load_adapt_discovery_typed(bad, scope="repo")
+
+    # Also rejects underscore-bearing keys (`_` not in [a-z0-9-]).
+    bad2 = tmp_path / "bad2.toml"
+    bad2.write_text(
+        'discovery-schema-version = "0.1"\n'
+        '[markers]\nproject_name = "x"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="lowercase-hyphen grammar"):
+        load_adapt_discovery_typed(bad2, scope="repo")

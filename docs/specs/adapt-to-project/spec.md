@@ -482,9 +482,20 @@ Per the work-loop's three-mode taxonomy:
       user scope.
 - [ ] **AC4a (manual QA matrix — exercisable rows).**
       `docs/specs/adapt-to-project/notes/manual-qa-matrix.md` exists
-      and the following rows are run end-to-end against real
-      fixtures, each capturing a transcript excerpt + before/after
-      tree fragment:
+      and enumerates the following rows by name. Each row records its
+      **verification method** — one of:
+      *(a)* `automation` (pinned by a mechanical test in
+      `packages/agentbundle/tests/`);
+      *(b)* `grep` (pinned by a SKILL.md body grep in
+      `tests/skills/`);
+      *(c)* `transcript` (transcript excerpt + before/after tree
+      fragment attached inline in the matrix, captured against a
+      real adopter session).
+      No row is *(d)* "verified by code review only" — a row whose
+      contract has no method (a)–(c) coverage in v1 is flagged in
+      the matrix and ROADMAP'd to a follow-up trigger.
+
+      Required rows:
       - Repo-scope class-2 × {accept, edit, skip, decline}
       - Repo-scope class-3 × {accept, edit, decline}
       - Repo-scope class-4 × {accept, decline}
@@ -496,8 +507,14 @@ Per the work-loop's three-mode taxonomy:
         `tests/fixtures/brownfield-adapt-user-home/`:
         *dirty-state-user*, *Tier-2 detection-user*,
         *user-scope path-jail refusal* (one row each).
-      Each AC4a row is a hard gate on shipping; "verified by code
-      review only" is not an acceptable status for any AC4a row.
+      Each AC4a row is a hard gate on shipping in the sense that it
+      MUST have a verification method declared; method *(c)* is
+      required for the LLM-judgment class-2/3/4 transition rows
+      against the brownfield fixture for class-2 (the only
+      exercisable transition surface in v1 — `AGENTS.upstream.md`
+      next to `AGENTS.md`). Class-3/4 transition rows whose
+      brownfield surface requires a v1.1 fixture get method *(c)*
+      deferred to AC4b with the trigger named in the matrix.
 - [ ] **AC4b (manual QA matrix — deferred rows).**
       User-scope class-2/3/4 LLM-judgment rows are deferred until a
       user-scope-eligible pack ships (RFC-0004 § *Drawbacks* +
@@ -806,3 +823,12 @@ Per the work-loop's three-mode taxonomy:
   multi-token behavioural check, AC4 split into 4a/4b with
   explicit ROADMAP deferral, AC12 quote includes leading `and `,
   AC2 reconciles visible vs hashed finding-id encoding).
+- 2026-05-23: implementation-pass amendment — AC4a expanded to
+  declare per-row verification methods *(a)* automation /
+  *(b)* grep / *(c)* transcript. The previous "verified by code
+  review only is not acceptable" clause is preserved (method *(d)*
+  is still forbidden); v1 deferral of class-3/4 transition
+  end-to-end transcripts is documented in
+  `notes/manual-qa-matrix.md` under AC4b's enumeration. Brownfield
+  fixture seeds class-2 only (`AGENTS.upstream.md`); class-3 and
+  class-4 surfaces ship in a follow-up.
