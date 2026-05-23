@@ -4,11 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentbundle"
-version = "0.0.1"
-description = "Distribution pipeline and adapters for the agent-ready-repo catalogue."
+version = "0.1.0"
+description = "Reference CLI and distribution pipeline for the agent-ready-repo adapter contract."
 requires-python = ">=3.11"
 dependencies = []
+
+[project.scripts]
+agentbundle = "agentbundle.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["agentbundle*"]
+
+[tool.setuptools.package-data]
+agentbundle = ["_data/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "agentbundle/build/tests"]
+addopts = "-q"

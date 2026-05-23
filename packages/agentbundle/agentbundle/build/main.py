@@ -32,11 +32,47 @@ from agentbundle.build.validate import validate as validate_instance
 PACKAGE_ROOT = Path(__file__).resolve().parent
 RECIPES_DIR = PACKAGE_ROOT / "recipes"
 REPO_ROOT = PACKAGE_ROOT.parent.parent.parent.parent
-CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
-PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
-PLUGIN_MANIFEST_SCHEMA_PATH = (
-    REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
-)
+
+
+def _bundled_or_repo(name: str) -> Path:
+    """Locate a data file shipped under both `agentbundle/_data/` and
+    `<repo>/docs/contracts/`.
+
+    Prefer the bundled copy when present on disk (works in a `pip install`
+    and a dev checkout); fall back to the repo path for dev checkouts
+    whose `_data/` hasn't been synced. Inside a `zipapp` neither path is
+    a real filesystem location — callers should use `_read_bundled` to
+    get the text content instead of trying to open the returned Path.
+    """
+    bundled = PACKAGE_ROOT.parent / "_data" / name
+    if bundled.exists():
+        return bundled
+    return REPO_ROOT / "docs" / "contracts" / name
+
+
+def _read_bundled(name: str) -> str:
+    """Read a packaged data file, transparently handling the zipapp case.
+
+    Resolution order:
+      1. `<package>/_data/<name>` via `importlib.resources` — works for
+         filesystem installs AND inside a `zipapp` archive.
+      2. `<repo>/docs/contracts/<name>` — dev fallback for source trees
+         whose `_data/` hasn't been populated.
+    """
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle").joinpath(f"_data/{name}")
+        if resource.is_file():
+            return resource.read_text(encoding="utf-8")
+    except (FileNotFoundError, ModuleNotFoundError):
+        pass
+    return (REPO_ROOT / "docs" / "contracts" / name).read_text(encoding="utf-8")
+
+
+CONTRACT_PATH = _bundled_or_repo("adapter.toml")
+PACK_SCHEMA_PATH = _bundled_or_repo("pack.schema.json")
+PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The three RFC-0001 recipes that plain `make build` invokes.
@@ -69,10 +105,25 @@ class Pack:
 
 
 def load_recipe(name: str, recipes_dir: Path = RECIPES_DIR) -> Recipe:
+    """Load a recipe by name.
+
+    Tries the filesystem first (dev/install case), then falls back to
+    `importlib.resources` (zipapp case where the package contents live
+    inside a `.pyz` archive that `Path.exists()` cannot traverse).
+    """
     recipe_path = recipes_dir / f"{name}.toml"
-    if not recipe_path.exists():
-        raise FileNotFoundError(f"recipe {name!r} not found at {recipe_path}")
-    return _parse_recipe(recipe_path)
+    if recipe_path.exists():
+        return _parse_recipe_text(recipe_path.read_text(encoding="utf-8"))
+    # Zipapp fallback: read via importlib.resources.
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle.build").joinpath(f"recipes/{name}.toml")
+        if resource.is_file():
+            return _parse_recipe_text(resource.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ModuleNotFoundError):
+        pass
+    raise FileNotFoundError(f"recipe {name!r} not found at {recipe_path}")
 
 
 def load_recipe_from_path(path: Path) -> Recipe:
@@ -80,7 +131,11 @@ def load_recipe_from_path(path: Path) -> Recipe:
 
 
 def _parse_recipe(path: Path) -> Recipe:
-    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    return _parse_recipe_text(path.read_text(encoding="utf-8"))
+
+
+def _parse_recipe_text(toml_text: str) -> Recipe:
+    data = tomllib.loads(toml_text)
     body = data["recipe"]
     return Recipe(
         name=body["name"],
@@ -109,7 +164,7 @@ def discover_packs(packs_dir: Path) -> list[Pack]:
 def validate_pack_metadata(pack_toml_path: Path) -> None:
     """Validate a pack.toml against pack.schema.json. Raise on errors."""
     metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
-    schema = json.loads(PACK_SCHEMA_PATH.read_text(encoding="utf-8"))
+    schema = json.loads(_read_bundled("pack.schema.json"))
     errors = validate_instance(metadata, schema)
     if errors:
         raise ValueError(
@@ -121,7 +176,7 @@ def validate_pack_metadata(pack_toml_path: Path) -> None:
 def validate_plugin_manifest(plugin_json_path: Path) -> None:
     """Validate a per-pack .claude-plugin/plugin.json against schema."""
     manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
-    schema = json.loads(PLUGIN_MANIFEST_SCHEMA_PATH.read_text(encoding="utf-8"))
+    schema = json.loads(_read_bundled("plugin-manifest.schema.json"))
     errors = validate_instance(manifest, schema)
     if errors:
         raise ValueError(
@@ -308,7 +363,7 @@ def run_default_build(
 ) -> list[dict]:
     """Run the three RFC-0001 recipes — what plain `make build` invokes."""
     if contract is None:
-        contract = load_contract(CONTRACT_PATH)
+        contract = tomllib.loads(_read_bundled("adapter.toml"))
     packs = discover_packs(packs_dir)
     results: list[dict] = []
     for recipe_name in DEFAULT_RECIPES:
@@ -322,7 +377,7 @@ def cmd_build(args) -> int:
     output_dir = Path(args.output_dir).resolve()
     packs_dir = Path(args.packs_dir).resolve()
     try:
-        contract = load_contract(CONTRACT_PATH)
+        contract = tomllib.loads(_read_bundled("adapter.toml"))
     except Exception as exc:
         print(f"build: failed to load contract: {exc}", file=sys.stderr)
         return 1

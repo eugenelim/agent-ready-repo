@@ -1,0 +1,1 @@
+# AGENTS.md (seed content)

@@ -1,0 +1,6 @@
+# .adapt-discovery.toml — CLI reads, never writes.
+# accepted entries are applied as marker values.
+[accepted]
+OWNER = "octocat"
+
+[declined]
