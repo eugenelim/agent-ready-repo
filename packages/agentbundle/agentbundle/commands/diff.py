@@ -48,7 +48,7 @@ def run(args: argparse.Namespace) -> int:
 
     try:
         rendered: dict[str, bytes] = render.render_pack(pack_path)
-    except Exception as exc:  # noqa: BLE001
+    except (FileNotFoundError, ValueError) as exc:
         print(f"error: render failed for pack at '{pack_path}': {exc}", file=sys.stderr)
         return 1
 

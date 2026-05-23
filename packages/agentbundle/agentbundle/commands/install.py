@@ -84,7 +84,7 @@ def run(args: "argparse.Namespace") -> int:
     # ── Step 4: Render projection in memory ───────────────────────────────────
     try:
         projection = render_pack(pack_dir)
-    except Exception as exc:
+    except (FileNotFoundError, ValueError) as exc:
         print(f"install: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
         return 1
 
@@ -131,7 +131,9 @@ def run(args: "argparse.Namespace") -> int:
         # install. The install command's contract is different: EVERY path in
         # the incoming projection is adapter-contract space; we just need to
         # know whether it's safe to overwrite or not.
-        tier = _classify_for_install(relpath, output_root, content, state)
+        tier = _classify_for_install(
+            relpath, output_root, content, state, pack_name=pack_name,
+        )
 
         if tier is safety.Tier.TIER_2:
             # Adopter has edited — write companion, leave original untouched.
@@ -179,6 +181,8 @@ def _classify_for_install(
     root: Path,
     incoming_content: bytes,
     state: "State",
+    *,
+    pack_name: str = "",
 ) -> "Tier":
     """Classify a projected relpath for the install command.
 
@@ -206,10 +210,20 @@ def _classify_for_install(
         return _safety.Tier.TIER_1
 
     # Check if it matches a recorded SHA in *any* pack (i.e. it's a prior
-    # Tier-1 install that was not edited by the adopter).
-    for ps in state.packs.values():
+    # Tier-1 install that was not edited by the adopter). If the match
+    # comes from a different pack than the one being installed, warn —
+    # silent overwrite of another pack's content would hide a real
+    # projection conflict.
+    for other_pack_name, ps in state.packs.items():
         recorded = ps.file_sha(relpath)
         if recorded and on_disk_sha == recorded:
+            if pack_name and other_pack_name and other_pack_name != pack_name:
+                import sys
+                print(
+                    f"install: warning: {relpath!r} is also recorded under "
+                    f"pack {other_pack_name!r}; the two packs project the same path",
+                    file=sys.stderr,
+                )
             return _safety.Tier.TIER_1
 
     # On disk, different from the bundle, and no matching prior-install SHA —

@@ -119,6 +119,28 @@ def run(args) -> int:
     return 0
 
 
+def _canonicalise_target(name: str) -> str | None:
+    """Return the hyphenated canonical adapter name, or None if unknown.
+
+    Accepts both the contract-form `claude-code` and the Python-module form
+    `claude_code` so adopters don't have to remember which the CLI flag
+    expects. Single source of truth for the hyphen/underscore duality;
+    `list-targets` calls this too.
+
+    The literal `apm` is a special case — an aggregate recipe in F-build,
+    not a per-adapter projection — and is accepted as a recipe filter even
+    though it isn't in the module-keyed `registry`.
+    """
+    from agentbundle.build.adapters import ADAPTERS
+
+    known_hyphenated = set(ADAPTERS.keys()) | {"apm"}
+    if name in known_hyphenated:
+        return name
+    if name.replace("_", "-") in known_hyphenated:
+        return name.replace("_", "-")
+    return None
+
+
 def _select_recipes(target: str | None) -> list[str] | None:
     """Return the recipe list for the given target (or DEFAULT_RECIPES if None).
 
@@ -127,21 +149,9 @@ def _select_recipes(target: str | None) -> list[str] | None:
     if target is None:
         return list(DEFAULT_RECIPES)
 
-    # Validate target against known adapters
-    from agentbundle.build.adapters import ADAPTERS
-
-    # ADAPTERS uses hyphenated contract names (claude-code, kiro, copilot, codex, apm)
-    # The registry uses Python module names (claude_code, kiro, copilot, codex).
-    # Accept both forms for usability.
-    normalised = target.replace("-", "_")
-    known_hyphenated = set(ADAPTERS.keys()) | {"apm"}
-    known_underscored = {k.replace("-", "_") for k in known_hyphenated}
-
-    if target not in known_hyphenated and normalised not in known_underscored:
+    canonical = _canonicalise_target(target)
+    if canonical is None:
         return None
-
-    # Canonicalise to hyphenated form for recipe adapter field comparison.
-    canonical = target if target in known_hyphenated else target.replace("_", "-")
 
     # Filter DEFAULT_RECIPES to those whose adapter matches, plus adapter-less recipes.
     selected: list[str] = []

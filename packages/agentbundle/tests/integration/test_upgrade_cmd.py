@@ -358,3 +358,19 @@ def test_pack_not_installed_exits_nonzero(tmp_path, capsys):
     assert rc != 0
     captured = capsys.readouterr()
     assert "not installed" in captured.err
+
+
+def test_filter_for_primitive_refuses_ambiguous_name():
+    """If a pack would project both `<src_dir>/<name>/...` and
+    `<src_dir>/<name>.<ext>` for the same primitive name, `_filter_for_primitive`
+    refuses with ValueError — F-build's `validate_pack_uniqueness` already
+    rejects this shape at build time, but the upgrade boundary checks again."""
+    from agentbundle.commands.upgrade import _filter_for_primitive
+
+    projection = {
+        "apm/core/.apm/skills/foo/SKILL.md": b"dir form",
+        "apm/core/.apm/skills/foo.md": b"file form",
+    }
+    import pytest
+    with pytest.raises(ValueError, match="ambiguous"):
+        _filter_for_primitive(projection, "foo", "skills")

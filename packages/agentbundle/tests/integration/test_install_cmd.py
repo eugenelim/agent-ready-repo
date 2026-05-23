@@ -420,3 +420,37 @@ def test_reinstall_preserves_mixed_version_primitives(tmp_path):
     assert after.packs["core"].primitive_versions == {
         "skill": {"work-loop": "v0.2"}
     }, "re-install dropped mixed-version overrides"
+
+
+def test_install_warns_on_pack_collision(tmp_path, capsys):
+    """When the on-disk SHA at a projected path matches *another* pack's
+    recorded SHA, install logs a warning rather than silently overwriting.
+    (Concern 15 from adversarial review.)"""
+    import argparse
+    from agentbundle import safety
+    from agentbundle.commands.install import _classify_for_install
+    from agentbundle.config import PackState, State
+
+    # On-disk content (from a prior install of 'other') differs from the
+    # incoming 'core' bundle bytes — so the on-disk-vs-incoming SHA check
+    # doesn't short-circuit to TIER_1; the recorded-SHA loop runs.
+    on_disk_content = b"content from prior install of pack 'other'"
+    incoming_content = b"content from pack 'core' (different bytes)"
+
+    f = tmp_path / "shared.md"
+    f.write_bytes(on_disk_content)
+
+    state = State()
+    state.packs["other"] = PackState(
+        installed_version="0.1",
+        files={"shared.md": {"sha": safety.sha256_bytes(on_disk_content), "from-pack-version": "0.1"}},
+    )
+
+    tier = _classify_for_install(
+        "shared.md", tmp_path, incoming_content, state, pack_name="core",
+    )
+    assert tier is safety.Tier.TIER_1
+    captured = capsys.readouterr()
+    assert "also recorded under pack 'other'" in captured.err, (
+        f"expected collision warning in stderr: {captured.err!r}"
+    )

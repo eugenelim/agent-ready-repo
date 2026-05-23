@@ -91,7 +91,10 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--output", required=True)
     sp.add_argument(
         "--target",
-        help="Optional adapter target (claude-code, kiro, copilot, codex); default: all.",
+        help=(
+            "Optional adapter target (claude-code, kiro, copilot, codex); "
+            "underscore form also accepted (claude_code); default: all."
+        ),
     )
     sp.add_argument(
         "--self-host",

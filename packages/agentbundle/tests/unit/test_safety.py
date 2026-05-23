@@ -109,3 +109,20 @@ def test_write_companion_drops_upstream_file(tmp_path):
 
 def test_assert_under_passes_for_path_inside(tmp_path):
     safety.assert_under(tmp_path, tmp_path / "a" / "b")  # no exception
+
+
+def test_classify_returns_tier_2_when_recorded_path_lacks_sha(tmp_path):
+    """Defensive branch: a hand-edited state file with a `[pack.X.files] foo`
+    entry that lacks the `sha` key. classify can't prove Tier-1 vs Tier-2
+    here, so it conservatively returns Tier-2 — and a write goes via
+    `.upstream.<ext>` rather than overwriting adopter content.
+    """
+    from agentbundle.config import PackState, State
+    state = State()
+    state.packs["weird"] = PackState(
+        installed_version="0.1",
+        files={"AGENTS.md": {"from-pack-version": "0.1"}},  # no `sha`
+    )
+    f = tmp_path / "AGENTS.md"
+    f.write_bytes(b"anything")
+    assert safety.classify("AGENTS.md", tmp_path, state) is safety.Tier.TIER_2

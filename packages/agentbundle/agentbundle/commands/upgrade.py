@@ -151,7 +151,7 @@ def run(args: "argparse.Namespace") -> int:
     # ── Render new projection in memory ──────────────────────────────────────
     try:
         projection = render_pack(pack_dir)
-    except Exception as exc:
+    except (FileNotFoundError, ValueError) as exc:
         print(f"upgrade: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
         return 1
 
@@ -276,16 +276,30 @@ def _filter_for_primitive(
     that a future pack.toml ``source-path`` field can replace it without
     touching test or command logic — just update this function.
 
-    Limitation: two primitives of the same type sharing a name prefix may
-    both match (e.g. skill ``work`` and skill ``work-loop``). This is a known
-    v1 trade-off; pack authors should use distinct names.
+    Disambiguation: if a pack contains both `<src_dir>/<name>/...` (dir
+    primitive) and `<src_dir>/<name>.<ext>` (single-file primitive), the
+    primitive name is ambiguous and the function raises `ValueError`.
+    F-build's `validate_pack_uniqueness` already rejects this shape at
+    build time; this check is defence-in-depth at the upgrade boundary.
+
+    Name terminators (`/` for dir, `.` for file) prevent prefix bleed:
+    `skills/work-loop/` is never matched by `skills/work/`.
     """
     dir_segment = f"/{src_dir}/{prim_name}/"
     file_segment = f"/{src_dir}/{prim_name}."
 
-    result: dict[str, bytes] = {}
+    via_dir: dict[str, bytes] = {}
+    via_file: dict[str, bytes] = {}
     for relpath, content in projection.items():
         norm = relpath if relpath.startswith("/") else "/" + relpath
-        if dir_segment in norm or file_segment in norm:
-            result[relpath] = content
-    return result
+        if dir_segment in norm:
+            via_dir[relpath] = content
+        elif file_segment in norm:
+            via_file[relpath] = content
+
+    if via_dir and via_file:
+        raise ValueError(
+            f"primitive {prim_name!r} is ambiguous in source dir {src_dir!r}: "
+            f"matches both a directory and a single-file form"
+        )
+    return {**via_dir, **via_file}
