@@ -19,9 +19,39 @@ from agentbundle.build.lint_packs import (
 )
 
 # The repo-checked-in fixture lives under tests/fixtures/lint_packs/.
-# Tests that need a symlink violation construct it at runtime to keep
-# the on-disk fixture portable to a Windows clone.
+# Reserved-name violations are constructed at runtime under tmp_path
+# (POSIX-only) because NTFS forbids `git checkout` from materialising
+# a path like `seeds/CON.md` — keeping the fixture purely runtime-
+# constructed lets the Windows CI runner clone the repo without
+# `error: invalid path`. The symlink fixture is also runtime-only for
+# the same portability reason.
 FIXTURES = Path(__file__).resolve().parent.parent.parent.parent / "tests" / "fixtures" / "lint_packs"
+
+
+def _materialise_with_reserved_fixture(root: Path) -> Path:
+    """Build the equivalent of the legacy `with_reserved/` fixture under
+    ``root``. POSIX-only — Windows refuses the `CON.md` create itself,
+    so callers MUST gate on ``sys.platform != "win32"``.
+    """
+    pack = root / "with_reserved"
+    (pack / "seeds").mkdir(parents=True)
+    (pack / "pack.toml").write_text(
+        '[pack]\n'
+        'name = "with-reserved"\n'
+        'version = "0.0.1"\n'
+        'description = "Windows-portability lint fixture: ships seeds/CON.md to '
+        'prove the lint rejects Windows-reserved names. Not for installation."\n'
+        '\n'
+        '[pack.adapter-contract]\n'
+        'version = "0.2"\n'
+        '\n'
+        '[pack.install]\n'
+        'default-scope = "repo"\n'
+        'allowed-scopes = ["repo"]\n',
+        encoding="utf-8",
+    )
+    (pack / "seeds" / "CON.md").write_text("reserved\n", encoding="utf-8")
+    return pack
 
 
 class LintPackTests(unittest.TestCase):
@@ -29,8 +59,15 @@ class LintPackTests(unittest.TestCase):
         findings = lint_pack(FIXTURES / "clean")
         self.assertEqual(findings, [])
 
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "NTFS refuses to materialise seeds/CON.md; lint logic is OS-agnostic "
+        "so POSIX coverage is sufficient",
+    )
     def test_with_reserved_fixture_catches_con_md(self) -> None:
-        findings = lint_pack(FIXTURES / "with_reserved")
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = _materialise_with_reserved_fixture(Path(tmp))
+            findings = lint_pack(pack)
         self.assertEqual(len(findings), 1, findings)
         self.assertIn("CON.md", findings[0])
         self.assertIn("reserved", findings[0].lower())
@@ -66,8 +103,25 @@ class LintPackTests(unittest.TestCase):
             findings = lint_pack(pack)
             self.assertTrue(any("symlink" in f for f in findings))
 
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "NTFS refuses to materialise seeds/CON.md; lint logic is OS-agnostic "
+        "so POSIX coverage is sufficient",
+    )
     def test_lint_all_packs_returns_per_pack_results(self) -> None:
-        results = lint_all_packs(FIXTURES)
+        with tempfile.TemporaryDirectory() as tmp:
+            packs_dir = Path(tmp)
+            # Mirror the legacy on-disk fixture tree at runtime: a
+            # `clean` pack alongside a `with_reserved` pack.
+            clean = packs_dir / "clean"
+            (clean / "seeds").mkdir(parents=True)
+            (clean / "pack.toml").write_text(
+                '[pack]\nname = "clean"\nversion = "0.0.1"\n',
+                encoding="utf-8",
+            )
+            (clean / "seeds" / "ok.md").write_text("ok\n", encoding="utf-8")
+            _materialise_with_reserved_fixture(packs_dir)
+            results = lint_all_packs(packs_dir)
         self.assertIn("clean", results)
         self.assertIn("with_reserved", results)
         self.assertEqual(results["clean"], [])
@@ -86,11 +140,19 @@ class LintPackTests(unittest.TestCase):
             self.assertIn("real-pack", results)
             self.assertNotIn("not-a-pack", results)
 
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "NTFS refuses to materialise seeds/CON.md; lint logic is OS-agnostic "
+        "so POSIX coverage is sufficient",
+    )
     def test_cmd_lint_packs_exits_one_on_violation(self) -> None:
-        args = argparse.Namespace(packs_dir=str(FIXTURES))
-        buf = io.StringIO()
-        with redirect_stderr(buf):
-            rc = cmd_lint_packs(args)
+        with tempfile.TemporaryDirectory() as tmp:
+            packs_dir = Path(tmp)
+            _materialise_with_reserved_fixture(packs_dir)
+            args = argparse.Namespace(packs_dir=str(packs_dir))
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                rc = cmd_lint_packs(args)
         self.assertEqual(rc, 1)
         self.assertIn("CON.md", buf.getvalue())
         self.assertIn("violation", buf.getvalue())
