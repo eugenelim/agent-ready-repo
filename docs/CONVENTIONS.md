@@ -779,6 +779,100 @@ already lives in this repo. These are the in-loop counterparts to the
 
 ---
 
+## Credentialed skills
+
+Skills that call external authenticated APIs follow a tighter set of
+rules than plain skills, because the moment a credential reaches the
+LLM as a tool argument the architecture has already failed.
+[RFC-0006](rfc/0006-skill-secrets-storage.md) is the canonical
+record of the decisions; this section is the in-loop reminder of the
+shape every credentialed skill must respect.
+
+### Two-layer architecture
+
+Skills do not hold credentials. A *credentialed primitive* — a Python
+module, an MCP server, or a CLI wrapper packaged as a primitive —
+owns the secret on disk and constructs the API call inside its own
+process. The skill body invokes the primitive without ever touching
+the token. See RFC-0006
+[§ 1 Two-layer architecture](rfc/0006-skill-secrets-storage.md#1-two-layer-architecture-skills-dont-hold-credentials)
+for the rationale; the `add-credentialed-skill` author skill walks
+authors through the substitutions, and `example-credentialed-skill`
+ships as the worked example.
+
+### Three storage tiers
+
+Credentials resolve in this order, first-hit-wins per key:
+
+1. **Tier 1 — env var.** `<NAMESPACE>_<KEY>` from `os.environ`
+   (e.g. `JIRA_API_TOKEN`). Composes with Vault Agent / `op run --`
+   wrappers without further changes; the only path that does.
+2. **Tier 2 — OS keyring.** macOS Keychain via `/usr/bin/security`
+   (token via child stdin, never argv); Windows Credential Manager
+   via in-process `ctypes` against `advapi32`. Linux falls through
+   to Tier 3 in v1 — a `libsecret` backend is deferred to a v2 RFC.
+3. **Tier 3 — dotfile.** `~/.agent-ready/credentials.env`, mode
+   `0600` on POSIX, DACL-verified via `icacls` on Windows. The
+   fallback floor.
+
+The order, the tier names, and the rationale for the gh-CLI-shaped
+consensus live in RFC-0006
+[§ 2 Storage tiers](rfc/0006-skill-secrets-storage.md#2-storage-tiers-gh-cli-shaped-stdlib-only).
+Changing the order, or adding a new tier, is an `Ask first` action
+in the spec's Boundaries section — the corporate-network constraints
+that justified the precedence are non-obvious.
+
+### The argv ban
+
+Credentialed-CLI-class primitives must refuse the value-shaped flags
+`--token`, `--api-token`, `--api-key`, `--bearer`, `--pat`,
+`--password`. The CLI verb's `setup` subparser registers these as
+*tombstone arguments* whose action emits the verbatim sentinel
+`tokens cannot be passed via argv` and exits non-zero; the
+`tools/lint-credentialed-skills.sh` lint refuses any primitive's
+script that declares one of the banned names in an
+`argparse.ArgumentParser.add_argument` call. MCP-server-class
+primitives may accept *header-naming* flags (`--bearer-header`,
+`--auth-header`, `--header-prefix`) because those name *which* header
+to consult per-request, not the value. See RFC-0006
+[§ 4 The argv ban](rfc/0006-skill-secrets-storage.md#4-the-argv-ban-and-the-skillmd-dont-boilerplate)
+for the full set and the rationale.
+
+### Anti-pattern register
+
+Five anti-patterns rejected by name in RFC-0006
+[§ 6 Anti-pattern register](rfc/0006-skill-secrets-storage.md#6-anti-pattern-register):
+
+- **Tokens in skill argv** — defeats the architecture rule.
+- **The `creds get` "wrap-and-leak" shape** — any verb that prints a
+  cleartext token to stdout enables capture from a skill body.
+  `agentbundle creds` ships four verbs (`setup`/`check`/`where`/`rm`)
+  by design; no `get`.
+- **Per-skill dotfiles** — one well-known per-user file per the spec
+  AC13 path; per-skill files multiply the wipe-on-rotation surface.
+- **`SSL_VERIFY=false` defaults** — `--insecure` is opt-in only and
+  must emit a stderr warning.
+- **Vendored copies of third-party API skills** — pin upstream and
+  audit; do not fork to silence a vendor's lint.
+
+### Corporate-network requirements
+
+Credentialed primitives ship from this catalogue running on corporate
+laptops; the network they live on is the default RFC-0006
+[§ 7 Corporate concerns](rfc/0006-skill-secrets-storage.md#7-corporate-concerns-the-primitive-must-respect)
+pins:
+
+- **Honor `HTTPS_PROXY` / `NO_PROXY` from the environment.** No
+  hard-coded `requests.get(...)` without proxy resolution.
+- **Honor the system trust store via `REQUESTS_CA_BUNDLE`,
+  `SSL_CERT_FILE`, `SSL_CERT_DIR`.** Corporate MITM CAs land here;
+  ignoring them turns into a "works on the engineer's laptop only"
+  bug.
+- **Refuse `--insecure` / `verify=False` as a default.** Opt-in flag
+  only; primitive emits a stderr warning whenever it fires.
+
+---
+
 ## When this file is wrong
 
 If a convention here is causing friction, **say so in an RFC**. Don't quietly
