@@ -87,7 +87,20 @@ def run(args: "argparse.Namespace") -> int:
     catalogue_uri: str = args.catalogue
     cli_scope: str | None = getattr(args, "scope", None)
     force: bool = bool(getattr(args, "force", False))
+    force_merge: bool = bool(getattr(args, "force_merge", False))
     output_root = Path(args.output).resolve()
+
+    # `--force-merge` runtime binding (Step 2's resolved scope is the
+    # source of truth — see below). The early check here catches an
+    # explicit ``--scope repo``; the resolved-scope check after
+    # Step 2 catches the case where the pack defaults to repo scope.
+    if force_merge and cli_scope == "repo":
+        print(
+            "install: --force-merge is bound to user scope; pass --scope user "
+            "or omit --force-merge",
+            file=sys.stderr,
+        )
+        return 1
 
     # Range-check the CLI-supplied pack name before any I/O. The manifest's
     # `pack.name` is checked by `_assert_pack_metadata_shape` below; this
@@ -143,7 +156,12 @@ def run(args: "argparse.Namespace") -> int:
     # Mirrors validate.py:_allowed_scopes, kept in sync intentionally.
     from agentbundle.config import pack_spec_version
 
-    if pack_spec_version(pack_toml) == "0.2":
+    # v0.2 introduced `[pack.install]`; v0.3 (RFC-0005) added optional
+    # `user-scope-hooks` but did not change scope-resolution semantics.
+    # Mirror validate.py:_allowed_scopes — both versions carry the
+    # install table. The v0.1 path stays gateless (legacy implied
+    # `default-scope = "repo"`).
+    if pack_spec_version(pack_toml) in ("0.2", "0.3"):
         pack_install = pack_toml.get("pack", {}).get("install")
     else:
         pack_install = None
@@ -155,6 +173,18 @@ def run(args: "argparse.Namespace") -> int:
         print(
             f"install: {exc.pack_name}: scope {exc.requested!r} not in "
             f"allowed-scopes {exc.allowed}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # RFC-0005 § Binding: ``--force-merge`` is bound to user scope only.
+    # Gate on the *resolved* scope (the source of truth post-Step 2)
+    # so a pack defaulting to repo scope also surfaces the refusal,
+    # not just an explicit `--scope repo`.
+    if force_merge and requested_scope != "user":
+        print(
+            "install: --force-merge is bound to user scope; pass --scope user "
+            "or omit --force-merge",
             file=sys.stderr,
         )
         return 1
@@ -260,10 +290,37 @@ def run(args: "argparse.Namespace") -> int:
         scopes_to_install = [requested_scope]
 
     # Probe per-adapter scope metadata (for allowed-prefixes at user
-    # scope). The Claude Code adapter is the only one shipping a
-    # [scope] block today; future adapters would map similarly. We
-    # consult the bundled contract.
-    allowed_prefixes_user = _claude_code_allowed_prefixes_user()
+    # scope). The Claude Code adapter ships a [scope] block from
+    # RFC-0004; RFC-0005's T1 added one to Kiro too. Resolve which
+    # adapter the user-scope install targets and use that adapter's
+    # `allowed-prefixes.user`. Kiro-targeted packs (those shipping
+    # `.apm/agents/`) get Kiro's `.kiro/` prefix; everything else
+    # gets Claude Code's `.claude/` prefix.
+    user_target_adapter = _resolve_user_scope_target_adapter(pack_dir)
+    allowed_prefixes_user = _adapter_allowed_prefixes_user(user_target_adapter)
+
+    # RFC-0005 AC25: refuse install --scope user against an adapter
+    # that doesn't declare a working user-scope hook-wiring mode. The
+    # heuristic above picks kiro/claude-code; this guard catches a
+    # contract-misconfiguration regression (e.g. someone strips
+    # `user-merge-json` from the contract or sets `dropped`) before
+    # any byte is written.
+    user_scope_hooks_opt_in = bool(
+        isinstance(pack_install, dict)
+        and pack_install.get("user-scope-hooks") is True
+    )
+    if (
+        user_scope_hooks_opt_in
+        and requested_scope == "user"
+        and not _adapter_supports_user_scope_hook_wiring(user_target_adapter)
+    ):
+        print(
+            f"install: adapter {user_target_adapter!r} does not declare a "
+            f"hook-wiring mode that supports user scope; pack {pack_name} "
+            f"requires it",
+            file=sys.stderr,
+        )
+        return 1
 
     plans: list[_ScopePlan] = []
     for scope_value in scopes_to_install:
@@ -323,6 +380,20 @@ def run(args: "argparse.Namespace") -> int:
                 return 1
 
     # ── Step 6: Pre-flight — rails A/B/C for any user-scope write ────────────
+    # Also run the kiro attach-to-agent rail (T2's `check_kiro_wiring`)
+    # for user-scope kiro-targeted packs. Catches malformed wiring TOMLs
+    # (missing/typo'd `attach-to-agent`, path-traversal payloads) before
+    # any render — the build-pipeline error message ("internal: <path>
+    # missing") isn't actionable for adopters; this rail surfaces the
+    # actual contract violation.
+    if any(p.scope == "user" for p in plans) and user_target_adapter == "kiro":
+        target_adapters = {"kiro"}
+        kiro_refusal = scope_rails.check_kiro_wiring(
+            pack_dir, pack_name, target_adapters
+        )
+        if kiro_refusal is not None:
+            print(f"install: {kiro_refusal}", file=sys.stderr)
+            return 1
     for plan in plans:
         if plan.scope == "user":
             allowed_scopes = _resolved_allowed_scopes(pack_install)
@@ -355,13 +426,44 @@ def run(args: "argparse.Namespace") -> int:
     # projection target).
     repo_projection: dict[str, bytes] | None = None
     user_projection: dict[str, bytes] | None = None
+    # RFC-0005 § hook-body at user scope: user-scope packs ship hook
+    # bodies that project to `<adapter>/hooks/<pack>/` (not the legacy
+    # `tools/hooks/`); RFC-0005 § hook-wiring lands the wiring merger
+    # against the adopter's settings or pack-owned agent JSON instead
+    # of writing the wiring TOML to disk. Both rewrites happen
+    # post-render and pre-path-jail.
+    # `user_target_adapter` resolved earlier (alongside allowed_prefixes_user).
     try:
         if any(p.scope == "repo" for p in plans):
             repo_projection = render_pack(pack_dir)
         if any(p.scope == "user" for p in plans):
             user_projection = _render_for_user_scope(pack_dir)
+            user_scope_hooks_enabled = bool(
+                isinstance(pack_install, dict)
+                and pack_install.get("user-scope-hooks") is True
+            )
+            if user_scope_hooks_enabled:
+                user_projection = _rewrite_user_scope_hook_paths(
+                    user_projection,
+                    pack_name=pack_name,
+                    target_adapter=user_target_adapter,
+                )
     except (FileNotFoundError, ValueError) as exc:
         print(f"install: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
+        return 1
+
+    # RFC-0005 § Binding: ``--force-merge`` is Claude-Code-only. The
+    # kiro merge target is a pack-owned agent JSON; adopter collision
+    # is structurally a non-case. Refuse early once the target adapter
+    # is known.
+    if force_merge and user_target_adapter != "claude-code" and any(
+        p.scope == "user" for p in plans
+    ):
+        print(
+            "install: --force-merge applies only to Claude-Code-targeted packs; "
+            f"pack {pack_name} resolves to adapter '{user_target_adapter}' at user scope",
+            file=sys.stderr,
+        )
         return 1
 
     # Full re-check including projection relpaths now that `render_pack`
@@ -460,6 +562,53 @@ def run(args: "argparse.Namespace") -> int:
                 "sha": safety.sha256_bytes(content),
                 "from-pack-version": pack_version,
             }
+
+        # RFC-0005 T8b — user-scope hook-wiring merge phase.
+        # Runs after file writes (so hook bodies exist where wiring
+        # entries reference them via $HOOK_BODY_PATH-style placeholders;
+        # T8b's resolver-time substitution is the consumer's concern).
+        # Captures (event, id[, target-file]) tuples and writes them
+        # to ``hook_wiring_owned`` on the PackState so uninstall can
+        # be precise.
+        if plan.scope == "user":
+            user_scope_hooks_enabled = bool(
+                isinstance(pack_install, dict)
+                and pack_install.get("user-scope-hooks") is True
+            )
+            if user_scope_hooks_enabled:
+                try:
+                    owned_rows = _merge_user_scope_hook_wiring(
+                        pack_dir=pack_dir,
+                        pack_name=pack_name,
+                        target_adapter=user_target_adapter,
+                        install_root=plan.root,
+                        force_merge=force_merge,
+                    )
+                except Exception as exc:
+                    print(f"install: {exc}", file=sys.stderr)
+                    return 1
+                new_pack_state.hook_wiring_owned = owned_rows
+                if user_target_adapter == "kiro":
+                    new_pack_state.adapter = "kiro"
+
+                # The merge phase re-wrote the agent JSON (Kiro) with
+                # the hook entries we just merged in; for Claude Code,
+                # the settings.json target is adopter-shared and isn't
+                # tracked in state.files at all. Refresh the on-disk
+                # SHA for any merged target that *is* in state.files
+                # so uninstall's Tier-1 check (recorded SHA == on-disk
+                # SHA) still passes after the merge.
+                for row in owned_rows:
+                    target_file_rel = row.get("target-file")
+                    if not target_file_rel:
+                        continue
+                    target_path = plan.root / target_file_rel.lstrip("/")
+                    if not target_path.exists():
+                        continue
+                    if target_file_rel in new_pack_state.files:
+                        new_pack_state.files[target_file_rel]["sha"] = (
+                            safety.sha256_file(target_path)
+                        )
 
         plan.state.packs[pack_name] = new_pack_state
         # Stamp the post-write schema. Always emit the current
@@ -949,19 +1098,234 @@ def _render_for_user_scope(pack_dir: Path) -> dict[str, bytes]:
     intentionally out of scope at user-scope install — they're
     dist-time build artifacts that the adopter's `~` should never
     carry.
+
+    Note: for v0.3 packs declaring ``user-scope-hooks = true``, the
+    install handler applies a v0.3 post-projection rewrite via
+    ``_rewrite_user_scope_hook_paths`` to swap legacy hook-body
+    targets (``tools/hooks/``) for the user-scope shape
+    (``.claude/hooks/<pack>/`` or ``.kiro/hooks/<pack>/``) and drop
+    the v0.2 wiring-target file (``.claude/settings.local.json``)
+    from the projection map. The wiring TOMLs themselves are then
+    consumed by ``_merge_user_scope_hook_wiring`` post-write.
     """
     import tempfile
     import tomllib
 
-    from agentbundle.build.adapters import claude_code
+    from agentbundle.build.adapters import claude_code, kiro
     from agentbundle.build.main import _read_bundled
     from agentbundle.render import _collect_tree
 
     contract = tomllib.loads(_read_bundled("adapter.toml"))
+    target_adapter = _resolve_user_scope_target_adapter(pack_dir)
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
-        claude_code.project(pack_dir, contract, out)
+        if target_adapter == "kiro":
+            kiro.project(pack_dir, contract, out)
+        else:
+            claude_code.project(pack_dir, contract, out)
         return _collect_tree(out)
+
+
+def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
+    """Return True iff the adapter declares a hook-wiring projection
+    mode that works at user scope (RFC-0005 AC25).
+
+    Two shapes count:
+      - Claude Code: ``mode.user = "user-merge-json"``.
+      - Kiro: ``mode = "merge-into-agent-json"`` (single mode, no
+        scope qualifier — the agent-file target is scope-conditional
+        via `<scope-root>` resolution).
+
+    Anything else (``dropped``, ``degraded-info-log``, absent
+    projection) is refused.
+    """
+    import tomllib
+    from agentbundle.build.main import _read_bundled
+
+    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    adapter_block = contract.get("adapter", {}).get(adapter_name, {})
+    projections = adapter_block.get("projections", {}) if isinstance(adapter_block, dict) else {}
+    hook_wiring = projections.get("hook-wiring") if isinstance(projections, dict) else None
+    if not isinstance(hook_wiring, dict):
+        return False
+    mode = hook_wiring.get("mode")
+    if isinstance(mode, dict):
+        # Claude-Code-shape scope-map: only `user-merge-json` is the
+        # documented user-scope mode. `merge-into-agent-json` would
+        # be a contract misconfiguration (it targets per-agent files,
+        # not a settings file) — refuse it under the scope-map branch.
+        return mode.get("user") == "user-merge-json"
+    # Bare-string mode: only `merge-into-agent-json` (Kiro shape)
+    # implies user-scope support. `merge-json` (the v0.2 repo-only
+    # form) does not.
+    return mode == "merge-into-agent-json"
+
+
+def _resolve_user_scope_target_adapter(pack_dir: Path) -> str:
+    """Heuristic mirroring T2's `_kiro_target_adapters`: a pack ships
+    ``.apm/agents/<name>.md`` iff it intends to project against Kiro
+    (Kiro's hook-wiring binds inside agent JSON). Packs without agents
+    project against Claude Code at user scope.
+
+    TODO(allowed-adapters): A future RFC may add a per-pack
+    ``allowed-adapters`` declaration on `pack.toml`. When it does,
+    resolve via that field instead of the agents-present heuristic
+    — that closes the AC25 corner case where a Copilot-only pack
+    with hooks (no agents) silently resolves to ``claude-code``
+    here. Until then, the heuristic is the proxy.
+
+    Known limitation: two packs claiming the same Kiro agent name
+    (each ships ``.apm/agents/<name>.md``) will both write to the
+    same projected ``.kiro/agents/<name>.json`` and the second
+    install will silently overwrite the first's wiring. T8c upgrade
+    reconciliation (and a follow-on RFC for shared-agent ownership)
+    will need to address this; T8b's single-pack ACs don't cover it.
+    """
+    agents_dir = pack_dir / ".apm" / "agents"
+    if not agents_dir.exists():
+        return "claude-code"
+    for entry in agents_dir.iterdir():
+        if entry.is_file() and entry.suffix == ".md":
+            return "kiro"
+    return "claude-code"
+
+
+def _rewrite_user_scope_hook_paths(
+    projection: dict[str, bytes],
+    pack_name: str,
+    target_adapter: str,
+) -> dict[str, bytes]:
+    """Rewrite legacy hook-body paths in *projection* to v0.3 user-
+    scope targets per RFC-0005 § hook-body at user scope, and drop the
+    v0.2 wiring-target file (the v0.3 merge engine writes through the
+    user-merge-json / merge-into-agent-json path instead).
+
+    Claude Code target: ``.claude/hooks/<pack>/<name>.{sh,py}``.
+    Kiro target: ``.kiro/hooks/<pack>/<name>.{sh,py}``.
+
+    For Kiro user-scope installs, the build pipeline's Kiro adapter
+    has already merged hook-wiring into the dist's
+    ``.kiro/agents/<name>.json``. The install-time merge runs again
+    against the user's actual home — to keep ownership of the writes
+    single-sourced (and avoid a fragile double-merge), we strip the
+    ``hooks`` key from any agent JSON in the user-scope projection
+    here; install copies the body-only JSON, and
+    ``_merge_user_scope_hook_wiring`` re-adds the hook entries with
+    the same id-shape, producing a single set of writes.
+    """
+    import json
+
+    hook_subdir = ".claude/hooks" if target_adapter == "claude-code" else ".kiro/hooks"
+    drop_keys = {".claude/settings.local.json"}
+    hook_body_suffixes = (".sh", ".py")
+    rewritten: dict[str, bytes] = {}
+    for relpath, content in projection.items():
+        if relpath in drop_keys:
+            # The v0.2 wiring target — v0.3 merges directly into
+            # `~/.claude/settings.json` via user_merge_json instead.
+            continue
+        if (
+            relpath.startswith("tools/hooks/")
+            and Path(relpath).suffix in hook_body_suffixes
+        ):
+            basename = Path(relpath).name
+            rewritten[f"{hook_subdir}/{pack_name}/{basename}"] = content
+        elif (
+            target_adapter == "kiro"
+            and relpath.startswith(".kiro/agents/")
+            and relpath.endswith(".json")
+        ):
+            # Strip the `hooks` key — the install-time merge step
+            # re-adds it. Single-writer discipline; double-merge
+            # would be idempotent today but fragile under any
+            # future timestamp/version field on entries.
+            try:
+                data = json.loads(content.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                rewritten[relpath] = content
+                continue
+            if isinstance(data, dict) and "hooks" in data:
+                data.pop("hooks")
+            rewritten[relpath] = (
+                json.dumps(data, indent=2, sort_keys=False) + "\n"
+            ).encode("utf-8")
+        else:
+            rewritten[relpath] = content
+    return rewritten
+
+
+def _merge_user_scope_hook_wiring(
+    pack_dir: Path,
+    pack_name: str,
+    target_adapter: str,
+    install_root: Path,
+    force_merge: bool,
+) -> list[dict[str, str]]:
+    """Parse the pack's ``.apm/hook-wiring/*.toml`` and dispatch to the
+    appropriate v0.3 merger.
+
+    Returns the list of ``{"event", "id", "target-file"?}`` rows the
+    install handler stores on ``PackState.hook_wiring_owned``. The
+    ``target-file`` field is omitted for Claude Code rows (the
+    adapter's user-scope default target — ``~/.claude/settings.json``
+    — is the implicit target on read; RFC-0005 § State-file impact)
+    and explicit for Kiro rows.
+    """
+    import tomllib
+
+    wiring_dir = pack_dir / ".apm" / "hook-wiring"
+    if not wiring_dir.exists():
+        return []
+    wiring_tomls: dict[str, dict] = {}
+    for entry in sorted(wiring_dir.iterdir()):
+        if entry.is_file() and entry.suffix == ".toml":
+            wiring_tomls[entry.stem] = tomllib.loads(entry.read_text(encoding="utf-8"))
+    if not wiring_tomls:
+        return []
+
+    if target_adapter == "claude-code":
+        from agentbundle.build.projections.user_merge_json import project as _project
+
+        target = install_root / ".claude" / "settings.json"
+        owned = _project(target, pack_name, wiring_tomls, force_merge=force_merge)
+        return [{"event": event, "id": entry_id} for event, entry_id in owned]
+
+    # Kiro: group wiring by attach-to-agent; one merge call per agent.
+    from agentbundle import safety
+    from agentbundle.build.projections.merge_into_agent_json import project as _project
+
+    # Defence-in-depth on the merge target path: a malicious
+    # ``attach-to-agent`` value (e.g. ``"../../../tmp/escape"``) would
+    # otherwise resolve outside the user-scope jail. The Step-8 path-
+    # jail probe walks the projection dict; the merge target is
+    # constructed here, post-probe, so we re-jail manually.
+    _AGENT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+    wiring_by_agent: dict[str, dict[str, dict]] = {}
+    for basename, body in wiring_tomls.items():
+        attach = body.get("attach-to-agent") if isinstance(body, dict) else None
+        if not isinstance(attach, str):
+            continue
+        if not _AGENT_NAME_RE.fullmatch(attach):
+            raise RuntimeError(
+                f"install: pack {pack_name}'s hook-wiring {basename}.toml "
+                f"declares attach-to-agent={attach!r} which violates the "
+                f"agent-name grammar ^[a-z0-9][a-z0-9-]*$ — refusing"
+            )
+        wiring_by_agent.setdefault(attach, {})[basename] = body
+
+    rows: list[dict[str, str]] = []
+    for attach_to_agent, partitioned in wiring_by_agent.items():
+        target_file_rel = f".kiro/agents/{attach_to_agent}.json"
+        target = install_root / target_file_rel
+        try:
+            safety.assert_under(install_root, target)
+        except safety.PathJailError as exc:
+            raise RuntimeError(f"install: merge target outside jail: {exc}") from exc
+        owned = _project(target, pack_name, partitioned)
+        for event, entry_id in owned:
+            rows.append({"event": event, "id": entry_id, "target-file": target_file_rel})
+    return rows
 
 
 def _resolved_allowed_scopes(pack_install: dict | None) -> list[str]:
@@ -985,6 +1349,24 @@ def _claude_code_allowed_prefixes_user() -> list[str]:
     parsing the contract for the common repo-scope path. Cached so the
     five callers (install, uninstall, upgrade, init-state --migrate,
     adapt) parse the contract at most once per CLI invocation.
+
+    Retained as the Claude-Code-specific shortcut; new callers that
+    need adapter-aware resolution should use
+    ``_adapter_allowed_prefixes_user(adapter_name)`` below.
+    """
+    return _adapter_allowed_prefixes_user("claude-code")
+
+
+def _adapter_allowed_prefixes_user(adapter_name: str) -> list[str]:
+    """Read *adapter_name*'s `allowed-prefixes.user` from the contract.
+
+    RFC-0005's T1 added a `[adapter.kiro.scope]` table alongside Claude
+    Code's existing one; user-scope installs of Kiro-targeted packs
+    need Kiro's prefixes (`.kiro/`, `.agent-ready/`) not Claude Code's
+    (`.claude/`, `.agent-ready/`). The fallback (legacy contract
+    without a scope table for the requested adapter) is the
+    conservative single-prefix list rooted at the adapter's documented
+    directory.
     """
     import tomllib
     from agentbundle.build.main import _read_bundled
@@ -992,13 +1374,14 @@ def _claude_code_allowed_prefixes_user() -> list[str]:
     contract = tomllib.loads(_read_bundled("adapter.toml"))
     try:
         return list(
-            contract["adapter"]["claude-code"]["scope"]["allowed-prefixes"]["user"]
+            contract["adapter"][adapter_name]["scope"]["allowed-prefixes"]["user"]
         )
     except KeyError:
-        # Defensive: legacy contract without scope table. Fall back to
-        # the conservative single-prefix list — the path-jail probe
-        # will still refuse anything outside `.claude/`.
-        return [".claude/"]
+        # Defensive: contract didn't declare a [scope] block for this
+        # adapter. Pick a sensible default rooted at the adapter's
+        # documented user-scope directory.
+        default_prefix = ".kiro/" if adapter_name == "kiro" else ".claude/"
+        return [default_prefix]
 
 
 def _classify_for_install(

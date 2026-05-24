@@ -97,10 +97,18 @@ def run(args: "argparse.Namespace") -> int:
         state_path = user_state_path
         root = user_state_path.parent.parent  # = ~ (the user-scope projection root)
         # Pull the adapter contract's allowed-prefixes so the user-scope
-        # path-jail fires on the state-file write below.
-        from agentbundle.commands.install import _claude_code_allowed_prefixes_user
+        # path-jail fires on the per-file removal walk below. The
+        # adapter is recorded on the pack's state row (v0.3); fall back
+        # to claude-code when absent (v0.2-vintage rows preserved across
+        # the header-only migration, per RFC-0005 § State-file impact).
+        from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
-        user_prefixes = _claude_code_allowed_prefixes_user()
+        recorded_adapter = (
+            user_state_for_check.packs[pack_name].adapter
+            if pack_name in user_state_for_check.packs
+            else "claude-code"
+        )
+        user_prefixes = _adapter_allowed_prefixes_user(recorded_adapter or "claude-code")
 
     # ── Step 1b: Load state for write (refuse v0.1 here, after disambig) ─────
     try:
@@ -176,6 +184,45 @@ def run(args: "argparse.Namespace") -> int:
                 file=sys.stderr,
             )
             kept.append(relpath)
+
+    # ── Step 2b: RFC-0005 T8b — unproject hook-wiring-owned entries ─────────
+    # When the pack has hook_wiring_owned rows (v0.3 user-scope hooks),
+    # dispatch to the right merge engine's `unproject` to remove those
+    # entries from the merge target file. Empty `hooks.<event>` arrays
+    # are pruned; the target file itself stays in place (Kiro: agent
+    # primitive's direct-file uninstall handles it; Claude Code: the
+    # settings file is adopter-shared and must not be deleted).
+    if pack_state.hook_wiring_owned:
+        adapter = pack_state.adapter or "claude-code"
+        owned_by_target: dict[str, list[tuple[str, str]]] = {}
+        for entry in pack_state.hook_wiring_owned:
+            event = entry.get("event")
+            entry_id = entry.get("id")
+            if not (isinstance(event, str) and isinstance(entry_id, str)):
+                continue
+            target_file_rel = entry.get("target-file")
+            if not target_file_rel:
+                # Claude Code rows default to `~/.claude/settings.json`
+                # per RFC-0005 § State-file impact (resolve via the
+                # user-scope target on the adapter contract).
+                target_file_rel = ".claude/settings.json"
+            owned_by_target.setdefault(target_file_rel, []).append((event, entry_id))
+
+        for target_file_rel, owned in owned_by_target.items():
+            target_path = root / target_file_rel.lstrip("/")
+            if adapter == "kiro":
+                from agentbundle.build.projections.merge_into_agent_json import (
+                    unproject as _unproject,
+                )
+            else:
+                from agentbundle.build.projections.user_merge_json import (
+                    unproject as _unproject,
+                )
+            try:
+                _unproject(target_path, owned)
+            except Exception as exc:
+                print(f"uninstall: hook-wiring unproject failed: {exc}", file=sys.stderr)
+                return 1
 
     # ── Step 3: Best-effort cleanup of empty parent directories ──────────────
     _prune_empty_parents(root, removed)
