@@ -58,6 +58,84 @@ def _install(args_dict) -> tuple[int, str, str]:
     return rc, out.getvalue(), err.getvalue()
 
 
+def _stage_pack_with_skill(catalogue_root: Path, name: str, body: str) -> Path:
+    """Stage a pack whose `.apm/skills/<name>/SKILL.md` is non-trivial so
+    the projection lands files at the adopter target (needed to drive a
+    Tier-2 collision in install.py:_classify_for_install)."""
+    pack = catalogue_root / "packs" / name
+    (pack / ".apm" / "skills" / name).mkdir(parents=True)
+    (pack / "pack.toml").write_text(body, encoding="utf-8")
+    (pack / ".apm" / "skills" / name / "SKILL.md").write_text(
+        f"---\nname: {name}\ndescription: x\n---\nbody-from-bundle\n",
+        encoding="utf-8",
+    )
+    return pack
+
+
+def test_install_marker_records_new_companions(tmp_path):
+    """A Tier-2 collision during install (projection lands on an
+    adopter file that already exists with different content) must
+    surface the companion relpath in the marker's `new-companions`
+    list. The companion path is the `.upstream.<ext>` shape the
+    class-2 adapt skill walks, not the projection relpath itself.
+    """
+    cat = tmp_path / "cat"
+    _stage_pack_with_skill(cat, "demo", ADDON_NO_DEPENDENCIES.replace("addon", "demo"))
+    target = tmp_path / "repo"
+    target.mkdir()
+
+    # Pre-seed an adopter file at one of the projection targets with
+    # different content, forcing the Tier-2 branch.
+    collision_relpath = "claude-plugins/demo/.claude/skills/demo/SKILL.md"
+    collision_full = target / collision_relpath
+    collision_full.parent.mkdir(parents=True)
+    collision_full.write_text("adopter-edited\n", encoding="utf-8")
+
+    rc, _, _ = _install(
+        dict(pack="demo", catalogue=str(cat), output=str(target), scope=None, force=False)
+    )
+    assert rc == 0
+
+    # The companion file landed next to the original.
+    companion_path = target / "claude-plugins/demo/.claude/skills/demo/SKILL.upstream.md"
+    assert companion_path.exists(), (
+        "Tier-2 collision did not write `.upstream` companion; the marker "
+        "assertion below would be untrustworthy without this"
+    )
+
+    marker = tomllib.loads(
+        (target / ".adapt-install-marker.toml").read_text(encoding="utf-8")
+    )
+    entries = marker.get("packs-installed", [])
+    assert len(entries) == 1
+    assert entries[0]["new-companions"] == [
+        "claude-plugins/demo/.claude/skills/demo/SKILL.upstream.md"
+    ]
+
+
+def test_install_marker_companions_empty_on_clean_install(tmp_path):
+    """An install into an empty target produces no Tier-2 collisions;
+    `new-companions = []` survives as a literal in the TOML so the
+    skill reader has a uniform shape to consume."""
+    cat = tmp_path / "cat"
+    _stage_pack_with_skill(cat, "demo", ADDON_NO_DEPENDENCIES.replace("addon", "demo"))
+    target = tmp_path / "repo"
+    target.mkdir()
+
+    rc, _, _ = _install(
+        dict(pack="demo", catalogue=str(cat), output=str(target), scope=None, force=False)
+    )
+    assert rc == 0
+
+    marker_text = (target / ".adapt-install-marker.toml").read_text(encoding="utf-8")
+    assert "new-companions = []" in marker_text, (
+        "regression pin: the field must be emitted even when empty so "
+        "the skill consumer doesn't have to handle a missing-key shape"
+    )
+    marker = tomllib.loads(marker_text)
+    assert marker["packs-installed"][0]["new-companions"] == []
+
+
 def test_install_writes_marker_at_repo_scope_root(tmp_path):
     """Repo-scope install writes the marker at `<repo>/.adapt-install-marker.toml`
     with a single `[[packs-installed]]` entry for the installed pack."""
