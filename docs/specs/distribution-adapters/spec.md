@@ -689,23 +689,20 @@ filename, not the directory).
 ```toml
 [adapter.kiro.projections.kiro-ide-hook]
 mode = "direct-file"
-target.repo = ".kiro/hooks/<pack>/<name>.kiro.hook"
+target.repo = "<probe-pinned per Q6 — see probes.md>"
 on-conflict = "prompt-then-preserve"
-ide-event-vocabulary = [
-  "fileCreated",
-  "fileEdit",
-  "fileSave",
-  "fileDeleted",
-  "promptSubmit",
-  "agentStop",
-  "preToolUse",
-  "postToolUse",
-  "preTaskExecution",
-  "postTaskExecution",
-  "manualTrigger",
-]
-ide-action-vocabulary = ["askAgent", "runCommand"]
+ide-event-vocabulary = <probe-pinned per Q11 — see probes.md>
+ide-action-vocabulary = <probe-pinned per Q11 — see probes.md>
 ```
+
+**The `target.repo` string, `ide-event-vocabulary` array, and
+`ide-action-vocabulary` array are intentionally not pre-filled
+here.** RFC-0005's declined-pattern discipline explicitly bars
+inferring those values from community examples; T-CONTRACT writes
+them once the operator runs the Q6 / Q11 probes and pins outcomes
+in [`docs/specs/kiro-ide-hook/probes.md`](../kiro-ide-hook/probes.md).
+The shape of each field is fixed (string; array-of-string with
+`minItems: 1`); only the *content* is probe-gated.
 
 The mode is the existing `direct-file`; no new mode is introduced.
 The novelty is two declarative-vocabulary arrays sitting alongside
