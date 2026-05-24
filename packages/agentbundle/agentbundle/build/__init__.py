@@ -26,6 +26,7 @@ from pathlib import Path
 
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.validate import validate as validate_instance
+from agentbundle.build.lint_packs import cmd_lint_packs
 from agentbundle.build.main import cmd_build
 from agentbundle.build.self_host import cmd_check, cmd_self
 
@@ -120,6 +121,15 @@ def _build_parser() -> argparse.ArgumentParser:
     self_parser.add_argument("--force", action="store_true")
     self_parser.add_argument("--packs-dir", default="packs")
     self_parser.add_argument("--output-dir", default=".")
+    self_parser.add_argument(
+        "--no-symlink",
+        action="store_true",
+        help=(
+            "Write CLAUDE.md as a regular-file copy of AGENTS.md instead of "
+            "a symlink. Default behaviour on Windows hosts; available on any "
+            "OS for filesystems or workflows that disallow symlinks."
+        ),
+    )
     self_parser.set_defaults(func=cmd_self)
 
     check_parser = subparsers.add_parser(
@@ -128,6 +138,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     check_parser.add_argument("--packs-dir", default="packs")
     check_parser.add_argument("--output-dir", default=".")
+    check_parser.add_argument(
+        "--no-symlink",
+        action="store_true",
+        help=(
+            "As `self --no-symlink`: compare the projection against a "
+            "regular-file CLAUDE.md copy rather than a symlink."
+        ),
+    )
     check_parser.set_defaults(func=cmd_check)
 
     scaffold_parser = subparsers.add_parser(
@@ -138,6 +156,16 @@ def _build_parser() -> argparse.ArgumentParser:
     scaffold_parser.add_argument("--pack", default="core")
     scaffold_parser.add_argument("--output", required=True)
     scaffold_parser.set_defaults(func=_cmd_scaffold)
+
+    lint_packs_parser = subparsers.add_parser(
+        "lint-packs",
+        help=(
+            "Windows-portability lint: reject packs that ship symlinks "
+            "or Windows-poisonous names under seeds/ or .apm/."
+        ),
+    )
+    lint_packs_parser.add_argument("--packs-dir", default="packs")
+    lint_packs_parser.set_defaults(func=cmd_lint_packs)
 
     return parser
 
@@ -161,9 +189,18 @@ def _cmd_scaffold(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Lazy import: keeps the helper resolved at the call site so a
+    # future split between `agentbundle.cli` and `agentbundle.build`
+    # (different distributions, different load orders) doesn't break
+    # this entry point. No circular dependency exists today and the
+    # incremental import cost is sub-millisecond; this is a
+    # call-site-locality choice, not a perf optimisation.
+    from agentbundle.cli import _normalise_path_separators
+
     parser = _build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
         parser.print_help()
         return 0
+    _normalise_path_separators(args)
     return int(args.func(args))

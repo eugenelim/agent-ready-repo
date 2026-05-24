@@ -111,6 +111,126 @@ def test_assert_under_passes_for_path_inside(tmp_path):
     safety.assert_under(tmp_path, tmp_path / "a" / "b")  # no exception
 
 
+# ---------------------------------------------------------------------------
+# Windows reserved-name guard (Windows-portability)
+#
+# Windows reserves a small set of device names regardless of extension
+# (CON.txt → CON), forbids names ending in `.` or ` `, and forbids
+# certain characters in filenames. A pack carrying such a path is
+# poisonous on Windows even when authored on macOS, so the check fires
+# on every OS at the path-jail layer.
+# ---------------------------------------------------------------------------
+
+
+_INVALID_RESERVED_NAMES = [
+    "CON",
+    "con",
+    "Con",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM9",
+    "LPT1",
+    "LPT9",
+    "con.txt",
+    "NUL.log",
+    "foo/NUL",
+    "foo/bar/PRN.log",
+    "deep/path/COM3.tar.gz",
+    "lpt5.md",
+]
+
+
+@pytest.mark.parametrize("relpath", _INVALID_RESERVED_NAMES)
+def test_assert_portable_name_rejects_reserved_devices(relpath):
+    with pytest.raises(safety.PathJailError, match="reserved"):
+        safety.assert_portable_name(relpath)
+
+
+@pytest.mark.parametrize(
+    "relpath",
+    [
+        "bar.",
+        "bar ",
+        "bar. ",
+        "foo/bar.",
+        "trailing dot.",
+        "trailing space ",
+    ],
+)
+def test_assert_portable_name_rejects_trailing_dot_or_space(relpath):
+    with pytest.raises(safety.PathJailError, match="trailing"):
+        safety.assert_portable_name(relpath)
+
+
+@pytest.mark.parametrize(
+    "relpath",
+    [
+        "foo<bar",
+        "foo>bar",
+        'foo"bar',
+        "foo|bar.txt",
+        "foo?baz",
+        "foo*",
+        "weird:colon.txt",
+        "nested/has<lt",
+    ],
+)
+def test_assert_portable_name_rejects_forbidden_chars(relpath):
+    with pytest.raises(safety.PathJailError, match="forbidden character"):
+        safety.assert_portable_name(relpath)
+
+
+@pytest.mark.parametrize(
+    "relpath",
+    [
+        "AGENTS.md",
+        "docs/CHARTER.md",
+        "Makefile",
+        "foo/bar.txt",
+        "con_artist.md",  # prefix only, not exact-stem
+        "COM0",           # only COM1-9 are reserved
+        "COM10",          # only single digit
+        "LPT0.txt",
+        "lptastic.md",
+        "nul_pointer.c",
+        ".gitignore",
+        "deep/nested/path/with-dashes.toml",
+    ],
+)
+def test_assert_portable_name_accepts_valid_paths(relpath):
+    safety.assert_portable_name(relpath)  # no exception
+
+
+def test_write_jailed_refuses_reserved_name(tmp_path):
+    with pytest.raises(safety.PathJailError, match="reserved"):
+        safety.write_jailed(tmp_path, "CON.md", b"x")
+
+
+def test_write_jailed_refuses_forbidden_character(tmp_path):
+    with pytest.raises(safety.PathJailError, match="forbidden character"):
+        safety.write_jailed(tmp_path, "weird|file.md", b"x")
+
+
+def test_copy_jailed_refuses_reserved_name(tmp_path):
+    """`copy_jailed` is a sibling write primitive — the portability
+    guard runs on it too, so an install-time `cp` of pack content
+    cannot land a `CON.md` on a Windows adopter."""
+    source = tmp_path / "src.md"
+    source.write_text("x\n", encoding="utf-8")
+    with pytest.raises(safety.PathJailError, match="reserved"):
+        safety.copy_jailed(tmp_path, source, "CON.md")
+
+
+def test_assert_portable_name_handles_backslash_segments():
+    """Defense-in-depth: even though CLI normalises `\\` → `/` at the
+    boundary, the guard treats backslashes as separators so a path that
+    sneaks past normalisation still hits the check."""
+    with pytest.raises(safety.PathJailError, match="reserved"):
+        safety.assert_portable_name("foo\\NUL")
+
+
 def test_classify_returns_tier_2_when_recorded_path_lacks_sha(tmp_path):
     """Defensive branch: a hand-edited state file with a `[pack.X.files] foo`
     entry that lacks the `sha` key. classify can't prove Tier-1 vs Tier-2

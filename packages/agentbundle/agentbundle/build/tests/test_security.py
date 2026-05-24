@@ -49,7 +49,12 @@ class SymlinkProjectionTests(unittest.TestCase):
     def test_symlink_in_pack_skill_is_preserved_not_dereferenced(self) -> None:
         """A pack with a symlink to /etc/passwd should not exfiltrate
         the target into the projection — symlinks=True preserves them
-        as symlinks rather than copying the target's contents."""
+        as symlinks rather than copying the target's contents.
+
+        Test-only symlink creation: Windows-portability lint
+        (`lint_packs.py`) rejects symlinks in shipped pack content, so
+        this construction is purely a runtime hostile-pack simulation
+        and does not contradict the no-symlinks rule for releases."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
