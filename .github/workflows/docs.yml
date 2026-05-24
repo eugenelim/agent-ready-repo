@@ -25,8 +25,6 @@ on:
       - 'tools/hooks/**'
       - 'tools/test-pre-pr.sh'
       - 'tools/test-session-start.sh'
-      - 'tools/bootstrap.sh'
-      - 'tools/test-bootstrap-targets.sh'
       - '.github/workflows/docs.yml'
   push:
     branches: [main]
@@ -49,14 +47,6 @@ jobs:
         run: python tools/lint-agent-artifacts.py
       - name: Self-test the linter (asserts expected errors fire)
         run: bash tools/test-lint-agent-artifacts.sh
-
-  test-bootstrap-targets:
-    name: Bootstrap substitution targets
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run bootstrap-targets self-test
-        run: bash tools/test-bootstrap-targets.sh
 
   lint-skill-deps:
     name: Skill-dep manifests
