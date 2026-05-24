@@ -52,6 +52,80 @@ from .exceptions import (
 
 _KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
+
+class EnvParseError(ValueError):
+    """Raised when an ``.env`` file violates the supported subset.
+
+    Messages include the 1-based physical line number so a log reader
+    can jump to the offending line.
+    """
+
+
+#: Upper bound on dotfile size. A credentials dotfile holds a few
+#: dozen key=value lines; 1 MiB is six orders of magnitude over the
+#: realistic ceiling. A larger file is either corruption or a
+#: misplaced read against the wrong path — refuse rather than load
+#: gigabytes into memory on every credential resolution.
+DOTFILE_MAX_BYTES = 1 << 20  # 1 MiB
+
+
+def parse_env_file(path: pathlib.Path) -> dict[str, str]:
+    """Parse the file at ``path`` into a ``{KEY: value}`` mapping.
+
+    Reads with ``newline=""`` so embedded ``\\r`` bytes are preserved;
+    only the trailing line terminator is stripped.
+
+    Refuses files larger than ``DOTFILE_MAX_BYTES`` (1 MiB) to bound
+    the read against a misconfigured or malicious dotfile path.
+    """
+    try:
+        size = path.stat().st_size
+    except OSError:
+        size = 0
+    if size > DOTFILE_MAX_BYTES:
+        raise EnvParseError(
+            f"dotfile {path!s} is {size} bytes; refusing to read more than "
+            f"{DOTFILE_MAX_BYTES} bytes — verify the path is the credentials "
+            f"dotfile, not a misconfigured target."
+        )
+    # Use ``path.open(newline="")`` instead of ``read_text(newline=...)``
+    # — the ``newline`` keyword on ``Path.read_text`` was added in Python
+    # 3.13; the project targets 3.11+ via the CI matrix.
+    with path.open(encoding="utf-8", newline="") as fh:
+        text = fh.read()
+    result: dict[str, str] = {}
+    for lineno, raw in enumerate(text.split("\n"), start=1):
+        # Strip trailing \r (CRLF normalization). rstrip is bounded to the
+        # tail, so embedded \r inside a quoted value is preserved.
+        line = raw.rstrip("\r")
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith("export "):
+            raise EnvParseError(
+                f"line {lineno}: `export KEY=value` shell-export syntax is not supported"
+            )
+        if "=" not in line:
+            raise EnvParseError(
+                f"line {lineno}: expected `KEY=value`, no '=' found"
+            )
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not _KEY_RE.match(key):
+            raise EnvParseError(f"line {lineno}: invalid key {key!r}")
+        if value.startswith('"'):
+            if len(value) < 2 or not value.endswith('"'):
+                raise EnvParseError(
+                    f"line {lineno}: multi-line quoted values are not supported"
+                )
+            value = value[1:-1]
+        if "$" in value:
+            raise EnvParseError(
+                f"line {lineno}: variable expansion (`$NAME`) is not supported"
+            )
+        result[key] = value
+    return result
+
 # Tier-2 backend dispatch at module-load time (spec § AC4b). The backend
 # modules are added by T4 (macOS) and T5 (Windows); until they land, the
 # try/except yields ``None`` and the resolver skips Tier 2 on the matching
@@ -82,8 +156,10 @@ class Credentials:
     - Attempting to assign or delete an attribute raises ``AttributeError``;
       callers cannot mutate the object after it leaves the loader.
 
-    No ``__repr__`` override — the default ``object`` repr is intentional
-    so a misplaced ``print(creds)`` never echoes the token bytes.
+    The ``__repr__`` override lists *only* key names — never values — so
+    a misplaced ``print(creds)`` or interactive REPL inspection cannot
+    echo the token bytes. Pinning the redacting contract here forecloses
+    a future maintainer adding a "debug" ``__repr__`` that leaks values.
     """
 
     __slots__ = ("_namespace", "_values")
@@ -103,6 +179,16 @@ class Credentials:
             f"Credentials is immutable; cannot delete attribute {name!r}"
         )
 
+    def __repr__(self) -> str:
+        # SECURITY: list keys only; NEVER include values. A misplaced
+        # `print(creds)` must not leak token bytes. Future maintainers:
+        # do not "improve" this with values for debugging — log the
+        # specific key you need with explicit redaction at the call site.
+        namespace = object.__getattribute__(self, "_namespace")
+        values = object.__getattribute__(self, "_values")
+        keys = list(values)
+        return f"<Credentials namespace={namespace!r} keys={keys!r}>"
+
     def __getattr__(self, name: str) -> str:
         # __getattr__ is only invoked when normal lookup (including
         # __slots__) fails — so it serves the credential-name attribute
@@ -119,8 +205,13 @@ class Credentials:
         if name in values:
             return values[name]
         namespace = object.__getattribute__(self, "_namespace")
+        # Include the resolved key list so `creds.api_token` (lowercase
+        # typo of `API_TOKEN`) errors actionably rather than just naming
+        # the bad attribute.
+        resolved = list(values)
         raise AttributeError(
-            f"namespace {namespace!r} has no credential {name!r}"
+            f"namespace {namespace!r} has no credential {name!r} "
+            f"(resolved keys: {resolved})"
         )
 
 
@@ -200,13 +291,24 @@ def _quote_for_dotfile(value: str) -> str:
     """Render a value for the dotfile.
 
     Use double-quotes only when the bare value would be ambiguous to the
-    parser (contains whitespace or a leading ``#``). Embedded double
-    quotes / dollar signs are not the user's tokens in practice — the
-    parser refuses ``$`` and embedded quotes would re-enter as ``"a"b"``
-    which the parser strips clumsily. Tokens this rejects shouldn't be
-    in scope for Tier-3 storage and the helper surfaces the parser
-    error if a round-trip would corrupt the value.
+    parser (contains whitespace or a leading ``#``). Embedded ``"`` or
+    ``$`` characters would not round-trip through the parser cleanly
+    (the parser refuses ``$`` outright and clumsily strips a single
+    surrounding pair of quotes), so this helper refuses up front by
+    raising ``EnvParseError`` rather than silently emitting an
+    unparseable entry.
     """
+    if '"' in value:
+        raise EnvParseError(
+            "value contains an embedded double-quote character; cannot "
+            "round-trip through the Tier-3 dotfile parser. Re-encode the "
+            "value (e.g. URL-encode the quote) before storing."
+        )
+    if "$" in value:
+        raise EnvParseError(
+            "value contains a `$` character; the dotfile parser refuses "
+            "variable-expansion syntax. Re-encode the value before storing."
+        )
     if not value:
         return '""'
     if " " in value or value.startswith("#"):
@@ -214,39 +316,62 @@ def _quote_for_dotfile(value: str) -> str:
     return value
 
 
+# Well-known SIDs (Windows). Locale-invariant — non-English Windows
+# installs translate the *display name* of these principals (Tout le
+# monde, Jeder, Все), so any matching by name-substring becomes a
+# silent bypass on those locales. SIDs do not translate.
+#
+#   S-1-1-0    — Everyone
+#   S-1-5-7    — Anonymous Logon
+#   S-1-5-11   — Authenticated Users
+#   S-1-5-32-545 — BUILTIN\Users (the local Users group)
+#   S-1-5-32-546 — BUILTIN\Guests
+_PERMISSIVE_SIDS = (
+    "S-1-1-0",
+    "S-1-5-7",
+    "S-1-5-11",
+    "S-1-5-32-545",
+    "S-1-5-32-546",
+)
+
+
 def _verify_icacls(
     path: pathlib.Path, *, allow_permissive_acl: bool = False
 ) -> None:
-    """Run ``icacls`` on the path and refuse if any non-default ACE grants
-    read access (spec § AC15). No-op on POSIX.
+    """Run ``icacls /findsid`` and refuse if any well-known "broad
+    access" SID is granted access on the path (spec § AC15). No-op on
+    POSIX.
 
     Default ACEs on a per-user file are the inheriting user,
-    ``NT AUTHORITY\\SYSTEM``, and ``BUILTIN\\Administrators``. Any other
-    principal granted access is flagged unless the caller opts in.
+    ``NT AUTHORITY\\SYSTEM``, and ``BUILTIN\\Administrators``. The
+    locale-invariant check uses ``icacls <path> /findsid <SID>``
+    against the well-known "broad access" SIDs (Everyone,
+    Authenticated Users, BUILTIN\\Users, BUILTIN\\Guests, Anonymous
+    Logon); the prior name-substring scan was a silent bypass on
+    non-English Windows installs (e.g. ``Tout le monde`` for
+    Everyone on French Windows).
     """
     if os.name != "nt":  # pragma: no cover — POSIX path
         return
-    res = subprocess.run(  # pragma: no cover — exercised only on Windows
-        ["icacls", str(path)], capture_output=True, text=True, check=False
-    )
-    if res.returncode != 0:
-        raise PermissiveAclError(
-            f"icacls inspection failed for {path}: rc={res.returncode} "
-            f"stderr={res.stderr.strip()}"
+    suspect: list[str] = []
+    for sid in _PERMISSIVE_SIDS:  # pragma: no cover — exercised only on Windows
+        res = subprocess.run(
+            ["icacls", str(path), "/findsid", sid],
+            capture_output=True,
+            text=True,
+            check=False,
         )
-    suspect = []
-    for line in res.stdout.splitlines():
-        stripped = line.strip()
-        # Flag any ACE granting access to non-default principals.
-        if (
-            "BUILTIN\\Users" in stripped
-            or "Everyone" in stripped
-            or "Authenticated Users" in stripped
-        ):
-            suspect.append(stripped)
+        # ``icacls /findsid`` exits 0 with the path listed when the SID
+        # is granted access on at least one ACE; exits non-zero (with
+        # "No matching files were found" stderr) when the SID is not
+        # present. The path appearing in stdout is the load-bearing
+        # signal: a successful find prints the path on one line.
+        if res.returncode == 0 and str(path) in res.stdout:
+            suspect.append(sid)
     if suspect and not allow_permissive_acl:
         raise PermissiveAclError(
-            f"DACL too permissive on {path}: {suspect}; pass "
+            f"DACL too permissive on {path}: well-known broad-access "
+            f"SIDs granted access: {suspect}; pass "
             f"allow_permissive_acl=True to override"
         )
 
@@ -542,18 +667,23 @@ def _parse_schema(path: pathlib.Path) -> CredsSchema:
 _SKILL_MD_RE = re.compile(r"^\.claude/skills/([^/]+)/SKILL\.md$")
 
 
-def resolve_schema_path(
+def _relative_schema_path(
     state: "object", pack: str, skill_name: str
 ) -> pathlib.Path:
-    """Resolve the canonical ``creds-schema.toml`` path per spec § AC24b.
+    """Resolve the *state-relative* ``creds-schema.toml`` path per spec § AC24b.
 
     Walks ``state.packs[pack].files`` for a relpath matching
-    ``^\\.claude/skills/<skill_name>/SKILL\\.md$``; takes that
-    relpath's parent directory and joins ``references/creds-schema.toml``.
-    Returns the absolute path resolved against the state file's
-    container directory (caller is responsible for joining the right
-    scope root if needed; this function returns the *relative-form
-    rooted at* the path the state stored).
+    ``^\\.claude/skills/<skill_name>/SKILL\\.md$``; returns the
+    relpath's parent joined to ``references/creds-schema.toml``.
+
+    The return value is *relative* — rooted at whatever the state file
+    stored — and is NOT directly usable as a filesystem path without
+    the caller resolving it against a scope root. The
+    underscore-prefixed name reflects that contract; CLI callers go
+    through `commands/creds._resolve_schema_for_namespace` which joins
+    against `SKILL.md.parent` directly instead of calling this helper.
+    Kept around because it pins the AC24b state-walk shape with its
+    own tests.
 
     Raises ``SchemaError`` if no matching SKILL.md row is in
     ``pack.files`` — names the offending pack and skill so the message
@@ -595,6 +725,7 @@ __all__ = [
     "CredsSchema",
     "Credentials",
     "CredentialsMissingError",
+    "DOTFILE_MAX_BYTES",
     "EnvParseError",
     "KeyDef",
     "PermissiveAclError",
@@ -602,79 +733,4 @@ __all__ = [
     "Tier2HardFailError",
     "load_credentials",
     "parse_env_file",
-    "resolve_schema_path",
 ]
-
-
-class EnvParseError(ValueError):
-    """Raised when an ``.env`` file violates the supported subset.
-
-    Messages include the 1-based physical line number so a log reader
-    can jump to the offending line.
-    """
-
-
-#: Upper bound on dotfile size. A credentials dotfile holds a few
-#: dozen key=value lines; 1 MiB is six orders of magnitude over the
-#: realistic ceiling. A larger file is either corruption or a
-#: misplaced read against the wrong path — refuse rather than load
-#: gigabytes into memory on every credential resolution.
-DOTFILE_MAX_BYTES = 1 << 20  # 1 MiB
-
-
-def parse_env_file(path: pathlib.Path) -> dict[str, str]:
-    """Parse the file at ``path`` into a ``{KEY: value}`` mapping.
-
-    Reads with ``newline=""`` so embedded ``\\r`` bytes are preserved;
-    only the trailing line terminator is stripped.
-
-    Refuses files larger than ``DOTFILE_MAX_BYTES`` (1 MiB) to bound
-    the read against a misconfigured or malicious dotfile path.
-    """
-    try:
-        size = path.stat().st_size
-    except OSError:
-        size = 0
-    if size > DOTFILE_MAX_BYTES:
-        raise EnvParseError(
-            f"dotfile {path!s} is {size} bytes; refusing to read more than "
-            f"{DOTFILE_MAX_BYTES} bytes — verify the path is the credentials "
-            f"dotfile, not a misconfigured target."
-        )
-    # Use ``path.open(newline="")`` instead of ``read_text(newline=...)``
-    # — the ``newline`` keyword on ``Path.read_text`` was added in Python
-    # 3.13; the project targets 3.11+ via the CI matrix.
-    with path.open(encoding="utf-8", newline="") as fh:
-        text = fh.read()
-    result: dict[str, str] = {}
-    for lineno, raw in enumerate(text.split("\n"), start=1):
-        # Strip trailing \r (CRLF normalization). rstrip is bounded to the
-        # tail, so embedded \r inside a quoted value is preserved.
-        line = raw.rstrip("\r")
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if stripped.startswith("export "):
-            raise EnvParseError(
-                f"line {lineno}: `export KEY=value` shell-export syntax is not supported"
-            )
-        if "=" not in line:
-            raise EnvParseError(
-                f"line {lineno}: expected `KEY=value`, no '=' found"
-            )
-        key, _, value = line.partition("=")
-        key = key.strip()
-        if not _KEY_RE.match(key):
-            raise EnvParseError(f"line {lineno}: invalid key {key!r}")
-        if value.startswith('"'):
-            if len(value) < 2 or not value.endswith('"'):
-                raise EnvParseError(
-                    f"line {lineno}: multi-line quoted values are not supported"
-                )
-            value = value[1:-1]
-        if "$" in value:
-            raise EnvParseError(
-                f"line {lineno}: variable expansion (`$NAME`) is not supported"
-            )
-        result[key] = value
-    return result

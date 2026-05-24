@@ -76,7 +76,14 @@ class _RefuseTokenArgvAction(argparse.Action):
         super().__init__(option_strings, dest, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):  # type: ignore[no-untyped-def]
-        sys.stderr.write(f"{_ARGV_REFUSAL_STDERR}\n")
+        # AC23 categorisation: prefix the verbatim sentinel with a
+        # distinguishing tag so security tooling can pattern-match the
+        # exit-3 category without parsing the message body. The
+        # canonical anchor itself is preserved verbatim on the same
+        # line so existing greps for it still match.
+        sys.stderr.write(
+            f"creds setup: argv-refusal: {_ARGV_REFUSAL_STDERR}\n"
+        )
         raise SystemExit(3)
 
 
@@ -262,6 +269,24 @@ def _parse_frontmatter(path: pathlib.Path) -> dict[str, str]:
     return fields
 
 
+#: YAML 1.1-style truthy forms accepted for the ``credentialed:`` key.
+#: The frontmatter parser leaves scalars verbatim (apart from balanced
+#: quote stripping), so an author writing ``credentialed: True``,
+#: ``credentialed: yes``, ``credentialed: "true"``, or ``credentialed: 1``
+#: would otherwise silently not be picked up by this walker — the
+#: skill works at runtime but ``creds setup`` never finds it. Accept
+#: the canonical YAML truthy shapes; everything else (including unset)
+#: is treated as not credentialed.
+_CREDENTIALED_TRUTHY_VALUES = frozenset({"true", "yes", "1", "on"})
+
+
+def _is_credentialed_true(raw: str | None) -> bool:
+    """Return whether the frontmatter ``credentialed:`` scalar means True."""
+    if raw is None:
+        return False
+    return raw.strip().lower() in _CREDENTIALED_TRUTHY_VALUES
+
+
 def _walk_credentialed_skills(
     root: pathlib.Path,
 ) -> list[tuple[str, pathlib.Path, str, pathlib.Path]]:
@@ -291,7 +316,7 @@ def _walk_credentialed_skills(
                     continue
                 skill_md = root / relpath
                 fields = _parse_frontmatter(skill_md)
-                if fields.get("credentialed") == "true":
+                if _is_credentialed_true(fields.get("credentialed")):
                     out.append(("repo", root, m.group(1), skill_md))
     try:
         user_root = pathlib.Path.home()
@@ -308,7 +333,7 @@ def _walk_credentialed_skills(
                     continue
                 skill_md = user_root / relpath
                 fields = _parse_frontmatter(skill_md)
-                if fields.get("credentialed") == "true":
+                if _is_credentialed_true(fields.get("credentialed")):
                     out.append(("user", user_root, m.group(1), skill_md))
     return out
 
@@ -465,8 +490,8 @@ def run_setup(args: argparse.Namespace) -> int:
             return 3
         if not sys.stdin.isatty():
             sys.stderr.write(
-                "creds setup: stdin is not a tty (selection requires "
-                "interactive prompt)\n"
+                "creds setup: stdin-not-tty: selection requires an "
+                "interactive prompt\n"
             )
             return 3
         sys.stderr.write("Installed credentialed primitives:\n")
@@ -500,7 +525,10 @@ def run_setup(args: argparse.Namespace) -> int:
     # has already rejected argv-borne flags; this guards the stdin pipe
     # path.
     if not sys.stdin.isatty():
-        sys.stderr.write("creds setup: stdin is not a tty\n")
+        sys.stderr.write(
+            "creds setup: stdin-not-tty: token entry requires an "
+            "interactive prompt\n"
+        )
         return 3
 
     values = _prompt_for_keys(schema, tty_ok=True)
@@ -663,6 +691,7 @@ def run_rm(args: argparse.Namespace) -> int:
 
     any_removed = False
     env_present_keys: list[str] = []
+    tier2_hard_fail = False
     for keydef in schema.keys:
         env_name = f"{namespace.upper()}_{keydef.name}"
         if os.environ.get(env_name):
@@ -673,8 +702,17 @@ def run_rm(args: argparse.Namespace) -> int:
                     loader._tier2_backend.delete_credential(namespace, keydef.name)
                     any_removed = True
             except Tier2HardFailError as exc:
-                sys.stderr.write(f"creds rm: Tier 2 hard fail — {exc}\n")
-                return 3
+                # Continue the walk so Tier-3 cleanup still runs: an
+                # operator invoking `creds rm` to react to a Tier-2
+                # compromise needs to clear the dotfile floor without
+                # first having to fix the Tier-2 hard-fail condition.
+                # Set a flag so the final exit code still surfaces
+                # non-zero (security review concern #7).
+                sys.stderr.write(
+                    f"creds rm: Tier 2 hard fail on {keydef.name!r} — "
+                    f"{exc}; continuing with Tier-3 cleanup\n"
+                )
+                tier2_hard_fail = True
         if loader._dotfile_read(namespace, keydef.name):
             loader._dotfile_delete(namespace, keydef.name)
             any_removed = True
@@ -684,6 +722,12 @@ def run_rm(args: argparse.Namespace) -> int:
             "creds rm: env vars cannot be cleared by this helper; unset "
             f"manually: {', '.join(env_present_keys)}\n"
         )
+
+    if tier2_hard_fail:
+        # At least one Tier-2 key surfaced a hard fail; surface non-zero
+        # so the operator knows the Tier-2 state is not in a clean
+        # post-`rm` shape even though Tier 3 was cleared.
+        return 3
 
     if not any_removed and not env_present_keys:
         sys.stderr.write(
