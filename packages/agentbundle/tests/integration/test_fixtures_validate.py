@@ -132,26 +132,18 @@ class MalformedFixturesRefusedTests(unittest.TestCase):
         self.assertIn("or names an unknown agent", err)
 
 
-class PendingT6PascalEventsFixtureTests(unittest.TestCase):
-    """The pascal-events fixture ships in T3 for T6 (the per-adapter
-    `agent-event-vocabulary` gate). Today, the T2 attach-to-agent rail
-    is satisfied (the fixture's `attach-to-agent = "reviewer"` resolves
-    to a same-pack agent), so validate currently passes the fixture.
-    T6 will flip this test — adding the vocabulary check that refuses
-    PascalCase events against Kiro. The marker test below pins T3's
-    contribution and signals T6 to invert it."""
+class PascalEventsRefusedByT6Tests(unittest.TestCase):
+    """T6 introduces the per-adapter `agent-event-vocabulary` rail.
+    The pascal-events fixture uses Claude-Code-style PascalCase event
+    names (`UserPromptSubmit`) which fall outside Kiro's declared
+    vocabulary (`agentSpawn`, `userPromptSubmit`, ...). Validate must
+    refuse with the RFC-0005 verbatim text."""
 
-    def test_pascal_events_currently_passes_pending_T6(self) -> None:
+    def test_pascal_events_refused_with_vocabulary_text(self) -> None:
         rc, err = _run_validate(FIXTURES / "malformed-kiro-pascal-events")
-        self.assertEqual(
-            rc,
-            0,
-            "pascal-events fixture refused at T3-era validate; "
-            "T6 is the task that introduces the refusal. If you're "
-            "wiring up T6, flip this test to assertEqual(rc, 1) and "
-            "assert the 'not in adapter ... agent-event-vocabulary' "
-            f"text in stderr. Current stderr: {err}",
-        )
+        self.assertEqual(rc, 1, f"pascal-events fixture was accepted: {err}")
+        self.assertIn("UserPromptSubmit", err)
+        self.assertIn("not in adapter 'kiro' agent-event-vocabulary", err)
 
 
 class FixtureIsolationTests(unittest.TestCase):
