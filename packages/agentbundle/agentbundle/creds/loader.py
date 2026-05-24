@@ -34,16 +34,19 @@ quoted value is preserved (``KEY="a\\rb"`` → ``{"KEY": "a\\rb"}``).
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import pathlib
 import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 
 from .exceptions import (
     CredentialsMissingError,
     PermissiveAclError,
+    SchemaError,
     Tier2HardFailError,
 )
 
@@ -392,14 +395,156 @@ def load_credentials(
     return Credentials(namespace, resolved)
 
 
+# ── creds-schema.toml parser (spec § AC24, AC24b) ─────────────────────
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class KeyDef:
+    """A single required key declared in ``creds-schema.toml``.
+
+    ``secret=True`` keys are prompted via ``getpass.getpass`` (no echo);
+    ``secret=False`` keys are prompted via ``input()`` per spec § AC24.
+    """
+
+    name: str
+    label: str
+    secret: bool
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class CredsSchema:
+    """A parsed ``creds-schema.toml`` for a single namespace."""
+
+    namespace: str
+    keys: tuple[KeyDef, ...]
+
+
+def _parse_schema(path: pathlib.Path) -> CredsSchema:
+    """Parse a ``creds-schema.toml`` file into a typed ``CredsSchema``.
+
+    Per spec § AC24, the expected shape is::
+
+        [namespace]
+        name = "<namespace>"
+
+        [[namespace.keys]]
+        name = "API_TOKEN"
+        label = "<service> API token"
+        secret = true
+
+    The parser raises ``SchemaError`` (naming the path) on missing
+    ``[namespace]``, empty ``namespace.keys``, or non-boolean ``secret``.
+    """
+    try:
+        with path.open("rb") as fh:
+            data = tomllib.load(fh)
+    except FileNotFoundError as exc:
+        raise SchemaError(f"creds-schema.toml not found: {path}") from exc
+    except tomllib.TOMLDecodeError as exc:
+        raise SchemaError(f"creds-schema.toml malformed ({path}): {exc}") from exc
+
+    ns_table = data.get("namespace")
+    if not isinstance(ns_table, dict):
+        raise SchemaError(f"creds-schema.toml missing [namespace] ({path})")
+    namespace = ns_table.get("name")
+    if not isinstance(namespace, str) or not namespace:
+        raise SchemaError(
+            f"creds-schema.toml missing namespace.name ({path})"
+        )
+    raw_keys = ns_table.get("keys")
+    if not isinstance(raw_keys, list) or not raw_keys:
+        raise SchemaError(
+            f"creds-schema.toml namespace.keys must declare at least one key ({path})"
+        )
+    keys: list[KeyDef] = []
+    for idx, entry in enumerate(raw_keys):
+        if not isinstance(entry, dict):
+            raise SchemaError(
+                f"creds-schema.toml namespace.keys[{idx}] is not a table ({path})"
+            )
+        name = entry.get("name")
+        label = entry.get("label")
+        secret = entry.get("secret")
+        if not isinstance(name, str) or not name:
+            raise SchemaError(
+                f"creds-schema.toml namespace.keys[{idx}].name missing or non-string ({path})"
+            )
+        if not isinstance(label, str):
+            raise SchemaError(
+                f"creds-schema.toml namespace.keys[{idx}].label missing or non-string ({path})"
+            )
+        if not isinstance(secret, bool):
+            raise SchemaError(
+                f"creds-schema.toml namespace.keys[{idx}].secret must be boolean ({path})"
+            )
+        keys.append(KeyDef(name=name, label=label, secret=secret))
+    return CredsSchema(namespace=namespace, keys=tuple(keys))
+
+
+_SKILL_MD_RE = re.compile(r"^\.claude/skills/([^/]+)/SKILL\.md$")
+
+
+def resolve_schema_path(
+    state: "object", pack: str, skill_name: str
+) -> pathlib.Path:
+    """Resolve the canonical ``creds-schema.toml`` path per spec § AC24b.
+
+    Walks ``state.packs[pack].files`` for a relpath matching
+    ``^\\.claude/skills/<skill_name>/SKILL\\.md$``; takes that
+    relpath's parent directory and joins ``references/creds-schema.toml``.
+    Returns the absolute path resolved against the state file's
+    container directory (caller is responsible for joining the right
+    scope root if needed; this function returns the *relative-form
+    rooted at* the path the state stored).
+
+    Raises ``SchemaError`` if no matching SKILL.md row is in
+    ``pack.files`` — names the offending pack and skill so the message
+    is actionable.
+
+    Uses the **existing** v0.3 state-file schema — no new fields are
+    added.
+    """
+    packs = getattr(state, "packs", None)
+    if not isinstance(packs, dict):
+        raise SchemaError(
+            f"state has no ``packs`` attribute or wrong type "
+            f"(got {type(state).__name__})"
+        )
+    pack_state = packs.get(pack)
+    if pack_state is None:
+        raise SchemaError(
+            f"pack {pack!r} not present in state.packs "
+            f"(known: {sorted(packs)})"
+        )
+    files = getattr(pack_state, "files", None)
+    if not isinstance(files, dict):
+        raise SchemaError(
+            f"state.packs[{pack!r}].files is missing or not a dict"
+        )
+    for relpath in files:
+        m = _SKILL_MD_RE.match(relpath)
+        if m and m.group(1) == skill_name:
+            parent = pathlib.PurePosixPath(relpath).parent
+            return pathlib.Path(str(parent / "references" / "creds-schema.toml"))
+    raise SchemaError(
+        f"creds-schema.toml not found at expected path: no "
+        f"``.claude/skills/{skill_name}/SKILL.md`` row in pack "
+        f"{pack!r}'s files table"
+    )
+
+
 __all__ = [
+    "CredsSchema",
     "Credentials",
     "CredentialsMissingError",
     "EnvParseError",
+    "KeyDef",
     "PermissiveAclError",
+    "SchemaError",
     "Tier2HardFailError",
     "load_credentials",
     "parse_env_file",
+    "resolve_schema_path",
 ]
 
 
