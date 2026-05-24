@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Self-test for tools/lint-agent-artifacts.sh.
+# Self-test for tools/lint-agent-artifacts.py.
 #
 # Generates a deliberately-broken .claude/ tree in a tempdir, runs the
 # linter against it, and asserts that each expected error pattern shows
@@ -113,7 +113,7 @@ EOF
 # ── Run linter, capture output ────────────────────────────────────────────
 
 set +e
-output="$(LINT_ROOT="$TMP" bash "$REPO_ROOT/tools/lint-agent-artifacts.sh" 2>&1)"
+output="$(LINT_ROOT="$TMP" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
 exit_code=$?
 set -e
 
@@ -185,7 +185,7 @@ Body content.
 EOF
 
 set +e
-out_ok="$(LINT_ROOT="$TMP_CRED_OK" bash "$REPO_ROOT/tools/lint-agent-artifacts.sh" 2>&1)"
+out_ok="$(LINT_ROOT="$TMP_CRED_OK" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
 exit_ok=$?
 set -e
 
@@ -211,7 +211,7 @@ Body content.
 EOF
 
 set +e
-out_bad_bool="$(LINT_ROOT="$TMP_CRED_BAD_BOOL" bash "$REPO_ROOT/tools/lint-agent-artifacts.sh" 2>&1)"
+out_bad_bool="$(LINT_ROOT="$TMP_CRED_BAD_BOOL" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
 exit_bad_bool=$?
 set -e
 
@@ -243,7 +243,7 @@ Body content.
 EOF
 
 set +e
-out_bad_class="$(LINT_ROOT="$TMP_CRED_BAD_CLASS" bash "$REPO_ROOT/tools/lint-agent-artifacts.sh" 2>&1)"
+out_bad_class="$(LINT_ROOT="$TMP_CRED_BAD_CLASS" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
 exit_bad_class=$?
 set -e
 

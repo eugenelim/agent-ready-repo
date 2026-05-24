@@ -8,6 +8,7 @@ import os
 import pathlib
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -132,9 +133,9 @@ def test_template_block_passes_t10_lint_when_copied_into_a_skill(tmp_path):
 
 
 def test_skill_passes_lint_agent_artifacts():
-    """AC28: ``tools/lint-agent-artifacts.sh`` accepts the new skill."""
+    """AC28: ``tools/lint-agent-artifacts.py`` accepts the new skill."""
     res = subprocess.run(
-        ["bash", str(REPO_ROOT / "tools" / "lint-agent-artifacts.sh")],
+        [sys.executable, str(REPO_ROOT / "tools" / "lint-agent-artifacts.py")],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True,
     )
@@ -144,9 +145,9 @@ def test_skill_passes_lint_agent_artifacts():
 
 
 def test_skill_passes_lint_agents_md():
-    """AC28: ``tools/lint-agents-md.sh`` resolves all internal links."""
+    """AC28: ``tools/lint-agents-md.py`` resolves all internal links."""
     res = subprocess.run(
-        ["bash", str(REPO_ROOT / "tools" / "lint-agents-md.sh")],
+        [sys.executable, str(REPO_ROOT / "tools" / "lint-agents-md.py")],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True,
     )

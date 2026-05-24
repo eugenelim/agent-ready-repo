@@ -405,7 +405,7 @@ are scoped to **primitive class** via two new optional `SKILL.md`
 frontmatter keys: `credentialed: true` and
 `primitive-class: credentialed-cli | mcp-server`. Absence of
 `credentialed:` means the skill is not credentialed; the lint
-skips it. The existing `tools/lint-agent-artifacts.sh` "no unknown
+skips it. The existing `tools/lint-agent-artifacts.py` "no unknown
 keys" rule is amended in lockstep with this RFC's acceptance to
 allow the two new keys; this avoids introducing a new
 `manifest.json` file format the catalogue has no other use for.

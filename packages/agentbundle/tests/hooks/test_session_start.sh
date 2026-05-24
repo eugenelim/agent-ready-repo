@@ -13,9 +13,9 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-HOOK="$REPO_ROOT/packs/core/.apm/hooks/session-start.sh"
+HOOK="$REPO_ROOT/packs/core/.apm/hooks/session-start.py"
 
-if [[ ! -x "$HOOK" ]]; then
+if [[ ! -f "$HOOK" ]]; then
   echo "test_session_start.sh: hook not executable at $HOOK" >&2
   exit 1
 fi
@@ -82,7 +82,7 @@ EOF
 out=$(ADAPT_REPO_MARKER="$REPO_MARKER" \
       ADAPT_USER_MARKER="$USER_MARKER" \
       KNOWLEDGE_FILE="$EMPTY_KNOWLEDGE" \
-      "$HOOK" 2>/dev/null)
+      python3 "$HOOK" 2>/dev/null)
 assert_contains "repo-marker-only emits nudge" "$out" \
   "=== adapt-to-project: 1 pack(s) pending adaptation across 1 scope(s): core"
 
@@ -101,7 +101,7 @@ EOF
 out=$(ADAPT_REPO_MARKER="$REPO_MARKER" \
       ADAPT_USER_MARKER="$USER_MARKER" \
       KNOWLEDGE_FILE="$EMPTY_KNOWLEDGE" \
-      "$HOOK" 2>/dev/null)
+      python3 "$HOOK" 2>/dev/null)
 assert_contains "user-marker-only emits nudge" "$out" \
   "=== adapt-to-project: 1 pack(s) pending adaptation across 1 scope(s): future-user-pack"
 
@@ -130,7 +130,7 @@ EOF
 out=$(ADAPT_REPO_MARKER="$REPO_MARKER" \
       ADAPT_USER_MARKER="$USER_MARKER" \
       KNOWLEDGE_FILE="$EMPTY_KNOWLEDGE" \
-      "$HOOK" 2>/dev/null)
+      python3 "$HOOK" 2>/dev/null)
 assert_contains "both-markers emits combined nudge with K=2" "$out" \
   "=== adapt-to-project: 2 pack(s) pending adaptation across 2 scope(s): alpha-user-pack, monorepo-extras"
 
@@ -139,7 +139,7 @@ rm -f "$REPO_MARKER" "$USER_MARKER"
 out=$(ADAPT_REPO_MARKER="$REPO_MARKER" \
       ADAPT_USER_MARKER="$USER_MARKER" \
       KNOWLEDGE_FILE="$EMPTY_KNOWLEDGE" \
-      "$HOOK" 2>/dev/null)
+      python3 "$HOOK" 2>/dev/null)
 assert_not_contains "no-markers silent for adapt nudge" "$out" \
   "adapt-to-project:"
 
@@ -158,7 +158,7 @@ EOF
 out=$(ADAPT_REPO_MARKER="$REPO_MARKER" \
       ADAPT_USER_MARKER="$USER_MARKER" \
       KNOWLEDGE_FILE="$PATTERNS" \
-      "$HOOK" 2>/dev/null)
+      python3 "$HOOK" 2>/dev/null)
 # Knowledge header must precede the adapt nudge.
 knowledge_pos=$(printf '%s' "$out" | grep -n "=== knowledge ===" | head -1 | cut -d: -f1)
 adapt_pos=$(printf '%s' "$out" | grep -n "=== adapt-to-project:" | head -1 | cut -d: -f1)
