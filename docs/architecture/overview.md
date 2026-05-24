@@ -43,6 +43,23 @@ where do I look first?
 - ...
 -->
 
+## Packs
+
+The catalogue ships five reference packs under `packs/`:
+
+- `core` — agent context, conventions, the work-loop skill, and the
+  template spec/plan scaffolding every pack composes against. Repo-only.
+- `governance-extras` — `new-rfc`, `new-adr`, `update-conventions`
+  skills + RFC/ADR templates and seed READMEs. Repo-only.
+- `user-guide-diataxis` — Diátaxis quadrant scaffolding for user-facing
+  guides. Repo-only.
+- `monorepo-extras` — `packages/` layout primitives (the `_example/`
+  reference package + `packages/README.md`). Repo-only.
+- `converters` — file-format conversion skills: documents and images →
+  Markdown; Markdown → styled HTML; Outlook `.msg` → Markdown. The
+  catalogue's first user-scope pack (`default-scope = "user"`,
+  `allowed-scopes = ["user", "repo"]`).
+
 ## Conventions you'll see across packages
 
 <!--
