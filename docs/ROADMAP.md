@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-25 (reconciled self-hosting comparison-rule + scope-rails Rail-C entries against shipped PRs #34 / #33)
+**Last updated:** 2026-05-24 (added `skill-secrets` spec entry from RFC-0006; promoted the cross-spec credentialed-skill-template stub into the new spec's open items)
 
 ## How this file is maintained
 
@@ -194,6 +194,70 @@ RFC-0005's follow-on artifacts name.
   measures contract correctness via fixture packs, not via a
   shipped consumer.
 
+## `skill-secrets` — drafted
+
+Spec: [`specs/skill-secrets/spec.md`](specs/skill-secrets/spec.md).
+Drafted from [RFC-0006](rfc/0006-skill-secrets-storage.md) (Accepted
+2026-05-24). The spec is the implementation contract for the
+two-layer architecture (skills don't hold credentials; credentialed
+primitives do), the three storage tiers (env → OS keyring → dotfile
+floor at `~/.agent-ready/credentials.env`), the stdlib-only loader
++ `agentbundle creds` verb (`setup`/`check`/`where`/`rm` only; no
+`get`), the argv ban + `SKILL.md` "Don't" block, the
+`conventions-check` extensions, the worked example, and the
+ADR-0002 amendment freezing the narrow "hook-shaped" definition.
+
+The plan breaks the work into fifteen tasks (T13 split into
+T13a/T13b/T13c): T1 (ADR-0002 amendment — lands in the spec PR);
+T2–T7 (runtime library: stdlib `.env` parser, loader API +
+`agent_ready` shim, macOS Keychain Tier-2, Windows Credential
+Manager Tier-2, Tier-3 dotfile, `creds-schema.toml` parser); T8
+(CLI verb at `agentbundle/commands/creds.py` with tombstone-arg
+argv ban); T9–T10 (SKILL.md frontmatter + lint allow-list,
+`conventions-check` AST-walker extensions); T11–T12 (author skill
+carrying template variants; worked example); T13a (CONVENTIONS.md
+via seed upstream); T13b (Diátaxis how-to); T13c (this roadmap
+entry's per-task closure).
+
+- **All 38 ACs open** (AC1, AC2, AC3, AC4, AC4b, AC4c, AC5–AC23, AC24, AC24b, AC25–AC35). Coverage
+  unblocks incrementally as tasks land:
+  - **AC1** closes with T1 (ADR-0002 amendment) — lands in the
+    spec PR.
+  - **AC2** closes with T2 (stdlib `.env` parser).
+  - **AC3, AC4, AC4b, AC4c, AC5** close with T3 (loader API +
+    Tier-1 + platform dispatch + wheel-installability +
+    `pyproject.toml` shim include).
+  - **AC6, AC7, AC8** close with T4 (macOS Keychain Tier-2).
+  - **AC9, AC10, AC11, AC12** close with T5 (Windows Credential
+    Manager Tier-2).
+  - **AC13, AC14, AC15** close with T6 (Tier-3 dotfile;
+    shared-parent behavior).
+  - **AC24, AC24b** close with T7 (`creds-schema.toml` parser
+    + canonical-path resolution).
+  - **AC16–AC23** close with T8 (CLI verb; tombstone args;
+    macOS/Windows exit-code matrices).
+  - **AC25** closes with T9 (frontmatter + lint allow-list).
+  - **AC26, AC27** close with T10 (`conventions-check`
+    AST-walker extensions).
+  - **AC28** closes with T11 (`add-credentialed-skill` author
+    skill + template variants in its `assets/`).
+  - **AC29** closes with T12 (`example-credentialed-skill`
+    worked example).
+  - **AC30** closes with T13a (seed-side CONVENTIONS.md edit).
+  - **AC31** closes with T13b (Diátaxis how-to).
+  - **AC32** closes with T13c (ROADMAP per-task closure).
+  - **AC33** stays green throughout (every PR runs `make build-check`).
+  - **AC34, AC35** are inheritance invariants enforced by every
+    test PR after T4 / T5 / T6 / T8 land their fixtures.
+- **New ADR ("Credential storage for credentialed skills") is
+  post-implementation.** RFC-0006 § Follow-on artifacts names it;
+  the spec defers authoring it until T1–T13 are done (precedent:
+  `user-scope-hooks`'s ADR).
+- **Linux libsecret tier deferred.** v2 RFC scoped alongside an
+  adopter-profile audit per RFC-0006 § Unresolved Q1; not gating
+  v1 (Linux lands on Tier 3 floor). The `v2-libsecret` stub stays
+  open under cross-spec items below.
+
 ---
 
 ## Cross-spec / outside-the-spec-tree
@@ -204,11 +268,11 @@ but don't have a spec of their own yet.
 - **F-conformance fixtures (RFC-0003).** The per-adapter conformance
   suite that `agentbundle validate --strict` would consume. RFC-0003
   scoped this out of v1; needs its own spec when prioritised.
-- **Credentialed-skill template path (RFC-0006).** RFC-0006's
-  2026-05-24 amendment punted the canonical landing path for the
-  credentialed-skill SKILL.md template (the "Don't" block) to the
-  implementing PR, after `docs/_templates/` was retired and templates
-  moved into per-skill `assets/`. The spec phase for `skill-secrets`
-  must pin the path. Pre-relocation it was named
-  `docs/_templates/credentialed-skill-SKILL.md`; post-relocation it's
-  expected to land under an `assets/` folder of the owning skill.
+- **v2 RFC: Linux `libsecret` tier (RFC-0006).** RFC-0006 § Unresolved
+  Q1 defers the Linux keyring tier to a v2 RFC alongside an
+  adopter-profile audit (headless / SSH dev boxes, WSL2, Docker dev
+  containers, corporate fleet defaults). Three integration paths are
+  on the table (`secret-tool` CLI, `gi.repository.Secret` Python
+  bindings, `ctypes.CDLL("libsecret-1.so.0")` direct); choosing
+  among them is part of the audit. Until then, Linux adopters land
+  on Tier 3 (dotfile).
