@@ -614,7 +614,7 @@ enforcement triplet" and mean the same three things:
 | Layer | Mechanism | What it gates |
 |---|---|---|
 | Caps | [`.claude/skills/work-loop/scripts/loop-cohort.py`](../.claude/skills/work-loop/scripts/loop-cohort.py) `check` | Iteration cap, token budget, plan approval, fingerprint stasis (see [`work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md)). The same tool owns every state mutation upstream of the check. |
-| Artifacts | `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-skill-deps.py`, `lint-knowledge.py`, `lint-build.py` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
+| Artifacts | `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-knowledge.py`, `lint-build.py` | Shape and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
 | Aggregation | [`tools/hooks/pre-pr.py`](../tools/hooks/pre-pr.py) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
 
 The triplet is **Shift Left**: catch problems as early as possible,
