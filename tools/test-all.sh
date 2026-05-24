@@ -3,7 +3,7 @@
 # linter, hook, or loop-cohort.py changes; CI runs a subset, so this is
 # the local-side belt-and-braces.
 #
-# Distinct from tools/hooks/pre-pr.sh — that's a *gate* against the
+# Distinct from tools/hooks/pre-pr.py — that's a *gate* against the
 # working tree (does the diff pass the linters?); this is a *suite*
 # of self-tests against the linters and hooks themselves (do the
 # tools still do what they claim?). Both have a place; both green is

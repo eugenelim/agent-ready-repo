@@ -48,7 +48,7 @@ Each `SKILL.md` should:
    they live with the skill under `<skill>/assets/<name>` and the body
    cites them via skill-relative paths. Empty list (`dependencies: []`)
    is valid and honest. The manifest is validated by
-   `tools/lint-skill-deps.sh` and consumed by the pack build pipeline
+   `tools/lint-skill-deps.py` and consumed by the pack build pipeline
    that ships skills to adopter projects. Keep it accurate as the body
    changes — drift is what the linter exists to catch.
 

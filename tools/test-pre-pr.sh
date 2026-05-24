@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Self-test for tools/hooks/pre-pr.sh. For each of the four layers the
+# Self-test for tools/hooks/pre-pr.py. For each of the four layers the
 # aggregator runs, plant a single-character corruption in a sandbox
-# copy of the repo, invoke pre-pr.sh against it, and assert it fails
+# copy of the repo, invoke pre-pr.py against it, and assert it fails
 # with the matching `pre-pr: ✖ <label> failed` line. Catches the
 # regression where a refactor silently drops a layer.
 
@@ -34,7 +34,7 @@ seed_sandbox
 
 # A baseline run against the clean sandbox must succeed — sanity-check.
 set +e
-out=$(cd "$SANDBOX" && bash tools/hooks/pre-pr.sh 2>&1)
+out=$(cd "$SANDBOX" && python3 tools/hooks/pre-pr.py 2>&1)
 got=$?
 set -e
 if [[ "$got" -ne 0 ]]; then
@@ -57,12 +57,12 @@ run_corruption() {
   (cd "$SANDBOX" && eval "$corrupt")
 
   set +e
-  out=$(cd "$SANDBOX" && bash tools/hooks/pre-pr.sh 2>&1)
+  out=$(cd "$SANDBOX" && python3 tools/hooks/pre-pr.py 2>&1)
   got=$?
   set -e
 
   if [[ "$got" -eq 0 ]]; then
-    echo "FAIL [$label]: pre-pr.sh exited 0 on corrupted sandbox" >&2
+    echo "FAIL [$label]: pre-pr.py exited 0 on corrupted sandbox" >&2
     echo "  output: $out" >&2
     failures=$((failures + 1))
     return
