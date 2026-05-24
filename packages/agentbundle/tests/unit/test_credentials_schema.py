@@ -198,19 +198,30 @@ def test__relative_schema_path_ignores_non_skill_md_entries():
     assert ".claude/skills/jira" in str(_relative_schema_path(state, "core", "jira"))
 
 
-# ── ``load_credentials(schema_path=...)`` kwarg (T3 + T7) ──────────────
+# ── ``load_credentials`` signature (T3) ────────────────────────────────
 
 
-def test_load_credentials_accepts_schema_path_kwarg(tmp_path, monkeypatch):
-    """Primitive authors can pass ``schema_path`` for their own schema
-    file — verified by signature inspection (the resolver-vs-passthrough
-    logic is exercised by the CLI in T8)."""
+def test_load_credentials_signature_is_minimal():
+    """The loader's public signature carries only ``namespace`` and
+    ``required_keys``, both positional-or-keyword with no defaults, no
+    `*args`, no `**kwargs`. Schema concerns (validating
+    ``required_keys`` against an on-disk schema) live in
+    ``agentbundle creds check``, not on the loader. Pin the *shape* of
+    each parameter — names alone don't defend the contract: a future
+    change to keyword-only, positional-only, or a default would slip
+    past a name-only assertion and break call-sites that pass
+    positionally.
+    """
     import inspect
 
     from agentbundle.creds.loader import load_credentials
     sig = inspect.signature(load_credentials)
-    assert "schema_path" in sig.parameters
-    param = sig.parameters["schema_path"]
-    # Keyword-only per AC3.
-    assert param.kind == inspect.Parameter.KEYWORD_ONLY
-    assert param.default is None
+    POK = inspect.Parameter.POSITIONAL_OR_KEYWORD
+    empty = inspect.Parameter.empty
+    actual = [
+        (p.name, p.kind, p.default) for p in sig.parameters.values()
+    ]
+    assert actual == [
+        ("namespace", POK, empty),
+        ("required_keys", POK, empty),
+    ]

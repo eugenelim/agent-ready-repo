@@ -353,9 +353,10 @@ def _resolve_schema_for_namespace(
     The walk parses every credentialed skill's schema and matches by
     ``schema.namespace``.
 
-    *Related primitive:* ``agentbundle.creds.loader.resolve_schema_path``
+    *Related primitive:* ``agentbundle.creds.loader._relative_schema_path``
     walks the same ``PackState.files`` table per AC24b but looks up by
-    *skill name*. This helper looks up by *namespace* — the user types
+    *skill name* and returns a state-relative path. This helper looks
+    up by *namespace* and returns an absolute path — the user types
     ``agentbundle creds <verb> <namespace>``, not the skill name — so
     the two helpers are deliberate twins of the same lookup. Keep the
     canonical-path convention (``<skill-dir>/references/creds-schema.toml``)
