@@ -3,7 +3,10 @@
 #
 # Checks:
 #   1. AGENTS.md exists at repo root.
-#   2. CLAUDE.md is a symlink to AGENTS.md (not a duplicate file).
+#   2. CLAUDE.md is either a symlink to AGENTS.md, or a byte-identical
+#      regular-file copy of it. (Symlink is preferred; the byte-equal
+#      branch exists because native Windows checkouts can't materialise
+#      symlinks without elevation.)
 #   3. Root AGENTS.md is under MAX_ROOT_LINES.
 #   4. No subdirectory AGENTS.md exceeds MAX_SUB_LINES.
 #   5. Internal markdown links resolve.
@@ -34,7 +37,10 @@ else
   ok "Root AGENTS.md exists."
 fi
 
-# 2. CLAUDE.md is a symlink to AGENTS.md
+# 2. CLAUDE.md is a symlink to AGENTS.md, OR a byte-identical copy.
+# Symlink is preferred (edits stay in lock-step). Native Windows checkouts
+# can't materialise symlinks without elevation, so a byte-identical regular
+# file is also accepted. A diverged regular file is not.
 if [[ -L CLAUDE.md ]]; then
   target="$(readlink CLAUDE.md)"
   if [[ "$target" == "AGENTS.md" ]]; then
@@ -43,9 +49,15 @@ if [[ -L CLAUDE.md ]]; then
     note "CLAUDE.md is a symlink, but points to '$target' instead of 'AGENTS.md'."
   fi
 elif [[ -f CLAUDE.md ]]; then
-  note "CLAUDE.md is a regular file. It should be a symlink to AGENTS.md to stay in sync."
+  # cmp -s returns 0 iff bytes match; if AGENTS.md is missing it returns
+  # non-zero and check 1 has already flagged the root cause separately.
+  if [[ -f AGENTS.md ]] && cmp -s CLAUDE.md AGENTS.md; then
+    ok "CLAUDE.md is a byte-identical copy of AGENTS.md (Windows-friendly fallback)."
+  else
+    note "CLAUDE.md is a regular file and its contents diverge from AGENTS.md. Make it a symlink (ln -sf AGENTS.md CLAUDE.md) or a byte-identical copy."
+  fi
 else
-  note "CLAUDE.md is missing. Create it with: ln -s AGENTS.md CLAUDE.md"
+  note "CLAUDE.md is missing. Create it with: ln -s AGENTS.md CLAUDE.md  (on native Windows: copy AGENTS.md to CLAUDE.md and re-copy after every edit)."
 fi
 
 # 3. Root AGENTS.md size
