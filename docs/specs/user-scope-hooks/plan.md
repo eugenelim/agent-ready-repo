@@ -240,7 +240,10 @@ negative-validate tests from T2 pass against them.
 - New module
   `packages/agentbundle/agentbundle/build/target_resolver.py`
   implementing `resolve_target(adapter_projection, scope,
-  attach_to_agent=None) -> Path`.
+  attach_to_agent=None) -> str`. Returns `str` rather than `Path`:
+  pipeline consumers (T5/T6) own scope-root resolution (`.` vs `~`)
+  and `<name>` / `<pack>` placeholder substitution; the resolver
+  stays a pure-string utility with no filesystem dependency.
 - New unit test file
   `packages/agentbundle/tests/unit/test_target_resolver.py`.
 

@@ -164,6 +164,23 @@ def run(args) -> int:
         )
         return 1
 
+    # ── 4c. Kiro hook-wiring `attach-to-agent` rail (RFC-0005, T2) ────────
+    # Fires when the pack is v0.3-bound AND ships *both* `.apm/agents/`
+    # (Kiro requires an agent to attach to) AND `.apm/hook-wiring/`
+    # (the wiring being validated). Pack-side `allowed-adapters` is a
+    # future RFC; the both-dirs heuristic is the proxy for "this pack
+    # would project to kiro." A Claude-Code-only v0.3 pack that ships
+    # wiring but no agents has no kiro projection target — the rail is
+    # a no-op for it (AC6: "field is ignored, not refused").
+    from agentbundle.build.scope_rails import check_kiro_wiring
+
+    target_adapters = _kiro_target_adapters(pack_data, pack_path)
+    pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
+    kiro_refusal = check_kiro_wiring(pack_path, pack_name, target_adapters)
+    if kiro_refusal is not None:
+        print(f"validate: {kiro_refusal}", file=sys.stderr)
+        return 1
+
     # ── 5. Strict / conformance mode ─────────────────────────────────────
     if strict:
         conformance_dir = _conformance_fixtures_dir()
@@ -206,6 +223,59 @@ def _is_default_scope_invariant_violation(pack_data: dict, first_error: str) -> 
         "pack.install.allowed-scopes" in first_error
         or "allowed-scopes" in first_error
     )
+
+
+def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
+    """Resolve the target-adapter set for the kiro hook-wiring rail (T2).
+
+    Pack-side ``allowed-adapters`` does not exist yet (a future RFC).
+    The rail's purpose is to refuse hook-wiring that *would* project to
+    kiro but lacks the required ``attach-to-agent`` field. Without an
+    explicit declaration, we infer kiro-targeting from on-disk evidence:
+
+      - Pack declares the v0.3 adapter contract (the version that
+        introduced ``merge-into-agent-json`` for kiro hook-wiring).
+      - Pack ships **both** ``.apm/agents/`` content (Kiro's projection
+        target — an agent JSON to attach into) **and**
+        ``.apm/hook-wiring/`` content (the wiring this rail validates).
+
+    A Claude-Code-only v0.3 pack that ships wiring without agents
+    cannot project to kiro by construction (no agent file to merge
+    into) and the rail is a no-op for it. v0.1 / v0.2 packs pre-date
+    the requirement.
+
+    Returns ``{"kiro"}`` when the heuristic fires; empty set
+    (rail no-op) otherwise.
+    """
+    pack = pack_data.get("pack", {})
+    if not isinstance(pack, dict):
+        return set()
+    contract = pack.get("adapter-contract")
+    if not isinstance(contract, dict):
+        return set()
+    if contract.get("version") != "0.3":
+        return set()
+    # Heuristic: kiro projection requires a same-pack agent. A pack
+    # with wiring but no agents has nothing to attach to.
+    agents_dir = pack_path / ".apm" / "agents"
+    wiring_dir = pack_path / ".apm" / "hook-wiring"
+    if not _dir_has_any_file(agents_dir, ".md"):
+        return set()
+    if not _dir_has_any_file(wiring_dir, ".toml"):
+        return set()
+    return {"kiro"}
+
+
+def _dir_has_any_file(directory: Path, suffix: str) -> bool:
+    """Return True if *directory* exists and contains at least one file
+    with *suffix*. Symlinks are ignored — the kiro rail consumes them
+    through `check_kiro_wiring`, which mirrors rail C's symlink refusal."""
+    if not directory.exists():
+        return False
+    for entry in directory.iterdir():
+        if entry.is_file() and entry.suffix == suffix:
+            return True
+    return False
 
 
 def _allowed_scopes(pack_data: dict) -> list[str]:

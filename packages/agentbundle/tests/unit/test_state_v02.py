@@ -94,13 +94,22 @@ def test_load_state_for_write_refuses_v01(tmp_path):
     assert "init-state --migrate" in str(ei.value)
 
 
-def test_load_state_for_write_accepts_v02(tmp_path):
-    """A v0.2 file does not raise on for_write=True."""
+def test_load_state_for_write_refuses_v02(tmp_path):
+    """RFC-0005 / AC22: v0.2 became legacy on the v0.3 contract bump (T8a).
+
+    Reads of v0.2 still work (legacy compatibility); writes refuse with the
+    same refuse-and-explain shape v0.1 uses, just naming version 0.2."""
     p = _write(
         tmp_path / "s.toml",
         'schema-version = "0.2"\n\n[pack.demo]\ninstalled-version = "0.1.0"\nscope = "repo"\nprimitives = []\n[pack.demo.files]\n',
     )
-    state = config.load_state(p, for_write=True)
+    with pytest.raises(config.StateFileLegacy) as ei:
+        config.load_state(p, for_write=True)
+    assert "schema-version 0.2" in str(ei.value)
+    assert "init-state --migrate" in str(ei.value)
+
+    # Read-only path still parses cleanly.
+    state = config.load_state(p, for_write=False)
     assert state.schema_version == "0.2"
     assert state.packs["demo"].scope == "repo"
 
@@ -135,8 +144,11 @@ def test_init_state_refuses_v01_state_file(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_migrate_rewrites_v01_to_v02(tmp_path):
-    """Every pack gains `scope = "repo"`; schema-version flips to 0.2."""
+def test_migrate_rewrites_v01_to_current(tmp_path):
+    """Every pack gains `scope = "repo"`; schema-version flips to the
+    current ``STATE_SCHEMA_VERSION`` (v0.3 under T8a). The v0.1 → v0.2
+    invariant lands in one step alongside the header-only v0.2 → v0.3
+    bump because the two compose cleanly (RFC-0005 § State-file impact)."""
     state_path = _write(tmp_path / ".agent-ready-state.toml", V01_TWO_PACKS)
     args = argparse.Namespace(
         root=str(tmp_path),
@@ -149,7 +161,7 @@ def test_migrate_rewrites_v01_to_v02(tmp_path):
     assert rc == 0
 
     migrated = config.load_state(state_path)
-    assert migrated.schema_version == "0.2"
+    assert migrated.schema_version == config.STATE_SCHEMA_VERSION
     assert all(ps.scope == "repo" for ps in migrated.packs.values())
     # SHAs preserved.
     assert migrated.packs["core"].file_sha("AGENTS.md") == "aa"
