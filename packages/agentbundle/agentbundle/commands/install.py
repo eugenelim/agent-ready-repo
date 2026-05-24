@@ -30,7 +30,7 @@ from __future__ import annotations
 import functools
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -57,6 +57,11 @@ class _ScopePlan:
     allowed_prefixes: list[str] | None
     state: "State"  # the loaded state at this scope (read-only mode)
     already_installed: bool
+    # `.upstream.<ext>` companion relpaths written during this scope's
+    # step-9 projection loop. Threaded to the install marker so the
+    # adapt-to-project skill can surface class-2 work without re-walking
+    # the tree. Stays empty when nothing collided.
+    new_companions: list[str] = field(default_factory=list)
 
 
 def run(args: "argparse.Namespace") -> int:
@@ -427,6 +432,9 @@ def run(args: "argparse.Namespace") -> int:
                 except safety.PathJailError as exc:
                     print(f"install: {exc}", file=sys.stderr)
                     return 1
+                plan.new_companions.append(
+                    safety.companion_path(Path(relpath)).as_posix()
+                )
             else:
                 try:
                     safety.write_jailed(
@@ -496,7 +504,6 @@ def run(args: "argparse.Namespace") -> int:
         if repo_projection is not None
         else []
     )
-    new_companions: list[str] = []  # AC19a field; v1 tally deferred (ROADMAP).
     for plan in plans:
         scope_markers = repo_unresolved_markers if plan.scope == "repo" else []
         try:
@@ -506,7 +513,7 @@ def run(args: "argparse.Namespace") -> int:
                 pack_name=pack_name,
                 pack_version=pack_version,
                 unresolved_markers=scope_markers,
-                new_companions=new_companions,
+                new_companions=plan.new_companions,
                 allowed_prefixes=plan.allowed_prefixes,
             )
         except (OSError, safety.PathJailError) as exc:

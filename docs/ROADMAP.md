@@ -118,15 +118,6 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   `adapt.run`. The spec is explicit (CLI-only contract), but the
   RFC-0004 parity work would close this gap. **Unblocks when:**
   APM/Claude-plugins adapter parity lands.
-- **Install-marker `new-companions` tally.** `commands/install.py`'s
-  install loop classifies Tier-2 collisions on the fly and doesn't
-  keep a tally; `_append_install_marker` writes `new-companions = []`
-  unconditionally. The spec's install-marker schema example names
-  this field as load-bearing, but the session-start nudge doesn't
-  surface companion paths in v1. **Unblocks when:** the first Tier-2
-  collision needs to surface through the install→adapt nudge — at
-  that point, capture the relpaths during the step-9 write loop and
-  pass them through.
 - **AC4b — deferred manual-QA rows (three trigger classes).**
   v1 ships the AC4a automation/grep rows; AC4b enumerates 21 rows
   deferred under three trigger classes (see
