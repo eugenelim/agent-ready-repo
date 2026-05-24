@@ -446,11 +446,64 @@ def _aggregate_marketplace(
     return target
 
 
-def _recreate_claude_symlink(output_root: Path) -> Path:
-    """Ensure `output_root/CLAUDE.md` is a symlink to `AGENTS.md`.
-    Idempotent — leaves a correctly-pointing symlink alone."""
+def _is_windows() -> bool:
+    """Detect native Windows. Both checks point at the same OS; using
+    either alone is enough but checking both is robust against a future
+    embedded build that fakes one without the other."""
+    return sys.platform == "win32" or os.name == "nt"
+
+
+def _recreate_claude_symlink(output_root: Path, *, force_copy: bool = False) -> Path:
+    """Ensure `output_root/CLAUDE.md` mirrors `AGENTS.md`.
+
+    On macOS / Linux (default) the mirror is a relative symlink to
+    `AGENTS.md`, idempotent — leaves a correctly-pointing symlink alone.
+
+    On native Windows, or when `force_copy=True` (set by the CLI's
+    `--no-symlink` flag), the mirror is a regular file copy of
+    `AGENTS.md`. Symlink creation on Windows requires Developer Mode or
+    admin privileges; the copy path is the portable fallback. Emits a
+    one-line stderr warning when the fallback fires so the operator
+    knows the resulting CLAUDE.md is a copy, not a link, and must be
+    regenerated when AGENTS.md changes.
+    """
     claude = output_root / "CLAUDE.md"
     desired_target = "AGENTS.md"
+    source = output_root / desired_target
+    use_copy = force_copy or _is_windows()
+
+    if use_copy:
+        if not source.exists():
+            # The POSIX symlink branch would create a dangling link
+            # here (and some test fixtures rely on that); on Windows
+            # the closest semantic equivalent is "no CLAUDE.md at
+            # all" because we can't fabricate a copy of a missing
+            # source. Log the divergence and return without writing.
+            print(
+                f"self-host: skipping CLAUDE.md copy — source {source} "
+                f"missing; on POSIX a dangling symlink would have been "
+                f"created instead.",
+                file=sys.stderr,
+            )
+            return claude
+        source_bytes = source.read_bytes()
+        if (
+            claude.is_file()
+            and not claude.is_symlink()
+            and claude.read_bytes() == source_bytes
+        ):
+            return claude
+        if claude.is_symlink() or claude.exists():
+            claude.unlink()
+        claude.write_bytes(source_bytes)
+        reason = "--no-symlink" if force_copy else "Windows host"
+        print(
+            f"self-host: CLAUDE.md written as a copy of AGENTS.md ({reason}); "
+            f"regenerate after AGENTS.md changes.",
+            file=sys.stderr,
+        )
+        return claude
+
     if claude.is_symlink():
         try:
             if os.readlink(claude) == desired_target:
@@ -741,6 +794,7 @@ def run_self_host(
     dry_run: bool,
     force: bool,
     contract: dict | None = None,
+    no_symlink: bool = False,
 ) -> int:
     """Execute `make build-self` (or `make build-self DRY_RUN=1`).
 
@@ -799,7 +853,7 @@ def run_self_host(
                 return 4
             agents_path = _compose_agents_md(packs_dir, shadow, contract)
             _aggregate_marketplace(packs_dir, shadow, owner=owner)
-            _recreate_claude_symlink(shadow)
+            _recreate_claude_symlink(shadow, force_copy=no_symlink)
             extra_marker_paths = list(seed_map.keys()) + [
                 Path(".claude-plugin") / "marketplace.json",
             ]
@@ -835,7 +889,7 @@ def run_self_host(
         return 4
     agents_path = _compose_agents_md(packs_dir, working_tree, contract)
     _aggregate_marketplace(packs_dir, working_tree, owner=owner)
-    _recreate_claude_symlink(working_tree)
+    _recreate_claude_symlink(working_tree, force_copy=no_symlink)
     extra_marker_paths = list(seed_map.keys()) + [
         Path(".claude-plugin") / "marketplace.json",
     ]
@@ -851,6 +905,7 @@ def cmd_self(args) -> int:
         packs_dir=Path(args.packs_dir).resolve(),
         dry_run=args.dry_run,
         force=args.force,
+        no_symlink=getattr(args, "no_symlink", False),
     )
 
 
@@ -861,6 +916,7 @@ def cmd_check(args) -> int:
         packs_dir=Path(args.packs_dir).resolve(),
         dry_run=True,
         force=False,
+        no_symlink=getattr(args, "no_symlink", False),
     )
 
 

@@ -1,0 +1,11 @@
+[pack]
+name = "clean"
+version = "0.0.1"
+description = "Windows-portability lint fixture: clean pack with portable filenames only. Used to assert the lint exits 0 on conforming input."
+
+[pack.adapter-contract]
+version = "0.2"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

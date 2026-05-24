@@ -4,6 +4,15 @@ The dirty-tree fixture is a `tempfile.TemporaryDirectory()` initialised
 as a git repo (`git init`), with a tracked file committed and then
 modified — exercising the real refusal path against `git status
 --porcelain`.
+
+Test-only symlink creation: several cases below call `os.symlink` /
+`Path.symlink_to` to fabricate CLAUDE.md symlink fixtures and exercise
+the symlink branch of `_recreate_claude_symlink`. These are runtime
+test fixtures, not release content; the Windows-portability lint
+(`lint_packs.py`) catches symlinks shipped *inside packs*, which is
+a different surface. On native Windows these tests would need a
+`skipIf(sys.platform == 'win32')` decorator, but Windows CI is Phase 5
+of the portability plan and out of scope for this PR.
 """
 
 from __future__ import annotations
@@ -734,6 +743,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
             _recreate_claude_symlink(tree)
             link = tree / "CLAUDE.md"
             self.assertTrue(link.is_symlink())
@@ -744,6 +754,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
             (tree / "CLAUDE.md").symlink_to("AGENTS.md")
             _recreate_claude_symlink(tree)  # should not raise
             self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
@@ -753,9 +764,132 @@ class ClaudeSymlinkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
             (tree / "CLAUDE.md").symlink_to("other.md")
             _recreate_claude_symlink(tree)
             self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
+
+    def test_creates_dangling_symlink_when_agents_md_missing_on_posix(self) -> None:
+        """Historic POSIX semantic preserved: when AGENTS.md is absent
+        the symlink branch creates a dangling link rather than raising.
+        Test fixtures throughout this suite rely on it. The copy
+        branch, exercised on Windows, takes the documented skip-with-
+        warning path instead — see `ClaudeSymlinkFallbackTests`."""
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            link = _recreate_claude_symlink(tree)
+            self.assertTrue(link.is_symlink())
+            self.assertFalse((tree / "AGENTS.md").exists())
+
+
+class ClaudeSymlinkFallbackTests(unittest.TestCase):
+    """Windows-portability: copy fallback on Windows / under --no-symlink.
+
+    The host OS is faked via monkeypatching `sys.platform` so these
+    tests run identically on macOS, Linux, and Windows CI."""
+
+    def test_force_copy_skips_with_warning_when_source_missing(self) -> None:
+        """No AGENTS.md to copy → emit a one-line warning, return
+        without writing CLAUDE.md. Mirror of the POSIX dangling-symlink
+        semantic, adapted to the copy mode."""
+        import io
+        from contextlib import redirect_stderr
+
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                _recreate_claude_symlink(tree, force_copy=True)
+            self.assertFalse((tree / "CLAUDE.md").exists())
+            self.assertIn("missing", buf.getvalue())
+
+    def test_force_copy_writes_regular_file_with_agents_md_contents(self) -> None:
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("# agents canonical\n", encoding="utf-8")
+            claude = _recreate_claude_symlink(tree, force_copy=True)
+            self.assertFalse(claude.is_symlink())
+            self.assertTrue(claude.is_file())
+            self.assertEqual(
+                claude.read_text(encoding="utf-8"), "# agents canonical\n"
+            )
+
+    def test_force_copy_replaces_existing_symlink(self) -> None:
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("content\n", encoding="utf-8")
+            (tree / "CLAUDE.md").symlink_to("AGENTS.md")
+            _recreate_claude_symlink(tree, force_copy=True)
+            claude = tree / "CLAUDE.md"
+            self.assertFalse(claude.is_symlink())
+            self.assertEqual(claude.read_text(encoding="utf-8"), "content\n")
+
+    def test_force_copy_idempotent_when_contents_match(self) -> None:
+        """Idempotency: the on-disk file isn't rewritten when CLAUDE.md
+        already matches AGENTS.md, and the warning only fires on the
+        actual write (one occurrence across two calls). Pin both
+        contracts here so a future refactor cannot silently flip
+        either behaviour."""
+        import io
+        from contextlib import redirect_stderr
+
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("hello\n", encoding="utf-8")
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                _recreate_claude_symlink(tree, force_copy=True)
+                mtime_first = (tree / "CLAUDE.md").stat().st_mtime_ns
+                _recreate_claude_symlink(tree, force_copy=True)
+                mtime_second = (tree / "CLAUDE.md").stat().st_mtime_ns
+            self.assertEqual(mtime_first, mtime_second)
+            # Warning fires only on the actual write — the idempotent
+            # short-circuit returns early before emitting it.
+            self.assertEqual(buf.getvalue().count("--no-symlink"), 1)
+
+    def test_windows_platform_takes_copy_path(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+        from unittest.mock import patch
+
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
+            buf = io.StringIO()
+            with patch("agentbundle.build.self_host.sys.platform", "win32"):
+                with redirect_stderr(buf):
+                    _recreate_claude_symlink(tree)
+            claude = tree / "CLAUDE.md"
+            self.assertFalse(claude.is_symlink())
+            self.assertTrue(claude.is_file())
+            self.assertEqual(claude.read_text(encoding="utf-8"), "agents\n")
+            self.assertIn("CLAUDE.md", buf.getvalue())
+            self.assertIn("copy", buf.getvalue().lower())
+
+    def test_default_path_unchanged_on_posix(self) -> None:
+        """Sanity: with no force_copy and sys.platform unmonkeypatched,
+        the existing symlink behaviour is unchanged."""
+        from agentbundle.build.self_host import _recreate_claude_symlink
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8")
+            _recreate_claude_symlink(tree)
+            link = tree / "CLAUDE.md"
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(os.readlink(link), "AGENTS.md")
 
 
 class MissingDiscoveryFailFastTests(unittest.TestCase):
