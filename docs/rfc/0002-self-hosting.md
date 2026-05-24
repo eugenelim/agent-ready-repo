@@ -104,7 +104,7 @@ edits).
 | `packs/<pack>/.apm/skills/<name>/` | Source | Agent Skills spec layout, scoped to a pack. |
 | `packs/<pack>/.apm/agents/<name>.md` | Source | Subagent definitions, scoped to a pack. |
 | `packs/<pack>/.apm/hooks/<name>.py` | Source | Hook bodies, scoped to a pack. |
-| `packs/<pack>/seeds/**` | Source | Pack seed files (README seeds, layer-0 content templates, `docs/_templates/*`). The upstream for every `docs/`-side projected path. |
+| `packs/<pack>/seeds/**` | Source | Pack seed files (README seeds, layer-0 content templates). The upstream for every `docs/`-side projected path. (Earlier drafts included `docs/_templates/*` in this enumeration; templates were relocated to per-skill `assets/` folders 2026-05-24 — see [Amendments](#amendments).) |
 | `docs/contracts/adapter.toml` | Source | The adapter contract spec. |
 | `tools/build/` | Source | The build pipeline. |
 | `README.md`, `USING_THIS_TEMPLATE.md`, `LICENSE-*`, `.gitignore`, `.github/workflows/*` | Source | Repo-perspective documents and operational files. |
@@ -120,8 +120,9 @@ edits).
 | `docs/adrs/README.md` | Projected | From `packs/governance-extras/seeds/docs/adrs/README.md`. |
 | `docs/guides/README.md`, `docs/guides/{tutorials,how-to,reference,explanation}/README.md` | Projected | From `packs/user-guide-diataxis/seeds/docs/guides/...`. Self-host iterates every `packs/*/` directory, so this pack's seeds always project when the pack exists on disk. |
 | `packages/README.md`, `packages/_example/` | Projected | From `packs/monorepo-extras/seeds/packages/`. Same iteration rule — if the pack directory exists, its seeds project. (This repo today does have a `monorepo-extras` pack source but no in-tree packages of its own.) |
-| `docs/_templates/spec.md`, `plan.md` | Projected | From `packs/core/seeds/docs/_templates/`. |
-| `docs/_templates/rfc.md`, `adr.md` | Projected | From `packs/governance-extras/seeds/docs/_templates/`. |
+| `.claude/skills/new-spec/assets/spec.md`, `plan.md` | Projected | From `packs/core/.apm/skills/new-spec/assets/` — direct-directory skill projection. |
+| `.claude/skills/new-adr/assets/adr.md`, `.claude/skills/new-rfc/assets/rfc.md` | Projected | From `packs/governance-extras/.apm/skills/{new-adr,new-rfc}/assets/` — direct-directory skill projection. |
+| `.claude/skills/work-loop/assets/state.json` | Projected | From `packs/core/.apm/skills/work-loop/assets/` — direct-directory skill projection. (Templates moved from `docs/_templates/` to per-skill `assets/` 2026-05-24 — see [Amendments](#amendments).) |
 | `docs/rfcs/NNNN-*.md`, `docs/adrs/NNNN-*.md`, `docs/specs/<feature>/*` | Manual | THIS repo's own governance entries (this repo is its own first adopter; entries authored at the projected paths post-projection). |
 | `.claude/skills/<name>/`, `.claude/agents/<name>.md` | Projected | Claude Code adapter's output across all packs' `.apm/skills/` and `.apm/agents/`. |
 | `tools/hooks/<name>.py` | Projected | Claude Code adapter's hook-body output. |
@@ -195,11 +196,14 @@ copy-from-pack-seeds = [
 ]
 # Merge semantics: copy-from-pack-seeds merges directory contents
 # file-by-file. Two packs may both contribute to the same
-# directory (canonical example: docs/_templates/ — core ships
-# spec.md+plan.md; governance-extras ships rfc.md+adr.md). File-
-# level collisions across packs (same filename, different content)
-# are a build-time error and must be resolved by renaming or
-# consolidating before the build proceeds.
+# directory (historical canonical example: docs/_templates/ — core
+# shipped spec.md+plan.md; governance-extras shipped rfc.md+adr.md.
+# That directory was retired 2026-05-24 when each template moved
+# into its owning skill's assets/ folder, so the seed-merge rule
+# still holds in principle but no longer has an active example at
+# this scale). File-level collisions across packs (same filename,
+# different content) are a build-time error and must be resolved by
+# renaming or consolidating before the build proceeds.
 
 [recipe.composite-agents-md]           # NEW recipe section type; assembles AGENTS.md from
                                        # the core pack's seed template, with the Codex adapter
@@ -342,12 +346,14 @@ landed. Once they have, the cutover is four steps:
      `tools/hooks/session-start.py`, `pre-pr.py` →
      `packs/core/.apm/hooks/`. `.claude/commands/conventions-check.md`
      → `packs/core/.apm/commands/`. Existing root `AGENTS.md`,
-     `docs/CHARTER.md`, `docs/CONVENTIONS.md`, `docs/_templates/{spec,plan}.md`,
+     `docs/CHARTER.md`, `docs/CONVENTIONS.md`, `docs/_templates/{spec,plan}.md`
+     (later relocated to per-skill `assets/` — see Amendments),
      and seed READMEs for `docs/architecture/`, `docs/specs/`,
      `docs/knowledge/`, `docs/product/` → `packs/core/seeds/`.
    - **`governance-extras`:** `.claude/skills/{new-rfc,new-adr,update-conventions}/`
      → `packs/governance-extras/.apm/skills/`.
-     `docs/_templates/{rfc,adr}.md` + seed READMEs for
+     `docs/_templates/{rfc,adr}.md` (later relocated to per-skill
+     `assets/` — see Amendments) + seed READMEs for
      `docs/rfcs/` and `docs/adrs/` → `packs/governance-extras/seeds/`.
    - **`user-guide-diataxis`:** A new `new-guide` skill body →
      `packs/user-guide-diataxis/.apm/skills/`. Seed READMEs for
@@ -541,6 +547,22 @@ If accepted, this RFC produces one downstream artifact:
 
 ## Amendments
 
+- 2026-05-24 (post-acceptance): `docs/_templates/` retired. Templates
+  (`spec.md`, `plan.md`, `adr.md`, `rfc.md`, `state.json`) moved into
+  the `assets/` folder of the skill that creates instances of each
+  (`new-spec`, `new-adr`, `new-rfc`, `work-loop`). Motivation:
+  agentskills.io ships a canonical skill layout (`SKILL.md` + optional
+  `references/` + `assets/`) and adopters consuming a skill via APM or
+  the Claude Code plugin marketplace receive **only** the skill folder
+  — the `docs/_templates/`-projected paths never travel along that
+  route, so the skill arrived broken at first invocation. Pack source
+  layout, projection table, and seed-merge example in this RFC were
+  edited in place to reference the new locations; semantics of the
+  copy-from-pack-seeds rule are unchanged. See the
+  [self-hosting spec Changelog](../specs/self-hosting/spec.md#changelog)
+  and the
+  [distribution-adapters spec Changelog](../specs/distribution-adapters/spec.md#changelog)
+  for the paired amendments.
 - 2026-05-22 (post-acceptance): adapter contract files relocated to
   `docs/contracts/`; this RFC's path references updated. Full
   rationale and the `CONVENTIONS.md:80` exception note live in

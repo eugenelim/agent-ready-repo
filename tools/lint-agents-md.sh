@@ -161,7 +161,7 @@ drift_check() {
 # conceptually but must not restate the number.
 drift_check \
   '"max_iterations":[[:space:]]*[0-9]+' \
-  "docs/_templates/state.json" \
+  ".claude/skills/work-loop/assets/state.json" \
   ".claude/skills/work-loop/SKILL.md" "AGENTS.md" "docs/CONVENTIONS.md"
 
 # Belt-and-braces prose probe: the original drift-watch caught the number
@@ -199,7 +199,7 @@ for probe in \
   "docs/specs/example/notes/implementer-T1-0.md" \
   ".worktrees/T1/README.md"; do
   if ! git check-ignore --quiet "$probe" 2>/dev/null; then
-    note "drift-watch: '$probe' should be gitignored (session-scratch — see CONVENTIONS.md#work-loop-state, CONVENTIONS.md#supervisor-mode)."
+    note "drift-watch: '$probe' should be gitignored (session-scratch — see .claude/skills/work-loop/references/state-schema.md, CONVENTIONS.md#supervisor-mode)."
   fi
 done
 

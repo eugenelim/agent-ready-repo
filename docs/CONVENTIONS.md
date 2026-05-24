@@ -139,7 +139,7 @@ Numbers are sequential and never reused.
 
 **Status values:** `Proposed` → `Accepted` → (`Deprecated` | `Superseded by ADR-NNNN`).
 
-**Template:** [`docs/_templates/adr.md`](_templates/adr.md).
+**Template:** [`new-adr/assets/adr.md`](../.claude/skills/new-adr/assets/adr.md) — lives with the `new-adr` skill that creates ADRs from it.
 
 **When to write an ADR:**
 
@@ -183,7 +183,7 @@ After follow-ons exist, the RFC's job is done. It stays in the repo as history.
 
 **Filename:** `NNNN-kebab-case-title.md`. Numbers are sequential.
 
-**Template:** [`docs/_templates/rfc.md`](_templates/rfc.md).
+**Template:** [`new-rfc/assets/rfc.md`](../.claude/skills/new-rfc/assets/rfc.md) — lives with the `new-rfc` skill that creates RFCs from it.
 
 **When to open an RFC:**
 
@@ -234,7 +234,7 @@ documentation of the feature's contract — but at that point the *code is the
 truth*, and the spec is reference material that should be updated alongside
 behavior changes.
 
-**Template:** [`docs/_templates/spec.md`](_templates/spec.md), [`docs/_templates/plan.md`](_templates/plan.md).
+**Template:** [`new-spec/assets/spec.md`](../.claude/skills/new-spec/assets/spec.md), [`new-spec/assets/plan.md`](../.claude/skills/new-spec/assets/plan.md) — both live with the `new-spec` skill that creates the pair.
 
 **Cite upward, never downward:** a spec links to the ADRs and RFCs that
 constrain it. ADRs do not link to specs (specs are too small and short-lived
@@ -363,9 +363,11 @@ seeds) lives under `packs/<pack>/`. The split is:
   `tools/hooks/<name>.<ext>`, and the `hooks` key of
   `.claude/settings.local.json`.
 - Seed-projected paths: `docs/CHARTER.md`, `docs/CONVENTIONS.md`,
-  `docs/APPROACH.md`, `docs/_templates/*`, seed READMEs under
+  `docs/APPROACH.md`, seed READMEs under
   `docs/{architecture,specs,knowledge,product,guides,rfc,adr}/`, and
-  the seed content under `packages/`.
+  the seed content under `packages/`. (Templates that *were* under
+  `docs/_templates/` now live with the skill that creates instances of
+  them, under `.claude/skills/<skill>/assets/`.)
 - Aggregated: `.claude-plugin/marketplace.json` from every pack's
   `.claude-plugin/plugin.json`.
 - Recreated: `CLAUDE.md → AGENTS.md` symlink.
@@ -469,7 +471,7 @@ is the *point* — which is what the Ralph harness in [`tools/ralph.sh`](../tool
 is for.
 
 **Why a hard iteration cap.** Without one, you're hoping. The cap lives as
-data in `state.json` (see below) and is enforced by `tools/check-done.py`;
+data in `state.json` (see below) and is enforced by `.claude/skills/work-loop/scripts/check-done.py`;
 if you hit it, the task is bigger than you thought — stop, re-plan, or
 split.
 
@@ -480,51 +482,11 @@ kind of learning belongs.
 
 ### Work-loop state
 
-A spec-driven loop carries a small amount of session-scoped state — how
-many iterations have run, what budget is left, what findings the last
-review surfaced. Putting that in prose ("we cap at 5 iterations…") leaves
-it un-enforceable. Putting it on disk as data lets a tiny script gate
-each phase. That script is [`tools/check-done.py`](../tools/check-done.py);
-the data lives at `docs/specs/<feature>/state.json`, and the schema lives
-at [`docs/_templates/state.json`](_templates/state.json).
-
-**Fields:**
-
-| Field | Meaning |
-|---|---|
-| `feature` | spec slug (informational) |
-| `iteration_count` / `max_iterations` | how many in-session loops have run / hard cap |
-| `token_budget_used_pct` / `token_budget_cap_pct` | session token budget — **advisory in Phase 1**; the kill criterion fires only if the orchestrator populates `_used_pct`, which is wired up in a later phase |
-| `consecutive_same_error_count` / `consecutive_same_error_threshold` | gate-error stuck-loop counter / cap. **Advisory in Phase 1** — the SKILL doesn't yet prescribe when to increment `_count`. Threshold lives in data so a project can tune it. |
-| `plan_review_status` | `pending` until the spec-mode adversarial review clears, then `approved`. Enforced as a gate on **all phases** (not just `--phase plan`) — `implement` and `review` also reject a `pending` state. |
-| `last_commit_sha` | latest commit produced by the loop (informational; advisory in Phase 1) |
-| `finding_fingerprints` / `previous_finding_fingerprints` | hashes of reviewer findings, rotated each REVIEW iteration; used to detect circling. Algorithm pinned in the work-loop SKILL §REVIEW. |
-| `worktrees` | one entry per `implementer` subagent dispatched in the current session's supervisor pass: `{task_id, branch, path, status, report_path}` where status is `in-progress` / `ready` / `blocked` / `failed` and `report_path` points at the implementer's markdown report under `docs/specs/<feature>/notes/`. Report files are gitignored (`docs/specs/**/notes/implementer-*.md`) — session-scratch like `state.json`, not history. Entries persist with their terminal status for the rest of the loop so a future reader can reconstruct what each task did. Empty in single-agent loops. See [§ Supervisor mode](#supervisor-mode). |
-
-**Exit contract.** `check-done.py` exits 0 when the phase is satisfied
-and non-zero when it isn't, with a one-line reason on stderr. Treat
-non-zero as "stop and surface" — with one deliberate exception: the
-SKILL's PLAN-init step calls the script with `--phase plan` *expecting*
-exit 1 with `plan not approved`. That exit-1 is the cue to run the
-spec-mode reviewer, not a real stop. Any other non-zero exit terminates
-the loop.
-
-**Lifecycle.** `state.json` is **per-session scratch**, not history. The
-file is gitignored (`docs/specs/**/state.json` in
-[`.gitignore`](../.gitignore)); the SKILL initializes it from the
-template at PLAN start. Across sessions, a fresh run re-initializes —
-intentionally; a new session deserves a fresh budget.
-
-**Atomic writes.** The orchestrator updates `state.json` mid-iteration;
-`check-done.py` reads it between phases. Always write atomically
-(tmp-file + `os.replace`, or shell `mv`) so a partial-write doesn't
-present as malformed JSON and falsely stop the loop.
-
-**Changing the cap.** Editing `docs/_templates/state.json` changes the
-*starting point* for any **newly-initialized** spec. To change the cap
-for a spec that's already running, edit that spec's own (gitignored)
-`docs/specs/<feature>/state.json` — the template edit doesn't propagate
-backward. The numbers move with the data, not the SKILL prose.
+The work-loop's `state.json` schema, exit contract, lifecycle, and
+atomic-write discipline live with the skill that consumes them —
+see [`.claude/skills/work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md).
+The template at [`.claude/skills/work-loop/assets/state.json`](../.claude/skills/work-loop/assets/state.json)
+is the starting point a new spec copies in.
 
 ### Model selection
 
@@ -550,9 +512,12 @@ When a plan has multiple tasks declaring `Depends on: none`, the
 work-loop enters **supervisor mode**: one primary orchestrator
 dispatches `implementer` subagents in parallel, each working in its own
 git worktree, then merges the results back and runs gates in the
-primary. The mechanics live in the
-[`work-loop` skill](../.claude/skills/work-loop/SKILL.md) §EXECUTE; this
-section is the why and the boundary.
+primary. The trigger and one-sentence concept live in the
+[`work-loop` skill](../.claude/skills/work-loop/SKILL.md) §EXECUTE; the
+step-by-step procedure (pre-flight, worktree setup, dispatch, report
+persistence, non-ready handling, merge, cleanup) lives in the skill's
+[`references/supervisor-mode.md`](../.claude/skills/work-loop/references/supervisor-mode.md).
+This section is the why and the boundary.
 
 **Why a separate mode instead of a separate skill.** The trigger is
 structural (the plan's shape), not a choice the user makes. Branching
@@ -575,10 +540,12 @@ history for traceability.
 
 **Merge discipline.** The supervisor merges with `git merge --no-ff
 <base>-<task-id>` into the primary branch, **sequentially in task-id
-order**. The SKILL has the procedural form (including how to order
-non-numeric IDs). If a sequential merge conflicts, the tasks weren't
-actually independent — the plan was wrong. Surface that as a
-PLAN-level escalation, not a `git mergetool` session.
+order**. The procedure file
+([`references/supervisor-mode.md`](../.claude/skills/work-loop/references/supervisor-mode.md))
+has the executable form (including how to order non-numeric IDs). If a
+sequential merge conflicts, the tasks weren't actually independent —
+the plan was wrong. Surface that as a PLAN-level escalation, not a
+`git mergetool` session.
 
 **Gates run in the primary, not the worktree.** Each implementer runs
 gates inside its worktree and reports the result, but those results are
@@ -591,14 +558,16 @@ human and returns to PLAN. It does **not** redispatch the same
 implementer on the same task — the assumption that produced the
 failure is what needs revising, not the attempt.
 
-**Known limitation.** This section's procedure has been validated by
-prose walk-through, not by an executed end-to-end dry-run. Any change
-to **pre-flight (SKILL §EXECUTE step 0)**, **worktree creation (step 1)**,
+**Known limitation.** The procedure has been validated by prose
+walk-through, not by an executed end-to-end dry-run. Any change to
+**pre-flight (procedure step 0)**, **worktree creation (step 1)**,
 **report persistence ordering (step 3)**, **merge order (step 5)**,
 **cleanup recovery (step 6)**, or the **`state.json` `worktrees`
 schema** must perform an actual `git worktree add` + parallel-dispatch
 round against a throwaway spec before merging — read-only walk-through
-is not sufficient for those surfaces.
+is not sufficient for those surfaces. Step numbers refer to the
+procedure at
+[`work-loop/references/supervisor-mode.md`](../.claude/skills/work-loop/references/supervisor-mode.md).
 
 ### Knowledge base
 
@@ -639,7 +608,7 @@ enforcement triplet" and mean the same three things:
 
 | Layer | Mechanism | What it gates |
 |---|---|---|
-| Caps | [`tools/check-done.py`](../tools/check-done.py) | Iteration cap, token budget, plan approval, fingerprint stasis (see [§ Work-loop state](#work-loop-state)). |
+| Caps | [`.claude/skills/work-loop/scripts/check-done.py`](../.claude/skills/work-loop/scripts/check-done.py) | Iteration cap, token budget, plan approval, fingerprint stasis (see [`work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md)). |
 | Artifacts | `tools/lint-agents-md.sh`, `lint-agent-artifacts.sh`, `lint-skill-deps.sh`, `lint-knowledge.sh` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
 | Aggregation | [`tools/hooks/pre-pr.sh`](../tools/hooks/pre-pr.sh) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
 

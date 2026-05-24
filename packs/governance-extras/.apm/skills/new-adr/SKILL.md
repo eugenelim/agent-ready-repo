@@ -1,8 +1,7 @@
 ---
 name: new-adr
 description: Use this skill when the user asks to create, write, draft, or open a new ADR (architecture decision record). Triggers on phrases like "new ADR", "write an ADR for…", "record this decision", "let's ADR this". Do NOT use for RFCs (use `new-rfc`) or feature specs (use `new-spec`).
-dependencies:
-  - docs/_templates/adr.md
+dependencies: []
 ---
 
 # Skill: new-adr
@@ -37,11 +36,10 @@ If any of these checks fail, push back rather than proceeding.
    declarative — `0007-use-postgres-for-primary-store.md`, not
    `0007-decision-about-the-database.md`.
 
-3. Copy the template and rename:
-
-   ```bash
-   cp docs/_templates/adr.md docs/adr/NNNN-<title>.md
-   ```
+3. Copy this skill's bundled `assets/adr.md` into `docs/adr/` and
+   rename to `NNNN-<title>.md`. (Paths are skill-relative — the
+   `assets/` folder lives next to this `SKILL.md` wherever your IDE
+   installed the skill.)
 
 4. Fill in the frontmatter (status `Proposed`, today's date, deciders).
 

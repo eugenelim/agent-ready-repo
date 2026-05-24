@@ -41,11 +41,13 @@ Each `SKILL.md` should:
    Code in scripts can be tested; code in markdown can't.
 4. Declare a `dependencies:` list in the frontmatter — every file
    *outside this skill's folder* the body relies on. Sibling agents the
-   skill invokes (`.claude/agents/<name>.md`), templates it generates
-   from (`docs/_templates/<name>.md`), tools it runs (`tools/<name>.sh`),
-   sections of `docs/CONVENTIONS.md` it cites by anchor
-   (`docs/CONVENTIONS.md#anchor`). Empty list (`dependencies: []`) is
-   valid and honest. The manifest powers `tools/install-skill.py` (Path
+   skill invokes (`.claude/agents/<name>.md`), tools it runs
+   (`tools/<name>.sh`), sections of `docs/CONVENTIONS.md` it cites by
+   anchor (`docs/CONVENTIONS.md#anchor`). Templates the skill creates
+   instances of are *not* external deps — per the agentskills.io layout
+   they live with the skill under `<skill>/assets/<name>` and the body
+   cites them via skill-relative paths. Empty list (`dependencies: []`)
+   is valid and honest. The manifest powers `tools/install-skill.py` (Path
    B in [`USING_THIS_TEMPLATE.md`](../../USING_THIS_TEMPLATE.md)) and is
    validated by `tools/lint-skill-deps.sh`. Keep it accurate as the body
    changes — drift is what the linter exists to catch.

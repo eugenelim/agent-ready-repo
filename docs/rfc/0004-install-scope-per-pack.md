@@ -243,7 +243,7 @@ install.
 
 Every shipped pack carries a `seeds/` tree whose top-level layout
 is `seeds/docs/`, `seeds/packages/`, etc. At user scope these
-would project to `~/docs/_templates/`, `~/packages/_example/` —
+would project to `~/docs/specs/`, `~/packages/_example/` —
 nonsense paths. The contract enforces: **a pack containing a
 non-empty `seeds/` directory cannot declare `"user"` in
 `allowed-scopes`.** `validate` rejects mismatches.
@@ -653,3 +653,13 @@ merged ahead of the others leaves the CLI in an incoherent state.
   upgrade — which fields to add, the `validate` exit codes,
   examples for the implied-defaults case, and the marker rail's
   rule when `"user" ∈ allowed-scopes`.
+
+## Amendments
+
+- 2026-05-24 (cosmetic, post-acceptance): the *seeds/ content is
+  repo-only* example was rewritten to use `~/docs/specs/` instead
+  of `~/docs/_templates/`, since the latter directory was retired
+  when its contents moved into the owning skills' `assets/` folders.
+  Paired with the same edit in the distribution-adapters spec — see
+  [its Changelog](../specs/distribution-adapters/spec.md#changelog).
+  The rule (no seeds under user scope) is unchanged.

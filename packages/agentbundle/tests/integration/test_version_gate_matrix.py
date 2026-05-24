@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import os
 from pathlib import Path
 from unittest import mock
 
@@ -38,10 +39,18 @@ version = "99.0"
         encoding="utf-8",
     )
     (FIXTURE_PACK.parent / "packs").mkdir(parents=True, exist_ok=True)
-    # Symlink into a packs/<name>/ layout for subcommands that take --packs-dir.
+    # Symlink into a packs/<name>/ layout for subcommands that take
+    # --packs-dir. Use a *relative* target so the committed symlink
+    # doesn't carry one developer's absolute workspace path into every
+    # diff. Use is_symlink() / unlink rather than exists() — `.exists()`
+    # follows the symlink and returns False if the target appears
+    # invalid to Python's resolver, which races against symlink_to() and
+    # produces FileExistsError on the second test-session run.
     pack_link = FIXTURE_PACK.parent / "packs" / "incompatible"
-    if not pack_link.exists():
-        pack_link.symlink_to(FIXTURE_PACK, target_is_directory=True)
+    relative_target = os.path.relpath(FIXTURE_PACK, pack_link.parent)
+    if pack_link.is_symlink() or pack_link.exists():
+        pack_link.unlink()
+    pack_link.symlink_to(relative_target, target_is_directory=True)
     yield
     # Don't tear down — left in place for inspection if a test fails.
 

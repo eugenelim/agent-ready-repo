@@ -340,14 +340,8 @@ PROJECTED_README_OVERRIDES: tuple[str, ...] = (
     "docs/rfc/README.md",
     "docs/adr/README.md",
     "docs/specs/README.md",
-    "docs/_templates/README.md",
     "docs/CHARTER.md",
     "docs/CONVENTIONS.md",
-    "docs/_templates/spec.md",
-    "docs/_templates/plan.md",
-    "docs/_templates/rfc.md",
-    "docs/_templates/adr.md",
-    "docs/_templates/state.json",
     "packages/README.md",
     "packages/_example/README.md",
     "packages/_example/AGENTS.md",
@@ -370,11 +364,12 @@ def _is_excluded(relative: Path) -> bool:
 def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
     """Copy `packs/<pack>/seeds/**` into `output_root` at seed-relative paths.
 
-    Two packs may contribute to the same directory (canonical case:
-    `docs/_templates/` — `core` ships `spec.md`+`plan.md`,
-    `governance-extras` ships `rfc.md`+`adr.md`). File-level collisions
-    (same target path, *different* content) raise `ValueError` naming
-    both source paths — per spec § *Ask first* and AC7.
+    Two packs may contribute to the same directory (historical canonical
+    case: `docs/_templates/` — retired 2026-05-24 when each template
+    moved into its owning skill's `assets/` folder; the merge rule still
+    holds in principle for any future shared seed directory). File-level
+    collisions (same target path, *different* content) raise `ValueError`
+    naming both source paths — per spec § *Ask first* and AC7.
 
     Returns a `{relative_target → source}` map for use by the drift
     source-naming logic.

@@ -395,10 +395,9 @@ shim), and adapter-contract edits.
   Acceptance Criterion 8.
 - Goal-based: every seed README path under `docs/architecture/`,
   `docs/specs/`, `docs/knowledge/`, `docs/product/`, `docs/guides/`,
-  `docs/rfc/`, `docs/adr/`, `docs/_templates/`, and `packages/` listed
-  in RFC-0002's *Projected* table exists on disk and matches its
-  pack-side source under the gate's comparison rules. Verifies
-  Acceptance Criterion 9.
+  `docs/rfc/`, `docs/adr/`, and `packages/` listed in RFC-0002's
+  *Projected* table exists on disk and matches its pack-side source
+  under the gate's comparison rules. Verifies Acceptance Criterion 9.
 
 **Approach:**
 
