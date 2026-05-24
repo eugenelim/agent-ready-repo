@@ -369,6 +369,16 @@ def _tier_for_key(namespace: str, key: str) -> str:
     Reads each tier in precedence order via the loader's internal
     helpers so the answer matches what ``load_credentials`` would
     return. The value is discarded — only the location matters.
+
+    A ``Tier2HardFailError`` raised by the Tier-2 backend's read is
+    **propagated**, not swallowed. AC11 mandates that hard-fail Win32
+    error codes (``ERROR_NO_SUCH_LOGON_SESSION``, ``ERROR_INVALID_FLAGS``,
+    ``ERROR_LOGON_FAILURE``) and macOS Keychain-locked exits do not
+    silently fall through to Tier 3; the Boundaries § Never do clause
+    "No silent fallback from hard-fail Win32 error codes" forbids it.
+    Callers (``run_check``, ``run_where``, ``run_rm``) already wrap
+    this helper in a ``Tier2HardFailError`` handler that returns exit
+    3 with stderr.
     """
     from agentbundle.creds import loader
 
@@ -377,10 +387,8 @@ def _tier_for_key(namespace: str, key: str) -> str:
     if env_val:
         return "env"
     if loader._tier2_backend is not None:
-        try:
-            v = loader._tier2_backend.read_credential(namespace, key)
-        except Exception:
-            v = None
+        # Tier2HardFailError propagates — see docstring.
+        v = loader._tier2_backend.read_credential(namespace, key)
         if v:
             return "keyring"
     v3 = loader._dotfile_read(namespace, key)
