@@ -76,13 +76,14 @@ target POSIX, where `python3` is the conventional 3.x name; the
 adopter-facing wiring example uses bare `python` because it needs to
 work on Windows + POSIX with a single string.
 
-**Known Windows-pre-pr ceiling.** `tools/lint-agents-md.py` check #2
-requires `CLAUDE.md` to be a symbolic link to `AGENTS.md`. On
-Windows without Developer Mode, `git clone` materialises symlinks
-as regular files, so this check fails. The Phase-4
-`conventions-check` symlink relaxation will lift this restriction;
-until then, `python tools/hooks/pre-pr.py` is expected to fail at
-the agents-md stage on a default Windows checkout.
+**`CLAUDE.md` shape on Windows.** `tools/lint-agents-md.py` check #2
+accepts two shapes equivalently: a real symlink to `AGENTS.md` (Unix,
+or Windows with Developer Mode) **or** a regular file whose entire
+content is the literal string `AGENTS.md` (Windows without Developer
+Mode, where `git config core.symlinks false` is the default — git
+materialises the symlink as a regular file containing the link
+target). Either shape passes the lint; anything else fails as a
+drift hazard.
 
 ## Wiring
 
