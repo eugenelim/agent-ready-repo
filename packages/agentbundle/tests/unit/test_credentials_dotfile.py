@@ -152,11 +152,16 @@ def test_windows_icacls_does_not_call_chmod(tmp_path, monkeypatch):
     """AC15: on Windows, ``os.chmod`` is not used — the file's DACL is
     inherited from the parent and verified post-write via ``icacls``."""
     calls = []
-    real_chmod = os.chmod
-    real_fchmod = os.fchmod
-
-    monkeypatch.setattr(os, "chmod", lambda *a, **kw: calls.append(("chmod", a)))
-    monkeypatch.setattr(os, "fchmod", lambda *a, **kw: calls.append(("fchmod", a)))
+    # ``os.fchmod`` is POSIX-only — on Windows the module doesn't define
+    # the name. Skip the unused ``real_*`` captures and pass
+    # ``raising=False`` so ``monkeypatch.setattr`` installs the spy
+    # without insisting the attribute already exists on this platform.
+    monkeypatch.setattr(
+        os, "chmod", lambda *a, **kw: calls.append(("chmod", a)), raising=False,
+    )
+    monkeypatch.setattr(
+        os, "fchmod", lambda *a, **kw: calls.append(("fchmod", a)), raising=False,
+    )
     # icacls invocation succeeds with empty stdout (no suspect ACEs).
     monkeypatch.setattr(loader, "_verify_icacls", lambda *a, **kw: None)
     loader._dotfile_write("fixture_t6", "API_TOKEN", "secret")
