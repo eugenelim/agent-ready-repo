@@ -6,23 +6,23 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agentbundle.build.adapters.codex import project
+from agentbundle.build.adapters.codex import project, project_packs
 from agentbundle.build.contract import load as load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
 
 
-def _seed_pack(root: Path) -> Path:
-    pack = root / "pack"
-    (pack / ".apm" / "skills" / "foo").mkdir(parents=True)
-    (pack / ".apm" / "skills" / "foo" / "SKILL.md").write_text(
-        "---\ndescription: foo skill description\n---\n# foo\n",
+def _seed_pack(root: Path, name: str = "pack", skill_prefix: str = "") -> Path:
+    pack = root / name
+    (pack / ".apm" / "skills" / f"{skill_prefix}foo").mkdir(parents=True)
+    (pack / ".apm" / "skills" / f"{skill_prefix}foo" / "SKILL.md").write_text(
+        f"---\ndescription: {skill_prefix}foo skill description\n---\n# foo\n",
         encoding="utf-8",
     )
-    (pack / ".apm" / "skills" / "alpha").mkdir(parents=True)
-    (pack / ".apm" / "skills" / "alpha" / "SKILL.md").write_text(
-        "---\ndescription: alpha skill description\n---\n# alpha\n",
+    (pack / ".apm" / "skills" / f"{skill_prefix}alpha").mkdir(parents=True)
+    (pack / ".apm" / "skills" / f"{skill_prefix}alpha" / "SKILL.md").write_text(
+        f"---\ndescription: {skill_prefix}alpha skill description\n---\n# alpha\n",
         encoding="utf-8",
     )
 
@@ -99,6 +99,30 @@ class CodexAdapterTests(unittest.TestCase):
             project(pack, self.contract, out)
             second = (out / "AGENTS.md").read_bytes()
             self.assertEqual(first, second)
+
+    def test_project_packs_aggregates_skills_before_splicing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_pack(tmp_path, "pack-a", "a-")
+            pack_b = _seed_pack(tmp_path, "pack-b", "b-")
+            out = tmp_path / "out"
+            out.mkdir()
+            (out / "AGENTS.md").write_text(
+                "# Existing\n\nKeep this outside block.\n",
+                encoding="utf-8",
+            )
+
+            project_packs([pack_a, pack_b], self.contract, out)
+            first = (out / "AGENTS.md").read_text(encoding="utf-8")
+            project_packs([pack_a, pack_b], self.contract, out)
+            second = (out / "AGENTS.md").read_text(encoding="utf-8")
+
+            self.assertEqual(first, second)
+            self.assertIn("Keep this outside block.", first)
+            self.assertIn("a-foo skill description", first)
+            self.assertIn("b-foo skill description", first)
+            self.assertIn("a-alpha skill description", first)
+            self.assertIn("b-alpha skill description", first)
 
 
 if __name__ == "__main__":

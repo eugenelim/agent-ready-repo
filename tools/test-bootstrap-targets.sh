@@ -95,6 +95,17 @@ check("README.md template-intro block (multi-line, DOTALL)", "README.md",
 check("docs/APPROACH.md exists with canonical principles section",
       "docs/APPROACH.md", "The four principles for what we keep")
 
+check("AGENTS.md compact agent workflows section",
+      "AGENTS.md", "## Agent workflows")
+
+check("AGENTS.md generated bug-fix skill bullet",
+      "AGENTS.md",
+      r"- \*\*bug-fix\*\* — Use this skill when the user wants to fix a bug",
+      regex=True)
+
+check("AGENTS.md generated managed skill block",
+      "AGENTS.md", "<!-- agent-skills:start -->")
+
 adversarial_bullet = (
     r"- \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\) — spec /\n"
     r"  plan / implementation drift; missing edge cases; scope creep\. Default\n"
@@ -119,11 +130,6 @@ quality_bullet = (
 )
 check("AGENTS.md quality-engineer bullet (Specialist subagents)",
       "AGENTS.md", quality_bullet, regex=True)
-
-check("AGENTS.md bug-fix skill bullet (Skills available list)",
-      "AGENTS.md",
-      r"- `bug-fix` — fix a defect with root-cause discipline\n",
-      regex=True)
 
 check("skills/README.md bug-fix table row",
       ".claude/skills/README.md",
