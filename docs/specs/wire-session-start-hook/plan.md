@@ -40,8 +40,9 @@ The riskiest part is the legacy-fixture rewrite. Two real concerns:
 - The catalogue_v2 fixture carries a load-bearing substring assertion at
   `test_upgrade_cmd.py:319` (`matcher = "Bash|Edit"`). The rewrite must
   preserve that substring verbatim.
-- The rewrite will introduce a new projected `.claude/settings.local.json`
-  row into `render_pack`'s output for each fixture (the legacy
+- The rewrite will introduce a new
+  `claude-plugins/core/.claude/settings.local.json` key into
+  `render_pack`'s output dict for each fixture (the legacy
   `[hook] name/trigger/matcher` shape has no `hooks` key, so the
   merge-json adapter at `claude_code.py:94-95` returns early and writes
   nothing; the rewritten shape produces an actual settings file). The
@@ -70,11 +71,27 @@ unrelated drift accumulated since the last `make build-self` run.
   so `docs/CONVENTIONS.md`, `tools/hooks/session-start.py`, and any
   projected `.claude/*` artifacts are generated. Edit upstream, then
   `make build-self`. This is the spec's `Never do` boundary.
-- **`.claude/settings.local.json` is excluded from `make build-self`.**
-  `self_host.py:248` lists it in `EXCLUDED_PATTERNS`, and
-  `.gitignore:18` excludes it too. The wiring TOML's effect is only
-  visible through `agentbundle install`'s projection — which is what
-  the spec actually cares about. No edits to `EXCLUDED_PATTERNS`.
+- **Flat-path `.claude/settings.local.json` IS projected by
+  self-host, but stays out of `git status`.** Self-host's adapter
+  pipeline (`_project_all_adapters` at `self_host.py:178`) invokes
+  the Claude Code adapter's `project()` directly, writing to the
+  adapter's `target-path` (flat: `.claude/settings.local.json`). The
+  file lands at `<workspace>/.claude/settings.local.json`. It's
+  gitignored (`.gitignore:18`), so `git status` doesn't show drift,
+  and it's in `EXCLUDED_PATTERNS` (`self_host.py:248`) so it doesn't
+  appear in `make build-check`'s unclassified-path enumeration. The
+  wiring TOML's visible effect to the adopter is the dist-tree
+  projection (`agentbundle install`); the workspace's flat-path
+  projection is silent self-host plumbing. No edits to
+  `EXCLUDED_PATTERNS`.
+- **Dist-tree path coupling.** AC1/AC2/AC3/AC9/AC10 hard-code paths
+  under `<output>/claude-plugins/<pack>/...`. Those paths derive from
+  (a) `per-pack-claude-plugin.toml:7`'s
+  `output-subdir = "claude-plugins"` and (b) the Claude Code adapter's
+  `target-path = "tools/hooks/"` / `.claude/settings.local.json`
+  mappings in `_data/adapter.toml`. Both are out-of-scope to modify
+  in this spec and treated as fixed inputs. If a future change
+  touches either, AC2/AC3 in particular need re-derivation.
 
 ## Construction tests
 
@@ -122,7 +139,11 @@ check is the integration check for AC10.
 - Run `install.run(argparse.Namespace(...))` against the catalogue,
   redirecting stdout/stderr (mirror the `_install` helper in
   `packages/agentbundle/tests/integration/test_install_dual_scope.py`).
-- Assert `target/.claude/settings.local.json` exists.
+- Assert `target/claude-plugins/<pack-name>/.claude/settings.local.json`
+  exists. (Repo-scope install at `target/` produces the dist-tree
+  Claude-plugin layout under `target/claude-plugins/<pack>/`; the flat
+  `target/.claude/...` shape is only produced at user scope, which
+  this spec doesn't cover.)
 - Parse the JSON; assert `len(data["hooks"]["SessionStart"]) == 1`;
   assert `data["hooks"]["SessionStart"][0]["hooks"][0]["type"] == "command"`;
   assert `data["hooks"]["SessionStart"][0]["hooks"][0]["command"] ==
@@ -154,11 +175,16 @@ clearly shows the missing key, not a parse or IO error.
 **Approach:**
 - Create `packs/core/.apm/hook-wiring/session-start.toml`:
   ```toml
-  # Wires the session-start.py hook body (projected to
-  # tools/hooks/session-start.py) to Claude Code's SessionStart event.
-  # Merged into .claude/settings.local.json under the `hooks` key by
-  # the merge-json adapter rule
-  # (packages/agentbundle/agentbundle/build/adapters/claude_code.py:84-109).
+  # Wires the session-start.py hook body to Claude Code's
+  # SessionStart event. The merge-json adapter rule
+  # (packages/agentbundle/agentbundle/build/adapters/claude_code.py:84-109)
+  # merges this under the `hooks` key of the adapter's target-path
+  # `.claude/settings.local.json`. At install time, `agentbundle`
+  # wraps that under the recipe pipeline's `claude-plugins/<pack>/`
+  # output-subdir (so adopters see the file at
+  # `<output>/claude-plugins/core/.claude/settings.local.json`); at
+  # self-host time, `make build-self` writes the flat workspace path
+  # (`<workspace>/.claude/settings.local.json`, gitignored).
   #
   # Shape: Claude Code's documented nested SessionStart schema
   # (code.claude.com/docs/en/hooks). Outer entry has no `matcher`
@@ -189,16 +215,35 @@ clearly shows the missing key, not a parse or IO error.
   is gone).
 - `rg "pre-pr.py is most useful as a manual or git-hook command" tools/hooks/README.md`
   returns 1 match (the `pre-pr.py` paragraph is unchanged).
+- `rg "claude-plugins/core/.claude/settings.local.json" tools/hooks/README.md`
+  returns ≥1 match (the install-time dist-tree surface is named).
+- `rg "make build-self" tools/hooks/README.md` returns ≥1 match (the
+  self-host surface canary; the rewrite must name both surfaces, not
+  just one).
+- `rg -n "SessionStart binding" tools/hooks/README.md | awk -F: '$2>=88 && $2<=95'`
+  returns ≥1 match (verifies the phrase appears inside the umbrella
+  `## Wiring` intro range, lines 88-95 of the pre-edit README, so the
+  umbrella can't be left flatly contradicting the `### Claude Code`
+  subsection).
 
 **Approach:**
+- Update the `## Wiring` umbrella intro at `tools/hooks/README.md:90-93`
+  to carve out the session-start exception: the introduction can keep
+  describing pre-pr and "Other tools" as consumer-side, but it must
+  explicitly note that the SessionStart binding for Claude Code is
+  shipped pre-wired by the install pipeline.
 - Replace the imperative intro at `tools/hooks/README.md:97` ("Add to
-  your project-local `.claude/settings.json` (gitignored)") with text
-  stating that `agentbundle install core` writes this binding
-  automatically into `.claude/settings.local.json` (NOT
-  `.claude/settings.json` — the current README path is a pre-existing
-  bug; the actual target per `_data/adapter.toml:67` is the `.local`
-  variant). The JSON snippet below is reproduced for audit /
-  verification.
+  your project-local `.claude/settings.json` (gitignored)") with prose
+  explaining the two projection surfaces — the install-via-`agentbundle`
+  target (`<output>/claude-plugins/core/.claude/settings.local.json`,
+  written by the install pipeline; Claude Code's plugin marketplace
+  ingests it, and the user-facing edit-target shifts to the per-user
+  plugin cache post-enrollment per spec Non-goals) and the self-host
+  target (`<workspace>/.claude/settings.local.json`, written by
+  `make build-self` in this repo, gitignored). The JSON snippet below
+  is the audit reference: it shows what the merged JSON looks like in
+  both surfaces (the inner JSON shape is the same; only the file path
+  differs).
 - Keep the JSON snippet body itself unchanged — it already shows the
   nested shape Claude Code requires.
 - Update the paragraph that follows the snippet so it makes clear the
@@ -206,10 +251,13 @@ clearly shows the missing key, not a parse or IO error.
   manual / git-hook command for the documented reason (no Claude Code
   lifecycle event matches PR-prep semantics).
 
-**Done when:** both grep checks pass; the path reads `.local.json`
-not `.json`; visual diff confirms the section reads as "we wrote this
-for you; here's what landed" rather than "paste this." `pre-pr.py`
-paragraph unchanged.
+**Done when:** all five grep checks pass (the two old + the three
+new canaries); the section names both projection surfaces (dist-tree
+at install, flat at self-host); the old "Add to your project-local
+`.claude/settings.json`" sentence is gone; the umbrella intro at
+lines 90-93 no longer flatly claims "template does not ship a
+committed `.claude/settings.json`" without the SessionStart caveat;
+`pre-pr.py` paragraph unchanged.
 
 ---
 
@@ -257,9 +305,11 @@ check passes after build-self.
   prose change.
 - `git status` shows no unexpected changes under projected paths
   (`tools/hooks/*`, `.claude/*`, `docs/architecture/*`, etc.). The
-  wiring TOML's effect on `.claude/settings.local.json` is **not**
-  visible here — that file is in `self_host.py:248`'s
-  `EXCLUDED_PATTERNS` and is gitignored.
+  wiring TOML's effect on the workspace's flat
+  `<workspace>/.claude/settings.local.json` is **not** visible via
+  `git status` — the file is gitignored (`.gitignore:18`) and
+  `EXCLUDED_PATTERNS` (`self_host.py:248`) removes it from
+  `make build-check`'s unclassified-path enumeration.
 
 **Approach:**
 - From the repo root: `make build-self`.
@@ -289,9 +339,10 @@ drift)
   still holds against the rewritten v2 fixture.
 - `test_whole_pack_upgrade_updates_version_and_content` (which iterates
   over every key in `v2_projection`) passes — the new
-  `.claude/settings.local.json` row that the rewrite introduces into
-  `render_pack`'s output round-trips byte-for-byte with the install
-  output (both go through `_project_merge_json`).
+  `claude-plugins/core/.claude/settings.local.json` key that the
+  rewrite introduces into `render_pack`'s output round-trips
+  byte-for-byte with the install output (both go through
+  `_project_merge_json`).
 
 **Approach:**
 - Verify the test-suite grep is comprehensive:
@@ -330,8 +381,9 @@ drift)
   appears verbatim in v2 — the load-bearing assertion at
   `test_upgrade_cmd.py:319` survives.
 - Note on per-primitive `--hook pre-commit` upgrade behavior: the new
-  `.claude/settings.local.json` row that the rewrite introduces into
-  `render_pack`'s output falls into `non_prim_paths` in
+  `claude-plugins/core/.claude/settings.local.json` key that the
+  rewrite introduces into `render_pack`'s output falls into
+  `non_prim_paths` in
   `test_per_primitive_upgrade_moves_only_matching_files`, because the
   filter heuristic checks path segments for `/hooks/pre-commit.` or
   `/hook-wiring/pre-commit.` — and the merged JSON path matches
@@ -340,20 +392,20 @@ drift)
   trivially because `non_prim_before == non_prim_after` for that
   path. Verify after the rewrite.
 - Run the three named test files; verify regression-free.
-- If any test fails due to the new `.claude/settings.local.json` row
-  the rewrite introduces (e.g. a `non_prim_after` capture that didn't
-  account for it), update the test **only** by adding the new
-  projection row to the expected set. If any change beyond
-  "expected set grew by one key" appears necessary — **stop and
-  Surface to the user per work-loop discipline** before proceeding.
-  Do **not** rewrite assertion logic or weaken existing checks under
-  the banner of "handling the new shape." Do **not** revert the
-  fixture rewrite.
+- If any test fails due to the new
+  `claude-plugins/core/.claude/settings.local.json` key the rewrite
+  introduces (e.g. a `non_prim_after` capture that didn't account
+  for it), update the test **only** by adding the new projection
+  row to the expected set. If any change beyond "expected set grew
+  by one key" appears necessary — **stop and Surface to the user
+  per work-loop discipline** before proceeding. Do **not** rewrite
+  assertion logic or weaken existing checks under the banner of
+  "handling the new shape." Do **not** revert the fixture rewrite.
 
 **Done when:** all three named test files pass; no other test breaks;
 the substring assertion at `test_upgrade_cmd.py:319` continues to
-hold; the new `.claude/settings.local.json` row produced by the
-rewrite round-trips through the byte-comparison tests.
+hold; the new `claude-plugins/core/.claude/settings.local.json` key
+produced by the rewrite round-trips through the byte-comparison tests.
 
 ---
 
@@ -367,7 +419,8 @@ rewrite round-trips through the byte-comparison tests.
 - `pytest packages/agentbundle/tests/ -v` exits 0.
 - **AC10 smoke check:** run `agentbundle install core` against a tmp
   install root (in a one-shot pytest or a shell-script invocation);
-  parse `.claude/settings.local.json`; assert
+  parse `tmp_path/claude-plugins/core/.claude/settings.local.json`
+  (the repo-scope dist-tree path); assert
   `data["hooks"]["SessionStart"][0]["hooks"][0]["command"]` equals
   `python tools/hooks/session-start.py`.
 
@@ -375,10 +428,14 @@ rewrite round-trips through the byte-comparison tests.
 - Run the full local gate set.
 - AC10 smoke: a new pytest at
   `packages/agentbundle/tests/integration/test_install_core_smoke.py`
-  (one test, ~20 lines). Stage a tmp catalogue that contains the
-  real `packs/core/` directory (either symlink it in or copy it),
-  call `install.run(...)` into `tmp_path`, parse the produced
-  `.claude/settings.local.json`, assert
+  (one test, ~20 lines). Stage a tmp catalogue containing the real
+  `packs/core/` directory via `shutil.copytree(..., symlinks=False)`
+  (copy, NOT symlink — the adapter's `_project_direct_directory` at
+  `claude_code.py:63-72` uses `symlinks=True` to preserve symlinks
+  inside packs, and a symlink at the pack root would interact
+  unpredictably with that codepath; copy is stable). Call
+  `install.run(...)` into `tmp_path`, parse the produced
+  `tmp_path/claude-plugins/core/.claude/settings.local.json`, assert
   `data["hooks"]["SessionStart"][0]["hooks"][0]["command"] ==
   "python tools/hooks/session-start.py"`. Single assertion is
   enough — the synthetic-pack test in T1 is the more granular
@@ -386,10 +443,14 @@ rewrite round-trips through the byte-comparison tests.
   by an unrelated change.
 - Draft a PR description noting:
   - Behavior change: session-start wires automatically on install.
-  - Adopter brownfield path (AC1a): if `.claude/settings.local.json`
-    is adopter-edited, install writes
-    `.claude/settings.local.json.upstream` per Tier-2; adopter
-    reconciles. This is existing behavior — not new in this PR.
+  - Adopter brownfield path (AC1a): if
+    `<output>/claude-plugins/core/.claude/settings.local.json` is
+    adopter-edited (or differs from the recorded SHA for any reason),
+    install writes a `.upstream` companion at that same path per
+    Tier-2; adopter reconciles. This is existing behavior — not new
+    in this PR. The user-facing brownfield case for marketplace-
+    enrolled adopters has effectively shifted to the plugin cache
+    (`~/.claude/plugins/cache/...`); see spec Non-goals.
   - Pack↔pack `SessionStart` collision: if another pack wires
     `SessionStart` and is installed before core, the merge-json
     adapter at `claude_code.py:101-103` replaces the existing
@@ -397,7 +458,8 @@ rewrite round-trips through the byte-comparison tests.
     array-concat). Today no other pack wires `SessionStart`, so this
     is latent. Documented; revisit if a second pack needs it.
   - Repo-scope uninstall does **not** remove the merged
-    `SessionStart` entry from `.claude/settings.local.json`.
+    `SessionStart` entry from
+    `<output>/claude-plugins/core/.claude/settings.local.json`.
     `install.py:566-602` only populates `hook_wiring_owned` state
     rows at user scope; at repo scope there's no per-entry uninstall
     record. This is a documented limitation (out of scope to fix
@@ -415,35 +477,45 @@ R5 below) and the deferred follow-ups.
 
 Ships as-is. No flag, no migration. Existing installs without the
 wiring TOML pick it up on the next `agentbundle upgrade core`. Fresh
-installs get it immediately. Behavior change is opt-out (adopters
-can manually edit `.claude/settings.local.json` to remove the entry
-if they want, but the next upgrade reasserts it — the projection is
-the source of truth at the managed key).
+installs get it immediately. Behavior change is opt-out: adopters
+can manually edit the dist-tree projection target
+(`<output>/claude-plugins/core/.claude/settings.local.json`) to
+remove the entry, but the next upgrade reasserts it — the projection
+is the source of truth at the managed key. Once the marketplace is
+enrolled, the adopter's *consumed* file lives in the plugin cache
+(typically `~/.claude/plugins/cache/<marketplace>/core/<version>/.claude/...`);
+edits there are out of scope for this spec's rollout discipline (see
+Non-goals' plugin-cache carve-out).
 
 ## Risks
 
-- **R1: Adopter has a pre-existing edited `.claude/settings.local.json`.**
+- **R1: Adopter has a pre-existing edited dist-tree settings file.**
   The install pipeline's Tier-2 classification at
   `packages/agentbundle/agentbundle/commands/install.py:537-548`
-  writes the projection to `.claude/settings.local.json.upstream`
+  writes the projection to
+  `<output>/claude-plugins/core/.claude/settings.local.json.upstream`
   (a companion file) rather than overwriting the live file. The
   adopter must reconcile by hand. This is the documented
   `on-conflict = "merge-managed-key-only"` posture in
-  `_data/adapter.toml:69`. **Mitigation:** AC1a pins the behavior;
-  T7's PR description names it explicitly so a brownfield adopter
-  knows where to look.
+  `_data/adapter.toml:69`. The user-facing brownfield case has
+  effectively shifted to the plugin cache once the marketplace is
+  enrolled (Non-goals plugin-cache carve-out); the mechanism still
+  fires at the dist-tree path. **Mitigation:** AC1a pins the
+  behavior; T7's PR description names both surfaces (dist-tree
+  projection target + plugin cache).
 
 - **R2: Legacy fixture rewrite breaks a non-obvious test.** A grep
   for `\[hook\]\s*$`, `trigger\s*=`, and `name\s*=\s*"pre-commit"`
   across the test suite turned up only the three fixtures and the
   load-bearing substring at `test_upgrade_cmd.py:319` (which survives
   the rewrite). The rewrite also introduces a new
-  `.claude/settings.local.json` row into `render_pack`'s output that
-  did not exist before — the byte-comparison tests in
-  `test_upgrade_cmd.py` will now iterate over it. **Mitigation:**
-  T6's regression check explicitly runs the byte-comparison tests
-  and the AC10 smoke; T6's `Done when` requires both grep
-  comprehensiveness and the targeted-test gate.
+  `claude-plugins/core/.claude/settings.local.json` key into
+  `render_pack`'s output dict (the relpath keyed by `_collect_tree`
+  in `agentbundle/render.py:121`) that did not exist before — the
+  byte-comparison tests in `test_upgrade_cmd.py` will now iterate
+  over it. **Mitigation:** T6's regression check explicitly runs
+  the byte-comparison tests and the AC10 smoke; T6's `Done when`
+  requires both grep comprehensiveness and the targeted-test gate.
 
 - **R3: Pre-flight projection drift.** See the **Pre-flight** section
   above — risk and mitigation are co-located there to avoid
@@ -461,11 +533,12 @@ the source of truth at the managed key).
   entry.** `packages/agentbundle/agentbundle/commands/install.py:566-602`
   only populates `hook_wiring_owned` state rows at user scope; at
   repo scope there's no per-entry uninstall record, so `uninstall
-  core` leaves the `.claude/settings.local.json` entry behind.
-  **Mitigation:** documented in T7's PR description; out of scope to
-  fix here. Cross-reference: RFC-0005 T8b's `hook_wiring_owned`
-  design at user scope would generalise cleanly to repo scope when
-  a future spec wants it.
+  core` leaves the
+  `<output>/claude-plugins/core/.claude/settings.local.json` entry
+  behind. **Mitigation:** documented in T7's PR description; out of
+  scope to fix here. Cross-reference: RFC-0005 T8b's
+  `hook_wiring_owned` design at user scope would generalise cleanly
+  to repo scope when a future spec wants it.
 
 - **R6: Spec drift if Kiro work lands in parallel.** The parallel
   Kiro spec may want to add fields to `packs/core/.apm/hook-wiring/`
@@ -494,6 +567,30 @@ the source of truth at the managed key).
   core, no v0.3 forward-looking-table consumer); R1 corrected to
   cite Tier-2 companion path; R4 and R5 added for pack↔pack
   collision and repo-scope uninstall gap.
+- 2026-05-24: amended mid-EXECUTE after work-loop discovered the spec's
+  AC1/AC9/AC10 paths were wrong. Real `agentbundle install core` at
+  repo scope produces the dist-tree Claude-plugin layout under
+  `<output>/claude-plugins/<pack>/`, not the flat `<output>/.claude/`
+  shape the spec assumed across four rounds of review. The hook body
+  lands at `<output>/claude-plugins/core/tools/hooks/session-start.py`
+  and the wiring at
+  `<output>/claude-plugins/core/.claude/settings.local.json`. Claude
+  Code consumes the dist-tree via its plugin-marketplace mechanism;
+  the install-via-plugin enrollment flow and any marker-write parity
+  around it are owned by RFC-0008's `claude-plugins-install-route`
+  (this spec assumes the marketplace mechanism, not RFC-0008's
+  marker work). Objective + AC1 + AC1a + AC2 + AC3 + AC9 + AC10 all
+  updated to reference the dist-tree path. T1 test file and T7
+  smoke assertion paths updated. Boundaries Always-do and Testing
+  Strategy TDD bullets re-qualified to the dist-tree shape. Non-goals
+  gained the "marketplace not enrolled" and "plugin-cache brownfield"
+  carve-outs. Plan Constraints gained a dist-tree-path-coupling note
+  pointing at `per-pack-claude-plugin.toml` + adapter mappings.
+  AC1a augmented with explicit `render_pack` + `_classify_for_install`
+  breadcrumbs. **Root cause:** prior ACs cited post-install paths
+  without tracing them to the producing recipe
+  (`per-pack-claude-plugin.toml`); future specs that assert install
+  paths should cite the recipe.
 - 2026-05-24: revised after spec-mode adversarial review (round 3).
   Concern: AC1's "no matcher on outer entry" clause wasn't pinned by
   any test — added matcher-absence assertion to T1. Nit: per-primitive
