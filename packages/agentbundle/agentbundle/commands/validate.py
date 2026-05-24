@@ -173,7 +173,10 @@ def run(args) -> int:
     # would project to kiro." A Claude-Code-only v0.3 pack that ships
     # wiring but no agents has no kiro projection target — the rail is
     # a no-op for it (AC6: "field is ignored, not refused").
-    from agentbundle.build.scope_rails import check_kiro_wiring
+    from agentbundle.build.scope_rails import (
+        check_kiro_event_vocabulary,
+        check_kiro_wiring,
+    )
 
     target_adapters = _kiro_target_adapters(pack_data, pack_path)
     pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
@@ -181,6 +184,25 @@ def run(args) -> int:
     if kiro_refusal is not None:
         print(f"validate: {kiro_refusal}", file=sys.stderr)
         return 1
+
+    # ── 4d. Kiro per-adapter event-vocabulary rail (RFC-0005, T6) ─────────
+    # AC17 / AC17b: a wiring TOML naming an event outside the resolved
+    # target adapter's `agent-event-vocabulary` is refused. Claude Code's
+    # projection declares no vocabulary, so its packs pass through;
+    # Kiro's vocabulary is loaded from the v0.3 adapter contract.
+    if "kiro" in target_adapters:
+        kiro_vocab = _kiro_event_vocabulary()
+        kiro_wiring_tomls = _load_pack_wiring_tomls(pack_path)
+        vocab_refusal = check_kiro_event_vocabulary(
+            pack_name=pack_name,
+            wiring_tomls=kiro_wiring_tomls,
+            vocabulary=kiro_vocab,
+            target_adapters=target_adapters,
+            adapter_name="kiro",
+        )
+        if vocab_refusal is not None:
+            print(f"validate: {vocab_refusal}", file=sys.stderr)
+            return 1
 
     # ── 5. Strict / conformance mode ─────────────────────────────────────
     if strict:
@@ -241,6 +263,66 @@ def _user_scope_hooks_opt_in(pack_data: dict) -> bool:
         return False
     flag = install.get("user-scope-hooks")
     return flag is True
+
+
+def _kiro_event_vocabulary() -> list[str] | None:
+    """Resolve Kiro's ``agent-event-vocabulary`` from the v0.3 contract.
+
+    Returns the list when the contract declares it (the post-T1 v0.3
+    state); returns None when the field is absent (the rail is then a
+    no-op per AC17b). Looked up on every call to keep the
+    contract-file the source of truth — no module-level cache so a
+    test-time contract swap is visible.
+    """
+    from agentbundle.build.contract import load as load_contract
+
+    here = Path(__file__).resolve().parent
+    bundled = here.parent / "_data" / "adapter.toml"
+    if bundled.exists():
+        contract_path = bundled
+    else:
+        # Dev-checkout fallback: the package lives at
+        # packages/agentbundle/agentbundle/commands/, so four `.parent`
+        # hops land at the repo root. Installed layouts (site-packages
+        # via pip) will always have the bundled `_data/adapter.toml`
+        # above, so this branch only fires when running from a working
+        # tree that excludes the bundle. Returning None on miss keeps
+        # the rail a no-op rather than crashing.
+        contract_path = here.parent.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
+        if not contract_path.exists():
+            return None
+    contract = load_contract(contract_path)
+    kiro = contract.get("adapter", {}).get("kiro", {})
+    projections = kiro.get("projections", {}) if isinstance(kiro, dict) else {}
+    hook_wiring = projections.get("hook-wiring", {}) if isinstance(projections, dict) else {}
+    vocab = hook_wiring.get("agent-event-vocabulary") if isinstance(hook_wiring, dict) else None
+    if isinstance(vocab, list):
+        return [str(v) for v in vocab if isinstance(v, str)]
+    return None
+
+
+def _load_pack_wiring_tomls(pack_path: Path) -> dict[str, dict]:
+    """Parse every ``.apm/hook-wiring/*.toml`` under *pack_path*.
+
+    Mirrors the in-memory shape ``check_kiro_event_vocabulary``
+    consumes. A malformed wiring TOML would already have been refused
+    by ``check_kiro_wiring`` earlier in the validate pipeline, so this
+    helper silently skips parse errors.
+    """
+    import tomllib
+
+    out: dict[str, dict] = {}
+    wiring_dir = pack_path / ".apm" / "hook-wiring"
+    if not wiring_dir.exists():
+        return out
+    for entry in sorted(wiring_dir.iterdir()):
+        if not entry.is_file() or entry.suffix != ".toml":
+            continue
+        try:
+            out[entry.stem] = tomllib.loads(entry.read_text(encoding="utf-8"))
+        except (tomllib.TOMLDecodeError, OSError):
+            continue
+    return out
 
 
 def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
