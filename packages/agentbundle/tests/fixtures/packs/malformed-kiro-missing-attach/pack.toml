@@ -1,0 +1,14 @@
+# Negative fixture: Kiro-projecting pack whose hook-wiring TOML omits
+# `attach-to-agent`. Validate must refuse with the RFC-0005 verbatim
+# text. Ships an agent so the kiro-targeting heuristic (T2) fires.
+
+[pack]
+name = "malformed-kiro-missing-attach"
+version = "0.1.0"
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

@@ -1,0 +1,7 @@
+attach-to-agent = "reviewer"
+
+# PascalCase events belong to Claude Code's vocabulary, not Kiro's.
+# T6's per-adapter `agent-event-vocabulary` gate refuses this.
+[[hooks.UserPromptSubmit]]
+command = "$HOOK_BODY_PATH"
+matcher = ""

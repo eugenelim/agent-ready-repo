@@ -199,3 +199,63 @@ def test_no_adapter_contract_version_passes():
 
     pack_data = {"pack": {"name": "x", "version": "0.1"}}
     assert check_spec_version_gate(pack_data) is None
+
+
+# ---------------------------------------------------------------------------
+# T3 (RFC-0005): _allowed_scopes recognises v0.3 packs.
+#
+# Pre-fix bug: `_allowed_scopes` hardcoded ``contract_version != "0.2"``
+# and returned ``["repo"]`` for any other version — so v0.3 packs
+# (introduced in T1) had their scope rails silently bypassed.
+# ---------------------------------------------------------------------------
+
+
+def test_allowed_scopes_resolves_v0_3_user():
+    """A v0.3 pack declaring ``allowed-scopes = ["user"]`` resolves to
+    ``["user"]``, not the bug-default ``["repo"]``."""
+    from agentbundle.commands.validate import _allowed_scopes
+
+    pack_data = {
+        "pack": {
+            "name": "x",
+            "version": "0.1.0",
+            "adapter-contract": {"version": "0.3"},
+            "install": {
+                "default-scope": "user",
+                "allowed-scopes": ["user"],
+                "user-scope-hooks": True,
+            },
+        }
+    }
+    assert _allowed_scopes(pack_data) == ["user"]
+
+
+def test_allowed_scopes_resolves_v0_2_user_unchanged():
+    """v0.2 packs continue to resolve correctly (regression-protect the fix)."""
+    from agentbundle.commands.validate import _allowed_scopes
+
+    pack_data = {
+        "pack": {
+            "name": "x",
+            "version": "0.1.0",
+            "adapter-contract": {"version": "0.2"},
+            "install": {"default-scope": "user", "allowed-scopes": ["user"]},
+        }
+    }
+    assert _allowed_scopes(pack_data) == ["user"]
+
+
+def test_allowed_scopes_v0_1_stays_repo_only():
+    """v0.1 packs (and packs without an adapter-contract) stay repo-only
+    — the legacy path that the bug-fix is careful not to break."""
+    from agentbundle.commands.validate import _allowed_scopes
+
+    pack_data = {
+        "pack": {
+            "name": "x",
+            "version": "0.1.0",
+            "adapter-contract": {"version": "0.1"},
+            "install": {"allowed-scopes": ["user"]},
+        }
+    }
+    assert _allowed_scopes(pack_data) == ["repo"]

@@ -1,0 +1,8 @@
+# Claude Code hook-wiring. `attach-to-agent` is optional for Claude
+# Code projection (ignored — the wiring lands in the settings file
+# regardless). This fixture omits it to stay focused on the
+# Claude-Code-only path.
+
+[[hooks.UserPromptSubmit]]
+command = "$HOOK_BODY_PATH"
+matcher = ""

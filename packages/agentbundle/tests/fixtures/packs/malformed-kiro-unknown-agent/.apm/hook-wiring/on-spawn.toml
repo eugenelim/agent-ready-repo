@@ -1,0 +1,7 @@
+# `attach-to-agent` names an agent the pack does NOT ship.
+# Validate must refuse.
+attach-to-agent = "does-not-exist"
+
+[[hooks.agentSpawn]]
+command = "$HOOK_BODY_PATH"
+matcher = ""
