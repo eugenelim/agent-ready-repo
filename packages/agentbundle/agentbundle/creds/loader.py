@@ -556,12 +556,33 @@ class EnvParseError(ValueError):
     """
 
 
+#: Upper bound on dotfile size. A credentials dotfile holds a few
+#: dozen key=value lines; 1 MiB is six orders of magnitude over the
+#: realistic ceiling. A larger file is either corruption or a
+#: misplaced read against the wrong path — refuse rather than load
+#: gigabytes into memory on every credential resolution.
+DOTFILE_MAX_BYTES = 1 << 20  # 1 MiB
+
+
 def parse_env_file(path: pathlib.Path) -> dict[str, str]:
     """Parse the file at ``path`` into a ``{KEY: value}`` mapping.
 
     Reads with ``newline=""`` so embedded ``\\r`` bytes are preserved;
     only the trailing line terminator is stripped.
+
+    Refuses files larger than ``DOTFILE_MAX_BYTES`` (1 MiB) to bound
+    the read against a misconfigured or malicious dotfile path.
     """
+    try:
+        size = path.stat().st_size
+    except OSError:
+        size = 0
+    if size > DOTFILE_MAX_BYTES:
+        raise EnvParseError(
+            f"dotfile {path!s} is {size} bytes; refusing to read more than "
+            f"{DOTFILE_MAX_BYTES} bytes — verify the path is the credentials "
+            f"dotfile, not a misconfigured target."
+        )
     text = path.read_text(encoding="utf-8", newline="")
     result: dict[str, str] = {}
     for lineno, raw in enumerate(text.split("\n"), start=1):
