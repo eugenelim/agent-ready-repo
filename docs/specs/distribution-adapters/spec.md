@@ -1010,9 +1010,21 @@ No manual QA: there is no UI surface, no human gesture under test.
   addition and the `[pack.install]` declaration land in the **same
   PR** as the contract / schema amendment so the catalogue's
   published packs and the CLI release land in lockstep.
+- [ ] **AC20 (install-routes contract).** The adapter contract
+  (`docs/contracts/adapter.toml`) declares `install-routes` on
+  `[adapter."claude-code"]` per RFC-0008 / spec
+  `claude-plugins-install-route`. The conformance suite ships a
+  *marker presence* and a *scope refusal* case per declared install
+  route; the per-route fixtures live in
+  `packages/agentbundle/tests/integration/test_claude_plugins_install_route.py`.
+  The Claude-plugins *marker presence* case is asserted on **session
+  2 or later** until upstream
+  [`anthropics/claude-code#10997`](https://github.com/anthropics/claude-code/issues/10997)
+  ships a fix.
 
 ## Changelog
 
+- 2026-05-24: install-routes contract AC added per docs/specs/claude-plugins-install-route/spec.md — conformance suite ships marker-presence and scope-refusal cases per declared install route.
 - 2026-05-24: templates relocated from `docs/_templates/` into the
   owning skills' `assets/` folders to comply with the agentskills.io
   skill-layout spec (skills are self-contained units; `references/` for
