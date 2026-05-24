@@ -159,3 +159,119 @@ if (( fail )); then
 fi
 
 echo "✓ Self-test: passed (all ${#EXPECTED_PATTERNS[@]} expected error patterns observed)."
+
+# ── Credentialed-skill frontmatter fixtures (per skill-secrets spec § AC25) ──
+# These three cases need separate trees because the positive and negative
+# cases must produce different lint exit codes — the existing harness above
+# mixes pass-and-fail fixtures in one tree and grep-asserts patterns; that
+# shape can't carry an "exit 0" assertion for a single conforming skill.
+
+TMP_CRED_OK="$(mktemp -d)"
+TMP_CRED_BAD_BOOL="$(mktemp -d)"
+TMP_CRED_BAD_CLASS="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP_CRED_OK" "$TMP_CRED_BAD_BOOL" "$TMP_CRED_BAD_CLASS"' EXIT
+
+# Positive: a conforming credentialed skill with boolean true + valid class.
+mkdir -p "$TMP_CRED_OK/.claude/skills/conforming-credentialed"
+cat > "$TMP_CRED_OK/.claude/skills/conforming-credentialed/SKILL.md" <<'EOF'
+---
+name: conforming-credentialed
+description: A credentialed skill with valid frontmatter keys; the lint must accept it.
+credentialed: true
+primitive-class: credentialed-cli
+---
+
+Body content.
+EOF
+
+set +e
+out_ok="$(LINT_ROOT="$TMP_CRED_OK" bash "$REPO_ROOT/tools/lint-agent-artifacts.sh" 2>&1)"
+exit_ok=$?
+set -e
+
+if (( exit_ok != 0 )); then
+  echo "✖ conforming-credentialed: lint exited $exit_ok; expected 0." >&2
+  echo "Linter output was:" >&2
+  echo "---" >&2
+  echo "$out_ok" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+# Negative: credentialed value is a quoted string, not a YAML boolean.
+mkdir -p "$TMP_CRED_BAD_BOOL/.claude/skills/bad-credentialed"
+cat > "$TMP_CRED_BAD_BOOL/.claude/skills/bad-credentialed/SKILL.md" <<'EOF'
+---
+name: bad-credentialed
+description: credentialed key is a string, not a boolean; lint must reject.
+credentialed: "yes"
+---
+
+Body content.
+EOF
+
+set +e
+out_bad_bool="$(LINT_ROOT="$TMP_CRED_BAD_BOOL" bash "$REPO_ROOT/tools/lint-agent-artifacts.sh" 2>&1)"
+exit_bad_bool=$?
+set -e
+
+fail=0
+if (( exit_bad_bool == 0 )); then
+  echo "✖ bad-credentialed: lint exited 0; expected non-zero." >&2
+  fail=1
+fi
+if ! grep -qF -- "credentialed" <<< "$out_bad_bool"; then
+  echo "✖ bad-credentialed: stderr missing substring 'credentialed'" >&2
+  fail=1
+fi
+if ! grep -qF -- "must be boolean" <<< "$out_bad_bool"; then
+  echo "✖ bad-credentialed: stderr missing substring 'must be boolean'" >&2
+  fail=1
+fi
+
+# Negative: primitive-class value is not one of the two allowed strings.
+mkdir -p "$TMP_CRED_BAD_CLASS/.claude/skills/bad-primitive-class"
+cat > "$TMP_CRED_BAD_CLASS/.claude/skills/bad-primitive-class/SKILL.md" <<'EOF'
+---
+name: bad-primitive-class
+description: primitive-class value is unknown; lint must reject.
+credentialed: true
+primitive-class: mcp-broker
+---
+
+Body content.
+EOF
+
+set +e
+out_bad_class="$(LINT_ROOT="$TMP_CRED_BAD_CLASS" bash "$REPO_ROOT/tools/lint-agent-artifacts.sh" 2>&1)"
+exit_bad_class=$?
+set -e
+
+if (( exit_bad_class == 0 )); then
+  echo "✖ bad-primitive-class: lint exited 0; expected non-zero." >&2
+  fail=1
+fi
+if ! grep -qF -- "primitive-class" <<< "$out_bad_class"; then
+  echo "✖ bad-primitive-class: stderr missing substring 'primitive-class'" >&2
+  fail=1
+fi
+if ! grep -qE -- "credentialed-cli|mcp-server" <<< "$out_bad_class"; then
+  echo "✖ bad-primitive-class: stderr missing one of: credentialed-cli, mcp-server" >&2
+  fail=1
+fi
+
+if (( fail )); then
+  echo
+  echo "Self-test (credentialed-skill cases): failed." >&2
+  echo "bad-bool output was:" >&2
+  echo "---" >&2
+  echo "$out_bad_bool" >&2
+  echo "---" >&2
+  echo "bad-class output was:" >&2
+  echo "---" >&2
+  echo "$out_bad_class" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+echo "✓ Self-test (credentialed-skill cases): passed (conforming clean; bad-bool + bad-class refused with expected stderr)."
