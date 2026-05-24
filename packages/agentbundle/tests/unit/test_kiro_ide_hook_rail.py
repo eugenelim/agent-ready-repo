@@ -19,6 +19,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 
+# Pre-probe synthetic vocabulary — pinned by these tests only to
+# exercise the rail's membership-check shape, NOT to assert which
+# spellings are canonical. RFC-0005 § Unresolved Q11 explicitly
+# defers the canonical list to a captured IDE-UI-authored fixture;
+# T-CONTRACT reconciles to whatever Q11 captures and updates the
+# vocabulary entries in `adapter.toml`. These tests stay correct
+# regardless — they assert "any string outside this list refuses"
+# and "any string inside this list passes".
 KIRO_EVENT_VOCAB = [
     "fileCreated",
     "fileEdit",
