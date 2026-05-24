@@ -1,7 +1,7 @@
 """T12: integration tests for ``agentbundle upgrade``.
 
 Coverage:
-  - Whole-pack upgrade: v0.1 → v0.2; installed-version updated; file content is v0.2.
+  - Whole-pack upgrade: 0.1.0 → 0.2.0; installed-version updated; file content is 0.2.0.
   - Per-primitive upgrade (parametrised over all five flags): only matching files change.
   - Mixed-version surfacing: upgrade --skill first, then whole-pack → stderr has warning.
   - Primitive-not-found: --skill foo where foo not in pack → exit non-zero with message.
@@ -69,43 +69,43 @@ def _run_install(pack: str, catalogue: str, output: str) -> int:
 
 
 def _install_v1(root: Path) -> int:
-    """Helper: install core v0.1 into root."""
+    """Helper: install core 0.1.0 into root."""
     return _run_install("core", str(CAT_V1), str(root))
 
 
 # ---------------------------------------------------------------------------
-# 1. Whole-pack upgrade: installed-version updated; files are v0.2 content
+# 1. Whole-pack upgrade: installed-version updated; files are 0.2.0 content
 # ---------------------------------------------------------------------------
 
 
 def test_whole_pack_upgrade_updates_version_and_content(tmp_path):
-    """Whole-pack upgrade from v0.1 to v0.2 must update installed-version and
-    rewrite every Tier-1 projected file to the v0.2 content."""
+    """Whole-pack upgrade from 0.1.0 to 0.2.0 must update installed-version and
+    rewrite every Tier-1 projected file to the 0.2.0 content."""
     from agentbundle.config import load_state
     from agentbundle.render import render_pack
 
     rc = _install_v1(tmp_path)
-    assert rc == 0, "install of v0.1 must succeed"
+    assert rc == 0, "install of 0.1.0 must succeed"
 
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="v0.2",
+        to_version="0.2.0",
         root=str(tmp_path),
     )
     assert rc == 0, "whole-pack upgrade must succeed"
 
     # installed-version must be updated.
     state = load_state(tmp_path / ".agent-ready-state.toml")
-    assert state.packs["core"].installed_version == "v0.2"
+    assert state.packs["core"].installed_version == "0.2.0"
 
-    # All projected files must now have v0.2 content.
+    # All projected files must now have 0.2.0 content.
     v2_projection = render_pack(PACK_V2)
     for relpath, expected_bytes in v2_projection.items():
         on_disk = tmp_path / relpath
         assert on_disk.exists(), f"expected {relpath!r} to exist after upgrade"
         assert on_disk.read_bytes() == expected_bytes, (
-            f"file {relpath!r} must contain v0.2 content"
+            f"file {relpath!r} must contain 0.2.0 content"
         )
 
 
@@ -157,20 +157,20 @@ def test_per_primitive_upgrade_moves_only_matching_files(
         if (tmp_path / rp).exists()
     }
 
-    kwargs: dict = dict(pack="core", catalogue=str(CAT_V2), to_version="v0.2", root=str(tmp_path))
+    kwargs: dict = dict(pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path))
     kwargs[flag_attr] = prim_name
     rc = _run_upgrade(**kwargs)
     assert rc == 0, f"per-primitive upgrade --{flag_attr} {prim_name} must succeed"
 
-    # Matching files must be v0.2 content.
+    # Matching files must be 0.2.0 content.
     for relpath in sorted(prim_paths):
         on_disk = tmp_path / relpath
         assert on_disk.exists(), f"expected {relpath!r} after upgrade"
         assert on_disk.read_bytes() == v2_projection[relpath], (
-            f"{relpath!r} must contain v0.2 content"
+            f"{relpath!r} must contain 0.2.0 content"
         )
 
-    # Non-matching files must be v0.1 content (unchanged).
+    # Non-matching files must be 0.1.0 content (unchanged).
     for rp, before_bytes in non_prim_before.items():
         assert (tmp_path / rp).read_bytes() == before_bytes, (
             f"non-primitive file {rp!r} must not change"
@@ -180,13 +180,13 @@ def test_per_primitive_upgrade_moves_only_matching_files(
     state = load_state(tmp_path / ".agent-ready-state.toml")
     pv = state.packs["core"].primitive_versions
     assert prim_type in pv, f"primitive_versions must contain {prim_type!r}"
-    assert pv[prim_type].get(prim_name) == "v0.2", (
-        f"primitive_versions[{prim_type!r}][{prim_name!r}] must be 'v0.2'"
+    assert pv[prim_type].get(prim_name) == "0.2.0", (
+        f"primitive_versions[{prim_type!r}][{prim_name!r}] must be '0.2.0'"
     )
 
     # Pack-level installed-version must NOT be updated on per-primitive upgrade.
-    assert state.packs["core"].installed_version == "v0.1", (
-        "installed-version must stay at v0.1 for a per-primitive upgrade"
+    assert state.packs["core"].installed_version == "0.1.0", (
+        "installed-version must stay at 0.1.0 for a per-primitive upgrade"
     )
 
 
@@ -196,16 +196,16 @@ def test_per_primitive_upgrade_moves_only_matching_files(
 
 
 def test_mixed_version_warning_on_whole_pack_after_per_primitive(tmp_path, capsys):
-    """After upgrading --skill to v0.2, a whole-pack upgrade to v0.3 must
+    """After upgrading --skill to 0.2.0, a whole-pack upgrade to 0.3.0 must
     print a warning to stderr about mixed-version primitives before proceeding."""
     rc = _install_v1(tmp_path)
     assert rc == 0
 
-    # Per-primitive upgrade of skill to v0.2.
+    # Per-primitive upgrade of skill to 0.2.0.
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="v0.2",
+        to_version="0.2.0",
         root=str(tmp_path),
         skill="work-loop",
     )
@@ -214,11 +214,11 @@ def test_mixed_version_warning_on_whole_pack_after_per_primitive(tmp_path, capsy
     # Clear captured output before the whole-pack upgrade.
     capsys.readouterr()
 
-    # Whole-pack upgrade to v0.3 — must warn.
+    # Whole-pack upgrade to 0.3.0 — must warn.
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V3),
-        to_version="v0.3",
+        to_version="0.3.0",
         root=str(tmp_path),
     )
     assert rc == 0
@@ -250,7 +250,7 @@ def test_primitive_not_found_exits_nonzero(tmp_path, capsys, flag_attr):
     kwargs = dict(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="v0.2",
+        to_version="0.2.0",
         root=str(tmp_path),
     )
     kwargs[flag_attr] = "foo"
@@ -275,7 +275,7 @@ def test_hook_extension_preservation_sh(tmp_path):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="v0.2",
+        to_version="0.2.0",
         root=str(tmp_path),
         hook="pre-commit",
     )
@@ -297,7 +297,7 @@ def test_hook_upgrade_co_moves_wiring(tmp_path):
     upgrade can never land a torn pair (a new hook script paired with
     the previous matcher/event wiring). The v1→v2 fixture diff includes
     a wiring change (`matcher = "Bash"` → `matcher = "Bash|Edit"`); a
-    successful `--hook pre-commit --to v0.2` must produce the v2
+    successful `--hook pre-commit --to 0.2.0` must produce the v2
     wiring content on disk.
     """
     rc = _install_v1(tmp_path)
@@ -306,7 +306,7 @@ def test_hook_upgrade_co_moves_wiring(tmp_path):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="v0.2",
+        to_version="0.2.0",
         root=str(tmp_path),
         hook="pre-commit",
     )
@@ -329,7 +329,7 @@ def test_hook_extension_preservation_py(tmp_path):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="v0.2",
+        to_version="0.2.0",
         root=str(tmp_path),
         hook="lint",
     )
@@ -352,7 +352,7 @@ def test_pack_not_installed_exits_nonzero(tmp_path, capsys):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="v0.2",
+        to_version="0.2.0",
         root=str(tmp_path),
     )
     assert rc != 0

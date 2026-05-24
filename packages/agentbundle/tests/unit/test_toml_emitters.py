@@ -1,0 +1,266 @@
+"""TOML-injection hardening: emitter escaping + injection-resistance.
+
+`config.dump_state` and `commands.install._append_install_marker` are the
+two CLI write-paths that interpolate pack-sourced strings into TOML
+output. Before this hardening, both used plain f-strings, so a manifest
+declaring ``version = '0.1.0"\\nname = "evil"'`` could land phantom TOML
+structure in `.agent-ready-state.toml` and `.adapt-install-marker.toml`.
+
+The fix is a single `_emit_basic_string` helper that escapes per the
+TOML 1.0 basic-string grammar (``\\``, ``"``, and control chars). These
+tests pin the contract: every basic-string interpolation must round-trip
+through `tomllib` to the original Python string, and no adversarial
+value can introduce a sibling table.
+"""
+
+from __future__ import annotations
+
+import tomllib
+
+import pytest
+
+from agentbundle import config
+from agentbundle.config import PackState, State, dump_state
+
+
+# ---------------------------------------------------------------------------
+# _emit_basic_string — pure-function round-trip
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "hello",
+        "",
+        'he said "hi"',
+        r"path\to\file",
+        "trailing-backslash\\",
+        "\\\\double-leading-backslash",
+        "a\nb\rc\td",
+        "form\ffeed",
+        "back\bspace",
+        "control\x01char",
+        "null\x00byte",
+        "high\x7fascii",
+        "unicode-ok-é-ü-中",
+        '"\\\n\r\t\x00\x01\x7f',  # every escape at once
+    ],
+)
+def test_emit_basic_string_round_trips_through_tomllib(raw: str) -> None:
+    """Every basic-string position the CLI emits must reparse to the
+    original Python string. The helper returns the *quoted* form so
+    callers interpolate as ``key = {_emit_basic_string(v)}``."""
+    quoted = config._emit_basic_string(raw)
+    parsed = tomllib.loads(f"x = {quoted}")
+    assert parsed["x"] == raw
+
+
+def test_emit_basic_string_returns_quoted_form() -> None:
+    """Helper returns the full quoted basic-string (opening + closing ``"``),
+    not the bare value. Callers do not add their own quotes."""
+    assert config._emit_basic_string("hello") == '"hello"'
+
+
+def test_emit_basic_string_escapes_quote_and_backslash() -> None:
+    assert config._emit_basic_string('a"b') == '"a\\"b"'
+    assert config._emit_basic_string(r"a\b") == '"a\\\\b"'
+
+
+# ---------------------------------------------------------------------------
+# dump_state — injection-resistance via the helper
+# ---------------------------------------------------------------------------
+
+
+def test_dump_state_resists_pack_version_injection() -> None:
+    """Adversarial `installed-version` must not land a phantom sibling
+    pack table. Before the fix, the line broke out of the quoted
+    basic-string and started a new ``[pack.evil]`` table."""
+    adversarial = '0.1.0"\nname = "evil"'
+    state = State()
+    state.packs["target"] = PackState(installed_version=adversarial)
+
+    serialised = dump_state(state)
+    parsed = tomllib.loads(serialised)
+
+    assert parsed["pack"]["target"]["installed-version"] == adversarial
+    assert "evil" not in parsed["pack"], (
+        "phantom [pack.evil] table landed via injection"
+    )
+
+
+def test_dump_state_resists_files_sha_injection() -> None:
+    """Adversarial value in the inline-table position (``sha = "..."``)
+    must not break out of its basic-string."""
+    adversarial = 'cafef00d"\nname = "evil"'
+    state = State()
+    ps = PackState(installed_version="0.1.0")
+    ps.files["AGENTS.md"] = {"sha": adversarial, "from-pack-version": "0.1.0"}
+    state.packs["core"] = ps
+
+    parsed = tomllib.loads(dump_state(state))
+    assert parsed["pack"]["core"]["files"]["AGENTS.md"]["sha"] == adversarial
+    assert "evil" not in parsed["pack"]
+
+
+def test_dump_state_resists_relpath_key_injection() -> None:
+    """The files-table key is a TOML quoted key; same escaping applies.
+    A relpath that contains a quote must not start a sibling table."""
+    adversarial = 'AGENTS.md"\n[pack.evil]\nname = "evil'
+    state = State()
+    ps = PackState(installed_version="0.1.0")
+    ps.files[adversarial] = {"sha": "abc", "from-pack-version": "0.1.0"}
+    state.packs["core"] = ps
+
+    parsed = tomllib.loads(dump_state(state))
+    assert adversarial in parsed["pack"]["core"]["files"]
+    assert "evil" not in parsed["pack"]
+
+
+def test_dump_state_resists_primitive_version_injection() -> None:
+    """Mixed-version primitive override path: ``version = "..."`` is
+    pack-version-sourced via `from-pack-version`; adversarial values
+    must not escape their basic-string."""
+    adversarial = '0.3.0"\nname = "evil"'
+    state = State()
+    ps = PackState(installed_version="0.2.0")
+    ps.primitive_versions = {"skill": {"work-loop": adversarial}}
+    state.packs["core"] = ps
+
+    parsed = tomllib.loads(dump_state(state))
+    assert parsed["pack"]["core"]["skill"]["work-loop"]["version"] == adversarial
+    assert "evil" not in parsed["pack"]
+
+
+# ---------------------------------------------------------------------------
+# _append_install_marker — injection-resistance via the helper
+# ---------------------------------------------------------------------------
+
+
+def test_install_marker_resists_pack_version_injection(tmp_path) -> None:
+    """``_append_install_marker`` is called by the install path with
+    `pack_version` lifted straight from `pack_toml["pack"]["version"]`.
+    Adversarial values must not land phantom TOML structure in
+    ``.adapt-install-marker.toml``."""
+    from agentbundle.commands.install import _append_install_marker
+
+    adversarial = '0.1.0"\nname = "evil"'
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="alpha",
+        pack_version=adversarial,
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    marker = tmp_path / ".adapt-install-marker.toml"
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+
+    entries = parsed["packs-installed"]
+    assert len(entries) == 1
+    assert entries[0]["name"] == "alpha"
+    assert entries[0]["version"] == adversarial
+    # No phantom top-level keys from the injection.
+    assert set(parsed.keys()) == {"marker-schema-version", "packs-installed"}
+
+
+def test_install_marker_resists_pack_name_injection(tmp_path) -> None:
+    """Defense-in-depth: even if the install-time validator missed a
+    name, the emitter alone must prevent injection."""
+    from agentbundle.commands.install import _append_install_marker
+
+    adversarial = 'evil"\nname = "phantom'
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name=adversarial,
+        pack_version="0.1.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    marker = tmp_path / ".adapt-install-marker.toml"
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+
+    assert parsed["packs-installed"][0]["name"] == adversarial
+    assert len(parsed["packs-installed"]) == 1
+
+
+def test_install_marker_resists_prior_installed_at_string_injection(
+    tmp_path,
+) -> None:
+    """A hand-edited or attacker-mediated marker can land
+    ``installed-at = "...\\nphantom = ..."`` (basic-string position,
+    not bare datetime). ``tomllib`` parses that to a Python ``str``
+    with real control chars; bare re-emission would land phantom TOML
+    structure on the next install. The fix is to drop any entry whose
+    ``installed-at`` isn't a ``datetime`` at read time."""
+    from agentbundle.commands.install import _append_install_marker
+
+    # Seed an adversarial prior marker. The basic-string form of
+    # `installed-at` is what triggers the round-trip injection class.
+    marker = tmp_path / ".adapt-install-marker.toml"
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "victim"\n'
+        'version = "0.1.0"\n'
+        # `installed-at` as a *basic-string* (quoted) with a real newline
+        # in the value — `tomllib.loads` resolves the escape sequence to a
+        # newline byte; without the read-side filter the next emission
+        # would land a phantom field.
+        'installed-at = "2026-01-01T00:00:00Z\\nphantom = \\"injected\\""\n'
+        "unresolved-markers = []\n"
+        "new-companions = []\n",
+        encoding="utf-8",
+    )
+
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="newcomer",
+        pack_version="0.2.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+    assert "phantom" not in parsed, "round-trip emission landed phantom field"
+    # The malformed prior entry is dropped; only the new entry survives.
+    entries = parsed["packs-installed"]
+    assert len(entries) == 1
+    assert entries[0]["name"] == "newcomer"
+
+
+def test_install_marker_resists_unresolved_marker_and_companion_injection(
+    tmp_path,
+) -> None:
+    """The marker emits list-of-strings positions for ``unresolved-markers``
+    and ``new-companions``. Both are derived from pack-sourced inputs
+    (renderer output / Tier-2 collision tally) and must escape too."""
+    from agentbundle.commands.install import _append_install_marker
+
+    bad_marker = 'name"\nname = "evil'
+    bad_companion = 'path"\n[evil]\nx = "y'
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="alpha",
+        pack_version="0.1.0",
+        unresolved_markers=[bad_marker],
+        new_companions=[bad_companion],
+        allowed_prefixes=None,
+    )
+
+    marker = tmp_path / ".adapt-install-marker.toml"
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+
+    entry = parsed["packs-installed"][0]
+    assert entry["unresolved-markers"] == [bad_marker]
+    assert entry["new-companions"] == [bad_companion]
+    assert "evil" not in parsed

@@ -28,6 +28,7 @@ both scope roots use :func:`_classify_for_install`. Writes go through
 from __future__ import annotations
 
 import functools
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -83,6 +84,20 @@ def run(args: "argparse.Namespace") -> int:
     force: bool = bool(getattr(args, "force", False))
     output_root = Path(args.output).resolve()
 
+    # Range-check the CLI-supplied pack name before any I/O. The manifest's
+    # `pack.name` is checked by `_assert_pack_metadata_shape` below; this
+    # second check covers `args.pack` itself, which becomes a TOML key in
+    # `dump_state` and a TOML basic-string value in `_append_install_marker`.
+    # Injection is structurally prevented by `_emit_basic_string` /
+    # `_toml_key`, but refusing here is the bell-rings-loud companion.
+    if not _PACK_NAME_RE.fullmatch(pack_name):
+        print(
+            f"install: pack {pack_name!r} has invalid name: "
+            f"must match ^[a-z0-9][a-z0-9-]*$ per docs/CONVENTIONS.md",
+            file=sys.stderr,
+        )
+        return 1
+
     # ── Step 1: Resolve catalogue + locate + spec gate ────────────────────────
     try:
         catalogue_dir = resolve_catalogue(catalogue_uri)
@@ -105,6 +120,15 @@ def run(args: "argparse.Namespace") -> int:
     gate = check_spec_version_gate(pack_toml)
     if gate is not None:
         return gate
+    # Defence-in-depth against pack-metadata-driven TOML injection: refuse
+    # manifests whose name / version fall outside their canonical grammars
+    # before any write. The relpath half of the check runs after
+    # `render_pack` (it needs the projection) — see Step 7 below.
+    try:
+        _assert_pack_metadata_shape(pack_toml)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
     # ── Step 2: Resolve scope ─────────────────────────────────────────────────
     # RFC-0004 § *v0.1 vs v0.2 contract acceptance*: a stray
@@ -326,6 +350,20 @@ def run(args: "argparse.Namespace") -> int:
         print(f"install: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
         return 1
 
+    # Full re-check including projection relpaths now that `render_pack`
+    # has produced the per-scope projection(s). Name + version are
+    # idempotently re-validated (already passed once after `load_pack_toml`);
+    # the load-bearing addition at this site is the relpath loop, which
+    # needs the projection's keys to run. Refuses if a single bad path
+    # appears at either scope.
+    try:
+        for _projection in (repo_projection, user_projection):
+            if _projection is not None:
+                _assert_pack_metadata_shape(pack_toml, projection=_projection)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
     pack_version: str = pack_toml.get("pack", {}).get("version", "0.0.0")
 
     # ── Step 8: Pre-flight — path-jail probe every projected file ─────────────
@@ -498,6 +536,88 @@ def run(args: "argparse.Namespace") -> int:
     return 0
 
 
+_PACK_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_PACK_VERSION_RE = re.compile(
+    r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+)
+
+
+def _assert_pack_metadata_shape(
+    pack_toml: dict,
+    *,
+    projection: "dict[str, bytes] | None" = None,
+) -> None:
+    """Defence-in-depth: refuse a pack whose manifest or projection
+    relpaths fall outside the canonical TOML-safe grammars.
+
+    The structural fix for pack-metadata-driven TOML injection lives in
+    :func:`config._emit_basic_string`. This validator is the bell-rings-
+    loud companion at the install boundary: it stops the install before
+    any write to either scope's state file. The three checks:
+
+    - ``pack.name`` matches ``^[a-z0-9][a-z0-9-]*$`` per
+      ``docs/CONVENTIONS.md``.
+    - ``pack.version`` matches a SemVer-ish grammar
+      ``^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$``.
+      ``pack.schema.json`` types this as a bare string today; we tighten
+      here because every value that lands in a basic-string position
+      should be regex-shaped, not free-form.
+    - If *projection* is supplied, every relpath contains no ``"``,
+      ``\\``, or control character (U+0000..U+001F, U+007F).
+
+    Raises ``RuntimeError`` on the first violation with a message
+    shaped ``install: pack '<name>' has invalid <field>: <reason>`` —
+    callers print ``str(exc)`` to stderr and exit non-zero.
+    """
+    pack_block = pack_toml.get("pack", {}) if isinstance(pack_toml, dict) else {}
+    name_raw = pack_block.get("name", "") if isinstance(pack_block, dict) else ""
+    version_raw = pack_block.get("version", "") if isinstance(pack_block, dict) else ""
+
+    # `name` is the visible identifier in the error message — if it's
+    # not a string, fall back to the type-name for the operator's sake
+    # but don't interpolate the raw value (which may itself be
+    # adversarial). `<unknown>` matches the placeholder used by
+    # validate_dependencies_required for the same reason.
+    name_for_message = name_raw if isinstance(name_raw, str) else "<unknown>"
+
+    if not isinstance(name_raw, str) or not _PACK_NAME_RE.fullmatch(name_raw):
+        raise RuntimeError(
+            f"install: pack {name_for_message!r} has invalid name: "
+            f"must match ^[a-z0-9][a-z0-9-]*$ per docs/CONVENTIONS.md"
+        )
+
+    if not isinstance(version_raw, str) or not _PACK_VERSION_RE.fullmatch(version_raw):
+        # The raw value is operator-untrusted (it's the attack vector); do
+        # not interpolate it into stderr — that surface can carry ANSI or
+        # other terminal-bound bytes. The operator can `cat pack.toml` to
+        # inspect it themselves.
+        raise RuntimeError(
+            f"install: pack {name_for_message!r} has invalid version: "
+            f"must match ^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+        )
+
+    if projection is not None:
+        for relpath in projection:
+            if not isinstance(relpath, str):
+                raise RuntimeError(
+                    f"install: pack {name_for_message!r} has invalid "
+                    f"projection relpath: not a string"
+                )
+            # Refuse `"`, `\`, and any control char. Newlines, tabs and
+            # carriage returns are control chars; null bytes too. The
+            # path-jail probe (Step 8 in `run`) catches traversal; this
+            # check catches TOML-grammar bombs that the path-jail would
+            # let through. Same stderr discipline as version: do not
+            # interpolate the raw relpath into the message — only its
+            # length, which is bounded and operator-safe.
+            if any(c == '"' or c == "\\" or ord(c) < 0x20 or ord(c) == 0x7F for c in relpath):
+                raise RuntimeError(
+                    f"install: pack {name_for_message!r} has invalid "
+                    f"projection relpath (length {len(relpath)}): contains a "
+                    f"quote, backslash, or control character"
+                )
+
+
 def _collect_unresolved_markers(projection: dict) -> list[str]:
     """Return sorted, deduplicated list of `<adapt:NAME>` markers found
     in the projection's byte content. The skill resolves these later;
@@ -573,12 +693,36 @@ def _append_install_marker(
             existing = {}
         raw_entries = existing.get("packs-installed", [])
         if isinstance(raw_entries, list):
-            entries = [e for e in raw_entries if isinstance(e, dict)]
+            for e in raw_entries:
+                if not isinstance(e, dict):
+                    continue
+                # Defence-in-depth: a CLI-written marker has `installed-at`
+                # as a TOML datetime literal, which `tomllib` parses to a
+                # `datetime.datetime`. A hand-edited or attacker-mediated
+                # marker could carry `installed-at = "...\nphantom = ..."`
+                # (a TOML basic-string in the position) which `tomllib`
+                # parses to a `str` containing real control chars — and
+                # bare re-emission would land phantom TOML structure on
+                # the next install. Drop any entry whose `installed-at`
+                # isn't a `datetime`; warn so the operator can investigate.
+                ts = e.get("installed-at")
+                if not isinstance(ts, datetime):
+                    print(
+                        f"install: warning: dropping marker entry with non-"
+                        f"datetime installed-at at {marker_path} "
+                        f"(prior entry will not surface in the next nudge)",
+                        file=sys.stderr,
+                    )
+                    continue
+                entries.append(e)
 
     new_entry = {
         "name": pack_name,
         "version": pack_version,
-        "installed-at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        # Store as a `datetime` (not a strftime'd string) so the emit loop
+        # has a single uniform type to handle for both new and re-read
+        # entries, with the canonical strftime applied at emission time.
+        "installed-at": datetime.now(timezone.utc),
         "unresolved-markers": unresolved_markers,
         "new-companions": new_companions,
     }
@@ -586,16 +730,34 @@ def _append_install_marker(
 
     # Serialise. Single source of truth: this writer (no shared helper
     # because the install marker is a different shape from the other
-    # CLI artifacts).
-    lines: list[str] = ['marker-schema-version = "0.1"', ""]
+    # CLI artifacts). Every pack-sourced basic-string position routes
+    # through `_emit_basic_string` so adversarial pack metadata cannot
+    # land phantom TOML structure here (see `config._emit_basic_string`).
+    from agentbundle.config import _emit_basic_string
+
+    lines: list[str] = [
+        f"marker-schema-version = {_emit_basic_string('0.1')}",
+        "",
+    ]
     for entry in entries:
         lines.append("[[packs-installed]]")
-        lines.append(f'name = "{entry["name"]}"')
-        lines.append(f'version = "{entry["version"]}"')
-        lines.append(f'installed-at = {entry["installed-at"]}')
-        markers_repr = ", ".join(f'"{m}"' for m in entry.get("unresolved-markers", []))
+        lines.append(f"name = {_emit_basic_string(entry['name'])}")
+        lines.append(f"version = {_emit_basic_string(entry['version'])}")
+        # `installed-at` is emitted bare as a TOML offset-datetime
+        # literal. The dict's value is always a `datetime` (new entries
+        # are stored that way above; re-read entries are filtered to
+        # datetime-only at load time). `strftime` produces the canonical
+        # `YYYY-MM-DDTHH:MM:SSZ` shape; no basic-string position, no
+        # injection vector.
+        ts_str = entry["installed-at"].strftime("%Y-%m-%dT%H:%M:%SZ")
+        lines.append(f"installed-at = {ts_str}")
+        markers_repr = ", ".join(
+            _emit_basic_string(m) for m in entry.get("unresolved-markers", [])
+        )
         lines.append(f"unresolved-markers = [{markers_repr}]")
-        comps_repr = ", ".join(f'"{c}"' for c in entry.get("new-companions", []))
+        comps_repr = ", ".join(
+            _emit_basic_string(c) for c in entry.get("new-companions", [])
+        )
         lines.append(f"new-companions = [{comps_repr}]")
         lines.append("")
     content = "\n".join(lines).rstrip() + "\n"
