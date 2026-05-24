@@ -214,39 +214,62 @@ def _quote_for_dotfile(value: str) -> str:
     return value
 
 
+# Well-known SIDs (Windows). Locale-invariant — non-English Windows
+# installs translate the *display name* of these principals (Tout le
+# monde, Jeder, Все), so any matching by name-substring becomes a
+# silent bypass on those locales. SIDs do not translate.
+#
+#   S-1-1-0    — Everyone
+#   S-1-5-7    — Anonymous Logon
+#   S-1-5-11   — Authenticated Users
+#   S-1-5-32-545 — BUILTIN\Users (the local Users group)
+#   S-1-5-32-546 — BUILTIN\Guests
+_PERMISSIVE_SIDS = (
+    "S-1-1-0",
+    "S-1-5-7",
+    "S-1-5-11",
+    "S-1-5-32-545",
+    "S-1-5-32-546",
+)
+
+
 def _verify_icacls(
     path: pathlib.Path, *, allow_permissive_acl: bool = False
 ) -> None:
-    """Run ``icacls`` on the path and refuse if any non-default ACE grants
-    read access (spec § AC15). No-op on POSIX.
+    """Run ``icacls /findsid`` and refuse if any well-known "broad
+    access" SID is granted access on the path (spec § AC15). No-op on
+    POSIX.
 
     Default ACEs on a per-user file are the inheriting user,
-    ``NT AUTHORITY\\SYSTEM``, and ``BUILTIN\\Administrators``. Any other
-    principal granted access is flagged unless the caller opts in.
+    ``NT AUTHORITY\\SYSTEM``, and ``BUILTIN\\Administrators``. The
+    locale-invariant check uses ``icacls <path> /findsid <SID>``
+    against the well-known "broad access" SIDs (Everyone,
+    Authenticated Users, BUILTIN\\Users, BUILTIN\\Guests, Anonymous
+    Logon); the prior name-substring scan was a silent bypass on
+    non-English Windows installs (e.g. ``Tout le monde`` for
+    Everyone on French Windows).
     """
     if os.name != "nt":  # pragma: no cover — POSIX path
         return
-    res = subprocess.run(  # pragma: no cover — exercised only on Windows
-        ["icacls", str(path)], capture_output=True, text=True, check=False
-    )
-    if res.returncode != 0:
-        raise PermissiveAclError(
-            f"icacls inspection failed for {path}: rc={res.returncode} "
-            f"stderr={res.stderr.strip()}"
+    suspect: list[str] = []
+    for sid in _PERMISSIVE_SIDS:  # pragma: no cover — exercised only on Windows
+        res = subprocess.run(
+            ["icacls", str(path), "/findsid", sid],
+            capture_output=True,
+            text=True,
+            check=False,
         )
-    suspect = []
-    for line in res.stdout.splitlines():
-        stripped = line.strip()
-        # Flag any ACE granting access to non-default principals.
-        if (
-            "BUILTIN\\Users" in stripped
-            or "Everyone" in stripped
-            or "Authenticated Users" in stripped
-        ):
-            suspect.append(stripped)
+        # ``icacls /findsid`` exits 0 with the path listed when the SID
+        # is granted access on at least one ACE; exits non-zero (with
+        # "No matching files were found" stderr) when the SID is not
+        # present. The path appearing in stdout is the load-bearing
+        # signal: a successful find prints the path on one line.
+        if res.returncode == 0 and str(path) in res.stdout:
+            suspect.append(sid)
     if suspect and not allow_permissive_acl:
         raise PermissiveAclError(
-            f"DACL too permissive on {path}: {suspect}; pass "
+            f"DACL too permissive on {path}: well-known broad-access "
+            f"SIDs granted access: {suspect}; pass "
             f"allow_permissive_acl=True to override"
         )
 
