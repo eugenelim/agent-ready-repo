@@ -1,0 +1,25 @@
+{
+  "id": "msg-to-markdown",
+  "name": "MSG to Markdown",
+  "version": "1.0.0",
+  "description": "Convert Outlook .msg email files to structured Markdown preserving headers, recipients, body, inline content, and attachment metadata.",
+  "category": "converters",
+  "tags": ["msg", "outlook", "email", "markdown", "conversion", "attachment"],
+  "author": "dropkit",
+  "license": "MIT",
+  "deps": {
+    "npm": ["@nicecode/msg-reader"]
+  },
+  "input": {
+    "arguments": "file path or glob pattern (e.g., emails/*.msg)",
+    "fileTypes": [".msg"]
+  },
+  "output": {
+    "fileTypes": [".md"]
+  },
+  "targets": {
+    "claude-code": { "file": "overrides/claude-code.md" },
+    "kiro": { "file": "overrides/kiro.md" },
+    "default": { "file": "skill.md" }
+  }
+}

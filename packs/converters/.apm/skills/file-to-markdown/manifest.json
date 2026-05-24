@@ -1,0 +1,22 @@
+{
+  "id": "file-to-markdown",
+  "name": "File to Markdown",
+  "version": "1.0.0",
+  "description": "Convert documents and images to Markdown. Uses Docling for PDF, DOCX, PPTX, and XLSX. Uses a two-pass sliding-window MCP strategy for images.",
+  "category": "converters",
+  "tags": ["pdf", "docx", "pptx", "xlsx", "image", "markdown", "conversion", "docling"],
+  "author": "dropkit",
+  "deps": {
+    "python": ["docling", "Pillow"]
+    },
+  "input": {
+    "arguments": "file path or glob pattern",
+    "fileTypes": [".pdf", ".docx", ".pptx", ".xlsx", ".xls", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".tiff", ".tif", ".bmp"]
+  },
+  "output": {
+    "fileTypes": [".md"]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}
