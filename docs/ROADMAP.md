@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; only AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items; recorded the v0.1-vs-RFC-0001 Tier-2 prompt gap under `agent-spec-cli`)
+**Last updated:** 2026-05-24 (closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped. Round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landing as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items; recorded the v0.1-vs-RFC-0001 Tier-2 prompt gap under `agent-spec-cli`.)
 
 ## How this file is maintained
 
@@ -238,7 +238,10 @@ Per-task closure (15 tasks; T13 split into T13a/T13b/T13c):
 - [x] **T7** — `creds-schema.toml` parser + canonical-path resolution
       (closed AC24, AC24b).
 - [x] **T8** — `agentbundle creds` CLI verb; tombstone args; per-platform
-      exit-code matrices (closed AC16–AC23).
+      exit-code matrices (closed AC16–AC23). AC22's macOS symbolic
+      exit-code matrix was completed in a round-2 follow-on PR alongside
+      a Windows CI matrix; see the *Round-2 review-pass disposition*
+      section below for the merge SHAs.
 - [x] **T9** — SKILL.md frontmatter + lint allow-list (closed AC25).
 - [x] **T10** — `conventions-check` AST-walker extensions (closed
       AC26, AC27).
@@ -254,6 +257,37 @@ Per-task closure (15 tasks; T13 split into T13a/T13b/T13c):
       every future test PR that adds fixtures under
       `packages/agentbundle/tests/fixtures/creds/`.
 
+Round-2 review-pass disposition (post-Shipped):
+
+The end-of-spec review pass surfaced items that didn't warrant
+re-opening Shipped status but did warrant focused follow-on PRs.
+Captured here so a future ROADMAP reader can see the disposition:
+
+- **PR #84 — `windows-latest` CI matrix** (precursor; closes
+  Security § Not-checked "no live exercise of the Windows ctypes
+  path"). Adds the verification home AC10 / AC11 / AC15 had been
+  missing.
+- **PR #85 — AC22 macOS symbolic exit-code matrix** (closes
+  Adversarial Blocker #5 + Quality Concern #7). Adds module
+  constants and `_classify_macos_exit_code` parallel to the Windows-
+  side classifier; embeds the symbolic name in `Tier2HardFailError`
+  messages. No behavior change to the existing
+  `--allow-insecure-fallback` flow.
+- **PR #86 — `CredentialsMissingError` tier observability**
+  (closes Quality Concerns #5 + #6). Per-key tier trailers + structured
+  attributes; adds the AC4 cross-tier composability construction test.
+- **Robustness pass** — per-finding micro-fixes (`Credentials.__repr__`,
+  `Credentials.__getattr__` resolved-keys hint, `_quote_for_dotfile`
+  raises on unsafe chars, `EnvParseError` ordering, `credentialed:`
+  YAML normalisation, `_resolve_schema_path` rename, `creds rm`
+  continue-on-Tier-2-fail, AC23 stderr-prefix categorisation).
+- **Lint widening** — AST walker f-string / Starred(Tuple) /
+  Subscript shapes; `icacls` SID-based matching to harden non-English
+  Windows installs.
+- **Spec / plan / doc cleanup** — inline-fixture amendment;
+  `docs/product/release-checklist.md` for the three Windows manual-QA
+  rows; this very ROADMAP audit.
+
 Open follow-ons (not gating shipped status):
 
 - **New ADR ("Credential storage for credentialed skills") is
@@ -264,6 +298,11 @@ Open follow-ons (not gating shipped status):
   adopter-profile audit per RFC-0006 § Unresolved Q1; not gating
   v1 (Linux lands on Tier 3 floor). The `v2-libsecret` stub stays
   open under cross-spec items below.
+- **`load_credentials(schema_path=...)` no-op kwarg.** AC24b promises
+  the kwarg for primitive authors who load their own schema, but the
+  loader currently ignores it. Round-2 surfaced the gap (Quality
+  Blocker #4); choice between removing the kwarg vs. wiring schema
+  validation pending user direction.
 
 ---
 
