@@ -705,9 +705,14 @@ test file: `packages/agentbundle/tests/integration/test_example_credentialed_ski
 - *`scripts/cli.py` imports* `agent_ready.credentials.load_credentials`
   and refuses argv-ban flags (asserts `SystemExit` non-zero when
   invoked with `--token=x`). [AC29]
-- *`references/creds-schema.toml`* declares one required key
-  (`API_TOKEN`, `secret = true`) and one optional sibling
-  (`BASE_URL`, `secret = false`). [AC29]
+- *`references/creds-schema.toml`* declares two keys —
+  `API_TOKEN` (`secret = true`, the required token) and a
+  `BASE_URL` sibling (`secret = false`, also resolved through
+  the three-tier ladder). The loader treats both as required
+  via `required_keys=["API_TOKEN", "BASE_URL"]`; "sibling" is
+  the spec § Objective wording (Tier 1's `_BASE_URL`/`_EMAIL`/
+  `_FLAVOR` shape), not a hint that the key is optional at the
+  loader level. [AC29]
 - *Conventions-check clean:* the extended lint from T10 reports
   zero findings against this skill. [AC29]
 

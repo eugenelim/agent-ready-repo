@@ -36,9 +36,59 @@ SERVICE = "agent-ready"
 # keychain-positional approach to test isolation; the service-prefix
 # approach lets the canonical AC6 argv shape stay untouched.
 
-# errSecItemNotFound (44) — legitimate "no such credential", falls
-# through to Tier 3 per AC4 / AC11's macOS-side matrix in AC22.
+# macOS Security framework OSStatus codes (spec § AC22):
+#   44      errSecItemNotFound          — legitimate "no such credential",
+#                                         falls through to Tier 3.
+#   45      errSecDuplicateItem         — only relevant on add; the ``-U``
+#                                         upsert flag means we never see it.
+#   25308   errSecInteractionNotAllowed — Keychain locked / no UI.
+#   -25291  errSecNotAvailable          — Keychain service unavailable.
+#
+# Names taken from ``<Security/SecBase.h>``. The two "Keychain locked /
+# unavailable" codes (25308 / -25291) MUST raise ``Tier2HardFailError``
+# so ``run_setup`` can route the AC22 fallback gate — silently
+# degrading to Tier 3 defeats the security posture the user chose.
 EXIT_NOT_FOUND = 44
+EXIT_DUPLICATE_ITEM = 45
+EXIT_INTERACTION_NOT_ALLOWED = 25308
+EXIT_NOT_AVAILABLE = -25291
+
+
+def _classify_macos_exit_code(rc: int, op: str) -> str | None:
+    """Map a ``security`` exit code to a symbolic name string.
+
+    Returns the symbolic name (e.g. ``"errSecInteractionNotAllowed
+    (25308) — Keychain locked or no UI available"``) so the caller can
+    embed it in a ``Tier2HardFailError`` message. Returns ``None`` for
+    ``EXIT_NOT_FOUND`` (the caller treats that as a legitimate miss).
+
+    Parallel in shape to ``_credman_windows._classify_last_error``;
+    AC22 cites this matrix explicitly.
+    """
+    if rc == 0:
+        return None
+    if rc == EXIT_NOT_FOUND:
+        return None
+    if rc == EXIT_INTERACTION_NOT_ALLOWED:
+        return (
+            f"errSecInteractionNotAllowed ({EXIT_INTERACTION_NOT_ALLOWED}) "
+            f"— Keychain locked or no UI available"
+        )
+    if rc == EXIT_NOT_AVAILABLE:
+        return (
+            f"errSecNotAvailable ({EXIT_NOT_AVAILABLE}) "
+            f"— Keychain service unavailable"
+        )
+    if rc == EXIT_DUPLICATE_ITEM:
+        # The ``-U`` upsert flag means add-generic-password should never
+        # surface this; document anyway so a future argv change that
+        # drops ``-U`` produces a readable error rather than a generic
+        # "rc=45".
+        return (
+            f"errSecDuplicateItem ({EXIT_DUPLICATE_ITEM}) "
+            f"— entry already exists (missing ``-U`` upsert flag?)"
+        )
+    return f"security exit code {rc}"
 
 
 def _account(namespace: str, key: str) -> str:
@@ -58,10 +108,12 @@ def read_credential(namespace: str, key: str) -> str | None:
     if proc.returncode == EXIT_NOT_FOUND:
         return None
     if proc.returncode != 0:
-        msg = proc.stderr.strip() or proc.stdout.strip()
+        symbolic = _classify_macos_exit_code(proc.returncode, "read")
+        stderr = proc.stderr.strip() or proc.stdout.strip()
         raise Tier2HardFailError(
-            f"macOS Keychain read failed for {_account(namespace, key)!r} "
-            f"(rc={proc.returncode}): {msg}"
+            f"macOS Keychain read failed for {_account(namespace, key)!r}: "
+            f"{symbolic}"
+            + (f": {stderr}" if stderr else "")
         )
     # ``security -w`` prints the password to stdout, then a newline.
     return proc.stdout.rstrip("\n")
@@ -70,7 +122,22 @@ def read_credential(namespace: str, key: str) -> str | None:
 def write_credential(namespace: str, key: str, value: str) -> None:
     """Write ``value`` to ``(namespace, key)``. Token enters via child stdin
     only — never argv (spec § AC6, AC7).
+
+    Refuses values containing ``\\n`` or ``\\r`` up front. ``security -w``
+    prompts twice and the stdin payload is ``token + b"\\n" + token + b"\\n"``;
+    a token containing a newline mismatches the confirmation and
+    ``security`` silently stores an empty password. Tier-3 dotfile quoting
+    (``_quote_for_dotfile``) likewise cannot safely round-trip embedded
+    newlines. One early refusal beats two silent corruption paths.
     """
+    if "\n" in value or "\r" in value:
+        raise Tier2HardFailError(
+            f"macOS Keychain write refused for {_account(namespace, key)!r}: "
+            f"token value contains an embedded newline (\\n or \\r). The "
+            f"`security -w` re-prompt confirmation and Tier-3 dotfile "
+            f"quoting both break on newlines; strip or replace the "
+            f"character before writing."
+        )
     argv = [
         SECURITY_BIN, "add-generic-password",
         "-U",  # upsert: replace if entry already exists
@@ -93,10 +160,12 @@ def write_credential(namespace: str, key: str, value: str) -> None:
     stdin_payload = token_bytes + b"\n" + token_bytes + b"\n"
     _, err = proc.communicate(input=stdin_payload)
     if proc.returncode != 0:
-        msg = err.decode("utf-8", errors="replace").strip()
+        symbolic = _classify_macos_exit_code(proc.returncode, "write")
+        stderr = err.decode("utf-8", errors="replace").strip()
         raise Tier2HardFailError(
-            f"macOS Keychain write failed for {_account(namespace, key)!r} "
-            f"(rc={proc.returncode}): {msg}"
+            f"macOS Keychain write failed for {_account(namespace, key)!r}: "
+            f"{symbolic}"
+            + (f": {stderr}" if stderr else "")
         )
 
 
@@ -111,7 +180,9 @@ def delete_credential(namespace: str, key: str) -> None:
     if proc.returncode == EXIT_NOT_FOUND:
         return
     if proc.returncode != 0:
+        symbolic = _classify_macos_exit_code(proc.returncode, "delete")
+        stderr = proc.stderr.strip()
         raise Tier2HardFailError(
-            f"macOS Keychain delete failed (rc={proc.returncode}): "
-            f"{proc.stderr.strip()}"
+            f"macOS Keychain delete failed: {symbolic}"
+            + (f": {stderr}" if stderr else "")
         )

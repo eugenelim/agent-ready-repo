@@ -214,39 +214,62 @@ def _quote_for_dotfile(value: str) -> str:
     return value
 
 
+# Well-known SIDs (Windows). Locale-invariant — non-English Windows
+# installs translate the *display name* of these principals (Tout le
+# monde, Jeder, Все), so any matching by name-substring becomes a
+# silent bypass on those locales. SIDs do not translate.
+#
+#   S-1-1-0    — Everyone
+#   S-1-5-7    — Anonymous Logon
+#   S-1-5-11   — Authenticated Users
+#   S-1-5-32-545 — BUILTIN\Users (the local Users group)
+#   S-1-5-32-546 — BUILTIN\Guests
+_PERMISSIVE_SIDS = (
+    "S-1-1-0",
+    "S-1-5-7",
+    "S-1-5-11",
+    "S-1-5-32-545",
+    "S-1-5-32-546",
+)
+
+
 def _verify_icacls(
     path: pathlib.Path, *, allow_permissive_acl: bool = False
 ) -> None:
-    """Run ``icacls`` on the path and refuse if any non-default ACE grants
-    read access (spec § AC15). No-op on POSIX.
+    """Run ``icacls /findsid`` and refuse if any well-known "broad
+    access" SID is granted access on the path (spec § AC15). No-op on
+    POSIX.
 
     Default ACEs on a per-user file are the inheriting user,
-    ``NT AUTHORITY\\SYSTEM``, and ``BUILTIN\\Administrators``. Any other
-    principal granted access is flagged unless the caller opts in.
+    ``NT AUTHORITY\\SYSTEM``, and ``BUILTIN\\Administrators``. The
+    locale-invariant check uses ``icacls <path> /findsid <SID>``
+    against the well-known "broad access" SIDs (Everyone,
+    Authenticated Users, BUILTIN\\Users, BUILTIN\\Guests, Anonymous
+    Logon); the prior name-substring scan was a silent bypass on
+    non-English Windows installs (e.g. ``Tout le monde`` for
+    Everyone on French Windows).
     """
     if os.name != "nt":  # pragma: no cover — POSIX path
         return
-    res = subprocess.run(  # pragma: no cover — exercised only on Windows
-        ["icacls", str(path)], capture_output=True, text=True, check=False
-    )
-    if res.returncode != 0:
-        raise PermissiveAclError(
-            f"icacls inspection failed for {path}: rc={res.returncode} "
-            f"stderr={res.stderr.strip()}"
+    suspect: list[str] = []
+    for sid in _PERMISSIVE_SIDS:  # pragma: no cover — exercised only on Windows
+        res = subprocess.run(
+            ["icacls", str(path), "/findsid", sid],
+            capture_output=True,
+            text=True,
+            check=False,
         )
-    suspect = []
-    for line in res.stdout.splitlines():
-        stripped = line.strip()
-        # Flag any ACE granting access to non-default principals.
-        if (
-            "BUILTIN\\Users" in stripped
-            or "Everyone" in stripped
-            or "Authenticated Users" in stripped
-        ):
-            suspect.append(stripped)
+        # ``icacls /findsid`` exits 0 with the path listed when the SID
+        # is granted access on at least one ACE; exits non-zero (with
+        # "No matching files were found" stderr) when the SID is not
+        # present. The path appearing in stdout is the load-bearing
+        # signal: a successful find prints the path on one line.
+        if res.returncode == 0 and str(path) in res.stdout:
+            suspect.append(sid)
     if suspect and not allow_permissive_acl:
         raise PermissiveAclError(
-            f"DACL too permissive on {path}: {suspect}; pass "
+            f"DACL too permissive on {path}: well-known broad-access "
+            f"SIDs granted access: {suspect}; pass "
             f"allow_permissive_acl=True to override"
         )
 
@@ -355,6 +378,15 @@ def _dotfile_delete(namespace: str, key: str) -> None:
         raise
 
 
+def _tier2_backend_label() -> str:
+    """Human-readable label for the Tier-2 backend on this platform."""
+    if sys.platform == "darwin":
+        return "macOS Keychain"
+    if sys.platform == "win32":
+        return "Windows Credential Manager"
+    return "(no Tier-2 backend on this platform)"
+
+
 def load_credentials(
     namespace: str,
     required_keys: list[str],
@@ -368,8 +400,11 @@ def load_credentials(
     namespace is permitted.
 
     Raises ``CredentialsMissingError`` if any required key did not
-    resolve at any tier. The error message names the namespace and the
-    list of missing keys per AC3.
+    resolve at any tier. The exception carries a ``tiers_tried``
+    attribute mapping each missing key to an ordered list of trailer
+    lines (which tier was checked and why it missed); the default
+    ``str()`` form embeds those trailers under the key name so a
+    user who ran ``creds setup`` can triage from the message alone.
 
     The ``schema_path`` kwarg is reserved for T7 — primitive authors who
     load their own schema can pass it here; the default ``None`` defers
@@ -377,20 +412,66 @@ def load_credentials(
     """
     resolved: dict[str, str] = {}
     missing: list[str] = []
+    tiers_tried: dict[str, list[str]] = {}
+    dotfile_path = _dotfile_path()
+    dotfile_present = dotfile_path.is_file()
+    backend_label = _tier2_backend_label()
     for key in required_keys:
-        value = (
-            _tier1_env(namespace, key)
-            or _tier2(namespace, key)
-            or _tier3(namespace, key)
-        )
-        if value:
-            resolved[key] = value
+        attempts: list[str] = []
+        env_name = f"{namespace.upper()}_{key}"
+
+        # Tier 1 — env var.
+        v = _tier1_env(namespace, key)
+        if v:
+            resolved[key] = v
+            continue
+        attempts.append(f"Tier 1: env {env_name!r} not set")
+
+        # Tier 2 — OS keyring (when loaded). Tier2HardFailError
+        # propagates per AC11 (no silent fallback to Tier 3 on hard
+        # fail); only a clean miss falls through.
+        if _tier2_backend is None:
+            attempts.append("Tier 2: not loaded (no keyring backend on this platform)")
         else:
-            missing.append(key)
+            v = _tier2_backend.read_credential(namespace, key)
+            if v:
+                resolved[key] = v
+                continue
+            attempts.append(f"Tier 2: {backend_label} — entry not present")
+
+        # Tier 3 — dotfile.
+        v = _tier3(namespace, key)
+        if v:
+            resolved[key] = v
+            continue
+        if dotfile_present:
+            attempts.append(
+                f"Tier 3: dotfile {dotfile_path} present but "
+                f"{_dotfile_env_name(namespace, key)!r} not in it"
+            )
+        else:
+            attempts.append(f"Tier 3: dotfile {dotfile_path} absent")
+
+        missing.append(key)
+        tiers_tried[key] = attempts
+
     if missing:
-        raise CredentialsMissingError(
+        # One-line preamble preserves the AC3 contract (message names
+        # namespace and the missing-keys list); the per-key trailer
+        # block comes below for triage.
+        lines = [
             f"namespace {namespace!r}: missing required credential(s): "
             f"{', '.join(missing)}"
+        ]
+        for key in missing:
+            lines.append(f"  {key}:")
+            for trailer in tiers_tried[key]:
+                lines.append(f"    {trailer}")
+        raise CredentialsMissingError(
+            "\n".join(lines),
+            namespace=namespace,
+            missing=missing,
+            tiers_tried=tiers_tried,
         )
     return Credentials(namespace, resolved)
 
@@ -556,13 +637,38 @@ class EnvParseError(ValueError):
     """
 
 
+#: Upper bound on dotfile size. A credentials dotfile holds a few
+#: dozen key=value lines; 1 MiB is six orders of magnitude over the
+#: realistic ceiling. A larger file is either corruption or a
+#: misplaced read against the wrong path — refuse rather than load
+#: gigabytes into memory on every credential resolution.
+DOTFILE_MAX_BYTES = 1 << 20  # 1 MiB
+
+
 def parse_env_file(path: pathlib.Path) -> dict[str, str]:
     """Parse the file at ``path`` into a ``{KEY: value}`` mapping.
 
     Reads with ``newline=""`` so embedded ``\\r`` bytes are preserved;
     only the trailing line terminator is stripped.
+
+    Refuses files larger than ``DOTFILE_MAX_BYTES`` (1 MiB) to bound
+    the read against a misconfigured or malicious dotfile path.
     """
-    text = path.read_text(encoding="utf-8", newline="")
+    try:
+        size = path.stat().st_size
+    except OSError:
+        size = 0
+    if size > DOTFILE_MAX_BYTES:
+        raise EnvParseError(
+            f"dotfile {path!s} is {size} bytes; refusing to read more than "
+            f"{DOTFILE_MAX_BYTES} bytes — verify the path is the credentials "
+            f"dotfile, not a misconfigured target."
+        )
+    # Use ``path.open(newline="")`` instead of ``read_text(newline=...)``
+    # — the ``newline`` keyword on ``Path.read_text`` was added in Python
+    # 3.13; the project targets 3.11+ via the CI matrix.
+    with path.open(encoding="utf-8", newline="") as fh:
+        text = fh.read()
     result: dict[str, str] = {}
     for lineno, raw in enumerate(text.split("\n"), start=1):
         # Strip trailing \r (CRLF normalization). rstrip is bounded to the
