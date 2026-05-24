@@ -57,15 +57,34 @@ class KiroAdapterTests(unittest.TestCase):
             project(pack, self.contract, out)
             self.assertTrue((out / ".kiro" / "skills" / "foo" / "SKILL.md").exists())
 
-    def test_agent_frontmatter_normalized_via_mapping(self) -> None:
+    def test_agent_projects_as_json_per_kiro_schema(self) -> None:
+        """RFC-0005 / T7: Kiro agents are JSON files per the documented
+        Kiro schema (https://kiro.dev/docs/cli/custom-agents/configuration-reference/),
+        not markdown-with-frontmatter as v0.2 used to project. The
+        `kiro-agent-frontmatter-v0.9` mapping table is reinterpreted as
+        *markdown-frontmatter → JSON-field* — the rename / to-list
+        normalize semantics carry over to JSON emission."""
+        import json
+
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            agent_text = (out / ".kiro" / "agents" / "bar.md").read_text(encoding="utf-8")
-            # `tools: Read` source should normalize to a list.
-            self.assertIn("[Read]", agent_text)
+            # File is .json, not .md.
+            agent_json_path = out / ".kiro" / "agents" / "bar.json"
+            self.assertTrue(agent_json_path.exists(), "agent projected as .md instead of .json")
+            self.assertFalse(
+                (out / ".kiro" / "agents" / "bar.md").exists(),
+                "stale .md projection left behind",
+            )
+            data = json.loads(agent_json_path.read_text(encoding="utf-8"))
+            # `tools: Read` source normalises to a list per the mapping
+            # table's `normalize: to-list` rule.
+            self.assertEqual(data["tools"], ["Read"])
+            # `name` from filename (or frontmatter); body becomes prompt.
+            self.assertEqual(data["name"], "bar")
+            self.assertEqual(data.get("prompt", "").strip(), "agent body")
 
     def test_hook_wiring_array_entry_removed(self) -> None:
         """AC2: the legacy `degraded-info-log` kiro hook-wiring entry is gone."""

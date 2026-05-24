@@ -10,17 +10,29 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
+
+
+# RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
+from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+
+
+def _iter_primitives(contract: dict) -> Iterator[str]:
+    """Yield Copilot's projected primitive names in phase order."""
+    adapter_block = contract["adapter"]["copilot"]
+    array_form = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
+    for primitive_name in _PHASE_ORDER:
+        if primitive_name in array_form and array_form[primitive_name].get("mode") != "dropped":
+            yield primitive_name
 
 
 def project(pack_path: Path, contract: dict, output_root: Path) -> None:
-    rules = contract["adapter"]["copilot"]["projection"]
-    rules_by_primitive = {rule["primitive"]: rule for rule in rules}
+    adapter_block = contract["adapter"]["copilot"]
+    rules_by_primitive = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
 
-    for primitive_name, rule in rules_by_primitive.items():
+    for primitive_name in _iter_primitives(contract):
+        rule = rules_by_primitive[primitive_name]
         mode = rule["mode"]
-        if mode == "dropped":
-            continue
         primitive = contract["primitive"][primitive_name]
         source_dir = pack_path / primitive["source-path"].rstrip("/")
         if not source_dir.exists():
