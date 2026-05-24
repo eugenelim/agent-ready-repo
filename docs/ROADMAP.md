@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-23 (adapt-to-project AC4b automation pins land)
+**Last updated:** 2026-05-23 (adapt-to-project: rows 17–18 promoted to AC4a (a)-automation; rows 8–16 carry Claude-simulated preparatory captures, still open against real-adopter-session trigger)
 
 ## How this file is maintained
 
@@ -118,29 +118,45 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   `adapt.run`. The spec is explicit (CLI-only contract), but the
   RFC-0004 parity work would close this gap. **Unblocks when:**
   APM/Claude-plugins adapter parity lands.
-- **AC4b — deferred manual-QA rows (three trigger classes).**
-  v1 ships the AC4a automation/grep rows; AC4b enumerates 21 rows
-  deferred under three trigger classes (see
-  `notes/manual-qa-matrix.md` for the canonical per-row table):
+- **AC4b — deferred manual-QA rows (real-adopter captures + user-scope-pack).**
+  v1 ships the AC4a automation/grep rows. AC4b's remaining open
+  shape (see `notes/manual-qa-matrix.md` for the canonical per-row
+  table):
   - **Repo-scope class-2 transcripts (rows 8–11).** Brownfield
-    fixture seeds the `AGENTS.upstream.md` surface; only the inline
-    transcripts are deferred. *Trigger:* follow-up captures an
-    adopter session against `brownfield-adapt/AGENTS.upstream.md`
-    and attaches transcript + tree fragment inline.
-  - **Repo-scope class-3 transcripts (rows 12–14).** *Trigger:*
-    brownfield fixture seeds a class-3 surface (e.g., overlapping
-    `DESIGN.md` + `docs/CHARTER.md`) and an adopter session is
-    captured.
-  - **Repo-scope class-4 transcripts (rows 15–16).** *Trigger:*
-    brownfield fixture seeds a class-4 surface (overlapping
-    `docs/howto/` + `docs/guides/how-to/`) and an adopter session
-    is captured.
-  - **Cross-cutting end-to-end transcripts (rows 17–18).**
-    *Trigger:* follow-up captures interactive adopter sessions for
-    dirty-state-repo and Tier-2 detection-repo.
+    fixture seeds the `AGENTS.upstream.md` surface; **Claude-
+    simulated captures recorded inline** as preparatory evidence
+    against the four documented outcomes (accept / edit / skip /
+    decline). *Trigger to close:* real-adopter session against
+    `brownfield-adapt/AGENTS.upstream.md` (or an installed core
+    pack in an adopter's own repo); replaces the simulated
+    captures with the real transcript + tree fragment inline.
+  - **Repo-scope class-3 transcripts (rows 12–14).** Brownfield
+    fixture extended in this PR with the class-3 surface
+    (`DESIGN.md` overlapping canonical `docs/CHARTER.md`); **Claude-
+    simulated captures recorded inline** for accept / edit /
+    decline. *Trigger to close:* real-adopter session; same shape
+    as rows 8–11.
+  - **Repo-scope class-4 transcripts (rows 15–16).** Brownfield
+    fixture extended in this PR with the class-4 surface
+    (`docs/howto/` + `docs/guides/how-to/`); **Claude-simulated
+    captures recorded inline** for accept / decline. *Trigger to
+    close:* real-adopter session; same shape as above.
+  - **Cross-cutting end-to-end primitives (rows 17–18).** ~~Deferred
+    end-to-end transcripts.~~ **Promoted to AC4a method (a)
+    automation** via `tests/integration/test_adapt_preflight_detection.py`,
+    which exercises the deterministic detection primitives
+    (`git status --porcelain`, content-hash divergence against
+    `state.toml`) the skill body's Pre-flight invokes. Closed
+    against AC4a *(a)*; no AC4b transcript needed for these rows.
+    The skill-body narration of the Pre-flight remains pinned by
+    AC4a *(b)* rows 2 and 3.
   - **User-scope LLM-judgment rows (rows 19–28).** *Trigger:* first
     pack declaring `allowed-scopes = ["user"]` lands (RFC-0004 §
     *Drawbacks* + *Unresolved questions*).
+
+  AC4b stays open: simulated captures for rows 8–16 are
+  preparatory evidence, not closing per AC4a's *(c)* contract
+  ("captured against a real adopter session").
 
 ---
 

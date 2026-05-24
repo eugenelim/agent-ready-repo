@@ -482,25 +482,39 @@ Tests live at `packages/agentbundle/tests/skills/`.
 
 **Depends on:** T13
 
-**Verification mode:** visual / manual QA.
+**Verification mode:** mixed — (a) automation, (b) grep, (c)
+transcript per AC4a's per-row split. See AC4a body for the
+method-(a/b/c) taxonomy.
 
 **Tests:**
 - `docs/specs/adapt-to-project/notes/manual-qa-matrix.md` exists
   with the scope-aware matrix per AC4:
   - Repo-scope rows: (class 2 × {accept, edit, skip, decline}),
     (class 3 × {accept, edit, decline}), (class 4 × {accept,
-    decline}).
+    decline}). All carry method *(c)* deferred under AC4b until a
+    real-adopter session; **Claude-simulated captures recorded
+    inline as preparatory evidence** (authorised by AC4b's
+    simulated-captures clause).
   - User-scope rows: same transitions; rows without an exercisable
     fixture (because v1 has no user-scope-eligible packs) are
     marked "v1 deferred per RFC-0004; verified by synthetic
     fixture against the user-scope plumbing in T10".
   - Cross-cutting: dirty-state-repo, dirty-state-user,
     idempotency, Tier-2-repo, Tier-2-user, cross-scope-restructure
-    × {approve, decline}.
+    × {approve, decline}. *dirty-state-repo* and *Tier-2-repo*
+    each carry **two AC4a pins** — method *(b)* on the skill body
+    + method *(a)* on the detection primitive (the latter pinned
+    by `tests/integration/test_adapt_preflight_detection.py`).
 
-**Approach:** run sessions; capture artifacts.
+**Approach:** run sessions; capture artifacts. For rows where
+real-adopter sessions aren't feasible in v1, record Claude-
+simulated captures inline as preparatory evidence and keep AC4b
+open against the real-adopter trigger.
 
-**Done when:** matrix file populated with all rows + artifacts.
+**Done when:** matrix file populated with every row's verification
+method declared and its artifact present (automation test, grep
+test, or inline transcript — simulated transcripts count for AC4b
+preparatory evidence, not for AC4a *(c)* closure).
 
 ### T15: Amend sibling specs (agent-spec-cli + self-hosting + distribution-adapters)
 

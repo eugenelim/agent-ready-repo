@@ -119,3 +119,67 @@ def test_body_pre_flight_names_v01_migration_prereq(body):
     end = body.find("\n## ", start + 1)
     section = body[start:end] if end >= 0 else body[start:]
     assert "agentbundle init-state --migrate" in section
+
+
+# ── Class-2 four-outcome contract (spec ↔ body coherence guard) ──────────────
+
+
+def test_body_class_2_section_names_all_four_outcomes(body):
+    """The skill body's Class 2 section MUST enumerate all four
+    outcomes — accept / edit / skip / decline.
+
+    Background: an earlier version of `spec.md` Boundaries § class 2
+    listed only three outcomes (accept / edit / skip, with skip
+    recording under `[[findings.declined]]`); the SKILL.md body had
+    the more nuanced four-outcome model (skip = leave on disk no
+    recording, decline = record). The matrix's class-2 simulated
+    captures exposed the drift; the spec was amended to match the
+    body. This grep guards against silent re-divergence: any future
+    edit to the Class 2 section that drops an outcome or conflates
+    skip with decline trips this test.
+
+    Scope is tightened to the Class 2 section (bounded by next H2)
+    so an outcome word mentioned elsewhere doesn't satisfy the grep
+    by accident.
+    """
+    start = body.find("## Class 2")
+    assert start >= 0, "Class 2 section missing"
+    end = body.find("\n## ", start + 1)
+    section = body[start:end] if end >= 0 else body[start:]
+
+    for outcome in ("accept", "edit", "skip", "decline"):
+        assert outcome in section.lower(), (
+            f"Class 2 section is missing the `{outcome}` outcome; "
+            f"all four (accept / edit / skip / decline) must be "
+            f"documented per spec.md Boundaries § class 2."
+        )
+
+
+def test_body_class_2_skip_and_decline_are_distinct(body):
+    """The skill body's Class 2 section MUST distinguish *skip*
+    (leave on disk, no recording, re-surface next session) from
+    *decline* (leave on disk, record under `[[findings.declined]]`,
+    don't re-propose).
+
+    Background: same root cause as
+    `test_body_class_2_section_names_all_four_outcomes` — the spec
+    used to conflate them. A literal grep on the body's skip-clause
+    + decline-clause guards against conflation; the recording-rule
+    distinction is the load-bearing semantic difference between
+    "decide later" and "never offer this again".
+    """
+    start = body.find("## Class 2")
+    assert start >= 0, "Class 2 section missing"
+    end = body.find("\n## ", start + 1)
+    section = body[start:end] if end >= 0 else body[start:]
+
+    # skip clause: leave on disk, no recording.
+    assert "leave companion on disk" in section.lower(), (
+        "Class 2 section must document skip as leaving the companion "
+        "on disk for a future session"
+    )
+    # decline clause: recording under [[findings.declined]].
+    assert "findings.declined" in section, (
+        "Class 2 section must document decline as recording under "
+        "[[findings.declined]] in that scope's discovery file"
+    )
