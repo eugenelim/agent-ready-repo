@@ -27,6 +27,8 @@ from pathlib import Path
 
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.self_host import (
+    _is_equivalent_claude_md_shape,
+    _recreate_claude_symlink,
     diff_against_working_tree,
     is_dirty_tree,
     project_to_temp,
@@ -1259,9 +1261,17 @@ class FileModeBitsTests(unittest.TestCase):
 
 class SymlinkTargetTests(unittest.TestCase):
     """Phase-2 comparison rule (c): symlink targets compared via lstat,
-    never followed. Pins the CLAUDE.md → AGENTS.md gate."""
+    never followed. The repo-root `CLAUDE.md` alias is exempted from the
+    strict target-equality rule by AC15b (see `ClaudeMdEquivalenceTests`),
+    so these tests deliberately use non-CLAUDE.md filenames where they
+    need to exercise the Phase-2 path without short-circuiting through
+    the equivalence helper."""
 
     def test_symlink_target_mismatch_drifts(self) -> None:
+        """CLAUDE.md is fine here: the disk-side target is `README.md`,
+        not `AGENTS.md`, so the equivalence helper returns False (clause
+        1 fails) and the comparison falls through to the strict
+        target-equality path AC15b leaves unchanged."""
         with tempfile.TemporaryDirectory() as tmp:
             shadow = Path(tmp) / "shadow"
             tree = Path(tmp) / "tree"
@@ -1278,31 +1288,46 @@ class SymlinkTargetTests(unittest.TestCase):
             self.assertIn("README.md", drifts[0])
 
     def test_matching_symlinks_no_drift(self) -> None:
+        """Non-CLAUDE.md filename — exercises the Phase-2 matching-target
+        path proper. Using `CLAUDE.md` here would pass for the wrong
+        reason (the AC15b short-circuit would fire before the
+        target-equality check), masking a future regression in the
+        strict path. AGENTS.md is created on both sides so the symlink
+        target resolves and the rglob iteration over AGENTS.md doesn't
+        drift; the assertion this test owns is about `alias.md`."""
         with tempfile.TemporaryDirectory() as tmp:
             shadow = Path(tmp) / "shadow"
             tree = Path(tmp) / "tree"
             shadow.mkdir()
             tree.mkdir()
-            os.symlink("AGENTS.md", shadow / "CLAUDE.md")
-            os.symlink("AGENTS.md", tree / "CLAUDE.md")
+            (shadow / "AGENTS.md").write_text("body", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("body", encoding="utf-8")
+            os.symlink("AGENTS.md", shadow / "alias.md")
+            os.symlink("AGENTS.md", tree / "alias.md")
 
             self.assertEqual(diff_against_working_tree(shadow, tree), [])
 
     def test_symlink_in_shadow_regular_on_disk_drifts(self) -> None:
+        """The general type-mismatch rule fires for any projected file
+        whose shadow shape disagrees with its on-disk shape. The
+        repo-root CLAUDE.md alias is exempted by AC15b
+        (`ClaudeMdEquivalenceTests`); every other file keeps the
+        strict rule, so this test uses an arbitrary non-CLAUDE.md
+        filename to exercise it."""
         with tempfile.TemporaryDirectory() as tmp:
             shadow = Path(tmp) / "shadow"
             tree = Path(tmp) / "tree"
             shadow.mkdir()
             tree.mkdir()
             # Create a target so shadow's symlink "looks" valid in isolation.
-            (shadow / "AGENTS.md").write_text("body", encoding="utf-8")
-            os.symlink("AGENTS.md", shadow / "CLAUDE.md")
+            (shadow / "target.md").write_text("body", encoding="utf-8")
+            os.symlink("target.md", shadow / "alias.md")
             # On-disk: a regular file with identical content.
-            (tree / "AGENTS.md").write_text("body", encoding="utf-8")
-            (tree / "CLAUDE.md").write_text("body", encoding="utf-8")
+            (tree / "target.md").write_text("body", encoding="utf-8")
+            (tree / "alias.md").write_text("body", encoding="utf-8")
 
             drifts = diff_against_working_tree(shadow, tree)
-            type_mismatch = [d for d in drifts if "CLAUDE.md" in d and "expected symlink" in d]
+            type_mismatch = [d for d in drifts if "alias.md" in d and "expected symlink" in d]
             self.assertEqual(len(type_mismatch), 1)
 
     def test_symlink_target_never_followed(self) -> None:
@@ -1381,6 +1406,251 @@ class StrengthenedDiffRegressionIntegrationTests(unittest.TestCase):
             symlink_drifts = [d for d in drifts if "CLAUDE.md" in d]
             self.assertEqual(len(symlink_drifts), 1)
             self.assertIn("symlink target differs", symlink_drifts[0])
+
+
+class ClaudeMdEquivalenceTests(unittest.TestCase):
+    """The repo-root CLAUDE.md alias has three on-disk shapes that are
+    presentational and must not count as drift: a symlink to AGENTS.md,
+    a regular-file copy of AGENTS.md content, and a regular file whose
+    content is the literal string "AGENTS.md" (Windows-materialised
+    symlink). See spec AC15b."""
+
+    def _shadow_with_symlink_claude(self, tree: Path) -> Path:
+        """Build a tiny shadow tree where the shadow's CLAUDE.md is a
+        symlink to AGENTS.md (the POSIX shadow shape)."""
+        shadow = tree / "shadow"
+        shadow.mkdir()
+        (shadow / "AGENTS.md").write_text("body\n", encoding="utf-8")
+        (shadow / "CLAUDE.md").symlink_to("AGENTS.md")
+        return shadow
+
+    def _shadow_with_copy_claude(self, tree: Path) -> Path:
+        """Build a tiny shadow tree where the shadow's CLAUDE.md is a
+        regular-file copy of AGENTS.md (the Windows shadow shape)."""
+        shadow = tree / "shadow"
+        shadow.mkdir()
+        (shadow / "AGENTS.md").write_text("body\n", encoding="utf-8")
+        (shadow / "CLAUDE.md").write_text("body\n", encoding="utf-8")
+        return shadow
+
+    def test_symlink_shadow_against_symlink_disk_no_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").symlink_to("AGENTS.md")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_symlink_shadow_against_copy_disk_no_drift(self) -> None:
+        """Windows-side regenerated copy on disk; macOS-side symlink in
+        shadow. Equivalence rule applies — no drift."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_text("body\n", encoding="utf-8")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_symlink_shadow_against_materialised_disk_no_drift(self) -> None:
+        """Windows checkout without symlink support — `CLAUDE.md` is a
+        regular file containing the literal string `AGENTS.md`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_text("AGENTS.md", encoding="utf-8")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_copy_shadow_against_symlink_disk_no_drift(self) -> None:
+        """Windows runner produces a copy in shadow; disk has the
+        symlink that Git for Windows materialised. Inverse of the case
+        the Windows CI job hit on PR #77."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_copy_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").symlink_to("AGENTS.md")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_copy_shadow_against_copy_disk_no_drift(self) -> None:
+        """The all-copy path: Windows runner generates a copy shadow,
+        disk has a real content-copy too. Production path on a Windows
+        host with `core.symlinks=false` and an adopter who has already
+        run `make build-self` once locally."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_copy_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_text("body\n", encoding="utf-8")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_copy_shadow_against_materialised_disk_no_drift(self) -> None:
+        """Copy in shadow, Git-for-Windows-materialised stub on disk
+        (regular file whose content is the literal `AGENTS.md`). The
+        out-of-the-box Windows checkout shape on a host where the
+        adopter has not yet regenerated."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_copy_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_text("AGENTS.md", encoding="utf-8")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_clause_b_routes_through_lf_normalisation(self) -> None:
+        """Clause (b) regression — disk-side CLAUDE.md with CRLF line
+        endings against an LF AGENTS.md must not drift. Pins the
+        `_normalise_lf` call on both sides; a future refactor that
+        drops normalisation would fail this test rather than slipping
+        through silently on a Windows runner where `core.autocrlf=true`
+        is the default. Adjacent to `CrlfNormalisationTests`, which
+        covers normalisation as a Phase-2 rule in its own right; this
+        test pins that the equivalence helper routes clause (b) through
+        the same normaliser rather than re-implementing byte equality."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            # Overwrite AGENTS.md with multi-line LF content so the
+            # CRLF difference on disk is non-trivial (a one-line file
+            # ending in \n vs \r\n is indistinguishable after strip).
+            (shadow / "AGENTS.md").write_text(
+                "line one\nline two\n", encoding="utf-8"
+            )
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text(
+                "line one\nline two\n", encoding="utf-8"
+            )
+            (disk / "CLAUDE.md").write_bytes(b"line one\r\nline two\r\n")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_materialised_disk_with_crlf_newline_equivalent(self) -> None:
+        """Clause (c) regression — Git for Windows under
+        `core.autocrlf=true` writes the materialised-symlink stub as
+        `AGENTS.md\\r\\n`. The helper accepts it via the `strip()`
+        path, matching `lint-agents-md.py` check #2's tolerance."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_bytes(b"AGENTS.md\r\n")
+            self.assertEqual(diff_against_working_tree(shadow, disk), [])
+
+    def test_clause_c_rejects_agents_md_with_extra_text(self) -> None:
+        """Tamper-boundary pin — clause (c)'s `strip() == "AGENTS.md"`
+        must not loosen to `startswith` or `in`. A `CLAUDE.md` that
+        opens with `AGENTS.md` but carries extra content below is the
+        realistic accidental-tamper shape (operator opens the file,
+        sees the existing target, types under it). Drifts."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_text(
+                "AGENTS.md\nmore words\n", encoding="utf-8"
+            )
+            drifts = diff_against_working_tree(shadow, disk)
+            claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
+            self.assertEqual(len(claude_drifts), 1, drifts)
+
+    def test_drift_message_names_the_three_accepted_shapes(self) -> None:
+        """Diagnosability — when the equivalence helper rejects, the
+        drift entry includes an operator-facing hint naming the three
+        accepted shapes (mirroring `lint-agents-md.py` check #2's
+        narration). Without the hint, an operator who hand-edited
+        CLAUDE.md sees only `content differs` and has to read the spec
+        to figure out the fix."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_text("tampered\n", encoding="utf-8")
+            drifts = diff_against_working_tree(shadow, disk)
+            claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
+            self.assertEqual(len(claude_drifts), 1, drifts)
+            self.assertIn("symlink", claude_drifts[0])
+            self.assertIn("content-copy", claude_drifts[0])
+            self.assertIn("one-line file", claude_drifts[0])
+
+
+    def test_tampered_claude_md_still_drifts(self) -> None:
+        """The equivalence rule is narrow — a regular file whose
+        content is neither AGENTS.md nor the literal string
+        "AGENTS.md" still drifts. Tampering coverage is preserved."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            (disk / "CLAUDE.md").write_text("evil\n", encoding="utf-8")
+            drifts = diff_against_working_tree(shadow, disk)
+            claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
+            self.assertEqual(len(claude_drifts), 1, drifts)
+
+    def test_missing_claude_md_still_drifts(self) -> None:
+        """Equivalence does not paper over a missing CLAUDE.md."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            shadow = self._shadow_with_symlink_claude(tree)
+            disk = tree / "disk"
+            disk.mkdir()
+            (disk / "AGENTS.md").write_text("body\n", encoding="utf-8")
+            drifts = diff_against_working_tree(shadow, disk)
+            claude_drifts = [d for d in drifts if "CLAUDE.md" in d]
+            self.assertEqual(len(claude_drifts), 1, drifts)
+            self.assertIn("missing on disk", claude_drifts[0])
+
+
+class RecreateClaudeBridgeInvariantTests(unittest.TestCase):
+    """Bridge invariant — every shape `_recreate_claude_symlink`
+    produces must be accepted by `_is_equivalent_claude_md_shape`.
+    The drift detector's short-circuit trusts the shadow side by
+    construction; this test pins that trust as a contract so a future
+    refactor of either function fails noisily rather than silently
+    weakening the drift gate. Called out as the defence-in-depth the
+    helper docstring promises (`self_host.py:_is_equivalent_claude_md_shape`,
+    "The shadow side is trusted by construction ...")."""
+
+    def _seed(self, tmp: Path, force_copy: bool) -> Path:
+        (tmp / "AGENTS.md").write_text("body\n", encoding="utf-8")
+        _recreate_claude_symlink(tmp, force_copy=force_copy)
+        return tmp
+
+    def test_posix_shadow_passes_equivalence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._seed(Path(tmp), force_copy=False)
+            self.assertTrue(
+                _is_equivalent_claude_md_shape(
+                    root / "CLAUDE.md", root / "AGENTS.md"
+                )
+            )
+
+    def test_force_copy_shadow_passes_equivalence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._seed(Path(tmp), force_copy=True)
+            self.assertTrue(
+                _is_equivalent_claude_md_shape(
+                    root / "CLAUDE.md", root / "AGENTS.md"
+                )
+            )
 
 
 if __name__ == "__main__":
