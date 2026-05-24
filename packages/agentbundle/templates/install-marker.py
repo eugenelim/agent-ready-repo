@@ -20,7 +20,6 @@ Exit codes:
   1 — marker write failed (hash file NOT written; next session retries).
 """
 
-import argparse
 import datetime
 import hashlib
 import json
@@ -38,6 +37,8 @@ from datetime import timezone
 # Keep in sync with the source; any security fix there must be applied here too.
 # The self-host drift gate (make build-check) asserts byte-identical output
 # across the fixed attack corpus — do NOT silently alter this function.
+# Note: the source raises ConfigError; here we raise ValueError (stdlib-only
+# constraint means no ConfigError import). Behaviour is otherwise identical.
 # ---------------------------------------------------------------------------
 
 # Control characters that TOML 1.0 § Strings forbids unescaped inside a
@@ -86,6 +87,80 @@ def _emit_basic_string(value: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Vendored path-jail helpers — copied from agentbundle.safety.
+# Source path: packages/agentbundle/agentbundle/safety.py
+# Keep in sync with the source; any security fix there must be applied here too.
+# Vendored inline because this writer is stdlib-only (no agentbundle import).
+# ---------------------------------------------------------------------------
+
+# Windows reserves these device names regardless of extension.
+_WINDOWS_RESERVED_NAMES = frozenset(
+    ["CON", "PRN", "AUX", "NUL"]
+    + [f"COM{i}" for i in range(1, 10)]
+    + [f"LPT{i}" for i in range(1, 10)]
+)
+
+# Characters Windows refuses in filenames (backslash omitted — treated as separator).
+_WINDOWS_FORBIDDEN_CHARS = frozenset('<>:"|?*')
+
+
+def _assert_under(target: pathlib.Path, jail: pathlib.Path) -> None:
+    """Refuse if ``target`` resolves outside ``jail``.
+
+    Raises ``ValueError`` if ``os.path.realpath(target)`` is not under
+    ``os.path.realpath(jail)``. Uses ``relative_to`` on resolved paths to
+    foil ``..`` traversal and symlink escape.
+    """
+    resolved_target = pathlib.Path(os.path.realpath(target))
+    resolved_jail = pathlib.Path(os.path.realpath(jail))
+    try:
+        resolved_target.relative_to(resolved_jail)
+    except ValueError:
+        raise ValueError(
+            f"install-marker: marker path {resolved_target} escapes the per-scope jail "
+            f"{resolved_jail}; refusing write"
+        )
+
+
+def _assert_portable_name(component: str) -> None:
+    """Refuse Windows-poisonous filename components.
+
+    Checks three classes (all OSes — pack content travels to Windows adopters):
+      1. Reserved device names (CON/PRN/AUX/NUL/COM1-9/LPT1-9), case-insensitive,
+         matched on the pre-extension stem (Windows treats ``CON.txt`` as ``CON``).
+      2. Names ending in ``.`` or `` `` (Windows strips both silently).
+      3. Names containing ``< > : " | ? *`` (illegal in Windows filenames).
+      4. Names containing control characters (U+0000..U+001F or U+007F).
+
+    Raises ``ValueError`` with a one-line message naming the component.
+    """
+    if not component or component in (".", ".."):
+        return
+    for ch in component:
+        if ch in _WINDOWS_FORBIDDEN_CHARS:
+            raise ValueError(
+                f"install-marker: refusing path component with forbidden character "
+                f"{ch!r}: {component!r}"
+            )
+        if ord(ch) < 0x20 or ord(ch) == 0x7F:
+            raise ValueError(
+                f"install-marker: refusing path component with control character "
+                f"U+{ord(ch):04X}: {component!r}"
+            )
+    if component.endswith(".") or component.endswith(" "):
+        raise ValueError(
+            f"install-marker: refusing path component with trailing dot or space: "
+            f"{component!r}"
+        )
+    stem = component.split(".", 1)[0]
+    if stem.upper() in _WINDOWS_RESERVED_NAMES:
+        raise ValueError(
+            f"install-marker: refusing Windows-reserved device name "
+            f"{stem!r} in component {component!r}"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Scope detection helpers
 # ---------------------------------------------------------------------------
 
@@ -119,7 +194,14 @@ def _detect_origin(
         if not settings_path.exists():
             continue
         try:
-            raw = json.loads(settings_path.read_text(encoding="utf-8"))
+            read_text = settings_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        # Cap read size to 1 MiB to guard against DoS via giant file.
+        if len(read_text) > 1_048_576:
+            continue
+        try:
+            raw = json.loads(read_text)
         except (json.JSONDecodeError, OSError):
             continue
         if not isinstance(raw, dict):
@@ -191,11 +273,21 @@ def _marker_path(
     """
     if marker_scope == "user":
         agent_ready = home / ".agent-ready"
+        # Symlink / non-directory probe (mirrors safety.user_state_path):
+        # mkdir with exist_ok=True, then check lstat. A pre-existing symlink
+        # (even pointing at a real directory) is refused so an attacker cannot
+        # redirect marker writes to an arbitrary location.
+        if agent_ready.exists() and (agent_ready.is_symlink() or not agent_ready.is_dir()):
+            raise ValueError(
+                f"install-marker: {agent_ready} exists but is not a regular directory "
+                f"(symlink or non-directory); refusing to use it"
+            )
         agent_ready.mkdir(mode=0o700, parents=True, exist_ok=True)
         return agent_ready / ".adapt-install-marker.toml"
     else:
         # repo scope — project_dir must be set; callers ensure this.
-        assert project_dir is not None, "project_dir required for repo-scope marker"
+        if project_dir is None:
+            raise ValueError("project_dir required for repo-scope marker")
         return project_dir / ".adapt-install-marker.toml"
 
 
@@ -230,7 +322,7 @@ def _should_fire(
         return True
     try:
         data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
-    except Exception:
+    except (tomllib.TOMLDecodeError, OSError):
         # Malformed marker — treat as absent entry; fire.
         return True
     entries = data.get("packs-installed", [])
@@ -258,7 +350,13 @@ def _read_entries(marker_path: pathlib.Path) -> list[dict]:
         return []
     try:
         data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
-    except Exception:
+    except (tomllib.TOMLDecodeError, OSError) as exc:
+        # Emit one stderr warning (mirrors CLI writer's shape) then return [].
+        print(
+            f"install-marker: existing marker file at {marker_path} is malformed; "
+            f"previous entries dropped: {exc}",
+            file=sys.stderr,
+        )
         return []
     raw_entries = data.get("packs-installed", [])
     if not isinstance(raw_entries, list):
@@ -284,10 +382,10 @@ def _serialise_marker(entries: list[dict]) -> str:
         - ``name`` — basic string (TOML-injection safe).
         - ``version`` — basic string.
         - ``installed-at`` — bare TOML offset-datetime literal (no quotes).
-        - ``install-route`` — basic string fixed literal ``"claude-plugins"``.
-        - ``unresolved-markers`` and ``new-companions`` are OMITTED (v0.4
-          relaxes them to optional; the writer has no visibility into the
-          projected primitive tree).
+        - ``install-route`` — basic string.
+        - ``unresolved-markers`` and ``new-companions`` — if present on the
+          entry (CLI-seeded entries carry both; writer-created entries omit
+          them). Pass-through verbatim so CLI-seeded entries survive re-emit.
     """
     lines: list[str] = [
         f"marker-schema-version = {_emit_basic_string('0.1')}",
@@ -305,17 +403,38 @@ def _serialise_marker(entries: list[dict]) -> str:
         if isinstance(ts, datetime.datetime):
             ts_str = ts.strftime("%Y-%m-%dT%H:%M:%SZ")
         else:
-            ts_str = str(ts)
+            raise ValueError(
+                f"installed-at must be datetime, got {type(ts).__name__}"
+            )
         lines.append(f"installed-at = {ts_str}")
         # install-route: use the stored value; fall back to "cli" for entries
         # written by the CLI writer before this field existed (v0.3 markers).
         install_route = entry.get("install-route", "cli")
         lines.append(f"install-route = {_emit_basic_string(install_route)}")
+        # Pass-through unresolved-markers and new-companions if present on the
+        # entry. CLI-seeded entries carry both; writer-created entries omit them
+        # (the writer has no visibility into the projected primitive tree —
+        # per spec). Re-emit verbatim using _emit_basic_string so CLI-seeded
+        # queue/companion lists survive a Claude-plugins writer pass.
+        if "unresolved-markers" in entry:
+            markers_repr = ", ".join(
+                _emit_basic_string(m) for m in entry.get("unresolved-markers", [])
+            )
+            lines.append(f"unresolved-markers = [{markers_repr}]")
+        if "new-companions" in entry:
+            comps_repr = ", ".join(
+                _emit_basic_string(c) for c in entry.get("new-companions", [])
+            )
+            lines.append(f"new-companions = [{comps_repr}]")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _write_marker(marker_path: pathlib.Path, new_entry: dict) -> None:
+def _write_marker(
+    marker_path: pathlib.Path,
+    new_entry: dict,
+    jail: pathlib.Path,
+) -> None:
     """Read-modify-write the marker file via atomic rename.
 
     Reads existing entries, replaces any existing entry for the same pack name
@@ -325,7 +444,17 @@ def _write_marker(marker_path: pathlib.Path, new_entry: dict) -> None:
     The tempfile is created in the same directory as the marker file so
     ``os.replace`` is always on the same filesystem (the POSIX guarantee
     that makes it atomic).
+
+    ``jail`` is the per-scope root: ``~/.agent-ready`` for user scope,
+    ``project_dir`` for repo scope. The path-jail check runs before the
+    write so a symlink race or path-escape cannot redirect the output.
     """
+    # Path-jail check: verify marker_path resolves inside jail.
+    _assert_under(marker_path, jail)
+    # Portable-name check on each filename component (Windows-safety).
+    for part in marker_path.parts:
+        _assert_portable_name(part)
+
     existing = _read_entries(marker_path)
     # Replace any existing entry for the same pack name (AC8 upgrade semantics).
     entries = [e for e in existing if e.get("name") != new_entry["name"]]
@@ -362,11 +491,32 @@ def _write_hash(plugin_data: pathlib.Path, current_hash: str) -> None:
 
     Only called from ``main`` AFTER ``_write_marker`` returns successfully
     (the write-after-success ordering is the spec's robustness rail — see
-    Boundaries §Never do).
+    Boundaries §Never do). Hash-write failure is non-fatal (main allows it
+    to proceed with exit 0 + warning); the next session retries detection.
+
+    Uses tempfile + os.replace for atomicity, matching the marker write rail.
     """
     plugin_data.mkdir(parents=True, exist_ok=True)
     hash_path = plugin_data / "pack-manifest-hash"
-    hash_path.write_text(current_hash + "\n", encoding="utf-8")
+    content_bytes = (current_hash + "\n").encode("utf-8")
+    # Atomic write — tempfile-in-parent + os.replace, matching the marker rail.
+    tmp_fd, tmp_name = tempfile.mkstemp(dir=plugin_data, suffix=".tmp")
+    try:
+        os.write(tmp_fd, content_bytes)
+        os.close(tmp_fd)
+        tmp_fd = -1
+        os.replace(tmp_name, hash_path)
+    except Exception:
+        if tmp_fd >= 0:
+            try:
+                os.close(tmp_fd)
+            except OSError:
+                pass
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -479,9 +629,16 @@ def main(argv: list[str]) -> int:
         "install-route": "claude-plugins",
     }
 
+    # --- Determine per-scope jail ---
+    if scope == "user":
+        jail = home / ".agent-ready"
+    else:
+        # project_dir is guaranteed non-None here (checked above).
+        jail = project_dir  # type: ignore[assignment]
+
     # --- Write marker (must succeed before writing hash file) ---
     try:
-        _write_marker(marker, new_entry)
+        _write_marker(marker, new_entry, jail)
     except Exception as exc:
         print(f"install-marker: marker write failed: {exc}", file=sys.stderr)
         # Do NOT write hash file — next session retries the marker write.
