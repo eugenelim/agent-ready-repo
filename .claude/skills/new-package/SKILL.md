@@ -23,10 +23,13 @@ articulate it before scaffolding.
 
 ## Procedure
 
-1. Create the directory structure:
+1. Create the directory structure (two `mkdir` calls so the snippet
+   works in shells without brace expansion — POSIX `sh`, Windows
+   PowerShell, dash):
 
    ```bash
-   mkdir -p packages/<name>/{src,tests}
+   mkdir -p packages/<name>/src
+   mkdir -p packages/<name>/tests
    ```
 
 2. Add the standard files:
