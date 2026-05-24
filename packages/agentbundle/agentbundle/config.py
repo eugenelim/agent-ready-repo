@@ -240,12 +240,15 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
             target_file: str | None = raw_target
         elif adapter == "claude-code":
             target_file = _CLAUDE_CODE_USER_SETTINGS_DEFAULT
-        elif adapter == "kiro":
-            raise ConfigError(
-                f"[pack.{name}] has adapter = 'kiro' but no 'target-file'; "
-                f"kiro rows require an explicit target-file (RFC-0005 § State-file impact)"
-            )
         else:
+            # Kiro rows require ``target-file`` per RFC-0005 § State-file
+            # impact ("no implicit default — Kiro rows always carry the
+            # pack-owned `.kiro/agents/<agent>.json` path explicitly").
+            # The read path stays operationally tolerant (returns None);
+            # consumers that need the field surface their own error when
+            # they go to use it. This keeps ``init-state --migrate``
+            # able to operate on a malformed v0.3 file without trapping
+            # the adopter in a refuse-and-explain dead end.
             target_file = None
 
         # RFC-0005: optional `[[pack.<name>.hook-wiring-owned]]` array-of-tables.
@@ -308,15 +311,16 @@ def dump_state(state: State) -> str:
         # bumps schema_version before calling dump_state.
         if state.schema_version != "0.1":
             lines.append(f"scope = {_emit_basic_string(ps.scope)}")
-        # RFC-0005 v0.3 fields. Emit only when non-default — keep
-        # claude-code rows (the common case) byte-compatible with v0.2.
+        # RFC-0005 v0.3 fields. ``adapter`` defaults to "claude-code"
+        # on read; only emit when non-default to keep the common case
+        # byte-compatible with v0.2. ``target-file`` is always emitted
+        # when set (even if it equals the claude-code default) so
+        # round-trip is byte-stable for explicit-default rows that
+        # T8b/T8c install/upgrade writers may produce.
         if state.schema_version == "0.3":
             if ps.adapter and ps.adapter != "claude-code":
                 lines.append(f"adapter = {_emit_basic_string(ps.adapter)}")
-            if ps.target_file is not None and not (
-                ps.adapter == "claude-code"
-                and ps.target_file == _CLAUDE_CODE_USER_SETTINGS_DEFAULT
-            ):
+            if ps.target_file is not None:
                 lines.append(f"target-file = {_emit_basic_string(ps.target_file)}")
         primitives_repr = ", ".join(_emit_basic_string(p) for p in ps.primitives)
         lines.append(f"primitives = [{primitives_repr}]")

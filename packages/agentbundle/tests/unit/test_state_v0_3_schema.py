@@ -82,8 +82,12 @@ class V03ReadTimeDefaultsTests(unittest.TestCase):
         state = config.load_state(path, for_write=False)
         self.assertEqual(state.packs["demo"].target_file, "~/.claude/settings.json")
 
-    def test_kiro_row_requires_target_file(self) -> None:
-        """AC21: kiro rows have NO ``target-file`` default — readers refuse."""
+    def test_kiro_row_without_target_file_reads_as_none(self) -> None:
+        """AC21: kiro rows have NO ``target-file`` default. The read path
+        stays operationally tolerant — returns None — so ``init-state
+        --migrate`` can still operate on a malformed v0.3. Consumers
+        that need the field (T8b/T8c install / upgrade walkers)
+        surface their own errors when they go to use it."""
         from agentbundle import config
 
         toml_text = textwrap.dedent("""
@@ -101,10 +105,9 @@ class V03ReadTimeDefaultsTests(unittest.TestCase):
         """).strip() + "\n"
 
         path = _write_tmp(self, toml_text)
-        with self.assertRaises(config.ConfigError) as ctx:
-            config.load_state(path, for_write=False)
-        self.assertIn("kiro", str(ctx.exception))
-        self.assertIn("target-file", str(ctx.exception))
+        state = config.load_state(path, for_write=False)
+        self.assertEqual(state.packs["demo"].adapter, "kiro")
+        self.assertIsNone(state.packs["demo"].target_file)
 
     def test_kiro_row_with_target_file_accepted(self) -> None:
         from agentbundle import config
@@ -289,21 +292,55 @@ class V02MigrateHeaderOnlyTests(unittest.TestCase):
         rc = cmd.run(args)
         self.assertEqual(rc, 0)
 
+        # Byte-level invariant: exactly the version line changes.
         new_text = state_path.read_text(encoding="utf-8")
-        self.assertIn('schema-version = "0.3"', new_text)
-        self.assertNotIn('schema-version = "0.2"', new_text)
-
-        # Every body line besides the version header must be byte-identical.
-        old_body = "\n".join(
-            line for line in v02_text.splitlines() if not line.startswith("schema-version")
-        )
-        new_body = "\n".join(
-            line for line in new_text.splitlines() if not line.startswith("schema-version")
+        expected = v02_text.replace(
+            'schema-version = "0.2"', 'schema-version = "0.3"', 1
         )
         self.assertEqual(
-            old_body.strip(),
-            new_body.strip(),
-            "migrate rewrote body bytes; expected header-only-additive",
+            new_text,
+            expected,
+            "migrate rewrote bytes outside the schema-version line",
+        )
+
+    def test_migrate_v03_to_v03_is_byte_identity(self) -> None:
+        """Idempotence at the byte level — running ``--migrate`` against an
+        already-v0.3 file must not strip explicit-default rows. Concern
+        raised by adversarial review: the prior full-re-serialize path
+        silently drops ``target-file = "~/.claude/settings.json"`` when
+        it matches the read-time default."""
+        import argparse
+
+        from agentbundle.commands import init_state as cmd
+
+        v03_text = textwrap.dedent("""
+            schema-version = "0.3"
+
+            [pack.demo]
+            installed-version = "0.1.0"
+            source = "agent-ready-repo"
+            install-route = "cli"
+            scope = "repo"
+            target-file = "~/.claude/settings.json"
+            primitives = []
+
+            [pack.demo.files]
+        """).strip() + "\n"
+
+        repo_root, state_path = _write_state_in_repo(self, v03_text)
+        args = argparse.Namespace(
+            migrate=True,
+            scope="repo",
+            root=str(repo_root),
+        )
+        rc = cmd.run(args)
+        self.assertEqual(rc, 0)
+
+        new_text = state_path.read_text(encoding="utf-8")
+        self.assertEqual(
+            new_text,
+            v03_text,
+            "already-v0.3 migrate must be byte-identity (target-file stripped?)",
         )
 
     def test_migrate_already_v03_is_idempotent(self) -> None:

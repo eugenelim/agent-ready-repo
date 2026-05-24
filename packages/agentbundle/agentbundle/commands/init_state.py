@@ -206,11 +206,17 @@ def _run_migrate(args: argparse.Namespace) -> int:
 
     source_version = _peek_schema_version(original_text)
 
-    if source_version == "0.2":
-        # Header-only-additive (RFC-0005). Rewrite only the version line.
-        serialised = _rewrite_schema_version_line(original_text, "0.3")
+    if source_version in ("0.2", "0.3"):
+        # Header-only-additive (RFC-0005). Rewrite only the version
+        # line. The already-v0.3 case is a true byte-no-op (identity
+        # rewrite) so adopters running ``--migrate`` against a current
+        # file get a round-trip-stable result — full re-serialize would
+        # silently strip explicit fields T8b/T8c writers may produce.
+        serialised = _rewrite_schema_version_line(
+            original_text, config.STATE_SCHEMA_VERSION
+        )
     else:
-        # v0.1 or already-v0.3 — full re-serialize. load_state with
+        # v0.1 or unrecognised — full re-serialize. load_state with
         # for_write=False so the legacy refusal does not fire (we *are*
         # the migration).
         try:
@@ -243,30 +249,31 @@ def _run_migrate(args: argparse.Namespace) -> int:
 
 import re as _re
 
-# Match the `schema-version = "X.Y"` line, capturing the prefix, the
-# version, and the rest. MULTILINE so `^` matches at line start anywhere
-# in the file (deal-breaker is the rare case where the line isn't first).
+# Match the top-level ``schema-version = "X.Y"`` line. The pattern
+# anchors to *file* start (``\A``) with optional leading blank lines —
+# TOML convention puts top-level keys at the head, and ``dump_state``
+# emits ``schema-version`` as the first line. Restricting the regex to
+# the file head prevents a stale pack-table value or a comment further
+# down from being rewritten by accident.
 _SCHEMA_VERSION_LINE_RE = _re.compile(
-    r'^(\s*schema-version\s*=\s*")([^"]*)(".*)$',
-    _re.MULTILINE,
+    r'\A(\s*)(schema-version\s*=\s*")([^"]*)(".*)',
 )
 
 
 def _peek_schema_version(text: str) -> str | None:
     """Return the schema-version string from a state-file body, or None."""
-    m = _SCHEMA_VERSION_LINE_RE.search(text)
-    return m.group(2) if m else None
+    m = _SCHEMA_VERSION_LINE_RE.match(text)
+    return m.group(3) if m else None
 
 
 def _rewrite_schema_version_line(text: str, new_version: str) -> str:
-    """Rewrite the ``schema-version = "X.Y"`` line in *text* to *new_version*.
+    """Rewrite the ``schema-version = "X.Y"`` header in *text* to *new_version*.
 
-    Touches only that line — every other byte is preserved. Trailing
-    newline is preserved when present. This is the v0.2 → v0.3
-    migration's whole job (RFC-0005 § State-file impact).
+    Touches only the first match (anchored to file start) — every other
+    byte is preserved. Trailing newline is preserved. This is the
+    v0.2 → v0.3 (and v0.3 → v0.3 no-op) migration's whole job per
+    RFC-0005 § State-file impact.
     """
-    return _SCHEMA_VERSION_LINE_RE.sub(
-        lambda m: f'{m.group(1)}{new_version}{m.group(3)}',
-        text,
-        count=1,
-    )
+    def _sub(m: _re.Match[str]) -> str:
+        return f"{m.group(1)}{m.group(2)}{new_version}{m.group(4)}"
+    return _SCHEMA_VERSION_LINE_RE.sub(_sub, text, count=1)

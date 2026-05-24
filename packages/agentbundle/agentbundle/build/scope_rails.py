@@ -323,8 +323,11 @@ def check_kiro_wiring(
 
     Reads ``.apm/hook-wiring/*.toml`` and ``.apm/agents/*.md`` from
     ``pack_path``, parses each wiring TOML with ``tomllib``, and
-    dispatches to the in-memory rail. A wiring TOML that fails to parse
-    counts as a refusal on its own (a malformed pack-side declaration).
+    dispatches to the in-memory rail. Mirrors rail C's symlink
+    discipline: a symlink under either directory is refused — a
+    legitimate primitive is a regular file, and following a symlink
+    would let a pack reach outside its source tree. A wiring TOML that
+    fails to parse counts as a refusal on its own.
     """
     if "kiro" not in set(target_adapters or ()):
         return None
@@ -334,10 +337,23 @@ def check_kiro_wiring(
         return None
 
     import tomllib
+    from stat import S_ISLNK
 
     wiring_tomls: dict[str, dict] = {}
     for entry in sorted(wiring_dir.iterdir()):
-        if not entry.is_file() or entry.suffix != ".toml":
+        if entry.suffix != ".toml":
+            continue
+        try:
+            st = os.lstat(entry)
+        except OSError:
+            continue
+        if S_ISLNK(st.st_mode):
+            rel = entry.relative_to(pack_path)
+            return (
+                f"pack {pack_name}'s hook-wiring entry is a symlink "
+                f"(not a regular file); first offender: {rel.as_posix()}"
+            )
+        if not entry.is_file():
             continue
         try:
             wiring_tomls[entry.stem] = tomllib.loads(entry.read_text(encoding="utf-8"))
@@ -351,7 +367,19 @@ def check_kiro_wiring(
     agent_basenames: set[str] = set()
     if agents_dir.exists():
         for entry in sorted(agents_dir.iterdir()):
-            if entry.is_file() and entry.suffix == ".md":
+            if entry.suffix != ".md":
+                continue
+            try:
+                st = os.lstat(entry)
+            except OSError:
+                continue
+            if S_ISLNK(st.st_mode):
+                rel = entry.relative_to(pack_path)
+                return (
+                    f"pack {pack_name}'s agent entry is a symlink "
+                    f"(not a regular file); first offender: {rel.as_posix()}"
+                )
+            if entry.is_file():
                 agent_basenames.add(entry.stem)
 
     return check_kiro_attach_to_agent(
