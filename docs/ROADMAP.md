@@ -111,18 +111,6 @@ chained in-process `adapt.run`, the session-start hook's dual-scope
 marker walk, and the SKILL.md body authoring (class-1 shell-out;
 classes 2–4 LLM-judgment writes under the per-scope path-jail).
 
-- **Security: TOML-injection via unescaped pack metadata
-  (pre-existing).** `dump_state` and `_append_install_marker`
-  interpolate `pack.name` / `version` / projection relpaths into
-  TOML output via plain f-strings. A malicious pack manifesting a
-  `version` string containing TOML metacharacters can land phantom
-  TOML structure in `<repo>/.agent-ready-state.toml` and
-  `.adapt-install-marker.toml`. Pre-existing in `config.dump_state`;
-  amplified by the install-marker addition. **Unblocks when:** the
-  catalogue trust model formalises (today's CLI assumes trusted
-  catalogues); fix shape is a tested `_emit_basic_string`
-  serialiser + a runtime regex assertion on every pack-sourced
-  field that lands in a TOML basic-string position.
 - **APM / Claude-plugins install-route nudge parity.** Adopters
   installing via APM or Claude-plugins routes (rather than
   `agentbundle install`) never hit the install marker write, never
