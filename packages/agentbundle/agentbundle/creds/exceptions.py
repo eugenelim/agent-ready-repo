@@ -18,3 +18,13 @@ class CredentialsMissingError(Exception):
 
 class Tier2HardFailError(Exception):
     """Raised when the OS keyring backend returns a hard-fail error code."""
+
+
+class PermissiveAclError(Exception):
+    """Raised when the Windows DACL on the Tier-3 dotfile is too permissive.
+
+    Per spec § AC15: ``icacls`` is invoked after each write; non-default
+    ACEs (anything beyond the inherited user / ``NT AUTHORITY\\SYSTEM`` /
+    ``BUILTIN\\Administrators``) cause the helper to refuse unless
+    ``allow_permissive_acl=True`` was passed.
+    """
