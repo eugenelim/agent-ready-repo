@@ -9,7 +9,8 @@
 #   - tools/lint-agent-artifacts.sh  — skill/agent/command frontmatter
 #   - tools/lint-skill-deps.sh       — manifest dependency resolution
 #   - tools/lint-knowledge.sh        — docs/knowledge/patterns.jsonl
-#   - tools/check-done.py            — for each docs/specs/*/state.json,
+#   - .claude/skills/work-loop/scripts/check-done.py
+#                                    — for each docs/specs/*/state.json,
 #                                       --phase implement and --phase review
 #
 # Runtime: bash + python3 (already required by the artifact linters and
@@ -46,7 +47,7 @@ if (( ${#state_files[@]} == 0 )); then
 else
   for state in "${state_files[@]}"; do
     for phase in implement review; do
-      if ! python3 tools/check-done.py "$state" --phase "$phase" > /dev/null; then
+      if ! python3 .claude/skills/work-loop/scripts/check-done.py "$state" --phase "$phase" > /dev/null; then
         echo "pre-pr: ✖ check-done.py $state --phase $phase failed" >&2
         exit 1
       fi

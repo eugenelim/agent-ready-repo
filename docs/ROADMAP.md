@@ -204,3 +204,11 @@ but don't have a spec of their own yet.
 - **F-conformance fixtures (RFC-0003).** The per-adapter conformance
   suite that `agentbundle validate --strict` would consume. RFC-0003
   scoped this out of v1; needs its own spec when prioritised.
+- **Credentialed-skill template path (RFC-0006).** RFC-0006's
+  2026-05-24 amendment punted the canonical landing path for the
+  credentialed-skill SKILL.md template (the "Don't" block) to the
+  implementing PR, after `docs/_templates/` was retired and templates
+  moved into per-skill `assets/`. The spec phase for `skill-secrets`
+  must pin the path. Pre-relocation it was named
+  `docs/_templates/credentialed-skill-SKILL.md`; post-relocation it's
+  expected to land under an `assets/` folder of the owning skill.

@@ -15,7 +15,7 @@
 N=$(printf "%04d" $(( $(ls docs/adr/ | grep -E '^[0-9]{4}' | sed 's/-.*//' | sort -n | tail -1) + 1 )))
 
 # Create from template
-cp docs/_templates/adr.md docs/adr/${N}-<kebab-title>.md
+cp .claude/skills/new-adr/assets/adr.md docs/adr/${N}-<kebab-title>.md
 ```
 
 Or, in Claude Code, run `/new-adr "<title>"` (defined in `.claude/skills/new-adr/SKILL.md`).

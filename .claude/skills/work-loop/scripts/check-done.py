@@ -23,15 +23,16 @@ Kill criteria, scoped by --phase:
              previous AND non-empty)
 
 Defaults (used when a field is absent from state.json) live in the
-template at docs/_templates/state.json. The DEFAULTS dict below is the
-no-template floor, used only when the field is omitted from the
-caller's state.json — keep it in sync with the template.
+template at .claude/skills/work-loop/assets/state.json. The DEFAULTS
+dict below is the no-template floor, used only when the field is
+omitted from the caller's state.json — keep it in sync with the
+template.
 
-Schema reference: docs/_templates/state.json and
-docs/CONVENTIONS.md#work-loop-state.
+Schema reference: .claude/skills/work-loop/assets/state.json and
+.claude/skills/work-loop/references/state-schema.md.
 
 Usage:
-  tools/check-done.py docs/specs/<feature>/state.json --phase {plan,implement,review}
+  .claude/skills/work-loop/scripts/check-done.py docs/specs/<feature>/state.json --phase {plan,implement,review}
 """
 
 from __future__ import annotations

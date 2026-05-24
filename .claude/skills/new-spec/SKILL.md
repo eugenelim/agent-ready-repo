@@ -2,8 +2,6 @@
 name: new-spec
 description: Use this skill when the user wants to start a new feature with a spec, or wants to write a spec for something they're about to build. Triggers on "new spec", "write a spec for X", "let's spec this out", "start a feature for…". Spec-driven development; the spec drives implementation. Do NOT use for cross-cutting proposals (use `new-rfc`) or recording decisions (use `new-adr`).
 dependencies:
-  - docs/_templates/spec.md
-  - docs/_templates/plan.md
   - .claude/agents/adversarial-reviewer.md
 ---
 
@@ -24,13 +22,12 @@ look like?" before any code.
    and noun-y: `user-onboarding`, `webhook-retries`, not
    `improve-the-onboarding-experience`.
 
-2. Create the directory and copy templates:
-
-   ```bash
-   mkdir -p docs/specs/<feature>
-   cp docs/_templates/spec.md docs/specs/<feature>/spec.md
-   cp docs/_templates/plan.md docs/specs/<feature>/plan.md
-   ```
+2. Create the directory and copy this skill's bundled `assets/spec.md`
+   and `assets/plan.md` into it as `docs/specs/<feature>/spec.md` and
+   `docs/specs/<feature>/plan.md`. (Paths are skill-relative — the
+   `assets/` folder lives next to this `SKILL.md` wherever your IDE
+   installed the skill: `.claude/skills/new-spec/assets/` on Claude
+   Code, `.kiro/skills/new-spec/assets/` on Kiro, etc.)
 
 3. **Surface assumptions before writing any spec body.** With the
    directory scaffolded, stop. Emit a numbered list under the heading
