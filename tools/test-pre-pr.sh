@@ -98,12 +98,12 @@ run_corruption "knowledge-fail" \
   "printf '%s\n' '{not json' > docs/knowledge/patterns.jsonl" \
   'pre-pr: ✖ knowledge lint failed'
 
-# 5. check-done.py — plant a state.json with plan_review_status=pending,
+# 5. loop-cohort check — plant a state.json with plan_review_status=pending,
 #    which trips the gate for both --phase implement and --phase review.
 #    Drops the test if pre-pr ever stops iterating state.json files.
-run_corruption "check-done-fail" \
+run_corruption "loop-cohort-fail" \
   "mkdir -p docs/specs/example && cp .claude/skills/work-loop/assets/state.json docs/specs/example/state.json" \
-  'pre-pr: ✖ check-done'
+  'pre-pr: ✖ loop-cohort check'
 
 echo
 if [[ "$failures" -gt 0 ]]; then
