@@ -47,9 +47,9 @@ Each `SKILL.md` should:
    instances of are *not* external deps — per the agentskills.io layout
    they live with the skill under `<skill>/assets/<name>` and the body
    cites them via skill-relative paths. Empty list (`dependencies: []`)
-   is valid and honest. The manifest powers `tools/install-skill.py` (Path
-   B in [`USING_THIS_TEMPLATE.md`](../../USING_THIS_TEMPLATE.md)) and is
-   validated by `tools/lint-skill-deps.sh`. Keep it accurate as the body
+   is valid and honest. The manifest is validated by
+   `tools/lint-skill-deps.sh` and consumed by the pack build pipeline
+   that ships skills to adopter projects. Keep it accurate as the body
    changes — drift is what the linter exists to catch.
 
    **Adopter-owned files (`AGENTS.md`, `docs/CONVENTIONS.md`,

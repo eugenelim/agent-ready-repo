@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (added `skill-secrets` spec entry from RFC-0006; promoted the cross-spec credentialed-skill-template stub into the new spec's open items)
+**Last updated:** 2026-05-24 (added `skill-secrets` spec entry from RFC-0006; promoted the cross-spec credentialed-skill-template stub into the new spec's open items; recorded the v0.1-vs-RFC-0001 Tier-2 prompt gap under `agent-spec-cli`)
 
 ## How this file is maintained
 
@@ -80,6 +80,23 @@ in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
   non-zero with a "deferred to v1.1" message); the full `--strict`
   `validate` behaviour against the v0.1 conformance fixtures (which
   themselves are owned by RFC-0003's deferred F-conformance task).
+- **Tier-2 upgrade prompt — v0.1 ships companion-drop only.**
+  RFC-0001 § *Adopter file safety contract* § *Tier-2 behaviour on
+  detection* specifies a three-option in-CLI prompt on `agentbundle
+  upgrade` Tier-2 collisions (keep / overwrite with
+  `<path>.pre-update.bak` / invoke `adapt-to-project` interactively).
+  The shipped binary (`packages/agentbundle/agentbundle/commands/upgrade.py`)
+  is non-interactive: it writes a `*.upstream.<ext>` companion via
+  `safety.write_companion` and continues without prompting; the
+  `.pre-update.bak` overwrite path is unimplemented. The merge UI
+  lives in the `adapt-to-project` skill, which the adopter re-invokes
+  after the upgrade to walk the new companions. This is functionally
+  non-destructive (your edited file is left alone either way), but
+  the README's *Existing files are never silently overwritten*
+  section now discloses the gap explicitly. **Unblocks when:** the
+  interactive prompt + backup path are implemented in `upgrade.py`,
+  or RFC-0001's Tier-2 contract is amended to match v0.1's
+  companion-drop-only shape.
 
 ## `adapt-to-project` — shipped (AC4b transcripts deferred)
 
