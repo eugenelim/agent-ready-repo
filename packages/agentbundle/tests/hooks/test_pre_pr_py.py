@@ -133,19 +133,32 @@ def test_pre_pr_skill_deps_fail(sandbox: Path) -> None:
     """Corrupt only the frontmatter dependency so the body markdown link
     check in lint-agent-artifacts doesn't fire first. lint-skill-deps is
     what enforces frontmatter dep paths; lint-agent-artifacts only walks
-    body links."""
-    skill = sandbox / ".claude" / "skills" / "work-loop" / "SKILL.md"
-    text = skill.read_text()
-    # Replace only the frontmatter occurrence (line ~6). Splitting at
-    # the second `---` separator gives (frontmatter, body); we mutate
-    # the frontmatter half only.
-    parts = text.split("---\n", 2)
-    assert len(parts) >= 3, "expected --- frontmatter delimiters"
-    frontmatter = parts[1].replace(
-        "docs/knowledge/README.md",
-        "docs/knowledge/does-not-exist.md",
+    body links.
+
+    Targets `implementer.md`'s frontmatter dependency on the work-loop
+    SKILL.md path. Using an agent artifact rather than a skill artifact
+    keeps the test stable against churn in skill frontmatter (the
+    previously targeted `work-loop/SKILL.md` had its `dependencies:`
+    block removed in a parallel PR); the lint rule under test is the
+    same for both file kinds. The `---` delimiter walk uses
+    `splitlines(keepends=True)` and `rstrip()` so the test tolerates
+    either LF or CRLF line endings (Windows checkouts may materialise
+    either)."""
+    target = sandbox / ".claude" / "agents" / "implementer.md"
+    lines = target.read_text().splitlines(keepends=True)
+    delim_indices = [i for i, ln in enumerate(lines) if ln.rstrip() == "---"]
+    assert len(delim_indices) >= 2, (
+        f"expected two --- frontmatter delimiters in {target}, "
+        f"found {len(delim_indices)}"
     )
-    skill.write_text("---\n".join([parts[0], frontmatter, parts[2]]))
+    fm_start, fm_end = delim_indices[0] + 1, delim_indices[1]
+    frontmatter = "".join(lines[fm_start:fm_end]).replace(
+        ".claude/skills/work-loop/SKILL.md",
+        ".claude/skills/does-not-exist/SKILL.md",
+    )
+    target.write_text(
+        "".join(lines[:fm_start]) + frontmatter + "".join(lines[fm_end:])
+    )
     result = _run(sandbox)
     assert result.returncode != 0
     assert "pre-pr: ✖ skill-deps lint failed" in result.stderr
