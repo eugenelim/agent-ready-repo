@@ -673,6 +673,54 @@ def test_setup_refuses_non_tty_stdin_via_subprocess(tmp_path):
     assert "stdin is not a tty" in res.stderr
 
 
+# ── AC11+AC18: read-path Tier-2 hard fail propagates (exit 3) ─────────
+
+
+def test_check_exits_three_on_tier2_hard_fail_during_read(
+    tmp_path, monkeypatch, capsys
+):
+    """AC11 + AC18: a Tier-2 ``read_credential`` that raises
+    ``Tier2HardFailError`` must not be swallowed by ``_tier_for_key``
+    and reported as ``"missing"`` (exit 2). The contract is exit 3,
+    stderr names the cause; the Boundaries § Never do clause
+    "No silent fallback from hard-fail Win32 error codes" depends on
+    this propagation.
+    """
+    from agentbundle.creds import loader
+    from agentbundle.creds.exceptions import Tier2HardFailError
+
+    _write_skill_fixture(tmp_path, "alpha", "alpha")
+    _write_state_file(tmp_path, "core", (".claude/skills/alpha/SKILL.md",))
+    monkeypatch.setattr(sys, "platform", "darwin")
+
+    class _ReadHardFail:
+        @staticmethod
+        def read_credential(*a, **kw):
+            raise Tier2HardFailError(
+                "ERROR_NO_SUCH_LOGON_SESSION (1312) — no logon session"
+            )
+
+        @staticmethod
+        def write_credential(*a, **kw):
+            return None
+
+        @staticmethod
+        def delete_credential(*a, **kw):
+            return None
+
+    monkeypatch.setattr(loader, "_tier2_backend", _ReadHardFail)
+    rc = _run(["creds", "check", "alpha", "--root", str(tmp_path)])
+    assert rc == 3, (
+        "AC11 + AC18 contract: read-path Tier-2 hard fail must exit 3 "
+        "(not 2 / missing). _tier_for_key swallowed the exception if "
+        "this assertion fired with rc=2."
+    )
+    out = capsys.readouterr()
+    assert "ERROR_NO_SUCH_LOGON_SESSION" in out.err or "Tier 2" in out.err, (
+        f"stderr should name the Tier-2 hard-fail cause; got: {out.err!r}"
+    )
+
+
 # ── AC22: setup hard-fails when Tier-2 errors without opt-out ─────────
 
 
