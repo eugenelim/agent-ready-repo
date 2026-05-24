@@ -592,23 +592,14 @@ def run(args: "argparse.Namespace") -> int:
                     new_pack_state.adapter = "kiro"
 
                 # The merge phase re-wrote the agent JSON (Kiro) with
-                # the hook entries we just merged in; for Claude Code,
-                # the settings.json target is adopter-shared and isn't
-                # tracked in state.files at all. Refresh the on-disk
-                # SHA for any merged target that *is* in state.files
-                # so uninstall's Tier-1 check (recorded SHA == on-disk
-                # SHA) still passes after the merge.
-                for row in owned_rows:
-                    target_file_rel = row.get("target-file")
-                    if not target_file_rel:
-                        continue
-                    target_path = plan.root / target_file_rel.lstrip("/")
-                    if not target_path.exists():
-                        continue
-                    if target_file_rel in new_pack_state.files:
-                        new_pack_state.files[target_file_rel]["sha"] = (
-                            safety.sha256_file(target_path)
-                        )
+                # the hook entries we just merged in. Refresh the
+                # state.files SHA so uninstall's Tier-1 check still
+                # passes — see ``_refresh_merge_target_shas``.
+                _refresh_merge_target_shas(
+                    pack_state=new_pack_state,
+                    owned_rows=owned_rows,
+                    root=plan.root,
+                )
 
         plan.state.packs[pack_name] = new_pack_state
         # Stamp the post-write schema. Always emit the current
@@ -1124,6 +1115,39 @@ def _render_for_user_scope(pack_dir: Path) -> dict[str, bytes]:
         else:
             claude_code.project(pack_dir, contract, out)
         return _collect_tree(out)
+
+
+def _refresh_merge_target_shas(
+    *,
+    pack_state,
+    owned_rows: list[dict[str, str]],
+    root: Path,
+) -> None:
+    """Refresh state.files SHA for every merge target the wiring touched.
+
+    The merge phase (user_merge_json / merge_into_agent_json) mutates
+    the target file after the projection-write loop recorded its
+    pre-merge SHA. Without this refresh, uninstall's Tier-1 check
+    (recorded SHA == on-disk SHA) would misclassify the file as
+    adopter-edited and refuse to remove it. Claude Code rows omit
+    ``target-file`` (the adapter-shared ``~/.claude/settings.json``
+    isn't tracked in state.files); Kiro rows carry it explicitly.
+
+    Shared between install and upgrade so the fix is single-sourced.
+    """
+    from agentbundle import safety
+
+    for row in owned_rows:
+        target_file_rel = row.get("target-file")
+        if not target_file_rel:
+            continue
+        target_path = root / target_file_rel.lstrip("/")
+        if not target_path.exists():
+            continue
+        if target_file_rel in pack_state.files:
+            pack_state.files[target_file_rel]["sha"] = (
+                safety.sha256_file(target_path)
+            )
 
 
 def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
