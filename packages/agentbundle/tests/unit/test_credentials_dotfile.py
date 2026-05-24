@@ -202,3 +202,76 @@ def test_value_with_spaces_round_trips_via_quoting(tmp_path):
     """Values containing spaces round-trip via the parser's quoted form."""
     loader._dotfile_write("fixture_t6", "BASE_URL", "https://jira example com")
     assert loader._dotfile_read("fixture_t6", "BASE_URL") == "https://jira example com"
+
+
+def test_credentials_missing_names_tiers_tried_no_dotfile(tmp_path):
+    """Quality Concern #6: ``CredentialsMissingError`` names per-key
+    which tier was checked and why. With no Tier-1 env, no Tier-2
+    backend, and no Tier-3 dotfile on disk, the trailers must surface
+    all three reasons."""
+    with pytest.raises(CredentialsMissingError) as exc:
+        load_credentials("fixture_t6", required_keys=["API_TOKEN", "BASE_URL"])
+    msg = str(exc.value)
+    # Preamble preserves the AC3 contract.
+    assert "fixture_t6" in msg
+    assert "API_TOKEN" in msg
+    assert "BASE_URL" in msg
+    # Per-key trailer names the missing tier-1 env var by full name.
+    assert "FIXTURE_T6_API_TOKEN" in msg
+    assert "FIXTURE_T6_BASE_URL" in msg
+    # Tier 2 trailer reports "not loaded" since the fixture nukes the
+    # backend.
+    assert "Tier 2:" in msg
+    assert "not loaded" in msg
+    # Tier 3 trailer names the dotfile path and "absent".
+    assert "Tier 3:" in msg
+    assert ".agent-ready" in msg
+    assert "absent" in msg
+    # Structured attribute carries the same info programmatically.
+    assert exc.value.namespace == "fixture_t6"
+    assert set(exc.value.missing) == {"API_TOKEN", "BASE_URL"}
+    assert "API_TOKEN" in exc.value.tiers_tried
+    assert "BASE_URL" in exc.value.tiers_tried
+    assert len(exc.value.tiers_tried["API_TOKEN"]) == 3
+    assert len(exc.value.tiers_tried["BASE_URL"]) == 3
+
+
+def test_credentials_missing_names_dotfile_present_when_file_exists(tmp_path):
+    """When the Tier-3 dotfile exists but doesn't carry the key, the
+    trailer says ``present but ... not in it`` so the user understands
+    Tier 3 was reached but missed — different from absent."""
+    # Write some other key so the file is on disk.
+    loader._dotfile_write("fixture_t6", "OTHER_KEY", "x")
+    with pytest.raises(CredentialsMissingError) as exc:
+        load_credentials("fixture_t6", required_keys=["API_TOKEN"])
+    msg = str(exc.value)
+    assert "Tier 3:" in msg
+    assert "present but" in msg
+    assert "FIXTURE_T6_API_TOKEN" in msg
+
+
+def test_load_credentials_mixes_tiers_across_keys(tmp_path, monkeypatch):
+    """Quality Concern #5 (AC4 cross-tier composability): one key resolves
+    at Tier 1, another at Tier 2, another at Tier 3 — all three arrive on
+    the ``Credentials`` object with values from the right sources.
+
+    Uses a fake Tier-2 backend so the test runs on every platform.
+    """
+    class FakeTier2:
+        @staticmethod
+        def read_credential(namespace, key):
+            if namespace == "fixture_t6" and key == "BASE_URL":
+                return "from-tier2-keyring"
+            return None
+
+    monkeypatch.setattr(loader, "_tier2_backend", FakeTier2)
+    monkeypatch.setenv("FIXTURE_T6_API_TOKEN", "from-tier1-env")
+    loader._dotfile_write("fixture_t6", "FLAVOR", "from-tier3-dotfile")
+
+    creds = load_credentials(
+        "fixture_t6",
+        required_keys=["API_TOKEN", "BASE_URL", "FLAVOR"],
+    )
+    assert creds.API_TOKEN == "from-tier1-env"
+    assert creds.BASE_URL == "from-tier2-keyring"
+    assert creds.FLAVOR == "from-tier3-dotfile"
