@@ -327,15 +327,17 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            _seed_pack(packs_dir, "core")
+            core = _seed_pack(packs_dir, "core")
+            (core / "seeds").mkdir()
+            (core / "seeds" / "AGENTS.md").write_text(
+                "# Custom AGENTS.md\n\nDo not lose me.\n",
+                encoding="utf-8",
+            )
 
             working_tree = tmp_path / "tree"
             working_tree.mkdir()
             _git_init(working_tree)
             _seed_discovery(working_tree)
-            agents_md = working_tree / "AGENTS.md"
-            preamble = "# Custom AGENTS.md\n\nDo not lose me.\n"
-            agents_md.write_text(preamble, encoding="utf-8")
 
             exit_code = run_self_host(
                 working_tree=working_tree,
@@ -345,7 +347,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
                 contract=self.contract,
             )
             self.assertEqual(exit_code, 0)
-            text = agents_md.read_text(encoding="utf-8")
+            text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertIn("# Custom AGENTS.md", text)
             self.assertIn("Do not lose me.", text)
             self.assertIn("<!-- agent-skills:start -->", text)

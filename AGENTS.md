@@ -110,7 +110,37 @@ it's covered in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 ## Agent workflows
 
 Use the generated skill list below when a task matches a named workflow.
-Specialist reviewers and implementers live under `.claude/agents/`.
+<!-- agent-skills:start -->
+- **adapt-to-project** — Use this skill to materialize `.adapt-discovery.toml` with this repo's concrete values for every `<adapt:NAME>` marker present in installed packs' seeds. Triggers on adoption-time setup ("adapt the template to my project") and on additions of new markers. Resolver itself is deferred; this skill body documents the contract.
+- **bug-fix** — Use this skill when the user wants to fix a bug — a deviation between current behavior and intended behavior in code that already exists. Triggers on "fix bug", "fix this bug", "diagnose and fix", "investigate this regression", "this is broken". Do NOT use for new features (use `new-spec`) or for refactors that don't fix incorrect behavior.
+- **new-adr** — Use this skill when the user asks to create, write, draft, or open a new ADR (architecture decision record). Triggers on phrases like "new ADR", "write an ADR for…", "record this decision", "let's ADR this". Do NOT use for RFCs (use `new-rfc`) or feature specs (use `new-spec`).
+- **new-guide** — Use this skill to draft a new user-facing guide under `docs/guides/<quadrant>/<slug>.md` following the Diátaxis framework. Triggers on "write a guide for X", "new tutorial", "new how-to". Picks the quadrant (tutorials/how-to/reference/explanation) and applies the per-quadrant template.
+- **new-package** — Use this skill when the user wants to scaffold a new package in the monorepo's `packages/` directory. Triggers on "new package", "create a package called…", "add a library for…". Don't use for new top-level directories (those need an RFC) or for new apps (which go in `apps/`, not `packages/`).
+- **new-rfc** — Use this skill when the user asks to propose, draft, or open an RFC (request for comments). Triggers on "RFC", "propose a change to…", "let's get input on…", "draft a proposal". Do NOT use for already-decided things (use `new-adr`) or single-feature specs (use `new-spec`).
+- **new-spec** — Use this skill when the user wants to start a new feature with a spec, or wants to write a spec for something they're about to build. Triggers on "new spec", "write a spec for X", "let's spec this out", "start a feature for…". Spec-driven development; the spec drives implementation. Do NOT use for cross-cutting proposals (use `new-rfc`) or recording decisions (use `new-adr`).
+- **update-conventions** — Use this skill when the user wants to change `docs/CONVENTIONS.md` or `docs/CHARTER.md`. Triggers on "let's change the convention for…", "update the rules", "amend the charter", "change our principles". Conventions and charter changes go through RFC review, not direct PR.
+- **work-loop** — Use this skill whenever you're implementing a non-trivial change — a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
+<!-- agent-skills:end -->
+
+## Specialist subagents
+
+`.claude/agents/` contains sharp, differentiable lenses for diff review,
+plus the executor used by `work-loop`'s supervisor mode. Pick the
+reviewers the diff actually warrants; don't run all three by default.
+
+- [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md) — spec /
+  plan / implementation drift; missing edge cases; scope creep. Default
+  reviewer; runs after gates pass.
+- [`security-reviewer`](.claude/agents/security-reviewer.md) — OWASP Top
+  10 (web + LLM Apps) and STRIDE lens. Use when the diff touches auth,
+  secrets, user input, deserialization, file/network I/O, dependencies,
+  or LLM/agent code. Complements SAST/SCA scanners; does not replace them.
+- [`quality-engineer`](.claude/agents/quality-engineer.md) — testability,
+  observability, reliability, and maintainability lens. Also drafts
+  contract or construction tests on request.
+- [`implementer`](.claude/agents/implementer.md) — single-task executor;
+  `work-loop` dispatches one per task in supervisor mode. Not a
+  reviewer; not selected by hand.
 
 ## Check before acting
 
@@ -148,15 +178,4 @@ this file go through RFC; small fixes are normal PRs.
 ---
 
 *Generated from the [`agent-ready-repo`](https://github.com/) template. See [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) for the full conventions, or [`docs/architecture/overview.md`](docs/architecture/overview.md) to start exploring.*
-<!-- agent-skills:start -->
-- **adapt-to-project** — Use this skill to materialize `.adapt-discovery.toml` with this repo's concrete values for every `<adapt:NAME>` marker present in installed packs' seeds. Triggers on adoption-time setup ("adapt the template to my project") and on additions of new markers. Resolver itself is deferred; this skill body documents the contract.
-- **bug-fix** — Use this skill when the user wants to fix a bug — a deviation between current behavior and intended behavior in code that already exists. Triggers on "fix bug", "fix this bug", "diagnose and fix", "investigate this regression", "this is broken". Do NOT use for new features (use `new-spec`) or for refactors that don't fix incorrect behavior.
-- **new-adr** — Use this skill when the user asks to create, write, draft, or open a new ADR (architecture decision record). Triggers on phrases like "new ADR", "write an ADR for…", "record this decision", "let's ADR this". Do NOT use for RFCs (use `new-rfc`) or feature specs (use `new-spec`).
-- **new-guide** — Use this skill to draft a new user-facing guide under `docs/guides/<quadrant>/<slug>.md` following the Diátaxis framework. Triggers on "write a guide for X", "new tutorial", "new how-to". Picks the quadrant (tutorials/how-to/reference/explanation) and applies the per-quadrant template.
-- **new-package** — Use this skill when the user wants to scaffold a new package in the monorepo's `packages/` directory. Triggers on "new package", "create a package called…", "add a library for…". Don't use for new top-level directories (those need an RFC) or for new apps (which go in `apps/`, not `packages/`).
-- **new-rfc** — Use this skill when the user asks to propose, draft, or open an RFC (request for comments). Triggers on "RFC", "propose a change to…", "let's get input on…", "draft a proposal". Do NOT use for already-decided things (use `new-adr`) or single-feature specs (use `new-spec`).
-- **new-spec** — Use this skill when the user wants to start a new feature with a spec, or wants to write a spec for something they're about to build. Triggers on "new spec", "write a spec for X", "let's spec this out", "start a feature for…". Spec-driven development; the spec drives implementation. Do NOT use for cross-cutting proposals (use `new-rfc`) or recording decisions (use `new-adr`).
-- **update-conventions** — Use this skill when the user wants to change `docs/CONVENTIONS.md` or `docs/CHARTER.md`. Triggers on "let's change the convention for…", "update the rules", "amend the charter", "change our principles". Conventions and charter changes go through RFC review, not direct PR.
-- **work-loop** — Use this skill whenever you're implementing a non-trivial change — a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
-<!-- agent-skills:end -->
 > Working on this repo specifically? See [`AGENTS.local.md`](AGENTS.local.md).

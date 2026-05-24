@@ -110,7 +110,28 @@ it's covered in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 ## Agent workflows
 
 Use the generated skill list below when a task matches a named workflow.
-Specialist reviewers and implementers live under `.claude/agents/`.
+<!-- agent-skills:start -->
+<!-- agent-skills:end -->
+
+## Specialist subagents
+
+`.claude/agents/` contains sharp, differentiable lenses for diff review,
+plus the executor used by `work-loop`'s supervisor mode. Pick the
+reviewers the diff actually warrants; don't run all three by default.
+
+- [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md) — spec /
+  plan / implementation drift; missing edge cases; scope creep. Default
+  reviewer; runs after gates pass.
+- [`security-reviewer`](.claude/agents/security-reviewer.md) — OWASP Top
+  10 (web + LLM Apps) and STRIDE lens. Use when the diff touches auth,
+  secrets, user input, deserialization, file/network I/O, dependencies,
+  or LLM/agent code. Complements SAST/SCA scanners; does not replace them.
+- [`quality-engineer`](.claude/agents/quality-engineer.md) — testability,
+  observability, reliability, and maintainability lens. Also drafts
+  contract or construction tests on request.
+- [`implementer`](.claude/agents/implementer.md) — single-task executor;
+  `work-loop` dispatches one per task in supervisor mode. Not a
+  reviewer; not selected by hand.
 
 ## Check before acting
 

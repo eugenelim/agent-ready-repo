@@ -179,11 +179,7 @@ def _project_all_adapters(
     packs_dir: Path,
     contract: dict,
 ) -> None:
-    """Run the self-host allow-listed adapters against every discovered pack.
-
-    Codex is invoked once across all packs so its managed block contains
-    the aggregate skill list instead of last-pack-wins output.
-    """
+    """Run direct self-host adapter projections against every discovered pack."""
     packs = discover_packs(packs_dir)
     for pack in packs:
         validate_pack_uniqueness(pack)
@@ -193,7 +189,8 @@ def _project_all_adapters(
         if adapter_name not in SELF_HOST_ADAPTERS:
             continue
         if adapter_name == "codex":
-            codex.project_packs([pack.path for pack in packs], contract, output_root)
+            # Codex writes into composed AGENTS.md; _compose_agents_md owns
+            # that one-shot aggregate splice after the body seed is written.
             continue
         for pack in packs:
             project(pack.path, contract, output_root)
@@ -232,11 +229,10 @@ def _compose_agents_md(
 
 
 # ---------------------------------------------------------------------------
-# Phase-1 follow-up additions (per docs/specs/self-hosting/spec.md):
+# Self-host follow-up additions (per docs/specs/self-hosting/spec.md):
 # seed projection, marketplace aggregation, CLAUDE.md symlink recreation,
 # missing-discovery fail-fast, drift source-naming, info-line emission.
-# Comparison-rule strengthening (LF norm / mode bits / lstat) and the
-# AGENTS.md body+footer composition remain Phase 2.
+# Comparison-rule strengthening (LF norm / mode bits / lstat) remains open.
 # ---------------------------------------------------------------------------
 
 # Excluded path patterns per RFC-0002 § What stays out. Phase-1

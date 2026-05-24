@@ -106,6 +106,31 @@ check("AGENTS.md generated bug-fix skill bullet",
 check("AGENTS.md generated managed skill block",
       "AGENTS.md", "<!-- agent-skills:start -->")
 
+adversarial_bullet = (
+    r"- \[`adversarial-reviewer`\]\(\.claude/agents/adversarial-reviewer\.md\) — spec /\n"
+    r"  plan / implementation drift; missing edge cases; scope creep\. Default\n"
+    r"  reviewer; runs after gates pass\.\n"
+)
+check("AGENTS.md adversarial-reviewer bullet (Specialist subagents)",
+      "AGENTS.md", adversarial_bullet, regex=True)
+
+security_bullet = (
+    r"- \[`security-reviewer`\]\(\.claude/agents/security-reviewer\.md\) — OWASP Top\n"
+    r"  10 \(web \+ LLM Apps\) and STRIDE lens\. Use when the diff touches auth,\n"
+    r"  secrets, user input, deserialization, file/network I/O, dependencies,\n"
+    r"  or LLM/agent code\. Complements SAST/SCA scanners; does not replace them\."
+)
+check("AGENTS.md security-reviewer bullet (Specialist subagents)",
+      "AGENTS.md", security_bullet, regex=True)
+
+quality_bullet = (
+    r"- \[`quality-engineer`\]\(\.claude/agents/quality-engineer\.md\) — testability,\n"
+    r"  observability, reliability, and maintainability lens\. Also drafts\n"
+    r"  contract or construction tests on request\."
+)
+check("AGENTS.md quality-engineer bullet (Specialist subagents)",
+      "AGENTS.md", quality_bullet, regex=True)
+
 check("skills/README.md bug-fix table row",
       ".claude/skills/README.md",
       r"\| \[`bug-fix`\]\(bug-fix/SKILL\.md\) \| [^|]+ \|\n",
