@@ -63,7 +63,14 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         self.home.mkdir()
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
-        self._env = patch.dict(os.environ, {"HOME": str(self.home)})
+        # Set both HOME (POSIX) and USERPROFILE (Windows) — `Path.home()`
+        # consults USERPROFILE first on Windows and ignores HOME there,
+        # so patching only HOME is a no-op on the windows-latest runner.
+        # Mirrors the widened patch in _UserScopeInstallBase.
+        self._env = patch.dict(
+            os.environ,
+            {"HOME": str(self.home), "USERPROFILE": str(self.home)},
+        )
         self._env.start()
         self.addCleanup(self._env.stop)
         # Temporary catalogue layout: <cat>/packs/converters/ — populated
