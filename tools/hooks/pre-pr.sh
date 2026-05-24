@@ -9,12 +9,13 @@
 #   - tools/lint-agent-artifacts.sh  — skill/agent/command frontmatter
 #   - tools/lint-skill-deps.sh       — manifest dependency resolution
 #   - tools/lint-knowledge.sh        — docs/knowledge/patterns.jsonl
-#   - .claude/skills/work-loop/scripts/check-done.py
-#                                    — for each docs/specs/*/state.json,
-#                                       --phase implement and --phase review
+#   - .claude/skills/work-loop/scripts/loop-cohort.py check
+#                                    — for each docs/specs/*/ that owns a
+#                                       state.json, --phase implement and
+#                                       --phase review
 #
 # Runtime: bash + python3 (already required by the artifact linters and
-# check-done.py). Wiring lives in each tool's hook surface (Claude
+# loop-cohort.py). Wiring lives in each tool's hook surface (Claude
 # Code: .claude/settings.json; see tools/hooks/README.md).
 
 set -uo pipefail
@@ -43,15 +44,16 @@ state_files=(docs/specs/*/state.json)
 shopt -u nullglob
 
 if (( ${#state_files[@]} == 0 )); then
-  echo "pre-pr: (no active state.json — skipping check-done)"
+  echo "pre-pr: (no active state.json — skipping loop-cohort check)"
 else
   for state in "${state_files[@]}"; do
+    spec_dir="$(dirname "$state")"
     for phase in implement review; do
-      if ! python3 .claude/skills/work-loop/scripts/check-done.py "$state" --phase "$phase" > /dev/null; then
-        echo "pre-pr: ✖ check-done.py $state --phase $phase failed" >&2
+      if ! python3 .claude/skills/work-loop/scripts/loop-cohort.py check "$spec_dir" --phase "$phase" > /dev/null; then
+        echo "pre-pr: ✖ loop-cohort check $spec_dir --phase $phase failed" >&2
         exit 1
       fi
-      echo "pre-pr: ✓ check-done $state ($phase)"
+      echo "pre-pr: ✓ loop-cohort check $spec_dir ($phase)"
     done
   done
 fi
