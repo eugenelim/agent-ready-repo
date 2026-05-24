@@ -123,14 +123,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install agentbundle (editable) + pytest
+        # Installed first so `python -m agentbundle.build` resolves on
+        # the Windows job, which doesn't go through `make` (the Linux
+        # job's Makefile prepends packages/agentbundle to PYTHONPATH;
+        # path-separator differences make replicating that fragile on
+        # Windows, and `pip install -e` is needed for the pytest steps
+        # below anyway).
+        run: pip install -e packages/agentbundle/ pytest
+
       - name: Run bundler build-check
         # Mirror of the Linux `make build-check` step — `make` shells to
         # `python3 -m agentbundle.build check`, and `python` is the safe
         # cross-platform invocation (Windows has no `python3` on PATH).
         run: python -m agentbundle.build check --packs-dir packs
-
-      - name: Install agentbundle (editable) + pytest
-        run: pip install -e packages/agentbundle/ pytest
 
       - name: pytest converters install/uninstall (AC6a)
         working-directory: packages/agentbundle
