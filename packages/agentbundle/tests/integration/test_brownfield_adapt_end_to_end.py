@@ -109,3 +109,93 @@ def test_idempotent_re_run(tmp_path):
         + ", ".join(sorted(set(before) ^ set(after))
                     + [k for k in before if k in after and before[k] != after[k]])
     )
+
+
+def test_pending_report_byte_identical_with_multiple_companions(tmp_path):
+    """AC10: `.adapt-pending.md` is byte-identical across re-runs and
+    lists companion paths in lex order — load-bearing for the
+    deterministic-sort contract, not the trivial one-element case.
+
+    The fixture records three projected paths chosen so the lex sort
+    of their companion relpaths is non-trivial:
+
+      Projected paths:    AGENTS.md, docs/CHARTER.md, AAA-extra.md
+      Companion lex sort: AAA-extra.upstream.md, AGENTS.upstream.md,
+                          docs/CHARTER.upstream.md
+
+    The byte-identity check pins the no-timestamp contract; the
+    sequence-equals-sorted check pins lex ordering. Caveat:
+    `State.projected_paths()` returns a `set[str]`, and `adapt.py`
+    currently sorts at *two* sites (`_find_upstream_companions` and
+    the report-write loop). Dropping *one* sort leaves the other to
+    recover lex order, so this test is not load-bearing against a
+    single-site regression. It is load-bearing against dropping
+    *both* sites, where set iteration of `projected_paths()` (hash-
+    dependent) takes over and almost always disagrees with lex order
+    for three or more relpaths.
+    """
+    from agentbundle.config import PackState, State, dump_state
+    from agentbundle.safety import companion_path, sha256_bytes
+
+    work = tmp_path / "repo"
+    work.mkdir()
+    (work / "docs").mkdir()
+
+    # Three projected files (original + companion each). The three
+    # relpaths have a non-trivial lex sort (capital-A < capital-A-then-G
+    # < lowercase-d).
+    bodies = {
+        "AGENTS.md": "# AGENTS\nbody\n",
+        "docs/CHARTER.md": "# CHARTER\nbody\n",
+        "AAA-extra.md": "# AAA extra\nbody\n",
+    }
+    files: dict = {}
+    for rel, body in bodies.items():
+        (work / rel).write_text(body, encoding="utf-8")
+        comp_rel = companion_path(Path(rel)).as_posix()
+        (work / comp_rel).parent.mkdir(parents=True, exist_ok=True)
+        (work / comp_rel).write_text(
+            f"upstream variant of {rel}\n", encoding="utf-8"
+        )
+        files[rel] = {
+            "sha": sha256_bytes(body.encode("utf-8")),
+            "from-pack-version": "0.1.0",
+        }
+
+    state = State()
+    state.packs["core"] = PackState(installed_version="0.1.0", files=files)
+    (work / ".agent-ready-state.toml").write_text(
+        dump_state(state), encoding="utf-8"
+    )
+    (work / ".adapt-discovery.toml").write_text(
+        'discovery-schema-version = "0.1"\n[markers]\n', encoding="utf-8"
+    )
+
+    assert adapt.run(_ns(work)) == 0
+    first = (work / ".adapt-pending.md").read_bytes()
+
+    assert adapt.run(_ns(work)) == 0
+    second = (work / ".adapt-pending.md").read_bytes()
+
+    assert first == second, (
+        "pending.md must be byte-identical across runs "
+        "(deterministic sort, no timestamps); diff:\n"
+        f"first:  {first!r}\nsecond: {second!r}"
+    )
+
+    # Parse the companion entries; assert the full sequence equals the
+    # lex-sorted variant. With the deliberate insertion-vs-lex
+    # inversion, this assertion fails on a dropped sort.
+    text = first.decode("utf-8")
+    listed = [
+        line.split("`")[1]
+        for line in text.splitlines()
+        if line.startswith("- `")
+    ]
+    assert len(listed) == 3, (
+        f"expected 3 companion entries; got {listed!r}\nreport:\n{text}"
+    )
+    assert listed == sorted(listed), (
+        f"companion entries not in lex order — sort regression?\n"
+        f"got:    {listed!r}\nsorted: {sorted(listed)!r}\n{text}"
+    )
