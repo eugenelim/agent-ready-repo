@@ -471,9 +471,9 @@ is the *point* — which is what the Ralph harness in [`tools/ralph.sh`](../tool
 is for.
 
 **Why a hard iteration cap.** Without one, you're hoping. The cap lives as
-data in `state.json` (see below) and is enforced by `.claude/skills/work-loop/scripts/check-done.py`;
-if you hit it, the task is bigger than you thought — stop, re-plan, or
-split.
+data in `state.json` (see below) and is enforced by `loop-cohort check`
+at `.claude/skills/work-loop/scripts/loop-cohort.py`; if you hit it, the
+task is bigger than you thought — stop, re-plan, or split.
 
 **Why capture learnings.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (Ralph or
@@ -486,7 +486,12 @@ The work-loop's `state.json` schema, exit contract, lifecycle, and
 atomic-write discipline live with the skill that consumes them —
 see [`.claude/skills/work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md).
 The template at [`.claude/skills/work-loop/assets/state.json`](../.claude/skills/work-loop/assets/state.json)
-is the starting point a new spec copies in.
+is the starting point `loop-cohort init` copies in. Every state mutation
+(init, plan-approval, fingerprint rotation, worktree coordination) is
+owned by the
+[`loop-cohort`](../.claude/skills/work-loop/scripts/loop-cohort.py) tool;
+SKILL prose calls each verb at the appropriate phase rather than
+mutating JSON by hand.
 
 ### Model selection
 
@@ -608,8 +613,8 @@ enforcement triplet" and mean the same three things:
 
 | Layer | Mechanism | What it gates |
 |---|---|---|
-| Caps | [`.claude/skills/work-loop/scripts/check-done.py`](../.claude/skills/work-loop/scripts/check-done.py) | Iteration cap, token budget, plan approval, fingerprint stasis (see [`work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md)). |
-| Artifacts | `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-skill-deps.py`, `lint-knowledge.py` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
+| Caps | [`.claude/skills/work-loop/scripts/loop-cohort.py`](../.claude/skills/work-loop/scripts/loop-cohort.py) `check` | Iteration cap, token budget, plan approval, fingerprint stasis (see [`work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md)). The same tool owns every state mutation upstream of the check. |
+| Artifacts | `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-skill-deps.py`, `lint-knowledge.py`, `lint-build.py` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
 | Aggregation | [`tools/hooks/pre-pr.py`](../tools/hooks/pre-pr.py) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
 
 The triplet is **Shift Left**: catch problems as early as possible,

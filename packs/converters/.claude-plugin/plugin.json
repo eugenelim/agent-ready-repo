@@ -1,0 +1,5 @@
+{
+  "name": "converters",
+  "version": "0.1.0",
+  "description": "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML; Outlook .msg → Markdown."
+}
