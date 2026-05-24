@@ -186,6 +186,13 @@
                 }
               }
             }
+          },
+          "install-routes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["cli", "claude-plugins"]
+            }
           }
         }
       }
