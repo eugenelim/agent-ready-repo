@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (added `skill-secrets` spec entry from RFC-0006; promoted the cross-spec credentialed-skill-template stub into the new spec's open items)
+**Last updated:** 2026-05-24 (closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; only AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items)
 
 ## How this file is maintained
 
@@ -194,66 +194,56 @@ RFC-0005's follow-on artifacts name.
   measures contract correctness via fixture packs, not via a
   shipped consumer.
 
-## `skill-secrets` — drafted
+## `skill-secrets` — shipped
 
 Spec: [`specs/skill-secrets/spec.md`](specs/skill-secrets/spec.md).
-Drafted from [RFC-0006](rfc/0006-skill-secrets-storage.md) (Accepted
-2026-05-24). The spec is the implementation contract for the
-two-layer architecture (skills don't hold credentials; credentialed
-primitives do), the three storage tiers (env → OS keyring → dotfile
-floor at `~/.agent-ready/credentials.env`), the stdlib-only loader
-+ `agentbundle creds` verb (`setup`/`check`/`where`/`rm` only; no
-`get`), the argv ban + `SKILL.md` "Don't" block, the
-`conventions-check` extensions, the worked example, and the
-ADR-0002 amendment freezing the narrow "hook-shaped" definition.
+Shipped from [RFC-0006](rfc/0006-skill-secrets-storage.md) (Accepted
+2026-05-24). Delivered the two-layer architecture (skills don't hold
+credentials; credentialed primitives do), the three storage tiers
+(env → OS keyring → dotfile floor at `~/.agent-ready/credentials.env`),
+the stdlib-only loader + `agentbundle creds` verb
+(`setup`/`check`/`where`/`rm` only; no `get`), the argv ban +
+`SKILL.md` "Don't" block, the `conventions-check` extensions, the
+worked example, and the ADR-0002 amendment freezing the narrow
+"hook-shaped" definition.
 
-The plan breaks the work into fifteen tasks (T13 split into
-T13a/T13b/T13c): T1 (ADR-0002 amendment — lands in the spec PR);
-T2–T7 (runtime library: stdlib `.env` parser, loader API +
-`agent_ready` shim, macOS Keychain Tier-2, Windows Credential
-Manager Tier-2, Tier-3 dotfile, `creds-schema.toml` parser); T8
-(CLI verb at `agentbundle/commands/creds.py` with tombstone-arg
-argv ban); T9–T10 (SKILL.md frontmatter + lint allow-list,
-`conventions-check` AST-walker extensions); T11–T12 (author skill
-carrying template variants; worked example); T13a (CONVENTIONS.md
-via seed upstream); T13b (Diátaxis how-to); T13c (this roadmap
-entry's per-task closure).
+Per-task closure (15 tasks; T13 split into T13a/T13b/T13c):
 
-- **All 38 ACs open** (AC1, AC2, AC3, AC4, AC4b, AC4c, AC5–AC23, AC24, AC24b, AC25–AC35). Coverage
-  unblocks incrementally as tasks land:
-  - **AC1** closes with T1 (ADR-0002 amendment) — lands in the
-    spec PR.
-  - **AC2** closes with T2 (stdlib `.env` parser).
-  - **AC3, AC4, AC4b, AC4c, AC5** close with T3 (loader API +
-    Tier-1 + platform dispatch + wheel-installability +
-    `pyproject.toml` shim include).
-  - **AC6, AC7, AC8** close with T4 (macOS Keychain Tier-2).
-  - **AC9, AC10, AC11, AC12** close with T5 (Windows Credential
-    Manager Tier-2).
-  - **AC13, AC14, AC15** close with T6 (Tier-3 dotfile;
-    shared-parent behavior).
-  - **AC24, AC24b** close with T7 (`creds-schema.toml` parser
-    + canonical-path resolution).
-  - **AC16–AC23** close with T8 (CLI verb; tombstone args;
-    macOS/Windows exit-code matrices).
-  - **AC25** closes with T9 (frontmatter + lint allow-list).
-  - **AC26, AC27** close with T10 (`conventions-check`
-    AST-walker extensions).
-  - **AC28** closes with T11 (`add-credentialed-skill` author
-    skill + template variants in its `assets/`).
-  - **AC29** closes with T12 (`example-credentialed-skill`
-    worked example).
-  - **AC30** closes with T13a (seed-side CONVENTIONS.md edit).
-  - **AC31** closes with T13b (Diátaxis how-to).
-  - **AC32** closes with T13c (ROADMAP per-task closure).
-  - **AC33** stays green throughout (every PR runs `make build-check`).
-  - **AC34, AC35** are inheritance invariants enforced by every
-    test PR after T4 / T5 / T6 / T8 land their fixtures.
+- [x] **T1** — ADR-0002 amendment (closed AC1; landed in spec PR).
+- [x] **T2** — stdlib `.env` parser (closed AC2).
+- [x] **T3** — loader API + Tier-1 + platform dispatch + wheel-installability
+      (closed AC3, AC4, AC4b, AC4c, AC5).
+- [x] **T4** — macOS Keychain Tier-2 (closed AC6, AC7, AC8).
+- [x] **T5** — Windows Credential Manager Tier-2 (closed AC9, AC10,
+      AC11, AC12).
+- [x] **T6** — Tier-3 dotfile incl. shared-parent behavior (closed
+      AC13, AC14, AC15).
+- [x] **T7** — `creds-schema.toml` parser + canonical-path resolution
+      (closed AC24, AC24b).
+- [x] **T8** — `agentbundle creds` CLI verb; tombstone args; per-platform
+      exit-code matrices (closed AC16–AC23).
+- [x] **T9** — SKILL.md frontmatter + lint allow-list (closed AC25).
+- [x] **T10** — `conventions-check` AST-walker extensions (closed
+      AC26, AC27).
+- [x] **T11** — `add-credentialed-skill` author skill + template variants
+      (closed AC28).
+- [x] **T12** — `example-credentialed-skill` worked example (closed AC29).
+- [x] **T13a** — seed-side CONVENTIONS.md edit (closed AC30).
+- [x] **T13b** — Diátaxis how-to (closed AC31).
+- [x] **T13c** — this entry's per-task closure (closed AC32).
+- [x] **AC33** — `make build-check` clean across every PR.
+- [ ] **AC34, AC35** — inheritance invariants (orphan-fixture guard;
+      no live writes to developer keychain / dotfile). Enforced by
+      every future test PR that adds fixtures under
+      `packages/agentbundle/tests/fixtures/creds/`.
+
+Open follow-ons (not gating shipped status):
+
 - **New ADR ("Credential storage for credentialed skills") is
-  post-implementation.** RFC-0006 § Follow-on artifacts names it;
-  the spec defers authoring it until T1–T13 are done (precedent:
+  post-implementation.** RFC-0006 § Follow-on artifacts names it; with
+  T1–T13c shipped, this is the next item (precedent:
   `user-scope-hooks`'s ADR).
-- **Linux libsecret tier deferred.** v2 RFC scoped alongside an
+- **Linux `libsecret` tier deferred.** v2 RFC scoped alongside an
   adopter-profile audit per RFC-0006 § Unresolved Q1; not gating
   v1 (Linux lands on Tier 3 floor). The `v2-libsecret` stub stays
   open under cross-spec items below.
