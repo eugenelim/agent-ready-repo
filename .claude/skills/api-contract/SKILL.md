@@ -1,9 +1,6 @@
 ---
 name: api-contract
 description: Use when generating an OpenAPI 3.1 API contract from requirements, user stories, or domain models. Applies 138 RESTful API rules as hard constraints to produce complete, validated YAML specs ready for code gen, test gen, mocks, and SDKs. Activate for tasks involving API design, REST contract authoring, or OpenAPI spec creation.
-license: CC-BY-4.0
-metadata:
-  version: "1.0"
 ---
 
 # API Contract Generation
