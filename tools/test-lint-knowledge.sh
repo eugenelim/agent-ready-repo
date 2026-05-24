@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Self-test for tools/lint-knowledge.sh. Builds tempdir fixtures
+# Self-test for tools/lint-knowledge.py. Builds tempdir fixtures
 # tripping each validation rule and asserts the right error fires.
 
 set -uo pipefail
@@ -10,7 +10,7 @@ cd "$REPO_ROOT"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-LINTER="$REPO_ROOT/tools/lint-knowledge.sh"
+LINTER="$REPO_ROOT/tools/lint-knowledge.py"
 
 failures=0
 ran=0
@@ -25,7 +25,7 @@ run_case() {
 
   local out
   set +e
-  out=$(KNOWLEDGE_FILE="$path" bash "$LINTER" 2>&1)
+  out=$(KNOWLEDGE_FILE="$path" python3 "$LINTER" 2>&1)
   local got=$?
   set -e
 
@@ -111,7 +111,7 @@ ran=$((ran + 1))
 path="$TMP/multi.jsonl"
 printf '%s' "$MULTI" > "$path"
 set +e
-multi_out=$(KNOWLEDGE_FILE="$path" bash "$LINTER" 2>&1)
+multi_out=$(KNOWLEDGE_FILE="$path" python3 "$LINTER" 2>&1)
 multi_exit=$?
 set -e
 if [[ "$multi_exit" -eq 1 \
@@ -130,7 +130,7 @@ fi
 # ALLOWED_KINDS must stay in sync. Phase 1's precedent — see
 # tools/test-check-done.sh schema-keys-match.
 ran=$((ran + 1))
-if python3 - "$REPO_ROOT/docs/knowledge/README.md" "$REPO_ROOT/tools/lint-knowledge.sh" <<'PY'
+if python3 - "$REPO_ROOT/docs/knowledge/README.md" "$REPO_ROOT/tools/lint-knowledge.py" <<'PY'
 import pathlib, re, sys
 readme = pathlib.Path(sys.argv[1]).read_text()
 script = pathlib.Path(sys.argv[2]).read_text()
@@ -177,7 +177,7 @@ fi
 # Production file lints clean (regression guard).
 ran=$((ran + 1))
 set +e
-out=$(bash "$LINTER" 2>&1)
+out=$(python3 "$LINTER" 2>&1)
 got=$?
 set -e
 if [[ "$got" -eq 0 ]]; then

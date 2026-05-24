@@ -49,7 +49,7 @@ Each `SKILL.md` should:
    cites them via skill-relative paths. Empty list (`dependencies: []`)
    is valid and honest. The manifest powers `tools/install-skill.py` (Path
    B in [`USING_THIS_TEMPLATE.md`](../../USING_THIS_TEMPLATE.md)) and is
-   validated by `tools/lint-skill-deps.sh`. Keep it accurate as the body
+   validated by `tools/lint-skill-deps.py`. Keep it accurate as the body
    changes — drift is what the linter exists to catch.
 
    **Adopter-owned files (`AGENTS.md`, `docs/CONVENTIONS.md`,
