@@ -536,8 +536,9 @@ clean after each.
 **Approach:**
 
 - New module
-  `packages/agentbundle/agentbundle/cli_reconcile.py` (or extend
-  `cli.py`).
+  `packages/agentbundle/agentbundle/commands/reconcile.py` (matches
+  the existing per-command layout under `commands/`; the subcommand
+  is registered in `cli.py`).
 - Tests under
   `packages/agentbundle/tests/integration/test_reconcile.py`.
 
