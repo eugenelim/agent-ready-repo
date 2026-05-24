@@ -1,6 +1,6 @@
 # Spec: self-hosting
 
-- **Status:** Phase 1 shipped; Phase 2 pending
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md)
@@ -101,10 +101,10 @@ This spec therefore partitions its scope into **two cutover phases**:
   Phase 1 also ships packs/* sources, the recipe TOMLs,
   `.adapt-discovery.toml`, the `make build-check` workflow, and the
   CONVENTIONS amendment.
-- **Phase 2 (follow-up PR).** AGENTS.md body+footer composition and
-  Codex multi-pack managed-block aggregation have landed. The remaining
-  Phase-2 work is comparison-rule strengthening (LF normalisation,
-  file-mode bits, symlink-target comparison via `lstat`).
+- **Phase 2 (closed).** AGENTS.md body+footer composition, Codex
+  multi-pack managed-block aggregation, and the comparison-rule
+  strengthening (LF normalisation, file-mode bits, symlink-target
+  comparison via `lstat`) all landed. See Changelog.
 
 Every *Always do*, *Ask first*, *Never do*, Acceptance Criterion, and
 test below carries an implicit "Phase 1 only" unless it names Phase 2
@@ -146,14 +146,14 @@ explicitly. Phase-2-deferred items are tagged `(Phase 2)`.
   `adapt-to-project` skill (deferred); for self-host, materialize a
   repo-local `.adapt-discovery.toml` with this repo's concrete values
   and apply it. All other build modes copy markers through unchanged.
-- Compare projected output against on-disk content as bytes. *(Phase 2)*
-  Strengthen the comparison to byte-for-byte after CRLF→LF normalisation,
-  with file mode bits compared for regular files and symlink targets
-  compared via `lstat` (never follow symlinks). Phase 1's
-  `diff_against_working_tree` uses `read_bytes()` equality — sufficient
-  for the adapter-driven primitives the gate covers today; the
-  LF-normalising / mode-aware / lstat path lands alongside seed
-  projection in Phase 2.
+- Compare projected output against on-disk content with three rules,
+  all landed in Phase 2: byte-for-byte after CRLF→LF normalisation
+  for text-like files (UTF-8-decodable inputs only — binaries that
+  happen to contain a 0x0D 0x0A pair are compared raw); file-mode
+  permission-bit comparison for regular files (low 9 bits); and
+  symlink-target comparison via `lstat` — the gate never follows a
+  symlink. Implementation: `diff_against_working_tree` in
+  `agentbundle.build.self_host`.
 - Enumerate candidate paths from the git-tracked + untracked-but-not-
   ignored set (`git ls-files --cached --others --exclude-standard`), so
   editor scratch and gitignored build outputs do not surface in either
@@ -471,3 +471,15 @@ and the Codex multi-pack aggregation fix land.
   [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments)
   for the full rationale and the `CONVENTIONS.md:80` exception note.
 - 2026-05-23: AC12 implementation migrates from reading [adapt] to reading [markers] per docs/specs/adapt-to-project/spec.md; AC12 contract unchanged.
+- 2026-05-23: Phase 2 closed. `diff_against_working_tree` strengthens
+  the comparison along the three rules the spec named: CRLF→LF
+  normalisation for text-like files (UTF-8-decodable inputs only),
+  file-mode permission-bit comparison for regular files (low 9 bits;
+  setuid/setgid/sticky out of scope), and symlink-target comparison
+  via `lstat` — never following the link. Implementation in
+  `packages/agentbundle/agentbundle/build/self_host.py`; per-rule
+  unit tests + one integration test pairing each rule with the
+  regression it was added to catch live in `tests/test_self_host_check.py`
+  under `CrlfNormalisationTests`, `FileModeBitsTests`,
+  `SymlinkTargetTests`, and `StrengthenedDiffRegressionIntegrationTests`.
+  Status flips to Shipped — no Phase 3.
