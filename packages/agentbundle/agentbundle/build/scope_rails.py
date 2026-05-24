@@ -24,9 +24,13 @@ Rails:
     wiring merge story is designed in a follow-up RFC.
 
   - **Rail C — `<adapt:NAME>` markers.** A pack declaring `"user" ∈
-    allowed-scopes` cannot carry the marker regex
-    `<adapt:[A-Z_][A-Z0-9_]*>` in any file under `.apm/skills/`,
-    `.apm/agents/`, or `.apm/commands/`. The rail walks those
+    allowed-scopes` cannot carry either the legacy UPPER_SNAKE marker
+    form `<adapt:[A-Z_][A-Z0-9_]*>` *or* the canonical lowercase-hyphen
+    form `<adapt:[a-z][a-z0-9-]*>` in any file under `.apm/skills/`,
+    `.apm/agents/`, or `.apm/commands/`. Both casings are recognised
+    per `adapt-to-project` spec AC14 (canonical syntax) and AC21
+    (cross-spec widening) so a user-scope pack carrying lowercase-
+    hyphen markers cannot bypass the rail. The rail walks those
     directories in `sorted(os.walk(...))` order so the first-offending-
     path stderr message is deterministic across runs and platforms.
     Non-UTF-8 (binary) files are skipped silently — they cannot contain
@@ -50,7 +54,13 @@ from pathlib import Path
 from typing import Iterable
 
 
-_MARKER_REGEX = re.compile(rb"<adapt:[A-Z_][A-Z0-9_]*>")
+# Both legacy UPPER_SNAKE and canonical lowercase-hyphen marker forms
+# are recognised per adapt-to-project spec AC14 + AC21. The canonical
+# form is what self_host.resolve_markers writes; the legacy form is
+# tolerated with a one-shot per-file warning during the migration
+# window. Rail C refuses either form in user-scope packs because both
+# would survive into a user-scope projection and bypass the contract.
+_MARKER_REGEX = re.compile(rb"<adapt:(?:[A-Z_][A-Z0-9_]*|[a-z][a-z0-9-]*)>")
 
 # The three primitive source directories Rail C walks. `.apm/hooks/` and
 # `.apm/hook-wiring/` are already user-scope-refused by Rail B, so a
