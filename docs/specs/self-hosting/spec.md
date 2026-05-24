@@ -444,21 +444,22 @@ and the Codex multi-pack aggregation fix land.
   wrong-target symlink or regular file at `CLAUDE.md` is replaced.
   Implemented by `_recreate_claude_symlink`; tested by
   `ClaudeSymlinkTests`.
-- [x] **AC15b (CLAUDE.md cross-shape equivalence) — Phase 3.** The
-  drift detector treats three on-disk shapes of the repo-root
-  `CLAUDE.md` as equivalent: (a) a symlink whose target is
-  `"AGENTS.md"`; (b) a regular file whose content is byte-equal
-  (after LF normalisation) to `AGENTS.md`; (c) a regular file whose
-  content is the literal string `"AGENTS.md"` (with or without a
-  trailing newline) — the form Git for Windows materialises when
-  `core.symlinks=false`. Cross-shape pairings (e.g., symlink shadow
-  vs. materialised-symlink disk on a Windows runner) no longer
-  drift. Tampering (any other content) still drifts. The rule is
-  scoped to `relative == Path("CLAUDE.md")` only; every other file
-  keeps the strict symlink/regular distinction Phase 2 introduced.
-  Brings `diff_against_working_tree` into agreement with
-  `lint-agents-md.py` check #2 (which has accepted the
-  materialised-symlink shape since the Phase-3 hooks port).
+- [x] **AC15b (CLAUDE.md cross-shape equivalence) — Phase-2
+  amendment.** The drift detector treats three on-disk shapes of
+  the repo-root `CLAUDE.md` as equivalent: (a) a symlink whose
+  target is `"AGENTS.md"`; (b) a regular file whose content is
+  byte-equal (after LF normalisation) to the disk-side
+  `AGENTS.md`; (c) a regular file whose stripped content is
+  `"AGENTS.md"` — the form Git for Windows materialises when
+  `core.symlinks=false`. Clause (c)'s trailing-whitespace
+  tolerance (CRLF, LF, none) mirrors `lint-agents-md.py` check
+  #2's `.strip() == "AGENTS.md"` semantics, so an adopter that
+  passes the lint also passes the drift gate. Cross-shape
+  pairings (e.g., symlink shadow vs. materialised-symlink disk on
+  a Windows runner) no longer drift. Tampering (any other
+  content) still drifts. The rule is scoped to
+  `relative == Path("CLAUDE.md")` only; every other file keeps
+  the strict symlink/regular distinction Phase 2 introduced.
   Implemented by `_is_equivalent_claude_md_shape`; tested by
   `ClaudeMdEquivalenceTests`.
 - [x] **AC16 (marketplace aggregation) — Phase 1.**
@@ -476,18 +477,28 @@ and the Codex multi-pack aggregation fix land.
 
 ## Changelog
 
-- 2026-05-24: AC15b added — CLAUDE.md cross-shape equivalence in the
-  drift detector. The three on-disk shapes (symlink → AGENTS.md,
-  content-copy of AGENTS.md, literal-string `"AGENTS.md"` regular
-  file) are accepted as equivalent for the repo-root CLAUDE.md row
-  only. Closes the cross-OS asymmetry the Windows CI matrix
-  (PR #77) surfaced: macOS/Linux contributors keep the auto-following
-  symlink ergonomics; Windows contributors run `make build-self`
-  (or check out with Git for Windows in either symlink mode) without
-  the drift gate failing on the alias shape. Implementation in
-  `self_host.py:_is_equivalent_claude_md_shape`; six new test cases
-  under `ClaudeMdEquivalenceTests` cover the four shape pairings
-  plus the tampering- and missing-CLAUDE.md negative cases.
+- 2026-05-24: AC15b added as a Phase-2 amendment — CLAUDE.md
+  cross-shape equivalence in the drift detector. The three on-disk
+  shapes (symlink → AGENTS.md, content-copy of AGENTS.md, regular
+  file whose stripped content is `"AGENTS.md"`) are accepted as
+  equivalent for the repo-root CLAUDE.md row only. Closes the
+  cross-OS asymmetry the Windows CI matrix (PR #77) surfaced:
+  macOS/Linux contributors keep the auto-following symlink
+  ergonomics; Windows contributors run `make build-self` (or check
+  out with Git for Windows in either symlink mode, including
+  `core.autocrlf=true` which writes the materialised stub as
+  `AGENTS.md\r\n`) without the drift gate failing on the alias
+  shape. The amendment tightens parity with `lint-agents-md.py`
+  check #2 — both now accept the same set of CLAUDE.md shapes via
+  the same `strip()`-based literal-string test. Implementation in
+  `self_host.py:_is_equivalent_claude_md_shape`; eight test cases
+  under `ClaudeMdEquivalenceTests` cover the six shape pairings
+  (symlink/copy shadow × symlink/copy/materialised disk) plus the
+  tampering, missing-CLAUDE.md, and CRLF regression cases. The
+  pre-existing `SymlinkTargetTests.test_matching_symlinks_no_drift`
+  was retargeted from CLAUDE.md to a non-CLAUDE.md filename so it
+  exercises the Phase-2 strict path rather than the new
+  short-circuit (which would mask a future regression).
 - 2026-05-24: `docs/_templates/` directory retired. Templates
   (`spec.md`, `plan.md`, `adr.md`, `rfc.md`, `state.json`, plus the
   directory's `README.md`) moved into the `assets/` folder of the
