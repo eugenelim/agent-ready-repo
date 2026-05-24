@@ -14,6 +14,10 @@
   every PR that changes user-visible behavior.
 - [`personas.md`](personas.md) — who we're building for. Optional;
   add only if it's actively used to make decisions.
+- [`release-checklist.md`](release-checklist.md) — manual-QA rows
+  CI cannot exercise. Copy each spec's section into the release PR
+  description before tagging. Optional; add the file the first time a
+  spec needs out-of-band verification.
 
 ## What does NOT live here
 
