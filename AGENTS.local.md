@@ -21,6 +21,10 @@ trips `make build-check` and blocks every PR.
 | `docs/rfc/README.md`                 | `packs/governance-extras/seeds/docs/rfc/README.md`           |
 | `docs/adr/README.md`                 | `packs/governance-extras/seeds/docs/adr/README.md`           |
 | `docs/guides/**/README.md`           | `packs/user-guide-diataxis/seeds/docs/guides/**/README.md`   |
+| `.claude/skills/<name>/**`           | `packs/<pack>/.apm/skills/<name>/**` (e.g. `packs/core/.apm/skills/new-spec/SKILL.md`) |
+| `.claude/agents/<name>.md`           | `packs/<pack>/.apm/agents/<name>.md`                         |
+| `.claude/commands/<name>.md`         | `packs/<pack>/.apm/commands/<name>.md`                       |
+| `.claude/hooks/...`                  | `packs/<pack>/.apm/hooks/...`                                |
 
 **The workflow when you touch any of the above:**
 
@@ -43,11 +47,15 @@ The `make build-check` error message names the seed path you should
 have edited — so if you do trip it, the fix is mechanical (edit the
 seed it names, re-run `make build-self`, re-commit).
 
-**Drift fixed twice already** (each time a CI cycle wasted):
+**Drift fixed three times already** (each time a CI cycle wasted):
 - RFC-0007 PR (#53) added a row to `docs/rfc/README.md`; fixed by
   propagating to `packs/governance-extras/seeds/docs/rfc/README.md`.
 - converters-pack spec PR (#57) added a row to `docs/specs/README.md`;
   fixed by propagating to `packs/core/seeds/docs/specs/README.md`.
+- new-spec subagent-matching PR (#67) edited `.claude/skills/new-spec/SKILL.md`
+  directly; fixed by propagating to `packs/core/.apm/skills/new-spec/SKILL.md`.
+  Note: `.claude/skills/` and `.claude/agents/` project from
+  `packs/<pack>/.apm/...`, **not** from `packs/<pack>/seeds/...`.
 
 If you edit any README, table, or doc under the projected paths above,
 **check the seed first**.
