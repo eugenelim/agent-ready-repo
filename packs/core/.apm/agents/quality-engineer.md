@@ -3,7 +3,6 @@ name: quality-engineer
 description: Quality-lens reviewer covering testability, observability, reliability, and maintainability — the "cost to live with this code" pass. Also drafts contract or construction tests on request. Reads AGENTS.md, CONVENTIONS.md, the spec and plan if any, the diff, and nearby tests; flags test-shape problems (wrong level, mock-shape assertions, tautology), missing observability, weak error paths, and obvious complexity. Operates in three modes — review (default), test-author, testability-audit — picked from the orchestrator's brief or inferred from the prompt. Review mode covers two scopes: diff-level (default) and spec-level coverage when invoked at the close of a multi-loop spec. Use after adversarial-reviewer is clean. Re-run iteratively until the agent reports `Clean — ready to commit.`
 tools: Read, Grep, Glob, Bash
 model: opus
-dependencies: []
 ---
 
 # Quality engineer
