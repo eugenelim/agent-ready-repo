@@ -53,11 +53,29 @@ giving up?
 If you can't think of any drawbacks, the proposal isn't yet honest.
 -->
 
+## Prior art
+
+<!--
+What other projects, languages, or processes have tackled the same shape of
+problem? What worked, what didn't, what should we learn?
+
+Land prior-art citations here — both from this repo (related ADRs, RFCs,
+specs) and from external precedent. "We considered X and it's a poor fit
+because Y" beats unsourced assertion.
+
+Empty prior art is itself a signal — no one has tried this — but call it
+out rather than leaving the section blank.
+-->
+
 ## Unresolved questions
 
 <!--
 What did you punt on? What are you hoping reviewers will weigh in on? Listing
 these explicitly focuses the discussion.
+
+Each question should carry the author's lean — even if the lean is "punt to
+reviewers." A bare question with no author position means the homework
+wasn't done.
 -->
 
 ## Follow-on artifacts
