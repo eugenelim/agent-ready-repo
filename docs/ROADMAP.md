@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (added `wire-session-start-hook` — Draft → Approved after four-round spec-mode adversarial review; ships hook-wiring for the core pack's `session-start.py` hook body so `agentbundle install core` auto-writes the Claude Code `SessionStart` binding; Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
+**Last updated:** 2026-05-24 (added `kiro-ide-hook` — Draft, sibling of `user-scope-hooks` covering RFC-0005's third hook surface (Kiro standalone `.kiro.hook` files for IDE events); new `kiro-ide-hook` primitive, contract bumps `0.3 → 0.4`; non-probe tasks A/B/C1-4/D1/G land in-session, T-CONTRACT gated on Q6 / Q11 probes against real Kiro install, T-F ADR carries bullets (a)+(b) from RFC § Follow-on artifacts; the RFC-text drift on uninstall semantics in § State-file impact is recorded as a deferred follow-up. Earlier today: added `wire-session-start-hook` — Draft → Approved after four-round spec-mode adversarial review; ships hook-wiring for the core pack's `session-start.py` hook body so `agentbundle install core` auto-writes the Claude Code `SessionStart` binding; Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
 
 ## How this file is maintained
 
@@ -210,6 +210,63 @@ RFC-0005's follow-on artifacts name.
   RFC-0005 § First consumer (and § Unresolved Q4). The spec
   measures contract correctness via fixture packs, not via a
   shipped consumer.
+
+## `kiro-ide-hook` — drafted
+
+Spec: [`specs/kiro-ide-hook/spec.md`](specs/kiro-ide-hook/spec.md)
+(stub — RFC drives implementation). Sibling of `user-scope-hooks`,
+covering RFC-0005's third hook surface that the parent spec did not
+ship: standalone `.kiro/hooks/<name>.kiro.hook` JSON files Kiro
+reads on IDE-surface events (file save, prompt submit, etc.). A new
+primitive `kiro-ide-hook` carries them — source
+`.apm/kiro-ide-hooks/<name>.kiro.hook`, projected `direct-file` to
+`.kiro/hooks/<pack>/<name>.kiro.hook` for the Kiro adapter,
+`dropped` elsewhere, repo-scope only in v1 (user scope is gated on
+upstream Kiro [#5440](https://github.com/kirodotdev/Kiro/issues/5440)).
+
+The plan amends two specs in-place (`distribution-adapters` and
+`agent-spec-cli`) rather than drafting a third spec. Contract
+bumps `0.3 → 0.4` with the addition.
+
+- **All non-probe tasks landable in-session.** T-A, T-B, T-C1, T-C2,
+  T-C3, T-C4, T-D1 cover the spec amendments, schema additions,
+  validate rail (`check_kiro_ide_hook`), projector module
+  (`projections/kiro_ide_hook.py`), Kiro adapter wiring, and
+  synthetic fixtures.
+- **T-CONTRACT (v0.4 contract bump) — probe-gated.** RFC-0005
+  § *Gating verifications before contract version 0.4 ships*
+  requires two probes against a real Kiro install before the
+  declaration lands:
+  - **Q6 — recursion + extension filter.** Does Kiro recurse into
+    `.kiro/hooks/<subdir>/`? Does it glob `*.kiro.hook` or read
+    every file? The 2×2 decides the canonical `target.repo` string.
+    The `yes-recursion × no-extension-filter` quadrant additionally
+    triggers a cross-primitive `hook-body` user-scope retarget
+    (tracked as conditional task T-E1b).
+  - **Q11 — vocabulary fixture.** Capture at least one
+    IDE-UI-authored `.kiro.hook` file; the captured `when.type` /
+    `then.type` strings become the canonical
+    `ide-event-vocabulary` / `ide-action-vocabulary` in
+    `adapter.toml`.
+- **T-F (ADR) — post-implementation.** Records both bullets from
+  RFC § Follow-on artifacts ADR: (a) merge contracts for
+  hand-edited and pack-owned files (`user-merge-json` /
+  `merge-into-agent-json`); (b) primitive-per-surface for Kiro
+  hooks. Per the pre-EXECUTE adversarial review, `docs/adr/`
+  carries only 0001/0002 today and the user-scope-hooks track
+  produced no ADR — bullet (a) is currently orphaned and this PR
+  picks it up alongside bullet (b).
+- **RFC drift in § State-file impact — deferred.** RFC-0005 lines
+  1067-1086 describe uninstall as "unconditional / verbatim", but
+  shipped `uninstall.py` is Tier-2 warn-and-preserve. The T-B
+  amendment describes actual code behaviour; the RFC text edit is
+  not in scope for this PR and lands as a follow-up.
+- **First `kiro-ide-hook` consumer pack — deferred.** Tracked as a
+  separate open item per RFC § Follow-on artifacts ROADMAP bullet
+  ("A separate item tracks the first `kiro-ide-hook` consumer
+  pack"). The spec measures contract correctness via fixture packs,
+  not via a shipped consumer — same precedent as the
+  `user-scope-hooks` first-consumer deferral above.
 
 ## `skill-secrets` — shipped
 
