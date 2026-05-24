@@ -4,6 +4,11 @@
   },
   "plugins": [
     {
+      "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and more to come.",
+      "name": "contracts",
+      "version": "0.1.0"
+    },
+    {
       "description": "File-format conversion skills: documents and images \u2192 Markdown; Markdown \u2192 styled HTML; Outlook .msg \u2192 Markdown.",
       "name": "converters",
       "version": "0.1.0"
