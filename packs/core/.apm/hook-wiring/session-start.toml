@@ -1,0 +1,24 @@
+# Wires the session-start.py hook body to Claude Code's SessionStart
+# event. The merge-json adapter rule
+# (packages/agentbundle/agentbundle/build/adapters/claude_code.py:84-109)
+# merges this under the `hooks` key of the adapter's target-path
+# `.claude/settings.local.json`. At install time, `agentbundle` wraps
+# that under the recipe pipeline's `claude-plugins/<pack>/`
+# output-subdir (so adopters see the file at
+# `<output>/claude-plugins/core/.claude/settings.local.json`); at
+# self-host time, `make build-self` writes the flat workspace path
+# (`<workspace>/.claude/settings.local.json`, gitignored).
+#
+# Shape: Claude Code's documented nested SessionStart schema
+# (code.claude.com/docs/en/hooks). Outer entry has no `matcher`
+# (fires on all session types: startup / resume / clear); inner
+# `hooks` array carries `type = "command"` and the command string.
+#
+# No `id` field: repo-scope merge-json does not consume it (the field
+# is a user-scope concern in _merge_user_scope_hook_wiring). No
+# `attach-to-agent`: that's a Kiro-only field, and Kiro is out of
+# scope (see docs/specs/wire-session-start-hook/spec.md § Non-goals).
+[[hooks.SessionStart]]
+hooks = [
+  { type = "command", command = "python tools/hooks/session-start.py" },
+]
