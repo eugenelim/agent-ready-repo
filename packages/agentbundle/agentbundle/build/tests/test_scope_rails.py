@@ -134,7 +134,8 @@ class RailBHooksTests(unittest.TestCase):
 class RailCMarkersTests(unittest.TestCase):
     """`<adapt:NAME>` markers under .apm/skills/, /agents/, /commands/ refused."""
 
-    def test_rail_c_refuses_marker_in_skill_with_user_scope(self) -> None:
+    def test_rail_c_refuses_upper_snake_marker_in_skill_with_user_scope(self) -> None:
+        """Legacy UPPER_SNAKE form `<adapt:NAME>` is refused."""
         from agentbundle.build.scope_rails import check_markers
 
         with tempfile.TemporaryDirectory() as td:
@@ -149,18 +150,60 @@ class RailCMarkersTests(unittest.TestCase):
             self.assertIsNotNone(result)
             self.assertIn(".apm/skills/my-skill/SKILL.md", result)
 
-    def test_rail_c_rejects_only_strict_marker(self) -> None:
-        """The grep matches `<adapt:[A-Z_][A-Z0-9_]*>` strictly."""
+    def test_rail_c_refuses_lowercase_hyphen_marker_in_skill_with_user_scope(self) -> None:
+        """Canonical lowercase-hyphen form `<adapt:project-name>` is refused.
+
+        Closes the AC21 carve-out: until the code-side widening, a
+        user-scope pack carrying the canonical marker form passed
+        `validate` in code even though the spec contract refused it.
+        """
         from agentbundle.build.scope_rails import check_markers
 
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
-            skills_dir = pack / ".apm" / "skills" / "lowercase"
+            skills_dir = pack / ".apm" / "skills" / "my-skill"
             skills_dir.mkdir(parents=True)
-            # Lowercase marker — must not match.
-            (skills_dir / "SKILL.md").write_text("plays with <adapt:lowercase>")
-            # Wrong-cased prefix — must not match.
-            (skills_dir / "OTHER.md").write_text("plays with <ADAPT:NAME>")
+            (skills_dir / "SKILL.md").write_text(
+                "# My skill\n\nDoes <adapt:project-name> things.\n"
+            )
+
+            result = check_markers(pack, ["user"])
+            self.assertIsNotNone(result)
+            self.assertIn(".apm/skills/my-skill/SKILL.md", result)
+
+    def test_rail_c_refuses_lowercase_marker_in_agent_with_user_scope(self) -> None:
+        """Canonical form is refused under `.apm/agents/` too (rail directory coverage)."""
+        from agentbundle.build.scope_rails import check_markers
+
+        with tempfile.TemporaryDirectory() as td:
+            pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
+            agents_dir = pack / ".apm" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "reviewer.md").write_text("Owner: <adapt:owner>\n")
+
+            result = check_markers(pack, ["user"])
+            self.assertIsNotNone(result)
+            self.assertIn(".apm/agents/reviewer.md", result)
+
+    def test_rail_c_accepts_non_marker_strings(self) -> None:
+        """Strings that resemble markers but don't match either grammar pass.
+
+        Wrong-cased prefix `<ADAPT:NAME>` and mixed-case names like
+        `<adapt:MixedCase>` are not valid markers under either casing
+        and must not trigger the rail.
+        """
+        from agentbundle.build.scope_rails import check_markers
+
+        with tempfile.TemporaryDirectory() as td:
+            pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
+            skills_dir = pack / ".apm" / "skills" / "non-markers"
+            skills_dir.mkdir(parents=True)
+            # Wrong-cased prefix — must not match either grammar.
+            (skills_dir / "A.md").write_text("plays with <ADAPT:NAME>")
+            # Mixed-case name — matches neither UPPER_SNAKE nor lowercase-hyphen.
+            (skills_dir / "B.md").write_text("plays with <adapt:MixedCase>")
+            # Empty name — matches neither grammar.
+            (skills_dir / "C.md").write_text("plays with <adapt:>")
             self.assertIsNone(check_markers(pack, ["user"]))
 
     def test_rail_c_does_not_inspect_repo_only_pack(self) -> None:
