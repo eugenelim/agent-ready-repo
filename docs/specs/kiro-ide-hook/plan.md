@@ -357,14 +357,21 @@ resolution.
 
 **Acceptance Criteria:**
 
-- [ ] `primitive.required` grows `"kiro-ide-hook"`.
 - [ ] `projections.<primitive>.properties` gains `ide-event-vocabulary`
       and `ide-action-vocabulary` as optional arrays-of-strings
-      (`minItems: 1`).
-- [ ] Existing v0.3 schemas (Claude Code user-merge-json, Kiro
-      merge-into-agent-json) continue to validate.
+      (`minItems: 1`). The fields are already implicitly permitted
+      (no `additionalProperties: false` on the inner object); this
+      change makes them explicit/documented.
+- [ ] Existing v0.3 contract continues to validate cleanly after
+      the change.
 - [ ] The schema enum for `projections.<primitive>.mode` is
       **unchanged** — `direct-file` is reused.
+- [ ] **No change to `primitive.required` in this task.** Adding
+      `"kiro-ide-hook"` to the required list lands in T-CONTRACT in
+      lockstep with the `[primitive."kiro-ide-hook"]` declaration in
+      `adapter.toml` — otherwise validate would reject the
+      pre-bump contract. Same reasoning as `pack.schema.json`'s
+      `adapter-contract.version` enum bump.
 - [ ] **No change to `pack.schema.json` in this task.** The
       `adapter-contract.version` enum bump to `"0.4"` lands in
       T-CONTRACT in lockstep with the `[contract] version` write.
@@ -716,6 +723,10 @@ task surfaces; T-CONTRACT pauses behind it.
 - [ ] `[contract] version` bumps `"0.3" → "0.4"`.
 - [ ] `[primitive."kiro-ide-hook"]` table added with
       `source-path = ".apm/kiro-ide-hooks/"`.
+- [ ] `adapter.schema.json` `primitive.required` array grows
+      `"kiro-ide-hook"` — lands here, not T-C1, so the schema's
+      required list and the contract's `[primitive]` declaration
+      hit the tree in the same commit.
 - [ ] `[adapter.kiro.projections.kiro-ide-hook]` table added with:
       `mode = "direct-file"`, `target.repo = "<probe-pinned-string>"`,
       `on-conflict = "prompt-then-preserve"`,
