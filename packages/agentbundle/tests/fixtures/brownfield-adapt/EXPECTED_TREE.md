@@ -16,6 +16,23 @@ byte-for-byte:
 or merge it (that's the skill's class-2 work, exercised in the manual
 QA matrix). It remains on disk after a class-1 `adapt` run.
 
+`DESIGN.md` (top-level) is a class-3 surface: an off-canonical
+document the skill should propose moving / merging into the canonical
+`docs/CHARTER.md`. The CLI's `adapt` ignores it (no marker, not in
+state); it remains on disk byte-identical after a class-1 run.
+Seeded for the manual QA matrix's class-3 (rows 12–14) Claude-
+simulated captures; not consumed by any automated test.
+
+`docs/howto/getting-started.md` (adopter-original) and
+`docs/guides/how-to/index.md` (diátaxis-projection) are the class-4
+surface: two overlapping how-to homes the skill should propose
+consolidating. Filenames deliberately differ so the consolidation
+proposal doesn't require a collision-handling sub-protocol (which
+SKILL.md doesn't yet specify). Neither carries a marker; both
+remain byte-identical after a class-1 run. Seeded for the manual
+QA matrix's class-4 (rows 15–16) Claude-simulated captures; not
+consumed by any automated test.
+
 ## User scope (synthetic)
 
 `tests/fixtures/brownfield-adapt-user-home/.agent-ready/` plumbs the
