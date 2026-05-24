@@ -11,6 +11,7 @@
 | [0003](0003-spec-and-cli.md) | Adapter contract publication + reference CLI | Accepted | 2026-05-21 | 2026-05-22 |
 | [0004](0004-install-scope-per-pack.md) | Install-scope dimension — repo or user — defaulted and constrained per pack | Draft | 2026-05-23 | |
 | [0005](0005-user-scope-hook-support.md) | User-scope hook support — body reroot + wiring merge mode | Draft | 2026-05-23 | |
+| [0006](0006-skill-secrets-storage.md) | Credential storage for credentialed skills — tiered env/keyring/dotfile + two-layer architecture | Accepted | 2026-05-24 | 2026-05-24 |
 
 ## Adding a new RFC
 
