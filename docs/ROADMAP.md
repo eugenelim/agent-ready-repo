@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-23 (spec-bookkeeping reconciliation — three specs' AC checkboxes flipped against on-disk evidence; AC4b rows 17–18 promoted to AC4a (a)-automation in the preceding capture PR)
+**Last updated:** 2026-05-24 (user-scope-hooks spec drafted from RFC-0005 + #36 amendment)
 
 ## How this file is maintained
 
@@ -151,6 +151,57 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   AC4b stays open: simulated captures for rows 8–16 are
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
+
+## `user-scope-hooks` — drafted
+
+Spec: [`specs/user-scope-hooks/spec.md`](specs/user-scope-hooks/spec.md).
+Drafted from [RFC-0005](rfc/0005-user-scope-hook-support.md) (which
+merged at Draft in #35 and was amended in #36 to extend Kiro support
+at both scopes). The spec is the implementation contract for both
+forks the RFC designs:
+
+- **Claude Code at user scope:** `user-merge-json` mode merging
+  `hook-wiring` into `~/.claude/settings.json`; `hook-body` reroots
+  to `~/.claude/hooks/<pack>/<name>.{sh,py}`.
+- **Kiro at both scopes:** `merge-into-agent-json` mode merging
+  `hook-wiring` into pack-owned `<scope-root>/.kiro/agents/<attach-to-agent>.json`;
+  closes RFC-0001 Open Q1 (Kiro `hook-wiring` `degraded-info-log`).
+
+The plan breaks the work into thirteen tasks (T1 schema accept →
+T11 agent-spec-cli amendment, with T8 split into T8a/T8b/T8c —
+state schema, install/uninstall, upgrade reconciliation). Tasks
+T1–T9 land code; T10 and T11 amend the two sibling specs
+RFC-0005's follow-on artifacts name.
+
+- **All 31 ACs open** (AC1–AC29 plus AC17b for Claude Code event
+  pass-through and AC19b for `attach-to-agent`-rename upgrade).
+  Coverage unblocks incrementally as tasks land:
+  - **AC1, AC2, AC3, AC4, AC5, AC7** close with T1 (schema +
+    contract version bump).
+  - **AC6** closes with T2 (validate rails) and T3 (fixture-on-disk
+    coverage).
+  - **AC8–AC14** close with T5 (`user-merge-json` mode).
+  - **AC15–AC19, AC17b** close with T6 (`merge-into-agent-json`
+    mode).
+  - **AC16** also touches T7 (phase-order invariant).
+  - **AC20–AC22** close with T8a (state schema + migration).
+  - **AC23–AC25, AC12, AC11, AC19** close with T8b
+    (install/uninstall threading + `--force-merge`).
+  - **AC19b** closes with T8c (upgrade reconciliation).
+  - **AC26** closes with T9 (`reconcile` reporter).
+  - **AC27** stays green throughout (every PR runs
+    `make build-check`).
+  - **AC28, AC29** close with T3 (fixtures) and inheritance
+    through every test PR after.
+- **ADR is post-acceptance.** RFC-0005 named the ADR
+  ("CLI may write to hand-edited shared user-settings files under
+  an ID-tagged array-append merge contract, and to pack-owned
+  agent files under a per-agent variant of the same contract").
+  Lands after T1–T9 are done; not gating the spec.
+- **First user-scope hook-bearing consumer pack — deferred.** Per
+  RFC-0005 § First consumer (and § Unresolved Q4). The spec
+  measures contract correctness via fixture packs, not via a
+  shipped consumer.
 
 ---
 
