@@ -650,7 +650,8 @@ def test_rm_notes_env_var_present_but_unremovable(tmp_path, monkeypatch, capsys)
 def test_setup_refuses_non_tty_stdin_via_subprocess(tmp_path):
     """AC23 POSIX path: real ``stdin=subprocess.DEVNULL`` (so
     ``sys.stdin.isatty()`` actually returns ``False`` for the child),
-    helper exits non-zero with the stderr text ``stdin is not a tty``.
+    helper exits non-zero with a categorised ``stdin-not-tty`` prefix
+    that security tooling can pattern-match without parsing the body.
     """
     _write_skill_fixture(tmp_path, "alpha", "alpha")
     _write_state_file(tmp_path, "core", (".claude/skills/alpha/SKILL.md",))
@@ -670,7 +671,9 @@ def test_setup_refuses_non_tty_stdin_via_subprocess(tmp_path):
         env=env,
     )
     assert res.returncode != 0
-    assert "stdin is not a tty" in res.stderr
+    # AC23 categorised prefix (Adversarial Concern #11): the stderr
+    # line is distinct from the argv-refusal path.
+    assert "creds setup: stdin-not-tty:" in res.stderr
 
 
 # ── AC11+AC18: read-path Tier-2 hard fail propagates (exit 3) ─────────

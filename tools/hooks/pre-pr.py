@@ -5,14 +5,13 @@ non-zero on the first failure so a contributor can't open a PR
 whose artifacts are inconsistent with the conventions.
 
 Pure-stdlib Python port of pre-pr.sh. Native-Windows-parity companion
-of the bash version: same five linters in the same order, same
+of the bash version: same four linters in the same order, same
 state.json iteration shape, same `pre-pr: ✓ <label>` /
 `pre-pr: ✖ <label> failed` / `pre-pr: all checks passed` output.
 
 What it runs:
   - tools/lint-agents-md.py        — root AGENTS.md hygiene, drift-watch
   - tools/lint-agent-artifacts.py  — skill/agent/command frontmatter
-  - tools/lint-skill-deps.py       — manifest dependency resolution
   - tools/lint-knowledge.py        — docs/knowledge/patterns.jsonl
   - tools/lint-build.py            — build-pipeline hygiene
   - .claude/skills/work-loop/scripts/loop-cohort.py
@@ -72,7 +71,6 @@ def main() -> int:
 
     _run("agents-md hygiene",   [py, "tools/lint-agents-md.py"])
     _run("agent-artifact lint", [py, "tools/lint-agent-artifacts.py"])
-    _run("skill-deps lint",     [py, "tools/lint-skill-deps.py"])
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
 

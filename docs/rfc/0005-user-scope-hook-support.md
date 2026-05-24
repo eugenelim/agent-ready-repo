@@ -1,4 +1,4 @@
-# RFC-0005: Hook support — user-scope wiring for Claude Code; agent-bound wiring for Kiro
+# RFC-0005: Hook support across Claude Code and Kiro
 
 - **Status:** Draft
 - **Author:** eugenelim
@@ -6,18 +6,25 @@
 - **Date closed:**
 - **Extends:** [RFC-0004](0004-install-scope-per-pack.md) — lifts the
   conditional Rail-B refusal it parked.
-- **Amends:**
-  [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md)
-  — projection forks for `hook-body` and `hook-wiring` under
-  `claude-code` (user scope) and `kiro` (both scopes); Rail B
-  becomes conditional; Kiro `hook-wiring` lifts out of
-  `degraded-info-log`; Kiro gains a `[scope]` table; the hook-wiring
-  TOML schema grows an optional `attach-to-agent` field.
-- **Amends:**
-  [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md)
-  — `install` / `uninstall` / `upgrade` gain user-scope hook handling
-  and a per-entry ownership record in state; build-pipeline ordering
-  invariant added (agent projects before its wiring merges).
+- **Amends [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md):**
+  - projection forks for `hook-body` and `hook-wiring` under
+    `claude-code` (user scope) and `kiro` (both scopes)
+  - Rail B becomes conditional
+  - Kiro `hook-wiring` lifts out of `degraded-info-log`
+  - Kiro gains a `[scope]` table
+  - `hook-wiring` TOML schema grows an optional `attach-to-agent` field
+  - contract gains a new `kiro-ide-hook` primitive (Kiro projection;
+    `dropped` on every other adapter)
+  - sibling declarative lists `ide-event-vocabulary` and
+    `ide-action-vocabulary` join `agent-event-vocabulary` on the Kiro
+    adapter
+  - contract version bumps `0.3 → 0.4`
+- **Amends [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md):**
+  - `install` / `uninstall` / `upgrade` gain user-scope hook handling
+  - per-entry ownership record in state
+  - build-pipeline ordering invariant: agent projects before its
+    wiring merges; `hook-body` projects before `kiro-ide-hook` so
+    cross-primitive references can resolve
 
 ## Summary
 
@@ -43,6 +50,21 @@ both forks:
   hook-related gap in the adapter contract — and simultaneously
   extends Kiro to user scope. The blocker turned out to be
   architectural (hooks-in-agent-JSON), not schema-publication.
+- **Kiro IDE event hooks** are architecturally separate from CLI
+  agent-bound hooks: they live in standalone `.kiro/hooks/<name>.kiro.hook`
+  JSON files that Kiro fires on IDE-surface events
+  (file create / save / delete, prompt submit, agent stop, manual
+  trigger, etc.). The firing condition is the IDE event itself, not
+  the agent identity — file-event hooks (`fileSave`, `fileCreated`,
+  etc.) fire even with no agent active, while agent-runtime-event
+  hooks (`preToolUse`, `agentStop`, `postTaskExecution`, etc.) fire
+  on whichever agent the adopter is using. A new primitive
+  `kiro-ide-hook` covers them — source
+  `.apm/kiro-ide-hooks/<name>.kiro.hook`, projected `direct-file`
+  to `.kiro/hooks/<pack>/<name>.kiro.hook` for the Kiro adapter,
+  `dropped` on every other adapter, repo-scope only in v1 (user
+  scope is gated on upstream Kiro
+  [#5440](https://github.com/kirodotdev/Kiro/issues/5440)).
 
 The contract's Rail-B refusal becomes conditional on either mode
 being declared by the adapter; user-scope state grows an ownership
@@ -93,6 +115,27 @@ projection mode (`merge-into-agent-json`) is the structural fix —
 and once we're designing one new mode for Kiro, doing it alongside
 Claude Code's user-scope work is cheaper than two sequential
 RFCs.
+
+**Kiro IDE event hooks are the third surface left unaddressed.**
+The per-agent CLI fix above does not cover IDE hooks
+([`kiro.dev/docs/hooks/`](https://kiro.dev/docs/hooks/),
+[`hooks/types`](https://kiro.dev/docs/hooks/types),
+[`hooks/examples`](https://kiro.dev/docs/hooks/examples/)) — they
+live in standalone `.kiro/hooks/<name>.kiro.hook` JSON files and
+fire on IDE-surface events regardless of which agent is active.
+A pack that wants to ship — say — a "Run the linter when a `.py`
+file saves" automation for Kiro has no projection target today:
+the pack author either documents a manual setup step (the Tier-2
+squatter problem RFC-0001 set out to eliminate), or wires it as a
+per-agent CLI hook via `merge-into-agent-json` (which fires only
+while the attached agent is active — the wrong condition for an
+"on save, every time" trigger). Neither is right; both are
+documented anti-patterns in the existing § *Cross-adapter
+semantic asymmetry* drawback. Adding a third surface (`kiro-ide-hook`)
+alongside the two CLI surfaces this RFC already designs keeps all
+the Kiro-side hook decisions in one place, and reuses the
+declarative-vocabulary discipline § `agent-event-vocabulary`
+introduces.
 
 ## Proposal
 
@@ -542,6 +585,264 @@ Same rules as `user-merge-json`:
   `allowed-adapters`. Translation belongs in a separate RFC if
   it ever lands.
 
+### Kiro IDE event hooks — new `kiro-ide-hook` primitive
+
+The two preceding sections cover *agent-bound* hooks: they fire
+only while the attached agent is active. Kiro IDE event hooks are a
+separate surface — standalone `.kiro/hooks/<name>.kiro.hook` JSON
+files Kiro reads at workspace open and fires on IDE-surface events
+(file create / save / delete, prompt submit, agent stop, tool use,
+task execution, manual trigger). They are not bound to a *specific*
+agent — the trigger is the IDE event. File-event triggers
+(`fileSave`, `fileCreated`, `fileDeleted`, `fileEdit`,
+`promptSubmit`) fire even when no agent is active;
+agent-runtime-event triggers (`preToolUse`, `postToolUse`,
+`agentStop`, `preTaskExecution`, `postTaskExecution`) fire during
+agent operation but for whichever agent the adopter is using, not
+one named in the hook.
+
+The two declarative-list affordances `ide-event-vocabulary` and
+`ide-action-vocabulary` introduced below carry the same
+adapter-table discipline as `agent-event-vocabulary` (see
+§ *Sibling vocabularies for IDE event hooks*, inside
+§ *Validate-time rule lift*, for the full vocabulary semantics).
+
+The natural primitive is shaped like the existing `hook-body`: one
+source file per hook, projected `direct-file` into a
+pack-namespaced subdirectory of the target.
+
+#### Pack-side source
+
+```toml
+# adapter.toml
+[primitive."kiro-ide-hook"]
+source-path = ".apm/kiro-ide-hooks/"
+```
+
+Source files are hand-authored JSON, one file per hook, named
+`<name>.kiro.hook`. The schema follows the observed `.kiro.hook`
+shape Kiro reads ([hook docs](https://kiro.dev/docs/hooks/),
+[examples](https://kiro.dev/docs/hooks/examples/),
+[community guide](https://aicodingtools.blog/en/kiro/kiro-hooks-guide)):
+
+```json
+{
+  "name": "Lint on save",
+  "description": "Run ruff when a Python file is saved.",
+  "version": "1",
+  "when": {
+    "type": "fileSave",
+    "patterns": ["**/*.py"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run ruff on the just-saved file and surface any violations."
+  }
+}
+```
+
+#### Kiro adapter projection
+
+```toml
+[adapter.kiro.projections.kiro-ide-hook]
+mode = "direct-file"
+target.repo = ".kiro/hooks/<pack>/<name>.kiro.hook"
+on-conflict = "prompt-then-preserve"
+ide-event-vocabulary = [
+  "fileCreated",
+  "fileEdit",
+  "fileSave",
+  "fileDeleted",
+  "promptSubmit",
+  "agentStop",
+  "preToolUse",
+  "postToolUse",
+  "preTaskExecution",
+  "postTaskExecution",
+  "manualTrigger",
+]
+ide-action-vocabulary = ["askAgent", "runCommand"]
+```
+
+Pack-namespacing the target (`<pack>/<name>.kiro.hook`) matches the
+convention § *hook-body at user scope* picked for the same reason —
+two packs shipping `on-save.kiro.hook` would otherwise collide, and
+a flat layout would force a `kiro-ide-hook-owned` state-file table
+to disambiguate uninstall. With pack-namespacing, uninstall is
+directory removal; no state-file shape change needed (see updated
+§ *State-file impact* below).
+
+**Recursion-into-subdirectories assumption.** This RFC assumes Kiro
+recurses into `.kiro/hooks/<pack>/` and reads the `.kiro.hook` files
+underneath; the upstream docs document `.kiro/hooks/` as the read
+path but do not state whether recursion happens. If recursion is
+not supported, the follow-on spec falls back to flat-with-prefix
+`<pack>--<name>.kiro.hook`. Either layout is pack-namespaced; only
+the path shape differs. Recorded as Unresolved Q6.
+
+#### `validate` rail
+
+The rail enforces four checks:
+
+1. The file exists and is parseable JSON.
+2. The required fields are present: `name`, `version`, `when.type`,
+   `then.type`. Missing → refuse with
+   `pack <P>'s kiro-ide-hook <file> is missing required field <field>`.
+3. `when.type` is drawn from `ide-event-vocabulary`. Out-of-vocabulary
+   events → refuse, mirroring the `agent-event-vocabulary` refusal
+   shape:
+   `pack <P>'s kiro-ide-hook <file> uses event '<type>'; not in adapter 'kiro' ide-event-vocabulary`.
+4. `then.type` is drawn from `ide-action-vocabulary` (closed enum
+   per Unresolved Q8). Refusal text mirrors event-vocabulary shape.
+
+Semantic correctness of `when.patterns` (glob validity) and
+`then.command` (shell-syntax validity) is **not** in the rail's
+scope — same discipline as wiring TOML validation. Runtime issues
+surface at execute time.
+
+#### Cross-primitive reference: `then.command` pointing at a `hook-body`
+
+`then.type = "runCommand"` carries a `command` field — a shell
+invocation. When the invocation is a script the same pack already
+ships as a `hook-body` primitive, the pack author needs a stable way
+to reference the projected `hook-body` path from inside the
+`.kiro.hook` JSON without hard-coding the projection target.
+
+This RFC commits to the **mechanism** — placeholder expansion at
+projection time — and defers the exact **syntax** to the follow-on
+spec (lean: `${hook-body:<name>}`, see Unresolved Q7). A
+representative shape:
+
+```json
+{
+  "then": {
+    "type": "runCommand",
+    "command": "${hook-body:lint-on-save}"
+  }
+}
+```
+
+At projection time, the bundler resolves `${hook-body:lint-on-save}`
+to the projected workspace-relative path of the same-pack
+`hook-body` named `lint-on-save` (e.g.
+`./tools/hooks/lint-on-save.py` at repo scope). Workspace-relative
+defaults sidestep the absolute-path multi-machine failure mode
+documented in § *Kiro projection bakes an absolute path*.
+
+`askAgent`-shaped hooks need no cross-primitive reference (the
+`prompt` field is self-contained); the placeholder syntax applies
+only to `runCommand` hooks.
+
+**Substitution rules.** Five clauses bound the placeholder
+mechanism:
+
+1. **Scan surface — `then.command` only.** No other field in the
+   `.kiro.hook` JSON is scanned for placeholders. `then.prompt`
+   (for `askAgent`), `when.patterns`, `name`, `description`,
+   and every other field is passed through verbatim. Pack
+   authors who want a `prompt` to mention a path write the path
+   literally; the `prompt` text is for the agent, not the
+   bundler.
+
+2. **Verbatim substitution — no shell quoting.** The resolved
+   path replaces the placeholder character-for-character. Pack
+   authors who need shell-safe paths quote the placeholder
+   themselves — e.g.
+   `bash -lc "'${hook-body:lint}' --fix"`. Verbatim
+   substitution matches how shell variable expansion works
+   elsewhere and avoids the bundler making invisible quoting
+   decisions that surprise pack authors.
+
+3. **Multiple placeholders allowed; single-pass resolution.**
+   A `then.command` may contain zero or more placeholders.
+   Resolution is single-pass: the bundler scans the string
+   once, expands each placeholder to its resolved path, and
+   emits the result. Resolved text is **not** re-scanned —
+   nested or recursive placeholder syntax (a `hook-body` whose
+   name evaluates to another placeholder) is not supported and
+   resolved text containing `${...}` patterns by coincidence
+   is left alone.
+
+4. **Placeholder grammar — pinned regex.** The
+   exact form is `\$\{hook-body:[a-zA-Z0-9_-]+\}` — the closing
+   brace is required, the inner name matches `[a-zA-Z0-9_-]+`:
+   alphanumerics, underscore, hyphen only. No whitespace, no
+   slashes, no dots — so path traversal `../`, dotfile `.foo`,
+   and quoted/whitespaced names are forbidden by construction.
+   The regex stands on its own; the contract does not currently
+   pin a hook-body source filename character class to compare
+   against, and the spec amendment may choose to do so
+   independently. If a future amendment pins a narrower
+   hook-body filename class, the placeholder regex narrows in
+   lockstep. Malformed placeholders refuse at `validate` with
+   named text:
+   `pack <P>'s kiro-ide-hook <file> contains malformed placeholder '<text>'; expected ${hook-body:<name>} with name matching [a-zA-Z0-9_-]+`.
+
+5. **Unresolvable references refuse.** `validate` refuses any
+   placeholder that does not resolve to a `hook-body` file the
+   same pack ships:
+   `pack <P>'s kiro-ide-hook <file> references unknown hook-body '${hook-body:<name>}'; no such hook-body in pack`.
+
+The mechanism implies a phase-order constraint: `hook-body`
+projects before `kiro-ide-hook` so the reference can resolve. The
+build pipeline order is updated to:
+`hook-body` → `agent` → `hook-wiring` → `kiro-ide-hook` → `command` → `skill`.
+
+**Why serial rather than DAG-parallel.** Two real dependencies
+exist in the chain: (i) `hook-wiring` ← `agent` (the wiring
+merger needs the agent JSON target to exist), and (ii)
+`kiro-ide-hook` ← `hook-body` (placeholder expansion needs the
+projected hook-body path). Every other ordering — `hook-body` →
+`agent`, `hook-wiring` → `kiro-ide-hook`, `command` and `skill`
+relative to anything else — is a **tiebreak**, not a dependency.
+The strict serial order is the picked tiebreak, not the only
+correct one; the contract pins it for *operational*
+determinism — log ordering, partial-state-on-failure semantics,
+and the rollback target are reproducible across hosts. The
+projected *files* are byte-identical regardless of order for
+non-dependent phases, so determinism here is about which phase
+to debug when something breaks, not about the bytes on disk. And
+for implementation simplicity (one phase at a time is easier to
+reason about, log, and roll back than a DAG scheduler). If
+projection time ever becomes a measured bottleneck,
+parallelising independent phases is a backward-compatible later
+change.
+
+#### Scope
+
+**Repo-scope only in v1.** User-scope projection is refused at the
+contract layer until upstream Kiro
+[issue #5440](https://github.com/kirodotdev/Kiro/issues/5440)
+closes (`~/.kiro/hooks/` is not on Kiro's read path today; projecting
+there would land an inert file). The refusal text:
+`pack <P> declares kiro-ide-hook at user scope, but kiro adapter does not support user-scope IDE hooks (Kiro #5440 still open)`.
+
+When #5440 closes, the user-scope refusal lifts via either an
+in-place amendment to this RFC (if no state-file shape change is
+needed — likely, given `direct-file` carries over) or a successor
+RFC (if the user-scope ownership story turns out to need state-file
+support). Recorded as Unresolved Q9.
+
+#### Other adapters
+
+`claude-code`, `codex`, and `copilot` set `mode = "dropped"` for
+`kiro-ide-hook`. Same pattern as `command` (dropped for Codex /
+Copilot) and `agent` (dropped for Codex / Copilot). Adapter-side
+declaration is required so `validate` knows the primitive exists
+at the contract layer; pack authors who don't target Kiro can leave
+`.apm/kiro-ide-hooks/` empty without refusal.
+
+#### Contract version
+
+Adding `kiro-ide-hook` to the `primitive` TOML table and to
+`pack.schema.json`'s allowed-primitives list is additive but
+observable: the contract version bumps from `0.3` → `0.4` in the
+same PR as the rest of this RFC's amendments. Existing v0.3-shaped
+adapter declarations remain valid (the new primitive is optional;
+adapters that don't declare a projection inherit `dropped`). Pack
+metadata files that don't ship `.apm/kiro-ide-hooks/` need no
+change.
+
 ### Validate-time rule lift
 
 Two distinct rails change in this RFC. Rail B today is a
@@ -601,13 +902,18 @@ is:
 2. The Kiro adapter table declares `mode = "merge-into-agent-json"`
    and an `agent-event-vocabulary` for the events the namespace
    accepts (see § `agent-event-vocabulary`).
-3. The pack's `.apm/hook-wiring/<name>.toml` declares a valid
-   `attach-to-agent` field pointing at a same-pack agent
+3. **When the pack ships `.apm/hook-wiring/`,** each TOML declares
+   a valid `attach-to-agent` field pointing at a same-pack agent
    (`validate` refuses on missing or unresolvable references with
    `pack <P>'s hook-wiring <name>.toml does not declare 'attach-to-agent' (or names an unknown agent); required for kiro projection`).
-4. The pack's hook events are drawn from the adapter's declared
-   `agent-event-vocabulary` (cross-vocabulary refusal — see same
-   section).
+   Packs shipping only `.apm/kiro-ide-hooks/` (no `hook-wiring`)
+   are exempt — IDE event hooks have no agent binding and need no
+   `attach-to-agent` field.
+4. The pack's `hook-wiring` events are drawn from the adapter's
+   declared `agent-event-vocabulary` (cross-vocabulary refusal —
+   see same section). The pack's `kiro-ide-hook` events are drawn
+   from `ide-event-vocabulary` and actions from
+   `ide-action-vocabulary`; same refusal shape, different list.
 
 No new opt-in flag at repo scope: repo-scope writes have always
 been allowed by the contract; this RFC changes the projection
@@ -654,6 +960,26 @@ introduce their own vocabularies without CLI source changes. See
 Unresolved Q5 for the open question on whether the
 `agent-event-namespace` *identifier* (separate from the
 vocabulary list) should be a closed enum.
+
+#### Sibling vocabularies for IDE event hooks
+
+The same declarative-list discipline extends to the
+`kiro-ide-hook` primitive introduced earlier in this RFC:
+`ide-event-vocabulary` enumerates the IDE-surface event names
+Kiro fires (`fileSave`, `promptSubmit`, etc.) and
+`ide-action-vocabulary` enumerates the action types
+(`askAgent`, `runCommand`). Both live in
+`[adapter.kiro.projections.kiro-ide-hook]` rather than the
+adapter root because they're projection-specific. Refusal text
+mirrors `agent-event-vocabulary`'s shape:
+`pack <P>'s kiro-ide-hook <file> uses event '<type>'; not in adapter 'kiro' ide-event-vocabulary`.
+
+Pinning `ide-action-vocabulary` as a closed enum (rather than
+pass-through) follows the same discipline that justifies
+`agent-event-vocabulary` being closed: a future Kiro action type
+means an adapter declaration change, which is correct because
+adapter behaviour follows runtime capability — not the other way
+around. Recorded as Unresolved Q8.
 
 ### State-file impact
 
@@ -729,6 +1055,36 @@ removal and keeps the state schema additive in one place only. Claude Code
 reads `~/.claude/hooks/` recursively, so the extra path segment has
 no runtime cost.
 
+`kiro-ide-hook` files need no ownership record for the same reason
+`hook-body` doesn't: they live under
+`.kiro/hooks/<pack>/<name>.kiro.hook` — the pack-namespaced
+subdirectory is required, and without it two packs shipping
+`on-save.kiro.hook` would collide and force a `kiro-ide-hook-owned`
+state-file table to disambiguate. The namespaced layout makes
+uninstall a directory removal and keeps the state schema additive
+in one place only (`hook-wiring-owned`).
+
+**Adopter hand-edits to projected `.kiro.hook` files are lost on
+uninstall.** `uninstall` removes `.kiro/hooks/<pack>/` verbatim.
+If the adopter has hand-edited a projected `.kiro.hook` file (to
+tweak a prompt or tighten a `patterns` glob), those edits go with
+the directory. Same property every other `direct-file` primitive
+already has — `hook-body`, `agent`, `command`, `skill` directories
+all get nuked by uninstall regardless of adopter edits — and same
+mitigation: the `direct-file` `on-conflict = "prompt-then-preserve"`
+covers install-time conflicts, but uninstall is unconditional.
+Adopters who need to preserve their tweaks copy the file outside
+`.kiro/hooks/<pack>/` before uninstalling. This is accepted, not
+fixed.
+
+`runCommand`-shaped IDE hooks deserve a specific callout:
+adopter-edited `command` strings often encode a *local fix* the
+pack author hasn't shipped yet (a patched path, a wrapped
+invocation, an added flag). Such fixes are exactly the
+hand-edits an adopter cares most about preserving. The mitigation
+is the same — copy the file out before uninstalling — but the
+salience is higher.
+
 The state-file schema bumps from `0.2` → `0.3`. The bump is
 **additive and header-only**: `hook-wiring-owned` is an *optional*
 array-of-tables under each `[[installed]]` entry, so a v0.2 file
@@ -776,6 +1132,88 @@ either example.
   this RFC is CLI-only.
 - **No F-conformance fixtures.** F-conformance is owned by
   RFC-0003's deferred task and is not gated by this RFC.
+- **No knowledge-on-Kiro for the core pack.** The bundler does not
+  project `docs/knowledge/patterns.jsonl` (or any other knowledge
+  source) to a Kiro-readable surface. Kiro adopters who want the
+  knowledge content CC adopters receive via `session-start.py` do
+  not get it through this RFC. If knowledge-on-Kiro is needed for
+  a specific deployment, build it separately and out-of-band; do
+  not bring it into the bundler's contract.
+- **No Kiro Power deployment.** The bundler does not produce Kiro
+  Powers and this RFC does not cover them. Power packaging is a
+  different distribution shape with its own lifecycle.
+- **No `steering` primitive.** The 3× rule has not been earned —
+  there is no second consumer for steering-shaped content in any
+  pack today. Adding the primitive against a single hypothetical
+  consumer would be contract inflation; reopen as a separate RFC
+  when a second consumer materialises.
+
+  *Asymmetry with `kiro-ide-hook`.* This RFC accepts
+  `kiro-ide-hook` with zero in-repo consumers (Drawbacks above)
+  while rejecting `steering` on the same zero-consumer count.
+  The distinguishing argument: `kiro-ide-hook` closes a
+  *projection-target gap* — pack authors have no way to ship an
+  IDE-save automation to Kiro adopters today, full stop, and the
+  absence of a target is itself the bug. `steering` would close
+  an *adopter-experience asymmetry* — Kiro adopters don't get the
+  knowledge content CC adopters receive via `session-start.py` —
+  but no pack author is blocked from doing anything; they can
+  build a side-channel (Power, separate distribution) without
+  the bundler's help. Mechanics-before-consumer is justified for
+  the gap; not justified for the asymmetry.
+
+  **Falsifiability test for future RFC reviewers.** The test is
+  binary: *Is there any first-class delivery channel by which a
+  pack author can ship the affordance today?* If yes (an
+  adjacent in-tool primitive, an established sibling distribution
+  format like a Power), it's an asymmetry — wait for
+  second-consumer pressure. If no — the delivery surface itself
+  does not exist — it's a gap, and mechanics-before-consumer is
+  justified.
+
+  **What counts as a channel.** A first-class delivery channel
+  means *the affordance can be delivered in the channel's
+  documented surface without an authoring workaround* — the
+  channel exists, the content fits the channel's native shape,
+  and the pack author writes the content the way the channel
+  expects.
+
+  **What does *not* count.** *Manual hand-edit setup
+  documentation*, *adopter copy-paste recipes*, and *bundler
+  workarounds asking the pack author to invent or wrap a
+  distribution format the channel does not natively expose*.
+  These are exactly the squatter outcomes RFC-0001 set out to
+  eliminate and the channel-shifting outcomes RFC-0004 closed for
+  non-hook primitives — admitting them as evidence-of-channel
+  would let any unmet need rationalise into "asymmetry, defer."
+
+  **Worked examples:**
+  - **`kiro-ide-hook`:** The question is whether Kiro Powers are
+    a first-class IDE-event delivery channel. They are not — a
+    Power's documented surface is keyword-matched activation
+    against POWER.md frontmatter ([Kiro Powers docs](https://kiro.dev/docs/powers/),
+    [introducing-powers blog post](https://kiro.dev/blog/introducing-powers/)),
+    not IDE-event triggering. Delivering a save-triggered
+    automation via a Power means *inventing* a wrapper layer the
+    Power format does not natively expose. That fails the
+    "without an authoring workaround" clause. **Gap stands.**
+  - **`steering`:** Powers explicitly document a `steering/`
+    subdirectory; pack authors write the same markdown they'd
+    write for a steering primitive and drop it into the Power.
+    The Power format exists, steering content fits natively, no
+    wrapper invented. That passes the channel test. **Asymmetry
+    holds.**
+
+  The distinction is concrete: does the candidate channel's
+  documented surface *already accept* this shape of content
+  (Power's `steering/` does; Power's POWER.md does not accept
+  IDE-event triggers), or would the pack author have to graft
+  something on top of the channel? Workarounds-on-top fail the
+  test; native-shape acceptance passes it.
+
+  Without this test the "projection-target gap" framing is
+  rhetorical; with it, reviewers have a knob to turn that
+  prevents the category from decaying into "any unmet need."
 
 ## Alternatives considered
 
@@ -870,6 +1308,47 @@ either example.
    the split cost would have re-paid the discipline-design cost
    twice — but the trade is real and named here so a future
    reader can re-evaluate if the assumption inverts.
+
+8. **Extend `hook-wiring` with a new `kiro-ide-hook-json` projection
+   mode that renders a TOML wiring file to a `.kiro.hook` JSON.**
+   Attractive on shape consistency — one wiring primitive serves
+   both Kiro CLI and IDE hooks. But the wiring TOML would have to
+   encode the IDE event vocabulary (`fileCreated`, `promptSubmit`,
+   etc.), the IDE action vocabulary (`askAgent` vs `runCommand`),
+   glob patterns, prompt text, command strings — most of which
+   never apply to CLI hooks. The TOML balloons; the renderer
+   becomes a JSON templater for one adapter. Rejected — the source
+   format is already JSON in Kiro's world; making pack authors
+   write TOML to be rendered back to JSON loses fidelity and gains
+   nothing. A dedicated `kiro-ide-hook` primitive whose source IS
+   the `.kiro.hook` JSON is the least-shape design.
+
+9. **Add a generic `event-hook` primitive instead of a Kiro-specific
+   name.** The `.kiro.hook` schema is Kiro-specific (event names,
+   action types, file extension); generalising the primitive name
+   without generalising the source format is misleading. If a
+   future adapter introduces file-event hooks with a different
+   schema, that adapter gets its own primitive. Rejected on
+   truth-in-naming.
+
+10. **Allow user-scope `kiro-ide-hook` projection now, landing inert
+    files until upstream Kiro #5440 closes.** Inert files invite
+    confusion (the adopter installs the pack, expects the hook to
+    fire, debugs an absent runtime behaviour). Refuse-and-explain
+    at install is cheaper than the support load from silent
+    inertness. Rejected.
+
+11. **Add a `steering` primitive in the same RFC as `kiro-ide-hook`.**
+    Considered while scoping this amendment because the
+    knowledge-on-Kiro gap (CC adopters get knowledge via
+    `session-start.py`; Kiro adopters get nothing) is a real
+    asymmetry that a `steering` primitive could close. Rejected on
+    the 3× rule: only one consumer (the rendered knowledge file)
+    is in sight today; a primitive added for one consumer is
+    contract inflation. Knowledge-on-Kiro is documented as out of
+    scope in § *What this RFC does NOT do*; if a second non-MCP
+    pack ships steering-shaped content, reopen as a separate RFC
+    designed against two real consumers.
 
 ## Drawbacks
 
@@ -1087,6 +1566,119 @@ either example.
   `allowed-adapters = ["claude-code"]` (or its equivalent in
   pack metadata) so the Kiro `validate` rail simply doesn't fire.
 
+  *Footnote — wiring-only packs targeting `kiro-ide-hook` instead.*
+  A pack whose only Kiro-side hook need is IDE-event-triggered
+  (file save, prompt submit, etc.) **does not** need to ship an
+  agent: `kiro-ide-hook` files fire on IDE events independent of
+  any agent. So the agent-required constraint above applies only
+  to packs whose Kiro hooks belong in `hook-wiring`
+  (`merge-into-agent-json`); packs whose triggers fit IDE-surface
+  events can ship `.apm/kiro-ide-hooks/` alone.
+
+- **The `.kiro.hook` schema is observed, not published.** The
+  event vocabulary, action vocabulary, and required-field set are
+  derived from Kiro's IDE UI behaviour and example files
+  ([hook docs](https://kiro.dev/docs/hooks/),
+  [types](https://kiro.dev/docs/hooks/types),
+  [examples](https://kiro.dev/docs/hooks/examples/),
+  [community guide](https://aicodingtools.blog/en/kiro/kiro-hooks-guide))
+  rather than a published JSON schema. Kiro could change the
+  shape in any release. Same risk class as the existing Kiro CLI
+  agent-JSON drawback above; the mitigation is the same too —
+  the vocabularies live in `adapter.toml` declaratively so
+  updates require only an adapter declaration change, not CLI
+  code.
+
+- **Recursion-into-subdirectories under `.kiro/hooks/` is
+  unverified upstream.** This RFC assumes Kiro recurses into
+  pack-namespaced subdirectories under `.kiro/hooks/`. If it
+  doesn't, the spec falls back to flat
+  `.kiro/hooks/<pack>--<name>.kiro.hook` naming. Verification is
+  an implementation-spec gate; recording the risk so the gate
+  doesn't get forgotten.
+
+- **Cross-primitive references (`${hook-body:<name>}`) introduce
+  a new build-step affordance.** Today every projection is
+  self-contained per-primitive. Placeholder expansion at
+  projection time means the `kiro-ide-hook` projection must run
+  *after* the `hook-body` projection — a phase-order constraint
+  similar to the agent-before-wiring invariant this RFC already
+  introduces. Worth flagging because the same invariant has to
+  grow if other cross-primitive references appear later.
+
+- **`runCommand`-shaped IDE hooks bake the projected `hook-body`
+  path into the projected `.kiro.hook` JSON.** Same multi-machine
+  caveat as § *Kiro projection bakes an absolute path into the
+  projected agent JSON* — a `command` path computed on machine A
+  may not resolve on machine B. Mitigation: the spec's
+  placeholder-resolution rule defaults to workspace-relative
+  paths at repo scope (which Kiro's CLI handles natively across
+  clones), moving the failure mode from "different `$HOME`" to
+  "different repo clone path," which is the lighter of the two.
+
+- **User-scope IDE hooks are blocked on an upstream feature.**
+  Until Kiro #5440 closes, Kiro adopters who want personal IDE
+  hooks across every workspace must continue copying
+  `.kiro.hook` files by hand. We could not fix this without
+  Kiro upstream first.
+
+- **One more primitive in the contract.** The contract grows
+  from 5 primitives to 6. Pack authors targeting only Claude Code
+  / Codex / Copilot ignore it; pack authors targeting Kiro have
+  one more source directory to know about. Marginal cost, but
+  real.
+
+- **No second consumer for `kiro-ide-hook` yet.** The first
+  consumer is hypothetical — no in-repo pack ships `.kiro.hook`
+  files today. The RFC follows its own first-consumer precedent
+  (§ *First consumer*): land mechanics ahead of a named consumer
+  to avoid release-pressure corner-cutting. The first concrete
+  consumer lands in a follow-up spec once the contract change is
+  in.
+
+- **Pack-shipped `runCommand` IDE hooks are arbitrary shell
+  execution on adopter file events.** A pack containing a
+  `kiro-ide-hook` with `then.type = "runCommand"` lands a shell
+  command Kiro will run every time the trigger fires — file save,
+  prompt submit, etc. The consent gesture is the one-time
+  `install` of the pack; thereafter the hook fires silently for
+  the life of the install. This is structurally identical to
+  RFC-0005's existing user-scope CLI hooks (which are also
+  pack-shipped shell execution at IDE/agent runtime), and the
+  same mitigation applies — adopters trust the pack source they
+  install — but it's worth naming explicitly because the IDE-hook
+  trigger conditions (any file save in the workspace) are
+  *broader* than agent-bound CLI hooks (only while the named
+  agent runs). The asymmetry doesn't change the trust model but
+  it does widen the blast radius if the trust is misplaced.
+
+  **Consent gate decision: v0.4 adopts option (a) — one-time
+  `install` gesture, no per-action opt-in.** The two rejected
+  options were (b) require `--allow-shell-hooks` opt-in
+  explicitly for `runCommand`-bearing packs and (c) refuse
+  `runCommand` entirely for v1. Rejected because: a separate
+  flag for `runCommand` IDE hooks but not for `hook-body` shell
+  scripts wired via `merge-into-agent-json` is asymmetric (both
+  are pack-shipped shell execution at runtime; the IDE trigger
+  is broader but not categorically different), and refusing
+  `runCommand` outright drops half the user-stated need for
+  first-class IDE hook support. Reviewers who'd prefer (b) or
+  (c) should raise the pushback before acceptance — the v0.4
+  contract bakes (a) in; flipping later means a contract version
+  bump.
+
+- **Kiro's `.kiro/hooks/` read path is assumed to glob by file
+  extension (`*.kiro.hook`).** If Kiro recurses into pack
+  subdirectories *and* reads every file as a hook regardless of
+  extension, then a `hook-body` script (`.sh`/`.py`) sharing the
+  same `.kiro/hooks/<pack>/` subdirectory under future user-scope
+  layout would surface as a parse error. The same extension-based
+  filtering assumption is implicit in Kiro's own documentation
+  (every documented example uses `.kiro.hook` suffix); the spec's
+  recursion-verification gate (Q6) doubles as the place to
+  confirm the extension filter is active. Recording the assumption
+  here so it doesn't get lost.
+
 ## Unresolved questions
 
 1. **Is `id` on hook entries safe as a non-functional tag?** This
@@ -1137,6 +1729,88 @@ either example.
    question today; flagging so a future cross-vocabulary RFC
    inherits the decision rather than re-deriving it.
 
+6. **Read-path probe — how does Kiro enumerate `.kiro/hooks/`?**
+   Two independent runtime properties gate the projection layout
+   and the file-extension assumption is real:
+   - **Recursion:** does Kiro recurse into subdirectories under
+     `.kiro/hooks/`?
+   - **Extension filter:** does Kiro glob by `*.kiro.hook` only,
+     or does it parse every file regardless of extension?
+
+   The 2×2 decides the layout:
+
+   | Recursion | Extension filter | Projection layout |
+   |---|---|---|
+   | yes | yes | **`kiro-ide-hook`:** `.kiro/hooks/<pack>/<name>.kiro.hook` (this RFC's lean). **`hook-body`:** unchanged. |
+   | yes | no | **`kiro-ide-hook`:** `.kiro/hooks/<pack>/<name>.kiro.hook`. **`hook-body` — cross-primitive relocation:** user-scope target moves from `.kiro/hooks/<pack>/<name>.{sh,py}` to `.kiro/hook-bodies/<pack>/<name>.{sh,py}` to avoid parse errors when Kiro reads every file under `.kiro/hooks/` regardless of extension. |
+   | no | yes | **`kiro-ide-hook`:** `.kiro/hooks/<pack>--<name>.kiro.hook` (flat-with-prefix). **`hook-body`:** unchanged — stays at `tools/hooks/` and `~/.kiro/hooks/<pack>/<name>.{sh,py}`. |
+   | no | no | Same layout as (no recursion × yes filter) — Kiro reads `.kiro/hooks/` top-level only, and the extension filter is moot because nothing else lands there. |
+
+   > **Cross-primitive consequence in the yes×no quadrant only.**
+   > The v0.4 contract amendment must update *both* the
+   > `kiro-ide-hook` projection *and* the user-scope `hook-body`
+   > projection in the same PR, or one of them ends up shipping a
+   > target string the other invalidates. The other three quadrants
+   > leave `hook-body` alone; this row is the lockstep case.
+
+   **Lean:** the spec runs both probes against a real Kiro install
+   before declaring contract version 0.4; the chosen layout becomes
+   the canonical `target.repo` (and possibly `target.user`) string
+   in `adapter.toml`. The gating-verifications bullet in § *Follow-on
+   artifacts* names this as a v0.4-ship gate.
+
+7. **Cross-primitive reference syntax for `kiro-ide-hook` →
+   `hook-body`.** This RFC commits to the *mechanism* (placeholder
+   expansion at projection time); the *syntax*
+   (`${hook-body:<name>}`? `$HOOK_BODY_PATH(<name>)`? relative
+   path with a documented base?) is deferred to the spec.
+   **Lean:** `${hook-body:<name>}` — TOML-and-JSON-friendly,
+   ASCII-safe, namespaced by primitive type so future
+   cross-primitive cases reuse the shape.
+
+8. **`ide-action-vocabulary` enumeration scope.** Kiro publishes
+   `askAgent` and `runCommand` via the IDE UI today; the
+   documentation doesn't pin a closed enum. Should the adapter
+   declare a closed list (this RFC's choice) or accept any value
+   pass-through? **Lean:** closed enum — same observed-vocabulary
+   discipline as `agent-event-vocabulary`; a future Kiro action
+   type means an adapter declaration change, which is correct.
+
+9. **When Kiro #5440 closes, does user-scope `kiro-ide-hook`
+   land via in-place amendment or successor RFC?** The lift is
+   small (`target.user` addition under the same projection table)
+   if no state-file shape change is needed. But the
+   `agentbundle install --scope user` interaction needs a
+   state-file ownership review even for a trivial lift.
+   **Lean:** in-place amendment if no state-file shape change;
+   successor RFC if state-file shape does change.
+
+10. **`runCommand` consent gate — reviewer pushback surface.**
+    Decision in the body: v0.4 adopts option (a), one-time
+    `install` gesture, no per-action opt-in (see
+    § *Pack-shipped `runCommand` IDE hooks are arbitrary shell
+    execution on adopter file events* drawback for rationale).
+    Q10 is kept here because the decision is reviewer-visible —
+    if reviewers prefer (b) `--allow-shell-hooks` opt-in or
+    (c) refuse `runCommand` entirely for v1, the v0.4 contract
+    declaration changes (action vocabulary shrinks, or install
+    flag is added). Pushback must land before acceptance.
+
+11. **Are the `ide-event-vocabulary` spellings (camelCase) correct
+    against real `.kiro.hook` files?** Kiro's published docs
+    expose human-readable labels ("File Save", "Prompt Submit")
+    but the actual `when.type` string the JSON file carries is not
+    in the published reference — it's derived from community
+    examples ([Kiro Hooks Guide](https://aicodingtools.blog/en/kiro/kiro-hooks-guide))
+    and inference. A pack declaring `"when": {"type": "fileSave"}`
+    silently never fires if Kiro internally uses `"file_save"` or
+    `"FileSave"`. **Lean:** spec gates the v0.4 contract
+    declaration on capturing at least one IDE-UI-authored
+    `.kiro.hook` file as a fixture; the captured strings become
+    the canonical vocabulary. Until that fixture lands, the
+    vocabulary list is a best-guess subject to one fixture-based
+    rewrite before contract version 0.4 ships.
+
 ## Follow-on artifacts
 
 On acceptance, this RFC produces:
@@ -1158,19 +1832,58 @@ On acceptance, this RFC produces:
     `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`; Kiro
     `hook-body` projection gains scope-conditional `target.user`
     (`.kiro/hooks/<name>.{sh,py}`).
+  - **`kiro-ide-hook` primitive:** add to the `[primitive]` table
+    with `source-path = ".apm/kiro-ide-hooks/"`; add
+    `[adapter.kiro.projections.kiro-ide-hook]` with `mode =
+    "direct-file"`, target string per the gating verification
+    below, `on-conflict = "prompt-then-preserve"`, and declarative
+    `ide-event-vocabulary` + `ide-action-vocabulary` arrays.
+    Other adapters (`claude-code`, `codex`, `copilot`) set
+    `mode = "dropped"`. User-scope projection refused until
+    upstream Kiro #5440 closes (refusal text per § *Scope*).
+
+  - **Gating verifications before contract version 0.4 ships.**
+    Two probes against a real Kiro install must complete before
+    the v0.4 declaration lands in `adapter.toml`:
+    1. *Recursion probe (Q6).* Confirm whether Kiro reads
+       `.kiro/hooks/<subdir>/<name>.kiro.hook` recursively. If yes,
+       the projection target is `.kiro/hooks/<pack>/<name>.kiro.hook`.
+       If no, the projection target is the flat
+       `.kiro/hooks/<pack>--<name>.kiro.hook`. The contract
+       version does not bump until this is pinned — shipping v0.4
+       with a target string that has to change on first use is a
+       contract-version lie.
+    2. *Vocabulary fixture (Q11).* Capture at least one
+       IDE-UI-authored `.kiro.hook` file and pin the
+       `ide-event-vocabulary` and `ide-action-vocabulary` strings
+       against the captured artifact. The spec's fixture set
+       includes this captured file as the canonical
+       vocabulary-of-record.
   - **Pack-side schema:** `hook-wiring` TOML grows the optional
     `attach-to-agent` field; `validate` rail refuses
     Kiro-targeted wiring without it; extension of
     `[pack.install]` with the optional boolean
     `user-scope-hooks` field (false default; ignored if
     `"user" ∉ allowed-scopes`) and an `if`/`then` block in
-    `pack.schema.json` enforcing it.
+    `pack.schema.json` enforcing it. `pack.schema.json`'s
+    allowed-primitives list grows `kiro-ide-hook`.
+  - **`kiro-ide-hook` `validate` rail:** required-field check
+    (`name`, `version`, `when.type`, `then.type`), vocabulary
+    membership check against `ide-event-vocabulary` and
+    `ide-action-vocabulary`, placeholder-syntax check for
+    cross-primitive references (the `${hook-body:<name>}` shape
+    per Unresolved Q7); semantic validity of `when.patterns`
+    globs and `then.command` shell syntax is out of scope.
   - **Rails:** Rail B becomes conditional on `user-scope-hooks`
     plus the adapter declaring either `mode.user =
     "user-merge-json"` or `mode = "merge-into-agent-json"`.
   - **Pipeline:** the build-pipeline gains a phase-order
-    invariant — `hook-body` → `agent` → `hook-wiring` → others.
-  - **Contract version:** bumps in the same PR.
+    invariant — `hook-body` → `agent` → `hook-wiring` →
+    `kiro-ide-hook` → others. `kiro-ide-hook` runs after
+    `hook-body` so `${hook-body:<name>}` placeholder expansion
+    can resolve to projected `hook-body` target paths.
+  - **Contract version:** bumps `0.3 → 0.4` in the same PR
+    (additive: new primitive + new projection table fields).
 
 - **Amendment to
   [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md):**
@@ -1196,15 +1909,21 @@ On acceptance, this RFC produces:
   is designed to avoid); refuse-and-explain text for unparseable
   target files and shape mismatches.
 
-- **ADR (post-acceptance):** record the durable decision that
-  *the CLI may write to hand-edited shared user-settings files
-  under an ID-tagged array-append merge contract, and to
-  pack-owned agent files under a per-agent variant of the same
-  contract*. Subsequent user-scope merge work (`env`,
-  `mcpServers`, anything else that lands under a
+- **ADR (post-acceptance):** record two durable decisions in one
+  ADR. (a) *The CLI may write to hand-edited shared
+  user-settings files under an ID-tagged array-append merge
+  contract, and to pack-owned agent files under a per-agent
+  variant of the same contract.* Subsequent user-scope merge
+  work (`env`, `mcpServers`, anything else that lands under a
   `managed-key.user`) and any future per-primitive merge work
   on other adapters will cite the ADR rather than re-derive the
-  rationale.
+  rationale. (b) *IDE-event hooks on Kiro live in their own
+  primitive (`kiro-ide-hook`) rather than being shoehorned into
+  `hook-wiring`'s `merge-into-agent-json` mode (wrong firing
+  model), a generic `event-hook` primitive (Kiro-specific
+  schema), or Kiro Powers (different distribution shape).*
+  Future Kiro hook surfaces follow the same primitive-per-surface
+  discipline rather than overloading existing modes.
 
 - **Entry on [`docs/ROADMAP.md`](../ROADMAP.md):** open item
   under the `agent-spec-cli` or `distribution-adapters` section
@@ -1212,7 +1931,10 @@ On acceptance, this RFC produces:
   amendments above through to landed code. The Kiro
   `degraded-info-log` entry currently held under RFC-0001 Open
   Q1 is **closed** by this RFC and should be marked as such.
+  A separate item tracks the first `kiro-ide-hook` consumer pack.
 
 - **(Deferred — not in this RFC's scope.)** The first user-scope
   hook-bearing pack lands as its own spec / pack publication PR
-  after the amendments above are merged.
+  after the amendments above are merged. The first pack shipping
+  `.apm/kiro-ide-hooks/<name>.kiro.hook` files is a separate
+  follow-on, tracked under the new ROADMAP item.

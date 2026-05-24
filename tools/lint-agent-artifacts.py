@@ -58,10 +58,10 @@ def _repo_root() -> pathlib.Path:
 KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
 LINK = re.compile(r"\]\(([^)]+)\)")
 
-ALLOWED_SKILL_KEYS = {"name", "description", "dependencies",
+ALLOWED_SKILL_KEYS = {"name", "description",
                       "credentialed", "primitive-class"}
 ALLOWED_PRIMITIVE_CLASSES = {"credentialed-cli", "mcp-server"}
-ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model", "dependencies"}
+ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}
 ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
 
 
