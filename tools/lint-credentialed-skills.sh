@@ -22,10 +22,19 @@
 #     first positional argument is normalised per AC27 (strip leading
 #     `-`, casefold, replace `-` with `_`) and matched against the
 #     banned set {token, api_token, api_key, bearer, pat, password}.
-#     Two first-arg shapes are recognised: literal string constants
-#     and `BinOp(op=Add)` concatenation of two literal constants
-#     (the `"--" + "token"` obfuscation in AC27). Deeper obfuscation
-#     (formatted strings, computed names) is out of scope.
+#     First-arg shapes recognised (all reducible to a literal string
+#     at parse time — no name lookups, no runtime evaluation):
+#       - ``Constant(value=str)`` — direct literal.
+#       - ``BinOp(op=Add)`` chains of literal-string constants
+#         (``"--" + "token"`` obfuscation in AC27).
+#       - ``JoinedStr`` (f-string) whose pieces are all literal
+#         constants — `f"--{'token'}"` and similar.
+#       - ``Starred(Tuple)`` argument spread when the inner tuple is
+#         literal — `add_argument(*("--token",))`.
+#       - ``Subscript`` constant indexing — `("--token",)[0]` shapes.
+#     Names that reach `add_argument` through a variable, an `os.environ`
+#     read, or a function call remain out of scope; PR-review picks
+#     those up as a defence in depth.
 #
 #   AC26(c) Dotfile substring + opt-out marker.
 #     Per-line substring scan of every `scripts/**/*.py` under a
@@ -157,7 +166,11 @@ def add_argument_flags(py_path):
         if not node.args:
             continue
         first = node.args[0]
+        # Direct literal / BinOp / f-string / subscript-of-tuple shapes.
         value = _literal_string(first)
+        if value is None:
+            # Argument-spread shape: add_argument(*("--token",))
+            value = _starred_first_literal(first)
         if value is None:
             continue
         if not value.startswith("-"):
@@ -166,8 +179,20 @@ def add_argument_flags(py_path):
 
 
 def _literal_string(node):
-    """Return a string if ``node`` is a string literal or a chain of
-    string-literal additions; ``None`` otherwise."""
+    """Return a string if ``node`` reduces to a string literal at parse
+    time, ``None`` otherwise.
+
+    Shapes handled:
+      - ``Constant(value=str)`` — direct literal.
+      - ``BinOp(op=Add)`` chain of literal strings.
+      - ``JoinedStr`` (f-string) whose ``FormattedValue`` parts are
+        all literal constants (``f"--{'token'}"`` collapses to
+        ``"--token"``); a non-literal `{name}` returns ``None``.
+      - ``Tuple(elts=[Constant(str), ...])`` returning the first
+        element — covers the inner shape of ``Starred(Tuple)``.
+      - ``Subscript(value=Tuple|List, slice=Constant(int))`` — pulls
+        the indexed element when both sides are literal.
+    """
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
@@ -175,7 +200,49 @@ def _literal_string(node):
         right = _literal_string(node.right)
         if left is not None and right is not None:
             return left + right
+        return None
+    if isinstance(node, ast.JoinedStr):
+        parts: list[str] = []
+        for piece in node.values:
+            if isinstance(piece, ast.Constant) and isinstance(piece.value, str):
+                parts.append(piece.value)
+                continue
+            if isinstance(piece, ast.FormattedValue):
+                inner = _literal_string(piece.value)
+                if inner is None:
+                    return None
+                parts.append(inner)
+                continue
+            return None
+        return "".join(parts)
+    if isinstance(node, ast.Subscript):
+        # ("--token",)[0] / ["--token"][0] — only pull when both
+        # sides are literal.
+        container = node.value
+        if not isinstance(container, (ast.Tuple, ast.List)):
+            return None
+        slice_node = node.slice
+        if not (
+            isinstance(slice_node, ast.Constant)
+            and isinstance(slice_node.value, int)
+        ):
+            return None
+        if not (0 <= slice_node.value < len(container.elts)):
+            return None
+        return _literal_string(container.elts[slice_node.value])
     return None
+
+
+def _starred_first_literal(node):
+    """If ``node`` is ``Starred(Tuple(elts=[Constant(str), ...]))``,
+    return that first literal — argparse sees it as the flag name.
+    Anything else returns ``None``."""
+    if not isinstance(node, ast.Starred):
+        return None
+    inner = node.value
+    if not isinstance(inner, (ast.Tuple, ast.List)) or not inner.elts:
+        return None
+    return _literal_string(inner.elts[0])
 
 
 # Discovery: three glob patterns covering production paths + fixture trees.

@@ -3,7 +3,6 @@ name: security-reviewer
 description: Threat-model and OWASP-lens reviewer for diffs that change auth, data handling, dependencies, deserialization, file/network I/O, secrets, or LLM/agent code. Reads AGENTS.md, CONVENTIONS.md, any docs/architecture/security.md, the diff, and the spec if one exists; attacks along OWASP Top 10 (web + LLM Apps 2025) and a STRIDE prompt; returns severity-labeled findings. Complements — does not replace — SAST/SCA scanners and adversarial-reviewer. Use after adversarial-reviewer is clean, before merging anything that touches a security boundary. Re-run iteratively until the agent reports `Clean — ready to commit.`
 tools: Read, Grep, Glob, Bash
 model: opus
-dependencies: []
 ---
 
 # Security reviewer

@@ -39,29 +39,13 @@ Each `SKILL.md` should:
    crowd out the user's actual task.
 3. Link out to scripts in the same directory rather than embedding shell.
    Code in scripts can be tested; code in markdown can't.
-4. Declare a `dependencies:` list in the frontmatter — every file
-   *outside this skill's folder* the body relies on. Sibling agents the
-   skill invokes (`.claude/agents/<name>.md`), tools it runs
-   (`tools/<name>.sh`), sections of `docs/CONVENTIONS.md` it cites by
-   anchor (`docs/CONVENTIONS.md#anchor`). Templates the skill creates
-   instances of are *not* external deps — per the agentskills.io layout
-   they live with the skill under `<skill>/assets/<name>` and the body
-   cites them via skill-relative paths. Empty list (`dependencies: []`)
-   is valid and honest. The manifest is validated by
-   `tools/lint-skill-deps.py` and consumed by the pack build pipeline
-   that ships skills to adopter projects. Keep it accurate as the body
-   changes — drift is what the linter exists to catch.
-
-   **Adopter-owned files (`AGENTS.md`, `docs/CONVENTIONS.md`,
-   `docs/CHARTER.md`) get special treatment.** A skill installed into
-   another repo lands on top of that repo's own governance docs; we
-   never overwrite them. The linter refuses whole-file deps on these —
-   they'd dump our template prose into the adopter's `*.fragments/`
-   directory and force them to reconcile a doc they wrote themselves.
-   Two patterns are allowed instead: cite a specific section by anchor
-   (`docs/CONVENTIONS.md#supervisor-mode`) when the skill body needs
-   that exact text, or omit the dep entirely and have the body read
-   whatever the adopter has at runtime. The three reviewer agents use
-   the runtime pattern — `dependencies: []` even though their bodies
-   say "read AGENTS.md first." The contract is that an AGENTS.md
-   exists, not that ours does.
+4. Refer to other skills, subagents, and conventions sections by name
+   in the body — the same way `work-loop` cites `new-spec`,
+   `adversarial-reviewer`, and `docs/CONVENTIONS.md`. The body is the
+   contract; resolution happens at runtime against whatever the
+   adopter has installed. Don't try to pin those references in
+   frontmatter — there's no machinery that consumes a manifest, and
+   skills installed elsewhere land on top of the adopter's own
+   `AGENTS.md` / `docs/CONVENTIONS.md` / `docs/CHARTER.md` rather than
+   our copy. The contract is that an `AGENTS.md` exists, not that
+   ours does.
