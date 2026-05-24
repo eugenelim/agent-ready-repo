@@ -62,8 +62,8 @@ entry:
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
 
 The format is JSONL (one JSON object per line, no commas, no wrapping
-array) so it grows by append and reads line-by-line. `tools/lint-knowledge.sh`
-validates the file; `tools/hooks/session-start.sh` reads it.
+array) so it grows by append and reads line-by-line. `tools/lint-knowledge.py`
+validates the file; `tools/hooks/session-start.py` reads it.
 
 ## Curation
 
@@ -96,7 +96,7 @@ captures a learning that fits the pattern/gotcha/antipattern shape, the
 canonical home is here. Other kinds of learning still go where they
 already belong (AGENTS.md, skill bodies, architecture/).
 
-The session-start hook ([`tools/hooks/session-start.sh`](../../tools/hooks/session-start.sh))
+The session-start hook ([`tools/hooks/session-start.py`](../../tools/hooks/session-start.py))
 reads this file and prints the entries — optionally filtered by glob —
 so a fresh agent session starts with the relevant patterns already in
 context.
