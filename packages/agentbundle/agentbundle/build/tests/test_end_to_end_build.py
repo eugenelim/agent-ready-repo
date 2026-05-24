@@ -141,7 +141,7 @@ class CheckCommandTests(unittest.TestCase):
             contract = load_contract(
                 REPO_ROOT / "docs" / "contracts" / "adapter.toml"
             )
-            # Pre-seed using the Phase-1 self-host runner so the working
+            # Pre-seed using the self-host runner so the working
             # tree exactly matches what `make build-check` will render
             # (including new seed/marketplace/symlink outputs).
             run_self_host(
