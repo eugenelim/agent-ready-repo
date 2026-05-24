@@ -6,7 +6,7 @@ Closes:
   creds-schema.toml ship at the canonical landing.
 - AC29 *SKILL.md frontmatter* — ``credentialed: true``,
   ``primitive-class: credentialed-cli`` pass
-  ``tools/lint-agent-artifacts.sh``.
+  ``tools/lint-agent-artifacts.py``.
 - AC29 *Verbatim "Don't" block* — the body contains the three RFC-0006
   § 4 substrings the credentialed-CLI variant pins; the integration
   test diffs the skill's "Don't" block against the
@@ -83,16 +83,16 @@ def test_frontmatter_declares_credentialed_cli_primitive():
 
 
 def test_lint_agent_artifacts_passes():
-    """AC29: ``tools/lint-agent-artifacts.sh`` accepts the skill's
+    """AC29: ``tools/lint-agent-artifacts.py`` accepts the skill's
     frontmatter (the schema additions from T9 cover this)."""
     res = subprocess.run(
-        ["bash", "tools/lint-agent-artifacts.sh"],
+        [sys.executable, "tools/lint-agent-artifacts.py"],
         capture_output=True,
         text=True,
         cwd=REPO_ROOT,
     )
     assert res.returncode == 0, (
-        f"lint-agent-artifacts.sh failed:\nstdout={res.stdout}\n"
+        f"lint-agent-artifacts.py failed:\nstdout={res.stdout}\n"
         f"stderr={res.stderr}"
     )
 
