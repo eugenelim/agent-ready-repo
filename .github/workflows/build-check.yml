@@ -94,6 +94,81 @@ jobs:
             exit 1
           fi
 
+  # Native-Windows parity job for the Phase-3 bash→Python port (PR #71).
+  # Runs the Python-portable subset of the Linux job: the bundler build
+  # check, the converters install/uninstall integration test, the hook
+  # smoke tests, and the pre-pr aggregator (which chains the five
+  # artifact linters in the same order an adopter would run them).
+  #
+  # Deliberately omitted on Windows: the `sudo apt-get install ripgrep`
+  # step, the two `rg`-based scrub steps (source-attribution, Rail-C
+  # marker), and the `evals.json` carry-over step (its bash for-loop +
+  # `[ -f ]` tests aren't portable as-is). Porting those is tracked as
+  # follow-up PRs in the Windows-support action plan; keeping them
+  # Linux-only here keeps this diff small and the Linux job untouched.
+  #
+  # `runs-on: windows-latest` runs PowerShell by default. Every command
+  # below is a single-shot Python invocation, so the default shell is
+  # fine — no `shell: bash` (which would force git-bash and re-introduce
+  # the very portability problem this PR exists to verify away).
+  build-check-windows:
+    name: make build-check (windows)
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      # Force UTF-8 for stdio. Windows Python defaults to cp1252,
+      # which can't encode the `✓`/`✖` glyphs the lint and pre-pr
+      # scripts emit, nor decode their stderr when pytest reads it
+      # via subprocess. PYTHONUTF8=1 enables Python 3.7+'s UTF-8
+      # mode (text I/O default is UTF-8 regardless of locale);
+      # PYTHONIOENCODING is a belt-and-braces for any path that
+      # bypasses the UTF-8-mode default.
+      # Adopter-side fix (scripts reconfiguring their own stdio so
+      # this isn't needed in PowerShell either) is tracked as a
+      # follow-up in the Windows-support action plan.
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install agentbundle (editable) + pytest
+        # Installed first so `python -m agentbundle.build` resolves on
+        # the Windows job, which doesn't go through `make` (the Linux
+        # job's Makefile prepends packages/agentbundle to PYTHONPATH;
+        # path-separator differences make replicating that fragile on
+        # Windows, and `pip install -e` is needed for the pytest steps
+        # below anyway).
+        run: pip install -e packages/agentbundle/ pytest
+
+      - name: Run bundler build-check
+        # Mirror of the Linux `make build-check` step — `make` shells to
+        # `python3 -m agentbundle.build check`, and `python` is the safe
+        # cross-platform invocation (Windows has no `python3` on PATH).
+        run: python -m agentbundle.build check --packs-dir packs
+
+      - name: pytest converters install/uninstall (AC6a)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/integration/test_install_converters_user_scope.py
+
+      - name: pytest hook parity-net suite (windows-hooks-phase3)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/hooks/
+        # The bash test_session_start.sh sibling is intentionally skipped
+        # on Windows — pytest discovery only picks up test_*.py.
+
+      - name: pre-pr aggregator (linters + spec termination check)
+        # Same script adopters run locally; the canonical parity oracle.
+        # Chains the artifact linters pre-pr.py invokes in order, then
+        # loop-cohort per-spec checks. The exact linter set is owned by
+        # pre-pr.py itself (PR #94 retired lint-skill-deps); list the
+        # comment intentionally vague so this doesn't drift again.
+        run: python tools/hooks/pre-pr.py
+
   tests-windows:
     name: pytest (windows-latest)
     # Windows-only verification home for the Credential Manager Tier-2
