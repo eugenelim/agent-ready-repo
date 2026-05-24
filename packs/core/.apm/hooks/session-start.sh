@@ -47,14 +47,7 @@ while (( $# > 0 )); do
   shift || true
 done
 
-if [[ ! -f "$KNOWLEDGE_FILE" ]]; then
-  exit 0
-fi
-
-if [[ ! -s "$KNOWLEDGE_FILE" ]]; then
-  exit 0
-fi
-
+if [[ -f "$KNOWLEDGE_FILE" && -s "$KNOWLEDGE_FILE" ]]; then
 python3 - "$KNOWLEDGE_FILE" "$scope_filter" <<'PY'
 import fnmatch
 import json
@@ -110,4 +103,60 @@ for e in entries:
     if source:
         print(f"    — {source}")
     print()
+PY
+fi
+
+# ── Adapt-to-project nudge (AC20) ─────────────────────────────────────────────
+# Walk both `.adapt-install-marker.toml` paths — repo-scope at
+# `<repo>/.adapt-install-marker.toml` and user-scope at
+# `~/.agent-ready/.adapt-install-marker.toml` — and emit one stdout
+# line if either holds pending entries. Silent when both files are
+# absent. The knowledge block above MUST emit first; this nudge
+# follows so the parser ordering is stable across permutations.
+#
+# Fixture mode: set ADAPT_REPO_MARKER and ADAPT_USER_MARKER to override
+# the marker paths the hook reads (used by the shell-test fixture under
+# packages/agentbundle/tests/hooks/).
+
+ADAPT_REPO_MARKER="${ADAPT_REPO_MARKER:-$REPO_ROOT/.adapt-install-marker.toml}"
+ADAPT_USER_MARKER="${ADAPT_USER_MARKER:-$HOME/.agent-ready/.adapt-install-marker.toml}"
+
+python3 - "$ADAPT_REPO_MARKER" "$ADAPT_USER_MARKER" <<'PY'
+import sys
+import tomllib
+from pathlib import Path
+
+repo_marker = Path(sys.argv[1])
+user_marker = Path(sys.argv[2])
+
+def _names(path):
+    if not path.exists():
+        return []
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    entries = data.get("packs-installed", [])
+    if not isinstance(entries, list):
+        return []
+    out = []
+    for e in entries:
+        if isinstance(e, dict):
+            name = e.get("name")
+            if isinstance(name, str):
+                out.append(name)
+    return out
+
+repo_names = _names(repo_marker)
+user_names = _names(user_marker)
+all_names = sorted(set(repo_names) | set(user_names))
+if not all_names:
+    sys.exit(0)
+
+scopes_with_entries = sum(bool(n) for n in (repo_names, user_names))
+joined = ", ".join(all_names)
+print(
+    f"=== adapt-to-project: {len(all_names)} pack(s) pending adaptation "
+    f"across {scopes_with_entries} scope(s): {joined} — run /adapt-to-project ==="
+)
 PY

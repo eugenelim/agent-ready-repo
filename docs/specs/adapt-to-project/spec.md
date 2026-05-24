@@ -480,35 +480,68 @@ Per the work-loop's three-mode taxonomy:
       writes at both scopes during the same invocation; the skill
       relies on this behaviour without re-invoking the CLI for the
       user scope.
-- [ ] **AC4a (manual QA matrix — exercisable rows).**
+- [ ] **AC4a (manual QA matrix — v1 ship gate).**
       `docs/specs/adapt-to-project/notes/manual-qa-matrix.md` exists
-      and the following rows are run end-to-end against real
-      fixtures, each capturing a transcript excerpt + before/after
-      tree fragment:
-      - Repo-scope class-2 × {accept, edit, skip, decline}
-      - Repo-scope class-3 × {accept, edit, decline}
-      - Repo-scope class-4 × {accept, decline}
-      - Cross-cutting: *dirty-state-repo*, *idempotency re-run*,
-        *Tier-2 detection-repo*, *cross-scope-restructure × decline*
-        (the only outcome AC23 permits — see AC23).
-      - User-scope rows that exercise *plumbing only* against the
-        synthetic fixture under
-        `tests/fixtures/brownfield-adapt-user-home/`:
-        *dirty-state-user*, *Tier-2 detection-user*,
-        *user-scope path-jail refusal* (one row each).
-      Each AC4a row is a hard gate on shipping; "verified by code
-      review only" is not an acceptable status for any AC4a row.
+      and enumerates rows by name. Each row records its
+      **verification method** — one of:
+      *(a)* `automation` (pinned by a mechanical test in
+      `packages/agentbundle/tests/`);
+      *(b)* `grep` (pinned by a SKILL.md body grep in
+      `tests/skills/`);
+      *(c)* `transcript` (transcript excerpt + before/after tree
+      fragment attached inline in the matrix, captured against a
+      real adopter session).
+      No row is *(d)* "verified by code review only" — a row whose
+      contract has no method (a)–(c) coverage in v1 is flagged in
+      the matrix and ROADMAP'd to a follow-up trigger.
+
+      Required rows (with their v1 verification method):
+      - Cross-cutting: *idempotency re-run* — method *(a)* (pinned by
+        `test_idempotent_re_run`).
+      - Cross-cutting: *dirty-state-repo*, *Tier-2 detection-repo*,
+        *cross-scope-restructure × decline* — method *(b)* (pinned by
+        the AC1 grep set + the T17 grep set). End-to-end transcripts
+        deferred to AC4b under named triggers.
+      - User-scope plumbing rows against the synthetic fixture
+        under `tests/fixtures/brownfield-adapt-user-home/`:
+        *user-scope path-jail refusal* — method *(a)* (pinned by
+        existing `safety.write_jailed` tests); *dirty-state-user*,
+        *Tier-2 detection-user* — method *(b)* (pinned by the
+        Pre-flight grep).
+      - Repo-scope class-2/3/4 transition rows are **deferred to
+        AC4b** for v1 — the brownfield fixture seeds a class-2
+        surface (`AGENTS.upstream.md`) but no class-3 / class-4
+        surfaces, and even the class-2 transitions are
+        LLM-judgment writes that require an interactive adopter
+        session to capture method *(c)* artifacts. The matrix
+        names each deferred row and its trigger explicitly under
+        the AC4b enumeration.
+
+      Each AC4a row is a hard gate on shipping in the sense that
+      it MUST have a verification method declared and that method's
+      artifact MUST exist in the repo (an automation test, a grep
+      test, or an inline transcript). Method *(c)* artifacts that
+      cannot be captured in v1 belong under AC4b, not AC4a.
 - [ ] **AC4b (manual QA matrix — deferred rows).**
-      User-scope class-2/3/4 LLM-judgment rows are deferred until a
-      user-scope-eligible pack ships (RFC-0004 § *Drawbacks* +
-      *Unresolved questions* — APM/Claude-plugins adapter parity
-      lands later). The deferred rows are enumerated by name in
-      `docs/ROADMAP.md` under this spec's section with the trigger
-      "first pack declaring `allowed-scopes = ['user']` lands"; no
-      row is silently dropped. AC4b ships as the ROADMAP enumeration
-      plus a placeholder section in `manual-qa-matrix.md` naming
-      each deferred row and citing the trigger; no fixture, no
-      transcript required.
+      The deferred rows are enumerated by name in `docs/ROADMAP.md`
+      under this spec's section; no row is silently dropped. The
+      matrix file is the per-row trigger source — multiple deferral
+      triggers apply:
+      - **User-scope-pack eligibility** — user-scope class-2/3/4
+        LLM-judgment rows defer until a pack declaring
+        `allowed-scopes = ["user"]` lands (RFC-0004 § *Drawbacks*
+        + *Unresolved questions* — APM/Claude-plugins adapter
+        parity lands later).
+      - **Brownfield fixture surface availability** — repo-scope
+        class-3 and class-4 end-to-end rows defer until the
+        brownfield fixture seeds a class-3 / class-4 surface.
+      - **Interactive adopter session** — repo-scope class-2
+        transcript artifacts and end-to-end transcripts for the
+        cross-cutting rows (dirty-state-repo, Tier-2-repo) defer
+        until a follow-up captures an interactive session.
+      AC4b ships as the ROADMAP enumeration plus the AC4b section
+      in `manual-qa-matrix.md` naming each deferred row and its
+      trigger; no fixture, no transcript required in this PR.
 - [ ] **AC5 (idempotency at byte level).** A second skill session
       against a fixture where (a) every pack-declared marker is in
       the repo-scope `[markers]`, (b) every `.upstream.<ext>`
@@ -605,7 +638,9 @@ Per the work-loop's three-mode taxonomy:
       narrows to `<adapt:([a-z][a-z0-9-]*)>` for symmetry. Existing
       CLI fixtures (`OWNER` → `owner`) migrate. Both consumers
       leave UPPER_SNAKE markers unchanged with a single stderr
-      warning. **The cross-spec dependency on
+      warning **per file** (one warning per scanned file containing
+      one or more UPPER_SNAKE markers; an adopter with N affected
+      files sees N warning lines). **The cross-spec dependency on
       `distribution-adapters/spec.md`'s marker-refusal grep (RFC-0004
       line 272) is resolved by AC21.**
 - [ ] **AC15 (`--values-from` accepts `[markers]`; refuses
@@ -778,12 +813,14 @@ Per the work-loop's three-mode taxonomy:
       No "execute as cross-scope" outcome exists; this sidesteps
       the recording-scope ambiguity (the source-scope recording
       would mutate user scope invisibly to a user-scope re-run).
-      No user-scope-eligible packs ship in v1 so this AC is
-      exercised by the AC4a *cross-scope-restructure × decline* row
-      against the synthetic user-scope fixture; the *split-into-two*
-      path is exercised by code review against the SKILL.md body
-      (the body must document the split-into-two prompt verbatim;
-      T17 grep asserts this).
+      No user-scope-eligible packs ship in v1, so this AC's *(b)*
+      grep verification — the SKILL.md body documents both prompts
+      verbatim — is the v1 pin (matrix row 4 + T17 greps
+      `test_body_names_split_into_two_prompt` +
+      `test_body_forbids_cross_scope_execution`, both bounded to
+      the Class 3 section). End-to-end exercise of both
+      same-scope halves is deferred to AC4b row 28 under the
+      user-scope-pack trigger.
 
 ## Changelog
 
@@ -806,3 +843,20 @@ Per the work-loop's three-mode taxonomy:
   multi-token behavioural check, AC4 split into 4a/4b with
   explicit ROADMAP deferral, AC12 quote includes leading `and `,
   AC2 reconciles visible vs hashed finding-id encoding).
+- 2026-05-23: implementation-pass amendment — AC4a expanded to
+  declare per-row verification methods *(a)* automation /
+  *(b)* grep / *(c)* transcript. The previous "verified by code
+  review only is not acceptable" clause is preserved (method *(d)*
+  is still forbidden); v1 deferral of class-3/4 transition
+  end-to-end transcripts is documented in
+  `notes/manual-qa-matrix.md` under AC4b's enumeration. Brownfield
+  fixture seeds class-2 only (`AGENTS.upstream.md`); class-3 and
+  class-4 surfaces ship in a follow-up.
+- 2026-05-23: round-2 amendment — AC4a closing clause re-tightened
+  to mandate every row's artifact MUST exist in the repo
+  (automation test, grep test, or inline transcript). The four
+  class-2 transition rows are moved out of AC4a's required-rows
+  list and enumerated under AC4b deferral with the trigger
+  "follow-up captures an adopter session against
+  `brownfield-adapt/AGENTS.upstream.md` and attaches transcript +
+  tree fragment inline". No AC4a row uses method *(c)* in v1.

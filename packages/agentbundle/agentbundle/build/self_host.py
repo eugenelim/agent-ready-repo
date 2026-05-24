@@ -38,7 +38,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 from pathlib import Path
 
 from agentbundle.build.adapters import ADAPTERS
@@ -49,7 +48,12 @@ from agentbundle.build.main import (
     validate_pack_uniqueness,
 )
 
-ADAPT_MARKER_RE = re.compile(r"<adapt:([A-Za-z0-9_-]+)>")
+# AC14: canonical lowercase-hyphen marker grammar. The self-host
+# regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
+# what the adapt-to-project skill writes. Legacy UPPER_SNAKE markers
+# are tolerated with a one-shot warning per file (see `resolve_markers`).
+ADAPT_MARKER_RE = re.compile(r"<adapt:([a-z][a-z0-9-]*)>")
+_LEGACY_UPPER_RE = re.compile(r"<adapt:([A-Z_][A-Z0-9_]*)>")
 
 # The adapter-target subtree — paths every adapter could touch. Used
 # to clone working-tree state into a dry-run shadow.
@@ -136,6 +140,19 @@ def resolve_markers(
             continue
         if "<adapt:" not in text:
             continue
+        # AC14: legacy UPPER_SNAKE markers emit a single per-file warning
+        # and are left in place (the narrowed regex below won't match
+        # them; the warning surfaces them for the adopter to migrate).
+        if _LEGACY_UPPER_RE.search(text):
+            try:
+                rel_label = path.relative_to(root)
+            except ValueError:
+                rel_label = path
+            print(
+                f"self-host: warning: legacy UPPER_SNAKE marker(s) in {rel_label}; "
+                f"left in place (canonical form is <adapt:[a-z][a-z0-9-]*>)",
+                file=sys.stderr,
+            )
         replaced = ADAPT_MARKER_RE.sub(
             lambda match: discovery.get(match.group(1), match.group(0)),
             text,
@@ -631,11 +648,18 @@ def run_self_host(
         )
         return 3
 
-    discovery_data = tomllib.loads(discovery_path.read_text(encoding="utf-8"))
-    discovery_flat = {
-        str(key): str(value)
-        for key, value in discovery_data.get("adapt", {}).items()
-    }
+    # AC9: read `.adapt-discovery.toml` via the typed loader. Legacy
+    # `[adapt]` table, unknown `discovery-schema-version`, and any
+    # other invalid shape surface as `ConfigError` and refuse with
+    # the `self-host: ` prefix per spec.
+    from agentbundle.config import ConfigError, load_adapt_discovery_typed
+
+    try:
+        discovery = load_adapt_discovery_typed(discovery_path, scope="repo")
+    except ConfigError as exc:
+        print(f"self-host: {exc}", file=sys.stderr)
+        return 3
+    discovery_flat = dict(discovery.markers)
     owner = discovery_flat.get("owner", "eugenelim")
 
     if dry_run:

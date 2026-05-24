@@ -5,9 +5,12 @@
 # This repo is its own first adopter (RFC-0002 § Self-hosting). The
 # values below are this repo's concretes; an adopter's values live in
 # their own `.adapt-discovery.toml` at their repo root, materialized by
-# the `adapt-to-project` skill (stub today; full skill in a follow-on).
+# the `adapt-to-project` skill (full skill body authored under
+# docs/specs/adapt-to-project/).
 
-[adapt]
+discovery-schema-version = "0.1"
+
+[markers]
 project-name = "agent-ready-repo"
 repo-url = "https://github.com/eugenelim/agent-ready-repo"
 owner = "eugenelim"
