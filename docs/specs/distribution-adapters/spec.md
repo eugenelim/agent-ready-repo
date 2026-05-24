@@ -615,18 +615,18 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Acceptance Criteria
 
-- [ ] `docs/contracts/adapter.toml` exists, covers all four
+- [x] `docs/contracts/adapter.toml` exists, covers all four
   reference adapters (`claude-code`, `kiro`, `copilot`, `codex`), names
   the five primitive types (`skill`, `agent`, `hook-body`, `hook-wiring`,
   `command`), enumerates every (primitive, adapter) pair explicitly, and
   validates against a sibling `docs/contracts/adapter.schema.json`.
-- [ ] All seven projection modes (`direct-directory`, `direct-file`,
+- [x] All seven projection modes (`direct-directory`, `direct-file`,
   `merge-json`, `instruction-file`, `managed-block-inline`,
   `degraded-info-log`, `dropped`) appear in `adapter.schema.json` as the enum of
   legal `mode` values, and every projection rule in `adapter.toml`
   carries an `on-conflict` value matching RFC-0001's per-mode default
   table (or an explicit override from the legal set).
-- [ ] `pack.toml` shape is pinned in
+- [x] `pack.toml` shape is pinned in
   `docs/contracts/pack.schema.json` and referenced from
   `adapter.toml`. The schema accepts `[pack]`, `[pack.dependencies]`
   (with `required`/`recommended`/`conflicts` keys), `[pack.adaptation]`,
@@ -638,18 +638,18 @@ No manual QA: there is no UI surface, no human gesture under test.
   field). The schema's pass/fail tests pin both outcomes plus a
   `[pack.seeds]` shape check (entries must be relative-path strings;
   an absolute path or a non-string is rejected).
-- [ ] `.claude-plugin/plugin.json` shape is pinned in a sibling
+- [x] `.claude-plugin/plugin.json` shape is pinned in a sibling
   `plugin-manifest.schema.json` validating the hand-authored per-pack
   manifests. Each pack's manifest is hand-authored at
   `packs/<pack>/.claude-plugin/plugin.json`; the build copies it
   unmodified into `dist/claude-plugins/<pack>/`.
-- [ ] `packages/agentbundle/agentbundle/build/` runs under `python3
+- [x] `packages/agentbundle/agentbundle/build/` runs under `python3
   --version` 3.11+ with zero non-stdlib imports (verified by
   `tools/lint-build.sh` and the `pre-pr.sh` hook — a wrong `import yaml`
   surfaces in the offending PR, not at end-of-stream). The CI job that
   runs `pre-pr.sh` exits non-zero on any non-stdlib import under
   `packages/agentbundle/agentbundle/build/`.
-- [ ] `validate.py` implements a stdlib-only JSON-Schema subset (object,
+- [x] `validate.py` implements a stdlib-only JSON-Schema subset (object,
   array, string, integer, boolean, enum, required, pattern, items,
   `properties` and `additionalProperties` for object recursion — and
   only these). The subset is documented in T1a's *Approach*. AC #1
@@ -658,7 +658,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   and `additionalProperties` are load-bearing — every shipped schema
   (`adapter.schema.json`, `pack.schema.json`, `plugin-manifest.schema.json`)
   uses them to recurse into nested objects.
-- [ ] `make build` on a clean checkout, against the four reference
+- [x] `make build` on a clean checkout, against the four reference
   fixture packs under
   `packages/agentbundle/agentbundle/build/tests/fixtures/packs/`
   (`core`, `governance-extras`, `user-guide-diataxis`,
@@ -669,7 +669,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   of production packs in a top-level `packs/` directory is out of
   scope** — that migration is RFC-0001's F-dist follow-on. This spec
   ships the pipeline; production packs land separately.
-- [ ] Each adapter (`claude_code`, `kiro`, `copilot`, `codex`) has a
+- [x] Each adapter (`claude_code`, `kiro`, `copilot`, `codex`) has a
   per-adapter unit-test file under
   `packages/agentbundle/agentbundle/build/tests/` covering every
   projection mode that adapter's `adapter.toml` block uses (e.g.
@@ -679,17 +679,17 @@ No manual QA: there is no UI surface, no human gesture under test.
   declares one. Idempotence is asserted for `merge-json` (Claude Code)
   as well as `managed-block-inline` (Codex): running each adapter twice
   against the same fixture yields byte-identical output.
-- [ ] The build pipeline's validation step (not any individual adapter)
+- [x] The build pipeline's validation step (not any individual adapter)
   rejects a pack whose `.apm/skills/`, `.apm/agents/`, `.apm/hooks/`,
   `.apm/hook-wiring/`, or `.apm/commands/` contains two primitives with
   the same local name (pack-internal uniqueness per RFC-0001 §
   Pack-internal naming and collision policy), with a non-zero exit and
   a stderr message naming both paths.
-- [ ] `make build --check` (dry-run self-host build + diff against
+- [x] `make build --check` (dry-run self-host build + diff against
   on-disk projection) exits zero on a clean tree and exits non-zero
   with a per-file drift listing on any divergence. CI wiring of this
   gate is RFC-0002's spec's job; this spec ships the command.
-- [ ] `make build --self` writes projected output to the working tree,
+- [x] `make build --self` writes projected output to the working tree,
   resolves `<adapt:NAME>` markers against `.adapt-discovery.toml` as a
   final step (the one authorised mode for marker resolution per
   Boundaries § Never do), **refuses on a dirty tree without `--force`
@@ -703,13 +703,13 @@ No manual QA: there is no UI surface, no human gesture under test.
   `.adapt-discovery.toml` from repo values lives in the
   `adapt-to-project` skill (out of scope here — T7 ships only the
   consumer). Sibling spec `self-hosting` cites this AC.
-- [ ] The supported recipe set is exactly the six types named in
+- [x] The supported recipe set is exactly the six types named in
   § Recipe set (`per-pack-claude-plugin`, `per-pack-apm-package`,
   `marketplace`, `per-pack-overlay`, `composite-agents-md`,
   `composite-marketplace`); a seventh requires an amendment to this
   spec or a new RFC. Sibling specs (self-hosting, CLI) cite this AC
   when consuming the recipe set.
-- [ ] No new top-level source **directory** is introduced. Verified by
+- [x] No new top-level source **directory** is introduced. Verified by
   `comm -23 <(git ls-tree -d --name-only HEAD | sort) <(git ls-tree
   -d --name-only "$(git merge-base HEAD main)" | sort)` returning an
   empty set after the change lands — the `-d` flag scopes the audit
@@ -719,7 +719,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   the feature branch. `dist/` is git-ignored and does not count. No
   non-stdlib Python import is added (verified by the import-audit
   check above).
-- [ ] Plain `make build` (no flags) produces only `dist/apm/<pack>/`,
+- [x] Plain `make build` (no flags) produces only `dist/apm/<pack>/`,
   `dist/claude-plugins/<pack>/`, and `dist/claude-plugins/marketplace.json`
   — it does **not** invoke the three self-host recipes
   (`per-pack-overlay`, `composite-agents-md`, `composite-marketplace`).
@@ -796,3 +796,15 @@ No manual QA: there is no UI surface, no human gesture under test.
   addition and the `[pack.install]` declaration land in the **same
   PR** as the contract / schema amendment so the catalogue's
   published packs and the CLI release land in lockstep.
+
+## Changelog
+
+- 2026-05-23: bookkeeping reconciliation — the 14 pre-amendment
+  ACs flipped `[ ]` → `[x]` against on-disk evidence in
+  `packages/agentbundle/agentbundle/build/` (contract loader, four
+  reference adapters, recipe loader, validate, self-host, scope
+  rails) and `docs/contracts/`. The 5 `(RFC-0004)`-tagged ACs are
+  already `[x]` from the v0.2 contract bump. The Rail C code-side
+  marker-regex widening (paired with adapt-to-project AC21) is
+  the only ROADMAP-tracked code gap on this spec and is not an
+  unchecked AC here.

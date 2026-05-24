@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-23 (adapt-to-project: rows 17–18 promoted to AC4a (a)-automation; rows 8–16 carry Claude-simulated preparatory captures, still open against real-adopter-session trigger)
+**Last updated:** 2026-05-23 (spec-bookkeeping reconciliation — three specs' AC checkboxes flipped against on-disk evidence; AC4b rows 17–18 promoted to AC4a (a)-automation in the preceding capture PR)
 
 ## How this file is maintained
 
@@ -56,10 +56,6 @@ rails A/B/C; state-file v0.2 + `init-state --migrate`; four shipped
 packs declare `[pack.adapter-contract] version = "0.2"`) landed in
 the same PR; ACs #14–#18 are satisfied.
 
-- *No open items of substance.* The pre-amendment ACs (#1–#13) carry
-  the same bookkeeping drift documented above — checkboxes are still
-  literally `- [ ]` against shipped code. Same as `agent-spec-cli`:
-  reconciliation work, not new scope.
 - **Rail C grep widening to canonical syntax — paired with AC21 of
   adapt-to-project.** The spec text (line ~342 and the contract-load-
   bearing AC near line ~759) widens to also match the canonical
@@ -83,8 +79,6 @@ conflict + `installed: <pack> @ <scope>` rail; `recommends`
 cross-scope warning text split; `adapt` dual-state-file walk) landed
 in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
 
-- *No open items of substance for v1.* Same AC-checkbox bookkeeping
-  drift as `distribution-adapters`: a follow-up PR should reconcile.
 - **Deferred to a follow-up RFC** (called out in RFC-0004 itself, not
   net-new scope): user-scope hook-wiring merge story (Rail B keeps
   hook-bearing packs user-scope-refused until that lands); `global`
@@ -96,7 +90,7 @@ in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
   `validate` behaviour against the v0.1 conformance fixtures (which
   themselves are owned by RFC-0003's deferred F-conformance task).
 
-## `adapt-to-project` — drafted
+## `adapt-to-project` — shipped (AC4b transcripts deferred)
 
 Spec: [`specs/adapt-to-project/spec.md`](specs/adapt-to-project/spec.md).
 Drafted per RFC-0001 § *Post-install adaptation* and RFC-0004 § *Drawbacks
