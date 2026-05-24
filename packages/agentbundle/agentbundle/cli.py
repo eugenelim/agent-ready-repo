@@ -304,6 +304,21 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.set_defaults(func=_lazy("init_state"))
 
+    # --- reconcile --- (read-only orphan reporter, RFC-0005 / T9)
+    # No --apply flag — the subcommand is report-only by design.
+    # `argparse`'s default "unrecognized argument" rejects --apply.
+    sp = subparsers.add_parser(
+        "reconcile",
+        help=(
+            "RFC-0005: read-only orphan reporter — walks Claude Code "
+            "settings.json and Kiro agent JSONs named in user-scope state, "
+            "reports entries the file/state pair disagrees on. Read-only; "
+            "no --apply flag."
+        ),
+    )
+    sp.add_argument("--scope", choices=("user",), default="user")
+    sp.set_defaults(func=_lazy("reconcile"))
+
     return parser
 
 
