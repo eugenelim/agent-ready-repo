@@ -8,7 +8,12 @@
 #     - File exists, has valid YAML frontmatter delimited by ---
 #     - Frontmatter has non-empty `name` (kebab-case) and `description`
 #     - Directory name == frontmatter `name`
-#     - Frontmatter has no unknown keys (allowed: name, description)
+#     - Frontmatter has no unknown keys (allowed: name, description,
+#       dependencies, credentialed, primitive-class)
+#     - If `credentialed` is present, its value must be a YAML boolean
+#       (`true` or `false`); absence means the skill is not credentialed.
+#     - If `primitive-class` is present, its value must be one of
+#       `credentialed-cli` or `mcp-server`.
 #
 #   Subagents (.claude/agents/<name>.md):
 #     - File has valid YAML frontmatter
@@ -49,7 +54,9 @@ error_count = 0
 KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
 LINK = re.compile(r"\]\(([^)]+)\)")
 
-ALLOWED_SKILL_KEYS = {"name", "description", "dependencies"}
+ALLOWED_SKILL_KEYS = {"name", "description", "dependencies",
+                      "credentialed", "primitive-class"}
+ALLOWED_PRIMITIVE_CLASSES = {"credentialed-cli", "mcp-server"}
 ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model", "dependencies"}
 ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
 
@@ -177,6 +184,22 @@ def check_skill(path):
     if unknown:
         err(path, f"unknown frontmatter keys: {sorted(unknown)} "
                   f"(allowed: {sorted(ALLOWED_SKILL_KEYS)})")
+    # Credentialed-skill frontmatter keys (per skill-secrets spec § AC25).
+    # Absence of `credentialed` means the skill is not credentialed; the
+    # lint skips the credentialed-specific checks. When present, the value
+    # must be a literal YAML boolean — strings like "yes" or "true" are
+    # rejected so the type-check is unambiguous.
+    if "credentialed" in fields:
+        cval = fields["credentialed"]
+        if cval not in ("true", "false"):
+            err(path, f"frontmatter key 'credentialed' must be boolean "
+                      f"(true|false), got {cval!r}")
+    if "primitive-class" in fields:
+        pval = fields["primitive-class"]
+        if pval not in ALLOWED_PRIMITIVE_CLASSES:
+            err(path, f"frontmatter key 'primitive-class' must be one of: "
+                      f"{', '.join(sorted(ALLOWED_PRIMITIVE_CLASSES))} "
+                      f"(got {pval!r})")
     if not body.strip():
         err(path, "body is empty")
     check_links(path, body, body_start)
