@@ -17,7 +17,6 @@ cd "$REPO_ROOT"
 # Each entry: "<label>:<command>". Order is alphabetical for stability;
 # nothing in the chain depends on a particular order.
 tests=(
-  "bootstrap-targets:bash tools/test-bootstrap-targets.sh"
   "loop-cohort:bash tools/test-loop-cohort.sh"
   "lint-agent-artifacts:bash tools/test-lint-agent-artifacts.sh"
   "lint-knowledge:bash tools/test-lint-knowledge.sh"

@@ -121,7 +121,7 @@ Two dedicated self-tests cover the hook scripts themselves:
 
 The umbrella `tools/test-all.sh` runs every self-test in `tools/`
 (both of the above plus `test-loop-cohort.sh`, `test-lint-knowledge.sh`,
-`test-lint-agent-artifacts.sh`, `test-bootstrap-targets.sh`). Run it
+`test-lint-agent-artifacts.sh`). Run it
 by hand whenever a linter, hook, or `loop-cohort.py` changes.
 
 **CI parity.** `pre-pr.sh` and CI run the same set of checks in
