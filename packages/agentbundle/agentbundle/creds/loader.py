@@ -37,9 +37,15 @@ from __future__ import annotations
 import os
 import pathlib
 import re
+import subprocess
 import sys
+import tempfile
 
-from .exceptions import CredentialsMissingError, Tier2HardFailError
+from .exceptions import (
+    CredentialsMissingError,
+    PermissiveAclError,
+    Tier2HardFailError,
+)
 
 _KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -144,11 +150,206 @@ def _tier2(namespace: str, key: str) -> str | None:
 def _tier3(namespace: str, key: str) -> str | None:
     """Resolve from the Tier-3 dotfile (spec § AC13).
 
-    Stubbed in T3 — T6 implements the dotfile read. Returns ``None`` so
-    the resolver continues toward ``CredentialsMissingError`` for any
-    key that did not resolve at Tier 1 or Tier 2.
+    Reads ``~/.agent-ready/credentials.env`` via the stdlib parser and
+    looks up ``<NAMESPACE>_<KEY>``. Returns ``None`` on miss; a malformed
+    dotfile also returns ``None`` (the upstream resolver raises
+    ``CredentialsMissingError`` if the key was required, naming the
+    namespace and the missing key list).
     """
-    return None
+    return _dotfile_read(namespace, key)
+
+
+# ── Tier 3 — dotfile ───────────────────────────────────────────────────
+
+
+def _dotfile_path() -> pathlib.Path:
+    """Canonical Tier-3 dotfile path per spec § AC13.
+
+    Resolves to ``pathlib.Path.home() / ".agent-ready" / "credentials.env"``
+    on every platform. Tests redirect ``HOME`` (and ``USERPROFILE`` on
+    Windows) to a ``tmp_path``-scoped directory so the developer's real
+    ``~/.agent-ready/`` is never touched.
+    """
+    return pathlib.Path.home() / ".agent-ready" / "credentials.env"
+
+
+def _dotfile_env_name(namespace: str, key: str) -> str:
+    """Compose the dotfile entry name — same shape as the Tier-1 env var."""
+    return f"{namespace.upper()}_{key}"
+
+
+def _dotfile_read(namespace: str, key: str) -> str | None:
+    """Look up ``<NAMESPACE>_<KEY>`` in the Tier-3 dotfile."""
+    path = _dotfile_path()
+    if not path.is_file():
+        return None
+    try:
+        values = parse_env_file(path)
+    except EnvParseError:
+        return None
+    raw = values.get(_dotfile_env_name(namespace, key))
+    if not raw:
+        return None
+    return raw
+
+
+def _quote_for_dotfile(value: str) -> str:
+    """Render a value for the dotfile.
+
+    Use double-quotes only when the bare value would be ambiguous to the
+    parser (contains whitespace or a leading ``#``). Embedded double
+    quotes / dollar signs are not the user's tokens in practice — the
+    parser refuses ``$`` and embedded quotes would re-enter as ``"a"b"``
+    which the parser strips clumsily. Tokens this rejects shouldn't be
+    in scope for Tier-3 storage and the helper surfaces the parser
+    error if a round-trip would corrupt the value.
+    """
+    if not value:
+        return '""'
+    if " " in value or value.startswith("#"):
+        return f'"{value}"'
+    return value
+
+
+def _verify_icacls(
+    path: pathlib.Path, *, allow_permissive_acl: bool = False
+) -> None:
+    """Run ``icacls`` on the path and refuse if any non-default ACE grants
+    read access (spec § AC15). No-op on POSIX.
+
+    Default ACEs on a per-user file are the inheriting user,
+    ``NT AUTHORITY\\SYSTEM``, and ``BUILTIN\\Administrators``. Any other
+    principal granted access is flagged unless the caller opts in.
+    """
+    if os.name != "nt":  # pragma: no cover — POSIX path
+        return
+    res = subprocess.run(  # pragma: no cover — exercised only on Windows
+        ["icacls", str(path)], capture_output=True, text=True, check=False
+    )
+    if res.returncode != 0:
+        raise PermissiveAclError(
+            f"icacls inspection failed for {path}: rc={res.returncode} "
+            f"stderr={res.stderr.strip()}"
+        )
+    suspect = []
+    for line in res.stdout.splitlines():
+        stripped = line.strip()
+        # Flag any ACE granting access to non-default principals.
+        if (
+            "BUILTIN\\Users" in stripped
+            or "Everyone" in stripped
+            or "Authenticated Users" in stripped
+        ):
+            suspect.append(stripped)
+    if suspect and not allow_permissive_acl:
+        raise PermissiveAclError(
+            f"DACL too permissive on {path}: {suspect}; pass "
+            f"allow_permissive_acl=True to override"
+        )
+
+
+def _ensure_parent(parent: pathlib.Path) -> None:
+    """Create the dotfile parent at mode 0o700 if absent (spec § AC15).
+
+    If the parent already exists, do **not** rewrite its mode — the
+    directory is shared with RFC-0004 install state. On POSIX warn on
+    stderr if the existing mode is more permissive than 0o755.
+    """
+    if not parent.exists():
+        parent.mkdir(mode=0o700, parents=True)
+        return
+    if os.name == "posix":
+        mode = parent.stat().st_mode & 0o777
+        if mode > 0o755:
+            sys.stderr.write(
+                f"warning: {parent} mode is {oct(mode)} (more permissive "
+                f"than 0o755); leaving in place — shared with install state\n"
+            )
+
+
+def _dotfile_write(
+    namespace: str,
+    key: str,
+    value: str,
+    *,
+    allow_permissive_acl: bool = False,
+) -> None:
+    """Write ``(namespace, key) → value`` to the Tier-3 dotfile atomically.
+
+    Atomic write contract per spec § AC14:
+    ``tempfile.mkstemp(dir=target_dir)`` → ``os.write`` →
+    ``os.fchmod`` (POSIX) → ``os.close`` → ``os.replace``. A mid-write
+    read sees either the prior contents or the new contents, never
+    partial.
+    """
+    path = _dotfile_path()
+    parent = path.parent
+    _ensure_parent(parent)
+
+    existing: dict[str, str] = {}
+    if path.is_file():
+        try:
+            existing = parse_env_file(path)
+        except EnvParseError:
+            existing = {}
+    existing[_dotfile_env_name(namespace, key)] = value
+    content = "".join(
+        f"{k}={_quote_for_dotfile(v)}\n" for k, v in existing.items()
+    )
+
+    fd, tmp_path_str = tempfile.mkstemp(dir=str(parent), prefix=".creds.")
+    tmp_path = pathlib.Path(tmp_path_str)
+    try:
+        os.write(fd, content.encode("utf-8"))
+        if os.name == "posix":
+            os.fchmod(fd, 0o600)
+        os.close(fd)
+        if os.name == "nt":
+            _verify_icacls(tmp_path, allow_permissive_acl=allow_permissive_acl)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
+def _dotfile_delete(namespace: str, key: str) -> None:
+    """Remove ``(namespace, key)`` from the dotfile atomically.
+
+    No-op if the dotfile is absent or the key isn't present. Atomic
+    rewrite shape matches ``_dotfile_write``.
+    """
+    path = _dotfile_path()
+    if not path.is_file():
+        return
+    try:
+        existing = parse_env_file(path)
+    except EnvParseError:
+        return
+    target = _dotfile_env_name(namespace, key)
+    if target not in existing:
+        return
+    del existing[target]
+    content = "".join(
+        f"{k}={_quote_for_dotfile(v)}\n" for k, v in existing.items()
+    )
+    parent = path.parent
+    fd, tmp_path_str = tempfile.mkstemp(dir=str(parent), prefix=".creds.")
+    tmp_path = pathlib.Path(tmp_path_str)
+    try:
+        os.write(fd, content.encode("utf-8"))
+        if os.name == "posix":
+            os.fchmod(fd, 0o600)
+        os.close(fd)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def load_credentials(
@@ -195,6 +396,7 @@ __all__ = [
     "Credentials",
     "CredentialsMissingError",
     "EnvParseError",
+    "PermissiveAclError",
     "Tier2HardFailError",
     "load_credentials",
     "parse_env_file",
