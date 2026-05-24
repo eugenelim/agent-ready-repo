@@ -467,3 +467,220 @@ def check_kiro_wiring(
         agent_basenames,
         target_adapters,
     )
+
+
+# ---------------------------------------------------------------------------
+# T-C2 (RFC-0005): kiro-ide-hook validate rail.
+#
+# Five refusal paths covering the RFC's "validate rail" subsection
+# under § *Kiro IDE event hooks — new `kiro-ide-hook` primitive*:
+#
+#   1. Missing required field (`name`, `version`, `when.type`,
+#      `then.type`).
+#   2. `when.type` outside the adapter's declared
+#      `ide-event-vocabulary`.
+#   3. `then.type` outside the adapter's declared
+#      `ide-action-vocabulary`.
+#   4. Malformed placeholder in `then.command` — any `${...}` that
+#      does not match `\$\{hook-body:[a-zA-Z0-9_-]+\}` exactly.
+#   5. Unresolvable placeholder — well-formed `${hook-body:<name>}`
+#      whose `<name>` is not a same-pack `.apm/hooks/<name>.<ext>`.
+#
+# RFC § Substitution rules clause 1 fences the placeholder scan to
+# `then.command` only; placeholder-shaped text in `then.prompt`
+# (askAgent), `name`, `description`, `when.patterns`, or any other
+# field passes through verbatim.
+#
+# Vocabularies arrive as parameters from the caller — same pattern
+# as `check_kiro_event_vocabulary`. The caller (`commands/validate.py`)
+# loads them from the v0.4 adapter contract once and threads them in;
+# rail-side caching would couple the rail to contract-file location.
+# ---------------------------------------------------------------------------
+
+
+# Strict placeholder grammar — RFC § Substitution rules clause 4.
+# Closing brace required; inner name matches `[a-zA-Z0-9_-]+` only,
+# so whitespace, slashes, dots, and `..` are all forbidden by
+# construction.
+_HOOK_BODY_PLACEHOLDER_RE = re.compile(r"\$\{hook-body:([a-zA-Z0-9_-]+)\}")
+
+# Loose `${...}` matcher used to find anything placeholder-shaped that
+# fails the strict grammar above; an offender that matches this but
+# not the strict regex is a malformed placeholder. We deliberately
+# don't try to match `${...` without a closing brace — that's literal
+# text per shell-syntax convention.
+_ANY_PLACEHOLDER_RE = re.compile(r"\$\{[^}]*\}")
+
+
+def check_kiro_ide_hook(
+    pack_path: Path,
+    pack_name: str,
+    target_adapters: Iterable[str],
+    ide_event_vocabulary: list[str] | None = None,
+    ide_action_vocabulary: list[str] | None = None,
+) -> str | None:
+    """T-C2 filesystem rail for the kiro-ide-hook primitive.
+
+    Walks ``<pack_path>/.apm/kiro-ide-hooks/*.kiro.hook`` in sorted
+    order and applies the five refusal paths above. The first
+    offender wins; subsequent files are not inspected (matches the
+    other Kiro rails' first-offender discipline).
+
+    Returns:
+      ``None`` when every hook passes, or when ``kiro`` is not in
+      ``target_adapters``, or when the pack ships no
+      ``.apm/kiro-ide-hooks/`` directory.
+
+      A refusal string in RFC-0005 § *validate rail* verbatim form
+      otherwise. The string carries enough context for the caller to
+      format the spec's stderr line — ``validate: <pack>: <message>``
+      — without per-rail formatting code at each call site.
+
+    Arguments:
+      pack_path: absolute path to the pack root.
+      pack_name: pack name (substituted into the refusal text).
+      target_adapters: iterable of adapter names the pack is being
+        validated against. Rail is a no-op when ``"kiro"`` is absent.
+      ide_event_vocabulary: the kiro adapter's declared
+        ``ide-event-vocabulary`` from
+        ``[adapter.kiro.projections.kiro-ide-hook]``. ``None`` skips
+        check 2 (rail becomes a no-op for that field — same shape as
+        ``check_kiro_event_vocabulary`` when the adapter declares no
+        vocabulary).
+      ide_action_vocabulary: same shape, for ``then.type``.
+    """
+    if "kiro" not in set(target_adapters or ()):
+        return None
+
+    import json
+    from stat import S_ISLNK
+
+    hooks_dir = pack_path / ".apm" / "kiro-ide-hooks"
+    if not hooks_dir.exists():
+        return None
+
+    # Same-pack hook-body basenames — set up once so check 5 (unresolvable
+    # placeholder) can verify a referenced name against shipped files.
+    # An empty set is fine — every placeholder will fail check 5, which
+    # is the correct semantics (a pack with no hook-bodies cannot
+    # reference one).
+    hook_body_basenames: set[str] = set()
+    hook_body_dir = pack_path / ".apm" / "hooks"
+    if hook_body_dir.exists():
+        for entry in sorted(hook_body_dir.iterdir()):
+            try:
+                st = os.lstat(entry)
+            except OSError:
+                continue
+            if S_ISLNK(st.st_mode):
+                # Symlinks under .apm/hooks/ are out of scope for this
+                # rail; check_hooks (Rail B) is the gate for that
+                # surface and it doesn't fire for repo-only packs.
+                continue
+            if entry.is_file():
+                hook_body_basenames.add(entry.stem)
+
+    allowed_events = set(ide_event_vocabulary) if ide_event_vocabulary is not None else None
+    allowed_actions = set(ide_action_vocabulary) if ide_action_vocabulary is not None else None
+
+    for entry in sorted(hooks_dir.iterdir()):
+        if not entry.name.endswith(".kiro.hook"):
+            # Other files in .kiro-ide-hooks/ aren't this primitive's
+            # responsibility — silently skipped (matches the
+            # `*.kiro.hook` filter assumption from RFC Q6).
+            continue
+        try:
+            st = os.lstat(entry)
+        except OSError:
+            continue
+        if S_ISLNK(st.st_mode):
+            rel = entry.relative_to(pack_path)
+            return (
+                f"pack {pack_name}'s kiro-ide-hook entry is a symlink "
+                f"(not a regular file); first offender: {rel.as_posix()}"
+            )
+        if not entry.is_file():
+            continue
+
+        try:
+            body = json.loads(entry.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            return (
+                f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                f"failed to parse: {exc}"
+            )
+        if not isinstance(body, dict):
+            return (
+                f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                f"is not a JSON object"
+            )
+
+        # Check 1 — required fields. Order: name → version → when → then →
+        # when.type → then.type so the most-likely-missing top-level
+        # field surfaces first.
+        for required in ("name", "version", "when", "then"):
+            if required not in body:
+                return (
+                    f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                    f"is missing required field {required}"
+                )
+        when = body.get("when")
+        then = body.get("then")
+        if not isinstance(when, dict) or "type" not in when:
+            return (
+                f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                f"is missing required field when.type"
+            )
+        if not isinstance(then, dict) or "type" not in then:
+            return (
+                f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                f"is missing required field then.type"
+            )
+
+        when_type = when["type"]
+        then_type = then["type"]
+
+        # Check 2 — when.type vocabulary.
+        if allowed_events is not None and when_type not in allowed_events:
+            return (
+                f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                f"uses event '{when_type}'; not in adapter 'kiro' "
+                f"ide-event-vocabulary"
+            )
+
+        # Check 3 — then.type vocabulary.
+        if allowed_actions is not None and then_type not in allowed_actions:
+            return (
+                f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                f"uses action '{then_type}'; not in adapter 'kiro' "
+                f"ide-action-vocabulary"
+            )
+
+        # Checks 4 + 5 — placeholder scan. RFC § Substitution rules
+        # clause 1 fences this to `then.command` only.
+        command = then.get("command")
+        if isinstance(command, str):
+            # First pass: any `${...}` that doesn't match the strict
+            # grammar is malformed (check 4).
+            for match in _ANY_PLACEHOLDER_RE.finditer(command):
+                literal = match.group(0)
+                if not _HOOK_BODY_PLACEHOLDER_RE.fullmatch(literal):
+                    return (
+                        f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                        f"contains malformed placeholder '{literal}'; "
+                        f"expected ${{hook-body:<name>}} with name "
+                        f"matching [a-zA-Z0-9_-]+"
+                    )
+            # Second pass: well-formed placeholders must resolve to a
+            # same-pack hook-body (check 5).
+            for match in _HOOK_BODY_PLACEHOLDER_RE.finditer(command):
+                name = match.group(1)
+                if name not in hook_body_basenames:
+                    return (
+                        f"pack {pack_name}'s kiro-ide-hook {entry.name} "
+                        f"references unknown hook-body "
+                        f"'${{hook-body:{name}}}'; no such hook-body "
+                        f"in pack"
+                    )
+
+    return None
