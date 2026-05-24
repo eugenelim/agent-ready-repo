@@ -96,9 +96,27 @@ slash command) reports findings on:
 - `### Security rules (non-negotiable)` heading absent, or the three
   RFC-0006 § 4 substrings missing inside that section.
 - Any `argparse.ArgumentParser.add_argument` call in `scripts/**/*.py`
-  whose normalised name matches the banned set. Casing variants and
-  `"--" + "name"` literal concatenation are caught; deeper obfuscation
-  is out of scope.
+  whose first positional collapses to a banned name after AC27
+  normalisation. The walker recognises every shape that reduces to a
+  literal string at parse time:
+  - Direct `Constant(str)` — `"--token"`.
+  - `BinOp(op=Add)` chain of literal strings — `"--" + "token"`.
+  - `JoinedStr` (f-string) with literal-only `FormattedValue` parts —
+    `f"--{'token'}"`.
+  - `Starred(Tuple)` argument spread of a literal tuple/list —
+    `add_argument(*("--token",))`.
+  - `Subscript` constant indexing into a literal tuple/list —
+    `("--token",)[0]`.
+- **Argparse-only scope.** The lint walks `argparse.ArgumentParser.add_argument`
+  calls; it does NOT see `click.option(...)`, `typer.Option(...)`,
+  decorator-style flag declarations, name-via-variable lookups, or
+  flag names assembled from runtime sources (env reads, function
+  return values). If your credentialed-CLI primitive uses `click` or
+  `typer`, the lint reports zero findings and PR review is the only
+  enforcement. Prefer `argparse` for credentialed-CLI primitives so
+  the lint can do its job; if you reach for `click` or `typer`
+  anyway, name the choice in the PR description so reviewers know to
+  spot-check the flag set by hand.
 - Any `scripts/**/*.py` line containing `.agent-ready/credentials.env`
   without the opt-out marker `# credentialed-primitive: reads-creds-directly`
   on the same line.

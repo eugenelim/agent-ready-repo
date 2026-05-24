@@ -258,7 +258,6 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "docs/knowledge/*.md",
     "docs/guides/**/*.md",
     "README.md",  # root-level; nested README.md not excluded
-    "USING_THIS_TEMPLATE.md",
     "LICENSE-*",
     ".gitignore",
     ".github/**",
