@@ -1,0 +1,99 @@
+{
+  "skill_name": "file-to-markdown",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Convert docs/whitepaper.pdf to Markdown.",
+      "expected_output": "The agent runs `python scripts/convert.py docs/whitepaper.pdf`, parses the OUTPUT/LINES/WORDS/WARNING markers, and reports the output path and counts. It does NOT enter the image branch (PDFs go through Docling).",
+      "assertions": [
+        "Agent invokes `python scripts/convert.py docs/whitepaper.pdf` (flag order may vary)",
+        "Agent does NOT use split_image.py or reconcile.py for a PDF",
+        "Agent reports the OUTPUT: path printed by the script",
+        "Agent surfaces any WARNING: line back to the user verbatim",
+        "Agent does NOT pre-process the PDF or chunk it"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Convert this architecture-diagram.png to Markdown — it's a C4 component view.",
+      "expected_output": "The agent runs split_image.py overview, reads the overview to produce a structural_map, runs split_image.py detail, loads references/strategy_architecture.md, reads each tile and writes extractions.json, runs reconcile.py with --strategy architecture, and reports the output.",
+      "assertions": [
+        "Agent runs `python scripts/split_image.py overview` against the input",
+        "Agent reads the resulting overview.png and emits a structural_map with diagram_type and layout",
+        "Agent runs `python scripts/split_image.py detail` to produce tiles + detail_manifest.json",
+        "Agent loads `references/strategy_architecture.md` (and ONLY that strategy reference, not all five)",
+        "Agent reads each tile listed in detail_manifest.json and writes a per-tile element list to an extractions.json file",
+        "Agent runs `python scripts/reconcile.py --manifest detail_manifest.json --extractions extractions.json --strategy architecture --output-json merged.json --output-md <output>.md`",
+        "Agent does NOT dedup elements across tiles in chat — it lets the reconciler do that",
+        "Agent does NOT sort the canonical element list itself — it lets the reconciler sort by the structural map's layout",
+        "Agent does NOT write the YAML frontmatter by hand; the script produces it"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Read this event-storming board photo. The stickies are colored — extract them properly.",
+      "expected_output": "The agent loads references/strategy_event-storm.md (only that strategy), maps colors to types per the table (orange=event, blue=command, etc.), captures bbox_in_tile for every sticky (critical for the timeline reconstruction), and runs reconcile.py with --strategy event-storm. The output Markdown's element table groups by type.",
+      "assertions": [
+        "Agent loads `references/strategy_event-storm.md` (and not other strategy refs)",
+        "Agent extracts color → type mapping per the reference (orange→event, blue→command, yellow→aggregate, lilac→policy, red/pink→hot-spot, green→read-model, white→external)",
+        "Agent captures `bbox_in_tile` for each sticky (required for temporal sequencing)",
+        "Agent invokes reconcile.py with `--strategy event-storm`",
+        "Agent does NOT reorder stickies by perceived narrative — leaves spatial sort to the reconciler"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "The same component appears in two adjacent tiles. Should I deduplicate before running reconcile?",
+      "expected_output": "The agent says NO — emit every observation, including duplicates. The reconciler collapses elements that share `(type, normalized_name)` across tiles automatically. If the agent dedupes manually, the reconciler can't pick the higher-confidence record (the central-tile observation usually has more legible labels).",
+      "assertions": [
+        "Agent advises against manual cross-tile deduplication",
+        "Agent explains the reconciler collapses by `(type, normalized_name)` and by IoU within the same type",
+        "Agent mentions that the higher-confidence record wins on ties",
+        "Agent does NOT propose a custom dedup helper"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "The diagram is small — only 800x600 pixels. Do I really need the two-pass pipeline?",
+      "expected_output": "The agent says no — a single tile suffices below 1200px on both dimensions. It runs split_image.py detail with --viewport 1200 --stride 1200 (or just reads the image directly), still emits an extractions.json with one tile entry, and runs reconcile.py.",
+      "assertions": [
+        "Agent skips the overview pass (image is small enough that the structural_map can be produced from the source directly)",
+        "Agent runs detail with viewport ≥ image dimensions so there's only one tile",
+        "Agent still runs reconcile.py to get the merged JSON + Markdown output",
+        "Agent does NOT decline the request because the image is small"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Two tiles report similar shapes at the same location with slightly different names: 'Auth Service' (medium confidence) and 'Authentication' (high confidence). What happens?",
+      "expected_output": "The reconciler keeps 'Authentication' as canonical (higher confidence) and records 'Auth Service' as an alternate name in the ambiguities list. The output Markdown's `requires-review` field becomes true. The agent does NOT manually pick one name in chat.",
+      "assertions": [
+        "Agent explains the reconciler picks the higher-confidence record",
+        "Agent explains the alternate name is recorded in `ambiguities`, not silently dropped",
+        "Agent does NOT propose to manually merge the names in the extractions file",
+        "Agent points the user to the `requires-review: true` field as the trigger to inspect ambiguities"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Convert this diagram and render the output to Markdown. I don't know what kind of diagram it is.",
+      "expected_output": "The agent runs the overview pass, reads it, and decides on a strategy from the visible content (architecture vs event-storm vs process vs domain). If genuinely unclear, it picks `conceptual` and notes that choice. It does NOT load all five strategy references.",
+      "assertions": [
+        "Agent runs split_image.py overview before deciding the strategy",
+        "Agent loads exactly ONE strategy reference, derived from the overview observation",
+        "Agent defaults to `conceptual` only when the diagram doesn't fit a more specific strategy (and surfaces the choice in narration)",
+        "Agent does NOT enumerate all strategies in the response"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I have a 12000x8000-pixel diagram export. Will the toolchain handle it?",
+      "expected_output": "The agent confirms yes — split_image.py auto-prescales sources whose longest dim exceeds 8000 px or whose tiles would exceed the per-tile size limit. The scale factor is recorded in the overview manifest and the tile manifest. No agent action needed beyond the standard flow.",
+      "assertions": [
+        "Agent mentions the auto-prescale behavior",
+        "Agent does NOT propose to manually downscale the image with PIL or ImageMagick first",
+        "Agent does NOT propose to call split_image.py with custom --max-source-dim unless the user asks for a different limit"
+      ]
+    }
+  ]
+}
