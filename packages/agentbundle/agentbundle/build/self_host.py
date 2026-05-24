@@ -672,6 +672,68 @@ def _normalise_lf(data: bytes) -> bytes:
     return data.replace(b"\r\n", b"\n")
 
 
+def _is_equivalent_claude_md_shape(on_disk: Path, agents_md: Path) -> bool:
+    """Three on-disk shapes are equivalent for the repo-root `CLAUDE.md`
+    alias and must not count as drift against the shadow self-host emits:
+
+    1. A real symlink whose target is ``"AGENTS.md"`` — the POSIX shape
+       ``_recreate_claude_symlink`` writes on macOS/Linux.
+    2. A regular file whose content is byte-equal (after LF
+       normalisation) to the disk-side ``AGENTS.md`` — the shape
+       ``--no-symlink`` and the Windows fallback write.
+    3. A regular file whose stripped content is ``"AGENTS.md"`` —
+       the shape Git for Windows materialises when ``core.symlinks
+       = false``. Trailing-whitespace tolerance (CRLF, LF, none,
+       trailing blank lines) mirrors ``lint-agents-md.py`` check
+       #2's ``.strip() == "AGENTS.md"`` semantics so an adopter
+       that passes the lint also passes the drift gate.
+
+    The three shapes resolve to the same user-visible content (the
+    Claude Code CLI reads either path identically), so cross-shape
+    drift is presentational, not substantive. Tampering — a regular
+    file with arbitrary unrelated content — still drifts: the helper
+    returns ``False`` and the caller falls through to the strict
+    comparison path.
+
+    The shadow side is trusted by construction: every shadow CLAUDE.md
+    is produced by ``_recreate_claude_symlink``, which only emits
+    shapes 1 or 2. The helper therefore only inspects the on-disk
+    side; cross-shape pairings (any shadow × any disk) collapse to
+    "is the disk shape a valid CLAUDE.md?".
+    """
+    try:
+        st = os.lstat(on_disk)
+    except OSError:
+        return False
+    if stat.S_ISLNK(st.st_mode):
+        try:
+            return os.readlink(on_disk) == "AGENTS.md"
+        except OSError:
+            return False
+    if not stat.S_ISREG(st.st_mode):
+        return False
+    try:
+        disk_bytes = on_disk.read_bytes()
+    except OSError:
+        return False
+    # Decode-then-strip so the helper handles Unicode whitespace
+    # (NBSP, IDEOGRAPHIC SPACE, …) the same way the lint's
+    # `read_text(errors="replace").strip()` does. Bytewise
+    # `disk_bytes.strip()` would only strip ASCII whitespace, leaving
+    # a narrow lint-passes / gate-fails asymmetry the docstring's
+    # parity promise wouldn't hold. `errors="replace"` matches the
+    # lint exactly — invalid UTF-8 maps to U+FFFD and falls out as
+    # "not the literal `AGENTS.md` string", correctly routing to the
+    # byte-equality fallback below.
+    if disk_bytes.decode("utf-8", errors="replace").strip() == "AGENTS.md":
+        return True
+    try:
+        agents_bytes = agents_md.read_bytes()
+    except OSError:
+        return False
+    return _normalise_lf(disk_bytes) == _normalise_lf(agents_bytes)
+
+
 def diff_against_working_tree(
     shadow: Path,
     working_tree: Path,
@@ -707,6 +769,13 @@ def diff_against_working_tree(
             continue
         relative = rendered.relative_to(shadow)
         on_disk = working_tree / relative
+        is_claude_md_row = relative == Path("CLAUDE.md")
+
+        if is_claude_md_row and _is_equivalent_claude_md_shape(
+            on_disk, working_tree / "AGENTS.md"
+        ):
+            continue
+
         hint = ""
         if source_map is not None:
             source = _lookup_source(relative, source_map)
@@ -714,6 +783,16 @@ def diff_against_working_tree(
                 hint = (
                     f": edit {source.as_posix()}; run: make build-self"
                 )
+        if is_claude_md_row:
+            # Operator-facing hint mirroring lint-agents-md.py check #2.
+            # The equivalence helper rejected this on-disk shape; name
+            # the three accepted shapes so the operator can fix without
+            # reading the spec.
+            hint = (
+                f"{hint} [expected one of: symlink → AGENTS.md, "
+                f"content-copy of AGENTS.md, or one-line file containing "
+                f"'AGENTS.md']"
+            )
 
         try:
             disk_st = os.lstat(on_disk)
