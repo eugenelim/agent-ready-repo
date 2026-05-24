@@ -345,7 +345,7 @@ fi
 echo
 echo "Running docs linter..."
 echo
-if bash tools/lint-agents-md.sh && bash tools/lint-agent-artifacts.sh; then
+if python tools/lint-agents-md.py && python tools/lint-agent-artifacts.py; then
   echo
   echo "✓ Bootstrap complete. Linters: green."
   if (( REMOVE_BOOTSTRAP )); then

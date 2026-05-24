@@ -239,8 +239,8 @@ user to review:
 > Then run both template linters against this repo:
 >
 > ```
-> bash ../agent-ready-repo/tools/lint-agents-md.sh
-> bash ../agent-ready-repo/tools/lint-agent-artifacts.sh
+> bash ../agent-ready-repo/tools/lint-agents-md.py
+> bash ../agent-ready-repo/tools/lint-agent-artifacts.py
 > ```
 >
 > The artifact linter validates frontmatter and resolves relative
@@ -330,8 +330,8 @@ Then open the agent in the same directory and run:
 > also mean the script aborted before reaching cleanup (worth a
 > closer look).
 >
-> Then run `bash tools/lint-agents-md.sh` and
-> `bash tools/lint-agent-artifacts.sh`. Both must pass before you
+> Then run `python tools/lint-agents-md.py` and
+> `python tools/lint-agent-artifacts.py`. Both must pass before you
 > declare done.
 
 Path C is not a shortcut around reviewing the result. Treat the agent's
@@ -472,8 +472,8 @@ rm USING_THIS_TEMPLATE.md
 ## Step 4 — Verify
 
 ```bash
-bash tools/lint-agents-md.sh
-bash tools/lint-agent-artifacts.sh
+python tools/lint-agents-md.py
+python tools/lint-agent-artifacts.py
 ```
 
 Expected output for each: all green checks, "passed."

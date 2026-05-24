@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Self-test for tools/lint-skill-deps.sh.
+# Self-test for tools/lint-skill-deps.py.
 #
 # Generates broken skill/agent manifests in a tempdir, runs the linter
 # against them, and asserts that each of the linter's four err() sites
@@ -19,7 +19,7 @@ set -uo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
-LINTER="$REPO_ROOT/tools/lint-skill-deps.sh"
+LINTER="$REPO_ROOT/tools/lint-skill-deps.py"
 
 # ── Tempdirs (both up front so the EXIT trap can clean both safely) ──────
 
@@ -106,7 +106,7 @@ EOF
 # ── Run linter against broken fixtures ────────────────────────────────────
 
 set +e
-bad_output="$(LINT_ROOT="$BAD" bash "$LINTER" 2>&1)"
+bad_output="$(LINT_ROOT="$BAD" python3 "$LINTER" 2>&1)"
 bad_exit=$?
 set -e
 
@@ -156,7 +156,7 @@ Body.
 EOF
 
 set +e
-good_output="$(LINT_ROOT="$GOOD" bash "$LINTER" 2>&1)"
+good_output="$(LINT_ROOT="$GOOD" python3 "$LINTER" 2>&1)"
 good_exit=$?
 set -e
 
@@ -173,7 +173,7 @@ fi
 # manifest red would otherwise land green here.
 
 set +e
-real_output="$(bash "$LINTER" 2>&1)"
+real_output="$(python3 "$LINTER" 2>&1)"
 real_exit=$?
 set -e
 

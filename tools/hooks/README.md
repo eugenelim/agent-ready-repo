@@ -1,15 +1,18 @@
 # Lifecycle hooks
 
-Two agent-lifecycle hooks ship in this directory. Runtime: bash plus
-`python3` (already required by the artifact linters and
-`check-done.py`); neither depends on any one agent tool's runtime.
-Wiring lives in the consumer's hook surface (Claude Code's
-`.claude/settings.json`, Gemini CLI's config, etc.); this README
-documents the contracts and shows an example wiring.
+Two agent-lifecycle hooks ship in this directory. Runtime: `python` ≥
+3.11 (the hooks parse TOML via stdlib `tomllib`); no other
+dependencies. The hooks are stdlib-only and run on native Windows,
+macOS, and Linux — invoke via `python` (not `python3`) so the same
+command works across platforms (`python3.exe` is rarely on Windows
+PATH; `python.exe` and the `py` launcher are). Wiring lives in the
+consumer's hook surface (Claude Code's `.claude/settings.json`, Gemini
+CLI's config, etc.); this README documents the contracts and shows an
+example wiring.
 
 ## What's here
 
-### `session-start.sh`
+### `session-start.py`
 
 Runs at the open of an agent session. Reads
 `docs/knowledge/patterns.jsonl` and prints the entries — optionally
@@ -23,8 +26,8 @@ hook is a no-op until you start accumulating entries.
 Usage:
 
 ```bash
-bash tools/hooks/session-start.sh                                  # every entry
-bash tools/hooks/session-start.sh --scope packages/auth/server.ts  # entries whose stored scope covers this path
+python tools/hooks/session-start.py                                  # every entry
+python tools/hooks/session-start.py --scope packages/auth/server.ts  # entries whose stored scope covers this path
 ```
 
 The `--scope` argument is the caller's path or narrower glob; the
@@ -36,28 +39,50 @@ value exits 2 with `--scope requires a path or glob value`.
 See [`docs/knowledge/README.md`](../../docs/knowledge/README.md) for
 the schema and curation conventions.
 
-### `pre-pr.sh`
+### `pre-pr.py`
 
 Runs before a PR opens — the local mirror of CI's artifact-hygiene
 checks plus the work-loop's mechanical termination check.
 
 What it runs, in order:
 
-1. `tools/lint-agents-md.sh` — root `AGENTS.md` hygiene, drift-watch
-2. `tools/lint-agent-artifacts.sh` — skill/agent/command frontmatter
-3. `tools/lint-skill-deps.sh` — manifest dependency resolution
-4. `tools/lint-knowledge.sh` — `patterns.jsonl` validation
-5. `.claude/skills/work-loop/scripts/check-done.py` against every
+1. `tools/lint-agents-md.py` — root `AGENTS.md` hygiene, drift-watch
+2. `tools/lint-agent-artifacts.py` — skill/agent/command frontmatter
+3. `tools/lint-skill-deps.py` — manifest dependency resolution
+4. `tools/lint-knowledge.py` — `patterns.jsonl` validation
+5. `tools/lint-build.py` — build-pipeline hygiene
+6. `.claude/skills/work-loop/scripts/check-done.py` against every
    `docs/specs/*/state.json`, in both `--phase implement` and
    `--phase review` modes
 
 Exits non-zero on the first failure with a one-line reason. If there
 are no active `state.json` files, the check-done step is skipped.
 
-These three layers — `check-done.py` (caps) + the four linters
-(artifact hygiene) + `pre-pr.sh` (the gate that runs them together) —
+These three layers — `check-done.py` (caps) + the five linters
+(artifact hygiene) + `pre-pr.py` (the gate that runs them together) —
 make up the project's **enforcement triplet**. Documented in
 [`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement-the-triplet).
+
+## Runtime
+
+The hooks and the five sibling linters under `tools/lint-*.py`
+require **Python ≥ 3.11** (for stdlib `tomllib`). The repo's
+`packages/agentbundle/pyproject.toml` already pins this floor.
+Invoke as `python tools/hooks/<name>.py` — works on native Windows
+out of the box; on macOS/Linux ensure `python` resolves to a 3.11+
+interpreter (or substitute `python3.11` etc.). The dev/CI bash
+test-runners under `tools/test-*.sh` invoke `python3` instead — they
+target POSIX, where `python3` is the conventional 3.x name; the
+adopter-facing wiring example uses bare `python` because it needs to
+work on Windows + POSIX with a single string.
+
+**Known Windows-pre-pr ceiling.** `tools/lint-agents-md.py` check #2
+requires `CLAUDE.md` to be a symbolic link to `AGENTS.md`. On
+Windows without Developer Mode, `git clone` materialises symlinks
+as regular files, so this check fails. The Phase-4
+`conventions-check` symlink relaxation will lift this restriction;
+until then, `python tools/hooks/pre-pr.py` is expected to fail at
+the agents-md stage on a default Windows checkout.
 
 ## Wiring
 
@@ -76,7 +101,7 @@ Add to your project-local `.claude/settings.json` (gitignored):
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "bash tools/hooks/session-start.sh" }
+          { "type": "command", "command": "python tools/hooks/session-start.py" }
         ]
       }
     ]
@@ -84,50 +109,57 @@ Add to your project-local `.claude/settings.json` (gitignored):
 }
 ```
 
-`pre-pr.sh` is most useful as a manual or git-hook command rather than
+`pre-pr.py` is most useful as a manual or git-hook command rather than
 an agent-lifecycle hook — Claude Code doesn't fire on `git push`, so
 wire it via `.git/hooks/pre-push` if you want it automatic, or run it
 by hand before opening a PR:
 
 ```bash
-bash tools/hooks/pre-pr.sh
+python tools/hooks/pre-pr.py
 ```
 
 ### Other tools
 
 Gemini CLI, Codex, Kiro, and other agent tools each have their own
-hook surfaces. The scripts are bash plus `python3` — wire whatever
+hook surfaces. The scripts are pure-stdlib Python — wire whatever
 event your tool exposes (session-open, pre-commit, etc.) to invoke
-them.
+them with `python tools/hooks/<name>.py`.
 
 ## Testing the hooks
 
 Run them directly against the working tree:
 
 ```bash
-bash tools/hooks/session-start.sh
-bash tools/hooks/pre-pr.sh
+python tools/hooks/session-start.py
+python tools/hooks/pre-pr.py
 ```
 
-Two dedicated self-tests cover the hook scripts themselves:
+Two pytest smoke suites under `packages/agentbundle/tests/hooks/`
+are the canonical parity net:
 
-- `tools/test-pre-pr.sh` — corrupts each of the five enforcement
-  layers in turn (the four linters plus `check-done.py`, in a sandbox
-  copy of the repo) and asserts `pre-pr.sh` fails with the right
-  label.
-- `tools/test-session-start.sh` — exercises `--scope` validation, the
+- `test_session_start_py.py` — exercises `--scope` validation, the
   malformed-line warning, the `KNOWLEDGE_FILE` override, and the
   empty/missing-file silent-exit paths.
+- `test_pre_pr_py.py` — corrupts each of the five enforcement layers
+  (four linters plus `check-done.py`) in a sandbox copy of the repo
+  and asserts `pre-pr.py` fails with the right label.
 
-The umbrella `tools/test-all.sh` runs every self-test in `tools/`
-(both of the above plus `test-check-done.sh`, `test-lint-knowledge.sh`,
-`test-lint-agent-artifacts.sh`, `test-bootstrap-targets.sh`). Run it
-by hand whenever a linter, hook, or `check-done.py` changes.
+Two bash self-tests still ship for parity with the pre-Phase-3
+contract — they invoke the Python hooks rather than the bash
+versions, but their sandbox setup remains bash:
 
-**CI parity.** `pre-pr.sh` and CI run the same set of checks in
+- `tools/test-pre-pr.sh` — the bash-runner equivalent of
+  `test_pre_pr_py.py`.
+- `tools/test-session-start.sh` — the bash-runner equivalent of
+  `test_session_start_py.py`.
+
+The umbrella `tools/test-all.sh` runs every self-test in `tools/`.
+Run it by hand whenever a linter, hook, or `check-done.py` changes.
+
+**CI parity.** `pre-pr.py` and CI run the same set of checks in
 parallel. CI's `.github/workflows/docs.yml` has a job per
-enforcement layer — the four linters, the caps-enforcer self-test,
+enforcement layer — the five linters, the caps-enforcer self-test,
 and a `hooks` job that exercises the aggregator end-to-end (after
 seeding a healthy `state.json` so `check-done.py` actually runs).
-Run `tools/test-all.sh` and `tools/hooks/pre-pr.sh` locally before
-opening a PR; CI runs the same checks afterward.
+Run `tools/test-all.sh` and `python tools/hooks/pre-pr.py` locally
+before opening a PR; CI runs the same checks afterward.
