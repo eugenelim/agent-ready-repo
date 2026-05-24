@@ -213,10 +213,11 @@ test file: `packages/agentbundle/tests/unit/test_credentials_loader.py`)
 **Approach:**
 
 - Implement `Credentials` as a frozen `dataclass` (slots, immutable).
-- Implement `load_credentials(namespace, required_keys,
-  schema_path=None)` with the precedence resolver; Tier 2 dispatch
-  follows AC4b's platform discrimination at module-load time; Tier 3
-  is stubbed to return `None` in this task.
+- Implement `load_credentials(namespace, required_keys)` with the
+  precedence resolver; Tier 2 dispatch follows AC4b's platform
+  discrimination at module-load time; Tier 3 is stubbed to return
+  `None` in this task. Signature is *resolution only* — schema
+  concerns stay out of this surface per the AC24b clarification.
 - Define exception hierarchy in
   `packages/agentbundle/agentbundle/creds/exceptions.py`.
 - Create shim package
@@ -424,11 +425,11 @@ test file: `packages/agentbundle/tests/unit/test_credentials_schema.py`)
 - *Canonical-path resolution:* given a fixture state-file
   conforming to the **existing** v0.3 `PackState` schema with
   `files = { ".claude/skills/<name>/SKILL.md" = { sha = "...", ... } }`,
-  `resolve_schema_path(state, pack, name)` walks `pack.files` for
+  `_relative_schema_path(state, pack, name)` walks `pack.files` for
   the SKILL.md relpath matching
   `^\.claude/skills/[^/]+/SKILL\.md$` (matching the skill name),
   takes its parent dir, joins `references/creds-schema.toml`, and
-  returns the absolute path. Missing file raises
+  returns the state-relative path. Missing file raises
   `SchemaError("creds-schema.toml not found at expected path:
   <path>")`. No new state-schema fields are required. [AC24b]
 
@@ -437,12 +438,17 @@ test file: `packages/agentbundle/tests/unit/test_credentials_schema.py`)
 - Add `_parse_schema(path: Path) -> CredsSchema` to `loader.py`
   using `tomllib`.
 - Add `CredsSchema` and `KeyDef` dataclasses.
+- Add `_relative_schema_path(state, pack, skill_name) -> Path` for
+  AC24b's state-walk; underscore-prefixed because CLI callers route
+  through `commands/creds._resolve_schema_for_namespace` (the
+  by-namespace twin); see the loader docstring for the contract.
 - Document the schema shape in `loader.py` docstring; the canonical
   format definition lives in `spec.md` § AC24.
 
-**Done when:** schema tests pass; `load_credentials` accepts a
-`schema_path` kwarg for primitive authors to point at their own
-schema file.
+**Done when:** schema tests pass. `load_credentials` itself stays
+*resolution-only* per AC24b's clarification — schema validation
+lives in the `agentbundle creds check` CLI surface, not on the
+loader.
 
 ### T8: `agentbundle creds` CLI verb
 
