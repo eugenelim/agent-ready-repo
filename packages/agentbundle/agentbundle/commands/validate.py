@@ -164,6 +164,22 @@ def run(args) -> int:
         )
         return 1
 
+    # ── 4c. Kiro hook-wiring `attach-to-agent` rail (RFC-0005, T2) ────────
+    # Fires when the resolved target adapter set includes `kiro` — i.e.
+    # when the pack's declared adapter-contract version aligns with the
+    # v0.3 contract that declares `merge-into-agent-json` for kiro
+    # hook-wiring. Pack-side `allowed-adapters` does not yet exist, so
+    # the rail fires for every v0.3 pack; v0.1/v0.2 packs skip it
+    # (empty target_adapters → no-op).
+    from agentbundle.build.scope_rails import check_kiro_wiring
+
+    target_adapters = _kiro_target_adapters(pack_data)
+    pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
+    kiro_refusal = check_kiro_wiring(pack_path, pack_name, target_adapters)
+    if kiro_refusal is not None:
+        print(f"validate: {kiro_refusal}", file=sys.stderr)
+        return 1
+
     # ── 5. Strict / conformance mode ─────────────────────────────────────
     if strict:
         conformance_dir = _conformance_fixtures_dir()
@@ -206,6 +222,29 @@ def _is_default_scope_invariant_violation(pack_data: dict, first_error: str) -> 
         "pack.install.allowed-scopes" in first_error
         or "allowed-scopes" in first_error
     )
+
+
+def _kiro_target_adapters(pack_data: dict) -> set[str]:
+    """Resolve the target-adapter set for the kiro hook-wiring rail (T2).
+
+    A v0.3 pack is implicitly projected against every adapter the v0.3
+    contract declares — kiro included. Pack-side ``allowed-adapters``
+    does not exist yet (would land in a separate RFC), so we treat the
+    pack-side declared contract version as the gate: v0.3 binds the
+    kiro projection's `attach-to-agent` requirement; v0.1 / v0.2 packs
+    pre-date the requirement and skip the rail. Returns an empty set
+    (rail no-op) for any pack not bound to v0.3.
+    """
+    pack = pack_data.get("pack", {})
+    if not isinstance(pack, dict):
+        return set()
+    contract = pack.get("adapter-contract")
+    if not isinstance(contract, dict):
+        return set()
+    version = contract.get("version")
+    if version == "0.3":
+        return {"kiro"}
+    return set()
 
 
 def _allowed_scopes(pack_data: dict) -> list[str]:

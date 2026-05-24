@@ -263,3 +263,100 @@ def run_all(
         if result is not None:
             return result
     return None
+
+
+# ---------------------------------------------------------------------------
+# T2 (RFC-0005): kiro `attach-to-agent` validate rail.
+#
+# Pure-function shape so unit tests can drive it with in-memory pack-shaped
+# dicts (per the T2 plan's testing approach — no on-disk fixtures). The CLI
+# `validate` command's filesystem-based wrapper lives in `check_kiro_wiring`
+# below; it loads the on-disk pack and dispatches to this in-memory helper.
+# ---------------------------------------------------------------------------
+
+
+def check_kiro_attach_to_agent(
+    pack_name: str,
+    wiring_tomls: dict[str, dict],
+    agent_basenames: set[str],
+    target_adapters: Iterable[str],
+) -> str | None:
+    """In-memory rail. Return refusal string on the first offender, or None.
+
+    Fires only when ``"kiro" in target_adapters``. For each wiring TOML:
+      - missing ``attach-to-agent`` field → refuse,
+      - ``attach-to-agent`` value naming an agent the pack does not ship
+        (no ``.apm/agents/<value>.md``) → refuse.
+
+    Refusal text is RFC-0005 § Repo-scope Kiro promotion verbatim:
+    ``pack <P>'s hook-wiring <name>.toml does not declare 'attach-to-agent'
+    (or names an unknown agent); required for kiro projection``.
+
+    Arguments:
+      pack_name: pack name (substituted into the refusal text).
+      wiring_tomls: map of wiring TOML basename (without ``.toml``) → parsed
+        TOML body. Iteration order is preserved; the first offender wins.
+      agent_basenames: set of agent file basenames (without ``.md``) the
+        pack ships under ``.apm/agents/``.
+      target_adapters: iterable of adapter names the pack is being
+        validated against. No-op when ``kiro`` is absent.
+    """
+    if "kiro" not in set(target_adapters or ()):
+        return None
+    for wiring_name, body in wiring_tomls.items():
+        attach = body.get("attach-to-agent") if isinstance(body, dict) else None
+        if not isinstance(attach, str) or attach not in agent_basenames:
+            return (
+                f"pack {pack_name}'s hook-wiring {wiring_name}.toml "
+                f"does not declare 'attach-to-agent' (or names an unknown "
+                f"agent); required for kiro projection"
+            )
+    return None
+
+
+def check_kiro_wiring(
+    pack_path: Path,
+    pack_name: str,
+    target_adapters: Iterable[str],
+) -> str | None:
+    """Filesystem wrapper around ``check_kiro_attach_to_agent``.
+
+    Reads ``.apm/hook-wiring/*.toml`` and ``.apm/agents/*.md`` from
+    ``pack_path``, parses each wiring TOML with ``tomllib``, and
+    dispatches to the in-memory rail. A wiring TOML that fails to parse
+    counts as a refusal on its own (a malformed pack-side declaration).
+    """
+    if "kiro" not in set(target_adapters or ()):
+        return None
+
+    wiring_dir = pack_path / ".apm" / "hook-wiring"
+    if not wiring_dir.exists():
+        return None
+
+    import tomllib
+
+    wiring_tomls: dict[str, dict] = {}
+    for entry in sorted(wiring_dir.iterdir()):
+        if not entry.is_file() or entry.suffix != ".toml":
+            continue
+        try:
+            wiring_tomls[entry.stem] = tomllib.loads(entry.read_text(encoding="utf-8"))
+        except (tomllib.TOMLDecodeError, OSError) as exc:
+            return (
+                f"pack {pack_name}'s hook-wiring {entry.stem}.toml "
+                f"failed to parse: {exc}"
+            )
+
+    agents_dir = pack_path / ".apm" / "agents"
+    agent_basenames: set[str] = set()
+    if agents_dir.exists():
+        for entry in sorted(agents_dir.iterdir()):
+            if entry.is_file() and entry.suffix == ".md":
+                agent_basenames.add(entry.stem)
+
+    return check_kiro_attach_to_agent(
+        pack_name,
+        wiring_tomls,
+        agent_basenames,
+        target_adapters,
+    )
