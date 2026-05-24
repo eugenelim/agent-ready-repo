@@ -161,10 +161,12 @@ jobs:
         # The bash test_session_start.sh sibling is intentionally skipped
         # on Windows — pytest discovery only picks up test_*.py.
 
-      - name: pre-pr aggregator (five linters + spec termination check)
+      - name: pre-pr aggregator (linters + spec termination check)
         # Same script adopters run locally; the canonical parity oracle.
-        # Chains lint-agents-md, lint-agent-artifacts, lint-skill-deps,
-        # lint-knowledge, lint-build, then loop-cohort per-spec checks.
+        # Chains the artifact linters pre-pr.py invokes in order, then
+        # loop-cohort per-spec checks. The exact linter set is owned by
+        # pre-pr.py itself (PR #94 retired lint-skill-deps); list the
+        # comment intentionally vague so this doesn't drift again.
         run: python tools/hooks/pre-pr.py
 
   tests-windows:
