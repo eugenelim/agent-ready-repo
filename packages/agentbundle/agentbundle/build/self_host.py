@@ -21,11 +21,10 @@ markers through unchanged (spec § Boundaries — Never do). The
 `adapt-to-project` skill, out of scope here. T7 ships only the
 consumer.
 
-Phase-1 self-host scope (see docs/specs/self-hosting/spec.md
-§ Phased rollout): the `SELF_HOST_ADAPTERS` allow-list below restricts
-the runner to the `claude-code` adapter. Phase 2 widens it to
-include `codex` once the multi-pack managed-block aggregation gap
-closes.
+Self-host scope (see docs/specs/self-hosting/spec.md § Phased rollout):
+the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` and `codex`.
+Kiro and Copilot stay distribution-only so self-host does not project
+`.kiro/` or `.github/instructions/`.
 """
 
 from __future__ import annotations
@@ -40,7 +39,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from agentbundle.build.adapters import ADAPTERS
+from agentbundle.build.adapters import ADAPTERS, codex
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import (
     CONTRACT_PATH,
@@ -64,12 +63,10 @@ TARGET_PATHS = (
     Path("AGENTS.md"),
 )
 
-# Phase-1 self-host allow-list (see self-hosting spec § Phased rollout).
-# Only the Claude Code adapter's five direct projections fire under
-# `make build-self`. The Codex / Kiro / Copilot adapters remain in the
-# contract for distribution builds but are excluded from the self-host
-# runner until Phase 2 closes the multi-pack composition gaps.
-SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code",)
+# Self-host allow-list (see self-hosting spec § Phased rollout).
+# Kiro and Copilot remain in the contract for distribution builds but
+# are excluded from the self-host runner.
+SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
 
 
 def is_dirty_tree(working_tree: Path) -> bool:
@@ -182,14 +179,7 @@ def _project_all_adapters(
     packs_dir: Path,
     contract: dict,
 ) -> None:
-    """Run the self-host allow-listed adapters against every discovered pack.
-
-    Phase-1 scope (see spec § Phased rollout): the allow-list contains
-    only `claude-code`. The other contract-declared adapters
-    (`kiro`, `copilot`, `codex`) stay in the contract for distribution
-    builds but are skipped here. Phase 2 widens the allow-list once the
-    Codex multi-pack managed-block aggregation gap is closed.
-    """
+    """Run direct self-host adapter projections against every discovered pack."""
     packs = discover_packs(packs_dir)
     for pack in packs:
         validate_pack_uniqueness(pack)
@@ -198,16 +188,51 @@ def _project_all_adapters(
             continue
         if adapter_name not in SELF_HOST_ADAPTERS:
             continue
+        if adapter_name == "codex":
+            # Codex writes into composed AGENTS.md; _compose_agents_md owns
+            # that one-shot aggregate splice after the body seed is written.
+            continue
         for pack in packs:
             project(pack.path, contract, output_root)
 
 
+def _compose_agents_md(
+    packs_dir: Path,
+    output_root: Path,
+    contract: dict,
+) -> Path | None:
+    """Compose root AGENTS.md from the core body seed, Codex skill block,
+    and optional core footer fragment."""
+    body_path = packs_dir / "core" / "seeds" / "AGENTS.md"
+    if not body_path.exists():
+        return None
+    footer_path = packs_dir / "core" / "seeds" / "_agents-footer.md"
+    target_path = output_root / "AGENTS.md"
+
+    body = body_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    if body and not body.endswith("\n"):
+        body += "\n"
+    target_path.write_text(body, encoding="utf-8")
+
+    packs = discover_packs(packs_dir)
+    codex.project_packs([pack.path for pack in packs], contract, output_root)
+
+    if footer_path.exists():
+        text = target_path.read_text(encoding="utf-8")
+        footer = footer_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+        if text and not text.endswith("\n"):
+            text += "\n"
+        if footer and not footer.endswith("\n"):
+            footer += "\n"
+        target_path.write_text(text + footer, encoding="utf-8")
+    return target_path
+
+
 # ---------------------------------------------------------------------------
-# Phase-1 follow-up additions (per docs/specs/self-hosting/spec.md):
+# Self-host follow-up additions (per docs/specs/self-hosting/spec.md):
 # seed projection, marketplace aggregation, CLAUDE.md symlink recreation,
 # missing-discovery fail-fast, drift source-naming, info-line emission.
-# Comparison-rule strengthening (LF norm / mode bits / lstat) and the
-# AGENTS.md body+footer composition remain Phase 2.
+# Comparison-rule strengthening (LF norm / mode bits / lstat) remains open.
 # ---------------------------------------------------------------------------
 
 # Excluded path patterns per RFC-0002 § What stays out. Phase-1
@@ -672,11 +697,14 @@ def run_self_host(
             except ValueError as exc:
                 print(f"self-host: {exc}", file=sys.stderr)
                 return 4
+            agents_path = _compose_agents_md(packs_dir, shadow, contract)
             _aggregate_marketplace(packs_dir, shadow, owner=owner)
             _recreate_claude_symlink(shadow)
             extra_marker_paths = list(seed_map.keys()) + [
                 Path(".claude-plugin") / "marketplace.json",
             ]
+            if agents_path is not None:
+                extra_marker_paths.append(Path("AGENTS.md"))
             resolve_markers(shadow, discovery_flat, extra_paths=extra_marker_paths)
             source_map = _build_projected_to_source_map(packs_dir, contract)
             projected_paths = {
@@ -705,11 +733,14 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 4
+    agents_path = _compose_agents_md(packs_dir, working_tree, contract)
     _aggregate_marketplace(packs_dir, working_tree, owner=owner)
     _recreate_claude_symlink(working_tree)
     extra_marker_paths = list(seed_map.keys()) + [
         Path(".claude-plugin") / "marketplace.json",
     ]
+    if agents_path is not None:
+        extra_marker_paths.append(Path("AGENTS.md"))
     resolve_markers(working_tree, discovery_flat, extra_paths=extra_marker_paths)
     return 0
 

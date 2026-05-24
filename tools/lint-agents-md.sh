@@ -62,10 +62,14 @@ fi
 while IFS= read -r f; do
   [[ "$f" == "./AGENTS.md" ]] && continue
   lines=$(wc -l < "$f")
-  if (( lines > MAX_SUB_LINES )); then
-    note "$f is $lines lines (max $MAX_SUB_LINES). Trim or split."
+  limit=$MAX_SUB_LINES
+  if [[ "$f" == "./packs/core/seeds/AGENTS.md" ]]; then
+    limit=$MAX_ROOT_LINES
+  fi
+  if (( lines > limit )); then
+    note "$f is $lines lines (max $limit). Trim or split."
   else
-    ok "$f is $lines lines (≤ $MAX_SUB_LINES)."
+    ok "$f is $lines lines (≤ $limit)."
   fi
 done < <(find . -name AGENTS.md -not -path './node_modules/*' -not -path './.git/*' 2>/dev/null)
 

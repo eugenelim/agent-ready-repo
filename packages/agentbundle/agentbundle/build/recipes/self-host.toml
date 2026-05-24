@@ -1,24 +1,16 @@
 # RFC-0002 self-host recipe — composes the four-pack overlay used by
 # `make build-self`.
 #
-# Phase-1 scope (see docs/specs/self-hosting/spec.md § Phased rollout):
-# the recipe loader recognises this file by name, but the runtime that
-# drives the three composite section types below (per-pack-overlay,
-# composite-agents-md, composite-marketplace) lands in Phase 2. Phase 1
-# uses the Claude Code adapter directly against every discovered pack
-# (see `packages/agentbundle/agentbundle/build/self_host.py:SELF_HOST_ADAPTERS`).
-# This file ships as the recipe-shape contract for the Phase-2 runtime.
+# The self-host runner reads this recipe-shape contract and executes the
+# concrete projection in `agentbundle.build.self_host`.
 
 [recipe]
 name = "self-host"
 type = "composite"
-description = "Overlay every pack's Claude Code projection onto this repo; in Phase 2, additionally compose AGENTS.md from packs/core/seeds and aggregate .claude-plugin/marketplace.json across packs."
+description = "Overlay every pack's Claude Code projection onto this repo; compose AGENTS.md from packs/core/seeds and aggregate .claude-plugin/marketplace.json across packs."
 
 [recipe.adapters]
-# Phase 2 runtime activates both adapters; Phase 1 runtime reads
-# `agentbundle.build.self_host.SELF_HOST_ADAPTERS` instead, which is
-# narrowed to `claude-code` only until the Codex multi-pack
-# managed-block aggregation gap closes.
+# The self-host runtime reads `SELF_HOST_ADAPTERS` and keeps this list in sync.
 targets = ["claude-code", "codex"]
 
 [recipe.iterate]
