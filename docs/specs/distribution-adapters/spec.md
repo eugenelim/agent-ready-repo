@@ -196,10 +196,19 @@ declares it so explicitly — no implicit defaults.
 | Primitive | Source path (in `packs/<pack>/`) | Claude Code | Kiro | Copilot | Codex |
 | --- | --- | --- | --- | --- | --- |
 | `skill` | `.apm/skills/<name>/` | `direct-directory` → `.claude/skills/<name>/` | `direct-directory` → `.kiro/skills/<name>/` | `instruction-file` → `.github/instructions/<name>.instructions.md` | `managed-block-inline` → `AGENTS.md` |
-| `agent` | `.apm/agents/<name>.md` | `direct-file` → `.claude/agents/<name>.md` | `direct-file` (with `kiro-agent-frontmatter-v0.9` rewrite) → `.kiro/agents/<name>.md` | `dropped` | `dropped` |
+| `agent` | `.apm/agents/<name>.md` | `direct-file` → `.claude/agents/<name>.md` | `direct-file`\* (with `kiro-agent-frontmatter-v0.9` rewrite) → `.kiro/agents/<name>.json` | `dropped` | `dropped` |
 | `hook-body` | `.apm/hooks/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.claude/hooks/<pack>/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.kiro/hooks/<pack>/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` |
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | repo: `merge-json` (under `hooks` key of `.claude/settings.local.json`); user: `user-merge-json` (under `hooks` key of `.claude/settings.json`) | `merge-into-agent-json` (RFC-0005 — under `hooks` key of `.kiro/agents/<attach-to-agent>.json`) | `dropped` | `dropped` |
 | `command` | `.apm/commands/<name>.md` | `direct-file` → `.claude/commands/<name>.md` | `dropped` | `dropped` | `dropped` |
+
+\* The Kiro `agent` row's `mode = "direct-file"` is retained for v0.3
+contract continuity; the implementation is semantically a
+*markdown-frontmatter → JSON-field rewrite*, not a byte-for-byte copy.
+RFC-0005 / T7 introduced the JSON emission once Kiro published the
+[custom-agents configuration reference](https://kiro.dev/docs/cli/custom-agents/configuration-reference/)
+confirming agents are JSON. A future contract bump could rename the
+mode (e.g. `agent-md-to-json`); the rename is deferred behind landing
+the implementation.
 
 **Hook extensions.** A hook is a script; the runtime is determined by the
 file extension. The build pipeline projects `hook-body` byte-for-byte —

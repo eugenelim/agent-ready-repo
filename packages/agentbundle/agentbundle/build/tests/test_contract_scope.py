@@ -33,11 +33,11 @@ def _load_contract() -> dict:
 
 
 class ContractVersionTests(unittest.TestCase):
-    """Contract version bumps to 0.2 with this RFC."""
+    """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005."""
 
-    def test_contract_version_is_0_2(self) -> None:
+    def test_contract_version_is_0_3(self) -> None:
         contract = _load_contract()
-        self.assertEqual(contract["contract"]["version"], "0.2")
+        self.assertEqual(contract["contract"]["version"], "0.3")
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):
@@ -66,13 +66,22 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
 
 
 class OtherAdaptersOmitScopeTests(unittest.TestCase):
-    """Adapters omitting [scope] are accepted as repo-only."""
+    """Adapters omitting [scope] are accepted as repo-only. v0.3 (RFC-0005)
+    adds a `[scope]` table to Kiro alongside Claude Code's existing one;
+    only Copilot and Codex remain scope-less."""
 
-    def test_kiro_copilot_codex_omit_scope(self) -> None:
+    def test_copilot_codex_omit_scope(self) -> None:
         contract = _load_contract()
-        for name in ("kiro", "copilot", "codex"):
+        for name in ("copilot", "codex"):
             with self.subTest(adapter=name):
                 self.assertNotIn("scope", contract["adapter"][name])
+
+    def test_kiro_has_scope_per_rfc_0005(self) -> None:
+        contract = _load_contract()
+        scope = contract["adapter"]["kiro"].get("scope")
+        self.assertIsNotNone(scope, "Kiro [scope] block missing")
+        self.assertEqual(scope["repo"], ".")
+        self.assertEqual(scope["user"], "~")
 
     def test_contract_minus_claude_code_scope_still_valid(self) -> None:
         from agentbundle.build.validate import validate
