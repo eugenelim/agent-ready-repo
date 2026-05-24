@@ -144,10 +144,10 @@ check("skills/README.md mentions new-package (for Profile A cleanup)",
 # ── Linters bootstrap calls at the end ────────────────────────────────────
 print()
 print("── Linter scripts bootstrap invokes ──")
-check("tools/lint-agents-md.sh exists",
-      "tools/lint-agents-md.sh", "set -euo pipefail")
-check("tools/lint-agent-artifacts.sh exists",
-      "tools/lint-agent-artifacts.sh", "set -euo pipefail")
+check("tools/lint-agents-md.py exists",
+      "tools/lint-agents-md.py", "#!/usr/bin/env python3")
+check("tools/lint-agent-artifacts.py exists",
+      "tools/lint-agent-artifacts.py", "#!/usr/bin/env python3")
 
 print()
 if errors:

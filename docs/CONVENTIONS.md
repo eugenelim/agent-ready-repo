@@ -491,7 +491,7 @@ is the starting point a new spec copies in.
 ### Model selection
 
 Every subagent file declares `model:` in its frontmatter explicitly. The
-[`lint-agent-artifacts.sh`](../tools/lint-agent-artifacts.sh) linter
+[`lint-agent-artifacts.py`](../tools/lint-agent-artifacts.py) linter
 enforces this. Reasoning behind each current choice:
 
 | Subagent | Model | Why |
@@ -588,7 +588,7 @@ should see the auth gotchas, not every lesson the repo ever learned)
 and append-only (a lesson that stops being true gets a *new* entry
 citing the old one, not an edit — which keeps history honest).
 
-**How agents see it.** `tools/hooks/session-start.sh` reads the file
+**How agents see it.** `tools/hooks/session-start.py` reads the file
 at session open and prints the entries — optionally filtered by a
 path or narrower glob. Matching uses Python's `fnmatch` with the
 caller's `--scope` value as the *path* argument and the entry's
@@ -609,8 +609,8 @@ enforcement triplet" and mean the same three things:
 | Layer | Mechanism | What it gates |
 |---|---|---|
 | Caps | [`.claude/skills/work-loop/scripts/check-done.py`](../.claude/skills/work-loop/scripts/check-done.py) | Iteration cap, token budget, plan approval, fingerprint stasis (see [`work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md)). |
-| Artifacts | `tools/lint-agents-md.sh`, `lint-agent-artifacts.sh`, `lint-skill-deps.sh`, `lint-knowledge.sh` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
-| Aggregation | [`tools/hooks/pre-pr.sh`](../tools/hooks/pre-pr.sh) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
+| Artifacts | `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-skill-deps.py`, `lint-knowledge.py` | Shape, manifest, and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
+| Aggregation | [`tools/hooks/pre-pr.py`](../tools/hooks/pre-pr.py) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
 
 The triplet is **Shift Left**: catch problems as early as possible,
 locally before CI, at PLAN before EXECUTE. The
@@ -618,7 +618,7 @@ locally before CI, at PLAN before EXECUTE. The
 the work-loop skill is the same pattern at a different layer — moving
 review left from after code is written to before it is.
 
-`pre-pr.sh` is the hook downstream consumers wire into their tool's
+`pre-pr.py` is the hook downstream consumers wire into their tool's
 lifecycle (see [`tools/hooks/README.md`](../tools/hooks/README.md)).
 The template ships the script; it does **not** ship a committed
 `.claude/settings.json` — wiring is consumer-specific.
