@@ -71,3 +71,41 @@ The numbering follows RFC-0004 § *Alternatives considered* for traceability. Th
 - [`distribution-adapters` spec § Install-scope dimension (contract v0.2)](../specs/distribution-adapters/spec.md)
 - [`agent-spec-cli` spec § Install-scope dimension (CLI surface, contract v0.2)](../specs/agent-spec-cli/spec.md)
 - [Migration guide for third-party pack authors](../guides/how-to/v01-to-v02-pack-upgrade.md)
+
+## Amendments
+
+### 2026-05-24 — Narrow definition of "hook-shaped" (per RFC-0006)
+
+§ Consequences above states: *"Hook-shaped primitives are forbidden at
+user scope until a follow-up RFC designs the user-scope hook-wiring
+merge story."* The phrase **"hook-shaped"** was left undefined and has
+since needed disambiguation.
+
+[RFC-0006 § Related and § Motivation](../rfc/0006-skill-secrets-storage.md)
+adopts and this amendment freezes the **narrow reading**:
+
+> **"Hook-shaped"** means a primitive that
+> **(i) binds to a runtime event** (e.g. `UserPromptSubmit`,
+> `PreToolUse`) **AND**
+> **(ii) requires wiring-merge into a hand-edited shared file**
+> (e.g. `~/.claude/settings.json`, `.kiro/agents/<name>.json`).
+>
+> The conjunction is intentional: a primitive that satisfies only one
+> of (i) or (ii) is **not** hook-shaped under this definition and is
+> governed by its own RFC, not the ban in this ADR.
+
+This reading is consistent with the precedent
+[RFC-0005](../rfc/0005-user-scope-hook-support.md) sets — the entire
+design surface of RFC-0005 is the merge-into-shared-settings-file
+mechanic (`user-merge-json` for `~/.claude/settings.json`,
+`merge-into-agent-json` for `.kiro/agents/<name>.json`); the
+load-bearing concern was always the merge problem, not path
+ownership. RFC-0006 (credential storage) qualifies on neither prong
+— a credential dotfile is pack-owned data, not a wiring-merge target,
+and does not bind to a runtime event — so the user-scope ban does
+not apply to credentialed primitives.
+
+Scope: this amendment is definitional only. It does not change which
+primitives are user-scope-eligible *today* (the four shipped packs
+still declare `allowed-scopes = ["repo"]`); it pins the test future
+RFCs apply when they propose a user-scope primitive.
