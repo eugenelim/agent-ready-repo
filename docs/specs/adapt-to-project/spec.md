@@ -1,6 +1,6 @@
 # Spec: adapt-to-project
 
-- **Status:** Draft
+- **Status:** Shipped (AC4b transcripts deferred — see ROADMAP)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md)
@@ -446,7 +446,7 @@ Per the work-loop's three-mode taxonomy:
 
 ## Acceptance Criteria
 
-- [ ] **AC1 (skill body — behavior-pinning grep set).**
+- [x] **AC1 (skill body — behavior-pinning grep set).**
       `packs/core/.apm/skills/adapt-to-project/SKILL.md` is authored
       (replacing the stub). Five grep checks pin the load-bearing
       *behavior*:
@@ -467,7 +467,7 @@ Per the work-loop's three-mode taxonomy:
          scope state file for Tier-2 detection, without locking the
          prose to a specific verbatim path).
       Prose copy outside these greps is editorial.
-- [ ] **AC2 (canonical schemas, per scope).** The skill writes
+- [x] **AC2 (canonical schemas, per scope).** The skill writes
       `.adapt-discovery.toml` in the v0.1 shape declared in this
       spec, with the per-scope variants enforced: the repo-scope
       file MAY include `[markers]`; the user-scope file MUST NOT
@@ -488,7 +488,7 @@ Per the work-loop's three-mode taxonomy:
       and kind both contribute to the hashed input. A user-scope
       file with `[markers]` causes the loader to raise
       `ConfigError("user-scope .adapt-discovery.toml may not contain a [markers] table; markers are repo-only per RFC-0004")`.
-- [ ] **AC3 (class 1 — shell-out to CLI, repo scope).** After the
+- [x] **AC3 (class 1 — shell-out to CLI, repo scope).** After the
       substitution-decision phase, the skill invokes
       `agentbundle adapt --values-from <repo>/.adapt-discovery.toml`
       (single shell-out; the repo-scope file is the only file with
@@ -497,7 +497,7 @@ Per the work-loop's three-mode taxonomy:
       writes at both scopes during the same invocation; the skill
       relies on this behaviour without re-invoking the CLI for the
       user scope.
-- [ ] **AC4a (manual QA matrix — v1 ship gate).**
+- [x] **AC4a (manual QA matrix — v1 ship gate).**
       `docs/specs/adapt-to-project/notes/manual-qa-matrix.md` exists
       and enumerates rows by name. Each row records its
       **verification method** — one of:
@@ -585,7 +585,7 @@ Per the work-loop's three-mode taxonomy:
       *(c)* contract above. The simulated captures' value is
       surfacing specification gaps and pinning what an LLM
       following the body would do at each documented branch.
-- [ ] **AC5 (idempotency at byte level).** A second skill session
+- [x] **AC5 (idempotency at byte level).** A second skill session
       against a fixture where (a) every pack-declared marker is in
       the repo-scope `[markers]`, (b) every `.upstream.<ext>`
       companion at every scope has been resolved (per Boundaries §
@@ -602,7 +602,7 @@ Per the work-loop's three-mode taxonomy:
       and zero content-hash divergence under `~/.agent-ready/`.
       `.adapt-pending.md` at each scope is byte-identical to the
       prior run's.
-- [ ] **AC6 (dirty-state escalation, per scope).** Two fixtures:
+- [x] **AC6 (dirty-state escalation, per scope).** Two fixtures:
       one with pre-staged uncommitted edits to a repo-scope Tier-1
       file, one with content-hash divergence under `~/.agent-ready/`
       against the recorded SHA. In both cases, the skill detects
@@ -611,7 +611,7 @@ Per the work-loop's three-mode taxonomy:
       `Repo scope:` / `User scope:` sub-sections, and waits for
       adopter input directing one of (a)/(b)/(c) before any
       class-2/3/4 proposal at the affected scope.
-- [ ] **AC7 (path-jail, per scope).**
+- [x] **AC7 (path-jail, per scope).**
       **AC7a (CLI repo-scope):** existing `safety.write_jailed`
       tests cover class-1 substitution; a red-team fixture where a
       repo-scope `[markers]` value resolves to `../..` is rejected.
@@ -624,7 +624,7 @@ Per the work-loop's three-mode taxonomy:
       rule (AC1 grep #3); a matrix row in AC4 demonstrates the
       skill refusing a class-3 destination that escapes either
       jail.
-- [ ] **AC8 (CLI schema migration).**
+- [x] **AC8 (CLI schema migration).**
       `packages/agentbundle/agentbundle/commands/adapt.py` reads
       `discovery.markers` via the new `AdaptDiscovery` dataclass.
       Legacy `[accepted]` causes exit non-zero with first stderr
@@ -633,7 +633,7 @@ Per the work-loop's three-mode taxonomy:
       A fixture using `[markers]` substitutes correctly. The
       `ConfigError` at the loader carries the unprefixed message;
       both surfaces are tested.
-- [ ] **AC9 (self-host schema migration).**
+- [x] **AC9 (self-host schema migration).**
       `packages/agentbundle/agentbundle/build/self_host.py` reads
       `discovery.markers` via the same loader. Legacy `[adapt]`
       causes exit non-zero with first stderr line exactly
@@ -642,7 +642,7 @@ Per the work-loop's three-mode taxonomy:
       `[adapt]` to `discovery-schema-version` + `[markers]` in the
       same PR; `make build-self` and `make build-check` run clean
       against the migrated file.
-- [ ] **AC10 (`.adapt-pending.md` deterministic contract, per
+- [x] **AC10 (`.adapt-pending.md` deterministic contract, per
       scope).** After a session that leaves work deferred,
       `.adapt-pending.md` exists at each scope where deferred work
       lives (repo, user, or both), contains the three fixed sections
@@ -650,13 +650,13 @@ Per the work-loop's three-mode taxonomy:
       each section, no timestamps, no carry-over from prior sessions.
       Two consecutive runs against the same pending state produce
       byte-identical content at each scope.
-- [ ] **AC11 (stub removal + projection).** The pre-existing stubs
+- [x] **AC11 (stub removal + projection).** The pre-existing stubs
       at `.claude/skills/adapt-to-project/SKILL.md` and
       `packs/core/.apm/skills/adapt-to-project/SKILL.md` are both
       replaced; the in-tree projected copy regenerates
       byte-identically from the pack-side under `make build-self`;
       `make build-check` is green on the migration PR.
-- [ ] **AC12 (sibling spec amendments — wording-touchup and
+- [x] **AC12 (sibling spec amendments — wording-touchup and
       Changelog only).** No acceptance criterion body that is
       marked `[x]` is rewritten in place; the amendments below are
       either to an unchecked AC or via Changelog:
@@ -671,14 +671,14 @@ Per the work-loop's three-mode taxonomy:
       - `docs/specs/self-hosting/spec.md` Changelog gains
         `- 2026-05-23: AC12 implementation migrates from reading [adapt] to reading [markers] per docs/specs/adapt-to-project/spec.md; AC12 contract unchanged.`
         AC12 body itself is byte-unchanged.
-- [ ] **AC13 (cross-spec index update).** `docs/ROADMAP.md`'s
+- [x] **AC13 (cross-spec index update).** `docs/ROADMAP.md`'s
       *Cross-spec / outside-the-spec-tree* bullet for
       `adapt-to-project` is rewritten to cite this spec as the
       active home while preserving its cross-references to
       `self-hosting`, `agent-spec-cli`, and (newly) `RFC-0004`.
       `docs/specs/README.md`'s *Active specs* table gains a row for
       this spec.
-- [ ] **AC14 (marker regex unification).** The CLI's `_MARKER_RE`
+- [x] **AC14 (marker regex unification).** The CLI's `_MARKER_RE`
       (currently `<adapt:([A-Z_][A-Z0-9_]*)>` at
       `packages/agentbundle/agentbundle/commands/adapt.py:41`)
       widens to `<adapt:([a-z][a-z0-9-]*)>`. The self-host regex
@@ -692,7 +692,7 @@ Per the work-loop's three-mode taxonomy:
       files sees N warning lines). **The cross-spec dependency on
       `distribution-adapters/spec.md`'s marker-refusal grep (RFC-0004
       line 272) is resolved by AC21.**
-- [ ] **AC15 (`--values-from` accepts `[markers]`; refuses
+- [x] **AC15 (`--values-from` accepts `[markers]`; refuses
       ambiguous files).** `load_values_from` accepts (in order
       tried) a `[markers]` table or a `[values]` table; presence
       of both raises `ConfigError("ambiguous --values-from file:
@@ -702,11 +702,11 @@ Per the work-loop's three-mode taxonomy:
       `.adapt-discovery.toml` files pass through cleanly. A user-
       scope `.adapt-discovery.toml` (no `[markers]`, no `[values]`)
       yields an empty value set; no substitution occurs.
-- [ ] **AC16 (unknown schema-version refused).** Fixtures with
+- [x] **AC16 (unknown schema-version refused).** Fixtures with
       `discovery-schema-version = "9.9"` cause both consumers to
       exit non-zero with first stderr line beginning `adapt: ` /
       `self-host: ` and naming `0.1` as the known version.
-- [ ] **AC17 (install gate enforces existing schema's
+- [x] **AC17 (install gate enforces existing schema's
       `[pack.dependencies.required]`, across scopes).** The CLI's
       `install` flow reads the installing pack's
       `[pack.dependencies.required]` array and resolves it against
@@ -719,7 +719,7 @@ Per the work-loop's three-mode taxonomy:
       `install: unsupported version range '<range>' for required pack '<dep>'; only ^X.Y is supported`.
       No new `pack.toml` field is introduced; the schema already
       declares the field.
-- [ ] **AC18 (addons migrate to conforming dependencies shape +
+- [x] **AC18 (addons migrate to conforming dependencies shape +
       explicit scope declarations + contract-version bump).** Each
       addon's `pack.toml` (`packs/governance-extras/`,
       `packs/user-guide-diataxis/`, `packs/monorepo-extras/`):
@@ -742,7 +742,7 @@ Per the work-loop's three-mode taxonomy:
       `[pack.install] default-scope = "repo" allowed-scopes =
       ["repo"]` declarations in the same PR; core ships no
       `[pack.dependencies.required]` (it is the root).
-- [ ] **AC19 (install marker write + chained `adapt`, scope-aware).**
+- [x] **AC19 (install marker write + chained `adapt`, scope-aware).**
       Sub-clauses independently tested:
       - **AC19a (marker write, at install's scope root).** After
         every successful `agentbundle install --pack <name>
@@ -772,7 +772,7 @@ Per the work-loop's three-mode taxonomy:
         `.adapt-discovery.toml` at either scope), install exits
         non-zero; the marker file is still on disk; stderr names
         the adapt failure.
-- [ ] **AC20 (session-start hook surfaces install markers from
+- [x] **AC20 (session-start hook surfaces install markers from
       both scopes).** The core pack's
       `packs/core/.apm/hooks/session-start.sh` is amended to read
       `.adapt-install-marker.toml` at **both** scopes:
@@ -787,7 +787,7 @@ Per the work-loop's three-mode taxonomy:
       The existing `patterns.jsonl` block emits first; the nudge
       line second. A shell test fixture asserts the scope-permutation
       matrix: {repo only, user only, both, neither}.
-- [ ] **AC21 (cross-spec marker-refusal grep widens to canonical
+- [x] **AC21 (cross-spec marker-refusal grep widens to canonical
       syntax — both occurrences).** The UPPER_SNAKE-only regex
       `<adapt:[A-Z_][A-Z0-9_]*>` appears in
       `docs/specs/distribution-adapters/spec.md` at **two**
@@ -817,7 +817,7 @@ Per the work-loop's three-mode taxonomy:
       `distribution-adapters` naming this as a known gap with
       trigger "Rail C grep widening to canonical syntax — paired
       with AC21 of adapt-to-project".
-- [ ] **AC22 (skill walks both scopes' state files for Tier-2
+- [x] **AC22 (skill walks both scopes' state files for Tier-2
       detection; v0.1 detection emits prereq message).** At
       session start the skill reads both
       `<repo>/.agent-ready-state.toml` (if present) and
@@ -840,7 +840,7 @@ Per the work-loop's three-mode taxonomy:
       `agent-spec-cli/spec.md:565-573`). The skill does **not**
       refuse the session and does **not** invoke the migration
       itself.
-- [ ] **AC23 (cross-scope restructure forbidden from executing).**
+- [x] **AC23 (cross-scope restructure forbidden from executing).**
       A class-3 finding whose `source-path` and `destination-path`
       live at different scopes (e.g., source under `<repo>/`,
       destination under `~/.claude/`) is **not executed as a
@@ -954,3 +954,12 @@ Per the work-loop's three-mode taxonomy:
   so rows 12–16 can carry simulated captures. AC4b checkbox stays
   unchecked: rows 8–16 still await real-adopter capture; rows
   19–28 still await the first user-scope-eligible pack.
+- 2026-05-23: bookkeeping reconciliation — Status flipped Draft →
+  Shipped (AC4b transcripts deferred). AC1–AC3, AC4a, AC5–AC23
+  flipped `[ ]` → `[x]` against on-disk evidence shipped in
+  PRs #28 (implementation), #29 (AC4b automation pins), #30
+  (TOML-emitter hardening), and #31 (Tier-2 companion paths in
+  install marker). AC4b remains open: ROADMAP enumeration ships,
+  but interactive method-(c) transcripts for repo-scope class-2/3/4
+  transitions and user-scope LLM-judgment rows are pending their
+  named triggers.
