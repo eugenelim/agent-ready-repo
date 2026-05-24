@@ -141,6 +141,14 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
             "declaring credentialed: true and prompts for a selection."
         ),
     )
+    # SECURITY: the two posture-lowering flags below are argv-only by
+    # design. The user's choice to weaken the storage posture must be
+    # visible on the command line so an operator reading shell history,
+    # a CI log, or an audit trail sees it. Do NOT add an env-var
+    # equivalent (``AGENT_READY_ALLOW_INSECURE``-shaped), a TOML config
+    # alternative, or a default-on toggle — silent posture lowering
+    # defeats the protection. Widening this contract requires an RFC
+    # amendment, not a one-line PR.
     setup_p.add_argument(
         "--allow-insecure-fallback",
         action="store_true",
