@@ -259,28 +259,31 @@ Three verification modes mapped per Objective behavior:
     context (needs scheduled-task runner CI doesn't provide;
     manual-QA row).
 
-  Each manual-QA row carries a release-checklist line.
+  Each manual-QA row carries a release-checklist line in
+  [`docs/product/release-checklist.md`](../../product/release-checklist.md)
+  under the `skill-secrets` section.
 
-**Fixture-driven tests** are the load-bearing shape:
+**Construction tests inline the parser inputs** via `tmp_path` heredocs
+rather than checked-in fixture files. The two parser shapes that
+demand a fixture-tree share (the `conventions-check` skill fixtures,
+which the walker discovers by path) live under
+`packages/agentbundle/tests/fixtures/creds/skills/`; everything else
+(schema TOMLs, valid / quoted / CRLF / comment dotfile shapes) is
+constructed in the test body so the corpus stays self-describing
+under the orphan-fixture walker (AC34):
 
-- `packages/agentbundle/tests/fixtures/creds/schema-valid/creds-schema.toml`
-  — a minimal valid schema (one required key, one optional sibling).
-- `packages/agentbundle/tests/fixtures/creds/schema-missing-required/`
-  — refuses with the specified text.
-- `packages/agentbundle/tests/fixtures/creds/dotfile-valid.env` /
-  `dotfile-quoted.env` / `dotfile-crlf.env` / `dotfile-comment.env`
-  — the four parser shapes.
-- `packages/agentbundle/tests/fixtures/creds/skills/conforming/` —
-  a fake credentialed skill with the "Don't" block and
-  `credentialed: true` frontmatter; `conventions-check` reports clean.
-- `packages/agentbundle/tests/fixtures/creds/skills/missing-dont-block/`
-  — `conventions-check` reports the missing block.
-- `packages/agentbundle/tests/fixtures/creds/skills/argv-flag/scripts/cli.py`
-  — accepts `--token` in `argparse`; `conventions-check` reports the
-  argv ban violation.
-- `packages/agentbundle/tests/fixtures/creds/skills/dotfile-grep/scripts/leak.py`
-  — opens the dotfile path directly without the opt-out comment;
-  `conventions-check` reports the architectural violation.
+- **Inlined via `tmp_path`:** schema-valid and schema-missing-required
+  TOMLs, the four parser-shape dotfiles
+  (`dotfile-valid` / `dotfile-quoted` / `dotfile-crlf` /
+  `dotfile-comment`). The full text appears in the test that exercises
+  it; no orphan-fixture risk.
+- **Checked-in under `tests/fixtures/creds/`:** the four
+  `conventions-check` skill fixtures —
+  `skills/conforming/`,
+  `skills/missing-dont-block/`,
+  `skills/argv-flag/scripts/cli.py`,
+  `skills/dotfile-grep/scripts/leak.py` — because the lint walker
+  resolves them by directory path during its scan.
 
 Every Acceptance Criterion below maps to at least one
 construction-test or fixture exercise.
