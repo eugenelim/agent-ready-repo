@@ -1,6 +1,6 @@
 # Spec: user-scope-hooks
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0005](../../rfc/0005-user-scope-hook-support.md)
@@ -178,86 +178,86 @@ exercise.
 
 Schema and contract:
 
-- [ ] **AC1.** `adapter.toml` declares `[adapter.kiro.scope]` with
+- [x] **AC1.** `adapter.toml` declares `[adapter.kiro.scope]` with
       `repo = "."`, `user = "~"`,
       `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`.
       Schema validation passes.
-- [ ] **AC2.** `adapter.toml` declares
+- [x] **AC2.** `adapter.toml` declares
       `[adapter.kiro.projections.hook-wiring]` with
       `mode = "merge-into-agent-json"`, `managed-key = "hooks"`, and
       `agent-event-vocabulary` containing the five Kiro events
       verbatim. The legacy `[[adapter.kiro.projection]]`
       `degraded-info-log` entry is removed.
-- [ ] **AC3.** `adapter.toml` declares
+- [x] **AC3.** `adapter.toml` declares
       `[adapter."claude-code".projections.hook-wiring]` with
       `mode.repo = "merge-json"`, `mode.user = "user-merge-json"`,
       scope-conditional `target`, `managed-key.user = "hooks"`.
-- [ ] **AC4.** `adapter.toml` declares
+- [x] **AC4.** `adapter.toml` declares
       `[adapter."claude-code".projections.hook-body]` and
       `[adapter.kiro.projections.hook-body]` with
       scope-conditional `target` values per RFC-0005.
-- [ ] **AC5.** `pack.schema.json` accepts `[pack.install]
+- [x] **AC5.** `pack.schema.json` accepts `[pack.install]
       user-scope-hooks = true` and refuses any non-boolean value;
       defaults to `false` when absent.
-- [ ] **AC6.** The `hook-wiring` TOML schema accepts an optional
+- [x] **AC6.** The `hook-wiring` TOML schema accepts an optional
       top-level `attach-to-agent` string field. `validate` against a
       Kiro-targeted pack refuses wiring without `attach-to-agent` or
       naming a non-same-pack agent with the exact refusal text
       RFC-0005 § Repo-scope Kiro promotion specifies.
-- [ ] **AC7.** Adapter contract version bumps to `0.3`.
+- [x] **AC7.** Adapter contract version bumps to `0.3`.
 
 Merge behavior (Claude Code user scope):
 
-- [ ] **AC8.** Installing a Claude Code user-scope pack into an
+- [x] **AC8.** Installing a Claude Code user-scope pack into an
       empty `~/.claude/settings.json` writes the file with
       `hooks.<event>` arrays containing the pack's entries, each
       tagged with `id = "<pack>:<hook-basename>"`. No other top-level
       keys are touched.
-- [ ] **AC9.** Reinstalling the same pack at the same version is a
+- [x] **AC9.** Reinstalling the same pack at the same version is a
       byte-for-byte no-op on the settings file.
-- [ ] **AC10.** Installing a *second* pack with overlapping events
+- [x] **AC10.** Installing a *second* pack with overlapping events
       appends its entries after the first pack's; the first pack's
       entries are not reordered. Both packs' IDs coexist.
-- [ ] **AC11.** Uninstalling one of two packs sharing an event
+- [x] **AC11.** Uninstalling one of two packs sharing an event
       removes that pack's entries only; the other pack's entries
       remain in their original positions; empty `hooks.<event>`
       arrays are removed (not left as `[]`).
-- [ ] **AC12.** A pre-existing adopter entry whose `command` field
+- [x] **AC12.** A pre-existing adopter entry whose `command` field
       matches the pack's hook (after whitespace normalisation)
       causes `install` to refuse with the RFC-0005-specified text.
       `install --force-merge` adopts the entry; the original is
       preserved in a state-file snapshot.
-- [ ] **AC13.** Unparseable `~/.claude/settings.json` causes
+- [x] **AC13.** Unparseable `~/.claude/settings.json` causes
       `install` to refuse non-zero without rewriting the file or
       recording state.
-- [ ] **AC14.** A `hooks` key present-with-wrong-type (e.g. array)
+- [x] **AC14.** A `hooks` key present-with-wrong-type (e.g. array)
       causes `install` to refuse with the
       `<key-path> has unexpected shape` text. Same refusal for any
       `hooks.<event>` of wrong type.
 
 Merge behavior (Kiro):
 
-- [ ] **AC15.** Installing a Kiro repo-scope pack with one agent and
+- [x] **AC15.** Installing a Kiro repo-scope pack with one agent and
       one wiring TOML writes the agent JSON to
       `.kiro/agents/<agent>.json` and merges the wiring's hook
       entries into that file's `hooks.<event>` array under the same
       array-append-with-id discipline as Claude Code.
-- [ ] **AC16.** The build pipeline projects the agent file before
+- [x] **AC16.** The build pipeline projects the agent file before
       wiring projection runs (phase order
       `hook-body` → `agent` → `hook-wiring` → `command` → `skill`).
       A test asserting the file's existence at the wiring step's
       entry point passes.
-- [ ] **AC17.** A wiring TOML naming events outside Kiro's
+- [x] **AC17.** A wiring TOML naming events outside Kiro's
       `agent-event-vocabulary` (e.g. PascalCase `UserPromptSubmit`)
       refuses at `validate` with the
       "not in adapter ... agent-event-vocabulary" text.
-- [ ] **AC17b.** The event-vocabulary check fires **only** when
+- [x] **AC17b.** The event-vocabulary check fires **only** when
       the resolved target adapter declares `agent-event-vocabulary`.
       Claude Code's projection does not declare the field
       (RFC-0005 § Declaration), so a wiring TOML with arbitrary
       event names projected against Claude Code passes `validate`.
       The vocabulary refusal is per-adapter, not per-RFC.
-- [ ] **AC18.** Kiro user-scope install writes to
+- [x] **AC18.** Kiro user-scope install writes to
       `~/.kiro/agents/<agent>.json` with hook entries whose
       `command` field resolves to the projected hook body on a
       fresh shell — i.e. running `sh -c "$command"` from any
@@ -265,11 +265,11 @@ Merge behavior (Kiro):
       the field carries an absolute path or a `~`-relative path
       is an implementation choice; the observable is
       dispatchability.
-- [ ] **AC19.** Uninstalling a Kiro pack removes its
+- [x] **AC19.** Uninstalling a Kiro pack removes its
       `hook-wiring-owned` entries from the agent JSON and removes
       the agent file itself via the `direct-file` projection's
       uninstall.
-- [ ] **AC19b.** Upgrading a Kiro pack whose `attach-to-agent`
+- [x] **AC19b.** Upgrading a Kiro pack whose `attach-to-agent`
       value changes between versions (agent renamed, removed, or
       added) walks the OLD `target-file` to remove orphan entries
       AND the NEW `target-file` to add the new entries; state
@@ -281,11 +281,11 @@ Merge behavior (Kiro):
 
 State schema and migration:
 
-- [ ] **AC20.** State-file `schema-version` bumps from `0.2` →
+- [x] **AC20.** State-file `schema-version` bumps from `0.2` →
       `0.3`. `[[installed]]` rows grow optional `adapter` and
       `hook-wiring-owned` fields. The `hook-wiring-owned` table
       rows carry `event`, `id`, and optional `target-file`.
-- [ ] **AC21.** `init-state --migrate` against a v0.2 file rewrites
+- [x] **AC21.** `init-state --migrate` against a v0.2 file rewrites
       the `schema-version` line only. Existing rows are not
       backfilled. A v0.3 reader sees absent `adapter` as
       `claude-code`. For absent `target-file`: when the implied
@@ -293,23 +293,23 @@ State schema and migration:
       (settings-file binding); `target-file` is **required** for
       Kiro rows (no implicit default — Kiro rows always carry the
       pack-owned `.kiro/agents/<agent>.json` path explicitly).
-- [ ] **AC22.** Write against a v0.2 state file refuses with the
+- [x] **AC22.** Write against a v0.2 state file refuses with the
       "run `agentbundle init-state --migrate` first" text.
 
 CLI surface:
 
-- [ ] **AC23.** `install --scope user` against a pack with
+- [x] **AC23.** `install --scope user` against a pack with
       `user-scope-hooks = true` and a working user-scope target
       adapter (Claude Code with `mode.user = "user-merge-json"` or
       Kiro with `mode = "merge-into-agent-json"`) succeeds. Rail B
       no longer refuses such packs.
-- [ ] **AC24.** `install --scope user` against a pack lacking the
+- [x] **AC24.** `install --scope user` against a pack lacking the
       `user-scope-hooks` flag refuses at `validate` with Rail B's
       existing refusal text.
-- [ ] **AC25.** `install --scope user` against an adapter that
+- [x] **AC25.** `install --scope user` against an adapter that
       doesn't declare a working user-scope `hook-wiring` mode
       refuses with the RFC-0005-specified text.
-- [ ] **AC26.** `reconcile --scope user` reads both the Claude
+- [x] **AC26.** `reconcile --scope user` reads both the Claude
       Code settings file (if exists) and every Kiro agent JSON
       named in user-scope `hook-wiring-owned` state. It reports two
       orphan classes: (a) entries the target file claims own but
@@ -319,11 +319,11 @@ CLI surface:
 
 Verification:
 
-- [ ] **AC27.** `make build-check` exits clean with the amendments
+- [x] **AC27.** `make build-check` exits clean with the amendments
       applied (no drift between `packs/<P>/seeds/` and `<repo>/`).
-- [ ] **AC28.** Every fixture pack named in § Testing Strategy is
+- [x] **AC28.** Every fixture pack named in § Testing Strategy is
       shipped under `tests/fixtures/packs/` and exercised by at
       least one test.
-- [ ] **AC29.** No test or CI step writes to `~/.claude/`,
+- [x] **AC29.** No test or CI step writes to `~/.claude/`,
       `~/.kiro/`, or `~/.agent-ready/` outside a `tmp_path`-scoped
       `$HOME`.
