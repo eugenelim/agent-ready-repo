@@ -1040,5 +1040,214 @@ class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
             self.assertIn("<adapt:project-name>", text)
 
 
+class CrlfNormalisationTests(unittest.TestCase):
+    """Phase-2 comparison rule (a): text-like files compare equal after
+    CRLF→LF normalisation. Pins the spec's CRLF + `core.autocrlf` case."""
+
+    def test_crlf_on_disk_lf_in_shadow_is_not_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            (shadow / "doc.md").write_bytes(b"hello\nworld\n")
+            (tree / "doc.md").write_bytes(b"hello\r\nworld\r\n")
+
+            self.assertEqual(diff_against_working_tree(shadow, tree), [])
+
+    def test_trailing_space_after_lf_normalisation_drifts(self) -> None:
+        """LF norm doesn't whitewash genuine content differences."""
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            (shadow / "doc.md").write_bytes(b"hello\nworld\n")
+            (tree / "doc.md").write_bytes(b"hello \nworld\n")  # extra space
+
+            drifts = diff_against_working_tree(shadow, tree)
+            self.assertEqual(len(drifts), 1)
+            self.assertIn("doc.md", drifts[0])
+            self.assertIn("content differs", drifts[0])
+
+    def test_binary_files_not_normalised(self) -> None:
+        """A non-UTF-8 binary that happens to contain 0x0D 0x0A must not
+        be normalised — the bytes carry value beyond line termination."""
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            # Two binary blobs that would be equal under LF normalisation
+            # but differ byte-for-byte. The leading 0xFF makes them
+            # un-decodable as UTF-8.
+            (shadow / "icon.bin").write_bytes(b"\xff\x00\r\n\x01")
+            (tree / "icon.bin").write_bytes(b"\xff\x00\n\x01")
+
+            drifts = diff_against_working_tree(shadow, tree)
+            self.assertEqual(len(drifts), 1)
+            self.assertIn("icon.bin", drifts[0])
+            self.assertIn("content differs", drifts[0])
+
+
+class FileModeBitsTests(unittest.TestCase):
+    """Phase-2 comparison rule (b): mode bits drift for regular files."""
+
+    def test_mode_bits_drift_for_regular_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            os.chmod(shadow / "hook.sh", 0o755)
+            os.chmod(tree / "hook.sh", 0o644)
+
+            drifts = diff_against_working_tree(shadow, tree)
+            self.assertEqual(len(drifts), 1)
+            self.assertIn("hook.sh", drifts[0])
+            self.assertIn("mode 0o644 vs 0o755", drifts[0])
+
+    def test_matching_mode_no_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            os.chmod(shadow / "hook.sh", 0o755)
+            os.chmod(tree / "hook.sh", 0o755)
+
+            self.assertEqual(diff_against_working_tree(shadow, tree), [])
+
+
+class SymlinkTargetTests(unittest.TestCase):
+    """Phase-2 comparison rule (c): symlink targets compared via lstat,
+    never followed. Pins the CLAUDE.md → AGENTS.md gate."""
+
+    def test_symlink_target_mismatch_drifts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            os.symlink("AGENTS.md", shadow / "CLAUDE.md")
+            os.symlink("README.md", tree / "CLAUDE.md")
+
+            drifts = diff_against_working_tree(shadow, tree)
+            self.assertEqual(len(drifts), 1)
+            self.assertIn("CLAUDE.md", drifts[0])
+            self.assertIn("symlink target differs", drifts[0])
+            self.assertIn("AGENTS.md", drifts[0])
+            self.assertIn("README.md", drifts[0])
+
+    def test_matching_symlinks_no_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            os.symlink("AGENTS.md", shadow / "CLAUDE.md")
+            os.symlink("AGENTS.md", tree / "CLAUDE.md")
+
+            self.assertEqual(diff_against_working_tree(shadow, tree), [])
+
+    def test_symlink_in_shadow_regular_on_disk_drifts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            # Create a target so shadow's symlink "looks" valid in isolation.
+            (shadow / "AGENTS.md").write_text("body", encoding="utf-8")
+            os.symlink("AGENTS.md", shadow / "CLAUDE.md")
+            # On-disk: a regular file with identical content.
+            (tree / "AGENTS.md").write_text("body", encoding="utf-8")
+            (tree / "CLAUDE.md").write_text("body", encoding="utf-8")
+
+            drifts = diff_against_working_tree(shadow, tree)
+            type_mismatch = [d for d in drifts if "CLAUDE.md" in d and "expected symlink" in d]
+            self.assertEqual(len(type_mismatch), 1)
+
+    def test_symlink_target_never_followed(self) -> None:
+        """A dangling symlink does not crash the gate — the target is
+        compared as a string, no read-through happens."""
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            os.symlink("/nonexistent/target", shadow / "ptr")
+            os.symlink("/nonexistent/target", tree / "ptr")
+
+            # Equal targets → no drift, even though neither target exists.
+            self.assertEqual(diff_against_working_tree(shadow, tree), [])
+
+
+class StrengthenedDiffRegressionIntegrationTests(unittest.TestCase):
+    """Integration: one fixture exercising all three Phase-2 rules.
+
+    Each rule is paired with the regression it was added to catch:
+    CRLF accidentally drifting against LF source; an executable bit
+    silently dropped during projection; a CLAUDE.md → AGENTS.md
+    symlink replaced by a regular file or pointed at the wrong target.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_each_rule_catches_its_regression(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+
+            # Rule (a) regression: same content, LF in shadow, CRLF on
+            # disk. The pre-Phase-2 gate would have drifted; the
+            # strengthened gate must NOT.
+            (shadow / "doc.md").write_bytes(b"hello\nworld\n")
+            (tree / "doc.md").write_bytes(b"hello\r\nworld\r\n")
+
+            # Rule (b) regression: an executable hook script whose
+            # +x bit gets dropped on disk.
+            (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            os.chmod(shadow / "hook.sh", 0o755)
+            os.chmod(tree / "hook.sh", 0o644)
+
+            # Rule (c) regression: CLAUDE.md → AGENTS.md projected as a
+            # symlink, but on disk it points at the wrong target. The
+            # gate must not follow the symlinks — read_bytes would
+            # accidentally compare AGENTS.md vs README.md content and
+            # might have hidden the regression.
+            (shadow / "AGENTS.md").write_text("agents-body", encoding="utf-8")
+            (shadow / "README.md").write_text("readme-body", encoding="utf-8")
+            (tree / "AGENTS.md").write_text("agents-body", encoding="utf-8")
+            (tree / "README.md").write_text("readme-body", encoding="utf-8")
+            os.symlink("AGENTS.md", shadow / "CLAUDE.md")
+            os.symlink("README.md", tree / "CLAUDE.md")
+
+            drifts = diff_against_working_tree(shadow, tree)
+
+            # Rule (a): no drift on the CRLF-vs-LF file.
+            self.assertFalse(
+                any("doc.md" in d for d in drifts),
+                f"doc.md drifted despite CRLF→LF normalisation: {drifts}",
+            )
+            # Rule (b): mode drift surfaced.
+            mode_drifts = [d for d in drifts if "hook.sh" in d]
+            self.assertEqual(len(mode_drifts), 1)
+            self.assertIn("mode 0o644 vs 0o755", mode_drifts[0])
+            # Rule (c): symlink-target drift surfaced; the gate did
+            # NOT follow through to compare AGENTS.md content.
+            symlink_drifts = [d for d in drifts if "CLAUDE.md" in d]
+            self.assertEqual(len(symlink_drifts), 1)
+            self.assertIn("symlink target differs", symlink_drifts[0])
+
+
 if __name__ == "__main__":
     unittest.main()
