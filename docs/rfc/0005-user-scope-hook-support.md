@@ -1,4 +1,4 @@
-# RFC-0005: User-scope hook support — body reroot + wiring merge mode
+# RFC-0005: Hook support — user-scope wiring for Claude Code; agent-bound wiring for Kiro
 
 - **Status:** Draft
 - **Author:** eugenelim
@@ -9,30 +9,50 @@
 - **Amends:**
   [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md)
   — projection forks for `hook-body` and `hook-wiring` under
-  `claude-code` at user scope; Rail B becomes conditional.
+  `claude-code` (user scope) and `kiro` (both scopes); Rail B
+  becomes conditional; Kiro `hook-wiring` lifts out of
+  `degraded-info-log`; Kiro gains a `[scope]` table; the hook-wiring
+  TOML schema grows an optional `attach-to-agent` field.
 - **Amends:**
   [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md)
   — `install` / `uninstall` / `upgrade` gain user-scope hook handling
-  and a per-entry ownership record in state.
+  and a per-entry ownership record in state; build-pipeline ordering
+  invariant added (agent projects before its wiring merges).
 
 ## Summary
 
 [RFC-0004 § Adapter-level scope roots](0004-install-scope-per-pack.md#adapter-level-scope-roots-and-projection-forks)
 refused hook-shaped primitives at user scope and named the missing
 piece *"hook-wiring merge story"* in shorthand. The real scope is
-**both** hook primitives. This RFC designs them: a scope-conditional
-target for `hook-body` (reroot from `tools/hooks/` to
-`~/.claude/hooks/` per Claude Code's user-scope read paths) and a new
-projection mode `user-merge-json` for `hook-wiring` that merges into
-the hand-edited shared `~/.claude/settings.json` (no `.local`
-suffix). The contract's Rail-B refusal becomes conditional on the
-new mode being declared by the adapter; user-scope state grows an
-ownership record so uninstall is precise. No pack — user-scope or
-otherwise — ships in this RFC; naming the first user-scope
-hook-bearing consumer is deferred, following the precedent RFC-0004
-set in its *Alternatives considered* item 8 (mechanics land ahead of
-a named consumer because doing them under release pressure means
-corners cut).
+**both** hook primitives — and the design has to cover two adapters
+whose hook architectures bind to different files. This RFC designs
+both forks:
+
+- **Claude Code** binds hooks in a settings file. `hook-body` reroots
+  from `tools/hooks/` to `~/.claude/hooks/` at user scope; a new
+  projection mode `user-merge-json` merges `hook-wiring` into the
+  hand-edited shared `~/.claude/settings.json` (no `.local`
+  suffix).
+- **Kiro** binds hooks inside agent JSON. A new projection mode
+  `merge-into-agent-json` merges `hook-wiring` into a pack-owned
+  agent file at `.kiro/agents/<attach-to-agent>.json` (the wiring
+  TOML gains an `attach-to-agent` field naming a same-pack agent);
+  `hook-body` rests in `tools/hooks/` at repo and `~/.kiro/hooks/`
+  at user. **This closes RFC-0001 Open Q1 (Kiro
+  `degraded-info-log`) at *repo* scope** — the longest-standing
+  hook-related gap in the adapter contract — and simultaneously
+  extends Kiro to user scope. The blocker turned out to be
+  architectural (hooks-in-agent-JSON), not schema-publication.
+
+The contract's Rail-B refusal becomes conditional on either mode
+being declared by the adapter; user-scope state grows an ownership
+record so uninstall is precise. The build pipeline gains a new
+invariant: agents project before their wiring merges. No pack —
+user-scope or otherwise — ships in this RFC; naming the first
+user-scope hook-bearing consumer is deferred, following the
+precedent RFC-0004 set in its *Alternatives considered* item 8
+(mechanics land ahead of a named consumer because doing them under
+release pressure means corners cut).
 
 ## Motivation
 
@@ -52,6 +72,27 @@ The asymmetry is awkward: a user-scope pack can ship skills,
 agents, and commands, but not the small executable glue that makes
 those primitives reach the right runtime events. Until that gap
 closes, the cross-project pack shape RFC-0004 enabled is partial.
+
+**Kiro has been parked at `degraded-info-log` for a different but
+adjacent reason.** Kiro's hook architecture binds hook entries
+inside each agent's JSON at `.kiro/agents/<name>.json` under a
+`hooks` key (events: `agentSpawn`, `userPromptSubmit`,
+`preToolUse`, `postToolUse`, `stop`) rather than to a separate
+settings file. The repo's `hook-wiring` primitive — a TOML that
+merges into a settings file under a `hooks` key — had no natural
+projection target in Kiro, so [`adapter.toml`](../../packages/agentbundle/agentbundle/_data/adapter.toml)
+held Kiro at `degraded-info-log` with the rationale string "schema
+not yet published." The rationale was wrong-in-spirit; the schema
+*has* been observable in the Kiro IDE and the user-scope agent
+directory is documented at
+[`kiro.dev/docs/cli/custom-agents/creating/`](https://kiro.dev/docs/cli/custom-agents/creating/)
+(`~/.kiro/agents/` for global, `.kiro/agents/` for workspace). The
+true blocker was that the wiring primitive merged into a
+settings-file shape that Kiro doesn't have. Designing a second
+projection mode (`merge-into-agent-json`) is the structural fix —
+and once we're designing one new mode for Kiro, doing it alongside
+Claude Code's user-scope work is cheaper than two sequential
+RFCs.
 
 ## Proposal
 
@@ -97,7 +138,24 @@ justified only when the merge algorithm itself differs — as
 `hook-body`, only the destination root changes; forking the mode
 would be shape inflation.
 
-### `hook-wiring` at user scope — `user-merge-json` mode
+**Kiro adopts the same shape at user scope.** Kiro's `hook-body`
+projection today is `direct-file → tools/hooks/`. With Kiro
+gaining a `[scope]` table in this RFC (see § `merge-into-agent-json`
+below), the natural user-scope target is `~/.kiro/hooks/<pack>/<name>.{sh,py}`
+— same pack-namespaced layout as Claude Code, for the same
+reason (uninstall-by-directory-removal, no name collisions across
+packs). Kiro doesn't have a fixed `~/.kiro/hooks/` *read* path
+the way Claude Code does — Kiro hooks resolve via the agent
+JSON's `command` field, which carries an absolute or
+`~`-relative path. The CLI computes that absolute path at install
+time and bakes it into the projected agent JSON's `hooks` array.
+Multi-machine sync risk (an absolute path baked in on machine A
+won't resolve on machine B with a different `$HOME`) is the same
+class as the existing multi-machine drawback below; same
+mitigation (sync `~/.agent-ready/` and re-install on the second
+machine).
+
+### `hook-wiring` for Claude Code at user scope — `user-merge-json` mode
 
 `hook-wiring` cannot reuse `merge-json` as it stands.
 `merge-json` today targets a **pack-controlled** file
@@ -221,9 +279,9 @@ to the same event):
   land in `sorted(os.walk(...))` order over
   `.apm/hook-wiring/<name>.toml` filenames — applying the
   `sorted(os.walk(...))` determinism rule
-  ([`distribution-adapters/spec.md:348-349`](../specs/distribution-adapters/spec.md),
+  ([`distribution-adapters/spec.md:348-350`](../specs/distribution-adapters/spec.md),
   established for skill-directory enumeration) to the
-  `hook-wiring` source surface. The cited line gives the
+  `hook-wiring` source surface. The cited lines give the
   shape of the rule; the path it walks here is `.apm/hook-wiring/`,
   not `.apm/skills/`.
 
@@ -249,9 +307,10 @@ refuses with
 `<path>: <key-path> has unexpected shape <type>; expected <expected>`
 (where `<key-path>` is `hooks` or `hooks.<event>` as relevant) and
 offers no auto-repair. The same refusal covers both the top-level
-and per-event cases — the merger does a shape check on every key
-it would write through, not just the root. Hand-edited shared
-state is too load-bearing to "fix up" silently.
+and per-event cases — the merger shape-checks every key it would
+write through **that exists on disk**; absent keys are
+auto-initialised per § Merge semantics step 1. Hand-edited
+shared state is too load-bearing to "fix up" silently.
 
 #### User-already-set-this-key collision rule
 
@@ -282,46 +341,337 @@ different refusal. `--force-merge` is:
   idempotent-when-no-conflict shape as `--force`, so wrapper
   scripts can pass it unconditionally.
 
+### `hook-wiring` for Kiro at both scopes — `merge-into-agent-json` mode
+
+Kiro's hook architecture binds hook entries inside each agent's
+JSON at `.kiro/agents/<name>.json` under a `hooks` key. The
+projection target is a **pack-owned** file (the same pack ships the
+agent body and the wiring; both project into the same JSON), so
+the discipline is closer to Claude Code's existing repo-scope
+`merge-json` than to its user-scope `user-merge-json` — there's no
+hand-edited adopter content to worry about inside *the pack's own
+agent file*. But the merge has to land under a per-agent target,
+not a per-adapter one, which neither of the existing modes
+expresses.
+
+A new projection mode `merge-into-agent-json` captures this.
+
+#### Adapter declaration
+
+```toml
+[adapter.kiro.projections.hook-wiring]
+mode = "merge-into-agent-json"
+target.repo = ".kiro/agents/<attach-to-agent>.json"
+target.user = ".kiro/agents/<attach-to-agent>.json"
+managed-key = "hooks"
+agent-event-vocabulary = [
+  "agentSpawn",
+  "userPromptSubmit",
+  "preToolUse",
+  "postToolUse",
+  "stop",
+]
+```
+
+- **`target.<scope>`** carries the `<attach-to-agent>` placeholder
+  — resolved per wiring entry from the pack-side TOML (next
+  section). Both repo and user scope use the same relative path;
+  the scope-root resolves to `<repo>/` and `~/` respectively.
+- **`managed-key = "hooks"`** names the JSON key the merger writes
+  under inside the agent file. Same role as `managed-key.user` in
+  the Claude Code user-scope design, but a plain string here
+  because Kiro uses the same key at both scopes.
+- **`agent-event-vocabulary`** is the **declarative** list of
+  event names this adapter accepts. `validate` refuses any
+  pack-side wiring TOML naming an event outside the list
+  (PascalCase events from Claude Code's vocabulary fail this
+  check against Kiro). The list lives in the contract, not in
+  CLI source — third-party adapter declarations can introduce
+  their own vocabularies without CLI changes. See the §
+  Repo-scope Kiro promotion subsection for the refusal text
+  shape, and Unresolved Q5 for the open question on whether the
+  per-namespace *identifier* (here implicitly the adapter name
+  `kiro`) should be a closed enum across the contract.
+
+The same `[adapter.kiro.scope]` table that user-scope Kiro needs
+ships here too:
+
+```toml
+[adapter.kiro.scope]
+repo = "."
+user = "~"
+allowed-prefixes.user = [".kiro/", ".agent-ready/"]
+```
+
+User-scope Kiro is documented at
+[`kiro.dev/docs/cli/custom-agents/creating/`](https://kiro.dev/docs/cli/custom-agents/creating/):
+the global agents directory is `~/.kiro/agents/`. The user-scope
+prefix is `.kiro/`; CLI infrastructure shares the
+`.agent-ready/` prefix already established for Claude Code.
+
+#### Pack-side schema — the `attach-to-agent` field
+
+The wiring TOML grows an **optional** top-level field:
+
+```toml
+# packs/<P>/.apm/hook-wiring/check-clipboard.toml
+attach-to-agent = "personal-reviewer"
+
+[[hooks.userPromptSubmit]]
+command = "$HOOK_BODY_PATH"
+matcher = ""
+```
+
+- For **Claude Code projection**, the field is **ignored** (the
+  wiring lands in the settings file regardless of which pack agent
+  is "logically" attached).
+- For **Kiro projection**, the field is **required**. Missing or
+  pointing at an agent the same pack does not ship is a
+  `validate` refusal:
+  `pack <P>'s hook-wiring <name>.toml does not declare 'attach-to-agent' (or names an unknown agent); required for kiro projection`.
+- For adapters that drop `hook-wiring` (Copilot, Codex), the field
+  is irrelevant — the wiring isn't projected at all.
+
+`attach-to-agent` is **single-valued**, not a list. Wiring N
+hooks into the same agent uses N entries under
+`[[hooks.<event>]]` in the same TOML. Wiring the same body into
+multiple agents requires N wiring TOMLs (one per agent), each
+referencing the same hook body via `command`. Multi-target wiring
+adds complexity we don't have a consumer for; defer to a future
+RFC if a pack ever needs it.
+
+#### Merge semantics
+
+The same array-append-with-id discipline as `user-merge-json`,
+applied to the agent JSON's `hooks.<event>` arrays:
+
+1. The CLI loads `<scope-root>/.kiro/agents/<attach-to-agent>.json`.
+   The file is **guaranteed to exist** because the build-pipeline
+   ordering invariant (below) projects the agent first.
+2. Each hook entry gets `id = "<pack-name>:<hook-source-basename>"`,
+   same as Claude Code.
+3. Append-with-id under `hooks.<event>`, same idempotency / replace
+   semantics.
+4. Adopter-authored entries are an edge case worth naming
+   explicitly: the agent JSON is **pack-owned**, so adopter
+   hand-edits to the agent file are squatting on a managed
+   surface. The CLI does not enforce — adopters who edit the
+   projected agent JSON take the consequences (next `upgrade`
+   replaces the file via the agent primitive's `direct-file`
+   projection, dropping their edits). Same shape as any other
+   adopter hand-edit to a CLI-owned file.
+
+#### Build-pipeline ordering invariant
+
+The build pipeline that produces the projected layout (per
+[RFC-0002](0002-self-hosting.md)) currently projects primitives in
+an unspecified order. With `merge-into-agent-json`, the pipeline
+gains an invariant: **for any pack containing both `agent` and
+`hook-wiring` primitives, every agent's `direct-file` projection
+must complete before any wiring's `merge-into-agent-json`
+projection runs against the same agent file.** The simplest
+implementation: a fixed phase order — `hook-body` → `agent` →
+`hook-wiring` → `command` → `skill` — applied uniformly across
+adapters. `command` and `skill` land after `hook-wiring` because
+neither reads the agent JSON during projection (commands project
+verbatim to a separate target path; skill projection works on
+skill-source files, not agent files), so their position relative
+to hook-wiring is free; placing them last keeps the phases
+predictable. The ordering is a no-op for Claude Code (which
+doesn't read the agent file during wiring projection) but
+mandatory for Kiro.
+
+**Cross-pack ordering is not introduced.** Packs install
+serially today, and the `attach-to-agent` field is restricted
+to same-pack agents (see § Pack-side schema — the `validate`
+rail refuses an `attach-to-agent` that names an agent the same
+pack does not ship). No pack writes into another pack's agent
+file, so the pipeline-ordering invariant remains intra-pack.
+This is the same shape as the rest of the projection contract:
+pack content is closed under its own source tree.
+
+#### Conflict, idempotency, uninstall
+
+Same rules as `user-merge-json`:
+
+- **Conflict (same `id`):** refused with the same error string,
+  except the path in the error message is the agent file rather
+  than the settings file.
+- **Idempotency:** reinstall at the same version is a no-op; the
+  array position is preserved by `id`.
+- **Uninstall:** the user-scope state's ownership record
+  identifies every `(agent-file, event, id)` tuple the pack owns;
+  uninstall removes them from each agent file's `hooks.<event>`
+  arrays and rewrites the agent file. Empty `hooks.<event>`
+  arrays are removed; an empty `hooks` object is left in place
+  (the agent file still belongs to the pack; the agent primitive's
+  uninstall handles file removal).
+
+#### Failure modes
+
+- The agent file is missing at merge time → the pipeline-ordering
+  invariant has been violated. The CLI refuses with
+  `internal: <agent-file> missing at hook-wiring merge time; agent must project before wiring` —
+  this is a CLI-internal bug, not adopter-fixable. The
+  `validate`-time check ensures the pack ships the named agent,
+  so the only way to hit this is a pipeline-ordering regression.
+- The agent file is malformed JSON → same refuse-and-explain
+  shape as the Claude Code path:
+  `cannot parse <path>: <error>; fix or back up the file and retry`.
+  This case usually only fires under adopter hand-edit
+  to a pack-owned file (a squatter on the pack-owned surface);
+  the message is the same regardless.
+- `hooks` or `hooks.<event>` is present-with-wrong-type → same
+  `<path>: <key-path> has unexpected shape <type>; expected <expected>`
+  refusal.
+
+#### What this section does NOT add
+
+- **No new `--force-merge` flag for Kiro.** The agent file is
+  pack-owned, not adopter-shared, so there's no
+  "adopter-already-set-this-key" case. `--force-merge` stays
+  Claude Code only (per its existing § Binding subsection).
+- **No translation layer between adapter event vocabularies.**
+  The `agent-event-vocabulary` declarative list provides
+  validate-time refusal of cross-vocabulary projections (e.g. a
+  Claude-Code-shaped wiring TOML projected against Kiro refuses
+  on event-name mismatch). This RFC does not introduce a
+  translation layer that would let a Claude-Code-shaped wiring
+  run on Kiro or vice versa; a pack targeting both adapters
+  ships separate wiring TOMLs per adapter or restricts
+  `allowed-adapters`. Translation belongs in a separate RFC if
+  it ever lands.
+
 ### Validate-time rule lift
+
+Two distinct rails change in this RFC. Rail B today is a
+**user-scope refusal**; promoting Kiro out of `degraded-info-log`
+at repo scope is governed by a **separate** acceptance path that
+doesn't intersect Rail B at all. Treat them as two rules.
+
+#### Rail B — user-scope lift
 
 [`docs/specs/distribution-adapters/spec.md` § Rail B](../specs/distribution-adapters/spec.md#contract-level-user-scope-refusal-rails),
 lines 318–328, refuses any pack whose source tree contains a
 non-empty `.apm/hooks/` or `.apm/hook-wiring/` directory when
 `"user" ∈ allowed-scopes`. This RFC lifts that refusal **only
-when**:
+when** the pack opts in via `[pack.install] user-scope-hooks =
+true` *and* the user-scope target adapter satisfies one of two
+shapes:
 
-1. The adapter declares both `target.user` (for `hook-body`) and
-   `mode.user = "user-merge-json"` (for `hook-wiring`), **and**
-2. The pack opts in by declaring `[pack.install] user-scope-hooks
-   = true` — an explicit, single-purpose flag that says *yes, I
-   understand my hook-wiring will land in the adopter's shared
-   settings file*.
+- **Claude Code shape:** adapter declares `target.user` for
+  `hook-body` *and* `mode.user = "user-merge-json"` for
+  `hook-wiring`.
+- **Kiro shape:** adapter declares `target.user` for `hook-body`
+  *and* declares `mode = "merge-into-agent-json"` for
+  `hook-wiring` (single mode, no scope qualifier — the agent-file
+  target is scope-conditional via `<scope-root>` resolution, but
+  the merge algorithm is identical at both scopes) *and*
+  declares an `[adapter.<name>.scope]` table making user scope
+  reachable.
 
-The flag exists because pack-authoring a user-scope hook is a
-materially different responsibility from authoring a repo-scope
-one (shared file, no per-project isolation, harder for the adopter
-to attribute breakage). Requiring an explicit opt-in keeps the
-default safe and makes the contract-level grep at validate-time
-trivially deterministic: a pack containing hooks but missing the
-flag stays refused. The flag has no meaning at repo scope and is
-ignored if `"user" ∉ allowed-scopes`.
+A pack with `user-scope-hooks = true` whose declared user-scope
+target adapter satisfies neither shape is refused at
+scope-resolution time with
+`adapter <name> does not declare a hook-wiring mode that supports user scope; pack <P> requires it`.
 
-`validate` continues to fail closed: if the pack declares the
-flag but the adapter doesn't declare `mode.user`, the install
-refuses at scope-resolution time with
-`adapter <name> does not declare user-scope hook-wiring; pack <P> requires it`.
+The opt-in flag exists because pack-authoring a user-scope hook is
+a materially different responsibility from authoring a repo-scope
+one (no per-project isolation; harder for the adopter to attribute
+breakage; on Claude Code, shared file with other tools). Requiring
+an explicit opt-in keeps the default safe and makes the
+contract-level grep at validate-time trivially deterministic: a
+pack containing hooks but missing the flag stays refused at user
+scope. The flag has no meaning at repo scope and is ignored if
+`"user" ∉ allowed-scopes`.
+
+#### Repo-scope Kiro promotion — separate from Rail B
+
+The most novel Kiro change in this RFC is at **repo scope**: the
+adapter table entry for Kiro `hook-wiring` flips from
+`degraded-info-log` to `merge-into-agent-json` in the
+[`adapter.toml`](../../packages/agentbundle/agentbundle/_data/adapter.toml)
+shipped alongside the v0.3 adapter contract. Rail B does not
+apply (Rail B is the user-scope refusal). The acceptance gate
+is:
+
+1. The adapter contract version is `0.3` or higher (the version
+   bump records the new mode's existence so older CLIs don't
+   try to use a mode they don't implement).
+2. The Kiro adapter table declares `mode = "merge-into-agent-json"`
+   and an `agent-event-vocabulary` for the events the namespace
+   accepts (see § `agent-event-vocabulary`).
+3. The pack's `.apm/hook-wiring/<name>.toml` declares a valid
+   `attach-to-agent` field pointing at a same-pack agent
+   (`validate` refuses on missing or unresolvable references with
+   `pack <P>'s hook-wiring <name>.toml does not declare 'attach-to-agent' (or names an unknown agent); required for kiro projection`).
+4. The pack's hook events are drawn from the adapter's declared
+   `agent-event-vocabulary` (cross-vocabulary refusal — see same
+   section).
+
+No new opt-in flag at repo scope: repo-scope writes have always
+been allowed by the contract; this RFC changes the projection
+target, not the consent gesture. A pack already shipping wiring
+that hit `degraded-info-log` on v0.2 will project successfully on
+v0.3 provided the four gates above pass — same source TOML,
+different runtime semantics, callout in the changelog.
+
+#### `agent-event-vocabulary` — declarative event list
+
+The `merge-into-agent-json` adapter entry must declare the events
+it accepts as a string array:
+
+```toml
+[adapter.kiro.projections.hook-wiring]
+mode = "merge-into-agent-json"
+agent-event-vocabulary = [
+  "agentSpawn",
+  "userPromptSubmit",
+  "preToolUse",
+  "postToolUse",
+  "stop",
+]
+```
+
+`validate` checks every event key in a pack's wiring TOMLs
+against this list when the wiring is being projected to that
+adapter. A pack-side `[[hooks.UserPromptSubmit]]` (PascalCase)
+projected against Kiro is refused with
+`pack <P>'s hook-wiring <name>.toml uses event 'UserPromptSubmit'; not in adapter 'kiro' agent-event-vocabulary`.
+The Claude Code projections do not declare
+`agent-event-vocabulary` because `user-merge-json` does not need
+the check — Claude Code's runtime ignores unknown event keys
+(observed-not-contract; this RFC's `id`-as-tag drawback already
+records the broader unverified-schema risk). If a future Claude
+Code release validates events, we'd add the field then; for now
+declaring it would over-commit.
+
+The vocabulary string array is **declarative** — the CLI does
+not carry a hardcoded list of "Kiro's events"; everything the
+CLI needs is in the adapter table. This makes the contract
+self-describing and lets third-party adapter declarations
+introduce their own vocabularies without CLI source changes. See
+Unresolved Q5 for the open question on whether the
+`agent-event-namespace` *identifier* (separate from the
+vocabulary list) should be a closed enum.
 
 ### State-file impact
 
 User-scope state today (per [RFC-0004 § State file per
 scope](0004-install-scope-per-pack.md#state-file-per-scope)) lists
 the packs installed at user scope. With user-scope hooks, the CLI
-needs to know **which entries in `~/.claude/settings.json` belong
-to which pack** so uninstall can be precise.
+needs to know **which entries in which target file belong to which
+pack** so uninstall can be precise. For Claude Code that target is
+`~/.claude/settings.json`; for Kiro it's the pack-owned agent JSON
+at `<scope-root>/.kiro/agents/<attach-to-agent>.json`.
 
-The state schema gains a per-install `hook-wiring-owned` table:
+The state schema gains a per-install `hook-wiring-owned` table.
+Each entry carries an optional `target-file` field naming the
+file the entry lives in — null/omitted for Claude Code (where the
+target is implied per scope), required for Kiro:
 
 ```toml
+# Claude Code at user scope
 [[installed]]
 pack = "personal-reviewers"
 version = "0.1.0"
@@ -330,11 +680,43 @@ scope = "user"
   [[installed.hook-wiring-owned]]
   event = "UserPromptSubmit"
   id = "personal-reviewers:on-prompt"
+  # target-file omitted — implied as ~/.claude/settings.json by adapter
 
   [[installed.hook-wiring-owned]]
   event = "SessionStart"
   id = "personal-reviewers:on-session"
 ```
+
+```toml
+# Kiro at repo scope (also: same shape at user scope, different scope-root)
+[[installed]]
+pack = "clipboard-summary"
+version = "0.1.0"
+scope = "repo"
+adapter = "kiro"
+
+  [[installed.hook-wiring-owned]]
+  event = "userPromptSubmit"
+  id = "clipboard-summary:on-prompt"
+  target-file = ".kiro/agents/clipboard-watcher.json"
+```
+
+The `adapter` field on the install record is new for Kiro entries
+— state today doesn't track adapter per install because the CLI
+runs against a single adapter at a time, but recording it makes
+the state file readable across mixed installs and helps the
+`reconcile` reporter group orphans by their owning adapter.
+Claude Code entries can omit `adapter` (defaulted as `claude-code`
+for backwards compat with v0.2-state-file reads).
+
+**Read-time semantics pin (v0.3 readers).** A v0.3 reader hitting
+a `[[installed]]` row with no `adapter` field treats it as
+`adapter = "claude-code"`. This rule applies uniformly to (a)
+v0.2-vintage rows preserved across the header-only migration and
+(b) v0.3-vintage Claude Code rows that omit the field as a
+write-time space saving. The migration step does **not** backfill
+the field on existing rows — header-only-additive holds because
+absent-equals-default is the read contract.
 
 `hook-body` files don't need an ownership record: they live under
 `~/.claude/hooks/<pack>/<name>.{sh,py}` — the pack-namespaced
@@ -456,6 +838,39 @@ either example.
    on dependency grounds; the merge logic is bounded enough that
    a stdlib implementation isn't expensive.
 
+7. **Defer Kiro to a separate follow-up RFC (treat it as a new
+   primitive).** Attractive on shape grounds — "one RFC, one
+   responsibility" reads cleaner than coupling two adapters'
+   hook stories. But the Kiro fix turned out to be a second
+   projection mode on the existing `hook-wiring` primitive, not
+   a new primitive: same source TOML, same id-tag discipline,
+   same idempotency rules, same `hook-wiring-owned` state shape
+   with one optional field. The merge engine reuses
+   `user-merge-json`'s machinery wholesale. Splitting the two
+   would mean re-deriving most of those decisions in the second
+   RFC against a moving target (this RFC's design would already
+   have shipped) and would double the spec-amendment / state-
+   schema bump count. Rejected: when two designs share their
+   discipline, splitting them across RFCs trades a single
+   coherent decision for two partially-coherent ones.
+
+   *The honest counter-cost.* This isn't a free lunch. One PR
+   now amends *two* specs simultaneously (distribution-adapters
+   *and* agent-spec-cli) covering *two* adapters with
+   overlapping-but-not-identical discipline (Claude Code
+   user-scope shared-file write vs. Kiro both-scopes pack-owned
+   agent-file merge). The v0.3 state-schema migration carries
+   fields (`adapter`, `target-file`) that the Claude-Code-only
+   design wouldn't have needed. Review burden on the amendment
+   PR is higher than a Claude-Code-only PR would have been, and
+   any future Kiro-side projection change (event vocabulary
+   evolution, new Kiro events) touches this RFC's amendment text
+   rather than a Kiro-specific successor. The rejection still
+   holds — the coupled cost is one-time at amendment time, while
+   the split cost would have re-paid the discipline-design cost
+   twice — but the trade is real and named here so a future
+   reader can re-evaluate if the assumption inverts.
+
 ## Drawbacks
 
 - **Hand-edited user settings file means write contention with
@@ -547,6 +962,109 @@ either example.
   to `agent-ready-id` from the start?); recording it here so the
   risk doesn't get lost.
 
+- **Kiro's hook-entry schema is observed-but-not-publicly-documented.**
+  The Kiro user-scope agent directory is documented at
+  [`kiro.dev/docs/cli/custom-agents/creating/`](https://kiro.dev/docs/cli/custom-agents/creating/),
+  but that page does *not* document a `hooks` field — the events
+  (`agentSpawn`, `userPromptSubmit`, `preToolUse`, `postToolUse`,
+  `stop`) and entry shape (`command`, `matcher`, `timeout_ms`,
+  `max_output_size`, `cache_ttl_seconds`) are known from in-IDE
+  observation. The Kiro runtime accepts the field today but the
+  schema is not under contract. If Kiro renames the key, restructures
+  the entries, or starts validating against a documented schema
+  that rejects the synthetic `id` tag, the projection regresses
+  silently. Same risk class as the Claude Code `id`-as-tag
+  drawback, just for a different field. Mitigation: pin the
+  Kiro mode to a single-source-of-truth in the spec amendment and
+  re-verify against Kiro's published docs at each contract version
+  bump.
+
+- **Build-pipeline ordering becomes a new invariant the pipeline
+  has to enforce.** Today the pipeline (per RFC-0002) projects
+  primitives in unspecified order — agent, hook-body, hook-wiring,
+  command, skill — and each projection is self-contained. With
+  `merge-into-agent-json`, that's no longer true: the wiring
+  projection reads a file the agent projection wrote. A pipeline
+  bug that ran wiring first would surface as "internal: agent file
+  missing" (a refuse-and-explain we wired in § Failure modes), not
+  as silent corruption, but the invariant is real and worth
+  flagging. Cross-pack ordering is **not** introduced — packs are
+  installed serially today and no pack writes into another pack's
+  agent file.
+
+- **Kiro projection bakes an absolute path into the projected
+  agent JSON.** The Kiro hook entry's `command` field carries the
+  hook body's path verbatim — at user scope this is an
+  expanded-absolute path like `/Users/X/.kiro/hooks/personal-reviewers/on-prompt.sh`
+  computed at install time. Three failure modes follow from
+  this:
+  - **Repo-sync case.** Even an adopter who does not sync `~/`
+    across machines is exposed: the projected `.kiro/agents/<name>.json`
+    file is *inside the repo* (at repo scope) and therefore on
+    the repo-sync path. Machine B cloning the repo gets a
+    `command` path that resolves to machine A's `$HOME`.
+  - **`$HOME` rename / move.** An adopter who renames their
+    home directory between install and uninstall ends up with a
+    `command` path pointing at the old home; uninstall still
+    works (it reads ownership records, not the command string),
+    but the hook stops firing at runtime.
+  - **CI / sandboxed runs.** A CI runner with a different
+    `$HOME` than the install machine sees the same baked-in
+    path; the hook fails silently or noisily depending on what
+    Kiro does with a missing command.
+  Mitigation: the `reconcile --scope user` reporter (follow-on
+  artifacts) flags `command` paths whose target doesn't exist
+  at reporter-run time. The repo-scope variant of the same
+  problem is **a distinct class** from the existing
+  multi-machine drawback (which only fires when adopters sync
+  `~/.claude/`); recording it separately so neither swallows
+  the other.
+
+- **Multi-target wiring (one hook into N agents) requires N
+  duplicate wiring TOMLs.** The `attach-to-agent` field is
+  single-valued; a pack that wants to wire the same hook into
+  every code-review agent ships N near-identical
+  `.apm/hook-wiring/<name>.toml` files, each naming a different
+  agent, each pointing at the same `command`. This is a real
+  pack-author footgun (forgetting to update one of the N when
+  the hook body changes) and worth naming, even though the
+  deferral is the right call for now (no observed consumer; a
+  multi-target field would require its own design for how
+  ordering and uninstall behave when one of the N agents is
+  later removed from the pack).
+
+- **Cross-adapter semantic asymmetry — same source, different
+  firing model.** A `.apm/hook-wiring/<name>.toml` projected to
+  Claude Code fires *globally* (any user prompt, any session
+  start). Projected to Kiro, the same wiring fires only when the
+  attached agent is active. A pack author writing
+  `[[hooks.userPromptSubmit]]` reasonable for "intercept every
+  prompt" gets that semantics on Claude Code but "intercept every
+  prompt while my agent is active" on Kiro. This is documented
+  per-adapter and the `agent-event-vocabulary` adapter field
+  prevents accidental cross-vocabulary projection (a
+  PascalCase-events TOML for Kiro is refused at `validate`), but
+  the firing-model difference itself cannot be normalised away —
+  it's how the two runtimes work. The "must ship an agent on
+  Kiro" constraint (next drawback) is the operational corollary:
+  Kiro hooks need an agent because that's the only firing
+  surface available. Pack authors targeting both adapters must
+  understand both halves; we can document it but not enforce
+  it.
+
+- **A pack must ship at least one agent to wire hooks on Kiro.**
+  Direct corollary of the firing-model asymmetry above. A
+  wiring-only pack (no `.apm/agents/`) has no `attach-to-agent`
+  target on Kiro and is refused at `validate` for the kiro adapter.
+  Adopters who want a global hook on Kiro (analog of Claude
+  Code's settings-file hook) cannot have it via this RFC — they
+  must either ship the hook on a pack-owned agent (which limits
+  firing to when that agent is active) or wait for Kiro to
+  publish a global-hooks mechanism we can project to. The pack
+  can still target Claude Code wiring-only by setting
+  `allowed-adapters = ["claude-code"]` (or its equivalent in
+  pack metadata) so the Kiro `validate` rail simply doesn't fire.
+
 ## Unresolved questions
 
 1. **Is `id` on hook entries safe as a non-functional tag?** This
@@ -565,7 +1083,14 @@ either example.
    pack version bump adds, removes, or renames a hook entry,
    `upgrade` must reconcile the old state's owned IDs with the
    new pack's. The reconciliation algorithm is straightforward
-   but the spec amendment should write it down.
+   but the spec amendment should write it down. **This includes
+   `attach-to-agent` value changes for Kiro packs** — an agent
+   renamed (`personal-reviewer` → `code-reviewer`), removed, or
+   added between versions means the old `target-file` in state
+   names one agent JSON while the new wiring targets another.
+   Upgrade reconciliation must walk *both* the old target file
+   (to remove orphan entries) and the new target file (to add
+   the new entry), not just the union of IDs in a single target.
 
 4. **Should the first consumer name appear in this RFC?**
    RFC-0004's *Alternatives considered* item 8 rejected
@@ -574,54 +1099,97 @@ either example.
    should weigh the personal-reviewers shape sketched in §
    First consumer as the strongest candidate.
 
+5. **`agent-event-vocabulary` identifier — closed enum or open
+   string?** The adapter contract declares the **vocabulary list**
+   (an array of event names) declaratively, which closes the
+   "how does `validate` know Kiro's events?" gap. But the
+   per-adapter *identifier* under which a vocabulary lives —
+   today implicitly the adapter table name (`kiro`,
+   `claude-code`) — could grow into a separately-declared
+   namespace string if multiple adapters end up sharing a
+   vocabulary (e.g. a hypothetical Kiro-compatible adapter
+   reusing the same event names). Should the contract pin
+   `agent-event-namespace = "<string>"` as a closed enum
+   validated across all adapter declarations, or stay an open
+   per-adapter-derived string? No consumer pressures the
+   question today; flagging so a future cross-vocabulary RFC
+   inherits the decision rather than re-deriving it.
+
 ## Follow-on artifacts
 
 On acceptance, this RFC produces:
 
 - **Amendment to
   [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md):**
-  the new `user-merge-json` mode (with merge semantics,
-  idempotency, conflict, and failure-mode rules); the
-  scope-conditional `target` schema for `direct-file`
-  projections; the `managed-key.user` field; extension of
-  `[pack.install]` with the optional boolean `user-scope-hooks`
-  field (false default; ignored if `"user" ∉ allowed-scopes`)
-  and an `if`/`then` block in `pack.schema.json` enforcing it;
-  Rail B becomes conditional on `user-scope-hooks` plus the
-  adapter's `mode.user` / `target.user` declarations; contract
-  version bump.
+  - **Claude Code side:** the new `user-merge-json` mode (with
+    merge semantics, idempotency, conflict, and failure-mode
+    rules); the scope-conditional `target` schema for
+    `direct-file` projections; the `managed-key.user` field.
+  - **Kiro side:** the new `merge-into-agent-json` mode (with
+    its agent-file target, `managed-key`, declarative
+    `agent-event-vocabulary` array, and merge / idempotency /
+    uninstall / failure-mode rules); Kiro's
+    `[adapter.kiro.projection]` for `hook-wiring` flips from
+    `degraded-info-log` to `merge-into-agent-json` (the
+    repo-scope promotion that closes RFC-0001 Open Q1); Kiro
+    gains an `[adapter.kiro.scope]` table with
+    `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`; Kiro
+    `hook-body` projection gains scope-conditional `target.user`
+    (`.kiro/hooks/<name>.{sh,py}`).
+  - **Pack-side schema:** `hook-wiring` TOML grows the optional
+    `attach-to-agent` field; `validate` rail refuses
+    Kiro-targeted wiring without it; extension of
+    `[pack.install]` with the optional boolean
+    `user-scope-hooks` field (false default; ignored if
+    `"user" ∉ allowed-scopes`) and an `if`/`then` block in
+    `pack.schema.json` enforcing it.
+  - **Rails:** Rail B becomes conditional on `user-scope-hooks`
+    plus the adapter declaring either `mode.user =
+    "user-merge-json"` or `mode = "merge-into-agent-json"`.
+  - **Pipeline:** the build-pipeline gains a phase-order
+    invariant — `hook-body` → `agent` → `hook-wiring` → others.
+  - **Contract version:** bumps in the same PR.
 
 - **Amendment to
   [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md):**
-  `install` / `uninstall` / `upgrade` gain user-scope
-  hook-wiring handling; state-file schema bumps from `0.2` →
-  `0.3` with the `hook-wiring-owned` table; `init-state
+  `install` / `uninstall` / `upgrade` gain hook-wiring handling
+  for both adapters (Claude Code user-scope; Kiro at both
+  scopes); state-file schema bumps from `0.2` → `0.3` with the
+  `hook-wiring-owned` table including its optional `target-file`
+  field and the per-install `adapter` field; `init-state
   --migrate` gains a v0.2 → v0.3 step; new `--force-merge` flag
-  on `install` (binding and `--force` interaction per §
-  User-already-set-this-key collision rule above); new
-  `reconcile --scope user` **read-only reporter** subcommand
-  that walks `~/.claude/settings.json` against the user-scope
-  state file and reports orphans (entries the file claims own
-  but state doesn't know about, and vice versa) — the
-  *visibility* affordance the multi-machine-sync and
-  uninstall-orphan Drawbacks point at; the adopter takes manual
-  action from the report (a write-mode `reconcile --apply` is
-  explicitly **not** in this RFC's scope — it would re-create
-  the merge-discipline problems this RFC is designed to avoid);
-  refuse-and-explain text for unparseable user settings and
-  shape mismatches.
+  on `install` (Claude Code user-scope only — binding and
+  `--force` interaction per § User-already-set-this-key
+  collision rule above); new `reconcile --scope user` **read-only
+  reporter** subcommand that walks **both** the
+  `~/.claude/settings.json` file (Claude Code) and every Kiro
+  agent JSON named in user-scope state against the
+  `hook-wiring-owned` ownership records and reports orphans
+  (entries either file claims own but state doesn't know about,
+  and vice versa) — the *visibility* affordance the
+  multi-machine-sync and uninstall-orphan Drawbacks point at;
+  the adopter takes manual action from the report (a write-mode
+  `reconcile --apply` is explicitly **not** in this RFC's scope
+  — it would re-create the merge-discipline problems this RFC
+  is designed to avoid); refuse-and-explain text for unparseable
+  target files and shape mismatches.
 
 - **ADR (post-acceptance):** record the durable decision that
   *the CLI may write to hand-edited shared user-settings files
-  under an ID-tagged array-append merge contract*. Subsequent
-  user-scope merge work (`env`, `mcpServers`, anything else that
-  lands under a `managed-key.user`) will cite the ADR rather
-  than re-derive the rationale.
+  under an ID-tagged array-append merge contract, and to
+  pack-owned agent files under a per-agent variant of the same
+  contract*. Subsequent user-scope merge work (`env`,
+  `mcpServers`, anything else that lands under a
+  `managed-key.user`) and any future per-primitive merge work
+  on other adapters will cite the ADR rather than re-derive the
+  rationale.
 
 - **Entry on [`docs/ROADMAP.md`](../ROADMAP.md):** open item
   under the `agent-spec-cli` or `distribution-adapters` section
   (whichever picks up the implementation pass) tracking the
-  amendments above through to landed code.
+  amendments above through to landed code. The Kiro
+  `degraded-info-log` entry currently held under RFC-0001 Open
+  Q1 is **closed** by this RFC and should be marked as such.
 
 - **(Deferred — not in this RFC's scope.)** The first user-scope
   hook-bearing pack lands as its own spec / pack publication PR
