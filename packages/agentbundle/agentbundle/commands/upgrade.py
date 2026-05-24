@@ -122,9 +122,16 @@ def run(args: "argparse.Namespace") -> int:
             return 1
         root = user_state_path.parent.parent
         effective_scope = "user"
-        from agentbundle.commands.install import _claude_code_allowed_prefixes_user
+        from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
-        user_prefixes = _claude_code_allowed_prefixes_user()
+        # Use the recorded adapter from state so Kiro-installed packs
+        # get .kiro/ prefixes, not Claude Code's .claude/ prefixes.
+        recorded_adapter = (
+            user_state_for_check.packs[pack_name].adapter
+            if pack_name in user_state_for_check.packs
+            else "claude-code"
+        ) or "claude-code"
+        user_prefixes = _adapter_allowed_prefixes_user(recorded_adapter)
 
     # ── Detect per-primitive flag ─────────────────────────────────────────────
     prim_flag: str | None = None
@@ -206,9 +213,24 @@ def run(args: "argparse.Namespace") -> int:
     # state's `.claude/...` paths. Mirrors `install._render_for_user_scope`.
     try:
         if effective_scope == "user":
-            from agentbundle.commands.install import _render_for_user_scope
+            from agentbundle.commands.install import (
+                _render_for_user_scope,
+                _resolve_user_scope_target_adapter,
+                _rewrite_user_scope_hook_paths,
+            )
 
             projection = _render_for_user_scope(pack_dir)
+            # Mirror install: rewrite v0.2 hook-body paths to the v0.3
+            # user-scope shape (`.claude/hooks/<pack>/` or
+            # `.kiro/hooks/<pack>/`) and drop the v0.2 settings.local.json
+            # target. Without this, the path-jail probe refuses
+            # `tools/hooks/<name>.sh` at user scope.
+            _new_target_adapter = _resolve_user_scope_target_adapter(pack_dir)
+            projection = _rewrite_user_scope_hook_paths(
+                projection,
+                pack_name=pack_name,
+                target_adapter=_new_target_adapter,
+            )
         else:
             projection = render_pack(pack_dir)
     except (FileNotFoundError, ValueError) as exc:
@@ -271,6 +293,74 @@ def run(args: "argparse.Namespace") -> int:
                 "from-pack-version": to_version,
             }
 
+    # ── Hook-wiring reconciliation (RFC-0005 T8c, user-scope only) ───────────
+    # Compute the symmetric difference between old state's
+    # ``hook_wiring_owned`` and the new pack's wiring TOMLs. The
+    # ``attach-to-agent`` rename case (Kiro) lands here: rows whose
+    # target-file changes between versions get dropped from the OLD
+    # target file and added to the NEW one. In-place upgrades
+    # (identical wiring) are a no-op; adds and removes shift state
+    # rows accordingly.
+    if effective_scope == "user" and not is_per_primitive:
+        from agentbundle.commands.install import (
+            _merge_user_scope_hook_wiring,
+            _refresh_merge_target_shas,
+            _resolve_user_scope_target_adapter,
+        )
+
+        new_target_adapter = _resolve_user_scope_target_adapter(pack_dir)
+        old_adapter_recorded = pack_state.adapter or "claude-code"
+
+        # Concern #3: cross-adapter upgrades are out of scope. AC19b
+        # covers attach-to-agent renames *within Kiro*, not Kiro→CC
+        # or CC→Kiro. Refuse with a refuse-and-explain shape; the
+        # operator uninstalls + reinstalls instead.
+        if old_adapter_recorded != new_target_adapter:
+            print(
+                f"upgrade: pack adapter changed from "
+                f"{old_adapter_recorded!r} → {new_target_adapter!r} "
+                f"between versions; run uninstall + install instead "
+                f"(cross-adapter upgrade is not supported)",
+                file=sys.stderr,
+            )
+            return 1
+
+        try:
+            new_owned = _compute_new_wiring_rows(pack_dir, pack_name, new_target_adapter)
+            old_owned = list(pack_state.hook_wiring_owned)
+            # Step A: unproject rows in old that aren't in new.
+            _unproject_removed_rows(
+                root=root,
+                old_owned=old_owned,
+                new_owned=new_owned,
+                old_adapter=old_adapter_recorded,
+            )
+            # Step B: project the new pack's wiring against new targets.
+            # The merger is idempotent for unchanged rows (replace-in-
+            # place by id); for added rows it appends.
+            new_rows = _merge_user_scope_hook_wiring(
+                pack_dir=pack_dir,
+                pack_name=pack_name,
+                target_adapter=new_target_adapter,
+                install_root=root,
+                force_merge=False,
+            )
+            pack_state.hook_wiring_owned = new_rows
+            pack_state.adapter = (
+                new_target_adapter if new_target_adapter == "kiro" else "claude-code"
+            )
+            # Blocker #1: refresh state.files SHA for the agent JSON the
+            # merge phase rewrote. Without this, post-upgrade uninstall
+            # would misclassify it as Tier-2 and refuse to remove it.
+            _refresh_merge_target_shas(
+                pack_state=pack_state,
+                owned_rows=new_rows,
+                root=root,
+            )
+        except Exception as exc:
+            print(f"upgrade: hook-wiring reconciliation failed: {exc}", file=sys.stderr)
+            return 1
+
     # ── Update state ──────────────────────────────────────────────────────────
     if is_per_primitive:
         # Record per-primitive version override; leave installed_version alone.
@@ -299,6 +389,118 @@ def run(args: "argparse.Namespace") -> int:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _compute_new_wiring_rows(
+    pack_dir: Path,
+    pack_name: str,
+    target_adapter: str,
+) -> list[dict[str, str]]:
+    """Parse the new pack's `.apm/hook-wiring/*.toml` files and
+    compute the ``hook-wiring-owned`` rows the upgraded state would
+    carry — without writing anything yet. The actual writes come from
+    `_unproject_removed_rows` (removes rows present in old, absent
+    from new) followed by an idempotent re-call to
+    `_merge_user_scope_hook_wiring` (lays down the new row set).
+
+    The id synthesis matches T5/T6's: `<pack-name>:<basename>` per
+    wiring TOML. Claude Code rows omit `target-file` (defaulted to
+    `~/.claude/settings.json`); Kiro rows carry it explicitly with
+    `.kiro/agents/<attach-to-agent>.json`.
+    """
+    import re
+    import tomllib
+    from agentbundle.build.projections.hook_id import synthesize_id
+
+    # Same grammar `install._merge_user_scope_hook_wiring` enforces.
+    # Validating here ensures a malformed `attach-to-agent` cannot
+    # corrupt the symmetric-diff computation (e.g. a path-traversal
+    # payload producing a phantom "removal" that we'd then unproject
+    # against the old target file).
+    _AGENT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+    wiring_dir = pack_dir / ".apm" / "hook-wiring"
+    if not wiring_dir.exists():
+        return []
+    rows: list[dict[str, str]] = []
+    for entry in sorted(wiring_dir.iterdir()):
+        if not (entry.is_file() and entry.suffix == ".toml"):
+            continue
+        # Don't silently swallow TOMLDecodeError — the merger raises
+        # on the same file, so the asymmetry would let step A unproject
+        # entries the merger will then refuse to re-project. Propagate.
+        try:
+            body = tomllib.loads(entry.read_text(encoding="utf-8"))
+        except tomllib.TOMLDecodeError as exc:
+            raise RuntimeError(
+                f"upgrade: pack {pack_name}'s hook-wiring {entry.stem}.toml "
+                f"failed to parse: {exc}"
+            ) from exc
+        entry_id = synthesize_id(pack_name, entry.stem)
+        hooks_in_wiring = body.get("hooks", {}) if isinstance(body, dict) else {}
+        if not isinstance(hooks_in_wiring, dict):
+            continue
+        attach = body.get("attach-to-agent") if isinstance(body, dict) else None
+        # Grammar guard for Kiro: refuse anything that would corrupt
+        # `target_file_rel` (path-traversal, special chars, …).
+        if target_adapter == "kiro" and isinstance(attach, str):
+            if not _AGENT_NAME_RE.fullmatch(attach):
+                raise RuntimeError(
+                    f"upgrade: pack {pack_name}'s hook-wiring {entry.stem}.toml "
+                    f"declares attach-to-agent={attach!r} which violates the "
+                    f"agent-name grammar ^[a-z0-9][a-z0-9-]*$ — refusing"
+                )
+        for event, incoming in hooks_in_wiring.items():
+            if not isinstance(incoming, list):
+                continue
+            row: dict[str, str] = {"event": event, "id": entry_id}
+            if target_adapter == "kiro" and isinstance(attach, str):
+                row["target-file"] = f".kiro/agents/{attach}.json"
+            rows.append(row)
+    return rows
+
+
+def _unproject_removed_rows(
+    *,
+    root: Path,
+    old_owned: list[dict[str, str]],
+    new_owned: list[dict[str, str]],
+    old_adapter: str,
+) -> None:
+    """Unproject rows present in *old_owned* but absent from *new_owned*.
+
+    A row's "presence" is the (event, id, target-file) triple — so an
+    ``attach-to-agent`` rename (Kiro: same id, same event, different
+    target-file) counts as a removal at the OLD target-file. The
+    install-time merge step (caller's Step B) will subsequently
+    project the same row at the NEW target-file.
+
+    Walks the OLD adapter for dispatch (Claude Code vs Kiro). Claude
+    Code rows default ``target-file`` to ``.claude/settings.json`` per
+    RFC-0005 § State-file impact.
+    """
+    def _key(row: dict[str, str]) -> tuple[str, str, str]:
+        return (row.get("event", ""), row.get("id", ""), row.get("target-file", ""))
+
+    new_keys = {_key(r) for r in new_owned}
+    removed = [r for r in old_owned if _key(r) not in new_keys]
+
+    removed_by_target: dict[str, list[tuple[str, str]]] = {}
+    for r in removed:
+        target = r.get("target-file") or (
+            ".claude/settings.json" if old_adapter == "claude-code" else ""
+        )
+        if not target:
+            continue
+        removed_by_target.setdefault(target, []).append((r["event"], r["id"]))
+
+    for target_rel, pairs in removed_by_target.items():
+        target_path = root / target_rel.lstrip("/")
+        if old_adapter == "kiro":
+            from agentbundle.build.projections.merge_into_agent_json import unproject
+        else:
+            from agentbundle.build.projections.user_merge_json import unproject
+        unproject(target_path, pairs)
 
 
 def _locate_pack(catalogue_dir: Path, pack_name: str) -> Path | None:
