@@ -1,8 +1,6 @@
 ---
 name: markdown-to-html
 description: Convert a Markdown file to a self-contained, styled HTML page (sticky header, sidebar nav, syntax-highlighted code, callout boxes, Mermaid diagrams, print-ready). Use when the user asks to render, convert, or export a `.md` file as a shareable HTML document — not for slides, presentations, or pitch decks. Rendering is deterministic via `marked` + `highlight.js`; the agent only invokes the script.
-metadata:
-  version: "2.0"
 ---
 
 # Markdown to HTML
@@ -19,7 +17,9 @@ You are not the renderer. The script is. Invoke it and report the path.
 ### Step 1 — Verify dependencies
 
 ```bash
-cd skills/converters/markdown-to-html
+# From the skill's own directory (wherever it lives — user-scope
+# install at ~/.claude/skills/markdown-to-html/, repo-scope at
+# .claude/skills/markdown-to-html/, or upstream in the catalogue).
 npm install   # installs marked + highlight.js per package.json
 ```
 

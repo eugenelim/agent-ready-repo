@@ -1,8 +1,6 @@
 ---
 name: file-to-markdown
 description: Convert documents and images to Markdown. Documents (PDF, DOCX, PPTX, XLSX, XLS) go through Docling text extraction (`scripts/convert.py`); images (PNG, JPG, JPEG, TIFF, BMP, WEBP, GIF) go through a two-pass sliding-window vision pipeline whose tiling and reconciliation are deterministic (`scripts/split_image.py` and `scripts/reconcile.py`). The agent's job is the per-tile vision read; tile dedup and ordering are handled by the script.
-metadata:
-  version: "2.0"
 ---
 
 # File to Markdown

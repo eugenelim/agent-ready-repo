@@ -1,8 +1,6 @@
 ---
 name: msg-to-markdown
 description: Convert Outlook .msg email files to Markdown, preserving email headers (From, To, CC, Date), body content, and attachment metadata. Use when the user wants to convert, read, or process a .msg email file into Markdown format.
-metadata:
-  version: "1.0"
 ---
 
 # Outlook MSG to Markdown Converter

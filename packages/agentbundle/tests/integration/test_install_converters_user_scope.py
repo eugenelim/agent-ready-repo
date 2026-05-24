@@ -53,6 +53,10 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
     the test never touches the developer's real home tree."""
 
     def setUp(self) -> None:
+        # addCleanup runs in LIFO order: the HOME patch must unwind
+        # *before* shutil.rmtree blows away the tree HOME points at,
+        # so register rmtree first (it runs last) and env.stop second
+        # (it runs first).
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.home = self.tmp / "home"
@@ -95,22 +99,34 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         # import and the patch.dict above has to be live before that.
         from agentbundle.config import STATE_SCHEMA_VERSION, load_state
 
-        state = load_state(agent_ready_dir / "state.toml")
-        # Pin against the constant rather than a literal: the spec records
-        # the runtime version in plain English, but the contract the
-        # install path actually writes is whatever the package exports.
-        self.assertEqual(state.schema_version, STATE_SCHEMA_VERSION)
+        state_path = agent_ready_dir / "state.toml"
+        # Read the raw TOML to assert the install path actually wrote the
+        # schema-version key. load_state() defaults a missing key to
+        # STATE_SCHEMA_VERSION (config.py:185), so comparing the parsed
+        # field to the constant is a tautology that would pass even if
+        # install never wrote the field. The raw lookup makes the
+        # assertion test the install contract, not the loader's default.
+        try:
+            import tomllib  # 3.11+
+        except ModuleNotFoundError:  # pragma: no cover
+            import tomli as tomllib  # type: ignore[no-redef]
+        raw_state = tomllib.loads(state_path.read_text(encoding="utf-8"))
+        self.assertEqual(raw_state.get("schema-version"), STATE_SCHEMA_VERSION)
+
+        state = load_state(state_path)
         self.assertIn("converters", state.packs)
         pack_state = state.packs["converters"]
         self.assertEqual(pack_state.scope, "user")
         # The install→state→uninstall data flow runs through this dict;
-        # uninstall reads it to know what to remove. A regression where
-        # install lands the dirs but writes no file entries would silently
-        # orphan them on uninstall.
-        self.assertGreater(
+        # uninstall reads it to know what to remove. Floor at three (one
+        # entry per shipped skill at minimum) — an exact total would be
+        # brittle but a positive count alone would miss a regression that
+        # only records one skill's files.
+        self.assertGreaterEqual(
             len(pack_state.files),
-            0,
-            "expected state.packs['converters'].files to record projected files",
+            len(SKILL_NAMES),
+            f"expected at least {len(SKILL_NAMES)} entries in "
+            f"state.packs['converters'].files, got {len(pack_state.files)}",
         )
 
         for name in SKILL_NAMES:
@@ -145,7 +161,6 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         # file is gone, OR state file remains with the converters row
         # removed. Expressed as a single boolean rather than a conditional
         # that silently no-ops when the file is gone.
-        state_path = agent_ready_dir / "state.toml"
         converters_gone = (
             not state_path.exists()
             or "converters" not in load_state(state_path).packs
