@@ -860,3 +860,19 @@ Per the work-loop's three-mode taxonomy:
   "follow-up captures an adopter session against
   `brownfield-adapt/AGENTS.upstream.md` and attaches transcript +
   tree fragment inline". No AC4a row uses method *(c)* in v1.
+- 2026-05-23: TOML-emitter hardening — `config.dump_state` and
+  `commands.install._append_install_marker` now route every pack-
+  sourced basic-string interpolation through `config._emit_basic_string`,
+  and `commands.install._assert_pack_metadata_shape` refuses any
+  pack.toml whose `pack.name` / `pack.version` / projection relpaths
+  fall outside their canonical grammars before any write. State-file
+  and install-marker schema field *types* are unchanged; only value
+  escaping and a new install-boundary refusal are added. Verified by
+  `packages/agentbundle/tests/unit/test_toml_emitters.py` (emitter
+  round-trip + injection-resistance against `dump_state` and
+  `_append_install_marker`) and
+  `packages/agentbundle/tests/integration/test_install_pack_metadata_shape.py`
+  (validator coverage: parametrised name/version refusal + projection
+  relpath refusal at both helper and install-path levels). Removes the
+  ROADMAP "Security: TOML-injection via unescaped pack metadata
+  (pre-existing)" bullet (no longer open).

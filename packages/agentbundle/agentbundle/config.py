@@ -224,45 +224,108 @@ def dump_state(state: State) -> str:
     fields in fixed order, then files sorted by path. Determinism matters
     because the state file participates in diffing and merging.
     """
-    lines: list[str] = [f'schema-version = "{state.schema_version}"', ""]
+    # Every basic-string interpolation routes through `_emit_basic_string`
+    # (helper emits the surrounding quotes) so pack-sourced values like
+    # `installed-version` can never break out into phantom TOML structure.
+    lines: list[str] = [
+        f"schema-version = {_emit_basic_string(state.schema_version)}",
+        "",
+    ]
     for name in sorted(state.packs):
         ps = state.packs[name]
         lines.append(f"[pack.{_toml_key(name)}]")
-        lines.append(f'installed-version = "{ps.installed_version}"')
-        lines.append(f'source = "{ps.source}"')
-        lines.append(f'install-route = "{ps.install_route}"')
+        lines.append(f"installed-version = {_emit_basic_string(ps.installed_version)}")
+        lines.append(f"source = {_emit_basic_string(ps.source)}")
+        lines.append(f"install-route = {_emit_basic_string(ps.install_route)}")
         # RFC-0004: emit `scope` only when the state file's schema is v0.2+.
         # A v0.1 file round-trips unchanged (no scope column) because the
         # read-only-as-repo-scope contract works at *read* time; the only
         # write path through this branch is `init-state --migrate`, which
         # bumps schema_version before calling dump_state.
         if state.schema_version != "0.1":
-            lines.append(f'scope = "{ps.scope}"')
-        primitives_repr = ", ".join(f'"{p}"' for p in ps.primitives)
+            lines.append(f"scope = {_emit_basic_string(ps.scope)}")
+        primitives_repr = ", ".join(_emit_basic_string(p) for p in ps.primitives)
         lines.append(f"primitives = [{primitives_repr}]")
         lines.append("")
         lines.append(f"[pack.{_toml_key(name)}.files]")
         for relpath in sorted(ps.files):
             entry = ps.files[relpath]
             inline = ", ".join(
-                f'{k} = "{v}"' for k, v in sorted(entry.items())
+                f"{k} = {_emit_basic_string(v)}" for k, v in sorted(entry.items())
             )
-            lines.append(f'"{relpath}" = {{ {inline} }}')
+            lines.append(f"{_emit_basic_string(relpath)} = {{ {inline} }}")
         lines.append("")
         # Mixed-version primitive overrides (T12).
         for ptype, primitives in sorted(ps.primitive_versions.items()):
             for pname, version in sorted(primitives.items()):
                 lines.append(f"[pack.{_toml_key(name)}.{ptype}.{_toml_key(pname)}]")
-                lines.append(f'version = "{version}"')
+                lines.append(f"version = {_emit_basic_string(version)}")
                 lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
 
 def _toml_key(name: str) -> str:
-    """Quote a TOML key if it contains characters that require quoting."""
+    """Quote a TOML key if it contains characters that require quoting.
+
+    A quoted key follows TOML 1.0 basic-string escaping (§ Keys), so
+    delegate the quoting path to :func:`_emit_basic_string` rather than
+    inlining ``f'"{name}"'`` — otherwise a key containing ``"`` or a
+    backslash would land malformed TOML, the same injection shape the
+    value-side emitters guard against.
+    """
     if name and all(c.isalnum() or c in "-_" for c in name):
         return name
-    return f'"{name}"'
+    return _emit_basic_string(name)
+
+
+# Control characters that TOML 1.0 § Strings forbids unescaped inside a
+# basic-string. Everything in U+0000..U+001F except `\t` (which has a
+# short escape), plus U+007F. The `\uXXXX` long-form covers them all.
+_TOML_SHORT_ESCAPES = {
+    "\b": "\\b",
+    "\t": "\\t",
+    "\n": "\\n",
+    "\f": "\\f",
+    "\r": "\\r",
+    '"': '\\"',
+    "\\": "\\\\",
+}
+
+
+def _emit_basic_string(value: str) -> str:
+    """Serialise *value* as a TOML 1.0 basic-string literal (incl. quotes).
+
+    Every CLI write-path that interpolates a pack-sourced string into
+    TOML output routes through here. The grammar matches what
+    ``tomllib`` will accept: short escapes for ``\\b \\t \\n \\f \\r ``
+    ``\\"  \\\\``, ``\\uXXXX`` for any other control char (U+0000..U+001F
+    and U+007F), and verbatim emission for everything else (including
+    multi-byte UTF-8).
+
+    Returns the *quoted* form ``"...escaped..."`` so callers write
+    ``key = {_emit_basic_string(v)}`` without re-adding quotes.
+
+    Raises ``ConfigError`` (not ``TypeError``) if *value* is not a
+    string. Callers ship a typed contract; this guard means an
+    accidental non-string field on a future ``State``/``AdaptDiscovery``
+    extension surfaces as a domain-shaped refusal rather than a
+    ``for-char-in-non-iterable`` traceback.
+    """
+    if not isinstance(value, str):
+        raise ConfigError(
+            f"basic-string position expects str, got {type(value).__name__}"
+        )
+    chunks: list[str] = ['"']
+    for ch in value:
+        short = _TOML_SHORT_ESCAPES.get(ch)
+        if short is not None:
+            chunks.append(short)
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            chunks.append(f"\\u{ord(ch):04X}")
+        else:
+            chunks.append(ch)
+    chunks.append('"')
+    return "".join(chunks)
 
 
 # ---------------------------------------------------------------------------
@@ -470,22 +533,41 @@ def adapt_discovery_to_toml(d: AdaptDiscovery) -> str:
     This helper is used by the round-trip test (T1) and will be used by
     T13's idempotency story.
     """
-    lines: list[str] = [f'discovery-schema-version = "{d.schema_version}"', ""]
+    # Every basic-string interpolation routes through `_emit_basic_string`
+    # for consistency with `dump_state` and `_append_install_marker`. The
+    # CLI is read-only on `.adapt-discovery.toml` today (the skill owns
+    # the write side), but keeping the discipline here means a future
+    # caller can't reintroduce the injection class — and the round-trip
+    # test in test_config covers this helper, so the escape behaviour is
+    # pinned wherever it ships.
+    lines: list[str] = [
+        f"discovery-schema-version = {_emit_basic_string(d.schema_version)}",
+        "",
+    ]
 
     if d.markers:
         lines.append("[markers]")
         for k in sorted(d.markers):
-            lines.append(f'{k} = "{d.markers[k]}"')
+            # Marker keys are loader-constrained by
+            # `load_adapt_discovery_typed` to `^[a-z][a-z0-9-]*$`, but
+            # the dataclass has no constructor validator. Route through
+            # `_toml_key` so a directly-built `AdaptDiscovery` with a
+            # malformed key still emits well-formed TOML — no phantom
+            # structure can land. The loader-side grammar still applies
+            # on re-read; the asymmetry is intentional (the emitter's
+            # job is structural safety, the loader's is grammar
+            # enforcement).
+            lines.append(f"{_toml_key(k)} = {_emit_basic_string(d.markers[k])}")
         lines.append("")
 
     for finding in sorted(d.findings_accepted, key=lambda f: f.finding_id):
         lines.append("[[findings.accepted]]")
-        lines.append(f'finding-id       = "{finding.finding_id}"')
-        lines.append(f'kind             = "{finding.kind}"')
-        lines.append(f'source-path      = "{finding.source_path}"')
-        lines.append(f'destination-path = "{finding.destination_path}"')
+        lines.append(f"finding-id       = {_emit_basic_string(finding.finding_id)}")
+        lines.append(f"kind             = {_emit_basic_string(finding.kind)}")
+        lines.append(f"source-path      = {_emit_basic_string(finding.source_path)}")
+        lines.append(f"destination-path = {_emit_basic_string(finding.destination_path)}")
         if finding.action is not None:
-            lines.append(f'action           = "{finding.action}"')
+            lines.append(f"action           = {_emit_basic_string(finding.action)}")
         if finding.recorded_at is not None:
             ts = finding.recorded_at.strftime("%Y-%m-%dT%H:%M:%SZ")
             lines.append(f"accepted-at      = {ts}")
@@ -493,12 +575,12 @@ def adapt_discovery_to_toml(d: AdaptDiscovery) -> str:
 
     for finding in sorted(d.findings_declined, key=lambda f: f.finding_id):
         lines.append("[[findings.declined]]")
-        lines.append(f'finding-id       = "{finding.finding_id}"')
-        lines.append(f'kind             = "{finding.kind}"')
-        lines.append(f'source-path      = "{finding.source_path}"')
-        lines.append(f'destination-path = "{finding.destination_path}"')
+        lines.append(f"finding-id       = {_emit_basic_string(finding.finding_id)}")
+        lines.append(f"kind             = {_emit_basic_string(finding.kind)}")
+        lines.append(f"source-path      = {_emit_basic_string(finding.source_path)}")
+        lines.append(f"destination-path = {_emit_basic_string(finding.destination_path)}")
         if finding.action is not None:
-            lines.append(f'action           = "{finding.action}"')
+            lines.append(f"action           = {_emit_basic_string(finding.action)}")
         if finding.recorded_at is not None:
             ts = finding.recorded_at.strftime("%Y-%m-%dT%H:%M:%SZ")
             lines.append(f"declined-at      = {ts}")

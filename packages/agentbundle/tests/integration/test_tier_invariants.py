@@ -209,7 +209,7 @@ def _run_upgrade(root: Path, pack_dir: Path) -> int:
     catalogue_v2 = pack_dir.parent.parent.parent / "catalogue_v2"
     args = argparse.Namespace(
         pack=pack_dir.name,
-        to_version="v0.2",
+        to_version="0.2.0",
         skill=None,
         agent=None,
         hook=None,
