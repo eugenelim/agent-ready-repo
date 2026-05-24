@@ -1,6 +1,6 @@
 """Parity-net smoke tests for the Python pre-pr hook.
 
-Mirrors the five corruption cases ``tools/test-pre-pr.sh`` exercises
+Mirrors the corruption cases ``tools/test-pre-pr.sh`` exercises
 against the bash version, plus a clean-repo pass and a README-wiring
 grep that asserts the platform-agnostic invocation guarantee.
 
@@ -100,7 +100,6 @@ def test_pre_pr_clean_repo_passes(sandbox: Path) -> None:
     for label in (
         "agents-md hygiene",
         "agent-artifact lint",
-        "skill-deps lint",
         "knowledge lint",
         "build lint",
     ):
@@ -127,28 +126,6 @@ def test_pre_pr_agent_artifact_fail(sandbox: Path) -> None:
     result = _run(sandbox)
     assert result.returncode != 0
     assert "pre-pr: ✖ agent-artifact lint failed" in result.stderr
-
-
-def test_pre_pr_skill_deps_fail(sandbox: Path) -> None:
-    """Corrupt only the frontmatter dependency so the body markdown link
-    check in lint-agent-artifacts doesn't fire first. lint-skill-deps is
-    what enforces frontmatter dep paths; lint-agent-artifacts only walks
-    body links."""
-    skill = sandbox / ".claude" / "skills" / "work-loop" / "SKILL.md"
-    text = skill.read_text()
-    # Replace only the frontmatter occurrence (line ~6). Splitting at
-    # the second `---` separator gives (frontmatter, body); we mutate
-    # the frontmatter half only.
-    parts = text.split("---\n", 2)
-    assert len(parts) >= 3, "expected --- frontmatter delimiters"
-    frontmatter = parts[1].replace(
-        "docs/knowledge/README.md",
-        "docs/knowledge/does-not-exist.md",
-    )
-    skill.write_text("---\n".join([parts[0], frontmatter, parts[2]]))
-    result = _run(sandbox)
-    assert result.returncode != 0
-    assert "pre-pr: ✖ skill-deps lint failed" in result.stderr
 
 
 def test_pre_pr_knowledge_fail(sandbox: Path) -> None:

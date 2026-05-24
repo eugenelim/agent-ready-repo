@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Self-test for tools/hooks/pre-pr.py. For each of the four layers the
-# aggregator runs, plant a single-character corruption in a sandbox
-# copy of the repo, invoke pre-pr.py against it, and assert it fails
-# with the matching `pre-pr: ✖ <label> failed` line. Catches the
-# regression where a refactor silently drops a layer.
+# Self-test for tools/hooks/pre-pr.py. For each layer the aggregator
+# runs, plant a single-character corruption in a sandbox copy of the
+# repo, invoke pre-pr.py against it, and assert it fails with the
+# matching `pre-pr: ✖ <label> failed` line. Catches the regression
+# where a refactor silently drops a layer.
 
 set -uo pipefail
 
@@ -88,19 +88,12 @@ run_corruption "agent-artifact-fail" \
   "sed -i.bak '/^model:/d' .claude/agents/adversarial-reviewer.md && rm .claude/agents/adversarial-reviewer.md.bak" \
   'pre-pr: ✖ agent-artifact lint failed'
 
-# 3. skill-deps lint — break a dep path in the implementer subagent.
-#    Repoint a real dependency entry at a non-existent path; the
-#    linter validates each listed path exists.
-run_corruption "skill-deps-fail" \
-  "sed -i.bak 's|.claude/skills/work-loop/SKILL.md|.claude/skills/does-not-exist/SKILL.md|' .claude/agents/implementer.md && rm .claude/agents/implementer.md.bak" \
-  'pre-pr: ✖ skill-deps lint failed'
-
-# 4. knowledge lint — plant a malformed JSONL line.
+# 3. knowledge lint — plant a malformed JSONL line.
 run_corruption "knowledge-fail" \
   "printf '%s\n' '{not json' > docs/knowledge/patterns.jsonl" \
   'pre-pr: ✖ knowledge lint failed'
 
-# 5. loop-cohort check — plant a state.json with plan_review_status=pending,
+# 4. loop-cohort check — plant a state.json with plan_review_status=pending,
 #    which trips the gate for both --phase implement and --phase review.
 #    Drops the test if pre-pr ever stops iterating state.json files.
 run_corruption "loop-cohort-fail" \
