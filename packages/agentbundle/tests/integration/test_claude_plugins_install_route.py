@@ -848,63 +848,30 @@ def test_plugin_upgrade_replaces_entry_not_stacks(pack_root_factory):
 
 
 def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
-    """Blocker-1: a marker path that resolves outside the per-scope jail is refused."""
-    plugin_root, plugin_data, home, project_dir = pack_root_factory(
-        name="core",
-        version="0.1.0",
-        allowed_scopes=["user"],
-        opt_in_at=["user"],
-    )
-    # The jail for user-scope is home/.agent-ready. We create a symlink inside
-    # home/.agent-ready that points to a foreign directory (outside home).
-    foreign_dir = tmp_path / "foreign"
-    foreign_dir.mkdir()
-    agent_ready = home / ".agent-ready"
-    agent_ready.mkdir(mode=0o700, parents=True, exist_ok=True)
-    # Create a symlink escape: home/.agent-ready/escape -> foreign_dir
-    escape_link = agent_ready / "escape"
-    escape_link.symlink_to(foreign_dir)
+    """Blocker-1: a marker path that resolves outside the per-scope jail is refused.
 
-    # Monkey-patch the writer by setting HOME and verifying it handles jailing.
-    # The simplest approach: use a sitecustomize that overrides _marker_path
-    # to return a path outside the jail.
-    sitecustomize_dir = tmp_path / "sc_jail"
-    sitecustomize_dir.mkdir()
-    foreign_marker = foreign_dir / ".adapt-install-marker.toml"
-    (sitecustomize_dir / "sitecustomize.py").write_text(
-        textwrap.dedent(f"""
-            import pathlib
-            import sys
-            # Override _marker_path in the writer module to return a path outside the jail.
-            # We find the writer module by searching sys.modules after it loads.
-            import importlib.util, os
-            _writer_path = {str(WRITER)!r}
-            _spec = importlib.util.spec_from_file_location("_install_marker_writer", _writer_path)
-            _mod = importlib.util.module_from_spec(_spec)
-            _original_marker_path = None
-
-            def _patched_marker_path(marker_scope, project_dir, home):
-                return pathlib.Path({str(foreign_marker)!r})
-
-            # Patch after the module is executed by overriding at sys.modules level.
-            import builtins
-            _original_import = builtins.__import__
-
-            def _patching_import(name, *args, **kwargs):
-                mod = _original_import(name, *args, **kwargs)
-                return mod
-        """),
-        encoding="utf-8",
-    )
-
-    # Use the simpler direct approach: build a fake env where the writer
-    # under test is invoked but we verify via the writer's own _assert_under.
-    # We test this by importing the writer and calling _write_marker directly.
+    Calls _write_marker directly with a path outside the jail; the jail check
+    must raise ValueError. The dead sitecustomize/symlink setup from iteration 0
+    was removed (Concern-2): the sitecustomize dir was never on PYTHONPATH and
+    the escape symlink was never traversed. The direct-API call is sufficient
+    to pin the jail rail.
+    """
+    # Load the writer module so we can call _write_marker directly.
     spec = importlib.util.spec_from_file_location("_install_marker_writer", WRITER)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)  # type: ignore[union-attr]
 
-    jail = agent_ready  # user-scope jail
+    # Build a jail directory and a foreign directory outside it.
+    jail_dir = tmp_path / "jail"
+    jail_dir.mkdir(mode=0o700, parents=True)
+    foreign_dir = tmp_path / "foreign"
+    foreign_dir.mkdir()
+
+    # Resolve the jail so _assert_under receives a pre-resolved path
+    # (matching the contract _marker_path guarantees).
+    import pathlib
+    resolved_jail = pathlib.Path(os.path.realpath(jail_dir))
+
     outside_path = foreign_dir / ".adapt-install-marker.toml"
 
     import datetime as dt
@@ -916,7 +883,7 @@ def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
     }
 
     with pytest.raises(ValueError, match="escapes the per-scope jail"):
-        mod._write_marker(outside_path, new_entry, jail)
+        mod._write_marker(outside_path, new_entry, resolved_jail)
 
     # The foreign marker file must not have been created.
     assert not outside_path.exists(), (
@@ -930,7 +897,12 @@ def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
 
 
 def test_user_marker_refuses_symlinked_agent_ready(tmp_path, pack_root_factory):
-    """Blocker-2: writer refuses when ~/.agent-ready is a symlink to a foreign directory."""
+    """Blocker-2: writer refuses when ~/.agent-ready is a symlink to a foreign directory.
+
+    Nit-6: the stderr message now branches on which case fired — symlink vs.
+    non-directory. This test covers the symlink branch; the assertion pins the
+    word "symlink" in the message.
+    """
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="core",
         version="0.1.0",
@@ -946,7 +918,10 @@ def test_user_marker_refuses_symlinked_agent_ready(tmp_path, pack_root_factory):
     env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
     result = _run_writer(env)
     assert result.returncode != 0
-    assert "not a regular directory" in result.stderr or "symlink" in result.stderr.lower()
+    # Nit-6: symlink case message contains "is a symlink to".
+    assert "symlink" in result.stderr.lower(), (
+        f"Expected 'symlink' in stderr; got: {result.stderr!r}"
+    )
 
     # Foreign directory must not have received a marker write.
     assert not (foreign_dir / ".adapt-install-marker.toml").exists()
