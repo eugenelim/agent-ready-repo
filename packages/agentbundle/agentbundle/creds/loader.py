@@ -583,7 +583,11 @@ def parse_env_file(path: pathlib.Path) -> dict[str, str]:
             f"{DOTFILE_MAX_BYTES} bytes — verify the path is the credentials "
             f"dotfile, not a misconfigured target."
         )
-    text = path.read_text(encoding="utf-8", newline="")
+    # Use ``path.open(newline="")`` instead of ``read_text(newline=...)``
+    # — the ``newline`` keyword on ``Path.read_text`` was added in Python
+    # 3.13; the project targets 3.11+ via the CI matrix.
+    with path.open(encoding="utf-8", newline="") as fh:
+        text = fh.read()
     result: dict[str, str] = {}
     for lineno, raw in enumerate(text.split("\n"), start=1):
         # Strip trailing \r (CRLF normalization). rstrip is bounded to the
