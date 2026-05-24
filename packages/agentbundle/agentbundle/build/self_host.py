@@ -673,6 +673,50 @@ def _normalise_lf(data: bytes) -> bytes:
     return data.replace(b"\r\n", b"\n")
 
 
+def _is_equivalent_claude_md_shape(on_disk: Path, agents_md: Path) -> bool:
+    """Three on-disk shapes are equivalent for the repo-root `CLAUDE.md`
+    alias and must not count as drift against the shadow self-host emits:
+
+    1. A real symlink whose target is ``"AGENTS.md"`` — the POSIX shape
+       ``_recreate_claude_symlink`` writes on macOS/Linux.
+    2. A regular file whose content is byte-equal (after LF
+       normalisation) to ``AGENTS.md`` — the shape ``--no-symlink``
+       and the Windows fallback write.
+    3. A regular file whose content is the literal string
+       ``"AGENTS.md"`` (with or without a trailing newline) — the
+       shape Git for Windows materialises when ``core.symlinks=false``.
+
+    The three shapes resolve to the same user-visible content (the
+    Claude Code CLI reads either path identically), so cross-shape
+    drift is presentational, not substantive. Tampering — a regular
+    file with arbitrary unrelated content — still drifts: the helper
+    returns ``False`` and the caller falls through to the strict
+    comparison path.
+    """
+    try:
+        st = os.lstat(on_disk)
+    except OSError:
+        return False
+    if stat.S_ISLNK(st.st_mode):
+        try:
+            return os.readlink(on_disk) == "AGENTS.md"
+        except OSError:
+            return False
+    if not stat.S_ISREG(st.st_mode):
+        return False
+    try:
+        disk_bytes = on_disk.read_bytes()
+    except OSError:
+        return False
+    if disk_bytes in (b"AGENTS.md", b"AGENTS.md\n"):
+        return True
+    try:
+        agents_bytes = agents_md.read_bytes()
+    except OSError:
+        return False
+    return _normalise_lf(disk_bytes) == _normalise_lf(agents_bytes)
+
+
 def diff_against_working_tree(
     shadow: Path,
     working_tree: Path,
@@ -715,6 +759,11 @@ def diff_against_working_tree(
                 hint = (
                     f": edit {source.as_posix()}; run: make build-self"
                 )
+
+        if relative == Path("CLAUDE.md") and _is_equivalent_claude_md_shape(
+            on_disk, working_tree / "AGENTS.md"
+        ):
+            continue
 
         try:
             disk_st = os.lstat(on_disk)
