@@ -589,6 +589,16 @@ def check_kiro_ide_hook(
             # responsibility — silently skipped (matches the
             # `*.kiro.hook` filter assumption from RFC Q6).
             continue
+        if entry.name == ".kiro.hook":
+            # A file named exactly `.kiro.hook` has no bare name to
+            # substitute into the projection target — refuse rather
+            # than emit a `.kiro/hooks/<pack>/.kiro.hook` whose
+            # filename collides with anything else a pack ships.
+            return (
+                f"pack {pack_name}'s kiro-ide-hook entry has an "
+                f"empty bare name; expected <name>.kiro.hook with "
+                f"<name> non-empty"
+            )
         try:
             st = os.lstat(entry)
         except OSError:
