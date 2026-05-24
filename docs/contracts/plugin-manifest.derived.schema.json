@@ -13,6 +13,21 @@
     "agents": {
       "type": "array",
       "items": {"type": "string"}
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "SessionStart": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["command"],
+            "properties": {
+              "command": {"type": "string"}
+            }
+          }
+        }
+      }
     }
   }
 }

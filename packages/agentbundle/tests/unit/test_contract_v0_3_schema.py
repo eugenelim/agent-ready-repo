@@ -1,5 +1,10 @@
 """T1: adapter contract v0.3 schema acceptances and refusals.
 
+Note: the contract version was bumped from "0.3" to "0.4" by T2 (spec
+claude-plugins-install-route / RFC-0008). The v0.3 structural tests below
+remain valid under v0.4 (all v0.3 fields are preserved); only AC7's version
+assertion is updated.
+
 Covers spec ACs:
   AC1 — `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`.
   AC2 — `[adapter.kiro.projections.hook-wiring]` with `mode = "merge-into-agent-json"`,
@@ -12,7 +17,7 @@ Covers spec ACs:
         `[adapter.kiro.projections.hook-body]` with scope-conditional `target` values.
   AC5 — `pack.schema.json` accepts `[pack.install] user-scope-hooks = true` and refuses
         any non-boolean value; absent value remains accepted.
-  AC7 — contract `version = "0.3"`.
+  AC7 — contract `version = "0.4"` (updated from "0.3" by T2).
 
 Tests load the shipped `docs/contracts/{adapter,pack}.{toml,schema.json}` and call
 the project's stdlib-only validator. Mirrored copies under
@@ -59,7 +64,8 @@ def _parse_pack(toml_text: str) -> dict:
 
 class ContractVersionTests(unittest.TestCase):
     def test_contract_version_is_0_3(self) -> None:
-        self.assertEqual(_load_contract()["contract"]["version"], "0.3")
+        # T2 bumped the contract to v0.4; the assertion is updated to match.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.4")
 
 
 # ---------------------------------------------------------------------------
