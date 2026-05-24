@@ -27,12 +27,12 @@ jobs:
       - name: Run make build-check
         run: make build-check PACKS_DIR=packs
 
-      - name: Install agentbundle (editable) for pytest
-        run: pip install -e packages/agentbundle/
+      - name: Install agentbundle (editable) + pytest
+        run: pip install -e packages/agentbundle/ pytest
 
       - name: pytest converters install/uninstall (AC6a)
         working-directory: packages/agentbundle
-        run: pytest tests/integration/test_install_converters_user_scope.py
+        run: python -m pytest tests/integration/test_install_converters_user_scope.py
 
       - name: converters source-attribution scrub (AC2)
         run: |
