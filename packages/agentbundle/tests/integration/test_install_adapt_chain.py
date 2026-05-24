@@ -213,19 +213,110 @@ def test_install_chains_adapt_in_process_no_subprocess(tmp_path, monkeypatch):
 
 
 def test_marker_in_seed_gitignore(tmp_path):
-    """AC19c: the core pack's seeded `.gitignore` contains
-    `.adapt-install-marker.toml` so adopters running `agentbundle scaffold`
-    don't accidentally commit the local scratch."""
-    pack_gitignore = (
-        Path(__file__).parent.parent.parent.parent.parent
-        / "packs"
-        / "core"
-        / "seeds"
-        / ".gitignore"
+    """AC19c: invoking `agentbundle scaffold` against the core pack lays
+    down a `.gitignore` containing `.adapt-install-marker.toml`.
+
+    Drives the scaffold command end-to-end against a tmp output dir
+    rather than checking the seed file directly — so a refactor that
+    silently dropped dotfile projection (e.g., a switch from
+    `Path.rglob` to a glob library that needs `include_hidden=True`,
+    an added dotfile filter in the seeds walk, or a `.gitignore`-
+    specific skip) would trip the test instead of slipping past.
+    """
+    from agentbundle.commands.scaffold import run as scaffold_run
+
+    packs_dir = Path(__file__).resolve().parents[4] / "packs"
+    output = tmp_path / "out"
+    output.mkdir()
+    ns = argparse.Namespace(
+        pack="core",
+        packs_dir=str(packs_dir),
+        output=str(output),
     )
-    assert pack_gitignore.exists(), (
-        f".gitignore seed not found at {pack_gitignore} — scaffold "
-        "AC19c can't lay it down."
+    rc = scaffold_run(ns)
+    assert rc == 0, "scaffold against core pack should succeed"
+    projected = output / ".gitignore"
+    assert projected.exists(), (
+        f"scaffold did not project .gitignore from packs/core/seeds/ "
+        f"into {output}"
     )
-    body = pack_gitignore.read_text(encoding="utf-8")
-    assert ".adapt-install-marker.toml" in body
+    body = projected.read_text(encoding="utf-8")
+    assert ".adapt-install-marker.toml" in body, (
+        "projected .gitignore is missing the install-marker line; "
+        f"scaffold output was:\n{body}"
+    )
+
+
+USER_ONLY_PACK = """\
+[pack]
+name = "user-only"
+version = "0.1.0"
+
+[pack.adapter-contract]
+version = "0.2"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user"]
+"""
+
+
+def test_user_scope_only_install_chains_adapt_against_args_output(tmp_path, monkeypatch):
+    """User-scope-only install exercises `_chain_adapt`'s fallback path
+    (no repo plan in `plans`, so `repo_root_for_adapt =
+    Path(args.output).resolve()`).
+
+    Contract pinned: the fallback resolves to `args.output`, not to
+    `cwd`, `$HOME`, or any other path. To make that load-bearing the
+    test seeds a sentinel `.adapt-discovery.toml` at `args.output`
+    *only* and asserts two positive signals from the chained adapt:
+
+      1. No no-discovery nudge in stderr — the chain found the
+         discovery file at the path it resolved.
+      2. `.adapt-pending.md` lands at `<args.output>/.adapt-pending.md`
+         — the per-scope walk ran with `repo_root = args.output`,
+         not some sibling path.
+
+    A refactor that swapped the fallback to `Path.cwd()`, `$HOME`, or
+    `Path("/tmp/whatever")` would trip *both* assertions in this
+    fixture: no discovery file at those paths, no pending.md at
+    target. The user-scope state file at `<HOME>/.agent-ready/state.toml`
+    confirms the user-scope write path ran independently of the chain.
+    """
+    cat = tmp_path / "cat"
+    _stage_pack(cat, "user-only", USER_ONLY_PACK)
+    target = tmp_path / "repo"
+    target.mkdir()
+    # Sentinel discovery file at args.output. The fallback path must
+    # resolve here for the chained adapt to find it.
+    (target / ".adapt-discovery.toml").write_text(
+        'discovery-schema-version = "0.1"\n[markers]\nowner = "octocat"\n',
+        encoding="utf-8",
+    )
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    monkeypatch.setenv("HOME", str(fake_home))
+
+    rc, _, err = _install(
+        dict(pack="user-only", catalogue=str(cat), output=str(target), scope="user", force=False)
+    )
+    assert rc == 0, f"user-scope-only install failed: {err}"
+    # User-scope state file landed at the namespaced dot-directory.
+    assert (fake_home / ".agent-ready" / "state.toml").exists(), (
+        "user-scope install did not write state.toml at <HOME>/.agent-ready/"
+    )
+    # Discriminating assertion (1): the chain found the seeded discovery,
+    # so the no-discovery nudge stays out of stderr.
+    assert (
+        "no .adapt-discovery.toml at repo root" not in err
+    ), (
+        "chain emitted the no-discovery nudge, meaning the fallback "
+        "resolved to a path other than args.output; stderr was:\n" + err
+    )
+    # Discriminating assertion (2): the per-scope walk ran with
+    # repo_root = args.output (the only place pending.md can land for
+    # the repo scope of the chained adapt).
+    assert (target / ".adapt-pending.md").exists(), (
+        "chained adapt did not write pending.md at args.output; the "
+        "fallback may have resolved to a different path"
+    )
