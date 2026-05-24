@@ -330,6 +330,14 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.set_defaults(func=_lazy("init_state"))
 
+    # --- creds --- (skill-secrets T8: setup/check/where/rm)
+    # The verb is its own dispatcher with four sub-subparsers; the
+    # subparser is built by ``commands.creds.build_parser`` so the
+    # tombstone-argument action lives next to the rest of the verb's
+    # logic instead of leaking into this file.
+    from agentbundle.commands import creds as _creds_module
+    _creds_module.build_parser(subparsers)
+
     # --- reconcile --- (read-only orphan reporter, RFC-0005 / T9)
     # No --apply flag — the subcommand is report-only by design.
     # `argparse`'s default "unrecognized argument" rejects --apply.
