@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (user-scope-hooks spec drafted from RFC-0005 + #36 amendment)
+**Last updated:** 2026-05-25 (reconciled self-hosting comparison-rule + scope-rails Rail-C entries against shipped PRs #34 / #33)
 
 ## How this file is maintained
 
@@ -30,19 +30,16 @@ and each spec's own Changelog section.
 
 ---
 
-## `self-hosting` — Phase 1 shipped; Phase 2 pending
+## `self-hosting` — shipped (Phase 1 + Phase 2 closed)
 
 Spec: [`specs/self-hosting/spec.md`](specs/self-hosting/spec.md).
 Phase 1 cutover landed via PR #18; AC3 closed by PR #20; AC1b artifact
-recorded via PR #21. AC8 (`AGENTS.md` composition) is closed: Codex
-now aggregates skills across packs before splicing the managed block,
-and self-host composes root `AGENTS.md` from the core body seed, the
-Codex-managed block, and the core footer fragment.
-
-- **Comparison-rule strengthening.** Today's `diff_against_working_tree`
-  uses `read_bytes()` equality. Phase 2 strengthens this to byte-for-byte
-  after CRLF→LF normalisation, with file-mode bits compared for regular
-  files and symlink targets compared via `lstat` (never follow symlinks).
+recorded via PR #21. AC8 (`AGENTS.md` composition) closed by the
+2026-05-23 Codex multi-pack aggregation pass. Phase 2's comparison-rule
+strengthening — CRLF→LF normalisation for text-like files, file-mode
+permission-bit comparison for regular files, and symlink-target
+comparison via `lstat` (never following) — closed by PR #34. No open
+items.
 
 ## `distribution-adapters` — shipped (v0.2 contract bump landed)
 
@@ -54,17 +51,11 @@ amendment (install-scope dimension; `[scope]` table on the adapter
 contract; `[pack.install]` table on `pack.toml`; user-scope refusal
 rails A/B/C; state-file v0.2 + `init-state --migrate`; four shipped
 packs declare `[pack.adapter-contract] version = "0.2"`) landed in
-the same PR; ACs #14–#18 are satisfied.
-
-- **Rail C grep widening to canonical syntax — paired with AC21 of
-  adapt-to-project.** The spec text (line ~342 and the contract-load-
-  bearing AC near line ~759) widens to also match the canonical
-  lowercase-hyphen form per `adapt-to-project/spec.md` AC21. The
-  code-side widening of the Rail-C validate-time grep is deferred per
-  AC21's carve-out; until then, a user-scope pack carrying lowercase-
-  hyphen markers passes `validate` in code even though the contract
-  refuses it. Unblocks when `distribution-adapters`'s next
-  implementation pass picks up the widened AC.
+the same PR; ACs #14–#18 are satisfied. The AC21 carve-out (code-side
+Rail-C grep widening to the canonical lowercase-hyphen form) closed
+by PR #33: `_MARKER_REGEX` in `agentbundle.build.scope_rails` now
+accepts both legacy UPPER_SNAKE and canonical lowercase-hyphen
+grammars via alternation. No open items.
 
 ## `agent-spec-cli` — shipped (v0.2 CLI surface landed)
 
