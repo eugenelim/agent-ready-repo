@@ -5,10 +5,11 @@ Two agent-lifecycle hooks ship in this directory. Runtime: `python` ≥
 dependencies. The hooks are stdlib-only and run on native Windows,
 macOS, and Linux — invoke via `python` (not `python3`) so the same
 command works across platforms (`python3.exe` is rarely on Windows
-PATH; `python.exe` and the `py` launcher are). Wiring lives in the
-consumer's hook surface (Claude Code's `.claude/settings.json`, Gemini
-CLI's config, etc.); this README documents the contracts and shows an
-example wiring.
+PATH; `python.exe` and the `py` launcher are). The SessionStart
+binding for Claude Code is shipped pre-wired by the install pipeline;
+everything else is consumer-side. See `## Wiring` below for what
+lands where (Claude Code's `.claude/settings.local.json` and the
+equivalents on other tools).
 
 ## What's here
 
