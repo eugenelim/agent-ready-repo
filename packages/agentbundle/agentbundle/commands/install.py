@@ -453,10 +453,12 @@ def run(args: "argparse.Namespace") -> int:
             }
 
         plan.state.packs[pack_name] = new_pack_state
-        # State-file v0.2 is the post-write schema. The state object is
-        # already at v0.2 (load_state sets the default for fresh State,
-        # or migration-time semantics for read-only-as-repo).
-        plan.state.schema_version = "0.2"
+        # Stamp the post-write schema. Always emit the current
+        # ``STATE_SCHEMA_VERSION`` (bumped to v0.3 in T8a) so a fresh
+        # install never produces a state file pinned at a stale version.
+        from agentbundle.config import STATE_SCHEMA_VERSION
+
+        plan.state.schema_version = STATE_SCHEMA_VERSION
         serialised = dump_state(plan.state)
         try:
             safety.write_jailed(
