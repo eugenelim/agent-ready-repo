@@ -355,6 +355,15 @@ def _dotfile_delete(namespace: str, key: str) -> None:
         raise
 
 
+def _tier2_backend_label() -> str:
+    """Human-readable label for the Tier-2 backend on this platform."""
+    if sys.platform == "darwin":
+        return "macOS Keychain"
+    if sys.platform == "win32":
+        return "Windows Credential Manager"
+    return "(no Tier-2 backend on this platform)"
+
+
 def load_credentials(
     namespace: str,
     required_keys: list[str],
@@ -368,8 +377,11 @@ def load_credentials(
     namespace is permitted.
 
     Raises ``CredentialsMissingError`` if any required key did not
-    resolve at any tier. The error message names the namespace and the
-    list of missing keys per AC3.
+    resolve at any tier. The exception carries a ``tiers_tried``
+    attribute mapping each missing key to an ordered list of trailer
+    lines (which tier was checked and why it missed); the default
+    ``str()`` form embeds those trailers under the key name so a
+    user who ran ``creds setup`` can triage from the message alone.
 
     The ``schema_path`` kwarg is reserved for T7 — primitive authors who
     load their own schema can pass it here; the default ``None`` defers
@@ -377,20 +389,66 @@ def load_credentials(
     """
     resolved: dict[str, str] = {}
     missing: list[str] = []
+    tiers_tried: dict[str, list[str]] = {}
+    dotfile_path = _dotfile_path()
+    dotfile_present = dotfile_path.is_file()
+    backend_label = _tier2_backend_label()
     for key in required_keys:
-        value = (
-            _tier1_env(namespace, key)
-            or _tier2(namespace, key)
-            or _tier3(namespace, key)
-        )
-        if value:
-            resolved[key] = value
+        attempts: list[str] = []
+        env_name = f"{namespace.upper()}_{key}"
+
+        # Tier 1 — env var.
+        v = _tier1_env(namespace, key)
+        if v:
+            resolved[key] = v
+            continue
+        attempts.append(f"Tier 1: env {env_name!r} not set")
+
+        # Tier 2 — OS keyring (when loaded). Tier2HardFailError
+        # propagates per AC11 (no silent fallback to Tier 3 on hard
+        # fail); only a clean miss falls through.
+        if _tier2_backend is None:
+            attempts.append("Tier 2: not loaded (no keyring backend on this platform)")
         else:
-            missing.append(key)
+            v = _tier2_backend.read_credential(namespace, key)
+            if v:
+                resolved[key] = v
+                continue
+            attempts.append(f"Tier 2: {backend_label} — entry not present")
+
+        # Tier 3 — dotfile.
+        v = _tier3(namespace, key)
+        if v:
+            resolved[key] = v
+            continue
+        if dotfile_present:
+            attempts.append(
+                f"Tier 3: dotfile {dotfile_path} present but "
+                f"{_dotfile_env_name(namespace, key)!r} not in it"
+            )
+        else:
+            attempts.append(f"Tier 3: dotfile {dotfile_path} absent")
+
+        missing.append(key)
+        tiers_tried[key] = attempts
+
     if missing:
-        raise CredentialsMissingError(
+        # One-line preamble preserves the AC3 contract (message names
+        # namespace and the missing-keys list); the per-key trailer
+        # block comes below for triage.
+        lines = [
             f"namespace {namespace!r}: missing required credential(s): "
             f"{', '.join(missing)}"
+        ]
+        for key in missing:
+            lines.append(f"  {key}:")
+            for trailer in tiers_tried[key]:
+                lines.append(f"    {trailer}")
+        raise CredentialsMissingError(
+            "\n".join(lines),
+            namespace=namespace,
+            missing=missing,
+            tiers_tried=tiers_tried,
         )
     return Credentials(namespace, resolved)
 
