@@ -37,6 +37,8 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
 ADAPTER_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
 PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
+PLUGIN_MANIFEST_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
+PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "plugin-manifest.derived.schema.json"
 
 KIRO_EVENTS = ["agentSpawn", "userPromptSubmit", "preToolUse", "postToolUse", "stop"]
 
@@ -579,6 +581,23 @@ class BundledCopiesMatchTests(unittest.TestCase):
         a = (self._data_dir() / "pack.schema.json").read_bytes()
         b = PACK_SCHEMA_PATH.read_bytes()
         self.assertEqual(a, b, "_data/pack.schema.json and docs/contracts/pack.schema.json differ")
+
+    def test_plugin_manifest_schema_copies_match(self) -> None:
+        a = (self._data_dir() / "plugin-manifest.schema.json").read_bytes()
+        b = PLUGIN_MANIFEST_SCHEMA_PATH.read_bytes()
+        self.assertEqual(
+            a, b,
+            "_data/plugin-manifest.schema.json and docs/contracts/plugin-manifest.schema.json differ",
+        )
+
+    def test_plugin_manifest_derived_schema_copies_match(self) -> None:
+        a = (self._data_dir() / "plugin-manifest.derived.schema.json").read_bytes()
+        b = PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH.read_bytes()
+        self.assertEqual(
+            a, b,
+            "_data/plugin-manifest.derived.schema.json and "
+            "docs/contracts/plugin-manifest.derived.schema.json differ",
+        )
 
 
 if __name__ == "__main__":
