@@ -15,8 +15,9 @@ What it runs:
   - tools/lint-skill-deps.py       — manifest dependency resolution
   - tools/lint-knowledge.py        — docs/knowledge/patterns.jsonl
   - tools/lint-build.py            — build-pipeline hygiene
-  - .claude/skills/work-loop/scripts/check-done.py
+  - .claude/skills/work-loop/scripts/loop-cohort.py
                                    — for each docs/specs/*/state.json,
+                                      `loop-cohort.py check <spec-dir>` in
                                       --phase implement and --phase review
 
 Wiring lives in each tool's hook surface (Claude Code:
@@ -77,13 +78,14 @@ def main() -> int:
 
     state_files = sorted(Path("docs/specs").glob("*/state.json"))
     if not state_files:
-        print("pre-pr: (no active state.json — skipping check-done)")
+        print("pre-pr: (no active state.json — skipping loop-cohort check)")
     else:
-        check_done = Path(".claude/skills/work-loop/scripts/check-done.py")
+        loop_cohort = Path(".claude/skills/work-loop/scripts/loop-cohort.py")
         for state in state_files:
+            spec_dir = state.parent
             for phase in ("implement", "review"):
                 result = subprocess.run(
-                    [py, str(check_done), str(state), "--phase", phase],
+                    [py, str(loop_cohort), "check", str(spec_dir), "--phase", phase],
                     capture_output=True, text=True, check=False,
                 )
                 if result.returncode != 0:
@@ -92,11 +94,11 @@ def main() -> int:
                     if result.stderr:
                         sys.stderr.write(result.stderr)
                     print(
-                        f"pre-pr: ✖ check-done.py {state} --phase {phase} failed",
+                        f"pre-pr: ✖ loop-cohort check {spec_dir} --phase {phase} failed",
                         file=sys.stderr,
                     )
                     sys.exit(1)
-                print(f"pre-pr: ✓ check-done {state} ({phase})")
+                print(f"pre-pr: ✓ loop-cohort check {spec_dir} ({phase})")
 
     print("pre-pr: all checks passed")
     return 0

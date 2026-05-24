@@ -26,3 +26,70 @@ jobs:
 
       - name: Run make build-check
         run: make build-check PACKS_DIR=packs
+
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Install agentbundle (editable) + pytest
+        run: pip install -e packages/agentbundle/ pytest
+
+      - name: pytest converters install/uninstall (AC6a)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/integration/test_install_converters_user_scope.py
+
+      - name: converters source-attribution scrub (AC2)
+        run: |
+          # rg exits 0 with hits, 1 with no matches, ≥2 on error
+          # (invalid pattern, missing path, IO error). Explicitly
+          # distinguish so an error-class exit fails CI rather than
+          # silently passing as a no-match.
+          [ -d packs/converters ] || { echo "::error::packs/converters/ missing"; exit 1; }
+          rc=0
+          out=$(rg -i --hidden '\bdropkit\b' packs/converters/) || rc=$?
+          case "$rc" in
+            0)
+              first=$(printf '%s\n' "$out" | head -n1)
+              echo "::error::source-catalogue attribution leak in packs/converters/: ${first}"
+              exit 1 ;;
+            1) ;;
+            *)
+              echo "::error::rg failed in scrub step (exit $rc)"
+              exit 1 ;;
+          esac
+
+      - name: converters Rail-C marker scrub (AC3)
+        run: |
+          [ -d packs/converters ] || { echo "::error::packs/converters/ missing"; exit 1; }
+          rc=0
+          out=$(rg --hidden '<adapt:[A-Z_][A-Z0-9_]*>|<adapt:[a-z][a-z0-9-]*>' packs/converters/) || rc=$?
+          case "$rc" in
+            0)
+              first=$(printf '%s\n' "$out" | head -n1)
+              echo "::error::<adapt:...> marker found in packs/converters/ (user-scope packs forbid markers): ${first}"
+              exit 1 ;;
+            1) ;;
+            *)
+              echo "::error::rg failed in Rail-C step (exit $rc)"
+              exit 1 ;;
+          esac
+
+      - name: converters evals.json carry-over disposition (AC4 + AC4a)
+        run: |
+          # Pin the spec's three-skill disposition mechanically:
+          # file-to-markdown and markdown-to-html ship evals.json
+          # (carried verbatim from source); msg-to-markdown must NOT
+          # (spec § Never do: "No synthesised evals/evals.json for
+          # msg-to-markdown"). Enumerated rather than glob-iterated so
+          # a future skill addition can't silently change the contract.
+          for skill in file-to-markdown markdown-to-html; do
+            f="packs/converters/.apm/skills/${skill}/evals/evals.json"
+            if [ ! -f "$f" ]; then
+              echo "::error::AC4: ${f} missing (carry-over disposition)"
+              exit 1
+            fi
+            python3 -c "import json, sys; p = sys.argv[1]; d = json.load(open(p)); assert 'skill_name' in d and 'evals' in d, f'{p} missing canonical keys'" "$f"
+          done
+          if [ -e packs/converters/.apm/skills/msg-to-markdown/evals ]; then
+            echo "::error::AC4: msg-to-markdown/evals/ exists; spec forbids synthesised evals for this skill"
+            exit 1
+          fi
