@@ -1,10 +1,11 @@
 # Adapter contract — every (primitive × adapter) pair enumerated.
 # Validates against ./adapter.schema.json.
 # Managed by: docs/specs/distribution-adapters/spec.md
-# RFC reference: RFC-0001 (base contract); RFC-0004 (scope dimension, v0.2)
+# RFC reference: RFC-0001 (base contract); RFC-0004 (scope dimension, v0.2);
+# RFC-0005 (hook-body / hook-wiring forks, v0.3).
 
 [contract]
-version = "0.2"
+version = "0.3"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -32,7 +33,14 @@ source-path = ".apm/hook-wiring/"
 source-path = ".apm/commands/"
 
 # ---------------------------------------------------------------------------
-# Claude Code adapter — 5 projections (one per primitive)
+# Claude Code adapter — 5 projections (one per primitive) + v0.3 forks
+#
+# The legacy `[[adapter."claude-code".projection]]` array carries the
+# repo-scope shape every adapter has consumed since v0.1. RFC-0005 adds two
+# forward-looking `[adapter."claude-code".projections.<primitive>]` tables
+# (hook-body / hook-wiring) carrying the scope-conditional shape that the
+# v0.3 user-scope pipeline reads. Until that pipeline lands, the legacy
+# entries remain authoritative; the new tables are declarative metadata.
 # ---------------------------------------------------------------------------
 
 [[adapter."claude-code".projection]]
@@ -66,6 +74,24 @@ mode = "direct-file"
 target-path = ".claude/commands/"
 on-conflict = "prompt-then-preserve"
 
+# hook-body — scope-conditional target (RFC-0005 § hook-body at user scope).
+# Forward-looking v0.3 declaration; the legacy array entry above remains the
+# pipeline-of-record until T5/T7 land.
+[adapter."claude-code".projections.hook-body]
+mode = "direct-file"
+target.repo = "tools/hooks/<name>.{sh,py}"
+target.user = ".claude/hooks/<name>.{sh,py}"
+on-conflict = "prompt-then-preserve"
+
+# hook-wiring — scope-conditional mode/target; user-scope `managed-key`
+# required (RFC-0005 § hook-wiring for Claude Code at user scope).
+[adapter."claude-code".projections.hook-wiring]
+mode.repo = "merge-json"
+mode.user = "user-merge-json"
+target.repo = ".claude/settings.local.json"
+target.user = ".claude/settings.json"
+managed-key.user = "hooks"
+
 # Scope dimension (RFC-0004). Two roots: repo-local and user-local.
 # `allowed-prefixes.<scope>` fences every write under that scope to a
 # declared prefix list — at user scope this stops a buggy projection
@@ -79,7 +105,13 @@ user = "~"
 allowed-prefixes.user = [".claude/", ".agent-ready/"]
 
 # ---------------------------------------------------------------------------
-# Kiro adapter — 5 projections (one per primitive)
+# Kiro adapter
+#
+# RFC-0005 promotes Kiro `hook-wiring` out of `degraded-info-log` to the new
+# `merge-into-agent-json` mode — the legacy degraded entry is removed (per
+# AC2). `hook-body` keeps its legacy `direct-file → tools/hooks/` array entry
+# and additionally declares a v0.3 scope-conditional table for the user-scope
+# pipeline T5/T7 will land. Skill, agent, command remain in the array.
 # ---------------------------------------------------------------------------
 
 [[adapter.kiro.projection]]
@@ -102,13 +134,43 @@ target-path = "tools/hooks/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter.kiro.projection]]
-primitive = "hook-wiring"
-mode = "degraded-info-log"
-info-message = "Kiro hook-wiring schema not yet published (RFC-0001 Open Q1); hook wiring not projected."
-
-[[adapter.kiro.projection]]
 primitive = "command"
 mode = "dropped"
+
+# hook-body — scope-conditional target. User-scope lands under `~/.kiro/hooks/`
+# per RFC-0005 § hook-body at user scope. Forward-looking v0.3 declaration;
+# the legacy array entry above remains authoritative until T5/T7.
+[adapter.kiro.projections.hook-body]
+mode = "direct-file"
+target.repo = "tools/hooks/<name>.{sh,py}"
+target.user = ".kiro/hooks/<name>.{sh,py}"
+on-conflict = "prompt-then-preserve"
+
+# hook-wiring — merge into the pack-owned agent JSON. Same mode at both scopes;
+# the agent-file target is scope-conditional via scope-root resolution
+# (RFC-0005 § hook-wiring for Kiro at both scopes). The legacy
+# `degraded-info-log` array entry is removed (AC2).
+[adapter.kiro.projections.hook-wiring]
+mode = "merge-into-agent-json"
+target.repo = ".kiro/agents/<attach-to-agent>.json"
+target.user = ".kiro/agents/<attach-to-agent>.json"
+managed-key = "hooks"
+agent-event-vocabulary = [
+  "agentSpawn",
+  "userPromptSubmit",
+  "preToolUse",
+  "postToolUse",
+  "stop",
+]
+
+# Scope dimension for Kiro (RFC-0005 § hook-wiring for Kiro at both scopes).
+# User-scope agents live under `~/.kiro/agents/` per Kiro's documented layout
+# (https://kiro.dev/docs/cli/custom-agents/creating/); CLI infrastructure
+# shares the `.agent-ready/` prefix.
+[adapter.kiro.scope]
+repo = "."
+user = "~"
+allowed-prefixes.user = [".kiro/", ".agent-ready/"]
 
 # ---------------------------------------------------------------------------
 # Copilot adapter — 5 projections (one per primitive)
