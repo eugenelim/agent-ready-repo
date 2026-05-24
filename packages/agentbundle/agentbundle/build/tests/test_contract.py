@@ -103,11 +103,18 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         self.assertEqual(adapters, ALL_ADAPTERS, f"adapter keys differ: {adapters}")
 
     def test_every_primitive_covered_per_adapter(self) -> None:
+        """Every (primitive × adapter) pair must be declared in *some* form.
+
+        Under v0.3 (RFC-0005), kiro's `hook-wiring` no longer appears in the
+        legacy `projection` array — it lives in the new
+        `projections.<primitive>` table. The coverage union walks both forms.
+        """
         missing: list[str] = []
         extra: list[str] = []
         for adapter_name, adapter_block in self.contract["adapter"].items():
-            projections = adapter_block["projection"]
-            primitives_in_adapter = {p["primitive"] for p in projections}
+            array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
+            table_form = set(adapter_block.get("projections", {}).keys())
+            primitives_in_adapter = array_form | table_form
             for prim in ALL_PRIMITIVES:
                 if prim not in primitives_in_adapter:
                     missing.append(f"({prim}, {adapter_name})")
@@ -118,17 +125,26 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         self.assertEqual(extra, [], f"extra unknown primitives: {extra}")
 
     def test_exactly_twenty_pairs_total(self) -> None:
-        total = sum(
-            len(adapter_block["projection"])
-            for adapter_block in self.contract["adapter"].values()
-        )
+        """Twenty (primitive × adapter) pairs — counted across array + table forms.
+
+        Pairs that appear in BOTH forms (the transitional hook-body declarations
+        on claude-code/kiro and the claude-code hook-wiring legacy entry that
+        coexists with its v0.3 table) count once per adapter, matching the
+        "primitive coverage" semantic.
+        """
+        total = 0
+        for adapter_block in self.contract["adapter"].values():
+            array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
+            table_form = set(adapter_block.get("projections", {}).keys())
+            total += len(array_form | table_form)
         self.assertEqual(total, 20, f"expected 20 pairs total, got {total}")
 
 
 class ModeEnumTests(unittest.TestCase):
-    """adapter.schema.json mode enum must contain exactly the seven RFC-0001 modes."""
+    """adapter.schema.json mode enum: seven RFC-0001 modes plus the two
+    v0.3 additions from RFC-0005 (`user-merge-json`, `merge-into-agent-json`)."""
 
-    def test_mode_enum_contains_exactly_seven_modes(self) -> None:
+    def test_mode_enum_contains_expected_modes(self) -> None:
         schema = _load_schema()
         # Navigate to the mode enum inside projection items.
         projection_items = (
@@ -137,10 +153,11 @@ class ModeEnumTests(unittest.TestCase):
             ]["items"]
         )
         mode_enum = set(projection_items["properties"]["mode"]["enum"])
+        expected = SEVEN_RFC_MODES | {"user-merge-json", "merge-into-agent-json"}
         self.assertEqual(
             mode_enum,
-            SEVEN_RFC_MODES,
-            f"schema mode enum differs from RFC-0001 set: {mode_enum}",
+            expected,
+            f"schema mode enum differs from RFC-0001+RFC-0005 set: {mode_enum}",
         )
 
     def test_schema_rejects_unknown_mode(self) -> None:
