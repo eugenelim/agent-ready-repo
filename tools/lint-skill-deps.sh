@@ -5,8 +5,8 @@
 # which only checks frontmatter shape — this one checks the semantics.
 #
 # Why it exists: manifests rot. Skills are renamed; CONVENTIONS anchors
-# get edited away; templates move. Without a linter, install-skill.py
-# silently produces broken installs.
+# get edited away; templates move. Without a linter, the pack build
+# pipeline silently produces broken installs for adopters.
 
 set -euo pipefail
 
@@ -22,12 +22,11 @@ root = pathlib.Path(sys.argv[1]).resolve()
 error_count = 0
 
 # Adopter-owned files: a skill installed elsewhere lands on top of the
-# adopter's own copy of these, and install-skill.py emits whole-file deps
-# as fragments under `*.fragments/<skill>.md` for the adopter to merge by
-# hand. A whole-file dep is almost always a mistake — the skill rarely
-# needs all of our prose. Authors should anchor-cite the specific section
-# they need, or omit the dep and read at runtime (the reviewer pattern).
-# Mirrors FRAGMENT_FILES in tools/install-skill.py.
+# adopter's own copy of these. A whole-file dep is almost always a
+# mistake — the skill rarely needs all of our prose, and we never
+# overwrite an adopter's governance docs. Authors should anchor-cite
+# the specific section they need, or omit the dep and read at runtime
+# (the reviewer pattern).
 FRAGMENT_FILES = {"AGENTS.md", "docs/CONVENTIONS.md", "docs/CHARTER.md"}
 
 
