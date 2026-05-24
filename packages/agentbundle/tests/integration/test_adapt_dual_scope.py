@@ -198,16 +198,25 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
     target_rel = ".claude/skills/foo/SKILL.md"
     target = fake_home / target_rel
     target.parent.mkdir(parents=True)
-    target.write_text("project=<adapt:PROJECT_NAME>", encoding="utf-8")
+    target.write_text("project=<adapt:project-name>", encoding="utf-8")
     _write_state(user_dir / "state.toml", {target_rel: "00"}, scope="user")
 
-    # Discovery values in the NAMESPACED path (correct).
+    # User-scope discovery: canonical v0.1 shape, no [markers] (markers
+    # are repo-only per RFC-0004). Plus a repo-scope discovery carrying
+    # the marker value the substitution needs.
     (user_dir / ".adapt-discovery.toml").write_text(
-        '[accepted]\nPROJECT_NAME = "demo"\n', encoding="utf-8"
+        'discovery-schema-version = "0.1"\n', encoding="utf-8"
     )
-    # Counter-fixture at the BARE path (must be ignored).
+    (repo_root / ".adapt-discovery.toml").write_text(
+        'discovery-schema-version = "0.1"\n'
+        '[markers]\nproject-name = "demo"\n',
+        encoding="utf-8",
+    )
+    # Counter-fixture at the BARE user path (must be ignored).
     (fake_home / ".adapt-discovery.toml").write_text(
-        '[accepted]\nPROJECT_NAME = "WRONG"\n', encoding="utf-8"
+        'discovery-schema-version = "0.1"\n'
+        '[markers]\nproject-name = "WRONG"\n',
+        encoding="utf-8",
     )
 
     _write_state(repo_root / ".agent-ready-state.toml", {})

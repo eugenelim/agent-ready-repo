@@ -1,7 +1,7 @@
 """T6: integration tests for ``agentbundle adapt``.
 
 Coverage:
-  - Marker substitution: ``<adapt:PROJECT_NAME>`` markers resolved via
+  - Marker substitution: ``<adapt:project-name>`` markers resolved via
     ``--values-from``.
   - ``.adapt-pending.md``: generated listing ``.upstream.*`` companions with
     diff summaries.
@@ -76,12 +76,12 @@ def _setup_projected(tmp_path: Path, files: dict[str, str]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1. Marker substitution: <adapt:PROJECT_NAME> replaced by values.toml
+# 1. Marker substitution: <adapt:project-name> replaced by values.toml
 # ---------------------------------------------------------------------------
 
 def test_marker_substitution_replaces_markers(tmp_path):
     """``adapt --values-from values.toml`` substitutes every <adapt:NAME> marker."""
-    content_before = "# Hello <adapt:PROJECT_NAME>\nowner: <adapt:OWNER>\n"
+    content_before = "# Hello <adapt:project-name>\nowner: <adapt:owner>\n"
     content_after = "# Hello myproject\nowner: octocat\n"
 
     _setup_projected(tmp_path, {"README.md": content_before})
@@ -100,7 +100,7 @@ def test_marker_substitution_sha_matches_substituted_form(tmp_path):
     """After substitution the file's content equals the substituted text exactly."""
     import hashlib
 
-    content_before = "project: <adapt:PROJECT_NAME>\n"
+    content_before = "project: <adapt:project-name>\n"
     content_after = "project: myproject\n"
     expected_sha = hashlib.sha256(content_after.encode("utf-8")).hexdigest()
 
@@ -189,7 +189,7 @@ def test_adapt_discovery_toml_never_written(tmp_path):
 
     before_bytes = discovery_dst.read_bytes()
 
-    _setup_projected(tmp_path, {"AGENTS.md": "# project: <adapt:OWNER>\n"})
+    _setup_projected(tmp_path, {"AGENTS.md": "# project: <adapt:owner>\n"})
     values_path = ADAPT_FIXTURES / "values.toml"
 
     rc = _run(root=str(tmp_path), values_from=str(values_path))
@@ -209,18 +209,18 @@ def test_adapt_discovery_accepted_entries_applied(tmp_path):
     discovery_dst = tmp_path / ".adapt-discovery.toml"
     shutil.copy(discovery_src, discovery_dst)
 
-    # Write a file with <adapt:OWNER> — the discovery.toml has OWNER accepted.
-    _setup_projected(tmp_path, {"AGENTS.md": "owner: <adapt:OWNER>\n"})
+    # Write a file with <adapt:owner> — the discovery.toml has 'owner' in [markers].
+    _setup_projected(tmp_path, {"AGENTS.md": "owner: <adapt:owner>\n"})
 
     # Run without --values-from; discovery accepted entries should not substitute
     # (substitution only runs when --values-from is provided).
-    # Now run WITH --values-from; discovery OWNER should be overridden.
+    # Now run WITH --values-from; discovery owner should be overridden.
     values_path = ADAPT_FIXTURES / "values.toml"
     rc = _run(root=str(tmp_path), values_from=str(values_path))
     assert rc == 0
 
     result = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
-    # values.toml has OWNER = "octocat"; should win.
+    # values.toml has owner = "octocat"; should win.
     assert "octocat" in result
 
 

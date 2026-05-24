@@ -1,6 +1,5 @@
-# .adapt-discovery.toml — CLI reads, never writes.
-# accepted entries are applied as marker values.
-[accepted]
-OWNER = "octocat"
+# .adapt-discovery.toml — CLI reads, never writes. Canonical v0.1 shape.
+discovery-schema-version = "0.1"
 
-[declined]
+[markers]
+owner = "octocat"

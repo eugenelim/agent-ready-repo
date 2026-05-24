@@ -118,10 +118,6 @@ def test_load_state_raises_on_malformed_toml(tmp_path):
         config.load_state(p)
 
 
-def test_load_adapt_discovery_returns_empty_for_absent(tmp_path):
-    assert config.load_adapt_discovery(tmp_path / "missing.toml") == {}
-
-
 def test_load_values_from_returns_string_dict(tmp_path):
     p = tmp_path / "values.toml"
     p.write_text(
