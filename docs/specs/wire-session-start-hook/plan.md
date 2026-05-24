@@ -213,8 +213,9 @@ clearly shows the missing key, not a parse or IO error.
 - `rg "Add to your project-local .claude/settings.json" tools/hooks/README.md`
   returns 0 matches (the adopter-imperative phrasing for session-start
   is gone).
-- `rg "pre-pr.py is most useful as a manual or git-hook command" tools/hooks/README.md`
-  returns 1 match (the `pre-pr.py` paragraph is unchanged).
+- ``rg '\`pre-pr.py\` is most useful as a manual or git-hook command' tools/hooks/README.md``
+  returns 1 match (the `pre-pr.py` paragraph is unchanged; note the
+  backticks around `pre-pr.py` in the literal file text).
 - `rg "claude-plugins/core/.claude/settings.local.json" tools/hooks/README.md`
   returns ≥1 match (the install-time dist-tree surface is named).
 - `rg "make build-self" tools/hooks/README.md` returns ≥1 match (the
