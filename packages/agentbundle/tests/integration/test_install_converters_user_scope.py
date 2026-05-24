@@ -26,22 +26,24 @@ CONVERTERS_PACK_SRC = REPO_ROOT / "packs" / "converters"
 SKILL_NAMES = ("file-to-markdown", "markdown-to-html", "msg-to-markdown")
 
 
-def _run_install(args: argparse.Namespace) -> tuple[int, str]:
+def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
     from agentbundle.commands import install
 
+    stdout = io.StringIO()
     stderr = io.StringIO()
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
         rc = install.run(args)
-    return rc, stderr.getvalue()
+    return rc, stdout.getvalue(), stderr.getvalue()
 
 
-def _run_uninstall(args: argparse.Namespace) -> tuple[int, str]:
+def _run_uninstall(args: argparse.Namespace) -> tuple[int, str, str]:
     from agentbundle.commands import uninstall
 
+    stdout = io.StringIO()
     stderr = io.StringIO()
-    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
         rc = uninstall.run(args)
-    return rc, stderr.getvalue()
+    return rc, stdout.getvalue(), stderr.getvalue()
 
 
 class ConvertersUserScopeInstallTests(unittest.TestCase):
@@ -75,8 +77,8 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
             force=False,
             force_merge=False,
         )
-        rc, stderr = _run_install(install_args)
-        self.assertEqual(rc, 0, f"install failed: {stderr}")
+        rc, stdout, stderr = _run_install(install_args)
+        self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
 
         # HOME-resolution guard: if $HOME didn't propagate into the CLI's
         # Path.home() (e.g. cached at import time), the state directory
@@ -89,6 +91,8 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
             f"check $HOME propagation",
         )
 
+        # Deferred import: agentbundle.config resolves $HOME at first
+        # import and the patch.dict above has to be live before that.
         from agentbundle.config import STATE_SCHEMA_VERSION, load_state
 
         state = load_state(agent_ready_dir / "state.toml")
@@ -97,7 +101,17 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         # install path actually writes is whatever the package exports.
         self.assertEqual(state.schema_version, STATE_SCHEMA_VERSION)
         self.assertIn("converters", state.packs)
-        self.assertEqual(state.packs["converters"].scope, "user")
+        pack_state = state.packs["converters"]
+        self.assertEqual(pack_state.scope, "user")
+        # The install→state→uninstall data flow runs through this dict;
+        # uninstall reads it to know what to remove. A regression where
+        # install lands the dirs but writes no file entries would silently
+        # orphan them on uninstall.
+        self.assertGreater(
+            len(pack_state.files),
+            0,
+            "expected state.packs['converters'].files to record projected files",
+        )
 
         for name in SKILL_NAMES:
             skill_dir = self.home / ".claude" / "skills" / name
@@ -105,14 +119,20 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
                 skill_dir.is_dir(),
                 f"expected projected skill directory at {skill_dir}",
             )
+            # Presence of SKILL.md is the closest thing to a "skill is
+            # actually usable" assertion: the dir alone could be empty.
+            self.assertTrue(
+                (skill_dir / "SKILL.md").is_file(),
+                f"expected SKILL.md inside {skill_dir}",
+            )
 
         uninstall_args = argparse.Namespace(
             pack="converters",
             root=str(self.repo),
             scope="user",
         )
-        rc, stderr = _run_uninstall(uninstall_args)
-        self.assertEqual(rc, 0, f"uninstall failed: {stderr}")
+        rc, stdout, stderr = _run_uninstall(uninstall_args)
+        self.assertEqual(rc, 0, f"uninstall failed: stdout={stdout!r} stderr={stderr!r}")
 
         for name in SKILL_NAMES:
             skill_dir = self.home / ".claude" / "skills" / name
@@ -121,11 +141,16 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
                 f"projected skill directory at {skill_dir} survived uninstall",
             )
 
+        # Spec AC6a's looser form covers two valid implementations: state
+        # file is gone, OR state file remains with the converters row
+        # removed. Expressed as a single boolean rather than a conditional
+        # that silently no-ops when the file is gone.
         state_path = agent_ready_dir / "state.toml"
-        if state_path.exists():
-            state_after = load_state(state_path)
-            self.assertNotIn(
-                "converters",
-                state_after.packs,
-                "converters entry survived uninstall in state.toml",
-            )
+        converters_gone = (
+            not state_path.exists()
+            or "converters" not in load_state(state_path).packs
+        )
+        self.assertTrue(
+            converters_gone,
+            "converters entry survived uninstall in state.toml",
+        )
