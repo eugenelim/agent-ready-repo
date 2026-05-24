@@ -68,20 +68,18 @@ runners, so `test-all.sh` is unchanged); and the
 `docs/specs/windows-hooks-phase3/TRIO.md` scratch file itself (PLAN
 artifact for this PR, not a spec).
 
-## Known Windows-pre-pr ceiling — important
+## Windows-pre-pr — fully unblocked in this PR
 
-Even after this PR lands, `python tools/hooks/pre-pr.py` will not run
-clean on a native-Windows checkout. `lint-agents-md.sh` (and its
-Python port) check #2 hard-fails when `CLAUDE.md` is a regular file
-rather than a symlink to `AGENTS.md`. On Windows without Developer
-Mode, `git clone` materialises symlinks as regular files — every
-Windows contributor's pre-pr will flunk at the agents-md stage. This
-PR **deliberately preserves** check #2 unchanged; the symlink
-relaxation is `conventions-check`'s scope, deferred to Phase 4. The
-Phase-3 acceptance is therefore "**macOS + Linux pre-pr is green; the
-hook + lint runtime is Python-only and Windows-executable**" — not
-"Windows pre-pr is green." Windows pre-pr is unblocked by Phase 4 and
-beyond; the runtime port (this PR) is the prerequisite.
+Originally Phase 3 deferred `lint-agents-md` check #2 to Phase 4
+(`conventions-check` symlink relaxation). User direction reversed that:
+check #2 now accepts the Windows-materialised-symlink shape (a regular
+file whose entire content is the literal string `AGENTS.md` — the
+default `git config core.symlinks false` behaviour on Windows without
+Developer Mode). Both shapes pass: real symlink **or** content equal
+to `AGENTS.md`. Any other regular-file content still fails as a
+drift hazard. Acceptance is therefore "**pre-pr is green on macOS,
+Linux, and native Windows** (Developer Mode or not)" — no remaining
+ceiling.
 
 **Audited Windows-hostile surfaces** (only one is hostile; the rest are
 portable):
@@ -310,7 +308,7 @@ Added per reviewer Blocker 5.
 | `REPO_ROOT` + `cd` (22-23) | `_repo_root()` + `os.chdir(repo_root)` inside `__main__` guard |
 | `note() warn() ok()` helpers (26-28) | `def _note(msg)`, `_warn(msg)`, `_ok(msg)` — `_note` increments a closure-or-global `fail` counter |
 | Check #1: `[[ -f AGENTS.md ]]` (31-35) | `Path("AGENTS.md").is_file()` |
-| Check #2: `[[ -L CLAUDE.md ]]` + `readlink CLAUDE.md` (37-49) | `Path("CLAUDE.md").is_symlink()` + comparison: `str(Path("CLAUDE.md").readlink()) == "AGENTS.md"`. Preserves bash-version Windows-hostility; see Known Windows-pre-pr ceiling. |
+| Check #2: `[[ -L CLAUDE.md ]]` + `readlink CLAUDE.md` (37-49) | `Path("CLAUDE.md").is_symlink()` + comparison: `os.readlink(claude_md) == "AGENTS.md"`. **Relaxed in this PR** to also accept a regular file whose content is exactly `"AGENTS.md"` (the Windows-materialised-symlink shape). |
 | Check #3: `wc -l < AGENTS.md` (52-58) | `len(Path("AGENTS.md").read_text().splitlines())` (or `.read_bytes().count(b"\n")` — both match `wc -l` parity for files ending in newline) |
 | Check #4: `find . -name AGENTS.md ...` (62-74) | `Path(".").rglob("AGENTS.md")` filtered to exclude `.git/`, `node_modules/`, plus the special-case bump for `./packs/core/seeds/AGENTS.md` → `MAX_ROOT_LINES` |
 | Check #5: link regex `grep -oE '\]\([^)]+\)'` + `sed -E ...` + `grep -vE '^https?:'` (78-93) | `re.findall(r"\]\(([^)]+)\)", text)`; filter scheme-prefixed and anchor-only; resolve `dir / target` and check `Path.exists()` |
