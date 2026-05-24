@@ -90,7 +90,7 @@ run_corruption "agent-artifact-fail" \
 
 # 3. skill-deps lint — break a dep path in the work-loop SKILL.
 run_corruption "skill-deps-fail" \
-  "sed -i.bak 's|tools/check-done.py|tools/does-not-exist.py|' .claude/skills/work-loop/SKILL.md && rm .claude/skills/work-loop/SKILL.md.bak" \
+  "sed -i.bak 's|docs/knowledge/patterns.jsonl|docs/knowledge/does-not-exist.jsonl|' .claude/skills/work-loop/SKILL.md && rm .claude/skills/work-loop/SKILL.md.bak" \
   'pre-pr: ✖ skill-deps lint failed'
 
 # 4. knowledge lint — plant a malformed JSONL line.
@@ -102,7 +102,7 @@ run_corruption "knowledge-fail" \
 #    which trips the gate for both --phase implement and --phase review.
 #    Drops the test if pre-pr ever stops iterating state.json files.
 run_corruption "check-done-fail" \
-  "mkdir -p docs/specs/example && cp docs/_templates/state.json docs/specs/example/state.json" \
+  "mkdir -p docs/specs/example && cp .claude/skills/work-loop/assets/state.json docs/specs/example/state.json" \
   'pre-pr: ✖ check-done'
 
 echo

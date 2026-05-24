@@ -2,24 +2,8 @@
 name: work-loop
 description: Use this skill whenever you're implementing a non-trivial change — a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
 dependencies:
-  - AGENTS.md#check-before-acting
-  - docs/CONVENTIONS.md#contract-vs-construction-tests
-  - docs/CONVENTIONS.md#work-loop-state
-  - docs/CONVENTIONS.md#supervisor-mode
-  - docs/CONVENTIONS.md#knowledge-base
-  - docs/_templates/state.json
   - docs/knowledge/README.md
   - docs/knowledge/patterns.jsonl
-  - tools/check-done.py
-  - tools/hooks/session-start.sh
-  - tools/hooks/pre-pr.sh
-  - .claude/agents/adversarial-reviewer.md
-  - .claude/agents/security-reviewer.md
-  - .claude/agents/quality-engineer.md
-  - .claude/agents/implementer.md
-  - .claude/skills/new-spec/SKILL.md
-  - tools/ralph.sh
-  - tools/RALPH.md
 ---
 
 # Skill: work-loop
@@ -102,8 +86,7 @@ For anything beyond trivial, *think before you write code*. Concretely:
     compressible invariant. The contract lives in `spec.md` (Acceptance
     Criteria + Testing Strategy); construction tests live in `plan.md`,
     `Tests:` before `Approach:`, red-green-refactor.
-    Default for testable logic. Split detailed in
-    [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#contract-vs-construction-tests).
+    Default for testable logic.
   - **Goal-based check** — build config, scaffolding, generated-code
     consumption, smoke entry points. The task's `Done when:` is the
     contract; verify with a one-liner (build command, `grep`, typecheck)
@@ -134,9 +117,11 @@ For anything beyond trivial, *think before you write code*. Concretely:
   test, the task is too vague to implement — sharpen the plan first. Discovering a missing or wrong construction test
   during EXECUTE is fine, but the fix is "update plan.md, then resume
   EXECUTE", not "skip ahead".
-- **Pre-EXECUTE adversarial review.** Invoke `adversarial-reviewer` in
-  spec/plan-review mode against the spec + plan and iterate to clean
-  before EXECUTE begins when **either** trigger fires:
+- **Pre-EXECUTE adversarial review.** Select a subagent matching
+  `adversarial-reviewer` and ask it to review the spec + plan in
+  spec/plan-review mode. Iterate to clean before EXECUTE begins when
+  **either** trigger fires (fallback if no such subagent is installed:
+  proceed but note the missing review in the final summary):
 
   1. **Spec amendment.** PLAN produced or modified a spec — you ran
      `new-spec`, or you sharpened an existing `spec.md` / `plan.md`.
@@ -159,8 +144,8 @@ For anything beyond trivial, *think before you write code*. Concretely:
   Both triggers route to the same reviewer mode and the same spec-stage
   checklist; what differs is the standard the reviewer measures against.
   When the structural-change trigger fires, the reviewer checks the
-  plan against the spec's **Boundaries** section (see
-  [`docs/_templates/spec.md`](../../../docs/_templates/spec.md)) —
+  plan against the spec's **Boundaries** section (defined by the
+  `new-spec` skill's bundled `spec.md` template) —
   primarily `Never do` for hard structural rules and `Ask first` for
   the ones that require sign-off; `Always do` for positive defaults
   the plan must honour. If `Boundaries` is empty, that's the
@@ -190,18 +175,18 @@ For anything beyond trivial, *think before you write code*. Concretely:
   `approved` once clean; `check-done.py --phase plan` unlocks EXECUTE.
   No new state fields. **Both triggers respect the Profile-A opt-out:**
   skip if the project doesn't use the reviewer at all.
-- **Initialize the loop's state file.** Copy `docs/_templates/state.json`
-  to `docs/specs/<feature>/state.json` and set `feature` to the spec
-  slug. The file is gitignored — it's session-scratch, not history. Write
-  it atomically (tmp-file + rename) on every update so a mid-write read
-  never produces malformed JSON. Run
-  `tools/check-done.py docs/specs/<feature>/state.json --phase plan`; on
+- **Initialize the loop's state file.** Copy this skill's bundled
+  `assets/state.json` to `docs/specs/<feature>/state.json` and set
+  `feature` to the spec slug. The file is gitignored — it's
+  session-scratch, not history. Write it atomically (tmp-file + rename)
+  on every update so a mid-write read never produces malformed JSON.
+  Run this skill's bundled `scripts/check-done.py
+  docs/specs/<feature>/state.json --phase plan`; on
   the first invocation it will exit 1 with `plan not approved` — **this
   is the expected cue to run the pre-EXECUTE reviewer**, not a stop-and-
   surface signal. Once the reviewer is clean, flip
   `plan_review_status` to `approved` and re-run; exit 0 unlocks EXECUTE.
-  Schema reference:
-  [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#work-loop-state).
+  Schema reference: [`references/state-schema.md`](references/state-schema.md).
 
 The output of this step is a written plan (with tests) you can return to.
 Don't keep it in your head — your context will turn over and you'll lose it.
@@ -250,90 +235,15 @@ discipline rather than restating it.
 
 If the plan has **two or more tasks declaring `Depends on: none`**, the
 loop branches into supervisor mode for EXECUTE. You become the
-supervisor; each independent task gets an `implementer` subagent (see
-[`.claude/agents/implementer.md`](../../../.claude/agents/implementer.md))
-in its own worktree. The full rationale, boundary, and merge discipline
-live in
-[`CONVENTIONS.md § Supervisor mode`](../../../docs/CONVENTIONS.md#supervisor-mode).
-Throughout this procedure, **"task-id order" means numeric where IDs
-look like `T1`, `T2`, … ; lexicographic otherwise.**
+supervisor; for each independent task, select a subagent matching
+`implementer` and dispatch it against the task in its own worktree per
+the parallel-dispatch discipline above.
 
-The procedure:
-
-0. **Pre-flight: check for stale worktrees.** Run `git worktree list`
-   and `git worktree prune`. If `.worktrees/<task-id>/` exists or the
-   branch `<base-branch>-<task-id>` exists for any task you're about
-   to dispatch, a prior session left scratch behind. **Surface to a
-   human; do not silently reuse or destroy** — the scratch may carry
-   in-flight work the previous run was about to commit. Resume happens
-   manually.
-1. **Set up worktrees.** For each independent task `<task-id>`:
-   ```bash
-   git worktree add .worktrees/<task-id> \
-     -b "$(git branch --show-current)-<task-id>"
-   ```
-   Append
-   `{task_id, branch, path, status: "in-progress", report_path: null}`
-   to `state.json.worktrees`.
-2. **Dispatch implementers in parallel** per the parallel-dispatch
-   discipline above. Each brief includes: the task ID, the plan-task
-   body, the worktree path, and paths to the spec + plan.
-3. **Persist each report and update state.** For each returning
-   subagent, in this order — match first, write second, update state
-   last:
-   1. Parse the report's opening `## Task <task-id>` heading and match
-      that `<task-id>` against `state.json.worktrees[i].task_id`. If
-      no entry matches, surface as `failed` for an unknown task —
-      never silently append a new entry, and never write the file
-      under an unvalidated name.
-   2. Write the report verbatim to
-      `docs/specs/<feature>/notes/implementer-<task-id>-<iteration>.md`,
-      where `<iteration>` is the current `state.json.iteration_count`.
-      On a fresh loop the value is `0`, so the first attempt lands as
-      `…-0.md` ("before any review iteration has run"); subsequent
-      re-plans see the counter bumped (see step 4 below) so reports
-      never overwrite one another. Create `docs/specs/<feature>/notes/`
-      if it doesn't yet exist (the directory is optional per the
-      [Specs and Plans](#4-specs-and-plans--docs-specs-feature)
-      convention).
-   3. Atomically update `state.json.worktrees[i]`: set `status`
-      (`ready` / `blocked` / `failed`) and `report_path` to the path
-      you just wrote.
-
-   The match-first ordering means a parse failure never produces an
-   orphan report on disk; the write-before-update means a crash
-   between substeps 2 and 3 leaves a recoverable signal — the report
-   file exists, the entry still says `in-progress`, and the next
-   supervisor session's stale-worktree pre-flight treats that as
-   leftover scratch and surfaces it.
-4. **Handle non-ready tasks first.** If any implementer reports
-   `blocked` or `failed`, do not merge. Surface the failed-task list
-   (with `report_path` pointers), **increment `state.json.iteration_count`**
-   so the next attempt's report filename won't collide with this
-   one's, then return to PLAN and revise the offending task. Do not
-   redispatch the same implementer on the same task — the assumption
-   that produced the failure is what needs revising, not the attempt.
-5. **Merge ready tasks sequentially.** From the primary worktree, in
-   task-id order:
-   ```bash
-   git merge --no-ff "$(git branch --show-current)-<task-id>"
-   ```
-   A conflict means the tasks weren't actually independent. Abort
-   (`git merge --abort`), return to PLAN, fix the `Depends on:`
-   declarations.
-6. **Clean up worktrees.** After all merges succeed:
-   ```bash
-   git worktree remove .worktrees/<task-id>
-   ```
-   If that fails (uncommitted files, locked index, build artifacts),
-   retry once with `--force`. On persistent failure, leave the
-   directory in place, note the path in your end-of-loop summary, and
-   proceed to gates — don't block on cleanup. Worktree entries in
-   `state.json.worktrees` keep their terminal status for the rest of
-   the loop so the next reader can reconstruct what each task did.
-7. **Run gates yourself** (next phase). The implementers' gate results
-   were advisory; the gates of record run in the primary against the
-   merged state.
+**The full 7-step procedure** (pre-flight, worktree setup, dispatch,
+report persistence, non-ready handling, merge, cleanup) lives in
+[`references/supervisor-mode.md`](references/supervisor-mode.md) — load
+it on demand when this branch fires. The single-agent fallback (when no
+`implementer`-matching subagent is installed) is documented there too.
 
 In single-agent mode (no independent tasks), skip the supervisor branch
 entirely and execute as the sole agent — that's the default flow above.
@@ -353,13 +263,12 @@ go to FIX. Don't move past a failing gate by editing the gate.
 
 ### 4. REVIEW — adversarial self-review
 
-After gates pass, run adversarial review against the spec. Use the
-`adversarial-reviewer` subagent (in `.claude/agents/adversarial-reviewer.md`):
-
-```
-Use the adversarial-reviewer subagent to review my changes against
-docs/specs/<feature>/spec.md
-```
+After gates pass, run adversarial review against the spec. Select a
+subagent matching `adversarial-reviewer` and pass it the diff plus the
+spec path (e.g. `docs/specs/<feature>/spec.md`). Fallback if no such
+subagent is installed: proceed but note the missing review in the final
+summary — the gates step is the mechanical termination criterion; this
+step is judgmental and the loop degrades to gates-only without it.
 
 The subagent reads adversarially — it's looking for what you missed, not
 celebrating what you did. Findings come back grouped by severity
@@ -382,20 +291,23 @@ until the agent returns `Clean — ready to commit.`
    doesn't matter — `check-done.py` sorts before comparing).
 3. Increment `iteration_count`.
 4. Write the file atomically (tmp + rename).
-5. Run `tools/check-done.py <state-path> --phase review`. Exit 1 with
+5. Run this skill's `scripts/check-done.py <state-path> --phase review`. Exit 1 with
    `no progress` means the same findings landed two iterations in a row;
    stop and surface to a human rather than spinning a third.
 
 **Specialist reviewers — use after adversarial-reviewer is clean.** Pick
 the ones the diff actually warrants; don't run all three by default.
+Select each via the same "subagent matching `<role>`" pattern as
+adversarial-reviewer above; absence of any specialist subagent is a
+note in the summary, not a blocker.
 
-- `security-reviewer` — for diffs that cross a security boundary (auth,
-  secrets, user input, deserialization, file/network I/O, dependencies,
-  LLM/agent code). OWASP + STRIDE lens. Complements SAST/SCA scanners;
-  does not replace them.
-- `quality-engineer` — testability, observability, reliability, and
-  maintainability lens. Also drafts contract or construction tests on
-  request. Different lens from adversarial-reviewer — don't skip it
+- Match `security-reviewer` — for diffs that cross a security boundary
+  (auth, secrets, user input, deserialization, file/network I/O,
+  dependencies, LLM/agent code). OWASP + STRIDE lens. Complements
+  SAST/SCA scanners; does not replace them.
+- Match `quality-engineer` — testability, observability, reliability,
+  and maintainability lens. Also drafts contract or construction tests
+  on request. Different lens from adversarial-reviewer — don't skip it
   because the spec already shipped.
 
 **Dispatch reviewers in parallel when you invoke more than one** per
@@ -424,13 +336,19 @@ checklist instead:
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
   checklist; refuse to declare done until every line is true:
   - GATES were clean (lint, typecheck, tests).
-  - `adversarial-reviewer` returned `Clean — ready to commit.` Plus
-    `security-reviewer` (security boundary) and `quality-engineer`
-    (maintenance lens) when the diff warrants.
-  - For the final loop of a multi-loop spec: `quality-engineer` ran
-    against the whole spec, not just the last diff, and returned clean.
-    Per-task gates verify N contracts; this is the pass that verifies the
-    integrated journey.
+  - For each reviewer the diff warranted (`adversarial-reviewer`
+    always; `security-reviewer` on security-boundary diffs;
+    `quality-engineer` on every loop, plus a whole-spec pass on the
+    final loop of a multi-loop spec): either the subagent returned
+    `Clean — ready to commit.`, **or** no matching subagent was
+    installed and the final summary names the missing review by its
+    role label — e.g. `adversarial-reviewer: no matching subagent
+    installed; review skipped`. *Silently skipping the reviewer is not
+    allowed* — the select-or-note discipline applies here, not just at
+    invocation time.
+  - Whole-spec `quality-engineer` pass (final loop of a multi-loop
+    spec only): same select-or-note rule. Per-task gates verify N
+    contracts; this is the pass that verifies the integrated journey.
   - `git status` shows no uncommitted or untracked files (except
     gitignored scratch).
   - Conventional commit format used; no force-push to shared branches.
@@ -455,9 +373,9 @@ The loop must terminate. Iteration without termination is how Ralph loops
 (see below) burn money. Stop when **any** of these is true:
 
 1. **Gates green AND review clean** — the normal exit. Ship.
-2. **`tools/check-done.py` exits non-zero.** The script is the mechanical
+2. **`scripts/check-done.py` exits non-zero.** The script is the mechanical
    side of termination, reading from `state.json` (see
-   [`CONVENTIONS.md`](../../../docs/CONVENTIONS.md#work-loop-state)). It
+   [`references/state-schema.md`](references/state-schema.md)). It
    fires on iteration cap, token-budget cap, consecutive-error counter,
    pending plan approval (PLAN phase only), and fingerprint stasis
    (REVIEW phase only). The exit message tells you which.
@@ -527,9 +445,9 @@ Ralph is the wrong tool when:
   aren't tight, Ralph just produces more bad code faster.
 
 This repo includes a Ralph harness at `tools/ralph.sh` for when those
-conditions are met. See [`tools/RALPH.md`](../../../tools/RALPH.md) for
-operating instructions, hard limits, and the cost/safety rules. **Read it
-before running Ralph.** AFK doesn't mean *unconsidered* — it means
+conditions are met; the companion `tools/RALPH.md` documents
+operating instructions, hard limits, and the cost/safety rules. **Read
+it before running Ralph.** AFK doesn't mean *unconsidered* — it means
 *pre-considered*.
 
 ## Anti-patterns to refuse

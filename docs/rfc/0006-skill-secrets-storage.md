@@ -946,3 +946,20 @@ Filled in upon acceptance.
   `skill-secrets` once the spec lands, plus a v2-libsecret roadmap
   stub citing this RFC's Q1 so the deferred Linux tier doesn't get
   lost.
+
+## Amendments
+
+- 2026-05-24 (cosmetic, post-acceptance): the credentialed-skill
+  template's canonical landing path was named throughout this RFC as
+  `docs/_templates/credentialed-skill-SKILL.md`. That directory was
+  retired the same day (see [RFC-0002 § Amendments](0002-self-hosting.md#amendments))
+  when its contents moved into per-skill `assets/` folders. The
+  template should land at the analogous skill-relative path —
+  i.e. inside the assets folder of whatever skill the credentialed-skill
+  scaffolding ultimately ships under (typically a sibling skill in
+  `packs/core/.apm/skills/<credentialed-skill-author-skill>/assets/`
+  or, if it's a standalone template for any author to copy, the
+  appropriate `assets/` location is decided when the implementing PR
+  lands). The substantive convention (the "Don't" block + minimal
+  scaffold) is unchanged; only the path is amended.
+
