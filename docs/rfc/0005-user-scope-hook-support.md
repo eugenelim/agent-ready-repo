@@ -963,21 +963,43 @@ either example.
   risk doesn't get lost.
 
 - **Kiro's hook-entry schema is observed-but-not-publicly-documented.**
-  The Kiro user-scope agent directory is documented at
-  [`kiro.dev/docs/cli/custom-agents/creating/`](https://kiro.dev/docs/cli/custom-agents/creating/),
-  but that page does *not* document a `hooks` field — the events
-  (`agentSpawn`, `userPromptSubmit`, `preToolUse`, `postToolUse`,
-  `stop`) and entry shape (`command`, `matcher`, `timeout_ms`,
-  `max_output_size`, `cache_ttl_seconds`) are known from in-IDE
-  observation. The Kiro runtime accepts the field today but the
-  schema is not under contract. If Kiro renames the key, restructures
-  the entries, or starts validating against a documented schema
-  that rejects the synthetic `id` tag, the projection regresses
-  silently. Same risk class as the Claude Code `id`-as-tag
-  drawback, just for a different field. Mitigation: pin the
-  Kiro mode to a single-source-of-truth in the spec amendment and
-  re-verify against Kiro's published docs at each contract version
-  bump.
+  *(Partially closed — `hooks`/events. Residual risk on optional
+  hook-entry fields and on full agent-field coverage; see T7 research,
+  2026-05-24.)*
+  When this RFC was drafted, the
+  [`kiro.dev/docs/cli/custom-agents/creating/`](https://kiro.dev/docs/cli/custom-agents/creating/)
+  page documented agent files but not the `hooks` field; events and
+  entry shape were known from in-IDE observation only.
+  [`kiro.dev/docs/cli/custom-agents/configuration-reference/`](https://kiro.dev/docs/cli/custom-agents/configuration-reference/)
+  now publishes the `hooks` field schema with the same five events
+  this RFC names (`agentSpawn`, `userPromptSubmit`, `preToolUse`,
+  `postToolUse`, `stop`) and confirms `command` (required) + `matcher`
+  (optional) as the hook-entry fields. Three classes of residual risk
+  remain:
+
+  1. **Optional hook-entry fields** (`timeout_ms`, `max_output_size`,
+     `cache_ttl_seconds`) the original drawback named are accepted by
+     the Kiro runtime but remain absent from the public reference.
+     The merger preserves any incoming entry fields verbatim, so
+     packs declaring them round-trip cleanly today.
+  2. **Agent-field coverage on the v0.3 reform.** T7's
+     `_project_agent_as_json` emits `name`, `prompt`, plus whatever
+     the `kiro-agent-frontmatter-v0.9` mapping table renames
+     through (`description`, `tools`, `model`). Other Kiro agent
+     fields documented in the reference (`allowedTools`,
+     `resources`, additional inheritance keys) are silently dropped
+     when a pack author declares them in markdown frontmatter — the
+     mapping table doesn't know about them. Pack authors who need
+     these fields can extend the mapping table; a follow-on RFC
+     would widen the default coverage to all reference fields.
+  3. **The `id` ownership-tag assumption** stays the same shape as
+     before — Unresolved Q1.
+
+  The same Kiro-docs research surfaced that agents are `.json` files
+  (not `.md` with frontmatter as the v0.2 contract claimed) — T7
+  reforms the agent projection to emit JSON; spec
+  [`distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md)
+  line 178 is updated.
 
 - **Build-pipeline ordering becomes a new invariant the pipeline
   has to enforce.** Today the pipeline (per RFC-0002) projects
