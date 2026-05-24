@@ -33,3 +33,23 @@ jobs:
       - name: pytest converters install
         working-directory: packages/agentbundle
         run: pytest tests/integration/test_install_converters_user_scope.py
+
+      - name: converters source-attribution scrub (AC2)
+        run: |
+          if rg -i --hidden '\bdropkit\b' packs/converters/; then
+            echo "::error::source-catalogue attribution leak in packs/converters/" >&2
+            exit 1
+          fi
+
+      - name: converters Rail-C marker scrub (AC3)
+        run: |
+          if rg --hidden '<adapt:[A-Z_][A-Z0-9_]*>|<adapt:[a-z][a-z0-9-]*>' packs/converters/; then
+            echo "::error::<adapt:...> marker found in packs/converters/ — user-scope packs are forbidden from carrying markers" >&2
+            exit 1
+          fi
+
+      - name: converters evals.json JSON validity + canonical keys (AC4a)
+        run: |
+          for f in packs/converters/.apm/skills/*/evals/evals.json; do
+            python3 -c "import json, sys; p = sys.argv[1]; d = json.load(open(p)); assert 'skill_name' in d and 'evals' in d, f'{p} missing canonical keys'" "$f"
+          done

@@ -1,0 +1,82 @@
+{
+  "skill_name": "markdown-to-html",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Render notes/weekly.md as a self-contained HTML page.",
+      "expected_output": "The agent installs npm dependencies if needed, then invokes `node scripts/render.js notes/weekly.md`. The script writes the HTML to `notes/weekly.html` (default extension swap) and prints OUTPUT/SECTIONS/MERMAID lines. The agent reports the output path.",
+      "assertions": [
+        "Agent runs `npm install` from the skill directory before first use (or confirms node_modules/ already exists)",
+        "Agent invokes `node scripts/render.js notes/weekly.md` (flag order may vary)",
+        "Agent does NOT pass --output unless the user asked for a non-default path",
+        "Agent does NOT hand-write HTML, CSS, or template strings",
+        "Agent reports the OUTPUT: path printed by the script back to the user"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Render docs/architecture.md to architecture.html with the green accent theme and a 'v3 draft' subtitle.",
+      "expected_output": "The agent invokes `node scripts/render.js docs/architecture.md --output architecture.html --theme green --subtitle \"v3 draft\"`. The script writes the file with green accent CSS variables and the subtitle text in the header.",
+      "assertions": [
+        "Agent invokes `node scripts/render.js docs/architecture.md` (flag order may vary)",
+        "Agent passes `--output architecture.html`",
+        "Agent passes `--theme green`",
+        "Agent passes `--subtitle \"v3 draft\"` (quoted string)",
+        "Agent does NOT pass --theme with a value not in the documented list (navy/green/teal/amber/rose)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The user wants a Note callout in their rendered HTML. They wrote `**Note:** Read the migration guide first.` in their markdown. Will it work?",
+      "expected_output": "The agent confirms yes — the renderer detects `**Note:**` (and Tip, Warning, Important, Stop) bold lead-ins automatically and wraps the paragraph in a styled callout box. The user does not need to add HTML by hand.",
+      "assertions": [
+        "Agent confirms callouts are detected automatically by the renderer",
+        "Agent does NOT instruct the user to add `<div class=\"callout\">` HTML manually",
+        "Agent does NOT suggest a different markdown syntax (e.g., GitHub admonitions); the bold lead-in is the supported pattern",
+        "Agent lists at least three valid kinds (Note, Tip, Warning, Important, Stop)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "The markdown has a Mermaid diagram in a ```mermaid code fence. Will it render?",
+      "expected_output": "The agent confirms yes — the renderer passes Mermaid blocks through as `<div class=\"mermaid\">...</div>` and includes the Mermaid CDN script automatically when at least one Mermaid block is detected. Pass `--no-mermaid` to suppress the CDN script (diagrams will fall back to plain code blocks).",
+      "assertions": [
+        "Agent confirms Mermaid is supported via runtime CDN",
+        "Agent mentions that the CDN script is auto-included only when a Mermaid block is detected",
+        "Agent does NOT manually rewrite Mermaid syntax",
+        "Agent mentions `--no-mermaid` as the way to opt out"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Render this markdown but the output isn't styling code blocks correctly.",
+      "expected_output": "The agent diagnoses the renderer (highlight.js) rather than rewriting the HTML by hand. It checks the language tag on the fence, runs the script with --verbose if available, or inspects the output's <pre><code> structure. It does NOT replace the script with a hand-written renderer.",
+      "assertions": [
+        "Agent investigates the script behavior (re-runs render.js, inspects output) before concluding",
+        "Agent does NOT replace the rendered HTML by hand-editing it",
+        "Agent does NOT propose using a different tool (pandoc, etc.) without first investigating"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Render every .md file under docs/ to HTML.",
+      "expected_output": "The agent uses a shell loop: `for f in docs/*.md; do node scripts/render.js \"$f\"; done`. Each invocation writes a sibling .html file. The agent does NOT try to pass a glob to the renderer (the script takes a single file).",
+      "assertions": [
+        "Agent uses a shell loop (for, find, or xargs) over the matching files",
+        "Agent passes one file per render.js invocation",
+        "Agent does NOT pass `docs/*.md` as a single argument to render.js (the script does not glob)",
+        "Agent reports a count of rendered files when done"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Render this markdown for a fully offline environment — no internet allowed.",
+      "expected_output": "The agent passes `--no-mermaid` so the rendered HTML doesn't reference the Mermaid CDN. The agent informs the user that any Mermaid diagrams in the source will degrade to plain code blocks rather than rendered diagrams.",
+      "assertions": [
+        "Agent passes `--no-mermaid`",
+        "Agent informs the user that Mermaid diagrams will not be rendered (they remain as code blocks)",
+        "Agent does NOT propose downloading Mermaid and inlining it (script does not support that today)"
+      ]
+    }
+  ]
+}
