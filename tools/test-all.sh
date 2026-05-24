@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Umbrella runner: every self-test in tools/. Run by hand when a
-# linter, hook, or check-done.py changes; CI runs a subset, so this is
+# linter, hook, or loop-cohort.py changes; CI runs a subset, so this is
 # the local-side belt-and-braces.
 #
 # Distinct from tools/hooks/pre-pr.sh — that's a *gate* against the
@@ -18,7 +18,7 @@ cd "$REPO_ROOT"
 # nothing in the chain depends on a particular order.
 tests=(
   "bootstrap-targets:bash tools/test-bootstrap-targets.sh"
-  "check-done:bash tools/test-check-done.sh"
+  "loop-cohort:bash tools/test-loop-cohort.sh"
   "lint-agent-artifacts:bash tools/test-lint-agent-artifacts.sh"
   "lint-knowledge:bash tools/test-lint-knowledge.sh"
   "lint-skill-deps:bash tools/test-lint-skill-deps.sh"

@@ -2,7 +2,7 @@
 
 Two agent-lifecycle hooks ship in this directory. Runtime: bash plus
 `python3` (already required by the artifact linters and
-`check-done.py`); neither depends on any one agent tool's runtime.
+`loop-cohort.py`); neither depends on any one agent tool's runtime.
 Wiring lives in the consumer's hook surface (Claude Code's
 `.claude/settings.json`, Gemini CLI's config, etc.); this README
 documents the contracts and shows an example wiring.
@@ -47,14 +47,14 @@ What it runs, in order:
 2. `tools/lint-agent-artifacts.sh` — skill/agent/command frontmatter
 3. `tools/lint-skill-deps.sh` — manifest dependency resolution
 4. `tools/lint-knowledge.sh` — `patterns.jsonl` validation
-5. `.claude/skills/work-loop/scripts/check-done.py` against every
+5. `.claude/skills/work-loop/scripts/loop-cohort.py check` against every
    `docs/specs/*/state.json`, in both `--phase implement` and
    `--phase review` modes
 
 Exits non-zero on the first failure with a one-line reason. If there
-are no active `state.json` files, the check-done step is skipped.
+are no active `state.json` files, the loop-cohort step is skipped.
 
-These three layers — `check-done.py` (caps) + the four linters
+These three layers — `loop-cohort.py` (caps) + the four linters
 (artifact hygiene) + `pre-pr.sh` (the gate that runs them together) —
 make up the project's **enforcement triplet**. Documented in
 [`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement-the-triplet).
@@ -112,7 +112,7 @@ bash tools/hooks/pre-pr.sh
 Two dedicated self-tests cover the hook scripts themselves:
 
 - `tools/test-pre-pr.sh` — corrupts each of the five enforcement
-  layers in turn (the four linters plus `check-done.py`, in a sandbox
+  layers in turn (the four linters plus `loop-cohort.py`, in a sandbox
   copy of the repo) and asserts `pre-pr.sh` fails with the right
   label.
 - `tools/test-session-start.sh` — exercises `--scope` validation, the
@@ -120,14 +120,14 @@ Two dedicated self-tests cover the hook scripts themselves:
   empty/missing-file silent-exit paths.
 
 The umbrella `tools/test-all.sh` runs every self-test in `tools/`
-(both of the above plus `test-check-done.sh`, `test-lint-knowledge.sh`,
+(both of the above plus `test-loop-cohort.sh`, `test-lint-knowledge.sh`,
 `test-lint-agent-artifacts.sh`, `test-bootstrap-targets.sh`). Run it
-by hand whenever a linter, hook, or `check-done.py` changes.
+by hand whenever a linter, hook, or `loop-cohort.py` changes.
 
 **CI parity.** `pre-pr.sh` and CI run the same set of checks in
 parallel. CI's `.github/workflows/docs.yml` has a job per
 enforcement layer — the four linters, the caps-enforcer self-test,
 and a `hooks` job that exercises the aggregator end-to-end (after
-seeding a healthy `state.json` so `check-done.py` actually runs).
+seeding a healthy `state.json` so `loop-cohort.py check` actually runs).
 Run `tools/test-all.sh` and `tools/hooks/pre-pr.sh` locally before
 opening a PR; CI runs the same checks afterward.
