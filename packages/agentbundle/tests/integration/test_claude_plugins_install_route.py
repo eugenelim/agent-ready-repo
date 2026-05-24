@@ -17,7 +17,9 @@ AC7's CLI-handoff sub-assertion seeds via ``_append_install_marker`` in-process.
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
 import sys
 import textwrap
 import tomllib
@@ -172,7 +174,7 @@ def _make_env(
         pythonpath_parts = [extra_pythonpath]
         if existing_pp:
             pythonpath_parts.append(existing_pp)
-        env["PYTHONPATH"] = ":".join(pythonpath_parts)
+        env["PYTHONPATH"] = os.pathsep.join(pythonpath_parts)
     elif existing_pp:
         env["PYTHONPATH"] = existing_pp
 
@@ -189,7 +191,7 @@ def _read_marker(marker_path: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 ALLOWED_MODULES = frozenset({
-    "argparse", "datetime", "hashlib", "json", "os", "pathlib", "sys", "tempfile", "tomllib",
+    "datetime", "hashlib", "json", "os", "pathlib", "sys", "tempfile", "tomllib",
 })
 
 
@@ -264,9 +266,11 @@ def test_scope_project_opt_in_for_repo_only_pack_writes_repo_marker(pack_root_fa
     env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
 
+    # Scope-collapse regression: must write to the repo-scope path specifically.
     marker_path = project_dir / ".adapt-install-marker.toml"
-    assert marker_path.exists()
+    assert marker_path.exists(), f"repo-scope marker not found at {marker_path}"
     data = _read_marker(marker_path)
     entries = data.get("packs-installed", [])
     assert len(entries) == 1
@@ -346,6 +350,7 @@ def test_scope_no_match_exits_zero_no_marker_no_hash(pack_root_factory):
     env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
     result = _run_writer(env)
     assert result.returncode == 0
+    assert result.stderr == ""
 
     marker_path = project_dir / ".adapt-install-marker.toml"
     assert not marker_path.exists()
@@ -353,7 +358,7 @@ def test_scope_no_match_exits_zero_no_marker_no_hash(pack_root_factory):
 
 
 def test_scope_project_dir_unset_skips_project_and_local_checks(pack_root_factory):
-    """AC2(g/h): CLAUDE_PROJECT_DIR unset + user opt-in for user-only pack → user-scope marker."""
+    """AC2(g): CLAUDE_PROJECT_DIR unset + user opt-in for user-only pack → user-scope marker."""
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="converters",
         version="0.1.0",
@@ -457,6 +462,10 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
     marker_path = project_dir / ".adapt-install-marker.toml"
     assert marker_path.exists()
     original_content = marker_path.read_bytes()
+    # Capture inode + mtime for POSIX atomicity check after crash.
+    if sys.platform != "win32":
+        original_ino = marker_path.stat().st_ino
+        original_mtime_ns = marker_path.stat().st_mtime_ns
 
     # Now prepare pack-b which will crash mid-write.
     plugin_root_b, plugin_data_b, _, _ = pack_root_factory(
@@ -506,6 +515,18 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
     assert marker_path.read_bytes() == original_content, (
         "Prior marker file was modified after crash — atomicity rail broken"
     )
+    # No leftover tempfile should remain after the crash (writer cleans up on error).
+    assert list(project_dir.glob("*.tmp")) == [], (
+        "Leftover .tmp file(s) found after crash — cleanup rail broken"
+    )
+    # POSIX-only: inode and mtime must be unchanged (the file was not replaced).
+    if sys.platform != "win32":
+        assert marker_path.stat().st_ino == original_ino, (
+            "Marker file inode changed after crash — os.replace must not have run"
+        )
+        assert marker_path.stat().st_mtime_ns == original_mtime_ns, (
+            "Marker file mtime changed after crash — os.replace must not have run"
+        )
 
     # Next invocation (no crash) must succeed and contain both entries.
     env_b_ok = _make_env(
@@ -819,3 +840,399 @@ def test_plugin_upgrade_replaces_entry_not_stacks(pack_root_factory):
         f"Expected exactly 1 entry for 'core', got {len(core_entries)}"
     )
     assert core_entries[0]["version"] == "0.2.0"
+
+
+# ---------------------------------------------------------------------------
+# Path-jail tests (Blocker 1)
+# ---------------------------------------------------------------------------
+
+
+def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
+    """Blocker-1: a marker path that resolves outside the per-scope jail is refused."""
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core",
+        version="0.1.0",
+        allowed_scopes=["user"],
+        opt_in_at=["user"],
+    )
+    # The jail for user-scope is home/.agent-ready. We create a symlink inside
+    # home/.agent-ready that points to a foreign directory (outside home).
+    foreign_dir = tmp_path / "foreign"
+    foreign_dir.mkdir()
+    agent_ready = home / ".agent-ready"
+    agent_ready.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # Create a symlink escape: home/.agent-ready/escape -> foreign_dir
+    escape_link = agent_ready / "escape"
+    escape_link.symlink_to(foreign_dir)
+
+    # Monkey-patch the writer by setting HOME and verifying it handles jailing.
+    # The simplest approach: use a sitecustomize that overrides _marker_path
+    # to return a path outside the jail.
+    sitecustomize_dir = tmp_path / "sc_jail"
+    sitecustomize_dir.mkdir()
+    foreign_marker = foreign_dir / ".adapt-install-marker.toml"
+    (sitecustomize_dir / "sitecustomize.py").write_text(
+        textwrap.dedent(f"""
+            import pathlib
+            import sys
+            # Override _marker_path in the writer module to return a path outside the jail.
+            # We find the writer module by searching sys.modules after it loads.
+            import importlib.util, os
+            _writer_path = {str(WRITER)!r}
+            _spec = importlib.util.spec_from_file_location("_install_marker_writer", _writer_path)
+            _mod = importlib.util.module_from_spec(_spec)
+            _original_marker_path = None
+
+            def _patched_marker_path(marker_scope, project_dir, home):
+                return pathlib.Path({str(foreign_marker)!r})
+
+            # Patch after the module is executed by overriding at sys.modules level.
+            import builtins
+            _original_import = builtins.__import__
+
+            def _patching_import(name, *args, **kwargs):
+                mod = _original_import(name, *args, **kwargs)
+                return mod
+        """),
+        encoding="utf-8",
+    )
+
+    # Use the simpler direct approach: build a fake env where the writer
+    # under test is invoked but we verify via the writer's own _assert_under.
+    # We test this by importing the writer and calling _write_marker directly.
+    spec = importlib.util.spec_from_file_location("_install_marker_writer", WRITER)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+
+    jail = agent_ready  # user-scope jail
+    outside_path = foreign_dir / ".adapt-install-marker.toml"
+
+    import datetime as dt
+    new_entry = {
+        "name": "core",
+        "version": "0.1.0",
+        "installed-at": dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
+        "install-route": "claude-plugins",
+    }
+
+    with pytest.raises(ValueError, match="escapes the per-scope jail"):
+        mod._write_marker(outside_path, new_entry, jail)
+
+    # The foreign marker file must not have been created.
+    assert not outside_path.exists(), (
+        "Writer wrote to a path outside the jail — jail check failed"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Symlink probe test (Blocker 2)
+# ---------------------------------------------------------------------------
+
+
+def test_user_marker_refuses_symlinked_agent_ready(tmp_path, pack_root_factory):
+    """Blocker-2: writer refuses when ~/.agent-ready is a symlink to a foreign directory."""
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core",
+        version="0.1.0",
+        allowed_scopes=["user"],
+        opt_in_at=["user"],
+    )
+    # Pre-create home/.agent-ready as a symlink to a foreign directory.
+    foreign_dir = tmp_path / "foreign_agent_ready"
+    foreign_dir.mkdir()
+    agent_ready = home / ".agent-ready"
+    agent_ready.symlink_to(foreign_dir)
+
+    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    result = _run_writer(env)
+    assert result.returncode != 0
+    assert "not a regular directory" in result.stderr or "symlink" in result.stderr.lower()
+
+    # Foreign directory must not have received a marker write.
+    assert not (foreign_dir / ".adapt-install-marker.toml").exists()
+
+
+# ---------------------------------------------------------------------------
+# Pass-through unresolved-markers / new-companions test (Blocker 3)
+# ---------------------------------------------------------------------------
+
+
+def test_cli_seed_unresolved_markers_and_new_companions_survive_rewrite(
+    tmp_path, pack_root_factory
+):
+    """Blocker-3: CLI-seeded unresolved-markers and new-companions survive a
+    Claude-plugins writer re-serialisation pass.
+    """
+    from agentbundle.commands.install import _append_install_marker
+
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+
+    # Seed via the CLI writer with non-empty arrays for both fields.
+    _append_install_marker(
+        project_dir,
+        "repo",
+        pack_name="cli-pack",
+        pack_version="1.0.0",
+        unresolved_markers=["marker-a", "marker-b"],
+        new_companions=["companion-x"],
+        allowed_prefixes=None,
+    )
+
+    marker_path = project_dir / ".adapt-install-marker.toml"
+    assert marker_path.exists()
+
+    # Verify the CLI seed has the arrays.
+    data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
+    cli_entry = next(e for e in data["packs-installed"] if e["name"] == "cli-pack")
+    assert cli_entry["unresolved-markers"] == ["marker-a", "marker-b"]
+    assert cli_entry["new-companions"] == ["companion-x"]
+
+    # Now run the Claude-plugins writer against the same marker.
+    plugin_root, plugin_data, _, _ = pack_root_factory(
+        name="plugins-pack",
+        version="0.5.0",
+        allowed_scopes=["repo"],
+        opt_in_at=["local"],
+    )
+    local_settings = project_dir / ".claude" / "settings.local.json"
+    local_settings.parent.mkdir(parents=True, exist_ok=True)
+    local_settings.write_text(
+        json.dumps({"enabledPlugins": ["plugins-pack"]}), encoding="utf-8"
+    )
+
+    env = _make_env(
+        plugin_root=plugin_root,
+        plugin_data=plugin_data,
+        home=home,
+        project_dir=project_dir,
+    )
+    result = _run_writer(env)
+    assert result.returncode == 0, result.stderr
+
+    # Re-read and verify the CLI-seeded arrays survived.
+    data2 = tomllib.loads(marker_path.read_text(encoding="utf-8"))
+    cli_entries = [e for e in data2["packs-installed"] if e["name"] == "cli-pack"]
+    assert len(cli_entries) == 1, "CLI-seeded entry was lost after writer pass"
+    assert cli_entries[0]["unresolved-markers"] == ["marker-a", "marker-b"], (
+        "unresolved-markers was dropped during re-serialisation"
+    )
+    assert cli_entries[0]["new-companions"] == ["companion-x"], (
+        "new-companions was dropped during re-serialisation"
+    )
+
+
+# ---------------------------------------------------------------------------
+# _emit_basic_string parity test (Concern 5)
+# ---------------------------------------------------------------------------
+
+
+def test_emit_basic_string_parity_with_source():
+    """Concern-5: vendored _emit_basic_string in install-marker.py produces
+    byte-identical output to the source in agentbundle.config for every input
+    in the fixed attack corpus.
+    """
+    from agentbundle.config import _emit_basic_string as source_fn
+
+    # Load the vendored copy from the writer template via importlib.
+    spec = importlib.util.spec_from_file_location("_install_marker_writer", WRITER)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    vendored_fn = mod._emit_basic_string
+
+    corpus = [
+        " ", "", "hello", 'a"b', "a\\b", "\n", "\x00", "\x01", "\x1f", "\x7f",
+        "café", "🚀",
+    ]
+    for value in corpus:
+        source_out = source_fn(value)
+        vendored_out = vendored_fn(value)
+        assert source_out == vendored_out, (
+            f"_emit_basic_string mismatch for {value!r}: "
+            f"source={source_out!r} vendored={vendored_out!r}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# TOML-injection via pack name test (Concern 6)
+# ---------------------------------------------------------------------------
+
+
+def test_pack_toml_injection_via_name_is_neutralised(tmp_path, pack_root_factory):
+    """Concern-6: adversarial pack name with embedded quote is sanitised;
+    exactly one entry with the literal name survives in the parsed marker.
+    """
+    # Build a pack with a name containing an injection attempt.
+    injected_name = 'core"injected'
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name=injected_name,
+        version="0.1.0",
+        allowed_scopes=["repo"],
+        opt_in_at=["local"],
+    )
+
+    env = _make_env(
+        plugin_root=plugin_root,
+        plugin_data=plugin_data,
+        home=home,
+        project_dir=project_dir,
+    )
+    result = _run_writer(env)
+    assert result.returncode == 0, result.stderr
+
+    marker_path = project_dir / ".adapt-install-marker.toml"
+    assert marker_path.exists()
+
+    # Parse via tomllib — if injection succeeded, the parse would either fail
+    # or produce phantom keys. We assert exactly one entry with the literal name.
+    data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
+    entries = data.get("packs-installed", [])
+    assert len(entries) == 1, f"Expected 1 entry, got {len(entries)}: {entries}"
+    assert entries[0]["name"] == injected_name, (
+        f"Entry name {entries[0]['name']!r} != expected {injected_name!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Missing env-var tests (Concern 17)
+# ---------------------------------------------------------------------------
+
+
+def test_missing_claude_plugin_root_exits_nonzero_with_stderr(tmp_path):
+    """Concern-17a: CLAUDE_PLUGIN_ROOT unset → exit 1 with stderr naming the variable."""
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "CLAUDE_PLUGIN_DATA": str(tmp_path / "data"),
+        "HOME": str(tmp_path / "home"),
+    }
+    result = _run_writer(env)
+    assert result.returncode != 0
+    assert "CLAUDE_PLUGIN_ROOT" in result.stderr
+
+
+def test_missing_claude_plugin_data_exits_nonzero_with_stderr(tmp_path):
+    """Concern-17b: CLAUDE_PLUGIN_DATA unset → exit 1 with stderr naming the variable."""
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "CLAUDE_PLUGIN_ROOT": str(tmp_path / "root"),
+        "HOME": str(tmp_path / "home"),
+    }
+    result = _run_writer(env)
+    assert result.returncode != 0
+    assert "CLAUDE_PLUGIN_DATA" in result.stderr
+
+
+def test_missing_home_exits_nonzero_with_stderr(tmp_path):
+    """Concern-17c: HOME unset → exit 1 with stderr naming the variable."""
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "CLAUDE_PLUGIN_ROOT": str(tmp_path / "root"),
+        "CLAUDE_PLUGIN_DATA": str(tmp_path / "data"),
+    }
+    result = _run_writer(env)
+    assert result.returncode != 0
+    assert "HOME" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Malformed pack.toml test (Concern 18)
+# ---------------------------------------------------------------------------
+
+
+def test_malformed_pack_toml_exits_nonzero_with_stderr(tmp_path):
+    """Concern-18: garbage pack.toml → exit 1 with stderr mentioning 'pack.toml'."""
+    plugin_root = tmp_path / "plugin_root"
+    plugin_root.mkdir()
+    (plugin_root / "pack.toml").write_text("not valid toml {{{{", encoding="utf-8")
+
+    plugin_data = tmp_path / "plugin_data"
+    plugin_data.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "CLAUDE_PLUGIN_ROOT": str(plugin_root),
+        "CLAUDE_PLUGIN_DATA": str(plugin_data),
+        "HOME": str(home),
+    }
+    result = _run_writer(env)
+    assert result.returncode != 0
+    assert "pack.toml" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Hash-write-failure self-heal test (Concern 19)
+# ---------------------------------------------------------------------------
+
+
+def test_hash_file_write_failure_self_heals(tmp_path, pack_root_factory):
+    """Concern-19: hash-write failure → marker written, exit 0 + warning;
+    second run completes both writes; final marker has exactly one entry.
+    """
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core",
+        version="0.1.0",
+        allowed_scopes=["repo"],
+        opt_in_at=["local"],
+    )
+
+    # First run: make the plugin_data directory read-only so hash write fails.
+    # The marker itself is in project_dir which remains writable.
+    sitecustomize_dir = tmp_path / "sc_hash_fail"
+    sitecustomize_dir.mkdir()
+    (sitecustomize_dir / "sitecustomize.py").write_text(
+        textwrap.dedent("""
+            import os as _os
+            _original_replace = _os.replace
+            _call_count = [0]
+
+            def _selective_replace(src, dst):
+                # Allow the first replace (marker write), fail the second (hash write).
+                _call_count[0] += 1
+                if _call_count[0] == 2:
+                    raise PermissionError("simulated hash write failure")
+                return _original_replace(src, dst)
+
+            _os.replace = _selective_replace
+        """),
+        encoding="utf-8",
+    )
+
+    env_fail = _make_env(
+        plugin_root=plugin_root,
+        plugin_data=plugin_data,
+        home=home,
+        project_dir=project_dir,
+        extra_pythonpath=str(sitecustomize_dir),
+    )
+    result_fail = _run_writer(env_fail)
+    # Exit 0 even on hash-write failure (non-fatal).
+    assert result_fail.returncode == 0, result_fail.stderr
+    # Warning present.
+    assert "hash write failed" in result_fail.stderr
+
+    marker_path = project_dir / ".adapt-install-marker.toml"
+    assert marker_path.exists(), "Marker must be written even when hash write fails"
+    # Hash file NOT written on first run.
+    assert not (plugin_data / "pack-manifest-hash").exists()
+
+    # Second run (no sabotage): both marker and hash complete.
+    env_ok = _make_env(
+        plugin_root=plugin_root,
+        plugin_data=plugin_data,
+        home=home,
+        project_dir=project_dir,
+    )
+    result_ok = _run_writer(env_ok)
+    assert result_ok.returncode == 0, result_ok.stderr
+    assert (plugin_data / "pack-manifest-hash").exists()
+
+    # Final marker: exactly one entry for the pack (upgrade-replace, no duplication).
+    data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
+    core_entries = [e for e in data.get("packs-installed", []) if e["name"] == "core"]
+    assert len(core_entries) == 1, (
+        f"Expected exactly 1 entry for 'core', got {len(core_entries)}"
+    )
