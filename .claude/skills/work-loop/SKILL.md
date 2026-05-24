@@ -1,9 +1,6 @@
 ---
 name: work-loop
 description: Use this skill whenever you're implementing a non-trivial change — a feature, a multi-file bug fix, a refactor, a migration, a framework or dependency upgrade, a schema or API change, performance work, an infrastructure or build-system edit, or anything spec-driven. It enforces the project's plan → execute → self-review → fix loop with mechanical gates (lint, typecheck, tests) and adversarial review. Default to this skill for any task larger than a one-line edit.
-dependencies:
-  - docs/knowledge/README.md
-  - docs/knowledge/patterns.jsonl
 ---
 
 # Skill: work-loop
@@ -394,24 +391,23 @@ Before the PR is opened, ask: *what would have made this loop go faster?*
 Where the answer goes depends on the *shape* of the learning:
 
 - **Practitioner lessons** — a repeatable pattern that worked, a
-  gotcha that bit you, or an antipattern that looked good but rotted —
-  go in [`docs/knowledge/patterns.jsonl`](../../../docs/knowledge/patterns.jsonl)
-  as a new entry. The schema is in
-  [`docs/knowledge/README.md`](../../../docs/knowledge/README.md);
-  one JSON object per line, scoped to a file glob. The
-  `session-start` hook reads these so the next agent starts with the
-  relevant ones already in context.
+  gotcha that bit you, or an antipattern that looked good but rotted.
+  Check `docs/CONVENTIONS.md` for a `Knowledge base` section: if
+  present, follow what it says for schema, file location, and how the
+  session-start hook surfaces these on the next loop. If the section
+  isn't there, fall back to a one-line note in the relevant
+  `AGENTS.md` (root or per-package) — the next agent still sees it.
 - "I had to grep for `<thing>` repeatedly" → add a pointer in
   `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's
   `AGENTS.md`.
 - "I made the same wrong assumption twice" → if it's a
-  knowledge-base-shaped lesson (a pattern/gotcha/antipattern), record
-  it in `patterns.jsonl`; if it's project-conventions context, add a
-  line to the relevant `AGENTS.md` (root or per-package) so the next
-  agent doesn't repeat it. If it's a vocabulary issue (a term that
-  means something specific here), it goes in `docs/guides/reference/`
-  as a glossary entry.
+  knowledge-base-shaped lesson (a pattern/gotcha/antipattern), follow
+  the routing in the first bullet; if it's project-conventions
+  context, add a line to the relevant `AGENTS.md` (root or
+  per-package) so the next agent doesn't repeat it. If it's a
+  vocabulary issue (a term that means something specific here), it
+  goes in `docs/guides/reference/` as a glossary entry.
 - "This workflow is now the third time I've done it" → propose it as a new
   skill in `.claude/skills/`.
 
