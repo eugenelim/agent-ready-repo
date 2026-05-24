@@ -1,0 +1,17 @@
+# Kiro user-scope hook-bearing fixture pack (T3 / RFC-0005).
+# Variant of kiro-repo-hooks declaring `user-scope-hooks = true`. The
+# pack-owned agent JSON lands under `~/.kiro/agents/` at user scope;
+# the hook body lands under `~/.kiro/hooks/<pack>/`.
+
+[pack]
+name = "kiro-user-hooks"
+version = "0.1.0"
+description = "Fixture: Kiro user-scope variant with agent + hooks."
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user"]
+user-scope-hooks = true

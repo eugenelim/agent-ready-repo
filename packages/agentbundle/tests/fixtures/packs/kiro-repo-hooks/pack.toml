@@ -1,0 +1,16 @@
+# Kiro repo-scope hook-bearing fixture pack (T3 / RFC-0005).
+# Ships a single agent (`reviewer`) plus a hook-body + wiring that
+# attaches to it. This is the canonical Kiro shape: hook-wiring binds
+# inside the agent JSON via `merge-into-agent-json`.
+
+[pack]
+name = "kiro-repo-hooks"
+version = "0.1.0"
+description = "Fixture: Kiro repo-scope pack with agent + hooks."
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
