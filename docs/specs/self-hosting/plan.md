@@ -1,7 +1,7 @@
 # Plan: self-hosting
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Phase 1 shipped; Phase 2 pending
+- **Status:** Shipped
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -24,12 +24,11 @@
 >   drift-message source-path + regen-command naming,
 >   `[info]` lines for unclassified paths, and `.adapt-discovery.toml`
 >   marker resolution across the widened scope.
-> - **Remaining Phase 2** (follow-up PR): comparison-rule strengthening —
->   LF normalisation, file-mode bits, symlink-target via `lstat`
->   (load-bearing for gate correctness; deserves its own test pass +
->   adversarial review). AGENTS.md body+footer composition and the
->   Codex multi-pack managed-block splice are closed by the 2026-05-23
->   AC8 pass.
+> - **Phase 2 (closed):** AGENTS.md body+footer composition + Codex
+>   multi-pack managed-block splice closed by the 2026-05-23 AC8
+>   pass; comparison-rule strengthening (LF normalisation, file-mode
+>   bits, symlink-target via `lstat`) closed by the 2026-05-23 final
+>   pass per the Changelog. No Phase 3.
 > - CLI surface in task bodies uses RFC-0002's flag form (`--self`,
 >   `--force`, `--dry-run`). The on-disk Makefile equivalents are
 >   `make build-self`, `make build-self FORCE=1`, and
@@ -511,13 +510,25 @@ T6's PR diff.
 
 ## Changelog
 
+- 2026-05-23: Phase 2 closed. Comparison-rule strengthening landed:
+  CRLF→LF normalisation for text-like files, file-mode permission-bit
+  comparison for regular files, and symlink-target comparison via
+  `lstat` (never following). Implementation in
+  `agentbundle/build/self_host.py::diff_against_working_tree`; per-rule
+  unit tests (`CrlfNormalisationTests`, `FileModeBitsTests`,
+  `SymlinkTargetTests`) plus one integration test
+  (`StrengthenedDiffRegressionIntegrationTests`) pairing each rule
+  with the regression it was added to catch. All 40
+  `test_self_host_check.py` cases green; `make build-check` clean.
+  Plan status flips to Shipped.
 - 2026-05-23: executed the Codex-dependent Phase-2 slice for AC8.
   Added Codex multi-pack aggregation before managed-block splicing,
   widened `SELF_HOST_ADAPTERS` to `claude-code` + `codex`, materialised
   `packs/core/seeds/AGENTS.md`, and wired self-host `AGENTS.md`
   composition as body + Codex-managed skills block + footer. Focused
   unit tests and `make build-check` passed. The comparison-rule
-  strengthening task remains open.
+  strengthening task remained open at the time and was closed in the
+  follow-up entry above.
 - 2026-05-22: initial plan.
 - 2026-05-22: applied cross-cutting decisions CC1–CC6 (canonical
   spec directory `docs/specs/self-hosting/`; singular `docs/rfc/` /
