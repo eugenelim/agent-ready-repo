@@ -171,22 +171,24 @@ For anything beyond trivial, *think before you write code*. Concretely:
   than to code — catching a vague behavior, a missing `Depends on:`,
   a mismatched verification mode, or a misplaced module boundary here
   costs a sentence; catching it post-EXECUTE costs a re-do. Gate
-  mechanism is unchanged: `state.json.plan_review_status` flips to
-  `approved` once clean; `check-done.py --phase plan` unlocks EXECUTE.
+  mechanism is unchanged: the `loop-cohort approve-plan` verb flips
+  `state.json.plan_review_status` to `approved` once the reviewer is
+  clean; `loop-cohort check <spec-dir> --phase plan` unlocks EXECUTE.
   No new state fields. **Both triggers respect the Profile-A opt-out:**
   skip if the project doesn't use the reviewer at all.
-- **Initialize the loop's state file.** Copy this skill's bundled
-  `assets/state.json` to `docs/specs/<feature>/state.json` and set
-  `feature` to the spec slug. The file is gitignored — it's
-  session-scratch, not history. Write it atomically (tmp-file + rename)
-  on every update so a mid-write read never produces malformed JSON.
-  Run this skill's bundled `scripts/check-done.py
-  docs/specs/<feature>/state.json --phase plan`; on
-  the first invocation it will exit 1 with `plan not approved` — **this
-  is the expected cue to run the pre-EXECUTE reviewer**, not a stop-and-
-  surface signal. Once the reviewer is clean, flip
-  `plan_review_status` to `approved` and re-run; exit 0 unlocks EXECUTE.
-  Schema reference: [`references/state-schema.md`](references/state-schema.md).
+- **Initialize the loop's state file.** Run this skill's bundled
+  `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
+  the bundled `assets/state.json` template into place, sets `feature`
+  to the spec slug, and writes atomically. The file is gitignored —
+  session-scratch, not history. Then run `loop-cohort.py check
+  docs/specs/<feature> --phase plan`; on the first invocation it will
+  exit 1 with `plan not approved` — **this is the expected cue to run
+  the pre-EXECUTE reviewer**, not a stop-and-surface signal. Once the
+  reviewer is clean, run `loop-cohort.py approve-plan docs/specs/<feature>`
+  and re-run check; exit 0 unlocks EXECUTE. Every state mutation —
+  template copy, status flip, atomic write — is owned by the tool; do
+  not edit `state.json` by hand. Schema reference:
+  [`references/state-schema.md`](references/state-schema.md).
 
 The output of this step is a written plan (with tests) you can return to.
 Don't keep it in your head — your context will turn over and you'll lose it.
@@ -275,25 +277,24 @@ celebrating what you did. Findings come back grouped by severity
 (Blockers / Concerns / Nits), each with a one-sentence `Fix:`. Iterate
 until the agent returns `Clean — ready to commit.`
 
-**After each reviewer pass, update `state.json`** before iterating:
+**After each reviewer pass, record findings via the tool** before
+iterating. Write the reviewer's report to disk, then run:
 
-1. Move `finding_fingerprints` → `previous_finding_fingerprints`.
-2. For each surviving finding the reviewer surfaced, compute
-   `sha1("<file>|<line>|<title>")` where:
-   - `<file>` is the cited path exactly as the reviewer wrote it.
-   - `<line>` is the first integer after the first colon in the citation,
-     as a decimal string. `foo.py:88` → `88`; `foo.py:88-92` → `88`.
-   - `<title>` is the reviewer's bolded heading for the finding, e.g.
-     `**3. PLAN-phase exit-1 conflates "not yet done" with "stop".**` —
-     keep the surrounding `**` markers and everything between them.
+```
+loop-cohort.py review record docs/specs/<feature> --report <report-path>
+loop-cohort.py check docs/specs/<feature> --phase review
+```
 
-   Write the resulting hex digests to `finding_fingerprints` (order
-   doesn't matter — `check-done.py` sorts before comparing).
-3. Increment `iteration_count`.
-4. Write the file atomically (tmp + rename).
-5. Run this skill's `scripts/check-done.py <state-path> --phase review`. Exit 1 with
-   `no progress` means the same findings landed two iterations in a row;
-   stop and surface to a human rather than spinning a third.
+`review record` parses the report's findings (anchored on the
+adversarial-reviewer's documented `**N. <title>.** \`file:line\`. … Fix: …`
+format), computes `sha1("<file>|<line>|<title>")` per the canonical
+algorithm, rotates `finding_fingerprints` → `previous_finding_fingerprints`,
+sets the new list, increments `iteration_count`, and writes atomically —
+one transaction, no by-hand JSON. If the parser surfaces zero findings on
+a non-clean report it exits non-zero; pass `--fingerprint <hex>` repeated
+to override. `check --phase review` then enforces stasis detection: exit
+1 with `no progress` means the same findings landed two iterations in a
+row; stop and surface to a human rather than spinning a third.
 
 **Specialist reviewers — use after adversarial-reviewer is clean.** Pick
 the ones the diff actually warrants; don't run all three by default.
@@ -373,14 +374,14 @@ The loop must terminate. Iteration without termination is how Ralph loops
 (see below) burn money. Stop when **any** of these is true:
 
 1. **Gates green AND review clean** — the normal exit. Ship.
-2. **`scripts/check-done.py` exits non-zero.** The script is the mechanical
-   side of termination, reading from `state.json` (see
+2. **`scripts/loop-cohort.py check` exits non-zero.** The script is the
+   mechanical side of termination, reading from `state.json` (see
    [`references/state-schema.md`](references/state-schema.md)). It
    fires on iteration cap, token-budget cap, consecutive-error counter,
    pending plan approval (PLAN phase only), and fingerprint stasis
    (REVIEW phase only). The exit message tells you which.
 3. **Diff is shrinking but findings aren't** — you're spot-fixing without
-   addressing root cause. This is a judgment call, not in `check-done.py`.
+   addressing root cause. This is a judgment call, not in `loop-cohort`.
    Stop and rethink the approach (back to PLAN).
 
 If you hit any of these and the work isn't done, the task is bigger than
