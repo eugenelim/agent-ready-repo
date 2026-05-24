@@ -289,6 +289,49 @@ class ProjectionDefenseInDepthRefusals(unittest.TestCase):
             self.assertIn("unknown hook-body", str(cm.exception))
 
 
+class PromptFieldPreservedThroughProjection(unittest.TestCase):
+    """RFC § Substitution rules clause 1 + spec AC: a placeholder-
+    shaped string in then.prompt passes through projection
+    unchanged. Pin string-content preservation (byte-for-byte shape
+    isn't promised when the parse-re-emit branch fires, only the
+    string content)."""
+
+    def test_prompt_placeholder_text_survives_projection(self) -> None:
+        from agentbundle.build.projections import kiro_ide_hook
+
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            pack = _make_pack(
+                root,
+                kiro_ide_hooks={
+                    "ask.kiro.hook": {
+                        "name": "Mentions placeholder",
+                        "version": "1",
+                        "when": {"type": "fileSave"},
+                        "then": {
+                            "type": "askAgent",
+                            "prompt": "The marker ${hook-body:unknown} should survive.",
+                        },
+                    },
+                },
+            )
+            output = root / "out"
+            kiro_ide_hook.project(
+                pack,
+                output,
+                target_template=".kiro/hooks/<pack>/<name>.kiro.hook",
+                hook_body_target_dir="tools/hooks",
+            )
+            body = json.loads(
+                (output / ".kiro" / "hooks" / "test-pack" / "ask.kiro.hook")
+                .read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                body["then"]["prompt"],
+                "The marker ${hook-body:unknown} should survive.",
+            )
+
+
 class NoOpWhenSourceDirAbsent(unittest.TestCase):
     """`.apm/kiro-ide-hooks/` absent — projector returns silently."""
 

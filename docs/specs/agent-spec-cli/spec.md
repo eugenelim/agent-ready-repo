@@ -426,8 +426,20 @@ content threads the directory through the build pipeline's new
 `kiro-ide-hook` projection phase (after `hook-wiring` and before
 `command`, per the sibling
 [`distribution-adapters/spec.md`](../distribution-adapters/spec.md)'s
-`## v0.4 IDE event hooks (RFC-0005)` subsection). Per-file
-projection:
+`## v0.4 IDE event hooks (RFC-0005)` subsection).
+
+**Pre-install validation — validate-only by design.** The
+`check_kiro_ide_hook` rail runs at `validate` time but **not** at
+`install` time. This matches the pre-existing convention for the
+Kiro vocabulary rails (`check_kiro_event_vocabulary` is also
+validate-only); only Rails A/B/C from RFC-0004 are dual-wired.
+Adopters who want kiro-ide-hook validation as an install
+pre-check run `agentbundle validate <pack>` first; a follow-up
+RFC could extend `install` to mirror the existing rails into the
+install path, but doing so here would broaden a pattern that
+hasn't been challenged.
+
+Per-file projection:
 
 - **askAgent-shaped hooks** (`then.type == "askAgent"` AND raw
   bytes contain no `${` substring) byte-copy via `shutil.copy2`,

@@ -413,8 +413,8 @@ one-line, naming the offending pack and the offending file.
       `pack <P>'s kiro-ide-hook <file> is missing required field <field>`.
 - [ ] **T-C2.2** `when.type` not in `ide-event-vocabulary`:
       `pack <P>'s kiro-ide-hook <file> uses event '<type>'; not in adapter 'kiro' ide-event-vocabulary`.
-- [ ] **T-C2.3** `then.type` not in `ide-action-vocabulary`: same
-      shape, different list.
+- [ ] **T-C2.3** `then.type` not in `ide-action-vocabulary`:
+      `pack <P>'s kiro-ide-hook <file> uses action '<type>'; not in adapter 'kiro' ide-action-vocabulary`.
 - [ ] **T-C2.4** Malformed placeholder:
       `pack <P>'s kiro-ide-hook <file> contains malformed placeholder '<text>'; expected ${hook-body:<name>} with name matching [a-zA-Z0-9_-]+`.
 - [ ] **T-C2.5** Unresolvable placeholder:
@@ -727,6 +727,14 @@ task surfaces; T-CONTRACT pauses behind it.
       `"kiro-ide-hook"` — lands here, not T-C1, so the schema's
       required list and the contract's `[primitive]` declaration
       hit the tree in the same commit.
+- [ ] `adapter.schema.json` array-form `primitive` enum
+      (`adapter.<name>.projection.items.properties.primitive.enum`)
+      grows `"kiro-ide-hook"` — same reason as the previous AC:
+      the `[[adapter.<other>.projection]] primitive = "kiro-ide-hook",
+      mode = "dropped"` rows would otherwise fail enum validation.
+      Two distinct enum sites in the same schema file; both must
+      widen together. Pre-EXECUTE adversarial review caught this
+      bookkeeping gap.
 - [ ] `[adapter.kiro.projections.kiro-ide-hook]` table added with:
       `mode = "direct-file"`, `target.repo = "<probe-pinned-string>"`,
       `on-conflict = "prompt-then-preserve"`,
