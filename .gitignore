@@ -28,6 +28,7 @@ AGENTS.local.md
 __pycache__/
 *.egg-info/
 *.pyc
+build/
 
 # Build pipeline output.
 dist/
