@@ -46,6 +46,11 @@ version = "99.0"
     # follows the symlink and returns False if the target appears
     # invalid to Python's resolver, which races against symlink_to() and
     # produces FileExistsError on the second test-session run.
+    # Test-only symlink: this fixture aliases an out-of-pack fixture
+    # directory into the expected `packs/<name>/` layout for the
+    # version-gate harness; it is not pack content and the
+    # Windows-portability lint (which walks shipped packs/) does not reach it.
+    # On native Windows the harness would skip; Windows CI is Phase 5.
     pack_link = FIXTURE_PACK.parent / "packs" / "incompatible"
     relative_target = os.path.relpath(FIXTURE_PACK, pack_link.parent)
     if pack_link.is_symlink() or pack_link.exists():

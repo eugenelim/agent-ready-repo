@@ -12,9 +12,15 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold validate clean zipapp release-preflight
+.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs validate clean zipapp release-preflight
 
-build:
+# Windows-portability gate. Refuses packs that ship symlinks or
+# Windows-poisonous names under seeds/ or .apm/. Runs before every
+# build target so a violation cannot be smuggled into dist/.
+lint-packs:
+	$(PYTHON) -m agentbundle.build lint-packs --packs-dir $(PACKS_DIR)
+
+build: lint-packs
 ifeq ($(RECIPE),)
 ifeq ($(PACK),)
 	$(PYTHON) -m agentbundle.build build --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
@@ -29,7 +35,7 @@ else
 endif
 endif
 
-build-self:
+build-self: lint-packs
 	@case "$(PACKS_DIR)" in \
 		*tests/fixtures/*) \
 			if [ -z "$$ALLOW_FIXTURE_PACKS" ]; then \
@@ -51,10 +57,10 @@ else
 endif
 endif
 
-build-self-dry-run:
+build-self-dry-run: lint-packs
 	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
 
-build-check:
+build-check: lint-packs
 	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
 
 build-scaffold:
@@ -81,5 +87,5 @@ zipapp:
 	@rm -rf $(OUTPUT_DIR)/_zipapp_stage
 	@echo "built $(OUTPUT_DIR)/agentbundle.pyz"
 
-release-preflight:
+release-preflight: lint-packs
 	@bash tools/release-check.sh

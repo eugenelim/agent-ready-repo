@@ -161,6 +161,102 @@ def assert_under(root: Path, target: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Windows-portability guard
+# ---------------------------------------------------------------------------
+
+# Windows reserves these device names regardless of extension — `CON.txt`
+# is the same as `CON`. The set is case-insensitive and applies at every
+# path segment, so `foo/NUL.log` is also poisonous. We check on every OS
+# because pack content authored on macOS still ships to Windows adopters.
+_WINDOWS_RESERVED_NAMES = frozenset(
+    ["CON", "PRN", "AUX", "NUL"]
+    + [f"COM{i}" for i in range(1, 10)]
+    + [f"LPT{i}" for i in range(1, 10)]
+)
+
+# Characters Windows refuses in filenames. The forward slash is the path
+# separator on both POSIX and Windows so it is excluded; the backslash
+# is excluded because we treat it as a separator (callers normalise at
+# the CLI boundary, and `_split_segments` below splits on both).
+_WINDOWS_FORBIDDEN_CHARS = frozenset('<>:"|?*')
+
+
+def _split_segments(relpath: str) -> list[str]:
+    """Split a relpath into segments, treating `/` and `\\` as separators.
+
+    Empty segments (from leading/trailing/double separators) are dropped
+    so we don't flag the empty stem as "trailing space" or "reserved."
+
+    Defense-in-depth: even though `cli.py:_normalise_path_separators`
+    rewrites backslashes at the CLI boundary, this helper accepts both
+    separators so a library caller that bypasses the CLI (a test, a
+    Python harness) still gets the guard applied correctly. Callers
+    should not assume the relpath is pre-normalised.
+    """
+    out: list[str] = []
+    buf: list[str] = []
+    for ch in relpath:
+        if ch in ("/", "\\"):
+            if buf:
+                out.append("".join(buf))
+                buf = []
+        else:
+            buf.append(ch)
+    if buf:
+        out.append("".join(buf))
+    return out
+
+
+def assert_portable_name(relpath: str) -> None:
+    """Refuse if any path segment is a Windows-poisonous name.
+
+    Checks three classes (all OSes, because pack content travels):
+      1. Reserved device names (CON/PRN/AUX/NUL/COM1-9/LPT1-9), case-
+         insensitive, matched on the segment **before** any extension —
+         Windows treats `CON.txt` and `NUL.tar.gz` the same as the bare
+         device name.
+      2. Segments ending in `.` or ` ` — Windows silently strips both
+         from filenames at the API layer, so a pack file named `foo. `
+         disappears on extract.
+      3. Segments containing `<>:"|?*` — illegal in Windows filenames.
+
+    Raises `PathJailError` with a one-line message naming the segment.
+    """
+    for segment in _split_segments(relpath):
+        if not segment:
+            continue
+        # `.` and `..` are traversal markers — `assert_under` handles
+        # escape attempts via path resolution. Skip them here so a
+        # `../malicious` write reports the jail violation rather than
+        # the "trailing dot" guard.
+        if segment in (".", ".."):
+            continue
+        # Class 3: forbidden characters (check first — cheap, no
+        # tokenisation needed and gives the most actionable message).
+        for ch in segment:
+            if ch in _WINDOWS_FORBIDDEN_CHARS:
+                raise PathJailError(
+                    f"refusing path with forbidden character {ch!r} in segment "
+                    f"{segment!r} (Windows-incompatible): {relpath}"
+                )
+        # Class 2: trailing dot or space.
+        if segment.endswith(".") or segment.endswith(" "):
+            raise PathJailError(
+                f"refusing path with trailing dot or space in segment "
+                f"{segment!r} (Windows strips both silently): {relpath}"
+            )
+        # Class 1: reserved device name on the pre-extension stem.
+        # Windows treats every `<reserved>.<anything>` as the device,
+        # so split on the *first* dot rather than the last.
+        stem = segment.split(".", 1)[0]
+        if stem.upper() in _WINDOWS_RESERVED_NAMES:
+            raise PathJailError(
+                f"refusing path with Windows-reserved device name "
+                f"{stem!r} in segment {segment!r}: {relpath}"
+            )
+
+
+# ---------------------------------------------------------------------------
 # Atomic, jailed writes
 # ---------------------------------------------------------------------------
 
@@ -211,6 +307,7 @@ def write_jailed(
             "allowed_prefixes is required when scope='user'"
         )
 
+    assert_portable_name(relpath)
     target = root / relpath
     assert_under(root, target)
 
@@ -288,6 +385,7 @@ def write_companion(root: Path, relpath: str, content: bytes | str) -> Path:
 
 def copy_jailed(root: Path, source: Path, relpath: str) -> Path:
     """Copy a file into the jailed root, preserving mode (mirrors shutil.copy2)."""
+    assert_portable_name(relpath)
     target = root / relpath
     assert_under(root, target)
     target.parent.mkdir(parents=True, exist_ok=True)

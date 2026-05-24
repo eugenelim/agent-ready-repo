@@ -31,6 +31,32 @@ from typing import Sequence
 from agentbundle.version import CLI_VERSION, SPEC_VERSION
 
 
+# Path-bearing argparse-attribute names. The set is curated rather than
+# "every string attribute" so a future flag carrying a content string
+# with a literal backslash (a regex fragment, a message body) is not
+# silently mangled. Update this list — and the corresponding test in
+# `tests/unit/test_cli_path_normalisation.py` — when adding a new
+# path-bearing flag.
+_PATH_BEARING_ATTRS = frozenset(
+    {
+        "output",
+        "output_dir",
+        "root",
+        "pack_path",
+        "packs_dir",
+        "catalogue",
+        "values_from",
+        # `path` is the validate-subcommand positional in the sibling
+        # `agentbundle.build` parser; it points at adapter.toml / a
+        # contract file. Both entry points run the same normaliser
+        # over the same allow-list so a backslash works equally on
+        # `agentbundle render packs\core` and `python -m
+        # agentbundle.build validate docs\contracts\adapter.toml`.
+        "path",
+    }
+)
+
+
 # Flags the spec's stderr contract names by hand. `error()` re-emits
 # any "unrecognized arguments: --scope[=value]" or "--force" mention
 # from argparse with the documented `unknown flag for <verb>: <flag>`
@@ -340,12 +366,41 @@ def _lazy(module_name: str):
     return _runner
 
 
+def _normalise_path_separators(args: argparse.Namespace) -> None:
+    """Rewrite backslashes to forward slashes on path-bearing
+    string attributes of the parsed namespace.
+
+    Done at the CLI boundary so a Windows operator typing
+    `agentbundle scaffold --output=packs\\core\\seeds` lands in the
+    same place as `--output=packs/core/seeds`. The path-jail check
+    and the Windows reserved-name guard both run on the normalised
+    form, so the two inputs share a single code path inside the CLI.
+
+    Only attribute names listed in `_PATH_BEARING_ATTRS` are touched —
+    that keeps a future content-string flag (regex, message body) from
+    being silently mangled. URI-shaped values (`git+https://…`) are
+    detected by `://` and left alone even when their attribute is in
+    the allow-list, because the same flag (`catalogue`) accepts both
+    local paths and URIs.
+    """
+    for key in _PATH_BEARING_ATTRS:
+        value = getattr(args, key, None)
+        if not isinstance(value, str):
+            continue
+        if "\\" not in value:
+            continue
+        if "://" in value:
+            continue
+        setattr(args, key, value.replace("\\", "/"))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
         parser.print_help()
         return 0
+    _normalise_path_separators(args)
     return int(args.func(args))
 
 

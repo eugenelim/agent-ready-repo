@@ -277,6 +277,9 @@ class RailCMarkersTests(unittest.TestCase):
             skills_dir.mkdir(parents=True)
             # Create a symlink — target need not exist; the rail
             # refuses on the symlink type alone.
+            # Test-only symlink: the Windows-portability lint forbids
+            # symlinks in shipped packs; this fixture is a runtime
+            # hostile-pack simulation, not a release artefact.
             _os.symlink("/dev/null", skills_dir / "SKILL.md")
             result = check_markers(pack, ["user"])
             self.assertIsNotNone(result)
