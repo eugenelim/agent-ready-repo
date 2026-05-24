@@ -33,11 +33,13 @@ def _load_contract() -> dict:
 
 
 class ContractVersionTests(unittest.TestCase):
-    """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005."""
+    """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005,
+    then to 0.4 by RFC-0008 (T2 / spec claude-plugins-install-route)."""
 
     def test_contract_version_is_0_3(self) -> None:
+        # T2 bumped the version to "0.4"; updated assertion.
         contract = _load_contract()
-        self.assertEqual(contract["contract"]["version"], "0.3")
+        self.assertEqual(contract["contract"]["version"], "0.4")
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):

@@ -1,9 +1,11 @@
-"""Tests for plugin-manifest.schema.json (T1c).
+"""Tests for plugin-manifest.schema.json and plugin-manifest.derived.schema.json.
 
 Verifies:
-  - plugin-manifest.schema.json accepts a minimal hand-authored
+  - plugin-manifest.schema.json (source shape) accepts a minimal hand-authored
     .claude-plugin/plugin.json (AC 4).
-  - The schema loads with the expected top-level shape.
+  - The source schema loads with the expected top-level shape.
+  - T2: source schema forbids the hooks property (AC10 gate 1).
+  - T2: derived schema accepts the synthesised hooks.SessionStart block (AC10 gate 1).
 """
 
 from __future__ import annotations
@@ -16,10 +18,17 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 PLUGIN_MANIFEST_SCHEMA_PATH = (
     REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
 )
+PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = (
+    REPO_ROOT / "docs" / "contracts" / "plugin-manifest.derived.schema.json"
+)
 
 
 def _load_schema() -> dict:
     return json.loads(PLUGIN_MANIFEST_SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def _load_derived_schema() -> dict:
+    return json.loads(PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
 class PluginManifestSchemaAcceptsValidExamplesTests(unittest.TestCase):
@@ -141,6 +150,107 @@ class PluginManifestSchemaLoadsTests(unittest.TestCase):
         self.assertIn("name", required)
         self.assertIn("version", required)
         self.assertIn("description", required)
+
+
+class PluginManifestSchemaSplitTests(unittest.TestCase):
+    """T2: Source schema forbids hooks; derived schema accepts synthesised hooks (AC10 gate 1).
+
+    test_source_plugin_manifest_schema_forbids_hooks
+    test_derived_plugin_manifest_schema_accepts_synthesised_hooks
+    """
+
+    def test_source_plugin_manifest_schema_forbids_hooks(self) -> None:
+        """Source-shape schema rejects any manifest carrying a hooks property.
+
+        AC10 gate 1 (Blocker-5 rail): a stray hooks block in a source-tree
+        plugin.json must fail schema validation. The additionalProperties: false
+        + explicit property list is the mechanism — hooks is not in the list.
+        """
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+
+        # Minimal manifest (no hooks) must still validate.
+        minimal = {
+            "name": "agent-ready-core",
+            "version": "0.1.0",
+            "description": "Core agent skills.",
+        }
+        errors = validate(minimal, schema)
+        self.assertEqual(
+            errors,
+            [],
+            f"source schema rejected a valid manifest with no hooks:\n"
+            + "\n".join(errors),
+        )
+
+        # Manifest with hooks must be rejected — hooks is not in the source
+        # schema's properties enumeration and additionalProperties is false.
+        with_hooks = {
+            "name": "agent-ready-core",
+            "version": "0.1.0",
+            "description": "Core agent skills.",
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "command": 'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+                    }
+                ]
+            },
+        }
+        errors = validate(with_hooks, schema)
+        self.assertTrue(
+            errors,
+            "source schema must reject a manifest carrying a hooks property "
+            "(hooks is not in the source schema's properties list; "
+            "additionalProperties: false should block it)",
+        )
+
+    def test_derived_plugin_manifest_schema_accepts_synthesised_hooks(self) -> None:
+        """Derived-shape schema accepts a manifest with the synthesised hooks.SessionStart block.
+
+        AC10 gate 1: the build pipeline validates derived-tree manifests against
+        the derived schema. The derived schema adds hooks to the properties
+        enumeration so additionalProperties: false still holds.
+        """
+        from agentbundle.build.validate import validate
+
+        derived_schema = _load_derived_schema()
+
+        # Minimal manifest (no hooks) must also be valid under the derived schema.
+        minimal = {
+            "name": "agent-ready-core",
+            "version": "0.1.0",
+            "description": "Core agent skills.",
+        }
+        errors = validate(minimal, derived_schema)
+        self.assertEqual(
+            errors,
+            [],
+            f"derived schema rejected a valid manifest with no hooks:\n"
+            + "\n".join(errors),
+        )
+
+        # Manifest with synthesised hooks.SessionStart block must be accepted.
+        derived = {
+            "name": "agent-ready-core",
+            "version": "0.1.0",
+            "description": "Core agent skills.",
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "command": 'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+                    }
+                ]
+            },
+        }
+        errors = validate(derived, derived_schema)
+        self.assertEqual(
+            errors,
+            [],
+            f"derived schema rejected a manifest with the synthesised hooks block:\n"
+            + "\n".join(errors),
+        )
 
 
 if __name__ == "__main__":
