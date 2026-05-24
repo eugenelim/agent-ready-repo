@@ -326,7 +326,16 @@ def run(args: "argparse.Namespace") -> int:
     for plan in plans:
         if plan.scope == "user":
             allowed_scopes = _resolved_allowed_scopes(pack_install)
-            rail_refusal = scope_rails.run_all(pack_dir, allowed_scopes)
+            # RFC-0005 § Rail B — user-scope lift: the
+            # `[pack.install] user-scope-hooks = true` consent gesture
+            # threads through to the rail at install time too. Without
+            # this, validate and install would disagree on the same
+            # pack: validate would accept (post-T3), install would
+            # refuse — a surface-mismatch class of bug.
+            user_scope_hooks = bool(pack_install.get("user-scope-hooks") is True)
+            rail_refusal = scope_rails.run_all(
+                pack_dir, allowed_scopes, user_scope_hooks
+            )
             if rail_refusal is not None:
                 print(
                     f"install: {pack_name}: {rail_refusal}",

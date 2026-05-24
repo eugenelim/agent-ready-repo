@@ -1,0 +1,5 @@
+attach-to-agent = "reviewer"
+
+[[hooks.agentSpawn]]
+command = "$HOOK_BODY_PATH"
+matcher = ""

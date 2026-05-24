@@ -110,13 +110,31 @@ def check_seeds(pack_path: Path, allowed_scopes: Iterable[str]) -> str | None:
     return None
 
 
-def check_hooks(pack_path: Path, allowed_scopes: Iterable[str]) -> str | None:
+def check_hooks(
+    pack_path: Path,
+    allowed_scopes: Iterable[str],
+    user_scope_hooks: bool = False,
+) -> str | None:
     """Rail B. Return None on accept; refusal string on refuse.
 
-    A pack containing a non-empty `.apm/hooks/` or `.apm/hook-wiring/`
-    directory cannot declare `"user" ∈ allowed-scopes`.
+    A pack containing a non-empty ``.apm/hooks/`` or
+    ``.apm/hook-wiring/`` directory cannot declare ``"user" ∈
+    allowed-scopes`` **unless** it explicitly opts in via
+    ``[pack.install] user-scope-hooks = true`` (RFC-0005 § Rail B —
+    user-scope lift). The opt-in is the consent gesture: "yes, my
+    hooks land on the adopter's machine outside per-project isolation".
+
+    The lift here is the validate-side half — T8b threads the same
+    flag through install/uninstall so the rail's behaviour stays
+    consistent between the two surfaces.
     """
     if not _allows_user(allowed_scopes):
+        return None
+    if user_scope_hooks:
+        # Pack-author opted in — RFC-0005 says the rail lifts. The
+        # adapter-side gate (hook-wiring mode declares user-scope
+        # capability) is checked later in the projection pipeline
+        # (T5/T6); the rail's job is the consent-gesture check.
         return None
     for hook_subdir in (".apm/hooks", ".apm/hook-wiring"):
         candidate = pack_path / hook_subdir
@@ -249,19 +267,25 @@ def _is_binary(data: bytes) -> bool:
 def run_all(
     pack_path: Path,
     allowed_scopes: Iterable[str],
+    user_scope_hooks: bool = False,
 ) -> str | None:
     """Run Rails A → B → C in spec order; return first refusal or None.
 
     The spec orders them A → B → C so the seeds rail fires before the
     marker rail's input is even computed (the marker rail never sees
-    `seeds/` content — Rail A already refused the pack if `seeds/` was
-    populated). Use this helper from the CLI's `install` and
-    `validate` surfaces to keep the message order consistent.
+    ``seeds/`` content — Rail A already refused the pack if ``seeds/``
+    was populated). Use this helper from the CLI's ``install`` and
+    ``validate`` surfaces to keep the message order consistent.
+
+    ``user_scope_hooks`` propagates to Rail B's conditional lift
+    (RFC-0005 § Rail B — user-scope lift). Rails A and C ignore it.
     """
-    for rail in (check_seeds, check_hooks, check_markers):
-        result = rail(pack_path, allowed_scopes)
-        if result is not None:
-            return result
+    if (result := check_seeds(pack_path, allowed_scopes)) is not None:
+        return result
+    if (result := check_hooks(pack_path, allowed_scopes, user_scope_hooks)) is not None:
+        return result
+    if (result := check_markers(pack_path, allowed_scopes)) is not None:
+        return result
     return None
 
 

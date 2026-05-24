@@ -1,0 +1,5 @@
+# Deliberately missing `attach-to-agent`. Validate must refuse.
+
+[[hooks.agentSpawn]]
+command = "$HOOK_BODY_PATH"
+matcher = ""

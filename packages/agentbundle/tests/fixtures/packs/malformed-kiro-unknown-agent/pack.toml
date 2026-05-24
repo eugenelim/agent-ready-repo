@@ -1,0 +1,13 @@
+# Negative fixture: Kiro-projecting pack whose `attach-to-agent`
+# names an agent the pack does not ship. Validate must refuse.
+
+[pack]
+name = "malformed-kiro-unknown-agent"
+version = "0.1.0"
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

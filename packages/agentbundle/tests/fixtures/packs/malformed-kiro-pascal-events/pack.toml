@@ -1,0 +1,16 @@
+# Negative fixture: Kiro-projecting pack whose wiring TOML uses
+# Claude-Code-style PascalCase event names (`UserPromptSubmit`) that
+# fall outside Kiro's `agent-event-vocabulary`. The refusal lives in
+# T6 (per-adapter vocabulary gate); this fixture ships now so T6
+# can light up its own integration test against it.
+
+[pack]
+name = "malformed-kiro-pascal-events"
+version = "0.1.0"
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]

@@ -130,6 +130,35 @@ class RailBHooksTests(unittest.TestCase):
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             self.assertIsNone(check_hooks(pack, ["user"]))
 
+    def test_rail_b_lifts_when_user_scope_hooks_true(self) -> None:
+        """RFC-0005 § Rail B — user-scope lift: a pack that opts in via
+        ``user-scope-hooks = true`` is accepted even with hooks at user
+        scope. The flag is the consent gesture."""
+        from agentbundle.build.scope_rails import check_hooks
+
+        with tempfile.TemporaryDirectory() as td:
+            pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
+            (pack / ".apm" / "hooks").mkdir(parents=True)
+            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\nexit 0\n")
+            self.assertIsNone(
+                check_hooks(pack, ["user"], user_scope_hooks=True),
+                "Rail B did not lift on user_scope_hooks=True",
+            )
+
+    def test_rail_b_refuses_without_user_scope_hooks_default(self) -> None:
+        """The default (user_scope_hooks=False) preserves the v0.2 refusal
+        behaviour — a pack with hooks at user scope is refused."""
+        from agentbundle.build.scope_rails import check_hooks
+
+        with tempfile.TemporaryDirectory() as td:
+            pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
+            (pack / ".apm" / "hooks").mkdir(parents=True)
+            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\nexit 0\n")
+            # Default (no flag passed) — must refuse.
+            self.assertIsNotNone(check_hooks(pack, ["user"]))
+            # Explicit False — same refusal.
+            self.assertIsNotNone(check_hooks(pack, ["user"], user_scope_hooks=False))
+
 
 class RailCMarkersTests(unittest.TestCase):
     """`<adapt:NAME>` markers under .apm/skills/, /agents/, /commands/ refused."""
