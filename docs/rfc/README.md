@@ -17,7 +17,8 @@
 ## Adding a new RFC
 
 ```bash
-N=$(printf "%04d" $(( $(ls docs/rfc/ 2>/dev/null | grep -E '^[0-9]{4}' | sed 's/-.*//' | sort -n | tail -1 || echo 0) + 1 )))
+# Find the next number (portable across macOS, Linux, native Windows).
+N=$(python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc)
 cp .claude/skills/new-rfc/assets/rfc.md docs/rfc/${N}-<kebab-title>.md
 ```
 

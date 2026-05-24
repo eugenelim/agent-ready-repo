@@ -26,13 +26,18 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 
 ## Procedure
 
-1. Find the next number:
+1. Find the next number. The bundled helper prints the next 4-digit
+   ordinal — `0001` if no RFCs exist yet, max-plus-one otherwise. It
+   parses the full digit prefix, so a `00099-foo.md` correctly yields
+   `0100` (not `0010`):
 
    ```bash
-   ls docs/rfc/ 2>/dev/null | grep -E '^[0-9]{4}' | sed 's/-.*//' | sort -n | tail -1
+   python3 scripts/next-ordinal.py docs/rfc
    ```
 
-   Add 1, zero-pad to 4 digits. (If no RFCs exist, start at `0001`.)
+   (The script lives next to this `SKILL.md` under `scripts/`. Python
+   is preferred over `ls | grep | sed | sort` so the snippet works the
+   same way on native Windows, macOS, and Linux.)
 
 2. Copy this skill's bundled `assets/rfc.md` into `docs/rfc/` and rename
    to `NNNN-<kebab-title>.md`. (Paths are skill-relative — the
