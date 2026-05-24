@@ -14,7 +14,7 @@ from agentbundle.creds.loader import (
     CredsSchema,
     KeyDef,
     _parse_schema,
-    resolve_schema_path,
+    _relative_schema_path,
 )
 
 
@@ -142,8 +142,8 @@ def test_parse_missing_file_raises(tmp_path):
 # ── Canonical-path resolution (AC24b) ──────────────────────────────────
 
 
-def test_resolve_schema_path_locates_skill_md_and_joins_references():
-    """AC24b: ``resolve_schema_path`` walks ``state.packs[pack].files``
+def test__relative_schema_path_locates_skill_md_and_joins_references():
+    """AC24b: ``_relative_schema_path`` walks ``state.packs[pack].files``
     for ``.claude/skills/<name>/SKILL.md``, takes the parent directory,
     and joins ``references/creds-schema.toml``."""
     pack_state = SimpleNamespace(files={
@@ -152,24 +152,24 @@ def test_resolve_schema_path_locates_skill_md_and_joins_references():
         ".claude/skills/example/SKILL.md": {"sha": "00000000"},
     })
     state = SimpleNamespace(packs={"core": pack_state})
-    resolved = resolve_schema_path(state, "core", "jira")
+    resolved = _relative_schema_path(state, "core", "jira")
     assert str(resolved) == ".claude/skills/jira/references/creds-schema.toml"
 
 
-def test_resolve_schema_path_disambiguates_by_skill_name():
+def test__relative_schema_path_disambiguates_by_skill_name():
     """Two skills under the same pack — the resolver picks the right one."""
     pack_state = SimpleNamespace(files={
         ".claude/skills/jira/SKILL.md": {"sha": "a"},
         ".claude/skills/github/SKILL.md": {"sha": "b"},
     })
     state = SimpleNamespace(packs={"core": pack_state})
-    assert str(resolve_schema_path(state, "core", "jira")) == \
+    assert str(_relative_schema_path(state, "core", "jira")) == \
         ".claude/skills/jira/references/creds-schema.toml"
-    assert str(resolve_schema_path(state, "core", "github")) == \
+    assert str(_relative_schema_path(state, "core", "github")) == \
         ".claude/skills/github/references/creds-schema.toml"
 
 
-def test_resolve_schema_path_missing_skill_raises():
+def test__relative_schema_path_missing_skill_raises():
     """AC24b: a missing SKILL.md row raises ``SchemaError`` naming the
     offending pack + skill so the message is actionable."""
     pack_state = SimpleNamespace(files={
@@ -177,16 +177,16 @@ def test_resolve_schema_path_missing_skill_raises():
     })
     state = SimpleNamespace(packs={"core": pack_state})
     with pytest.raises(SchemaError, match="not found at expected path"):
-        resolve_schema_path(state, "core", "absent-skill")
+        _relative_schema_path(state, "core", "absent-skill")
 
 
-def test_resolve_schema_path_missing_pack_raises():
+def test__relative_schema_path_missing_pack_raises():
     state = SimpleNamespace(packs={})
     with pytest.raises(SchemaError, match="pack 'core' not present"):
-        resolve_schema_path(state, "core", "jira")
+        _relative_schema_path(state, "core", "jira")
 
 
-def test_resolve_schema_path_ignores_non_skill_md_entries():
+def test__relative_schema_path_ignores_non_skill_md_entries():
     """The regex must match exactly ``.claude/skills/<name>/SKILL.md`` —
     nested or differently-named files are skipped."""
     pack_state = SimpleNamespace(files={
@@ -195,7 +195,7 @@ def test_resolve_schema_path_ignores_non_skill_md_entries():
         ".claude/skills/jira/SKILL.md": {"sha": "c"},  # the right one
     })
     state = SimpleNamespace(packs={"core": pack_state})
-    assert ".claude/skills/jira" in str(resolve_schema_path(state, "core", "jira"))
+    assert ".claude/skills/jira" in str(_relative_schema_path(state, "core", "jira"))
 
 
 # ── ``load_credentials(schema_path=...)`` kwarg (T3 + T7) ──────────────
