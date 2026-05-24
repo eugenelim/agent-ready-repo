@@ -99,6 +99,15 @@ slash command) reports findings on:
   whose normalised name matches the banned set. Casing variants and
   `"--" + "name"` literal concatenation are caught; deeper obfuscation
   is out of scope.
+- **Argparse-only scope.** The lint walks `argparse.ArgumentParser.add_argument`
+  calls; it does NOT see `click.option(...)`, `typer.Option(...)`,
+  decorator-style flag declarations, f-string flag names, `*args`-spread
+  forms, or other dynamic shapes. If your credentialed-CLI primitive
+  uses `click` or `typer`, the lint reports zero findings and PR review
+  is the only enforcement. Prefer `argparse` for credentialed-CLI
+  primitives so the lint can do its job; if you reach for `click` or
+  `typer` anyway, name the choice in the PR description so reviewers
+  know to spot-check the flag set by hand.
 - Any `scripts/**/*.py` line containing `.agent-ready/credentials.env`
   without the opt-out marker `# credentialed-primitive: reads-creds-directly`
   on the same line.

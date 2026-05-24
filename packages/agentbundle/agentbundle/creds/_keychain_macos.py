@@ -70,7 +70,22 @@ def read_credential(namespace: str, key: str) -> str | None:
 def write_credential(namespace: str, key: str, value: str) -> None:
     """Write ``value`` to ``(namespace, key)``. Token enters via child stdin
     only — never argv (spec § AC6, AC7).
+
+    Refuses values containing ``\\n`` or ``\\r`` up front. ``security -w``
+    prompts twice and the stdin payload is ``token + b"\\n" + token + b"\\n"``;
+    a token containing a newline mismatches the confirmation and
+    ``security`` silently stores an empty password. Tier-3 dotfile quoting
+    (``_quote_for_dotfile``) likewise cannot safely round-trip embedded
+    newlines. One early refusal beats two silent corruption paths.
     """
+    if "\n" in value or "\r" in value:
+        raise Tier2HardFailError(
+            f"macOS Keychain write refused for {_account(namespace, key)!r}: "
+            f"token value contains an embedded newline (\\n or \\r). The "
+            f"`security -w` re-prompt confirmation and Tier-3 dotfile "
+            f"quoting both break on newlines; strip or replace the "
+            f"character before writing."
+        )
     argv = [
         SECURITY_BIN, "add-generic-password",
         "-U",  # upsert: replace if entry already exists
