@@ -695,7 +695,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   from `[frontmatter-default.*]` tables — adapters never hardcode the
   default.
 - Exit non-zero with a one-line stderr message when validation or drift
-  detection fails (so CI and the work-loop's `scripts/check-done.py` see the signal).
+  detection fails (so CI and the work-loop's `scripts/loop-cohort.py check` see the signal).
 - Treat `make build --check` as exactly `make build --self --dry-run` plus
   a strict exit code: non-zero on any drift, regardless of warning level.
   The two commands share rendering; `--check` only differs in its gate

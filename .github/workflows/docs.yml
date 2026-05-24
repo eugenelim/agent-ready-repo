@@ -19,9 +19,9 @@ on:
       - 'tools/test-lint-skill-deps.sh'
       - 'tools/lint-knowledge.sh'
       - 'tools/test-lint-knowledge.sh'
-      - '.claude/skills/work-loop/scripts/check-done.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/check-done.py'
-      - 'tools/test-check-done.sh'
+      - '.claude/skills/work-loop/scripts/loop-cohort.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
+      - 'tools/test-loop-cohort.sh'
       - 'tools/hooks/**'
       - 'tools/test-pre-pr.sh'
       - 'tools/test-session-start.sh'
@@ -78,13 +78,13 @@ jobs:
       - name: Self-test the linter (schema-drift + content guards)
         run: bash tools/test-lint-knowledge.sh
 
-  check-done:
+  loop-cohort:
     name: Caps enforcer self-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Self-test the caps enforcer
-        run: bash tools/test-check-done.sh
+      - name: Self-test loop-cohort (caps, fingerprints, worktree verbs)
+        run: bash tools/test-loop-cohort.sh
 
   # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
   # those each surface with their own check name in PR UI; this one catches
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Seed a healthy state.json so the aggregator exercises check-done.py
+      - name: Seed a healthy state.json so the aggregator exercises loop-cohort check
         run: |
           mkdir -p docs/specs/_ci-smoke
           sed 's/"pending"/"approved"/' .claude/skills/work-loop/assets/state.json \
