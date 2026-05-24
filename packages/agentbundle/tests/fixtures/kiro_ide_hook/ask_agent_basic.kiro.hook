@@ -1,0 +1,13 @@
+{
+  "name": "Lint on save",
+  "description": "Run ruff when a Python file is saved.",
+  "version": "1",
+  "when": {
+    "type": "fileSave",
+    "patterns": ["**/*.py"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run ruff on the just-saved file and surface any violations."
+  }
+}
