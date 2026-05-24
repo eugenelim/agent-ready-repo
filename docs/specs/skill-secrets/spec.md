@@ -1,6 +1,6 @@
 # Spec: skill-secrets
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0006](../../rfc/0006-skill-secrets-storage.md)
@@ -289,7 +289,7 @@ construction-test or fixture exercise.
 
 ADR amendment (lands in the spec PR, not a follow-up):
 
-- [ ] **AC1.** `docs/adr/0002-install-scope-per-pack-default-and-allowance.md`
+- [x] **AC1.** `docs/adr/0002-install-scope-per-pack-default-and-allowance.md`
       carries an `## Amendments` section whose first sub-heading is
       `### 2026-05-24 — Narrow definition of "hook-shaped" (per RFC-0006)`
       and whose body contains the verbatim conjunction phrasing
@@ -302,7 +302,7 @@ ADR amendment (lands in the spec PR, not a follow-up):
 
 Stdlib parser and loader API:
 
-- [ ] **AC2.** A stdlib `.env` parser in
+- [x] **AC2.** A stdlib `.env` parser in
       `packages/agentbundle/agentbundle/creds/loader.py` accepts
       `KEY=value`, `KEY="value with spaces"`, `# comment` lines, blank
       lines; strips trailing `\r\n` / `\n` from the **line tail
@@ -311,18 +311,18 @@ Stdlib parser and loader API:
       refuses `export KEY=value`, refuses variable expansion
       (`KEY=$OTHER`), refuses multi-line quoted values (a quoted
       value spanning two physical lines is a parse error).
-- [ ] **AC3.** `agent_ready.credentials.load_credentials(namespace,
+- [x] **AC3.** `agent_ready.credentials.load_credentials(namespace,
       required_keys=[...])` returns an immutable `Credentials` object
       whose attribute access returns the resolved values; missing
       required keys raise `CredentialsMissingError` naming the
       namespace and the missing keys. The function is the only public
       entry point primitive authors import.
-- [ ] **AC4.** Precedence is **Tier 1 (env) → Tier 2 (keyring) → Tier 3
+- [x] **AC4.** Precedence is **Tier 1 (env) → Tier 2 (keyring) → Tier 3
       (dotfile)** per key, first-hit-wins. A key resolved at Tier 1 is
       not re-checked at lower tiers; mixing tiers across keys within
       one namespace is permitted (one key from env, another from
       keyring, another from dotfile is a valid resolution).
-- [ ] **AC4b.** **Tier-2 backend dispatch is platform-discriminated at
+- [x] **AC4b.** **Tier-2 backend dispatch is platform-discriminated at
       module-load time.** The loader imports
       `_keychain_macos` iff `sys.platform == "darwin"`,
       `_credman_windows` iff `sys.platform == "win32"`, and no
@@ -330,7 +330,7 @@ Stdlib parser and loader API:
       absence; resolver falls through directly to Tier 3). The dispatch
       is verified by a test that monkeypatches `sys.platform` and
       reloads the module.
-- [ ] **AC4c.** `agent_ready.credentials.load_credentials` is reachable
+- [x] **AC4c.** `agent_ready.credentials.load_credentials` is reachable
       from an installed wheel. Verified by `pip install
       packages/agentbundle` followed by
       `python -c "from agent_ready.credentials import load_credentials"`
@@ -341,14 +341,14 @@ Stdlib parser and loader API:
 
 Tier 1 (env var):
 
-- [ ] **AC5.** Reading `<NAMESPACE>_API_TOKEN` (and any sibling key
+- [x] **AC5.** Reading `<NAMESPACE>_API_TOKEN` (and any sibling key
       declared in `creds-schema.toml`, e.g. `_BASE_URL`, `_EMAIL`,
       `_FLAVOR`) from `os.environ` returns the value. Empty-string env
       var counts as unset and falls through to Tier 2.
 
 Tier 2 (macOS Keychain):
 
-- [ ] **AC6.** On Darwin, the Tier-2 read path shells out to
+- [x] **AC6.** On Darwin, the Tier-2 read path shells out to
       `/usr/bin/security find-generic-password -s "agent-ready" -a
       "<namespace>:<key>" -w` and captures stdout; the write path uses
       `add-generic-password -U -s "agent-ready" -a "<namespace>:<key>"
@@ -357,9 +357,9 @@ Tier 2 (macOS Keychain):
       token never appears in argv**; a fixture test exercises a
       `psutil`-shaped argv inspection during the call and asserts the
       token bytes are absent.
-- [ ] **AC7.** Round-trip: write a value, read it, compare bytes; the
+- [x] **AC7.** Round-trip: write a value, read it, compare bytes; the
       stored value matches the input.
-- [ ] **AC8.** The `_keychain_macos` backend module is **not imported**
+- [x] **AC8.** The `_keychain_macos` backend module is **not imported**
       when `sys.platform != "darwin"` (per AC4b). A loader-level test
       sets `sys.platform = "linux"`, reloads
       `agent_ready.credentials`, and asserts the macOS backend
@@ -368,7 +368,7 @@ Tier 2 (macOS Keychain):
 
 Tier 2 (Windows Credential Manager):
 
-- [ ] **AC9.** On Windows, the Tier-2 read/write/delete path calls
+- [x] **AC9.** On Windows, the Tier-2 read/write/delete path calls
       `ctypes.windll.advapi32.CredReadW(target, type, flags,
       &credential_ptr)`, `CredWriteW(&credential, flags)`,
       `CredDeleteW(target, type, flags)`, and `CredFree(ptr)` against
@@ -382,10 +382,10 @@ Tier 2 (Windows Credential Manager):
       `CREDENTIAL` fields (`Flags`, `Comment`, `LastWritten`,
       `AttributeCount`, `Attributes`, `TargetAlias`) zero-initialised
       via `ctypes.Structure` defaults.
-- [ ] **AC10.** Round-trip: write a value, read it, **byte-equality**
+- [x] **AC10.** Round-trip: write a value, read it, **byte-equality**
       assertion against the UTF-16-encoded original. Test runs on
       `windows-latest` GitHub Actions.
-- [ ] **AC11.** Win32 error-code dispatch matrix:
+- [x] **AC11.** Win32 error-code dispatch matrix:
       `ERROR_NOT_FOUND (1168)` → return `None`, resolver falls through
       to Tier 3;
       `ERROR_NO_SUCH_LOGON_SESSION (1312)` → raise
@@ -395,20 +395,20 @@ Tier 2 (Windows Credential Manager):
       naming the offending flag value;
       `ERROR_LOGON_FAILURE (1326)` → raise `Tier2HardFailError`
       naming DPAPI key-derivation failure.
-- [ ] **AC12.** The `_credman_windows` backend module is **not
+- [x] **AC12.** The `_credman_windows` backend module is **not
       imported** when `sys.platform != "win32"` (per AC4b). Parallel
       test to AC8 with `sys.platform = "linux"`; the Windows backend
       module is absent from `sys.modules`.
 
 Tier 3 (dotfile):
 
-- [ ] **AC13.** Path resolves to `pathlib.Path.home() /
+- [x] **AC13.** Path resolves to `pathlib.Path.home() /
       ".agent-ready" / "credentials.env"` on every platform.
-- [ ] **AC14.** Write path is atomic: `tempfile.mkstemp` in the target
+- [x] **AC14.** Write path is atomic: `tempfile.mkstemp` in the target
       directory → `os.write` → `os.replace`. A mid-write read sees
       either the prior file contents or the new contents, never
       partial.
-- [ ] **AC15.** On POSIX (`os.name == "posix"`), the helper calls
+- [x] **AC15.** On POSIX (`os.name == "posix"`), the helper calls
       `os.chmod(path, 0o600)` on the file. The parent directory
       `~/.agent-ready/` is **shared** with RFC-0004 install state
       (`state.toml`) and the `adapt-to-project` marker — the
@@ -425,7 +425,7 @@ Tier 3 (dotfile):
 
 CLI verb `agentbundle creds`:
 
-- [ ] **AC16.** `agentbundle creds setup <namespace>` reads the
+- [x] **AC16.** `agentbundle creds setup <namespace>` reads the
       namespace's required keys from `creds-schema.toml`, prompts via
       `getpass.getpass` (guarded by `sys.stdin.isatty()` — refuses
       non-tty with stderr), writes to the highest-available tier
@@ -440,7 +440,7 @@ CLI verb `agentbundle creds`:
       `--allow-insecure-fallback` was passed. A log reader can
       distinguish platform-deferred Tier 3 from opt-out Tier 3
       without further context.
-- [ ] **AC17.** `agentbundle creds setup` (no positional namespace
+- [x] **AC17.** `agentbundle creds setup` (no positional namespace
       argument) walks both scope state files
       (`<repo>/.agent-ready-state.toml` and
       `~/.agent-ready/state.toml`) for installed primitives whose
@@ -456,23 +456,23 @@ CLI verb `agentbundle creds`:
       The CLI then resolves the selected primitive's schema via the
       canonical convention pinned in AC24b and exits non-zero with
       a clear stderr error if the file is absent.
-- [ ] **AC18.** `agentbundle creds check <namespace>` exits 0 when
+- [x] **AC18.** `agentbundle creds check <namespace>` exits 0 when
       the namespace's required keys all resolve, exit 2 when any is
       missing (stderr names the missing keys), exit 3 for other
       errors (unparseable schema, Tier-2 hard-fail).
-- [ ] **AC19.** `agentbundle creds where <namespace>` prints, per
+- [x] **AC19.** `agentbundle creds where <namespace>` prints, per
       required key, the tier each one resolved at (`env`, `keyring`,
       `dotfile`, or `missing`). Does not print the value.
-- [ ] **AC20.** `agentbundle creds rm <namespace>` deletes every key
+- [x] **AC20.** `agentbundle creds rm <namespace>` deletes every key
       in the namespace from every tier that holds it (env clears are
       a no-op the helper documents on stderr; keyring deletes via the
       per-platform backend; dotfile rewrites without those keys). The
       helper refuses with stderr if no tier holds any of the
       namespace's keys.
-- [ ] **AC21.** No `agentbundle creds get` subcommand exists. A
+- [x] **AC21.** No `agentbundle creds get` subcommand exists. A
       negative test asserts `agentbundle creds get foo` exits non-zero
       with `unknown command: get` on stderr.
-- [ ] **AC22.** `agentbundle creds setup --allow-insecure-fallback` on
+- [x] **AC22.** `agentbundle creds setup --allow-insecure-fallback` on
       a Tier-2-capable box writes to Tier 3 and exits 0; without the
       flag, falling back to Tier 3 on a Tier-2-capable box exits
       non-zero with stderr naming the reason. On Linux the helper
@@ -491,7 +491,7 @@ CLI verb `agentbundle creds`:
         exit code.
       - **Windows**: the Win32 matrix in AC11 governs (`ERROR_NOT_FOUND`
         → Tier 3 fallthrough; everything else listed → hard fail).
-- [ ] **AC23.** The helper refuses to read the token from **its own**
+- [x] **AC23.** The helper refuses to read the token from **its own**
       stdin when not a tty, from argv, from env, or from a pipe.
       Tokens enter through the interactive `getpass` prompt or
       nowhere; the helper exits non-zero in every other case. The
@@ -517,7 +517,7 @@ CLI verb `agentbundle creds`:
 
 `creds-schema.toml` format:
 
-- [ ] **AC24.** `creds-schema.toml` declares the namespace's required
+- [x] **AC24.** `creds-schema.toml` declares the namespace's required
       keys with shape:
       ```toml
       [namespace]
@@ -534,7 +534,7 @@ CLI verb `agentbundle creds`:
       The loader parses this with `tomllib`; `secret = true` keys are
       hidden via `getpass`, `secret = false` keys are prompted via
       `input()`.
-- [ ] **AC24b.** **Canonical schema path:** a credentialed primitive's
+- [x] **AC24b.** **Canonical schema path:** a credentialed primitive's
       schema lives at `<skill-dir>/references/creds-schema.toml`
       where `<skill-dir>` is the projected skill directory (e.g.
       `.claude/skills/<name>/`). The CLI resolves the path by walking
@@ -549,13 +549,13 @@ CLI verb `agentbundle creds`:
 
 Conventions and lint:
 
-- [ ] **AC25.** `tools/lint-agent-artifacts.sh` extends
+- [x] **AC25.** `tools/lint-agent-artifacts.sh` extends
       `ALLOWED_SKILL_KEYS` to accept `credentialed` (boolean) and
       `primitive-class` (string: `credentialed-cli` | `mcp-server`).
       Schema refuses other values for `primitive-class`; absence of
       `credentialed` means the skill is not credentialed and the lint
       skips it.
-- [ ] **AC26.** `packs/core/.apm/commands/conventions-check.md`
+- [x] **AC26.** `packs/core/.apm/commands/conventions-check.md`
       extends to report three credentialed-skill findings:
       (a) `credentialed: true` skill missing the verbatim "Don't"
       block under a `### Security rules (non-negotiable)` heading;
@@ -566,14 +566,18 @@ Conventions and lint:
       (c) any script under a skill's `scripts/` directory contains
       the substring `.agent-ready/credentials.env` without the opt-out
       comment marker (`# credentialed-primitive: reads-creds-directly`)
-      on the same line. Findings are *reported*, not blocked.
-- [ ] **AC27.** Normalisation rule for AC26(b): strip leading `-`,
+      on the same line. The lint exits non-zero on any finding so
+      `conventions-check` blocks merges that introduce a credentialed-
+      skill convention drift; `tools/lint-credentialed-skills.sh` and
+      `docs/CONVENTIONS.md` § Credentialed skills are the canonical
+      reflection of this behavior.
+- [x] **AC27.** Normalisation rule for AC26(b): strip leading `-`,
       casefold, replace `-` with `_`; matches defeat trivial
       obfuscation (`"--" + "token"`, `--Token`, `--api-Key`).
 
 Templates and worked example:
 
-- [ ] **AC28.** A new author skill at
+- [x] **AC28.** A new author skill at
       `packs/core/.apm/skills/add-credentialed-skill/` ships with a
       `SKILL.md` (triggering on "add a credentialed skill", "new
       credentialed primitive") and an `assets/credentialed-skill-SKILL.md`
@@ -586,19 +590,22 @@ Templates and worked example:
       canonical landing pinned by this spec, replacing the
       pre-amendment path named in
       [RFC-0006 § Amendments](../../rfc/0006-skill-secrets-storage.md#amendments).
-- [ ] **AC29.** A worked example at
+- [x] **AC29.** A worked example at
       `packs/core/.apm/skills/example-credentialed-skill/` ships with:
       a `SKILL.md` declaring `credentialed: true`,
       `primitive-class: credentialed-cli`, embedding the
       credentialed-CLI "Don't" block verbatim; a `scripts/cli.py`
       importing `agent_ready.credentials` and refusing the argv-ban
-      flags; a `references/creds-schema.toml` declaring one required
-      key; the skill passes both `tools/lint-agent-artifacts.sh` and
-      the extended `conventions-check`.
+      flags; a `references/creds-schema.toml` declaring `API_TOKEN`
+      (`secret = true`, required) and `BASE_URL` (`secret = false`,
+      a sibling key in the spec § Objective sense — also resolved
+      through the three-tier ladder and consumed by `cli.py`); the
+      skill passes both `tools/lint-agent-artifacts.sh` and the
+      extended `conventions-check`.
 
 Conventions, guide, roadmap:
 
-- [ ] **AC30.** The **seed-side upstream** of `docs/CONVENTIONS.md` at
+- [x] **AC30.** The **seed-side upstream** of `docs/CONVENTIONS.md` at
       `packs/core/seeds/docs/CONVENTIONS.md` gains a top-level
       `## Credentialed skills` section naming the two-layer
       architecture rule, the three storage tiers, the argv ban, the
@@ -610,13 +617,13 @@ Conventions, guide, roadmap:
       RFC-0006 by anchor. The projected `docs/CONVENTIONS.md` is
       regenerated by `make build-self`; direct edits to the
       projected path are bounced by `make build-check` (AC33).
-- [ ] **AC31.** A Diátaxis how-to at
+- [x] **AC31.** A Diátaxis how-to at
       `docs/guides/how-to/add-a-credentialed-skill.md` walks an
       adopter through writing a credentialed primitive end-to-end:
       pick a namespace; write the schema; import the loader; embed
       the "Don't" block; declare frontmatter; run `setup`; run
       `check`. References the worked example.
-- [ ] **AC32.** `docs/ROADMAP.md` carries a `## skill-secrets` section
+- [x] **AC32.** `docs/ROADMAP.md` carries a `## skill-secrets` section
       replacing the previous cross-spec stub. Entries close
       incrementally **per task** following the existing ROADMAP
       grouping convention (one bullet per task / AC range, not one
@@ -627,18 +634,23 @@ Conventions, guide, roadmap:
 
 Verification:
 
-- [ ] **AC33.** `make build-check` exits clean with the amendments
+- [x] **AC33.** `make build-check` exits clean with the amendments
       applied (no drift between `packs/core/seeds/` and `<repo>/`).
-- [ ] **AC34.** Every fixture file under
+- [x] **AC34.** Every fixture file under
       `packages/agentbundle/tests/fixtures/creds/` and every fixture
       skill under `packages/agentbundle/tests/fixtures/creds/skills/`
       is referenced by path in at least one test under
       `packages/agentbundle/tests/`. An orphan-fixture detection
       check (a test that walks the fixtures tree and asserts each
       file's relative path appears as a substring in the test corpus)
-      is part of the suite.
-- [ ] **AC35.** No test or CI step writes to the developer's real
+      is part of the suite (`tests/unit/test_credentials_fixtures.py`).
+- [x] **AC35.** No test or CI step writes to the developer's real
       `~/.agent-ready/`, real macOS Keychain (verified by checking
       no Keychain entry persists outside a `tmp_path`-scoped
       Keychain), or real Windows Credential Manager (verified by
-      target-name prefix isolation against a `tmp_path` hash).
+      target-name prefix isolation against a `tmp_path` hash). The
+      posture is enforced as a static-analysis assertion at
+      `tests/unit/test_credentials_no_live_writes.py`: every backend's
+      integration test file must contain the documented isolation
+      anchor (`SERVICE` / `SERVICE_PREFIX_OVERRIDE` monkeypatch),
+      and dotfile tests must redirect `$HOME`.
