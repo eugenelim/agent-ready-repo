@@ -14,7 +14,7 @@
 # output and exits 0. Malformed lines are skipped with a one-line
 # warning to stderr (so the rot is visible) and do not abort the hook.
 # Runtime: bash + python3 (already required by the artifact linters
-# and check-done.py). Wiring lives in each tool's hook surface
+# and loop-cohort.py). Wiring lives in each tool's hook surface
 # (Claude Code: .claude/settings.json; see tools/hooks/README.md).
 #
 # Fixture mode: set KNOWLEDGE_FILE=<path> to read a different file.

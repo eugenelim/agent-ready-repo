@@ -7,7 +7,10 @@ Run both repo linters and report findings.
 **`bash tools/lint-agents-md.sh`** — AGENTS.md hygiene:
 
 1. Root `AGENTS.md` is under 250 lines.
-2. `CLAUDE.md` is a symlink to `AGENTS.md` (not a duplicate file).
+2. `CLAUDE.md` is either a symlink to `AGENTS.md` or a byte-identical
+   copy of it. (Native Windows checkouts can't materialise symlinks
+   without elevation, so an identical regular file is accepted; a
+   diverged regular file is not.)
 3. No subdirectory `AGENTS.md` exceeds 150 lines.
 4. Internal links resolve.
 5. `docs/CHARTER.md` and the Diátaxis subdirectories exist.
