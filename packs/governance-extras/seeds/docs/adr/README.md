@@ -11,8 +11,8 @@
 ## Adding a new ADR
 
 ```bash
-# Find the next number
-N=$(printf "%04d" $(( $(ls docs/adr/ | grep -E '^[0-9]{4}' | sed 's/-.*//' | sort -n | tail -1) + 1 )))
+# Find the next number (portable across macOS, Linux, native Windows).
+N=$(python3 .claude/skills/new-adr/scripts/next-ordinal.py docs/adr)
 
 # Create from template
 cp .claude/skills/new-adr/assets/adr.md docs/adr/${N}-<kebab-title>.md

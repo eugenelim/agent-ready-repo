@@ -11,12 +11,14 @@ import pathlib
 import sys
 import tempfile
 
-HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-from importlib import import_module
+# Smoke tests must not pollute the script directory with bytecode — the
+# bundler's self-host check treats any *.pyc as drift.
+sys.dont_write_bytecode = True
 
-mod = import_module("next-ordinal".replace("-", "_")) if False else None
-# import_module can't handle a hyphenated filename; load by path instead.
+HERE = pathlib.Path(__file__).resolve().parent
+
+# next-ordinal.py is hyphenated, so we load it by path rather than by
+# import statement (Python's import grammar doesn't accept hyphens).
 import importlib.util
 
 spec = importlib.util.spec_from_file_location("next_ordinal", HERE / "next-ordinal.py")
