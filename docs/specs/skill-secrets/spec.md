@@ -566,7 +566,11 @@ Conventions and lint:
       (c) any script under a skill's `scripts/` directory contains
       the substring `.agent-ready/credentials.env` without the opt-out
       comment marker (`# credentialed-primitive: reads-creds-directly`)
-      on the same line. Findings are *reported*, not blocked.
+      on the same line. The lint exits non-zero on any finding so
+      `conventions-check` blocks merges that introduce a credentialed-
+      skill convention drift; `tools/lint-credentialed-skills.sh` and
+      `docs/CONVENTIONS.md` § Credentialed skills are the canonical
+      reflection of this behavior.
 - [x] **AC27.** Normalisation rule for AC26(b): strip leading `-`,
       casefold, replace `-` with `_`; matches defeat trivial
       obfuscation (`"--" + "token"`, `--Token`, `--api-Key`).
@@ -592,9 +596,12 @@ Templates and worked example:
       `primitive-class: credentialed-cli`, embedding the
       credentialed-CLI "Don't" block verbatim; a `scripts/cli.py`
       importing `agent_ready.credentials` and refusing the argv-ban
-      flags; a `references/creds-schema.toml` declaring one required
-      key; the skill passes both `tools/lint-agent-artifacts.sh` and
-      the extended `conventions-check`.
+      flags; a `references/creds-schema.toml` declaring `API_TOKEN`
+      (`secret = true`, required) and `BASE_URL` (`secret = false`,
+      a sibling key in the spec § Objective sense — also resolved
+      through the three-tier ladder and consumed by `cli.py`); the
+      skill passes both `tools/lint-agent-artifacts.sh` and the
+      extended `conventions-check`.
 
 Conventions, guide, roadmap:
 
@@ -629,16 +636,21 @@ Verification:
 
 - [x] **AC33.** `make build-check` exits clean with the amendments
       applied (no drift between `packs/core/seeds/` and `<repo>/`).
-- [ ] **AC34.** Every fixture file under
+- [x] **AC34.** Every fixture file under
       `packages/agentbundle/tests/fixtures/creds/` and every fixture
       skill under `packages/agentbundle/tests/fixtures/creds/skills/`
       is referenced by path in at least one test under
       `packages/agentbundle/tests/`. An orphan-fixture detection
       check (a test that walks the fixtures tree and asserts each
       file's relative path appears as a substring in the test corpus)
-      is part of the suite.
-- [ ] **AC35.** No test or CI step writes to the developer's real
+      is part of the suite (`tests/unit/test_credentials_fixtures.py`).
+- [x] **AC35.** No test or CI step writes to the developer's real
       `~/.agent-ready/`, real macOS Keychain (verified by checking
       no Keychain entry persists outside a `tmp_path`-scoped
       Keychain), or real Windows Credential Manager (verified by
-      target-name prefix isolation against a `tmp_path` hash).
+      target-name prefix isolation against a `tmp_path` hash). The
+      posture is enforced as a static-analysis assertion at
+      `tests/unit/test_credentials_no_live_writes.py`: every backend's
+      integration test file must contain the documented isolation
+      anchor (`SERVICE` / `SERVICE_PREFIX_OVERRIDE` monkeypatch),
+      and dotfile tests must redirect `$HOME`.
