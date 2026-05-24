@@ -14,8 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-23 (adapt-to-project spec lands; cross-spec
-`adapt-to-project` bullet re-cited as a per-spec section)
+**Last updated:** 2026-05-23 (adapt-to-project AC4b automation pins land)
 
 ## How this file is maintained
 
@@ -124,35 +123,6 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   catalogues); fix shape is a tested `_emit_basic_string`
   serialiser + a runtime regex assertion on every pack-sourced
   field that lands in a TOML basic-string position.
-- **AC18 schema-validation tests for shipped packs.** `make
-  build-self` already invokes `validate_pack_metadata` per pack at
-  build time, so a malformed shipped manifest breaks CI. There is
-  no separate pytest pinning the four manifests carry
-  `[pack.adapter-contract] version = "0.2"` + `[[pack.dependencies.required]]`
-  (addons) + `[pack.install]` (all four). **Unblocks when:**
-  someone adds a parametrised `test_addon_manifests_carry_required_dependency`
-  + `test_all_packs_declare_install_table` against
-  `packs/{core,governance-extras,user-guide-diataxis,monorepo-extras}/pack.toml`.
-- **AC19c scaffold-driven test.** `tests/integration/test_install_adapt_chain.py::test_marker_in_seed_gitignore`
-  checks the seed file directly rather than invoking
-  `agentbundle scaffold` against a tmp output dir. A refactor that
-  silently dropped dotfile projection would not trip the test.
-  **Unblocks when:** the test is rewritten to invoke
-  `scaffold_run` and assert `(tmp/.gitignore).read_text()`.
-- **AC10 deterministic-pending-md byte-identity with non-empty
-  state.** `test_idempotent_re_run` exercises the trivial empty-
-  companion case. The interesting case (sorted lexicographically,
-  no timestamps, byte-identical across re-runs) is unpinned.
-  **Unblocks when:** a fixture seeds two `.upstream.<ext>` files
-  and a test asserts the pending.md is byte-identical *and*
-  contains the companion paths in lex order.
-- **User-scope-only install chain test.** `_chain_adapt`'s
-  fallback `Path(args.output).resolve()` is the path used when an
-  adopter runs `agentbundle install --pack <user-pack> --scope user`
-  (no repo plan). No test exercises this. **Unblocks when:** a
-  test seeds a user-scope-only install and asserts the chained
-  adapt either fires correctly against the install's output root
-  or is skipped explicitly.
 - **APM / Claude-plugins install-route nudge parity.** Adopters
   installing via APM or Claude-plugins routes (rather than
   `agentbundle install`) never hit the install marker write, never
