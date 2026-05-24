@@ -107,18 +107,23 @@ _WINDOWS_FORBIDDEN_CHARS = frozenset('<>:"|?*')
 def _assert_under(target: pathlib.Path, jail: pathlib.Path) -> None:
     """Refuse if ``target`` resolves outside ``jail``.
 
+    ``jail`` is expected to be a pre-resolved path (from ``_marker_path``), so
+    we only re-resolve the *target* here. This closes the TOCTOU window: the
+    jail value is fixed at probe time and cannot be redirected by a symlink
+    introduced between the probe and this check.
+
     Raises ``ValueError`` if ``os.path.realpath(target)`` is not under
-    ``os.path.realpath(jail)``. Uses ``relative_to`` on resolved paths to
-    foil ``..`` traversal and symlink escape.
+    ``jail``. Uses ``relative_to`` on resolved paths to foil ``..``
+    traversal and symlink escape.
     """
     resolved_target = pathlib.Path(os.path.realpath(target))
-    resolved_jail = pathlib.Path(os.path.realpath(jail))
+    # jail is already resolved; do not call os.path.realpath on it again.
     try:
-        resolved_target.relative_to(resolved_jail)
+        resolved_target.relative_to(jail)
     except ValueError:
         raise ValueError(
             f"install-marker: marker path {resolved_target} escapes the per-scope jail "
-            f"{resolved_jail}; refusing write"
+            f"{jail}; refusing write"
         )
 
 
@@ -265,11 +270,16 @@ def _marker_path(
     marker_scope: str,
     project_dir: pathlib.Path | None,
     home: pathlib.Path,
-) -> pathlib.Path:
-    """Return the scope-correct marker file path.
+) -> "tuple[pathlib.Path, pathlib.Path]":
+    """Return ``(marker_path, resolved_jail)`` for the given scope.
 
-    ``repo`` → ``<project_dir>/.adapt-install-marker.toml``
-    ``user`` → ``<home>/.agent-ready/.adapt-install-marker.toml``
+    ``repo`` → ``(<project_dir>/.adapt-install-marker.toml, resolved(project_dir))``
+    ``user`` → ``(<home>/.agent-ready/.adapt-install-marker.toml, resolved(~/.agent-ready))``
+
+    The returned ``resolved_jail`` is pre-resolved here so ``_write_marker``
+    can use it directly without re-resolving, closing the TOCTOU window where
+    a symlink introduced between probe and write would resolve both sides to
+    the foreign target and pass the jail check trivially (Concern-3).
     """
     if marker_scope == "user":
         agent_ready = home / ".agent-ready"
@@ -277,18 +287,24 @@ def _marker_path(
         # mkdir with exist_ok=True, then check lstat. A pre-existing symlink
         # (even pointing at a real directory) is refused so an attacker cannot
         # redirect marker writes to an arbitrary location.
-        if agent_ready.exists() and (agent_ready.is_symlink() or not agent_ready.is_dir()):
+        if agent_ready.is_symlink():
+            target = os.path.realpath(agent_ready)
             raise ValueError(
-                f"install-marker: {agent_ready} exists but is not a regular directory "
-                f"(symlink or non-directory); refusing to use it"
+                f"install-marker: {agent_ready} is a symlink to {target}; refusing"
+            )
+        if agent_ready.exists() and not agent_ready.is_dir():
+            raise ValueError(
+                f"install-marker: {agent_ready} exists but is not a directory; refusing"
             )
         agent_ready.mkdir(mode=0o700, parents=True, exist_ok=True)
-        return agent_ready / ".adapt-install-marker.toml"
+        resolved_jail = pathlib.Path(os.path.realpath(agent_ready))
+        return agent_ready / ".adapt-install-marker.toml", resolved_jail
     else:
         # repo scope — project_dir must be set; callers ensure this.
         if project_dir is None:
             raise ValueError("project_dir required for repo-scope marker")
-        return project_dir / ".adapt-install-marker.toml"
+        resolved_jail = pathlib.Path(os.path.realpath(project_dir))
+        return project_dir / ".adapt-install-marker.toml", resolved_jail
 
 
 def _should_fire(
@@ -345,16 +361,22 @@ def _read_entries(marker_path: pathlib.Path) -> list[dict]:
 
     Drops any entry whose ``installed-at`` is not a ``datetime.datetime``
     (defence-in-depth: mirrors install.py:866-874).
+
+    Coerces ``unresolved-markers`` and ``new-companions`` to ``list[str]``
+    when they are present: non-list values or lists containing non-str items
+    are dropped with a one-line stderr warning, and the rest of the entry
+    survives (Concern-4).
     """
     if not marker_path.exists():
         return []
     try:
         data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
     except (tomllib.TOMLDecodeError, OSError) as exc:
-        # Emit one stderr warning (mirrors CLI writer's shape) then return [].
+        # Diagnostic aligned with the CLI writer at install.py:846-849.
         print(
-            f"install-marker: existing marker file at {marker_path} is malformed; "
-            f"previous entries dropped: {exc}",
+            f"install-marker: warning: existing install marker at {marker_path} "
+            f"is malformed ({exc}); prior entries lost — re-run install "
+            f"for any earlier packs",
             file=sys.stderr,
         )
         return []
@@ -369,6 +391,27 @@ def _read_entries(marker_path: pathlib.Path) -> list[dict]:
         if not isinstance(ts, datetime.datetime):
             # Drop entries with non-datetime installed-at (same defence as CLI).
             continue
+        # Coerce unresolved-markers and new-companions to list[str].
+        # A tampered marker could carry a non-list or list-with-non-str
+        # value for these fields; passing the raw value to _emit_basic_string
+        # would raise. Coerce here and warn so the entry's other valid
+        # fields survive re-emission.
+        e = dict(e)  # shallow copy so we don't mutate the tomllib-parsed dict
+        for field in ("unresolved-markers", "new-companions"):
+            if field not in e:
+                continue
+            raw_val = e[field]
+            if not isinstance(raw_val, list) or not all(
+                isinstance(item, str) for item in raw_val
+            ):
+                pack = e.get("name", "<unknown>")
+                actual_type = type(raw_val).__name__
+                print(
+                    f"install-marker: existing marker entry for {pack} has malformed "
+                    f"{field} ({actual_type} instead of list[str]); dropping field",
+                    file=sys.stderr,
+                )
+                del e[field]
         entries.append(e)
     return entries
 
@@ -445,14 +488,29 @@ def _write_marker(
     ``os.replace`` is always on the same filesystem (the POSIX guarantee
     that makes it atomic).
 
-    ``jail`` is the per-scope root: ``~/.agent-ready`` for user scope,
-    ``project_dir`` for repo scope. The path-jail check runs before the
-    write so a symlink race or path-escape cannot redirect the output.
+    ``jail`` is the **pre-resolved** per-scope root (as returned by
+    ``_marker_path``): the real path of ``~/.agent-ready`` for user scope,
+    or the real path of ``project_dir`` for repo scope. Callers must pass
+    the value that ``_marker_path`` returns without re-resolving — this closes
+    the TOCTOU window where a symlink introduced between probe and write would
+    otherwise redirect the output. The path-jail check runs before the write.
     """
     # Path-jail check: verify marker_path resolves inside jail.
+    # jail is a pre-resolved path from _marker_path; _assert_under does not
+    # re-resolve it so the probe-time trusted jail value is used throughout.
     _assert_under(marker_path, jail)
-    # Portable-name check on each filename component (Windows-safety).
-    for part in marker_path.parts:
+    # Portable-name check on filename components *under* the jail only.
+    # The jail trusted-prefix (e.g. "/home/user/.agent-ready") is not
+    # user-influenced and contains OS-specific separators (e.g. "C:\\")
+    # on Windows that would falsely trigger the "forbidden character ':'"
+    # guard. Only the components beneath the jail need validation.
+    try:
+        rel = marker_path.relative_to(jail)
+    except ValueError:
+        # marker_path is outside jail; _assert_under already raised,
+        # but guard defensively in case the call order is rearranged.
+        rel = marker_path
+    for part in rel.parts:
         _assert_portable_name(part)
 
     existing = _read_entries(marker_path)
@@ -611,7 +669,7 @@ def main(argv: list[str]) -> int:
         return 0
 
     try:
-        marker = _marker_path(scope, project_dir, home)
+        marker, resolved_jail = _marker_path(scope, project_dir, home)
     except Exception as exc:
         print(f"install-marker: failed to resolve marker path: {exc}", file=sys.stderr)
         return 1
@@ -629,16 +687,11 @@ def main(argv: list[str]) -> int:
         "install-route": "claude-plugins",
     }
 
-    # --- Determine per-scope jail ---
-    if scope == "user":
-        jail = home / ".agent-ready"
-    else:
-        # project_dir is guaranteed non-None here (checked above).
-        jail = project_dir  # type: ignore[assignment]
-
     # --- Write marker (must succeed before writing hash file) ---
+    # resolved_jail is pre-resolved by _marker_path; passing it directly
+    # to _write_marker closes the TOCTOU window (Concern-3).
     try:
-        _write_marker(marker, new_entry, jail)
+        _write_marker(marker, new_entry, resolved_jail)
     except Exception as exc:
         print(f"install-marker: marker write failed: {exc}", file=sys.stderr)
         # Do NOT write hash file — next session retries the marker write.
