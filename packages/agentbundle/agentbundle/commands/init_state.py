@@ -149,17 +149,23 @@ def run(args: argparse.Namespace) -> int:
 
 
 def _run_migrate(args: argparse.Namespace) -> int:
-    """`init-state --migrate`: rewrite a v0.1 state file to v0.2 idempotently.
+    """`init-state --migrate`: bump a state file to the current schema-version.
 
-    Reads the file via ``config.load_state(..., for_write=False)`` so the
-    legacy refusal does not fire (we *are* the migration). Adds ``scope =
-    "repo"`` to every pack entry, sets ``schema_version = "0.2"``, and
-    writes atomically through ``safety.write_jailed``.
+    Two migration shapes the CLI supports:
 
-    Already-v0.2 files are a no-op exit-zero: ``load_state`` returns the
-    same shape, ``scope`` defaults to ``"repo"`` already, and the dumped
-    output is byte-identical to the input. Idempotence is the spec
-    requirement; running ``--migrate`` twice never breaks anything.
+    - **v0.1 → v0.3 (legacy full re-serialize).** Adds ``scope = "repo"``
+      to every pack entry, sets ``schema-version = "0.3"``, and writes
+      atomically. The v0.1 → v0.2 invariant (per-row scope backfill)
+      lands here in a single step because RFC-0005's v0.2 → v0.3
+      migration is header-only (no per-row changes), so the two compose
+      cleanly.
+    - **v0.2 → v0.3 (header-only-additive, RFC-0005 § State-file
+      impact).** Rewrites only the ``schema-version = "0.2"`` line to
+      ``"0.3"``. Every body byte is preserved; existing rows omit the
+      new ``adapter`` / ``target-file`` fields and let v0.3 read-time
+      defaults supply them. Cheapest possible additive migration.
+
+    Already-v0.3 files are a no-op exit-zero — idempotent.
     """
     scope = getattr(args, "scope", None) or "repo"
     user_prefixes: list[str] | None = None
@@ -193,18 +199,37 @@ def _run_migrate(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        state = config.load_state(state_path, for_write=False)
-    except config.ConfigError as exc:
-        print(f"init-state --migrate: {exc}", file=sys.stderr)
+        original_text = state_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"init-state --migrate: cannot read {state_path}: {exc}", file=sys.stderr)
         return 1
 
-    # Bump in-memory state to v0.2 and fill the implicit scope column.
-    state.schema_version = config.STATE_SCHEMA_VERSION
-    for ps in state.packs.values():
-        if not ps.scope:
-            ps.scope = "repo"
+    source_version = _peek_schema_version(original_text)
 
-    serialised = config.dump_state(state)
+    if source_version in ("0.2", "0.3"):
+        # Header-only-additive (RFC-0005). Rewrite only the version
+        # line. The already-v0.3 case is a true byte-no-op (identity
+        # rewrite) so adopters running ``--migrate`` against a current
+        # file get a round-trip-stable result — full re-serialize would
+        # silently strip explicit fields T8b/T8c writers may produce.
+        serialised = _rewrite_schema_version_line(
+            original_text, config.STATE_SCHEMA_VERSION
+        )
+    else:
+        # v0.1 or unrecognised — full re-serialize. load_state with
+        # for_write=False so the legacy refusal does not fire (we *are*
+        # the migration).
+        try:
+            state = config.load_state(state_path, for_write=False)
+        except config.ConfigError as exc:
+            print(f"init-state --migrate: {exc}", file=sys.stderr)
+            return 1
+        state.schema_version = config.STATE_SCHEMA_VERSION
+        for ps in state.packs.values():
+            if not ps.scope:
+                ps.scope = "repo"
+        serialised = config.dump_state(state)
+
     try:
         safety.write_jailed(
             write_root, relpath, serialised,
@@ -215,5 +240,40 @@ def _run_migrate(args: argparse.Namespace) -> int:
         print(f"init-state --migrate: {exc}", file=sys.stderr)
         return 1
 
-    print(f"init-state --migrate: {state_path} → schema-version 0.2")
+    print(
+        f"init-state --migrate: {state_path} → schema-version "
+        f"{config.STATE_SCHEMA_VERSION}"
+    )
     return 0
+
+
+import re as _re
+
+# Match the top-level ``schema-version = "X.Y"`` line. The pattern
+# anchors to *file* start (``\A``) with optional leading blank lines —
+# TOML convention puts top-level keys at the head, and ``dump_state``
+# emits ``schema-version`` as the first line. Restricting the regex to
+# the file head prevents a stale pack-table value or a comment further
+# down from being rewritten by accident.
+_SCHEMA_VERSION_LINE_RE = _re.compile(
+    r'\A(\s*)(schema-version\s*=\s*")([^"]*)(".*)',
+)
+
+
+def _peek_schema_version(text: str) -> str | None:
+    """Return the schema-version string from a state-file body, or None."""
+    m = _SCHEMA_VERSION_LINE_RE.match(text)
+    return m.group(3) if m else None
+
+
+def _rewrite_schema_version_line(text: str, new_version: str) -> str:
+    """Rewrite the ``schema-version = "X.Y"`` header in *text* to *new_version*.
+
+    Touches only the first match (anchored to file start) — every other
+    byte is preserved. Trailing newline is preserved. This is the
+    v0.2 → v0.3 (and v0.3 → v0.3 no-op) migration's whole job per
+    RFC-0005 § State-file impact.
+    """
+    def _sub(m: _re.Match[str]) -> str:
+        return f"{m.group(1)}{m.group(2)}{new_version}{m.group(4)}"
+    return _SCHEMA_VERSION_LINE_RE.sub(_sub, text, count=1)
