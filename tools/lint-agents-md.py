@@ -63,7 +63,10 @@ def main() -> int:
     else:
         ok("Root AGENTS.md exists.")
 
-    # 2. CLAUDE.md is a symlink to AGENTS.md
+    # 2. CLAUDE.md is a symlink to AGENTS.md — or a Windows-materialised
+    #    symlink (`git config core.symlinks false`, the default on
+    #    Windows without Developer Mode, writes the link target as the
+    #    file's literal content). Either shape is accepted.
     claude_md = Path("CLAUDE.md")
     if claude_md.is_symlink():
         target = os.readlink(claude_md)
@@ -74,9 +77,19 @@ def main() -> int:
                 f"CLAUDE.md is a symlink, but points to '{target}' instead of 'AGENTS.md'."
             )
     elif claude_md.is_file():
-        note(
-            "CLAUDE.md is a regular file. It should be a symlink to AGENTS.md to stay in sync."
-        )
+        # Windows-materialised symlink: the file content is the link
+        # target string ("AGENTS.md", with or without trailing newline).
+        # Anything else is a real duplicate file and a drift hazard.
+        content = claude_md.read_text(encoding="utf-8", errors="replace").strip()
+        if content == "AGENTS.md":
+            ok("CLAUDE.md → AGENTS.md (Windows-materialised symlink).")
+        else:
+            note(
+                "CLAUDE.md is a regular file with content other than the link "
+                "target 'AGENTS.md'. Replace with a symlink (Unix: "
+                "`ln -sf AGENTS.md CLAUDE.md`) or a one-line file containing "
+                "exactly 'AGENTS.md' (Windows without Developer Mode)."
+            )
     else:
         note("CLAUDE.md is missing. Create it with: ln -s AGENTS.md CLAUDE.md")
 
