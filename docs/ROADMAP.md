@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (added `wire-session-start-hook` — Draft → Approved after four-round spec-mode adversarial review; ships hook-wiring for the core pack's `session-start.py` hook body so `agentbundle install core` auto-writes the Claude Code `SessionStart` binding; Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
+**Last updated:** 2026-05-24 (shipped `wire-session-start-hook` — Approved → Shipped after T1-T7 implementation via work-loop; PR #98 also fixed a latent `self_host.py` drift-loop bug uncovered by CI (`diff_against_working_tree` now consults `EXCLUDED_PATTERNS` the same way the unclassified-path enumeration does). Mid-EXECUTE the spec was amended to correct AC1/AC2/AC3/AC9/AC10 paths from flat to dist-tree shape after work-loop discovered repo-scope install produces `<output>/claude-plugins/<pack>/...`, not the flat shape the original spec assumed. Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
 
 ## How this file is maintained
 
@@ -306,42 +306,48 @@ Open follow-ons (not gating shipped status):
 
 ---
 
-## `wire-session-start-hook` — approved (implementation pending)
+## `wire-session-start-hook` — shipped
 
 Spec: [`specs/wire-session-start-hook/spec.md`](specs/wire-session-start-hook/spec.md).
-Approved 2026-05-24 after four rounds of spec-mode adversarial review.
-Ships hook-wiring for the core pack's `session-start.py` hook body —
-on `agentbundle install core`, the merge-json adapter writes the Claude
-Code `SessionStart` binding into `.claude/settings.local.json` under
-the `hooks` managed key. Adopters no longer hand-paste the snippet
-from `tools/hooks/README.md`. Core stays at adapter-contract v0.2; no
-contract, schema, or build-code changes. Wiring TOML uses Claude
-Code's documented nested SessionStart schema (per
+Approved 2026-05-24 after four rounds of spec-mode adversarial review;
+T1-T7 implementation via work-loop in PR #98 (with a mid-EXECUTE spec
+amendment correcting paths flat → dist-tree across AC1/AC2/AC3/AC9/AC10
+when implementation surfaced the wrong path assumption). On
+`agentbundle install core`, the merge-json adapter writes the Claude
+Code `SessionStart` binding into the dist-tree at
+`<output>/claude-plugins/core/.claude/settings.local.json` (Claude
+Code's plugin marketplace consumes from there); self-host also writes
+it to the workspace flat path `<workspace>/.claude/settings.local.json`
+(gitignored). Adopters no longer hand-paste the snippet from
+`tools/hooks/README.md`. Core stays at adapter-contract v0.2. Wiring
+TOML uses Claude Code's documented nested SessionStart schema (per
 [code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks)).
-Bundles a legacy-fixture rewrite for three stale `pre-commit.toml`
+Bundled a legacy-fixture rewrite for three stale `pre-commit.toml`
 upgrade-catalogue fixtures from `[hook] name/trigger/matcher` shape
-to live `[[hooks.<Event>]]` shape with a static stub command.
+to live `[[hooks.<Event>]]` shape with a static stub command. PR #98
+also fixed a latent `self_host.py` drift-loop bug (now honours
+`EXCLUDED_PATTERNS` like the unclassified-path enumeration does).
 
 Per-task closure (7 tasks):
 
-- [ ] **T1** — Construction test (red): synthetic minimal pack →
-      `install.run(...)` → assert nested SessionStart binding lands.
-      Closes AC9.
-- [ ] **T2** — Wiring TOML at `packs/core/.apm/hook-wiring/session-start.toml`.
+- [x] **T1** — Construction test (synthetic minimal pack →
+      `install.run(...)` → assert nested SessionStart binding lands at
+      `<target>/claude-plugins/<pack>/.claude/settings.local.json` with
+      matcher-absence). Closes AC9.
+- [x] **T2** — Wiring TOML at `packs/core/.apm/hook-wiring/session-start.toml`.
       Flips T1 green. Closes AC1, AC2.
-- [ ] **T3** — `tools/hooks/README.md § Wiring → Claude Code` reframe
-      (audit reference, not adopter instruction) + fix the pre-existing
+- [x] **T3** — `tools/hooks/README.md` two-surface reframe (umbrella
+      intro + `### Claude Code` subsection) + fix the pre-existing
       `.claude/settings.json` → `.claude/settings.local.json` path bug.
       Closes AC6.
-- [ ] **T4** — `packs/core/seeds/docs/CONVENTIONS.md` reframe (two
+- [x] **T4** — `packs/core/seeds/docs/CONVENTIONS.md` reframe (two
       paragraphs: enforcement-triplet and Profile-C). Closes AC7.
-- [ ] **T5** — `make build-self`; `git diff docs/CONVENTIONS.md`
-      mirrors the T4 seed edit; no projected-path drift elsewhere.
-      Closes AC8.
-- [ ] **T6** — Legacy fixture rewrite for `catalogue_v{1,2,3}/.../pre-commit.toml`.
+- [x] **T5** — `make build-self` projects only the T4 seed edit; no
+      projected-path drift elsewhere. Closes AC8.
+- [x] **T6** — Legacy fixture rewrite for `catalogue_v{1,2,3}/.../pre-commit.toml`.
       Substring `matcher = "Bash|Edit"` survives in v2. Closes AC5,
       AC4 (regression).
-- [ ] **T7** — Full-suite regression + AC10 smoke test against real
+- [x] **T7** — Full-suite regression + AC10 smoke test against real
       `packs/core/` + PR description with latent-limitation notes
       (R1, R4, R5). Closes AC3, AC10.
 
