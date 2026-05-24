@@ -28,3 +28,13 @@ class PermissiveAclError(Exception):
     ``BUILTIN\\Administrators``) cause the helper to refuse unless
     ``allow_permissive_acl=True`` was passed.
     """
+
+
+class SchemaError(Exception):
+    """Raised when a ``creds-schema.toml`` file is malformed or missing.
+
+    Per spec § AC24 / AC24b — names the offending file path and the
+    specific shape violation (missing ``[namespace]``, empty
+    ``namespace.keys``, non-boolean ``secret``, or unresolvable
+    canonical path).
+    """
