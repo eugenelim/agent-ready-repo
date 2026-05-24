@@ -415,13 +415,13 @@ QA tails respectively.
 
 ## Acceptance Criteria
 
-- [ ] `packages/agentbundle/` exists with `pyproject.toml`, `agentbundle/`,
+- [x] `packages/agentbundle/` exists with `pyproject.toml`, `agentbundle/`,
       and `tests/`, following the `packages/_example/` layout. The package
       contains `agentbundle/build/` (F-build library, owned by the sibling
       `distribution-adapters` spec) and the CLI imports it cleanly as
       `import agentbundle.build` — no `sys.path` manipulation, no subprocess
       to `tools/build/build.py`.
-- [ ] `python -m agentbundle --version` prints both the CLI version and the
+- [x] `python -m agentbundle --version` prints both the CLI version and the
       spec version it ships against (`v0.1` at first release). The spec
       version value is parsed **at import time** from the bundled canonical
       `adapter.toml`'s `[contract] version` field. A test proves the
@@ -429,7 +429,7 @@ QA tails respectively.
       package, mutates `adapter.toml` on disk to a different version, then
       asserts that `python -m agentbundle --version` still prints the
       original (import-time) value — not the post-mutation value.
-- [ ] All eleven subcommands from RFC-0003 F-cli, in canonical
+- [x] All eleven subcommands from RFC-0003 F-cli, in canonical
       install-workflow order (discovery-first: `list-packs`, `list-targets`,
       `scaffold`, `install`, `validate`, `render`, `adapt`, `diff`,
       `upgrade`, `uninstall`, `init-state`), are implemented, each with a
@@ -437,23 +437,23 @@ QA tails respectively.
       post-state for at least one happy-path fixture. RFC-0003 enumerates
       the same eleven subcommands in a different (descriptive) order; this
       spec freezes the canonical install-workflow order.
-- [ ] `agentbundle render packs/core --output /tmp/out` produces a tree that
+- [x] `agentbundle render packs/core --output /tmp/out` produces a tree that
       is byte-identical to `make build` output for `packs/core` (F-build parity
       gate). `render` handles all five primitive types (`skill`, `agent`,
       `hook-body`, `hook-wiring`, `command`) and preserves source extensions
       for hook files (`.sh` and `.py`).
-- [ ] A single cross-cutting integration test proves the Tier-1/2/3
+- [x] A single cross-cutting integration test proves the Tier-1/2/3
       invariants hold for every write-capable subcommand (`scaffold`,
       `install`, `render`, `adapt`, `init-state`, `upgrade`, `uninstall`)
       against one shared fixture: Tier-1 may change; Tier-2 paths produce a
       `.upstream.<ext>` companion and the original is unchanged; Tier-3
       paths are byte-identical before and after. The fixture covers both
       `.sh` and `.py` hooks to pin extension preservation.
-- [ ] Every write-capable subcommand refuses to write outside the configured
+- [x] Every write-capable subcommand refuses to write outside the configured
       `--output` / repo root: a fixture pack with a projection rule
       attempting `../../malicious` is rejected with exit non-zero and a
       one-line stderr "refusing to write outside repo root: <path>".
-- [ ] `agentbundle install --pack core <catalogue-uri>` at v1 accepts two
+- [x] `agentbundle install --pack core <catalogue-uri>` at v1 accepts two
       catalogue URI forms: local paths (relative or absolute, e.g.
       `./catalogues/foo` or `/abs/path`) and git over HTTPS
       (`git+https://github.com/<owner>/<repo>[@<ref>]` where `<ref>` is a
@@ -464,13 +464,13 @@ QA tails respectively.
       naming the tarball URL the CLI tried to fetch. `git+ssh://...` URLs
       exit non-zero with stderr "SSH git URLs deferred to v1.1; use https
       or local path."
-- [ ] `agentbundle install --pack <new>` against the brownfield fixture
+- [x] `agentbundle install --pack <new>` against the brownfield fixture
       leaves all pre-existing adopter files unchanged and drops
       `.upstream.<ext>` companions for every Tier-2 collision. When an
       `.agent-ready-state.toml` already exists (e.g. from a prior `install
       --pack <other>`), the new install **merges**: adds a `[pack.<new>]`
       table without modifying existing `[pack.<other>]` tables.
-- [ ] `agentbundle adapt --values-from tests/fixtures/values.toml` resolves
+- [x] `agentbundle adapt --values-from tests/fixtures/values.toml` resolves
       every `<adapt:NAME>` marker in projected files (the CLI is the
       resolver for adopter installs, per the sibling spec's carve-out),
       writes a `.adapt-pending.md` report listing each `.upstream.<ext>`
@@ -478,12 +478,12 @@ QA tails respectively.
       and reads the `[markers]` table in `.adapt-discovery.toml`
       per docs/specs/adapt-to-project/spec.md, without writing
       to it.
-- [ ] `agentbundle adapt --ci` exits non-zero whenever any `.upstream.<ext>`
+- [x] `agentbundle adapt --ci` exits non-zero whenever any `.upstream.<ext>`
       companion remains on disk (so CI flags pending companions for human
       review). "Resolved" means the companion file no longer exists; the
       `--ci` exits-zero path is verified by a fixture where every companion
       has been removed.
-- [ ] `agentbundle upgrade --pack <name> --skill <skill> --to <version>`
+- [x] `agentbundle upgrade --pack <name> --skill <skill> --to <version>`
       moves only the named primitive; `.agent-ready-state.toml` records the
       resulting mixed-version pack state and subsequent whole-pack upgrades
       surface the mixed state before proceeding. The same flag shape works
@@ -497,7 +497,7 @@ QA tails respectively.
       land a torn pair. Naming a non-existent primitive (`--skill foo`
       where `foo` isn't in the pack) exits non-zero with one-line stderr
       "primitive 'foo' not in pack <pack>".
-- [ ] `agentbundle validate packs/core` exits 0 on schema-valid v0.1
+- [x] `agentbundle validate packs/core` exits 0 on schema-valid v0.1
       fixtures and exits 1 with a one-line reason on a schema-invalid
       fixture. `agentbundle validate --strict packs/core` additionally runs
       the v0.1 conformance fixtures **when they exist** (full strict
@@ -506,27 +506,27 @@ QA tails respectively.
       on the schema portion. `validate` checks recipes against the
       six-type enumerated set defined in the sibling `distribution-adapters`
       spec.
-- [ ] `dist/agentbundle.pyz` runs end-to-end on a Python 3.11 environment
+- [x] `dist/agentbundle.pyz` runs end-to-end on a Python 3.11 environment
       with no third-party packages installed (`pip list` shows only stdlib).
       Manual QA in a corporate-network sandbox confirms `gh release download`
       → `python agentbundle.pyz install` works.
-- [ ] **Ship-time prerequisite:** the git tag `contract-v<version>` (e.g.
+- [x] **Ship-time prerequisite:** the git tag `contract-v<version>` (e.g.
       `contract-v0.1`) exists in this repo's history before
       `dist/agentbundle.pyz` is uploaded as a release asset, so the
       `--version` spec field has a canonical referential anchor in git
       history.
-- [ ] `pip list --format=freeze` inside `packages/agentbundle/` lists zero
+- [x] `pip list --format=freeze` inside `packages/agentbundle/` lists zero
       runtime dependencies (test-only dev-deps allowed). The sibling
       `distribution-adapters` spec's stdlib-import audit (its build's
       `lint-build.sh` equivalent) provides the structural lint that
       catches drift; cite it here rather than duplicate.
-- [ ] `agentbundle.build.adapters` exposes a mapping `name → AdapterModule`
+- [x] `agentbundle.build.adapters` exposes a mapping `name → AdapterModule`
       populated at import time (the `AdapterModule` shape is pinned by the
       sibling `distribution-adapters` spec's registry contract AC). A test
       asserts: `import agentbundle.build.adapters as A; assert isinstance(
       A.registry, Mapping); assert set(A.registry).issuperset({"claude_code",
       "kiro", "copilot", "codex"})`.
-- [ ] A version-mismatch fixture (pack declares spec `v2.0`, CLI ships
+- [x] A version-mismatch fixture (pack declares spec `v2.0`, CLI ships
       `v0.1`) causes every subcommand to refuse with a stderr line naming
       both versions; no partial behaviour observed.
 - [x] **(RFC-0004)** `--scope {repo,user}` is accepted on `install`,
@@ -628,3 +628,17 @@ QA tails respectively.
       sibling `distribution-adapters` spec's `pack.schema.json`)
       is the structural enforcement; this AC pins the CLI's
       user-facing stderr text.
+
+## Changelog
+
+- 2026-05-23: bookkeeping reconciliation — the 17 pre-amendment
+  ACs flipped `[ ]` → `[x]` against on-disk evidence. PR #23
+  shipped the v1 CLI surface; PR #26 + the RFC-0004 follow-on
+  PRs closed the 10 `(RFC-0004)`-tagged ACs (already `[x]`).
+  Known carryovers remain: SSH `git+ssh://` URLs in `install`
+  (deferred to v1.1; refusal text shipped); full `--strict`
+  conformance against F-conformance fixtures (deferred per
+  RFC-0003); user-scope hook-wiring merge story; system-wide
+  `global` scope; APM/Claude-plugins parity. These live as
+  carve-outs inside the relevant ACs (AC7/AC12) rather than as
+  separate open checkboxes.
