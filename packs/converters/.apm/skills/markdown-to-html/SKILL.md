@@ -17,9 +17,9 @@ You are not the renderer. The script is. Invoke it and report the path.
 ### Step 1 — Verify dependencies
 
 ```bash
-# From the skill's own directory (wherever it lives — user-scope
-# install at ~/.claude/skills/markdown-to-html/, repo-scope at
-# .claude/skills/markdown-to-html/, or upstream in the catalogue).
+# From the skill's own directory — user-scope install at
+# ~/.claude/skills/markdown-to-html/, repo-scope at
+# .claude/skills/markdown-to-html/.
 npm install   # installs marked + highlight.js per package.json
 ```
 
