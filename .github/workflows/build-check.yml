@@ -27,6 +27,9 @@ jobs:
       - name: Run make build-check
         run: make build-check PACKS_DIR=packs
 
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Install agentbundle (editable) + pytest
         run: pip install -e packages/agentbundle/ pytest
 
