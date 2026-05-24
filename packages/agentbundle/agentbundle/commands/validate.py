@@ -153,7 +153,8 @@ def run(args) -> int:
     from agentbundle.build.scope_rails import run_all as run_scope_rails
 
     allowed = _allowed_scopes(pack_data)
-    rail_refusal = run_scope_rails(pack_path, allowed)
+    user_scope_hooks = _user_scope_hooks_opt_in(pack_data)
+    rail_refusal = run_scope_rails(pack_path, allowed, user_scope_hooks)
     if rail_refusal is not None:
         pack_name = (
             pack_data.get("pack", {}).get("name") or pack_path.name
@@ -223,6 +224,23 @@ def _is_default_scope_invariant_violation(pack_data: dict, first_error: str) -> 
         "pack.install.allowed-scopes" in first_error
         or "allowed-scopes" in first_error
     )
+
+
+def _user_scope_hooks_opt_in(pack_data: dict) -> bool:
+    """Return True iff the pack declares ``[pack.install] user-scope-hooks = true``.
+
+    RFC-0005 § Rail B — user-scope lift: the flag is the consent
+    gesture that lets a pack ship hook-shaped primitives at user scope.
+    Absent or non-boolean → False (rail still refuses the pack).
+    """
+    pack = pack_data.get("pack", {})
+    if not isinstance(pack, dict):
+        return False
+    install = pack.get("install", {})
+    if not isinstance(install, dict):
+        return False
+    flag = install.get("user-scope-hooks")
+    return flag is True
 
 
 def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
@@ -302,7 +320,12 @@ def _allowed_scopes(pack_data: dict) -> list[str]:
         if isinstance(pack.get("adapter-contract"), dict)
         else None
     )
-    if contract_version != "0.2":
+    # v0.2 introduced `[pack.install]`; v0.3 (RFC-0005) added the
+    # `user-scope-hooks` flag but did not change scope-resolution
+    # semantics. Treat any contract version >= 0.2 as carrying the
+    # install table. The legacy v0.1 path (and any pack without an
+    # adapter-contract declaration) stays repo-only.
+    if contract_version not in ("0.2", "0.3"):
         return ["repo"]
     install = pack.get("install", {})
     if not isinstance(install, dict):
