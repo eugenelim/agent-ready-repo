@@ -27,6 +27,7 @@ follow-up prompt's PR order):
 | **#88** | `eugenelim/skill-secrets-doc-cleanup` | `45523cc` | Inline-fixture amendment to spec § Testing Strategy; `docs/product/release-checklist.md` for the three Windows manual-QA rows; ROADMAP closure audit + Round-2 disposition subsection. |
 | **#89** | `eugenelim/skill-secrets-robustness` | `05de963` | `Credentials.__repr__` redacts values; `__getattr__` lists resolved keys; `_quote_for_dotfile` refuses `"` / `$`; `EnvParseError` ordering; `credentialed:` YAML normalisation; `resolve_schema_path` → `_relative_schema_path`; `creds rm` continues on Tier-2 hard fail; AC23 stderr-prefix categorisation. |
 | **#93** | `eugenelim/skill-secrets-lint-widening` | `061a26f` | AST walker recognises `JoinedStr`, `Starred(Tuple)`, `Subscript` literal-derivable shapes; `_verify_icacls` SID-based DACL check (locale-invariant on non-English Windows). |
+| **#97** | `eugenelim/skill-secrets-schema-path-remove` | _pending_ | Remove `schema_path=` kwarg from `load_credentials`; amend AC24b to call out the resolver-only contract; schema validation lives in `creds check`, not on the loader's public surface. |
 
 ## Adversarial review round 1 — disposition
 
@@ -75,7 +76,7 @@ follow-up prompt's PR order):
 | 1 | AC34 unchecked (orphan-fixture walker) | **Closed in PR #81** — see Adversarial #1. |
 | 2 | AC35 unchecked (no-live-writes assertion) | **Closed in PR #81** — see Adversarial #2. |
 | 3 | `_tier_for_key` swallows Tier-2 hard fail | **Closed in PR #82** — see Adversarial #10. |
-| 4 | `load_credentials(schema_path=...)` no-op kwarg | **Pending user direction** — either (a) remove kwarg + amend AC24b, or (b) wire schema validation. Tracked under `docs/ROADMAP.md` § `skill-secrets` *Round-2 disposition* and named in `notes/review-round2-summary.md` *Pending decisions* below. |
+| 4 | `load_credentials(schema_path=...)` no-op kwarg | **Closed in PR #97** — path (a) chosen after long-term-vs-tactical reasoning: `load_credentials` resolves, schema describes — crossing the two through a kwarg couples concerns that should evolve independently. Kwarg removed; signature is now `(namespace, required_keys)`; AC24b amended to make the resolution-only contract explicit; schema validation belongs in `agentbundle creds check`, not in the loader's public surface. |
 | 5 | AC4 cross-tier composability test missing | **Closed in PR #86** — `test_load_credentials_mixes_tiers_across_keys`. |
 | 6 | `CredentialsMissingError` doesn't name tiers tried | **Closed in PR #86** — per-key tier trailer + structured `tiers_tried` attribute. |
 | 7 | AC22 macOS exit-code matrix not symbolic | **Closed in PR #85** — see Adversarial #5. |
@@ -88,30 +89,11 @@ follow-up prompt's PR order):
 | 14 | `__getattr__` doesn't list resolved keys | **Closed in PR #89** — see Security #8 sibling change. |
 | 15 | `_quote_for_dotfile` doesn't refuse unsafe chars | **Closed in PR #89** — `EnvParseError` on `"` or `$`. |
 
-## Pending decisions
-
-One item still requires user direction:
-
-- **`load_credentials(schema_path=...)` no-op kwarg** (Quality Blocker
-  #4). Two valid paths:
-  - **(a)** Remove `schema_path=` from the `load_credentials`
-    signature; delete the no-op signature test at
-    `tests/unit/test_credentials_schema.py:204-215`; amend AC24b's
-    final clause to drop the promise. Smallest surface;
-    primitive authors who load their own schema still call
-    `parse_schema` directly.
-  - **(b)** Wire the kwarg: when `schema_path` is not `None`, parse the
-    schema and validate every entry in `required_keys` appears in
-    `schema.keys`; raise `SchemaError` on mismatch. Adds a real check;
-    new failure mode for callers; deepens the public surface.
-
-  Awaiting user direction before opening the PR.
-
 ## Convergence note
 
 Round-2 closed every reviewer-flagged item with either a landed fix
 or a one-line deferral rationale. The four explicitly-deferred items
-above (Security #3, Quality #9, #12, #13) carry no current
-regression vector; each is tracked for re-evaluation if the
+in the tables above (Security #3, Quality #9, #12, #13) carry no
+current regression vector; each is tracked for re-evaluation if the
 triggering condition (real Windows CI suite, Linux threshold change,
 loader's second consumer, macOS CI matrix) ever lands.

@@ -52,7 +52,7 @@ Concretely the implementing PRs deliver:
    Tier 3 in v1.
 
 3. **A stdlib-only loader and CLI verb** — `agent_ready.credentials`
-   exposes `load_credentials(namespace, required_keys=[...])` for
+   exposes `load_credentials(namespace, required_keys)` for
    primitive authors to import; `agentbundle creds` ships four
    subcommands (`setup`, `check`, `where`, `rm` — **no `get`**); both
    are stdlib-only (`getpass`, `os`, `pathlib`, `subprocess`,
@@ -315,7 +315,7 @@ Stdlib parser and loader API:
       (`KEY=$OTHER`), refuses multi-line quoted values (a quoted
       value spanning two physical lines is a parse error).
 - [x] **AC3.** `agent_ready.credentials.load_credentials(namespace,
-      required_keys=[...])` returns an immutable `Credentials` object
+      required_keys)` returns an immutable `Credentials` object
       whose attribute access returns the resolved values; missing
       required keys raise `CredentialsMissingError` naming the
       namespace and the missing keys. The function is the only public
@@ -546,9 +546,14 @@ CLI verb `agentbundle creds`:
       SKILL.md), taking its parent directory, and joining
       `references/creds-schema.toml`. The resolution uses the
       **existing** v0.3 state-file schema — no new fields are added.
-      `load_credentials` accepts a `schema_path: Path | None` kwarg
-      for primitive authors who load the schema themselves; passing
-      `None` (the default) defers to the canonical lookup.
+      `load_credentials(namespace, required_keys)` is *resolution
+      only* — schema concerns (validating `required_keys` against
+      the schema's declared keys, prompting, secret/non-secret
+      labels) live in the `agentbundle creds setup` / `creds check`
+      CLI surface, not on the loader's signature. Primitive code is
+      not expected to validate against the schema at load time; the
+      `creds check` verb is the canonical way to surface a
+      schema/required-keys mismatch.
 
 Conventions and lint:
 
