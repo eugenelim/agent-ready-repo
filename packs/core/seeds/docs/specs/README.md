@@ -36,8 +36,8 @@ _none yet_
 
 ```bash
 mkdir -p docs/specs/<feature-name>
-cp docs/_templates/spec.md docs/specs/<feature-name>/spec.md
-cp docs/_templates/plan.md docs/specs/<feature-name>/plan.md
+cp .claude/skills/new-spec/assets/spec.md docs/specs/<feature-name>/spec.md
+cp .claude/skills/new-spec/assets/plan.md docs/specs/<feature-name>/plan.md
 ```
 
 Or, in Claude Code, run `/new-spec "<feature-name>"`.

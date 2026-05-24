@@ -21,10 +21,9 @@
 │   ├── specs/            # feature specs and plans
 │   ├── architecture/     # this directory — current code structure (for contributors)
 │   ├── product/          # current product state (roadmap, changelog) — for maintainers
-│   ├── guides/           # user-facing docs (Diátaxis: tutorials, how-to, reference, explanation)
-│   └── _templates/       # templates for adr / rfc / spec / plan
+│   └── guides/           # user-facing docs (Diátaxis: tutorials, how-to, reference, explanation)
 ├── .claude/
-│   ├── skills/           # agent workflows for repeating tasks
+│   ├── skills/           # agent workflows for repeating tasks (each skill owns its templates under `assets/`)
 │   ├── agents/           # subagent definitions
 │   └── commands/         # custom slash commands
 └── .github/              # CI, issue and PR templates

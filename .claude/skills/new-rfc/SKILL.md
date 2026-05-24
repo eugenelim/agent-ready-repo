@@ -1,8 +1,7 @@
 ---
 name: new-rfc
 description: Use this skill when the user asks to propose, draft, or open an RFC (request for comments). Triggers on "RFC", "propose a change to…", "let's get input on…", "draft a proposal". Do NOT use for already-decided things (use `new-adr`) or single-feature specs (use `new-spec`).
-dependencies:
-  - docs/_templates/rfc.md
+dependencies: []
 ---
 
 # Skill: new-rfc
@@ -31,11 +30,10 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 
    Add 1, zero-pad to 4 digits. (If no RFCs exist, start at `0001`.)
 
-2. Copy the template:
-
-   ```bash
-   cp docs/_templates/rfc.md docs/rfc/NNNN-<kebab-title>.md
-   ```
+2. Copy this skill's bundled `assets/rfc.md` into `docs/rfc/` and rename
+   to `NNNN-<kebab-title>.md`. (Paths are skill-relative — the
+   `assets/` folder lives next to this `SKILL.md` wherever your IDE
+   installed the skill.)
 
 3. Help the user draft the sections. The two sections most often
    under-developed are:

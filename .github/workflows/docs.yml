@@ -19,7 +19,8 @@ on:
       - 'tools/test-lint-skill-deps.sh'
       - 'tools/lint-knowledge.sh'
       - 'tools/test-lint-knowledge.sh'
-      - 'tools/check-done.py'
+      - '.claude/skills/work-loop/scripts/check-done.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/check-done.py'
       - 'tools/test-check-done.sh'
       - 'tools/hooks/**'
       - 'tools/test-pre-pr.sh'
@@ -97,7 +98,7 @@ jobs:
       - name: Seed a healthy state.json so the aggregator exercises check-done.py
         run: |
           mkdir -p docs/specs/_ci-smoke
-          sed 's/"pending"/"approved"/' docs/_templates/state.json \
+          sed 's/"pending"/"approved"/' .claude/skills/work-loop/assets/state.json \
             > docs/specs/_ci-smoke/state.json
       - name: Run pre-pr aggregator (mirrors local enforcement triplet)
         run: bash tools/hooks/pre-pr.sh

@@ -89,7 +89,7 @@ This spec therefore partitions its scope into **two cutover phases**:
     `tools/hooks/<name>.<ext>`, and the `hooks` key of
     `.claude/settings.local.json`.
   - Seed-projected paths: `docs/CHARTER.md`, `docs/CONVENTIONS.md`,
-    `docs/APPROACH.md`, `docs/_templates/{spec,plan,rfc,adr,state.json,README}.md`,
+    `docs/APPROACH.md`,
     seed READMEs under `docs/{architecture,specs,knowledge,product,
     guides,rfc,adr}/`, `docs/architecture/overview.md`,
     `docs/knowledge/patterns.jsonl`, `docs/product/{roadmap,changelog}.md`,
@@ -402,10 +402,13 @@ and the Codex multi-pack aggregation fix land.
 - [x] **AC9 (seed READMEs) — Phase 1.** Seed READMEs under
   `docs/architecture/`, `docs/specs/`, `docs/knowledge/`,
   `docs/product/`, `docs/guides/`, `docs/rfc/`, `docs/adr/`,
-  `docs/_templates/`, and `packages/` are *Projected*; the gate
+  and `packages/` are *Projected*; the gate
   enforces byte-equality with their pack-side sources. Projection
   performed by `_project_seeds`; collision check enforces AC7
-  simultaneously.
+  simultaneously. (`docs/_templates/` was in this enumeration when
+  this AC was first written; the directory was retired 2026-05-24
+  when its contents moved to per-skill `assets/` folders — see
+  Changelog.)
 - [x] **AC10 (commands) — Phase 1.** `.claude/commands/<name>.md` is
   *Projected* from `packs/*/.apm/commands/<name>.md` per the Claude
   Code adapter's `command` primitive projection. The gate enforces
@@ -456,6 +459,16 @@ and the Codex multi-pack aggregation fix land.
 
 ## Changelog
 
+- 2026-05-24: `docs/_templates/` directory retired. Templates
+  (`spec.md`, `plan.md`, `adr.md`, `rfc.md`, `state.json`, plus the
+  directory's `README.md`) moved into the `assets/` folder of the
+  skill that creates instances of each — `new-spec`, `new-adr`,
+  `new-rfc`, `work-loop`. This complies with the agentskills.io
+  spec's skill-layout convention (skills are self-contained units
+  with `references/` for read-on-demand material and `assets/` for
+  material the skill copies elsewhere). AC9's seed-README
+  enumeration was edited to remove `docs/_templates/`; the
+  byte-equality gate it describes is unchanged in semantics.
 - 2026-05-23: Phase-2 AC8 closed. Codex now aggregates skill
   descriptions across every discovered pack before splicing the
   `AGENTS.md` managed block, self-host runs both `claude-code` and

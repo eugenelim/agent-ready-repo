@@ -47,8 +47,9 @@ What it runs, in order:
 2. `tools/lint-agent-artifacts.sh` — skill/agent/command frontmatter
 3. `tools/lint-skill-deps.sh` — manifest dependency resolution
 4. `tools/lint-knowledge.sh` — `patterns.jsonl` validation
-5. `tools/check-done.py` against every `docs/specs/*/state.json`, in
-   both `--phase implement` and `--phase review` modes
+5. `.claude/skills/work-loop/scripts/check-done.py` against every
+   `docs/specs/*/state.json`, in both `--phase implement` and
+   `--phase review` modes
 
 Exits non-zero on the first failure with a one-line reason. If there
 are no active `state.json` files, the check-done step is skipped.
