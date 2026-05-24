@@ -392,23 +392,22 @@ Where the answer goes depends on the *shape* of the learning:
 
 - **Practitioner lessons** — a repeatable pattern that worked, a
   gotcha that bit you, or an antipattern that looked good but rotted.
-  If the project maintains a knowledge base, this is where the lesson
-  lands. See
-  [`CONVENTIONS.md § Knowledge base`](../../../docs/CONVENTIONS.md#knowledge-base)
-  for the schema, location, and how the session-start hook surfaces
-  these on the next loop.
+  Check `docs/CONVENTIONS.md` for a `Knowledge base` section: if
+  present, follow what it says for schema, file location, and how the
+  session-start hook surfaces these on the next loop. If the section
+  isn't there, fall back to a one-line note in the relevant
+  `AGENTS.md` (root or per-package) — the next agent still sees it.
 - "I had to grep for `<thing>` repeatedly" → add a pointer in
   `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's
   `AGENTS.md`.
 - "I made the same wrong assumption twice" → if it's a
-  knowledge-base-shaped lesson (a pattern/gotcha/antipattern), record
-  it where [`CONVENTIONS.md § Knowledge base`](../../../docs/CONVENTIONS.md#knowledge-base)
-  says; if it's project-conventions context, add a line to the
-  relevant `AGENTS.md` (root or per-package) so the next agent doesn't
-  repeat it. If it's a vocabulary issue (a term that means something
-  specific here), it goes in `docs/guides/reference/` as a glossary
-  entry.
+  knowledge-base-shaped lesson (a pattern/gotcha/antipattern), follow
+  the routing in the first bullet; if it's project-conventions
+  context, add a line to the relevant `AGENTS.md` (root or
+  per-package) so the next agent doesn't repeat it. If it's a
+  vocabulary issue (a term that means something specific here), it
+  goes in `docs/guides/reference/` as a glossary entry.
 - "This workflow is now the third time I've done it" → propose it as a new
   skill in `.claude/skills/`.
 
