@@ -551,6 +551,20 @@ Non-goals' plugin-cache carve-out).
 
 ## Changelog
 
+- 2026-05-24: CI uncovered a latent bug in `self_host.py`'s drift
+  loop — `diff_against_working_tree` didn't consult `_is_excluded`
+  the way the unclassified-path enumeration does, so a projected-
+  but-gitignored file (here, `.claude/settings.local.json`) drifted
+  on CI as "missing on disk." Added a single `if _is_excluded(relative):
+  continue` guard at the top of the drift loop, completing the
+  apparent design intent (`EXCLUDED_PATTERNS` already had
+  `.claude/settings.local.json` listed since before this spec, but
+  only enumeration honoured it). This touches
+  `packages/agentbundle/agentbundle/build/self_host.py` — the spec's
+  Ask-first boundary; surfaced via the "fix broken CI" instruction.
+  `PROJECTED_README_OVERRIDES` re-include semantics preserved. No
+  changes to `EXCLUDED_PATTERNS` itself. All 797 tests still pass
+  (2 pre-existing skill-secrets test-order failures unrelated).
 - 2026-05-24: initial plan after spec sign-off (post-rebase from
   origin/main; legacy-fixture rewrite added per user request; Kiro
   scope deferred after Kiro IDE/CLI research clarified that the
