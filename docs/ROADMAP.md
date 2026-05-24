@@ -14,7 +14,8 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-23 (adapt-to-project spec lands; cross-spec
+`adapt-to-project` bullet re-cited as a per-spec section)
 
 ## How this file is maintained
 
@@ -73,6 +74,15 @@ the same PR; ACs #14–#18 are satisfied.
   the same bookkeeping drift documented above — checkboxes are still
   literally `- [ ]` against shipped code. Same as `agent-spec-cli`:
   reconciliation work, not new scope.
+- **Rail C grep widening to canonical syntax — paired with AC21 of
+  adapt-to-project.** The spec text (line ~342 and the contract-load-
+  bearing AC near line ~759) widens to also match the canonical
+  lowercase-hyphen form per `adapt-to-project/spec.md` AC21. The
+  code-side widening of the Rail-C validate-time grep is deferred per
+  AC21's carve-out; until then, a user-scope pack carrying lowercase-
+  hyphen markers passes `validate` in code even though the contract
+  refuses it. Unblocks when `distribution-adapters`'s next
+  implementation pass picks up the widened AC.
 
 ## `agent-spec-cli` — shipped (v0.2 CLI surface landed)
 
@@ -100,6 +110,102 @@ in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
   `validate` behaviour against the v0.1 conformance fixtures (which
   themselves are owned by RFC-0003's deferred F-conformance task).
 
+## `adapt-to-project` — drafted
+
+Spec: [`specs/adapt-to-project/spec.md`](specs/adapt-to-project/spec.md).
+Drafted per RFC-0001 § *Post-install adaptation* and RFC-0004 § *Drawbacks
+→ `adapt-to-project` discovery doubles its artifact surface*. Cross-
+references: `self-hosting`, `agent-spec-cli`, **and RFC-0004**.
+
+The v1 implementation lands the typed `AdaptDiscovery` schema, the
+`adapt`/self-host consumers' migration from legacy `[accepted]` /
+`[adapt]` tables to canonical `[markers]`, install-gate enforcement
+of `[pack.dependencies.required]`, the install→adapt marker-write +
+chained in-process `adapt.run`, the session-start hook's dual-scope
+marker walk, and the SKILL.md body authoring (class-1 shell-out;
+classes 2–4 LLM-judgment writes under the per-scope path-jail).
+
+- **Security: TOML-injection via unescaped pack metadata
+  (pre-existing).** `dump_state` and `_append_install_marker`
+  interpolate `pack.name` / `version` / projection relpaths into
+  TOML output via plain f-strings. A malicious pack manifesting a
+  `version` string containing TOML metacharacters can land phantom
+  TOML structure in `<repo>/.agent-ready-state.toml` and
+  `.adapt-install-marker.toml`. Pre-existing in `config.dump_state`;
+  amplified by the install-marker addition. **Unblocks when:** the
+  catalogue trust model formalises (today's CLI assumes trusted
+  catalogues); fix shape is a tested `_emit_basic_string`
+  serialiser + a runtime regex assertion on every pack-sourced
+  field that lands in a TOML basic-string position.
+- **AC18 schema-validation tests for shipped packs.** `make
+  build-self` already invokes `validate_pack_metadata` per pack at
+  build time, so a malformed shipped manifest breaks CI. There is
+  no separate pytest pinning the four manifests carry
+  `[pack.adapter-contract] version = "0.2"` + `[[pack.dependencies.required]]`
+  (addons) + `[pack.install]` (all four). **Unblocks when:**
+  someone adds a parametrised `test_addon_manifests_carry_required_dependency`
+  + `test_all_packs_declare_install_table` against
+  `packs/{core,governance-extras,user-guide-diataxis,monorepo-extras}/pack.toml`.
+- **AC19c scaffold-driven test.** `tests/integration/test_install_adapt_chain.py::test_marker_in_seed_gitignore`
+  checks the seed file directly rather than invoking
+  `agentbundle scaffold` against a tmp output dir. A refactor that
+  silently dropped dotfile projection would not trip the test.
+  **Unblocks when:** the test is rewritten to invoke
+  `scaffold_run` and assert `(tmp/.gitignore).read_text()`.
+- **AC10 deterministic-pending-md byte-identity with non-empty
+  state.** `test_idempotent_re_run` exercises the trivial empty-
+  companion case. The interesting case (sorted lexicographically,
+  no timestamps, byte-identical across re-runs) is unpinned.
+  **Unblocks when:** a fixture seeds two `.upstream.<ext>` files
+  and a test asserts the pending.md is byte-identical *and*
+  contains the companion paths in lex order.
+- **User-scope-only install chain test.** `_chain_adapt`'s
+  fallback `Path(args.output).resolve()` is the path used when an
+  adopter runs `agentbundle install --pack <user-pack> --scope user`
+  (no repo plan). No test exercises this. **Unblocks when:** a
+  test seeds a user-scope-only install and asserts the chained
+  adapt either fires correctly against the install's output root
+  or is skipped explicitly.
+- **APM / Claude-plugins install-route nudge parity.** Adopters
+  installing via APM or Claude-plugins routes (rather than
+  `agentbundle install`) never hit the install marker write, never
+  see the session-start nudge, and never get the chained
+  `adapt.run`. The spec is explicit (CLI-only contract), but the
+  RFC-0004 parity work would close this gap. **Unblocks when:**
+  APM/Claude-plugins adapter parity lands.
+- **Install-marker `new-companions` tally.** `commands/install.py`'s
+  install loop classifies Tier-2 collisions on the fly and doesn't
+  keep a tally; `_append_install_marker` writes `new-companions = []`
+  unconditionally. The spec's install-marker schema example names
+  this field as load-bearing, but the session-start nudge doesn't
+  surface companion paths in v1. **Unblocks when:** the first Tier-2
+  collision needs to surface through the install→adapt nudge — at
+  that point, capture the relpaths during the step-9 write loop and
+  pass them through.
+- **AC4b — deferred manual-QA rows (three trigger classes).**
+  v1 ships the AC4a automation/grep rows; AC4b enumerates 21 rows
+  deferred under three trigger classes (see
+  `notes/manual-qa-matrix.md` for the canonical per-row table):
+  - **Repo-scope class-2 transcripts (rows 8–11).** Brownfield
+    fixture seeds the `AGENTS.upstream.md` surface; only the inline
+    transcripts are deferred. *Trigger:* follow-up captures an
+    adopter session against `brownfield-adapt/AGENTS.upstream.md`
+    and attaches transcript + tree fragment inline.
+  - **Repo-scope class-3 transcripts (rows 12–14).** *Trigger:*
+    brownfield fixture seeds a class-3 surface (e.g., overlapping
+    `DESIGN.md` + `docs/CHARTER.md`) and an adopter session is
+    captured.
+  - **Repo-scope class-4 transcripts (rows 15–16).** *Trigger:*
+    brownfield fixture seeds a class-4 surface (overlapping
+    `docs/howto/` + `docs/guides/how-to/`) and an adopter session
+    is captured.
+  - **Cross-cutting end-to-end transcripts (rows 17–18).**
+    *Trigger:* follow-up captures interactive adopter sessions for
+    dirty-state-repo and Tier-2 detection-repo.
+  - **User-scope LLM-judgment rows (rows 19–28).** *Trigger:* first
+    pack declaring `allowed-scopes = ["user"]` lands (RFC-0004 §
+    *Drawbacks* + *Unresolved questions*).
+
 ---
 
 ## Cross-spec / outside-the-spec-tree
@@ -107,12 +213,6 @@ in the same PR; the ten `(RFC-0004)`-tagged ACs are satisfied.
 These are open items called out by accepted RFCs or by multiple specs,
 but don't have a spec of their own yet.
 
-- **`adapt-to-project` skill.** Deferred per RFC-0001 Open Q3 and
-  referenced by both `self-hosting` and `agent-spec-cli`. Owns
-  `<adapt:NAME>` marker resolution for plugin-installed packs and
-  materialises `.adapt-discovery.toml` from a repo's concrete values.
-  Skill stub exists at `.claude/skills/adapt-to-project/SKILL.md` (per
-  the skills index); the resolver itself is not implemented.
 - **F-conformance fixtures (RFC-0003).** The per-adapter conformance
   suite that `agentbundle validate --strict` would consume. RFC-0003
   scoped this out of v1; needs its own spec when prioritised.

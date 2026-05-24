@@ -475,3 +475,4 @@ and the Codex multi-pack aggregation fix land.
   criteria unchanged). See
   [RFC-0001 § Amendments](../../rfc/0001-bundle-distribution-by-adapter-spec.md#amendments)
   for the full rationale and the `CONVENTIONS.md:80` exception note.
+- 2026-05-23: AC12 implementation migrates from reading [adapt] to reading [markers] per docs/specs/adapt-to-project/spec.md; AC12 contract unchanged.

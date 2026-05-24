@@ -33,8 +33,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
-# Marker regex: <adapt:UPPER_CASE_IDENTIFIER>
-_MARKER_RE = re.compile(r"<adapt:([A-Z_][A-Z0-9_]*)>")
+# Marker regex (AC14): canonical lowercase-hyphen identifiers. The CLI
+# narrows from the prior UPPER_SNAKE-only regex to the canonical form
+# that the adapt-to-project skill writes. UPPER_SNAKE markers still
+# appearing in adopter trees are left in place with a one-shot warning
+# (``_LEGACY_UPPER_RE``); they're not substituted.
+_MARKER_RE = re.compile(r"<adapt:([a-z][a-z0-9-]*)>")
+_LEGACY_UPPER_RE = re.compile(r"<adapt:([A-Z_][A-Z0-9_]*)>")
 
 
 @dataclass
@@ -113,7 +118,16 @@ def _apply_markers(text: str, values: dict[str, str], *, src_label: str) -> str:
     """Replace ``<adapt:NAME>`` in *text* using *values*.
 
     Unknown markers are left in place; a warning is printed to stderr.
+    Legacy UPPER_SNAKE markers (per AC14) are left in place with a single
+    warning per file.
     """
+    if _LEGACY_UPPER_RE.search(text):
+        print(
+            f"adapt: warning: legacy UPPER_SNAKE marker(s) in {src_label}; "
+            f"left in place (canonical form is <adapt:[a-z][a-z0-9-]*>)",
+            file=sys.stderr,
+        )
+
     def _replace(m: re.Match) -> str:
         name = m.group(1)
         if name in values:
@@ -178,7 +192,7 @@ def run(args: "argparse.Namespace") -> int:
     Returns 0 on success; 1 on ``--ci`` with pending companions or
     path-jail refusal at write time.
     """
-    from agentbundle.config import ConfigError, load_adapt_discovery, load_state, load_values_from
+    from agentbundle.config import ConfigError, load_adapt_discovery_typed, load_state, load_values_from
     from agentbundle import safety
 
     scopes = _resolve_scopes(args)
@@ -210,22 +224,22 @@ def run(args: "argparse.Namespace") -> int:
         return 1 if any_pending else 0
 
     # ── Default mode ──────────────────────────────────────────────────────────
-    # Build the merged marker-values dict across both scopes' discovery
-    # files. --values-from (when supplied) wins as the explicit
-    # override. Repo discovery takes precedence over user discovery so
-    # project-specific resolutions override personal defaults.
+    # Build marker values from the **repo-scope** discovery file's
+    # [markers] table. Markers are repo-only per RFC-0004 — the user-
+    # scope discovery file is still read (to surface legacy-shape errors
+    # symmetrically and to honour the dual-scope walk contract) but
+    # carries no [markers] table by rail. --values-from (when supplied)
+    # wins as the explicit override.
     values: dict[str, str] = {}
-    for s in reversed(scopes):  # user first → repo overrides
+    for s in scopes:
         try:
-            discovery = load_adapt_discovery(s.discovery_path)
+            discovery = load_adapt_discovery_typed(s.discovery_path, scope=s.name)  # type: ignore[arg-type]
         except ConfigError as exc:
             print(f"adapt: {exc}", file=sys.stderr)
             return 1
-        accepted = discovery.get("accepted", {})
-        if isinstance(accepted, dict):
-            for k, v in accepted.items():
-                if isinstance(v, str):
-                    values[str(k)] = v
+        if s.name == "repo":
+            for k, v in discovery.markers.items():
+                values[k] = v
 
     if getattr(args, "values_from", None):
         try:

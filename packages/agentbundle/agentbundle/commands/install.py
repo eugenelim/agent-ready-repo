@@ -143,15 +143,20 @@ def run(args: "argparse.Namespace") -> int:
         print(f"install: {exc}", file=sys.stderr)
         return 1
 
-    # User scope resolution only fires when we actually need it (the
-    # request, the pack's default, or a dual-scope --force path touches
-    # user). Defer the expanduser call to avoid raising on adopters
-    # with $HOME=/ when they're only installing at repo scope.
-    needs_user_state = requested_scope == "user" or (
-        # Conservative pre-load — we don't yet know if the pack is at
-        # user scope until we read the user state file, but if the pack
-        # isn't permitted at user scope, no user state is consulted.
-        "user" in _resolved_allowed_scopes(pack_install)
+    # User scope resolution fires when the install itself touches user
+    # scope, OR when the installing pack declares
+    # `[[pack.dependencies.required]]` (AC17 union-of-scopes resolution
+    # requires user_state to be consulted even for repo-only addons —
+    # otherwise a `core` install at user scope is invisible to the
+    # gate). Defer the expanduser call to avoid raising on adopters
+    # with $HOME=/ when neither condition fires.
+    _pack_has_required = bool(
+        pack_toml.get("pack", {}).get("dependencies", {}).get("required")
+    )
+    needs_user_state = (
+        requested_scope == "user"
+        or "user" in _resolved_allowed_scopes(pack_install)
+        or _pack_has_required
     )
     user_state = None
     if needs_user_state:
@@ -174,6 +179,21 @@ def run(args: "argparse.Namespace") -> int:
 
     installed_at_repo = pack_name in repo_state.packs
     installed_at_user = user_state is not None and pack_name in user_state.packs
+
+    # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
+    # Resolves required deps against the union of repo + user state (AC17).
+    # Gate runs before any write (and before the already-installed check, so
+    # dep errors surface even when another early-exit would fire).
+    from agentbundle.config import State as _State
+
+    _effective_user_state: "State" = user_state if user_state is not None else _State()
+    try:
+        validate_dependencies_required(
+            pack_toml, repo_state=repo_state, user_state=_effective_user_state
+        )
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
     # ── Step 4: Branch on already-installed shape ─────────────────────────────
     # 4a. Already at requested scope → refuse (use 'upgrade'); --force does
@@ -425,11 +445,204 @@ def run(args: "argparse.Namespace") -> int:
                     user_state=user_state,
                 )
 
-    # ── Step 11: Emit installed: lines (repo first, user last) ────────────────
+    # ── Step 11: Write install marker(s) per scope ───────────────────────────
+    # Per spec AC19a: after every successful install, append a
+    # `[[packs-installed]]` entry to `.adapt-install-marker.toml` at the
+    # install's scope root. The file's *path* encodes the scope.
+    pack_version = pack_toml.get("pack", {}).get("version", "")
+    # Per AC19a: markers are repo-only, so unresolved-markers is computed
+    # off the **repo-scope** projection regardless of which scopes the
+    # install touched. User-scope marker files always carry [].
+    repo_unresolved_markers = (
+        _collect_unresolved_markers(repo_projection)
+        if repo_projection is not None
+        else []
+    )
+    new_companions: list[str] = []  # AC19a field; v1 tally deferred (ROADMAP).
+    for plan in plans:
+        scope_markers = repo_unresolved_markers if plan.scope == "repo" else []
+        try:
+            _append_install_marker(
+                plan.root,
+                plan.scope,
+                pack_name=pack_name,
+                pack_version=pack_version,
+                unresolved_markers=scope_markers,
+                new_companions=new_companions,
+                allowed_prefixes=plan.allowed_prefixes,
+            )
+        except (OSError, safety.PathJailError) as exc:
+            print(f"install: {exc}", file=sys.stderr)
+            return 1
+
+    # ── Step 12: Chained adapt (in-process) ──────────────────────────────────
+    # Per spec AC19b: invoke `agentbundle.commands.adapt.run` in-process
+    # with --values-from <repo>/.adapt-discovery.toml regardless of the
+    # install scope (markers are repo-only). AC19d covers the two
+    # failure modes.
+    repo_plan = next((p for p in plans if p.scope == "repo"), None)
+    repo_root_for_adapt = (
+        repo_plan.root if repo_plan is not None else Path(args.output).resolve()
+    )
+    adapt_rc = _chain_adapt(repo_root_for_adapt)
+    if adapt_rc != 0:
+        # Per AC19d (ii): malformed `.adapt-discovery.toml` causes the
+        # chained adapt to raise; install exits non-zero. The marker
+        # file was already written in step 11 — that's by design.
+        return adapt_rc
+
+    # ── Step 13: Emit installed: lines (repo first, user last) ───────────────
     for plan in plans:
         print(f"installed: {pack_name} @ {plan.scope}")
 
     return 0
+
+
+def _collect_unresolved_markers(projection: dict) -> list[str]:
+    """Return sorted, deduplicated list of `<adapt:NAME>` markers found
+    in the projection's byte content. The skill resolves these later;
+    the install marker just enumerates them for the nudge surface."""
+    import re
+
+    marker_re = re.compile(r"<adapt:([a-z][a-z0-9-]*)>")
+    seen: set[str] = set()
+    for _relpath, content in projection.items():
+        if isinstance(content, bytes):
+            try:
+                text = content.decode("utf-8", errors="ignore")
+            except Exception:
+                continue
+        else:
+            text = str(content)
+        for name in marker_re.findall(text):
+            seen.add(name)
+    return sorted(seen)
+
+
+def _append_install_marker(
+    root: Path,
+    scope: str,
+    *,
+    pack_name: str,
+    pack_version: str,
+    unresolved_markers: list[str],
+    new_companions: list[str],
+    allowed_prefixes: list[str] | None,
+) -> None:
+    """Append a `[[packs-installed]]` entry to `.adapt-install-marker.toml`
+    at *root* via `os.replace` atomic rename. Repo-scope marker lives
+    at `<repo>/.adapt-install-marker.toml`; user-scope at
+    `<user-root>/.agent-ready/.adapt-install-marker.toml`.
+
+    Per spec AC19a: scope is encoded by the file's location, not as a
+    field — the path is the source of truth.
+    """
+    import os
+    import tomllib
+    from datetime import datetime, timezone
+
+    from agentbundle import safety
+
+    if scope == "user":
+        # Route through `safety.user_state_path` so the dot-directory
+        # is created with mode 0o700 + symlink/non-directory probe.
+        # The helper returns `<home>/.agent-ready/state.toml`; we sit
+        # the marker next to it.
+        state_path = safety.user_state_path(home=root)
+        marker_path = state_path.parent / ".adapt-install-marker.toml"
+        marker_relpath = ".agent-ready/.adapt-install-marker.toml"
+    else:
+        marker_path = root / ".adapt-install-marker.toml"
+        marker_relpath = ".adapt-install-marker.toml"
+
+    # Read existing entries if present.
+    entries: list[dict] = []
+    if marker_path.exists():
+        try:
+            existing = tomllib.loads(marker_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            # Spec rail: silent discard would hide prior pack adaptations
+            # from the next session's nudge. Warn explicitly so the
+            # override is auditable; proceed with the fresh entry.
+            print(
+                f"install: warning: existing install marker at {marker_path} "
+                f"is malformed ({exc}); prior entries lost — re-run install "
+                f"for any earlier packs",
+                file=sys.stderr,
+            )
+            existing = {}
+        raw_entries = existing.get("packs-installed", [])
+        if isinstance(raw_entries, list):
+            entries = [e for e in raw_entries if isinstance(e, dict)]
+
+    new_entry = {
+        "name": pack_name,
+        "version": pack_version,
+        "installed-at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "unresolved-markers": unresolved_markers,
+        "new-companions": new_companions,
+    }
+    entries.append(new_entry)
+
+    # Serialise. Single source of truth: this writer (no shared helper
+    # because the install marker is a different shape from the other
+    # CLI artifacts).
+    lines: list[str] = ['marker-schema-version = "0.1"', ""]
+    for entry in entries:
+        lines.append("[[packs-installed]]")
+        lines.append(f'name = "{entry["name"]}"')
+        lines.append(f'version = "{entry["version"]}"')
+        lines.append(f'installed-at = {entry["installed-at"]}')
+        markers_repr = ", ".join(f'"{m}"' for m in entry.get("unresolved-markers", []))
+        lines.append(f"unresolved-markers = [{markers_repr}]")
+        comps_repr = ", ".join(f'"{c}"' for c in entry.get("new-companions", []))
+        lines.append(f"new-companions = [{comps_repr}]")
+        lines.append("")
+    content = "\n".join(lines).rstrip() + "\n"
+
+    # Atomic-rename write per AC19a, routed through the per-scope
+    # path-jail (safety.write_jailed) so user-scope marker writes
+    # honour `allowed-prefixes.user` and a future contract change
+    # cannot let the marker escape the jail without code review
+    # noticing.
+    safety.write_jailed(
+        root,
+        marker_relpath,
+        content,
+        scope=scope,
+        allowed_prefixes=allowed_prefixes,
+    )
+
+
+def _chain_adapt(repo_root: Path) -> int:
+    """Per AC19b: run `agentbundle.commands.adapt.run` in-process with
+    `--values-from <repo>/.adapt-discovery.toml`.
+
+    Per AC19d:
+      (i) missing `<repo>/.adapt-discovery.toml` → adapt step is
+          skipped, emits one stderr line; install exits 0.
+      (ii) malformed discovery → adapt returns non-zero; the install
+          caller propagates non-zero. The marker file is still on disk
+          because step 11 wrote it before this step.
+    """
+    import argparse as _argparse
+
+    from agentbundle.commands import adapt as _adapt
+
+    discovery_path = repo_root / ".adapt-discovery.toml"
+    if not discovery_path.exists():
+        print(
+            "adapt: no .adapt-discovery.toml at repo root; markers left unresolved",
+            file=sys.stderr,
+        )
+        return 0
+
+    ns = _argparse.Namespace(
+        root=str(repo_root),
+        values_from=str(discovery_path),
+        ci=False,
+    )
+    return _adapt.run(ns)
 
 
 def _emit_recommends_warning(
@@ -663,6 +876,98 @@ def _locate_pack(catalogue_dir: Path, pack_name: str) -> Path | None:
     if candidate_b.is_dir() and (candidate_b / "pack.toml").exists():
         return candidate_b
     return None
+
+
+def validate_dependencies_required(
+    pack_toml: dict,
+    *,
+    repo_state: "State",
+    user_state: "State",
+) -> None:
+    """Enforce [pack.dependencies.required] before any file write.
+
+    Reads the required entries from the installing pack's manifest and
+    resolves each one against the *union* of repo_state.packs and
+    user_state.packs (key by pack name; a pack at either scope satisfies
+    the gate).
+
+    Version-range grammar: exactly ``^X.Y`` (caret-minor). An installed
+    version ``A.B.C`` satisfies ``^X.Y`` when ``A == X AND (B > Y OR (B
+    == Y AND C >= 0))``, i.e. ``>= X.Y.0 AND < (X+1).0.0``.
+
+    Raises:
+        RuntimeError: on unsupported range grammar or missing/out-of-range dep.
+            Caller is expected to print str(exc) to stderr and exit 1.
+    """
+    import re
+
+    _CARET_RE = re.compile(r"^\^([0-9]+)\.([0-9]+)$")
+
+    pack_name = pack_toml.get("pack", {}).get("name", "<unknown>")
+    deps = pack_toml.get("pack", {}).get("dependencies", {})
+    if not isinstance(deps, dict):
+        return
+    required = deps.get("required")
+    if not required:
+        return
+
+    # Union of installed packs across both scopes (pack name → installed version string).
+    installed: dict[str, str] = {}
+    for name, ps in repo_state.packs.items():
+        installed[name] = ps.installed_version
+    for name, ps in user_state.packs.items():
+        if name not in installed:
+            installed[name] = ps.installed_version
+
+    for entry in required:
+        if not isinstance(entry, dict):
+            continue
+        dep_name = entry.get("pack", "")
+        dep_range = entry.get("version", "")
+
+        # Validate grammar first (even before checking if the dep is installed).
+        m = _CARET_RE.match(dep_range)
+        if m is None:
+            raise RuntimeError(
+                f"install: unsupported version range {dep_range!r} for required pack "
+                f"{dep_name!r}; only ^X.Y is supported"
+            )
+
+        req_major = int(m.group(1))
+        req_minor = int(m.group(2))
+
+        dep_version = installed.get(dep_name)
+        if dep_version is None:
+            raise RuntimeError(
+                f"install: pack {pack_name!r} requires {dep_name!r} "
+                f"(version {dep_range}); install {dep_name} first"
+            )
+
+        # Parse installed version X.Y.Z (allow fewer components).
+        parts = dep_version.split(".")
+        try:
+            inst_major = int(parts[0]) if len(parts) > 0 else 0
+            inst_minor = int(parts[1]) if len(parts) > 1 else 0
+            inst_patch = int(parts[2]) if len(parts) > 2 else 0
+        except (ValueError, IndexError):
+            raise RuntimeError(
+                f"install: pack {pack_name!r} requires {dep_name!r} "
+                f"(version {dep_range}); install {dep_name} first"
+            )
+
+        # Satisfy: major must match AND version >= X.Y.0 AND < (X+1).0.0.
+        satisfies = (
+            inst_major == req_major
+            and (
+                inst_minor > req_minor
+                or (inst_minor == req_minor and inst_patch >= 0)
+            )
+        )
+        if not satisfies:
+            raise RuntimeError(
+                f"install: pack {pack_name!r} requires {dep_name!r} "
+                f"(version {dep_range}); install {dep_name} first"
+            )
 
 
 def _collect_primitives(pack_dir: Path) -> list[str]:

@@ -304,8 +304,10 @@ to `discovery-schema-version` + `[markers]`.
   `allowed-scopes = ["user"]` and no seeds/hooks/markers (RFC-0004
   refusal rails honoured). No `scope` field is asserted.
 - `test_install_marker_appends_atomically` — two sequential
-  installs at the same scope produce two entries; mocked
-  `Path.replace` confirms atomic-rename protocol.
+  installs at the same scope produce two entries. (Atomic-rename
+  protocol is preserved via `safety.write_jailed`'s
+  `tmp + os.replace` primitive — the existing safety tests pin
+  the protocol; this test pins the append shape.)
 - `test_install_chains_adapt_in_process` — fixture pack has
   `<adapt:project-name>` markers; repo-scope
   `.adapt-discovery.toml` pre-populated with
