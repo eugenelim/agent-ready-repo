@@ -1,4 +1,10 @@
-[hook]
-name = "pre-commit"
-trigger = "PreToolUse"
+# Test fixture for SHA-tracking across upgrade versions. The
+# `command = "true"` value is a static stub — these fixtures do not
+# exercise live hook firing; the repo-scope merge-json adapter passes
+# `command` through verbatim (no $HOOK_BODY_PATH substitution at repo
+# scope), so the stub keeps that intent explicit.
+[[hooks.PreToolUse]]
 matcher = "Bash"
+hooks = [
+  { type = "command", command = "true" },
+]
