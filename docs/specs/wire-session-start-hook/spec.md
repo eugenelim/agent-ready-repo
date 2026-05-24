@@ -1,6 +1,6 @@
 # Spec: wire-session-start-hook
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0001 (adapter contract), RFC-0004 (scope dimension at v0.2). The v0.3 forks introduced by RFC-0005 are explicitly out of scope here.
