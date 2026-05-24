@@ -73,6 +73,7 @@ section pins the CLI surface that consumes them.
 | `validate`     | No `--scope` — validates the pack's declared `default-scope ∈ allowed-scopes`, the seeds/hooks/`allowed-scopes` consistency, and the schema. |
 | `render`       | No `--scope` — pack-local primitive rendering; scope only matters at install.                                  |
 | `adapt`        | No `--scope` — walks **both** state files; reads `<repo>/.adapt-discovery.toml` at repo scope and `~/.agent-ready/.adapt-discovery.toml` at user scope. |
+| `reconcile`    | **User-scope-only (RFC-0005).** Read-only orphan reporter; `--scope user` is the only accepted value. No `--apply` flag — write-mode reconciliation would re-create the merge-discipline problems RFC-0005 is designed to avoid. |
 
 ### Scope-resolution precedence
 
@@ -111,18 +112,25 @@ Windows support is deferred per the existing stdlib-only commitment;
 `pathlib.expanduser` handles `%USERPROFILE%`, but cross-platform
 conformance is not gated by this amendment.
 
-### `.agent-ready-state.toml` write-time refusal at v0.1
+### `.agent-ready-state.toml` write-time refusal at legacy schemas
 
-The CLI **reads** any `schema-version = "0.1"` state file as
-all-repo-scope without forcing migration. Any **write-capable**
-invocation (`install`, `uninstall`, `upgrade`, `init-state` *without*
-`--migrate`) against a v0.1 file exits non-zero with stderr `state
-file at <path> is schema-version 0.1; run 'agentbundle init-state
---migrate' first`. No silent rewrite — migration is destructive
-(irreversible without backup) and an adopter running mixed CLI
-versions across CI and local must opt into the file-format change
-explicitly. The refuse-and-explain shape matches the major-version
-refusal rail this spec already pins.
+The CLI **reads** any legacy state file (`schema-version = "0.1"` —
+all-repo-scope; `schema-version = "0.2"` — full v0.2 read with v0.3's
+new fields read-time-defaulted) without forcing migration. Any
+**write-capable** invocation (`install`, `uninstall`, `upgrade`,
+`init-state` *without* `--migrate`) against a legacy file exits
+non-zero with stderr `state file at <path> is schema-version
+<X>; run 'agentbundle init-state --migrate' first` (where `<X>`
+names the actual version found). No silent rewrite — migrations are
+additive but adopters running mixed CLI versions across CI and local
+must opt in explicitly. The refuse-and-explain shape matches the
+major-version refusal rail this spec already pins. v0.2 → v0.3 is
+the cheapest possible additive migration (header-only-additive per
+[RFC-0005 § State-file
+impact](../../rfc/0005-user-scope-hook-support.md#state-file-impact));
+v0.1 → v0.3 is performed as a single `init-state --migrate` invocation
+that covers both the v0.1 → v0.2 scope-column backfill and the
+v0.2 → v0.3 header bump in one re-serialize.
 
 ### `installed: <pack> @ <scope>` output
 
@@ -241,6 +249,164 @@ match the per-scope state-file locations from the sibling
 User-scope reports live inside the namespaced
 `~/.agent-ready/` dot-directory (the same one that holds the
 user-scope state file), not as a bare dotfile in `$HOME`.
+
+## v0.3 user-scope hook handling (RFC-0005)
+
+The v0.3 contract bump (RFC-0005) extends the CLI surface with
+user-scope hook-wiring support: `install` / `uninstall` / `upgrade`
+thread hook-wiring through the v0.3 merge engines
+(`user-merge-json` for Claude Code at user scope;
+`merge-into-agent-json` for Kiro at both scopes), `install` gains a
+`--force-merge` flag, and a new `reconcile --scope user` subcommand
+reports orphans. The full design rationale lives in
+[RFC-0005](../../rfc/0005-user-scope-hook-support.md); this section
+pins the **CLI surface** the rationale produces.
+
+### `--force-merge` flag on `install`
+
+```
+agentbundle install <catalogue> --pack <P> --scope user --force-merge
+```
+
+Binding rules (RFC-0005 § Binding and interaction with `--force`):
+
+- **Bound to `install` only.** Passing `--force-merge` to any other
+  verb is rejected with stderr `unknown flag for <verb>:
+  --force-merge` (mirrors the `--force` binding shape RFC-0004
+  established).
+- **Bound to `--scope user`.** At repo scope the hook-wiring target
+  is a pack-owned file (`.claude/settings.local.json` for Claude
+  Code), so adopter collision is structurally a non-case. Refused
+  with stderr `--force-merge is bound to user scope; pass --scope
+  user or omit --force-merge`. Both the explicit `--scope repo`
+  case and the pack-default-resolves-to-repo case refuse.
+- **Claude-Code-targeted packs only.** Refused with stderr
+  `--force-merge applies only to Claude-Code-targeted packs; pack
+  <P> resolves to adapter 'kiro' at user scope`. Kiro's
+  `merge-into-agent-json` target is pack-owned (the per-agent
+  JSON), so adopter collision is again structurally a non-case.
+- **Orthogonal to `--force`.** The two flags address different
+  refusals — `--force` is the cross-scope-conflict bypass
+  (RFC-0004), `--force-merge` is the adopter-collision bypass
+  (RFC-0005). `install --force --force-merge` is permitted and each
+  flag covers its own refusal.
+- **No-op when no textual collision is detected.** Same
+  idempotent-when-no-conflict shape as `--force`, so wrapper
+  scripts can pass `--force-merge` unconditionally.
+
+The flag's runtime semantics — adopt the adopter-authored entry,
+preserve the original `command` in the state-file snapshot — are
+pinned by [RFC-0005 § User-already-set-this-key collision
+rule](../../rfc/0005-user-scope-hook-support.md#user-already-set-this-key-collision-rule)
+and implemented inside the `user-merge-json` merger.
+
+### `reconcile --scope user` — read-only orphan reporter
+
+```
+agentbundle reconcile --scope user
+```
+
+Walks two surfaces and reports two classes of orphan grouped by
+adapter:
+
+- `~/.claude/settings.json` (Claude Code) and every Kiro agent
+  JSON named in user-scope state's `[[installed.hook-wiring-owned]]`
+  rows.
+- **orphan-in-file** — an `id`-tagged entry the target file claims
+  but no installed pack's `hook-wiring-owned` row owns. Surfaces
+  when a hand-edit on the settings file (or a Kiro agent JSON) adds
+  an entry with an id no pack records.
+- **orphan-in-state** — a state row claiming ownership of an entry
+  the target file no longer has. Surfaces on hand-delete, on
+  multi-machine sync drift, or when the merge target file was
+  removed out-of-band.
+
+Output format (stdout):
+
+- `reconcile: all clean` when no orphans exist.
+- One `reconcile: <adapter>` heading per adapter with orphans,
+  followed by indented per-orphan lines.
+
+**Read-only contract.** The subcommand does **not** register an
+`--apply` flag — `argparse` rejects it with the standard
+"unrecognized argument" exit code. A write-mode reconciler would
+recreate the merge-discipline problems RFC-0005 is designed to
+avoid; the adopter takes manual action from the report. The
+exclusion is pinned by [RFC-0005 § Follow-on
+artifacts](../../rfc/0005-user-scope-hook-support.md#follow-on-artifacts)
+("a write-mode `reconcile --apply` is explicitly **not** in this
+RFC's scope") and by the user-scope-hooks spec's *Never do*
+boundary.
+
+### State schema v0.3 — `[[installed]]` field additions
+
+The state file's `schema-version` bumps from `0.2` to `0.3` per
+RFC-0005 § State-file impact. `[[installed]]` rows grow three
+optional fields, all with read-time defaults so v0.2-vintage rows
+preserved across the header-only migration read correctly without
+backfill:
+
+| Field                 | Type                  | Required? | Read-time default                                              |
+| --------------------- | --------------------- | --------- | -------------------------------------------------------------- |
+| `adapter`             | string                | optional  | `"claude-code"`                                                 |
+| `target-file`         | string                | optional  | `"~/.claude/settings.json"` when `adapter` is `"claude-code"`; **required (no default)** when `adapter` is `"kiro"` |
+| `hook-wiring-owned`   | array-of-tables       | optional  | `[]`                                                            |
+
+Each `[[installed.hook-wiring-owned]]` entry carries `event` and `id`
+(both required strings) and optionally `target-file` (Kiro rows
+always carry it; Claude Code rows defaulted at read).
+
+### Migration shape (v0.2 → v0.3)
+
+`init-state --migrate` against a v0.2 state file is
+**header-only-additive**: only the `schema-version = "0.2"` line is
+rewritten to `"0.3"`. Body bytes are byte-for-byte preserved; no
+per-row backfill. Existing rows read with the v0.3 read-time
+defaults above. v0.1 → v0.3 retains the full re-serialize shape
+(the v0.1 → v0.2 scope-column backfill plus the header bump in one
+step). The migration is idempotent — running `--migrate` against an
+already-v0.3 file is a byte no-op.
+
+### Refuse-and-explain texts (user-scope merge surfaces)
+
+The v0.3 merge engines surface refuse-and-explain text the CLI
+emits verbatim. Both engines are implemented in
+`agentbundle/build/projections/` and propagate
+`UserMergeRefusal` / `AgentJsonRefusal` to the CLI; install /
+uninstall / upgrade catch the exception and print to stderr:
+
+- **Unparseable JSON target** (`~/.claude/settings.json` or
+  `<scope-root>/.kiro/agents/<agent>.json`):
+  `cannot parse <path>: <error>; fix or back up the file and retry`.
+  The file is **not** rewritten; no state is recorded.
+- **Wrong-shape `hooks` key** (e.g. `hooks` is an array, or
+  `hooks.<event>` is a string): `<path>: <key-path> has unexpected
+  shape <type>; expected <expected>`. Where `<key-path>` is
+  `hooks` or `hooks.<event>` as relevant.
+- **Adopter command collision (Claude Code only)**: `pack <P>'s
+  hook <name> at event <event> appears to be already wired in
+  <path>; remove the manual entry or pass --force-merge to take
+  ownership`. Whitespace-normalised string match per RFC-0005 §
+  User-already-set-this-key collision rule.
+- **Missing agent file at Kiro merge time** (pipeline-ordering
+  invariant violation; reachable only via test instrumentation
+  today): `internal: <agent-file> missing at hook-wiring merge
+  time; agent must project before wiring`.
+- **Path-traversal `attach-to-agent`** (defence-in-depth at install
+  and upgrade time): `pack <P>'s hook-wiring <name>.toml declares
+  attach-to-agent=<value> which violates the agent-name grammar
+  ^[a-z0-9][a-z0-9-]*$ — refusing`.
+
+### Cross-adapter upgrade — refused
+
+`upgrade` refuses when the new pack version resolves to a different
+adapter than the recorded `pack_state.adapter` (e.g. Kiro → Claude
+Code or vice versa, detected via the
+`.apm/agents/`-presence heuristic). Stderr: `pack adapter changed
+from '<old>' → '<new>' between versions; run uninstall + install
+instead (cross-adapter upgrade is not supported)`. AC19b covers
+within-Kiro `attach-to-agent` renames; adapter switches need an
+explicit recovery gesture.
 
 ## Boundaries
 
