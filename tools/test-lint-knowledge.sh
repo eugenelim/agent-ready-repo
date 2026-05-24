@@ -128,7 +128,7 @@ fi
 
 # Schema drift: the README's field table and the linter's REQUIRED_KEYS /
 # ALLOWED_KINDS must stay in sync. Phase 1's precedent — see
-# tools/test-check-done.sh schema-keys-match.
+# tools/test-loop-cohort.sh schema-keys-match.
 ran=$((ran + 1))
 if python3 - "$REPO_ROOT/docs/knowledge/README.md" "$REPO_ROOT/tools/lint-knowledge.py" <<'PY'
 import pathlib, re, sys

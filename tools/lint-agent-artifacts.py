@@ -58,7 +58,9 @@ def _repo_root() -> pathlib.Path:
 KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
 LINK = re.compile(r"\]\(([^)]+)\)")
 
-ALLOWED_SKILL_KEYS = {"name", "description", "dependencies"}
+ALLOWED_SKILL_KEYS = {"name", "description", "dependencies",
+                      "credentialed", "primitive-class"}
+ALLOWED_PRIMITIVE_CLASSES = {"credentialed-cli", "mcp-server"}
 ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model", "dependencies"}
 ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
 
@@ -177,6 +179,22 @@ def main() -> int:
         if unknown:
             err(path, f"unknown frontmatter keys: {sorted(unknown)} "
                       f"(allowed: {sorted(ALLOWED_SKILL_KEYS)})")
+        # Credentialed-skill frontmatter keys (per skill-secrets spec § AC25).
+        # Absence of `credentialed` means the skill is not credentialed; the
+        # lint skips the credentialed-specific checks. When present, the value
+        # must be a literal YAML boolean — strings like "yes" or "true" are
+        # rejected so the type-check is unambiguous.
+        if "credentialed" in fields:
+            cval = fields["credentialed"]
+            if cval not in ("true", "false"):
+                err(path, f"frontmatter key 'credentialed' must be boolean "
+                          f"(true|false), got {cval!r}")
+        if "primitive-class" in fields:
+            pval = fields["primitive-class"]
+            if pval not in ALLOWED_PRIMITIVE_CLASSES:
+                err(path, f"frontmatter key 'primitive-class' must be one of: "
+                          f"{', '.join(sorted(ALLOWED_PRIMITIVE_CLASSES))} "
+                          f"(got {pval!r})")
         if not body.strip():
             err(path, "body is empty")
         check_links(path, body, body_start)

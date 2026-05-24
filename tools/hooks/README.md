@@ -51,14 +51,14 @@ What it runs, in order:
 3. `tools/lint-skill-deps.py` — manifest dependency resolution
 4. `tools/lint-knowledge.py` — `patterns.jsonl` validation
 5. `tools/lint-build.py` — build-pipeline hygiene
-6. `.claude/skills/work-loop/scripts/check-done.py` against every
-   `docs/specs/*/state.json`, in both `--phase implement` and
-   `--phase review` modes
+6. `.claude/skills/work-loop/scripts/loop-cohort.py check <spec-dir>`
+   against every `docs/specs/*/` that owns a `state.json`, in both
+   `--phase implement` and `--phase review` modes
 
 Exits non-zero on the first failure with a one-line reason. If there
-are no active `state.json` files, the check-done step is skipped.
+are no active `state.json` files, the loop-cohort step is skipped.
 
-These three layers — `check-done.py` (caps) + the five linters
+These three layers — `loop-cohort.py` (caps) + the five linters
 (artifact hygiene) + `pre-pr.py` (the gate that runs them together) —
 make up the project's **enforcement triplet**. Documented in
 [`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement-the-triplet).
@@ -142,7 +142,7 @@ are the canonical parity net:
   malformed-line warning, the `KNOWLEDGE_FILE` override, and the
   empty/missing-file silent-exit paths.
 - `test_pre_pr_py.py` — corrupts each of the five enforcement layers
-  (four linters plus `check-done.py`) in a sandbox copy of the repo
+  (four linters plus `loop-cohort.py`) in a sandbox copy of the repo
   and asserts `pre-pr.py` fails with the right label.
 
 Two bash self-tests still ship for parity with the pre-Phase-3
@@ -155,12 +155,12 @@ versions, but their sandbox setup remains bash:
   `test_session_start_py.py`.
 
 The umbrella `tools/test-all.sh` runs every self-test in `tools/`.
-Run it by hand whenever a linter, hook, or `check-done.py` changes.
+Run it by hand whenever a linter, hook, or `loop-cohort.py` changes.
 
 **CI parity.** `pre-pr.py` and CI run the same set of checks in
 parallel. CI's `.github/workflows/docs.yml` has a job per
 enforcement layer — the five linters, the caps-enforcer self-test,
 and a `hooks` job that exercises the aggregator end-to-end (after
-seeding a healthy `state.json` so `check-done.py` actually runs).
-Run `tools/test-all.sh` and `python tools/hooks/pre-pr.py` locally
-before opening a PR; CI runs the same checks afterward.
+seeding a healthy `state.json` so `loop-cohort.py check` actually
+runs). Run `tools/test-all.sh` and `python tools/hooks/pre-pr.py`
+locally before opening a PR; CI runs the same checks afterward.

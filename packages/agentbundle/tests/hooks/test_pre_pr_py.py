@@ -169,4 +169,4 @@ def test_pre_pr_check_done_fail(sandbox: Path) -> None:
     shutil.copy(template, spec_dir / "state.json")
     result = _run(sandbox)
     assert result.returncode != 0
-    assert "pre-pr: ✖ check-done" in result.stderr
+    assert "pre-pr: ✖ loop-cohort check" in result.stderr

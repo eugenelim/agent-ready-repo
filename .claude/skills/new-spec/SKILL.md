@@ -1,8 +1,6 @@
 ---
 name: new-spec
 description: Use this skill when the user wants to start a new feature with a spec, or wants to write a spec for something they're about to build. Triggers on "new spec", "write a spec for X", "let's spec this out", "start a feature for…". Spec-driven development; the spec drives implementation. Do NOT use for cross-cutting proposals (use `new-rfc`) or recording decisions (use `new-adr`).
-dependencies:
-  - .claude/agents/adversarial-reviewer.md
 ---
 
 # Skill: new-spec
@@ -97,15 +95,15 @@ look like?" before any code.
      in `parser/lex.ts:Lexer.next`" is the right level.
 
 6. Spec-mode adversarial review. Before announcing the spec in the README,
-   invoke `adversarial-reviewer` against the freshly drafted `spec.md` +
-   `plan.md` in spec mode — the agent supports this explicitly (see
-   `.claude/agents/adversarial-reviewer.md`). Iterate on findings until the
-   reviewer returns `Clean — ready to commit.` Spec-mode reviews should
-   converge in 1-2 passes; if you can't reach clean in 3, the spec has a
-   structural problem — surface to a human rather than grinding. This step
-   is contingent on the project using `adversarial-reviewer` at all (Profile
-   B+ per `docs/CONVENTIONS.md`); at Profile A the reviewer is typically
-   absent and this step is moot.
+   select a subagent matching `adversarial-reviewer` and ask it to review
+   the freshly drafted `spec.md` + `plan.md` in spec mode — the role
+   supports this explicitly. Iterate on findings until the reviewer returns
+   `Clean — ready to commit.` Spec-mode reviews should converge in 1-2
+   passes; if you can't reach clean in 3, the spec has a structural problem
+   — surface to a human rather than grinding. Absence of any subagent
+   matching this role is a note in the final summary
+   (`adversarial-reviewer: no matching subagent installed; review skipped`),
+   not a blocker.
 
 7. Update `docs/specs/README.md` to add the feature to the active list.
 

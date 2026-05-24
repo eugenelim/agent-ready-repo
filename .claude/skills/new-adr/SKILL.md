@@ -24,13 +24,18 @@ If any of these checks fail, push back rather than proceeding.
 
 ## Procedure
 
-1. Find the next number:
+1. Find the next number. The bundled helper prints the next 4-digit
+   ordinal — `0001` if no ADRs exist yet, max-plus-one otherwise. It
+   parses the full digit prefix, so a `00099-foo.md` correctly yields
+   `0100` (not `0010`):
 
    ```bash
-   ls docs/adr/ | grep -E '^[0-9]{4}' | sed 's/-.*//' | sort -n | tail -1
+   python3 scripts/next-ordinal.py docs/adr
    ```
 
-   Add 1, zero-pad to 4 digits.
+   (The script lives next to this `SKILL.md` under `scripts/`. Python
+   is preferred over `ls | grep | sed | sort` so the snippet works the
+   same way on native Windows, macOS, and Linux.)
 
 2. Pick a kebab-case title from the user's description. Keep it short and
    declarative — `0007-use-postgres-for-primary-store.md`, not
