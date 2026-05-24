@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Self-test for tools/lint-build.sh.
+# Self-test for tools/lint-build.py.
 #
 # Creates a temporary scratch directory with a .py file that imports a
 # third-party package (requests), runs the stdlib-import audit against it
@@ -18,7 +18,7 @@ cd "$REPO_ROOT"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-LINTER="$REPO_ROOT/tools/lint-build.sh"
+LINTER="$REPO_ROOT/tools/lint-build.py"
 
 failures=0
 ran=0
@@ -32,7 +32,7 @@ run_case() {
 
   local out
   set +e
-  out=$(LINT_BUILD_DIR="$TMP/build_$name" bash "$LINTER" 2>&1)
+  out=$(LINT_BUILD_DIR="$TMP/build_$name" python3 "$LINTER" 2>&1)
   local got=$?
   set -e
 
@@ -64,7 +64,7 @@ EOF
 
 ran=$((ran + 1))
 set +e
-out=$(LINT_BUILD_DIR="$TMP/build_nonstdlib" bash "$LINTER" 2>&1)
+out=$(LINT_BUILD_DIR="$TMP/build_nonstdlib" python3 "$LINTER" 2>&1)
 got=$?
 set -e
 if [[ "$got" -eq 0 ]]; then
@@ -97,7 +97,7 @@ EOF
 
 ran=$((ran + 1))
 set +e
-out=$(LINT_BUILD_DIR="$TMP/build_stdlibonly" bash "$LINTER" 2>&1)
+out=$(LINT_BUILD_DIR="$TMP/build_stdlibonly" python3 "$LINTER" 2>&1)
 got=$?
 set -e
 if [[ "$got" -ne 0 ]]; then
@@ -119,7 +119,7 @@ EOF
 
 ran=$((ran + 1))
 set +e
-out=$(LINT_BUILD_DIR="$TMP/build_agentbundle" bash "$LINTER" 2>&1)
+out=$(LINT_BUILD_DIR="$TMP/build_agentbundle" python3 "$LINTER" 2>&1)
 got=$?
 set -e
 if [[ "$got" -ne 0 ]]; then
@@ -162,7 +162,7 @@ run_top_level_case() {
   )
   local out got
   set +e
-  out=$(cd "$repo" && bash "$LINTER" 2>&1)
+  out=$(cd "$repo" && python3 "$LINTER" 2>&1)
   got=$?
   set -e
   ran=$((ran + 1))

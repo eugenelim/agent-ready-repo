@@ -12,12 +12,12 @@ on:
       - 'apps/**/AGENTS.md'
       - '.claude/**'
       - '.github/pull_request_template.md'
-      - 'tools/lint-agents-md.sh'
-      - 'tools/lint-agent-artifacts.sh'
+      - 'tools/lint-agents-md.py'
+      - 'tools/lint-agent-artifacts.py'
       - 'tools/test-lint-agent-artifacts.sh'
-      - 'tools/lint-skill-deps.sh'
+      - 'tools/lint-skill-deps.py'
       - 'tools/test-lint-skill-deps.sh'
-      - 'tools/lint-knowledge.sh'
+      - 'tools/lint-knowledge.py'
       - 'tools/test-lint-knowledge.sh'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run AGENTS.md linter
-        run: bash tools/lint-agents-md.sh
+        run: python tools/lint-agents-md.py
 
   lint-agent-artifacts:
     name: Agent-artifact hygiene
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run agent-artifact linter
-        run: bash tools/lint-agent-artifacts.sh
+        run: python tools/lint-agent-artifacts.py
       - name: Self-test the linter (asserts expected errors fire)
         run: bash tools/test-lint-agent-artifacts.sh
 
@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run skill-dep linter
-        run: bash tools/lint-skill-deps.sh
+        run: python tools/lint-skill-deps.py
       - name: Self-test the linter (asserts expected errors fire)
         run: bash tools/test-lint-skill-deps.sh
 
@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run knowledge-base linter
-        run: bash tools/lint-knowledge.sh
+        run: python tools/lint-knowledge.py
       - name: Self-test the linter (schema-drift + content guards)
         run: bash tools/test-lint-knowledge.sh
 
@@ -101,7 +101,7 @@ jobs:
           sed 's/"pending"/"approved"/' .claude/skills/work-loop/assets/state.json \
             > docs/specs/_ci-smoke/state.json
       - name: Run pre-pr aggregator (mirrors local enforcement triplet)
-        run: bash tools/hooks/pre-pr.sh
+        run: python tools/hooks/pre-pr.py
       - name: Self-test the aggregator (each layer corruption surfaces)
         run: bash tools/test-pre-pr.sh
       - name: Self-test session-start (scope filter + malformed warning)
