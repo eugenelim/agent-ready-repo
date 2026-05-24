@@ -14,6 +14,10 @@ from typing import Any
 
 
 def project(pack_path: Path, contract: dict, output_root: Path) -> None:
+    project_packs([pack_path], contract, output_root)
+
+
+def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
     rules = contract["adapter"]["codex"]["projection"]
     rules_by_primitive = {rule["primitive"]: rule for rule in rules}
 
@@ -22,14 +26,19 @@ def project(pack_path: Path, contract: dict, output_root: Path) -> None:
         if mode == "dropped":
             continue
         primitive = contract["primitive"][primitive_name]
-        source_dir = pack_path / primitive["source-path"].rstrip("/")
-        if not source_dir.exists():
+        source_dirs = [
+            pack_path / primitive["source-path"].rstrip("/")
+            for pack_path in pack_paths
+        ]
+        source_dirs = [source_dir for source_dir in source_dirs if source_dir.exists()]
+        if not source_dirs:
             continue
 
         if mode == "managed-block-inline":
-            _project_managed_block(source_dir, output_root, rule)
+            _project_managed_block(source_dirs, output_root, rule)
         elif mode == "direct-file":
-            _project_direct_file(source_dir, output_root, rule["target-path"])
+            for source_dir in source_dirs:
+                _project_direct_file(source_dir, output_root, rule["target-path"])
         else:
             raise ValueError(f"codex: unhandled mode {mode!r} for {primitive_name}")
 
@@ -42,33 +51,41 @@ def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str
             shutil.copy2(entry, target_dir / entry.name, follow_symlinks=False)
 
 
-def _project_managed_block(source_dir: Path, output_root: Path, rule: dict) -> None:
+def _project_managed_block(
+    source_dirs: list[Path],
+    output_root: Path,
+    rule: dict,
+) -> None:
     target_path = output_root / rule["target-path"].lstrip("/")
     start_marker = rule["managed-block-delimiter-start"]
     end_marker = rule["managed-block-delimiter-end"]
 
     skills: list[tuple[str, str]] = []
-    for skill_dir in sorted(source_dir.iterdir()):
-        if not skill_dir.is_dir():
-            continue
-        skill_md = skill_dir / "SKILL.md"
-        if not skill_md.exists():
-            md_candidates = sorted(skill_dir.glob("*.md"))
-            if not md_candidates:
+    for source_dir in source_dirs:
+        for skill_dir in sorted(source_dir.iterdir()):
+            if not skill_dir.is_dir():
                 continue
-            skill_md = md_candidates[0]
-        description = _extract_description(skill_md.read_text(encoding="utf-8"))
-        # Refuse either the directory name or the description carrying a
-        # delimiter literal — both land in the managed block via
-        # f"- **{name}** — {description}" and either would break the
-        # splice on the next idempotent run.
-        for field_name, field_value in (("name", skill_dir.name), ("description", description)):
-            if start_marker in field_value or end_marker in field_value:
-                raise ValueError(
-                    f"codex: skill {skill_dir.name!r} {field_name} contains a "
-                    f"managed-block delimiter — refusing to splice."
-                )
-        skills.append((skill_dir.name, description))
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.exists():
+                md_candidates = sorted(skill_dir.glob("*.md"))
+                if not md_candidates:
+                    continue
+                skill_md = md_candidates[0]
+            description = _extract_description(skill_md.read_text(encoding="utf-8"))
+            # Refuse either the directory name or the description carrying a
+            # delimiter literal — both land in the managed block via
+            # f"- **{name}** — {description}" and either would break the
+            # splice on the next idempotent run.
+            for field_name, field_value in (
+                ("name", skill_dir.name),
+                ("description", description),
+            ):
+                if start_marker in field_value or end_marker in field_value:
+                    raise ValueError(
+                        f"codex: skill {skill_dir.name!r} {field_name} contains a "
+                        f"managed-block delimiter — refusing to splice."
+                    )
+            skills.append((skill_dir.name, description))
 
     skills.sort()
     block_lines = [start_marker]

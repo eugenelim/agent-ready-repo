@@ -24,14 +24,12 @@
 >   drift-message source-path + regen-command naming,
 >   `[info]` lines for unclassified paths, and `.adapt-discovery.toml`
 >   marker resolution across the widened scope.
-> - **Deferred to Phase 2** (follow-up PR): AGENTS.md body+footer
->   composition via the `composite-agents-md` recipe runtime (blocked
->   on the Codex adapter's last-pack-wins multi-pack splice gap), and
->   the comparison-rule strengthening — LF normalisation, file-mode
->   bits, symlink-target via `lstat` (load-bearing for gate
->   correctness; deserves its own test pass + adversarial review).
->   `_agents-footer.md` and the body seed at `packs/core/seeds/AGENTS.md`
->   ship in Phase 1 as authored content; Phase 2 wires the runtime.
+> - **Remaining Phase 2** (follow-up PR): comparison-rule strengthening —
+>   LF normalisation, file-mode bits, symlink-target via `lstat`
+>   (load-bearing for gate correctness; deserves its own test pass +
+>   adversarial review). AGENTS.md body+footer composition and the
+>   Codex multi-pack managed-block splice are closed by the 2026-05-23
+>   AC8 pass.
 > - CLI surface in task bodies uses RFC-0002's flag form (`--self`,
 >   `--force`, `--dry-run`). The on-disk Makefile equivalents are
 >   `make build-self`, `make build-self FORCE=1`, and
@@ -513,6 +511,13 @@ T6's PR diff.
 
 ## Changelog
 
+- 2026-05-23: executed the Codex-dependent Phase-2 slice for AC8.
+  Added Codex multi-pack aggregation before managed-block splicing,
+  widened `SELF_HOST_ADAPTERS` to `claude-code` + `codex`, materialised
+  `packs/core/seeds/AGENTS.md`, and wired self-host `AGENTS.md`
+  composition as body + Codex-managed skills block + footer. Focused
+  unit tests and `make build-check` passed. The comparison-rule
+  strengthening task remains open.
 - 2026-05-22: initial plan.
 - 2026-05-22: applied cross-cutting decisions CC1–CC6 (canonical
   spec directory `docs/specs/self-hosting/`; singular `docs/rfc/` /

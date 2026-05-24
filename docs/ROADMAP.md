@@ -35,28 +35,15 @@ and each spec's own Changelog section.
 
 Spec: [`specs/self-hosting/spec.md`](specs/self-hosting/spec.md).
 Phase 1 cutover landed via PR #18; AC3 closed by PR #20; AC1b artifact
-recorded via PR #21. The remaining work is Phase 2.
+recorded via PR #21. AC8 (`AGENTS.md` composition) is closed: Codex
+now aggregates skills across packs before splicing the managed block,
+and self-host composes root `AGENTS.md` from the core body seed, the
+Codex-managed block, and the core footer fragment.
 
-- **AC8 — `AGENTS.md` composition.** Project root `AGENTS.md` as
-  `packs/core/seeds/AGENTS.md` (body) + `packs/core/seeds/_agents-footer.md`
-  (footer) via the `composite-agents-md` recipe.
-  **Blocked on:** Codex adapter's last-pack-wins managed-block splice —
-  multi-pack aggregation overwrites instead of composes.
-  **Unblocks by:** fixing the Codex multi-pack splice in the build
-  pipeline, then wiring the `composite-agents-md` runtime.
-- **Composite recipe runtimes.** `per-pack-overlay`, `composite-agents-md`,
-  and `composite-marketplace` currently ship as metadata-only TOML stubs.
-  Phase 2 lands the runtime that drives seed-projection composition,
-  AGENTS.md body+footer composition, and root-marketplace aggregation
-  from per-pack manifests.
 - **Comparison-rule strengthening.** Today's `diff_against_working_tree`
   uses `read_bytes()` equality. Phase 2 strengthens this to byte-for-byte
   after CRLF→LF normalisation, with file-mode bits compared for regular
   files and symlink targets compared via `lstat` (never follow symlinks).
-- **Self-host adapter allow-list.** Phase 1 restricts `make build-self`
-  to the `claude-code` adapter. Phase 2 re-adds `codex` to
-  `SELF_HOST_ADAPTERS` once the multi-pack aggregation fix lands so
-  AGENTS.md's managed block can project correctly.
 
 ## `distribution-adapters` — shipped (v0.2 contract bump landed)
 
