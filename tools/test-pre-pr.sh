@@ -88,9 +88,11 @@ run_corruption "agent-artifact-fail" \
   "sed -i.bak '/^model:/d' .claude/agents/adversarial-reviewer.md && rm .claude/agents/adversarial-reviewer.md.bak" \
   'pre-pr: ✖ agent-artifact lint failed'
 
-# 3. skill-deps lint — break a dep path in the work-loop SKILL.
+# 3. skill-deps lint — break a dep path in the implementer subagent.
+#    Repoint a real dependency entry at a non-existent path; the
+#    linter validates each listed path exists.
 run_corruption "skill-deps-fail" \
-  "sed -i.bak 's|docs/knowledge/patterns.jsonl|docs/knowledge/does-not-exist.jsonl|' .claude/skills/work-loop/SKILL.md && rm .claude/skills/work-loop/SKILL.md.bak" \
+  "sed -i.bak 's|.claude/skills/work-loop/SKILL.md|.claude/skills/does-not-exist/SKILL.md|' .claude/agents/implementer.md && rm .claude/agents/implementer.md.bak" \
   'pre-pr: ✖ skill-deps lint failed'
 
 # 4. knowledge lint — plant a malformed JSONL line.

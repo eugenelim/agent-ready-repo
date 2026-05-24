@@ -13,6 +13,7 @@
 | [0005](0005-user-scope-hook-support.md) | User-scope hook support — body reroot + wiring merge mode | Draft | 2026-05-23 | |
 | [0006](0006-skill-secrets-storage.md) | Credential storage for credentialed skills — tiered env/keyring/dotfile + two-layer architecture | Accepted | 2026-05-24 | 2026-05-24 |
 | [0007](0007-user-scope-converter-pack.md) | First user-scope pack — `converters` (file-to-markdown, markdown-to-html, msg-to-markdown) | Accepted | 2026-05-24 | 2026-05-24 |
+| [0008](0008-claude-plugins-install-route-parity.md) | Claude-plugins install-route parity — per-pack SessionStart writer for the install→adapt chain | Draft | 2026-05-24 | |
 
 ## Adding a new RFC
 

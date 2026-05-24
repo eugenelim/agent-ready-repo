@@ -259,28 +259,31 @@ Three verification modes mapped per Objective behavior:
     context (needs scheduled-task runner CI doesn't provide;
     manual-QA row).
 
-  Each manual-QA row carries a release-checklist line.
+  Each manual-QA row carries a release-checklist line in
+  [`docs/product/release-checklist.md`](../../product/release-checklist.md)
+  under the `skill-secrets` section.
 
-**Fixture-driven tests** are the load-bearing shape:
+**Construction tests inline the parser inputs** via `tmp_path` heredocs
+rather than checked-in fixture files. The two parser shapes that
+demand a fixture-tree share (the `conventions-check` skill fixtures,
+which the walker discovers by path) live under
+`packages/agentbundle/tests/fixtures/creds/skills/`; everything else
+(schema TOMLs, valid / quoted / CRLF / comment dotfile shapes) is
+constructed in the test body so the corpus stays self-describing
+under the orphan-fixture walker (AC34):
 
-- `packages/agentbundle/tests/fixtures/creds/schema-valid/creds-schema.toml`
-  — a minimal valid schema (one required key, one optional sibling).
-- `packages/agentbundle/tests/fixtures/creds/schema-missing-required/`
-  — refuses with the specified text.
-- `packages/agentbundle/tests/fixtures/creds/dotfile-valid.env` /
-  `dotfile-quoted.env` / `dotfile-crlf.env` / `dotfile-comment.env`
-  — the four parser shapes.
-- `packages/agentbundle/tests/fixtures/creds/skills/conforming/` —
-  a fake credentialed skill with the "Don't" block and
-  `credentialed: true` frontmatter; `conventions-check` reports clean.
-- `packages/agentbundle/tests/fixtures/creds/skills/missing-dont-block/`
-  — `conventions-check` reports the missing block.
-- `packages/agentbundle/tests/fixtures/creds/skills/argv-flag/scripts/cli.py`
-  — accepts `--token` in `argparse`; `conventions-check` reports the
-  argv ban violation.
-- `packages/agentbundle/tests/fixtures/creds/skills/dotfile-grep/scripts/leak.py`
-  — opens the dotfile path directly without the opt-out comment;
-  `conventions-check` reports the architectural violation.
+- **Inlined via `tmp_path`:** schema-valid and schema-missing-required
+  TOMLs, the four parser-shape dotfiles
+  (`dotfile-valid` / `dotfile-quoted` / `dotfile-crlf` /
+  `dotfile-comment`). The full text appears in the test that exercises
+  it; no orphan-fixture risk.
+- **Checked-in under `tests/fixtures/creds/`:** the four
+  `conventions-check` skill fixtures —
+  `skills/conforming/`,
+  `skills/missing-dont-block/`,
+  `skills/argv-flag/scripts/cli.py`,
+  `skills/dotfile-grep/scripts/leak.py` — because the lint walker
+  resolves them by directory path during its scan.
 
 Every Acceptance Criterion below maps to at least one
 construction-test or fixture exercise.
@@ -566,7 +569,11 @@ Conventions and lint:
       (c) any script under a skill's `scripts/` directory contains
       the substring `.agent-ready/credentials.env` without the opt-out
       comment marker (`# credentialed-primitive: reads-creds-directly`)
-      on the same line. Findings are *reported*, not blocked.
+      on the same line. The lint exits non-zero on any finding so
+      `conventions-check` blocks merges that introduce a credentialed-
+      skill convention drift; `tools/lint-credentialed-skills.sh` and
+      `docs/CONVENTIONS.md` § Credentialed skills are the canonical
+      reflection of this behavior.
 - [x] **AC27.** Normalisation rule for AC26(b): strip leading `-`,
       casefold, replace `-` with `_`; matches defeat trivial
       obfuscation (`"--" + "token"`, `--Token`, `--api-Key`).
@@ -592,9 +599,12 @@ Templates and worked example:
       `primitive-class: credentialed-cli`, embedding the
       credentialed-CLI "Don't" block verbatim; a `scripts/cli.py`
       importing `agent_ready.credentials` and refusing the argv-ban
-      flags; a `references/creds-schema.toml` declaring one required
-      key; the skill passes both `tools/lint-agent-artifacts.sh` and
-      the extended `conventions-check`.
+      flags; a `references/creds-schema.toml` declaring `API_TOKEN`
+      (`secret = true`, required) and `BASE_URL` (`secret = false`,
+      a sibling key in the spec § Objective sense — also resolved
+      through the three-tier ladder and consumed by `cli.py`); the
+      skill passes both `tools/lint-agent-artifacts.sh` and the
+      extended `conventions-check`.
 
 Conventions, guide, roadmap:
 
@@ -629,16 +639,21 @@ Verification:
 
 - [x] **AC33.** `make build-check` exits clean with the amendments
       applied (no drift between `packs/core/seeds/` and `<repo>/`).
-- [ ] **AC34.** Every fixture file under
+- [x] **AC34.** Every fixture file under
       `packages/agentbundle/tests/fixtures/creds/` and every fixture
       skill under `packages/agentbundle/tests/fixtures/creds/skills/`
       is referenced by path in at least one test under
       `packages/agentbundle/tests/`. An orphan-fixture detection
       check (a test that walks the fixtures tree and asserts each
       file's relative path appears as a substring in the test corpus)
-      is part of the suite.
-- [ ] **AC35.** No test or CI step writes to the developer's real
+      is part of the suite (`tests/unit/test_credentials_fixtures.py`).
+- [x] **AC35.** No test or CI step writes to the developer's real
       `~/.agent-ready/`, real macOS Keychain (verified by checking
       no Keychain entry persists outside a `tmp_path`-scoped
       Keychain), or real Windows Credential Manager (verified by
-      target-name prefix isolation against a `tmp_path` hash).
+      target-name prefix isolation against a `tmp_path` hash). The
+      posture is enforced as a static-analysis assertion at
+      `tests/unit/test_credentials_no_live_writes.py`: every backend's
+      integration test file must contain the documented isolation
+      anchor (`SERVICE` / `SERVICE_PREFIX_OVERRIDE` monkeypatch),
+      and dotfile tests must redirect `$HOME`.
