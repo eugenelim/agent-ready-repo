@@ -67,7 +67,23 @@ class KiroAdapterTests(unittest.TestCase):
             # `tools: Read` source should normalize to a list.
             self.assertIn("[Read]", agent_text)
 
-    def test_hook_wiring_emits_info_log_and_no_file(self) -> None:
+    def test_hook_wiring_array_entry_removed(self) -> None:
+        """AC2: the legacy `degraded-info-log` kiro hook-wiring entry is gone."""
+        kiro_array_primitives = {
+            entry["primitive"]
+            for entry in self.contract["adapter"]["kiro"].get("projection", [])
+        }
+        self.assertNotIn(
+            "hook-wiring",
+            kiro_array_primitives,
+            "legacy kiro hook-wiring projection array entry still present",
+        )
+
+    def test_hook_wiring_no_info_log_emitted(self) -> None:
+        """No info-log fires for kiro hook-wiring under v0.3 (the legacy
+        `degraded-info-log` array entry that produced it has been removed).
+        The v0.3 `merge-into-agent-json` projection is wired up in T5/T6 —
+        this test pins the regression of the prior runtime behaviour."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)
@@ -75,11 +91,11 @@ class KiroAdapterTests(unittest.TestCase):
             buf = io.StringIO()
             with redirect_stderr(buf):
                 project(pack, self.contract, out)
-            stderr_text = buf.getvalue()
-            self.assertIn("[info]", stderr_text)
-            self.assertIn("hook-wiring", stderr_text)
-            # No hook-wiring output anywhere.
-            self.assertFalse(any(out.rglob("*.toml")))
+            self.assertNotIn(
+                "hook-wiring",
+                buf.getvalue(),
+                "kiro adapter emitted a hook-wiring info-log after AC2 removal",
+            )
 
     def test_hook_body_extensions_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
