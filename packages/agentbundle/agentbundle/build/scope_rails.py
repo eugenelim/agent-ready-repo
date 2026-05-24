@@ -338,6 +338,61 @@ def check_kiro_attach_to_agent(
     return None
 
 
+def check_kiro_event_vocabulary(
+    pack_name: str,
+    wiring_tomls: dict[str, dict],
+    vocabulary: list[str] | None,
+    target_adapters: Iterable[str],
+    adapter_name: str,
+) -> str | None:
+    """T6 (RFC-0005): per-adapter event-vocabulary refusal.
+
+    AC17 and AC17b: a wiring TOML naming an event outside the resolved
+    target adapter's declared ``agent-event-vocabulary`` is refused at
+    ``validate`` time with the RFC-0005 verbatim text
+    ``pack <P>'s hook-wiring <name>.toml uses event '<E>'; not in
+    adapter '<adapter>' agent-event-vocabulary``.
+
+    The check fires only when:
+      - the resolved target adapter is in ``target_adapters``, AND
+      - that adapter declares ``vocabulary`` (the projection's
+        ``agent-event-vocabulary`` field is present).
+
+    Claude Code's projection does not declare ``agent-event-vocabulary``,
+    so a wiring TOML with arbitrary event names projected against
+    Claude Code passes ``validate``. The vocabulary refusal is
+    per-adapter, not per-RFC (AC17b).
+
+    Arguments:
+      pack_name: substituted into the refusal text.
+      wiring_tomls: map of basename → parsed TOML body. First offender
+        wins.
+      vocabulary: the adapter's declared event-name list, or None when
+        the adapter has no such declaration (rail is a no-op).
+      target_adapters: iterable of adapter names the pack is being
+        validated against.
+      adapter_name: the adapter the vocabulary belongs to (substituted
+        into the refusal text).
+    """
+    if adapter_name not in set(target_adapters or ()):
+        return None
+    if vocabulary is None:
+        return None
+    allowed = set(vocabulary)
+    for wiring_name, body in wiring_tomls.items():
+        hooks = body.get("hooks", {}) if isinstance(body, dict) else {}
+        if not isinstance(hooks, dict):
+            continue
+        for event in hooks.keys():
+            if event not in allowed:
+                return (
+                    f"pack {pack_name}'s hook-wiring {wiring_name}.toml "
+                    f"uses event '{event}'; not in adapter '{adapter_name}' "
+                    f"agent-event-vocabulary"
+                )
+    return None
+
+
 def check_kiro_wiring(
     pack_path: Path,
     pack_name: str,
