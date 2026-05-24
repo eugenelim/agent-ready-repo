@@ -408,6 +408,128 @@ instead (cross-adapter upgrade is not supported)`. AC19b covers
 within-Kiro `attach-to-agent` renames; adapter switches need an
 explicit recovery gesture.
 
+## v0.4 kiro-ide-hook primitive (RFC-0005)
+
+The v0.4 contract bump (RFC-0005) extends the CLI surface with the
+new `kiro-ide-hook` primitive. The primitive carries Kiro's
+standalone IDE-event hooks — `.kiro.hook` JSON files Kiro reads on
+file create / save / delete, prompt submit, agent stop, and tool /
+task events. The full design lives in
+[RFC-0005 § Kiro IDE event hooks — new `kiro-ide-hook`
+primitive](../../rfc/0005-user-scope-hook-support.md#kiro-ide-event-hooks--new-kiro-ide-hook-primitive);
+this section pins the **CLI surface** the rationale produces.
+
+### `install` projection
+
+`install --pack <P>` against a pack shipping `.apm/kiro-ide-hooks/`
+content threads the directory through the build pipeline's new
+`kiro-ide-hook` projection phase (after `hook-wiring` and before
+`command`, per the sibling
+[`distribution-adapters/spec.md`](../distribution-adapters/spec.md)'s
+`## v0.4 IDE event hooks (RFC-0005)` subsection). Per-file
+projection:
+
+- **askAgent-shaped hooks** (`then.type == "askAgent"` AND raw
+  bytes contain no `${` substring) byte-copy via `shutil.copy2`,
+  preserving source SHA, key ordering, whitespace, and trailing
+  newline.
+- **runCommand-shaped hooks with placeholders** (`${...}`
+  substring present) parse as JSON, scan `then.command` with a
+  single-pass regex, and rewrite each `${hook-body:<name>}` to the
+  projected hook-body path (e.g. `./tools/hooks/lint.py` at repo
+  scope). The output is re-serialised via `json.dumps(indent=2)`
+  with a trailing newline.
+
+Each projected file is recorded under `[pack.<name>.files]` with
+its post-write SHA — same Tier-1 record as every other direct-file
+projection.
+
+### `uninstall` — per-file Tier-1 path
+
+`uninstall` removes the projected `.kiro.hook` files via the
+existing per-file Tier-1 path
+([uninstall.py:138-186](../../../packages/agentbundle/agentbundle/commands/uninstall.py)
+Tier-1/Tier-2 loop +
+[uninstall.py:228, 260-294](../../../packages/agentbundle/agentbundle/commands/uninstall.py)
+empty-parent sweep). Every projected file is recorded under
+`[pack.<name>.files]` with its SHA; SHA-match deletes (Tier-1),
+SHA-mismatch preserves (Tier-2). The pack-namespaced subdirectory
+`.kiro/hooks/<pack>/` empties out and the existing best-effort
+empty-parent sweep removes it. **No new directory-removal code
+path is added** — kiro-ide-hook inherits the property every other
+`direct-file` primitive already has.
+
+**Adopter hand-edits preserved.** A hand-edited `.kiro.hook` whose
+on-disk SHA no longer matches the state record is treated as
+Tier-2: warn-and-preserve, not delete. Same property as every
+other `direct-file` primitive. `runCommand`-shaped hooks deserve
+a specific operator-facing callout because adopter-edited
+`command` strings often encode a *local fix* the pack author
+hasn't shipped yet (a patched path, a wrapped invocation, an
+added flag) — those edits survive uninstall unless the adopter
+removes them out of band. The salience is higher than for an
+askAgent prompt edit.
+
+> **RFC drift flagged.** RFC-0005 § State-file impact lines
+> 1067-1086 describe uninstall as "unconditional / verbatim" and
+> claim adopter hand-edits are "lost on uninstall." That prose
+> describes a behaviour `uninstall.py` does *not* implement — the
+> shipped command is Tier-2-preserve on SHA mismatch. This spec
+> documents actual code behaviour; the RFC-text amendment is
+> recorded as a deferred follow-up rather than rolled into this
+> PR (which is scoped to the kiro-ide-hook primitive's projection
+> + validate rail, not the broader RFC-text reconciliation).
+
+### Build-pipeline ordering invariant — reference
+
+The CLI honours the phase-order invariant the sibling
+[`distribution-adapters` spec § *Build-pipeline phase order —
+extended*](../distribution-adapters/spec.md#build-pipeline-phase-order--extended)
+pins. The order is the single tuple
+`hook-body → agent → hook-wiring → kiro-ide-hook → command →
+skill`, exported from `agentbundle.build.phase_order.PHASE_ORDER`.
+The kiro-ide-hook phase runs after hook-body so
+`${hook-body:<name>}` placeholders can resolve to the projected
+hook-body path written at the prior phase.
+
+### No state-file shape change
+
+The v0.3 state file (`.agent-ready-state.toml` schema-version
+`"0.3"`) carries kiro-ide-hook files in the existing
+`[pack.<name>.files]` table — one per projected
+`.kiro/hooks/<pack>/<name>.kiro.hook` file, same shape as every
+other direct-file projection. No new `kiro-ide-hook-owned` table
+is introduced (RFC-0005 § State-file impact, lines 1058-1065): the
+pack-namespaced subdirectory layout makes uninstall a per-file
+deletion plus the empty-parent sweep, without needing a separate
+ownership record.
+
+### User-scope refusal — independent of Rail B
+
+`install --scope user` against any pack shipping
+`.apm/kiro-ide-hooks/` content is refused at the contract layer
+with the RFC § Scope verbatim stderr
+
+```
+pack <P> declares kiro-ide-hook at user scope, but kiro adapter does not support user-scope IDE hooks (Kiro #5440 still open)
+```
+
+The refusal is **independent of the existing Rail B**
+([`distribution-adapters` § Install-scope dimension → Rail
+B](../distribution-adapters/spec.md#contract-level-user-scope-refusal-rails)).
+A pack shipping only `.apm/kiro-ide-hooks/` (no `.apm/hooks/` and
+no `.apm/hook-wiring/`) does not trigger Rail B — there are no
+"hook-shaped primitives" in Rail B's sense — but it does trigger
+this new kiro-ide-hook-only refusal because the primitive itself
+is repo-only in v1. A pack opting into Rail B with
+`user-scope-hooks = true` still refuses for the same reason if it
+also ships kiro-ide-hooks. The two refusals are sibling rails;
+neither subsumes the other.
+
+When upstream Kiro #5440 closes, the user-scope refusal lifts via
+either an in-place RFC amendment (if no state-file shape change is
+needed) or a successor RFC.
+
 ## Boundaries
 
 The three-tier guard that keeps an implementing agent inside the lines.
@@ -794,9 +916,71 @@ QA tails respectively.
       sibling `distribution-adapters` spec's `pack.schema.json`)
       is the structural enforcement; this AC pins the CLI's
       user-facing stderr text.
+- [ ] **(RFC-0005 v0.4)** `install --pack <P>` against a pack
+      shipping `.apm/kiro-ide-hooks/<*>.kiro.hook` files projects
+      each file to `<scope-root>/.kiro/hooks/<pack>/<name>.kiro.hook`
+      via the new `kiro-ide-hook` projection phase. askAgent hooks
+      with no `${` substring in their raw bytes byte-copy
+      verbatim (SHA equality between source and target); hooks
+      containing `${hook-body:<name>}` placeholders in
+      `then.command` parse, expand each placeholder verbatim and
+      single-pass against the same-pack hook-body's projected
+      path, and re-emit via `json.dumps(indent=2)` with a trailing
+      newline. Tests pin both paths.
+- [ ] **(RFC-0005 v0.4)** `uninstall` removes the projected
+      `.kiro.hook` files via the existing per-file Tier-1 path
+      ([uninstall.py:138-186](../../../packages/agentbundle/agentbundle/commands/uninstall.py)
+      + [:228, 260-294](../../../packages/agentbundle/agentbundle/commands/uninstall.py)).
+      SHA-match deletes (Tier-1); SHA-mismatch preserves (Tier-2)
+      — adopter hand-edits to projected `.kiro.hook` files
+      survive uninstall, with `runCommand`-shaped hooks the
+      higher-salience subset because adopter-edited `command`
+      strings often encode local fixes. No new directory-removal
+      code path is added; the empty-parent sweep already removes
+      `.kiro/hooks/<pack>/` once every recorded file deletes.
+- [ ] **(RFC-0005 v0.4)** Build-pipeline phase order is the tuple
+      `("hook-body", "agent", "hook-wiring", "kiro-ide-hook",
+      "command", "skill")` exported from
+      `agentbundle.build.phase_order.PHASE_ORDER`. The CLI
+      honours this order whenever it calls into the build
+      pipeline. Cross-pack ordering is not introduced.
+- [ ] **(RFC-0005 v0.4)** No state-file shape change. The v0.3
+      schema (`schema-version = "0.3"`) carries kiro-ide-hook
+      files in the existing `[pack.<name>.files]` table — one
+      entry per projected `.kiro.hook` file, same shape as every
+      other direct-file primitive. The
+      `[[installed.hook-wiring-owned]]` table introduced at v0.3
+      is **not** extended; kiro-ide-hook files need no separate
+      ownership record because the pack-namespaced subdirectory
+      layout makes uninstall a per-file path.
+- [ ] **(RFC-0005 v0.4)** `install --scope user` against any
+      pack shipping `.apm/kiro-ide-hooks/` content is refused at
+      the contract layer with stderr `pack <P> declares
+      kiro-ide-hook at user scope, but kiro adapter does not
+      support user-scope IDE hooks (Kiro #5440 still open)`. The
+      refusal is independent of Rail B — a pack shipping only
+      `.apm/kiro-ide-hooks/` (no `.apm/hooks/`, no
+      `.apm/hook-wiring/`) still refuses at user scope because
+      the *primitive* is repo-only in v1, even though Rail B is
+      vacuously satisfied. A pack opting into Rail B with
+      `user-scope-hooks = true` still refuses on this rail if it
+      also ships kiro-ide-hooks.
 
 ## Changelog
 
+- 2026-05-24: RFC-0005 v0.4 amendment — added `## v0.4
+  kiro-ide-hook primitive (RFC-0005)` subsection between the
+  v0.3 user-scope-hook surfaces and Boundaries. Pins the
+  `install` projection (askAgent byte-copy vs runCommand
+  parse-expand-emit paths), the `uninstall` per-file Tier-1
+  semantics with adopter-hand-edit preservation, the
+  build-pipeline phase-order reference (single source of truth
+  in the sibling distribution-adapters spec), the no-state-shape-
+  change claim, and the user-scope refusal that is independent of
+  Rail B. Six new AC items tagged `(RFC-0005 v0.4)`. The RFC
+  drift in § State-file impact (uninstall described as
+  "unconditional / verbatim") is documented as a deferred
+  follow-up rather than rolled into this PR.
 - 2026-05-23: bookkeeping reconciliation — the 17 pre-amendment
   ACs flipped `[ ]` → `[x]` against on-disk evidence. PR #23
   shipped the v1 CLI surface; PR #26 + the RFC-0004 follow-on
