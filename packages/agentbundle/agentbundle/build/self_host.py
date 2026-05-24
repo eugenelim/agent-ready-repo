@@ -34,6 +34,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -598,6 +599,32 @@ def _emit_info_for_unclassified(
         print(f"[info] unclassified: {relative.as_posix()}", file=sys.stderr)
 
 
+def _is_text_like(data: bytes) -> bool:
+    """A file that decodes as UTF-8 is text-like for LF normalisation.
+
+    Empty files are text. Anything that fails UTF-8 decode is binary —
+    binaries that happen to contain a 0x0D 0x0A byte pair must not be
+    normalised, since the bytes carry value beyond line termination.
+    """
+    if not data:
+        return True
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    return True
+
+
+def _normalise_lf(data: bytes) -> bytes:
+    """Replace CRLF with LF for text-like equality comparison.
+
+    Bare CR is left in place — it's neither a portable line terminator
+    nor a `core.autocrlf` artefact, and rewriting it would hide real
+    content drift in test fixtures that exercise mac-classic endings.
+    """
+    return data.replace(b"\r\n", b"\n")
+
+
 def diff_against_working_tree(
     shadow: Path,
     working_tree: Path,
@@ -606,10 +633,30 @@ def diff_against_working_tree(
     """Compare every file in `shadow` against the corresponding path in
     `working_tree`. When `source_map` is provided, drift messages name
     the source path and regeneration command per spec § *Always do*
-    (`[drift] <projected>: edit <source>; run: make build-self`)."""
+    (`[drift] <projected>: edit <source>; run: make build-self`).
+
+    Phase-2 strengthening per the self-hosting spec:
+
+    - **CRLF→LF normalisation** for text-like files (those that decode
+      as UTF-8). Binary content is compared byte-for-byte. A CRLF-on-
+      disk text file no longer drifts against an LF-in-source file
+      — the same content shape ``git status`` already accommodates via
+      ``core.autocrlf``.
+    - **File-mode permission bits** for regular files. A projected
+      ``0o644`` against an on-disk ``0o755`` drifts. Only the low 9
+      permission bits are compared; setuid/setgid/sticky are not part
+      of the projection contract.
+    - **Symlink targets via ``lstat``** — the gate never follows a
+      symlink. A symlink/regular type mismatch drifts; matching
+      symlinks with different targets drift.
+    """
     drifts: list[str] = []
     for rendered in shadow.rglob("*"):
-        if not rendered.is_file():
+        try:
+            shadow_st = os.lstat(rendered)
+        except OSError:
+            continue
+        if not (stat.S_ISREG(shadow_st.st_mode) or stat.S_ISLNK(shadow_st.st_mode)):
             continue
         relative = rendered.relative_to(shadow)
         on_disk = working_tree / relative
@@ -620,18 +667,76 @@ def diff_against_working_tree(
                 hint = (
                     f": edit {source.as_posix()}; run: make build-self"
                 )
-        if not on_disk.exists():
+
+        try:
+            disk_st = os.lstat(on_disk)
+        except FileNotFoundError:
             drifts.append(
                 f"[drift] {relative.as_posix()} (missing on disk){hint}"
             )
             continue
-        try:
-            if rendered.read_bytes() != on_disk.read_bytes():
-                drifts.append(f"[drift] {relative.as_posix()}{hint}")
         except OSError as exc:
             drifts.append(
                 f"[drift] {relative.as_posix()} (unreadable: {exc}){hint}"
             )
+            continue
+
+        shadow_is_link = stat.S_ISLNK(shadow_st.st_mode)
+        disk_is_link = stat.S_ISLNK(disk_st.st_mode)
+
+        if shadow_is_link != disk_is_link:
+            expected = "symlink" if shadow_is_link else "regular file"
+            found = "regular file" if shadow_is_link else "symlink"
+            drifts.append(
+                f"[drift] {relative.as_posix()} "
+                f"(expected {expected}, found {found} on disk){hint}"
+            )
+            continue
+
+        if shadow_is_link:
+            try:
+                shadow_target = os.readlink(rendered)
+                disk_target = os.readlink(on_disk)
+            except OSError as exc:
+                drifts.append(
+                    f"[drift] {relative.as_posix()} "
+                    f"(unreadable symlink: {exc}){hint}"
+                )
+                continue
+            if shadow_target != disk_target:
+                drifts.append(
+                    f"[drift] {relative.as_posix()} "
+                    f"(symlink target differs: {disk_target!r} vs {shadow_target!r})"
+                    f"{hint}"
+                )
+            continue
+
+        reasons: list[str] = []
+
+        shadow_mode = stat.S_IMODE(shadow_st.st_mode)
+        disk_mode = stat.S_IMODE(disk_st.st_mode)
+        if shadow_mode != disk_mode:
+            reasons.append(f"mode {oct(disk_mode)} vs {oct(shadow_mode)}")
+
+        try:
+            shadow_bytes = rendered.read_bytes()
+            disk_bytes = on_disk.read_bytes()
+        except OSError as exc:
+            drifts.append(
+                f"[drift] {relative.as_posix()} (unreadable: {exc}){hint}"
+            )
+            continue
+
+        if shadow_bytes != disk_bytes:
+            if _is_text_like(shadow_bytes) and _is_text_like(disk_bytes):
+                if _normalise_lf(shadow_bytes) != _normalise_lf(disk_bytes):
+                    reasons.append("content differs")
+            else:
+                reasons.append("content differs")
+
+        if reasons:
+            tag = " (" + "; ".join(reasons) + ")"
+            drifts.append(f"[drift] {relative.as_posix()}{tag}{hint}")
     return drifts
 
 
