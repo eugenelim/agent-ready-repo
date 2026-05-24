@@ -279,7 +279,8 @@ Captured here so a future ROADMAP reader can see the disposition:
 - **Robustness pass** — per-finding micro-fixes (`Credentials.__repr__`,
   `Credentials.__getattr__` resolved-keys hint, `_quote_for_dotfile`
   raises on unsafe chars, `EnvParseError` ordering, `credentialed:`
-  YAML normalisation, `_resolve_schema_path` rename, `creds rm`
+  YAML normalisation, `resolve_schema_path` → `_relative_schema_path`
+  rename, `creds rm`
   continue-on-Tier-2-fail, AC23 stderr-prefix categorisation).
 - **Lint widening** — AST walker f-string / Starred(Tuple) /
   Subscript shapes; `icacls` SID-based matching to harden non-English
@@ -287,6 +288,10 @@ Captured here so a future ROADMAP reader can see the disposition:
 - **Spec / plan / doc cleanup** — inline-fixture amendment;
   `docs/product/release-checklist.md` for the three Windows manual-QA
   rows; this very ROADMAP audit.
+- **PR #97 — `schema_path=` kwarg removal** (closes Quality Blocker
+  #4). Path (a) chosen: `load_credentials` is *resolution only*; schema
+  validation lives in `agentbundle creds check`, not on the loader's
+  public surface. AC24b amended accordingly.
 
 Open follow-ons (not gating shipped status):
 
@@ -298,11 +303,6 @@ Open follow-ons (not gating shipped status):
   adopter-profile audit per RFC-0006 § Unresolved Q1; not gating
   v1 (Linux lands on Tier 3 floor). The `v2-libsecret` stub stays
   open under cross-spec items below.
-- **`load_credentials(schema_path=...)` no-op kwarg.** AC24b promises
-  the kwarg for primitive authors who load their own schema, but the
-  loader currently ignores it. Round-2 surfaced the gap (Quality
-  Blocker #4); choice between removing the kwarg vs. wiring schema
-  validation pending user direction.
 
 ---
 
