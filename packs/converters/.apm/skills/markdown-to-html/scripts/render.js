@@ -26,8 +26,8 @@ try {
   hljs = require('highlight.js');
 } catch (e) {
   // Resolve the skill directory so the install hint matches the user's
-  // actual layout (works whether the skill is checked out under
-  // dropkit/skills/... or copied into ~/.claude/skills/markdown-to-html/).
+  // actual layout (works whether the skill is checked out at its
+  // source location or copied into ~/.claude/skills/markdown-to-html/).
   const skillDir = path.dirname(__dirname);
   console.error(
     'error: missing dependency `marked` or `highlight.js`. Install with:\n' +

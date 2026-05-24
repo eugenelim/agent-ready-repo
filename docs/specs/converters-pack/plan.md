@@ -59,11 +59,11 @@ Most construction tests live under the per-task `Tests:` subsections below. Cros
 **Mode:** Goal-based check.
 
 **Tests:**
-- `rg -iE '\bdropkit\b' packs/converters/` exits non-zero (= zero hits). Run locally; the same check lands in CI in T5.
+- `rg -i --hidden '\bdropkit\b' packs/converters/` exits non-zero (= zero hits). Run locally; the same check lands in CI in T5. (`-iE` from earlier drafts is broken on ripgrep 15+ — `-E` maps to `--encoding=NAME`; the AC2 amendment dropped it and added `--hidden` because the imported skills live under `.apm/`.)
 - The four named hits from RFC-0007 § Source-attribution scrub are each addressed (verifiable by `git diff T1..T2 -- packs/converters/`): 3 × `manifest.json` deletions + 1 × `render.js:30` comment rewrite.
 
 **Approach:**
-- Run the scrub grep first as a shell one-liner; confirm 4 hits (the audit baseline).
+- Run the scrub grep first as a shell one-liner (`rg -i --hidden 'dropkit' packs/converters/`); confirm 4 hits (the audit baseline).
 - Delete `packs/converters/.apm/skills/file-to-markdown/manifest.json`.
 - Delete `packs/converters/.apm/skills/markdown-to-html/manifest.json`.
 - Delete `packs/converters/.apm/skills/msg-to-markdown/manifest.json`.
@@ -84,7 +84,7 @@ Most construction tests live under the per-task `Tests:` subsections below. Cros
 - **pack.toml shape:** `agentbundle validate packs/converters/` exits zero; `pack.toml` content matches [RFC-0007 § `pack.toml`](../../rfc/0007-user-scope-converter-pack.md#packtoml) verbatim (modulo cosmetic whitespace).
 - **plugin.json shape:** `packs/converters/.claude-plugin/plugin.json` structurally matches `packs/governance-extras/.claude-plugin/plugin.json` (same fields; substituted name and description).
 - **Build emission:** `make build PACKS_DIR=packs` emits `dist/claude-plugins/converters/` and `dist/apm/converters/` and aggregates the converters entry into `dist/claude-plugins/marketplace.json`.
-- **Scrub re-check (catches T3-authored attribution leaks):** `rg -iE '\bdropkit\b' packs/converters/` still exits non-zero after T3.
+- **Scrub re-check (catches T3-authored attribution leaks):** `rg -i --hidden '\bdropkit\b' packs/converters/` still exits non-zero after T3.
 - **AC7 disposition:** `markdown-to-html/package.json` exists (carried from source) and pins `marked` + `highlight.js`; SKILL.md text greps for the runtime install commands per AC7.
 - **AC7a gitignore note:** `grep -F 'node_modules' packs/converters/.apm/skills/markdown-to-html/SKILL.md` returns the `.gitignore` recommendation (note: T3 *adds* this note to SKILL.md if absent in the source; the source's SKILL.md does not currently carry it).
 
@@ -160,8 +160,8 @@ Most construction tests live under the per-task `Tests:` subsections below. Cros
 **Mode:** Goal-based check.
 
 **Tests:**
-- GitHub Actions workflow runs `rg -iE '\bdropkit\b' packs/converters/` as a step; exits non-zero (zero hits) on this branch.
-- Same workflow runs `rg -E '<adapt:[A-Z_][A-Z0-9_]*>|<adapt:[a-z][a-z0-9-]*>' packs/converters/`; exits non-zero (zero hits).
+- GitHub Actions workflow runs `rg -i --hidden '\bdropkit\b' packs/converters/` as a step; exits non-zero (zero hits) on this branch.
+- Same workflow runs `rg --hidden '<adapt:[A-Z_][A-Z0-9_]*>|<adapt:[a-z][a-z0-9-]*>' packs/converters/`; exits non-zero (zero hits).
 - Same workflow runs JSON-validity + canonical-keys check for AC4a on each carried `evals.json`.
 - `packs/core/seeds/docs/architecture/overview.md` names `converters` as the fifth pack in whichever section enumerates the catalogue's packs.
 - After `make build-self`, `docs/architecture/overview.md` matches the seed (no drift); `make build-check` exits zero.
@@ -173,8 +173,8 @@ Most construction tests live under the per-task `Tests:` subsections below. Cros
 - Run `make build-self` to regenerate the projected path.
 - Run `make build-check` to confirm zero drift.
 - Add three CI steps to `build-check.yml` (preferred — same workflow context):
-  - Scrub: `! rg -iE '\bdropkit\b' packs/converters/` (inverted; success = zero hits).
-  - Rail C: `! rg -E '<adapt:[A-Z_][A-Z0-9_]*>|<adapt:[a-z][a-z0-9-]*>' packs/converters/`.
+  - Scrub: `! rg -i --hidden '\bdropkit\b' packs/converters/` (inverted; success = zero hits).
+  - Rail C: `! rg --hidden '<adapt:[A-Z_][A-Z0-9_]*>|<adapt:[a-z][a-z0-9-]*>' packs/converters/`.
   - AC4a: `for f in packs/converters/.apm/skills/*/evals/evals.json; do python -c "import json,sys; p=sys.argv[1]; d=json.load(open(p)); assert 'skill_name' in d and 'evals' in d, f'{p} missing canonical keys'" "$f"; done` (single parse + assertion; path passed via `sys.argv` so quoting in filenames doesn't break the step).
 - Verify locally that all three greps + the JSON check exit zero against the pack.
 
@@ -215,3 +215,4 @@ The pack lands on `main` via a single squash-merged PR. No feature flag, no grad
 - 2026-05-24: initial plan, drafted alongside spec.md.
 - 2026-05-24: revised per adversarial review (B1–B5, C6–C12, N13–N15). Split T4 into T4a (write test, run locally) and T4b (wire pytest CI invocation) after confirming no pytest CI exists today. Changed T5 Approach to edit the seed (`packs/core/seeds/docs/architecture/overview.md`) directly. Added `notes/source-sha.txt` as T1's durable artifact bridging to T6. Relabelled T2 from TDD to Goal-based check. Split T3 Tests into named blocks; added scrub re-check + AC7a coverage. Removed the "deliberate-defect inversion" claim from T4 (the TDD red is the test file's non-existence). Tightened T6 grep to anchored Changelog-line shape.
 - 2026-05-24: revised per second-pass adversarial review. Rewrote T4a Approach to mirror the actual `test_install_user_hooks.py` idiom (in-process `install.run(args_namespace)`, `unittest.TestCase` + `patch.dict(os.environ, {"HOME": ...})`, catalogue layout `<tmp>/catalogue/packs/converters/`); dropped the fictitious `--from` flag and the subprocess shell-out. Pinned T4b CI invocation against verified `pyproject.toml` shape (`pip install -e packages/agentbundle/` + `pytest tests/integration/...`). Added HOME-resolution guard to AC6a (assert before state-file shape). Clarified AC3 covers prose/code blocks. Dropped T6's parenthetical-permission hedge (SHA-only canonical). Added explicit T4b → T5 edit-order note in T5 Approach.
+- 2026-05-24: revised during implementation. Spec AC2/AC3 and matching plan T2/T3/T5 grep idioms updated: removed `-E` (maps to `--encoding=NAME` on ripgrep 15+ and aborts with `unknown encoding`); added `--hidden` (the imported skills live under `.apm/`, which ripgrep treats as hidden by default — without `--hidden` the scrub vacuously passes without searching the imported files). Verified locally against ripgrep 15.1.0 with the four-hit audit baseline pre-scrub and zero hits post-scrub.
