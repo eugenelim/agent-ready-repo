@@ -36,7 +36,7 @@ from agentbundle.version import CLI_VERSION, SPEC_VERSION
 # from argparse with the documented `unknown flag for <verb>: <flag>`
 # shape. Other unrecognised flags keep argparse's default text so we
 # don't accidentally swallow typos.
-_REWRITE_FLAGS = ("--scope", "--force")
+_REWRITE_FLAGS = ("--scope", "--force", "--force-merge")
 
 
 class _VerbAwareParser(argparse.ArgumentParser):
@@ -187,6 +187,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "the requested scope even when the pack is already installed at "
             "the other scope. Does *not* override the in-place re-install "
             "refusal; use `upgrade` for that."
+        ),
+    )
+    sp.add_argument(
+        "--force-merge",
+        action="store_true",
+        help=(
+            "RFC-0005: adopt an adopter-hand-authored entry under "
+            "`~/.claude/settings.json` whose `command` collides with the "
+            "pack's hook. Bound to `install --scope user` against a "
+            "Claude-Code-targeted pack only; original command preserved "
+            "in the state-file snapshot."
         ),
     )
     sp.set_defaults(func=_lazy("install"))
