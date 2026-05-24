@@ -184,8 +184,8 @@ config file.
       Tier-2 path. The producer of the dist-tree relpath is
       `agentbundle.render.render_pack` (called from
       `packages/agentbundle/agentbundle/commands/install.py:438`); the
-      per-relpath Tier-2 classifier is `_classify_for_install` at
-      `install.py:537-548`. The live file is **not** overwritten; the
+      per-relpath Tier-2 classifier is `_classify_for_install`
+      (dispatched at `install.py:537-548`; body at `install.py:1411`). The live file is **not** overwritten; the
       adopter must reconcile. This is the documented
       `on-conflict = "merge-managed-key-only"` posture from
       `_data/adapter.toml:69`, and it predates this spec — this AC
@@ -275,8 +275,11 @@ config file.
       `<target>/claude-plugins/<pack-name>/.claude/settings.local.json`
       contains `data["hooks"]["SessionStart"][0]["hooks"][0]["command"]`
       equal to the literal string `python tools/hooks/session-start.py`.
-      The test must fail red if `packs/core/.apm/hook-wiring/session-start.toml`
-      is absent or its TOML produces a different shape on disk.
+      The test must fail red if the staged synthetic-pack wiring TOML
+      is absent or its shape differs from the documented nested form.
+      (The synthetic test inlines its own wiring TOML; the
+      red-before-green pivot against the *real* `packs/core/...session-start.toml`
+      lives in T7's smoke check — AC10.)
 - [ ] **AC10.** A smoke check against the **real** `packs/core/`: a
       small pytest under `packages/agentbundle/tests/integration/`
       runs `install.run(...)` with the real `packs/core/` directory
