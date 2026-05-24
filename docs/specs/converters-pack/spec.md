@@ -104,3 +104,5 @@ Mode-per-AC mapping:
 ## Changelog
 
 <!-- Dated entries; the source commit SHA pin (AC5) lands here at import time. Per § Never-do carve-out, governance text in this Changelog may name the source as part of stating the scrub rule — but is not required to. -->
+
+- 2026-05-24: initial import from source commit 95aff2587808259212603aa5628f82db5dbc5e1e
