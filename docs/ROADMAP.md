@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped. Round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landing as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items; recorded the v0.1-vs-RFC-0001 Tier-2 prompt gap under `agent-spec-cli`.)
+**Last updated:** 2026-05-24 (added `wire-session-start-hook` — Draft → Approved after four-round spec-mode adversarial review; ships hook-wiring for the core pack's `session-start.py` hook body so `agentbundle install core` auto-writes the Claude Code `SessionStart` binding; Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
 
 ## How this file is maintained
 
@@ -305,6 +305,79 @@ Open follow-ons (not gating shipped status):
   validation pending user direction.
 
 ---
+
+## `wire-session-start-hook` — approved (implementation pending)
+
+Spec: [`specs/wire-session-start-hook/spec.md`](specs/wire-session-start-hook/spec.md).
+Approved 2026-05-24 after four rounds of spec-mode adversarial review.
+Ships hook-wiring for the core pack's `session-start.py` hook body —
+on `agentbundle install core`, the merge-json adapter writes the Claude
+Code `SessionStart` binding into `.claude/settings.local.json` under
+the `hooks` managed key. Adopters no longer hand-paste the snippet
+from `tools/hooks/README.md`. Core stays at adapter-contract v0.2; no
+contract, schema, or build-code changes. Wiring TOML uses Claude
+Code's documented nested SessionStart schema (per
+[code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks)).
+Bundles a legacy-fixture rewrite for three stale `pre-commit.toml`
+upgrade-catalogue fixtures from `[hook] name/trigger/matcher` shape
+to live `[[hooks.<Event>]]` shape with a static stub command.
+
+Per-task closure (7 tasks):
+
+- [ ] **T1** — Construction test (red): synthetic minimal pack →
+      `install.run(...)` → assert nested SessionStart binding lands.
+      Closes AC9.
+- [ ] **T2** — Wiring TOML at `packs/core/.apm/hook-wiring/session-start.toml`.
+      Flips T1 green. Closes AC1, AC2.
+- [ ] **T3** — `tools/hooks/README.md § Wiring → Claude Code` reframe
+      (audit reference, not adopter instruction) + fix the pre-existing
+      `.claude/settings.json` → `.claude/settings.local.json` path bug.
+      Closes AC6.
+- [ ] **T4** — `packs/core/seeds/docs/CONVENTIONS.md` reframe (two
+      paragraphs: enforcement-triplet and Profile-C). Closes AC7.
+- [ ] **T5** — `make build-self`; `git diff docs/CONVENTIONS.md`
+      mirrors the T4 seed edit; no projected-path drift elsewhere.
+      Closes AC8.
+- [ ] **T6** — Legacy fixture rewrite for `catalogue_v{1,2,3}/.../pre-commit.toml`.
+      Substring `matcher = "Bash|Edit"` survives in v2. Closes AC5,
+      AC4 (regression).
+- [ ] **T7** — Full-suite regression + AC10 smoke test against real
+      `packs/core/` + PR description with latent-limitation notes
+      (R1, R4, R5). Closes AC3, AC10.
+
+Open follow-ons (not gating this spec):
+
+- **Kiro session-start support.** Deferred to a separate spec.
+  Neither Kiro IDE nor Kiro CLI has a true session-start lifecycle
+  event; the architecturally-right Kiro primitive is `steering`,
+  which the adapter contract does not model today. The parallel
+  spec needs to (a) introduce a `steering` primitive, (b) decide
+  on a build-time vs install-time render pipeline from
+  `patterns.jsonl`, (c) pick `inclusion: always` vs `auto`, (d)
+  resolve the scope-filtering gap (steering doesn't support
+  `--scope` filtering the way the CC hook does), (e) decide
+  whether to model Kiro IDE hooks at all or rely entirely on
+  steering. Tracked separately; parallel-session prompt drafted.
+- **`pre-pr.py` wiring.** Claude Code has no PR-open lifecycle event;
+  the closest event (`Stop`) fires after every agent turn, wrong
+  semantics. Separate behavior decision required if anyone wants
+  it auto-wired.
+- **Latent: `cc-user-hooks` fixture produces flat shape.** The
+  existing `cc-user-hooks` test fixture produces the flat
+  `{command, matcher}` shape on disk, which Claude Code's
+  documented schema rejects. The test only asserts JSON
+  structure — never verifies Claude Code honors the hook. Out of
+  scope here; surfaces in `user-scope-hooks` or a follow-up.
+- **R4 (pack↔pack `SessionStart` collision).** Merge-json adapter's
+  `dict.update()` at `claude_code.py:101-103` is a key-level merge —
+  if a second pack wires `SessionStart`, the second install wipes
+  the first's array. Today no other pack wires `SessionStart`, so
+  this is latent. Documented in T7's PR description.
+- **R5 (repo-scope uninstall doesn't remove merged entry).**
+  `install.py:566-602` only populates `hook_wiring_owned` state rows
+  at user scope; at repo scope `uninstall core` leaves the
+  `.claude/settings.local.json` entry behind. RFC-0005 T8b's design
+  would generalise cleanly if a future spec wants this.
 
 ## Cross-spec / outside-the-spec-tree
 

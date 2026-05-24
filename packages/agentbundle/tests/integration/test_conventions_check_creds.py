@@ -88,6 +88,21 @@ def test_argv_flag_normalised_catches_all_three_variants(tmp_path):
     assert "'--password'" in res.stderr
 
 
+def test_argv_flag_derived_shapes_are_flagged(tmp_path):
+    """Round-2 lint widening (Adversarial Concern #8): the walker catches
+    JoinedStr (literal-only f-string), Starred(Tuple) argument spread,
+    and Subscript constant indexing into a literal tuple. Each shape
+    collapses to a banned flag at parse time."""
+    res = _run_lint("argv-flag-derived", tmp_path)
+    assert res.returncode != 0
+    # JoinedStr — f"--{'token'}" collapses to "--token".
+    assert "'--token'" in res.stderr
+    # Starred(Tuple) — *("--api-key",) collapses to "--api-key".
+    assert "'--api-key'" in res.stderr
+    # Subscript — ("--bearer",)[0] collapses to "--bearer".
+    assert "'--bearer'" in res.stderr
+
+
 def test_mcp_server_headers_clean(tmp_path):
     """AC26(b) is scoped to credentialed-cli only; header-naming flags on
     mcp-server class must not be flagged."""

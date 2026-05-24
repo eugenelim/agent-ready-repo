@@ -280,3 +280,56 @@ def test_load_credentials_mixes_tiers_across_keys(tmp_path, monkeypatch):
     assert creds.API_TOKEN == "from-tier1-env"
     assert creds.BASE_URL == "from-tier2-keyring"
     assert creds.FLAVOR == "from-tier3-dotfile"
+
+
+def test_quote_for_dotfile_rejects_embedded_double_quote(tmp_path):
+    """Security review Quality Nit #15: ``_quote_for_dotfile`` raises
+    rather than silently producing an unparseable entry when the value
+    contains a ``"`` (the parser strips clumsily and the round-trip
+    corrupts the value).
+    """
+    from agentbundle.creds.loader import EnvParseError
+    with pytest.raises(EnvParseError, match="double-quote"):
+        loader._quote_for_dotfile('embedded"quote')
+
+
+def test_quote_for_dotfile_rejects_dollar_sign(tmp_path):
+    """The parser refuses variable-expansion syntax (``$NAME``), so
+    quoting a ``$``-bearing value would write an entry that fails
+    parse on re-read. Refuse up front."""
+    from agentbundle.creds.loader import EnvParseError
+    with pytest.raises(EnvParseError, match=r"`\$`"):
+        loader._quote_for_dotfile("$EXPANSION")
+
+
+def test_credentials_repr_lists_keys_not_values(monkeypatch):
+    """Security Nit #8: ``Credentials.__repr__`` lists key names only —
+    a misplaced ``print(creds)`` MUST NOT echo token bytes."""
+    monkeypatch.setenv("FIXTURE_T6_API_TOKEN", "secret-token-bytes")
+    monkeypatch.setenv("FIXTURE_T6_BASE_URL", "https://example.com")
+    creds = load_credentials(
+        "fixture_t6", required_keys=["API_TOKEN", "BASE_URL"],
+    )
+    r = repr(creds)
+    assert "fixture_t6" in r
+    assert "API_TOKEN" in r
+    assert "BASE_URL" in r
+    # Value redaction is the load-bearing contract.
+    assert "secret-token-bytes" not in r
+    assert "https://example.com" not in r
+
+
+def test_credentials_getattr_typo_lists_resolved_keys(monkeypatch):
+    """Quality Nit #14: typo'd ``creds.api_token`` (lowercase) errors
+    with the resolved-key list so the schema's casing is discoverable."""
+    monkeypatch.setenv("FIXTURE_T6_API_TOKEN", "secret")
+    monkeypatch.setenv("FIXTURE_T6_BASE_URL", "https://example.com")
+    creds = load_credentials(
+        "fixture_t6", required_keys=["API_TOKEN", "BASE_URL"],
+    )
+    with pytest.raises(AttributeError) as exc:
+        _ = creds.api_token  # lowercase typo
+    msg = str(exc.value)
+    assert "api_token" in msg
+    assert "API_TOKEN" in msg
+    assert "BASE_URL" in msg
