@@ -55,8 +55,14 @@ def _install_args(
 
 
 class _UserScopeInstallBase(unittest.TestCase):
-    """Common setup: redirect ``$HOME`` to a tmp_path so the test never
-    touches the developer's real home tree."""
+    """Common setup: redirect the home directory to a tmp_path so the
+    test never touches the developer's real home tree.
+
+    Sets both ``HOME`` (POSIX) and ``USERPROFILE`` (Windows) — ``Path.home()``
+    consults ``USERPROFILE`` first on Windows and ignores ``HOME`` there,
+    so patching only ``HOME`` is a no-op on the Windows CI runner. Setting
+    both is harmless on POSIX (``USERPROFILE`` is unused) and correct on
+    Windows."""
 
     def setUp(self) -> None:
         self.tmp = Path(tempfile.mkdtemp())
@@ -65,7 +71,10 @@ class _UserScopeInstallBase(unittest.TestCase):
         self.home.mkdir()
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
-        self._env = patch.dict(os.environ, {"HOME": str(self.home)})
+        self._env = patch.dict(
+            os.environ,
+            {"HOME": str(self.home), "USERPROFILE": str(self.home)},
+        )
         self._env.start()
         self.addCleanup(self._env.stop)
         # Construct a temporary catalogue layout: <cat>/packs/<pack>/
