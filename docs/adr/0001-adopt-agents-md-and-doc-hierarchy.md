@@ -82,7 +82,7 @@ The full mechanics are in [`docs/CONVENTIONS.md`](../CONVENTIONS.md).
 - Contributors have to learn the difference between an ADR and a spec, and
   between a spec and an RFC. The CONVENTIONS.md doc tries to make this fast.
 - Per-package `AGENTS.md` files are an attractive nuisance — easy to bloat.
-  We mitigate by linting them in CI (see `tools/lint-agents-md.sh`).
+  We mitigate by linting them in CI (see `tools/lint-agents-md.py`).
 
 **Neutral / to revisit:**
 

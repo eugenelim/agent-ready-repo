@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Self-test for tools/hooks/session-start.sh. Exercises the
+# Self-test for tools/hooks/session-start.py. Exercises the
 # malformed-line warning, the --scope validation, and the empty-file
 # silent-exit. Uses KNOWLEDGE_FILE override against tempdir fixtures so
 # the production patterns.jsonl is never touched.
@@ -12,7 +12,7 @@ cd "$REPO_ROOT"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-HOOK="$REPO_ROOT/tools/hooks/session-start.sh"
+HOOK="$REPO_ROOT/tools/hooks/session-start.py"
 
 failures=0
 ran=0
@@ -28,7 +28,7 @@ run_case() {
 
   local out_stdout out_stderr
   set +e
-  out_stdout=$(KNOWLEDGE_FILE="$path" bash "$HOOK" 2>"$TMP/$name.err")
+  out_stdout=$(KNOWLEDGE_FILE="$path" python3 "$HOOK" 2>"$TMP/$name.err")
   local got_exit=$?
   out_stderr=$(< "$TMP/$name.err")
   set -e
@@ -74,7 +74,7 @@ run_case "empty-file" "" 0 "" ""
 # Missing file — silent exit 0 (hook is a no-op).
 ran=$((ran + 1))
 set +e
-out_stdout=$(KNOWLEDGE_FILE="$TMP/does-not-exist.jsonl" bash "$HOOK" 2>"$TMP/miss.err")
+out_stdout=$(KNOWLEDGE_FILE="$TMP/does-not-exist.jsonl" python3 "$HOOK" 2>"$TMP/miss.err")
 got=$?
 set -e
 out_stderr=$(< "$TMP/miss.err")
@@ -88,7 +88,7 @@ fi
 # --scope with no value — exits 2 with usage message.
 ran=$((ran + 1))
 set +e
-out_stderr=$(bash "$HOOK" --scope 2>&1)
+out_stderr=$(python3 "$HOOK" --scope 2>&1)
 got=$?
 set -e
 if [[ "$got" -eq 2 && "$out_stderr" == *"--scope requires a path or glob value"* ]]; then
@@ -103,7 +103,7 @@ COVERAGE='{"id": "K-0001", "kind": "pattern", "scope": "packages/auth/**", "titl
 printf '%s' "$COVERAGE" > "$TMP/cov.jsonl"
 ran=$((ran + 1))
 set +e
-out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" bash "$HOOK" --scope 'packages/auth/server.ts' 2>"$TMP/cov.err")
+out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" python3 "$HOOK" --scope 'packages/auth/server.ts' 2>"$TMP/cov.err")
 got=$?
 set -e
 if [[ "$got" -eq 0 && "$out" == *"K-0001"* && "$out" != *"K-0002"* ]]; then
@@ -117,7 +117,7 @@ fi
 # --scope filter (negative): caller path NOT covered by other-package glob.
 ran=$((ran + 1))
 set +e
-out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" bash "$HOOK" --scope 'packages/billing/charge.ts' 2>"$TMP/cov2.err")
+out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" python3 "$HOOK" --scope 'packages/billing/charge.ts' 2>"$TMP/cov2.err")
 got=$?
 set -e
 if [[ "$got" -eq 0 && "$out" != *"K-0001"* && "$out" != *"K-0002"* ]]; then

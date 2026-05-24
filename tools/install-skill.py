@@ -79,7 +79,7 @@ class Plan:
 def parse_frontmatter(path: pathlib.Path) -> dict:
     """Return frontmatter fields. Supports scalar values and block-style
     YAML lists (`key:` followed by `  - item` lines). Mirrors the parser
-    in tools/lint-agent-artifacts.sh."""
+    in tools/lint-agent-artifacts.py."""
     text = path.read_text()
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
@@ -183,7 +183,7 @@ def build_plan(target_rel: str, owning_skill: str, plan: Plan) -> None:
         raise SystemExit(
             f"error: dependency points at {target_rel} but that file is not "
             f"present in the template source. The manifest is wrong; run "
-            f"tools/lint-skill-deps.sh."
+            f"tools/lint-skill-deps.py."
         )
 
     # Skill = whole folder. Copy every file under .claude/skills/<name>/,

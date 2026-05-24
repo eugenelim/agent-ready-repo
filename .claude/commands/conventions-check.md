@@ -4,7 +4,7 @@ description: Lint AGENTS.md, CLAUDE.md, and .claude/ artifacts against the conve
 
 Run both repo linters and report findings.
 
-**`bash tools/lint-agents-md.sh`** — AGENTS.md hygiene:
+**`python tools/lint-agents-md.py`** — AGENTS.md hygiene:
 
 1. Root `AGENTS.md` is under 250 lines.
 2. `CLAUDE.md` is either a symlink to `AGENTS.md` or a byte-identical
@@ -15,7 +15,7 @@ Run both repo linters and report findings.
 4. Internal links resolve.
 5. `docs/CHARTER.md` and the Diátaxis subdirectories exist.
 
-**`bash tools/lint-agent-artifacts.sh`** — `.claude/` artifact hygiene:
+**`python tools/lint-agent-artifacts.py`** — `.claude/` artifact hygiene:
 
 1. Every skill / subagent / command has well-formed YAML frontmatter with
    the required keys (`name`, `description`).
