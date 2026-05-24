@@ -1,0 +1,720 @@
+# Golden Example: E-Commerce Order Management API
+# Demonstrates key Zalando RESTful API Guidelines patterns.
+# Every design decision cites a rule [#NNN].
+#
+# Derived from the Zalando RESTful API Guidelines (CC-BY-4.0, Zalando SE).
+# https://opensource.zalando.com/restful-api-guidelines/
+
+openapi: "3.1.0"   # [#101] MUST provide API specifications using OpenAPI
+
+info:
+  title: Order Management API                          # [#218] MUST contain API meta information
+  description: |
+    API for managing e-commerce orders, including creation, retrieval,
+    status transitions, and cancellation. Written in U.S. English [#103].
+  version: "1.0.0"                                     # [#116] MUST use semantic versioning
+  contact:
+    name: Order Team
+    email: order-team@example.com
+    url: https://wiki.example.com/order-api
+  x-api-id: d0184f38-b98d-11e7-9c56-68f728c1ba70      # [#215] MUST provide API identifiers (UUID)
+  x-audience: external-partner                          # [#219] MUST provide API audience
+
+servers:                                                # [#135] SHOULD NOT use /api as base path
+  - url: https://api.example.com
+
+security:                                               # [#104] MUST secure endpoints
+  - oauth2:
+      - order-management.orders.read
+
+tags:
+  - name: Orders
+    description: Order lifecycle operations
+  - name: Order Items
+    description: Line items within an order
+
+paths:
+  # [#134] MUST pluralize resource names
+  # [#129] MUST use kebab-case for path segments
+  # [#141] MUST keep URLs verb-free
+  # [#136] MUST use normalized paths
+  /orders:
+    get:
+      summary: List orders
+      operationId: getOrders
+      tags: [Orders]
+      security:
+        - oauth2: [order-management.orders.read]        # [#105] MUST define and assign permissions
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Fields'
+        - name: status
+          in: query                                     # [#130] MUST use snake_case for query params
+          schema:
+            type: string
+            examples:                          # [#112] SHOULD use examples for open-ended enums
+              - PLACED
+              - CONFIRMED
+              - SHIPPED
+              - DELIVERED
+              - CANCELLED
+          description: Filter by order status
+        - name: sort
+          in: query                                     # [#137] MUST stick to conventional query params
+          schema:
+            type: string
+            default: "-created_at"
+          description: Sort field, prefix - for descending
+      responses:
+        "200":                                          # [#151] MUST specify success and error responses
+          description: Paginated list of orders
+          content:
+            application/json:                           # [#167] MUST use JSON as payload format
+              schema:
+                $ref: '#/components/schemas/OrderPage'
+          headers:
+            Cache-Control:                              # [#227] MUST document cacheable endpoints
+              schema:
+                type: string
+              example: "max-age=60, public"
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+
+    post:
+      summary: Create an order
+      operationId: createOrder
+      tags: [Orders]
+      security:
+        - oauth2: [order-management.orders.write]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'  # [#229][#230] idempotent POST
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        "201":                                            # [#220] MUST use most specific status code
+          description: Order created
+          headers:
+            Location:                                     # [#180] SHOULD use Location header
+              schema:
+                type: string
+                format: uri
+              example: https://api.example.com/orders/abc123
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+
+  /orders/{order-id}:                                     # [#143] MUST identify resources via path segments
+    parameters:
+      - name: order-id                                    # [#228] MUST use URL-friendly resource IDs
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique order identifier
+
+    get:
+      summary: Get an order
+      operationId: getOrder
+      tags: [Orders]
+      security:
+        - oauth2: [order-management.orders.read]
+      parameters:
+        - $ref: '#/components/parameters/Fields'          # [#157] SHOULD support partial responses
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          headers:
+            ETag:                                          # [#182] MAY support ETag
+              schema:
+                type: string
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+
+    patch:
+      summary: Update an order
+      operationId: updateOrder
+      tags: [Orders]
+      security:
+        - oauth2: [order-management.orders.write]
+      parameters:
+        - name: If-Match                                  # [#182] Optimistic locking via ETag
+          in: header
+          schema:
+            type: string
+          description: ETag value for optimistic locking
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:                   # [#148] PATCH uses merge-patch
+            schema:
+              $ref: '#/components/schemas/OrderUpdateRequest'
+      responses:
+        "200":
+          description: Order updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "412":
+          $ref: '#/components/responses/PreconditionFailed'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+
+  # [#138] Model cancellation as a sub-resource, not DELETE
+  # (the order still exists in CANCELLED state — DELETE implies removal [#148])
+  /orders/{order-id}/cancellation:
+    parameters:
+      - name: order-id
+        in: path
+        required: true
+        schema:
+          type: string
+
+    post:
+      summary: Cancel an order
+      operationId: cancelOrder
+      tags: [Orders]
+      security:
+        - oauth2: [order-management.orders.write]
+      responses:
+        "201":                                             # [#220] Creates a cancellation sub-resource
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+
+  # [#147] Sub-resource depth at most 3 levels
+  /orders/{order-id}/items:
+    parameters:
+      - name: order-id
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      summary: List order items
+      operationId: getOrderItems
+      tags: [Order Items]
+      security:
+        - oauth2: [order-management.orders.read]
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        "200":
+          description: Paginated list of order items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItemPage'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+
+    post:
+      summary: Add an item to an order
+      operationId: addOrderItem
+      tags: [Order Items]
+      security:
+        - oauth2: [order-management.orders.write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemCreateRequest'
+      responses:
+        "201":
+          description: Item added
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItem'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "429":
+          $ref: '#/components/responses/TooManyRequests'
+
+components:
+  schemas:
+    # --- Domain Schemas ---
+
+    Order:                                                 # [#110] Top-level MUST be object
+      type: object
+      required:
+        - id
+        - status
+        - total
+        - items
+        - created_at
+      properties:
+        id:                                                # [#174] MUST use common field names
+          type: string
+          description: Unique order identifier
+          example: abc123
+          readOnly: true                                   # [#252] Single schema for read/write
+        status:
+          type: string
+          examples:                               # [#112] Open-ended enum via examples
+            - PLACED
+            - CONFIRMED
+            - SHIPPED
+            - DELIVERED
+            - CANCELLED
+          description: Current order status
+          example: PLACED
+        total:                                             # [#173] MUST use common money object
+          $ref: '#/components/schemas/Money'
+        customer_id:
+          type: string
+          description: Reference to the customer who placed the order
+        shipping_address:                                  # [#249] MUST use common address fields
+          $ref: '#/components/schemas/Address'
+        items:                                             # [#120] SHOULD pluralize array names
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        note:
+          type: string
+          description: Optional customer note
+        gift:                                           # [#122] Boolean — non-nullable, no is_/has_ prefix needed
+          type: boolean
+          default: false
+        created_at:                                        # [#169][#235] ISO 8601, _at suffix
+          type: string
+          format: date-time
+          readOnly: true
+          description: Order creation timestamp
+        modified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Last modification timestamp
+        _links:                                            # [#164] Hypertext controls
+          $ref: '#/components/schemas/OrderLinks'
+
+    OrderCreateRequest:
+      type: object
+      required:
+        - items
+        - shipping_address
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemCreateRequest'
+          minItems: 1
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        note:
+          type: string
+        gift:
+          type: boolean
+          default: false
+
+    OrderUpdateRequest:
+      type: object
+      properties:
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        note:
+          type: string
+        gift:
+          type: boolean
+
+    OrderItem:
+      type: object
+      required:
+        - id
+        - product_id
+        - quantity
+        - unit_price
+      properties:
+        id:
+          type: string
+          readOnly: true
+        product_id:
+          type: string
+          description: SKU or product reference
+        product_name:
+          type: string
+        quantity:
+          type: integer
+          format: int32                                    # [#171] MUST define number format
+          minimum: 1
+        unit_price:
+          $ref: '#/components/schemas/Money'
+
+    OrderItemCreateRequest:
+      type: object
+      required:
+        - product_id
+        - quantity
+      properties:
+        product_id:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+
+    # --- Pagination Schemas ---                           # [#159] MUST support pagination
+
+    OrderPage:                                             # [#248] Page object
+      type: object
+      required:
+        - items
+      properties:
+        items:                                             # [#110] Top-level object, not bare array
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        cursor:                                            # Matches pagination-and-filtering.md pattern
+          type: object
+          properties:
+            self:
+              type: string
+              description: Cursor pointing to the start of this page
+            next:
+              type: string
+              description: Cursor for the next page (absent if last page)
+            prev:
+              type: string
+              description: Cursor for the previous page (absent if first page)
+        has_more:                                           # [#254] Prefer has_more over total count
+          type: boolean
+        _links:                                            # [#161][#165] Pagination links
+          $ref: '#/components/schemas/PaginationLinks'
+
+    OrderItemPage:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        cursor:
+          type: object
+          properties:
+            self:
+              type: string
+            next:
+              type: string
+            prev:
+              type: string
+        has_more:
+          type: boolean
+        _links:
+          $ref: '#/components/schemas/PaginationLinks'
+
+    # --- Common Schemas ---
+
+    Money:                                                 # [#173] From Zalando models/money-1.0.0.yaml
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: number
+          format: decimal
+          description: >
+            The amount describes unit and subunit of the currency in a single value,
+            where the integer part is for the major unit and fractional part is for
+            the minor unit.
+          example: 99.95
+        currency:
+          type: string
+          format: iso-4217
+          description: 3 letter currency code as defined by ISO-4217
+          example: EUR
+
+    Address:                                               # [#249] Common address fields
+      type: object
+      required:
+        - address_line_1
+        - city
+        - zip_code
+        - country
+      properties:
+        address_line_1:
+          type: string
+          description: Street address, P.O. box, company name
+          example: "Mollstr. 1"
+        address_line_2:
+          type: string
+          description: Apartment, suite, unit, building, floor
+        city:
+          type: string
+          example: Berlin
+        state:
+          type: string
+          description: State, province, region
+        zip_code:
+          type: string
+          example: "10178"
+        country:
+          type: string
+          format: iso-3166-alpha-2                         # [#170] ISO 3166 for country
+          description: ISO 3166-1 alpha-2 country code
+          example: DE
+
+    Problem:                                               # [#176] RFC 9457 Problem Detail
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: URI reference identifying the problem type
+          default: 'about:blank'
+        title:
+          type: string
+          description: Short summary of the problem type
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          minimum: 100
+          exclusiveMaximum: 600
+        detail:
+          type: string
+          description: Human-readable explanation of this occurrence
+        instance:
+          type: string
+          format: uri-reference
+          description: URI reference identifying the specific occurrence
+
+    # --- Link Schemas ---
+
+    OrderLinks:
+      type: object
+      properties:
+        self:                                              # [#217] MUST use absolute URI
+          type: string
+          format: uri
+          example: https://api.example.com/orders/abc123
+        items:
+          type: string
+          format: uri
+          example: https://api.example.com/orders/abc123/items
+        cancel:
+          type: string
+          format: uri
+          example: https://api.example.com/orders/abc123/cancellation
+
+    PaginationLinks:                                       # [#161] Pagination links
+      type: object
+      properties:
+        self:
+          type: string
+          format: uri
+        next:
+          type: string
+          format: uri
+        prev:
+          type: string
+          format: uri
+
+  parameters:
+    Cursor:                                                # [#160] Prefer cursor-based pagination
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Opaque cursor from previous response
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Maximum number of items to return
+
+    Fields:                                                # [#157] Partial responses
+      name: fields
+      in: query
+      schema:
+        type: string
+      description: Comma-separated list of fields to include
+      example: id,status,total
+
+    IdempotencyKey:                                        # [#230] Idempotency-Key header
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+        format: uuid
+      description: Client-generated UUID for idempotent requests
+
+  responses:
+    BadRequest:
+      description: Bad request                             # [#176] Problem JSON for errors
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    Forbidden:
+      description: Authenticated but not authorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    Conflict:
+      description: Request conflicts with current state
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    PreconditionFailed:
+      description: ETag mismatch (optimistic locking)      # [#182]
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    UnprocessableEntity:
+      description: Semantically invalid request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    TooManyRequests:                                       # [#153] Rate limit with Retry-After
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            format: int32
+          description: Seconds to wait before retrying
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    InternalServerError:                                   # 5xx — acknowledge that servers fail
+      description: Unexpected server error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    ServiceUnavailable:
+      description: Service temporarily unavailable
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            format: int32
+          description: Seconds to wait before retrying
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  securitySchemes:
+    oauth2:                                                # [#104][#105] OAuth2 with scopes
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/oauth2/token
+          scopes:
+            order-management.orders.read: Read orders      # [#225] <api>.<resource>.<access> naming
+            order-management.orders.write: Create and modify orders

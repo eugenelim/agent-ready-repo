@@ -1,0 +1,49 @@
+{
+  "skill_name": "api-contract",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Design a REST API for a pet adoption service. Resources: pets (dogs, cats), shelters, and adoption applications. A shelter has many pets, and an application links a user to a pet.",
+      "expected_output": "A valid OpenAPI 3.1 YAML spec with /shelters, /pets, /adoption-applications endpoints, snake_case properties, kebab-case paths, cursor pagination on list endpoints, OAuth2 security, and Problem JSON error responses.",
+      "assertions": [
+        "Output is valid OpenAPI 3.1 YAML",
+        "All paths use kebab-case segments",
+        "All resource names are pluralized",
+        "JSON property names use snake_case",
+        "info block includes x-api-id and x-audience",
+        "All list endpoints include cursor-based pagination parameters",
+        "Error responses use application/problem+json",
+        "Security scheme is OAuth2 with scopes defined"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I need an API spec for an internal invoice management system. We handle invoices with line items, each line item has a monetary amount. Invoices go through states: DRAFT, SENT, PAID, OVERDUE, CANCELLED.",
+      "expected_output": "A valid OpenAPI 3.1 spec using the common Money object for amounts, open-ended enum via examples keyword for invoice states in UPPER_SNAKE_CASE, proper date-time fields with _at suffixes, and company-internal audience.",
+      "assertions": [
+        "Output is valid OpenAPI 3.1 YAML",
+        "Uses a Money schema with amount (decimal) and currency (ISO 4217)",
+        "Invoice status values are UPPER_SNAKE_CASE",
+        "Status field uses examples keyword for open-ended values (not closed enum)",
+        "Timestamp properties use _at suffix (e.g., created_at)",
+        "x-audience is set to company-internal",
+        "Number types have explicit format (int32, int64, or decimal)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Create an OpenAPI contract for a public-facing e-commerce product catalog. Needs: list products with filtering by category and price range, get product details, search products. Products have images (URLs), prices, and nested category hierarchy.",
+      "expected_output": "A valid OpenAPI 3.1 spec with GET /products (with query filter params), GET /products/{product_id}, POST /products/search for complex queries, proper pagination, and no URL versioning.",
+      "assertions": [
+        "Output is valid OpenAPI 3.1 YAML",
+        "GET /products supports query parameters for filtering",
+        "Query parameters use snake_case",
+        "A search endpoint uses POST with JSON body (not GET with complex query string)",
+        "No /v1/ or /v2/ in any path",
+        "No /api prefix in paths",
+        "Top-level responses are JSON objects (not bare arrays)",
+        "Pagination response includes cursor-based navigation links"
+      ]
+    }
+  ]
+}
