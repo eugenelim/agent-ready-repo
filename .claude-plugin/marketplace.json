@@ -4,6 +4,11 @@
   },
   "plugins": [
     {
+      "description": "File-format conversion skills: documents and images \u2192 Markdown; Markdown \u2192 styled HTML; Outlook .msg \u2192 Markdown.",
+      "name": "converters",
+      "version": "0.1.0"
+    },
+    {
       "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix skills; reviewer/implementer agents; pre-pr + session-start hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
       "name": "core",
       "version": "0.1.0"
