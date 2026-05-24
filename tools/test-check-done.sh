@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Self-test for tools/check-done.py.
+# Self-test for .claude/skills/work-loop/scripts/check-done.py.
 #
 # Builds a tempdir of state.json fixtures (each tripping one kill
 # criterion, plus a healthy case), runs the script, and asserts the
@@ -14,7 +14,7 @@ cd "$REPO_ROOT"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-PY="python3 $REPO_ROOT/tools/check-done.py"
+PY="python3 $REPO_ROOT/.claude/skills/work-loop/scripts/check-done.py"
 
 failures=0
 ran=0
@@ -164,8 +164,9 @@ DEFAULTS_OVER='{"iteration_count": 5, "plan_review_status": "approved"}'
 run_case "defaults-iter" "$DEFAULTS_OVER" implement 1 "iteration cap"
 
 # End-to-end: use the literal template file the SKILL says to copy. This
-# catches schema drift between docs/_templates/state.json and the script.
-TEMPLATE_PATH="$REPO_ROOT/docs/_templates/state.json"
+# catches schema drift between the work-loop skill's state.json
+# template and the script.
+TEMPLATE_PATH="$REPO_ROOT/.claude/skills/work-loop/assets/state.json"
 if [[ -f "$TEMPLATE_PATH" ]]; then
   ran=$((ran + 1))
   set +e
@@ -193,7 +194,7 @@ fi
 # and the template values.
 if [[ -f "$TEMPLATE_PATH" ]]; then
   ran=$((ran + 1))
-  if python3 - "$TEMPLATE_PATH" "$REPO_ROOT/tools/check-done.py" <<'PY'
+  if python3 - "$TEMPLATE_PATH" "$REPO_ROOT/.claude/skills/work-loop/scripts/check-done.py" <<'PY'
 import json, pathlib, re, sys
 template = json.loads(pathlib.Path(sys.argv[1]).read_text())
 script = pathlib.Path(sys.argv[2]).read_text()
@@ -227,7 +228,7 @@ PY
   fi
 
   ran=$((ran + 1))
-  if python3 - "$TEMPLATE_PATH" "$REPO_ROOT/tools/check-done.py" <<'PY'
+  if python3 - "$TEMPLATE_PATH" "$REPO_ROOT/.claude/skills/work-loop/scripts/check-done.py" <<'PY'
 import json, pathlib, re, sys
 template = json.loads(pathlib.Path(sys.argv[1]).read_text())
 script = pathlib.Path(sys.argv[2]).read_text()

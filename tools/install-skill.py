@@ -51,8 +51,12 @@ AGENT_DIR = ".claude/agents"
 FRAGMENT_FILES = {"docs/CONVENTIONS.md", "AGENTS.md", "docs/CHARTER.md"}
 
 # Files we'd rather never carry along when copying a skill folder. Skill
-# folders are SKILL.md plus optional support material; OS junk and Python
-# bytecode caches are neither.
+# folders are SKILL.md plus optional support material — the
+# agentskills.io layout names `references/` (read-on-demand material),
+# `assets/` (templates the skill copies elsewhere), and `scripts/`
+# (executable helpers the skill invokes). All three subdirectories
+# travel verbatim via the rglob walk below; OS junk and Python bytecode
+# caches do not.
 SKILL_FOLDER_IGNORES = (".DS_Store", "Thumbs.db")
 SKILL_FOLDER_IGNORE_DIRS = ("__pycache__", ".git")
 

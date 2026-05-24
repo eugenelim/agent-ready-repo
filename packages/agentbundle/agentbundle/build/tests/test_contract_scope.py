@@ -33,11 +33,12 @@ def _load_contract() -> dict:
 
 
 class ContractVersionTests(unittest.TestCase):
-    """Contract version bumps to 0.2 with this RFC."""
+    """Contract version is 0.3 (was 0.2 at the time this file was authored;
+    bumped to 0.3 with the hook-shape schema landing — commit ca4164b)."""
 
-    def test_contract_version_is_0_2(self) -> None:
+    def test_contract_version_is_0_3(self) -> None:
         contract = _load_contract()
-        self.assertEqual(contract["contract"]["version"], "0.2")
+        self.assertEqual(contract["contract"]["version"], "0.3")
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):
@@ -68,9 +69,12 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
 class OtherAdaptersOmitScopeTests(unittest.TestCase):
     """Adapters omitting [scope] are accepted as repo-only."""
 
-    def test_kiro_copilot_codex_omit_scope(self) -> None:
+    def test_copilot_codex_omit_scope(self) -> None:
+        """Copilot and Codex are repo-only (no [scope] block needed).
+        Kiro gained a [scope] block via RFC-0005 to support its user-scope
+        hook wiring (was repo-only at the time this test was authored)."""
         contract = _load_contract()
-        for name in ("kiro", "copilot", "codex"):
+        for name in ("copilot", "codex"):
             with self.subTest(adapter=name):
                 self.assertNotIn("scope", contract["adapter"][name])
 

@@ -182,8 +182,8 @@ user to review:
 > `AGENTS.md` and `docs/CONVENTIONS.md` link to template-only files
 > that no installed skill claims as a dependency — for example
 > `.claude/skills/README.md`, `docs/architecture/overview.md`,
-> `tools/hooks/README.md`, `docs/_templates/adr.md`,
-> `docs/_templates/rfc.md`. Borrow the section structure, then let the
+> `tools/hooks/README.md`, `.claude/skills/new-adr/assets/adr.md`,
+> `.claude/skills/new-rfc/assets/rfc.md`. Borrow the section structure, then let the
 > docs linter be the authority: for every `broken link →` finding it
 > reports against your drafted files, either install the missing
 > artifact or remove the link. Don't ignore them.

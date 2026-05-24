@@ -345,7 +345,7 @@ allowance.
 **Rail A — `seeds/`-bearing packs.** A pack whose source tree contains
 a non-empty `seeds/` directory cannot declare `"user"` in
 `allowed-scopes`. `seeds/docs/`, `seeds/packages/` at user scope would
-project to `~/docs/_templates/`, `~/packages/_example/` — nonsense
+project to `~/docs/specs/`, `~/packages/_example/` — nonsense
 paths. `validate` rejects mismatches.
 
 **Rail B — hook-shaped primitives (conditional, RFC-0005).** A pack
@@ -686,7 +686,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   from `[frontmatter-default.*]` tables — adapters never hardcode the
   default.
 - Exit non-zero with a one-line stderr message when validation or drift
-  detection fails (so CI and the work-loop's `check-done.py` see the signal).
+  detection fails (so CI and the work-loop's `scripts/check-done.py` see the signal).
 - Treat `make build --check` as exactly `make build --self --dry-run` plus
   a strict exit code: non-zero on any drift, regardless of warning level.
   The two commands share rendering; `--check` only differs in its gate
@@ -762,9 +762,13 @@ working user-scope adapter mode).)*
   values before the build step consumes it. RFC-0001 Open Q3
   (`<adapt:NAME>` for plugin-installed packs) stays deferred to
   `adapt-to-project`.
-- **No edits to `docs/_templates/`.** Templates are governance scaffolding
-  that ships to adopters; this spec produces distribution machinery, not
-  template changes.
+- **No edits to skill-owned template assets.** Templates are governance
+  scaffolding that ships to adopters via the skill that creates instances
+  of them (`.claude/skills/<skill>/assets/<template>`); this spec produces
+  distribution machinery, not template changes. Historical note: when this
+  spec was first authored, templates lived under `docs/_templates/`; they
+  were relocated to per-skill `assets/` folders to comply with the
+  agentskills.io spec layout — see Changelog 2026-05-24.
 - **No silent overwrite semantics encoded outside the contract.** Every
   projection rule's `on-conflict` value lives in `adapter.toml` and is
   carried through into the rendered artifact's manifest (so downstream
@@ -1000,6 +1004,15 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Changelog
 
+- 2026-05-24: templates relocated from `docs/_templates/` into the
+  owning skills' `assets/` folders to comply with the agentskills.io
+  skill-layout spec (skills are self-contained units; `references/` for
+  read-on-demand material, `assets/` for material the skill copies
+  elsewhere). `docs/_templates/` is no longer a projected path. The
+  *Never do* item under §Boundaries was rewritten in place to point at
+  the new location while preserving the rule's intent (no edits to
+  template assets from this spec). The Rail A example was rewritten
+  with `~/docs/specs/` since `~/docs/_templates/` no longer exists.
 - 2026-05-23: bookkeeping reconciliation — the 14 pre-amendment
   ACs flipped `[ ]` → `[x]` against on-disk evidence in
   `packages/agentbundle/agentbundle/build/` (contract loader, four
