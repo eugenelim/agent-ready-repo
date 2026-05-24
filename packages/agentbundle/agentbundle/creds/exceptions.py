@@ -13,7 +13,36 @@ from __future__ import annotations
 
 
 class CredentialsMissingError(Exception):
-    """Raised when a required credential key cannot be resolved at any tier."""
+    """Raised when a required credential key cannot be resolved at any tier.
+
+    Carries structured per-key tier diagnostics so programmatic callers can
+    render their own remediation; the default ``str()`` form (built by
+    ``load_credentials``) embeds the per-key trailer for human readers.
+
+    Attributes:
+        namespace: the namespace requested.
+        missing: the list of keys that did not resolve.
+        tiers_tried: ``{key: [trailer_line, ...]}`` — for each missing
+            key, an ordered list of strings describing which tier was
+            checked and why it missed. ``trailer_line`` shape is
+            ``"<tier-label>: <reason>"`` (e.g. ``"Tier 1 env
+            'JIRA_API_TOKEN' not set"``, ``"Tier 2 macOS Keychain: not
+            present"``, ``"Tier 3 dotfile /home/u/.agent-ready/credentials.env
+            absent"``).
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        namespace: str | None = None,
+        missing: list[str] | None = None,
+        tiers_tried: dict[str, list[str]] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.namespace = namespace
+        self.missing = list(missing) if missing else []
+        self.tiers_tried = dict(tiers_tried) if tiers_tried else {}
 
 
 class Tier2HardFailError(Exception):
