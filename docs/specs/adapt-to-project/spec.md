@@ -278,8 +278,12 @@ genuinely stand alone simply omit the `[pack.dependencies]` table.
 ### Always do
 
 - Walk the adopter through changes **one at a time**, with per-change
-  explicit approval — *accept*, *edit*, or *skip*. RFC-0001 §
-  *Post-install adaptation* step 3 is load-bearing.
+  explicit approval. The outcome menu **varies per class**: class 2
+  is `accept / edit / skip / decline` (four); class 3 is
+  `accept / edit / decline` (three, no skip); class 4 is
+  `accept / decline` (two). See each class's per-class bullet for
+  recording semantics. RFC-0001 § *Post-install adaptation* step 3
+  is load-bearing.
 - For **class 1 (substitution)**: produce values into `[markers]` in
   `<repo>/.adapt-discovery.toml` only (markers are repo-only per
   RFC-0004); then shell out to `agentbundle adapt --values-from
@@ -288,11 +292,18 @@ genuinely stand alone simply omit the `[pack.dependencies]` table.
   writes across both scopes.
 - For **class 2 (`.upstream.<ext>` companion merges)**: read both
   the adopter's file and the `.upstream.<ext>` companion; propose a
-  merged result inline; accept / edit / skip per file. On accept,
-  write the merged result to the original path (in the same scope
-  as the companion was found — repo or user) and delete the
-  companion. On skip, record under `[[findings.declined]]` in
-  *that scope's* discovery file with `kind = "companion-merge"`.
+  merged result inline; **accept / edit / skip / decline** per file.
+  On *accept*, write the merged result to the original path (in the
+  same scope as the companion was found — repo or user) and delete
+  the companion (deletion is the dedup signal; accepted merges are
+  not recorded under `[[findings.accepted]]`). On *edit*, the
+  adopter revises and the skill re-prompts until accept. On *skip*,
+  leave the companion on disk for a future session — no
+  `.adapt-discovery.toml` write (skip is "decide later", not a
+  finding). On *decline*, leave the companion on disk and record
+  under `[[findings.declined]]` in *that scope's* discovery file
+  with `kind = "companion-merge"` so future sessions don't
+  re-propose.
 - For **class 3 (discovery + restructuring)** and **class 4
   (within-layout consolidation)**: as RFC-0001 enumerates. Per-
   change approval; recordings land in the scope of the file the
@@ -461,7 +472,13 @@ Per the work-loop's three-mode taxonomy:
       spec, with the per-scope variants enforced: the repo-scope
       file MAY include `[markers]`; the user-scope file MUST NOT
       include `[markers]`. A round-trip test exercises every field
-      on each finding kind. `finding-id` derivation is deterministic:
+      on each finding kind that lands in either `[[findings.accepted]]`
+      or `[[findings.declined]]` (`kind = "restructure"` and
+      `kind = "consolidate"` round-trip in both arrays;
+      `kind = "companion-merge"` round-trips only in
+      `[[findings.declined]]`, as accepted class-2 merges are
+      resolved by companion deletion per Boundaries § class 2 and
+      do not produce a `[[findings.accepted]]` entry). `finding-id` derivation is deterministic:
       the **visible form** is `<pack>/<kind>:<8-hex>` (using `/`
       between pack and kind for readability) and the **hashed input**
       that produces the 8-hex tail is
@@ -500,8 +517,21 @@ Per the work-loop's three-mode taxonomy:
         `test_idempotent_re_run`).
       - Cross-cutting: *dirty-state-repo*, *Tier-2 detection-repo*,
         *cross-scope-restructure × decline* — method *(b)* (pinned by
-        the AC1 grep set + the T17 grep set). End-to-end transcripts
-        deferred to AC4b under named triggers.
+        the AC1 grep set + the T17 grep set), each *as the skill body
+        teaches* the contract.
+      - Cross-cutting: *dirty-state-repo (porcelain primitive)*,
+        *Tier-2 detection (content-hash primitive, scope-agnostic)*
+        — method *(a)* (pinned by
+        `tests/integration/test_adapt_preflight_detection.py`'s three
+        tests). These exercise the deterministic primitives the
+        skill body's Pre-flight invokes (`git status --porcelain`
+        subprocess + `sha256_bytes`-against-`state.toml` content-
+        hash divergence — the latter is scope-agnostic and tested
+        against the user-scope fixture here); they do **not**
+        replace the *(b)* grep rows above, which pin the skill
+        body's narration. End-to-end *(c)* transcripts for these
+        two rows are no longer deferred — the primitive tests give
+        regression protection that a transcript could not.
       - User-scope plumbing rows against the synthetic fixture
         under `tests/fixtures/brownfield-adapt-user-home/`:
         *user-scope path-jail refusal* — method *(a)* (pinned by
@@ -542,17 +572,36 @@ Per the work-loop's three-mode taxonomy:
       AC4b ships as the ROADMAP enumeration plus the AC4b section
       in `manual-qa-matrix.md` naming each deferred row and its
       trigger; no fixture, no transcript required in this PR.
+
+      **Inline Claude-simulated captures are permitted as
+      *preparatory evidence* under AC4b.** Where the brownfield
+      fixture seeds an exercisable surface, the matrix MAY record
+      a Claude-simulated transcript + tree fragment (Claude
+      executing the SKILL.md body against the fixture, with Claude
+      also selecting the adopter side per documented outcome).
+      Simulated captures are explicitly labelled "Claude-
+      simulated, YYYY-MM-DD" in the matrix and do **not** close
+      *(c)* — closing requires a real-adopter session per the
+      *(c)* contract above. The simulated captures' value is
+      surfacing specification gaps and pinning what an LLM
+      following the body would do at each documented branch.
 - [ ] **AC5 (idempotency at byte level).** A second skill session
       against a fixture where (a) every pack-declared marker is in
       the repo-scope `[markers]`, (b) every `.upstream.<ext>`
-      companion at every scope has been resolved, (c) every
-      proposed finding is recorded in either `[[findings.accepted]]`
-      or `[[findings.declined]]` at the scope it was observed,
-      **and (d) both scopes' `.adapt-install-marker.toml` files are
-      absent** produces `git status --porcelain` with zero lines
-      against the repo and zero content-hash divergence under
-      `~/.agent-ready/`. `.adapt-pending.md` at each scope is
-      byte-identical to the prior run's.
+      companion at every scope has been resolved (per Boundaries §
+      class 2: *accept* resolves by deletion, *decline* resolves by
+      `[[findings.declined]]` recording; *skip* is **not** resolved
+      and leaves the companion pending across sessions), (c) every
+      proposed class-3 / class-4 finding is recorded in either
+      `[[findings.accepted]]` or `[[findings.declined]]` at the
+      scope it was observed (class-2 *accept* is resolved by
+      side-effect — companion deletion — and is **not** required to
+      appear under `[[findings.accepted]]`), **and (d) both scopes'
+      `.adapt-install-marker.toml` files are absent** produces
+      `git status --porcelain` with zero lines against the repo
+      and zero content-hash divergence under `~/.agent-ready/`.
+      `.adapt-pending.md` at each scope is byte-identical to the
+      prior run's.
 - [ ] **AC6 (dirty-state escalation, per scope).** Two fixtures:
       one with pre-staged uncommitted edits to a repo-scope Tier-1
       file, one with content-hash divergence under `~/.agent-ready/`
@@ -876,3 +925,32 @@ Per the work-loop's three-mode taxonomy:
   relpath refusal at both helper and install-path levels). Removes the
   ROADMAP "Security: TOML-injection via unescaped pack metadata
   (pre-existing)" bullet (no longer open).
+- 2026-05-23: AC4b capture-PR reconciliation —
+  (i) class-2 "Always do" bullet (Boundaries § Always do) widened
+  from three outcomes (`accept / edit / skip`, with skip recording
+  under `[[findings.declined]]`) to four (`accept / edit / skip /
+  decline`, with skip = leave on disk no recording, decline =
+  record under `[[findings.declined]]`); brings the spec into
+  alignment with the SKILL.md body's longstanding four-outcome
+  model that the AC4b simulated captures exercise. The previous
+  three-outcome wording conflated "decide later" with "don't
+  re-propose"; the four-outcome wording separates them and matches
+  SKILL.md lines 130–138.
+  (ii) AC4a required-rows enumeration gains a third bullet
+  promoting *dirty-state-repo (detection primitive)* and *Tier-2
+  detection-repo (detection primitive)* to method *(a)* automation,
+  pinned by `tests/integration/test_adapt_preflight_detection.py`.
+  Rows 17/18 in `notes/manual-qa-matrix.md` move from AC4b to
+  AC4a accordingly; their *(c)* transcript deferral is closed.
+  The skill-body narration of the pre-flight remains pinned by
+  the AC4a *(b)* rows for *dirty-state-repo* and *Tier-2
+  detection-repo*.
+  (iii) AC4b body gains an authorising clause for Claude-
+  simulated inline captures as *preparatory evidence*; simulated
+  captures do not close *(c)*. The brownfield fixture is extended
+  in the same PR with a class-3 surface (`DESIGN.md` overlapping
+  `docs/CHARTER.md`) and a class-4 surface
+  (`docs/howto/getting-started.md` + `docs/guides/how-to/index.md`)
+  so rows 12–16 can carry simulated captures. AC4b checkbox stays
+  unchecked: rows 8–16 still await real-adopter capture; rows
+  19–28 still await the first user-scope-eligible pack.
