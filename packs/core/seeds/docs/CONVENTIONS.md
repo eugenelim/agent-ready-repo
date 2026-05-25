@@ -805,6 +805,29 @@ for the rationale; the `add-credentialed-skill` author skill walks
 authors through the substitutions, and `example-credentialed-skill`
 ships as the worked example.
 
+### Frontmatter declarations
+
+A credentialed skill declares two project-specific flags under the
+`metadata:` block of its `SKILL.md` frontmatter:
+
+```yaml
+---
+name: your-skill-name
+description: <what triggers it>
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli   # or mcp-server
+---
+```
+
+The keys live under `metadata:` rather than at top level because the
+[agentskills.io specification](https://agentskills.io/specification)
+pins the top-level frontmatter set to `name`, `description`,
+`license`, `compatibility`, `metadata`, `allowed-tools` and reserves
+`metadata:` as the project-specific escape hatch. `tools/lint-agent-artifacts.py`
+refuses any top-level key outside that set; `tools/lint-credentialed-skills.sh`
+scopes its AC26 checks to skills with `metadata.credentialed: true`.
+
 ### Three storage tiers
 
 Credentials resolve in this order, first-hit-wins per key:

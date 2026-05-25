@@ -4,8 +4,9 @@ Closes:
 
 - AC29 *Skill structure* — SKILL.md + scripts/cli.py + references/
   creds-schema.toml ship at the canonical landing.
-- AC29 *SKILL.md frontmatter* — ``credentialed: true``,
-  ``primitive-class: credentialed-cli`` pass
+- AC29 *SKILL.md frontmatter* — ``metadata.credentialed: true``,
+  ``metadata.primitive-class: credentialed-cli`` (nested under the
+  agentskills.io spec's ``metadata:`` escape hatch) pass
   ``tools/lint-agent-artifacts.py``.
 - AC29 *Verbatim "Don't" block* — the body contains the three RFC-0006
   § 4 substrings the credentialed-CLI variant pins; the integration
@@ -53,32 +54,73 @@ def test_skill_structure_complete():
 # ── AC29: SKILL.md frontmatter ────────────────────────────────────────
 
 
-def _read_frontmatter(path: Path) -> dict[str, str]:
-    """Single-line scalar YAML-subset parser matching the lint shape."""
+def _read_frontmatter(path: Path) -> dict[str, object]:
+    """YAML-subset parser matching the lint shape: top-level scalars
+    plus a nested mapping under an empty-value key (the agentskills.io
+    spec's ``metadata:`` escape hatch)."""
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
     assert lines and lines[0].strip() == "---", "missing opening ---"
-    fields: dict[str, str] = {}
-    for line in lines[1:]:
+    fields: dict[str, object] = {}
+    i = 1
+    while i < len(lines):
+        line = lines[i]
         if line.strip() == "---":
             break
-        if ":" not in line:
+        if not line.strip() or line[0] in (" ", "\t") or ":" not in line:
+            i += 1
             continue
         k, _, v = line.partition(":")
         v = v.strip()
+        if v == "":
+            nested: dict[str, str] = {}
+            block_indent: int | None = None
+            j = i + 1
+            while j < len(lines) and lines[j].strip() != "---":
+                nxt = lines[j]
+                if not nxt.strip():
+                    j += 1
+                    continue
+                if nxt[0] not in (" ", "\t") or ":" not in nxt:
+                    break
+                indent = len(nxt) - len(nxt.lstrip())
+                if block_indent is None:
+                    block_indent = indent
+                elif indent != block_indent:
+                    # Mirror the linter shape — single-depth nesting
+                    # only. A doubly-nested mapping is a parser bug.
+                    pytest.fail(
+                        f"doubly-nested mapping under {k.strip()!r} "
+                        f"at line {j + 1} — single-depth only"
+                    )
+                nk, _, nv = nxt.partition(":")
+                nv = nv.strip()
+                if len(nv) >= 2 and nv[0] == nv[-1] and nv[0] in ('"', "'"):
+                    nv = nv[1:-1]
+                nested[nk.strip()] = nv
+                j += 1
+            fields[k.strip()] = nested if nested else ""
+            i = j
+            continue
         if len(v) >= 2 and v[0] == v[-1] and v[0] in ('"', "'"):
             v = v[1:-1]
         fields[k.strip()] = v
+        i += 1
     return fields
 
 
 def test_frontmatter_declares_credentialed_cli_primitive():
-    """AC29: frontmatter carries ``credentialed: true`` and
-    ``primitive-class: credentialed-cli``.
+    """AC29: frontmatter carries ``metadata.credentialed: true`` and
+    ``metadata.primitive-class: credentialed-cli`` (nested under the
+    agentskills.io spec's ``metadata:`` escape hatch).
     """
     fields = _read_frontmatter(SKILL_DIR / "SKILL.md")
-    assert fields.get("credentialed") == "true"
-    assert fields.get("primitive-class") == "credentialed-cli"
+    metadata = fields.get("metadata")
+    assert isinstance(metadata, dict), (
+        f"expected metadata: mapping, got {type(metadata).__name__}"
+    )
+    assert metadata.get("credentialed") == "true"
+    assert metadata.get("primitive-class") == "credentialed-cli"
     assert fields.get("name") == "example-credentialed-skill"
 
 

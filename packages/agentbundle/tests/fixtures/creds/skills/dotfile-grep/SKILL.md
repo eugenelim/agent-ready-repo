@@ -1,8 +1,9 @@
 ---
 name: dotfile-grep
 description: Credentialed fixture whose script opens `.agent-ready/credentials.env` directly without the opt-out marker; AC26(c) finding expected.
-credentialed: true
-primitive-class: credentialed-cli
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
 ---
 
 Body with the full "Don't" block so only AC26(c) fires:
