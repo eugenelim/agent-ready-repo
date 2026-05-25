@@ -49,3 +49,92 @@ Each `SKILL.md` should:
    `AGENTS.md` / `docs/CONVENTIONS.md` / `docs/CHARTER.md` rather than
    our copy. The contract is that an `AGENTS.md` exists, not that
    ours does.
+
+## Spec compliance
+
+Every skill in this repo — and every skill an adopter scaffolds from
+this template — is held to the [agentskills.io
+specification](https://agentskills.io/specification). The contract is
+mechanical, enforced by `tools/lint-skill-spec.py`; the linter runs in
+CI, in the pre-PR hook, and on demand.
+
+### Blessed layout
+
+A skill directory may contain four canonical subdirectories. Anything
+else at the skill root warns (allowed but flagged):
+
+| Subdirectory | Purpose |
+| ------------ | ------- |
+| `scripts/`   | Executable helpers the skill invokes |
+| `references/`| Long-form docs the skill links into on demand |
+| `assets/`    | Templates and other static files |
+| `evals/`     | Optional — see below |
+
+### Evals add-on
+
+A skill that ships `evals/` must include `evals/evals.json`. Schema:
+
+```json
+{
+  "skill_name": "<must match the skill's frontmatter name>",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "...",
+      "expected_output": "...",
+      "files": ["evals/files/sample.txt"],
+      "assertions": ["..."]
+    }
+  ]
+}
+```
+
+`id` may be int or string but must be unique within the file. `files`
+entries (when present) must resolve to existing files under the skill
+root. Reference:
+[evaluating skills](https://agentskills.io/skill-creation/evaluating-skills).
+
+### Path rules in SKILL.md bodies
+
+- **Self-references use skill-relative paths.** Write `scripts/foo.py`,
+  not `.claude/skills/<self>/scripts/foo.py`; write `references/REF.md`,
+  not `.claude/skills/<self>/references/REF.md`. The skill root is the
+  implicit base. The linter rejects any install-path prefix
+  (`.claude/skills/...` or `packs/<pack>/.apm/skills/...`) in a body,
+  whether or not a skill name follows the slash — bare mentions of the
+  install root are out too, because they're environment-specific.
+- **Cross-skill references use the skill name only.** Say "use the
+  `work-loop` skill", not `.claude/skills/work-loop/SKILL.md`. The body
+  must stay portable across installations that put skills somewhere
+  else.
+- **`.claude/agents/<name>` references are allowed.** Subagents are
+  not skills and the spec doesn't constrain them.
+- **`~/.claude/...` references are allowed.** User-scope prose;
+  documenting an install location is fine in narrative form.
+
+### Project metadata extensions
+
+The spec lets each project add its own keys under `metadata:`. This
+repo uses two:
+
+- `metadata.credentialed` — boolean, marks a skill as a credentialed
+  primitive (needs an external API token).
+- `metadata.primitive-class` — one of `credentialed-cli` or
+  `mcp-server` when `credentialed: true`.
+
+Value-shape checks for those two keys live in
+`tools/lint-agent-artifacts.py`; companion lints in
+`tools/lint-credentialed-skills.sh` enforce the safety rules
+credentialed skills must carry in their bodies. The spec-compliance
+linter only checks the structural shape (`metadata` is a mapping;
+values are scalars or lists of scalars) — per-key value validation
+is delegated.
+
+### Enforcement floor
+
+`tools/lint-skill-spec.py` walks both the projection
+(`.claude/skills/*/SKILL.md`) and the seeds
+(`packs/*/.apm/skills/*/SKILL.md`) so drift between source-of-truth
+and rendered output can't sneak past `make build-check`. Run it
+manually with `python3 tools/lint-skill-spec.py`. The companion
+self-test is `python3 tools/test-lint-skill-spec.py`.
