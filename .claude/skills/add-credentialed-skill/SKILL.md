@@ -68,14 +68,19 @@ first.
    token = creds.API_TOKEN  # never printed, never echoed
    ```
 
-5. **Declare the frontmatter** on your new skill's `SKILL.md`:
+5. **Declare the frontmatter** on your new skill's `SKILL.md`. Per
+   the [agentskills.io specification](https://agentskills.io/specification),
+   `credentialed` and `primitive-class` are project-specific data
+   and live under the spec's `metadata:` escape hatch — not at top
+   level:
 
    ```yaml
    ---
    name: <your-skill-name>
    description: <what triggers it>
-   credentialed: true
-   primitive-class: credentialed-cli   # or mcp-server
+   metadata:
+     credentialed: true
+     primitive-class: credentialed-cli   # or mcp-server
    ---
    ```
 
