@@ -299,7 +299,7 @@ to `discovery-schema-version` + `[markers]`.
   or asserted.
 - `test_install_writes_marker_at_user_scope_root` — user-scope
   install writes a file at
-  `~/.agent-ready/.adapt-install-marker.toml` containing a
+  `~/.agentbundle/.adapt-install-marker.toml` containing a
   `[[packs-installed]]` entry. Synthetic test pack with
   `allowed-scopes = ["user"]` and no seeds/hooks/markers (RFC-0004
   refusal rails honoured). No `scope` field is asserted.
@@ -358,7 +358,7 @@ deferral comment header from the prior pass).
   `<repo>/.adapt-install-marker.toml` present; stdout has one
   nudge line with `<K> = 1`.
 - `test_user_marker_only_emits_nudge` — only
-  `~/.agent-ready/.adapt-install-marker.toml` present; stdout
+  `~/.agentbundle/.adapt-install-marker.toml` present; stdout
   has one nudge line with `<K> = 1`.
 - `test_both_markers_emit_one_combined_nudge` — both present;
   stdout has one nudge line with `<K> = 2`, listing union of
@@ -391,7 +391,7 @@ deferral comment header from the prior pass).
 - Repo-scope tree per the prior pass (pre-existing AGENTS.md,
   `AGENTS.upstream.md`, `DESIGN.md`, overlapping skills).
 - Synthetic user-scope plumbing under
-  `tests/fixtures/brownfield-adapt-user-home/.agent-ready/state.toml`
+  `tests/fixtures/brownfield-adapt-user-home/.agentbundle/state.toml`
   and `.adapt-discovery.toml` (with `[[findings.*]]` only — no
   `[markers]`). Used by AC4's user-scope matrix rows as the
   synthetic fixture.
@@ -445,7 +445,7 @@ deferral comment header from the prior pass).
 - `test_body_names_dirty_state_command` — `git status --porcelain`.
 - `test_body_pre_flight_section_references_user_scope_state` —
   the body's *Pre-flight* section contains all three tokens
-  `~/.agent-ready/`, `state.toml`, and `Tier-2` (any prose
+  `~/.agentbundle/`, `state.toml`, and `Tier-2` (any prose
   shape; behavioural pin on the read, not a verbatim path
   literal).
 - Goal-based: projected `SKILL.md` byte-identical after
@@ -652,7 +652,7 @@ projected copy. The CI gate is the final check.
   distribution-adapters semantics.** Mitigation: T15 grep tests
   pin both grammars surviving; no other AC in
   distribution-adapters/spec.md is touched.
-- **Install-marker race at user scope** — `~/.agent-ready/` is
+- **Install-marker race at user scope** — `~/.agentbundle/` is
   user-shared across projects, so a parallel `agentbundle install
   --scope user` in another terminal could race. Mitigation:
   `os.replace` atomic rename per AC19a; worst-case is one entry

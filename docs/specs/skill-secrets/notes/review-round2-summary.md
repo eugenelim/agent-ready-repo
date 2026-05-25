@@ -81,7 +81,7 @@ follow-up prompt's PR order):
 | 6 | `CredentialsMissingError` doesn't name tiers tried | **Closed in PR #86** — per-key tier trailer + structured `tiers_tried` attribute. |
 | 7 | AC22 macOS exit-code matrix not symbolic | **Closed in PR #85** — see Adversarial #5. |
 | 8 | Release-checklist artifact missing | **Closed in PR #88** — `docs/product/release-checklist.md` carries the three Windows manual-QA rows. |
-| 9 | Linux `creds setup` against pre-existing `~/.agent-ready/ 0o755` silent | **Deferred** — covered by the existing `test_existing_parent_mode_is_not_rewritten_on_posix` for the noisy path; the silent-0o755 case is a no-warning assertion with no current regression vector. Track if the threshold ever changes. |
+| 9 | Linux `creds setup` against pre-existing `~/.agentbundle/ 0o755` silent | **Deferred** — covered by the existing `test_existing_parent_mode_is_not_rewritten_on_posix` for the noisy path; the silent-0o755 case is a no-warning assertion with no current regression vector. Track if the threshold ever changes. |
 | 10 | Spec § Testing Strategy fixtures don't exist | **Closed in PR #88** — inline-heredoc choice now documented. |
 | 11 | `__all__` references `EnvParseError` before class definition | **Closed in PR #89** — module reordered. |
 | 12 | `_tier_for_key` duplicates loader precedence | **Deferred** — pragmatic. Loader currently has one consumer of the precedence logic plus the diagnostic helper; both are tested. A refactor returning a `(Credentials, tier_map)` tuple is right but is wider-scope than this review pass. Track for a future spec amendment. |

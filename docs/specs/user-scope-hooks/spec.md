@@ -75,7 +75,7 @@ under time pressure.
   `<repo>/` shows up here.
 - **Use fixture packs under `tests/fixtures/` for every test.**
   Tests never touch the developer's real `~/.claude/settings.json`,
-  `~/.kiro/agents/`, or `~/.agent-ready/`; tests set `$HOME` to a
+  `~/.kiro/agents/`, or `~/.agentbundle/`; tests set `$HOME` to a
   `tmp_path`-scoped directory and clean up.
 - **Cite RFC-0005 by section name in any spec amendment.** The two
   follow-on spec amendments (`distribution-adapters/spec.md`,
@@ -88,7 +88,7 @@ under time pressure.
 ### Ask first
 
 - **Renaming the `id` ownership tag** (e.g. `id` →
-  `agent-ready-id`). Unresolved Q1 of RFC-0005 holds this open;
+  `agentbundle-id`). Unresolved Q1 of RFC-0005 holds this open;
   the implementation will pin one or the other in the first
   user-scope-hook PR and the spec amendment should reflect that
   decision.
@@ -180,7 +180,7 @@ Schema and contract:
 
 - [x] **AC1.** `adapter.toml` declares `[adapter.kiro.scope]` with
       `repo = "."`, `user = "~"`,
-      `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`.
+      `allowed-prefixes.user = [".kiro/", ".agentbundle/"]`.
       Schema validation passes.
 - [x] **AC2.** `adapter.toml` declares
       `[adapter.kiro.projections.hook-wiring]` with
@@ -338,5 +338,5 @@ Verification:
       shipped under `tests/fixtures/packs/` and exercised by at
       least one test.
 - [x] **AC29.** No test or CI step writes to `~/.claude/`,
-      `~/.kiro/`, or `~/.agent-ready/` outside a `tmp_path`-scoped
+      `~/.kiro/`, or `~/.agentbundle/` outside a `tmp_path`-scoped
       `$HOME`.

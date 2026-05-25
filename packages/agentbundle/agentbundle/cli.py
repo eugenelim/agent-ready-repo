@@ -257,7 +257,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Treat --output as an adopter root: honour Tier-2 paths (write "
             ".upstream.<ext> companions on collision rather than overwriting). "
-            "Requires a .agent-ready-state.toml at --output. Default: off "
+            "Requires a .agentbundle-state.toml at --output. Default: off "
             "(wholesale rewrite, matching `make build` dist/ semantics)."
         ),
     )
@@ -314,7 +314,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- init-state --- (--scope selector; --migrate flag)
     sp = subparsers.add_parser(
         "init-state",
-        help="Hash an existing projection into .agent-ready-state.toml.",
+        help="Hash an existing projection into .agentbundle-state.toml.",
     )
     # `--pack` is required for the hash-from-projection mode but not for
     # `--migrate` (which is a whole-file rewrite); the handler enforces

@@ -104,12 +104,12 @@ managed-key.user = "hooks"
 # declared prefix list — at user scope this stops a buggy projection
 # rule from resolving under `~/Documents/`. The two-prefix shape covers
 # projected primitives (`.claude/`) and CLI infrastructure writes
-# (`.agent-ready/` — user-scope state file, per-scope discovery and
+# (`.agentbundle/` — user-scope state file, per-scope discovery and
 # pending artifacts).
 [adapter."claude-code".scope]
 repo = "."
 user = "~"
-allowed-prefixes.user = [".claude/", ".agent-ready/"]
+allowed-prefixes.user = [".claude/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Kiro adapter
@@ -173,11 +173,11 @@ agent-event-vocabulary = [
 # Scope dimension for Kiro (RFC-0005 § hook-wiring for Kiro at both scopes).
 # User-scope agents live under `~/.kiro/agents/` per Kiro's documented layout
 # (https://kiro.dev/docs/cli/custom-agents/creating/); CLI infrastructure
-# shares the `.agent-ready/` prefix.
+# shares the `.agentbundle/` prefix.
 [adapter.kiro.scope]
 repo = "."
 user = "~"
-allowed-prefixes.user = [".kiro/", ".agent-ready/"]
+allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Copilot adapter — 5 projections (one per primitive)

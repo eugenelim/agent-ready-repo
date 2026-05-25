@@ -156,7 +156,7 @@ with the writer's effect substituted for the install step.
 4. **Copies the manifest hash** to
    `${CLAUDE_PLUGIN_DATA}/pack-manifest-hash` — **only after** step 3
    succeeds. A partial-write failure (disk full; permission denied at
-   `~/.agent-ready/`) leaves no false "already adapted" signal — the
+   `~/.agentbundle/`) leaves no false "already adapted" signal — the
    next session retries the marker write.
 
 The marker shape matches what `agentbundle install` already writes
@@ -197,7 +197,7 @@ writer maps each to one of the two install-marker scopes defined by
 
 | Claude-plugins scope     | Detected by reading                                          | Marker file                                     |
 | ------------------------ | ------------------------------------------------------------ | ----------------------------------------------- |
-| `--scope user` (default) | plugin listed in `${HOME}/.claude/settings.json` `enabledPlugins` only | `~/.agent-ready/.adapt-install-marker.toml`     |
+| `--scope user` (default) | plugin listed in `${HOME}/.claude/settings.json` `enabledPlugins` only | `~/.agentbundle/.adapt-install-marker.toml`     |
 | `--scope project`        | plugin listed in `${CLAUDE_PROJECT_DIR}/.claude/settings.json` `enabledPlugins` | `<repo>/.adapt-install-marker.toml`             |
 | `--scope local`          | plugin listed in `${CLAUDE_PROJECT_DIR}/.claude/settings.local.json` `enabledPlugins` | `<repo>/.adapt-install-marker.toml` (marker file is gitignored at the repo root per AC19c of the adapt-to-project spec) |
 
@@ -376,7 +376,7 @@ notice.
 - **Alt 3a — in `core`'s session-start hook.** Diff
   `~/.claude/plugins/cache/` against a tracked manifest;
   synthesise install markers for unfamiliar packs.
-- **Alt 3b — standalone "shim" plugin (`agent-ready-shim`).**
+- **Alt 3b — standalone "shim" plugin (`agentbundle-shim`).**
   Adopters install it once; its `SessionStart` hook scans the
   cache and writes markers for any pack it recognises.
 
@@ -455,7 +455,7 @@ The canonical Anthropic `SessionStart` example writes inside
 `${CLAUDE_PLUGIN_DATA}` (installing `node_modules` into the plugin's
 persistent data directory). The writer this RFC proposes writes
 **outside** that territory — to `<repo>/.adapt-install-marker.toml`
-or `~/.agent-ready/.adapt-install-marker.toml` — because the marker
+or `~/.agentbundle/.adapt-install-marker.toml` — because the marker
 file's location is fixed by
 [`docs/specs/adapt-to-project/spec.md:71-73`](../specs/adapt-to-project/spec.md).
 
@@ -478,7 +478,7 @@ installing will see this. Three failure modes are real:
   "consumed-on-first-`/adapt-to-project`-run" lifetime, so the
   on-disk artifact is explained.
 - **(b) Mid-write failure (disk full, permission denied at
-  `~/.agent-ready/`).** *Mitigation:* the writer uses `os.replace`-
+  `~/.agentbundle/`).** *Mitigation:* the writer uses `os.replace`-
   based atomic rename for the marker (Proposal § Write step 3); a
   failed write leaves the previous marker state intact, never a
   partial TOML file.

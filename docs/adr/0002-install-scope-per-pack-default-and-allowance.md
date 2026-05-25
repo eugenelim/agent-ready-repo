@@ -45,7 +45,7 @@ The four shipped packs (`core`, `governance-extras`, `user-guide-diataxis`, `mon
 **Negative:**
 
 - Two more required fields on `pack.toml` for v0.2 packs (`default-scope`, `allowed-scopes`). The v0.1 legacy path keeps existing packs installable, but v0.2 publishers must opt in deliberately.
-- State-file count doubles when a pack is installed at both scopes (`<repo>/.agent-ready-state.toml` and `~/.agent-ready/state.toml`). Cross-scope upgrades become per-scope, per-verb.
+- State-file count doubles when a pack is installed at both scopes (`<repo>/.agentbundle-state.toml` and `~/.agentbundle/state.toml`). Cross-scope upgrades become per-scope, per-verb.
 - Hook-shaped primitives are forbidden at user scope until a follow-up RFC designs the user-scope hook-wiring merge story. This is a real constraint for any future user-scope pack carrying hooks; not a constraint on anything shipping today.
 
 **Neutral / to revisit:**

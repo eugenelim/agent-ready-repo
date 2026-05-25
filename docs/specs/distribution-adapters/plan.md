@@ -55,7 +55,7 @@ right *before* writing any adapter, or every adapter re-derives them.
   build module under the same package.
 - **RFC-0004** — [Install-scope dimension](../../rfc/0004-install-scope-per-pack.md).
   Bumps `[contract] version` 0.1 → 0.2 and
-  `.agent-ready-state.toml` `schema-version` 0.1 → 0.2; adds the
+  `.agentbundle-state.toml` `schema-version` 0.1 → 0.2; adds the
   `[scope]` table on adapter contracts, the `[pack.install]` table on
   `pack.toml`, the three user-scope refusal rails (seeds, hooks,
   marker), the scope-keyed state file, and the path-jail-per-scope
@@ -678,7 +678,7 @@ contract files only).
 **Tests:**
 - `adapter.schema.json` accepts a `[scope]` block declaring
   `repo = "."`, `user = "~"`, and
-  `allowed-prefixes.user = [".claude/", ".agent-ready/"]`; rejects
+  `allowed-prefixes.user = [".claude/", ".agentbundle/"]`; rejects
   `allowed-prefixes.user` values of `["/"]`, `[""]`, `["../"]`,
   `[".."]`, `["no-trailing-slash"]`, `["/begins-with-slash/"]`, and
   `[]` (one assertion per case, named for readability). Verifies the
@@ -686,7 +686,7 @@ contract files only).
 - `docs/contracts/adapter.toml` loads with
   `[contract] version = "0.2"` and the
   `[adapter."claude-code".scope]` block above (two prefixes:
-  `.claude/` and `.agent-ready/`); validates against the
+  `.claude/` and `.agentbundle/`); validates against the
   updated schema.
 - The other three reference adapters (`kiro`, `copilot`, `codex`)
   omit `[scope]` — the schema accepts them as repo-only (omitting
@@ -817,7 +817,7 @@ rail.
 
 ---
 
-### T13: `.agent-ready-state.toml` schema v0.2 + `init-state --migrate` writer
+### T13: `.agentbundle-state.toml` schema v0.2 + `init-state --migrate` writer
 
 **Depends on:** T10 (the contract bump is the trigger for the state-
 file bump).
@@ -842,8 +842,8 @@ file bump).
   against the same v0.2 file is a no-op (byte-identical output, exit
   zero).
 - *User-scope state file location.* When a write resolves to user
-  scope, the state file is `~/.agent-ready/state.toml` (a namespaced
-  dot-directory under `$HOME`, not a bare `~/.agent-ready-state.toml`).
+  scope, the state file is `~/.agentbundle/state.toml` (a namespaced
+  dot-directory under `$HOME`, not a bare `~/.agentbundle-state.toml`).
   The directory is created with `0o700` permissions if absent. Test
   asserts the resolved path and the permissions bit.
 
@@ -963,7 +963,7 @@ catalogue isn't published until follow-on work).
 - 2026-05-22: incorporated adversarial review (CC1–CC6, B1–B6, C7–C15,
   N16–N20). T1 split into T1a/T1b/T1c; build code moved to
   `packages/agentbundle/agentbundle/build/`; `command` primitive added;
-  Tier model and `.agent-ready-state.toml` schema pinned in spec;
+  Tier model and `.agentbundle-state.toml` schema pinned in spec;
   recipe set enumerated; T9 hoisted to run as a pre-PR hook.
 - 2026-05-22: fix-pass 2 (3 Blockers, 9 Concerns, 3 Nits + cross-spec
   coordination patches A/B/C). Aligned validator subset between spec

@@ -50,12 +50,12 @@ def run(args: argparse.Namespace) -> int:
     installed_at_user = False
     user_root_resolved: Path | None = None
     if pack_name:
-        repo_state_for_check = load_state(root / ".agent-ready-state.toml")
+        repo_state_for_check = load_state(root / ".agentbundle-state.toml")
         installed_at_repo = pack_name in repo_state_for_check.packs
         try:
             user_root_resolved = scope_mod.resolve_user_root()
             user_state_for_check = load_state(
-                user_root_resolved / ".agent-ready" / "state.toml"
+                user_root_resolved / ".agentbundle" / "state.toml"
             )
             installed_at_user = pack_name in user_state_for_check.packs
         except scope_mod.UserScopeUnresolvable:

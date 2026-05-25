@@ -5,7 +5,7 @@ import os
 
 
 def read():
-    path = os.path.expanduser("~/.agent-ready/credentials.env")  # credentialed-primitive: reads-creds-directly
+    path = os.path.expanduser("~/.agentbundle/credentials.env")  # credentialed-primitive: reads-creds-directly
     return open(path).read()
 
 

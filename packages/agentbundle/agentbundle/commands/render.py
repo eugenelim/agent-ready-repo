@@ -75,12 +75,12 @@ def run(args) -> int:
     # With the flag, --output is treated as an adopter root: collisions
     # with adopter-edited content produce .upstream.<ext> companions.
     self_host_mode = bool(getattr(args, "self_host", False))
-    state_path = output_dir / ".agent-ready-state.toml"
+    state_path = output_dir / ".agentbundle-state.toml"
     state = None
     if self_host_mode:
         if not state_path.exists():
             print(
-                f"render: --self-host requires .agent-ready-state.toml at {output_dir} "
+                f"render: --self-host requires .agentbundle-state.toml at {output_dir} "
                 f"(install or init-state first)",
                 file=sys.stderr,
             )
