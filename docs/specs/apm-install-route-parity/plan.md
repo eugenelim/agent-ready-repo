@@ -16,8 +16,9 @@ tests-throughout.** Authoring order:
 
 1. **Land the writer-template additions (T1).** Amend
    `packages/agentbundle/templates/install-marker.py` to add the
-   `--install-route` flag (argparse, three-choice, default
-   `"claude-plugins"`), the data-directory portability shim
+   `--install-route` flag (argparse, two-choice
+   `{claude-plugins, apm}`, `required=True`, no default), the
+   data-directory portability shim
    (precedence: `${CLAUDE_PLUGIN_DATA}` → `${PLUGIN_ROOT}/.data`
    → `${CURSOR_PLUGIN_ROOT}/.data` → exit 0), the APM scope
    detection path (`pathlib.Path(__file__).resolve()` containment
@@ -304,7 +305,7 @@ projected location.)
   (not `${CURSOR_PLUGIN_ROOT}/.data/...`). Closes the second
   adjacent pair of the precedence chain.
 - `test_apm_scope_writer_under_cwd_nested_under_home_is_repo`
-  (AC4 a, first-branch-wins mirror). Fixture: `${HOME} =
+  (AC4 a, first-branch-wins precedence test). Fixture: `${HOME} =
   ${tmp_path}/home`, cwd set to `${tmp_path}/home/proj`,
   fixture pack at `${tmp_path}/home/proj/apm_modules/<pack>/`;
   writer projected at the fixture path; `marker_scope = "repo"`;
@@ -564,6 +565,14 @@ TDD (round-trip parse).
   `install-route = "cli"`, `"claude-plugins"`, `"apm"` —
   and asserts all three entries' pack names surface through
   `_pack_names_from_marker`.
+- `test_v03_shaped_marker_without_install_route_field_parses_as_cli`
+  (AC10, v0.3 back-compat rail). Pre-seeds a marker with
+  `name` / `version` / `installed-at` only — no
+  `install-route` field — and verifies: (a) `tomllib` parses
+  it cleanly; (b) `_pack_names_from_marker` returns the pack
+  name unchanged; (c) any reader that consults
+  `install-route` treats absence as `"cli"` per
+  `claude-plugins-install-route` AC12's back-compat rail.
 
 **Approach:**
 - Amend
@@ -1359,3 +1368,16 @@ values would not be silently dropped, just unrecognised).
   `test_distribution_adapters_names_apm_test_file_by_path`
   greping for the literal path of the APM test file in
   the sibling spec — Nit 6.
+- 2026-05-25: pre-EXECUTE adversarial-review iteration 4
+  reconciliation — (i) Approach §1 rewritten: `--install-route`
+  is two-choice `{claude-plugins, apm}`, `required=True`, no
+  default; iteration-1's required-flag flip had left stale
+  "three-choice, default `claude-plugins`" prose at the top of
+  the plan an implementer reads first — Concern 2; (ii) T3
+  Tests list gained
+  `test_v03_shaped_marker_without_install_route_field_parses_as_cli`
+  pinning the absence-defaults-to-`"cli"` back-compat rail per
+  AC10's v0.3-era marker clause — Concern 3; (iii) T1 plan-
+  test parenthetical for `test_apm_scope_writer_under_cwd_
+  nested_under_home_is_repo` changed from "first-branch-wins
+  mirror" to "first-branch-wins precedence test" — Nit 4.

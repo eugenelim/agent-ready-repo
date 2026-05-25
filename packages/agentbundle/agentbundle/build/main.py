@@ -76,11 +76,45 @@ PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The canonical SessionStart hook command synthesised into each derived
-# plugin.json. Shell-exec contract (AC9 sub-assertion): when
-# CLAUDE_PLUGIN_ROOT is substituted the double-quoted path survives spaces.
+# plugin.json (claude-plugins route). Shell-exec contract (AC9 sub-assertion):
+# when CLAUDE_PLUGIN_ROOT is substituted the double-quoted path survives
+# spaces. The trailing `--install-route claude-plugins` flag is required by
+# the writer's argparse (apm-install-route-parity AC2/AC8); the build
+# pipeline and the projected command stay coupled at projection time via
+# `make build` so a refreshed writer always ships next to a refreshed
+# command — see RFC-0010 / spec apm-install-route-parity §Rollout.
 _SESSION_START_COMMAND = (
     'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+    ' --install-route claude-plugins'
 )
+
+# The canonical APM-route SessionStart hook command synthesised into each
+# derived dist/apm/<pack>/.apm/hooks/install-marker.json. APM's HookIntegrator
+# rewrites ${PLUGIN_ROOT} to per-target tokens (${CLAUDE_PLUGIN_ROOT},
+# ${CURSOR_PLUGIN_ROOT}, …); the writer's data-directory shim resolves the
+# hash-file location per spec AC3 precedence.
+_SESSION_START_COMMAND_APM = (
+    'python3 "${PLUGIN_ROOT}/.apm/hooks/install-marker.py"'
+    ' --install-route apm'
+)
+
+# JSON shape emitted into dist/apm/<pack>/.apm/hooks/install-marker.json
+# (spec AC7). Authored as a Python dict so json.dumps controls indentation.
+_APM_INSTALL_MARKER_HOOK_JSON = {
+    "hooks": {
+        "SessionStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _SESSION_START_COMMAND_APM,
+                        "timeout": 10,
+                    }
+                ]
+            }
+        ]
+    }
+}
 
 
 def _read_install_marker_template() -> bytes:
@@ -387,9 +421,15 @@ def _run_per_pack_single(
 
 def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> dict:
     produced: dict[str, str] = {}
+    writer_bytes = _read_install_marker_template()
     for pack in packs:
         per_pack_output = output_dir / recipe.output_subdir / pack.name
         _assert_under(per_pack_output, output_dir)
+        # Transactional cleanup: remove any prior partial or crashed build
+        # so phantom files do not survive into this build (mirrors the
+        # claude-plugins derivation rail).
+        if per_pack_output.exists():
+            shutil.rmtree(per_pack_output)
         per_pack_output.mkdir(parents=True, exist_ok=True)
         pack_metadata = tomllib.loads((pack.path / "pack.toml").read_text(encoding="utf-8"))
         (per_pack_output / "apm.yml").write_text(
@@ -405,6 +445,30 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
             # dereferencing them — a pack containing a symlink to /etc/passwd
             # cannot exfiltrate the target into the published dist/ tree.
             shutil.copytree(apm_source, apm_dest, symlinks=True)
+
+        # apm-install-route-parity T4 / AC11: project install-marker
+        # artifacts (writer + JSON hook) and pack.toml into the per-pack
+        # output. The writer is byte-identical to the canonical template
+        # — drift gate (AC16) enforces this at make build-check.
+        hooks_dir = per_pack_output / ".apm" / "hooks"
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        (hooks_dir / "install-marker.py").write_bytes(writer_bytes)
+        (hooks_dir / "install-marker.json").write_text(
+            json.dumps(_APM_INSTALL_MARKER_HOOK_JSON, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        # Project pack.toml verbatim. The writer reads it for
+        # name/version/allowed-scopes — same role as in the claude-plugins
+        # derivation (spec AC11 c).
+        pack_toml_src = pack.path / "pack.toml"
+        if pack_toml_src.exists():
+            shutil.copy2(
+                pack_toml_src,
+                per_pack_output / "pack.toml",
+                follow_symlinks=False,
+            )
+
         produced[pack.name] = str(per_pack_output)
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
 
