@@ -24,7 +24,7 @@ npm install   # installs marked + highlight.js per package.json
 
 (One-time; subsequent runs are cached in `node_modules/`.)
 
-> Note: on Claude Code installs, add `.claude/skills/*/node_modules/` to your project's `.gitignore` to avoid committing the npm install artifacts.
+> Note: if your installer drops this skill into a tracked directory, add the skill's `node_modules/` to your project's `.gitignore` to avoid committing the npm install artifacts.
 
 ### Step 2 — Render
 
