@@ -274,7 +274,7 @@ Spec: [`specs/skill-secrets/spec.md`](specs/skill-secrets/spec.md).
 Shipped from [RFC-0006](rfc/0006-skill-secrets-storage.md) (Accepted
 2026-05-24). Delivered the two-layer architecture (skills don't hold
 credentials; credentialed primitives do), the three storage tiers
-(env → OS keyring → dotfile floor at `~/.agent-ready/credentials.env`),
+(env → OS keyring → dotfile floor at `~/.agentbundle/credentials.env`),
 the stdlib-only loader + `agentbundle creds` verb
 (`setup`/`check`/`where`/`rm` only; no `get`), the argv ban +
 `SKILL.md` "Don't" block, the `conventions-check` extensions, the

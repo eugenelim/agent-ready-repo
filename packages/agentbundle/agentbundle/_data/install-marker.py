@@ -290,7 +290,7 @@ def _marker_path(
     """Return ``(marker_path, resolved_jail)`` for the given scope.
 
     ``repo`` → ``(<project_dir>/.adapt-install-marker.toml, resolved(project_dir))``
-    ``user`` → ``(<home>/.agent-ready/.adapt-install-marker.toml, resolved(~/.agent-ready))``
+    ``user`` → ``(<home>/.agentbundle/.adapt-install-marker.toml, resolved(~/.agentbundle))``
 
     The returned ``resolved_jail`` is pre-resolved here so ``_write_marker``
     can use it directly without re-resolving, closing the TOCTOU window where
@@ -298,23 +298,23 @@ def _marker_path(
     the foreign target and pass the jail check trivially (Concern-3).
     """
     if marker_scope == "user":
-        agent_ready = home / ".agent-ready"
+        agentbundle = home / ".agentbundle"
         # Symlink / non-directory probe (mirrors safety.user_state_path):
         # mkdir with exist_ok=True, then check lstat. A pre-existing symlink
         # (even pointing at a real directory) is refused so an attacker cannot
         # redirect marker writes to an arbitrary location.
-        if agent_ready.is_symlink():
-            target = os.path.realpath(agent_ready)
+        if agentbundle.is_symlink():
+            target = os.path.realpath(agentbundle)
             raise ValueError(
-                f"install-marker: {agent_ready} is a symlink to {target}; refusing"
+                f"install-marker: {agentbundle} is a symlink to {target}; refusing"
             )
-        if agent_ready.exists() and not agent_ready.is_dir():
+        if agentbundle.exists() and not agentbundle.is_dir():
             raise ValueError(
-                f"install-marker: {agent_ready} exists but is not a directory; refusing"
+                f"install-marker: {agentbundle} exists but is not a directory; refusing"
             )
-        agent_ready.mkdir(mode=0o700, parents=True, exist_ok=True)
-        resolved_jail = pathlib.Path(os.path.realpath(agent_ready))
-        return agent_ready / ".adapt-install-marker.toml", resolved_jail
+        agentbundle.mkdir(mode=0o700, parents=True, exist_ok=True)
+        resolved_jail = pathlib.Path(os.path.realpath(agentbundle))
+        return agentbundle / ".adapt-install-marker.toml", resolved_jail
     else:
         # repo scope — project_dir must be set; callers ensure this.
         if project_dir is None:
@@ -538,7 +538,7 @@ def _write_marker(
     that makes it atomic).
 
     ``jail`` is the **pre-resolved** per-scope root (as returned by
-    ``_marker_path``): the real path of ``~/.agent-ready`` for user scope,
+    ``_marker_path``): the real path of ``~/.agentbundle`` for user scope,
     or the real path of ``project_dir`` for repo scope. Callers must pass
     the value that ``_marker_path`` returns without re-resolving — this closes
     the TOCTOU window where a symlink introduced between probe and write would
@@ -549,7 +549,7 @@ def _write_marker(
     # re-resolve it so the probe-time trusted jail value is used throughout.
     _assert_under(marker_path, jail)
     # Portable-name check on filename components *under* the jail only.
-    # The jail trusted-prefix (e.g. "/home/user/.agent-ready") is not
+    # The jail trusted-prefix (e.g. "/home/user/.agentbundle") is not
     # user-influenced and contains OS-specific separators (e.g. "C:\\")
     # on Windows that would falsely trigger the "forbidden character ':'"
     # guard. Only the components beneath the jail need validation.

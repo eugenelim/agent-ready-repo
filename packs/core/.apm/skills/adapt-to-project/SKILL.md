@@ -1,6 +1,6 @@
 ---
 name: adapt-to-project
-description: Use this skill to walk the adopter through the four classes of post-install change (substitution, .upstream companion merges, discovery + restructuring, within-layout consolidation). Triggers after installing a pack (the install→adapt chain nudges via session-start hook) or any time `<repo>/.adapt-install-marker.toml` / `~/.agent-ready/.adapt-install-marker.toml` is on disk. Walks both scopes' state files for Tier-2 detection; class-1 substitution shells out to `agentbundle adapt`; classes 2–4 write files directly under the per-scope path-jail.
+description: Use this skill to walk the adopter through the four classes of post-install change (substitution, .upstream companion merges, discovery + restructuring, within-layout consolidation). Triggers after installing a pack (the install→adapt chain nudges via session-start hook) or any time `<repo>/.adapt-install-marker.toml` / `~/.agentbundle/.adapt-install-marker.toml` is on disk. Walks both scopes' state files for Tier-2 detection; class-1 substitution shells out to `agentbundle adapt`; classes 2–4 write files directly under the per-scope path-jail.
 ---
 
 # Skill: adapt-to-project
@@ -35,8 +35,8 @@ emits zero filesystem diff and no new proposals.
 Before any proposal, read **both** scopes' state files and surface
 divergence:
 
-1. **State files.** Read `<repo>/.agent-ready-state.toml` (if
-   present) and `~/.agent-ready/state.toml` (if present). Per
+1. **State files.** Read `<repo>/.agentbundle-state.toml` (if
+   present) and `~/.agentbundle/state.toml` (if present). Per
    RFC-0004 these carry `schema-version = "0.2"` and an explicit
    `scope` column. If either file declares `schema-version = "0.1"`,
    emit one stderr-style message naming
@@ -54,12 +54,12 @@ divergence:
    names them.
 
 3. **Install markers.** Read `<repo>/.adapt-install-marker.toml` and
-   `~/.agent-ready/.adapt-install-marker.toml` if present. Prepend
+   `~/.agentbundle/.adapt-install-marker.toml` if present. Prepend
    each entry to the session-internal proposal queue. After consuming
    each scope's entries, delete that scope's marker file.
 
 4. **Discovery files.** Read `<repo>/.adapt-discovery.toml` and
-   `~/.agent-ready/.adapt-discovery.toml` if present. The repo-scope
+   `~/.agentbundle/.adapt-discovery.toml` if present. The repo-scope
    file MAY include `[markers]`; the user-scope file MUST NOT. Both
    carry `discovery-schema-version = "0.1"` and `[[findings.*]]`
    arrays. **Never re-propose a finding already in
@@ -72,10 +72,10 @@ divergence:
      adopter direction: (a) proceed against the dirty tree (skill
      skips dirty-path proposals); (b) stash or commit and re-invoke;
      (c) abandon.
-   - **User scope:** `~/.agent-ready/` is not a git repo;
+   - **User scope:** `~/.agentbundle/` is not a git repo;
      dirty-detection uses content-hash divergence — compare each
      tracked file's current SHA-256 against the value recorded in
-     `~/.agent-ready/state.toml`. Any divergence is named in the
+     `~/.agentbundle/state.toml`. Any divergence is named in the
      same escalation message under a `User scope:` sub-section; (a)
      /(b)/(c) apply (where (b) becomes "manually back up the file
      and re-invoke").
@@ -224,7 +224,7 @@ identical content at each scope.
 - **Never write outside the adopter's per-scope jail.** Repo-scope
   writes confined to the repo root; user-scope writes confined to
   `~/` *and* one of the adapter's `allowed-prefixes.user` entries
-  (`.claude/`, `.agent-ready/` for the Claude Code adapter).
+  (`.claude/`, `.agentbundle/` for the Claude Code adapter).
   *Enforcement boundary:* class-1 substitution shells out to
   `agentbundle adapt`, where `safety.write_jailed` enforces the
   jail mechanically. Classes 2–4 write via the host runtime's

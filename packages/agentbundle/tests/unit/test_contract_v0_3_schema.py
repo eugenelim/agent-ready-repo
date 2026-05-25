@@ -6,7 +6,7 @@ remain valid under v0.4 (all v0.3 fields are preserved); only AC7's version
 assertion is updated.
 
 Covers spec ACs:
-  AC1 — `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`.
+  AC1 — `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agentbundle/"]`.
   AC2 — `[adapter.kiro.projections.hook-wiring]` with `mode = "merge-into-agent-json"`,
         `managed-key = "hooks"`, five-event `agent-event-vocabulary`. Legacy
         `degraded-info-log` entry removed.
@@ -84,7 +84,7 @@ class KiroScopeBlockTests(unittest.TestCase):
 
     def test_kiro_allowed_prefixes_user(self) -> None:
         prefixes = _load_contract()["adapter"]["kiro"]["scope"]["allowed-prefixes"]["user"]
-        self.assertEqual(prefixes, [".kiro/", ".agent-ready/"])
+        self.assertEqual(prefixes, [".kiro/", ".agentbundle/"])
 
     def test_contract_validates(self) -> None:
         from agentbundle.build.validate import validate

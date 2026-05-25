@@ -172,7 +172,7 @@ This shape composes cleanly with `[adapter.<name>.scope]`'s
 under one of the declared prefixes, which is already true for
 `.claude/hooks/` under `.claude/` (the existing v0.2 prefix per
 [distribution-adapters/spec.md § `[scope]` table](../specs/distribution-adapters/spec.md#scope-table-on-the-adapter-contract),
-lines 219–243 — `allowed-prefixes.user = [".claude/", ".agent-ready/"]`).
+lines 219–243 — `allowed-prefixes.user = [".claude/", ".agentbundle/"]`).
 
 **Why not a new `direct-file-scope-aware` mode?** Modes are about
 *how* bytes move; path-only forks belong in `target`. A new mode is
@@ -195,7 +195,7 @@ time and bakes it into the projected agent JSON's `hooks` array.
 Multi-machine sync risk (an absolute path baked in on machine A
 won't resolve on machine B with a different `$HOME`) is the same
 class as the existing multi-machine drawback below; same
-mitigation (sync `~/.agent-ready/` and re-install on the second
+mitigation (sync `~/.agentbundle/` and re-install on the second
 machine).
 
 ### `hook-wiring` for Claude Code at user scope — `user-merge-json` mode
@@ -443,14 +443,14 @@ ships here too:
 [adapter.kiro.scope]
 repo = "."
 user = "~"
-allowed-prefixes.user = [".kiro/", ".agent-ready/"]
+allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 ```
 
 User-scope Kiro is documented at
 [`kiro.dev/docs/cli/custom-agents/creating/`](https://kiro.dev/docs/cli/custom-agents/creating/):
 the global agents directory is `~/.kiro/agents/`. The user-scope
 prefix is `.kiro/`; CLI infrastructure shares the
-`.agent-ready/` prefix already established for Claude Code.
+`.agentbundle/` prefix already established for Claude Code.
 
 #### Pack-side schema — the `attach-to-agent` field
 
@@ -1221,7 +1221,7 @@ either example.
    Adopters who want personal hooks copy scripts into
    `~/.claude/hooks/` by hand and hand-edit
    `~/.claude/settings.json`. No upgrade, no uninstall, no
-   visibility from `agent-ready`. The exact squatter problem
+   visibility from `agentbundle`. The exact squatter problem
    RFC-0001 set out to solve and that RFC-0004 closed for every
    non-hook primitive. Rejected: the asymmetry is the cost.
 
@@ -1248,20 +1248,20 @@ either example.
    block-replace.** Attractive — block-replace is the simplest
    merge semantics we know. But JSON does not have comments, so
    we can't fence a region of the file with `<!-- BEGIN
-   agent-ready -->`-style markers. Two variants worth naming and
+   agentbundle -->`-style markers. Two variants worth naming and
    rejecting under the same heading: (a) **Persuade Claude Code to
    read JSONC** (or YAML/TOML) so we can fence with comments —
    out of scope; the file format is owned by Claude Code, not us,
    and "we'll wait for an upstream change" is not a design. (b)
    **Introduce a structural fence** (a synthetic top-level key
-   like `_agent_ready_managed`) and a runtime that copies entries
+   like `_agentbundle_managed`) and a runtime that copies entries
    from it into `hooks` — which Claude Code doesn't do, so the
    entries would never fire. Rejected: every form of the marker
    trick either depends on a comment-bearing format we don't have
    or on a runtime hop Claude Code isn't going to add.
 
 5. **Per-pack settings file under our own namespace
-   (`~/.agent-ready/user-hooks.json`) plus a one-time
+   (`~/.agentbundle/user-hooks.json`) plus a one-time
    bootstrapper line in `~/.claude/settings.json`.** Avoids
    merge into the shared file at the cost of asking the adopter
    to add a single boilerplate line manually. Rejected: the
@@ -1421,13 +1421,13 @@ either example.
 - **Multi-machine sync of `~/.claude/` decouples settings from
   state.** Adopters who sync `~/.claude/` across machines via a
   dotfiles repo, Dropbox, or iCloud carry `settings.json`
-  cross-machine but not `~/.agent-ready/state.toml` unless they
+  cross-machine but not `~/.agentbundle/state.toml` unless they
   sync that path too. Uninstall on machine B against entries
   installed on machine A may fail to locate ownership records
   (no `hook-wiring-owned` row in B's state) — the entries become
   orphans the `reconcile --scope user` reporter surfaces but
   doesn't repair. Adopters do the fix by hand from the report,
-  or pre-empt the case by also syncing `~/.agent-ready/`;
+  or pre-empt the case by also syncing `~/.agentbundle/`;
   documenting the latter is the mitigation. The contract has no
   enforcement.
 
@@ -1438,7 +1438,7 @@ either example.
   not by contract — a future Claude Code release that gives the
   `id` key its own meaning would silently change the CLI's
   ownership semantics. Mitigation lives in Unresolved Q1 (rename
-  to `agent-ready-id` from the start?); recording it here so the
+  to `agentbundle-id` from the start?); recording it here so the
   risk doesn't get lost.
 
 - **Kiro's hook-entry schema is observed-but-not-publicly-documented.**
@@ -1685,7 +1685,7 @@ either example.
    RFC assumes Claude Code ignores unknown keys on hook entries.
    If a future release uses `id` for something else, the CLI's
    ownership tag would silently change meaning. Reviewers should
-   weigh in on whether to namespace the tag (`agent-ready-id`)
+   weigh in on whether to namespace the tag (`agentbundle-id`)
    from the start.
 
 2. **Backup-on-write retention.** The state-file snapshot
@@ -1829,7 +1829,7 @@ On acceptance, this RFC produces:
     `degraded-info-log` to `merge-into-agent-json` (the
     repo-scope promotion that closes RFC-0001 Open Q1); Kiro
     gains an `[adapter.kiro.scope]` table with
-    `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`; Kiro
+    `allowed-prefixes.user = [".kiro/", ".agentbundle/"]`; Kiro
     `hook-body` projection gains scope-conditional `target.user`
     (`.kiro/hooks/<name>.{sh,py}`).
   - **`kiro-ide-hook` primitive:** add to the `[primitive]` table

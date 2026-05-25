@@ -21,5 +21,5 @@ specs — they're the published interface this catalogue exposes to consumers
 - [RFC-0003](../rfc/0003-spec-and-cli.md) lifts the contract to a published
   open standard with versioning and a conformance suite.
 
-Future contracts (`.agent-ready-state.toml`, `.adapt-discovery.toml`, recipe
+Future contracts (`.agentbundle-state.toml`, `.adapt-discovery.toml`, recipe
 schema) land here too, each in its own PR.

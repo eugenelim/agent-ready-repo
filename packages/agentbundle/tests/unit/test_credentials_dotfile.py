@@ -20,7 +20,7 @@ import sys
 import pytest
 
 from agentbundle.creds import loader
-from agent_ready.credentials import CredentialsMissingError, load_credentials
+from agentbundle.credentials import CredentialsMissingError, load_credentials
 
 
 @pytest.fixture(autouse=True)
@@ -36,13 +36,13 @@ def isolated_home(tmp_path, monkeypatch):
 
 
 def test_dotfile_path_resolves_under_home(tmp_path):
-    """AC13: path is ``$HOME/.agent-ready/credentials.env``."""
-    assert loader._dotfile_path() == tmp_path / ".agent-ready" / "credentials.env"
+    """AC13: path is ``$HOME/.agentbundle/credentials.env``."""
+    assert loader._dotfile_path() == tmp_path / ".agentbundle" / "credentials.env"
 
 
 def test_dotfile_write_creates_file_and_parent(tmp_path):
     loader._dotfile_write("fixture_t6", "API_TOKEN", "secret-1")
-    path = tmp_path / ".agent-ready" / "credentials.env"
+    path = tmp_path / ".agentbundle" / "credentials.env"
     assert path.is_file()
     assert path.parent.is_dir()
     assert "FIXTURE_T6_API_TOKEN=secret-1" in path.read_text(encoding="utf-8")
@@ -88,7 +88,7 @@ def test_dotfile_delete_removes_key(tmp_path):
 def test_dotfile_delete_missing_file_is_noop(tmp_path):
     # No raise, no side effect.
     loader._dotfile_delete("fixture_t6", "API_TOKEN")
-    assert not (tmp_path / ".agent-ready" / "credentials.env").exists()
+    assert not (tmp_path / ".agentbundle" / "credentials.env").exists()
 
 
 def test_atomic_write_via_mkstemp_and_replace(tmp_path, monkeypatch):
@@ -106,18 +106,18 @@ def test_atomic_write_via_mkstemp_and_replace(tmp_path, monkeypatch):
     loader._dotfile_write("fixture_t6", "API_TOKEN", "secret")
     assert len(recorded) == 1
     src, dst = recorded[0]
-    target_dir = str(tmp_path / ".agent-ready")
+    target_dir = str(tmp_path / ".agentbundle")
     assert src.startswith(target_dir + os.sep), (
         f"temp file {src!r} not in target dir {target_dir!r}"
     )
-    assert dst == str(tmp_path / ".agent-ready" / "credentials.env")
+    assert dst == str(tmp_path / ".agentbundle" / "credentials.env")
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only chmod path")
 def test_file_mode_is_0o600_on_posix(tmp_path):
     """AC15: file mode is exactly ``0o600``."""
     loader._dotfile_write("fixture_t6", "API_TOKEN", "secret")
-    path = tmp_path / ".agent-ready" / "credentials.env"
+    path = tmp_path / ".agentbundle" / "credentials.env"
     mode = path.stat().st_mode & 0o777
     assert mode == 0o600, f"expected 0o600, got {oct(mode)}"
 
@@ -126,7 +126,7 @@ def test_file_mode_is_0o600_on_posix(tmp_path):
 def test_parent_mode_is_0o700_on_create_on_posix(tmp_path):
     """AC15: when the parent is created, it's at mode ``0o700``."""
     loader._dotfile_write("fixture_t6", "API_TOKEN", "secret")
-    parent = tmp_path / ".agent-ready"
+    parent = tmp_path / ".agentbundle"
     mode = parent.stat().st_mode & 0o777
     assert mode == 0o700, f"expected 0o700, got {oct(mode)}"
 
@@ -135,7 +135,7 @@ def test_parent_mode_is_0o700_on_create_on_posix(tmp_path):
 def test_existing_parent_mode_is_not_rewritten_on_posix(tmp_path, capsys):
     """AC15: a brownfield parent (shared with install state) keeps its
     mode; the helper warns on stderr if more permissive than 0o755."""
-    parent = tmp_path / ".agent-ready"
+    parent = tmp_path / ".agentbundle"
     parent.mkdir(mode=0o755)
     os.chmod(parent, 0o775)  # group-write — more permissive than 0o755
     loader._dotfile_write("fixture_t6", "API_TOKEN", "secret")
@@ -196,7 +196,7 @@ def test_malformed_dotfile_returns_none_not_raise(tmp_path):
     swallowed). The loader surface still raises
     ``CredentialsMissingError`` for a required key — never propagates
     the parser error to the primitive author."""
-    path = tmp_path / ".agent-ready" / "credentials.env"
+    path = tmp_path / ".agentbundle" / "credentials.env"
     path.parent.mkdir(mode=0o700)
     path.write_text("export FIXTURE_T6_API_TOKEN=secret\n", encoding="utf-8")
     assert loader._dotfile_read("fixture_t6", "API_TOKEN") is None
@@ -230,7 +230,7 @@ def test_credentials_missing_names_tiers_tried_no_dotfile(tmp_path):
     assert "not loaded" in msg
     # Tier 3 trailer names the dotfile path and "absent".
     assert "Tier 3:" in msg
-    assert ".agent-ready" in msg
+    assert ".agentbundle" in msg
     assert "absent" in msg
     # Structured attribute carries the same info programmatically.
     assert exc.value.namespace == "fixture_t6"

@@ -30,7 +30,7 @@ AC4b also covers user-scope LLM-judgment rows deferred per RFC-0004
 | 3 | Tier-2 detection-repo (skill body teaches) | (b) grep | `tests/skills/test_adapt_skill_body.py::test_body_pre_flight_section_references_user_scope_state` pins Tier-2 reference in the Pre-flight section. |
 | 4 | cross-scope-restructure × decline | (b) grep | `tests/skills/test_adapt_skill_body.py::test_body_names_split_into_two_prompt` + `test_body_forbids_cross_scope_execution` pin the two contract phrases. End-to-end transcript deferred to AC4b. |
 | 17 | dirty-state-repo (porcelain primitive smoke) | (a) automation | `tests/integration/test_adapt_preflight_detection.py::test_repo_scope_dirty_state_porcelain_detects_uncommitted_edit` + `test_repo_scope_dirty_state_porcelain_lists_untracked_seed` exercise `git status --porcelain` against a tmp git repo seeded from the brownfield fixture; assert dirty-path naming + untracked-path surfacing. Pins the deterministic primitive the skill body invokes for repo-scope dirty detection, not the LLM narration of the Pre-flight (still pinned by row 2). |
-| 18 | Tier-2 detection (content-hash primitive, scope-agnostic) | (a) automation | `tests/integration/test_adapt_preflight_detection.py::test_user_scope_tier2_content_hash_divergence_detected` seeds a tracked file under the user-scope fixture, records its SHA-256 in a v0.2 `state.toml`, mutates the file, asserts `sha256_bytes(actual) != recorded`. The primitive is scope-agnostic (the same logic detects Tier-2 divergence at repo scope against `.agent-ready-state.toml` and at user scope against `~/.agent-ready/state.toml`); exercising it once against the user-scope fixture is sufficient. Does not replace the LLM narration of the Pre-flight (still pinned by rows 3 and 7). |
+| 18 | Tier-2 detection (content-hash primitive, scope-agnostic) | (a) automation | `tests/integration/test_adapt_preflight_detection.py::test_user_scope_tier2_content_hash_divergence_detected` seeds a tracked file under the user-scope fixture, records its SHA-256 in a v0.2 `state.toml`, mutates the file, asserts `sha256_bytes(actual) != recorded`. The primitive is scope-agnostic (the same logic detects Tier-2 divergence at repo scope against `.agentbundle-state.toml` and at user scope against `~/.agentbundle/state.toml`); exercising it once against the user-scope fixture is sufficient. Does not replace the LLM narration of the Pre-flight (still pinned by rows 3 and 7). |
 
 Rows 17 and 18 originally enumerated under AC4b as deferred
 end-to-end transcripts. **Promoted to AC4a *(a) automation* in
@@ -47,16 +47,16 @@ these tests even though the *(b)* grep on the body still passed.
 
 ### User-scope plumbing rows (synthetic fixture)
 
-Synthetic fixture: `packages/agentbundle/tests/fixtures/brownfield-adapt-user-home/.agent-ready/`.
+Synthetic fixture: `packages/agentbundle/tests/fixtures/brownfield-adapt-user-home/.agentbundle/`.
 All three are *plumbing* (no LLM judgment): the skill's pre-flight
 reads the user-scope state and discovery files, and the CLI's
 `safety.write_jailed` enforces the path-jail.
 
 | # | Row | Method | Pinned at |
 | - | --- | ------ | --------- |
-| 5 | user-scope path-jail refusal | (a) automation | `safety.write_jailed` with `scope="user"` + `allowed_prefixes` is exercised by `tests/unit/test_scope.py::test_write_jailed_user_scope_refuses_outside_prefix` (and the four sibling `test_write_jailed_user_scope_*` cases); a class-3 destination escaping `~/.claude/`/`~/.agent-ready/` raises `PathJailError`. |
-| 6 | dirty-state-user | (b) grep | SKILL.md body's Pre-flight section documents the content-hash divergence check against `~/.agent-ready/state.toml`. End-to-end fixture deferred to AC4b. |
-| 7 | Tier-2 detection-user | (b) grep | SKILL.md body's Pre-flight section names `~/.agent-ready/`, `state.toml`, and `Tier-2` (`test_body_pre_flight_section_references_user_scope_state`). |
+| 5 | user-scope path-jail refusal | (a) automation | `safety.write_jailed` with `scope="user"` + `allowed_prefixes` is exercised by `tests/unit/test_scope.py::test_write_jailed_user_scope_refuses_outside_prefix` (and the four sibling `test_write_jailed_user_scope_*` cases); a class-3 destination escaping `~/.claude/`/`~/.agentbundle/` raises `PathJailError`. |
+| 6 | dirty-state-user | (b) grep | SKILL.md body's Pre-flight section documents the content-hash divergence check against `~/.agentbundle/state.toml`. End-to-end fixture deferred to AC4b. |
+| 7 | Tier-2 detection-user | (b) grep | SKILL.md body's Pre-flight section names `~/.agentbundle/`, `state.toml`, and `Tier-2` (`test_body_pre_flight_section_references_user_scope_state`). |
 
 ## AC4b — deferred rows
 
@@ -99,7 +99,7 @@ Transcript excerpt:
 ```text
 adopter> /adapt-to-project
 
-skill>  Pre-flight clean (repo HEAD clean; no ~/.agent-ready/
+skill>  Pre-flight clean (repo HEAD clean; no ~/.agentbundle/
         divergence; no .adapt-install-marker.toml present in this
         fixture). One class-2 companion at repo scope:
         AGENTS.upstream.md (sibling of AGENTS.md).

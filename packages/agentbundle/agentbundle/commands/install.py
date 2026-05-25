@@ -193,7 +193,7 @@ def run(args: "argparse.Namespace") -> int:
     # Read-only loads (for_write=False) — we do the v0.1 refusal *only*
     # for scopes we're about to write to, after we know which they are.
     # Loading both is cheap and reveals the cross-scope conflict.
-    repo_state_path = output_root / ".agent-ready-state.toml"
+    repo_state_path = output_root / ".agentbundle-state.toml"
     user_root: Path | None
     user_state_path: Path | None
     try:
@@ -224,7 +224,7 @@ def run(args: "argparse.Namespace") -> int:
         except scope_mod.UserScopeUnresolvable:
             user_root = None  # surface only if we actually need to write
         if user_root is not None:
-            user_state_path = user_root / ".agent-ready" / "state.toml"
+            user_state_path = user_root / ".agentbundle" / "state.toml"
             try:
                 user_state = load_state(user_state_path)
             except ConfigError as exc:
@@ -353,7 +353,7 @@ def run(args: "argparse.Namespace") -> int:
             # here (after the resolved-root line so adopters see context).
             try:
                 user_state_for_write = load_state(
-                    user_root_resolved / ".agent-ready" / "state.toml", for_write=True
+                    user_root_resolved / ".agentbundle" / "state.toml", for_write=True
                 )
             except ConfigError as exc:
                 print(f"install: {exc}", file=sys.stderr)
@@ -362,7 +362,7 @@ def run(args: "argparse.Namespace") -> int:
                 _ScopePlan(
                     scope="user",
                     root=user_root_resolved,
-                    state_path=user_root_resolved / ".agent-ready" / "state.toml",
+                    state_path=user_root_resolved / ".agentbundle" / "state.toml",
                     allowed_prefixes=allowed_prefixes_user,
                     state=user_state_for_write,
                     already_installed=installed_at_user,
@@ -810,7 +810,7 @@ def _append_install_marker(
     """Append a `[[packs-installed]]` entry to `.adapt-install-marker.toml`
     at *root* via `os.replace` atomic rename. Repo-scope marker lives
     at `<repo>/.adapt-install-marker.toml`; user-scope at
-    `<user-root>/.agent-ready/.adapt-install-marker.toml`.
+    `<user-root>/.agentbundle/.adapt-install-marker.toml`.
 
     Per spec AC19a: scope is encoded by the file's location, not as a
     field — the path is the source of truth.
@@ -824,11 +824,11 @@ def _append_install_marker(
     if scope == "user":
         # Route through `safety.user_state_path` so the dot-directory
         # is created with mode 0o700 + symlink/non-directory probe.
-        # The helper returns `<home>/.agent-ready/state.toml`; we sit
+        # The helper returns `<home>/.agentbundle/state.toml`; we sit
         # the marker next to it.
         state_path = safety.user_state_path(home=root)
         marker_path = state_path.parent / ".adapt-install-marker.toml"
-        marker_relpath = ".agent-ready/.adapt-install-marker.toml"
+        marker_relpath = ".agentbundle/.adapt-install-marker.toml"
     else:
         marker_path = root / ".adapt-install-marker.toml"
         marker_relpath = ".adapt-install-marker.toml"
@@ -1447,8 +1447,8 @@ def _adapter_allowed_prefixes_user(adapter_name: str) -> list[str]:
 
     RFC-0005's T1 added a `[adapter.kiro.scope]` table alongside Claude
     Code's existing one; user-scope installs of Kiro-targeted packs
-    need Kiro's prefixes (`.kiro/`, `.agent-ready/`) not Claude Code's
-    (`.claude/`, `.agent-ready/`). The fallback (legacy contract
+    need Kiro's prefixes (`.kiro/`, `.agentbundle/`) not Claude Code's
+    (`.claude/`, `.agentbundle/`). The fallback (legacy contract
     without a scope table for the requested adapter) is the
     conservative single-prefix list rooted at the adapter's documented
     directory.
