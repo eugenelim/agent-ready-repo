@@ -18,7 +18,17 @@ trap 'rm -rf "$TMP"' EXIT
 # symlinks (CLAUDE.md → AGENTS.md) with cp -P.
 SANDBOX="$TMP/repo"
 seed_sandbox() {
-  rm -rf "$SANDBOX"
+  # GitHub Actions runners have intermittently hit
+  # `rm: cannot remove '<sandbox>/.git': Directory not empty` between
+  # cases — a fs/git race where the parent git's housekeeping holds an
+  # object briefly after our `git commit` returns. Tolerate the partial
+  # rm under `set -e`: if anything's left, retry after a tick, then
+  # rely on `git init` to reinitialize whatever survives.
+  rm -rf "$SANDBOX" 2>/dev/null || true
+  if [ -e "$SANDBOX" ]; then
+    sleep 0.2
+    rm -rf "$SANDBOX" 2>/dev/null || true
+  fi
   mkdir -p "$SANDBOX"
   { git ls-files -z; git ls-files -z --others --exclude-standard; } \
     | while IFS= read -r -d '' f; do

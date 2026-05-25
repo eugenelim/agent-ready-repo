@@ -107,6 +107,11 @@ def main() -> int:
             return p.resolve().relative_to(root)
         except ValueError:
             return p
+        except (OSError, RuntimeError):
+            # `resolve()` raises OSError on Python 3.11 and RuntimeError
+            # on 3.12+ when a symlink loop is in the path. Fall back to
+            # the un-resolved path so the err() message still localises.
+            return p
 
     def err(path, msg: str, line=None) -> None:
         nonlocal error_count
@@ -504,10 +509,13 @@ def main() -> int:
             before_warn = warn_count
             try:
                 check_skill(skill_md)
-            except OSError as exc:
+            except (OSError, RuntimeError) as exc:
                 # Symlink loops, permission denials, vanished files
                 # between glob and check — surface as an error against
                 # the offending skill rather than killing the whole walk.
+                # RuntimeError covers Python 3.12+'s `pathlib.resolve()`
+                # error class for symlink loops (older Pythons raise
+                # OSError for the same condition).
                 err(skill_md, f"could not read skill: {exc}")
             if error_count == before_err and warn_count == before_warn:
                 ok(f"{relpath(skill_md)}")
