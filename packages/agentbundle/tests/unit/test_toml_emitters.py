@@ -266,6 +266,62 @@ def test_install_marker_resists_unresolved_marker_and_companion_injection(
     assert "evil" not in parsed
 
 
+def test_cli_install_preserves_existing_install_route(tmp_path) -> None:
+    """Blocker-2 regression: _append_install_marker re-emits existing entries
+    preserving their original install-route value (not overwriting with "cli").
+
+    Scenario: a marker was previously written by the Claude-plugins route
+    (install-route = "claude-plugins").  The CLI installs a different pack.
+    The pre-seeded entry must still carry install-route = "claude-plugins"
+    in the resulting file; the new CLI entry must carry install-route = "cli".
+    """
+    import tomllib as _tomllib
+    from agentbundle.commands.install import _append_install_marker
+    from datetime import datetime, timezone
+
+    # Pre-seed a marker with a claude-plugins-routed entry.
+    marker = tmp_path / ".adapt-install-marker.toml"
+    # We write raw TOML to seed the entry with the exact install-route value
+    # the Claude-plugins writer would produce, including a bare datetime.
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "converters"\n'
+        'version = "0.1.0"\n'
+        f"installed-at = {ts}\n"
+        'install-route = "claude-plugins"\n',
+        encoding="utf-8",
+    )
+
+    # CLI installs a different pack.
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="governance-extras",
+        pack_version="0.2.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    parsed = _tomllib.loads(marker.read_text(encoding="utf-8"))
+    entries = parsed["packs-installed"]
+    assert len(entries) == 2, f"Expected 2 entries, got {len(entries)}"
+
+    by_name = {e["name"]: e for e in entries}
+
+    # Pre-seeded entry must preserve its install-route.
+    assert by_name["converters"]["install-route"] == "claude-plugins", (
+        "pre-seeded claude-plugins entry had its install-route overwritten"
+    )
+    # Newly-added CLI entry must carry "cli".
+    assert by_name["governance-extras"]["install-route"] == "cli", (
+        "new CLI entry does not carry install-route = 'cli'"
+    )
+
+
 def test_cli_install_emits_install_route_cli(tmp_path) -> None:
     """AC13: every [[packs-installed]] entry written by _append_install_marker
     carries install-route = "cli". Regression pin — the field must appear on
