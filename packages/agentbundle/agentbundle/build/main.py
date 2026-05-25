@@ -75,6 +75,58 @@ PACK_SCHEMA_PATH = _bundled_or_repo("pack.schema.json")
 PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
+# The canonical SessionStart hook command synthesised into each derived
+# plugin.json. Shell-exec contract (AC9 sub-assertion): when
+# CLAUDE_PLUGIN_ROOT is substituted the double-quoted path survives spaces.
+_SESSION_START_COMMAND = (
+    'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+)
+
+
+def _read_install_marker_template() -> bytes:
+    """Read the canonical install-marker.py template as bytes.
+
+    Resolution order (mirrors _read_bundled pattern):
+      1. `<package>/_data/install-marker.py` via importlib.resources — works
+         for filesystem installs AND inside a zipapp archive.
+      2. `<repo>/packages/agentbundle/templates/install-marker.py` — dev
+         fallback for source trees.
+    """
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle").joinpath("_data/install-marker.py")
+        if resource.is_file():
+            return resource.read_bytes()
+    except (FileNotFoundError, ModuleNotFoundError):
+        pass
+    return (REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py").read_bytes()
+
+
+def validate_derived_plugin_manifest_dict(manifest: dict, label: str = "<derived>") -> None:
+    """Validate an in-memory derived plugin manifest dict against the derived schema.
+
+    Call this BEFORE writing to disk so a synthesis bug does not land a
+    malformed plugin.json in dist/ (Blocker-3: pre-write validation).
+    """
+    schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
+    errors = validate_instance(manifest, schema)
+    if errors:
+        raise ValueError(
+            f"derived plugin manifest {label} failed schema: "
+            + "; ".join(errors)
+        )
+
+
+def validate_derived_plugin_manifest(plugin_json_path: Path) -> None:
+    """Validate a derived .claude-plugin/plugin.json (with synthesised hooks) against derived schema.
+
+    Defence-in-depth: also available as validate_derived_plugin_manifest_dict
+    for pre-write validation before the file is written to disk.
+    """
+    manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
+    validate_derived_plugin_manifest_dict(manifest, label=str(plugin_json_path))
+
 # The three RFC-0001 recipes that plain `make build` invokes.
 # RFC-0002 recipes (per-pack-overlay, composite-agents-md,
 # composite-marketplace) fire only under --self.
@@ -266,18 +318,71 @@ def _run_per_pack(
     project = ADAPTERS[recipe.adapter]
     produced: dict[str, str] = {}
     for pack in packs:
-        per_pack_output = output_dir / recipe.output_subdir / pack.name
-        _assert_under(per_pack_output, output_dir)
-        per_pack_output.mkdir(parents=True, exist_ok=True)
-        project(pack.path, contract, per_pack_output)
-        plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
-        if plugin_manifest.exists():
-            validate_plugin_manifest(plugin_manifest)
-            destination = per_pack_output / ".claude-plugin" / "plugin.json"
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(plugin_manifest, destination, follow_symlinks=False)
-        produced[pack.name] = str(per_pack_output)
+        try:
+            _run_per_pack_single(
+                pack, recipe, project, output_dir, contract, produced
+            )
+        except Exception as exc:
+            # Concern-9: surface the pack name so the operator knows which pack failed.
+            raise RuntimeError(f"pack {pack.name!r}: {exc}") from exc
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
+
+
+def _run_per_pack_single(
+    pack: Pack,
+    recipe: Recipe,
+    project,
+    output_dir: Path,
+    contract: dict,
+    produced: dict[str, str],
+) -> None:
+    """Execute the derivation pipeline for a single pack."""
+    per_pack_output = output_dir / recipe.output_subdir / pack.name
+    _assert_under(per_pack_output, output_dir)
+    # Transactional cleanup (Blocker-4): remove any prior partial or
+    # crashed build so phantom files do not survive into this build.
+    if per_pack_output.exists():
+        shutil.rmtree(per_pack_output)
+    per_pack_output.mkdir(parents=True, exist_ok=True)
+    project(pack.path, contract, per_pack_output)
+    plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
+    if plugin_manifest.exists():
+        # Validate source-tree manifest against the source schema
+        # (forbids hooks; additionalProperties: false ensures any stray
+        # hooks block is caught here before synthesis).
+        validate_plugin_manifest(plugin_manifest)
+        destination = per_pack_output / ".claude-plugin" / "plugin.json"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        # Load, splice in synthesised SessionStart hook, re-serialise.
+        derived = json.loads(plugin_manifest.read_text(encoding="utf-8"))
+        derived["hooks"] = {
+            "SessionStart": [{"command": _SESSION_START_COMMAND}]
+        }
+        # Validate the derived manifest IN MEMORY before writing to disk
+        # (Blocker-3: pre-write validation so a synthesis bug never lands
+        # a malformed plugin.json in dist/).
+        validate_derived_plugin_manifest_dict(
+            derived, label=str(destination)
+        )
+        destination.write_text(
+            json.dumps(derived, indent=2, sort_keys=False) + "\n",
+            encoding="utf-8",
+        )
+        # Defence-in-depth: re-validate the written file against the schema
+        # to catch any serialise/parse divergence introduced by json.dumps.
+        validate_derived_plugin_manifest(destination)
+
+    # Project pack.toml verbatim (writer reads it for name/version/allowed-scopes).
+    pack_toml_src = pack.path / "pack.toml"
+    if pack_toml_src.exists():
+        shutil.copy2(pack_toml_src, per_pack_output / "pack.toml", follow_symlinks=False)
+
+    # Project the canonical install-marker.py writer into scripts/.
+    scripts_dir = per_pack_output / ".claude-plugin" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    (scripts_dir / "install-marker.py").write_bytes(_read_install_marker_template())
+
+    produced[pack.name] = str(per_pack_output)
 
 
 def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> dict:
