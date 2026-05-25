@@ -95,5 +95,5 @@ are load-bearing pattern you leave alone.
 ## Reference
 
 - Spec: `docs/specs/skill-secrets/spec.md` (§ AC29 pins this skill's shape)
-- Author skill: `packs/core/.apm/skills/add-credentialed-skill/`
+- Author skill: the `add-credentialed-skill` skill
 - RFC: `docs/rfc/0006-skill-secrets-storage.md`
