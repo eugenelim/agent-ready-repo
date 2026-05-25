@@ -55,15 +55,22 @@ def test_distribution_adapters_has_install_routes_ac() -> None:
     """AC17: spec body contains an AC entry referencing install-routes.
 
     Anchored regex: asserts a line of the form
-    ``- [ ] **AC<N> (install-routes...``
+    ``- [ ] **(RFC-0008)** ...install-routes...``
     so the string must appear as a checkbox AC entry in the Acceptance Criteria
-    section, not merely anywhere in the document (Concern-10 anchored grep).
+    section with the RFC-NNNN tag style the file uses elsewhere (the
+    distribution-adapters spec tags its ACs by RFC, not by sequential AC
+    number — same convention as the surrounding RFC-0004 and RFC-0005 v0.4
+    entries).
     """
     body = _body()
-    pattern = r"^- \[ \] \*\*AC\d+.*\(install-routes"
-    assert re.search(pattern, body, re.MULTILINE), (
+    # Match across newlines — the AC's opening line `- [ ] **(RFC-0008)**`
+    # often wraps before `install-routes` appears. `re.DOTALL` so `.`
+    # spans line boundaries; cap at ~400 chars so a stray match in the
+    # Changelog doesn't satisfy the assertion.
+    pattern = r"^- \[ \] \*\*\(RFC-0008\)\*\*.{0,400}?install-routes"
+    assert re.search(pattern, body, re.MULTILINE | re.DOTALL), (
         "docs/specs/distribution-adapters/spec.md must contain an AC entry "
-        "matching the pattern '- [ ] **AC<N> (install-routes...' "
+        "matching '- [ ] **(RFC-0008)** ...install-routes...' "
         "(the AC17-mandated install-routes conformance AC). "
         f"Pattern: {pattern!r}"
     )
