@@ -317,7 +317,7 @@ projected location.)
   pack at `${tmp_path}/home/.apm/apm_modules/<pack>/`;
   `${HOME}=${tmp_path}/home`; writer projected at the fixture
   path; `marker_scope = "user"`; marker file at
-  `${tmp_path}/home/.agent-ready/.adapt-install-marker.toml`.
+  `${tmp_path}/home/.agentbundle/.adapt-install-marker.toml`.
 - `test_apm_scope_writer_under_neither_exits_zero` (AC4 c).
   Writer projected at a path under neither cwd nor `$HOME`;
   exit 0, no marker write, no hash file write.
@@ -737,7 +737,7 @@ things against the same code path.)
   agent-ready-repo/converters`: stage at
   `${tmp_path}/home/.apm/apm_modules/converters/`;
   `${HOME}=${tmp_path}/home`; assert marker at
-  `${tmp_path}/home/.agent-ready/.adapt-install-marker.toml`
+  `${tmp_path}/home/.agentbundle/.adapt-install-marker.toml`
   with `install-route = "apm"`.
 - `test_refuse_repo_only_pack_at_user_scope` (AC12 c +
   AC5 a). (Some overlap with T1's

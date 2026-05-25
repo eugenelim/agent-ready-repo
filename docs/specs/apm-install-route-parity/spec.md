@@ -129,7 +129,7 @@ passed, the writer reads its own resolved path
 `pathlib.Path.cwd()` (project scope) or `pathlib.Path(home).resolve()`
 (user scope). Containment under cwd → marker at
 `<repo>/.adapt-install-marker.toml`; containment under `$HOME` →
-marker at `~/.agent-ready/.adapt-install-marker.toml`; containment
+marker at `~/.agentbundle/.adapt-install-marker.toml`; containment
 under neither → exit 0 without writing (the no-match
 fall-through rail). `[pack.install] allowed-scopes` enforcement is
 unchanged from the claude-plugins-route writer — defence-in-depth
@@ -591,7 +591,7 @@ taxonomy.
       marker path is `<cwd>/.adapt-install-marker.toml`; else if
       contained in `pathlib.Path(home).resolve()` →
       `marker_scope = "user"`, marker path is
-      `<home>/.agent-ready/.adapt-install-marker.toml`; else
+      `<home>/.agentbundle/.adapt-install-marker.toml`; else
       exit 0 without writing (no-match fall-through; same
       no-partial-state rail). Symlinks are resolved on both
       sides via `.resolve()` before comparison. Five unit tests
@@ -609,7 +609,7 @@ taxonomy.
       projected under `$HOME` (fixture
       `${HOME}/.apm/apm_modules/<pack>/`) →
       `marker_scope = "user"`, marker at
-      `${HOME}/.agent-ready/.adapt-install-marker.toml`; (c)
+      `${HOME}/.agentbundle/.adapt-install-marker.toml`; (c)
       writer projected under neither (a path that's not under
       cwd nor `$HOME`) → exit 0 without writing; (d) writer
       reached via a symlink (`${tmp_path}/repo/cache-link` →
