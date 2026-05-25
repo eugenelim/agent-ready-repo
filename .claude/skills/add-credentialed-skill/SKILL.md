@@ -133,5 +133,5 @@ catches what the lint can't.
 
 - Spec: `docs/specs/skill-secrets/spec.md` (this skill is canonical for AC28)
 - RFC: `docs/rfc/0006-skill-secrets-storage.md` § 4 (the "Don't" block source)
-- Worked example: `packs/core/.apm/skills/example-credentialed-skill/`
+- Worked example: the `example-credentialed-skill` skill
   (ships in T12; until then, this skill's template is the reference)
