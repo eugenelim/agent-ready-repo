@@ -40,7 +40,7 @@ scoped to skills whose `SKILL.md` declares `metadata.credentialed: true`
    `{token, api_token, api_key, bearer, pat, password}`. Detection
    handles literal strings AND `"--" + "name"`-style concatenation.
 3. No script under a credentialed skill's `scripts/` directory contains
-   the substring `.agent-ready/credentials.env` unless the opt-out
+   the substring `.agentbundle/credentials.env` unless the opt-out
    comment `# credentialed-primitive: reads-creds-directly` appears
    on the same line.
 

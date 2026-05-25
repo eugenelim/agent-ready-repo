@@ -1,7 +1,7 @@
 """``agentbundle uninstall`` — remove a pack's Tier-1 files from the adopter tree.
 
 Algorithm:
-  1. Load ``.agent-ready-state.toml`` from ``args.root``.
+  1. Load ``.agentbundle-state.toml`` from ``args.root``.
      Exit non-zero with stderr if the pack is not in state.
   2. For each file recorded under ``[pack.<name>.files]``:
      - Compute the on-disk SHA.
@@ -41,7 +41,7 @@ def run(args: "argparse.Namespace") -> int:
     pack_name: str = args.pack
     cli_scope: str | None = getattr(args, "scope", None)
     root = Path(args.root).resolve()
-    state_path = root / ".agent-ready-state.toml"
+    state_path = root / ".agentbundle-state.toml"
 
     # ── Step 1: Multi-scope disambiguator (RFC-0004) ──────────────────────────
     # If the pack is at both repo and user scopes, --scope is required.
@@ -56,7 +56,7 @@ def run(args: "argparse.Namespace") -> int:
     installed_at_user = False
     try:
         user_root = scope_mod.resolve_user_root()
-        user_state_path = user_root / ".agent-ready" / "state.toml"
+        user_state_path = user_root / ".agentbundle" / "state.toml"
         user_state_for_check = load_state(user_state_path)
         installed_at_user = pack_name in user_state_for_check.packs
     except scope_mod.UserScopeUnresolvable:
@@ -83,7 +83,7 @@ def run(args: "argparse.Namespace") -> int:
 
     # Route to the correct state file based on effective scope.
     # At user scope, `root` is the user's home (where projected files
-    # live) and the state file lives at `<root>/.agent-ready/state.toml`.
+    # live) and the state file lives at `<root>/.agentbundle/state.toml`.
     # Keep the two values separate so the path-jailed write picks the
     # right *relpath relative to root*, not a bare dotfile in $HOME.
     user_prefixes: list[str] | None = None
@@ -231,8 +231,8 @@ def run(args: "argparse.Namespace") -> int:
     del state.packs[pack_name]
     serialised = dump_state(state)
     # Write the state file at the right per-scope relpath. At repo scope
-    # the relpath is `.agent-ready-state.toml`; at user scope it's
-    # `.agent-ready/state.toml` (the namespaced dot-directory). Compute
+    # the relpath is `.agentbundle-state.toml`; at user scope it's
+    # `.agentbundle/state.toml` (the namespaced dot-directory). Compute
     # from `state_path.relative_to(root)` so the layout is single-sourced.
     state_relpath = state_path.relative_to(root).as_posix()
     try:

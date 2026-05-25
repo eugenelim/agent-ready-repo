@@ -69,7 +69,7 @@ documents, detects the install scope via the adopter's
 allowed-scopes` defence-in-depth, and writes a `[[packs-installed]]`
 entry to the scope-correct marker file at
 `<repo>/.adapt-install-marker.toml` (project / local scope) or
-`~/.agent-ready/.adapt-install-marker.toml` (user scope). The marker
+`~/.agentbundle/.adapt-install-marker.toml` (user scope). The marker
 file location and `[[packs-installed]]` shape are unchanged from what
 `agentbundle install` writes today; the entry gains an optional
 `install-route` field that the read side treats as `"cli"` when absent
@@ -124,7 +124,7 @@ human sign-off before proceeding; *Never do* is a hard rule.
   a further marker schema bump.
 - **Write the hash file at `${CLAUDE_PLUGIN_DATA}/pack-manifest-hash`
   only after the marker write succeeds.** A partial-write failure
-  (disk full; permission denied at `~/.agent-ready/`) must leave no
+  (disk full; permission denied at `~/.agentbundle/`) must leave no
   false "already adapted" signal — the next session retries the
   marker write. The order is: read existing marker → append → atomic
   rename of marker → write hash file.

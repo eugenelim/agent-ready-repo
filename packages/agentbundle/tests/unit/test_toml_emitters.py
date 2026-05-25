@@ -4,7 +4,7 @@
 two CLI write-paths that interpolate pack-sourced strings into TOML
 output. Before this hardening, both used plain f-strings, so a manifest
 declaring ``version = '0.1.0"\\nname = "evil"'`` could land phantom TOML
-structure in `.agent-ready-state.toml` and `.adapt-install-marker.toml`.
+structure in `.agentbundle-state.toml` and `.adapt-install-marker.toml`.
 
 The fix is a single `_emit_basic_string` helper that escapes per the
 TOML 1.0 basic-string grammar (``\\``, ``"``, and control chars). These

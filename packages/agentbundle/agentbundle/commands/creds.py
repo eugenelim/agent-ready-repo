@@ -119,7 +119,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         description=(
             "Set up, check, locate, or remove credentials for "
             "credentialed-primitive skills. Three tiers: env var, OS "
-            "keyring (Darwin/Windows), dotfile (~/.agent-ready/"
+            "keyring (Darwin/Windows), dotfile (~/.agentbundle/"
             "credentials.env). No `get` subcommand — secrets do not "
             "leave their resolving process."
         ),
@@ -152,7 +152,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     # design. The user's choice to weaken the storage posture must be
     # visible on the command line so an operator reading shell history,
     # a CI log, or an audit trail sees it. Do NOT add an env-var
-    # equivalent (``AGENT_READY_ALLOW_INSECURE``-shaped), a TOML config
+    # equivalent (``AGENTBUNDLE_ALLOW_INSECURE``-shaped), a TOML config
     # alternative, or a default-on toggle — silent posture lowering
     # defeats the protection. Widening this contract requires an RFC
     # amendment, not a one-line PR.
@@ -181,7 +181,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         default=".",
         help=(
             "Repo-scope root for the state-file walk (default: '.'). "
-            "User-scope walks $HOME/.agent-ready/state.toml regardless."
+            "User-scope walks $HOME/.agentbundle/state.toml regardless."
         ),
     )
     # Tombstone arguments — spec § AC23. Scoped to the ``setup``
@@ -375,7 +375,7 @@ def _walk_credentialed_skills(
     from agentbundle import config
 
     out: list[tuple[str, pathlib.Path, str, pathlib.Path]] = []
-    repo_state_path = root / ".agent-ready-state.toml"
+    repo_state_path = root / ".agentbundle-state.toml"
     if repo_state_path.exists():
         repo_state = config.load_state(repo_state_path)
         for pack_state in repo_state.packs.values():
@@ -391,7 +391,7 @@ def _walk_credentialed_skills(
                     out.append(("repo", root, m.group(1), skill_md))
     try:
         user_root = pathlib.Path.home()
-        user_state_path = user_root / ".agent-ready" / "state.toml"
+        user_state_path = user_root / ".agentbundle" / "state.toml"
     except (RuntimeError, OSError):  # pragma: no cover
         user_root = None  # type: ignore[assignment]
         user_state_path = None  # type: ignore[assignment]

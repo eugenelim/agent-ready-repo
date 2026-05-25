@@ -160,7 +160,7 @@ class UpgradeAddsHookEntryTests(_UpgradeBase):
 
         # State has both rows.
         from agentbundle.config import load_state
-        state = load_state(self.home / ".agent-ready" / "state.toml")
+        state = load_state(self.home / ".agentbundle" / "state.toml")
         ids = {r["id"] for r in state.packs["cc-user-hooks"].hook_wiring_owned}
         self.assertEqual(
             ids,
@@ -204,7 +204,7 @@ class UpgradeRemovesHookEntryTests(_UpgradeBase):
         self.assertIn("UserPromptSubmit", data_post["hooks"])
 
         from agentbundle.config import load_state
-        state = load_state(self.home / ".agent-ready" / "state.toml")
+        state = load_state(self.home / ".agentbundle" / "state.toml")
         ids = {r["id"] for r in state.packs["cc-user-hooks"].hook_wiring_owned}
         self.assertEqual(ids, {"cc-user-hooks:on-prompt"})
 

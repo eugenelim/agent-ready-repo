@@ -117,7 +117,7 @@ def test_dotfile_grep_reports_finding(tmp_path):
     res = _run_lint("dotfile-grep", tmp_path)
     assert res.returncode != 0
     assert "dotfile-grep/scripts/leak.py" in res.stderr
-    assert ".agent-ready/credentials.env" in res.stderr
+    assert ".agentbundle/credentials.env" in res.stderr
 
 
 def test_dotfile_with_optout_marker_is_silent(tmp_path):

@@ -127,7 +127,7 @@ def _run_render(root: Path, pack_dir: Path) -> int:
     """Run `render` against `root` after installing once.
 
     Render's Tier-2 awareness triggers only when `--output` already has
-    a `.agent-ready-state.toml` — the "self-host into adopter root" use
+    a `.agentbundle-state.toml` — the "self-host into adopter root" use
     case. Without that, render's contract is "write the projection
     wholesale" (the `make build` semantic). Chain install → render so
     the T15 row exercises the Tier-honouring branch.

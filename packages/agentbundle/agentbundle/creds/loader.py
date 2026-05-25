@@ -1,7 +1,7 @@
 """Loader API and stdlib ``.env`` parser for credentialed primitives.
 
 This module exposes the public surface a credentialed-primitive author
-imports (via the ``agent_ready.credentials`` shim, per spec § AC3):
+imports (via the ``agentbundle.credentials`` shim, per spec § AC3):
 
 - ``load_credentials(namespace, required_keys)`` — resolves credentials
   through Tier 1 (env var) → Tier 2 (OS keyring) → Tier 3 (dotfile),
@@ -244,7 +244,7 @@ def _tier2(namespace: str, key: str) -> str | None:
 def _tier3(namespace: str, key: str) -> str | None:
     """Resolve from the Tier-3 dotfile (spec § AC13).
 
-    Reads ``~/.agent-ready/credentials.env`` via the stdlib parser and
+    Reads ``~/.agentbundle/credentials.env`` via the stdlib parser and
     looks up ``<NAMESPACE>_<KEY>``. Returns ``None`` on miss; a malformed
     dotfile also returns ``None`` (the upstream resolver raises
     ``CredentialsMissingError`` if the key was required, naming the
@@ -259,12 +259,12 @@ def _tier3(namespace: str, key: str) -> str | None:
 def _dotfile_path() -> pathlib.Path:
     """Canonical Tier-3 dotfile path per spec § AC13.
 
-    Resolves to ``pathlib.Path.home() / ".agent-ready" / "credentials.env"``
+    Resolves to ``pathlib.Path.home() / ".agentbundle" / "credentials.env"``
     on every platform. Tests redirect ``HOME`` (and ``USERPROFILE`` on
     Windows) to a ``tmp_path``-scoped directory so the developer's real
-    ``~/.agent-ready/`` is never touched.
+    ``~/.agentbundle/`` is never touched.
     """
-    return pathlib.Path.home() / ".agent-ready" / "credentials.env"
+    return pathlib.Path.home() / ".agentbundle" / "credentials.env"
 
 
 def _dotfile_env_name(namespace: str, key: str) -> str:
@@ -380,8 +380,9 @@ def _ensure_parent(parent: pathlib.Path) -> None:
     """Create the dotfile parent at mode 0o700 if absent (spec § AC15).
 
     If the parent already exists, do **not** rewrite its mode — the
-    directory is shared with RFC-0004 install state. On POSIX warn on
-    stderr if the existing mode is more permissive than 0o755.
+    directory is shared with ``~/.agentbundle/state.toml`` per RFC-0004.
+    On POSIX warn on stderr if the existing mode is more permissive
+    than 0o755.
     """
     if not parent.exists():
         parent.mkdir(mode=0o700, parents=True)

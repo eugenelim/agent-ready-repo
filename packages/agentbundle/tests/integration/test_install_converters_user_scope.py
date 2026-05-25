@@ -95,10 +95,10 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         # Path.home() (e.g. cached at import time), the state directory
         # lands at the developer's real home and the next assertion fires
         # with a clear message instead of a confusing AttributeError.
-        agent_ready_dir = self.home / ".agent-ready"
+        agentbundle_dir = self.home / ".agentbundle"
         self.assertTrue(
-            agent_ready_dir.exists(),
-            f"~/.agent-ready/ absent under tmp $HOME {self.home}; "
+            agentbundle_dir.exists(),
+            f"~/.agentbundle/ absent under tmp $HOME {self.home}; "
             f"check $HOME propagation",
         )
 
@@ -106,7 +106,7 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         # import and the patch.dict above has to be live before that.
         from agentbundle.config import STATE_SCHEMA_VERSION, load_state
 
-        state_path = agent_ready_dir / "state.toml"
+        state_path = agentbundle_dir / "state.toml"
         # Read the raw TOML to assert the install path actually wrote the
         # schema-version key. load_state() defaults a missing key to
         # STATE_SCHEMA_VERSION (config.py:185), so comparing the parsed
