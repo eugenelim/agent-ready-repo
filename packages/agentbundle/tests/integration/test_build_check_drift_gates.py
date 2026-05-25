@@ -310,10 +310,11 @@ def test_make_build_check_fails_on_source_hooks_block(tmp_path):
 
 
 def test_make_build_check_passes_on_clean_source_packs(tmp_path):
-    """AC10 gate 2: gate exits zero when no source plugin.json carries a hooks block.
+    """AC10 gate 2 + AC20a: gate exits zero on a clean source + populated dist tree.
 
-    Shadow-copies the real ``packs/`` directory and calls
-    ``run_build_check_drift_gates`` in-process; expects 0.
+    Shadow-copies the real ``packs/`` directory, builds into a shadow
+    ``dist/`` (so the writer-template gate has projections to hash), and
+    calls ``run_build_check_drift_gates`` in-process; expects 0.
     """
     from agentbundle.build.self_host import run_build_check_drift_gates
 
@@ -322,10 +323,11 @@ def test_make_build_check_passes_on_clean_source_packs(tmp_path):
 
     output_dir = tmp_path / "workspace"
     output_dir.mkdir()
+    _run_build_into_dist(packs_shadow, output_dir)
 
     rc = run_build_check_drift_gates(output_dir, packs_shadow)
 
     assert rc == 0, (
         f"run_build_check_drift_gates should have passed on clean source packs "
-        f"but returned {rc}."
+        f"+ populated dist tree but returned {rc}."
     )

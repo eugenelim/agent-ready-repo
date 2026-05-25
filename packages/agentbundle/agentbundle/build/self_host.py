@@ -906,17 +906,34 @@ def run_self_host(
 # ---------------------------------------------------------------------------
 
 # Fixed corpus for the _emit_basic_string parity check (AC20b).
-# Covers: control chars, embedded quote + backslash, empty string,
-# multi-byte unicode — the "attack-shaped inputs" the spec names.
+# Covers: control chars (including each short-escape table entry),
+# byte-boundary cases at \x20 and \x7e, embedded quote + backslash,
+# empty string, multi-byte BMP unicode, non-BMP (4-byte UTF-8), and
+# a lone surrogate codepoint — the "attack-shaped inputs" the spec
+# names plus the branch surface the source primitive exposes.
+#
+# Maintenance contract: extend this corpus whenever
+# `agentbundle.config._emit_basic_string` learns a new input class
+# (new short-escape, new refusal rail). The parity check is only as
+# wide as the corpus.
 _EMIT_BASIC_STRING_CORPUS: tuple[str, ...] = (
-    "\x00",   # NUL — must be \\u0000
-    "\x01",   # SOH — must be \\u0001
-    "\x1f",   # US — must be \\u001F
-    "\x7f",   # DEL — must be \\u007F
-    '"',      # embedded double-quote
-    "\\",     # embedded backslash
-    "",       # empty string
-    "café",   # multi-byte unicode (U+00E9)
+    "\x00",        # NUL — must be \\u0000
+    "\x01",        # SOH
+    "\x08",        # backspace — short-escape \\b
+    "\t",          # tab — short-escape \\t
+    "\n",          # newline — short-escape \\n
+    "\x0c",        # form feed — short-escape \\f
+    "\r",          # carriage return — short-escape \\r
+    "\x1f",        # US — last forbidden control char before space
+    "\x20",        # SPACE — first verbatim byte (boundary)
+    "\x7e",        # ~ — last verbatim byte before DEL (boundary)
+    "\x7f",        # DEL — must be \\u007F
+    '"',           # embedded double-quote
+    "\\",          # embedded backslash
+    "",            # empty string
+    "café",        # multi-byte BMP (U+00E9, 2-byte UTF-8)
+    "\U0001F4A9",  # non-BMP (U+1F4A9, 4-byte UTF-8 / surrogate-pair territory)
+    "\ud800",      # lone high surrogate — invalid as UTF-8, but Python str accepts it
 )
 
 
@@ -925,18 +942,17 @@ def _resolve_install_marker_template_path() -> Path:
 
     Resolution order (mirrors _read_install_marker_template in main.py):
       1. ``<package>/_data/install-marker.py`` via importlib.resources — works
-         for filesystem installs AND inside a zipapp archive.
+         for filesystem installs whose `_data/` directory carries the synced
+         copy.
       2. ``<repo>/packages/agentbundle/templates/install-marker.py`` — dev
          fallback for source trees whose ``_data/`` hasn't been synced.
 
-    In the zipapp case, importlib.resources may return a zipfile-internal
-    resource that has no real on-disk path. We materialise it to a tempfile
-    in that case so importlib.util can load it. Callers should not delete the
-    returned path when it refers to the original file; the returned path is
-    safe to pass to importlib.util.spec_from_file_location.
-
-    Returns a tuple (path, is_temp) where is_temp=True means the file was
-    materialised from a zipapp archive and should be cleaned up by the caller.
+    Returns a bare ``Path``. Zipapp-internal resources (where the resource
+    has no on-disk filesystem path) are not yet supported; this is fine in
+    practice because the build-check gate runs against repo checkouts and
+    pip-installed packages, not zipapps. If zipapp coverage is needed
+    later, this function should be extended to materialise the resource
+    to a tempfile.
     """
     try:
         from importlib.resources import files
@@ -1001,34 +1017,68 @@ def run_build_check_drift_gates(
 
     # ------------------------------------------------------------------
     # Gate 1: Writer-template drift (AC20a)
+    #
+    # Cross-validate `packs/` (source of truth) against
+    # `<output_dir>/dist/claude-plugins/` (build output). For every source
+    # pack carrying `.claude-plugin/plugin.json`, the derived projection
+    # MUST exist and MUST be byte-identical to the canonical template.
+    # `make build-check` depends on `build` so the `dist/` tree is always
+    # populated when this gate runs; a missing `dist/` is a hard failure,
+    # not a silent skip.
     # ------------------------------------------------------------------
     template_path = _resolve_install_marker_template_path()
     if not template_path.exists():
-        print(
-            f"build-check: canonical template not found at {template_path}; "
-            "skipping writer-template drift check",
-            file=sys.stderr,
+        failures.append(
+            f"build-check: canonical install-marker template not found at "
+            f"{template_path}; cannot run writer-template drift check"
+        )
+    elif not packs_dir.is_dir():
+        failures.append(
+            f"build-check: packs_dir {packs_dir} not a directory; cannot "
+            f"enumerate Claude-plugins-route packs for drift check"
         )
     else:
         template_hash = hashlib.sha256(template_path.read_bytes()).hexdigest()
         dist_plugins = output_dir / "dist" / "claude-plugins"
-        if dist_plugins.is_dir():
-            for pack_dir in sorted(dist_plugins.iterdir()):
-                if not pack_dir.is_dir():
-                    continue
+        expected_packs = [
+            pack_dir
+            for pack_dir in sorted(packs_dir.iterdir())
+            if pack_dir.is_dir()
+            and (pack_dir / "pack.toml").exists()
+            and (pack_dir / ".claude-plugin" / "plugin.json").exists()
+        ]
+        if expected_packs and not dist_plugins.is_dir():
+            failures.append(
+                f"build-check: writer-template drift — dist/claude-plugins/ "
+                f"not present at {dist_plugins} (run `make build` before "
+                f"`make build-check`, or use the `build-check` target which "
+                f"depends on `build`)"
+            )
+        else:
+            for pack_dir in expected_packs:
                 derived_marker = (
-                    pack_dir / ".claude-plugin" / "scripts" / "install-marker.py"
+                    dist_plugins
+                    / pack_dir.name
+                    / ".claude-plugin"
+                    / "scripts"
+                    / "install-marker.py"
                 )
                 if not derived_marker.exists():
-                    continue
-                derived_hash = hashlib.sha256(derived_marker.read_bytes()).hexdigest()
-                if derived_hash != template_hash:
-                    pack_name = pack_dir.name
                     failures.append(
                         f"build-check: writer-template drift — "
-                        f"{pack_name}/.claude-plugin/scripts/install-marker.py "
-                        f"diverges from "
-                        f"packages/agentbundle/templates/install-marker.py"
+                        f"pack {pack_dir.name} has a source plugin.json but "
+                        f"no projected install-marker.py at {derived_marker} "
+                        f"(derivation rail broken or partial build)"
+                    )
+                    continue
+                derived_hash = hashlib.sha256(
+                    derived_marker.read_bytes()
+                ).hexdigest()
+                if derived_hash != template_hash:
+                    failures.append(
+                        f"build-check: writer-template drift — "
+                        f"{pack_dir.name}/.claude-plugin/scripts/install-marker.py "
+                        f"diverges from canonical template at {template_path}"
                     )
 
     # ------------------------------------------------------------------
@@ -1081,21 +1131,30 @@ def run_build_check_drift_gates(
                 source_emit = None
 
             if source_emit is not None:
+                # The corpus is all-str; neither function should raise for
+                # any input. Catch the narrow set of exceptions either side
+                # is documented to raise, and include the exception class in
+                # the sentinel so a type-only divergence (same message,
+                # different exception class) is detected. Any other
+                # exception class indicates an internal bug — let it
+                # propagate so build-check reports "internal error" rather
+                # than mislabelled drift.
+                _PARITY_EXPECTED_EXC = (ValueError, TypeError)
                 for test_input in _EMIT_BASIC_STRING_CORPUS:
                     try:
-                        source_out = source_emit(test_input)
-                    except Exception as exc:
-                        # source raises ConfigError on non-str; wrap.
-                        source_out = f"<error: {exc}>"
+                        source_out: object = source_emit(test_input)
+                    except _PARITY_EXPECTED_EXC as exc:
+                        source_out = f"<{type(exc).__name__}: {exc}>"
                     try:
-                        template_out = template_emit(test_input)
-                    except Exception as exc:
-                        template_out = f"<error: {exc}>"
+                        template_out: object = template_emit(test_input)
+                    except _PARITY_EXPECTED_EXC as exc:
+                        template_out = f"<{type(exc).__name__}: {exc}>"
                     if source_out != template_out:
                         failures.append(
                             f"build-check: emit_basic_string drift — "
                             f"vendored copy diverges from source on input "
-                            f"{test_input!r}"
+                            f"{test_input!r}: source={source_out!r}, "
+                            f"vendored={template_out!r}"
                         )
 
     if failures:
