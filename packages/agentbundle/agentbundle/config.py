@@ -5,7 +5,7 @@ Sources read here:
                                     the sibling `distribution-adapters`
                                     spec and validated by F-build's
                                     `validate_pack_metadata` helper.
-  - `.agent-ready-state.toml`     — install-time state. Schema documented
+  - `.agentbundle-state.toml`     — install-time state. Schema documented
                                     in the sibling spec § "state schema".
   - `.adapt-discovery.toml`       — adopter values for `<adapt:NAME>`
                                     markers. CLI **reads only**; the
@@ -100,13 +100,13 @@ def pack_spec_version(pack_toml: dict[str, Any]) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# .agent-ready-state.toml
+# .agentbundle-state.toml
 # ---------------------------------------------------------------------------
 
 
 @dataclass
 class PackState:
-    """One installed pack's slice of `.agent-ready-state.toml`."""
+    """One installed pack's slice of `.agentbundle-state.toml`."""
 
     installed_version: str
     source: str = "agent-ready-repo"
@@ -141,7 +141,7 @@ class PackState:
 
 @dataclass
 class State:
-    """Parsed `.agent-ready-state.toml` — all installed packs."""
+    """Parsed `.agentbundle-state.toml` — all installed packs."""
 
     schema_version: str = STATE_SCHEMA_VERSION
     packs: dict[str, PackState] = field(default_factory=dict)
@@ -154,7 +154,7 @@ class State:
 
 
 def load_state(path: Path, *, for_write: bool = False) -> State:
-    """Load `.agent-ready-state.toml`. Returns empty State if file is absent.
+    """Load `.agentbundle-state.toml`. Returns empty State if file is absent.
 
     Absent is **not** an error — fresh repos legitimately have no state file
     before the first install / init-state. Callers distinguish "absent" from
@@ -179,7 +179,7 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
         raw = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as exc:
         raise ConfigError(
-            f".agent-ready-state.toml at {path} is not valid TOML: {exc}"
+            f".agentbundle-state.toml at {path} is not valid TOML: {exc}"
         ) from exc
 
     schema_version = raw.get("schema-version", STATE_SCHEMA_VERSION)

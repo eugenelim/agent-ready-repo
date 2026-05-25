@@ -62,7 +62,7 @@ def run(args: "argparse.Namespace") -> int:
         )
         return 1
 
-    state_path = user_root / ".agent-ready" / "state.toml"
+    state_path = user_root / ".agentbundle" / "state.toml"
     if not state_path.exists():
         # An absent state file means no installs at user scope; no
         # orphans to report against. Cleanly exit 0 with the all-clean

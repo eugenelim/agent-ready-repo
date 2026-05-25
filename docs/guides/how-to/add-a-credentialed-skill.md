@@ -60,7 +60,7 @@ secret = false
 ## Step 4 — Import the loader in `scripts/cli.py`
 
 ```python
-from agent_ready.credentials import (
+from agentbundle.credentials import (
     CredentialsMissingError,
     Tier2HardFailError,
     load_credentials,
@@ -96,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
     ...
 ```
 
-`agent_ready.credentials` is the **only** public entry point — do not reach into `agentbundle.creds.loader` directly. The loader resolves each key through Tier 1 (env var) → Tier 2 (OS keyring) → Tier 3 (dotfile), first-hit-wins per key.
+`agentbundle.credentials` is the **only** public entry point — do not reach into `agentbundle.creds.loader` directly. The loader resolves each key through Tier 1 (env var) → Tier 2 (OS keyring) → Tier 3 (dotfile), first-hit-wins per key.
 
 ## Step 5 — Embed the "Don't" block in `SKILL.md`
 
@@ -158,14 +158,14 @@ The first lint accepts the nested `metadata.credentialed: true` and `metadata.pr
 
 - Missing `### Security rules (non-negotiable)` heading or any of the three RFC-0006 § 4 anchor phrases.
 - Any `argparse.ArgumentParser.add_argument` call under `scripts/**/*.py` whose normalised flag name matches the banned set (`token`, `api_token`, `api_key`, `bearer`, `pat`, `password`).
-- Any line under `scripts/**/*.py` containing `.agent-ready/credentials.env` without the opt-out comment `# credentialed-primitive: reads-creds-directly` on the same line.
+- Any line under `scripts/**/*.py` containing `.agentbundle/credentials.env` without the opt-out comment `# credentialed-primitive: reads-creds-directly` on the same line.
 
 Both lints exit 0 against the worked example; aim for the same.
 
 ## Common pitfalls
 
 - **Printing `creds.API_TOKEN` inside a debug `print(...)`.** The token reaches stdout where any caller can capture it. Use `len(creds.API_TOKEN)` only if you must prove resolution, and ideally don't even disclose the length (token length is a small side-channel).
-- **Reading the dotfile directly from a skill body** (`open("~/.agent-ready/credentials.env")`). The lint catches the literal substring; obfuscated reads bypass the lint but still defeat the architecture rule.
+- **Reading the dotfile directly from a skill body** (`open("~/.agentbundle/credentials.env")`). The lint catches the literal substring; obfuscated reads bypass the lint but still defeat the architecture rule.
 - **Adding a `--token` flag "just for local testing".** The argv ban applies in every environment; the `agentbundle creds setup --allow-insecure-fallback` flow is the supported escape hatch.
 - **Skipping the `Tier2HardFailError` catch.** When the macOS Keychain is locked or the Windows DPAPI key derivation fails, an uncaught traceback exposes loader internals. Adopters who copy the worked example inherit the safe handling; if you write your primitive from scratch, copy the catch arm too.
 

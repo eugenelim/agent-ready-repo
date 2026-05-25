@@ -5,7 +5,7 @@ dual-state-file walk*:
 
   - adapt writes per-scope `.adapt-pending.md` at
     `<repo>/.adapt-pending.md` (repo) and
-    `~/.agent-ready/.adapt-pending.md` (user, inside the namespaced
+    `~/.agentbundle/.adapt-pending.md` (user, inside the namespaced
     dot-directory — never as a bare ~/.adapt-pending.md).
   - adapt --ci exits non-zero when either scope's pending file is
     non-empty; parametrised across three cases (repo-only, user-only,
@@ -14,7 +14,7 @@ dual-state-file walk*:
   - A fixture missing one state file walks the present one and reports
     against its scope only.
   - adapt reads `<repo>/.adapt-discovery.toml` and
-    `~/.agent-ready/.adapt-discovery.toml`. A counter-fixture placing
+    `~/.agentbundle/.adapt-discovery.toml`. A counter-fixture placing
     the value at `~/.adapt-discovery.toml` is *not* consulted.
 """
 
@@ -60,14 +60,14 @@ def _stage_companion(root: Path, relpath: str, content: bytes, companion_content
 
 def test_adapt_writes_per_scope_pending_reports(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
-    user_dir = fake_home / ".agent-ready"
+    user_dir = fake_home / ".agentbundle"
     user_dir.mkdir(parents=True)
     monkeypatch.setenv("HOME", str(fake_home))
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     # Repo-scope: state references a Tier-2 path with companion.
-    _write_state(repo_root / ".agent-ready-state.toml", {"AGENTS.md": "00"})
+    _write_state(repo_root / ".agentbundle-state.toml", {"AGENTS.md": "00"})
     _stage_companion(repo_root, "AGENTS.md", b"adopter", b"bundle")
     # User-scope: state references a path with companion.
     _write_state(user_dir / "state.toml", {".claude/skills/foo/SKILL.md": "11"})
@@ -106,7 +106,7 @@ def test_adapt_writes_per_scope_pending_reports(tmp_path, monkeypatch):
 )
 def test_adapt_ci_or_across_scopes(tmp_path, monkeypatch, case):
     fake_home = tmp_path / "home"
-    user_dir = fake_home / ".agent-ready"
+    user_dir = fake_home / ".agentbundle"
     user_dir.mkdir(parents=True)
     monkeypatch.setenv("HOME", str(fake_home))
 
@@ -114,10 +114,10 @@ def test_adapt_ci_or_across_scopes(tmp_path, monkeypatch, case):
     repo_root.mkdir()
 
     if case in ("repo_only", "both"):
-        _write_state(repo_root / ".agent-ready-state.toml", {"AGENTS.md": "00"})
+        _write_state(repo_root / ".agentbundle-state.toml", {"AGENTS.md": "00"})
         _stage_companion(repo_root, "AGENTS.md", b"adopter", b"bundle")
     else:
-        _write_state(repo_root / ".agent-ready-state.toml", {})
+        _write_state(repo_root / ".agentbundle-state.toml", {})
 
     if case in ("user_only", "both"):
         _write_state(user_dir / "state.toml", {".claude/x.md": "11"}, scope="user")
@@ -132,13 +132,13 @@ def test_adapt_ci_or_across_scopes(tmp_path, monkeypatch, case):
 
 def test_adapt_ci_passes_when_neither_scope_has_companions(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
-    (fake_home / ".agent-ready").mkdir(parents=True)
+    (fake_home / ".agentbundle").mkdir(parents=True)
     monkeypatch.setenv("HOME", str(fake_home))
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    _write_state(repo_root / ".agent-ready-state.toml", {})
-    _write_state(fake_home / ".agent-ready" / "state.toml", {}, scope="user")
+    _write_state(repo_root / ".agentbundle-state.toml", {})
+    _write_state(fake_home / ".agentbundle" / "state.toml", {}, scope="user")
 
     args = argparse.Namespace(values_from=None, ci=True, root=str(repo_root))
     assert adapt.run(args) == 0
@@ -163,7 +163,7 @@ def test_adapt_handles_missing_user_state(tmp_path, monkeypatch):
 
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    _write_state(repo_root / ".agent-ready-state.toml", {"AGENTS.md": "00"})
+    _write_state(repo_root / ".agentbundle-state.toml", {"AGENTS.md": "00"})
     _stage_companion(repo_root, "AGENTS.md", b"adopter", b"bundle")
 
     args = argparse.Namespace(values_from=None, ci=False, root=str(repo_root))
@@ -171,7 +171,7 @@ def test_adapt_handles_missing_user_state(tmp_path, monkeypatch):
     assert (repo_root / ".adapt-pending.md").exists()
     # No user-scope dot-directory means no user-scope report.
     assert not (fake_home / ".adapt-pending.md").exists()
-    assert not (fake_home / ".agent-ready").exists()
+    assert not (fake_home / ".agentbundle").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -180,14 +180,14 @@ def test_adapt_handles_missing_user_state(tmp_path, monkeypatch):
 
 
 def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch):
-    """Discovery values at `~/.agent-ready/.adapt-discovery.toml` are read.
+    """Discovery values at `~/.agentbundle/.adapt-discovery.toml` are read.
 
     A counter-fixture placing the discovery at `~/.adapt-discovery.toml`
     (bare dotfile) is NOT read — proving the reader picks the
     namespaced path, not the bare one.
     """
     fake_home = tmp_path / "home"
-    user_dir = fake_home / ".agent-ready"
+    user_dir = fake_home / ".agentbundle"
     user_dir.mkdir(parents=True)
     monkeypatch.setenv("HOME", str(fake_home))
 
@@ -219,7 +219,7 @@ def test_adapt_reads_user_scope_discovery_in_dot_directory(tmp_path, monkeypatch
         encoding="utf-8",
     )
 
-    _write_state(repo_root / ".agent-ready-state.toml", {})
+    _write_state(repo_root / ".agentbundle-state.toml", {})
 
     # Use --values-from to enable substitution (default mode skips it
     # when no --values-from is passed; we want to confirm the discovery

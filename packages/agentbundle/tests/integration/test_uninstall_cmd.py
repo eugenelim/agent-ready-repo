@@ -46,7 +46,7 @@ def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:
         installed_version="0.1.0",
         files={relpath: {"sha": sha, "from-pack-version": "0.1.0"} for relpath, sha in files.items()},
     )
-    (tmp_path / ".agent-ready-state.toml").write_text(dump_state(state), encoding="utf-8")
+    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ def test_happy_path_tier1_files_removed(tmp_path):
         assert not (tmp_path / relpath).exists(), f"{relpath} should be removed"
 
     # State must no longer reference the pack.
-    state = load_state(tmp_path / ".agent-ready-state.toml")
+    state = load_state(tmp_path / ".agentbundle-state.toml")
     assert "alpha" not in state.packs, "[pack.alpha] must be absent after uninstall"
 
 
@@ -164,7 +164,7 @@ def test_multi_pack_uninstall_a_preserves_b(tmp_path):
     beta_sha = safety.sha256_file(beta_file)
 
     # Reload state (alpha is there) and add beta.
-    state_path = tmp_path / ".agent-ready-state.toml"
+    state_path = tmp_path / ".agentbundle-state.toml"
     state = load_state(state_path)
     state.packs["beta"] = PackState(
         installed_version="1.0.0",
@@ -199,7 +199,7 @@ def test_missing_pack_exits_nonzero(tmp_path, capsys):
     # Write an empty (but valid) state file.
     from agentbundle.config import State, dump_state
 
-    state_path = tmp_path / ".agent-ready-state.toml"
+    state_path = tmp_path / ".agentbundle-state.toml"
     state_path.write_text(dump_state(State()), encoding="utf-8")
 
     rc = _run_uninstall("nonexistent", str(tmp_path))

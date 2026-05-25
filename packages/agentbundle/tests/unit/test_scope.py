@@ -138,7 +138,7 @@ def test_write_jailed_user_scope_accepts_prefix_match(tmp_path):
         ".claude/skills/foo/SKILL.md",
         "hi",
         scope="user",
-        allowed_prefixes=[".claude/", ".agent-ready/"],
+        allowed_prefixes=[".claude/", ".agentbundle/"],
     )
     assert (tmp_path / ".claude" / "skills" / "foo" / "SKILL.md").read_text() == "hi"
 
@@ -148,12 +148,12 @@ def test_write_jailed_user_scope_accepts_second_prefix(tmp_path):
 
     safety.write_jailed(
         tmp_path,
-        ".agent-ready/state.toml",
+        ".agentbundle/state.toml",
         'schema-version = "0.2"\n',
         scope="user",
-        allowed_prefixes=[".claude/", ".agent-ready/"],
+        allowed_prefixes=[".claude/", ".agentbundle/"],
     )
-    assert (tmp_path / ".agent-ready" / "state.toml").exists()
+    assert (tmp_path / ".agentbundle" / "state.toml").exists()
 
 
 def test_write_jailed_user_scope_refuses_outside_prefix(tmp_path):
@@ -166,7 +166,7 @@ def test_write_jailed_user_scope_refuses_outside_prefix(tmp_path):
             "Documents/foo.txt",
             "hi",
             scope="user",
-            allowed_prefixes=[".claude/", ".agent-ready/"],
+            allowed_prefixes=[".claude/", ".agentbundle/"],
         )
     assert "allowed prefixes" in str(ei.value)
     assert "scope 'user'" in str(ei.value)

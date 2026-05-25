@@ -48,7 +48,7 @@ The proposal is **two-layer**:
    environment variable → OS keyring (macOS Keychain via
    `/usr/bin/security`; Windows Credential Manager via `ctypes` +
    `advapi32.CredReadW`/`CredWriteW`; Linux `libsecret` phased) →
-   dotfile at `~/.agent-ready/credentials.env` (resolved via
+   dotfile at `~/.agentbundle/credentials.env` (resolved via
    `pathlib.Path.home()`), mode 0600 on POSIX, DACL-restricted on
    Windows. Acquisition is an interactive Python stdlib script
    shipped from the `core` pack, never invoked by the LLM. Argv
@@ -56,7 +56,7 @@ The proposal is **two-layer**:
 
 The tooling concretely is: one CLI verb (`agentbundle creds` —
 subcommands `setup`/`check`/`where`/`rm`, no `get`), a stdlib-only
-loader (`agent_ready.credentials`) with per-platform Tier-2
+loader (`agentbundle.credentials`) with per-platform Tier-2
 backends (macOS `/usr/bin/security` via subprocess; Windows
 Credential Manager via `ctypes` + `advapi32.CredReadW`/`CredWriteW`),
 a stdlib `.env` parser, one `SKILL.md` snippet under
@@ -77,7 +77,7 @@ session that produced this RFC started because a credential-bearing
 skill (an internal Jira / Confluence wrapper) had no convention to
 follow. `docs/CONVENTIONS.md` does not mention secrets, none of the
 five accepted specs do, and ADR-0002 establishes the user-scope
-*directory* (`~/.agent-ready/`) but says nothing about what may live
+*directory* (`~/.agentbundle/`) but says nothing about what may live
 in it. Every new credentialed skill is a re-invention; the
 re-inventions will diverge.
 
@@ -92,7 +92,7 @@ walked.
 
 **Skills run as the user and can grep the dotfile.** The biggest
 worry is not at-rest theft; it is that a credentialed skill running
-under an agent harness can `cat ~/.agent-ready/credentials.env`
+under an agent harness can `cat ~/.agentbundle/credentials.env`
 and surface the bytes to the model context, the chat transcript, or
 a tool call's `params` blob. No file mode prevents this. The
 defense has to be architectural (skills don't read credentials at
@@ -139,8 +139,8 @@ The convention separates two roles:
 - **Credentialed primitive.** Holds the secret. Knows how to read
   the dotfile / keyring / env var. Constructs the API call inside
   its own process. Examples: an MCP server (`mcp-atlassian`-shaped);
-  a CLI wrapper packaged as a primitive (`python -m agent_ready.jira
-  search ...` — loads credentials via `agent_ready.credentials`
+  a CLI wrapper packaged as a primitive (`python -m agentbundle.jira
+  search ...` — loads credentials via `agentbundle.credentials`
   internally, never returns them via stdout); a broker subprocess
   invoked by name from a skill.
 
@@ -162,8 +162,8 @@ first hit wins; lower tiers are not consulted.
 | Tier | Source | Use case | At-rest protection |
 | --- | --- | --- | --- |
 | 1 | `<NAMESPACE>_API_TOKEN` env var (and siblings: `_BASE_URL`, `_EMAIL`, `_FLAVOR`) | CI, headless dev VMs, agent harnesses that inject secrets via a wrapper process, corporate boxes where neither keyring nor dotfile is welcome | None — process-scoped only; relies on the launcher (Vault Agent, SSM run, `op run --`) to keep cleartext out of disk |
-| 2 | OS keyring via stdlib only. macOS: `/usr/bin/security find-generic-password -s <service> -a <account> -w` (subprocess; token passes via child stdin, never argv). Windows: `ctypes.windll.advapi32.CredReadW` / `CredWriteW` against `wincred.h`'s `CREDENTIAL` struct (in-process; no subprocess); credential type `CRED_TYPE_GENERIC`, persistence `CRED_PERSIST_LOCAL_MACHINE` (see "Windows support" below), target-name convention `agent-ready:<namespace>:<key>`. Linux deferred — see "Why Linux libsecret stays deferred" below. | Dev laptops where the platform's user-bound encrypted credential store is available (macOS Keychain or Windows Credential Manager). | OS-level. macOS Keychain encrypts to the user's keychain master key (login-session-unlocked); Windows Credential Manager encrypts via DPAPI keyed to the user's password / master key (survives logoff and reboot; the user account is the key, not the session). |
-| 3 | Dotfile: `~/.agent-ready/credentials.env` (resolved via `pathlib.Path.home()` — `$HOME/.agent-ready/` on POSIX, `%USERPROFILE%\.agent-ready\` on Windows), mode 0600 on POSIX with parent dir 0700, namespaced keys (`JIRA_API_TOKEN`, `CONFLUENCE_API_TOKEN`, etc.) | Linux boxes (default, until libsecret tier lands); Windows or macOS boxes where the user passed `--allow-insecure-fallback` at setup time to opt out of Tier 2; or `ERROR_NOT_FOUND` at read time (legitimate "no credential exists" case — see Win32 error-code matrix). **Not reached** when a Tier-2 call returns `ERROR_NO_SUCH_LOGON_SESSION` or other hard-fail codes: silent degradation defeats the security posture the user chose. | Filesystem ACLs (POSIX mode bits on Linux/macOS; inherited DACL from `%USERPROFILE%` on Windows, verified via `icacls`; permissiveness gated by `--allow-permissive-acl` — see § 3) |
+| 2 | OS keyring via stdlib only. macOS: `/usr/bin/security find-generic-password -s <service> -a <account> -w` (subprocess; token passes via child stdin, never argv). Windows: `ctypes.windll.advapi32.CredReadW` / `CredWriteW` against `wincred.h`'s `CREDENTIAL` struct (in-process; no subprocess); credential type `CRED_TYPE_GENERIC`, persistence `CRED_PERSIST_LOCAL_MACHINE` (see "Windows support" below), target-name convention `agentbundle:<namespace>:<key>`. Linux deferred — see "Why Linux libsecret stays deferred" below. | Dev laptops where the platform's user-bound encrypted credential store is available (macOS Keychain or Windows Credential Manager). | OS-level. macOS Keychain encrypts to the user's keychain master key (login-session-unlocked); Windows Credential Manager encrypts via DPAPI keyed to the user's password / master key (survives logoff and reboot; the user account is the key, not the session). |
+| 3 | Dotfile: `~/.agentbundle/credentials.env` (resolved via `pathlib.Path.home()` — `$HOME/.agentbundle/` on POSIX, `%USERPROFILE%\.agentbundle\` on Windows), mode 0600 on POSIX with parent dir 0700, namespaced keys (`JIRA_API_TOKEN`, `CONFLUENCE_API_TOKEN`, etc.) | Linux boxes (default, until libsecret tier lands); Windows or macOS boxes where the user passed `--allow-insecure-fallback` at setup time to opt out of Tier 2; or `ERROR_NOT_FOUND` at read time (legitimate "no credential exists" case — see Win32 error-code matrix). **Not reached** when a Tier-2 call returns `ERROR_NO_SUCH_LOGON_SESSION` or other hard-fail codes: silent degradation defeats the security posture the user chose. | Filesystem ACLs (POSIX mode bits on Linux/macOS; inherited DACL from `%USERPROFILE%` on Windows, verified via `icacls`; permissiveness gated by `--allow-permissive-acl` — see § 3) |
 
 **The setup helper announces which tier it landed on.** If the
 user asked for keyring and got the dotfile, the helper says so on
@@ -207,9 +207,9 @@ to which namespace lives in per-namespace `creds-schema.toml`
 files (§ 5).
 
 **Path consistency with the catalogue's user-scope root.** The
-catalogue's existing user-scope artifacts live under `~/.agent-ready/`
-(RFC-0004 install state at `~/.agent-ready/state.toml`;
-adapt-to-project at `~/.agent-ready/.adapt-discovery.toml` etc.).
+catalogue's existing user-scope artifacts live under `~/.agentbundle/`
+(RFC-0004 install state at `~/.agentbundle/state.toml`;
+adapt-to-project at `~/.agentbundle/.adapt-discovery.toml` etc.).
 The credentials dotfile lives under the same root rather than under
 XDG `~/.config/`. One audit point per box; one resolution call
 (`pathlib.Path.home()`) on every platform. The XDG-respect cost is
@@ -237,7 +237,7 @@ work on Windows with stdlib only.
   time. Credentials use `CRED_TYPE_GENERIC` (= 1), persistence
   `CRED_PERSIST_LOCAL_MACHINE` (= 2; see persistence-flag
   selection below), and target-name convention
-  `agent-ready:<namespace>:<key>` (sorts together in Credential
+  `agentbundle:<namespace>:<key>` (sorts together in Credential
   Manager UI under one alphabetic prefix; the prefix is
   unregistered and collision risk with third-party tools is
   theoretical). The `UserName` field is set to the namespace
@@ -287,7 +287,7 @@ work on Windows with stdlib only.
     (cached creds expired on a domain-joined box). Hard error;
     user re-authenticates and the next call succeeds.
 - **Tier 3 (dotfile).** Path resolves to
-  `%USERPROFILE%\.agent-ready\credentials.env` via
+  `%USERPROFILE%\.agentbundle\credentials.env` via
   `pathlib.Path.home()`. `os.chmod` is **not** invoked on Windows:
   Python's `os.chmod` honors only the `S_IWRITE` bit there, so
   passing `0o600` could clear the read-only flag rather than
@@ -360,7 +360,7 @@ It:
   CredWriteW(&credential, 0)` with a `CREDENTIAL` struct
   constructed in-process: `Type = CRED_TYPE_GENERIC (1)`,
   `Persist = CRED_PERSIST_LOCAL_MACHINE (2)`,
-  `TargetName = "agent-ready:<namespace>:<key>"`,
+  `TargetName = "agentbundle:<namespace>:<key>"`,
   `UserName = "<namespace>"` (non-NULL so the entry shows a
   non-blank account in the Credential Manager UI; the namespace
   is the natural account label since the key is already encoded
@@ -455,7 +455,7 @@ following block verbatim (path-substituted) in its `SKILL.md`,
 under a `### Security rules (non-negotiable)` heading:
 
 ```markdown
-- Secrets live only in `~/.agent-ready/credentials.env`
+- Secrets live only in `~/.agentbundle/credentials.env`
   (mode 0600 on POSIX; DACL-restricted on Windows), the OS keyring,
   or process environment variables.
   **Never** read that file, print it, or echo the token.
@@ -488,7 +488,7 @@ Reported findings:
   assembled at runtime) is out of scope of the lint and lives
   under the architectural rule.
 - Any substring match of the dotfile path
-  (`.agent-ready/credentials.env`) inside a skill's `scripts/`,
+  (`.agentbundle/credentials.env`) inside a skill's `scripts/`,
   with an opt-out comment-marker (`# credentialed-primitive:
   reads-creds-directly` on the same line) for primitives that
   legitimately read the file. The marker is itself flagged in PR
@@ -509,20 +509,20 @@ All of these land in **`core`**. No new top-level pack.
 
 | Deliverable | Location | Purpose |
 | --- | --- | --- |
-| `agentbundle creds` verb with subcommands `setup`, `check`, `where`, `rm` | `packages/agentbundle/agentbundle/creds/` | CLI entry point. `setup` is the interactive acquisition flow; `check` returns exit code 0 (ok) / 2 (missing) / 3 (other); `where` reports which tier resolved for a given namespace; `rm <namespace>` deletes from whichever tier holds it. **No `get` subcommand in v1.** A `creds get` that prints a token to stdout is the wrap-and-leak shape: a skill author can `subprocess.check_output(['agentbundle', 'creds', 'get', ...])` and capture the cleartext into LLM-visible scope. **The gap this creates, named honestly:** a user with their token only in agent-ready Tier 2/3 cannot pipe it into a non-Python tool's env var (a Bash one-liner, a third-party CLI). The composition `op run -- ...` works only if the credential is duplicated into 1Password; agent-ready can't project Tier-2/3 → env var for outside-Python consumers. Users who need that composition either (a) put the credential in their secrets-manager-of-choice and use that tool's env-var-injection wrapper, or (b) wait for v1.1, where a `creds export` subcommand that writes to a *file* (mode 0600, atomic) — not stdout — would restore composition while keeping wrap-and-leak harder. Not adding it in v1 is deliberate; the gap is a known limitation, not an oversight |
-| `agent_ready.credentials` Python module | `packages/agentbundle/agentbundle/creds/loader.py` + `creds/_keychain_macos.py` + `creds/_credman_windows.py` | Stdlib-only loader credentialed-primitive authors import: `load_credentials(namespace, required_keys=[...]) -> Credentials`. Implements the three-tier precedence. Per-platform Tier-2 backends are isolated in `_keychain_macos.py` (subprocess wrapper over `/usr/bin/security`) and `_credman_windows.py` (ctypes wrapper over `advapi32.CredReadW`/`CredWriteW`/`CredDeleteW`/`CredFree`). No external deps |
+| `agentbundle creds` verb with subcommands `setup`, `check`, `where`, `rm` | `packages/agentbundle/agentbundle/creds/` | CLI entry point. `setup` is the interactive acquisition flow; `check` returns exit code 0 (ok) / 2 (missing) / 3 (other); `where` reports which tier resolved for a given namespace; `rm <namespace>` deletes from whichever tier holds it. **No `get` subcommand in v1.** A `creds get` that prints a token to stdout is the wrap-and-leak shape: a skill author can `subprocess.check_output(['agentbundle', 'creds', 'get', ...])` and capture the cleartext into LLM-visible scope. **The gap this creates, named honestly:** a user with their token only in agentbundle Tier 2/3 cannot pipe it into a non-Python tool's env var (a Bash one-liner, a third-party CLI). The composition `op run -- ...` works only if the credential is duplicated into 1Password; agentbundle can't project Tier-2/3 → env var for outside-Python consumers. Users who need that composition either (a) put the credential in their secrets-manager-of-choice and use that tool's env-var-injection wrapper, or (b) wait for v1.1, where a `creds export` subcommand that writes to a *file* (mode 0600, atomic) — not stdout — would restore composition while keeping wrap-and-leak harder. Not adding it in v1 is deliberate; the gap is a known limitation, not an oversight |
+| `agentbundle.credentials` Python module | `packages/agentbundle/agentbundle/creds/loader.py` + `creds/_keychain_macos.py` + `creds/_credman_windows.py` | Stdlib-only loader credentialed-primitive authors import: `load_credentials(namespace, required_keys=[...]) -> Credentials`. Implements the three-tier precedence. Per-platform Tier-2 backends are isolated in `_keychain_macos.py` (subprocess wrapper over `/usr/bin/security`) and `_credman_windows.py` (ctypes wrapper over `advapi32.CredReadW`/`CredWriteW`/`CredDeleteW`/`CredFree`). No external deps |
 | Stdlib `.env` parser | same file | The ~12-line parser. Documented as "intentionally less than `python-dotenv`" |
-| `creds-schema.toml` format | Schema file ships under each credentialed primitive's `references/` directory; format documented in `docs/specs/skill-secrets/spec.md` (follow-on). **Primitive enumeration** for `agentbundle creds setup` invoked without a positional namespace argument: walks both scope state files (`<repo>/.agent-ready-state.toml` + `~/.agent-ready/state.toml`) — same shape as the RFC-0004 AC *"`adapt` walks both"* and the `adapt-to-project` spec's both-scope walk — and lists every installed primitive whose `SKILL.md` frontmatter declares `credentialed: true`. `agentbundle creds setup <namespace>` (positional) skips the walk and operates on the named primitive directly | Per-namespace declaration of required keys + UI labels the setup script reads |
+| `creds-schema.toml` format | Schema file ships under each credentialed primitive's `references/` directory; format documented in `docs/specs/skill-secrets/spec.md` (follow-on). **Primitive enumeration** for `agentbundle creds setup` invoked without a positional namespace argument: walks both scope state files (`<repo>/.agentbundle-state.toml` + `~/.agentbundle/state.toml`) — same shape as the RFC-0004 AC *"`adapt` walks both"* and the `adapt-to-project` spec's both-scope walk — and lists every installed primitive whose `SKILL.md` frontmatter declares `credentialed: true`. `agentbundle creds setup <namespace>` (positional) skips the walk and operates on the named primitive directly | Per-namespace declaration of required keys + UI labels the setup script reads |
 | `SKILL.md` template snippet | `docs/_templates/credentialed-skill-SKILL.md` | The "Don't" boilerplate carrying both labelled variants — `credentialed-cli` (full storage convention + argv ban) and `mcp-server` (per-request header guidance; storage convention does not apply). Author picks the section matching their `primitive-class:` frontmatter and deletes the other |
 | `conventions-check` rule | `packs/core/.apm/commands/conventions-check` (extended) | Detects argv-flag violations, missing "Don't" block, skill reading the dotfile path directly |
 | `CONVENTIONS.md` section | `docs/CONVENTIONS.md` | New top-level "Credentialed skills" section pointing at the template, the loader, and this RFC |
-| Worked example | `packs/core/.apm/skills/example-credentialed-skill/` | A real (no-op) credentialed skill that imports `agent_ready.credentials`, ships a `creds-schema.toml`, and includes the "Don't" block. Lives under `.apm/skills/` because it's a primitive (it ships to adopters' skill set), not under `seeds/` which carries adopter-installed README / template / governance content per `docs/CONVENTIONS.md` § Pack source-of-truth split. Adopters copy this as a starting point or remove it via `agentbundle uninstall` if not needed |
+| Worked example | `packs/core/.apm/skills/example-credentialed-skill/` | A real (no-op) credentialed skill that imports `agentbundle.credentials`, ships a `creds-schema.toml`, and includes the "Don't" block. Lives under `.apm/skills/` because it's a primitive (it ships to adopters' skill set), not under `seeds/` which carries adopter-installed README / template / governance content per `docs/CONVENTIONS.md` § Pack source-of-truth split. Adopters copy this as a starting point or remove it via `agentbundle uninstall` if not needed |
 | Documentation | `docs/guides/how-to/add-a-credentialed-skill.md` | Diátaxis how-to walking through the contract |
 
 **Why this lands in `core`, not a new pack.** `core` ships
 `agentbundle` (the CLI + adapter-contract code) into the adopter's
 Python environment via pip / pipx — not via pack file projection.
-The `agent_ready.credentials` module is reached by
+The `agentbundle.credentials` module is reached by
 credentialed-primitive Python code through normal `import` against
 that pip-installed package; it is *not* re-projected into each
 user-scope pack's primitive directory. Cross-scope coupling does
@@ -663,7 +663,7 @@ convention that depends on one vendor's storage backend.
 ### E1. Convention + loader, no CLI verb
 
 Ship the storage tiers, the SKILL.md "Don't" block, and the
-`agent_ready.credentials` loader, but no `agentbundle creds` verb.
+`agentbundle.credentials` loader, but no `agentbundle creds` verb.
 Authors run their own setup script per primitive.
 
 Rejected because the setup flow is *the* place the argv ban,
@@ -710,7 +710,7 @@ they slot in as a sub-shape of "credentialed primitive."
 
 ## Drawbacks
 
-- **New surface to maintain.** `agent_ready.credentials` and
+- **New surface to maintain.** `agentbundle.credentials` and
   `agentbundle creds` are real code, and the stdlib `.env` parser
   will hit edge cases (`KEY=value with # comment`,
   leading/trailing whitespace, equals-in-value) that
@@ -742,9 +742,9 @@ they slot in as a sub-shape of "credentialed primitive."
 
 - **`conventions-check` lint has false negatives.** Detecting
   "this skill reads the dotfile directly" via grep catches the
-  obvious cases (`open(os.path.expanduser("~/.agent-ready/
+  obvious cases (`open(os.path.expanduser("~/.agentbundle/
   credentials.env"))`) but not obfuscation
-  (`open(os.environ["HOME"] + "/.agent-ready/credentials.env")`,
+  (`open(os.environ["HOME"] + "/.agentbundle/credentials.env")`,
   `argparse as ap; ap.ArgumentParser().add_argument("--" + "token")`).
   The lint is a tripwire, not a sandbox. See § 4 for the
   manifest-driven discriminator (`"credentialed": true`) that scopes
@@ -768,11 +768,11 @@ they slot in as a sub-shape of "credentialed primitive."
   until that follow-on design lands.
 
 - **Forecloses a couple of designs.** Once
-  `~/.agent-ready/credentials.env` is the documented path, moving
+  `~/.agentbundle/credentials.env` is the documented path, moving
   it is a breaking change. Specifically foreclosed: (a) a
-  per-namespace file layout (`~/.agent-ready/credentials.d/jira.env`
+  per-namespace file layout (`~/.agentbundle/credentials.d/jira.env`
   etc.) that some adopters prefer for IT-policy reasons; (b) an
-  XDG-compliant variant (`~/.config/agent-ready/credentials.env`)
+  XDG-compliant variant (`~/.config/agentbundle/credentials.env`)
   for adopters following the Freedesktop convention; (c) a
   per-primitive file (`packs/<pack>/credentials.env`) that would
   keep credentials co-located with the primitive but conflict with
@@ -782,7 +782,7 @@ they slot in as a sub-shape of "credentialed primitive."
 - **`core` grows a runtime-import surface.** To date `core` has
   been adapter contract + CLI + conventions enforcement — not a
   *runtime library that user-scope primitives import.* Accepting
-  this RFC makes `agent_ready.credentials` a transitive dependency
+  this RFC makes `agentbundle.credentials` a transitive dependency
   of every credentialed primitive. The defense in § 5
   (pip-installed, not pack-projected — so no cross-scope projection
   happens) is real but new. Future RFCs that put more
@@ -891,7 +891,7 @@ Filled in upon acceptance.
 
 - **ADR-NNNN: Credential storage for credentialed skills** — records
   the tier order (env > keyring > user-scope dotfile at
-  `~/.agent-ready/credentials.env`), the stdlib-only loader policy,
+  `~/.agentbundle/credentials.env`), the stdlib-only loader policy,
   and the two-layer architecture rule as a binding decision so
   future RFCs amend rather than relitigate.
 - **ADR amendment: ADR-0002 § Consequences.** Extends the
@@ -911,7 +911,7 @@ Filled in upon acceptance.
 - **Spec: `docs/specs/skill-secrets/`** — implementation spec for
   `agentbundle creds` (subcommands, exit codes, schema format,
   walked-vs-explicit namespace discovery), the
-  `agent_ready.credentials` loader (API shape, error types,
+  `agentbundle.credentials` loader (API shape, error types,
   precedence semantics), and the `creds-schema.toml` format.
   Tracks ACs for: the macOS Keychain integration (stdin-fed
   `/usr/bin/security`); the Windows Credential Manager integration
@@ -921,7 +921,7 @@ Filled in upon acceptance.
   Credential Manager UI grouping, all other `CREDENTIAL` fields
   (`Flags`, `Comment`, `LastWritten`, `AttributeCount`,
   `Attributes`, `TargetAlias`) zero-initialised via
-  `ctypes.Structure` defaults, `agent-ready:<namespace>:<key>`
+  `ctypes.Structure` defaults, `agentbundle:<namespace>:<key>`
   target-name convention); the Win32 error-code dispatch matrix
   (`ERROR_NOT_FOUND` falls through to Tier 3;
   `ERROR_NO_SUCH_LOGON_SESSION` / `ERROR_INVALID_FLAGS` /
@@ -938,7 +938,7 @@ Filled in upon acceptance.
 - **Template addition: `docs/_templates/credentialed-skill-SKILL.md`**
   — the copy-pasteable "Don't" block + a minimal skill scaffold.
 - **Pack-side: `packs/core`** — extends `core` with the
-  `agent_ready.credentials` loader, the `agentbundle creds` verb,
+  `agentbundle.credentials` loader, the `agentbundle creds` verb,
   and the `conventions-check` rule extensions. No new pack.
 - **Guide: `docs/guides/how-to/add-a-credentialed-skill.md`** — the
   Diátaxis how-to walking an adopter through the convention.

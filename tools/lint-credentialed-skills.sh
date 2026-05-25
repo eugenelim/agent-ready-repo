@@ -39,7 +39,7 @@
 #
 #   AC26(c) Dotfile substring + opt-out marker.
 #     Per-line substring scan of every `scripts/**/*.py` under a
-#     credentialed skill looking for `.agent-ready/credentials.env`.
+#     credentialed skill looking for `.agentbundle/credentials.env`.
 #     A line containing the substring is skipped iff
 #     `# credentialed-primitive: reads-creds-directly` appears on
 #     the same line (comparison after `str.rstrip()`).
@@ -68,7 +68,7 @@ import sys
 root = pathlib.Path(sys.argv[1]).resolve()
 
 BANNED_FLAGS = {"token", "api_token", "api_key", "bearer", "pat", "password"}
-DOTFILE_SUBSTRING = ".agent-ready/credentials.env"
+DOTFILE_SUBSTRING = ".agentbundle/credentials.env"
 OPTOUT_MARKER = "# credentialed-primitive: reads-creds-directly"
 SECURITY_HEADING = "### Security rules (non-negotiable)"
 REQUIRED_PHRASES = (

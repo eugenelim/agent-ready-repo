@@ -38,10 +38,10 @@ This spec also pins:
   these definitions — they are not redefined elsewhere.
 - The **Tier-1/2/3 contract** (which files the bundle owns, which it shares
   with adopter edits, which it never touches) and the
-  `.agent-ready-state.toml` schema and `.upstream.<ext>` companion semantics
+  `.agentbundle-state.toml` schema and `.upstream.<ext>` companion semantics
   that operationalise it. **This spec pins the schemas only; the
   lifecycle behaviour** (companion-file creation/removal,
-  `.agent-ready-state.toml` writes, Tier-2 detection on initial install)
+  `.agentbundle-state.toml` writes, Tier-2 detection on initial install)
   **is implemented by sibling specs** — `self-hosting` for `make build
   --self` and RFC-0003's CLI for install/update flows. No task in this
   plan implements Tier-2 behaviour; it pins the contract the consumers
@@ -125,7 +125,7 @@ upstream source.
   for any output an adapter projects from a primitive.
 - **Tier-2 — bundle-origin, adopter-edited.** Files that the bundle
   originally seeded but the adopter has since modified. Detection: the
-  per-file SHA-256 in `.agent-ready-state.toml` no longer matches the
+  per-file SHA-256 in `.agentbundle-state.toml` no longer matches the
   bundle's last-installed content. Writes never clobber: an update drops a
   companion file at `<filename>.upstream.<ext>` (e.g. `AGENTS.md` stays;
   `AGENTS.upstream.md` is dropped next to it). `adapt-to-project` walks
@@ -143,12 +143,12 @@ upstream source.
 - *Lifecycle:* created by `make build` (in `--self` mode) or by a CLI
   install/update when the target is detected as Tier-2; removed by
   `adapt-to-project` after the adopter resolves the conflict (keep, merge,
-  or overwrite). Companions are tracked in `.agent-ready-state.toml`.
+  or overwrite). Companions are tracked in `.agentbundle-state.toml`.
 - *Initial install:* when a fresh install lands on a pre-existing
   adopter-edited file (Tier-3 → Tier-2 fast-path), the install drops a
   `.upstream.<ext>` companion rather than overwriting.
 
-**`.agent-ready-state.toml` schema (this spec, v0.1).**
+**`.agentbundle-state.toml` schema (this spec, v0.1).**
 
 ```toml
 schema-version = "0.1"
@@ -269,12 +269,12 @@ prefix-allow-list.
 [adapter."claude-code".scope]
 repo = "."
 user = "~"
-allowed-prefixes.user = [".claude/", ".agent-ready/"]
+allowed-prefixes.user = [".claude/", ".agentbundle/"]
 ```
 
 Two prefixes ship in the v0.2 contract for Claude Code's user
 scope: `.claude/` (where projected primitives land) and
-`.agent-ready/` (the namespaced dot-directory holding CLI
+`.agentbundle/` (the namespaced dot-directory holding CLI
 infrastructure — user-scope state file, per-scope
 `.adapt-discovery.toml`, per-scope `.adapt-pending.md`, and any
 `.upstream.<ext>` companions the CLI writes at user scope). The
@@ -444,17 +444,17 @@ Two extensions to the write-jail rail:
 
 | Scope  | Location                                  |
 | ------ | ----------------------------------------- |
-| `repo` | `<repo>/.agent-ready-state.toml`          |
-| `user` | `~/.agent-ready/state.toml`               |
+| `repo` | `<repo>/.agentbundle-state.toml`          |
+| `user` | `~/.agentbundle/state.toml`               |
 
 User-scope state lives inside a namespaced dot-directory
-(`~/.agent-ready/`), not as a bare dotfile in `$HOME`. The
+(`~/.agentbundle/`), not as a bare dotfile in `$HOME`. The
 dot-directory is the future home for other user-scope artifacts
 (`.adapt-discovery.toml`, `.upstream.<ext>` companions, pending
 reports). Repo-scope state location is unchanged. Each file records
 only the packs installed at *that* scope.
 
-### `.agent-ready-state.toml` schema (v0.2)
+### `.agentbundle-state.toml` schema (v0.2)
 
 ```toml
 schema-version = "0.2"
@@ -499,7 +499,7 @@ adding an explicit `scope = "repo"` column to each entry and bumping
   before any write; an explicit `--migrate` is the consent
   gesture.
 
-The `agent-ready-state.toml` `schema-version` is a separate version
+The `agentbundle-state.toml` `schema-version` is a separate version
 axis from the adapter contract `[contract] version`. Both bump in
 this amendment, but they gate different things — contract version
 drives the major-version-disagreement refusal for *packs*; state-file
@@ -1133,7 +1133,7 @@ No manual QA: there is no UI surface, no human gesture under test.
 - [x] **(RFC-0004)** `docs/contracts/adapter.toml` carries
   `[contract] version = "0.2"` and a `[adapter."claude-code".scope]`
   table declaring `repo = "."`, `user = "~"`, and
-  `allowed-prefixes.user = [".claude/", ".agent-ready/"]` (the
+  `allowed-prefixes.user = [".claude/", ".agentbundle/"]` (the
   two-prefix shape covers both projected primitives and CLI
   infrastructure writes — see § *`[scope]` table on the adapter
   contract*). `adapter.schema.json`
@@ -1173,7 +1173,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   offending path. Tests pin one positive case (rail accepts a
   clean pack) and one negative case (rail rejects with the named
   stderr) per rail, plus one binary-file skip test for Rail C.
-- [x] **(RFC-0004)** `.agent-ready-state.toml` `schema-version`
+- [x] **(RFC-0004)** `.agentbundle-state.toml` `schema-version`
   bumps to `"0.2"`. Every `[pack.<name>]` entry in v0.2 carries a
   required `scope = "repo" | "user"` column. The CLI **reads** any
   v0.1 file as all-repo-scope without forcing migration; any
@@ -1184,7 +1184,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   idempotently (adding `scope = "repo"` to each entry; bumping
   `schema-version`); running it twice against the same v0.2 file
   is a no-op exit-zero. The user-scope state file lives at
-  `~/.agent-ready/state.toml` (a namespaced dot-directory under
+  `~/.agentbundle/state.toml` (a namespaced dot-directory under
   `$HOME`, not a bare dotfile).
 - [x] **(RFC-0004)** The four shipped packs at
   `packs/{core,governance-extras,monorepo-extras,user-guide-diataxis}/pack.toml`
@@ -1252,9 +1252,21 @@ No manual QA: there is no UI surface, no human gesture under test.
   independent of Rail B — a kiro-ide-hook-only pack with
   `user-scope-hooks = true` still refuses because the *primitive*
   is repo-only in v1.
+- [ ] **(RFC-0008)** The adapter contract
+  (`docs/contracts/adapter.toml`) declares `install-routes` on
+  `[adapter."claude-code"]` per RFC-0008 / spec
+  `claude-plugins-install-route`. The conformance suite ships a
+  *marker presence* and a *scope refusal* case per declared install
+  route; the per-route fixtures live in
+  `packages/agentbundle/tests/integration/test_claude_plugins_install_route.py`.
+  The Claude-plugins *marker presence* case is asserted on **session
+  2 or later** until upstream
+  [`anthropics/claude-code#10997`](https://github.com/anthropics/claude-code/issues/10997)
+  ships a fix.
 
 ## Changelog
 
+- 2026-05-24: install-routes contract AC added per docs/specs/claude-plugins-install-route/spec.md — conformance suite ships marker-presence and scope-refusal cases per declared install route.
 - 2026-05-24: RFC-0005 v0.4 amendment — added `## v0.4 IDE event
   hooks (RFC-0005)` subsection between v0.3 user-scope hook
   handling and Boundaries. Pins the new `kiro-ide-hook` primitive,
