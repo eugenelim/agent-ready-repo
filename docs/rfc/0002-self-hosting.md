@@ -575,6 +575,26 @@ If accepted, this RFC produces one downstream artifact:
 
 ## Amendments
 
+- 2026-05-25 (post-acceptance, later same day): AC22 rescoped from
+  "per pack per install route" to single-route. The 2026-05-25
+  amendment item (e) below named a first-install snapshot test "per
+  pack per install route" and deferred Claude-plugins and APM route
+  coverage to a ROADMAP follow-on. Investigation against `make build`
+  output confirmed that no per-adapter seed-projection path exists in
+  the build pipeline today — `dist/claude-plugins/<pack>/` and
+  `dist/apm/<pack>/` contain only projected primitives (`.claude/`,
+  `.apm/`, hook scripts, manifests), no `seeds/` subtree — and the
+  install→adapt chain never invokes `agentbundle scaffold`. Seed
+  projection is route-agnostic by construction; "per install route"
+  was an empty axis. AC22 wording rescoped in the spec (see
+  [self-hosting spec § Changelog](../specs/self-hosting/spec.md#changelog));
+  the ROADMAP follow-on closed as moot in the same PR. A future RFC
+  that wires seed projection into the Claude-plugins or APM routes
+  would re-open AC22's route axis; until then the cross-source
+  invariant is enforced at the seed source by AC21's
+  `tools/lint-seeds.py`, which scans every `packs/<pack>/seeds/` tree
+  for the catalogue-leak blocklist. Item (e) below is the
+  as-originally-shipped record; this entry is the live contract.
 - 2026-05-25 (post-acceptance): seed scaffold leak closed. The seeds
   under `packs/<pack>/seeds/docs/` and `packs/monorepo-extras/seeds/packages/`
   had drifted from their intended role as adopter scaffolds — they
