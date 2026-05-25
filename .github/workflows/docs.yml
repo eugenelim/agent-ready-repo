@@ -15,12 +15,16 @@ on:
       - 'tools/lint-agents-md.py'
       - 'tools/lint-agent-artifacts.py'
       - 'tools/test-lint-agent-artifacts.sh'
+      - 'tools/lint-skill-spec.py'
+      - 'tools/test-lint-skill-spec.py'
+      - 'packs/**/.apm/skills/**'
       - 'tools/lint-knowledge.py'
       - 'tools/test-lint-knowledge.sh'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
       - 'tools/test-loop-cohort.sh'
       - 'tools/hooks/**'
+      - 'tools/test-all.sh'
       - 'tools/test-pre-pr.sh'
       - 'tools/test-session-start.sh'
       - '.github/workflows/docs.yml'
@@ -45,6 +49,16 @@ jobs:
         run: python tools/lint-agent-artifacts.py
       - name: Self-test the linter (asserts expected errors fire)
         run: bash tools/test-lint-agent-artifacts.sh
+
+  lint-skill-spec:
+    name: agentskills.io spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run skill-spec linter (projection + seeds)
+        run: python tools/lint-skill-spec.py
+      - name: Self-test the linter (every failure mode + happy path)
+        run: python tools/test-lint-skill-spec.py
 
   lint-knowledge:
     name: Knowledge base
