@@ -292,7 +292,7 @@ def write_jailed(
       than silently degrading to the bare `~`-jail.
 
       ``allowed_prefixes`` — the spec's declared list (e.g.
-      ``[".claude/", ".agent-ready/"]`` for Claude Code at v0.2). Each
+      ``[".claude/", ".agentbundle/"]`` for Claude Code at v0.2). Each
       entry is expected to end in ``/``; the function compares against
       the relpath-from-root with a directory-boundary check so
       ``allowed-prefixes = [".claude/"]`` rejects a write to a top-
@@ -411,10 +411,10 @@ def projected_files_in_state(state: State, pack_name: str) -> Iterable[str]:
 
 
 def user_state_path(home: Path | None = None) -> Path:
-    """Return the user-scope state file path: `~/.agent-ready/state.toml`.
+    """Return the user-scope state file path: `~/.agentbundle/state.toml`.
 
     Per RFC-0004 § *State file per scope*, user-scope artifacts live inside
-    the namespaced `~/.agent-ready/` dot-directory — not as bare dotfiles
+    the namespaced `~/.agentbundle/` dot-directory — not as bare dotfiles
     in `$HOME`. The dot-directory is the future home for
     `.adapt-discovery.toml`, `.adapt-pending.md`, and `.upstream.<ext>`
     companions at user scope; pinning the location here keeps every
@@ -442,7 +442,7 @@ def user_state_path(home: Path | None = None) -> Path:
     import os
     import stat as _stat
 
-    base = (home if home is not None else Path.home()) / ".agent-ready"
+    base = (home if home is not None else Path.home()) / ".agentbundle"
     try:
         base.mkdir(parents=True, exist_ok=True, mode=0o700)
     except OSError as exc:

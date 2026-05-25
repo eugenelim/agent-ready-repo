@@ -145,6 +145,15 @@ jobs:
         # below anyway).
         run: pip install -e packages/agentbundle/ pytest
 
+      - name: Run bundler build (populates dist/ for build-check drift gates)
+        # The drift gates added by docs/specs/claude-plugins-install-route/
+        # (writer-template byte-identity vs canonical) cross-validate
+        # source packs against the built dist/ tree. The Linux Makefile
+        # target `build-check` depends on `build`; on Windows we mirror
+        # that dependency explicitly so the gate doesn't fail loudly on
+        # a missing dist/.
+        run: python -m agentbundle.build build --packs-dir packs --output-dir dist
+
       - name: Run bundler build-check
         # Mirror of the Linux `make build-check` step — `make` shells to
         # `python3 -m agentbundle.build check`, and `python` is the safe

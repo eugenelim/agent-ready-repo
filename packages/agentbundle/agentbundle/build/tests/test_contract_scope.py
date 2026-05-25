@@ -33,11 +33,13 @@ def _load_contract() -> dict:
 
 
 class ContractVersionTests(unittest.TestCase):
-    """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005."""
+    """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005,
+    then to 0.4 by RFC-0008 (T2 / spec claude-plugins-install-route)."""
 
     def test_contract_version_is_0_3(self) -> None:
+        # T2 bumped the version to "0.4"; updated assertion.
         contract = _load_contract()
-        self.assertEqual(contract["contract"]["version"], "0.3")
+        self.assertEqual(contract["contract"]["version"], "0.4")
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):
@@ -56,7 +58,7 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
         prefixes = (
             contract["adapter"]["claude-code"]["scope"]["allowed-prefixes"]["user"]
         )
-        self.assertEqual(prefixes, [".claude/", ".agent-ready/"])
+        self.assertEqual(prefixes, [".claude/", ".agentbundle/"])
 
     def test_contract_validates_against_schema(self) -> None:
         from agentbundle.build.validate import validate
@@ -164,7 +166,7 @@ class StdlibValidatorExtensionsTests(unittest.TestCase):
                     validate(bad, schema),
                     f"pattern accepted forbidden value: {bad!r}",
                 )
-        for good in (".claude/", ".agent-ready/", "deep/nested/path/"):
+        for good in (".claude/", ".agentbundle/", "deep/nested/path/"):
             with self.subTest(value=good):
                 self.assertEqual(
                     validate(good, schema),

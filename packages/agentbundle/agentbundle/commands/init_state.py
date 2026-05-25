@@ -2,7 +2,7 @@
 
 Given a working tree that already contains a pack's projection (e.g. from a
 manual install or a `make build-self`), hash the on-disk projected files and
-write `.agent-ready-state.toml` with their SHA-256s. This is the recovery
+write `.agentbundle-state.toml` with their SHA-256s. This is the recovery
 path: produce a state file for a tree that doesn't have one.
 
 Algorithm (without ``--migrate``):
@@ -12,9 +12,9 @@ Algorithm (without ``--migrate``):
      - Compute on-disk SHA at `<root>/<relpath>`.
      - If absent on disk, skip with a warning to stderr.
      - Otherwise add to `PackState.files[relpath] = {sha, from-pack-version}`.
-  3. Load existing `.agent-ready-state.toml` (may be absent).
+  3. Load existing `.agentbundle-state.toml` (may be absent).
      Replace only `[pack.<args.pack>]`; leave other packs untouched.
-  4. Write via `safety.write_jailed(args.root, ".agent-ready-state.toml", ...)`.
+  4. Write via `safety.write_jailed(args.root, ".agentbundle-state.toml", ...)`.
   5. Print summary to stdout.
 
 With ``--migrate`` (RFC-0004 T13): the subcommand becomes a migration
@@ -23,8 +23,8 @@ verb instead — it reads the on-disk state file, augments every
 "0.2"``, and writes atomically. Idempotent against already-v0.2 files.
 The flag accepts no ``--pack`` (the migration is whole-file), and the
 ``--scope`` selector picks which scope's state file to operate on
-(``repo`` → ``<root>/.agent-ready-state.toml`` — the default;
-``user`` → ``~/.agent-ready/state.toml`` via
+(``repo`` → ``<root>/.agentbundle-state.toml`` — the default;
+``user`` → ``~/.agentbundle/state.toml`` via
 ``safety.user_state_path()``).
 """
 
@@ -119,7 +119,7 @@ def run(args: argparse.Namespace) -> int:
     # Load existing state (may be absent) and replace only this pack's table.
     # init-state is a *write* — refuse-and-explain on a v0.1 file so the
     # adopter opts into migration explicitly.
-    state_path = root / ".agent-ready-state.toml"
+    state_path = root / ".agentbundle-state.toml"
     try:
         existing_state = config.load_state(state_path, for_write=True)
     except config.StateFileLegacy as exc:
@@ -134,7 +134,7 @@ def run(args: argparse.Namespace) -> int:
 
     serialised = config.dump_state(existing_state)
     try:
-        safety.write_jailed(root, ".agent-ready-state.toml", serialised)
+        safety.write_jailed(root, ".agentbundle-state.toml", serialised)
     except safety.PathJailError as exc:
         print(f"init-state: {exc}", file=sys.stderr)
         return 1
@@ -185,9 +185,9 @@ def _run_migrate(args: argparse.Namespace) -> int:
         user_prefixes = _claude_code_allowed_prefixes_user()
     else:
         root = Path(args.root).resolve()
-        state_path = root / ".agent-ready-state.toml"
+        state_path = root / ".agentbundle-state.toml"
         write_root = root
-        relpath = ".agent-ready-state.toml"
+        relpath = ".agentbundle-state.toml"
 
     if not state_path.exists():
         # Migration of an absent file is meaningless — surface so the

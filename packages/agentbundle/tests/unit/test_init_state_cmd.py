@@ -3,9 +3,9 @@
 Three scenarios:
   1. Happy path — render core into tmpdir, run init-state, assert state file is
      parseable by config.load_state and every file's SHA matches.
-  2. Merge — pre-populate .agent-ready-state.toml with [pack.A]; run
+  2. Merge — pre-populate .agentbundle-state.toml with [pack.A]; run
      init-state --pack core; assert [pack.A] still present.
-  3. Tier invariant — only .agent-ready-state.toml is written; no other paths
+  3. Tier invariant — only .agentbundle-state.toml is written; no other paths
      changed.
 """
 
@@ -63,8 +63,8 @@ def test_init_state_happy_path(tmp_path):
     rc = init_state.run(args)
     assert rc == 0, "init-state should exit 0 on success"
 
-    state_path = tmp_path / ".agent-ready-state.toml"
-    assert state_path.exists(), ".agent-ready-state.toml must be written"
+    state_path = tmp_path / ".agentbundle-state.toml"
+    assert state_path.exists(), ".agentbundle-state.toml must be written"
 
     state = config.load_state(state_path)
     assert "core" in state.packs, "[pack.core] must be present"
@@ -92,7 +92,7 @@ def test_init_state_merge_preserves_other_pack(tmp_path):
         installed_version="1.0.0",
         files={"some/path.md": {"sha": "deadbeef", "from-pack-version": "1.0.0"}},
     )
-    (tmp_path / ".agent-ready-state.toml").write_text(
+    (tmp_path / ".agentbundle-state.toml").write_text(
         config.dump_state(pre_state), encoding="utf-8"
     )
 
@@ -102,19 +102,19 @@ def test_init_state_merge_preserves_other_pack(tmp_path):
     rc = init_state.run(args)
     assert rc == 0
 
-    state = config.load_state(tmp_path / ".agent-ready-state.toml")
+    state = config.load_state(tmp_path / ".agentbundle-state.toml")
     assert "A" in state.packs, "[pack.A] must survive the merge"
     assert state.packs["A"].file_sha("some/path.md") == "deadbeef"
     assert "core" in state.packs, "[pack.core] must be added"
 
 
 # ---------------------------------------------------------------------------
-# Tier invariant: only .agent-ready-state.toml is written
+# Tier invariant: only .agentbundle-state.toml is written
 # ---------------------------------------------------------------------------
 
 
 def test_init_state_writes_only_state_file(tmp_path):
-    """init-state must not write any file other than .agent-ready-state.toml."""
+    """init-state must not write any file other than .agentbundle-state.toml."""
     _project_pack_into(CORE_PACK, tmp_path)
 
     # Snapshot the tree before init-state.
@@ -132,7 +132,7 @@ def test_init_state_writes_only_state_file(tmp_path):
     assert rc == 0
 
     after = _snapshot(tmp_path)
-    state_relpath = ".agent-ready-state.toml"
+    state_relpath = ".agentbundle-state.toml"
 
     # Exactly one new file: the state file.
     new_files = set(after) - set(before)

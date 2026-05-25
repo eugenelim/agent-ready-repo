@@ -2,10 +2,11 @@
 # Validates against ./adapter.schema.json.
 # Managed by: docs/specs/distribution-adapters/spec.md
 # RFC reference: RFC-0001 (base contract); RFC-0004 (scope dimension, v0.2);
-# RFC-0005 (hook-body / hook-wiring forks, v0.3).
+# RFC-0005 (hook-body / hook-wiring forks, v0.3);
+# RFC-0008 (claude-plugins install route, v0.4).
 
 [contract]
-version = "0.3"
+version = "0.4"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -42,6 +43,12 @@ source-path = ".apm/commands/"
 # v0.3 user-scope pipeline reads. Until that pipeline lands, the legacy
 # entries remain authoritative; the new tables are declarative metadata.
 # ---------------------------------------------------------------------------
+
+# Install routes declared for this adapter (RFC-0008 / spec claude-plugins-install-route).
+# Kiro, Copilot, and Codex do not declare install-routes; the field defaults to ["cli"]
+# on read for adapters that omit it.
+[adapter."claude-code"]
+install-routes = ["cli", "claude-plugins"]
 
 [[adapter."claude-code".projection]]
 primitive = "skill"
@@ -97,12 +104,12 @@ managed-key.user = "hooks"
 # declared prefix list — at user scope this stops a buggy projection
 # rule from resolving under `~/Documents/`. The two-prefix shape covers
 # projected primitives (`.claude/`) and CLI infrastructure writes
-# (`.agent-ready/` — user-scope state file, per-scope discovery and
+# (`.agentbundle/` — user-scope state file, per-scope discovery and
 # pending artifacts).
 [adapter."claude-code".scope]
 repo = "."
 user = "~"
-allowed-prefixes.user = [".claude/", ".agent-ready/"]
+allowed-prefixes.user = [".claude/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Kiro adapter
@@ -166,11 +173,11 @@ agent-event-vocabulary = [
 # Scope dimension for Kiro (RFC-0005 § hook-wiring for Kiro at both scopes).
 # User-scope agents live under `~/.kiro/agents/` per Kiro's documented layout
 # (https://kiro.dev/docs/cli/custom-agents/creating/); CLI infrastructure
-# shares the `.agent-ready/` prefix.
+# shares the `.agentbundle/` prefix.
 [adapter.kiro.scope]
 repo = "."
 user = "~"
-allowed-prefixes.user = [".kiro/", ".agent-ready/"]
+allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Copilot adapter — 5 projections (one per primitive)

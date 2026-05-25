@@ -189,7 +189,7 @@ implementation if a better name surfaces).
   build --check`, exposed as a CLI command for adopter-side use.
 - `agentbundle init-state` — Hashes the just-installed projection
   files (post APM or Claude-plugin install) and writes them to
-  `.agent-ready-state.toml`, enabling Tier-2 detection for adopters
+  `.agentbundle-state.toml`, enabling Tier-2 detection for adopters
   who installed via the upstream tools but want the catalogue's
   file-safety guarantees on subsequent adapt or update operations.
   Required only for APM/Claude-plugin install routes; CLI-installed
@@ -197,7 +197,7 @@ implementation if a better name surfaces).
 - `agentbundle uninstall --pack <name>` — Removes Tier-1 files for
   the named pack (per the safety contract in RFC-0001); warns on
   Tier-2 (offers keep-or-remove-with-backup); never touches Tier-3.
-  Updates `.agent-ready-state.toml`. Only valid against
+  Updates `.agentbundle-state.toml`. Only valid against
   CLI-installed packs; APM/Claude-plugin packs uninstall via their
   native tools.
 - `agentbundle upgrade --pack <name> [--skill <skill> | --agent <agent> | --hook <hook> | --seed <path>] [--to <version>]` —
@@ -207,7 +207,7 @@ implementation if a better name surfaces).
   available version), applying the Tier-1 / Tier-2 safety
   contract. With a per-primitive flag, only that primitive's
   files move; the rest stay at the previously-installed version,
-  and `.agent-ready-state.toml` records the mixed-version state.
+  and `.agentbundle-state.toml` records the mixed-version state.
   Subsequent whole-pack upgrades flag mixed state to the adopter
   before proceeding.
 

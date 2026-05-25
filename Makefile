@@ -60,7 +60,7 @@ endif
 build-self-dry-run: lint-packs
 	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
 
-build-check: lint-packs
+build-check: lint-packs build
 	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
 
 build-scaffold:

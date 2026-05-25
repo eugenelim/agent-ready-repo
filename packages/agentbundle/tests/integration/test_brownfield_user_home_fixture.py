@@ -20,7 +20,7 @@ FIXTURE = (
     Path(__file__).parent.parent
     / "fixtures"
     / "brownfield-adapt-user-home"
-    / ".agent-ready"
+    / ".agentbundle"
 )
 
 

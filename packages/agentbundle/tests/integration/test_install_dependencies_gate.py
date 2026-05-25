@@ -69,11 +69,11 @@ def _pre_install_core(
     state.packs["core"] = ps
 
     if scope == "repo":
-        state_path = target / ".agent-ready-state.toml"
+        state_path = target / ".agentbundle-state.toml"
         state_path.write_text(dump_state(state), encoding="utf-8")
     else:
         assert fake_home is not None, "fake_home required for user-scope pre-seed"
-        user_dir = fake_home / ".agent-ready"
+        user_dir = fake_home / ".agentbundle"
         user_dir.mkdir(parents=True, exist_ok=True)
         state_path = user_dir / "state.toml"
         state_path.write_text(dump_state(state), encoding="utf-8")

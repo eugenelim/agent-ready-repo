@@ -39,7 +39,7 @@ def _seed_repo(root: Path) -> None:
             }
         },
     )
-    (root / ".agent-ready-state.toml").write_text(
+    (root / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"
     )
 
