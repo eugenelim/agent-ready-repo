@@ -98,13 +98,12 @@ divergence:
    `/adapt-to-project` in session 1 before the
    `SessionStart` writer fires.
 
-   **Idempotence: do not double-adapt.** If a marker entry is
-   present, do not synthesise a second adaptation. When a
-   marker entry for the same pack is present at either scope,
-   the marker-consume path (step 3 above) owns the adaptation;
-   the proactive cache scan must not synthesise a second
-   entry for the same pack name in the same session. In
-   concrete terms: if a marker entry is present, do not synthesise a second adaptation.
+   **Idempotence: do not double-adapt.** When a marker entry
+   for the same pack is present at either scope, the
+   marker-consume path (step 3 above) owns the adaptation —
+   if a marker entry is present, do not synthesise a second adaptation.
+   The proactive cache scan must not produce a second entry
+   for the same pack name in the same session.
 
    **Stale-entry drop-on-read.** When a `[[packs-installed]]`
    entry's pack is no longer present in any cache directory
@@ -113,8 +112,8 @@ divergence:
    read — no nudge, no proposal queue entry. Stale entries
    can survive uninstall of a Claude-plugins-routed pack
    because the install→adapt chain has no uninstall hook
-   today (deferred per
-   [RFC-0008 §Unresolved questions Q2](../../../docs/rfc/0008-claude-plugins-install-route-parity.md#unresolved-questions)).
+   today (deferred per RFC-0008 §Unresolved questions Q2 in
+   `docs/rfc/0008-claude-plugins-install-route-parity.md`).
 
 ## Class 1 — Substitution (markers, repo-only)
 
