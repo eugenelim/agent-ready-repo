@@ -538,13 +538,13 @@ and the Codex multi-pack aggregation fix land.
   sentinel `<!-- seed-content-lint-ignore: <reason> -->` that
   exempts the next non-empty non-comment line. Stacked sentinels
   are an error; trailing sentinel is an error; sentinels inside
-  fenced ``` blocks are ignored. The footer line at
-  `packs/core/seeds/AGENTS.md:171` carrying the catalogue
-  attribution is the one documented exception (sentinel reason:
-  `catalogue-attribution`); rewording the footer to use an
-  `<adapt:ATTRIBUTION>` marker is deferred to a separate future
-  amendment. Wired into `tools/hooks/pre-pr.py` and the
-  `.github/workflows/docs.yml` `lint-seeds` job.
+  fenced ``` blocks are ignored. The sentinel mechanism ships
+  carrying no live exemptions — the catalogue-attribution footer
+  formerly at `packs/core/seeds/AGENTS.md` was removed in the same
+  PR (per direction during EXECUTE) along with the corresponding
+  line in the projected root `AGENTS.md`. Wired into
+  `tools/hooks/pre-pr.py` and the `.github/workflows/docs.yml`
+  `lint-seeds` job.
 - [x] **AC22 (first-install snapshot test) — 2026-05-25 amendment.**
   `packages/agentbundle/tests/integration/test_install_snapshot.py`
   parameterises over the four packs with seeds (`core`,

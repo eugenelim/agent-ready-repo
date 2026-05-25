@@ -166,7 +166,3 @@ Flag drift in your PR — don't silently work around it. AGENTS.md vs. reality
 drift is the biggest cause of agent quality decay. Substantive changes to
 this file go through RFC; small fixes are normal PRs.
 
----
-
-<!-- seed-content-lint-ignore: catalogue-attribution -->
-*Generated from the [`agent-ready-repo`](https://github.com/) template. See [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) for the full conventions, or [`docs/architecture/overview.md`](docs/architecture/overview.md) to start exploring.*

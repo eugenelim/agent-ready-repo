@@ -53,13 +53,11 @@ Open follow-ons (not gating this spec):
   path. Today the leak is closed at the source (the seeds are
   placeholder-shaped, verified by `lint-seeds.py`); per-route snapshots
   add depth-in-defence, not new closure.
-- **AGENTS.md footer attribution rewording.** The trailing
-  *"Generated from the `agent-ready-repo` template…"* line at
-  `packs/core/seeds/AGENTS.md:171` carries catalogue identity outside
-  of an `<adapt:NAME>` marker. The 2026-05-25 amendment documented it
-  as a known seed-content-lint exception via sentinel comment; a
-  future amendment converts it to an `<adapt:ATTRIBUTION>` marker or
-  removes it.
+- ~~**AGENTS.md footer attribution rewording.**~~ Closed in the same
+  PR as the 2026-05-25 amendment implementation (per direction during
+  EXECUTE): the trailing *"Generated from the `agent-ready-repo`
+  template…"* line was removed from both `packs/core/seeds/AGENTS.md`
+  and the projected root `AGENTS.md`.
 
 ## `distribution-adapters` — shipped (v0.2 contract bump landed)
 
