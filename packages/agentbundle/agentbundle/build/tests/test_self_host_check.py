@@ -579,15 +579,63 @@ class ExcludedGlobTests(unittest.TestCase):
         # but packs.md at root is NOT under packs/
         self.assertFalse(_is_excluded(Path("packs.md")))
 
-    def test_projected_overrides_take_precedence(self) -> None:
+    def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
+        """Per RFC-0002 amendment 2026-05-25: PROJECTED_README_OVERRIDES
+        shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remains.
+        Every other formerly-overridden path now falls through to
+        EXCLUDED_PATTERNS coverage."""
         from agentbundle.build.self_host import _is_excluded
 
-        # docs/architecture/*.md would exclude README.md, but
-        # PROJECTED_README_OVERRIDES restores it
-        self.assertFalse(_is_excluded(Path("docs/architecture/README.md")))
-        self.assertFalse(_is_excluded(Path("docs/architecture/overview.md")))
-        # but a contributor-added subsystem doc IS excluded
+        # docs/CONVENTIONS.md stays in the override → not excluded.
+        self.assertFalse(_is_excluded(Path("docs/CONVENTIONS.md")))
+
+        # All 19 reclassified paths are now Excluded (either via
+        # existing `docs/<area>/*.md` patterns, the `docs/guides/**/*.md`
+        # pattern, or one of the 8 explicit additions made by the
+        # amendment).
+        for path in (
+            # Covered by `docs/architecture/*.md`:
+            "docs/architecture/README.md",
+            "docs/architecture/overview.md",
+            # Covered by `docs/knowledge/*.md`:
+            "docs/knowledge/README.md",
+            # Covered by `docs/product/*.md`:
+            "docs/product/README.md",
+            "docs/product/roadmap.md",
+            "docs/product/changelog.md",
+            # Covered by `docs/guides/**/*.md`:
+            "docs/guides/README.md",
+            "docs/guides/tutorials/README.md",
+            "docs/guides/how-to/README.md",
+            "docs/guides/reference/README.md",
+            "docs/guides/explanation/README.md",
+            # Explicit literal additions:
+            "docs/CHARTER.md",
+            "docs/knowledge/patterns.jsonl",
+            "docs/rfc/README.md",
+            "docs/adr/README.md",
+            "docs/specs/README.md",
+            "packages/README.md",
+            "packages/_example/README.md",
+            "packages/_example/AGENTS.md",
+        ):
+            self.assertTrue(
+                _is_excluded(Path(path)),
+                msg=f"{path} should be Excluded post-2026-05-25 shrink",
+            )
+
+        # Regression guard: a hypothetical contributor-added subsystem
+        # doc under `docs/architecture/` stays Excluded — proves the
+        # shrink didn't accidentally widen the override.
         self.assertTrue(_is_excluded(Path("docs/architecture/data-pipeline.md")))
+
+        # The literal additions are anchored: `packages/_example/README.md`
+        # matches; a hypothetical `packages/foo/_example/README.md` does
+        # not. (Other patterns like `packages/agentbundle/**` cover
+        # nested package directories; the literal additions guard the
+        # specific `_example/` scaffold only.)
+        self.assertTrue(_is_excluded(Path("packages/_example/README.md")))
+        self.assertFalse(_is_excluded(Path("packages/foo/_example/README.md")))
 
 
 class SeedProjectionTests(unittest.TestCase):
@@ -618,6 +666,82 @@ class SeedProjectionTests(unittest.TestCase):
                 (output / "docs" / "CHARTER.md").read_text(encoding="utf-8"),
                 "# Charter\n",
             )
+
+    def test_excluded_path_with_on_disk_content_preserved(self) -> None:
+        """RFC-0002 § Amendments § 2026-05-25 invariant: seed projection
+        MUST NOT overwrite Manual paths whose on-disk content is this
+        repo's filled-in instance.
+
+        Pre-amendment, `_project_seeds` blind-wrote every seed,
+        clobbering living docs (`docs/architecture/overview.md`,
+        `docs/specs/README.md`, `docs/knowledge/patterns.jsonl`, etc.)
+        whenever `make build-self FORCE=1` was invoked. The fix gates
+        writes on `_is_excluded(relative) AND target exists`.
+
+        Regression guard: if the predicate is removed or inverted,
+        this test re-introduces the clobber.
+        """
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = packs_dir / "core"
+            (pack / "seeds" / "docs" / "specs").mkdir(parents=True)
+            # Placeholder seed (what ships to adopters).
+            (pack / "seeds" / "docs" / "specs" / "README.md").write_text(
+                "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8"
+            )
+            (pack / "pack.toml").write_text(
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+            )
+            output = tmp_path / "out"
+            (output / "docs" / "specs").mkdir(parents=True)
+            # Living instance on disk (what this repo or an adopter
+            # already filled in).
+            (output / "docs" / "specs" / "README.md").write_text(
+                "# Specs\n\n| Spec | Status |\n| --- | --- |\n| foo | Draft |\n",
+                encoding="utf-8",
+            )
+
+            _project_seeds(packs_dir, output)
+
+            # The on-disk filled content survives; the placeholder
+            # seed did NOT clobber it.
+            on_disk = (output / "docs" / "specs" / "README.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("| foo | Draft |", on_disk)
+            self.assertNotIn("<!-- no specs yet -->", on_disk)
+
+    def test_excluded_path_missing_on_disk_gets_seed(self) -> None:
+        """First-install case: when an Excluded path does NOT exist on
+        disk, the placeholder seed IS projected (so adopters get the
+        scaffold on a clean install)."""
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = packs_dir / "core"
+            (pack / "seeds" / "docs" / "specs").mkdir(parents=True)
+            (pack / "seeds" / "docs" / "specs" / "README.md").write_text(
+                "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8"
+            )
+            (pack / "pack.toml").write_text(
+                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
+            )
+            output = tmp_path / "out"
+            output.mkdir()  # No pre-existing docs/specs/README.md
+
+            _project_seeds(packs_dir, output)
+
+            on_disk = (output / "docs" / "specs" / "README.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("<!-- no specs yet -->", on_disk)
 
     def test_two_packs_contribute_to_same_dir_without_collision(self) -> None:
         from agentbundle.build.self_host import _project_seeds
