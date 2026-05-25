@@ -75,6 +75,45 @@ PACK_SCHEMA_PATH = _bundled_or_repo("pack.schema.json")
 PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
+# The canonical SessionStart hook command synthesised into each derived
+# plugin.json. Shell-exec contract (AC9 sub-assertion): when
+# CLAUDE_PLUGIN_ROOT is substituted the double-quoted path survives spaces.
+_SESSION_START_COMMAND = (
+    'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+)
+
+
+def _read_install_marker_template() -> bytes:
+    """Read the canonical install-marker.py template as bytes.
+
+    Resolution order (mirrors _read_bundled pattern):
+      1. `<package>/_data/install-marker.py` via importlib.resources — works
+         for filesystem installs AND inside a zipapp archive.
+      2. `<repo>/packages/agentbundle/templates/install-marker.py` — dev
+         fallback for source trees.
+    """
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle").joinpath("_data/install-marker.py")
+        if resource.is_file():
+            return resource.read_bytes()
+    except (FileNotFoundError, ModuleNotFoundError):
+        pass
+    return (REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py").read_bytes()
+
+
+def validate_derived_plugin_manifest(plugin_json_path: Path) -> None:
+    """Validate a derived .claude-plugin/plugin.json (with synthesised hooks) against derived schema."""
+    manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
+    schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
+    errors = validate_instance(manifest, schema)
+    if errors:
+        raise ValueError(
+            f"derived plugin manifest at {plugin_json_path} failed schema: "
+            + "; ".join(errors)
+        )
+
 # The three RFC-0001 recipes that plain `make build` invokes.
 # RFC-0002 recipes (per-pack-overlay, composite-agents-md,
 # composite-marketplace) fire only under --self.
@@ -272,10 +311,34 @@ def _run_per_pack(
         project(pack.path, contract, per_pack_output)
         plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
         if plugin_manifest.exists():
+            # Validate source-tree manifest against the source schema
+            # (forbids hooks; additionalProperties: false ensures any stray
+            # hooks block is caught here before synthesis).
             validate_plugin_manifest(plugin_manifest)
             destination = per_pack_output / ".claude-plugin" / "plugin.json"
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(plugin_manifest, destination, follow_symlinks=False)
+            # Load, splice in synthesised SessionStart hook, re-serialise.
+            derived = json.loads(plugin_manifest.read_text(encoding="utf-8"))
+            derived["hooks"] = {
+                "SessionStart": [{"command": _SESSION_START_COMMAND}]
+            }
+            destination.write_text(
+                json.dumps(derived, indent=2, sort_keys=False) + "\n",
+                encoding="utf-8",
+            )
+            # Validate the derived manifest against the derived schema.
+            validate_derived_plugin_manifest(destination)
+
+        # Project pack.toml verbatim (writer reads it for name/version/allowed-scopes).
+        pack_toml_src = pack.path / "pack.toml"
+        if pack_toml_src.exists():
+            shutil.copy2(pack_toml_src, per_pack_output / "pack.toml", follow_symlinks=False)
+
+        # Project the canonical install-marker.py writer into scripts/.
+        scripts_dir = per_pack_output / ".claude-plugin" / "scripts"
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        (scripts_dir / "install-marker.py").write_bytes(_read_install_marker_template())
+
         produced[pack.name] = str(per_pack_output)
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
 
