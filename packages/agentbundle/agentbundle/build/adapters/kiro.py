@@ -42,6 +42,7 @@ from agentbundle.build.projections.kiro_ide_hook import (
 # projection), so the predictable trailing position keeps the phases
 # uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+from agentbundle.build.projections.direct_directory import sweep_orphans
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -71,6 +72,54 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
 
 
 def project(pack_path: Path, contract: dict, output_root: Path) -> None:
+    """Single-pack convenience wrapper. Delegates to `project_packs`."""
+    project_packs([pack_path], contract, output_root)
+
+
+def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
+    """Project every pack in `pack_paths` in order, then run the
+    shared orphan-sweep post-pass on the `skill` target directory.
+
+    Same-name collision rule: pack source order as supplied here; the
+    last pack's `<name>` overwrites earlier packs' (`_project_direct_directory`
+    `rmtree`s the destination before `copytree`). The orphan sweep
+    observes the union of source skill names across the call's pack
+    list (not per-pack) so a pack shipping a subset can co-exist with
+    another that ships the union complement.
+    """
+    for pack_path in pack_paths:
+        _project_single(pack_path, contract, output_root)
+    _sweep_skill_orphans(pack_paths, contract, output_root)
+
+
+# Mirror of claude_code.py:_skill_direct_directory_target — keep in sync.
+# A shared helper is barred by the spec's `Never do` boundary (no
+# expansion of projections/direct_directory.py beyond `sweep_orphans`).
+def _skill_direct_directory_target(contract: dict, output_root: Path) -> Path | None:
+    adapter_block = contract["adapter"]["kiro"]
+    for entry in adapter_block.get("projection", []):
+        if entry.get("primitive") == "skill" and entry.get("mode") == "direct-directory":
+            return output_root / entry["target-path"].rstrip("/")
+    return None
+
+
+def _sweep_skill_orphans(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
+    target_dir = _skill_direct_directory_target(contract, output_root)
+    if target_dir is None:
+        return
+    skill_source_path = contract["primitive"]["skill"]["source-path"].rstrip("/")
+    expected_names: set[str] = set()
+    for pack_path in pack_paths:
+        source_dir = pack_path / skill_source_path
+        if not source_dir.exists():
+            continue
+        for entry in source_dir.iterdir():
+            if entry.is_dir():
+                expected_names.add(entry.name)
+    sweep_orphans(target_dir, expected_names)
+
+
+def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
     """Project *pack_path* into *output_root* per Kiro's contract rules.
 
     Iteration is phase-ordered (see `_iter_primitives`). For each
@@ -302,9 +351,20 @@ def _project_hook_wiring_to_agent_json(
 
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
     for entry in sorted(source_dir.iterdir()):
+        # Defense-in-depth — `lint-packs` rejects packs that ship
+        # symlinks, but a direct `project_packs` caller bypasses
+        # that gate. A symlink at the skill-root level would be
+        # dereferenced by `copytree`.
+        if entry.is_symlink():
+            continue
         if entry.is_dir():
             destination = target_dir / entry.name
-            if destination.exists():
+            # Spec § Never do — `shutil.rmtree` is barred against
+            # any entry whose `is_symlink()` is true. If a previous
+            # run left a symlink at the destination path, unlink it.
+            if destination.is_symlink():
+                destination.unlink()
+            elif destination.exists():
                 shutil.rmtree(destination)
             shutil.copytree(entry, destination, symlinks=True)
 

@@ -4,7 +4,7 @@
 > Cursor, Codex, Gemini CLI, and Copilot also read it (via their own discovery rules).
 >
 > Keep this file under ~200 lines. If you're tempted to add to it, ask first whether
-> the content belongs in `docs/`, `.claude/skills/`, or a subdirectory `AGENTS.md`.
+> the content belongs in `docs/`, a skill, or a subdirectory `AGENTS.md`.
 
 ## What this repo is
 
@@ -64,7 +64,7 @@ For each kind of decision, there is exactly one place it lives:
 | How is the code organized today?          | `docs/architecture/`                 |
 | What is the product doing today?          | `docs/product/` (roadmap, changelog) |
 | How do users use the product?             | `docs/guides/` (Diátaxis: tutorials, how-to, reference, explanation) |
-| How do agents do `<repeating task>`?      | `.claude/skills/<task>/SKILL.md`     |
+| How do agents do `<repeating task>`?      | A skill file (`SKILL.md` with frontmatter); your IDE handles discovery |
 
 If you can't find the answer in one of these places, **the answer doesn't
 exist yet** — ask, or open an RFC. Don't guess. Lifecycle and mechanics
@@ -110,14 +110,14 @@ it's covered in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 ## Agent workflows
 
 Use the generated skill list below when a task matches a named workflow.
-<!-- agent-skills:start -->
-<!-- agent-skills:end -->
 
 ## Specialist subagents
 
-`.claude/agents/` contains sharp, differentiable lenses for diff review,
-plus the executor used by `work-loop`'s supervisor mode. Pick the
-reviewers the diff actually warrants; don't run all three by default.
+Specialist subagents — Claude Code only; Codex and Copilot drop the
+`agent` primitive per the adapter contract — provide sharp,
+differentiable lenses for diff review, plus the executor used by
+`work-loop`'s supervisor mode. Pick the reviewers the diff actually
+warrants; don't run all three by default.
 
 - `adversarial-reviewer` — spec /
   plan / implementation drift; missing edge cases; scope creep. Default
