@@ -599,6 +599,25 @@ class BundledCopiesMatchTests(unittest.TestCase):
             "docs/contracts/plugin-manifest.derived.schema.json differ",
         )
 
+    def test_install_marker_template_copies_match(self) -> None:
+        """AC20 / Blocker-1 drift gate: _data/install-marker.py and
+        templates/install-marker.py must be byte-identical.
+
+        ``_read_install_marker_template`` (build/main.py) reads _data/ first
+        (zipapp path) and falls back to templates/ in a dev checkout.
+        Both copies are excluded from the self-host drift check, so this
+        test is the only mechanical gate keeping them in sync.
+        """
+        templates_dir = REPO_ROOT / "packages" / "agentbundle" / "templates"
+        a = (self._data_dir() / "install-marker.py").read_bytes()
+        b = (templates_dir / "install-marker.py").read_bytes()
+        self.assertEqual(
+            a, b,
+            "_data/install-marker.py and templates/install-marker.py differ; "
+            "run 'cp templates/install-marker.py agentbundle/_data/install-marker.py' "
+            "to re-sync",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
