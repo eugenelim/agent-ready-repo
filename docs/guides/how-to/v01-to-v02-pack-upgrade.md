@@ -80,11 +80,11 @@ If yes, the pack is a user-scope candidate. If no — because the content carrie
 
 ## State-file migration
 
-The `.agent-ready-state.toml` schema bumped to `"0.2"` alongside the contract. v0.1 state files are read by the v0.2 CLI as all-repo-scope; **writes** against a v0.1 file are refused with a refuse-and-explain message pointing at `agentbundle init-state --migrate`. The migration is destructive (irreversible without backup) and idempotent: an adopter running mixed CLI versions across CI and local must opt into it explicitly.
+The `.agentbundle-state.toml` schema bumped to `"0.2"` alongside the contract. v0.1 state files are read by the v0.2 CLI as all-repo-scope; **writes** against a v0.1 file are refused with a refuse-and-explain message pointing at `agentbundle init-state --migrate`. The migration is destructive (irreversible without backup) and idempotent: an adopter running mixed CLI versions across CI and local must opt into it explicitly.
 
 ```bash
 $ agentbundle init-state --migrate
-init-state --migrate: /path/to/.agent-ready-state.toml → schema-version 0.2
+init-state --migrate: /path/to/.agentbundle-state.toml → schema-version 0.2
 ```
 
 For pack authors there's no state-file change to ship — adopters migrate their own state files when they upgrade the CLI.

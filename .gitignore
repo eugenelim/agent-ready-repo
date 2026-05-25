@@ -1,7 +1,7 @@
 # Local install-time scratch — written by `agentbundle install`,
 # consumed by the adapt-to-project skill at session start. The path
 # *is* the scope (repo-scope marker only here — user-scope marker
-# lives inside ~/.agent-ready/, outside any repo).
+# lives inside ~/.agentbundle/, outside any repo).
 .adapt-install-marker.toml
 
 # Work-loop session state — per-spec scratch, never committed.

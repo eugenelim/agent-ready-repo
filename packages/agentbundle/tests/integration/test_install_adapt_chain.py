@@ -358,7 +358,7 @@ def test_user_scope_only_install_chains_adapt_against_args_output(tmp_path, monk
     A refactor that swapped the fallback to `Path.cwd()`, `$HOME`, or
     `Path("/tmp/whatever")` would trip *both* assertions in this
     fixture: no discovery file at those paths, no pending.md at
-    target. The user-scope state file at `<HOME>/.agent-ready/state.toml`
+    target. The user-scope state file at `<HOME>/.agentbundle/state.toml`
     confirms the user-scope write path ran independently of the chain.
     """
     cat = tmp_path / "cat"
@@ -380,8 +380,8 @@ def test_user_scope_only_install_chains_adapt_against_args_output(tmp_path, monk
     )
     assert rc == 0, f"user-scope-only install failed: {err}"
     # User-scope state file landed at the namespaced dot-directory.
-    assert (fake_home / ".agent-ready" / "state.toml").exists(), (
-        "user-scope install did not write state.toml at <HOME>/.agent-ready/"
+    assert (fake_home / ".agentbundle" / "state.toml").exists(), (
+        "user-scope install did not write state.toml at <HOME>/.agentbundle/"
     )
     # Discriminating assertion (1): the chain found the seeded discovery,
     # so the no-discovery nudge stays out of stderr.

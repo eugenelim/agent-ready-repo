@@ -58,7 +58,7 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
         prefixes = (
             contract["adapter"]["claude-code"]["scope"]["allowed-prefixes"]["user"]
         )
-        self.assertEqual(prefixes, [".claude/", ".agent-ready/"])
+        self.assertEqual(prefixes, [".claude/", ".agentbundle/"])
 
     def test_contract_validates_against_schema(self) -> None:
         from agentbundle.build.validate import validate
@@ -166,7 +166,7 @@ class StdlibValidatorExtensionsTests(unittest.TestCase):
                     validate(bad, schema),
                     f"pattern accepted forbidden value: {bad!r}",
                 )
-        for good in (".claude/", ".agent-ready/", "deep/nested/path/"):
+        for good in (".claude/", ".agentbundle/", "deep/nested/path/"):
             with self.subTest(value=good):
                 self.assertEqual(
                     validate(good, schema),

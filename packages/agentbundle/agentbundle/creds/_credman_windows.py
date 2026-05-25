@@ -41,7 +41,7 @@ ERROR_NO_SUCH_LOGON_SESSION = 1312
 ERROR_INVALID_FLAGS = 1004
 ERROR_LOGON_FAILURE = 1326
 
-TARGET_PREFIX = "agent-ready"
+TARGET_PREFIX = "agentbundle"
 # Tests can monkeypatch this to a ``tmp_path``-derived value so test
 # target-names can't collide with the developer's real Credential
 # Manager entries (spec § AC35 / plan T5 § Test isolation).

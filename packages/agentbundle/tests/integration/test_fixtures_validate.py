@@ -12,7 +12,7 @@ two refusal classes the T2 rail already implements:
 attach-to-agent missing, and attach-to-agent naming an unknown agent.
 
 Spec ACs covered: AC6 (refusal text), AC28 (fixtures exist + are
-exercised), AC29 (no test writes to ~/.claude, ~/.kiro, ~/.agent-ready
+exercised), AC29 (no test writes to ~/.claude, ~/.kiro, ~/.agentbundle
 outside tmp_path).
 """
 
@@ -148,7 +148,7 @@ class PascalEventsRefusedByT6Tests(unittest.TestCase):
 
 class FixtureIsolationTests(unittest.TestCase):
     """AC29: nothing in this test module writes to ``~/.claude``,
-    ``~/.kiro``, or ``~/.agent-ready``. Redirects ``$HOME`` to a
+    ``~/.kiro``, or ``~/.agentbundle``. Redirects ``$HOME`` to a
     ``tmp_path``-scoped directory and asserts the redirected tree is
     empty after validate runs against each user-scope fixture. This is
     the AC29-shaped pin: a regression that writes into ``$HOME`` from

@@ -12,7 +12,7 @@
   (F-spec + F-build) and the sibling spec
   [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
   (defines `pack.toml`, `adapter.toml`, the **Tier-1/2/3 file-safety
-  contract**, the **`.agent-ready-state.toml` schema** (v0.1 and v0.2,
+  contract**, the **`.agentbundle-state.toml` schema** (v0.1 and v0.2,
   with the v0.2 scope column), the **`.upstream.<ext>` companion
   semantics**, the **six-recipe enumeration**, the **five primitive
   types**, the **`[scope]` table** on the adapter contract, the
@@ -72,7 +72,7 @@ section pins the CLI surface that consumes them.
 | `scaffold`     | No `--scope` — always repo-targeted. Refused if `"repo" ∉ allowed-scopes`. Ignores `default-scope`.            |
 | `validate`     | No `--scope` — validates the pack's declared `default-scope ∈ allowed-scopes`, the seeds/hooks/`allowed-scopes` consistency, and the schema. |
 | `render`       | No `--scope` — pack-local primitive rendering; scope only matters at install.                                  |
-| `adapt`        | No `--scope` — walks **both** state files; reads `<repo>/.adapt-discovery.toml` at repo scope and `~/.agent-ready/.adapt-discovery.toml` at user scope. |
+| `adapt`        | No `--scope` — walks **both** state files; reads `<repo>/.adapt-discovery.toml` at repo scope and `~/.agentbundle/.adapt-discovery.toml` at user scope. |
 | `reconcile`    | **User-scope-only (RFC-0005).** Read-only orphan reporter; `--scope user` is the only accepted value. No `--apply` flag — write-mode reconciliation would re-create the merge-discipline problems RFC-0005 is designed to avoid. |
 
 ### Scope-resolution precedence
@@ -112,7 +112,7 @@ Windows support is deferred per the existing stdlib-only commitment;
 `pathlib.expanduser` handles `%USERPROFILE%`, but cross-platform
 conformance is not gated by this amendment.
 
-### `.agent-ready-state.toml` write-time refusal at legacy schemas
+### `.agentbundle-state.toml` write-time refusal at legacy schemas
 
 The CLI **reads** any legacy state file (`schema-version = "0.1"` —
 all-repo-scope; `schema-version = "0.2"` — full v0.2 read with v0.3's
@@ -224,11 +224,11 @@ single-recommend dual-scope install emits up to two stderr lines).
 
 ### `adapt` dual-state-file walk
 
-`adapt` walks **both** state files (`<repo>/.agent-ready-state.toml`
-and `~/.agent-ready/state.toml`) and reads
+`adapt` walks **both** state files (`<repo>/.agentbundle-state.toml`
+and `~/.agentbundle/state.toml`) and reads
 `<repo>/.adapt-discovery.toml` at repo scope and
-`~/.agent-ready/.adapt-discovery.toml` at user scope (user-scope
-artifacts all live inside the `~/.agent-ready/` namespaced
+`~/.agentbundle/.adapt-discovery.toml` at user scope (user-scope
+artifacts all live inside the `~/.agentbundle/` namespaced
 dot-directory). Findings are recorded against the scope of the
 file they were observed in:
 
@@ -244,10 +244,10 @@ match the per-scope state-file locations from the sibling
 | Scope  | Report path                              |
 | ------ | ---------------------------------------- |
 | `repo` | `<repo>/.adapt-pending.md`               |
-| `user` | `~/.agent-ready/.adapt-pending.md`       |
+| `user` | `~/.agentbundle/.adapt-pending.md`       |
 
 User-scope reports live inside the namespaced
-`~/.agent-ready/` dot-directory (the same one that holds the
+`~/.agentbundle/` dot-directory (the same one that holds the
 user-scope state file), not as a bare dotfile in `$HOME`.
 
 ## v0.3 user-scope hook handling (RFC-0005)
@@ -506,7 +506,7 @@ hook-body path written at the prior phase.
 
 ### No state-file shape change
 
-The v0.3 state file (`.agent-ready-state.toml` schema-version
+The v0.3 state file (`.agentbundle-state.toml` schema-version
 `"0.3"`) carries kiro-ide-hook files in the existing
 `[pack.<name>.files]` table — one per projected
 `.kiro/hooks/<pack>/<name>.kiro.hook` file, same shape as every
@@ -552,11 +552,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - Honour the Tier-1/2/3 file-safety contract on every subcommand that writes:
   Tier-1 paths (adapter-contract-projected, recorded in
-  `.agent-ready-state.toml`) may be created or overwritten; Tier-2 paths (same
+  `.agentbundle-state.toml`) may be created or overwritten; Tier-2 paths (same
   paths, but adopter-edited since install per content-hash comparison) get a
   `.upstream.<ext>` companion next to the original; Tier-3 paths (everything
   else) are read-only to the CLI. The contract, the
-  `.agent-ready-state.toml` schema, and the `.upstream.<ext>` semantics are
+  `.agentbundle-state.toml` schema, and the `.upstream.<ext>` semantics are
   owned by the sibling `distribution-adapters` spec (see its Tier-contract
   AC and state-file AC); this CLI consumes them verbatim.
 - Import the render pipeline from `agentbundle.build` (the F-build library
@@ -588,7 +588,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   unreachable catalogue URI); exit zero only when the subcommand's contract
   was satisfied.
 - Read configuration and state exclusively from TOML files (`pack.toml`,
-  `.agent-ready-state.toml`, `.adapt-discovery.toml`, `--values-from <file.toml>`).
+  `.agentbundle-state.toml`, `.adapt-discovery.toml`, `--values-from <file.toml>`).
 - Resolve `--scope` per § *Install-scope dimension*: CLI flag > pack
   `default-scope` > built-in `repo`. Refuse non-zero when the
   resolved value is not in the pack's `allowed-scopes` with a stderr
@@ -602,8 +602,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   $HOME unset or invalid` when the result is literal `"~"` or `"/"`.
   Print the resolved absolute scope root before any write.
 - Print `installed: <pack> @ <scope>` on every successful install.
-- Walk both state files (`<repo>/.agent-ready-state.toml` and
-  `~/.agent-ready/state.toml`) in `adapt`; record findings against
+- Walk both state files (`<repo>/.agentbundle-state.toml` and
+  `~/.agentbundle/state.toml`) in `adapt`; record findings against
   the scope of the file they were observed in.
 - Require explicit `--scope` for `uninstall`, `upgrade`, and `diff`
   when a pack is installed at both scopes; infer when the pack is
@@ -617,9 +617,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Changing the CLI's name from `agentbundle` (committed at this spec) or the
   package path from `packages/agentbundle/`.
 - Introducing a new persisted on-disk artifact (file the CLI writes that
-  isn't already in this list: Tier-1 projected files, `.agent-ready-state.toml`,
+  isn't already in this list: Tier-1 projected files, `.agentbundle-state.toml`,
   `.adapt-pending.md`, `.upstream.<ext>` companions, the user-scope
-  state file `~/.agent-ready/state.toml`).
+  state file `~/.agentbundle/state.toml`).
 - Extending `--scope` to a subcommand not listed in § *Install-scope
   dimension* — *§ `--scope` per subcommand* is the closed set at
   v0.2.
@@ -634,10 +634,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `pack.toml` for the operative pack, or the `--output <dir>` target if
   explicitly passed). A path-jail check fences every write call site.
 - Never clobber a Tier-2 file (content hash differs from
-  `.agent-ready-state.toml`); always emit a `.upstream.<ext>` companion
+  `.agentbundle-state.toml`); always emit a `.upstream.<ext>` companion
   instead and let `adapt` or the LLM skill resolve the merge.
 - Never touch a Tier-3 file (a path not recorded in
-  `.agent-ready-state.toml` under any installed pack's projection).
+  `.agentbundle-state.toml` under any installed pack's projection).
 - Never add a third-party Python dependency. Stdlib only — `tomllib`,
   `argparse`, `hashlib`, `pathlib`, `urllib`, `tarfile`. The sibling
   `distribution-adapters` spec commits to a stdlib-import audit in its build
@@ -656,7 +656,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   pack marker resolution is deferred to the `adapt-to-project` LLM skill;
   out of scope for v1 (RFC-0001 Open Q3).
 - Never silently rewrite a `schema-version = "0.1"`
-  `.agent-ready-state.toml`. Any write-capable invocation against a
+  `.agentbundle-state.toml`. Any write-capable invocation against a
   v0.1 file exits non-zero with the
   `init-state --migrate` refuse-and-explain message defined in
   § *Install-scope dimension*. Reads of a v0.1 file are fine and
@@ -767,7 +767,7 @@ QA tails respectively.
 - [x] `agentbundle install --pack <new>` against the brownfield fixture
       leaves all pre-existing adopter files unchanged and drops
       `.upstream.<ext>` companions for every Tier-2 collision. When an
-      `.agent-ready-state.toml` already exists (e.g. from a prior `install
+      `.agentbundle-state.toml` already exists (e.g. from a prior `install
       --pack <other>`), the new install **merges**: adds a `[pack.<new>]`
       table without modifying existing `[pack.<other>]` tables.
 - [x] `agentbundle adapt --values-from tests/fixtures/values.toml` resolves
@@ -784,7 +784,7 @@ QA tails respectively.
       `--ci` exits-zero path is verified by a fixture where every companion
       has been removed.
 - [x] `agentbundle upgrade --pack <name> --skill <skill> --to <version>`
-      moves only the named primitive; `.agent-ready-state.toml` records the
+      moves only the named primitive; `.agentbundle-state.toml` records the
       resulting mixed-version pack state and subsequent whole-pack upgrades
       surface the mixed state before proceeding. The same flag shape works
       for `--agent`, `--hook`, `--seed`, and `--command`. **Flag-to-primitive
@@ -856,7 +856,7 @@ QA tails respectively.
       '<scope>': <path>`. The repo-scope jail (writes under repo
       root) is unchanged. A test fixture with a projection rule
       resolving under `~/Documents/` (inside `~`, outside the
-      declared `[".claude/", ".agent-ready/"]` prefixes) is refused.
+      declared `[".claude/", ".agentbundle/"]` prefixes) is refused.
 - [x] **(RFC-0004)** `~`-expansion runs once at scope-resolution
       time. When the result is literal `"~"` (expansion failed) or
       `"/"` ($HOME=/), every `--scope user` invocation exits non-
@@ -864,7 +864,7 @@ QA tails respectively.
       invalid`. When expansion succeeds, the CLI prints the
       resolved absolute scope root to stderr before any write.
 - [x] **(RFC-0004)** Write-capable invocations against a v0.1
-      `.agent-ready-state.toml` exit non-zero with stderr `state
+      `.agentbundle-state.toml` exit non-zero with stderr `state
       file at <path> is schema-version 0.1; run 'agentbundle
       init-state --migrate' first`. Read-only invocations
       (`list-targets`, `diff`, `adapt` without `--values-from`)
@@ -908,12 +908,12 @@ QA tails respectively.
       scope. A dual-scope `--force` install emits one warning per
       scope per recommend.
 - [x] **(RFC-0004)** `adapt` walks **both**
-      `<repo>/.agent-ready-state.toml` and
-      `~/.agent-ready/state.toml`, reads
+      `<repo>/.agentbundle-state.toml` and
+      `~/.agentbundle/state.toml`, reads
       `<repo>/.adapt-discovery.toml` at repo scope and
-      `~/.agent-ready/.adapt-discovery.toml` at user scope, and
+      `~/.agentbundle/.adapt-discovery.toml` at user scope, and
       writes the pending report to `<repo>/.adapt-pending.md` at
-      repo scope and `~/.agent-ready/.adapt-pending.md` at user
+      repo scope and `~/.agentbundle/.adapt-pending.md` at user
       scope. `adapt --ci` exits non-zero if *either* scope's
       `.adapt-pending.md` is non-empty. Findings are recorded
       against the scope of the file they were observed in (a

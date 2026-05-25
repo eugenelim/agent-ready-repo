@@ -18,7 +18,7 @@ Token bytes never reach argv:
 The loader (``agentbundle.creds.loader``) imports this module **only**
 when ``sys.platform == "darwin"`` per AC4b. Tests monkeypatch
 ``SERVICE`` to a ``tmp_path``-derived prefix so test entries never
-collide with the developer's real ``agent-ready`` Keychain entries.
+collide with the developer's real ``agentbundle`` Keychain entries.
 """
 
 from __future__ import annotations
@@ -28,9 +28,9 @@ import subprocess
 from .exceptions import Tier2HardFailError
 
 SECURITY_BIN = "/usr/bin/security"
-SERVICE = "agent-ready"
+SERVICE = "agentbundle"
 # Tests monkeypatch ``SERVICE`` to a ``tmp_path``-derived prefix so test
-# entries can't collide with real ``agent-ready`` entries in the
+# entries can't collide with real ``agentbundle`` entries in the
 # developer's login Keychain. ``security``'s ``-w`` prompt mode requires
 # ``-w`` as the trailing argv element, which forecloses the trailing-
 # keychain-positional approach to test isolation; the service-prefix

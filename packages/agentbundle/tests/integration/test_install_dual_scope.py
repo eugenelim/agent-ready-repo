@@ -160,8 +160,8 @@ def test_cross_scope_force_proceeds_and_writes_both_state_files(tmp_path, monkey
     )
     assert rc == 0
     # Both state files exist after the run.
-    assert (target / ".agent-ready-state.toml").exists()
-    assert (fake_home / ".agent-ready" / "state.toml").exists()
+    assert (target / ".agentbundle-state.toml").exists()
+    assert (fake_home / ".agentbundle" / "state.toml").exists()
     # Two `installed:` lines, repo first then user.
     lines = [ln for ln in out.splitlines() if ln.startswith("installed:")]
     assert lines == ["installed: demo-both @ repo", "installed: demo-both @ user"], (
@@ -270,8 +270,8 @@ def test_upgrade_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
 
 def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatch):
     """RFC-0004 Blocker fix: uninstall at user scope must write the state
-    file to `~/.agent-ready/state.toml` (the namespaced dot-directory),
-    never a bare `~/.agent-ready-state.toml`. Adversarial-reviewer Blocker
+    file to `~/.agentbundle/state.toml` (the namespaced dot-directory),
+    never a bare `~/.agentbundle-state.toml`. Adversarial-reviewer Blocker
     pass 2 surfaced this — the test pins the fix.
     """
     from agentbundle.commands import uninstall
@@ -289,7 +289,7 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
         dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="user", force=False)
     )
     assert rc == 0
-    assert (fake_home / ".agent-ready" / "state.toml").exists()
+    assert (fake_home / ".agentbundle" / "state.toml").exists()
 
     args = argparse.Namespace(pack="demo-both", root=str(target), scope="user")
     out = io.StringIO()
@@ -298,13 +298,13 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
         rc = uninstall.run(args)
     assert rc == 0, f"uninstall at user scope failed: {err.getvalue()}"
     # The bare-dotfile path the bug would have produced must NOT exist.
-    assert not (fake_home / ".agent-ready-state.toml").exists(), (
-        "uninstall at user scope wrote to ~/.agent-ready-state.toml (legacy bare dotfile path)"
+    assert not (fake_home / ".agentbundle-state.toml").exists(), (
+        "uninstall at user scope wrote to ~/.agentbundle-state.toml (legacy bare dotfile path)"
     )
     # The namespaced state file must still exist and have the pack removed.
     from agentbundle.config import load_state
 
-    state = load_state(fake_home / ".agent-ready" / "state.toml")
+    state = load_state(fake_home / ".agentbundle" / "state.toml")
     assert "demo-both" not in state.packs
 
 
@@ -353,7 +353,7 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
 
     from agentbundle.config import load_state
 
-    state = load_state(fake_home / ".agent-ready" / "state.toml")
+    state = load_state(fake_home / ".agentbundle" / "state.toml")
     assert state.packs["demo-both"].installed_version == "0.2.0"
 
 
