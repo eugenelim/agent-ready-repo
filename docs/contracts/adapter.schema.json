@@ -152,6 +152,16 @@
                   "minItems": 1,
                   "items": {"type": "string"}
                 },
+                "ide-event-vocabulary": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {"type": "string"}
+                },
+                "ide-action-vocabulary": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {"type": "string"}
+                },
                 "on-conflict": {
                   "type": "string",
                   "enum": [
