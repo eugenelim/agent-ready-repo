@@ -1,9 +1,9 @@
 # RFC-0008: Claude-plugins install-route parity — per-pack SessionStart writer for the install→adapt chain
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-05-24
-- **Date closed:**
+- **Date closed:** 2026-05-25
 - **Related:** [RFC-0001](0001-bundle-distribution-by-adapter-spec.md)
   (Claude-plugins as a canonical install route);
   [RFC-0003](0003-spec-and-cli.md) (CLI install→adapt chain;

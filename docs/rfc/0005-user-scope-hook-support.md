@@ -1,9 +1,9 @@
 # RFC-0005: Hook support across Claude Code and Kiro
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-05-23
-- **Date closed:**
+- **Date closed:** 2026-05-25
 - **Extends:** [RFC-0004](0004-install-scope-per-pack.md) — lifts the
   conditional Rail-B refusal it parked.
 - **Amends [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md):**
