@@ -309,6 +309,19 @@ CLI surface:
 - [x] **AC25.** `install --scope user` against an adapter that
       doesn't declare a working user-scope `hook-wiring` mode
       refuses with the RFC-0005-specified text.
+
+> **Independent refusal — `kiro-ide-hook` at user scope.** Rail B
+> as defined above gates *hook-shaped primitives* (`.apm/hooks/`,
+> `.apm/hook-wiring/`) at user scope. RFC-0005's v0.4 amendment
+> adds a separate `kiro-ide-hook` primitive that carries its **own**
+> contract-layer user-scope refusal — independent of Rail B. A pack
+> shipping only `.apm/kiro-ide-hooks/` (no Rail B trigger) still
+> refuses at user scope because the primitive is repo-only in v1.
+> Detail in
+> [`docs/specs/distribution-adapters/spec.md` § v0.4 IDE event
+> hooks (RFC-0005)](../distribution-adapters/spec.md#v04-ide-event-hooks-rfc-0005)
+> and [`docs/specs/agent-spec-cli/spec.md` § v0.4 kiro-ide-hook
+> primitive (RFC-0005)](../agent-spec-cli/spec.md#v04-kiro-ide-hook-primitive-rfc-0005).
 - [x] **AC26.** `reconcile --scope user` reads both the Claude
       Code settings file (if exists) and every Kiro agent JSON
       named in user-scope `hook-wiring-owned` state. It reports two
