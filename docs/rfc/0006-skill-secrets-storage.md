@@ -963,3 +963,24 @@ Filled in upon acceptance.
   lands). The substantive convention (the "Don't" block + minimal
   scaffold) is unchanged; only the path is amended.
 
+- 2026-05-25 (cosmetic, post-acceptance): § 4 introduced
+  `credentialed:` and `primitive-class:` as top-level `SKILL.md`
+  frontmatter keys. The
+  [agentskills.io specification](https://agentskills.io/specification)
+  pins the blessed top-level key set as exactly `name`, `description`,
+  `license`, `compatibility`, `metadata`, `allowed-tools`, with
+  `metadata:` reserved as the escape hatch for project-specific
+  fields. To stay spec-compliant, both keys are nested under
+  `metadata:` (as `metadata.credentialed` and
+  `metadata.primitive-class`); their semantics, the lint contract
+  (`tools/lint-agent-artifacts.py`, `tools/lint-credentialed-skills.sh`),
+  and the "Don't"-block obligations are unchanged. The Boundaries
+  "Ask first" rule against *renaming* the two keys remains in force;
+  nesting under `metadata:` is not a rename. The credentialed-CLI
+  variant template at
+  `packs/core/.apm/skills/add-credentialed-skill/assets/credentialed-skill-SKILL.md`,
+  the worked example at
+  `packs/core/.apm/skills/example-credentialed-skill/SKILL.md`,
+  the how-to guide, and `conventions-check.md` reflect the nested
+  location.
+

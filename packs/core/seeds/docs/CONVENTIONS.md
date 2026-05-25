@@ -139,7 +139,7 @@ Numbers are sequential and never reused.
 
 **Status values:** `Proposed` → `Accepted` → (`Deprecated` | `Superseded by ADR-NNNN`).
 
-**Template:** [`new-adr/assets/adr.md`](../.claude/skills/new-adr/assets/adr.md) — lives with the `new-adr` skill that creates ADRs from it.
+**Template:** `assets/adr.md` in the `new-adr` skill that creates ADRs from it.
 
 **When to write an ADR:**
 
@@ -183,7 +183,7 @@ After follow-ons exist, the RFC's job is done. It stays in the repo as history.
 
 **Filename:** `NNNN-kebab-case-title.md`. Numbers are sequential.
 
-**Template:** [`new-rfc/assets/rfc.md`](../.claude/skills/new-rfc/assets/rfc.md) — lives with the `new-rfc` skill that creates RFCs from it.
+**Template:** `assets/rfc.md` in the `new-rfc` skill that creates RFCs from it.
 
 **When to open an RFC:**
 
@@ -234,7 +234,7 @@ documentation of the feature's contract — but at that point the *code is the
 truth*, and the spec is reference material that should be updated alongside
 behavior changes.
 
-**Template:** [`new-spec/assets/spec.md`](../.claude/skills/new-spec/assets/spec.md), [`new-spec/assets/plan.md`](../.claude/skills/new-spec/assets/plan.md) — both live with the `new-spec` skill that creates the pair.
+**Template:** `assets/spec.md` and `assets/plan.md` in the `new-spec` skill that creates the pair.
 
 **Cite upward, never downward:** a spec links to the ADRs and RFCs that
 constrain it. ADRs do not link to specs (specs are too small and short-lived
@@ -448,7 +448,7 @@ must be noted in `CHANGELOG.md`.
 
 For anything beyond a one-line edit, follow the **plan → execute → verify →
 review → iterate** loop. The mechanics are in the
-[`work-loop`](../.claude/skills/work-loop/SKILL.md) skill; this section is
+`work-loop` skill; this section is
 the why.
 
 **Why a loop, not a single pass.** LLM self-assessment is unreliable: agents
@@ -484,12 +484,11 @@ kind of learning belongs.
 
 The work-loop's `state.json` schema, exit contract, lifecycle, and
 atomic-write discipline live with the skill that consumes them —
-see [`.claude/skills/work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md).
-The template at [`.claude/skills/work-loop/assets/state.json`](../.claude/skills/work-loop/assets/state.json)
+see `references/state-schema.md` in the `work-loop` skill.
+The template at `assets/state.json` in the `work-loop` skill
 is the starting point `loop-cohort init` copies in. Every state mutation
 (init, plan-approval, fingerprint rotation, worktree coordination) is
-owned by the
-[`loop-cohort`](../.claude/skills/work-loop/scripts/loop-cohort.py) tool;
+owned by the `loop-cohort` tool;
 SKILL prose calls each verb at the appropriate phase rather than
 mutating JSON by hand.
 
@@ -518,10 +517,10 @@ work-loop enters **supervisor mode**: one primary orchestrator
 dispatches `implementer` subagents in parallel, each working in its own
 git worktree, then merges the results back and runs gates in the
 primary. The trigger and one-sentence concept live in the
-[`work-loop` skill](../.claude/skills/work-loop/SKILL.md) §EXECUTE; the
+`work-loop` skill §EXECUTE; the
 step-by-step procedure (pre-flight, worktree setup, dispatch, report
 persistence, non-ready handling, merge, cleanup) lives in the skill's
-[`references/supervisor-mode.md`](../.claude/skills/work-loop/references/supervisor-mode.md).
+`references/supervisor-mode.md`.
 This section is the why and the boundary.
 
 **Why a separate mode instead of a separate skill.** The trigger is
@@ -546,7 +545,7 @@ history for traceability.
 **Merge discipline.** The supervisor merges with `git merge --no-ff
 <base>-<task-id>` into the primary branch, **sequentially in task-id
 order**. The procedure file
-([`references/supervisor-mode.md`](../.claude/skills/work-loop/references/supervisor-mode.md))
+(`references/supervisor-mode.md` in the `work-loop` skill)
 has the executable form (including how to order non-numeric IDs). If a
 sequential merge conflicts, the tasks weren't actually independent —
 the plan was wrong. Surface that as a PLAN-level escalation, not a
@@ -571,8 +570,7 @@ walk-through, not by an executed end-to-end dry-run. Any change to
 schema** must perform an actual `git worktree add` + parallel-dispatch
 round against a throwaway spec before merging — read-only walk-through
 is not sufficient for those surfaces. Step numbers refer to the
-procedure at
-[`work-loop/references/supervisor-mode.md`](../.claude/skills/work-loop/references/supervisor-mode.md).
+procedure at `references/supervisor-mode.md` in the `work-loop` skill.
 
 ### Knowledge base
 
@@ -600,7 +598,7 @@ caller's `--scope` value as the *path* argument and the entry's
 stored glob as the *pattern*, so an agent working in
 `packages/auth/server.ts` gets entries scoped to `packages/auth/**`
 plus any repo-wide `*` entries. The work-loop SKILL's
-[`Capture what was learned`](../.claude/skills/work-loop/SKILL.md#capture-what-was-learned)
+*Capture what was learned*
 section points contributors at this file as the destination for
 pattern/gotcha/antipattern-shaped learnings; other shapes still go
 where they already belong (AGENTS.md, skill bodies, architecture/).
@@ -613,20 +611,26 @@ enforcement triplet" and mean the same three things:
 
 | Layer | Mechanism | What it gates |
 |---|---|---|
-| Caps | [`.claude/skills/work-loop/scripts/loop-cohort.py`](../.claude/skills/work-loop/scripts/loop-cohort.py) `check` | Iteration cap, token budget, plan approval, fingerprint stasis (see [`work-loop/references/state-schema.md`](../.claude/skills/work-loop/references/state-schema.md)). The same tool owns every state mutation upstream of the check. |
+| Caps | `scripts/loop-cohort.py check` in the `work-loop` skill | Iteration cap, token budget, plan approval, fingerprint stasis (see `references/state-schema.md` in the `work-loop` skill). The same tool owns every state mutation upstream of the check. |
 | Artifacts | `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-knowledge.py`, `lint-build.py` | Shape and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
 | Aggregation | [`tools/hooks/pre-pr.py`](../tools/hooks/pre-pr.py) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
 
 The triplet is **Shift Left**: catch problems as early as possible,
 locally before CI, at PLAN before EXECUTE. The
-[pre-EXECUTE adversarial review](../.claude/skills/work-loop/SKILL.md) in
+pre-EXECUTE adversarial review in
 the work-loop skill is the same pattern at a different layer — moving
 review left from after code is written to before it is.
 
-`pre-pr.py` is the hook downstream consumers wire into their tool's
-lifecycle (see [`tools/hooks/README.md`](../tools/hooks/README.md)).
-The template ships the script; it does **not** ship a committed
-`.claude/settings.json` — wiring is consumer-specific.
+`session-start.py` is shipped pre-wired by the install pipeline (and
+by `make build-self` for this repo's self-host): the SessionStart
+binding lands in `.claude/settings.local.json` automatically, no
+manual paste. `pre-pr.py` is the other half of the triplet — and
+unlike `session-start.py` it stays consumer-wired, because Claude
+Code has no PR-open lifecycle event (`Stop` fires after every agent
+turn — wrong semantics). Wire `pre-pr.py` via `.git/hooks/pre-push`
+if you want it automatic, or run it by hand before opening a PR.
+See [`tools/hooks/README.md`](../tools/hooks/README.md) for both
+surfaces.
 
 ### When to reach for Ralph
 
@@ -646,7 +650,7 @@ opening an ADR, running a release. They live in `.claude/skills/<name>/SKILL.md`
 Add a skill when you've done the same multi-step thing three times. Don't add
 one speculatively — speculative skills bloat context and degrade adherence.
 
-The skill index is at [`.claude/skills/README.md`](../.claude/skills/README.md).
+The skill index is generated at the bottom of `AGENTS.md`.
 
 ---
 
@@ -727,14 +731,15 @@ template adopter knows when to wire each one up.
 - **Profile B** — [supervisor mode](#supervisor-mode) earns its keep
   when a plan produces two or more `Depends on: none` tasks. Reviewer
   fan-out follows the
-  [parallel-dispatch discipline](../.claude/skills/work-loop/SKILL.md#parallel-dispatch-discipline)
+  *Parallel dispatch discipline* section
   in the work-loop skill: one tool-call message, one Agent use per
   reviewer, barrier-wait, merge in the orchestrator's context.
 - **Profile C** — same as B, plus the [knowledge base](#knowledge-base)
-  is actively populated (`docs/knowledge/patterns.jsonl`) and the
-  `session-start` hook is wired in the consumer's `.claude/settings.json`
-  per [`tools/hooks/README.md`](../tools/hooks/README.md). The template
-  ships the script, not the wiring.
+  is actively populated (`docs/knowledge/patterns.jsonl`). The
+  `session-start` hook is shipped pre-wired by the install pipeline,
+  so the knowledge base shows up in Claude Code session context out
+  of the box; see [`tools/hooks/README.md`](../tools/hooks/README.md)
+  for what lands and where.
 
 ### Above Profile C
 
@@ -773,7 +778,7 @@ already lives in this repo. These are the in-loop counterparts to the
 | The lie | The rebuttal |
 | --- | --- |
 | "We'll update the spec after the PR." | Spec drift is a bug, not follow-up work — update spec and code in the same PR. See [`AGENTS.md` § How we work](../AGENTS.md#how-we-work) and the spec lifecycle rule in § 4 above. |
-| "I'll verify this manually, just this once." | Verification mode — TDD, goal-based, or manual QA — is declared in the plan task, not improvised at the keyboard. If manual QA is the right mode, write it down; if it isn't, pick TDD or a goal-based check. See the PLAN phase in [`work-loop`](../.claude/skills/work-loop/SKILL.md). |
+| "I'll verify this manually, just this once." | Verification mode — TDD, goal-based, or manual QA — is declared in the plan task, not improvised at the keyboard. If manual QA is the right mode, write it down; if it isn't, pick TDD or a goal-based check. See the PLAN phase in the `work-loop` skill. |
 | "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Keeping changes minimal](../AGENTS.md#keeping-changes-minimal). |
 | "This decision doesn't need an ADR — it's obvious." | If you're making it, it isn't obvious to the next person. Writing an ADR now costs less than someone re-litigating the decision in six months. See § 2 above and the `new-adr` skill. |
 
@@ -799,6 +804,29 @@ the token. See RFC-0006
 for the rationale; the `add-credentialed-skill` author skill walks
 authors through the substitutions, and `example-credentialed-skill`
 ships as the worked example.
+
+### Frontmatter declarations
+
+A credentialed skill declares two project-specific flags under the
+`metadata:` block of its `SKILL.md` frontmatter:
+
+```yaml
+---
+name: your-skill-name
+description: <what triggers it>
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli   # or mcp-server
+---
+```
+
+The keys live under `metadata:` rather than at top level because the
+[agentskills.io specification](https://agentskills.io/specification)
+pins the top-level frontmatter set to `name`, `description`,
+`license`, `compatibility`, `metadata`, `allowed-tools` and reserves
+`metadata:` as the project-specific escape hatch. `tools/lint-agent-artifacts.py`
+refuses any top-level key outside that set; `tools/lint-credentialed-skills.sh`
+scopes its AC26 checks to skills with `metadata.credentialed: true`.
 
 ### Three storage tiers
 

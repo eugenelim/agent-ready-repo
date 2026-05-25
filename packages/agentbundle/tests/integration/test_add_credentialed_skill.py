@@ -114,8 +114,9 @@ def test_template_block_passes_t10_lint_when_copied_into_a_skill(tmp_path):
         "---\n"
         "name: fixture-from-template\n"
         "description: Fixture skill assembled from the T11 template variant; T10 lint should accept it.\n"
-        "credentialed: true\n"
-        "primitive-class: credentialed-cli\n"
+        "metadata:\n"
+        "  credentialed: true\n"
+        "  primitive-class: credentialed-cli\n"
         "---\n\n" + skill_body + "\n",
         encoding="utf-8",
     )

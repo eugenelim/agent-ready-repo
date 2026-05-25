@@ -1,8 +1,9 @@
 ---
 name: dotfile-with-optout
 description: Credentialed primitive that legitimately reads the dotfile, with the opt-out marker on the same line; lint must NOT flag it.
-credentialed: true
-primitive-class: credentialed-cli
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
 ---
 
 The credentialed-primitive itself (not a skill) legitimately reads the
