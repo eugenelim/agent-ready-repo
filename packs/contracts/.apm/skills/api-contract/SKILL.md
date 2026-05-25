@@ -32,14 +32,14 @@ Follow these phases in order. Do not skip ahead.
 ### Phase 2 -- Design URLs & Methods
 
 1. **Build resource paths.** Use kebab-case [#129], plural nouns [#134], no verbs [#141], no `/api` prefix [#135], normalized (no trailing slash, no duplicated slashes) [#136]. Use URL-friendly resource IDs [#228].
-2. **Map operations to HTTP methods.** Follow method semantics exactly [#148][#149]. Use idempotent POST/PATCH via `Idempotency-Key` where needed [#229]. See [references/http-methods-and-status-codes.md](./references/http-methods-and-status-codes.md).
-3. **Define query parameters.** Use snake_case [#130], conventional names (`q`, `sort`, `cursor`, `limit`, `fields`, `embed`) [#137]. Paginate all list endpoints [#159], prefer cursor-based [#160]. See [references/pagination-and-filtering.md](./references/pagination-and-filtering.md).
+2. **Map operations to HTTP methods.** Follow method semantics exactly [#148][#149]. Use idempotent POST/PATCH via `Idempotency-Key` where needed [#229]. See [references/http-methods-and-status-codes.md](references/http-methods-and-status-codes.md).
+3. **Define query parameters.** Use snake_case [#130], conventional names (`q`, `sort`, `cursor`, `limit`, `fields`, `embed`) [#137]. Paginate all list endpoints [#159], prefer cursor-based [#160]. See [references/pagination-and-filtering.md](references/pagination-and-filtering.md).
 
 ### Phase 3 -- Design Representations
 
 1. **JSON payloads.** Request and response bodies MUST be JSON [#167] with top-level objects (no bare arrays) [#110]. JSON-derived media types are permitted: `application/merge-patch+json` for PATCH [#148], `application/problem+json` for errors [#176].
 2. **Property naming.** `snake_case` [#118], no null booleans [#122]. Pluralize array names [#120]. Use `_at` suffix for date-time, `_date` for date-only [#235]. Follow common field names [#174].
-3. **Data formats.** Use standard `format` values [#238] and explicit number formats (`int32`, `int64`, `decimal`) [#171]. ISO 8601 for date-time [#169]. ISO 3166/639/4217 for country/language/currency [#170]. See [references/data-formats-and-common-objects.md](./references/data-formats-and-common-objects.md).
+3. **Data formats.** Use standard `format` values [#238] and explicit number formats (`int32`, `int64`, `decimal`) [#171]. ISO 8601 for date-time [#169]. ISO 3166/639/4217 for country/language/currency [#170]. See [references/data-formats-and-common-objects.md](references/data-formats-and-common-objects.md).
 4. **Null handling.** Define null semantics clearly [#123]. Never return null for booleans [#122] or empty arrays [#124].
 5. **Reusable objects.** Use the standard Money [#173] and Address [#249] objects from `#/components/schemas/`. Use a single schema for read and write where possible [#252].
 6. **Enumerations.** Use UPPER_SNAKE_CASE enum values [#240]. For evolvable value sets, use `examples` keyword (not closed `enum`) to signal open-ended values [#112].
@@ -49,7 +49,7 @@ Follow these phases in order. Do not skip ahead.
 1. **Specify success and error responses** for every operation [#151]. Use official HTTP status codes only [#243].
 2. **Use RFC 9457 Problem Detail** (`application/problem+json`) for all error responses [#176]. Never expose stack traces [#177].
 3. **Batch operations** return `207 Multi-Status` [#152]. Rate-limited endpoints return `429` with `Retry-After` [#153].
-4. See [references/http-methods-and-status-codes.md](./references/http-methods-and-status-codes.md) for the full method-to-status-code matrix.
+4. See [references/http-methods-and-status-codes.md](references/http-methods-and-status-codes.md) for the full method-to-status-code matrix.
 
 ### Phase 5 -- Security & Headers
 
@@ -63,13 +63,13 @@ Follow these phases in order. Do not skip ahead.
 1. **Do not introduce breaking changes** to published APIs [#106]. Follow the compatible extension rules [#107].
 2. **Design for tolerant readers** [#108] and **open for extension** [#111].
 3. **Version via media types** if needed [#114]. Never version in the URL [#115].
-4. See [references/compatibility-and-versioning.md](./references/compatibility-and-versioning.md).
+4. See [references/compatibility-and-versioning.md](references/compatibility-and-versioning.md).
 
 ### Phase 7 -- Hypermedia & Events
 
 1. **Target REST maturity level 2** (HTTP verbs + status codes) [#162]. Add hypertext controls for navigation [#164] using absolute URIs [#217].
-2. **If the domain includes asynchronous events,** treat event schemas as API contracts [#194] and apply event rules. See [references/events.md](./references/events.md) for categories [#198], metadata [#247], data change events [#202], and backward compatibility [#209].
-3. See [references/hypermedia-and-performance.md](./references/hypermedia-and-performance.md).
+2. **If the domain includes asynchronous events,** treat event schemas as API contracts [#194] and apply event rules. See [references/events.md](references/events.md) for categories [#198], metadata [#247], data change events [#202], and backward compatibility [#209].
+3. See [references/hypermedia-and-performance.md](references/hypermedia-and-performance.md).
 
 ## Quality Gates
 
@@ -161,13 +161,13 @@ Full reference index:
 
 | Reference                                                                            | Covers                                                    |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| [naming-conventions.md](./references/naming-conventions.md)                           | URL paths, property names, enums, field suffixes          |
-| [http-methods-and-status-codes.md](./references/http-methods-and-status-codes.md)     | Method semantics, status code selection, idempotency      |
-| [data-formats-and-common-objects.md](./references/data-formats-and-common-objects.md) | Standard formats, Money, Address, Problem schemas         |
-| [pagination-and-filtering.md](./references/pagination-and-filtering.md)               | Cursor vs offset, page object, conventional params        |
-| [compatibility-and-versioning.md](./references/compatibility-and-versioning.md)       | Breaking changes, extension rules, media type versioning  |
-| [hypermedia-and-performance.md](./references/hypermedia-and-performance.md)           | REST maturity, caching, compression, partial responses    |
-| [events.md](./references/events.md)                                                   | All 20 event rules (#194-#247), event categories, schemas |
+| [naming-conventions.md](references/naming-conventions.md)                           | URL paths, property names, enums, field suffixes          |
+| [http-methods-and-status-codes.md](references/http-methods-and-status-codes.md)     | Method semantics, status code selection, idempotency      |
+| [data-formats-and-common-objects.md](references/data-formats-and-common-objects.md) | Standard formats, Money, Address, Problem schemas         |
+| [pagination-and-filtering.md](references/pagination-and-filtering.md)               | Cursor vs offset, page object, conventional params        |
+| [compatibility-and-versioning.md](references/compatibility-and-versioning.md)       | Breaking changes, extension rules, media type versioning  |
+| [hypermedia-and-performance.md](references/hypermedia-and-performance.md)           | REST maturity, caching, compression, partial responses    |
+| [events.md](references/events.md)                                                   | All 20 event rules (#194-#247), event categories, schemas |
 
 ---
 
