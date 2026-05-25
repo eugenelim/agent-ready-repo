@@ -90,8 +90,8 @@ what you used to worry about.
 
 ## Where this fits in the work-loop
 
-[`.claude/skills/work-loop/SKILL.md`](../../.claude/skills/work-loop/SKILL.md)
-§ "Capture what was learned" points back at this file. When a loop
+The `work-loop` skill's *Capture what was learned*
+section points back at this file. When a loop
 captures a learning that fits the pattern/gotcha/antipattern shape, the
 canonical home is here. Other kinds of learning still go where they
 already belong (AGENTS.md, skill bodies, architecture/).
