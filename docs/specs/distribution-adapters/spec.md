@@ -656,6 +656,195 @@ per-scope cases: every contract change above (allowed-prefixes
 constraints, scope-keyed state-file rule, Rails A/B/C, path-jail per
 scope) appears as a conformance case the v0.2 contract must satisfy.
 
+## v0.4 IDE event hooks (RFC-0005)
+
+The v0.4 contract bump adds a sixth primitive — `kiro-ide-hook` —
+for Kiro's standalone IDE-event hook surface
+([`kiro.dev/docs/hooks/`](https://kiro.dev/docs/hooks/),
+[`hooks/types`](https://kiro.dev/docs/hooks/types),
+[`hooks/examples`](https://kiro.dev/docs/hooks/examples/)). The
+primitive ships alongside the v0.3 user-scope hook surfaces, sits
+at repo scope only in v1 (user-scope refused until upstream Kiro
+[#5440](https://github.com/kirodotdev/Kiro/issues/5440) closes), and
+extends the build pipeline's phase order so its placeholder
+expansion can resolve to projected `hook-body` paths.
+
+### Primitive declaration
+
+A sixth `[primitive]` table entry sources files under a new pack
+path:
+
+```toml
+[primitive."kiro-ide-hook"]
+source-path = ".apm/kiro-ide-hooks/"
+```
+
+Source files are hand-authored JSON, one file per hook, named
+`<name>.kiro.hook` (compound `.kiro.hook` extension — Kiro reads
+files by this filter; the inner `.kiro` segment is part of the
+filename, not the directory).
+
+### Kiro adapter projection — `direct-file` with placeholder expansion
+
+```toml
+[adapter.kiro.projections.kiro-ide-hook]
+mode = "direct-file"
+target.repo = "<probe-pinned per Q6 — see probes.md>"
+on-conflict = "prompt-then-preserve"
+ide-event-vocabulary = <probe-pinned per Q11 — see probes.md>
+ide-action-vocabulary = <probe-pinned per Q11 — see probes.md>
+```
+
+**The `target.repo` string, `ide-event-vocabulary` array, and
+`ide-action-vocabulary` array are intentionally not pre-filled
+here.** RFC-0005's declined-pattern discipline explicitly bars
+inferring those values from community examples; T-CONTRACT writes
+them once the operator runs the Q6 / Q11 probes and pins outcomes
+in [`docs/specs/kiro-ide-hook/probes.md`](../kiro-ide-hook/probes.md).
+The shape of each field is fixed (string; array-of-string with
+`minItems: 1`); only the *content* is probe-gated.
+
+The mode is the existing `direct-file`; no new mode is introduced.
+The novelty is two declarative-vocabulary arrays sitting alongside
+the v0.3 `agent-event-vocabulary` field, plus a single-pass
+placeholder substitution applied during projection.
+
+**Target template substitution.** `<pack>` resolves to the pack's
+directory name; `<name>` resolves to the source file's bare name
+(filename minus `.kiro.hook`). Pack-namespacing keeps two packs
+shipping `on-save.kiro.hook` from colliding and makes uninstall a
+directory removal — the existing per-file Tier-1/Tier-2 path plus
+its empty-parent sweep handles it without state-schema additions
+([RFC-0005 § State-file impact](../../rfc/0005-user-scope-hook-support.md#state-file-impact)).
+
+**Probe-gated values.** The exact `target.repo` string above and
+the `ide-event-vocabulary` array are gated on two probes against a
+real Kiro install before the v0.4 declaration ships in
+`adapter.toml`:
+
+- **Q6 — recursion + extension filter.** Determines whether Kiro
+  reads `.kiro/hooks/<subdir>/*.kiro.hook` recursively and whether
+  it filters by the `.kiro.hook` extension or parses every file.
+  The 2×2 (RFC-0005 § Unresolved Q6) picks the canonical target
+  string. The `yes-recursion × no-extension-filter` quadrant
+  additionally triggers a cross-primitive `hook-body` user-scope
+  retarget from `.kiro/hooks/<pack>/` to `.kiro/hook-bodies/<pack>/`
+  to avoid Kiro parsing shell scripts as hooks.
+- **Q11 — vocabulary fixture.** At least one IDE-UI-authored
+  `.kiro.hook` file is captured under
+  `packages/agentbundle/tests/fixtures/kiro_ide_hook/captured/`;
+  the captured `when.type` / `then.type` strings become the
+  canonical entries above.
+
+The probes and probe outcomes are recorded in
+[`docs/specs/kiro-ide-hook/probes.md`](../kiro-ide-hook/probes.md);
+the v0.4 declaration in `adapter.toml` is the contract-version
+write that ships in the same commit as the pinned values.
+
+### Other adapters — `dropped`
+
+`claude-code`, `codex`, and `copilot` each declare an explicit
+`mode = "dropped"` row for `kiro-ide-hook`, same pattern as
+`command` (dropped for Codex / Copilot) and `agent` (dropped for
+Codex / Copilot). Adapter-side declaration is required so
+`validate` knows the primitive exists; pack authors who don't
+target Kiro can leave `.apm/kiro-ide-hooks/` empty without
+refusal.
+
+### Validate rail
+
+Five refusal paths fire when a pack ships at least one
+`.apm/kiro-ide-hooks/<*>.kiro.hook` file and the target adapter
+is `kiro`:
+
+1. **Missing required field** — `name`, `version`, `when.type`,
+   `then.type`. Refusal:
+   `pack <P>'s kiro-ide-hook <file> is missing required field <field>`.
+2. **`when.type` out of `ide-event-vocabulary`** — refused with
+   `pack <P>'s kiro-ide-hook <file> uses event '<type>'; not in adapter 'kiro' ide-event-vocabulary`.
+3. **`then.type` out of `ide-action-vocabulary`** — refused with
+   `pack <P>'s kiro-ide-hook <file> uses action '<type>'; not in adapter 'kiro' ide-action-vocabulary`.
+4. **Malformed placeholder** in `then.command` — any `${...}` that
+   doesn't `fullmatch` the strict grammar
+   `\$\{hook-body:[a-zA-Z0-9_-]+\}` refused with
+   `pack <P>'s kiro-ide-hook <file> contains malformed placeholder '<text>'; expected ${hook-body:<name>} with name matching [a-zA-Z0-9_-]+`.
+5. **Unresolvable placeholder** — well-formed `${hook-body:<name>}`
+   whose `<name>` is not a same-pack hook-body refused with
+   `pack <P>'s kiro-ide-hook <file> references unknown hook-body '${hook-body:<name>}'; no such hook-body in pack`.
+
+RFC-0005 § Substitution rules clause 1 fences the placeholder scan
+to `then.command` only; placeholder-shaped text in `then.prompt`
+(askAgent), `name`, `description`, `when.patterns`, or any other
+field passes through verbatim (the `prompt` text is for the agent,
+not the bundler). Semantic correctness of `when.patterns` (glob
+validity) and `then.command` shell syntax is **not** in the rail's
+scope — runtime issues surface at execute time.
+
+The rail's vocabulary checks (2 + 3) are no-ops when the adapter
+declares no vocabulary — same shape as `agent-event-vocabulary`'s
+no-op for Claude Code. Pre-v0.4 contracts have no vocabulary
+declaration; refusal paths 1 / 4 / 5 still fire because they're
+vocabulary-independent.
+
+### Build-pipeline phase order — extended
+
+The pipeline projects primitives in the fixed order
+
+```
+hook-body → agent → hook-wiring → kiro-ide-hook → command → skill
+```
+
+within each pack. Two real dependencies drive the order:
+`hook-wiring ← agent` (Kiro's `merge-into-agent-json` reads the
+projected agent JSON, established at v0.3) and `kiro-ide-hook ←
+hook-body` (placeholder expansion needs the projected hook-body
+path). Every other ordering is a tiebreak pinned for operational
+determinism — log ordering, partial-state-on-failure semantics,
+rollback target — not byte-identity of the projected files.
+RFC-0005 § Substitution rules → *Why serial rather than
+DAG-parallel* spells this out. `phase_order.py` exports the tuple;
+every reference adapter imports it.
+
+### User-scope refusal (v1)
+
+`kiro-ide-hook` is refused at user scope at the contract layer
+until upstream Kiro #5440 closes. `~/.kiro/hooks/` is not on
+Kiro's read path today, so projecting there would land an inert
+file. The CLI refuses with
+
+```
+pack <P> declares kiro-ide-hook at user scope, but kiro adapter does not support user-scope IDE hooks (Kiro #5440 still open)
+```
+
+per RFC-0005 § Scope. The refusal is independent of Rail B (the
+existing user-scope hook-shaped refusal in
+§ *Install-scope dimension*) — a `kiro-ide-hook`-only pack with
+`user-scope-hooks = true` still refuses because the *primitive*
+is repo-only in v1. When Kiro #5440 closes, the user-scope refusal
+lifts via either an in-place RFC amendment (if no state-file shape
+change is needed) or a successor RFC.
+
+### `[contract] version` bump 0.3 → 0.4
+
+`docs/contracts/adapter.toml`'s `[contract] version` bumps from
+`"0.3"` to `"0.4"` in the same PR as the v0.4 declaration table.
+The conformance suite picks up the new primitive, the new
+`ide-event-vocabulary` / `ide-action-vocabulary` projection fields,
+and the v0.4 phase-order extension. Existing v0.3-shaped adapter
+declarations remain valid (the new primitive is optional;
+non-Kiro adapters inherit `dropped`). Pack metadata files that
+don't ship `.apm/kiro-ide-hooks/` need no change. The
+`adapter-contract.version` enum in `pack.schema.json` extends to
+include `"0.4"` in the same commit as the contract write so a v0.4
+pack can declare its target contract version without a schema
+refusal.
+
+The v0.4 declaration is **probe-gated** per the Q6 / Q11 outcomes
+recorded in [`docs/specs/kiro-ide-hook/probes.md`](../kiro-ide-hook/probes.md);
+shipping v0.4 with a target string or vocabulary list that has to
+change on first use would be a contract-version lie (RFC-0005
+§ *Gating verifications before contract version 0.4 ships*).
+
 ## Boundaries
 
 The three-tier guard that keeps an implementing agent inside the lines.
@@ -1010,9 +1199,78 @@ No manual QA: there is no UI surface, no human gesture under test.
   addition and the `[pack.install]` declaration land in the **same
   PR** as the contract / schema amendment so the catalogue's
   published packs and the CLI release land in lockstep.
+- [ ] **(RFC-0005 v0.4)** `docs/contracts/adapter.toml` declares a
+  sixth `[primitive."kiro-ide-hook"]` table with
+  `source-path = ".apm/kiro-ide-hooks/"` and a sibling
+  `[adapter.kiro.projections.kiro-ide-hook]` table with `mode =
+  "direct-file"`, `target.repo` (probe-pinned per Q6),
+  `on-conflict = "prompt-then-preserve"`, and the two declarative
+  vocabulary arrays `ide-event-vocabulary` (probe-pinned per Q11)
+  and `ide-action-vocabulary = ["askAgent", "runCommand"]`. Every
+  other adapter (claude-code, codex, copilot) declares an explicit
+  `primitive = "kiro-ide-hook", mode = "dropped"` row. `[contract]
+  version` bumps `"0.3" → "0.4"` in the same commit; the
+  `pack.schema.json` `adapter-contract.version` enum extends to
+  include `"0.4"` in lockstep.
+- [ ] **(RFC-0005 v0.4)** `adapter.schema.json` adds
+  `"kiro-ide-hook"` to `primitive.required` and declares
+  `ide-event-vocabulary` + `ide-action-vocabulary` as optional
+  array-of-string fields (`minItems: 1`, `items.type = "string"`)
+  under `projections.<primitive>.properties`. The implicit
+  acceptance of these fields (the inner object's open
+  `additionalProperties`) is now explicit. Tests pin: schema
+  accepts non-empty vocabularies, refuses empty arrays, refuses
+  non-string items.
+- [ ] **(RFC-0005 v0.4)** The `kiro-ide-hook` validate rail
+  (`scope_rails.check_kiro_ide_hook`) refuses every malformed
+  hook with one of five RFC-named stderr strings (missing required
+  field; out-of-vocabulary `when.type`; out-of-vocabulary
+  `then.type`; malformed placeholder in `then.command`;
+  unresolvable placeholder). The rail's vocabulary checks (2 + 3)
+  fire only when the adapter declares the corresponding vocabulary
+  field — same no-op-when-absent shape as
+  `agent-event-vocabulary` for Claude Code.
+- [ ] **(RFC-0005 v0.4)** Placeholder substitution in
+  `then.command` is single-pass, verbatim (no shell quoting),
+  applied at projection time only by the dedicated
+  `projections.kiro_ide_hook` module. Resolved text is not
+  re-scanned. The scan surface is fenced to `then.command`;
+  placeholder-shaped text in `then.prompt`, `name`, `description`,
+  or `when.patterns` passes through. Tests pin the fence by
+  asserting a `${hook-body:unknown}` substring inside
+  `then.prompt` does not refuse and is preserved verbatim.
+- [ ] **(RFC-0005 v0.4)** Build-pipeline phase order
+  (`agentbundle.build.phase_order.PHASE_ORDER`) is the tuple
+  `("hook-body", "agent", "hook-wiring", "kiro-ide-hook", "command",
+  "skill")`. Two real dependencies drive the order
+  (`hook-wiring ← agent`, `kiro-ide-hook ← hook-body`); every
+  other ordering is a tiebreak pinned for operational determinism.
+- [ ] **(RFC-0005 v0.4)** User-scope `kiro-ide-hook` is refused
+  at the contract layer with stderr `pack <P> declares
+  kiro-ide-hook at user scope, but kiro adapter does not support
+  user-scope IDE hooks (Kiro #5440 still open)`. The refusal is
+  independent of Rail B — a kiro-ide-hook-only pack with
+  `user-scope-hooks = true` still refuses because the *primitive*
+  is repo-only in v1.
 
 ## Changelog
 
+- 2026-05-24: RFC-0005 v0.4 amendment — added `## v0.4 IDE event
+  hooks (RFC-0005)` subsection between v0.3 user-scope hook
+  handling and Boundaries. Pins the new `kiro-ide-hook` primitive,
+  the Kiro `[adapter.kiro.projections.kiro-ide-hook]` table shape
+  (mode / target / on-conflict / vocabularies), the five validate-
+  rail refusal paths, the `then.command`-fenced single-pass
+  placeholder substitution, the build-pipeline phase-order
+  extension (`kiro-ide-hook` between `hook-wiring` and `command`),
+  the user-scope refusal text, and the probe-gated `[contract]
+  version` bump `"0.3" → "0.4"` (gated on Q6 recursion/extension
+  probe and Q11 vocabulary-fixture capture per RFC-0005 § Gating
+  verifications). Six new AC items tagged `(RFC-0005 v0.4)`. The
+  schema and rail land in this PR; the v0.4 contract-table write
+  and the schema's `primitive.required` extension are deferred to
+  the probe-gated T-CONTRACT commit so a contract-version lie is
+  impossible.
 - 2026-05-24: templates relocated from `docs/_templates/` into the
   owning skills' `assets/` folders to comply with the agentskills.io
   skill-layout spec (skills are self-contained units; `references/` for

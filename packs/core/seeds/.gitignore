@@ -32,3 +32,6 @@ build/
 
 # Build pipeline output.
 dist/
+
+# Conductor scratch + per-workspace probe scaffolding.
+.context/
