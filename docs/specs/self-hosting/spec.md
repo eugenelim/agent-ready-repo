@@ -545,17 +545,34 @@ and the Codex multi-pack aggregation fix land.
   line in the projected root `AGENTS.md`. Wired into
   `tools/hooks/pre-pr.py` and the `.github/workflows/docs.yml`
   `lint-seeds` job.
-- [x] **AC22 (first-install snapshot test) — 2026-05-25 amendment.**
+- [x] **AC22 (first-install snapshot test) — 2026-05-25 amendment;
+  rescoped 2026-05-25 (same day; see Changelog ordering).**
   `packages/agentbundle/tests/integration/test_install_snapshot.py`
   parameterises over the four packs with seeds (`core`,
   `governance-extras`, `user-guide-diataxis`, `monorepo-extras`).
   *Naming note*: the test exercises `agentbundle scaffold`, not
   `agentbundle install` — `install` projects adapter-route content
-  (`.claude/`, `apm/`) but does not project seeds; seeds reach
-  adopters via `scaffold` directly, or via the install→adapt chain
-  which invokes the same seed-projection internally. Either path
-  triggers the leak we're closing, so testing `scaffold` is
-  sufficient.
+  (`.claude/`, `apm/`) but does not project seeds. Seed projection
+  is **route-agnostic** by construction: `agentbundle scaffold` is
+  the only function that drops `packs/<pack>/seeds/` into an
+  adopter tree, and neither the Claude-plugins build recipe
+  (`per-pack-claude-plugin`) nor the APM build recipe
+  (`per-pack-apm-package`) produces a `dist/<route>/<pack>/seeds/`
+  subtree — verified by `make build` against all four packs at
+  rescope time. The install→adapt chain (`agentbundle install` →
+  in-process `agentbundle adapt`) does not invoke `scaffold` either.
+  The cross-route invariant is therefore enforced at the **source**
+  (`packs/*/seeds/`) by AC21's `tools/lint-seeds.py`, not at the
+  per-route projection.
+  *No continuous gate on the rescope premise.* The `dist/<route>/<pack>/`
+  absence claim is a snapshot, not a CI-asserted invariant: `make
+  build-check` enforces byte-equality of paths *that are projected*,
+  not the *non-existence* of `seeds/` under those paths. A future PR
+  that introduces per-route seed projection (e.g. landing the
+  hypothetical RFC named below) would silently void this AC's rescope
+  premise without tripping any existing gate. The defence is review
+  discipline: any PR that adds a `dist/<route>/<pack>/seeds/` target
+  must re-evaluate AC22 in the same change.
   For each pack, runs `agentbundle scaffold` into a fresh tempdir
   and asserts (i) the sorted list of scaffolded paths matches a
   checked-in golden at
@@ -563,9 +580,14 @@ and the Codex multi-pack aggregation fix land.
   (ii) the scaffolded content has no catalogue-specific leaks per
   the AC21 blocklist (sentinel-aware). Set `UPDATE_GOLDEN=1` to
   regenerate goldens when seed structure legitimately changes.
-  v1 scope is the `agentbundle scaffold` CLI route only;
-  Claude-plugins and APM route coverage is tracked as a follow-on
-  item in `docs/ROADMAP.md`.
+  *Scope history.* The 2026-05-25 amendment originally framed AC22
+  as "per pack per install route" with Claude-plugins / APM route
+  coverage deferred to a ROADMAP follow-on. That framing assumed a
+  per-adapter seed-projection path that does not exist in the
+  build pipeline today; the rescope (this revision) closes the
+  follow-on as moot rather than building one. If a future RFC
+  wires seed projection into the Claude-plugins or APM routes, AC22
+  becomes a candidate for re-extension at that point — not before.
 - [x] **AC23 (APPROACH→CHARTER fold-in) — 2026-05-25 amendment.**
   `docs/APPROACH.md`'s content folded into `docs/CHARTER.md` (Mission
   from "the wager" ¶1, Scope from "the wager" ¶2 + "what we left out",
@@ -583,6 +605,26 @@ and the Codex multi-pack aggregation fix land.
 
 ## Changelog
 
+- 2026-05-25: AC22 rescoped from "per pack per install route" to
+  single-route (chronologically follows the same-day scaffold-leak
+  closure entry below). The original 2026-05-25
+  amendment named Claude-plugins and APM as deferred routes,
+  tracking the gap in `docs/ROADMAP.md`'s "AC22 install-route
+  coverage extension" follow-on. Investigation against `make
+  build` output confirmed no per-adapter seed-projection path
+  exists today — `dist/claude-plugins/<pack>/` and
+  `dist/apm/<pack>/` contain only the projected primitives
+  (`.claude/`, `.apm/`, hook scripts, `pack.toml`, plugin/package
+  manifests), no `seeds/` subtree; the install→adapt chain reads
+  marker files but never invokes `scaffold`. Seed projection is
+  route-agnostic by construction (only `agentbundle scaffold`
+  drops `packs/<pack>/seeds/`), so per-route snapshots would have
+  been performative — three runners ending at the same code path
+  against the same source tree. AC22 wording rescoped to remove
+  the "per install route" framing; the ROADMAP follow-on closed
+  as moot in the same PR. A future RFC that wires seed projection
+  into the Claude-plugins or APM routes would re-open AC22's route
+  axis at that point. No production code touched.
 - 2026-05-25: scaffold-leak closure (RFC-0002 § Amendments § 2026-05-25).
   Six items (a-f) executed in a single PR with the ordering DAG
   `(a) → (b) → (f); (a)(c) → (d)(e)`: (a) scrubbed 5 leaking seeds
