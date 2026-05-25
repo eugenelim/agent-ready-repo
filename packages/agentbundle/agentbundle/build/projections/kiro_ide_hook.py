@@ -111,6 +111,16 @@ def project(
             continue
 
         bare_name = entry.name[: -len(_KIRO_HOOK_EXTENSION)]
+        if not bare_name:
+            # A file named exactly `.kiro.hook` would land as a dotfile
+            # at `.kiro/hooks/<pack>/.kiro.hook` and collide with any
+            # other dotfile in the directory. Defense-in-depth refusal —
+            # the validate rail catches this upstream too.
+            raise KiroIdeHookRefusal(
+                f"pack {pack_name}'s kiro-ide-hook entry has an "
+                f"empty bare name; expected <name>.kiro.hook with "
+                f"<name> non-empty"
+            )
         resolved_target = (
             target_template
             .replace("<pack>", pack_name)

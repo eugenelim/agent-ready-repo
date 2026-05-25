@@ -332,6 +332,38 @@ class PromptFieldPreservedThroughProjection(unittest.TestCase):
             )
 
 
+class EmptyBareNameRefuses(unittest.TestCase):
+    """A file named exactly ``.kiro.hook`` produces an empty
+    ``<name>`` after stripping the extension; the projector refuses
+    defense-in-depth (the validate rail catches it upstream too)."""
+
+    def test_empty_bare_name_refuses(self) -> None:
+        from agentbundle.build.projections import kiro_ide_hook
+
+        with TemporaryDirectory() as raw:
+            root = Path(raw)
+            pack = root / "test-pack"
+            (pack / ".apm" / "kiro-ide-hooks").mkdir(parents=True)
+            # File named exactly `.kiro.hook` — empty bare name.
+            (pack / ".apm" / "kiro-ide-hooks" / ".kiro.hook").write_text(
+                json.dumps({
+                    "name": "Pathological",
+                    "version": "1",
+                    "when": {"type": "fileSave"},
+                    "then": {"type": "askAgent", "prompt": "x"},
+                }) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(kiro_ide_hook.KiroIdeHookRefusal) as cm:
+                kiro_ide_hook.project(
+                    pack,
+                    root / "out",
+                    target_template=".kiro/hooks/<pack>/<name>.kiro.hook",
+                    hook_body_target_dir="tools/hooks",
+                )
+            self.assertIn("empty bare name", str(cm.exception))
+
+
 class NoOpWhenSourceDirAbsent(unittest.TestCase):
     """`.apm/kiro-ide-hooks/` absent — projector returns silently."""
 
