@@ -6,7 +6,7 @@ Skills follow the [agentskills.io specification](https://agentskills.io/specific
 
 The `core` pack carries what makes this catalogue worth adopting — a plan → execute → verify → review loop that runs lint, typecheck, and tests as hard gates, then dispatches specialist reviewer subagent(s) in a *fresh session* to read the diff adversarially before anything ships. Most agent workflows go *prompt → code → ship*; `core` replaces that with a loop the agent cannot self-certify out of. 
 
-The rest of the packs add governance ceremony, user-docs structure, monorepo scaffolding, contract authoring, file conversion, and Atlassian workflows — but they all assume `core`.
+The rest of the packs add governance ceremony, user-docs structure, monorepo scaffolding, contract authoring, file conversion, Atlassian workflows, and Figma file access — but they all assume `core`.
 
 See [`docs/CHARTER.md`](docs/CHARTER.md) for the mission, scope, and four principles, and [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) for the catalogue model.
 
@@ -21,6 +21,7 @@ See [`docs/CHARTER.md`](docs/CHARTER.md) for the mission, scope, and four princi
 | [`contracts`](packs/contracts/) | user (default) or repo | Contract-authoring skills — `api-contract` for OpenAPI 3.1. Portable across projects. |
 | [`converters`](packs/converters/) | user (default) or repo | File-format converters — `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `msg-to-markdown`. |
 | [`atlassian`](packs/atlassian/) | user (default) or repo | Atlassian primitives — `jira`, `jira-align`, `confluence-crawler` (credentialed CLI) plus the `flow-metrics`, `ai-adoption-report`, and `jira-defect-flow` workflows that compose them. |
+| [`figma`](packs/figma/) | user (default) or repo | Figma REST API primitive (credentialed CLI) — reads files / nodes / metadata / versions / comments / variables / dev resources, renders frames to PNG/SVG/JPG/PDF, posts comments, converts FigJam connector graphs to Mermaid. Requires a Personal Access Token. |
 
 **Scope** is where the pack lands. *Repo-only* packs install into the current repo's `.claude/`, `docs/`, and root files — they ship hooks and seeds that only make sense per-project. *User-scope* packs install into `~/.claude/` and follow you across every repo on the machine; the install routes default to user scope for these but `--scope repo` works too.
 
