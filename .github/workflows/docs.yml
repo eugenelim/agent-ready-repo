@@ -24,7 +24,7 @@ on:
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
       - 'tools/test-loop-cohort.sh'
       - 'tools/hooks/**'
-      - 'tools/test-all.sh'
+      - 'tools/test-all.py'
       - 'tools/test-pre-pr.sh'
       - 'tools/test-session-start.sh'
       - '.github/workflows/docs.yml'
