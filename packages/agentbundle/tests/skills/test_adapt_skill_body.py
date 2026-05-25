@@ -233,7 +233,8 @@ def test_skill_body_preflight_section_carries_six_steps(body):
     assert start >= 0, "Pre-flight section missing"
     end = body.find("\n## ", start + 1)
     section = body[start:end] if end >= 0 else body[start:]
-    numbered = re.findall(r"^\d+\.", section, re.MULTILINE)
+    numbered = re.findall(r"^\d+\.\s+\*\*", section, re.MULTILINE)
     assert len(numbered) == 6, (
-        f"Expected 6 numbered steps in Pre-flight section, found {len(numbered)}: {numbered}"
+        f"Expected 6 numbered steps in Pre-flight section, found "
+        f"{len(numbered)}: {numbered}\nSection head: {section[:200]!r}"
     )
