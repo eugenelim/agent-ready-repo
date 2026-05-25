@@ -12,6 +12,7 @@ state.json iteration shape, same `pre-pr: ✓ <label>` /
 What it runs:
   - tools/lint-agents-md.py        — root AGENTS.md hygiene, drift-watch
   - tools/lint-agent-artifacts.py  — skill/agent/command frontmatter
+  - tools/lint-skill-spec.py       — agentskills.io spec compliance
   - tools/lint-knowledge.py        — docs/knowledge/patterns.jsonl
   - tools/lint-build.py            — build-pipeline hygiene
   - .claude/skills/work-loop/scripts/loop-cohort.py
@@ -71,6 +72,7 @@ def main() -> int:
 
     _run("agents-md hygiene",   [py, "tools/lint-agents-md.py"])
     _run("agent-artifact lint", [py, "tools/lint-agent-artifacts.py"])
+    _run("skill-spec lint",     [py, "tools/lint-skill-spec.py"])
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
 
