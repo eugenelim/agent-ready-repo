@@ -1,0 +1,11 @@
+[pack]
+name = "figma"
+version = "0.1.0"
+description = "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid."
+
+[pack.adapter-contract]
+version = "0.2"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
