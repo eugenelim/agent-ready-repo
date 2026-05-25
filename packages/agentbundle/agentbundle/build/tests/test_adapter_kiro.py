@@ -8,7 +8,7 @@ import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
 
-from agentbundle.build.adapters.kiro import project
+from agentbundle.build.adapters.kiro import project, project_packs
 from agentbundle.build.contract import load as load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -133,6 +133,132 @@ class KiroAdapterTests(unittest.TestCase):
             project(pack, self.contract, out)
             # No command output.
             self.assertFalse(any(out.rglob("commands")))
+
+
+def _seed_minimal_pack(root: Path, name: str, skill_name: str, body: str) -> Path:
+    pack = root / name
+    skill_dir = pack / ".apm" / "skills" / skill_name
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(body, encoding="utf-8")
+    return pack
+
+
+class ProjectPacksTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_project_packs_iterates_in_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_minimal_pack(tmp_path, "pack-a", "skill-a", "# a\n")
+            pack_b = _seed_minimal_pack(tmp_path, "pack-b", "skill-b", "# b\n")
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+
+            self.assertTrue((out / ".kiro" / "skills" / "skill-a" / "SKILL.md").is_file())
+            self.assertTrue((out / ".kiro" / "skills" / "skill-b" / "SKILL.md").is_file())
+
+    def test_single_pack_project_delegates_to_project_packs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_minimal_pack(tmp_path, "pack", "skill-x", "# x\n")
+            out_a = tmp_path / "out-a"
+            out_b = tmp_path / "out-b"
+
+            project(pack, self.contract, out_a)
+            project_packs([pack], self.contract, out_b)
+
+            self.assertEqual(
+                (out_a / ".kiro" / "skills" / "skill-x" / "SKILL.md").read_bytes(),
+                (out_b / ".kiro" / "skills" / "skill-x" / "SKILL.md").read_bytes(),
+            )
+
+    def test_same_name_last_wins(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_minimal_pack(
+                tmp_path, "pack-a", "same-name", "# pack-a\nPACK_A_SENTINEL\n",
+            )
+            pack_b = _seed_minimal_pack(
+                tmp_path, "pack-b", "same-name", "# pack-b\nPACK_B_SENTINEL\n",
+            )
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+            body = (out / ".kiro" / "skills" / "same-name" / "SKILL.md").read_text(
+                encoding="utf-8",
+            )
+            self.assertIn("PACK_B_SENTINEL", body)
+            self.assertNotIn("PACK_A_SENTINEL", body)
+
+    def test_same_name_last_wins_reversed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_minimal_pack(
+                tmp_path, "pack-a", "same-name", "# pack-a\nPACK_A_SENTINEL\n",
+            )
+            pack_b = _seed_minimal_pack(
+                tmp_path, "pack-b", "same-name", "# pack-b\nPACK_B_SENTINEL\n",
+            )
+            out = tmp_path / "out"
+
+            project_packs([pack_b, pack_a], self.contract, out)
+            body = (out / ".kiro" / "skills" / "same-name" / "SKILL.md").read_text(
+                encoding="utf-8",
+            )
+            self.assertIn("PACK_A_SENTINEL", body)
+            self.assertNotIn("PACK_B_SENTINEL", body)
+
+
+def _seed_named_skills_pack(root: Path, pack_name: str, skill_names: list[str]) -> Path:
+    pack = root / pack_name
+    for skill_name in skill_names:
+        skill_dir = pack / ".apm" / "skills" / skill_name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            f"# {skill_name}\nfrom {pack_name}\n",
+            encoding="utf-8",
+        )
+    return pack
+
+
+class TestKiroOrphanSweep(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_two_stage_shrink(self) -> None:
+        # AC19: project {a, b, c} then {a, c} into the same output.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            three = _seed_named_skills_pack(tmp_path, "three-skill", ["a", "b", "c"])
+            shrink = _seed_named_skills_pack(tmp_path, "two-skill-shrink", ["a", "c"])
+            out = tmp_path / "out"
+
+            project_packs([three], self.contract, out)
+            self.assertTrue((out / ".kiro" / "skills" / "b").is_dir())
+
+            project_packs([shrink], self.contract, out)
+            children = {p.name for p in (out / ".kiro" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "c"})
+
+    def test_two_pack_union(self) -> None:
+        # AC20 — kiro case.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_named_skills_pack(tmp_path, "pack-a", ["a", "b"])
+            pack_b = _seed_named_skills_pack(tmp_path, "pack-b", ["b", "c"])
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+            children = {p.name for p in (out / ".kiro" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "b", "c"})
+
+            project_packs([pack_a], self.contract, out)
+            children = {p.name for p in (out / ".kiro" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "b"})
 
 
 if __name__ == "__main__":

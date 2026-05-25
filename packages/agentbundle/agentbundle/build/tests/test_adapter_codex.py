@@ -5,8 +5,17 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from agentbundle.build.adapters.codex import project, project_packs
+from agentbundle.build.adapters import codex
+from agentbundle.build.adapters.codex import (
+    _LEGACY_SKILL_BLOCK_END,
+    _LEGACY_SKILL_BLOCK_START,
+    _splice_managed_block,
+    _strip_legacy_skill_block,
+    project,
+    project_packs,
+)
 from agentbundle.build.contract import load as load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -46,31 +55,6 @@ class CodexAdapterTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_skill_description_appears_in_managed_block(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            pack = _seed_pack(tmp_path)
-            out = tmp_path / "out"
-            project(pack, self.contract, out)
-            text = (out / "AGENTS.md").read_text(encoding="utf-8")
-            self.assertIn("<!-- agent-skills:start -->", text)
-            self.assertIn("<!-- agent-skills:end -->", text)
-            self.assertIn("foo skill description", text)
-            self.assertIn("alpha skill description", text)
-
-    def test_outside_block_preserved(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_path = Path(tmp)
-            pack = _seed_pack(tmp_path)
-            out = tmp_path / "out"
-            out.mkdir()
-            preamble = "# Existing AGENTS.md\n\nKeep me.\n"
-            (out / "AGENTS.md").write_text(preamble, encoding="utf-8")
-            project(pack, self.contract, out)
-            text = (out / "AGENTS.md").read_text(encoding="utf-8")
-            self.assertIn("# Existing AGENTS.md", text)
-            self.assertIn("Keep me.", text)
-
     def test_agent_hook_wiring_command_dropped(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -89,40 +73,550 @@ class CodexAdapterTests(unittest.TestCase):
             self.assertTrue((out / "tools" / "hooks" / "baz.sh").exists())
             self.assertTrue((out / "tools" / "hooks" / "baz.py").exists())
 
-    def test_idempotent(self) -> None:
+
+def _seed_two_skill_pack(root: Path, name: str = "two-skill") -> Path:
+    """Two skills: one flat, one with nested subdirectories."""
+    pack = root / name
+    flat = pack / ".apm" / "skills" / "flat"
+    flat.mkdir(parents=True)
+    (flat / "SKILL.md").write_text(
+        "---\ndescription: flat skill\n---\n# flat\nbody\n",
+        encoding="utf-8",
+    )
+
+    nested = pack / ".apm" / "skills" / "nested"
+    (nested / "scripts").mkdir(parents=True)
+    (nested / "references").mkdir(parents=True)
+    (nested / "SKILL.md").write_text(
+        "---\ndescription: nested skill\n---\n# nested\nbody\n",
+        encoding="utf-8",
+    )
+    (nested / "scripts" / "run.sh").write_text(
+        "#!/bin/sh\necho run\n",
+        encoding="utf-8",
+    )
+    (nested / "references" / "notes.md").write_text(
+        "# Notes\nReference content.\n",
+        encoding="utf-8",
+    )
+    return pack
+
+
+def _seed_symlinked_pack(root: Path, name: str = "symlinked") -> Path:
+    """Skill body with a relative symlink under references/."""
+    pack = root / name
+    (pack / ".apm" / "assets").mkdir(parents=True)
+    (pack / ".apm" / "assets" / "shared.md").write_text(
+        "# Shared\nContent.\n",
+        encoding="utf-8",
+    )
+
+    linker = pack / ".apm" / "skills" / "linker"
+    (linker / "references").mkdir(parents=True)
+    (linker / "SKILL.md").write_text(
+        "---\ndescription: linker skill\n---\n# linker\n",
+        encoding="utf-8",
+    )
+    (linker / "references" / "shared.md").symlink_to(Path("../../../assets/shared.md"))
+    return pack
+
+
+def _seed_same_name_pack(root: Path, name: str, body: str) -> Path:
+    pack = root / name
+    skill_dir = pack / ".apm" / "skills" / "same-name"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(body, encoding="utf-8")
+    return pack
+
+
+class TestDirectDirectoryProjection(unittest.TestCase):
+    """Post-RFC-0009 Codex `skill` projection — `direct-directory` mode."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_byte_equal_projection_two_skill(self) -> None:
+        # AC3, AC4.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            pack = _seed_pack(tmp_path)
+            pack = _seed_two_skill_pack(tmp_path)
             out = tmp_path / "out"
-            project(pack, self.contract, out)
+
+            project_packs([pack], self.contract, out)
+
+            for rel in (
+                "flat/SKILL.md",
+                "nested/SKILL.md",
+                "nested/scripts/run.sh",
+                "nested/references/notes.md",
+            ):
+                source_bytes = (pack / ".apm" / "skills" / rel).read_bytes()
+                projected_bytes = (out / ".agents" / "skills" / rel).read_bytes()
+                self.assertEqual(
+                    projected_bytes,
+                    source_bytes,
+                    f"byte mismatch at {rel}",
+                )
+
+    def test_symlink_pass_through(self) -> None:
+        # AC5.
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_symlinked_pack(tmp_path)
+            out = tmp_path / "out"
+
+            project_packs([pack], self.contract, out)
+
+            projected_link = out / ".agents" / "skills" / "linker" / "references" / "shared.md"
+            self.assertTrue(os.path.islink(projected_link))
+            self.assertEqual(
+                os.readlink(projected_link),
+                str(Path("../../../assets/shared.md")),
+            )
+
+    def test_same_name_last_wins(self) -> None:
+        # AC6 — Codex case.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_same_name_pack(
+                tmp_path, "pack-a", "# pack-a\nPACK_A_SENTINEL\n",
+            )
+            pack_b = _seed_same_name_pack(
+                tmp_path, "pack-b", "# pack-b\nPACK_B_SENTINEL\n",
+            )
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+            body = (out / ".agents" / "skills" / "same-name" / "SKILL.md").read_text(
+                encoding="utf-8",
+            )
+            self.assertIn("PACK_B_SENTINEL", body)
+            self.assertNotIn("PACK_A_SENTINEL", body)
+
+    def test_top_level_symlink_skill_is_skipped(self) -> None:
+        # Defense-in-depth: a malicious pack with `.apm/skills/<name>`
+        # as a symlink to a sensitive directory would exfiltrate its
+        # contents via `copytree` (the `symlinks=True` flag only
+        # governs symlinks *inside* the tree). The adapter must skip
+        # symlink entries at the iteration level so the contents do
+        # not land in the projection. `lint-packs` already refuses
+        # such packs; this is the adapter-layer safety net.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            external = tmp_path / "external-secrets"
+            external.mkdir()
+            (external / "secret.txt").write_text("DO NOT LEAK\n", encoding="utf-8")
+
+            pack = tmp_path / "pack"
+            skills_dir = pack / ".apm" / "skills"
+            skills_dir.mkdir(parents=True)
+            # Top-level skill entry is a symlink-to-directory.
+            (skills_dir / "malicious").symlink_to(external, target_is_directory=True)
+            # And a legitimate skill — that one must still project.
+            legit = skills_dir / "legit"
+            legit.mkdir()
+            (legit / "SKILL.md").write_text("# legit\n", encoding="utf-8")
+
+            out = tmp_path / "out"
+
+            project_packs([pack], self.contract, out)
+
+            self.assertFalse((out / ".agents" / "skills" / "malicious").exists())
+            self.assertFalse((out / ".agents" / "skills" / "secret.txt").exists())
+            self.assertTrue((out / ".agents" / "skills" / "legit" / "SKILL.md").is_file())
+            # External directory untouched.
+            self.assertEqual(
+                (external / "secret.txt").read_text(encoding="utf-8"),
+                "DO NOT LEAK\n",
+            )
+
+    def test_destination_symlink_safe_overwrite(self) -> None:
+        # Spec § Never do: `shutil.rmtree` is barred against entries
+        # whose `is_symlink()` is true. If a previous run left a
+        # symlink at `<target>/skills/<name>`, the next projection
+        # must unlink it (removing the link, not the target).
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_two_skill_pack(tmp_path)
+            out = tmp_path / "out"
+            target = out / ".agents" / "skills"
+            target.mkdir(parents=True)
+
+            external = tmp_path / "external"
+            external.mkdir()
+            (external / "anchor").write_text("keep me\n", encoding="utf-8")
+            (target / "flat").symlink_to(external, target_is_directory=True)
+
+            project_packs([pack], self.contract, out)
+
+            self.assertFalse((target / "flat").is_symlink())
+            self.assertTrue((target / "flat" / "SKILL.md").is_file())
+            self.assertTrue(external.is_dir())
+            self.assertEqual(
+                (external / "anchor").read_text(encoding="utf-8"),
+                "keep me\n",
+            )
+
+    def test_same_name_last_wins_reversed(self) -> None:
+        # AC6 — Codex case, reversed.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_same_name_pack(
+                tmp_path, "pack-a", "# pack-a\nPACK_A_SENTINEL\n",
+            )
+            pack_b = _seed_same_name_pack(
+                tmp_path, "pack-b", "# pack-b\nPACK_B_SENTINEL\n",
+            )
+            out = tmp_path / "out"
+
+            project_packs([pack_b, pack_a], self.contract, out)
+            body = (out / ".agents" / "skills" / "same-name" / "SKILL.md").read_text(
+                encoding="utf-8",
+            )
+            self.assertIn("PACK_A_SENTINEL", body)
+            self.assertNotIn("PACK_B_SENTINEL", body)
+
+
+def _seed_named_skills_pack(root: Path, pack_name: str, skill_names: list[str]) -> Path:
+    pack = root / pack_name
+    for skill_name in skill_names:
+        skill_dir = pack / ".apm" / "skills" / skill_name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            f"# {skill_name}\nfrom {pack_name}\n",
+            encoding="utf-8",
+        )
+    return pack
+
+
+class TestCodexOrphanSweep(unittest.TestCase):
+    """T7 — `direct-directory` skill projection runs `sweep_orphans`
+    against the union of source skill names across the call's pack list.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_codex_two_stage_shrink(self) -> None:
+        # AC17: project {a, b, c} then {a, c} into the same output.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            three = _seed_named_skills_pack(tmp_path, "three-skill", ["a", "b", "c"])
+            shrink = _seed_named_skills_pack(tmp_path, "two-skill-shrink", ["a", "c"])
+            out = tmp_path / "out"
+
+            project_packs([three], self.contract, out)
+            self.assertTrue((out / ".agents" / "skills" / "b").is_dir())
+
+            project_packs([shrink], self.contract, out)
+            children = {p.name for p in (out / ".agents" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "c"})
+
+    def test_codex_two_pack_union(self) -> None:
+        # AC20: pack_a={a,b} + pack_b={b,c} → {a,b,c};
+        #        then pack_a alone → {a,b}, c removed.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_named_skills_pack(tmp_path, "pack-a", ["a", "b"])
+            pack_b = _seed_named_skills_pack(tmp_path, "pack-b", ["b", "c"])
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+            children = {p.name for p in (out / ".agents" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "b", "c"})
+
+            project_packs([pack_a], self.contract, out)
+            children = {p.name for p in (out / ".agents" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "b"})
+
+    def test_codex_symlink_safe_sweep(self) -> None:
+        # AC21: pre-seed a symlink-to-external in the target dir; the
+        # sweep removes the symlink but leaves the external dir intact.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_named_skills_pack(tmp_path, "pack", ["a"])
+            external = tmp_path / "external"
+            external.mkdir()
+            (external / "anchor").write_text("keep me\n", encoding="utf-8")
+            out = tmp_path / "out"
+            target = out / ".agents" / "skills"
+            target.mkdir(parents=True)
+            link = target / "b"
+            link.symlink_to(external, target_is_directory=True)
+
+            project_packs([pack], self.contract, out)
+
+            self.assertTrue((target / "a").is_dir())
+            self.assertFalse(link.exists())
+            self.assertFalse(link.is_symlink())
+            self.assertTrue(external.is_dir())
+            self.assertEqual(
+                (external / "anchor").read_text(encoding="utf-8"),
+                "keep me\n",
+            )
+
+
+class TestMigrationStripIntegrated(unittest.TestCase):
+    """Codex `project_packs` strips the legacy block from `<output_root>/AGENTS.md`."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def _populated(self) -> str:
+        return (
+            "# Top\n\nIntroductory prose.\n\n"
+            f"{_LEGACY_SKILL_BLOCK_START}\n"
+            "- **a** — desc-a\n"
+            "- **b** — desc-b\n"
+            f"{_LEGACY_SKILL_BLOCK_END}\n"
+            "\nClosing prose.\n"
+        )
+
+    def test_happy_path_strips_delimiters_and_preserves_prose(self) -> None:
+        # AC10, AC11. The strip's only allowed mutation is removing
+        # the legacy delimiter region; outside-delimiter bytes must
+        # survive byte-for-byte. Substring `assertIn` would pass on
+        # munged surrounding bytes; the concatenation assertion
+        # below pins the byte-equality contract AC11(c) names.
+        outside_before = "# Top\n\nIntroductory prose.\n\n"
+        outside_after = "\nClosing prose.\n"
+        populated = (
+            f"{outside_before}"
+            f"{_LEGACY_SKILL_BLOCK_START}\n"
+            f"- **a** — desc-a\n"
+            f"- **b** — desc-b\n"
+            f"{_LEGACY_SKILL_BLOCK_END}\n"
+            f"{outside_after}"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_two_skill_pack(tmp_path)
+            out = tmp_path / "out"
+            out.mkdir()
+            (out / "AGENTS.md").write_text(populated, encoding="utf-8")
+
+            project_packs([pack], self.contract, out)
+
+            text = (out / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertNotIn(_LEGACY_SKILL_BLOCK_START, text)
+            self.assertNotIn(_LEGACY_SKILL_BLOCK_END, text)
+            # Byte-for-byte preservation: the outside-delimiter prose
+            # appears unchanged, in order, with no munging.
+            self.assertIn(outside_before + outside_after, text)
+
+    def test_already_clean_is_byte_identical(self) -> None:
+        # AC12.
+        clean = "# Top\n\nNo managed block.\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_two_skill_pack(tmp_path)
+            out = tmp_path / "out"
+            out.mkdir()
+            (out / "AGENTS.md").write_text(clean, encoding="utf-8")
+
+            project_packs([pack], self.contract, out)
+
+            self.assertEqual(
+                (out / "AGENTS.md").read_text(encoding="utf-8"),
+                clean,
+            )
+
+    def test_idempotent_across_two_calls(self) -> None:
+        # AC13.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_two_skill_pack(tmp_path)
+            out = tmp_path / "out"
+            out.mkdir()
+            (out / "AGENTS.md").write_text(self._populated(), encoding="utf-8")
+
+            project_packs([pack], self.contract, out)
             first = (out / "AGENTS.md").read_bytes()
-            project(pack, self.contract, out)
+            project_packs([pack], self.contract, out)
             second = (out / "AGENTS.md").read_bytes()
             self.assertEqual(first, second)
 
-    def test_project_packs_aggregates_skills_before_splicing(self) -> None:
+    def test_hand_edited_content_between_delimiters_is_lost(self) -> None:
+        # AC14.
+        sentinel = "<<HAND-EDITED-PRESERVE-ME>>"
+        body = (
+            "prefix\n"
+            f"{_LEGACY_SKILL_BLOCK_START}\n"
+            f"{sentinel}\n"
+            f"{_LEGACY_SKILL_BLOCK_END}\n"
+            "suffix\n"
+        )
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            pack_a = _seed_pack(tmp_path, "pack-a", "a-")
-            pack_b = _seed_pack(tmp_path, "pack-b", "b-")
+            pack = _seed_two_skill_pack(tmp_path)
             out = tmp_path / "out"
             out.mkdir()
-            (out / "AGENTS.md").write_text(
-                "# Existing\n\nKeep this outside block.\n",
-                encoding="utf-8",
+            (out / "AGENTS.md").write_text(body, encoding="utf-8")
+
+            project_packs([pack], self.contract, out)
+
+            text = (out / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertNotIn(sentinel, text)
+
+
+class TestMigrationStripPureFunction(unittest.TestCase):
+    """Pure-function tests for `_strip_legacy_skill_block`.
+
+    No filesystem; the strip is a text transform. Integration with
+    `project_packs` is covered by T4's tests.
+    """
+
+    OUTSIDE_BEFORE = "# Top\n\nIntroductory prose.\n\n"
+    OUTSIDE_AFTER = "\nClosing prose.\n"
+
+    def _populated(self) -> str:
+        return (
+            f"{self.OUTSIDE_BEFORE}"
+            f"{_LEGACY_SKILL_BLOCK_START}\n"
+            f"- **a** — desc-a\n"
+            f"- **b** — desc-b\n"
+            f"{_LEGACY_SKILL_BLOCK_END}\n"
+            f"{self.OUTSIDE_AFTER}"
+        )
+
+    def test_happy_path_strips_delimiters_and_preserves_outside_prose(self) -> None:
+        stripped = _strip_legacy_skill_block(self._populated())
+        self.assertNotIn(_LEGACY_SKILL_BLOCK_START, stripped)
+        self.assertNotIn(_LEGACY_SKILL_BLOCK_END, stripped)
+        self.assertIn("# Top\n", stripped)
+        self.assertIn("Introductory prose.", stripped)
+        self.assertIn("Closing prose.", stripped)
+
+    def test_already_clean_input_is_byte_identical(self) -> None:
+        clean = "# Top\n\nNo managed block here.\n"
+        self.assertEqual(_strip_legacy_skill_block(clean), clean)
+
+    def test_idempotent(self) -> None:
+        once = _strip_legacy_skill_block(self._populated())
+        twice = _strip_legacy_skill_block(once)
+        self.assertEqual(once, twice)
+
+    def test_non_list_content_between_delimiters_is_lost(self) -> None:
+        sentinel = "<<HAND-EDITED-PRESERVE-ME>>"
+        text = (
+            f"prefix\n"
+            f"{_LEGACY_SKILL_BLOCK_START}\n"
+            f"{sentinel}\n"
+            f"{_LEGACY_SKILL_BLOCK_END}\n"
+            f"suffix\n"
+        )
+        stripped = _strip_legacy_skill_block(text)
+        self.assertNotIn(sentinel, stripped)
+        self.assertIn("prefix", stripped)
+        self.assertIn("suffix", stripped)
+
+    def test_out_of_order_delimiters_refused(self) -> None:
+        # If the adopter pasted the delimiters in reverse order, the
+        # splice would otherwise corrupt the file silently. Refuse
+        # the input with a named error so the adopter can fix.
+        reversed_input = (
+            "prefix\n"
+            f"{_LEGACY_SKILL_BLOCK_END}\n"
+            f"{_LEGACY_SKILL_BLOCK_START}\n"
+            "suffix\n"
+        )
+        with self.assertRaises(ValueError) as caught:
+            _strip_legacy_skill_block(reversed_input)
+        self.assertIn("appears before", str(caught.exception))
+
+    def test_splice_managed_block_symbol_still_exists(self) -> None:
+        # AC23(i): a future refactor that inlines the splice and deletes
+        # the helper symbol breaks this import-and-call assertion.
+        self.assertTrue(callable(_splice_managed_block))
+
+    def test_strip_invokes_splice_managed_block_once(self) -> None:
+        # AC23(ii) — deliberate retention test. A refactor that
+        # inlines the splice and deletes `_splice_managed_block`
+        # breaks the import. A refactor that keeps the symbol but
+        # stops calling it from `_strip_legacy_skill_block` makes
+        # `call_count == 0`. Either signals the retention contract
+        # has been broken before the migration window closes. Do
+        # not "simplify" by removing the mock — the mock IS the
+        # contract. Patch with `wraps=` so the real function still
+        # runs and the strip behaviour is unchanged.
+        with mock.patch.object(
+            codex,
+            "_splice_managed_block",
+            wraps=codex._splice_managed_block,
+        ) as spy:
+            _strip_legacy_skill_block(self._populated())
+        self.assertEqual(spy.call_count, 1)
+
+
+class TestCodexProjectsEveryShippedSkill(unittest.TestCase):
+    """AC29 — every skill any in-tree pack ships projects through Codex
+    into `.agents/skills/<name>/SKILL.md` (byte-equal to source).
+
+    The spec text references `dist/codex/` as a notional adopter path;
+    in this self-hosting repo, Codex projects to the repo root, so the
+    test runs the projection against a `tmp_path` and enumerates
+    `packs/*/.apm/skills/`. The sentinel set (`work-loop`, `new-spec`,
+    `new-rfc`, `new-adr`) spans multiple packs (core +
+    governance-extras), so the test must walk all packs — a core-only
+    walk would silently skip `new-rfc` / `new-adr` against the spec's
+    explicit sentinel list.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_every_shipped_skill_projects_with_equal_bytes(self) -> None:
+        packs_root = REPO_ROOT / "packs"
+        self.assertTrue(packs_root.is_dir())
+        pack_paths = sorted(p for p in packs_root.iterdir() if p.is_dir())
+
+        # Collect every source skill across every pack. Tracks the
+        # "winning" source path for same-name collisions so byte-equal
+        # comparisons use the last-supplied pack's body (matching
+        # AC6).
+        winning_source: dict[str, Path] = {}
+        for pack_path in pack_paths:
+            skills_dir = pack_path / ".apm" / "skills"
+            if not skills_dir.is_dir():
+                continue
+            for entry in skills_dir.iterdir():
+                if entry.is_dir():
+                    winning_source[entry.name] = entry
+
+        self.assertGreater(len(winning_source), 0)
+        for sentinel in ("work-loop", "new-spec", "new-rfc", "new-adr"):
+            self.assertIn(
+                sentinel,
+                winning_source,
+                f"sentinel skill {sentinel!r} missing from any in-tree pack",
             )
 
-            project_packs([pack_a, pack_b], self.contract, out)
-            first = (out / "AGENTS.md").read_text(encoding="utf-8")
-            project_packs([pack_a, pack_b], self.contract, out)
-            second = (out / "AGENTS.md").read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            project_packs(pack_paths, self.contract, tmp_path)
 
-            self.assertEqual(first, second)
-            self.assertIn("Keep this outside block.", first)
-            self.assertIn("a-foo skill description", first)
-            self.assertIn("b-foo skill description", first)
-            self.assertIn("a-alpha skill description", first)
-            self.assertIn("b-alpha skill description", first)
+            for skill_name, source_skill_dir in winning_source.items():
+                projected_skill_md = (
+                    tmp_path / ".agents" / "skills" / skill_name / "SKILL.md"
+                )
+                source_skill_md = source_skill_dir / "SKILL.md"
+                if not source_skill_md.exists():
+                    continue
+                self.assertTrue(
+                    projected_skill_md.is_file(),
+                    f"skill {skill_name!r}: SKILL.md missing in projection",
+                )
+                self.assertEqual(
+                    projected_skill_md.read_bytes(),
+                    source_skill_md.read_bytes(),
+                    f"skill {skill_name!r}: SKILL.md bytes differ",
+                )
 
 
 if __name__ == "__main__":
