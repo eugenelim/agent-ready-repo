@@ -150,7 +150,7 @@ Three modes, mapped to the spec's outcomes:
   `make build-self` (it lands inside `packs/core/.apm/`, which is in
   `EXCLUDED_PATTERNS`); that's expected and `make build-self` clean
   is the gate.
-- **Goal-based (regression).** `tools/test-all.sh` and
+- **Goal-based (regression).** `python tools/test-all.py` and
   `python tools/hooks/pre-pr.py` exit 0. The targeted upgrade-fixture
   tests (`test_upgrade_cmd.py`, `test_install_cmd.py`,
   `test_tier_invariants.py`) continue to pass after the legacy-fixture

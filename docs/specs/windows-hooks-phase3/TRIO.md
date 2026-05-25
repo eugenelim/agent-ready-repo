@@ -60,11 +60,12 @@ the seven bash test-runners' *bodies* (only the LINTER / HOOK
 invocation line inside each gets edited — the bash sandbox setup,
 `cp -P`, `git ls-files -z` pipe, and corruption-injection eval stay
 bash; rewriting these into pytest is a separate PR); the bundler
-fixture *synthetic* `.sh` literals; **`tools/test-all.sh`** (the
+fixture *synthetic* `.sh` literals; **`tools/test-all.py`** (the
 umbrella that dispatches to bash *runners*, not hooks/linters — the
 parity rule "runner bodies stay bash; only the LINTER/HOOK invocation
 line changes" doesn't apply because its targets are themselves bash
-runners, so `test-all.sh` is unchanged); and the
+runners, so the umbrella's body is unchanged by this phase — it was
+ported from `.sh` to `.py` separately in PR #111); and the
 `docs/specs/windows-hooks-phase3/TRIO.md` scratch file itself (PLAN
 artifact for this PR, not a spec).
 
