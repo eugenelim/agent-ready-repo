@@ -1,5 +1,5 @@
 ---
-description: Lint AGENTS.md, CLAUDE.md, and .claude/ artifacts against the conventions in this repo
+description: Lint AGENTS.md, CLAUDE.md, and projected agent artifacts against the conventions in this repo
 ---
 
 Run both repo linters and report findings.
@@ -15,7 +15,7 @@ Run both repo linters and report findings.
 4. Internal links resolve.
 5. `docs/CHARTER.md` and the Diátaxis subdirectories exist.
 
-**`python tools/lint-agent-artifacts.py`** — `.claude/` artifact hygiene:
+**`python tools/lint-agent-artifacts.py`** — projected agent-artifact hygiene:
 
 1. Every skill / subagent / command has well-formed YAML frontmatter with
    the required keys (`name`, `description`).
