@@ -1,6 +1,6 @@
 # Spec: apm-install-route-parity
 
-- **Status:** Draft
+- **Status:** Approved → Shipped (T1–T12 implementation landed 2026-05-25; live APM install end-to-end deferred per AC17 manual-QA matrix)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0010](../../rfc/0010-apm-install-route-parity.md)
@@ -448,8 +448,9 @@ taxonomy.
 
 - **Writer template additions — TDD.** Pure-ish functions with
   compressible invariants: `--install-route` argparse with the
-  three-value `choices` and the default-`claude-plugins`
-  back-compat; data-directory resolution precedence
+  two-value `choices = {"claude-plugins", "apm"}`, `required=True`,
+  no default — flag absence and invalid-choice both fail fast at
+  `argparse` parse time; data-directory resolution precedence
   (`${CLAUDE_PLUGIN_DATA}` → `${PLUGIN_ROOT}/.data` →
   `${CURSOR_PLUGIN_ROOT}/.data` → exit-0); APM scope detection by
   projected-hook path inspection (`cwd` containment → repo;
@@ -509,7 +510,7 @@ taxonomy.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 (writer template stays stdlib-only with a one-entry
+- [x] **AC1 (writer template stays stdlib-only with a one-entry
       growth in the import allow-list to admit `argparse`).**
       `packages/agentbundle/templates/install-marker.py` continues
       to import only standard-library modules. Ground truth at
@@ -531,7 +532,7 @@ taxonomy.
       precedent spec) is *not* part of AC1's contract surface; it
       lands as a T1-Approach authoring task and is not separately
       gate-tested.
-- [ ] **AC2 (`--install-route` flag parsed by `argparse`;
+- [x] **AC2 (`--install-route` flag parsed by `argparse`;
       required; two-valued choices).** The writer parses
       `argparse.ArgumentParser().add_argument("--install-route",
       choices=["claude-plugins", "apm"], required=True)`. Four
@@ -550,7 +551,7 @@ taxonomy.
       valid choice: the CLI route uses
       `_append_install_marker` directly and never invokes this
       template.
-- [ ] **AC3 (data-directory resolution precedence).** Under
+- [x] **AC3 (data-directory resolution precedence).** Under
       `--install-route apm`, the writer resolves the data
       directory as: `${CLAUDE_PLUGIN_DATA}` if set and non-empty
       → that path; else `${PLUGIN_ROOT}` set and non-empty →
@@ -583,7 +584,7 @@ taxonomy.
       verified.
       Empty-string values (e.g. `PLUGIN_ROOT=""`) are treated
       as unset.
-- [ ] **AC4 (APM scope detection by projected-hook path).** Under
+- [x] **AC4 (APM scope detection by projected-hook path).** Under
       `--install-route apm`, the writer reads
       `pathlib.Path(__file__).resolve()` and determines scope by
       containment: if the writer's resolved path is contained in
@@ -633,7 +634,7 @@ taxonomy.
       resolve, and a buggy home-first impl would flip case
       (a)'s expected `"repo"` to `"user"`. Case (e) is not
       the precedence test.
-- [ ] **AC5 (`allowed-scopes` refusal rail unchanged under APM
+- [x] **AC5 (`allowed-scopes` refusal rail unchanged under APM
       scope detection).** When the APM-detected `marker_scope`
       is not in the installing pack's `[pack.install]
       allowed-scopes`, the writer emits the same stderr line
@@ -649,7 +650,7 @@ taxonomy.
       exit 0, no marker, no hash file; (b) user-only pack with
       writer projected under cwd → refuses with `detected
       install scope repo`, exit 0, no marker, no hash file.
-- [ ] **AC6 (route-flag-driven branch selection between APM and
+- [x] **AC6 (route-flag-driven branch selection between APM and
       claude-plugins scope detection).** Under `--install-route
       claude-plugins`, the writer takes the existing
       `_detect_origin`-based path (precedence walk across
@@ -667,7 +668,7 @@ taxonomy.
       and ignores `enabledPlugins`. AC6's purpose is to pin
       that no scope-detection code is "shared" silently between
       routes — the flag is the dispatch.
-- [ ] **AC7 (`install-marker.json` synthesised shape).** The
+- [x] **AC7 (`install-marker.json` synthesised shape).** The
       build pipeline emits, under each pack's
       `dist/apm/<pack>/.apm/hooks/install-marker.json`, JSON of
       this exact shape (formatting-modulo, but the structure and
@@ -703,7 +704,7 @@ taxonomy.
       survives spaces in `${PLUGIN_ROOT}`. The `timeout` field
       mirrors RFC-0010 §Pack-level declarations' JSON example
       (value: 10 seconds).
-- [ ] **AC8 (claude-plugins-side hook command bumps to pass
+- [x] **AC8 (claude-plugins-side hook command bumps to pass
       `--install-route claude-plugins`).** `agentbundle build`'s
       claude-plugins derivation, currently emitting
       `python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"`,
@@ -713,7 +714,7 @@ taxonomy.
       synthesis. The `claude-plugins-install-route` spec's AC9
       (which pinned the original literal) gets an in-PR amend
       to track the new literal — landed by plan task T10.
-- [ ] **AC9 (adapter contract bumps v0.4 → v0.5 with `"apm"`
+- [x] **AC9 (adapter contract bumps v0.4 → v0.5 with `"apm"`
       appended to `install-routes`).** `docs/contracts/adapter.toml`
       declares `[contract] version = "0.5"` and
       `[adapter."claude-code"] install-routes = ["cli",
@@ -735,7 +736,7 @@ taxonomy.
       per `claude-plugins-install-route` AC11 and the default
       stays `["cli"]` on read; this PR must not silently extend
       the field's surface to those adapters.
-- [ ] **AC10 (marker schema gains `"apm"` as permitted
+- [x] **AC10 (marker schema gains `"apm"` as permitted
       `install-route` value; v0.3-era markers continue to parse
       cleanly).** Under v0.5 each `[[packs-installed]]` entry MAY
       carry `install-route ∈ {"cli", "claude-plugins", "apm"}`
@@ -748,16 +749,18 @@ taxonomy.
       optional `install-route` field per
       `claude-plugins-install-route` AC12; this spec extends the
       permitted-values list by one). A fixture-set test loads
-      one v0.3-shaped marker, one v0.4-shaped marker with
-      `install-route = "claude-plugins"`, and one v0.5-shaped
-      marker with `install-route = "apm"`; all three parse
-      cleanly through the core pack session-start nudge's
+      one v0.3-shaped marker (no `install-route` field at all;
+      absence-defaults-to-`"cli"` back-compat rail per
+      `claude-plugins-install-route` AC12), one v0.4-shaped
+      marker with `install-route = "claude-plugins"`, and one
+      v0.5-shaped marker with `install-route = "apm"`; all three
+      parse cleanly through the core pack session-start nudge's
       `_pack_names_from_marker` helper at
       `packs/core/.apm/hooks/session-start.py` (the test
       grep-locates the function by symbol name rather than
       line range, so refactors of the hook body don't rot
       this AC).
-- [ ] **AC11 (build-pipeline APM derivation projects three
+- [x] **AC11 (build-pipeline APM derivation projects three
       artifacts per pack).** `agentbundle build` against every
       pack in `packs/` produces, under each pack's
       `dist/apm/<pack>/`:
@@ -770,7 +773,7 @@ taxonomy.
       A goal-based test diffs the produced tree against a
       checked-in fixture. `make build-check` exits zero against
       the post-migration tree at the APM projection.
-- [ ] **AC12 (integration tests cover the five RFC-0010-named
+- [x] **AC12 (integration tests cover the five RFC-0010-named
       scenarios with explicit test names).**
       `packages/agentbundle/tests/integration/test_apm_install_route.py`
       exists and contains tests pinning the five scenarios
@@ -808,7 +811,7 @@ taxonomy.
       `${CURSOR_PLUGIN_ROOT}`, `${HOME}`, plus the writer's
       own projected location) and asserts the marker file's
       `tomllib`-parsed shape.
-- [ ] **AC13 (`adapt-to-project` skill body extends proactive
+- [x] **AC13 (`adapt-to-project` skill body extends proactive
       cache scan to walk APM caches).**
       `packs/core/.apm/skills/adapt-to-project/SKILL.md`
       Pre-flight section's proactive cache-scan step (added by
@@ -830,7 +833,7 @@ taxonomy.
       End-to-end verification of the idempotence behaviour
       under the APM cache extension ships as a manual-QA matrix
       row under AC15.
-- [ ] **AC14 (`adapt-to-project` spec amendment — APM-route
+- [x] **AC14 (`adapt-to-project` spec amendment — APM-route
       stale-entry drop-on-mismatch AC).**
       `docs/specs/adapt-to-project/spec.md` gains one new
       Acceptance Criterion (numbered AC27, extending the
@@ -851,7 +854,7 @@ taxonomy.
         `claude-plugins-install-route` AC26's forward
         reference. A Changelog entry on the parent
         `adapt-to-project` spec names this spec by path.
-- [ ] **AC15 (`distribution-adapters` spec amendment — APM-route
+- [x] **AC15 (`distribution-adapters` spec amendment — APM-route
       conformance cases and recipe-row documentation).**
       `docs/specs/distribution-adapters/spec.md` § *Recipe set*
       table extends the existing `per-pack-apm-package` row's
@@ -891,7 +894,7 @@ taxonomy.
       (v0.4 → v0.5) is recorded in
       `distribution-adapters/spec.md`'s Changelog alongside the
       existing v0.3 → v0.4 entry.
-- [ ] **AC16 (self-host drift gate covers the APM-projected
+- [x] **AC16 (self-host drift gate covers the APM-projected
       writer at the same two axes the claude-plugins gate
       covers).** `make build-check` is amended to assert at every
       invocation, for every pack's
@@ -914,7 +917,7 @@ taxonomy.
       (`claude-plugins-install-route` AC20) continues to bind;
       this AC extends its surface to the APM projection in the
       same `make build-check` invocation.
-- [ ] **AC17 (manual-QA matrix rows for RFC-0010 close triggers
+- [ ] **AC17 (manual-QA, transcript pending — see matrix rows 32-34) (manual-QA matrix rows for RFC-0010 close triggers
       and the per-target characterisation matrix).**
       `docs/specs/adapt-to-project/notes/manual-qa-matrix.md`
       gains three rows:
@@ -937,7 +940,7 @@ taxonomy.
       RFC itself, not for this spec. Per the matrix's existing
       `verification = transcript` deferral pattern, the
       transcript artifacts land in follow-ups.
-- [ ] **AC18 (per-pack README disclosure for the three no-hook
+- [x] **AC18 (per-pack README disclosure for the three no-hook
       APM targets — `packs/core/README.md` as required floor).**
       `packs/core/README.md` (created if absent) carries a
       one-paragraph disclosure under a heading like *Install
@@ -1047,3 +1050,32 @@ taxonomy.
   `test_distribution_adapters_names_apm_test_file_by_path`
   pinning that the sibling spec carries the literal path
   to the APM test file — Nit 6.
+- 2026-05-25: pre-EXECUTE adversarial-review iteration 4
+  reconciliation — (i) Testing Strategy bullet for the
+  writer template rewritten: `--install-route` is two-value
+  `choices = {"claude-plugins", "apm"}`, `required=True`, no
+  default; iteration-1's required-flag flip had left a stale
+  "three-value choices and default-claude-plugins back-compat"
+  prose in the canonical Testing Strategy paragraph an
+  implementer reads first — Concern 1; (ii) AC10 fixture-set
+  test wording made the v0.3-shape (absent `install-route`)
+  case explicit alongside v0.4 / v0.5, and the plan's T3
+  Tests list gained
+  `test_v03_shaped_marker_without_install_route_field_parses_as_cli`
+  so the absence-defaults-to-`"cli"` back-compat rail is
+  tested in this PR rather than tacitly inherited — Concern 3.
+- 2026-05-25: T1–T12 implementation landed via work-loop. Writer
+  template gained `--install-route` argparse, data-directory shim,
+  APM scope detection; contract bumped v0.4 → v0.5; build pipeline
+  derives `dist/apm/<pack>/.apm/hooks/install-marker.{json,py}` and
+  `pack.toml`; claude-plugins-route hook command bumped to pass
+  `--install-route claude-plugins`; self-host drift gate extended
+  to the APM projection; sibling specs amended in-PR
+  (`claude-plugins-install-route`, `adapt-to-project`,
+  `distribution-adapters`); manual-QA matrix gained three RFC-0010
+  Q6 / spec AC17 rows; `packs/core/README.md` ships the
+  four-of-seven HookIntegrator-coverage disclosure. Live-install
+  transcripts (AC17 rows 32-34) remain `verification = transcript`
+  deferred per the matrix's existing pattern; flipping the status
+  to *Shipped* on the mechanical close-criterion side (AC1–AC16,
+  AC18). Status: Approved → Shipped.

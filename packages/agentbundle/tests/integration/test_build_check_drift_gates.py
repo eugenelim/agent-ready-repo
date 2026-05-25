@@ -331,3 +331,70 @@ def test_make_build_check_passes_on_clean_source_packs(tmp_path):
         f"run_build_check_drift_gates should have passed on clean source packs "
         f"+ populated dist tree but returned {rc}."
     )
+
+
+# ---------------------------------------------------------------------------
+# Gate 1c: APM writer-template drift (apm-install-route-parity AC16 a)
+# ---------------------------------------------------------------------------
+
+
+def test_make_build_check_fails_on_apm_writer_drift(tmp_path):
+    """AC16 (a): gate exits non-zero when a derived APM install-marker.py
+    diverges from the template.
+
+    Mirror of the claude-plugins-side drift test, but mutates the APM-
+    projected writer at dist/apm/<pack>/.apm/hooks/install-marker.py."""
+    from agentbundle.build.self_host import run_build_check_drift_gates
+
+    packs_shadow = tmp_path / "packs"
+    shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    build_result = _run_build_into_dist(packs_shadow, workspace)
+    assert build_result.returncode == 0, (
+        f"build failed (setup for APM drift test):\n{build_result.stderr}"
+    )
+
+    dist_apm = workspace / "dist" / "apm"
+    assert dist_apm.is_dir(), f"dist/apm not found after build: {dist_apm}"
+
+    mutated = None
+    for pack_dir in sorted(dist_apm.iterdir()):
+        if not pack_dir.is_dir():
+            continue
+        marker = pack_dir / ".apm" / "hooks" / "install-marker.py"
+        if marker.exists():
+            data = bytearray(marker.read_bytes())
+            data[-1] ^= 0x01
+            marker.write_bytes(bytes(data))
+            mutated = pack_dir.name
+            break
+
+    assert mutated is not None, (
+        "No APM-projected install-marker.py found under dist/apm/; T4 "
+        "APM derivation may not be running."
+    )
+
+    rc = run_build_check_drift_gates(workspace, packs_shadow)
+    assert rc != 0, (
+        "run_build_check_drift_gates should have returned non-zero on APM-side "
+        "writer drift but returned 0."
+    )
+
+
+def test_make_build_check_passes_on_clean_apm_tree(tmp_path):
+    """AC16 (a) regression guard: gate exits zero when all APM-projected
+    install-marker.py files are byte-identical to the template."""
+    from agentbundle.build.self_host import run_build_check_drift_gates
+
+    packs_shadow = tmp_path / "packs"
+    shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    build_result = _run_build_into_dist(packs_shadow, workspace)
+    assert build_result.returncode == 0, build_result.stderr
+
+    rc = run_build_check_drift_gates(workspace, packs_shadow)
+    assert rc == 0, f"clean tree should pass, got rc={rc}"
