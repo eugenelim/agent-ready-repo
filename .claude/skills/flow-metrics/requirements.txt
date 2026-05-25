@@ -1,0 +1,14 @@
+# flow-metrics v1 has no pip dependencies — stdlib only.
+#
+# Percentiles use `statistics.quantiles(..., method="exclusive")` at
+# indices 49 / 74 / 89 for p50 / p75 / p90 (equivalent to
+# numpy.percentile(..., method="linear") on the spec's sample sizes).
+# The output schema validator used by the contract tests is also
+# stdlib-only — no jsonschema dependency.
+#
+# This file exists to satisfy the kit-installer contract, which
+# expects every shipped skill to declare its pip surface (an empty
+# requirements.txt is the canonical way to say "no pip deps").
+#
+# A future v2 that adopts numpy / pandas / jsonschema would list them
+# here.

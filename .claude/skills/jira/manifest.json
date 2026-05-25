@@ -1,0 +1,29 @@
+{
+  "id": "jira",
+  "name": "Jira Client",
+  "version": "0.1.0",
+  "description": "Read and write Jira (Atlassian Cloud or Server / Data Center) via the REST API. Exposes JQL search, get/create/update/delete on issues and projects, transitions, comments, attachments, user lookup, and a raw escape hatch. Handles Cloud (basic auth with email + API token, REST v3, ADF, nextPageToken pagination) vs Server/DC (bearer Personal Access Token, REST v2, plain-text bodies, startAt pagination) automatically. The agent never sees the API token.",
+  "category": "integrations",
+  "tags": ["jira", "atlassian", "rest-api", "jql", "issue-tracking", "credentialed"],
+  "license": "MIT",
+  "deps": {
+    "pip": [
+      "httpx>=0.27"
+    ]
+  },
+  "credentials": {
+    "namespace": "jira",
+    "setup": "agentbundle creds setup jira",
+    "schema": "references/creds-schema.toml"
+  },
+  "input": {
+    "arguments": "a subcommand and its arguments (e.g., search \"project = PROJ AND status = Open\" --limit 50 --output issues.jsonl --format jsonl)"
+  },
+  "output": {
+    "fileTypes": [".json", ".jsonl", ".csv"],
+    "layout": "JSON to stdout by default; --output writes to a file in the chosen --format"
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}

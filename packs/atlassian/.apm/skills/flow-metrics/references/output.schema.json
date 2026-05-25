@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:atlassian-pack:flow-metrics:output.schema.json",
+  "title": "flow-metrics canonical output",
+  "description": "Wire shape for the aggregate-mode JSON output of the flow-metrics CLI. Matches docs/specs/flow-metrics.md §\"Outputs\". The schema does not re-validate canonicalisation rules (key sort order, float rounding); those live in T10's renderer contract tests. Per-issue mode (--per-issue) emits JSONL with a different shape and is not covered here.",
+  "type": "object",
+  "required": ["meta", "aggregates", "notes"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "$ref": "#/$defs/meta"
+    },
+    "aggregates": {
+      "$ref": "#/$defs/aggregates"
+    },
+    "cohort_breakdown": {
+      "$ref": "#/$defs/cohort_breakdown",
+      "description": "Omitted when --cohort-jql was not provided, or when --per-issue is set. Both cohort and control sides are present whenever the block is emitted."
+    },
+    "per_team": {
+      "type": "array",
+      "description": "Per-team rollup rows. Emitted when scope is --program-id / --portfolio-id, or when scope is --project AND team_field is configured AND the resolved issue set spans more than one distinct team value. Sorted by team name codepoint.",
+      "items": {
+        "$ref": "#/$defs/per_team_row"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "description": "Descriptive notes; lex-sorted in canonical output.",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "percentile_stat": {
+      "type": "object",
+      "required": ["p50", "p75", "p90", "n"],
+      "additionalProperties": false,
+      "properties": {
+        "p50": { "type": ["number", "null"] },
+        "p75": { "type": ["number", "null"] },
+        "p90": { "type": ["number", "null"] },
+        "n":   { "type": "integer", "minimum": 0 }
+      }
+    },
+    "flow_distribution": {
+      "type": "object",
+      "description": "Issuetype-at-delivery share. Bucket ratios sum to 1.0 within 4-dp tolerance; denominator is the count of delivered-in-window issues (insensitive to --include-subtasks).",
+      "required": ["feature", "defect", "debt", "risk", "subtask", "other", "denominator"],
+      "additionalProperties": false,
+      "properties": {
+        "feature":     { "type": "number", "minimum": 0, "maximum": 1 },
+        "defect":      { "type": "number", "minimum": 0, "maximum": 1 },
+        "debt":        { "type": "number", "minimum": 0, "maximum": 1 },
+        "risk":        { "type": "number", "minimum": 0, "maximum": 1 },
+        "subtask":     { "type": "number", "minimum": 0, "maximum": 1 },
+        "other":       { "type": "number", "minimum": 0, "maximum": 1 },
+        "denominator": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "aggregates": {
+      "type": "object",
+      "description": "One key per requested metric. Unrequested metrics (per --metrics) are absent — NOT emitted as null. additionalProperties: false enforces this contract on the wire.",
+      "additionalProperties": false,
+      "properties": {
+        "cycle_time_hours":  { "$ref": "#/$defs/percentile_stat" },
+        "lead_time_hours":   { "$ref": "#/$defs/percentile_stat" },
+        "flow_time_hours":   { "$ref": "#/$defs/percentile_stat" },
+        "flow_efficiency":   { "$ref": "#/$defs/percentile_stat" },
+        "throughput":        { "type": "integer", "minimum": 0 },
+        "wip":               { "type": "integer", "minimum": 0 },
+        "flow_load":         { "type": "number",  "minimum": 0 },
+        "rework_rate":       { "type": ["number", "null"], "minimum": 0 },
+        "flow_distribution": { "$ref": "#/$defs/flow_distribution" },
+        "defect_ratio":      { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "cohort_breakdown": {
+      "type": "object",
+      "required": ["cohort", "control"],
+      "additionalProperties": false,
+      "properties": {
+        "cohort":  { "$ref": "#/$defs/aggregates" },
+        "control": { "$ref": "#/$defs/aggregates" }
+      }
+    },
+    "per_team_row": {
+      "type": "object",
+      "required": ["team", "aggregates"],
+      "additionalProperties": false,
+      "properties": {
+        "team": { "type": "string" },
+        "aggregates": { "$ref": "#/$defs/aggregates" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "description": "Exactly one of project / program_id / portfolio_id; team is only emitted on the project path.",
+      "additionalProperties": false,
+      "properties": {
+        "project":      { "type": "string" },
+        "team":         { "type": "string" },
+        "program_id":   { "type": "string" },
+        "portfolio_id": { "type": "string" }
+      },
+      "oneOf": [
+        { "required": ["project"] },
+        { "required": ["program_id"] },
+        { "required": ["portfolio_id"] }
+      ]
+    },
+    "window": {
+      "type": "object",
+      "required": ["from", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "to":   { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "caller",
+        "scope",
+        "window",
+        "sources",
+        "metrics_requested",
+        "state_config_sha",
+        "issuetype_config_sha",
+        "generated_at",
+        "schema_version",
+        "per_team_double_counted"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "caller":                  { "type": "string" },
+        "scope":                   { "$ref": "#/$defs/scope" },
+        "window":                  { "$ref": "#/$defs/window" },
+        "sources": {
+          "type": "array",
+          "description": "Upstream skills called for this run. Lex-sorted.",
+          "items": { "type": "string" }
+        },
+        "metrics_requested": {
+          "type": "array",
+          "description": "Resolved --metrics list in canonical --metrics enumeration order (NOT lexicographic). Deduplicated; unknown names dropped at the renderer.",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "cycle_time", "lead_time", "throughput", "wip", "flow_load",
+              "rework_rate", "flow_time", "flow_efficiency",
+              "flow_distribution", "defect_ratio"
+            ]
+          }
+        },
+        "state_config_sha":        { "type": "string" },
+        "issuetype_config_sha":    { "type": "string" },
+        "generated_at": {
+          "type": "string",
+          "description": "ISO-8601 UTC timestamp with a 'Z' suffix.",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$"
+        },
+        "schema_version": {
+          "type": "string",
+          "description": "Wire-format version. v1 is pinned at '1.0'.",
+          "const": "1.0"
+        },
+        "per_team_double_counted": { "type": "boolean" },
+        "cohort_jql": {
+          "type": "string",
+          "description": "Omitted when --cohort-jql was not provided. Never emitted as null or empty string."
+        }
+      }
+    }
+  }
+}
