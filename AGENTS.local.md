@@ -59,3 +59,33 @@ seed it names, re-run `make build-self`, re-commit).
 
 If you edit any README, table, or doc under the projected paths above,
 **check the seed first**.
+
+## Authoring or editing a skill
+
+Skills live under `packs/<pack>/.apm/skills/<name>/SKILL.md` (the seed)
+and project to `.claude/skills/<name>/SKILL.md`. Edit the seed, not the
+projection. After any edit, run `make build-self` to regenerate the
+projection, then `python3 tools/lint-skill-spec.py` to confirm the
+[agentskills.io spec](https://agentskills.io/specification) checks pass.
+
+The linter walks both roots, so a seed/projection drift surfaces as
+either an error or a `make build-check` failure — whichever fires
+first. The path rules (skill-relative for own files, name-only for
+other skills, no `.claude/skills/<...>/` or
+`packs/.../.apm/skills/<...>/` prefixes in bodies) are the most common
+authoring mistake; the linter catches them, but it's faster to write
+them right the first time. See
+[`.claude/skills/README.md`](.claude/skills/README.md#spec-compliance)
+for the full ruleset.
+
+## New tool scripts: Python, not bash
+
+When adding a new tool, self-test, or hook under `tools/`, write it in
+pure-stdlib Python (`.py`), not bash (`.sh`). Existing `.sh` files stay
+where they are — the rule applies forward, not retroactively — but new
+additions need to run on Windows without an MSYS shell or WSL. The
+companion Windows-CI work expects every new script to be `python3
+<script>` rather than `bash <script>`, and the path triggers in
+`.github/workflows/docs.yml` should match that. Bash is fine for
+*existing* gates we haven't ported yet; for anything new, default to
+Python first.

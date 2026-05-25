@@ -415,7 +415,7 @@ produced by the rewrite round-trips through the byte-comparison tests.
 **Depends on:** T1-T6
 
 **Tests** (goal-based):
-- `tools/test-all.sh` exits 0.
+- `python tools/test-all.py` exits 0.
 - `python tools/hooks/pre-pr.py` exits 0.
 - `pytest packages/agentbundle/tests/ -v` exits 0.
 - **AC10 smoke check:** run `agentbundle install core` against a tmp
