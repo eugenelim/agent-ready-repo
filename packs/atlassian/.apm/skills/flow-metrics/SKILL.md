@@ -31,12 +31,11 @@ questions, read the spec.
 ## Cross-skill invocation — name, not path
 
 This skill names sibling skills (`jira`, `jira-align`) by their `name:`
-field, never by path. Install locations vary by IDE (`~/.claude/skills/`,
-`.cursor/skills/`, project-scope `.claude/skills/`, etc.) and skills can
-be renamed at install time. The agent's harness resolves the name to
-whatever location the user picked. **If you find yourself writing
-`~/.claude/skills/jira/...` or any other hardcoded path, stop — look up
-the skill by name instead.**
+field, never by path. Install locations vary by IDE and scope, and
+skills can be renamed at install time. The agent's harness resolves the
+name to whatever location the user picked. **If you find yourself
+writing a hardcoded skill path, stop — look up the skill by name
+instead.**
 
 Install guidance for the named dependencies lives in `manifest.json`
 under `deps.skills` — that's a *where to get them* hint, not a runtime
@@ -280,10 +279,10 @@ isolation:
   comment, create, update, delete, attach) on any upstream skill. The
   output is metrics; it never mutates Jira state.
 - **Path safety:** `--output`, `--state-config`, `--issuetype-config`
-  are rejected if they resolve under `/etc`, `/sys`, `/proc`, `/dev`,
-  `/boot` (POSIX) or `C:\Windows`, `C:\Program Files`,
-  `C:\Program Files (x86)` (Windows), or if they contain a null byte.
-  Exit 2.
+  are rejected if they resolve under a privileged system root (POSIX:
+  `/etc`, `/sys`, `/proc`, `/dev`, `/boot`; Windows: the system drive's
+  `Windows`, `Program Files`, and `Program Files (x86)` directories),
+  or if they contain a null byte. Exit 2.
 
 ## Edge cases
 

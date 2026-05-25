@@ -12,8 +12,8 @@ exist:
 
 - **`jira` skill** (sibling in this pack) — all Jira reads, comments,
   transitions, attachments. You never write a raw Jira REST call here.
-- **`bug-fix` skill** (shipped by the host repo at
-  `.claude/skills/bug-fix/`) —
+- **`bug-fix` skill** (shipped by the host repo; resolved by name
+  through the harness) —
   reproduction, failing test, root-cause identification, minimum fix,
   regression test, commit-body-explains-why, and tracker loopback. This
   skill does **not** re-explain that discipline; invoke `bug-fix` and
@@ -33,9 +33,8 @@ of the three above.
 This skill names sibling skills (`jira`, `bug-fix`) and subagents
 (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`) **by
 their `name:` field, never by path**. Install locations vary by IDE
-(`~/.claude/skills/`, `.cursor/skills/`, project-scope `.claude/skills/`,
-etc.) and skills can be renamed at install time. Path coupling silently
-breaks every alternative layout.
+and scope, and skills can be renamed at install time. Path coupling
+silently breaks every alternative layout.
 
 The contract: when this skill says *"via the `jira` skill: `get-issue
 $KEY ...`"*, the agent uses its native skill-dispatch mechanism to invoke
