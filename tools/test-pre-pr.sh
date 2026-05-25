@@ -18,7 +18,17 @@ trap 'rm -rf "$TMP"' EXIT
 # symlinks (CLAUDE.md → AGENTS.md) with cp -P.
 SANDBOX="$TMP/repo"
 seed_sandbox() {
-  rm -rf "$SANDBOX"
+  # GitHub Actions runners have intermittently hit
+  # `rm: cannot remove '<sandbox>/.git': Directory not empty` between
+  # cases — a fs/git race where the parent git's housekeeping holds an
+  # object briefly after our `git commit` returns. Tolerate the partial
+  # rm under `set -e`: if anything's left, retry after a tick, then
+  # rely on `git init` to reinitialize whatever survives.
+  rm -rf "$SANDBOX" 2>/dev/null || true
+  if [ -e "$SANDBOX" ]; then
+    sleep 0.2
+    rm -rf "$SANDBOX" 2>/dev/null || true
+  fi
   mkdir -p "$SANDBOX"
   { git ls-files -z; git ls-files -z --others --exclude-standard; } \
     | while IFS= read -r -d '' f; do
@@ -88,7 +98,14 @@ run_corruption "agent-artifact-fail" \
   "sed -i.bak '/^model:/d' .claude/agents/adversarial-reviewer.md && rm .claude/agents/adversarial-reviewer.md.bak" \
   'pre-pr: ✖ agent-artifact lint failed'
 
-# 3. knowledge lint — plant a malformed JSONL line.
+# 3. skill-spec lint — plant an install-path reference in a SKILL.md body,
+#    which the spec linter refuses (skill bodies must use skill-relative
+#    paths for own files and name-only references for other skills).
+run_corruption "skill-spec-fail" \
+  "printf '\nSee \`.claude/skills/work-loop/SKILL.md\` for the loop.\n' >> packs/core/.apm/skills/bug-fix/SKILL.md" \
+  'pre-pr: ✖ skill-spec lint failed'
+
+# 4. knowledge lint — plant a malformed JSONL line.
 run_corruption "knowledge-fail" \
   "printf '%s\n' '{not json' > docs/knowledge/patterns.jsonl" \
   'pre-pr: ✖ knowledge lint failed'
