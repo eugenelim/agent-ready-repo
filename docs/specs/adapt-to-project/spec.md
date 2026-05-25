@@ -223,6 +223,11 @@ refused.
 #   - install-route field added (optional); read-side default is "cli" when absent.
 #   - unresolved-markers and new-companions are now optional; when absent,
 #     the read side scans the projected primitive tree directly.
+#
+# v0.5 schema changes (per docs/specs/apm-install-route-parity/spec.md):
+#   - install-route permitted-values list extended to include "apm".
+#   - Read-side default for absent install-route remains "cli" (v0.3-era
+#     back-compat carries forward unchanged).
 
 marker-schema-version = "0.1"
 
@@ -230,7 +235,7 @@ marker-schema-version = "0.1"
 name               = "monorepo-extras"
 version            = "0.1.0"
 installed-at       = 2026-05-23T14:00:00Z
-install-route      = "cli"                # optional; "cli" | "claude-plugins"; default "cli" when absent
+install-route      = "cli"                # optional; "cli" | "claude-plugins" | "apm"; default "cli" when absent
 unresolved-markers = ["package-manager"]  # optional; repo-scope file only — always [] in user-scope marker
 new-companions     = ["packages/_example/AGENTS.upstream.md"]  # optional
 ```
@@ -242,7 +247,7 @@ new-companions     = ["packages/_example/AGENTS.upstream.md"]  # optional
 | `name` | yes | basic string | pack name |
 | `version` | yes | basic string | semver |
 | `installed-at` | yes | bare TOML offset-datetime | `YYYY-MM-DDTHH:MM:SSZ`; must round-trip as `datetime.datetime` under `tomllib` |
-| `install-route` | **optional** | basic string | `"cli"` or `"claude-plugins"`; read-side default is `"cli"` when absent (backward-compat with v0.3-era markers) |
+| `install-route` | **optional** | basic string | `"cli"`, `"claude-plugins"`, or `"apm"` (the last per docs/specs/apm-install-route-parity/spec.md AC10); read-side default is `"cli"` when absent (backward-compat with v0.3-era markers) |
 | `unresolved-markers` | **optional** | array of basic strings | when absent, the read side scans the projected primitive tree directly for `<adapt:NAME>` markers |
 | `new-companions` | **optional** | array of basic strings | when absent, the read side scans the projected primitive tree directly for `.upstream.<ext>` companions |
 
@@ -918,6 +923,19 @@ Per the work-loop's three-mode taxonomy:
       Programmatic verification is deferred to the Claude-plugins
       uninstall handling RFC (per RFC-0008 §Unresolved questions Q2
       — explicitly forward-referenced).
+- [ ] **AC27 — APM-route stale-entry drop-on-read.** When a
+      `[[packs-installed]]` entry's pack has
+      `install-route = "apm"` and the pack is no longer present in
+      any cache directory under `apm_modules/` (`./apm_modules/`
+      at project scope or `~/.apm/apm_modules/` at user scope) and
+      not recorded in any scope's state file, the skill silently
+      drops the entry on read — same rail AC26 binds for the
+      claude-plugins route. Pinned by the SKILL.md body grep
+      `apm_modules` within the stale-entry-drop paragraph (added
+      by T6 / T7 of
+      `docs/specs/apm-install-route-parity/plan.md`).
+      Programmatic verification is deferred to a future APM
+      uninstall-handling RFC, mirroring AC26's forward reference.
 
 ## Changelog
 
@@ -1013,3 +1031,5 @@ Per the work-loop's three-mode taxonomy:
   named triggers.
 - 2026-05-24: install-marker schema gains optional install-route field; unresolved-markers and new-companions marked optional per docs/specs/claude-plugins-install-route/spec.md.
 - 2026-05-25: AC24/AC25/AC26 added per docs/specs/claude-plugins-install-route/spec.md — read-side fallback for v0.4 markers, proactive cache-scan idempotence, stale-entry drop-on-read.
+- 2026-05-25: install-route permitted-values extended to include "apm" per docs/specs/apm-install-route-parity/spec.md.
+- 2026-05-25: AC27 added per docs/specs/apm-install-route-parity/spec.md — stale-entry drop-on-read for install-route = "apm" entries.
