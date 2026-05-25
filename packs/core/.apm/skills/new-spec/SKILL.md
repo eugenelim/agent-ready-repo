@@ -23,9 +23,8 @@ look like?" before any code.
 2. Create the directory and copy this skill's bundled `assets/spec.md`
    and `assets/plan.md` into it as `docs/specs/<feature>/spec.md` and
    `docs/specs/<feature>/plan.md`. (Paths are skill-relative — the
-   `assets/` folder lives next to this `SKILL.md` wherever your IDE
-   installed the skill: `.claude/skills/new-spec/assets/` on Claude
-   Code, `.kiro/skills/new-spec/assets/` on Kiro, etc.)
+   `assets/` folder lives next to this `SKILL.md` wherever your
+   installer placed the skill.)
 
 3. **Surface assumptions before writing any spec body.** With the
    directory scaffolded, stop. Emit a numbered list under the heading
