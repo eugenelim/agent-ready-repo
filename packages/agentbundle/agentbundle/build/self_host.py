@@ -1082,6 +1082,29 @@ def run_build_check_drift_gates(
                     )
 
     # ------------------------------------------------------------------
+    # Gate 1b: _data/ ↔ templates/ parity (Concern 6)
+    #
+    # `packages/agentbundle/agentbundle/_data/install-marker.py` is the
+    # zipapp-reachable copy of the canonical template at
+    # `packages/agentbundle/templates/install-marker.py`. They must be
+    # byte-identical; drift means a security fix was applied to one but
+    # not the other. Resync with:
+    #   cp packages/agentbundle/templates/install-marker.py \
+    #      packages/agentbundle/agentbundle/_data/install-marker.py
+    # ------------------------------------------------------------------
+    _data_path = REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "install-marker.py"
+    _tmpl_path = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
+    if _data_path.exists() and _tmpl_path.exists():
+        if _data_path.read_bytes() != _tmpl_path.read_bytes():
+            failures.append(
+                "build-check: _data/install-marker.py diverges from "
+                "templates/install-marker.py — run "
+                "`cp packages/agentbundle/templates/install-marker.py "
+                "packages/agentbundle/agentbundle/_data/install-marker.py` "
+                "to re-sync"
+            )
+
+    # ------------------------------------------------------------------
     # Gate 2: Source-shape plugin.json (AC10 gate 2)
     # ------------------------------------------------------------------
     if packs_dir.is_dir():

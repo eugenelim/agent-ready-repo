@@ -191,7 +191,7 @@ def _read_marker(marker_path: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 ALLOWED_MODULES = frozenset({
-    "datetime", "hashlib", "json", "os", "pathlib", "sys", "tempfile", "tomllib",
+    "datetime", "hashlib", "json", "os", "pathlib", "re", "sys", "tempfile", "tomllib",
 })
 
 
@@ -797,6 +797,76 @@ def test_cli_to_claude_plugins_handoff_preserves_datetime(tmp_path, pack_root_fa
     )
 
 
+def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_root_factory):
+    """Concern 5 — install-route preservation symmetry in the CLI→Claude-plugins direction.
+
+    Pre-seeds a marker with a CLI-written entry (install-route = "cli").
+    Runs the Claude-plugins writer for a different pack. Asserts:
+      (a) both entries are present;
+      (b) the pre-seeded CLI entry still carries install-route = "cli"
+          (not overwritten by the Claude-plugins writer);
+      (c) the new Claude-plugins entry carries install-route = "claude-plugins".
+    """
+    from agentbundle.commands.install import _append_install_marker
+
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+
+    # Seed via the CLI writer in-process (repo scope).
+    _append_install_marker(
+        project_dir,
+        "repo",
+        pack_name="core",
+        pack_version="1.0.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    marker_path = project_dir / ".adapt-install-marker.toml"
+    assert marker_path.exists()
+
+    # Verify the CLI seed has install-route = "cli".
+    seed_data = _read_marker(marker_path)
+    core_entries = [e for e in seed_data.get("packs-installed", []) if e.get("name") == "core"]
+    assert len(core_entries) == 1
+    assert core_entries[0].get("install-route") == "cli", (
+        "CLI-seeded entry does not carry install-route = 'cli'"
+    )
+
+    # Now run the Claude-plugins writer for a different pack.
+    plugin_root, plugin_data, _, _ = pack_root_factory(
+        name="governance-extras",
+        version="0.5.0",
+        allowed_scopes=["repo"],
+        opt_in_at=["local"],
+    )
+    local_settings = project_dir / ".claude" / "settings.local.json"
+    local_settings.parent.mkdir(parents=True, exist_ok=True)
+    local_settings.write_text(json.dumps({"enabledPlugins": ["governance-extras"]}), encoding="utf-8")
+
+    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    result = _run_writer(env)
+    assert result.returncode == 0, result.stderr
+
+    data = _read_marker(marker_path)
+    names = {e["name"] for e in data.get("packs-installed", [])}
+    assert "core" in names, "CLI-seeded entry was dropped"
+    assert "governance-extras" in names, "Claude-plugins entry is missing"
+
+    by_name = {e["name"]: e for e in data["packs-installed"]}
+    # Pre-seeded CLI entry must still carry install-route = "cli".
+    assert by_name["core"].get("install-route") == "cli", (
+        "CLI entry install-route was overwritten by the Claude-plugins writer"
+    )
+    # New Claude-plugins entry must carry install-route = "claude-plugins".
+    assert by_name["governance-extras"].get("install-route") == "claude-plugins", (
+        "New Claude-plugins entry does not carry install-route = 'claude-plugins'"
+    )
+
+
 # ---------------------------------------------------------------------------
 # AC8: plugin upgrade replaces marker entry
 # ---------------------------------------------------------------------------
@@ -1031,13 +1101,96 @@ def test_emit_basic_string_parity_with_source():
 
 
 # ---------------------------------------------------------------------------
+# Security Concern 2: type validation on name/version/install-route
+# ---------------------------------------------------------------------------
+
+
+def test_writer_drops_entries_with_malformed_name_or_version(tmp_path, pack_root_factory):
+    """Security Concern 2: _read_entries drops entries whose name or version
+    is not a str.
+
+    Pre-seeds a marker with two entries:
+      - a well-formed entry (name="well-formed", version="0.1.0")
+      - a malformed entry (name=42 in TOML — an integer)
+
+    Runs the Claude-plugins writer for a third pack. Asserts:
+      (a) the new (third-pack) entry is present;
+      (b) the well-formed pre-seeded entry survives;
+      (c) the malformed entry is dropped (not present in the parsed result);
+      (d) the writer exited 0 (did not brick on the bad input).
+    """
+    import datetime as dt
+
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+
+    ts = dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Note: TOML integer for name triggers the type-validation drop path.
+    marker_path = project_dir / ".adapt-install-marker.toml"
+    marker_path.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "well-formed"\n'
+        'version = "0.1.0"\n'
+        f"installed-at = {ts}\n"
+        'install-route = "cli"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        "name = 42\n"  # TOML integer — triggers Concern 2 drop
+        'version = "0.1.0"\n'
+        f"installed-at = {ts}\n"
+        'install-route = "cli"\n',
+        encoding="utf-8",
+    )
+
+    plugin_root, plugin_data, _, _ = pack_root_factory(
+        name="third-pack",
+        version="0.3.0",
+        allowed_scopes=["repo"],
+        opt_in_at=["local"],
+    )
+    local_settings = project_dir / ".claude" / "settings.local.json"
+    local_settings.parent.mkdir(parents=True, exist_ok=True)
+    local_settings.write_text(json.dumps({"enabledPlugins": ["third-pack"]}), encoding="utf-8")
+
+    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    result = _run_writer(env)
+
+    # (d) writer must not crash on the bad input.
+    assert result.returncode == 0, result.stderr
+
+    data = _read_marker(marker_path)
+    entries = data.get("packs-installed", [])
+    names = [e.get("name") for e in entries]
+
+    # (a) new entry present.
+    assert "third-pack" in names, f"New entry missing; names={names}"
+    # (b) well-formed entry survives.
+    assert "well-formed" in names, f"Well-formed entry was dropped; names={names}"
+    # (c) malformed entry (name=42) must be absent.
+    assert 42 not in names, f"Malformed entry (name=42) was not dropped; names={names}"
+
+
+# ---------------------------------------------------------------------------
 # TOML-injection via pack name test (Concern 6)
 # ---------------------------------------------------------------------------
 
 
 def test_pack_toml_injection_via_name_is_neutralised(tmp_path, pack_root_factory):
-    """Concern-6: adversarial pack name with embedded quote is sanitised;
-    exactly one entry with the literal name survives in the parsed marker.
+    """Concern-6 / Concern-7: adversarial pack name with embedded quote is refused.
+
+    After Concern-7 (pack-name shape regex), a name containing ``"`` fails
+    ``_PACK_NAME_RE`` (``^[a-z0-9][a-z0-9-]*$``), so the writer exits 0 without
+    writing a marker (refuse-and-warn). The injection never reaches
+    ``_emit_basic_string`` — the regex gate fires first.
+
+    The TOML-injection defence via ``_emit_basic_string`` remains as a
+    defence-in-depth rail for names that somehow pass the regex but contain
+    TOML-special characters (tested by the CLI ``test_install_marker_resists_pack_name_injection``
+    in ``test_toml_emitters.py``).
     """
     # Build a pack with a name containing an injection attempt.
     injected_name = 'core"injected'
@@ -1055,18 +1208,82 @@ def test_pack_toml_injection_via_name_is_neutralised(tmp_path, pack_root_factory
         project_dir=project_dir,
     )
     result = _run_writer(env)
+    # Writer must exit 0 (refuse-and-warn, not crash).
     assert result.returncode == 0, result.stderr
 
     marker_path = project_dir / ".adapt-install-marker.toml"
-    assert marker_path.exists()
+    # With the regex gate, the writer refuses before writing the marker.
+    assert not marker_path.exists(), (
+        "Writer wrote a marker for a pack with a name failing the shape rule"
+    )
+    # No hash file either.
+    assert not (plugin_data / "pack-manifest-hash").exists()
 
-    # Parse via tomllib — if injection succeeded, the parse would either fail
-    # or produce phantom keys. We assert exactly one entry with the literal name.
-    data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
-    entries = data.get("packs-installed", [])
-    assert len(entries) == 1, f"Expected 1 entry, got {len(entries)}: {entries}"
-    assert entries[0]["name"] == injected_name, (
-        f"Entry name {entries[0]['name']!r} != expected {injected_name!r}"
+
+# ---------------------------------------------------------------------------
+# Security Concern 7: pack-name shape regex in the writer
+# ---------------------------------------------------------------------------
+
+
+def test_writer_refuses_pack_name_with_control_chars(tmp_path):
+    """Concern 7 regression: the writer must refuse a pack whose pack.toml
+    carries a name that fails the _PACK_NAME_RE shape rule.
+
+    A name like "core\\nevil" (with a literal newline) would enable TOML
+    injection into the marker file. The writer must:
+      (a) exit 0 (refuse-and-warn, not crash);
+      (b) write no marker file;
+      (c) write no hash file;
+      (d) emit a stderr message naming the offending pattern.
+    """
+    import json as _json
+
+    plugin_root = tmp_path / "plugin_root"
+    plugin_root.mkdir()
+    plugin_data = tmp_path / "plugin_data"
+    plugin_data.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    # pack.toml with a name containing a newline (fails ^[a-z0-9][a-z0-9-]*$).
+    bad_name = "core\nevil"
+    pack_toml_content = (
+        "[pack]\n"
+        f'name = {_json.dumps(bad_name)}\n'
+        'version = "0.1.0"\n'
+        'description = "Adversarial pack."\n'
+        "\n"
+        "[pack.install]\n"
+        'default-scope = "repo"\n'
+        'allowed-scopes = ["repo"]\n'
+    )
+    (plugin_root / "pack.toml").write_text(pack_toml_content, encoding="utf-8")
+
+    # Opt in at local scope.
+    settings_dir = project_dir / ".claude"
+    settings_dir.mkdir(parents=True, exist_ok=True)
+    (settings_dir / "settings.local.json").write_text(
+        _json.dumps({"enabledPlugins": [bad_name]}), encoding="utf-8"
+    )
+
+    env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
+    result = _run_writer(env)
+
+    # (a) exit 0.
+    assert result.returncode == 0, f"Expected exit 0; got {result.returncode}. stderr: {result.stderr!r}"
+    # (b) no marker file.
+    assert not (project_dir / ".adapt-install-marker.toml").exists(), (
+        "Writer wrote a marker for a pack with an invalid name"
+    )
+    # (c) no hash file.
+    assert not (plugin_data / "pack-manifest-hash").exists(), (
+        "Writer wrote hash file despite refusing marker write"
+    )
+    # (d) stderr names the offending pattern.
+    assert "pack-name shape rule" in result.stderr or "fails pack-name" in result.stderr, (
+        f"Expected 'fails pack-name shape rule' in stderr; got: {result.stderr!r}"
     )
 
 
