@@ -176,7 +176,7 @@ versions, but their sandbox setup remains bash:
 - `tools/test-session-start.sh` — the bash-runner equivalent of
   `test_session_start_py.py`.
 
-The umbrella `tools/test-all.sh` runs every self-test in `tools/`.
+The umbrella `tools/test-all.py` runs every self-test in `tools/`.
 Run it by hand whenever a linter, hook, or `loop-cohort.py` changes.
 
 **CI parity.** `pre-pr.py` and CI run the same set of checks in
@@ -184,5 +184,5 @@ parallel. CI's `.github/workflows/docs.yml` has a job per
 enforcement layer — the four linters, the caps-enforcer self-test,
 and a `hooks` job that exercises the aggregator end-to-end (after
 seeding a healthy `state.json` so `loop-cohort.py check` actually
-runs). Run `tools/test-all.sh` and `python tools/hooks/pre-pr.py`
+runs). Run `python tools/test-all.py` and `python tools/hooks/pre-pr.py`
 locally before opening a PR; CI runs the same checks afterward.

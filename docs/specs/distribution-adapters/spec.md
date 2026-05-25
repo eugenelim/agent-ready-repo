@@ -58,6 +58,14 @@ to this list.
 
 - **`direct-directory`** — copy a source directory tree byte-for-byte to
   the projected path. Default `on-conflict`: `prompt-then-preserve`.
+  **Symlink-pass-through invariant**: implementations use
+  `shutil.copytree(..., symlinks=True)` semantics — symlinks in the
+  source are preserved as symlinks in the projection (never
+  dereferenced at projection time), so a pack with a relative
+  internal symlink projects the link literal, not the target body.
+  This is a path-traversal safety invariant: a malicious pack with a
+  symlink to `/etc/passwd` cannot exfiltrate that file into the
+  adopter's tree.
 - **`direct-file`** — copy a single source file byte-for-byte to the
   projected path. Default `on-conflict`: `prompt-then-preserve`.
 - **`merge-json`** — deep-merge the source's JSON payload into a managed
@@ -195,7 +203,7 @@ declares it so explicitly — no implicit defaults.
 
 | Primitive | Source path (in `packs/<pack>/`) | Claude Code | Kiro | Copilot | Codex |
 | --- | --- | --- | --- | --- | --- |
-| `skill` | `.apm/skills/<name>/` | `direct-directory` → `.claude/skills/<name>/` | `direct-directory` → `.kiro/skills/<name>/` | `instruction-file` → `.github/instructions/<name>.instructions.md` | `managed-block-inline` → `AGENTS.md` |
+| `skill` | `.apm/skills/<name>/` | `direct-directory` → `.claude/skills/<name>/` | `direct-directory` → `.kiro/skills/<name>/` | `instruction-file` → `.github/instructions/<name>.instructions.md` | `direct-directory` → `.agents/skills/<name>/` |
 | `agent` | `.apm/agents/<name>.md` | `direct-file` → `.claude/agents/<name>.md` | `direct-file`\* (with `kiro-agent-frontmatter-v0.9` rewrite) → `.kiro/agents/<name>.json` | `dropped` | `dropped` |
 | `hook-body` | `.apm/hooks/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.claude/hooks/<pack>/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.kiro/hooks/<pack>/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` |
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | repo: `merge-json` (under `hooks` key of `.claude/settings.local.json`); user: `user-merge-json` (under `hooks` key of `.claude/settings.json`) | `merge-into-agent-json` (RFC-0005 — under `hooks` key of `.kiro/agents/<attach-to-agent>.json`) | `dropped` | `dropped` |
@@ -232,6 +240,53 @@ projection wrote, so agents must land first. Cross-pack ordering is
 not introduced — packs install serially today and no pack writes into
 another pack's agent file. T7 enforces the invariant in the pipeline
 iterator.
+
+### Uniform multi-pack entry point — `direct-directory` adapters
+
+Per [RFC-0009 § Adapter contract change](../../rfc/0009-codex-native-skills.md#adapter-contract-change),
+every `direct-directory` adapter (`codex`, `claude-code`, `kiro`)
+exposes
+`project_packs(pack_paths: list[Path], contract, output_root)` as its
+canonical orchestrator-facing entry point. Single-pack `project()`
+is retained as a convenience wrapper that calls
+`project_packs([pack_path], ...)`. `self_host.py` routes the
+adapters in its `SELF_HOST_ADAPTERS` allow-list — narrowed by
+RFC-0009 to `("claude-code",)` — through `project_packs`; `codex`
+and `kiro` expose `project_packs` for adapter-API parity but are
+not invoked from self-host (their working-tree projections would
+duplicate every skill body and overload the maintainer). Other
+orchestrator-style callers route through the same multi-pack
+surface so the union of skill names across a multi-pack call is
+observable in one place — which is what the orphan sweep below
+needs.
+
+**Same-name collision rule**: deterministic last-wins, uniformly
+across all three adapters. Pack source order is as supplied to
+`project_packs(pack_paths, ...)` by the caller; the last pack's
+`<name>` overwrites earlier packs' projections of the same name
+(the projection step `rmtree`s the destination before `copytree`).
+
+### Orphan-skill cleanup invariant — `direct-directory` `skill` projections
+
+Per [RFC-0009 § Failure modes](../../rfc/0009-codex-native-skills.md#failure-modes),
+every `direct-directory` projection of the `skill` primitive runs a
+post-projection orphan sweep that removes any child directory of
+the projected skill target whose name is **not in the union of source skill names across the call's pack list**.
+The union (not per-pack) is load-bearing: a pack shipping a subset
+of skills must co-exist with another pack that ships the union
+complement, and a per-pack sweep would orphan-clean the other
+pack's skills.
+
+The sweep is implemented as a shared helper
+(`agentbundle.build.projections.direct_directory.sweep_orphans`) so
+all three adapters compute orphan membership identically.
+
+The sweep is **bound to the `skill` primitive only** — other
+`direct-directory` primitives opt in explicitly, never automatically.
+Symlinks at the target-dir root are removed via `Path.unlink()`
+(never followed); non-symlink subdirectories are removed via
+`shutil.rmtree`. The symlink rule preserves the symlink-pass-through
+invariant above.
 
 ## Install-scope dimension (contract v0.2)
 

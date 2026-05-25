@@ -22,7 +22,7 @@ markers through unchanged (spec § Boundaries — Never do). The
 consumer.
 
 Self-host scope (see docs/specs/self-hosting/spec.md § Phased rollout):
-the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` and `codex`.
+the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` only.
 Kiro and Copilot stay distribution-only so self-host does not project
 `.kiro/` or `.github/instructions/`.
 """
@@ -42,7 +42,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from agentbundle.build.adapters import ADAPTERS, codex
+from agentbundle.build.adapters import ADAPTERS, registry
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import (
     CONTRACT_PATH,
@@ -70,7 +70,7 @@ TARGET_PATHS = (
 # Self-host allow-list (see self-hosting spec § Phased rollout).
 # Kiro and Copilot remain in the contract for distribution builds but
 # are excluded from the self-host runner.
-SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
+SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code",)
 
 
 def is_dirty_tree(working_tree: Path) -> bool:
@@ -187,17 +187,14 @@ def _project_all_adapters(
     packs = discover_packs(packs_dir)
     for pack in packs:
         validate_pack_uniqueness(pack)
-    for adapter_name, project in ADAPTERS.items():
+    pack_paths = [pack.path for pack in packs]
+    for adapter_name in ADAPTERS:
         if adapter_name not in contract["adapter"]:
             continue
         if adapter_name not in SELF_HOST_ADAPTERS:
             continue
-        if adapter_name == "codex":
-            # Codex writes into composed AGENTS.md; _compose_agents_md owns
-            # that one-shot aggregate splice after the body seed is written.
-            continue
-        for pack in packs:
-            project(pack.path, contract, output_root)
+        adapter_module = registry[adapter_name.replace("-", "_")]
+        adapter_module.project_packs(pack_paths, contract, output_root)
 
 
 def _compose_agents_md(
@@ -205,8 +202,17 @@ def _compose_agents_md(
     output_root: Path,
     contract: dict,
 ) -> Path | None:
-    """Compose root AGENTS.md from the core body seed, Codex skill block,
-    and optional core footer fragment."""
+    """Compose root AGENTS.md from the core body seed and optional
+    core footer fragment.
+
+    Post-RFC-0009: Codex projects full skill bodies to `.agents/skills/`
+    rather than splicing a managed block into AGENTS.md. The Codex
+    adapter is not invoked from self-host — Codex correctness is gated
+    by unit tests + the AC29 tempdir projection test, not by
+    self-host's working-tree drift gate. Keeping Codex out of
+    `SELF_HOST_ADAPTERS` avoids carrying a duplicate
+    `.agents/skills/` tree in the working tree.
+    """
     body_path = packs_dir / "core" / "seeds" / "AGENTS.md"
     if not body_path.exists():
         return None
@@ -217,9 +223,6 @@ def _compose_agents_md(
     if body and not body.endswith("\n"):
         body += "\n"
     target_path.write_text(body, encoding="utf-8")
-
-    packs = discover_packs(packs_dir)
-    codex.project_packs([pack.path for pack in packs], contract, output_root)
 
     if footer_path.exists():
         text = target_path.read_text(encoding="utf-8")

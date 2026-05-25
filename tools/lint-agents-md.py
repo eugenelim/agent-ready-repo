@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import time
+import tomllib
 from pathlib import Path
 
 MAX_ROOT_LINES = 250
@@ -249,6 +250,36 @@ def main() -> int:
                 f"drift-watch: vendor token (ultrathink / 'Plan Mode (Shift+Tab') in {f_str}. "
                 f"Move it under .claude/."
             )
+
+    # 10f — Legacy Codex managed-skills block must not survive a
+    # post-RFC-0009 install. When the contract declares Codex `skill`
+    # as `direct-directory`, the projected AGENTS.md should not carry
+    # the `<!-- agent-skills:start -->` literal — the one-shot
+    # migration strip should have removed it. Warning-only (does not
+    # `note(...)` / fail) so adopters mid-migration aren't blocked.
+    contract_path = Path("docs/contracts/adapter.toml")
+    legacy_marker = "<!-- agent-skills:start -->"
+    if contract_path.is_file():
+        try:
+            contract = tomllib.loads(contract_path.read_text(encoding="utf-8"))
+        except (tomllib.TOMLDecodeError, OSError):
+            contract = None
+        codex_skill_is_direct_directory = False
+        if contract is not None:
+            for entry in contract.get("adapter", {}).get("codex", {}).get("projection", []):
+                if entry.get("primitive") == "skill" and entry.get("mode") == "direct-directory":
+                    codex_skill_is_direct_directory = True
+                    break
+        if codex_skill_is_direct_directory:
+            for probe in ("AGENTS.md", "packs/core/seeds/AGENTS.md"):
+                f = Path(probe)
+                if f.is_file() and legacy_marker in f.read_text(encoding="utf-8"):
+                    warn(
+                        f"legacy-codex-skill-block: {probe} still contains "
+                        f"{legacy_marker!r}. Codex `skill` is now "
+                        f"`direct-directory`; run `make build-self` to let "
+                        f"the migration strip remove the block."
+                    )
 
     # 10e — Session-scratch artifacts must be gitignored.
     for probe in (
