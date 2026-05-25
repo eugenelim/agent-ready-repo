@@ -512,6 +512,9 @@ user-scope-eligible pack ships in v1 (all four shipped packs lock
 | 29 | claude-plugins install of core at project scope — marker write + nudge fire + /adapt-to-project class-1 | RFC-0008 §Q5 first demonstration; verification = transcript (deferred) |
 | 30 | claude-plugins install of converters at user scope — marker write + nudge fire + /adapt-to-project class-1/2/3/4 | RFC-0008 §Q5 user-scope leg; verification = transcript (deferred) |
 | 31 | proactive cache scan idempotence — marker entry present, no double-adapt | AC25 of docs/specs/claude-plugins-install-route/spec.md (end-to-end pin; no programmatic harness in v1); verification = transcript (deferred) |
+| 32 | apm install of core at project scope — marker write + nudge fire + /adapt-to-project class-1 | RFC-0010 §Q6 first demonstration / spec apm-install-route-parity AC17 (a); verification = transcript (deferred) |
+| 33 | apm install -g of converters at user scope — marker write + nudge fire + /adapt-to-project class-1/2/3/4 | RFC-0010 §Q6 user-scope leg / spec apm-install-route-parity AC17 (b); verification = transcript (deferred) |
+| 34 | APM per-target characterisation — first-firing session at Copilot, Cursor, Gemini | RFC-0010 §Drawbacks *APM-target hook-firing matrix uncharacterised* / spec apm-install-route-parity AC17 (c); closes once an adopter for each target produces a transcript; verification = transcript (deferred) |
 
 ## Notes
 

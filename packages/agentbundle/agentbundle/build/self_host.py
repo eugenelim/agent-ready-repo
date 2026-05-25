@@ -1212,6 +1212,51 @@ def run_build_check_drift_gates(
             )
 
     # ------------------------------------------------------------------
+    # Gate 1c: APM writer-template drift (apm-install-route-parity AC16 a)
+    #
+    # Every dist/apm/<pack>/.apm/hooks/install-marker.py must be byte-
+    # identical to the canonical template. Same rail as Gate 1 (claude-
+    # plugins side); extends the surface to the APM projection so a future
+    # implementer who accidentally diverges the APM-projected writer (or
+    # forgets to refresh dist/apm/ after editing the template) is caught
+    # at make build-check. APM packs are every pack — the apm derivation
+    # runs on the full packs_dir, not just packs declaring claude-plugin.
+    # ------------------------------------------------------------------
+    if template_path.exists() and packs_dir.is_dir():
+        template_hash_apm = hashlib.sha256(template_path.read_bytes()).hexdigest()
+        dist_apm = output_dir / "dist" / "apm"
+        apm_packs = [
+            pack_dir
+            for pack_dir in sorted(packs_dir.iterdir())
+            if pack_dir.is_dir() and (pack_dir / "pack.toml").exists()
+        ]
+        if apm_packs and not dist_apm.is_dir():
+            failures.append(
+                f"build-check: APM writer-template drift — dist/apm/ not "
+                f"present at {dist_apm} (run `make build` before "
+                f"`make build-check`)"
+            )
+        else:
+            for pack_dir in apm_packs:
+                apm_marker = (
+                    dist_apm / pack_dir.name / ".apm" / "hooks" / "install-marker.py"
+                )
+                if not apm_marker.exists():
+                    failures.append(
+                        f"build-check: APM writer-template drift — "
+                        f"pack {pack_dir.name} has no projected APM "
+                        f"install-marker.py at {apm_marker} "
+                        f"(APM derivation rail broken or partial build)"
+                    )
+                    continue
+                if hashlib.sha256(apm_marker.read_bytes()).hexdigest() != template_hash_apm:
+                    failures.append(
+                        f"build-check: APM writer-template drift — "
+                        f"dist/apm/{pack_dir.name}/.apm/hooks/install-marker.py "
+                        f"diverges from canonical template at {template_path}"
+                    )
+
+    # ------------------------------------------------------------------
     # Gate 2: Source-shape plugin.json (AC10 gate 2)
     # ------------------------------------------------------------------
     if packs_dir.is_dir():

@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-24 (added `kiro-ide-hook` — Draft, sibling of `user-scope-hooks` covering RFC-0005's third hook surface (Kiro standalone `.kiro.hook` files for IDE events); new `kiro-ide-hook` primitive, contract bumps `0.3 → 0.4`; non-probe tasks A/B/C1-4/D1/G land in-session, T-CONTRACT gated on Q6 / Q11 probes against real Kiro install, T-F ADR carries bullets (a)+(b) from RFC § Follow-on artifacts; the RFC-text drift on uninstall semantics in § State-file impact is recorded as a deferred follow-up. Earlier today: shipped `wire-session-start-hook` — Approved → Shipped after T1-T7 implementation via work-loop; PR #98 also fixed a latent `self_host.py` drift-loop bug uncovered by CI (`diff_against_working_tree` now consults `EXCLUDED_PATTERNS` the same way the unclassified-path enumeration does). Mid-EXECUTE the spec was amended to correct AC1/AC2/AC3/AC9/AC10 paths from flat to dist-tree shape after work-loop discovered repo-scope install produces `<output>/claude-plugins/<pack>/...`, not the flat shape the original spec assumed. Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
+**Last updated:** 2026-05-25 (added `apm-install-route-parity` — Approved → Shipped after T1-T12 implementation via work-loop in a single session; canonical install-marker writer now serves both claude-plugins and APM routes via a required `--install-route` argparse flag, build pipeline projects matching artifacts under `dist/apm/<pack>/.apm/hooks/`, contract bumped v0.4 → v0.5 with `"apm"` on `[adapter."claude-code"].install-routes`, sibling specs amended in-PR for AC1 allow-list / AC9 hook command / AC27 stale-entry drop / `per-pack-apm-package` recipe note / `apm-route conformance` AC; live-install transcripts at three targets (Copilot, Cursor, Gemini) deferred per AC17's manual-QA matrix rows with `verification = transcript`, gated on adopter availability rather than on the PR. Mid-EXECUTE Cohort C surfaced a pre-existing drift in `tools/hooks/pre-pr.py` vs `packs/core/.apm/hooks/pre-pr.py` from PR #111 — projection had `lint-skill-spec` but source did not; closed the drift in-PR by adding the same `lint-skill-spec` line to the source pack hook so `make build-self` produces a stable projection.) Earlier today: added `kiro-ide-hook` — Draft, sibling of `user-scope-hooks` covering RFC-0005's third hook surface (Kiro standalone `.kiro.hook` files for IDE events); new `kiro-ide-hook` primitive, contract bumps `0.3 → 0.4`; non-probe tasks A/B/C1-4/D1/G land in-session, T-CONTRACT gated on Q6 / Q11 probes against real Kiro install, T-F ADR carries bullets (a)+(b) from RFC § Follow-on artifacts; the RFC-text drift on uninstall semantics in § State-file impact is recorded as a deferred follow-up. Earlier today: shipped `wire-session-start-hook` — Approved → Shipped after T1-T7 implementation via work-loop; PR #98 also fixed a latent `self_host.py` drift-loop bug uncovered by CI (`diff_against_working_tree` now consults `EXCLUDED_PATTERNS` the same way the unclassified-path enumeration does). Mid-EXECUTE the spec was amended to correct AC1/AC2/AC3/AC9/AC10 paths from flat to dist-tree shape after work-loop discovered repo-scope install produces `<output>/claude-plugins/<pack>/...`, not the flat shape the original spec assumed. Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
 
 ## How this file is maintained
 
@@ -459,6 +459,50 @@ Open follow-ons (not gating this spec):
   at user scope; at repo scope `uninstall core` leaves the
   `.claude/settings.local.json` entry behind. RFC-0005 T8b's design
   would generalise cleanly if a future spec wants this.
+
+## `apm-install-route-parity` — shipped (live-install transcripts deferred per AC17)
+
+Spec: [`specs/apm-install-route-parity/spec.md`](specs/apm-install-route-parity/spec.md);
+[RFC-0010](rfc/0010-apm-install-route-parity.md).
+T1–T12 landed via work-loop on 2026-05-25: the canonical
+`packages/agentbundle/templates/install-marker.py` template gained a
+`required` `--install-route {claude-plugins,apm}` flag, a data-directory
+precedence shim (`${CLAUDE_PLUGIN_DATA}` → `${PLUGIN_ROOT}/.data` →
+`${CURSOR_PLUGIN_ROOT}/.data` → exit 0), and an APM scope-detection path
+that reads its own `Path(__file__).resolve()` for cwd / `$HOME`
+containment. Adapter contract bumped v0.4 → v0.5 with `"apm"` appended to
+`[adapter."claude-code"].install-routes`. Build pipeline now derives
+`dist/apm/<pack>/.apm/hooks/install-marker.{json,py}` and projects
+`pack.toml` for every pack; the claude-plugins-side
+`hooks.SessionStart` command picked up the matching
+`--install-route claude-plugins` flag in the same PR (lockstep
+projection means a refreshed writer always ships next to a refreshed
+command). Self-host drift gate (`make build-check`) extended to assert
+byte-identity on the APM-projected writer. Sibling specs amended
+in-PR: `claude-plugins-install-route` AC1 allow-list grew by `argparse`
+and AC9 hook command + `shlex.split` token list extended by the new
+flag; `adapt-to-project` schema permits `install-route = "apm"`, AC27
+added (APM-route stale-entry drop-on-read); `distribution-adapters`
+recipe row notes the install-marker artifact derivation and a new AC
+documents APM-route conformance + four-of-seven HookIntegrator coverage.
+Adopter disclosure shipped at `packs/core/README.md`.
+
+- **Deferred per AC17** (manual-QA matrix rows 32-34): three live-install
+  transcripts (`apm install` of core at project scope, `apm install -g`
+  of converters at user scope, per-target characterisation at Copilot
+  / Cursor / Gemini). Verification = transcript; rows exist with named
+  close triggers per the matrix's existing deferral pattern. RFC-0010
+  §Unresolved questions Q6 is the close trigger for the RFC; AC17
+  closes when the rows exist (now done), not when transcripts land.
+- **Coverage caveat (AC15):** APM *marker presence* asserted on
+  session 2 or later at Claude Code targets per the
+  [`anthropics/claude-code#10997`](https://github.com/anthropics/claude-code/issues/10997)
+  first-session quirk — applies regardless of route (CLI / claude-plugins
+  / APM all hit it). Three uncovered HookIntegrator targets (Codex,
+  OpenCode, Windsurf) silently lack the hook surface in upstream APM;
+  adopters there run the documented
+  `agentbundle adapt --scope <project|user>` manual fallback per
+  the per-pack README disclosure.
 
 ## Cross-spec / outside-the-spec-tree
 

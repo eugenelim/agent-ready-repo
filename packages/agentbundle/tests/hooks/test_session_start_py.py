@@ -286,3 +286,99 @@ def test_v03_marker_still_parses_under_v04_reader(tmp_path: Path) -> None:
     mod = _load_hook_module()
     names = mod._pack_names_from_marker(marker)
     assert names == ["core"]
+
+
+# ---------------------------------------------------------------------------
+# T3 / AC10: v0.5 marker reader tolerance for install-route = "apm"
+# Spec: docs/specs/apm-install-route-parity/spec.md
+# ---------------------------------------------------------------------------
+
+
+def test_v05_marker_with_install_route_apm_parses_cleanly(tmp_path: Path) -> None:
+    """AC10: a v0.5-shape marker carrying install-route = "apm" must (a)
+    parse cleanly through tomllib and (b) yield the pack name from
+    _pack_names_from_marker unchanged."""
+    import tomllib
+
+    marker = tmp_path / ".adapt-install-marker.toml"
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "core"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-25T12:34:56Z\n"
+        'install-route = "apm"\n',
+        encoding="utf-8",
+    )
+
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+    entry = parsed["packs-installed"][0]
+    assert entry["install-route"] == "apm"
+
+    mod = _load_hook_module()
+    names = mod._pack_names_from_marker(marker)
+    assert names == ["core"]
+
+
+def test_v05_marker_three_route_values_all_parse(tmp_path: Path) -> None:
+    """AC10: three entries — install-route = "cli", "claude-plugins", "apm" —
+    in one marker file all parse and all surface through
+    _pack_names_from_marker. Closes the value-coverage axis."""
+    marker = tmp_path / ".adapt-install-marker.toml"
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "cli-pack"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-25T12:00:00Z\n"
+        'install-route = "cli"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "cp-pack"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-25T12:01:00Z\n"
+        'install-route = "claude-plugins"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "apm-pack"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-25T12:02:00Z\n"
+        'install-route = "apm"\n',
+        encoding="utf-8",
+    )
+
+    mod = _load_hook_module()
+    names = mod._pack_names_from_marker(marker)
+    assert sorted(names) == ["apm-pack", "cli-pack", "cp-pack"]
+
+
+def test_v03_shaped_marker_without_install_route_field_parses_as_cli(
+    tmp_path: Path,
+) -> None:
+    """AC10 (v0.3 back-compat rail): a marker with no install-route field at
+    all must parse cleanly, surface the pack name, and any reader that
+    consults install-route treats absence as "cli" per
+    claude-plugins-install-route AC12."""
+    import tomllib
+
+    marker = tmp_path / ".adapt-install-marker.toml"
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "legacy-pack"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-23T10:00:00Z\n",
+        encoding="utf-8",
+    )
+
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+    entry = parsed["packs-installed"][0]
+    assert "install-route" not in entry
+    assert entry.get("install-route", "cli") == "cli"
+
+    mod = _load_hook_module()
+    names = mod._pack_names_from_marker(marker)
+    assert names == ["legacy-pack"]

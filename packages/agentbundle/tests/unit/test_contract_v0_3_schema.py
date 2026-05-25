@@ -1,9 +1,10 @@
 """T1: adapter contract v0.3 schema acceptances and refusals.
 
 Note: the contract version was bumped from "0.3" to "0.4" by T2 (spec
-claude-plugins-install-route / RFC-0008). The v0.3 structural tests below
-remain valid under v0.4 (all v0.3 fields are preserved); only AC7's version
-assertion is updated.
+claude-plugins-install-route / RFC-0008), then to "0.5" by T2 of spec
+apm-install-route-parity / RFC-0010. The v0.3 structural tests below
+remain valid under v0.5 (all v0.3 fields are preserved); only AC7's
+version assertion is updated.
 
 Covers spec ACs:
   AC1 — `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agentbundle/"]`.
@@ -17,7 +18,9 @@ Covers spec ACs:
         `[adapter.kiro.projections.hook-body]` with scope-conditional `target` values.
   AC5 — `pack.schema.json` accepts `[pack.install] user-scope-hooks = true` and refuses
         any non-boolean value; absent value remains accepted.
-  AC7 — contract `version = "0.4"` (updated from "0.3" by T2).
+  AC7 — contract `version = "0.5"` (originally "0.3"; bumped by T2 of
+        claude-plugins-install-route to "0.4"; bumped by T2 of
+        apm-install-route-parity to "0.5").
 
 Tests load the shipped `docs/contracts/{adapter,pack}.{toml,schema.json}` and call
 the project's stdlib-only validator. Mirrored copies under
@@ -65,9 +68,9 @@ def _parse_pack(toml_text: str) -> dict:
 
 
 class ContractVersionTests(unittest.TestCase):
-    def test_contract_version_is_0_3(self) -> None:
-        # T2 bumped the contract to v0.4; the assertion is updated to match.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.4")
+    def test_contract_version_is_0_5(self) -> None:
+        # T2 of apm-install-route-parity bumped the contract to v0.5.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.5")
 
 
 # ---------------------------------------------------------------------------

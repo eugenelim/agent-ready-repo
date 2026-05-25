@@ -179,7 +179,10 @@ human sign-off before proceeding; *Never do* is a hard rule.
   `plugin.json`.** Each pack's source-tree `plugin.json` declares
   `name` / `version` / `description` only; the build pipeline adds
   the `hooks.SessionStart` array with the canonical command
-  `python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"`.
+  `python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py" --install-route claude-plugins`
+  (the `--install-route` flag was added by T10 of
+  `docs/specs/apm-install-route-parity/spec.md` so the canonical
+  writer can be dispatched from both routes).
   Existing hand-authored per-pack `plugin.json` files migrate to the
   derived shape — the migration is part of this PR.
 - **Ship the writer from one canonical template at
@@ -338,8 +341,15 @@ taxonomy.
       is a deterministic allow-list lint in T1's `Tests:`: a
       `grep -E '^(import|from) '` of the writer file produces a
       module set that is a subset of the explicit allow-list
-      `{argparse, datetime, hashlib, json, os, pathlib, sys,
+      `{argparse, datetime, hashlib, json, os, pathlib, re, sys,
       tempfile, tomllib}` (any addition requires spec amendment).
+      The `argparse` entry was added by T10 of
+      `docs/specs/apm-install-route-parity/spec.md` for the
+      `--install-route` flag; the `re` entry reconciles the
+      enumerated set with the writer-file ground truth
+      (`import re as _re`, vendored from the CLI's pack-name /
+      pack-version shape rules — present since AC1 first shipped,
+      added to the AC's enumeration by the same T10 reconciliation).
       The file's docstring names this spec by path
       (`docs/specs/claude-plugins-install-route/spec.md`). No
       line-count cap is asserted — the contract is the import
@@ -489,10 +499,17 @@ taxonomy.
       `dist/claude-plugins/<pack>/.claude-plugin/`:
       (a) `plugin.json` with the synthesised `hooks.SessionStart`
       array containing exactly one entry with `command` equal to
-      the literal string `python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"`
+      the literal string `python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py" --install-route claude-plugins`
       (when read out of the JSON; the JSON source carries
       `\"` escapes for the embedded quotes) and all source-tree
-      fields (`name`, `version`, `description`) preserved.
+      fields (`name`, `version`, `description`) preserved. The
+      trailing `--install-route claude-plugins` flag was appended
+      by T10 of
+      `docs/specs/apm-install-route-parity/spec.md` so a single
+      canonical writer template can be invoked from both routes;
+      the writer's `argparse` rejects the flag's absence at parse
+      time, so the build-pipeline and the projected command must
+      stay coupled (see RFC-0010 / AC9 / AC10 of that spec).
       **Shell-exec contract.** Claude Code's plugins reference
       documents that hook `command` values run under `/bin/sh
       -c` (POSIX) or the equivalent on Windows; the double-
@@ -500,9 +517,10 @@ taxonomy.
       AC9 sub-assertion: when the command string is passed
       through `shlex.split` after substituting a synthetic
       `CLAUDE_PLUGIN_ROOT` containing a space (e.g.
-      `/tmp/with space/root`), it yields exactly the two-token
-      list `["python3", "/tmp/with space/root/.claude-plugin/scripts/install-marker.py"]`
-      — pinning that the quoting actually works.
+      `/tmp/with space/root`), it yields exactly the four-token
+      list `["python3", "/tmp/with space/root/.claude-plugin/scripts/install-marker.py", "--install-route", "claude-plugins"]`
+      — pinning that the quoting actually works and that the
+      flag tokens survive the substitution.
       (b) `scripts/install-marker.py` byte-identical to
       `packages/agentbundle/templates/install-marker.py`;
       (c) `pack.toml` byte-identical to
@@ -805,3 +823,11 @@ taxonomy.
   Concern 4); AC2 collapsed from eight to seven unit tests
   with the regression-guard intent folded into case (b)
   (iteration-2 Nit 5).
+- 2026-05-25: AC1 allow-list reconciled with writer ground truth
+  (`re` added, listed alongside the pre-existing `argparse`); AC9
+  hook-command literal and `shlex.split` expected-token list
+  extended with `--install-route claude-plugins`; §Proposal
+  synthesised-hook description bumped to match. All per T10 of
+  `docs/specs/apm-install-route-parity/spec.md` — both specs
+  reconcile to the same post-edit module set and the same
+  projected hook command.
