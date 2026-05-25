@@ -15,20 +15,20 @@ leak:
      `agent-ready-repo`, RFC-NNNN, K-NNNN, or internal-spec names.
      Catches "seed scrub got reverted" regressions.
 
-`agentbundle scaffold` is the command that drops `packs/<pack>/seeds/`
-into the adopter's output tree. Adopters reach the scaffold via this
-command, or via the install→adapt chain (which invokes the same seed
-projection internally). Testing `scaffold` directly is sufficient to
-catch leaks at the source.
+*Single-route scope (per the 2026-05-25 rescope amendment to AC22;
+see `docs/specs/self-hosting/spec.md` § Changelog):* `agentbundle
+scaffold` is the only function that drops `packs/<pack>/seeds/` into
+an adopter tree. Seed projection is route-agnostic by construction —
+the `per-pack-claude-plugin` and `per-pack-apm-package` build recipes
+produce no `dist/<route>/<pack>/seeds/` subtree, and the install→adapt
+chain reads marker files but never invokes `scaffold`. Testing
+`scaffold` directly is therefore sufficient to catch leaks at the
+source; AC21's `tools/lint-seeds.py` is the cross-source invariant.
 
 Goldens live at
 `packages/agentbundle/tests/fixtures/install_snapshot/<pack>.paths.txt`
 — a sorted newline-delimited list of seed-relative scaffolded paths.
 Set `UPDATE_GOLDEN=1` to regenerate.
-
-Scope cut (per RFC § Amendments § 2026-05-25 item (e)): v1 covers the
-`agentbundle scaffold` CLI route only; Claude-plugins and APM route
-coverage is deferred to ROADMAP follow-ons.
 """
 
 from __future__ import annotations
