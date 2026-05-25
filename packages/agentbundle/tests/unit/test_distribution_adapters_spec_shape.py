@@ -6,10 +6,15 @@ docs/specs/claude-plugins-install-route/spec.md.
 
 AC17 (claude-plugins-install-route spec): ``distribution-adapters/spec.md``
 Acceptance Criteria and Changelog gain references to the v0.4 contract bump.
+
+Concern-10: tests use anchored regex patterns rather than loose substring
+checks so a stray occurrence of the expected string in the wrong section
+would not satisfy the assertion.
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 # Repo-relative anchor: this file lives at
@@ -30,25 +35,35 @@ def _body() -> str:
 
 
 def test_distribution_adapters_changelog_names_this_spec() -> None:
-    """AC17: Changelog contains the spec name and amendment date."""
+    """AC17: Changelog contains a dated line naming claude-plugins-install-route.
+
+    Anchored regex: asserts a line of the form
+    ``- 2026-05-24: ...claude-plugins-install-route...``
+    so the string must appear as part of a changelog bullet with the correct date,
+    not merely anywhere in the document (Concern-10 anchored grep).
+    """
     body = _body()
-    assert "claude-plugins-install-route" in body, (
-        "docs/specs/distribution-adapters/spec.md Changelog must contain "
-        "the literal string 'claude-plugins-install-route' (the spec that "
-        "added the install-routes contract AC)."
-    )
-    assert "2026-05-24" in body, (
-        "docs/specs/distribution-adapters/spec.md Changelog must contain "
-        "the date '2026-05-24' on the install-routes amendment line."
+    pattern = r"^- 2026-05-24:.*claude-plugins-install-route"
+    assert re.search(pattern, body, re.MULTILINE), (
+        "docs/specs/distribution-adapters/spec.md Changelog must contain a "
+        "bullet dated 2026-05-24 that includes 'claude-plugins-install-route'. "
+        f"Pattern: {pattern!r}"
     )
 
 
 def test_distribution_adapters_has_install_routes_ac() -> None:
-    """AC17: spec body contains at least one reference to 'install-routes'."""
+    """AC17: spec body contains an AC entry referencing install-routes.
+
+    Anchored regex: asserts a line of the form
+    ``- [ ] **AC<N> (install-routes...``
+    so the string must appear as a checkbox AC entry in the Acceptance Criteria
+    section, not merely anywhere in the document (Concern-10 anchored grep).
+    """
     body = _body()
-    count = body.count("install-routes")
-    assert count >= 1, (
-        "docs/specs/distribution-adapters/spec.md must contain at least one "
-        "occurrence of 'install-routes' (the new AC20 body). "
-        f"Found {count} occurrence(s)."
+    pattern = r"^- \[ \] \*\*AC\d+.*\(install-routes"
+    assert re.search(pattern, body, re.MULTILINE), (
+        "docs/specs/distribution-adapters/spec.md must contain an AC entry "
+        "matching the pattern '- [ ] **AC<N> (install-routes...' "
+        "(the AC17-mandated install-routes conformance AC). "
+        f"Pattern: {pattern!r}"
     )
