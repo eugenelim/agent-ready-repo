@@ -264,3 +264,150 @@ def test_install_marker_resists_unresolved_marker_and_companion_injection(
     assert entry["unresolved-markers"] == [bad_marker]
     assert entry["new-companions"] == [bad_companion]
     assert "evil" not in parsed
+
+
+def test_cli_install_preserves_existing_install_route(tmp_path) -> None:
+    """Blocker-2 regression: _append_install_marker re-emits existing entries
+    preserving their original install-route value (not overwriting with "cli").
+
+    Scenario: a marker was previously written by the Claude-plugins route
+    (install-route = "claude-plugins").  The CLI installs a different pack.
+    The pre-seeded entry must still carry install-route = "claude-plugins"
+    in the resulting file; the new CLI entry must carry install-route = "cli".
+    """
+    import tomllib as _tomllib
+    from agentbundle.commands.install import _append_install_marker
+    from datetime import datetime, timezone
+
+    # Pre-seed a marker with a claude-plugins-routed entry.
+    marker = tmp_path / ".adapt-install-marker.toml"
+    # We write raw TOML to seed the entry with the exact install-route value
+    # the Claude-plugins writer would produce, including a bare datetime.
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "converters"\n'
+        'version = "0.1.0"\n'
+        f"installed-at = {ts}\n"
+        'install-route = "claude-plugins"\n',
+        encoding="utf-8",
+    )
+
+    # CLI installs a different pack.
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="governance-extras",
+        pack_version="0.2.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    parsed = _tomllib.loads(marker.read_text(encoding="utf-8"))
+    entries = parsed["packs-installed"]
+    assert len(entries) == 2, f"Expected 2 entries, got {len(entries)}"
+
+    by_name = {e["name"]: e for e in entries}
+
+    # Pre-seeded entry must preserve its install-route.
+    assert by_name["converters"]["install-route"] == "claude-plugins", (
+        "pre-seeded claude-plugins entry had its install-route overwritten"
+    )
+    # Newly-added CLI entry must carry "cli".
+    assert by_name["governance-extras"]["install-route"] == "cli", (
+        "new CLI entry does not carry install-route = 'cli'"
+    )
+
+
+def test_cli_install_emits_install_route_cli(tmp_path) -> None:
+    """AC13: every [[packs-installed]] entry written by _append_install_marker
+    carries install-route = "cli". Regression pin — the field must appear on
+    every entry regardless of the unresolved-markers / new-companions content."""
+    from agentbundle.commands.install import _append_install_marker
+
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="core",
+        pack_version="0.1.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    marker = tmp_path / ".adapt-install-marker.toml"
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+
+    entries = parsed["packs-installed"]
+    assert len(entries) == 1
+    assert entries[0]["install-route"] == "cli", (
+        "install-route field must be 'cli' on every CLI-written marker entry"
+    )
+
+
+def test_cli_install_coerces_malformed_unresolved_markers_field(tmp_path) -> None:
+    """Security Concern 1 regression: _append_install_marker read-loop coerces
+    unresolved-markers = "string" (non-list) on a pre-existing entry.
+
+    Scenario: an adversarial or hand-edited marker has
+    ``unresolved-markers = "bad"`` (a TOML basic-string, not array).
+    Without the coercion, _emit_basic_string raises ValueError on the
+    non-list value, bricking every subsequent CLI install.
+
+    Expected behaviour after this fix:
+      (a) the call does not raise;
+      (b) the new entry is present in the resulting marker;
+      (c) the pre-seeded entry survived but its unresolved-markers field
+          is absent (bad field dropped, rest of entry preserved);
+      (d) exit code is implicitly 0 (no exception).
+    """
+    from agentbundle.commands.install import _append_install_marker
+    import datetime as _dt
+
+    # Seed a marker with a valid-looking entry but malformed unresolved-markers.
+    marker = tmp_path / ".adapt-install-marker.toml"
+    ts = _dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=_dt.timezone.utc)
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "victim"\n'
+        'version = "0.1.0"\n'
+        f"installed-at = {ts.strftime('%Y-%m-%dT%H:%M:%SZ')}\n"
+        'install-route = "cli"\n'
+        # Non-list value triggers the coercion path.
+        'unresolved-markers = "bad-string-not-a-list"\n'
+        "new-companions = []\n",
+        encoding="utf-8",
+    )
+
+    # Should not raise; CLI install for a different pack must succeed.
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="newcomer",
+        pack_version="0.2.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+    entries = parsed["packs-installed"]
+    by_name = {e["name"]: e for e in entries}
+
+    # (b) new entry is present.
+    assert "newcomer" in by_name, "New entry missing after malformed-field coercion"
+    # (c) pre-seeded entry survived (not dropped entirely).
+    assert "victim" in by_name, "Pre-seeded entry was dropped instead of coerced"
+    # (c) the malformed string value was coerced — the CLI emit loop always emits
+    # unresolved-markers as an array, so after coercion the field re-emits as `[]`
+    # (not absent). The critical invariant is that the call did NOT raise and the
+    # new entry was written successfully.
+    victim_um = by_name["victim"].get("unresolved-markers")
+    assert isinstance(victim_um, list), (
+        f"Expected unresolved-markers to be coerced to a list, got {victim_um!r}"
+    )

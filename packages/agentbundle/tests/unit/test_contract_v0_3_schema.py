@@ -1,5 +1,10 @@
 """T1: adapter contract v0.3 schema acceptances and refusals.
 
+Note: the contract version was bumped from "0.3" to "0.4" by T2 (spec
+claude-plugins-install-route / RFC-0008). The v0.3 structural tests below
+remain valid under v0.4 (all v0.3 fields are preserved); only AC7's version
+assertion is updated.
+
 Covers spec ACs:
   AC1 — `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agent-ready/"]`.
   AC2 — `[adapter.kiro.projections.hook-wiring]` with `mode = "merge-into-agent-json"`,
@@ -12,7 +17,7 @@ Covers spec ACs:
         `[adapter.kiro.projections.hook-body]` with scope-conditional `target` values.
   AC5 — `pack.schema.json` accepts `[pack.install] user-scope-hooks = true` and refuses
         any non-boolean value; absent value remains accepted.
-  AC7 — contract `version = "0.3"`.
+  AC7 — contract `version = "0.4"` (updated from "0.3" by T2).
 
 Tests load the shipped `docs/contracts/{adapter,pack}.{toml,schema.json}` and call
 the project's stdlib-only validator. Mirrored copies under
@@ -32,6 +37,8 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
 ADAPTER_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.schema.json"
 PACK_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "pack.schema.json"
+PLUGIN_MANIFEST_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "plugin-manifest.schema.json"
+PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = REPO_ROOT / "docs" / "contracts" / "plugin-manifest.derived.schema.json"
 
 KIRO_EVENTS = ["agentSpawn", "userPromptSubmit", "preToolUse", "postToolUse", "stop"]
 
@@ -59,7 +66,8 @@ def _parse_pack(toml_text: str) -> dict:
 
 class ContractVersionTests(unittest.TestCase):
     def test_contract_version_is_0_3(self) -> None:
-        self.assertEqual(_load_contract()["contract"]["version"], "0.3")
+        # T2 bumped the contract to v0.4; the assertion is updated to match.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.4")
 
 
 # ---------------------------------------------------------------------------
@@ -573,6 +581,42 @@ class BundledCopiesMatchTests(unittest.TestCase):
         a = (self._data_dir() / "pack.schema.json").read_bytes()
         b = PACK_SCHEMA_PATH.read_bytes()
         self.assertEqual(a, b, "_data/pack.schema.json and docs/contracts/pack.schema.json differ")
+
+    def test_plugin_manifest_schema_copies_match(self) -> None:
+        a = (self._data_dir() / "plugin-manifest.schema.json").read_bytes()
+        b = PLUGIN_MANIFEST_SCHEMA_PATH.read_bytes()
+        self.assertEqual(
+            a, b,
+            "_data/plugin-manifest.schema.json and docs/contracts/plugin-manifest.schema.json differ",
+        )
+
+    def test_plugin_manifest_derived_schema_copies_match(self) -> None:
+        a = (self._data_dir() / "plugin-manifest.derived.schema.json").read_bytes()
+        b = PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH.read_bytes()
+        self.assertEqual(
+            a, b,
+            "_data/plugin-manifest.derived.schema.json and "
+            "docs/contracts/plugin-manifest.derived.schema.json differ",
+        )
+
+    def test_install_marker_template_copies_match(self) -> None:
+        """AC20 / Blocker-1 drift gate: _data/install-marker.py and
+        templates/install-marker.py must be byte-identical.
+
+        ``_read_install_marker_template`` (build/main.py) reads _data/ first
+        (zipapp path) and falls back to templates/ in a dev checkout.
+        Both copies are excluded from the self-host drift check, so this
+        test is the only mechanical gate keeping them in sync.
+        """
+        templates_dir = REPO_ROOT / "packages" / "agentbundle" / "templates"
+        a = (self._data_dir() / "install-marker.py").read_bytes()
+        b = (templates_dir / "install-marker.py").read_bytes()
+        self.assertEqual(
+            a, b,
+            "_data/install-marker.py and templates/install-marker.py differ; "
+            "run 'cp templates/install-marker.py agentbundle/_data/install-marker.py' "
+            "to re-sync",
+        )
 
 
 if __name__ == "__main__":

@@ -509,6 +509,9 @@ user-scope-eligible pack ships in v1 (all four shipped packs lock
 | 26 | user-scope class-4 × accept | first user-scope-eligible pack |
 | 27 | user-scope class-4 × decline | first user-scope-eligible pack |
 | 28 | cross-scope-restructure × split-into-two (both halves end-to-end) | first user-scope-eligible pack |
+| 29 | claude-plugins install of core at project scope — marker write + nudge fire + /adapt-to-project class-1 | RFC-0008 §Q5 first demonstration; verification = transcript (deferred) |
+| 30 | claude-plugins install of converters at user scope — marker write + nudge fire + /adapt-to-project class-1/2/3/4 | RFC-0008 §Q5 user-scope leg; verification = transcript (deferred) |
+| 31 | proactive cache scan idempotence — marker entry present, no double-adapt | AC25 of docs/specs/claude-plugins-install-route/spec.md (end-to-end pin; no programmatic harness in v1); verification = transcript (deferred) |
 
 ## Notes
 

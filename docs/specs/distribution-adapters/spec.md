@@ -1252,9 +1252,21 @@ No manual QA: there is no UI surface, no human gesture under test.
   independent of Rail B — a kiro-ide-hook-only pack with
   `user-scope-hooks = true` still refuses because the *primitive*
   is repo-only in v1.
+- [ ] **(RFC-0008)** The adapter contract
+  (`docs/contracts/adapter.toml`) declares `install-routes` on
+  `[adapter."claude-code"]` per RFC-0008 / spec
+  `claude-plugins-install-route`. The conformance suite ships a
+  *marker presence* and a *scope refusal* case per declared install
+  route; the per-route fixtures live in
+  `packages/agentbundle/tests/integration/test_claude_plugins_install_route.py`.
+  The Claude-plugins *marker presence* case is asserted on **session
+  2 or later** until upstream
+  [`anthropics/claude-code#10997`](https://github.com/anthropics/claude-code/issues/10997)
+  ships a fix.
 
 ## Changelog
 
+- 2026-05-24: install-routes contract AC added per docs/specs/claude-plugins-install-route/spec.md — conformance suite ships marker-presence and scope-refusal cases per declared install route.
 - 2026-05-24: RFC-0005 v0.4 amendment — added `## v0.4 IDE event
   hooks (RFC-0005)` subsection between v0.3 user-scope hook
   handling and Boundaries. Pins the new `kiro-ide-hook` primitive,
