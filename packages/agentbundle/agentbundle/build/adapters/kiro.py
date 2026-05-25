@@ -30,6 +30,9 @@ from typing import Any, Iterator
 from agentbundle.build.projections.merge_into_agent_json import (
     project as merge_into_agent_json_project,
 )
+from agentbundle.build.projections.kiro_ide_hook import (
+    project as kiro_ide_hook_project,
+)
 
 
 # Phase order from RFC-0005 § Build-pipeline ordering invariant.
@@ -94,7 +97,9 @@ def project(pack_path: Path, contract: dict, output_root: Path) -> None:
             _dispatch_array_form(primitive_name, source_dir, output_root, rule, contract)
         else:
             rule = table_form[primitive_name]
-            _dispatch_table_form(primitive_name, source_dir, output_root, rule, pack_path)
+            _dispatch_table_form(
+                primitive_name, source_dir, output_root, rule, pack_path, contract,
+            )
 
 
 def _dispatch_array_form(
@@ -122,6 +127,7 @@ def _dispatch_table_form(
     output_root: Path,
     rule: dict,
     pack_path: Path,
+    contract: dict,
 ) -> None:
     mode = rule.get("mode")
     # `mode` may be a string or a scope-map per RFC-0005; at build time
@@ -143,6 +149,12 @@ def _dispatch_table_form(
             target_template = target
         if target_template:
             _project_direct_file_template(source_dir, output_root, target_template)
+    elif primitive_name == "kiro-ide-hook" and effective_mode == "direct-file":
+        # RFC-0005 v0.4 — IDE event hooks via the kiro-ide-hook primitive.
+        # Delegate the file-walk, JSON-parse, and `${hook-body:<name>}`
+        # expansion to the dedicated projection module so the wiring
+        # here stays mechanical.
+        _project_kiro_ide_hook(source_dir, output_root, rule, contract, pack_path)
     else:
         # Other table-form modes (or scope-only declarations the legacy
         # array still owns) — silent skip.
@@ -394,3 +406,75 @@ def _apply_mapping(frontmatter: dict[str, Any], mapping: dict) -> dict[str, Any]
         if new_key not in rewritten and default_value is not None:
             rewritten[new_key] = default_value
     return rewritten
+
+
+# ---------------------------------------------------------------------------
+# kiro-ide-hook dispatch (RFC-0005 v0.4)
+# ---------------------------------------------------------------------------
+
+
+def _project_kiro_ide_hook(
+    source_dir: Path,
+    output_root: Path,
+    rule: dict,
+    contract: dict,
+    pack_path: Path,
+) -> None:
+    """Dispatch ``.apm/kiro-ide-hooks/`` through the dedicated projector.
+
+    The kiro adapter holds onto the contract dict so the same-pack
+    hook-body target directory can be looked up here (the projector
+    needs it for ``${hook-body:<name>}`` resolution and shouldn't have
+    to re-parse the contract itself). Pre-v0.4 contracts don't reach
+    this code path — ``_iter_primitives`` won't yield
+    ``kiro-ide-hook`` until the v0.4 contract declares it.
+    """
+    # Target template from the rule (.kiro/hooks/<pack>/<name>.kiro.hook
+    # at v0.4 per the RFC's lean).
+    target = rule.get("target")
+    if isinstance(target, dict):
+        target_template = target.get("repo")
+    else:
+        target_template = target
+    if not target_template:
+        return
+
+    hook_body_target_dir = _resolve_kiro_hook_body_target_dir(contract)
+
+    kiro_ide_hook_project(
+        pack_path,
+        output_root,
+        target_template=target_template,
+        hook_body_target_dir=hook_body_target_dir,
+    )
+
+
+def _resolve_kiro_hook_body_target_dir(contract: dict) -> str:
+    """Resolve where same-pack hook-bodies project to under the kiro
+    adapter, used for ``${hook-body:<name>}`` substitution.
+
+    Prefers the legacy ``[[adapter.kiro.projection]]`` array entry per
+    the v0.3 ``adapter.toml`` comment "the legacy entries remain
+    authoritative". Falls back to the v0.3 table form's
+    ``[adapter.kiro.projections.hook-body].target.repo`` if no array
+    entry exists, stripping the trailing filename pattern (e.g.
+    ``"tools/hooks/<name>.{sh,py}"`` → ``"tools/hooks"``). Final
+    fallback: the documented default ``"tools/hooks"``.
+    """
+    adapter_block = contract.get("adapter", {}).get("kiro", {})
+    array_form = {
+        entry["primitive"]: entry
+        for entry in adapter_block.get("projection", [])
+        if isinstance(entry, dict)
+    }
+    if "hook-body" in array_form:
+        return array_form["hook-body"].get("target-path", "tools/hooks/").rstrip("/")
+
+    projections = adapter_block.get("projections", {})
+    hook_body_rule = projections.get("hook-body", {}) if isinstance(projections, dict) else {}
+    target = hook_body_rule.get("target")
+    if isinstance(target, dict):
+        target = target.get("repo", "")
+    if isinstance(target, str) and "/" in target:
+        return target.rsplit("/", 1)[0]
+    return "tools/hooks"
