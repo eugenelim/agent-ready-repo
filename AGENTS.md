@@ -23,15 +23,15 @@ Scope each change precisely to the request.
 ### Non-negotiables
 
 - **Surface assumptions before building.** Name them in PLAN's trio.
-  The declined-pattern register in [`work-loop`](.claude/skills/work-loop/SKILL.md)
+  The declined-pattern register in the `work-loop` skill
   names temptations; assumptions are different — call them out separately.
 - **Stop and ask when requirements conflict.** Use the Surface verb
-  defined in [`work-loop`](.claude/skills/work-loop/SKILL.md) — emit a
+  defined in the `work-loop` skill — emit a
   short description and wait.
 - **Push back when warranted.** Not a yes-machine. Disagreement goes in
   the PR description, not in silence.
 - **Prefer the boring, obvious solution.** Cleverness is expensive; see
-  the declined-pattern register in [`work-loop`](.claude/skills/work-loop/SKILL.md).
+  the declined-pattern register in the `work-loop` skill.
 - **Touch only what you're asked to touch.** See the rest of this section.
 
 - **Limit the diff to what the request requires — extra changes hide
@@ -76,7 +76,7 @@ exist yet** — ask, or open an RFC. Don't guess. Lifecycle and mechanics
 For anything beyond a one-line edit, follow the **plan → execute → verify →
 review** loop. The mechanics — verification modes, gate sequence, iteration
 cap, capture-learnings, specialist-reviewer pass — live in the
-[`work-loop`](.claude/skills/work-loop/SKILL.md) skill. Load it before
+`work-loop` skill. Load it before
 non-trivial work; that is the canonical source for *how* the loop runs.
 [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md#how-we-do-non-trivial-work)
 covers the *why*. Commits follow Conventional Commits — format and footer
@@ -134,17 +134,17 @@ Use the generated skill list below when a task matches a named workflow.
 plus the executor used by `work-loop`'s supervisor mode. Pick the
 reviewers the diff actually warrants; don't run all three by default.
 
-- [`adversarial-reviewer`](.claude/agents/adversarial-reviewer.md) — spec /
+- `adversarial-reviewer` — spec /
   plan / implementation drift; missing edge cases; scope creep. Default
   reviewer; runs after gates pass.
-- [`security-reviewer`](.claude/agents/security-reviewer.md) — OWASP Top
+- `security-reviewer` — OWASP Top
   10 (web + LLM Apps) and STRIDE lens. Use when the diff touches auth,
   secrets, user input, deserialization, file/network I/O, dependencies,
   or LLM/agent code. Complements SAST/SCA scanners; does not replace them.
-- [`quality-engineer`](.claude/agents/quality-engineer.md) — testability,
+- `quality-engineer` — testability,
   observability, reliability, and maintainability lens. Also drafts
   contract or construction tests on request.
-- [`implementer`](.claude/agents/implementer.md) — single-task executor;
+- `implementer` — single-task executor;
   `work-loop` dispatches one per task in supervisor mode. Not a
   reviewer; not selected by hand.
 
@@ -166,7 +166,7 @@ reviewers the diff actually warrants; don't run all three by default.
 
 Rationalizations the agent hits *before* the work-loop loads — when it's
 deciding whether to load it at all. The in-loop set lives in
-[`work-loop` § Anti-patterns](.claude/skills/work-loop/SKILL.md#anti-patterns-to-refuse).
+the `work-loop` skill's *Anti-patterns* section.
 
 | Excuse | What to do instead |
 | --- | --- |
