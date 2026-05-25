@@ -1,8 +1,9 @@
 ---
 name: conforming
 description: A credentialed-CLI fixture skill that satisfies every AC26 check; lint should report zero findings.
-credentialed: true
-primitive-class: credentialed-cli
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
 ---
 
 A no-op fixture skill used by T10's `conventions-check` lint tests.

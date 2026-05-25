@@ -110,16 +110,19 @@ A skill missing the heading or any of the three phrases ships as a lint finding.
 
 ## Step 6 — Declare the frontmatter
 
+Per the [agentskills.io specification](https://agentskills.io/specification), `credentialed` and `primitive-class` are project-specific fields and live under the spec's `metadata:` escape hatch rather than at top level:
+
 ```yaml
 ---
 name: your-skill-name
 description: <one-line description; what triggers the skill>
-credentialed: true
-primitive-class: credentialed-cli
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
 ---
 ```
 
-Both `credentialed: true` and `primitive-class: credentialed-cli` are required for the lint to scope its checks to your skill. Without `credentialed: true`, your skill is treated as a non-credentialed skill and the loader / argv / dotfile checks don't fire — the architecture rule depends on the flag being present.
+Both `metadata.credentialed: true` and `metadata.primitive-class: credentialed-cli` are required for the lint to scope its checks to your skill. Without `metadata.credentialed: true`, your skill is treated as a non-credentialed skill and the loader / argv / dotfile checks don't fire — the architecture rule depends on the flag being present.
 
 ## Step 7 — Run `setup` and `check`
 
@@ -151,7 +154,7 @@ python3 tools/lint-agent-artifacts.py     # frontmatter schema
 bash tools/lint-credentialed-skills.sh    # credentialed-skill rules
 ```
 
-The first lint accepts `credentialed: true` and `primitive-class: credentialed-cli` (T9). The second walks every credentialed skill and reports findings on:
+The first lint accepts the nested `metadata.credentialed: true` and `metadata.primitive-class: credentialed-cli` keys (T9; agentskills.io-spec-compliant top-level allow-list). The second walks every credentialed skill and reports findings on:
 
 - Missing `### Security rules (non-negotiable)` heading or any of the three RFC-0006 § 4 anchor phrases.
 - Any `argparse.ArgumentParser.add_argument` call under `scripts/**/*.py` whose normalised flag name matches the banned set (`token`, `api_token`, `api_key`, `bearer`, `pat`, `password`).

@@ -60,7 +60,8 @@ def _write_skill_fixture(
 
     Writes:
       - ``<root>/.claude/skills/<skill_name>/SKILL.md`` with
-        ``credentialed: true`` frontmatter.
+        ``metadata.credentialed: true`` frontmatter (under the
+        agentskills.io spec's ``metadata:`` escape hatch).
       - ``<root>/.claude/skills/<skill_name>/references/creds-schema.toml``
         declaring the requested keys.
 
@@ -75,8 +76,9 @@ def _write_skill_fixture(
             ---
             name: {skill_name}
             description: fixture credentialed skill for T8 testing
-            credentialed: true
-            primitive-class: credentialed-cli
+            metadata:
+              credentialed: true
+              primitive-class: credentialed-cli
             ---
 
             # Skill: {skill_name}
