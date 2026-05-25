@@ -1,0 +1,18 @@
+# Credentials schema for the figma credentialed primitive.
+# Format pinned by skill-secrets spec § AC24.
+#
+# Resolution: load_credentials("figma", required_keys=[...]) walks
+# Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 (~/.agentbundle/credentials.env)
+# per AC4. Env-var shape is <NAMESPACE>_<KEY> — FIGMA_API_TOKEN.
+#
+# Figma is SaaS-only (api.figma.com); there is no on-prem / self-hosted
+# variant, so no BASE_URL key. The token is a Personal Access Token
+# generated at Figma → Settings → Security → Personal access tokens.
+
+[namespace]
+name = "figma"
+
+[[namespace.keys]]
+name = "API_TOKEN"
+label = "Figma Personal Access Token (Settings → Security → Personal access tokens)"
+secret = true

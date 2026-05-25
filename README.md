@@ -53,6 +53,7 @@ The mapping is defined in [`docs/contracts/`](docs/contracts/); the contract is 
 | [`monorepo-extras`](packs/monorepo-extras/) | repo only | Monorepo scaffolding — `new-package` skill and a `packages/_example/` template. |
 | [`contracts`](packs/contracts/) | user (default) or repo | Contract-authoring skills — `api-contract` for OpenAPI 3.1. Portable across projects. |
 | [`converters`](packs/converters/) | user (default) or repo | File-format converters — `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `msg-to-markdown`. |
+| [`figma`](packs/figma/) | user (default) or repo | Figma REST API primitive (credentialed CLI) — reads files / nodes / metadata / versions / comments / variables / dev resources, renders frames to PNG/SVG/JPG/PDF, posts comments, converts FigJam connector graphs to Mermaid. Requires a Personal Access Token. |
 
 **Scope** is where the pack lands. *Repo-only* packs install into the current repo's `.claude/`, `docs/`, and root files — they ship hooks and seeds that only make sense per-project. *User-scope* packs install into `~/.claude/` and follow you across every repo on the machine; the install routes default to user scope for these but `--scope repo` works too.
 
