@@ -30,6 +30,8 @@ Kiro and Copilot stay distribution-only so self-host does not project
 from __future__ import annotations
 
 import fnmatch
+import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -44,6 +46,7 @@ from agentbundle.build.adapters import ADAPTERS, codex
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import (
     CONTRACT_PATH,
+    REPO_ROOT,
     discover_packs,
     validate_pack_uniqueness,
 )
@@ -898,6 +901,210 @@ def run_self_host(
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Build-check drift gates (AC10 gate 2 + AC20a + AC20b)
+# ---------------------------------------------------------------------------
+
+# Fixed corpus for the _emit_basic_string parity check (AC20b).
+# Covers: control chars, embedded quote + backslash, empty string,
+# multi-byte unicode — the "attack-shaped inputs" the spec names.
+_EMIT_BASIC_STRING_CORPUS: tuple[str, ...] = (
+    "\x00",   # NUL — must be \\u0000
+    "\x01",   # SOH — must be \\u0001
+    "\x1f",   # US — must be \\u001F
+    "\x7f",   # DEL — must be \\u007F
+    '"',      # embedded double-quote
+    "\\",     # embedded backslash
+    "",       # empty string
+    "café",   # multi-byte unicode (U+00E9)
+)
+
+
+def _resolve_install_marker_template_path() -> Path:
+    """Return a real filesystem Path for install-marker.py.
+
+    Resolution order (mirrors _read_install_marker_template in main.py):
+      1. ``<package>/_data/install-marker.py`` via importlib.resources — works
+         for filesystem installs AND inside a zipapp archive.
+      2. ``<repo>/packages/agentbundle/templates/install-marker.py`` — dev
+         fallback for source trees whose ``_data/`` hasn't been synced.
+
+    In the zipapp case, importlib.resources may return a zipfile-internal
+    resource that has no real on-disk path. We materialise it to a tempfile
+    in that case so importlib.util can load it. Callers should not delete the
+    returned path when it refers to the original file; the returned path is
+    safe to pass to importlib.util.spec_from_file_location.
+
+    Returns a tuple (path, is_temp) where is_temp=True means the file was
+    materialised from a zipapp archive and should be cleaned up by the caller.
+    """
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle").joinpath("_data/install-marker.py")
+        if resource.is_file():
+            # On a real filesystem, resource.is_file() gives a Path-like whose
+            # __str__ is a real filesystem path.
+            candidate = Path(str(resource))
+            if candidate.exists():
+                return candidate
+    except (FileNotFoundError, ModuleNotFoundError):
+        pass
+    # Dev-checkout fallback.
+    return REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
+
+
+def _load_emit_basic_string_from_template(
+    template_path: Path,
+) -> object:
+    """Load the ``_emit_basic_string`` function from the writer template.
+
+    Uses ``importlib.util.spec_from_file_location`` to import the template
+    as a module without running its ``__main__`` block (the script guards
+    with ``if __name__ == "__main__":``).
+
+    Returns the function object, or raises ``ImportError`` / ``AttributeError``
+    if the template does not expose the expected symbol.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "_install_marker_template_for_check", template_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(
+            f"build-check: cannot load template module from {template_path}"
+        )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return getattr(mod, "_emit_basic_string")
+
+
+def run_build_check_drift_gates(
+    output_dir: Path,
+    packs_dir: Path,
+) -> int:
+    """Run the three mechanical drift-gate assertions wired into ``make build-check``.
+
+    1. **Writer-template drift (AC20a):** every derived
+       ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
+       must be byte-identical to the canonical template.
+    2. **Source-shape plugin.json (AC10 gate 2):** every
+       ``packs/<pack>/.claude-plugin/plugin.json`` must NOT carry a ``hooks``
+       block (defence-in-depth, in-Python rail).
+    3. **Vendored ``_emit_basic_string`` parity (AC20b):** the template's
+       vendored copy must produce byte-identical output to the source primitive
+       ``agentbundle.config._emit_basic_string`` across the fixed corpus.
+
+    Returns 0 on success, 1 on any failure (all failures reported to stderr
+    before exit so the operator sees all drift in one run).
+    """
+    failures: list[str] = []
+
+    # ------------------------------------------------------------------
+    # Gate 1: Writer-template drift (AC20a)
+    # ------------------------------------------------------------------
+    template_path = _resolve_install_marker_template_path()
+    if not template_path.exists():
+        print(
+            f"build-check: canonical template not found at {template_path}; "
+            "skipping writer-template drift check",
+            file=sys.stderr,
+        )
+    else:
+        template_hash = hashlib.sha256(template_path.read_bytes()).hexdigest()
+        dist_plugins = output_dir / "dist" / "claude-plugins"
+        if dist_plugins.is_dir():
+            for pack_dir in sorted(dist_plugins.iterdir()):
+                if not pack_dir.is_dir():
+                    continue
+                derived_marker = (
+                    pack_dir / ".claude-plugin" / "scripts" / "install-marker.py"
+                )
+                if not derived_marker.exists():
+                    continue
+                derived_hash = hashlib.sha256(derived_marker.read_bytes()).hexdigest()
+                if derived_hash != template_hash:
+                    pack_name = pack_dir.name
+                    failures.append(
+                        f"build-check: writer-template drift — "
+                        f"{pack_name}/.claude-plugin/scripts/install-marker.py "
+                        f"diverges from "
+                        f"packages/agentbundle/templates/install-marker.py"
+                    )
+
+    # ------------------------------------------------------------------
+    # Gate 2: Source-shape plugin.json (AC10 gate 2)
+    # ------------------------------------------------------------------
+    if packs_dir.is_dir():
+        for pack_dir in sorted(packs_dir.iterdir()):
+            if not pack_dir.is_dir() or not (pack_dir / "pack.toml").exists():
+                continue
+            plugin_json_path = pack_dir / ".claude-plugin" / "plugin.json"
+            if not plugin_json_path.exists():
+                continue
+            try:
+                manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                failures.append(
+                    f"build-check: source-shape drift — "
+                    f"packs/{pack_dir.name}/.claude-plugin/plugin.json "
+                    f"could not be parsed: {exc}"
+                )
+                continue
+            if "hooks" in manifest:
+                failures.append(
+                    f"build-check: source-shape drift — "
+                    f"packs/{pack_dir.name}/.claude-plugin/plugin.json "
+                    f"carries a hooks block (forbidden at source per AC10)"
+                )
+
+    # ------------------------------------------------------------------
+    # Gate 3: Vendored _emit_basic_string parity (AC20b)
+    # ------------------------------------------------------------------
+    if template_path.exists():
+        try:
+            template_emit = _load_emit_basic_string_from_template(template_path)
+        except (ImportError, AttributeError) as exc:
+            failures.append(
+                f"build-check: _emit_basic_string parity — "
+                f"failed to load from template: {exc}"
+            )
+            template_emit = None
+
+        if template_emit is not None:
+            try:
+                from agentbundle.config import _emit_basic_string as source_emit
+            except ImportError as exc:
+                failures.append(
+                    f"build-check: _emit_basic_string parity — "
+                    f"failed to import source: {exc}"
+                )
+                source_emit = None
+
+            if source_emit is not None:
+                for test_input in _EMIT_BASIC_STRING_CORPUS:
+                    try:
+                        source_out = source_emit(test_input)
+                    except Exception as exc:
+                        # source raises ConfigError on non-str; wrap.
+                        source_out = f"<error: {exc}>"
+                    try:
+                        template_out = template_emit(test_input)
+                    except Exception as exc:
+                        template_out = f"<error: {exc}>"
+                    if source_out != template_out:
+                        failures.append(
+                            f"build-check: emit_basic_string drift — "
+                            f"vendored copy diverges from source on input "
+                            f"{test_input!r}"
+                        )
+
+    if failures:
+        for msg in failures:
+            print(msg, file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_self(args) -> int:
     return run_self_host(
         working_tree=Path(args.output_dir).resolve(),
@@ -909,14 +1116,29 @@ def cmd_self(args) -> int:
 
 
 def cmd_check(args) -> int:
-    """`make build-check` — strict dry-run against the working tree."""
-    return run_self_host(
-        working_tree=Path(args.output_dir).resolve(),
-        packs_dir=Path(args.packs_dir).resolve(),
+    """`make build-check` — strict dry-run against the working tree.
+
+    Runs two phases:
+      1. The existing self-host dry-run (adapter projection drift check).
+      2. The three new mechanical drift gates (AC10 gate 2 + AC20a + AC20b):
+         writer-template byte-identity, source-shape plugin.json, and vendored
+         ``_emit_basic_string`` parity across the fixed attack corpus.
+
+    Both phases must succeed (exit 0) for the overall check to pass.
+    """
+    output_dir = Path(args.output_dir).resolve()
+    packs_dir = Path(args.packs_dir).resolve()
+
+    self_host_rc = run_self_host(
+        working_tree=output_dir,
+        packs_dir=packs_dir,
         dry_run=True,
         force=False,
         no_symlink=getattr(args, "no_symlink", False),
     )
+    drift_rc = run_build_check_drift_gates(output_dir, packs_dir)
+    # Return the worse of the two exit codes.
+    return max(self_host_rc, drift_rc)
 
 
 # Re-export project_to_temp for any external caller that still relies
