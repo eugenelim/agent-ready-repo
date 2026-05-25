@@ -887,6 +887,37 @@ Per the work-loop's three-mode taxonomy:
       the Class 3 section). End-to-end exercise of both
       same-scope halves is deferred to AC4b row 28 under the
       user-scope-pack trigger.
+- [ ] **AC24 — read-side fallback contract.** When
+      `unresolved-markers` or `new-companions` are absent on a
+      `[[packs-installed]]` entry, the skill scans the projected
+      primitive tree for `<adapt:NAME>` markers and
+      `.upstream.<ext>` companions directly. Pinned by the
+      skill-body grep set (AC15 grep #4 of
+      `docs/specs/claude-plugins-install-route/spec.md` names the
+      operative dedupe rule) plus the marker-schema round-trip tests
+      added in T3 of that plan (a v0.4-shape entry missing both
+      fields parses cleanly).
+- [ ] **AC25 — proactive cache-scan idempotence (grep-pinned).**
+      When both a marker entry and a cache-resident pack root are
+      present in one session for the same pack, the skill must not
+      double-adapt. Pinned by SKILL.md body greps #3
+      (`do not double-adapt`) and #4 (`if a marker entry is
+      present, do not synthesise a second adaptation`) per AC15 of
+      `docs/specs/claude-plugins-install-route/spec.md`. End-to-end
+      verification is the manual-QA matrix row added by AC19 of
+      that spec. There is no programmatic skill-execution harness
+      in v1; the spec explicitly accepts grep + manual-QA as v1
+      verification for this LLM-judgment behaviour.
+- [ ] **AC26 — stale-entry drop-on-read.** When a
+      `[[packs-installed]]` entry's pack is no longer present in
+      any cache directory and not recorded in any scope's state
+      file, the skill silently drops the entry on read — no nudge,
+      no proposal queue entry. Pinned by the SKILL.md body grep
+      `silently drops the entry` (added by T6 of
+      `docs/specs/claude-plugins-install-route/plan.md`).
+      Programmatic verification is deferred to the Claude-plugins
+      uninstall handling RFC (per RFC-0008 §Unresolved questions Q2
+      — explicitly forward-referenced).
 
 ## Changelog
 
@@ -981,3 +1012,4 @@ Per the work-loop's three-mode taxonomy:
   transitions and user-scope LLM-judgment rows are pending their
   named triggers.
 - 2026-05-24: install-marker schema gains optional install-route field; unresolved-markers and new-companions marked optional per docs/specs/claude-plugins-install-route/spec.md.
+- 2026-05-25: AC24/AC25/AC26 added per docs/specs/claude-plugins-install-route/spec.md — read-side fallback for v0.4 markers, proactive cache-scan idempotence, stale-entry drop-on-read.
