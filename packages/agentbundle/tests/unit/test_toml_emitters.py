@@ -346,3 +346,68 @@ def test_cli_install_emits_install_route_cli(tmp_path) -> None:
     assert entries[0]["install-route"] == "cli", (
         "install-route field must be 'cli' on every CLI-written marker entry"
     )
+
+
+def test_cli_install_coerces_malformed_unresolved_markers_field(tmp_path) -> None:
+    """Security Concern 1 regression: _append_install_marker read-loop coerces
+    unresolved-markers = "string" (non-list) on a pre-existing entry.
+
+    Scenario: an adversarial or hand-edited marker has
+    ``unresolved-markers = "bad"`` (a TOML basic-string, not array).
+    Without the coercion, _emit_basic_string raises ValueError on the
+    non-list value, bricking every subsequent CLI install.
+
+    Expected behaviour after this fix:
+      (a) the call does not raise;
+      (b) the new entry is present in the resulting marker;
+      (c) the pre-seeded entry survived but its unresolved-markers field
+          is absent (bad field dropped, rest of entry preserved);
+      (d) exit code is implicitly 0 (no exception).
+    """
+    from agentbundle.commands.install import _append_install_marker
+    import datetime as _dt
+
+    # Seed a marker with a valid-looking entry but malformed unresolved-markers.
+    marker = tmp_path / ".adapt-install-marker.toml"
+    ts = _dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=_dt.timezone.utc)
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "victim"\n'
+        'version = "0.1.0"\n'
+        f"installed-at = {ts.strftime('%Y-%m-%dT%H:%M:%SZ')}\n"
+        'install-route = "cli"\n'
+        # Non-list value triggers the coercion path.
+        'unresolved-markers = "bad-string-not-a-list"\n'
+        "new-companions = []\n",
+        encoding="utf-8",
+    )
+
+    # Should not raise; CLI install for a different pack must succeed.
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="newcomer",
+        pack_version="0.2.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+    entries = parsed["packs-installed"]
+    by_name = {e["name"]: e for e in entries}
+
+    # (b) new entry is present.
+    assert "newcomer" in by_name, "New entry missing after malformed-field coercion"
+    # (c) pre-seeded entry survived (not dropped entirely).
+    assert "victim" in by_name, "Pre-seeded entry was dropped instead of coerced"
+    # (c) the malformed string value was coerced — the CLI emit loop always emits
+    # unresolved-markers as an array, so after coercion the field re-emits as `[]`
+    # (not absent). The critical invariant is that the call did NOT raise and the
+    # new entry was written successfully.
+    victim_um = by_name["victim"].get("unresolved-markers")
+    assert isinstance(victim_um, list), (
+        f"Expected unresolved-markers to be coerced to a list, got {victim_um!r}"
+    )

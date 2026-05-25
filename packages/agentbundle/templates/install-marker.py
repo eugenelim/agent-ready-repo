@@ -32,6 +32,22 @@ from datetime import timezone
 
 
 # ---------------------------------------------------------------------------
+# Vendored pack-name / pack-version shape rules — copied from
+# agentbundle.commands.install._PACK_NAME_RE / _PACK_VERSION_RE.
+# Source path: packages/agentbundle/agentbundle/commands/install.py
+# Keep in sync with the source; the regexes are the CLI's canonical gate for
+# pack-name shape and must match exactly (same pattern string, same flags).
+# Security Concern 7: without this guard a pack with `name = "core\nevil"` in
+# pack.toml would pass unchecked and land phantom TOML lines in the marker.
+# ---------------------------------------------------------------------------
+import re as _re
+
+_PACK_NAME_RE = _re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_PACK_VERSION_RE = _re.compile(
+    r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+)
+
+# ---------------------------------------------------------------------------
 # Vendored helper — copied from agentbundle.config._emit_basic_string.
 # Source path: packages/agentbundle/agentbundle/config.py
 # Keep in sync with the source; any security fix there must be applied here too.
@@ -396,6 +412,39 @@ def _read_entries(marker_path: pathlib.Path) -> list[dict]:
         # value for these fields; passing the raw value to _emit_basic_string
         # would raise. Coerce here and warn so the entry's other valid
         # fields survive re-emission.
+        # Security Concern 2: type-validate name, version, install-route.
+        # A tampered marker with name=42 (TOML integer) passes the
+        # installed-at filter but raises ValueError at _emit_basic_string
+        # time, bricking subsequent marker writes. Drop such entries.
+        _skip_entry = False
+        for _field in ("name", "version"):
+            _val = e.get(_field)
+            if _val is not None and not isinstance(_val, str):
+                _label = e.get("name") if _field != "name" else "<unnamed>"
+                _label_str = _label if isinstance(_label, str) else "<unnamed>"
+                print(
+                    f"install-marker: warning: marker entry has non-string "
+                    f"{_field} (got {type(_val).__name__}); dropping entry "
+                    f"for pack {_label_str!r}",
+                    file=sys.stderr,
+                )
+                _skip_entry = True
+                break
+        if not _skip_entry:
+            _route_val = e.get("install-route")
+            if _route_val is not None and not isinstance(_route_val, str):
+                _name_val = e.get("name", "<unnamed>")
+                _name_str = _name_val if isinstance(_name_val, str) else "<unnamed>"
+                print(
+                    f"install-marker: warning: marker entry for {_name_str!r} "
+                    f"has non-string install-route "
+                    f"(got {type(_route_val).__name__}); dropping field",
+                    file=sys.stderr,
+                )
+                e = dict(e)  # shallow copy before mutation
+                del e["install-route"]
+        if _skip_entry:
+            continue
         e = dict(e)  # shallow copy so we don't mutate the tomllib-parsed dict
         for field in ("unresolved-markers", "new-companions"):
             if field not in e:
@@ -625,6 +674,31 @@ def main(argv: list[str]) -> int:
     if not pack_name:
         print("install-marker: pack.toml is missing [pack].name", file=sys.stderr)
         return 1
+
+    # Security Concern 7: validate pack name and version against the same
+    # shape rules the CLI enforces (_PACK_NAME_RE / _PACK_VERSION_RE vendored
+    # above from packages/agentbundle/agentbundle/commands/install.py).
+    # A pack with control chars / newlines in name passes undetected otherwise,
+    # enabling TOML injection in the marker file. Refuse-and-warn, exit 0 (no
+    # marker write, no hash file update) so the next session retries.
+    if not isinstance(pack_name, str) or not _PACK_NAME_RE.fullmatch(pack_name):
+        print(
+            f"install-marker: pack name {pack_name!r} fails pack-name shape rule "
+            f"(must match ^[a-z0-9][a-z0-9-]*$); skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
+
+    if pack_version and (
+        not isinstance(pack_version, str)
+        or not _PACK_VERSION_RE.fullmatch(pack_version)
+    ):
+        print(
+            f"install-marker: pack version for {pack_name!r} fails pack-version "
+            f"shape rule; skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
 
     # --- Compute hash ---
     try:

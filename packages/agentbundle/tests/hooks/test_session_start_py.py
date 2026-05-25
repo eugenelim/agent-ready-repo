@@ -214,6 +214,55 @@ def test_v04_marker_omits_unresolved_markers_and_new_companions(
     assert names == ["core"]
 
 
+def test_session_start_nudge_byte_identical_v03_vs_v04(tmp_path: Path) -> None:
+    """Blocker 1 / AC14: the rendered nudge stdout is byte-identical
+    when the session-start hook reads a v0.3-shaped marker versus a
+    v0.4-shaped marker with the same pack names.
+
+    v0.3 shape: unresolved-markers and new-companions present, no install-route.
+    v0.4 shape: install-route = "claude-plugins" added; the two arrays absent.
+
+    The hook is route-agnostic by design; this test pins that property
+    so a future SKILL.md / hook edit cannot introduce route-keyed output.
+    """
+    v03_marker = tmp_path / "v03.toml"
+    v03_marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "core"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-24T10:00:00Z\n"
+        "unresolved-markers = []\n"
+        "new-companions = []\n",
+        encoding="utf-8",
+    )
+
+    v04_marker = tmp_path / "v04.toml"
+    v04_marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "core"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-25T12:34:56Z\n"
+        'install-route = "claude-plugins"\n',
+        encoding="utf-8",
+    )
+
+    result_v03 = _run(_isolated_env(ADAPT_REPO_MARKER=str(v03_marker)))
+    result_v04 = _run(_isolated_env(ADAPT_REPO_MARKER=str(v04_marker)))
+
+    assert result_v03.returncode == 0, result_v03.stderr
+    assert result_v04.returncode == 0, result_v04.stderr
+
+    assert result_v03.stdout == result_v04.stdout, (
+        f"Rendered nudge stdout differs between v0.3 and v0.4 markers:\n"
+        f"v0.3: {result_v03.stdout!r}\n"
+        f"v0.4: {result_v04.stdout!r}"
+    )
+
+
 def test_v03_marker_still_parses_under_v04_reader(tmp_path: Path) -> None:
     """AC12: a v0.3-shape marker (unresolved-markers and new-companions present,
     no install-route) must be read correctly by the v0.4-era
