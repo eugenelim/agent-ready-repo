@@ -379,5 +379,101 @@ class FrontmatterTableTests(unittest.TestCase):
                 )
 
 
+class ContractV04Tests(unittest.TestCase):
+    """T2: v0.4 contract assertions (AC11).
+
+    test_contract_version_is_v04, test_claude_code_install_routes_present,
+    test_other_adapters_have_no_install_routes, test_adapter_schema_accepts_install_routes.
+    """
+
+    def setUp(self) -> None:
+        self.contract = _load_contract()
+        self.schema = _load_schema()
+
+    def test_contract_version_is_v04(self) -> None:
+        """tomllib.loads of adapter.toml returns contract.version == "0.4"."""
+        self.assertEqual(
+            self.contract["contract"]["version"],
+            "0.4",
+            "adapter.toml [contract] version must be '0.4' after T2 bump",
+        )
+
+    def test_claude_code_install_routes_present(self) -> None:
+        """[adapter."claude-code"] carries install-routes == ["cli", "claude-plugins"]."""
+        routes = self.contract["adapter"]["claude-code"].get("install-routes")
+        self.assertEqual(
+            routes,
+            ["cli", "claude-plugins"],
+            f"expected install-routes=['cli', 'claude-plugins'], got {routes!r}",
+        )
+
+    def test_other_adapters_have_no_install_routes(self) -> None:
+        """Kiro, Copilot, and Codex do not declare install-routes."""
+        for adapter_name in ("kiro", "copilot", "codex"):
+            adapter_block = self.contract["adapter"].get(adapter_name, {})
+            self.assertNotIn(
+                "install-routes",
+                adapter_block,
+                f"adapter '{adapter_name}' must not carry install-routes (only claude-code does)",
+            )
+
+    def test_adapter_schema_accepts_install_routes(self) -> None:
+        """Round-trip: the amended contract validates; a string install-routes is rejected."""
+        from agentbundle.build.validate import validate
+
+        # Full contract validates (includes install-routes array).
+        errors = validate(self.contract, self.schema)
+        self.assertEqual(
+            errors,
+            [],
+            f"adapter.toml with install-routes failed schema validation:\n"
+            + "\n".join(errors),
+        )
+
+        # Omitting install-routes is also valid (field is optional).
+        minimal_contract = {
+            "contract": {"version": "0.4"},
+            "primitive": {
+                "skill": {"source-path": ".apm/skills/"},
+                "agent": {"source-path": ".apm/agents/"},
+                "hook-body": {"source-path": ".apm/hooks/"},
+                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
+                "command": {"source-path": ".apm/commands/"},
+            },
+            "adapter": {
+                "claude-code": {}
+            },
+        }
+        errors = validate(minimal_contract, self.schema)
+        self.assertEqual(
+            errors,
+            [],
+            f"adapter without install-routes (optional) should validate:\n"
+            + "\n".join(errors),
+        )
+
+        # install-routes as a string (not array) must be rejected.
+        bad_contract = {
+            "contract": {"version": "0.4"},
+            "primitive": {
+                "skill": {"source-path": ".apm/skills/"},
+                "agent": {"source-path": ".apm/agents/"},
+                "hook-body": {"source-path": ".apm/hooks/"},
+                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
+                "command": {"source-path": ".apm/commands/"},
+            },
+            "adapter": {
+                "claude-code": {
+                    "install-routes": "cli",  # string, not array — must be rejected
+                }
+            },
+        }
+        errors = validate(bad_contract, self.schema)
+        self.assertTrue(
+            errors,
+            "schema must reject install-routes as a string (must be an array)",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
