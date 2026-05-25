@@ -39,13 +39,13 @@ def test_load_pack_toml_raises_on_missing_file(tmp_path):
 
 
 def test_load_state_returns_empty_state_for_absent_file(tmp_path):
-    state = config.load_state(tmp_path / ".agent-ready-state.toml")
+    state = config.load_state(tmp_path / ".agentbundle-state.toml")
     assert state.schema_version == config.STATE_SCHEMA_VERSION
     assert state.packs == {}
 
 
 def test_state_round_trip_preserves_per_pack_files(tmp_path):
-    state_toml = tmp_path / ".agent-ready-state.toml"
+    state_toml = tmp_path / ".agentbundle-state.toml"
     state_toml.write_text(
         """
 schema-version = "0.1"
@@ -81,7 +81,7 @@ primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
 
 
 def test_state_round_trip_preserves_mixed_version_primitives(tmp_path):
-    state_toml = tmp_path / ".agent-ready-state.toml"
+    state_toml = tmp_path / ".agentbundle-state.toml"
     state_toml.write_text(
         """
 schema-version = "0.1"

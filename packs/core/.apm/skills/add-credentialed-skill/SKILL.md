@@ -62,7 +62,7 @@ first.
 4. **Import the loader** in your primitive's Python entry point:
 
    ```python
-   from agent_ready.credentials import load_credentials
+   from agentbundle.credentials import load_credentials
 
    creds = load_credentials("<namespace>", required_keys=["API_TOKEN"])
    token = creds.API_TOKEN  # never printed, never echoed
@@ -122,7 +122,7 @@ slash command) reports findings on:
   the lint can do its job; if you reach for `click` or `typer`
   anyway, name the choice in the PR description so reviewers know to
   spot-check the flag set by hand.
-- Any `scripts/**/*.py` line containing `.agent-ready/credentials.env`
+- Any `scripts/**/*.py` line containing `.agentbundle/credentials.env`
   without the opt-out marker `# credentialed-primitive: reads-creds-directly`
   on the same line.
 

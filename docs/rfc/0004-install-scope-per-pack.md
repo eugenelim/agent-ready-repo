@@ -323,11 +323,11 @@ Two changes to the write-jail rail:
 
 | Scope  | Location                                  |
 | ------ | ----------------------------------------- |
-| `repo` | `<repo>/.agent-ready-state.toml`          |
-| `user` | `~/.agent-ready/state.toml`               |
+| `repo` | `<repo>/.agentbundle-state.toml`          |
+| `user` | `~/.agentbundle/state.toml`               |
 
 User-scope state lives inside a namespaced dot-directory
-(`~/.agent-ready/`), not as a bare dotfile in `$HOME`. The
+(`~/.agentbundle/`), not as a bare dotfile in `$HOME`. The
 dot-directory is the future home for other user-scope artifacts
 (`.adapt-discovery.toml`, `.upstream.<ext>` companions, pending
 reports). Repo-scope state location is unchanged. Each file
@@ -372,7 +372,7 @@ dual-scope install (`--force`) emits one warning per scope.
 
 ### Backward compatibility for existing state files
 
-Adopters today carry `<repo>/.agent-ready-state.toml` with
+Adopters today carry `<repo>/.agentbundle-state.toml` with
 `schema-version = "0.1"` and no scope metadata.
 
 - **Read.** The CLI reads any `schema-version = "0.1"` state file
@@ -392,7 +392,7 @@ Adopters today carry `<repo>/.agent-ready-state.toml` with
   refuse-and-explain shape matches the major-version refusal rail
   already in [`agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md).
 
-The agent-ready-state.toml `schema-version` is a separate version
+The agentbundle-state.toml `schema-version` is a separate version
 axis from the adapter contract `[contract] version` — see
 [Drawbacks](#drawbacks). Both bump in the spec amendment, but they
 gate different things and an adopter must reason about both.
@@ -516,7 +516,7 @@ explicitly.
 - **Three version axes coexist after this RFC; two of them bump.** The adapter
   contract version (`[contract] version` in `adapter.toml`) bumps
   from `0.1` → `0.2`; the state-file schema (`schema-version` in
-  `.agent-ready-state.toml`) bumps from `0.1` → `0.2`; the
+  `.agentbundle-state.toml`) bumps from `0.1` → `0.2`; the
   pack-spec version (`version` in `pack.toml`) is per-pack and
   unchanged by this RFC. The two bumps gate different things — the
   contract version drives the major-version-disagreement refusal
@@ -605,13 +605,13 @@ merged ahead of the others leaves the CLI in an incoherent state.
   gains:
   - The `[scope]` table in the adapter contract, with
     `allowed-prefixes.user` array.
-  - Scope-keyed state-file rule (`~/.agent-ready/state.toml`).
+  - Scope-keyed state-file rule (`~/.agentbundle/state.toml`).
   - Scope-aware path-jail acceptance criterion.
   - `seeds/`-bearing-pack, hook-bearing-pack, and
     `<adapt:NAME>`-marker-bearing-pack refusal at user scope,
     enforced by `validate` (`validate` greps projected primitives
     for markers and reports the first offending file).
-  - `agent-ready-state.toml` schema bump to `"0.2"` with explicit
+  - `agentbundle-state.toml` schema bump to `"0.2"` with explicit
     `scope` column per entry; `init-state --migrate` semantics.
   - `[contract] version` bump from `0.1` to `0.2`; conformance
     suite adds scope cases.

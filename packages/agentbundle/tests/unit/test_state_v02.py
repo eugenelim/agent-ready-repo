@@ -1,10 +1,10 @@
-"""T13: .agent-ready-state.toml v0.2 + init-state --migrate.
+"""T13: .agentbundle-state.toml v0.2 + init-state --migrate.
 
 Verifies AC #17 (RFC-0004) for the distribution-adapters spec:
   - Read of a v0.1 file returns every entry with implicit scope="repo".
   - Write-capable invocations against a v0.1 file refuse-and-explain.
   - `init-state --migrate` rewrites v0.1 → v0.2 idempotently.
-  - User-scope state file lives at `~/.agent-ready/state.toml` (a
+  - User-scope state file lives at `~/.agentbundle/state.toml` (a
     namespaced dot-directory; the dir is created with 0o700 if absent).
 """
 
@@ -116,7 +116,7 @@ def test_load_state_for_write_refuses_v02(tmp_path):
 
 def test_init_state_refuses_v01_state_file(tmp_path):
     """The init-state hash-mode (no --migrate) is a *write* — refuse v0.1."""
-    _write(tmp_path / ".agent-ready-state.toml", V01_FIXTURE)
+    _write(tmp_path / ".agentbundle-state.toml", V01_FIXTURE)
     # Build a minimal pack so the loader doesn't trip earlier.
     packs_dir = tmp_path / "packs"
     pack = packs_dir / "demo"
@@ -149,7 +149,7 @@ def test_migrate_rewrites_v01_to_current(tmp_path):
     current ``STATE_SCHEMA_VERSION`` (v0.3 under T8a). The v0.1 → v0.2
     invariant lands in one step alongside the header-only v0.2 → v0.3
     bump because the two compose cleanly (RFC-0005 § State-file impact)."""
-    state_path = _write(tmp_path / ".agent-ready-state.toml", V01_TWO_PACKS)
+    state_path = _write(tmp_path / ".agentbundle-state.toml", V01_TWO_PACKS)
     args = argparse.Namespace(
         root=str(tmp_path),
         migrate=True,
@@ -170,7 +170,7 @@ def test_migrate_rewrites_v01_to_current(tmp_path):
 
 def test_migrate_is_idempotent(tmp_path):
     """Running --migrate twice against the same file is a no-op."""
-    state_path = _write(tmp_path / ".agent-ready-state.toml", V01_FIXTURE)
+    state_path = _write(tmp_path / ".agentbundle-state.toml", V01_FIXTURE)
     args = argparse.Namespace(
         root=str(tmp_path), migrate=True, pack=None, packs_dir="packs", scope=None
     )
@@ -199,17 +199,17 @@ def test_migrate_refuses_absent_file(tmp_path):
 
 
 def test_user_state_path_creates_dot_directory(tmp_path):
-    """safety.user_state_path() creates ~/.agent-ready with mode 0o700."""
+    """safety.user_state_path() creates ~/.agentbundle with mode 0o700."""
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     p = safety.user_state_path(home=fake_home)
-    assert p == fake_home / ".agent-ready" / "state.toml"
-    assert (fake_home / ".agent-ready").is_dir()
+    assert p == fake_home / ".agentbundle" / "state.toml"
+    assert (fake_home / ".agentbundle").is_dir()
     # On POSIX the mode bits are observable. On platforms that don't
     # respect mode in mkdir (e.g. NTFS), we soften this to "creates the
     # directory" — the file is still under $HOME.
     if os.name == "posix":
-        st = (fake_home / ".agent-ready").stat()
+        st = (fake_home / ".agentbundle").stat()
         assert stat.S_IMODE(st.st_mode) == 0o700, (
             f"expected 0o700, got {oct(stat.S_IMODE(st.st_mode))}"
         )
@@ -218,9 +218,9 @@ def test_user_state_path_creates_dot_directory(tmp_path):
 def test_user_state_path_idempotent_when_dir_exists(tmp_path):
     """Re-calling does not raise even if the dir is already there."""
     fake_home = tmp_path / "home"
-    (fake_home / ".agent-ready").mkdir(parents=True)
+    (fake_home / ".agentbundle").mkdir(parents=True)
     p = safety.user_state_path(home=fake_home)
-    assert p == fake_home / ".agent-ready" / "state.toml"
+    assert p == fake_home / ".agentbundle" / "state.toml"
 
 
 # ---------------------------------------------------------------------------

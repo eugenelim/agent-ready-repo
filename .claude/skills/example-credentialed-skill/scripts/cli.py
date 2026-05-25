@@ -7,7 +7,7 @@ without running it.
 Two verbs:
 
 - ``call`` — resolves both schema keys (``API_TOKEN`` and ``BASE_URL``)
-  through ``agent_ready.credentials.load_credentials``, demonstrates
+  through ``agentbundle.credentials.load_credentials``, demonstrates
   the sibling-key Tier resolution the schema's ``BASE_URL`` entry
   advertises, validates the URL shape, and prints
   ``would call example API at <base_url> (token=*** present)`` to
@@ -40,7 +40,7 @@ import argparse
 import sys
 from urllib.parse import urlparse
 
-from agent_ready.credentials import (
+from agentbundle.credentials import (
     CredentialsMissingError,
     Tier2HardFailError,
     load_credentials,

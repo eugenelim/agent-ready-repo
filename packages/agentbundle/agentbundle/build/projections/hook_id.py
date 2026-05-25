@@ -8,7 +8,7 @@ on reinstall / replace / uninstall. Claude Code today treats unknown
 keys on hook entries as opaque (the synthetic ``id`` survives without
 runtime effect); Kiro's hook-entry schema is observed-but-not-publicly-
 documented and treats it the same. RFC-0005 Unresolved Q1 holds the
-``id`` → ``agent-ready-id`` rename open; this module is the single
+``id`` → ``agentbundle-id`` rename open; this module is the single
 chokepoint to flip if that resolves.
 """
 

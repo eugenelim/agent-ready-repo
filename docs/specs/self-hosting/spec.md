@@ -35,7 +35,7 @@
 > **Schema authority.** The sibling spec at
 > [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
 > defines `pack.toml`, `.claude-plugin/plugin.json`, the Tier-1/2/3 contract,
-> the `.agent-ready-state.toml` schema, and the `.upstream.<ext>` semantics.
+> the `.agentbundle-state.toml` schema, and the `.upstream.<ext>` semantics.
 > It also enumerates the six projection recipe types
 > (`per-pack-claude-plugin`, `per-pack-apm-package`, `marketplace`,
 > `per-pack-overlay`, `composite-agents-md`, `composite-marketplace`) and

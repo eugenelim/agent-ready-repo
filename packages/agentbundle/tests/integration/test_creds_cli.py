@@ -106,19 +106,19 @@ def _write_state_file(
     *,
     user_scope: bool = False,
 ) -> Path:
-    """Write a v0.3 ``.agent-ready-state.toml`` listing the given skills
+    """Write a v0.3 ``.agentbundle-state.toml`` listing the given skills
     under ``[pack.<pack>.files]``.
 
-    ``user_scope`` toggles the file location: ``<root>/.agent-ready-state.toml``
-    (repo) or ``<root>/.agent-ready/state.toml`` (user, mirroring
-    ``$HOME/.agent-ready/state.toml`` semantics).
+    ``user_scope`` toggles the file location: ``<root>/.agentbundle-state.toml``
+    (repo) or ``<root>/.agentbundle/state.toml`` (user, mirroring
+    ``$HOME/.agentbundle/state.toml`` semantics).
     """
     if user_scope:
-        path = root / ".agent-ready" / "state.toml"
+        path = root / ".agentbundle" / "state.toml"
         path.parent.mkdir(parents=True, exist_ok=True)
         scope_label = "user"
     else:
-        path = root / ".agent-ready-state.toml"
+        path = root / ".agentbundle-state.toml"
         scope_label = "repo"
     lines = ['schema-version = "0.3"', "", f"[pack.{pack}]"]
     lines.append('installed-version = "0.0.1"')
@@ -320,7 +320,7 @@ def test_setup_no_arg_walks_state_files(tmp_path, monkeypatch, capsys):
     _write_state_file(tmp_path, "core", (".claude/skills/alpha/SKILL.md",))
     # User-scope fixture (via HOME redirection in the autouse fixture):
     # ``$HOME/.claude/skills/beta/SKILL.md`` listed in
-    # ``$HOME/.agent-ready/state.toml``.
+    # ``$HOME/.agentbundle/state.toml``.
     _write_skill_fixture(tmp_path, "beta", "beta")
     _write_state_file(
         tmp_path, "user-pack", (".claude/skills/beta/SKILL.md",),
@@ -390,7 +390,7 @@ def test_setup_writes_to_tier3_on_linux(tmp_path, monkeypatch, capsys):
     assert "wrote to dotfile" in out.err
     assert "Linux" in out.err
     # The dotfile carries the namespaced key.
-    dotfile = tmp_path / ".agent-ready" / "credentials.env"
+    dotfile = tmp_path / ".agentbundle" / "credentials.env"
     assert "ALPHA_API_TOKEN=dot-secret" in dotfile.read_text()
 
 
@@ -509,7 +509,7 @@ def test_setup_secret_and_nonsecret_keys_round_trip(tmp_path, monkeypatch):
     )
     rc = _run(["creds", "setup", "alpha", "--root", str(tmp_path)])
     assert rc == 0
-    dotfile_text = (tmp_path / ".agent-ready" / "credentials.env").read_text()
+    dotfile_text = (tmp_path / ".agentbundle" / "credentials.env").read_text()
     assert "ALPHA_API_TOKEN=kr-tok" in dotfile_text
     assert "ALPHA_BASE_URL=" in dotfile_text
 

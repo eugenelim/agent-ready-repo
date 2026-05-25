@@ -280,7 +280,7 @@ unit case so a reviewer can grep both surfaces from one list.
   - `_marker_path(marker_scope: str, project_dir: Path | None,
     home: Path) -> Path` — returns
     `<project>/.adapt-install-marker.toml` for `repo`
-    `marker_scope`, `<home>/.agent-ready/.adapt-install-marker.toml`
+    `marker_scope`, `<home>/.agentbundle/.adapt-install-marker.toml`
     for `user`.
   - `_should_fire(marker_path: Path, pack_name: str, plugin_data:
     Path, current_hash: str) -> bool` — implements the

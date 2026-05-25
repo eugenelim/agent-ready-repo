@@ -839,7 +839,7 @@ Credentials resolve in this order, first-hit-wins per key:
    (token via child stdin, never argv); Windows Credential Manager
    via in-process `ctypes` against `advapi32`. Linux falls through
    to Tier 3 in v1 — a `libsecret` backend is deferred to a v2 RFC.
-3. **Tier 3 — dotfile.** `~/.agent-ready/credentials.env`, mode
+3. **Tier 3 — dotfile.** `~/.agentbundle/credentials.env`, mode
    `0600` on POSIX, DACL-verified via `icacls` on Windows. The
    fallback floor.
 

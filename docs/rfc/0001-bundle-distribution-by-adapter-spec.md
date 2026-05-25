@@ -49,7 +49,7 @@ foundation. It ships the spec-driven workflow (work-loop,
 new-spec, bug-fix, the reviewer agents and implementer, the
 session-start and pre-pr hooks), the layer-0 governance content
 adopters need to be
-agent-ready (AGENTS.md template, CHARTER, CONVENTIONS, the
+agentbundle (AGENTS.md template, CHARTER, CONVENTIONS, the
 `docs/architecture/` and `docs/specs/` shapes with README seeds,
 and the spec.md+plan.md templates), and the `adapt-to-project`
 skill that customizes everything to the adopter's actual project.
@@ -80,7 +80,7 @@ Four observations drive this RFC's shape:
 long tails of existing code repos — services, libraries, internal
 tooling — that aren't going to be rebuilt as fresh template clones.
 Each of those repos is a candidate for being *upgraded* into an
-agent-ready repo by installing our catalogue plus running an
+agentbundle repo by installing our catalogue plus running an
 LLM-driven adaptation step that customizes the inserted primitives
 to the codebase's actual conventions. "Today I can superpower any
 codebase" is the headline promise; the size of the addressable
@@ -659,7 +659,7 @@ Common adoption patterns:
 
 | Pattern | Packs installed |
 |---|---|
-| Standard agent-ready repo | `core` (covers AGENTS.md + docs/architecture/specs/knowledge/product/ + work-loop + reviewer agents + adapt-to-project) |
+| Standard agentbundle repo | `core` (covers AGENTS.md + docs/architecture/specs/knowledge/product/ + work-loop + reviewer agents + adapt-to-project) |
 | Plus RFC/ADR ceremony | `core` + `governance-extras` |
 | Plus user documentation | `core` + `user-guide-diataxis` |
 | Plus monorepo packaging | `core` + `monorepo-extras` |
@@ -750,7 +750,7 @@ the catalogue's mechanism for skills to share institutional
 knowledge across sessions.
 
 **Why `docs/product/` ships with core.** Roadmap and changelog
-aren't optional ceremony for agent-ready repos — they're the
+aren't optional ceremony for agentbundle repos — they're the
 agent-readable surface that lets a session-starting agent know
 *what the project is building right now* (versus what's done,
 versus what's deferred). Without a project-shaped product
@@ -867,7 +867,7 @@ the augmentation and restructuring conversations, with the skill
 *adapting to* the adopter's repo at least as often as the adopter
 adapts to ours. The bidirectional negotiation is what turns "we
 installed our stuff into your repo" into "your repo is now
-agent-ready in a shape that fits."
+agentbundle in a shape that fits."
 
 **Per-pack adaptation manifest.** Each pack declares its
 substitutable values and augmentation points in `pack.toml` under
@@ -939,18 +939,18 @@ tier's behaviour depends on which lifecycle phase is operating:
 | Tier | What it is | Adapt step (LLM or CLI) | `agentbundle install` | `apm install` | Claude `/plugin install` |
 |---|---|---|---|---|---|
 | **Tier 1** — files at adapter-contract paths, never adopter-edited | Created by the install or absent before install | Free to rewrite | Free to write (creation) or rewrite (update) | APM-native (compile to working tree) | Cache-only; never collides |
-| **Tier 2** — files at adapter-contract paths, adopter-edited since install | Detection: the CLI's `.agent-ready-state.toml` records a content hash at install time; adapt and CLI-install commands recompute and compare | Refuse to silently overwrite; surface and prompt | Refuse to silently overwrite; surface and prompt | APM-native (its lockfile is dep-version-only, not per-file hash; APM's compile behaviour applies) | Cache-only; not applicable |
+| **Tier 2** — files at adapter-contract paths, adopter-edited since install | Detection: the CLI's `.agentbundle-state.toml` records a content hash at install time; adapt and CLI-install commands recompute and compare | Refuse to silently overwrite; surface and prompt | Refuse to silently overwrite; surface and prompt | APM-native (its lockfile is dep-version-only, not per-file hash; APM's compile behaviour applies) | Cache-only; not applicable |
 | **Tier 3** — files outside adapter-contract paths | Adopter's pre-existing `AGENTS.md`, `docs/`, source code, `.gitignore`, etc. | May propose changes (augmentation, restructuring) with per-file approval; never touches without consent | Untouched | Untouched | Untouched |
 
 **Tier-2 detection mechanism (CLI install + adapt).** The
-constrained-network CLI maintains `.agent-ready-state.toml` in the
+constrained-network CLI maintains `.agentbundle-state.toml` in the
 adopter's repo recording: (a) which packs are installed at which
 versions; (b) for each projected path, the SHA-256 of the content
 at install time. On subsequent `agentbundle install --pack`
 (version upgrade) or `agentbundle adapt`, the tool recomputes
 hashes against the current working tree and flags any divergence
 as Tier-2. For APM and Claude plugin install routes,
-`.agent-ready-state.toml` is opt-in — adopters who want
+`.agentbundle-state.toml` is opt-in — adopters who want
 catalogue-level Tier-2 enforcement past install run
 `agentbundle init-state` after their APM/Claude install, which
 hashes the just-installed files. This step is optional; adopters
@@ -987,7 +987,7 @@ native install.
 
 | Verb | CLI route (`agentbundle install --pack`) | APM route | Claude plugin route |
 |---|---|---|---|
-| **Update** | `agentbundle install --pack <name>` with a newer version; runs the Tier-2 detection per `.agent-ready-state.toml` | `apm install` after the upstream version moves; APM applies its native diff-and-apply; `.agent-ready-state.toml` (if present) flags Tier-2 on next `agentbundle adapt` | Claude plugin auto-update via marketplace metadata; cache-resident, no working-tree collisions |
+| **Update** | `agentbundle install --pack <name>` with a newer version; runs the Tier-2 detection per `.agentbundle-state.toml` | `apm install` after the upstream version moves; APM applies its native diff-and-apply; `.agentbundle-state.toml` (if present) flags Tier-2 on next `agentbundle adapt` | Claude plugin auto-update via marketplace metadata; cache-resident, no working-tree collisions |
 | **Uninstall** | `agentbundle uninstall --pack <name>`; removes Tier-1 files; warns on Tier-2 (offers to keep or remove with backup); never touches Tier-3 | `apm uninstall`; APM's native behaviour | `/plugin uninstall <name>`; cache-only removal |
 
 The adapter contract's seven projection modes each declare their
@@ -1045,7 +1045,7 @@ specificity:
 | Granularity | Trigger | What changes |
 |---|---|---|
 | **Whole-pack** (default) | `apm update <pack>`, `/plugin update <pack>@agent-ready-repo`, or `agentbundle install --pack <name>` with a newer version | Every file in the pack at the new version. Tier-1 files (catalogue-owned, no adopter edits) get rewritten silently. Tier-2 files (adopter-edited since install) trigger the safety contract's three-option prompt — keep adopter's edits, overwrite with `.pre-update.bak` backup, or invoke `adapt-to-project`. See [Adopter file safety contract § Tier-2 behaviour](#adopter-file-safety-contract). |
-| **Per-skill / per-agent / per-hook** | `agentbundle upgrade --pack <name> --skill <skill-name>` (or `--agent`, `--hook`, `--seed <path>`) | Only the named primitive's files. Tier-2 detection applies per-file — a Tier-2 file in the targeted primitive triggers the same three-option prompt as whole-pack upgrades. The rest of the pack stays at the previously-installed version. The CLI logs a mixed-version warning into `.agent-ready-state.toml`; future whole-pack upgrades pull the still-old files forward. |
+| **Per-skill / per-agent / per-hook** | `agentbundle upgrade --pack <name> --skill <skill-name>` (or `--agent`, `--hook`, `--seed <path>`) | Only the named primitive's files. Tier-2 detection applies per-file — a Tier-2 file in the targeted primitive triggers the same three-option prompt as whole-pack upgrades. The rest of the pack stays at the previously-installed version. The CLI logs a mixed-version warning into `.agentbundle-state.toml`; future whole-pack upgrades pull the still-old files forward. |
 | **Per-file (adapt-step gate)** | `adapt-to-project` skill walking `<file>.upstream.<ext>` companions one at a time | Adopter accepts, merges, or skips each companion per file. Skipped files stay at the previous version; accepted files take the new content (merged with adopter edits where the LLM proposes a merge). This is the *de facto* per-file granularity for adopters who installed at whole-pack level. |
 
 The mental model: install tools decide *which version of which
@@ -1060,7 +1060,7 @@ adapt step.
 
 **Mixed-version state.** When per-skill upgrades produce a pack
 whose files come from different upstream versions, the catalogue
-tolerates this but `.agent-ready-state.toml` records each file's
+tolerates this but `.agentbundle-state.toml` records each file's
 source version. Future whole-pack upgrades flag mixed-version
 packs and prompt the adopter — either pull everything forward to
 the newest pack version (resolving the mixed state) or continue
@@ -1071,7 +1071,7 @@ explicit responsibility by going through the per-skill path.
 **Downgrades.** Out of scope for v0.1. Adopters who need to roll
 back uninstall and reinstall at the prior version. `apm` and
 Claude plugins handle the install-side primitives; adapt-step
-state in `.agent-ready-state.toml` is reset to match by
+state in `.agentbundle-state.toml` is reset to match by
 `agentbundle init-state` post-downgrade.
 
 **State-file schemas (sketch).** Both state files live at the
@@ -1079,7 +1079,7 @@ adopter's repo root and are TOML. Detailed schemas defer to F-cli
 (RFC-0003); the shapes anchored here:
 
 ```toml
-# .agent-ready-state.toml — sketch
+# .agentbundle-state.toml — sketch
 schema-version = "0.1"
 
 [packs.core]
@@ -1119,7 +1119,7 @@ declined-at = 2026-05-22T10:01:00Z
 ```
 
 **Post-resolution state.** After an adopter resolves a Tier-2
-prompt, `.agent-ready-state.toml` updates:
+prompt, `.agentbundle-state.toml` updates:
 - *Keep adopter's edits* → re-hash to the adopter's current
   content; `from-pack-version` stays at the previous value. The
   next upgrade against this file's slot won't re-prompt for the
@@ -1456,7 +1456,7 @@ absorbed into the build pipeline.
   machine-readable artifacts, not per-feature spec content;
   `docs/specs/` is reserved for the `spec.md + plan.md` shape (see
   [`AGENTS.md` § Source of truth](../../AGENTS.md#source-of-truth)).
-  Future contracts (`.agent-ready-state.toml`,
+  Future contracts (`.agentbundle-state.toml`,
   `.adapt-discovery.toml`, recipe schema) land alongside under
   `docs/contracts/`. Body path-references in this RFC were edited in
   place rather than left dangling — treated as typo-class per

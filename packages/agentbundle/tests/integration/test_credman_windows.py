@@ -31,10 +31,10 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def backend(tmp_path, monkeypatch):
     """Scope target-name prefix to a ``tmp_path`` hash so test entries
-    can't collide with real ``agent-ready:`` entries in the developer's
+    can't collide with real ``agentbundle:`` entries in the developer's
     Credential Manager (spec § AC35 / plan T5 § Test isolation)."""
     from agentbundle.creds import _credman_windows as cm
-    unique = f"agent-ready-test-{abs(hash(str(tmp_path))) & 0xffffffff:08x}"
+    unique = f"agentbundle-test-{abs(hash(str(tmp_path))) & 0xffffffff:08x}"
     monkeypatch.setattr(cm, "SERVICE_PREFIX_OVERRIDE", unique)
 
     written: list[tuple[str, str]] = []
