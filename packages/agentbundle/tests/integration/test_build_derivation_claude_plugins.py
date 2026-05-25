@@ -48,7 +48,10 @@ FIXTURES_PACKS = (
 TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
 
 # Expected canonical command in the derived plugin.json.
-EXPECTED_COMMAND = 'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+EXPECTED_COMMAND = (
+    'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
+    ' --install-route claude-plugins'
+)
 
 # All fixture packs — parametrisation covers multi-pack derivation (Concern-5).
 FIXTURE_PACK_NAMES = [
@@ -328,9 +331,13 @@ def test_shell_exec_quoting_survives_space_in_root(tmp_path):
     expanded = command.replace("${CLAUDE_PLUGIN_ROOT}", synthetic_root)
     tokens = shlex.split(expanded)
 
+    # Iteration-4 of apm-install-route-parity extended this list by two
+    # tokens (`--install-route claude-plugins`); see T10 of that spec.
     expected_tokens = [
         "python3",
         f"{synthetic_root}/.claude-plugin/scripts/install-marker.py",
+        "--install-route",
+        "claude-plugins",
     ]
     assert tokens == expected_tokens, (
         f"shlex.split produced unexpected tokens:\n"
@@ -377,3 +384,30 @@ def test_build_rejects_source_plugin_json_with_hooks_block(tmp_path):
         "Error output must name 'hooks' or the offending file; got:\n"
         f"stdout: {result.stdout}\nstderr: {result.stderr}"
     )
+
+
+# ---------------------------------------------------------------------------
+# apm-install-route-parity AC8 / T4 — claude-plugins-side projection grows the
+# --install-route flag.
+# ---------------------------------------------------------------------------
+
+
+def test_claude_plugins_hook_command_now_passes_flag(tmp_path):
+    """apm-install-route-parity AC8 / T4: the projected claude-plugins
+    SessionStart command now ends with `--install-route claude-plugins`.
+
+    Run `make build` against the fixture packs and assert the literal
+    string from the derived plugin.json. EXPECTED_COMMAND already carries
+    the new tail (lockstep update at T4); this test pins the contract at
+    the plan-test level so the rail does not silently regress."""
+    result = _run_build(FIXTURES_PACKS, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    pack_name = FIXTURE_PACK_NAMES[0]
+    derived_json = (
+        tmp_path / "claude-plugins" / pack_name / ".claude-plugin" / "plugin.json"
+    )
+    manifest = json.loads(derived_json.read_text(encoding="utf-8"))
+    command = manifest["hooks"]["SessionStart"][0]["command"]
+    assert command.endswith("--install-route claude-plugins"), command
+    assert command == EXPECTED_COMMAND

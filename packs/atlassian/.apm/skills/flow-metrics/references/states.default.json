@@ -1,0 +1,25 @@
+{
+  "canonical_states": {
+    "backlog":     ["Backlog", "To Do", "Open"],
+    "in_progress": ["In Progress", "In Development"],
+    "in_review":   ["In Review", "Code Review", "Ready for Review"],
+    "in_test":     ["QA", "Testing", "In Test"],
+    "done":        ["Done", "Closed", "Resolved"],
+    "cancelled":   ["Won't Do", "Won't Fix", "Cancelled", "Duplicate"]
+  },
+  "active_states":   ["in_progress"],
+  "wait_states":     ["backlog", "in_review", "in_test"],
+  "terminal_non_delivery_states": ["cancelled"],
+  "rework_signals": [
+    { "from": ["in_progress", "in_review", "in_test", "done"], "to": ["backlog"] },
+    { "from": ["in_review", "in_test", "done"],                "to": ["in_progress"] },
+    { "from": ["in_test", "done"],                              "to": ["in_review"] },
+    { "from": ["done"],                                          "to": ["in_test"] }
+  ],
+  "commitment_state": "in_progress",
+  "delivery_state":   "done",
+  "team_field": {
+    "id":   "customfield_10001",
+    "kind": "single_value"
+  }
+}

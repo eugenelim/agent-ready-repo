@@ -11,41 +11,66 @@ are scaffolding around it; this file is the why.
 
 ## Mission
 
-<!-- One sentence. What this project is, in language anyone could understand.
-     Example: "A monorepo template that helps small-to-medium teams ship
-     faster by giving Claude Code and other AI agents the structure they
-     need to be reliable contributors." -->
-
-<replace with one sentence>
+AI coding agents are getting good enough to do real engineering work, and
+the work goes better when the repo is set up for them — with a context
+anchor they actually use, documentation they can navigate, conventions
+that hold up at scale, and reviewers that catch what they miss. Most
+repos aren't built that way; this catalogue is an attempt to build one.
 
 ## Scope
 
 What this project does:
 
-- <bullet>
-- <bullet>
+- Works for any project — service, library, platform — and scales from
+  solo developer up to a team of fifty. The shape of the repo stays the
+  same; what changes with scale is the amount of process carried.
+- Ships agent-context (`AGENTS.md`), documentation hierarchy (charter,
+  ADR, RFC, spec, plan, architecture, product, guides), a tight
+  spec-and-plan loop, an explicit work loop with stop conditions, three
+  review lenses (adversarial, security, quality), a bug-fix discipline,
+  and travelling skills that install into adopter projects via Claude
+  Code plugins, APM, or the `agentbundle` CLI.
+- Self-hosts: linters check the disciplines, CI gates them, and the
+  catalogue's build pipeline projects the bundled primitives onto this
+  repo so what we ship to adopters and what we run ourselves cannot
+  diverge by construction.
 
 What this project does **not** do:
 
-- <bullet>
-- <bullet>
+- **Not a marketplace of specialized agents.** Three reviewers is the
+  ceiling. New skills earn a place by clearing the four principles
+  below; most candidates fail at least one.
+- **Not a framework that picks your tech stack.** Frontend, backend,
+  agentic, CLI, mobile, data — the structure works for any of them. The
+  conventions are aware of architectural layers (API, UI, CLI, agentic)
+  but never of specific frameworks.
+- **Not a single-tool template.** `AGENTS.md` is the open format. Tools
+  that read it natively (Cursor, Codex, Gemini CLI, Copilot) get the
+  universal layer immediately; tools with their own primitives (Claude
+  Code hooks, custom subagents) layer those on top.
 
-The "does not" list is at least as important as the "does" list. It's how
-we — and AI agents working in the repo — know when a request is out of
-bounds. If you find the project being asked to do things that aren't on
-either list, that's a signal to refine this section, not to drift.
+The "does not" list is at least as important as the "does" list. It's
+how we — and AI agents working in the repo — know when a request is
+out of bounds. If you find the project being asked to do things that
+aren't on either list, that's a signal to refine this section, not to
+drift.
 
 ## Principles
 
-The values that resolve ties when reasonable people disagree. Five to
-seven, no more.
+Every artifact in the catalogue earns its place by clearing the same
+four bars. These are the canonical principles referenced everywhere
+else in this repo when we discuss what to add and what to refuse.
 
-1. **<principle>.** <one-sentence elaboration with a concrete example of
-   how we've applied it.>
-2. **<principle>.** ...
-3. **<principle>.** ...
-4. **<principle>.** ...
-5. **<principle>.** ...
+1. **Universal across tech stacks.** Works for any adopter, not just
+   a specific framework or language.
+2. **Substantive, not duplicative.** Adds what the template doesn't
+   already encode somewhere.
+3. **A habit, not a tool.** Captures a way of working, not a piece of
+   infrastructure.
+4. **Used often enough to stick.** Reached for regularly, not once a
+   year and forgotten.
+
+Most proposed additions don't clear all four. That's the point.
 
 ## What's NOT in this charter
 

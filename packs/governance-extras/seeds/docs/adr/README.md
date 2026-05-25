@@ -6,7 +6,7 @@
 
 | #    | Title                                       | Status   |
 | ---- | ------------------------------------------- | -------- |
-| 0001 | [Adopt AGENTS.md and doc hierarchy](0001-adopt-agents-md-and-doc-hierarchy.md) | Accepted |
+<!-- no ADRs yet -->
 
 ## Adding a new ADR
 

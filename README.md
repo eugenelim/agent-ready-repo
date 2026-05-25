@@ -4,7 +4,7 @@ A catalogue of agentbundle primitives — skills, reviewer subagents, hooks, gov
 
 The `core` pack carries the spec-driven loop and the reviewer lenses; the rest add governance ceremony, user-docs structure, monorepo scaffolding, contract authoring, and file conversion. 
 
-See [`docs/APPROACH.md`](docs/APPROACH.md) for the thinking, and [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) for the catalogue model.
+See [`docs/CHARTER.md`](docs/CHARTER.md) for the mission, scope, and four principles, and [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) for the catalogue model.
 
 ## Install
 

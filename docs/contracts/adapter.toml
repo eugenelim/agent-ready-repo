@@ -3,10 +3,11 @@
 # Managed by: docs/specs/distribution-adapters/spec.md
 # RFC reference: RFC-0001 (base contract); RFC-0004 (scope dimension, v0.2);
 # RFC-0005 (hook-body / hook-wiring forks, v0.3);
-# RFC-0008 (claude-plugins install route, v0.4).
+# RFC-0008 (claude-plugins install route, v0.4);
+# RFC-0010 (apm install route, v0.5).
 
 [contract]
-version = "0.4"
+version = "0.5"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -44,11 +45,12 @@ source-path = ".apm/commands/"
 # entries remain authoritative; the new tables are declarative metadata.
 # ---------------------------------------------------------------------------
 
-# Install routes declared for this adapter (RFC-0008 / spec claude-plugins-install-route).
+# Install routes declared for this adapter (RFC-0008 / spec claude-plugins-install-route;
+# RFC-0010 / spec apm-install-route-parity adds "apm").
 # Kiro, Copilot, and Codex do not declare install-routes; the field defaults to ["cli"]
 # on read for adapters that omit it.
 [adapter."claude-code"]
-install-routes = ["cli", "claude-plugins"]
+install-routes = ["cli", "claude-plugins", "apm"]
 
 [[adapter."claude-code".projection]]
 primitive = "skill"

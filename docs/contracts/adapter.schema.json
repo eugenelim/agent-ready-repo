@@ -201,7 +201,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["cli", "claude-plugins"]
+              "enum": ["cli", "claude-plugins", "apm"]
             }
           }
         }
