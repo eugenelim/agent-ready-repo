@@ -1,8 +1,9 @@
 ---
 name: mcp-server-headers
 description: MCP-server class fixture using header-naming flags (`--bearer-header`); AC26(b) ban is scoped to credentialed-cli only — lint must NOT flag this fixture.
-credentialed: true
-primitive-class: mcp-server
+metadata:
+  credentialed: true
+  primitive-class: mcp-server
 ---
 
 MCP-server class primitives legitimately accept header-naming flags
