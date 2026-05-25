@@ -6,7 +6,7 @@ Skills follow the [agentskills.io specification](https://agentskills.io/specific
 
 The `core` pack carries what makes this catalogue worth adopting — a plan → execute → verify → review loop that runs lint, typecheck, and tests as hard gates, then dispatches specialist reviewer subagent(s) in a *fresh session* to read the diff adversarially before anything ships. Most agent workflows go *prompt → code → ship*; `core` replaces that with a loop the agent cannot self-certify out of. 
 
-The rest of the packs add governance ceremony, user-docs structure, monorepo scaffolding, contract authoring, file conversion, Atlassian workflows, and Figma file access — but they all assume `core`.
+The rest of the packs add governance ceremony, user-docs structure, monorepo scaffolding, contract authoring, file conversion, Atlassian workflows, and Figma file access — the repo-only ones build on `core`, the portable ones stand alone.
 
 See [`docs/CHARTER.md`](docs/CHARTER.md) for the mission, scope, and four principles, and [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) for the catalogue model.
 
@@ -14,7 +14,7 @@ See [`docs/CHARTER.md`](docs/CHARTER.md) for the mission, scope, and four princi
 
 | Pack | Scope | What it ships |
 | --- | --- | --- |
-| [`core`](packs/core/) | **repo only** | Spec-driven workflow, reviewer subagents, pre-pr + session-start hooks, governance seeds. The foundation; everything else assumes it. |
+| [`core`](packs/core/) | **repo only** | Spec-driven workflow, reviewer subagents, pre-pr + session-start hooks, governance seeds. The foundation the other repo-only packs build on. |
 | [`governance-extras`](packs/governance-extras/) | repo only | RFC and ADR ceremony — `new-rfc`, `new-adr`, `update-conventions` skills plus `docs/rfc/` and `docs/adr/` shapes. |
 | [`user-guide-diataxis`](packs/user-guide-diataxis/) | repo only | Diátaxis-shaped user-docs skeleton — `docs/guides/{tutorials,how-to,reference,explanation}` plus the `new-guide` skill. |
 | [`monorepo-extras`](packs/monorepo-extras/) | repo only | Monorepo scaffolding — `new-package` skill and a `packages/_example/` template. |
