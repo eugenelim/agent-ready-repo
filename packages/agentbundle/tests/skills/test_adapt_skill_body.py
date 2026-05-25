@@ -252,3 +252,44 @@ def test_skill_body_preflight_section_carries_six_steps(body):
         f"Expected 6 numbered steps in Pre-flight section, found "
         f"{len(numbered)}: {numbered}\nSection head: {section[:200]!r}"
     )
+
+
+# ── T6 grep set — apm-install-route-parity AC13 / AC27 ──────────────────────
+
+
+def test_skill_body_names_apm_cache_scan_heading(body):
+    """AC13 grep #3: literal heading "APM cache scan" (case- and punctuation-
+    sensitive — the operative heading the LLM reads when extending the cache
+    walk to APM)."""
+    assert "APM cache scan" in body
+
+
+def test_skill_body_names_apm_project_cache_path(body):
+    """AC13 grep #1: literal "./apm_modules/" (project-scope APM cache)."""
+    assert "./apm_modules/" in body
+
+
+def test_skill_body_names_apm_user_cache_path(body):
+    """AC13 grep #2: literal "~/.apm/apm_modules/" (user-scope APM cache)."""
+    assert "~/.apm/apm_modules/" in body
+
+
+def test_skill_body_preserves_idempotence_clause(body):
+    """Regression guard from claude-plugins-install-route AC15 grep #4:
+    the literal idempotence clause must survive the T6 edit."""
+    assert "if a marker entry is present, do not synthesise a second adaptation" in body
+
+
+def test_skill_body_apm_stale_entry_drop_grep(body):
+    """AC14 / AC27 grep: the stale-entry-drop paragraph names `apm_modules`
+    so a reader can identify the APM clause without parsing the paragraph
+    structure. Cf. AC27 in docs/specs/adapt-to-project/spec.md."""
+    # Locate the stale-entry-drop region by anchoring on its heading text.
+    anchor = "Stale-entry drop-on-read."
+    assert anchor in body, "missing stale-entry-drop heading"
+    region = body.split(anchor, 1)[1]
+    # The APM-specific clause lives within the same paragraph block; check
+    # against the next blank-line-delimited section.
+    assert "apm_modules" in region.split("\n##")[0], (
+        "apm_modules must appear within the stale-entry-drop paragraph"
+    )

@@ -1,0 +1,55 @@
+{
+  "skill_name": "jira-defect-flow",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Fix PROJ-123 — take it from intake all the way to a PR on dev.",
+      "expected_output": "The agent runs `jira.py check`, fetches PROJ-123 with --expand renderedFields,attachments,changelog,transitions, confirms environment / repro / expected-vs-actual are all present, writes a triage brief to .context/defects/PROJ-123.md, calls list-transitions and applies the user-confirmed 'start work' transition, hands off to the bug-fix skill for reproduction + failing test + minimum fix + regression test, creates a branch named via branch_name.py, runs adversarial-reviewer (and security-reviewer / quality-engineer if warranted), opens a PR whose body contains `Closes: PROJ-123`, comments on Jira with the PR URL, and applies the next transition. Stops at PR-opened if no DEPLOY_DEV_CMD or .context/deploy_dev.sh exists.",
+      "assertions": [
+        "Agent runs `jira.py check` before any read or write to Jira",
+        "Agent invokes `jira.py get-issue PROJ-123 --expand` with at least renderedFields and attachments",
+        "Agent calls `jira.py list-transitions PROJ-123` before applying any transition (does not hardcode names)",
+        "Agent writes a triage brief to `.context/defects/PROJ-123.md` before applying the start-work transition",
+        "Agent invokes the `bug-fix` skill rather than improvising the fix discipline",
+        "Agent generates the branch name via `scripts/branch_name.py PROJ-123 \"<summary>\"`",
+        "Agent's PR body includes `Closes: PROJ-123` in the Why? section",
+        "Agent comments on PROJ-123 with the PR URL after opening the PR",
+        "Agent does not invoke `jira.py delete-issue` under any circumstances",
+        "Agent does not run a deploy command unless DEPLOY_DEV_CMD or .context/deploy_dev.sh is present"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Take PROJ-456 — the description is just 'Search is broken, please fix.'",
+      "expected_output": "The agent fetches the ticket, recognizes that environment / repro steps / expected-vs-actual are all missing, comments on PROJ-456 requesting the missing fields, and stops. No branch is created, no transition is applied, no fix is attempted.",
+      "assertions": [
+        "Agent invokes `jira.py get-issue PROJ-456 --expand renderedFields` (or equivalent)",
+        "Agent invokes `jira.py comment PROJ-456` with a body asking for environment, repro steps, and expected-vs-actual",
+        "Agent does NOT call `jira.py transition` on PROJ-456",
+        "Agent does NOT create a git branch or run `gh pr create`",
+        "Agent does NOT invent reproduction steps or guess the environment"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Ship the fix for PROJ-789 to dev — the PR is already merged.",
+      "expected_output": "The agent checks for DEPLOY_DEV_CMD env var and a `.context/deploy_dev.sh` script. If neither exists, it stops, tells the user no deploy hook is configured, and asks how dev is deployed in this repo. It does NOT invent `gh workflow run`, `kubectl apply`, `terraform apply`, or any other deploy command.",
+      "assertions": [
+        "Agent checks for `$DEPLOY_DEV_CMD` and/or `.context/deploy_dev.sh` before any deploy attempt",
+        "If neither hook is present, agent stops and surfaces the gap rather than guessing a command",
+        "Agent does NOT run `gh workflow run`, `kubectl`, `terraform`, `helm`, or similar deploy verbs on speculation",
+        "Agent does NOT transition PROJ-789 to 'Done' or 'Closed' (that is QA's call, not this skill's)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Generate a branch name for BUG-42 with summary 'Off-by-one in date range filter on reports page'.",
+      "expected_output": "The agent runs `python scripts/branch_name.py BUG-42 \"Off-by-one in date range filter on reports page\"` and uses the returned name directly. The expected output is `fix/bug-42-off-by-one-in-date-range-filter` (default 6-word slug).",
+      "assertions": [
+        "Agent invokes `scripts/branch_name.py` with the key and quoted summary",
+        "Agent does NOT write its own slug generator",
+        "Agent uses the script's stdout verbatim as the branch name (does not re-format)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "feature":  ["Story", "Task", "Epic", "Feature"],
+  "defect":   ["Bug", "Defect"],
+  "debt":     ["Tech Debt", "Refactor"],
+  "risk":     ["Risk", "Vulnerability"],
+  "subtask":  ["Sub-task", "Subtask"]
+}
