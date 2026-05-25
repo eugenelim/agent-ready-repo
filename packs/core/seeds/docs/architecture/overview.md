@@ -43,22 +43,16 @@ where do I look first?
 - ...
 -->
 
-## Packs
+<!--
+Optional section. If this project ships skill/agent packs, list them
+here with a one-line purpose each. Delete this section if you don't
+ship packs.
 
-The catalogue ships five reference packs under `packs/`:
+Example:
 
-- `core` — agent context, conventions, the work-loop skill, and the
-  template spec/plan scaffolding every pack composes against. Repo-only.
-- `governance-extras` — `new-rfc`, `new-adr`, `update-conventions`
-  skills + RFC/ADR templates and seed READMEs. Repo-only.
-- `user-guide-diataxis` — Diátaxis quadrant scaffolding for user-facing
-  guides. Repo-only.
-- `monorepo-extras` — `packages/` layout primitives (the `_example/`
-  reference package + `packages/README.md`). Repo-only.
-- `converters` — file-format conversion skills: documents and images →
-  Markdown; Markdown → styled HTML; Outlook `.msg` → Markdown. The
-  catalogue's first user-scope pack (`default-scope = "user"`,
-  `allowed-scopes = ["user", "repo"]`).
+- `<pack-name>` — <one-line purpose>. <scope: repo-only / user-scope / both>.
+-->
+<list your packs and packages here>
 
 ## Conventions you'll see across packages
 

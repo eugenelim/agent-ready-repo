@@ -1,0 +1,3 @@
+packages/README.md
+packages/_example/AGENTS.md
+packages/_example/README.md
