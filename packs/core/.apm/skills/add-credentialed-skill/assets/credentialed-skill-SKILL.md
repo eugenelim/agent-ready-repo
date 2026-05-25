@@ -1,6 +1,6 @@
 # Template: credentialed-skill SKILL.md body
 
-Two variants below. Pick the one matching your `primitive-class:`
+Two variants below. Pick the one matching your `metadata.primitive-class`
 frontmatter and copy *everything under* the variant heading verbatim
 into your skill's `SKILL.md` body. Replace `<namespace>` and `<service>`
 placeholders; leave the rest unchanged. The lint
@@ -102,8 +102,8 @@ host config.
   substrings. Editing the block breaks the lint.
 - The mcp-server variant's "Don't" block is the parallel form
   (also from RFC-0006 § 4); the lint scopes its argv-ban
-  enforcement to `primitive-class: credentialed-cli` only, so
-  the mcp-server variant's header-naming flags are not flagged.
+  enforcement to `metadata.primitive-class: credentialed-cli` only,
+  so the mcp-server variant's header-naming flags are not flagged.
 - Both variants live under one section in the template (this file)
   by design — drift between variants is easier to catch when both
   read at once.

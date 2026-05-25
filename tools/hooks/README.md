@@ -5,10 +5,11 @@ Two agent-lifecycle hooks ship in this directory. Runtime: `python` ≥
 dependencies. The hooks are stdlib-only and run on native Windows,
 macOS, and Linux — invoke via `python` (not `python3`) so the same
 command works across platforms (`python3.exe` is rarely on Windows
-PATH; `python.exe` and the `py` launcher are). Wiring lives in the
-consumer's hook surface (Claude Code's `.claude/settings.json`, Gemini
-CLI's config, etc.); this README documents the contracts and shows an
-example wiring.
+PATH; `python.exe` and the `py` launcher are). The SessionStart
+binding for Claude Code is shipped pre-wired by the install pipeline;
+everything else is consumer-side. See `## Wiring` below for what
+lands where (Claude Code's `.claude/settings.local.json` and the
+equivalents on other tools).
 
 ## What's here
 
@@ -86,14 +87,31 @@ drift hazard.
 
 ## Wiring
 
-The hooks are configured at the consumer side. The template does not
-ship a committed `.claude/settings.json` (or equivalent for other
-tools) — consumers may want to customize differently, and config
-files are not portable across agent tools.
+The **SessionStart binding** for Claude Code ships pre-wired by the
+install pipeline (and by `make build-self` in this repo); see
+`### Claude Code` below for what lands and where. Everything else under
+`### Other tools` and the `pre-pr.py` paragraph stays consumer-side —
+those surfaces aren't portable across agent tools, so consumers wire
+them by hand if they want them.
 
 ### Claude Code
 
-Add to your project-local `.claude/settings.json` (gitignored):
+The SessionStart wiring is **shipped pre-wired** by `agentbundle install`
+(and by `make build-self` for this repo's self-host). Two projection
+surfaces carry it, with the same JSON body in both:
+
+- **Install-via-`agentbundle`:**
+  `<output>/claude-plugins/core/.claude/settings.local.json` — the
+  dist-tree path the install pipeline writes. Claude Code's plugin
+  marketplace ingests it; once the marketplace is enrolled, the
+  user-facing edit-target shifts to the per-user plugin cache
+  (typically `~/.claude/plugins/cache/<marketplace>/core/<version>/.claude/...`).
+- **Self-host (this repo):** `<workspace>/.claude/settings.local.json` —
+  the flat workspace path `make build-self` writes (gitignored at
+  `.gitignore:18`).
+
+Reproduced below for audit / verification — this is the JSON shape both
+projections write under the `hooks` managed key:
 
 ```json
 {
@@ -108,6 +126,11 @@ Add to your project-local `.claude/settings.json` (gitignored):
   }
 }
 ```
+
+Adopters should not need to paste this by hand. If you do find yourself
+editing it, you're either reconciling a Tier-2 `.upstream` companion
+(see `docs/specs/wire-session-start-hook/spec.md` § AC1a) or working
+post-marketplace-enrollment inside the plugin cache.
 
 `pre-pr.py` is most useful as a manual or git-hook command rather than
 an agent-lifecycle hook — Claude Code doesn't fire on `git push`, so

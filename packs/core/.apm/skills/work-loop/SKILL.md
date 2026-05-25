@@ -409,7 +409,7 @@ Where the answer goes depends on the *shape* of the learning:
   vocabulary issue (a term that means something specific here), it
   goes in `docs/guides/reference/` as a glossary entry.
 - "This workflow is now the third time I've done it" → propose it as a new
-  skill in `.claude/skills/`.
+  skill.
 
 This is the part of the loop that makes the *project* smarter, not just the
 current PR. Skipping it means the next agent (or you, next month) will

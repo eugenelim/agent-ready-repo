@@ -8,7 +8,11 @@ Checks (per artifact type):
     - File exists, has valid YAML frontmatter delimited by ---
     - Frontmatter has non-empty `name` (kebab-case) and `description`
     - Directory name == frontmatter `name`
-    - Frontmatter has no unknown keys (allowed: name, description)
+    - Frontmatter has no unknown top-level keys (allowed: the
+      agentskills.io spec set — name, description, license,
+      compatibility, metadata, allowed-tools). Project-specific
+      data (e.g. credentialed-skill flags) lives nested under
+      `metadata:` per the spec's escape hatch.
 
   Subagents (.claude/agents/<name>.md):
     - File has valid YAML frontmatter
@@ -58,8 +62,13 @@ def _repo_root() -> pathlib.Path:
 KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
 LINK = re.compile(r"\]\(([^)]+)\)")
 
-ALLOWED_SKILL_KEYS = {"name", "description",
-                      "credentialed", "primitive-class"}
+# Top-level SKILL.md frontmatter keys — the agentskills.io spec set
+# (https://agentskills.io/specification). `metadata:` is the spec's own
+# escape hatch for project-specific data (arbitrary k/v). Credentialed-
+# skill flags (`credentialed`, `primitive-class`) live nested under
+# `metadata:`; see check_skill.
+ALLOWED_SKILL_KEYS = {"name", "description", "license", "compatibility",
+                      "metadata", "allowed-tools"}
 ALLOWED_PRIMITIVE_CLASSES = {"credentialed-cli", "mcp-server"}
 ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}
 ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
@@ -123,19 +132,83 @@ def main() -> int:
                 i += 1
                 continue
             if val == "":
-                items = []
+                # Empty value: peek at the next non-blank line to
+                # discriminate list (`  - item`) vs. nested mapping
+                # (`  child: value`). Only a single nesting level is
+                # supported — the first non-blank indented line's
+                # indent fixes the depth, and any deeper-indented or
+                # shallower line ends the block. Mixed list/mapping
+                # shapes within one block are likewise not supported.
+                items: list = []
+                mapping: dict = {}
+                shape = None
+                block_indent: int | None = None
                 j = i + 1
                 while j < end:
                     nxt = lines[j]
                     if not nxt.strip():
                         j += 1
                         continue
-                    lm = re.match(r"^\s+-\s+(.*)$", nxt)
-                    if not lm:
-                        break
-                    items.append(lm.group(1).strip())
-                    j += 1
-                fields[key] = items
+                    indent = len(nxt) - len(nxt.lstrip())
+                    if indent == 0:
+                        break  # back to top-level
+                    if block_indent is None:
+                        block_indent = indent
+                    elif indent != block_indent:
+                        # Deeper than the first child = doubly-nested;
+                        # shallower = end of block. Either way, this
+                        # parser supports a single depth only.
+                        return None, 0, text, (
+                            f"nested frontmatter block under {key!r} "
+                            f"has inconsistent indent at line {j + 1} "
+                            f"(parser supports one level of nesting; "
+                            f"doubly-nested mappings are not allowed)"
+                        )
+                    list_m = re.match(r"^\s+-\s+(.*)$", nxt)
+                    map_m = re.match(
+                        r"^\s+([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", nxt)
+                    if list_m and shape != "mapping":
+                        shape = "list"
+                        items.append(list_m.group(1).strip())
+                        j += 1
+                        continue
+                    if map_m and shape != "list":
+                        shape = "mapping"
+                        ckey = map_m.group(1)
+                        cval = map_m.group(2).strip()
+                        # Strip a balanced pair of surrounding quotes
+                        # — the bash linter and creds.py parser do
+                        # the same; keeping them aligned matters
+                        # because a quoted value like
+                        # `primitive-class: "credentialed-cli"`
+                        # would otherwise fail the type-check below.
+                        if (
+                            len(cval) >= 2
+                            and cval[0] == cval[-1]
+                            and cval[0] in ('"', "'")
+                        ):
+                            cval = cval[1:-1]
+                        if ckey in mapping:
+                            return None, 0, text, (
+                                f"duplicate frontmatter key "
+                                f"{ckey!r} under nested mapping "
+                                f"(line {j + 1})"
+                            )
+                        mapping[ckey] = cval
+                        j += 1
+                        continue
+                    return None, 0, text, (
+                        f"nested frontmatter block under {key!r} "
+                        f"mixes list and mapping shapes at line "
+                        f"{j + 1} (each block must be uniformly a "
+                        f"list or a mapping)"
+                    )
+                if shape == "mapping":
+                    fields[key] = mapping
+                elif shape == "list":
+                    fields[key] = items
+                else:
+                    fields[key] = ""  # empty scalar — no children
                 i = j
                 continue
             fields[key] = val
@@ -180,19 +253,34 @@ def main() -> int:
             err(path, f"unknown frontmatter keys: {sorted(unknown)} "
                       f"(allowed: {sorted(ALLOWED_SKILL_KEYS)})")
         # Credentialed-skill frontmatter keys (per skill-secrets spec § AC25).
-        # Absence of `credentialed` means the skill is not credentialed; the
-        # lint skips the credentialed-specific checks. When present, the value
-        # must be a literal YAML boolean — strings like "yes" or "true" are
-        # rejected so the type-check is unambiguous.
-        if "credentialed" in fields:
-            cval = fields["credentialed"]
+        # `credentialed` and `primitive-class` are project-specific data; per
+        # the agentskills.io spec they live under the `metadata:` escape
+        # hatch rather than at top level. Absence of `credentialed` (or of
+        # `metadata` entirely) means the skill is not credentialed; the
+        # lint skips the credentialed-specific checks. When present, the
+        # value must be a literal YAML boolean — strings like "yes" or
+        # "true" are rejected so the type-check is unambiguous.
+        metadata = fields.get("metadata")
+        # `metadata:` followed by nothing parses to an empty scalar ("");
+        # treat that as "no project-specific data" rather than a type
+        # error. Anything else non-dict (list, non-empty scalar) is
+        # malformed.
+        if metadata is not None and metadata != "" and not isinstance(
+                metadata, dict):
+            err(path, f"frontmatter key 'metadata' must be a nested "
+                      f"mapping (got {type(metadata).__name__})")
+            metadata = None
+        meta = metadata if isinstance(metadata, dict) else {}
+        if "credentialed" in meta:
+            cval = meta["credentialed"]
             if cval not in ("true", "false"):
-                err(path, f"frontmatter key 'credentialed' must be boolean "
-                          f"(true|false), got {cval!r}")
-        if "primitive-class" in fields:
-            pval = fields["primitive-class"]
+                err(path, f"frontmatter key 'metadata.credentialed' must "
+                          f"be boolean (true|false), got {cval!r}")
+        if "primitive-class" in meta:
+            pval = meta["primitive-class"]
             if pval not in ALLOWED_PRIMITIVE_CLASSES:
-                err(path, f"frontmatter key 'primitive-class' must be one of: "
+                err(path, f"frontmatter key 'metadata.primitive-class' "
+                          f"must be one of: "
                           f"{', '.join(sorted(ALLOWED_PRIMITIVE_CLASSES))} "
                           f"(got {pval!r})")
         if not body.strip():

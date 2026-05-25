@@ -204,6 +204,29 @@ def run(args) -> int:
             print(f"validate: {vocab_refusal}", file=sys.stderr)
             return 1
 
+    # ── 4e. kiro-ide-hook validate rail (RFC-0005 v0.4, T-C2) ────────────
+    # Fires whenever the pack ships `.apm/kiro-ide-hooks/` content. The
+    # rail's `target_adapters` heuristic differs from `_kiro_target_adapters`
+    # — kiro-ide-hook needs no agent (file-event triggers fire
+    # independent of agent runtime; cf. § Pack-side schema), so a
+    # pack with kiro-ide-hooks but no `.apm/agents/` still targets
+    # kiro. Cheapest heuristic: presence of the source directory with
+    # at least one *.kiro.hook file.
+    if _dir_has_any_kiro_ide_hook(pack_path / ".apm" / "kiro-ide-hooks"):
+        from agentbundle.build.scope_rails import check_kiro_ide_hook
+
+        ide_event_vocab, ide_action_vocab = _kiro_ide_hook_vocabularies()
+        ide_hook_refusal = check_kiro_ide_hook(
+            pack_path=pack_path,
+            pack_name=pack_name,
+            target_adapters=("kiro",),
+            ide_event_vocabulary=ide_event_vocab,
+            ide_action_vocabulary=ide_action_vocab,
+        )
+        if ide_hook_refusal is not None:
+            print(f"validate: {ide_hook_refusal}", file=sys.stderr)
+            return 1
+
     # ── 5. Strict / conformance mode ─────────────────────────────────────
     if strict:
         conformance_dir = _conformance_fixtures_dir()
@@ -376,6 +399,60 @@ def _dir_has_any_file(directory: Path, suffix: str) -> bool:
         if entry.is_file() and entry.suffix == suffix:
             return True
     return False
+
+
+def _dir_has_any_kiro_ide_hook(directory: Path) -> bool:
+    """``.kiro.hook`` is a compound extension; ``Path.suffix`` only
+    returns ``.hook``, so the generic helper above misses it. A
+    dedicated check keeps the call site readable and pins the
+    compound-extension assumption in one place."""
+    if not directory.exists():
+        return False
+    for entry in directory.iterdir():
+        if entry.is_file() and entry.name.endswith(".kiro.hook"):
+            return True
+    return False
+
+
+def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
+    """Resolve the kiro adapter's ``ide-event-vocabulary`` and
+    ``ide-action-vocabulary`` from the bundled contract.
+
+    Returns (None, None) when the contract pre-dates v0.4 (the
+    ``[adapter.kiro.projections.kiro-ide-hook]`` table doesn't exist),
+    which makes checks 2 and 3 of the validate rail no-ops — the
+    rail's checks 1 / 4 / 5 (required fields, malformed placeholder,
+    unresolvable placeholder) still fire because they're vocabulary-
+    independent.
+
+    Same load-at-call-time discipline as ``_kiro_event_vocabulary`` —
+    the contract file is the source of truth; no module-level cache
+    so a test-time swap is visible immediately.
+    """
+    from agentbundle.build.contract import load as load_contract
+
+    here = Path(__file__).resolve().parent
+    bundled = here.parent / "_data" / "adapter.toml"
+    if bundled.exists():
+        contract_path = bundled
+    else:
+        contract_path = here.parent.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
+        if not contract_path.exists():
+            return None, None
+    contract = load_contract(contract_path)
+    kiro = contract.get("adapter", {}).get("kiro", {})
+    projections = kiro.get("projections", {}) if isinstance(kiro, dict) else {}
+    rule = projections.get("kiro-ide-hook", {}) if isinstance(projections, dict) else {}
+
+    def _as_string_list(value: object) -> list[str] | None:
+        if isinstance(value, list):
+            return [str(v) for v in value if isinstance(v, str)]
+        return None
+
+    return (
+        _as_string_list(rule.get("ide-event-vocabulary")) if isinstance(rule, dict) else None,
+        _as_string_list(rule.get("ide-action-vocabulary")) if isinstance(rule, dict) else None,
+    )
 
 
 def _allowed_scopes(pack_data: dict) -> list[str]:
