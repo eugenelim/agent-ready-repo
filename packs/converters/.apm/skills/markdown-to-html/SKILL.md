@@ -17,15 +17,14 @@ You are not the renderer. The script is. Invoke it and report the path.
 ### Step 1 — Verify dependencies
 
 ```bash
-# From the skill's own directory — user-scope install at
-# ~/.claude/skills/markdown-to-html/, repo-scope at
-# .claude/skills/markdown-to-html/.
+# From the skill's own directory — at the user-scope skills directory,
+# or the repo-scope skills directory.
 npm install   # installs marked + highlight.js per package.json
 ```
 
 (One-time; subsequent runs are cached in `node_modules/`.)
 
-> Note: at repo scope, add `.claude/skills/*/node_modules/` to your project's `.gitignore` to avoid committing the npm install artifacts.
+> Note: on Claude Code installs, add `.claude/skills/*/node_modules/` to your project's `.gitignore` to avoid committing the npm install artifacts.
 
 ### Step 2 — Render
 
