@@ -88,13 +88,12 @@ This spec therefore partitions its scope into **two cutover phases**:
     `.claude/agents/<name>.md`, `.claude/commands/<name>.md`,
     `tools/hooks/<name>.<ext>`, and the `hooks` key of
     `.claude/settings.local.json`.
-  - Seed-projected paths: `docs/CHARTER.md`, `docs/CONVENTIONS.md`,
-    `docs/APPROACH.md`,
-    seed READMEs under `docs/{architecture,specs,knowledge,product,
-    guides,rfc,adr}/`, `docs/architecture/overview.md`,
-    `docs/knowledge/patterns.jsonl`, `docs/product/{roadmap,changelog}.md`,
-    `docs/guides/{tutorials,how-to,reference,explanation}/README.md`,
-    `packages/README.md`, `packages/_example/{README,AGENTS}.md`.
+  - Seed-projected paths: `docs/CONVENTIONS.md`. (Narrowed by the
+    2026-05-25 amendment — see [Changelog](#changelog); 19 paths
+    previously in this set were reclassified Projected → Manual and
+    now ship as placeholder seeds with adopters' on-disk content
+    owned post-install. `docs/APPROACH.md` was retired in the same
+    amendment.)
   - Aggregated: `.claude-plugin/marketplace.json` from
     `packs/*/.claude-plugin/plugin.json`.
   - Recreated: `CLAUDE.md → AGENTS.md` symlink.
@@ -399,16 +398,22 @@ and the Codex multi-pack aggregation fix land.
   `composite-agents-md` recipe; tests verify the body match, the
   multi-pack Codex-managed block, and the footer append. Closed by the
   Codex multi-pack aggregation fix and self-host composition runtime.
-- [x] **AC9 (seed READMEs) — Phase 1.** Seed READMEs under
-  `docs/architecture/`, `docs/specs/`, `docs/knowledge/`,
-  `docs/product/`, `docs/guides/`, `docs/rfc/`, `docs/adr/`,
-  and `packages/` are *Projected*; the gate
-  enforces byte-equality with their pack-side sources. Projection
-  performed by `_project_seeds`; collision check enforces AC7
-  simultaneously. (`docs/_templates/` was in this enumeration when
-  this AC was first written; the directory was retired 2026-05-24
-  when its contents moved to per-skill `assets/` folders — see
-  Changelog.)
+- [x] **AC9 (seed READMEs) — Phase 1, superseded by 2026-05-25 amendment.**
+  ~~Seed READMEs under `docs/architecture/`, `docs/specs/`,
+  `docs/knowledge/`, `docs/product/`, `docs/guides/`, `docs/rfc/`,
+  `docs/adr/`, and `packages/` are *Projected*; the gate enforces
+  byte-equality with their pack-side sources.~~ **Superseded:** the
+  2026-05-25 amendment (RFC-0002 § Amendments § 2026-05-25)
+  reclassified these paths Projected → Manual. The gate no longer
+  enforces byte-equality on them; the pack-side seed is a placeholder
+  template adopters receive via brownfield rules
+  (`safety.write_companion`) on first install. See AC18-AC23 for the
+  new contracts. The collision check from AC7 remains in effect for
+  the one path that stays Projected (`docs/CONVENTIONS.md`) and any
+  future composite seeds.
+  (`docs/_templates/` was in this enumeration when this AC was first
+  written; the directory was retired 2026-05-24 when its contents
+  moved to per-skill `assets/` folders — see Changelog.)
 - [x] **AC10 (commands) — Phase 1.** `.claude/commands/<name>.md` is
   *Projected* from `packs/*/.apm/commands/<name>.md` per the Claude
   Code adapter's `command` primitive projection. The gate enforces
@@ -474,9 +479,126 @@ and the Codex multi-pack aggregation fix land.
   navigation. Implemented by `_build_projected_to_source_map` +
   `_lookup_source` in `diff_against_working_tree`; tested by
   `DriftSourceNamingTests`.
+- [x] **AC18 (seed scrub) — 2026-05-25 amendment.** The five leaking
+  seeds enumerated in RFC-0002 § Amendments § 2026-05-25
+  (`packs/core/seeds/docs/architecture/overview.md`,
+  `packs/core/seeds/docs/specs/README.md`,
+  `packs/core/seeds/docs/knowledge/patterns.jsonl`,
+  `packs/governance-extras/seeds/docs/rfc/README.md`,
+  `packs/governance-extras/seeds/docs/adr/README.md`) are scrubbed
+  to placeholder-only shape: empty tables, `<theme>` /
+  `<list your packs and packages>` placeholders, no agent-ready-repo
+  identifiers. The other 14 reclassified-Projected → Manual paths
+  were already placeholder-shaped and need no scrubbing; the
+  `tools/lint-seeds.py` lint (AC21) verifies the placeholder shape
+  across all 19. Goal-based verification via grep + lint.
+- [x] **AC19 (CONVENTIONS seed RFC scrub) — 2026-05-25 amendment.**
+  The eight inline RFC-NNNN cross-references in
+  `packs/core/seeds/docs/CONVENTIONS.md` (1× RFC-0002 at line 378,
+  1× RFC-0004 at line 392, 6× RFC-0006 across lines 792-889) are
+  dropped or inlined per the per-ref disposition table in the
+  amendment plan: 8 drops in this PR, no relocations needed since
+  surrounding prose stood on its own once links were removed. The
+  seed-projected enumeration in CONVENTIONS § "Pack source-of-truth
+  split" was simultaneously narrowed to list only `docs/CONVENTIONS.md`
+  (the post-shrink Projected set) and the "RFC-0002 is the authority"
+  paragraph was rewritten to remove the authority-attribution framing.
+  Goal-based verification: `grep -c RFC-000
+  packs/core/seeds/docs/CONVENTIONS.md` returns 0.
+- [x] **AC20 (override shrink) — 2026-05-25 amendment.**
+  `PROJECTED_README_OVERRIDES` in
+  `packages/agentbundle/agentbundle/build/self_host.py:329` shrinks
+  from 20 entries to 1 (only `docs/CONVENTIONS.md` remains). The 19
+  removed entries fall through to `EXCLUDED_PATTERNS`: 11 covered by
+  the existing patterns (`docs/architecture/*.md`,
+  `docs/product/*.md`, `docs/knowledge/*.md`,
+  `docs/guides/**/*.md`); 8 added explicitly in the same edit
+  (`docs/CHARTER.md`, `docs/knowledge/patterns.jsonl`,
+  `docs/rfc/README.md`, `docs/adr/README.md`, `docs/specs/README.md`,
+  `packages/README.md`, `packages/_example/README.md`,
+  `packages/_example/AGENTS.md`). Includes the CHARTER odd-status
+  clause: `docs/CHARTER.md` was historically in the override despite
+  being conceptually Manual; this amendment regularises that — the
+  on-disk `docs/CHARTER.md` retains its filled-in content post-build.
+  TDD verification: `test_post_2026_05_25_shrink_leaves_only_conventions`
+  in `test_self_host_check.py` asserts (a) 19 paths land in Excluded
+  post-shrink, (b) `docs/CONVENTIONS.md` stays in the override,
+  (c) a hypothetical `docs/architecture/data-pipeline.md` stays
+  Excluded (regression guard), (d) the added literals are anchored
+  (`packages/_example/README.md` matches but
+  `packages/foo/_example/README.md` does not).
+- [x] **AC21 (seed-content lint) — 2026-05-25 amendment.**
+  `tools/lint-seeds.py` ships a stdlib-only lint that asserts every
+  seed under `packs/*/seeds/` (a) carries required placeholder tokens
+  (per-file hardcoded expectations in
+  `lint-seeds.py:REQUIRED_PLACEHOLDERS`; fail-loud on unknown seed
+  files — every new seed must declare its expected shape), (b)
+  contains no catalogue-specific strings (the same blocklist the
+  snapshot test in AC22 uses). The lint honours a single-line
+  sentinel `<!-- seed-content-lint-ignore: <reason> -->` that
+  exempts the next non-empty non-comment line. Stacked sentinels
+  are an error; trailing sentinel is an error; sentinels inside
+  fenced ``` blocks are ignored. The sentinel mechanism ships
+  carrying no live exemptions — the catalogue-attribution footer
+  formerly at `packs/core/seeds/AGENTS.md` was removed in the same
+  PR (per direction during EXECUTE) along with the corresponding
+  line in the projected root `AGENTS.md`. Wired into
+  `tools/hooks/pre-pr.py` and the `.github/workflows/docs.yml`
+  `lint-seeds` job.
+- [x] **AC22 (first-install snapshot test) — 2026-05-25 amendment.**
+  `packages/agentbundle/tests/integration/test_install_snapshot.py`
+  parameterises over the four packs with seeds (`core`,
+  `governance-extras`, `user-guide-diataxis`, `monorepo-extras`).
+  *Naming note*: the test exercises `agentbundle scaffold`, not
+  `agentbundle install` — `install` projects adapter-route content
+  (`.claude/`, `apm/`) but does not project seeds; seeds reach
+  adopters via `scaffold` directly, or via the install→adapt chain
+  which invokes the same seed-projection internally. Either path
+  triggers the leak we're closing, so testing `scaffold` is
+  sufficient.
+  For each pack, runs `agentbundle scaffold` into a fresh tempdir
+  and asserts (i) the sorted list of scaffolded paths matches a
+  checked-in golden at
+  `packages/agentbundle/tests/fixtures/install_snapshot/<pack>.paths.txt`,
+  (ii) the scaffolded content has no catalogue-specific leaks per
+  the AC21 blocklist (sentinel-aware). Set `UPDATE_GOLDEN=1` to
+  regenerate goldens when seed structure legitimately changes.
+  v1 scope is the `agentbundle scaffold` CLI route only;
+  Claude-plugins and APM route coverage is tracked as a follow-on
+  item in `docs/ROADMAP.md`.
+- [x] **AC23 (APPROACH→CHARTER fold-in) — 2026-05-25 amendment.**
+  `docs/APPROACH.md`'s content folded into `docs/CHARTER.md` (Mission
+  from "the wager" ¶1, Scope from "the wager" ¶2 + "what we left out",
+  Principles verbatim from "the four principles"; "What's inside (and
+  why)" and "Why this shape rather than the alternatives" sections
+  dropped). Both `docs/APPROACH.md` (on-disk) and
+  `packs/core/seeds/docs/APPROACH.md` (seed) are removed. CHARTER's
+  Manual classification (per AC20) is what enables the fold-in
+  without round-tripping the catalogue's mission into the seed.
+  References to `docs/APPROACH.md` removed from
+  `packs/core/seeds/docs/CONVENTIONS.md` (line 366 area, paired with
+  AC19's broader rewrite) and `docs/specs/self-hosting/spec.md`
+  (Phase-1 enumeration). Goal-based verification: both APPROACH paths
+  absent; `docs/CHARTER.md` carries filled mission/scope/principles.
 
 ## Changelog
 
+- 2026-05-25: scaffold-leak closure (RFC-0002 § Amendments § 2026-05-25).
+  Six items (a-f) executed in a single PR with the ordering DAG
+  `(a) → (b) → (f); (a)(c) → (d)(e)`: (a) scrubbed 5 leaking seeds
+  to placeholder shape; (b) shrank `PROJECTED_README_OVERRIDES`
+  from 20 to 1 entry and added 8 explicit `EXCLUDED_PATTERNS`
+  entries; (c) dropped 8 RFC-NNNN cross-references from
+  `packs/core/seeds/docs/CONVENTIONS.md`; (d) shipped
+  `tools/lint-seeds.py` with sentinel mechanism and per-file
+  placeholder expectations; (e) shipped
+  `tests/integration/test_install_snapshot.py` covering 4 packs ×
+  `agentbundle scaffold` CLI route; (f) folded
+  `docs/APPROACH.md` into `docs/CHARTER.md` and deleted both
+  APPROACH copies. AC9 (seed READMEs are Projected) superseded;
+  AC18-AC23 added covering the new contracts. The Phase-1
+  enumeration in § *Phased rollout* was narrowed to list only
+  `docs/CONVENTIONS.md` as a seed-projected path.
 - 2026-05-24: AC15b added as a Phase-2 amendment — CLAUDE.md
   cross-shape equivalence in the drift detector. The three on-disk
   shapes (symlink → AGENTS.md, content-copy of AGENTS.md, regular

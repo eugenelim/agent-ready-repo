@@ -20,6 +20,8 @@ on:
       - 'packs/**/.apm/skills/**'
       - 'tools/lint-knowledge.py'
       - 'tools/test-lint-knowledge.sh'
+      - 'tools/lint-seeds.py'
+      - 'packs/**'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
       - 'tools/test-loop-cohort.sh'
@@ -69,6 +71,14 @@ jobs:
         run: python tools/lint-knowledge.py
       - name: Self-test the linter (schema-drift + content guards)
         run: bash tools/test-lint-knowledge.sh
+
+  lint-seeds:
+    name: Seed scaffolds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run seed-content linter (RFC-0002 scaffold contract)
+        run: python tools/lint-seeds.py
 
   loop-cohort:
     name: Caps enforcer self-test
