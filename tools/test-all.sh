@@ -20,6 +20,7 @@ tests=(
   "loop-cohort:bash tools/test-loop-cohort.sh"
   "lint-agent-artifacts:bash tools/test-lint-agent-artifacts.sh"
   "lint-knowledge:bash tools/test-lint-knowledge.sh"
+  "lint-skill-spec:python3 tools/test-lint-skill-spec.py"
   "pre-pr:bash tools/test-pre-pr.sh"
   "session-start:bash tools/test-session-start.sh"
 )
