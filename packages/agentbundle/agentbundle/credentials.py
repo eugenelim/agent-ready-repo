@@ -1,9 +1,9 @@
-"""Public shim for credentialed-primitive authors.
+"""Public surface for credentialed-primitive authors.
 
 Per spec § AC3, this is the **only** import root primitive authors are
 expected to touch:
 
-    from agent_ready.credentials import load_credentials
+    from agentbundle.credentials import load_credentials
 
 Re-exports the loader surface from ``agentbundle.creds.loader`` /
 ``agentbundle.creds.exceptions``. Adding a new public name here is an

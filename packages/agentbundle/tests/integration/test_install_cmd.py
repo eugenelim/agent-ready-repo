@@ -4,7 +4,7 @@ Coverage:
   - Brownfield fixture: pre-existing Tier-2 ``AGENTS.md`` and Tier-3 source
     files are preserved; ``.upstream.*`` companions appear for Tier-2 collisions.
   - State-file merge: install pack B into a tree with ``[pack.A]`` already in
-    ``.agent-ready-state.toml``; assert both tables are present.
+    ``.agentbundle-state.toml``; assert both tables are present.
   - Catalogue URI grammar:
       - Local relative path — no subprocess invoked.
       - Local absolute path — no subprocess invoked.
@@ -81,7 +81,7 @@ def test_brownfield_tier2_gets_companion_not_overwrite(tmp_path):
     """A pre-existing adopter-edited file (Tier-2) must not be
     overwritten; a .upstream.<ext> companion must appear instead.
 
-    Pre-RFC-0004 this test pre-seeded `.agent-ready-state.toml` with the
+    Pre-RFC-0004 this test pre-seeded `.agentbundle-state.toml` with the
     same pack at an old SHA to force Tier-2 detection. Post-RFC-0004
     install refuses against a pack already installed at the requested
     scope (spec § *Dual-scope install conflict*); pre-seeding the same
@@ -150,7 +150,7 @@ def test_state_file_merge_preserves_existing_pack(tmp_path):
         installed_version="1.0.0",
         files={"some/file.md": {"sha": "abc", "from-pack-version": "1.0.0"}},
     )
-    state_path = tmp_path / ".agent-ready-state.toml"
+    state_path = tmp_path / ".agentbundle-state.toml"
     state_path.write_text(dump_state(state), encoding="utf-8")
 
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
@@ -358,7 +358,7 @@ def test_path_jail_probe_refused(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_state_records_sha_for_tier1_paths(tmp_path):
-    """After install, .agent-ready-state.toml must record a sha for every
+    """After install, .agentbundle-state.toml must record a sha for every
     path the install wrote (Tier-1 paths)."""
     from agentbundle.config import load_state
     from agentbundle import safety
@@ -367,7 +367,7 @@ def test_state_records_sha_for_tier1_paths(tmp_path):
     rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
     assert rc == 0
 
-    state = load_state(tmp_path / ".agent-ready-state.toml")
+    state = load_state(tmp_path / ".agentbundle-state.toml")
     assert "alpha" in state.packs
 
     projection = render_pack(ALPHA_PACK_DIR)

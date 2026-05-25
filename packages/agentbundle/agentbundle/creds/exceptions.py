@@ -27,7 +27,7 @@ class CredentialsMissingError(Exception):
             checked and why it missed. ``trailer_line`` shape is
             ``"<tier-label>: <reason>"`` (e.g. ``"Tier 1 env
             'JIRA_API_TOKEN' not set"``, ``"Tier 2 macOS Keychain: not
-            present"``, ``"Tier 3 dotfile /home/u/.agent-ready/credentials.env
+            present"``, ``"Tier 3 dotfile /home/u/.agentbundle/credentials.env
             absent"``).
     """
 

@@ -2,7 +2,7 @@
 
 Verifies AC #(RFC-0004) for the agent-spec-cli spec:
   - install, uninstall, upgrade, init-state (without --migrate) refuse on
-    a v0.1 .agent-ready-state.toml with the documented stderr.
+    a v0.1 .agentbundle-state.toml with the documented stderr.
   - Read-only subcommands (list-targets, diff, adapt without
     --values-from) succeed against the same v0.1 fixture, treating every
     pack entry as repo-scope.
@@ -39,7 +39,7 @@ primitives = ["skill"]
 
 
 def _v01(tmp_path: Path) -> Path:
-    p = tmp_path / ".agent-ready-state.toml"
+    p = tmp_path / ".agentbundle-state.toml"
     p.write_text(V01_STATE, encoding="utf-8")
     return p
 

@@ -1,4 +1,4 @@
-"""T3 / AC4c: ``agent_ready.credentials`` is reachable from an installed wheel.
+"""T3 / AC4c: ``agentbundle.credentials`` is reachable from an installed wheel.
 
 The test builds + installs ``packages/agentbundle`` into a ``tmp_path``-scoped
 site directory, then runs the import in a subprocess whose ``PYTHONPATH``
@@ -16,7 +16,7 @@ import pathlib
 import subprocess
 import sys
 
-def test_agent_ready_credentials_resolves_from_installed_wheel(tmp_path):
+def test_agentbundle_credentials_resolves_from_installed_wheel(tmp_path):
     site_dir = tmp_path / "site"
     # __file__: packages/agentbundle/tests/integration/test_credentials_wheel.py
     # parents[2] resolves to packages/agentbundle/ — the package root pip
@@ -36,8 +36,8 @@ def test_agent_ready_credentials_resolves_from_installed_wheel(tmp_path):
         f"stdout: {install.stdout}\nstderr: {install.stderr}"
     )
     # Confirm the shim package actually landed in the wheel.
-    assert (site_dir / "agent_ready" / "credentials.py").is_file(), (
-        f"agent_ready/credentials.py missing from installed target; "
+    assert (site_dir / "agentbundle" / "credentials.py").is_file(), (
+        f"agentbundle/credentials.py missing from installed target; "
         f"listing: {sorted(p.name for p in site_dir.iterdir())}"
     )
     # PEP 668-friendly: don't inherit the parent's PYTHONPATH; point it
@@ -50,8 +50,8 @@ def test_agent_ready_credentials_resolves_from_installed_wheel(tmp_path):
     }
     res = subprocess.run(
         [sys.executable, "-c",
-         "from agent_ready.credentials import load_credentials; "
-         "from agent_ready.credentials import Credentials, "
+         "from agentbundle.credentials import load_credentials; "
+         "from agentbundle.credentials import Credentials, "
          "CredentialsMissingError, Tier2HardFailError"],
         env=env,
         capture_output=True, text=True,

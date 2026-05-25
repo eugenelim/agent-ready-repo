@@ -1,5 +1,5 @@
 """AC35 — no test or CI step writes to the developer's real
-``~/.agent-ready/``, real macOS Keychain, or real Windows Credential
+``~/.agentbundle/``, real macOS Keychain, or real Windows Credential
 Manager.
 
 This is a static-analysis posture assertion. It is not a runtime check
@@ -48,7 +48,7 @@ CREDMAN_ANCHOR = 'monkeypatch.setattr(cm, "SERVICE_PREFIX_OVERRIDE"'
 def test_keychain_tests_set_service_override():
     """Every macOS Keychain integration test routes through a ``backend``
     fixture that monkeypatches ``SERVICE`` to a ``tmp_path``-derived
-    prefix. AC35: the developer's real ``agent-ready`` Keychain entries
+    prefix. AC35: the developer's real ``agentbundle`` Keychain entries
     must never be touched.
     """
     if not KEYCHAIN_TEST.is_file():
@@ -67,7 +67,7 @@ def test_credman_tests_set_service_prefix_override():
     """Every Windows Credential Manager integration test routes through
     a ``backend`` fixture that monkeypatches ``SERVICE_PREFIX_OVERRIDE``
     to a ``tmp_path``-derived prefix. AC35: the developer's real
-    ``agent-ready:`` Credential Manager entries must never be touched.
+    ``agentbundle:`` Credential Manager entries must never be touched.
     """
     if not CREDMAN_TEST.is_file():
         return
@@ -83,7 +83,7 @@ def test_credman_tests_set_service_prefix_override():
 
 def test_dotfile_tests_redirect_home_to_tmp_path():
     """AC35 also covers the Tier-3 dotfile path — no test may write to the
-    developer's real ``~/.agent-ready/credentials.env``. The dotfile
+    developer's real ``~/.agentbundle/credentials.env``. The dotfile
     tests must redirect ``HOME`` (or use a monkeypatched
     ``pathlib.Path.home`` via the ``isolated_home`` fixture) before any
     write.
@@ -103,5 +103,5 @@ def test_dotfile_tests_redirect_home_to_tmp_path():
     assert has_home_setenv or has_isolated_fixture, (
         f"AC35 violation: {dotfile_test.name} does not redirect ``$HOME`` "
         f"or use an ``isolated_home``-style fixture; tests may write to "
-        f"the developer's real ``~/.agent-ready/credentials.env``."
+        f"the developer's real ``~/.agentbundle/credentials.env``."
     )

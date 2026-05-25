@@ -25,7 +25,7 @@ pytestmark = pytest.mark.skipif(
 def backend(tmp_path, monkeypatch):
     """Import the backend and scope ``SERVICE`` to a ``tmp_path``-derived
     prefix so test entries can't collide with the developer's real
-    ``agent-ready`` Keychain entries.
+    ``agentbundle`` Keychain entries.
 
     The ``security -w`` prompt mode requires ``-w`` as the trailing argv
     element, which forecloses test isolation via a trailing keychain
@@ -35,7 +35,7 @@ def backend(tmp_path, monkeypatch):
     namespaced *and* removed in teardown so nothing persists.
     """
     from agentbundle.creds import _keychain_macos
-    unique_service = f"agent-ready-test-{abs(hash(str(tmp_path))) & 0xffffffff:08x}"
+    unique_service = f"agentbundle-test-{abs(hash(str(tmp_path))) & 0xffffffff:08x}"
     monkeypatch.setattr(_keychain_macos, "SERVICE", unique_service)
 
     # Track every account written so teardown can delete them.
@@ -188,36 +188,58 @@ def test_token_not_in_argv_via_proc_inspection(backend):
 # ── Loader-level platform dispatch (AC8 cross-ref) ─────────────────────
 
 
+_creds_module_targets = lambda mod: (
+    mod == "agentbundle.credentials"
+    or mod == "agentbundle.creds"
+    or mod.startswith("agentbundle.creds.")
+)
+
+
+def _snapshot_creds_modules() -> dict:
+    return {k: sys.modules[k] for k in list(sys.modules) if _creds_module_targets(k)}
+
+
+def _drop_creds_modules() -> None:
+    for mod_name in list(sys.modules):
+        if _creds_module_targets(mod_name):
+            sys.modules.pop(mod_name, None)
+
+
+def _restore_creds_modules(saved: dict) -> None:
+    _drop_creds_modules()
+    sys.modules.update(saved)
+
+
 def test_loader_imports_macos_backend_on_darwin():
     """AC4b/AC8: when ``sys.platform == "darwin"``, the loader has the
-    ``_keychain_macos`` backend in ``sys.modules`` after a fresh import."""
+    ``_keychain_macos`` backend in ``sys.modules`` after a fresh import.
+
+    Snapshots sys.modules for the creds tree and restores it in
+    ``finally`` so downstream tests keep their bound class objects (a
+    fresh re-import yields a different ``EnvParseError`` class which
+    silently breaks ``pytest.raises`` matches).
+    """
     # The test process is already running on darwin (skipif gated the
     # whole module), so the backend should already be loaded by the
     # loader's module-level dispatch.
-    for mod_name in list(sys.modules):
-        if mod_name == "agent_ready" or mod_name.startswith("agent_ready."):
-            sys.modules.pop(mod_name, None)
-        if (
-            mod_name == "agentbundle.creds"
-            or mod_name.startswith("agentbundle.creds")
-        ):
-            sys.modules.pop(mod_name, None)
-    import agent_ready.credentials  # noqa: F401 — re-import
-    assert "agentbundle.creds._keychain_macos" in sys.modules
-    assert "agentbundle.creds._credman_windows" not in sys.modules
+    saved = _snapshot_creds_modules()
+    _drop_creds_modules()
+    try:
+        import agentbundle.credentials  # noqa: F401 — re-import
+        assert "agentbundle.creds._keychain_macos" in sys.modules
+        assert "agentbundle.creds._credman_windows" not in sys.modules
+    finally:
+        _restore_creds_modules(saved)
 
 
 def test_loader_does_not_import_macos_backend_on_linux(monkeypatch):
     """AC4b: when ``sys.platform`` is monkeypatched to a non-Darwin
     value, the ``_keychain_macos`` import is skipped on fresh re-import."""
     monkeypatch.setattr(sys, "platform", "linux")
-    for mod_name in list(sys.modules):
-        if mod_name == "agent_ready" or mod_name.startswith("agent_ready."):
-            sys.modules.pop(mod_name, None)
-        if (
-            mod_name == "agentbundle.creds"
-            or mod_name.startswith("agentbundle.creds")
-        ):
-            sys.modules.pop(mod_name, None)
-    import agent_ready.credentials  # noqa: F401
-    assert "agentbundle.creds._keychain_macos" not in sys.modules
+    saved = _snapshot_creds_modules()
+    _drop_creds_modules()
+    try:
+        import agentbundle.credentials  # noqa: F401
+        assert "agentbundle.creds._keychain_macos" not in sys.modules
+    finally:
+        _restore_creds_modules(saved)

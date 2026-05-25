@@ -35,7 +35,7 @@ consumed by any automated test.
 
 ## User scope (synthetic)
 
-`tests/fixtures/brownfield-adapt-user-home/.agent-ready/` plumbs the
+`tests/fixtures/brownfield-adapt-user-home/.agentbundle/` plumbs the
 user-scope dot-directory:
 
   - `state.toml` — v0.2 schema with no installed user-scope packs

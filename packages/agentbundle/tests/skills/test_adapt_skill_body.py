@@ -73,7 +73,7 @@ def test_body_names_dirty_state_command(body):
 
 
 def test_body_pre_flight_section_references_user_scope_state(body):
-    """AC1 grep #5: Pre-flight section names ~/.agent-ready/, state.toml,
+    """AC1 grep #5: Pre-flight section names ~/.agentbundle/, state.toml,
     and Tier-2 (multi-token behavioural check)."""
     # Locate the Pre-flight section bounded by the next H2 heading.
     lower = body
@@ -82,7 +82,7 @@ def test_body_pre_flight_section_references_user_scope_state(body):
     # End at next H2 heading.
     end = lower.find("\n## ", start + 1)
     section = lower[start:end] if end >= 0 else lower[start:]
-    assert "~/.agent-ready/" in section
+    assert "~/.agentbundle/" in section
     assert "state.toml" in section
     assert "Tier-2" in section
 

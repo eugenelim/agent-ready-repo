@@ -42,7 +42,7 @@ round-trip on a corporate-network sandbox.
   the Tier-1/2/3 file-safety contract.
 - Sibling spec [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
   owns the canonical `pack.toml` / `adapter.toml` schemas, the Tier-1/2/3
-  contract details, the `.agent-ready-state.toml` schema, the
+  contract details, the `.agentbundle-state.toml` schema, the
   `.upstream.<ext>` companion semantics, the six-recipe enumeration, the
   five primitive types (including `command`), and the location of the
   F-build library at `packages/agentbundle/agentbundle/build/`. The CLI
@@ -128,7 +128,7 @@ runtime deps (AC #13).
   for the `core` pack's `pack.toml`; raises a typed error on malformed TOML
   (verifies the config-loading invariant under AC #3's contract).
 - Unit test: `agentbundle.config.load_state(path)` round-trips a
-  `.agent-ready-state.toml` per the schema documented in the sibling
+  `.agentbundle-state.toml` per the schema documented in the sibling
   `distribution-adapters` spec (Tier-contract / state-file AC).
 - Unit test: `agentbundle.safety.classify(path, state)` returns
   `Tier1 | Tier2 | Tier3` for a fixture set covering each tier (verifies
@@ -140,7 +140,7 @@ runtime deps (AC #13).
   the primitive level.
 
 **Approach:**
-- Add `config.py`: TOML loaders for `pack.toml`, `.agent-ready-state.toml`,
+- Add `config.py`: TOML loaders for `pack.toml`, `.agentbundle-state.toml`,
   `.adapt-discovery.toml`, `--values-from`.
 - Add `safety.py`: Tier classifier per the sibling spec's contract;
   `.upstream.<ext>` companion writer; content-hash helpers (SHA-256);
@@ -261,11 +261,11 @@ this command.
 - TDD: `agentbundle install --pack core <fixture-catalogue-uri>` into the
   brownfield fixture leaves all pre-existing files unchanged and produces
   `.upstream.<ext>` companions for every collision (AC #7).
-- TDD: after install, `.agent-ready-state.toml` records a SHA-256 hash for
+- TDD: after install, `.agentbundle-state.toml` records a SHA-256 hash for
   every Tier-1 path the install wrote, per the schema owned by the sibling
   `distribution-adapters` spec.
 - TDD: install pack B into a tree that already has pack A installed; the
-  resulting `.agent-ready-state.toml` contains both `[pack.A]` and
+  resulting `.agentbundle-state.toml` contains both `[pack.A]` and
   `[pack.B]` tables — existing tables untouched, new table merged (AC #7
   merge clause).
 - TDD: catalogue URI grammar — one test row each for:
@@ -305,7 +305,7 @@ this command.
   - `git+ssh://...`: refuse with the v1.1-deferral message.
   - No `subprocess` invocation in any `install` path.
 - For each file in the pack's projection, apply the Tier-1/2/3 contract via
-  `safety.classify`; write hashes to `.agent-ready-state.toml` atomically
+  `safety.classify`; write hashes to `.agentbundle-state.toml` atomically
   (tmp-file + `os.replace`); merge into existing tables rather than
   overwriting.
 
@@ -394,10 +394,10 @@ T15) covers Tier invariants for this command.
 
 **Tests:**
 - TDD: against a directory whose tree matches a known pack's projection,
-  `init-state --pack core` writes `.agent-ready-state.toml` with the right
+  `init-state --pack core` writes `.agentbundle-state.toml` with the right
   SHA-256 hashes (matches T5's hashing logic).
 - TDD (Tier invariant — local; cross-cutting test in T15 also covers this):
-  `init-state` writes only `.agent-ready-state.toml` (a Tier-1 path per the
+  `init-state` writes only `.agentbundle-state.toml` (a Tier-1 path per the
   sibling spec's contract); no Tier-2 or Tier-3 path is touched.
 
 **Approach:**
@@ -418,12 +418,12 @@ T15) covers Tier invariants for this command.
   and leaves all Tier-3 files **byte-identical** before and after (explicit
   byte-identity assertion, not just an existence check). Covered by the
   cross-cutting Tier invariant test in T15.
-- TDD: `.agent-ready-state.toml` no longer references the uninstalled pack
+- TDD: `.agentbundle-state.toml` no longer references the uninstalled pack
   after the run (the `[pack.<name>]` table is removed; other packs'
   tables remain untouched).
 
 **Approach:**
-- Read `.agent-ready-state.toml` for the pack's Tier-1 paths; for each,
+- Read `.agentbundle-state.toml` for the pack's Tier-1 paths; for each,
   hash-compare against current content; if matched, remove; if drifted
   (Tier-2), preserve and warn.
 
@@ -435,10 +435,10 @@ T15) covers Tier invariants for this command.
 
 **Tests:**
 - TDD: `upgrade --pack core --to v0.2` against the post-install fixture
-  applies the whole-pack delta and updates `.agent-ready-state.toml`.
+  applies the whole-pack delta and updates `.agentbundle-state.toml`.
 - TDD (parametrised over primitive type): `upgrade --pack core --skill X
   --to v0.2`, `--agent X`, `--hook X`, `--seed X`, `--command X` each
-  move only that primitive's files; `.agent-ready-state.toml` records the
+  move only that primitive's files; `.agentbundle-state.toml` records the
   mixed-version pack state with per-primitive `tier-1-files` /
   `tier-2-files` lists under e.g. `[pack.core.skill.X]` (verifies AC #10
   first clause across all five primitive types).
@@ -457,7 +457,7 @@ T15) covers Tier invariants for this command.
 - Identify a primitive's file set from `pack.toml`: the named primitive's
   `source-path` (or equivalent key per the sibling spec) is resolved to a
   glob, intersected with the projection adapter set the install used.
-- Compare current pack version (from `.agent-ready-state.toml`) against
+- Compare current pack version (from `.agentbundle-state.toml`) against
   `--to`; compute file delta; apply Tier-1/2/3 contract per file via
   `safety.classify` + `safety.write_jailed`; record per-primitive versions
   in the state file when `--skill`/`--agent`/`--hook`/`--seed`/`--command`
@@ -611,13 +611,13 @@ spec § *Path-jail per scope*).
   allowed-scopes <declared-set>`.
 - Unit: `agentbundle.safety.write_jailed` extended to accept a
   `scope` parameter. At `scope="user"` with
-  `allowed_prefixes=[".claude/", ".agent-ready/"]` (the v0.2
+  `allowed_prefixes=[".claude/", ".agentbundle/"]` (the v0.2
   shipped Claude Code shape), a write resolving inside `~` but
   outside *both* prefixes (e.g. `~/Documents/foo`) is refused
   with stderr `refusing to write outside allowed prefixes for
   scope 'user': <path>`. Counter-rows: a write under
   `~/.claude/skills/foo/` is accepted (first prefix matches); a
-  write under `~/.agent-ready/state.toml` is accepted (second
+  write under `~/.agentbundle/state.toml` is accepted (second
   prefix matches). At `scope="repo"`, the existing repo-root jail
   behaviour is unchanged (regression check against the existing
   T1b tests).
@@ -695,7 +695,7 @@ subcommand tests still pass with `scope="repo"` defaults.
 **Tests:**
 - Unit: every write-capable subcommand (`install`, `uninstall`,
   `upgrade`, `init-state` without `--migrate`) against a v0.1
-  `.agent-ready-state.toml` fixture exits non-zero with stderr
+  `.agentbundle-state.toml` fixture exits non-zero with stderr
   `state file at <path> is schema-version 0.1; run 'agentbundle
   init-state --migrate' first`. Parametrised across the four
   write-capable invocations.
@@ -742,8 +742,8 @@ branch).
   non-zero with stderr `<P> already installed at <other-scope>;
   pass --force to install at both`.
 - Integration: same setup with `--force` appended proceeds; both
-  state files (`<repo>/.agent-ready-state.toml` and
-  `~/.agent-ready/state.toml`) record the pack after the run.
+  state files (`<repo>/.agentbundle-state.toml` and
+  `~/.agentbundle/state.toml`) record the pack after the run.
 - Integration: `install --pack <P> --scope <S> --force` where
   `<P>` is not already installed at the other scope succeeds
   (the `--force` flag is a no-op in this case; the install is a
@@ -870,7 +870,7 @@ gating).
   unresolved `.upstream.<ext>` companions in their respective
   scopes, `adapt` writes the per-scope reports at
   `<repo>/.adapt-pending.md` (repo scope) and
-  `~/.agent-ready/.adapt-pending.md` (user scope — inside the
+  `~/.agentbundle/.adapt-pending.md` (user scope — inside the
   same namespaced dot-directory as the user-scope state file).
   Each report names only the companions observed at that scope.
   No `~/.adapt-pending.md` bare dotfile is ever created.
@@ -888,10 +888,10 @@ gating).
   walks the present one and reports against its scope only;
   no error.
 - Integration: `adapt` reads `<repo>/.adapt-discovery.toml` at
-  repo scope and `~/.agent-ready/.adapt-discovery.toml` at user
+  repo scope and `~/.agentbundle/.adapt-discovery.toml` at user
   scope. The fixture places a `<adapt:PROJECT_NAME>` marker in
   a user-scope-projected file and a value entry in
-  `~/.agent-ready/.adapt-discovery.toml`; substitution picks it
+  `~/.agentbundle/.adapt-discovery.toml`; substitution picks it
   up. A counter-fixture placing the value entry at
   `~/.adapt-discovery.toml` (bare dotfile) is **not** consulted
   — the test asserts the marker remains unresolved (proving the
@@ -925,7 +925,7 @@ No flag-gating required.
 
 - **Hard dependency on `distribution-adapters` spec.** This spec consumes
   `pack.toml`'s `[pack.adapter-contract]` table, the Tier-1/2/3 file-safety
-  contract, the `.agent-ready-state.toml` schema, the `.upstream.<ext>`
+  contract, the `.agentbundle-state.toml` schema, the `.upstream.<ext>`
   semantics, the six-recipe enumeration, the five primitive types, and the
   relocated F-build library at `packages/agentbundle/agentbundle/build/`.
   If `distribution-adapters` lands with a different shape than this plan
@@ -994,7 +994,7 @@ No flag-gating required.
   backend. Tightened subprocess rail to "never except `gh`" (with a
   documented single `git` call site in `install`). Added explicit
   dependencies on the sibling `distribution-adapters` spec for F-build
-  relocation, Tier contract, `.agent-ready-state.toml` schema,
+  relocation, Tier contract, `.agentbundle-state.toml` schema,
   `.upstream.<ext>` semantics, the six-recipe enumeration, and the five
   primitive types (including `command`). Canonicalised subcommand order
   to install-workflow sequence. Expanded T5 with full catalogue URI

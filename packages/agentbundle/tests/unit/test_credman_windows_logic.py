@@ -97,18 +97,18 @@ def test_error_code_constants_match_winerror_h():
 
 
 def test_target_name_format():
-    """AC9: ``TargetName == "agent-ready:<namespace>:<key>"``."""
-    assert cm._target_name("jira", "API_TOKEN") == "agent-ready:jira:API_TOKEN"
-    assert cm._target_name("ns", "K") == "agent-ready:ns:K"
+    """AC9: ``TargetName == "agentbundle:<namespace>:<key>"``."""
+    assert cm._target_name("jira", "API_TOKEN") == "agentbundle:jira:API_TOKEN"
+    assert cm._target_name("ns", "K") == "agentbundle:ns:K"
 
 
 def test_target_name_honours_service_prefix_override(monkeypatch):
     """AC35 test-isolation: tests can scope the target-name prefix to a
     ``tmp_path``-derived unique value."""
-    monkeypatch.setattr(cm, "SERVICE_PREFIX_OVERRIDE", "agent-ready-test-abcd1234")
+    monkeypatch.setattr(cm, "SERVICE_PREFIX_OVERRIDE", "agentbundle-test-abcd1234")
     assert (
         cm._target_name("jira", "API_TOKEN")
-        == "agent-ready-test-abcd1234:jira:API_TOKEN"
+        == "agentbundle-test-abcd1234:jira:API_TOKEN"
     )
 
 

@@ -289,7 +289,7 @@ def test_scope_user_opt_in_for_user_only_pack_writes_user_marker(pack_root_facto
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
-    marker_path = home / ".agent-ready" / ".adapt-install-marker.toml"
+    marker_path = home / ".agentbundle" / ".adapt-install-marker.toml"
     assert marker_path.exists()
     data = _read_marker(marker_path)
     entries = data.get("packs-installed", [])
@@ -314,7 +314,7 @@ def test_scope_precedence_local_beats_project_beats_user(pack_root_factory):
     marker_path = project_dir / ".adapt-install-marker.toml"
     assert marker_path.exists()
     # user-scope marker NOT written.
-    user_marker = home / ".agent-ready" / ".adapt-install-marker.toml"
+    user_marker = home / ".agentbundle" / ".adapt-install-marker.toml"
     assert not user_marker.exists()
 
 
@@ -370,7 +370,7 @@ def test_scope_project_dir_unset_skips_project_and_local_checks(pack_root_factor
     result = _run_writer(env)
     assert result.returncode == 0, result.stderr
 
-    marker_path = home / ".agent-ready" / ".adapt-install-marker.toml"
+    marker_path = home / ".agentbundle" / ".adapt-install-marker.toml"
     assert marker_path.exists()
     data = _read_marker(marker_path)
     entries = data.get("packs-installed", [])
@@ -398,7 +398,7 @@ def test_refuse_repo_only_pack_at_user_scope(pack_root_factory):
 
     # No marker written.
     assert not (project_dir / ".adapt-install-marker.toml").exists()
-    assert not (home / ".agent-ready" / ".adapt-install-marker.toml").exists()
+    assert not (home / ".agentbundle" / ".adapt-install-marker.toml").exists()
     # No hash file.
     assert not (plugin_data / "pack-manifest-hash").exists()
 
@@ -966,8 +966,8 @@ def test_marker_write_refuses_path_outside_jail(tmp_path, pack_root_factory):
 # ---------------------------------------------------------------------------
 
 
-def test_user_marker_refuses_symlinked_agent_ready(tmp_path, pack_root_factory):
-    """Blocker-2: writer refuses when ~/.agent-ready is a symlink to a foreign directory.
+def test_user_marker_refuses_symlinked_agentbundle(tmp_path, pack_root_factory):
+    """Blocker-2: writer refuses when ~/.agentbundle is a symlink to a foreign directory.
 
     Nit-6: the stderr message now branches on which case fired — symlink vs.
     non-directory. This test covers the symlink branch; the assertion pins the
@@ -979,11 +979,11 @@ def test_user_marker_refuses_symlinked_agent_ready(tmp_path, pack_root_factory):
         allowed_scopes=["user"],
         opt_in_at=["user"],
     )
-    # Pre-create home/.agent-ready as a symlink to a foreign directory.
-    foreign_dir = tmp_path / "foreign_agent_ready"
+    # Pre-create home/.agentbundle as a symlink to a foreign directory.
+    foreign_dir = tmp_path / "foreign_agentbundle"
     foreign_dir.mkdir()
-    agent_ready = home / ".agent-ready"
-    agent_ready.symlink_to(foreign_dir)
+    agentbundle = home / ".agentbundle"
+    agentbundle.symlink_to(foreign_dir)
 
     env = _make_env(plugin_root=plugin_root, plugin_data=plugin_data, home=home, project_dir=project_dir)
     result = _run_writer(env)

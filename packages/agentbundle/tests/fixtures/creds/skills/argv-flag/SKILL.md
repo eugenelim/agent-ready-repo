@@ -11,7 +11,7 @@ argv finding is the only one fired):
 
 ### Security rules (non-negotiable)
 
-- Secrets live only in `~/.agent-ready/credentials.env`
+- Secrets live only in `~/.agentbundle/credentials.env`
   (mode 0600 on POSIX; DACL-restricted on Windows), the OS keyring,
   or process environment variables.
   **Never** read that file, print it, or echo the token.

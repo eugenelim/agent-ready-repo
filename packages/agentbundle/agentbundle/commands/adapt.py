@@ -2,11 +2,11 @@
 
 RFC-0004 turned this into a **dual-state-file** walk:
 
-  - Read both ``<repo>/.agent-ready-state.toml`` and
-    ``~/.agent-ready/state.toml``. Either may be absent (a fresh repo,
+  - Read both ``<repo>/.agentbundle-state.toml`` and
+    ``~/.agentbundle/state.toml``. Either may be absent (a fresh repo,
     or no user-scope installs yet).
   - Read marker values from both ``<repo>/.adapt-discovery.toml`` and
-    ``~/.agent-ready/.adapt-discovery.toml`` (user-scope discovery
+    ``~/.agentbundle/.adapt-discovery.toml`` (user-scope discovery
     lives inside the namespaced dot-directory, not as a bare dotfile).
     ``--values-from`` still wins as an explicit override.
   - Walk for ``.upstream.<ext>`` companions per scope; write per-scope
@@ -157,7 +157,7 @@ def _resolve_scopes(args: "argparse.Namespace") -> list[_Scope]:
         _Scope(
             name="repo",
             root=repo_root,
-            state_path=repo_root / ".agent-ready-state.toml",
+            state_path=repo_root / ".agentbundle-state.toml",
             discovery_path=repo_root / ".adapt-discovery.toml",
             pending_path=repo_root / ".adapt-pending.md",
         ),
@@ -166,10 +166,10 @@ def _resolve_scopes(args: "argparse.Namespace") -> list[_Scope]:
         user_root = scope_mod.resolve_user_root()
     except scope_mod.UserScopeUnresolvable:
         return scopes
-    # User-scope dot-directory: `<user_root>/.agent-ready/`. We don't
+    # User-scope dot-directory: `<user_root>/.agentbundle/`. We don't
     # *create* it here; we only operate on it if it already exists
     # (i.e. some prior user-scope install set it up).
-    user_dir = user_root / ".agent-ready"
+    user_dir = user_root / ".agentbundle"
     if user_dir.is_dir():
         from agentbundle.commands.install import _claude_code_allowed_prefixes_user
 
@@ -309,8 +309,8 @@ def run(args: "argparse.Namespace") -> int:
 
         # Write the pending report through the per-scope path-jail. At
         # user scope this routes through `allowed-prefixes.user` —
-        # `.adapt-pending.md` lives at `.agent-ready/.adapt-pending.md`
-        # under the user root, which the `.agent-ready/` prefix admits.
+        # `.adapt-pending.md` lives at `.agentbundle/.adapt-pending.md`
+        # under the user root, which the `.agentbundle/` prefix admits.
         report_relpath = s.pending_path.relative_to(s.root).as_posix()
         try:
             safety.write_jailed(

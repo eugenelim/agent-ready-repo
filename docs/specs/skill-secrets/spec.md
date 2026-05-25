@@ -38,20 +38,20 @@ Concretely the implementing PRs deliver:
      `_BASE_URL`, `_EMAIL`, `_FLAVOR`).
    - **Tier 2:** OS keyring — macOS Keychain via
      `/usr/bin/security` subprocess (token via child stdin, never
-     argv), `service = "agent-ready"`, `account = "<namespace>:<key>"`;
+     argv), `service = "agentbundle"`, `account = "<namespace>:<key>"`;
      Windows Credential Manager via in-process `ctypes` against
      `advapi32.{CredReadW, CredWriteW, CredDeleteW, CredFree}` with
      `CRED_TYPE_GENERIC`, `CRED_PERSIST_LOCAL_MACHINE`, target-name
-     convention `agent-ready:<namespace>:<key>`, `UserName =
+     convention `agentbundle:<namespace>:<key>`, `UserName =
      "<namespace>"`.
-   - **Tier 3:** dotfile at `~/.agent-ready/credentials.env`
+   - **Tier 3:** dotfile at `~/.agentbundle/credentials.env`
      (`pathlib.Path.home()`-resolved), mode `0600` + parent `0700` on
      POSIX, DACL-verified via `icacls` on Windows. The fallback floor.
 
    Linux `libsecret` stays deferred to a v2 RFC; Linux lands on
    Tier 3 in v1.
 
-3. **A stdlib-only loader and CLI verb** — `agent_ready.credentials`
+3. **A stdlib-only loader and CLI verb** — `agentbundle.credentials`
    exposes `load_credentials(namespace, required_keys)` for
    primitive authors to import; `agentbundle creds` ships four
    subcommands (`setup`, `check`, `where`, `rm` — **no `get`**); both
@@ -79,7 +79,7 @@ Concretely the implementing PRs deliver:
 
 6. **A worked example and a how-to guide** — `example-credentialed-skill`
    ships under `packs/core/.apm/skills/` as a runnable no-op
-   credentialed skill (imports `agent_ready.credentials`, ships a
+   credentialed skill (imports `agentbundle.credentials`, ships a
    `creds-schema.toml`, embeds the "Don't" block);
    `docs/guides/how-to/add-a-credentialed-skill.md` walks adopters
    through writing their own.
@@ -109,7 +109,7 @@ under time pressure.
 
 ### Always do
 
-- **Stdlib only.** All credential-handling code (`agent_ready.credentials`,
+- **Stdlib only.** All credential-handling code (`agentbundle.credentials`,
   the `.env` parser, the `agentbundle creds` verb, per-platform Tier-2
   backends) uses stdlib modules exclusively (`os`, `pathlib`,
   `subprocess`, `getpass`, `argparse`, `tomllib`, `ctypes` on
@@ -121,7 +121,7 @@ under time pressure.
   unintended drift between `packs/core/seeds/` and `<repo>/` surfaces
   here.
 - **Use fixture credentials and a redirected `$HOME` for every test.**
-  Tests never touch the developer's real `~/.agent-ready/credentials.env`,
+  Tests never touch the developer's real `~/.agentbundle/credentials.env`,
   real macOS Keychain, or real Windows Credential Manager. Tests set
   `$HOME` to a `tmp_path`-scoped directory; Tier-2 round-trips on
   Windows use a target-name prefix that includes the test's
@@ -148,7 +148,7 @@ under time pressure.
 
 ### Ask first
 
-- **Changing the canonical dotfile path** (`~/.agent-ready/credentials.env`).
+- **Changing the canonical dotfile path** (`~/.agentbundle/credentials.env`).
   Once shipped, this is a breaking change; RFC-0006 § Drawbacks lists
   three specifically-foreclosed alternatives (per-namespace file
   layout; XDG variant; per-primitive path) — moving to any of them
@@ -188,9 +188,9 @@ under time pressure.
   `packages/agentbundle/agentbundle/commands/creds.py` (CLI
   dispatcher — matches the existing sibling-verb convention at
   `agentbundle/commands/{install,uninstall,upgrade,...}.py`). The
-  `agent_ready` public shim — added so credentialed-primitive
-  authors can `from agent_ready.credentials import load_credentials`
-  per RFC-0006 § 5 — lives at `packages/agentbundle/agent_ready/`
+  `agentbundle` public shim — added so credentialed-primitive
+  authors can `from agentbundle.credentials import load_credentials`
+  per RFC-0006 § 5 — lives at `packages/agentbundle/agentbundle/`
   and is the **only** new public Python import root; further roots
   need an RFC. New tests under `packages/agentbundle/tests/`; new
   fixtures under `packages/agentbundle/tests/fixtures/creds/`.
@@ -209,7 +209,7 @@ under time pressure.
   `ERROR_INVALID_FLAGS` (1004), `ERROR_LOGON_FAILURE` (1326) **hard
   fail** with stderr naming the cause. Silently degrading defeats
   the security posture the user chose.
-- **No live writes to the developer's `~/.agent-ready/`, Keychain, or
+- **No live writes to the developer's `~/.agentbundle/`, Keychain, or
   Credential Manager from tests or CI.** Every test sets `$HOME` to
   `tmp_path`; every Windows Credential Manager round-trip uses a
   `tmp_path`-derived target-name prefix; macOS Keychain tests are
@@ -218,7 +218,7 @@ under time pressure.
   Construction tests below).
 - **No skill reads the dotfile directly.** Only credentialed primitives
   do. Skills shell out to or import the primitive; they never
-  `open(os.path.expanduser("~/.agent-ready/credentials.env"))`. The
+  `open(os.path.expanduser("~/.agentbundle/credentials.env"))`. The
   lint catches the obvious cases; the architectural rule covers the
   obfuscated ones.
 - **No `SSL_VERIFY=False` / `verify=False` defaults** in any
@@ -321,7 +321,7 @@ Stdlib parser and loader API:
       refuses `export KEY=value`, refuses variable expansion
       (`KEY=$OTHER`), refuses multi-line quoted values (a quoted
       value spanning two physical lines is a parse error).
-- [x] **AC3.** `agent_ready.credentials.load_credentials(namespace,
+- [x] **AC3.** `agentbundle.credentials.load_credentials(namespace,
       required_keys)` returns an immutable `Credentials` object
       whose attribute access returns the resolved values; missing
       required keys raise `CredentialsMissingError` naming the
@@ -340,12 +340,12 @@ Stdlib parser and loader API:
       absence; resolver falls through directly to Tier 3). The dispatch
       is verified by a test that monkeypatches `sys.platform` and
       reloads the module.
-- [x] **AC4c.** `agent_ready.credentials.load_credentials` is reachable
+- [x] **AC4c.** `agentbundle.credentials.load_credentials` is reachable
       from an installed wheel. Verified by `pip install
       packages/agentbundle` followed by
-      `python -c "from agent_ready.credentials import load_credentials"`
+      `python -c "from agentbundle.credentials import load_credentials"`
       exiting 0 in a clean virtualenv on each CI platform. The
-      `agent_ready` shim package is included by
+      `agentbundle` shim package is included by
       `packages/agentbundle/pyproject.toml`'s
       `[tool.setuptools.packages.find] include` list.
 
@@ -359,9 +359,9 @@ Tier 1 (env var):
 Tier 2 (macOS Keychain):
 
 - [x] **AC6.** On Darwin, the Tier-2 read path shells out to
-      `/usr/bin/security find-generic-password -s "agent-ready" -a
+      `/usr/bin/security find-generic-password -s "agentbundle" -a
       "<namespace>:<key>" -w` and captures stdout; the write path uses
-      `add-generic-password -U -s "agent-ready" -a "<namespace>:<key>"
+      `add-generic-password -U -s "agentbundle" -a "<namespace>:<key>"
       -w` with the token written to the child's stdin via
       `subprocess.Popen(stdin=PIPE)` + `proc.communicate(...)`. **The
       token never appears in argv**; a fixture test exercises a
@@ -372,7 +372,7 @@ Tier 2 (macOS Keychain):
 - [x] **AC8.** The `_keychain_macos` backend module is **not imported**
       when `sys.platform != "darwin"` (per AC4b). A loader-level test
       sets `sys.platform = "linux"`, reloads
-      `agent_ready.credentials`, and asserts the macOS backend
+      `agentbundle.credentials`, and asserts the macOS backend
       module is absent from `sys.modules`; the resolver falls through
       from Tier 2 to Tier 3 without raising.
 
@@ -385,7 +385,7 @@ Tier 2 (Windows Credential Manager):
       a `CREDENTIAL` struct built in-process with
       `Type = CRED_TYPE_GENERIC (1)`,
       `Persist = CRED_PERSIST_LOCAL_MACHINE (2)`,
-      `TargetName = "agent-ready:<namespace>:<key>"`,
+      `TargetName = "agentbundle:<namespace>:<key>"`,
       `UserName = "<namespace>"`,
       `CredentialBlob` pointing at the UTF-16-encoded token bytes,
       `CredentialBlobSize = len(token_utf16_bytes)`. All other
@@ -413,14 +413,14 @@ Tier 2 (Windows Credential Manager):
 Tier 3 (dotfile):
 
 - [x] **AC13.** Path resolves to `pathlib.Path.home() /
-      ".agent-ready" / "credentials.env"` on every platform.
+      ".agentbundle" / "credentials.env"` on every platform.
 - [x] **AC14.** Write path is atomic: `tempfile.mkstemp` in the target
       directory → `os.write` → `os.replace`. A mid-write read sees
       either the prior file contents or the new contents, never
       partial.
 - [x] **AC15.** On POSIX (`os.name == "posix"`), the helper calls
       `os.chmod(path, 0o600)` on the file. The parent directory
-      `~/.agent-ready/` is **shared** with RFC-0004 install state
+      `~/.agentbundle/` is **shared** with RFC-0004 install state
       (`state.toml`) and the `adapt-to-project` marker — the
       credentials helper **does not** unconditionally chmod the
       parent. Instead: if the parent does not yet exist, it is
@@ -452,8 +452,8 @@ CLI verb `agentbundle creds`:
       without further context.
 - [x] **AC17.** `agentbundle creds setup` (no positional namespace
       argument) walks both scope state files
-      (`<repo>/.agent-ready-state.toml` and
-      `~/.agent-ready/state.toml`) for installed primitives whose
+      (`<repo>/.agentbundle-state.toml` and
+      `~/.agentbundle/state.toml`) for installed primitives whose
       `SKILL.md` frontmatter declares `metadata.credentialed: true`
       (nested under the agentskills.io-spec `metadata:` escape
       hatch), prints the list, and prompts for a selection. Same
@@ -586,7 +586,7 @@ Conventions and lint:
       name matching `{token, api_token, api_key, bearer, pat,
       password}` in `argparse.ArgumentParser.add_argument` calls;
       (c) any script under a skill's `scripts/` directory contains
-      the substring `.agent-ready/credentials.env` without the opt-out
+      the substring `.agentbundle/credentials.env` without the opt-out
       comment marker (`# credentialed-primitive: reads-creds-directly`)
       on the same line. The lint exits non-zero on any finding so
       `conventions-check` blocks merges that introduce a credentialed-
@@ -618,7 +618,7 @@ Templates and worked example:
       `metadata.primitive-class: credentialed-cli` (nested under the
       agentskills.io-spec `metadata:` escape hatch), embedding the
       credentialed-CLI "Don't" block verbatim; a `scripts/cli.py`
-      importing `agent_ready.credentials` and refusing the argv-ban
+      importing `agentbundle.credentials` and refusing the argv-ban
       flags; a `references/creds-schema.toml` declaring `API_TOKEN`
       (`secret = true`, required) and `BASE_URL` (`secret = false`,
       a sibling key in the spec § Objective sense — also resolved
@@ -668,7 +668,7 @@ Verification:
       file's relative path appears as a substring in the test corpus)
       is part of the suite (`tests/unit/test_credentials_fixtures.py`).
 - [x] **AC35.** No test or CI step writes to the developer's real
-      `~/.agent-ready/`, real macOS Keychain (verified by checking
+      `~/.agentbundle/`, real macOS Keychain (verified by checking
       no Keychain entry persists outside a `tmp_path`-scoped
       Keychain), or real Windows Credential Manager (verified by
       target-name prefix isolation against a `tmp_path` hash). The
