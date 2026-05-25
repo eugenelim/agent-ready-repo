@@ -145,7 +145,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         help=(
             "The credential namespace (e.g. 'jira'). If omitted, the "
             "CLI walks both scope state files for installed primitives "
-            "declaring credentialed: true and prompts for a selection."
+            "declaring metadata.credentialed: true and prompts for a selection."
         ),
     )
     # SECURITY: the two posture-lowering flags below are argv-only by
@@ -232,15 +232,24 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
 
 _SKILL_MD_RE = re.compile(r"^\.claude/skills/([^/]+)/SKILL\.md$")
 _FRONTMATTER_RE = re.compile(r"^([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$")
+_NESTED_FRONTMATTER_RE = re.compile(
+    r"^\s+([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$"
+)
 
 
-def _parse_frontmatter(path: pathlib.Path) -> dict[str, str]:
+def _parse_frontmatter(
+    path: pathlib.Path,
+) -> dict[str, str | dict[str, str]]:
     """Minimal stdlib YAML-subset frontmatter parser for SKILL.md.
 
-    Matches the shape used by ``tools/lint-agent-artifacts.sh`` and
-    ``tools/lint-credentialed-skills.sh``: single-line scalars only,
-    no nested structures. Returns the empty mapping when the file has
-    no frontmatter — the caller treats that as "not credentialed".
+    Matches the shape used by ``tools/lint-agent-artifacts.py`` and
+    ``tools/lint-credentialed-skills.sh``: single-line scalars plus a
+    nested mapping under an empty-value key (the agentskills.io
+    ``metadata:`` escape hatch). Only one level of nesting is
+    supported — the first child line's indent fixes the depth, and a
+    deeper-indented line returns ``{}`` so the caller treats the file
+    as "not credentialed" (fail closed rather than silently flatten).
+    Returns the empty mapping when the file has no frontmatter.
     """
     try:
         text = path.read_text(encoding="utf-8")
@@ -249,14 +258,59 @@ def _parse_frontmatter(path: pathlib.Path) -> dict[str, str]:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
-    fields: dict[str, str] = {}
-    for line in lines[1:]:
-        if line.strip() == "---":
+    fields: dict[str, str | dict[str, str]] = {}
+    end = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            end = i
             break
+    if end is None:
+        return {}
+    i = 1
+    while i < end:
+        line = lines[i]
+        if not line.strip():
+            i += 1
+            continue
         m = _FRONTMATTER_RE.match(line)
         if not m:
+            i += 1
             continue
         key, value = m.group(1), m.group(2).strip()
+        if value == "":
+            # Empty value — peek for an indented nested mapping
+            # (`metadata:` shape under the agentskills.io spec's
+            # escape hatch).
+            nested: dict[str, str] = {}
+            block_indent: int | None = None
+            j = i + 1
+            while j < end:
+                nxt = lines[j]
+                if not nxt.strip():
+                    j += 1
+                    continue
+                indent = len(nxt) - len(nxt.lstrip())
+                if indent == 0:
+                    break
+                if block_indent is None:
+                    block_indent = indent
+                elif indent != block_indent:
+                    return {}
+                nm = _NESTED_FRONTMATTER_RE.match(nxt)
+                if not nm:
+                    break
+                nval = nm.group(2).strip()
+                if (
+                    len(nval) >= 2
+                    and nval[0] == nval[-1]
+                    and nval[0] in ('"', "'")
+                ):
+                    nval = nval[1:-1]
+                nested[nm.group(1)] = nval
+                j += 1
+            fields[key] = nested if nested else ""
+            i = j
+            continue
         # Drop surrounding quotes if balanced (allowed by YAML for the
         # 1-line scalar shape).
         if (
@@ -266,7 +320,21 @@ def _parse_frontmatter(path: pathlib.Path) -> dict[str, str]:
         ):
             value = value[1:-1]
         fields[key] = value
+        i += 1
     return fields
+
+
+def _metadata(
+    fields: dict[str, str | dict[str, str]],
+) -> dict[str, str]:
+    """Return the nested ``metadata:`` mapping or an empty dict.
+
+    Credentialed-primitive flags (``credentialed``, ``primitive-class``)
+    live under ``metadata:`` per the agentskills.io spec; callers route
+    every read through this helper.
+    """
+    meta = fields.get("metadata")
+    return meta if isinstance(meta, dict) else {}
 
 
 #: YAML 1.1-style truthy forms accepted for the ``credentialed:`` key.
@@ -301,7 +369,8 @@ def _walk_credentialed_skills(
     ``(pack, relpath)`` whose relpath matches ``^\\.claude/skills/
     [^/]+/SKILL\\.md$``, the CLI opens ``<scope-root>/<relpath>``,
     reads its YAML frontmatter, and includes the skill iff
-    ``credentialed: true``.
+    ``metadata.credentialed: true`` (nested under the agentskills.io
+    spec's ``metadata:`` escape hatch).
     """
     from agentbundle import config
 
@@ -316,7 +385,9 @@ def _walk_credentialed_skills(
                     continue
                 skill_md = root / relpath
                 fields = _parse_frontmatter(skill_md)
-                if _is_credentialed_true(fields.get("credentialed")):
+                if _is_credentialed_true(
+                    _metadata(fields).get("credentialed")
+                ):
                     out.append(("repo", root, m.group(1), skill_md))
     try:
         user_root = pathlib.Path.home()
@@ -333,7 +404,9 @@ def _walk_credentialed_skills(
                     continue
                 skill_md = user_root / relpath
                 fields = _parse_frontmatter(skill_md)
-                if _is_credentialed_true(fields.get("credentialed")):
+                if _is_credentialed_true(
+                    _metadata(fields).get("credentialed")
+                ):
                     out.append(("user", user_root, m.group(1), skill_md))
     return out
 
@@ -353,9 +426,10 @@ def _resolve_schema_for_namespace(
     The walk parses every credentialed skill's schema and matches by
     ``schema.namespace``.
 
-    *Related primitive:* ``agentbundle.creds.loader.resolve_schema_path``
+    *Related primitive:* ``agentbundle.creds.loader._relative_schema_path``
     walks the same ``PackState.files`` table per AC24b but looks up by
-    *skill name*. This helper looks up by *namespace* — the user types
+    *skill name* and returns a state-relative path. This helper looks
+    up by *namespace* and returns an absolute path — the user types
     ``agentbundle creds <verb> <namespace>``, not the skill name — so
     the two helpers are deliberate twins of the same lookup. Keep the
     canonical-path convention (``<skill-dir>/references/creds-schema.toml``)

@@ -49,7 +49,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Testing Strategy
 
 Name the verification mode(s) this spec uses. The
-[`work-loop`](../../../.claude/skills/work-loop/SKILL.md) skill defines three:
+`work-loop` skill defines three:
 
 - **TDD** — for logic with a compressible invariant.
 - **Goal-based check** — a one-liner verifies the outcome (a build

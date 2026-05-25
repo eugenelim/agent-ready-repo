@@ -68,14 +68,19 @@ first.
    token = creds.API_TOKEN  # never printed, never echoed
    ```
 
-5. **Declare the frontmatter** on your new skill's `SKILL.md`:
+5. **Declare the frontmatter** on your new skill's `SKILL.md`. Per
+   the [agentskills.io specification](https://agentskills.io/specification),
+   `credentialed` and `primitive-class` are project-specific data
+   and live under the spec's `metadata:` escape hatch — not at top
+   level:
 
    ```yaml
    ---
    name: <your-skill-name>
    description: <what triggers it>
-   credentialed: true
-   primitive-class: credentialed-cli   # or mcp-server
+   metadata:
+     credentialed: true
+     primitive-class: credentialed-cli   # or mcp-server
    ---
    ```
 
@@ -128,5 +133,5 @@ catches what the lint can't.
 
 - Spec: `docs/specs/skill-secrets/spec.md` (this skill is canonical for AC28)
 - RFC: `docs/rfc/0006-skill-secrets-storage.md` § 4 (the "Don't" block source)
-- Worked example: `packs/core/.apm/skills/example-credentialed-skill/`
+- Worked example: the `example-credentialed-skill` skill
   (ships in T12; until then, this skill's template is the reference)

@@ -6,7 +6,8 @@
 # captures stderr and surfaces it.
 #
 # Three checks, all scoped to skills whose `SKILL.md` frontmatter
-# declares `credentialed: true`:
+# declares `metadata.credentialed: true` (under the agentskills.io
+# spec's `metadata:` escape hatch for project-specific fields):
 #
 #   AC26(a) "Don't" block presence.
 #     The body must contain an `### Security rules (non-negotiable)`
@@ -94,12 +95,16 @@ def report(path, message):
     print(f"✖ {relpath(path)}: {message}", file=sys.stderr)
 
 
+NESTED_KEY_RE = re.compile(r"^\s+([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$")
+
+
 def parse_frontmatter(path):
     """Return (fields, body) or (None, text) if frontmatter is absent.
 
-    Minimal stdlib YAML-subset parser matching ``lint-agent-artifacts.sh``
-    — single-line scalars only, no nested structures. Sufficient for
-    SKILL.md frontmatter shape pinned in the spec.
+    Minimal stdlib YAML-subset parser matching ``lint-agent-artifacts.py``
+    — single-line scalars plus nested mappings under an empty-value key
+    (the agentskills.io ``metadata:`` escape hatch shape). Sufficient
+    for SKILL.md frontmatter shape pinned in the spec.
     """
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
@@ -113,12 +118,77 @@ def parse_frontmatter(path):
     if end is None:
         return None, text
     fields = {}
-    for line in lines[1:end]:
+    i = 1
+    while i < end:
+        line = lines[i]
         if not line.strip():
+            i += 1
             continue
         m = KEY_RE.match(line)
-        if m:
-            fields[m.group(1)] = m.group(2).strip()
+        if not m:
+            i += 1
+            continue
+        key, val = m.group(1), m.group(2).strip()
+        if val == "":
+            # Empty value — peek for an indented nested mapping
+            # (`  child: value`). Only one level of nesting is
+            # supported: the first child line's indent fixes the
+            # depth, and a deeper-indented or shallower line ends
+            # the block. A doubly-nested mapping returns ``None``
+            # (parse error) so the caller can treat the file as
+            # malformed rather than silently flattening the
+            # second nesting level.
+            mapping = {}
+            block_indent = None
+            j = i + 1
+            while j < end:
+                nxt = lines[j]
+                if not nxt.strip():
+                    j += 1
+                    continue
+                indent = len(nxt) - len(nxt.lstrip())
+                if indent == 0:
+                    break
+                if block_indent is None:
+                    block_indent = indent
+                elif indent != block_indent:
+                    # Surface the malformed case on stderr rather
+                    # than silently skipping the skill — the caller
+                    # treats ``(None, text)`` as "no frontmatter", so
+                    # a credentialed skill with a doubly-nested
+                    # mapping would otherwise be invisible to AC26
+                    # checks. The Python catalogue lint raises a
+                    # parse error in the same shape; this surfaces
+                    # the parallel diagnostic from this script.
+                    report(
+                        path,
+                        f"malformed frontmatter — doubly-nested "
+                        f"mapping under {key!r} at line {j + 1} "
+                        f"(parser supports one level of nesting only)"
+                    )
+                    return None, text
+                nm = NESTED_KEY_RE.match(nxt)
+                if not nm:
+                    break
+                nval = nm.group(2).strip()
+                # Strip a balanced pair of surrounding quotes — the
+                # other two parsers (lint-agent-artifacts.py,
+                # creds.py) do the same; keeping them aligned matters
+                # because a quoted nested scalar would otherwise sneak
+                # past the bash linter's argv-ban scope check.
+                if (
+                    len(nval) >= 2
+                    and nval[0] == nval[-1]
+                    and nval[0] in ('"', "'")
+                ):
+                    nval = nval[1:-1]
+                mapping[nm.group(1)] = nval
+                j += 1
+            fields[key] = mapping if mapping else ""
+            i = j
+            continue
+        fields[key] = val
+        i += 1
     body = "\n".join(lines[end + 1 :])
     return fields, body
 
@@ -260,10 +330,17 @@ for skill_md in skill_md_files:
     fields, body = parse_frontmatter(skill_md)
     if fields is None:
         continue
-    if fields.get("credentialed") != "true":
+    # `credentialed` and `primitive-class` live under the spec-blessed
+    # `metadata:` escape hatch per agentskills.io. A non-dict
+    # `metadata` (or no metadata at all) means the skill is not a
+    # credentialed primitive.
+    metadata = fields.get("metadata")
+    if not isinstance(metadata, dict):
+        continue
+    if metadata.get("credentialed") != "true":
         continue
     scanned += 1
-    primitive_class = fields.get("primitive-class", "")
+    primitive_class = metadata.get("primitive-class", "")
     skill_dir = skill_md.parent
 
     # AC26(a) — Don't-block presence.
