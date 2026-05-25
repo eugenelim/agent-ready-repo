@@ -1,0 +1,96 @@
+# Per-target metadata constraints — caps and patterns the
+# pack-source gate (packages/agentbundle/agentbundle/build/lint_packs.py)
+# applies at build time so a violation surfaces where the pack author
+# can fix it, not at adopter install.
+#
+# Split from docs/contracts/adapter.toml deliberately: adapter.toml
+# describes projection rules (mode, target-path, on-conflict) and is
+# governed by adapter.schema.json. This file describes constraints on
+# the source content adapters project. Moving these caps into
+# adapter.toml's per-target blocks would change the contract grammar
+# and require a schema update — RFC scope, not PR scope.
+#
+# Managed by: docs/specs/lint-packs-target-vocab/spec.md
+# Schema: none in this PR; no follow-up planned. The file is short
+# enough that tomllib's structural parse plus the lint's per-target
+# extraction is the de-facto schema.
+#
+# Loader contract (see spec AC1, AC11): every declared target's
+# `name-pattern` must be byte-equal to every other's. Regex
+# intersection is not well-defined, so the lint refuses any vocab
+# whose targets disagree on the pattern rather than picking one
+# silently.
+
+[contract]
+version = "0.1"
+
+# ---------------------------------------------------------------------------
+# claude-code
+# ---------------------------------------------------------------------------
+
+[target."claude-code"]
+# name-pattern — kebab-case is the cross-target convention; Claude Code
+# itself doesn't pin a regex publicly, so this row records the
+# project-wide convention rather than a target-specific cap.
+# Source: agentskills.io spec (kebab convention for skill/agent names),
+# checked 2026-05-25.
+name-pattern = "^[a-z][a-z0-9-]*$"
+
+# description-max-length — Claude Code does not document a per-primitive
+# description cap, but agentskills.io's cross-target norm is 1024 chars
+# (every skill catalogue we know of caps at this value). Using the same
+# value as Kiro/Codex below keeps the strictest cap unchanged when the
+# claude-code target is the only one declared.
+# Source: agentskills.io spec, checked 2026-05-25.
+description-max-length = 1024
+
+# ---------------------------------------------------------------------------
+# kiro
+# ---------------------------------------------------------------------------
+
+[target.kiro]
+# name-pattern — Kiro's custom-agent name validator.
+# Source: agentskills.io spec (kebab convention), checked 2026-05-25.
+name-pattern = "^[a-z][a-z0-9-]*$"
+
+# name-max-length — Kiro CLI rejects skill/agent names longer than this.
+# This is the binding floor on `name-max-length` for the four targets
+# the adapter contract declares today.
+# Source: agentskills.io spec, checked 2026-05-25.
+name-max-length = 64
+
+# description-max-length — Kiro CLI ellipsis-truncates the
+# description field on the agent JSON beyond this.
+# Source: agentskills.io spec, checked 2026-05-25.
+description-max-length = 1024
+
+# ---------------------------------------------------------------------------
+# copilot
+# ---------------------------------------------------------------------------
+
+[target.copilot]
+# name-pattern — copilot's `.github/instructions/<name>.md` projection
+# uses the same kebab convention as every other target the adapter
+# contract enumerates.
+# Source: agentskills.io spec (kebab convention), checked 2026-05-25.
+name-pattern = "^[a-z][a-z0-9-]*$"
+
+# description-max-length — Copilot doesn't document a cap; using the
+# cross-target norm of 1024 keeps the gate's strictest computation
+# stable when copilot is in the declared set.
+# Source: agentskills.io spec, checked 2026-05-25.
+description-max-length = 1024
+
+# ---------------------------------------------------------------------------
+# codex
+# ---------------------------------------------------------------------------
+
+[target.codex]
+# name-pattern — Codex normalises names to lowercase kebab.
+# Source: agentskills.io spec (kebab convention), checked 2026-05-25.
+name-pattern = "^[a-z][a-z0-9-]*$"
+
+# description-max-length — Codex caps descriptions at 1024 characters
+# at install time; longer values get ellipsis-truncated.
+# Source: agentskills.io spec, checked 2026-05-25.
+description-max-length = 1024
