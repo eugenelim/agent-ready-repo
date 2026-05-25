@@ -11,7 +11,7 @@ Don't add one speculatively — speculative skills bloat context and degrade
 adherence. The full four principles for what we keep — universal across
 tech stacks, substantive rather than duplicative, a habit rather than a
 tool, used often enough to stick — live in
-[`docs/APPROACH.md`](../../docs/APPROACH.md).
+[`docs/CHARTER.md`](../../docs/CHARTER.md) § Principles.
 
 ## Skills in this repo
 

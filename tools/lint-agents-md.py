@@ -240,7 +240,7 @@ def main() -> int:
 
     # 10d — Vendor-specific UX tokens belong under .claude/ only.
     vendor_re = re.compile(r"\bultrathink\b|Plan Mode \(Shift\+Tab")
-    for f_str in ("AGENTS.md", "docs/CONVENTIONS.md", "docs/CHARTER.md", "docs/APPROACH.md"):
+    for f_str in ("AGENTS.md", "docs/CONVENTIONS.md", "docs/CHARTER.md"):
         f = Path(f_str)
         if not f.is_file():
             continue

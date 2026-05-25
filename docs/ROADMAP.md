@@ -30,7 +30,7 @@ and each spec's own Changelog section.
 
 ---
 
-## `self-hosting` — shipped (Phase 1 + Phase 2 closed)
+## `self-hosting` — shipped (Phase 1 + Phase 2 + 2026-05-25 amendment closed)
 
 Spec: [`specs/self-hosting/spec.md`](specs/self-hosting/spec.md).
 Phase 1 cutover landed via PR #18; AC3 closed by PR #20; AC1b artifact
@@ -38,8 +38,28 @@ recorded via PR #21. AC8 (`AGENTS.md` composition) closed by the
 2026-05-23 Codex multi-pack aggregation pass. Phase 2's comparison-rule
 strengthening — CRLF→LF normalisation for text-like files, file-mode
 permission-bit comparison for regular files, and symlink-target
-comparison via `lstat` (never following) — closed by PR #34. No open
-items.
+comparison via `lstat` (never following) — closed by PR #34. The
+2026-05-25 amendment (RFC-0002 § Amendments § 2026-05-25; PR #112) and
+its implementation closed AC9 (superseded) plus AC18-AC23: seed
+scaffold leak closure, override shrink, seed-content lint, first-install
+snapshot test, APPROACH→CHARTER fold-in.
+
+Open follow-ons (not gating this spec):
+
+- **AC22 install-route coverage extension.** v1 of the first-install
+  snapshot test covers the `agentbundle scaffold` CLI route only.
+  Claude-plugins and APM route coverage deferred to a follow-up that
+  exercises the install→adapt chain via each adapter's seed-projection
+  path. Today the leak is closed at the source (the seeds are
+  placeholder-shaped, verified by `lint-seeds.py`); per-route snapshots
+  add depth-in-defence, not new closure.
+- **AGENTS.md footer attribution rewording.** The trailing
+  *"Generated from the `agent-ready-repo` template…"* line at
+  `packs/core/seeds/AGENTS.md:171` carries catalogue identity outside
+  of an `<adapt:NAME>` marker. The 2026-05-25 amendment documented it
+  as a known seed-content-lint exception via sentinel comment; a
+  future amendment converts it to an `<adapt:ATTRIBUTION>` marker or
+  removes it.
 
 ## `distribution-adapters` — shipped (v0.2 contract bump landed)
 

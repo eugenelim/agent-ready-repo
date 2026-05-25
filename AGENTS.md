@@ -183,5 +183,6 @@ this file go through RFC; small fixes are normal PRs.
 
 ---
 
+<!-- seed-content-lint-ignore: catalogue-attribution -->
 *Generated from the [`agent-ready-repo`](https://github.com/) template. See [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) for the full conventions, or [`docs/architecture/overview.md`](docs/architecture/overview.md) to start exploring.*
 > Working on this repo specifically? See [`AGENTS.local.md`](AGENTS.local.md).

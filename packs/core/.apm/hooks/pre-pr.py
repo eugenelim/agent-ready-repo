@@ -14,6 +14,7 @@ What it runs:
   - tools/lint-agent-artifacts.py  — skill/agent/command frontmatter
   - tools/lint-knowledge.py        — docs/knowledge/patterns.jsonl
   - tools/lint-build.py            — build-pipeline hygiene
+  - tools/lint-seeds.py            — pack seeds placeholder shape (RFC-0002)
   - .claude/skills/work-loop/scripts/loop-cohort.py
                                    — for each docs/specs/*/state.json,
                                       `loop-cohort.py check <spec-dir>` in
@@ -73,6 +74,7 @@ def main() -> int:
     _run("agent-artifact lint", [py, "tools/lint-agent-artifacts.py"])
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
+    _run("seeds lint",          [py, "tools/lint-seeds.py"])
 
     state_files = sorted(Path("docs/specs").glob("*/state.json"))
     if not state_files:
