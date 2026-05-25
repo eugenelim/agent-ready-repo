@@ -872,6 +872,62 @@ def _append_install_marker(
                         file=sys.stderr,
                     )
                     continue
+                # Security Concern 2: type-validate name/version/install-route.
+                # A tampered marker with name=42 (TOML integer) or version=[]
+                # survives the installed-at filter but raises ValueError at
+                # _emit_basic_string time, bricking subsequent installs.
+                _skip_entry = False
+                for _field in ("name", "version"):
+                    _val = e.get(_field)
+                    if _val is not None and not isinstance(_val, str):
+                        _label = e.get("name") if _field != "name" else "<unnamed>"
+                        if isinstance(_label, str):
+                            _label_str = _label
+                        else:
+                            _label_str = "<unnamed>"
+                        print(
+                            f"install: warning: marker entry at {marker_path} "
+                            f"has non-string {_field} "
+                            f"(got {type(_val).__name__}); dropping entry for "
+                            f"pack {_label_str!r}",
+                            file=sys.stderr,
+                        )
+                        _skip_entry = True
+                        break
+                if not _skip_entry:
+                    _route_val = e.get("install-route")
+                    if _route_val is not None and not isinstance(_route_val, str):
+                        _name_val = e.get("name", "<unnamed>")
+                        _name_str = _name_val if isinstance(_name_val, str) else "<unnamed>"
+                        print(
+                            f"install: warning: marker entry for {_name_str!r} at "
+                            f"{marker_path} has non-string install-route "
+                            f"(got {type(_route_val).__name__}); dropping field",
+                            file=sys.stderr,
+                        )
+                        e = dict(e)
+                        del e["install-route"]
+                if _skip_entry:
+                    continue
+                # Security Concern 1: coerce unresolved-markers and new-companions
+                # to list[str]. Mirrors install-marker.py _read_entries:400-414.
+                e = dict(e)  # shallow copy so we don't mutate the tomllib-parsed dict
+                for _field in ("unresolved-markers", "new-companions"):
+                    if _field not in e:
+                        continue
+                    _raw_val = e[_field]
+                    if not isinstance(_raw_val, list) or not all(
+                        isinstance(_item, str) for _item in _raw_val
+                    ):
+                        _name_val = e.get("name", "?")
+                        _name_str = _name_val if isinstance(_name_val, str) else "?"
+                        print(
+                            f"install: warning: existing marker entry for "
+                            f"{_name_str} has malformed {_field} "
+                            f"({type(_raw_val).__name__}); dropping field",
+                            file=sys.stderr,
+                        )
+                        del e[_field]
                 entries.append(e)
 
     new_entry = {
