@@ -909,7 +909,11 @@ def _append_install_marker(
         # injection vector.
         ts_str = entry["installed-at"].strftime("%Y-%m-%dT%H:%M:%SZ")
         lines.append(f"installed-at = {ts_str}")
-        lines.append(f"install-route = {_emit_basic_string('cli')}")
+        # Re-emitted entries preserve their original install-route; newly
+        # constructed entries (built in this function with no "install-route"
+        # key) default to "cli" because this is the CLI install path.
+        route = entry.get("install-route", "cli")
+        lines.append(f"install-route = {_emit_basic_string(route)}")
         markers_repr = ", ".join(
             _emit_basic_string(m) for m in entry.get("unresolved-markers", [])
         )
