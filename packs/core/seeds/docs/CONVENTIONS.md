@@ -357,17 +357,17 @@ seeds) lives under `packs/<pack>/`. The split is:
   customization but are not projected as standalone files; they're
   consumed by composite recipes.
 
-*Projected* paths under `make build-check`'s gate (Phase 1):
+*Projected* paths under `make build-check`'s gate:
 - Adapter-driven primitives: `.claude/skills/<name>/`,
   `.claude/agents/<name>.md`, `.claude/commands/<name>.md`,
   `tools/hooks/<name>.<ext>`, and the `hooks` key of
   `.claude/settings.local.json`.
-- Seed-projected paths: `docs/CHARTER.md`, `docs/CONVENTIONS.md`,
-  `docs/APPROACH.md`, seed READMEs under
-  `docs/{architecture,specs,knowledge,product,guides,rfc,adr}/`, and
-  the seed content under `packages/`. (Templates that *were* under
-  `docs/_templates/` now live with the skill that creates instances of
-  them, under `.claude/skills/<skill>/assets/`.)
+- Seed-projected paths: `docs/CONVENTIONS.md`. (Other seed-projected
+  paths from earlier phases — `docs/CHARTER.md`, the seed READMEs
+  under `docs/<area>/`, and `packages/_example/` — were reclassified
+  as *Manual* with placeholder seeds; adopters receive the placeholder
+  on first install via brownfield rules and own their on-disk content
+  thereafter.)
 - Aggregated: `.claude-plugin/marketplace.json` from every pack's
   `.claude-plugin/plugin.json`.
 - Recreated: `CLAUDE.md → AGENTS.md` symlink.
@@ -375,13 +375,8 @@ seeds) lives under `packs/<pack>/`. The split is:
 The pipeline regenerates each from its `packs/*/` upstream; direct
 edits to any *Projected* path are caught by `make build-check` and
 bounced with a message naming the source path and regeneration
-command. RFC-0002 is the authority for the source-of-truth split,
-including the *Projected* and *Excluded* tables; the same RFC names
-`make build-check` as the gate that enforces it. The self-hosting
-spec at [`docs/specs/self-hosting/spec.md`](specs/self-hosting/spec.md)
-records the Phase-1 vs Phase-2 scoping (AGENTS.md body+footer
-composition and LF/mode/lstat comparison-rule strengthening remain
-Phase 2).
+command. The pack source-of-truth split is the catalogue's
+load-bearing convention; CI's drift gate enforces it.
 
 The muscle memory: to change a *Projected* path's content, edit its
 upstream under `packs/<pack>/.apm/` or `packs/<pack>/seeds/`, then run
@@ -389,7 +384,7 @@ upstream under `packs/<pack>/.apm/` or `packs/<pack>/seeds/`, then run
 commit, push. The gate is the contract; the source-of-truth split is
 the convention.
 
-### Install scope is per-pack ([RFC-0004](rfc/0004-install-scope-per-pack.md))
+### Install scope is per-pack
 
 Each pack declares its install **scope** — `repo` (project-local), `user`
 (shared across every repo the adopter opens), or both — in
@@ -789,9 +784,8 @@ already lives in this repo. These are the in-loop counterparts to the
 Skills that call external authenticated APIs follow a tighter set of
 rules than plain skills, because the moment a credential reaches the
 LLM as a tool argument the architecture has already failed.
-[RFC-0006](rfc/0006-skill-secrets-storage.md) is the canonical
-record of the decisions; this section is the in-loop reminder of the
-shape every credentialed skill must respect.
+This section is the in-loop reminder of the shape every credentialed
+skill must respect.
 
 ### Two-layer architecture
 
@@ -799,11 +793,9 @@ Skills do not hold credentials. A *credentialed primitive* — a Python
 module, an MCP server, or a CLI wrapper packaged as a primitive —
 owns the secret on disk and constructs the API call inside its own
 process. The skill body invokes the primitive without ever touching
-the token. See RFC-0006
-[§ 1 Two-layer architecture](rfc/0006-skill-secrets-storage.md#1-two-layer-architecture-skills-dont-hold-credentials)
-for the rationale; the `add-credentialed-skill` author skill walks
-authors through the substitutions, and `example-credentialed-skill`
-ships as the worked example.
+the token. The `add-credentialed-skill` author skill walks authors
+through the substitutions, and `example-credentialed-skill` ships as
+the worked example.
 
 ### Frontmatter declarations
 
@@ -843,9 +835,6 @@ Credentials resolve in this order, first-hit-wins per key:
    `0600` on POSIX, DACL-verified via `icacls` on Windows. The
    fallback floor.
 
-The order, the tier names, and the rationale for the gh-CLI-shaped
-consensus live in RFC-0006
-[§ 2 Storage tiers](rfc/0006-skill-secrets-storage.md#2-storage-tiers-gh-cli-shaped-stdlib-only).
 Changing the order, or adding a new tier, is an `Ask first` action
 in the spec's Boundaries section — the corporate-network constraints
 that justified the precedence are non-obvious.
@@ -862,14 +851,11 @@ script that declares one of the banned names in an
 `argparse.ArgumentParser.add_argument` call. MCP-server-class
 primitives may accept *header-naming* flags (`--bearer-header`,
 `--auth-header`, `--header-prefix`) because those name *which* header
-to consult per-request, not the value. See RFC-0006
-[§ 4 The argv ban](rfc/0006-skill-secrets-storage.md#4-the-argv-ban-and-the-skillmd-dont-boilerplate)
-for the full set and the rationale.
+to consult per-request, not the value.
 
 ### Anti-pattern register
 
-Five anti-patterns rejected by name in RFC-0006
-[§ 6 Anti-pattern register](rfc/0006-skill-secrets-storage.md#6-anti-pattern-register):
+Five anti-patterns rejected by name:
 
 - **Tokens in skill argv** — defeats the architecture rule.
 - **The `creds get` "wrap-and-leak" shape** — any verb that prints a
@@ -886,9 +872,8 @@ Five anti-patterns rejected by name in RFC-0006
 ### Corporate-network requirements
 
 Credentialed primitives ship from this catalogue running on corporate
-laptops; the network they live on is the default RFC-0006
-[§ 7 Corporate concerns](rfc/0006-skill-secrets-storage.md#7-corporate-concerns-the-primitive-must-respect)
-pins:
+laptops; the network they live on imposes constraints the primitive
+must respect:
 
 - **Honor `HTTPS_PROXY` / `NO_PROXY` from the environment.** No
   hard-coded `requests.get(...)` without proxy resolution.

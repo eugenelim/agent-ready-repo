@@ -185,7 +185,7 @@ recognises without an RFC or spec amendment:
 | Recipe type | Source RFC | Output |
 | --- | --- | --- |
 | `per-pack-claude-plugin` | RFC-0001 | `dist/claude-plugins/<pack>/` (one per pack) |
-| `per-pack-apm-package` | RFC-0001 | `dist/apm/<pack>/` (one per pack) |
+| `per-pack-apm-package` | RFC-0001 (RFC-0010 install-marker artifacts) | `dist/apm/<pack>/` (one per pack); the install-marker artifact pair `.apm/hooks/install-marker.{json,py}` is derived per `docs/specs/apm-install-route-parity/spec.md` AC11 |
 | `marketplace` | RFC-0001 | `dist/claude-plugins/marketplace.json` (aggregate) |
 | `per-pack-overlay` | RFC-0002 | self-host overlay of `.apm/` + `seeds/` into the working tree |
 | `composite-agents-md` | RFC-0002 | composed `AGENTS.md` (or any composite text file) at the repo root *(this spec ships the recipe metadata + expansion-shape API; the on-disk writer is implemented by sibling spec `self-hosting`)* |
@@ -1318,10 +1318,34 @@ No manual QA: there is no UI surface, no human gesture under test.
   2 or later** until upstream
   [`anthropics/claude-code#10997`](https://github.com/anthropics/claude-code/issues/10997)
   ships a fix.
+- [ ] **(RFC-0010)** apm-route conformance cases; per-target
+  coverage matrix. The adapter contract
+  (`docs/contracts/adapter.toml`) declares `"apm"` on
+  `[adapter."claude-code"].install-routes` per RFC-0010 / spec
+  `apm-install-route-parity`. The conformance suite ships a
+  *marker presence* and a *scope refusal* case for the APM route
+  alongside the existing claude-plugins cases; the per-route
+  fixtures live in
+  `packages/agentbundle/tests/integration/test_apm_install_route.py`.
+  The APM *marker presence* case is asserted on session 2 or later
+  at Claude Code targets (the `#10997` first-session quirk applies
+  to `SessionStart` at Claude Code regardless of route); at the
+  other three HookIntegrator-covered targets (Copilot, Cursor,
+  Gemini), the per-target first-session behaviour is deferred to
+  the manual-QA matrix per
+  `docs/specs/apm-install-route-parity/spec.md` AC17 — transcript
+  arrival is the close criterion, not a blocker on this PR. The
+  conformance suite enumerates the four covered HookIntegrator
+  targets and the three uncovered ones (Codex, OpenCode,
+  Windsurf), with the
+  `agentbundle adapt --scope <project|user>` manual-fallback
+  gesture documented per uncovered target.
 
 ## Changelog
 
 - 2026-05-24: install-routes contract AC added per docs/specs/claude-plugins-install-route/spec.md — conformance suite ships marker-presence and scope-refusal cases per declared install route.
+- 2026-05-25: contract bumps v0.4 → v0.5 per docs/specs/apm-install-route-parity/spec.md — "apm" appended to install-routes on [adapter."claude-code"].
+- 2026-05-25: APM-route conformance AC added per docs/specs/apm-install-route-parity/spec.md — conformance suite ships marker-presence and scope-refusal cases for the APM route; four-of-seven HookIntegrator coverage documented; the `per-pack-apm-package` recipe row notes the install-marker artifact derivation.
 - 2026-05-24: RFC-0005 v0.4 amendment — added `## v0.4 IDE event
   hooks (RFC-0005)` subsection between v0.3 user-scope hook
   handling and Boundaries. Pins the new `kiro-ide-hook` primitive,

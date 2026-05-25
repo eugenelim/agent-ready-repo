@@ -42,10 +42,16 @@ assert WRITER.exists(), f"Writer not found at {WRITER}"
 # ---------------------------------------------------------------------------
 
 
-def _run_writer(env: dict) -> "subprocess.CompletedProcess":
+def _run_writer(env: dict, *, install_route: str = "claude-plugins") -> "subprocess.CompletedProcess":
+    """Invoke the writer in subprocess.
+
+    Pass ``--install-route claude-plugins`` by default — the apm-install-route-parity
+    T1 work made this flag ``required=True`` on the writer; tests in this file
+    exercise the claude-plugins branch unless they explicitly opt into ``"apm"``.
+    """
     import subprocess
     return subprocess.run(
-        [sys.executable, str(WRITER)],
+        [sys.executable, str(WRITER), "--install-route", install_route],
         env=env,
         capture_output=True,
         check=False,
@@ -191,6 +197,9 @@ def _read_marker(marker_path: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 ALLOWED_MODULES = frozenset({
+    # `argparse` admitted by apm-install-route-parity AC1 (one-entry growth in
+    # the import allow-list) for the `--install-route` flag.
+    "argparse",
     "datetime", "hashlib", "json", "os", "pathlib", "re", "sys", "tempfile", "tomllib",
 })
 
