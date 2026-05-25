@@ -204,20 +204,25 @@ a fresh repo with no addons yet); a repo-scope file with `[markers]`
 that contains keys violating the lowercase-hyphen grammar is
 refused.
 
-### `.adapt-install-marker.toml` schema (v0.1)
+### `.adapt-install-marker.toml` schema (v0.1 / v0.4)
 
 ```toml
-# Written by `agentbundle install` at the install's scope root after
-# every successful install. Consumed (deleted on read) by the
-# adapt-to-project skill at session start. Surfaced as a one-line
-# nudge by the core pack's session-start hook between writes and
-# consumption. Repo-scope marker is added to the default .gitignore
-# template; user-scope marker is inside ~/.agent-ready/ (not
-# project-tracked).
+# Written by `agentbundle install` (CLI route) or the canonical
+# install-marker.py writer (Claude-plugins route) at the install's scope
+# root after every successful install. Consumed (deleted on read) by the
+# adapt-to-project skill at session start. Surfaced as a one-line nudge
+# by the core pack's session-start hook between writes and consumption.
+# Repo-scope marker is added to the default .gitignore template;
+# user-scope marker is inside ~/.agent-ready/ (not project-tracked).
 #
 # Scope is encoded in the file's location (`<repo>/` vs
 # `~/.agent-ready/`), not as a field — the path is the source of
 # truth; a self-describing field would just verify itself.
+#
+# v0.4 schema changes (per docs/specs/claude-plugins-install-route/spec.md):
+#   - install-route field added (optional); read-side default is "cli" when absent.
+#   - unresolved-markers and new-companions are now optional; when absent,
+#     the read side scans the projected primitive tree directly.
 
 marker-schema-version = "0.1"
 
@@ -225,9 +230,21 @@ marker-schema-version = "0.1"
 name               = "monorepo-extras"
 version            = "0.1.0"
 installed-at       = 2026-05-23T14:00:00Z
-unresolved-markers = ["package-manager"]  # repo-scope file only — always [] in user-scope marker
-new-companions     = ["packages/_example/AGENTS.upstream.md"]
+install-route      = "cli"                # optional; "cli" | "claude-plugins"; default "cli" when absent
+unresolved-markers = ["package-manager"]  # optional; repo-scope file only — always [] in user-scope marker
+new-companions     = ["packages/_example/AGENTS.upstream.md"]  # optional
 ```
+
+**v0.4 field summary for `[[packs-installed]]` entries:**
+
+| Field | Required | Type | Notes |
+|---|---|---|---|
+| `name` | yes | basic string | pack name |
+| `version` | yes | basic string | semver |
+| `installed-at` | yes | bare TOML offset-datetime | `YYYY-MM-DDTHH:MM:SSZ`; must round-trip as `datetime.datetime` under `tomllib` |
+| `install-route` | **optional** | basic string | `"cli"` or `"claude-plugins"`; read-side default is `"cli"` when absent (backward-compat with v0.3-era markers) |
+| `unresolved-markers` | **optional** | array of basic strings | when absent, the read side scans the projected primitive tree directly for `<adapt:NAME>` markers |
+| `new-companions` | **optional** | array of basic strings | when absent, the read side scans the projected primitive tree directly for `.upstream.<ext>` companions |
 
 The CLI appends a `[[packs-installed]]` entry on each install via
 `os.replace`-based atomic-rename read-modify-write. Two near-
@@ -963,3 +980,4 @@ Per the work-loop's three-mode taxonomy:
   but interactive method-(c) transcripts for repo-scope class-2/3/4
   transitions and user-scope LLM-judgment rows are pending their
   named triggers.
+- 2026-05-24: install-marker schema gains optional install-route field; unresolved-markers and new-companions marked optional per docs/specs/claude-plugins-install-route/spec.md.

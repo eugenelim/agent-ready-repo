@@ -264,3 +264,29 @@ def test_install_marker_resists_unresolved_marker_and_companion_injection(
     assert entry["unresolved-markers"] == [bad_marker]
     assert entry["new-companions"] == [bad_companion]
     assert "evil" not in parsed
+
+
+def test_cli_install_emits_install_route_cli(tmp_path) -> None:
+    """AC13: every [[packs-installed]] entry written by _append_install_marker
+    carries install-route = "cli". Regression pin — the field must appear on
+    every entry regardless of the unresolved-markers / new-companions content."""
+    from agentbundle.commands.install import _append_install_marker
+
+    _append_install_marker(
+        tmp_path,
+        "repo",
+        pack_name="core",
+        pack_version="0.1.0",
+        unresolved_markers=[],
+        new_companions=[],
+        allowed_prefixes=None,
+    )
+
+    marker = tmp_path / ".adapt-install-marker.toml"
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+
+    entries = parsed["packs-installed"]
+    assert len(entries) == 1
+    assert entries[0]["install-route"] == "cli", (
+        "install-route field must be 'cli' on every CLI-written marker entry"
+    )
