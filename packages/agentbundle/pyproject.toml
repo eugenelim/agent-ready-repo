@@ -14,7 +14,7 @@ agentbundle = "agentbundle.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["agentbundle*", "agent_ready*"]
+include = ["agentbundle*"]
 
 [tool.setuptools.package-data]
 agentbundle = ["_data/*"]

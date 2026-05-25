@@ -30,7 +30,7 @@
 > `agentbundle adapt --values-from <repo>/.adapt-discovery.toml`** to
 > perform the class-1 (substitution) file writes; for classes 2–4 the
 > skill writes files directly. The CLI's `adapt` always walks both
-> scopes (`<repo>/.adapt-discovery.toml` + `~/.agent-ready/.adapt-discovery.toml`)
+> scopes (`<repo>/.adapt-discovery.toml` + `~/.agentbundle/.adapt-discovery.toml`)
 > per the agent-spec-cli AC at lines 609-621; this spec inherits that
 > walk and adds the LLM-judgment layer on top.
 
@@ -38,7 +38,7 @@
 > `[contract] version = "0.2"`. Markers are repo-scope only (RFC-0004
 > § *Primitives carrying `<adapt:NAME>` markers are repo-only*), so
 > the `[markers]` table appears only in `<repo>/.adapt-discovery.toml`;
-> the user-scope file at `~/.agent-ready/.adapt-discovery.toml` carries
+> the user-scope file at `~/.agentbundle/.adapt-discovery.toml` carries
 > only `[[findings.*]]` arrays. The skill itself (a `core`-pack primitive,
 > `allowed-scopes = ["repo"]`) is invoked only inside a repo; it walks
 > *both* scopes' state files and `.adapt-discovery.toml` files so user-
@@ -65,12 +65,12 @@ persistent artifacts:
 
 | Artifact | Repo-scope path | User-scope path |
 | --- | --- | --- |
-| Canonical handoff TOML | `<repo>/.adapt-discovery.toml` (`[markers]` + `[[findings.*]]`) | `~/.agent-ready/.adapt-discovery.toml` (`[[findings.*]]` only — markers are repo-only) |
-| Deferred-work memo | `<repo>/.adapt-pending.md` (deterministically sorted, no timestamps) | `~/.agent-ready/.adapt-pending.md` (same shape) |
+| Canonical handoff TOML | `<repo>/.adapt-discovery.toml` (`[markers]` + `[[findings.*]]`) | `~/.agentbundle/.adapt-discovery.toml` (`[[findings.*]]` only — markers are repo-only) |
+| Deferred-work memo | `<repo>/.adapt-pending.md` (deterministically sorted, no timestamps) | `~/.agentbundle/.adapt-pending.md` (same shape) |
 
 The skill also consumes (deletes on read) up to two install-marker
 files: `<repo>/.adapt-install-marker.toml` and
-`~/.agent-ready/.adapt-install-marker.toml`. For class 1 the skill
+`~/.agentbundle/.adapt-install-marker.toml`. For class 1 the skill
 produces values into `[markers]` in the **repo-scope** discovery
 file (markers do not exist at user scope) and shells out to
 `agentbundle adapt --values-from <repo>/.adapt-discovery.toml`; the
@@ -79,7 +79,7 @@ detection and pending-report writes across both scopes. For classes
 2–4 the skill writes files directly under a per-scope path-jail
 (repo root for repo scope; `~/` constrained to the adapter's declared
 `allowed-prefixes.user` for user scope) with Tier-1/2/3 safety
-honoured against both scopes' `.agent-ready-state.toml` files.
+honoured against both scopes' `.agentbundle-state.toml` files.
 
 The skill is idempotent: a re-run on a fully-adapted repo with
 neither marker file on disk produces zero filesystem diff and no new
@@ -99,7 +99,7 @@ This spec also addresses two structural gaps RFC-0001 left implicit:
    `pack.toml` field is introduced.
 2. **Install→adapt handoff.** `agentbundle install --pack <name>
    [--scope ...]` writes `.adapt-install-marker.toml` at the scope's
-   root (`<repo>/` or `~/.agent-ready/`) listing the just-installed
+   root (`<repo>/` or `~/.agentbundle/`) listing the just-installed
    pack and its unresolved markers / dropped companions, then chains
    automatically into `agentbundle adapt` (in-process Python call)
    which walks both scopes. The marker file remains on disk until
@@ -170,7 +170,7 @@ destination-path = "docs/guides/how-to/"
 declined-at      = 2026-05-22T10:01:00Z
 ```
 
-User-scope file at `~/.agent-ready/.adapt-discovery.toml`:
+User-scope file at `~/.agentbundle/.adapt-discovery.toml`:
 
 ```toml
 # Written by the adapt-to-project skill only. Read by `agentbundle
@@ -182,7 +182,7 @@ User-scope file at `~/.agent-ready/.adapt-discovery.toml`:
 discovery-schema-version = "0.1"
 
 # Findings observed at user scope: squatters under ~/.claude/,
-# `.upstream.<ext>` companions in ~/.agent-ready/, consolidation
+# `.upstream.<ext>` companions in ~/.agentbundle/, consolidation
 # proposals against user-installed packs. Schema identical to the
 # repo-scope file's findings arrays.
 [[findings.accepted]]
@@ -204,20 +204,25 @@ a fresh repo with no addons yet); a repo-scope file with `[markers]`
 that contains keys violating the lowercase-hyphen grammar is
 refused.
 
-### `.adapt-install-marker.toml` schema (v0.1)
+### `.adapt-install-marker.toml` schema (v0.1 / v0.4)
 
 ```toml
-# Written by `agentbundle install` at the install's scope root after
-# every successful install. Consumed (deleted on read) by the
-# adapt-to-project skill at session start. Surfaced as a one-line
-# nudge by the core pack's session-start hook between writes and
-# consumption. Repo-scope marker is added to the default .gitignore
-# template; user-scope marker is inside ~/.agent-ready/ (not
-# project-tracked).
+# Written by `agentbundle install` (CLI route) or the canonical
+# install-marker.py writer (Claude-plugins route) at the install's scope
+# root after every successful install. Consumed (deleted on read) by the
+# adapt-to-project skill at session start. Surfaced as a one-line nudge
+# by the core pack's session-start hook between writes and consumption.
+# Repo-scope marker is added to the default .gitignore template;
+# user-scope marker is inside ~/.agentbundle/ (not project-tracked).
 #
 # Scope is encoded in the file's location (`<repo>/` vs
-# `~/.agent-ready/`), not as a field — the path is the source of
+# `~/.agentbundle/`), not as a field — the path is the source of
 # truth; a self-describing field would just verify itself.
+#
+# v0.4 schema changes (per docs/specs/claude-plugins-install-route/spec.md):
+#   - install-route field added (optional); read-side default is "cli" when absent.
+#   - unresolved-markers and new-companions are now optional; when absent,
+#     the read side scans the projected primitive tree directly.
 
 marker-schema-version = "0.1"
 
@@ -225,9 +230,21 @@ marker-schema-version = "0.1"
 name               = "monorepo-extras"
 version            = "0.1.0"
 installed-at       = 2026-05-23T14:00:00Z
-unresolved-markers = ["package-manager"]  # repo-scope file only — always [] in user-scope marker
-new-companions     = ["packages/_example/AGENTS.upstream.md"]
+install-route      = "cli"                # optional; "cli" | "claude-plugins"; default "cli" when absent
+unresolved-markers = ["package-manager"]  # optional; repo-scope file only — always [] in user-scope marker
+new-companions     = ["packages/_example/AGENTS.upstream.md"]  # optional
 ```
+
+**v0.4 field summary for `[[packs-installed]]` entries:**
+
+| Field | Required | Type | Notes |
+|---|---|---|---|
+| `name` | yes | basic string | pack name |
+| `version` | yes | basic string | semver |
+| `installed-at` | yes | bare TOML offset-datetime | `YYYY-MM-DDTHH:MM:SSZ`; must round-trip as `datetime.datetime` under `tomllib` |
+| `install-route` | **optional** | basic string | `"cli"` or `"claude-plugins"`; read-side default is `"cli"` when absent (backward-compat with v0.3-era markers) |
+| `unresolved-markers` | **optional** | array of basic strings | when absent, the read side scans the projected primitive tree directly for `<adapt:NAME>` markers |
+| `new-companions` | **optional** | array of basic strings | when absent, the read side scans the projected primitive tree directly for `.upstream.<ext>` companions |
 
 The CLI appends a `[[packs-installed]]` entry on each install via
 `os.replace`-based atomic-rename read-modify-write. Two near-
@@ -312,9 +329,9 @@ genuinely stand alone simply omit the `[pack.dependencies]` table.
   user-scope finding).
 - Honour the **Tier-1 / Tier-2 / Tier-3 file-safety contract** per
   scope. Read **both** state files at session start —
-  `<repo>/.agent-ready-state.toml` (repo scope) and
-  `~/.agent-ready/state.toml` (user scope); per RFC-0004's *State
-  file per scope* rail under `agent-ready-state.toml schema-version
+  `<repo>/.agentbundle-state.toml` (repo scope) and
+  `~/.agentbundle/state.toml` (user scope); per RFC-0004's *State
+  file per scope* rail under `agentbundle-state.toml schema-version
   = "0.2"`. Compute current SHA-256 hashes against each scope's
   installed files; treat divergence as Tier-2 and surface
   explicitly before any write at that scope. Tier-3 paths are
@@ -326,7 +343,7 @@ genuinely stand alone simply omit the `[pack.dependencies]` table.
   declared `allowed-prefixes.user` entries (RFC-0004 § *Path-jail
   per scope, constrained to declared prefixes*). The Claude Code
   adapter's `allowed-prefixes.user` includes `[".claude/",
-  ".agent-ready/"]` per the distribution-adapters spec; the skill
+  ".agentbundle/"]` per the distribution-adapters spec; the skill
   refuses any class-3 destination resolving outside these prefixes
   at user scope.
 - **Dirty-state escalation, per-scope mechanic.**
@@ -335,10 +352,10 @@ genuinely stand alone simply omit the `[pack.dependencies]` table.
     direct one of: **(a)** proceed against the dirty tree (skill
     skips dirty-path proposals); **(b)** stash or commit and
     re-invoke; **(c)** abandon.
-  - **User scope:** `~/.agent-ready/` is not a git repo; dirty-
+  - **User scope:** `~/.agentbundle/` is not a git repo; dirty-
     detection uses content-hash divergence — compare each tracked
     file's current SHA-256 against the value recorded in
-    `~/.agent-ready/state.toml`. Any divergence is named in the
+    `~/.agentbundle/state.toml`. Any divergence is named in the
     same escalation message; the same (a)/(b)/(c) options apply
     (where (b) becomes "manually back up the file and re-invoke").
   - When the skill's own write targets (`.adapt-discovery.toml` or
@@ -462,7 +479,7 @@ Per the work-loop's three-mode taxonomy:
       4. body contains the literal phrase
          `git status --porcelain` (repo-scope dirty-state escalation);
       5. body's *Pre-flight* section contains all three tokens
-         `~/.agent-ready/`, `state.toml`, and `Tier-2` (multi-token
+         `~/.agentbundle/`, `state.toml`, and `Tier-2` (multi-token
          behavioural check — pins that the skill reads the user-
          scope state file for Tier-2 detection, without locking the
          prose to a specific verbatim path).
@@ -599,12 +616,12 @@ Per the work-loop's three-mode taxonomy:
       appear under `[[findings.accepted]]`), **and (d) both scopes'
       `.adapt-install-marker.toml` files are absent** produces
       `git status --porcelain` with zero lines against the repo
-      and zero content-hash divergence under `~/.agent-ready/`.
+      and zero content-hash divergence under `~/.agentbundle/`.
       `.adapt-pending.md` at each scope is byte-identical to the
       prior run's.
 - [x] **AC6 (dirty-state escalation, per scope).** Two fixtures:
       one with pre-staged uncommitted edits to a repo-scope Tier-1
-      file, one with content-hash divergence under `~/.agent-ready/`
+      file, one with content-hash divergence under `~/.agentbundle/`
       against the recorded SHA. In both cases, the skill detects
       the dirty/divergent state at session start, names each
       dirty/divergent path in its first message under separate
@@ -710,8 +727,8 @@ Per the work-loop's three-mode taxonomy:
       `[pack.dependencies.required]`, across scopes).** The CLI's
       `install` flow reads the installing pack's
       `[pack.dependencies.required]` array and resolves it against
-      the **union** of both state files (`<repo>/.agent-ready-state.toml`
-      + `~/.agent-ready/state.toml`). Refusal first-stderr-line:
+      the **union** of both state files (`<repo>/.agentbundle-state.toml`
+      + `~/.agentbundle/state.toml`). Refusal first-stderr-line:
       `install: pack '<name>' requires '<dep>' (version <range>); install <dep> first`.
       Required pack found at *either* scope satisfies the gate.
       SemVer-range grammar: exactly `^\^([0-9]+)\.([0-9]+)$`;
@@ -748,7 +765,7 @@ Per the work-loop's three-mode taxonomy:
         every successful `agentbundle install --pack <name>
         [--scope <s>]`, the CLI appends a `[[packs-installed]]`
         entry to `.adapt-install-marker.toml` at the **install's
-        scope root** (`<repo>/` for repo scope; `~/.agent-ready/`
+        scope root** (`<repo>/` for repo scope; `~/.agentbundle/`
         for user scope). Append via `os.replace` atomic rename.
         The file's *path* encodes scope; no `scope` field is
         written or read (see *§ Install marker schema*).
@@ -761,7 +778,7 @@ Per the work-loop's three-mode taxonomy:
       - **AC19c (`.gitignore` extension).** `agentbundle scaffold`
         lays down a `.gitignore` containing
         `.adapt-install-marker.toml` (repo-scope marker only —
-        user-scope marker lives inside `~/.agent-ready/`, outside
+        user-scope marker lives inside `~/.agentbundle/`, outside
         any repo). T8 has a test.
       - **AC19d (failure-mode robustness).** (i) If
         `<repo>/.adapt-discovery.toml` is absent at install time,
@@ -778,7 +795,7 @@ Per the work-loop's three-mode taxonomy:
       `.adapt-install-marker.toml` at **both** scopes:
       `<repo>/.adapt-install-marker.toml` (path resolved relative
       to the repo root the hook runs in) and
-      `~/.agent-ready/.adapt-install-marker.toml`. The union of
+      `~/.agentbundle/.adapt-install-marker.toml`. The union of
       `[[packs-installed]]` entries from both files is rendered as
       one stdout line in the form
       `=== adapt-to-project: <N> pack(s) pending adaptation across <K> scope(s): <names> — run /adapt-to-project ===`
@@ -820,8 +837,8 @@ Per the work-loop's three-mode taxonomy:
 - [x] **AC22 (skill walks both scopes' state files for Tier-2
       detection; v0.1 detection emits prereq message).** At
       session start the skill reads both
-      `<repo>/.agent-ready-state.toml` (if present) and
-      `~/.agent-ready/state.toml` (if present); enumerates the
+      `<repo>/.agentbundle-state.toml` (if present) and
+      `~/.agentbundle/state.toml` (if present); enumerates the
       packs installed at each scope; for each scope's installed
       packs, recomputes SHA-256 hashes of the recorded file paths;
       surfaces every Tier-2 divergence under a scope-tagged
@@ -870,6 +887,37 @@ Per the work-loop's three-mode taxonomy:
       the Class 3 section). End-to-end exercise of both
       same-scope halves is deferred to AC4b row 28 under the
       user-scope-pack trigger.
+- [ ] **AC24 — read-side fallback contract.** When
+      `unresolved-markers` or `new-companions` are absent on a
+      `[[packs-installed]]` entry, the skill scans the projected
+      primitive tree for `<adapt:NAME>` markers and
+      `.upstream.<ext>` companions directly. Pinned by the
+      skill-body grep set (AC15 grep #4 of
+      `docs/specs/claude-plugins-install-route/spec.md` names the
+      operative dedupe rule) plus the marker-schema round-trip tests
+      added in T3 of that plan (a v0.4-shape entry missing both
+      fields parses cleanly).
+- [ ] **AC25 — proactive cache-scan idempotence (grep-pinned).**
+      When both a marker entry and a cache-resident pack root are
+      present in one session for the same pack, the skill must not
+      double-adapt. Pinned by SKILL.md body greps #3
+      (`do not double-adapt`) and #4 (`if a marker entry is
+      present, do not synthesise a second adaptation`) per AC15 of
+      `docs/specs/claude-plugins-install-route/spec.md`. End-to-end
+      verification is the manual-QA matrix row added by AC19 of
+      that spec. There is no programmatic skill-execution harness
+      in v1; the spec explicitly accepts grep + manual-QA as v1
+      verification for this LLM-judgment behaviour.
+- [ ] **AC26 — stale-entry drop-on-read.** When a
+      `[[packs-installed]]` entry's pack is no longer present in
+      any cache directory and not recorded in any scope's state
+      file, the skill silently drops the entry on read — no nudge,
+      no proposal queue entry. Pinned by the SKILL.md body grep
+      `silently drops the entry` (added by T6 of
+      `docs/specs/claude-plugins-install-route/plan.md`).
+      Programmatic verification is deferred to the Claude-plugins
+      uninstall handling RFC (per RFC-0008 §Unresolved questions Q2
+      — explicitly forward-referenced).
 
 ## Changelog
 
@@ -963,3 +1011,5 @@ Per the work-loop's three-mode taxonomy:
   but interactive method-(c) transcripts for repo-scope class-2/3/4
   transitions and user-scope LLM-judgment rows are pending their
   named triggers.
+- 2026-05-24: install-marker schema gains optional install-route field; unresolved-markers and new-companions marked optional per docs/specs/claude-plugins-install-route/spec.md.
+- 2026-05-25: AC24/AC25/AC26 added per docs/specs/claude-plugins-install-route/spec.md — read-side fallback for v0.4 markers, proactive cache-scan idempotence, stale-entry drop-on-read.

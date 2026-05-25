@@ -14,7 +14,7 @@ Closes:
   ``add-credentialed-skill`` template's ``credentialed-cli`` variant
   so a drift in either ships as a test failure.
 - AC29 *cli.py imports the loader* — ``scripts/cli.py`` references
-  ``agent_ready.credentials.load_credentials``.
+  ``agentbundle.credentials.load_credentials``.
 - AC29 *cli.py refuses argv-ban flags* — invoking with ``--token=x``
   exits non-zero with the argparse-default ``unrecognized arguments``
   shape (the lint enforces the *absence* of the flag in the parser
@@ -262,7 +262,7 @@ def test_dont_block_matches_credentialed_cli_template():
 def test_cli_imports_load_credentials():
     """AC29: ``scripts/cli.py`` imports the public-shim loader."""
     text = (SKILL_DIR / "scripts" / "cli.py").read_text(encoding="utf-8")
-    assert "from agent_ready.credentials import" in text
+    assert "from agentbundle.credentials import" in text
     assert "load_credentials" in text
 
 
@@ -292,7 +292,7 @@ def test_cli_catches_tier2_hard_fail_with_friendly_stderr(
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
 
-    from agent_ready.credentials import Tier2HardFailError
+    from agentbundle.credentials import Tier2HardFailError
 
     def boom(*a, **kw):
         raise Tier2HardFailError("keychain locked")

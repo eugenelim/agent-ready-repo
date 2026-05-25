@@ -9,7 +9,7 @@ Iterates the pack's `seeds/` subdirectory recursively. For each file:
                                          untouched.
 
 Every write routes through `safety.write_jailed` (path-jail is non-optional).
-`scaffold` does NOT write `.agent-ready-state.toml` — that is `install`'s job.
+`scaffold` does NOT write `.agentbundle-state.toml` — that is `install`'s job.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     # Load existing state from the output dir (may be absent — returns empty State).
-    state_path = output / ".agent-ready-state.toml"
+    state_path = output / ".agentbundle-state.toml"
     state: State = load_state(state_path)
 
     for seed_file in sorted(seeds_dir.rglob("*")):

@@ -8,7 +8,7 @@ and Tier-2 detection to two deterministic primitives:
   AC1 grep #4 / `test_body_names_dirty_state_command`).
 - User-scope Tier-2 / dirty-state: content-hash divergence between
   the current bytes of a tracked file and the SHA-256 recorded in
-  `~/.agent-ready/state.toml` (skill body line documented; pinned
+  `~/.agentbundle/state.toml` (skill body line documented; pinned
   by AC22 grep / `test_body_pre_flight_section_references_user_scope_state`).
 
 These tests exercise the primitives end-to-end against fixtures
@@ -167,15 +167,15 @@ def test_user_scope_tier2_content_hash_divergence_detected(tmp_path: Path):
     signal.
 
     Mirrors the skill's user-scope Pre-flight step:
-    > User scope: ~/.agent-ready/ is not a git repo; dirty-detection
+    > User scope: ~/.agentbundle/ is not a git repo; dirty-detection
     > uses content-hash divergence — compare each tracked file's
     > current SHA-256 against the value recorded in
-    > ~/.agent-ready/state.toml.
+    > ~/.agentbundle/state.toml.
 
     The primitive is scope-agnostic: the same `sha256_bytes(actual)
     != recorded` comparison fires at repo scope (against
-    `.agent-ready-state.toml`) and at user scope (against
-    `~/.agent-ready/state.toml`). We exercise it once against the
+    `.agentbundle-state.toml`) and at user scope (against
+    `~/.agentbundle/state.toml`). We exercise it once against the
     user-scope fixture path-jail.
 
     Deliberately does not round-trip the `recorded_sha` through
@@ -185,12 +185,12 @@ def test_user_scope_tier2_content_hash_divergence_detected(tmp_path: Path):
     """
     user_home = tmp_path / "user-home"
     shutil.copytree(USER_HOME, user_home)
-    agent_ready = user_home / ".agent-ready"
+    agentbundle = user_home / ".agentbundle"
 
     # Seed a tracked file under the user-scope path-jail. The path
     # mirrors the kind of primitive a user-scope pack would project
     # once one exists; the primitive being tested is path-agnostic.
-    tracked = agent_ready / ".claude" / "agents" / "bot.md"
+    tracked = agentbundle / ".claude" / "agents" / "bot.md"
     tracked.parent.mkdir(parents=True, exist_ok=True)
     seeded_bytes = b"# bot\nseeded content\n"
     tracked.write_bytes(seeded_bytes)

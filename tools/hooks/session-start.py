@@ -22,7 +22,7 @@ Wiring lives in each tool's hook surface (Claude Code:
 Fixture mode:
   KNOWLEDGE_FILE=<path>     read a different knowledge file
   ADAPT_REPO_MARKER=<path>  override repo-scope marker (default: repo_root/.adapt-install-marker.toml)
-  ADAPT_USER_MARKER=<path>  override user-scope marker (default: ~/.agent-ready/.adapt-install-marker.toml)
+  ADAPT_USER_MARKER=<path>  override user-scope marker (default: ~/.agentbundle/.adapt-install-marker.toml)
 """
 
 from __future__ import annotations
@@ -215,7 +215,7 @@ def main(argv: list[str]) -> int:
     user_marker = Path(
         os.environ.get(
             "ADAPT_USER_MARKER",
-            str(Path.home() / ".agent-ready" / ".adapt-install-marker.toml"),
+            str(Path.home() / ".agentbundle" / ".adapt-install-marker.toml"),
         )
     )
     _emit_adapt_nudge(repo_marker, user_marker)
