@@ -416,7 +416,7 @@ def _write_tmp(test: unittest.TestCase, text: str) -> Path:
 
     fd_dir = tempfile.mkdtemp()
     test.addCleanup(__import__("shutil").rmtree, fd_dir, ignore_errors=True)
-    path = Path(fd_dir) / ".agent-ready-state.toml"
+    path = Path(fd_dir) / ".agentbundle-state.toml"
     path.write_text(text, encoding="utf-8")
     return path
 
@@ -427,7 +427,7 @@ def _write_state_in_repo(test: unittest.TestCase, text: str) -> tuple[Path, Path
 
     repo = Path(tempfile.mkdtemp())
     test.addCleanup(__import__("shutil").rmtree, str(repo), ignore_errors=True)
-    state_path = repo / ".agent-ready-state.toml"
+    state_path = repo / ".agentbundle-state.toml"
     state_path.write_text(text, encoding="utf-8")
     return repo, state_path
 

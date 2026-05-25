@@ -96,7 +96,7 @@ def test_whole_pack_upgrade_updates_version_and_content(tmp_path):
     assert rc == 0, "whole-pack upgrade must succeed"
 
     # installed-version must be updated.
-    state = load_state(tmp_path / ".agent-ready-state.toml")
+    state = load_state(tmp_path / ".agentbundle-state.toml")
     assert state.packs["core"].installed_version == "0.2.0"
 
     # All projected files must now have 0.2.0 content.
@@ -177,7 +177,7 @@ def test_per_primitive_upgrade_moves_only_matching_files(
         )
 
     # State must have primitive_versions entry.
-    state = load_state(tmp_path / ".agent-ready-state.toml")
+    state = load_state(tmp_path / ".agentbundle-state.toml")
     pv = state.packs["core"].primitive_versions
     assert prim_type in pv, f"primitive_versions must contain {prim_type!r}"
     assert pv[prim_type].get(prim_name) == "0.2.0", (

@@ -84,7 +84,7 @@ def test_install_refuses_malformed_pack_name(tmp_path, capsys):
     assert "invalid" in captured.err.lower()
     assert "name" in captured.err.lower()
     # No state file landed before refusal.
-    assert not (output / ".agent-ready-state.toml").exists()
+    assert not (output / ".agentbundle-state.toml").exists()
     assert not (output / ".adapt-install-marker.toml").exists()
 
 
@@ -109,7 +109,7 @@ def test_install_refuses_malformed_pack_version(tmp_path, capsys):
     assert rc != 0, "install must refuse a malformed pack.version"
     assert "invalid" in captured.err.lower()
     assert "version" in captured.err.lower()
-    assert not (output / ".agent-ready-state.toml").exists()
+    assert not (output / ".agentbundle-state.toml").exists()
     assert not (output / ".adapt-install-marker.toml").exists()
 
 
@@ -136,7 +136,7 @@ def test_install_refuses_pack_version_with_injection_payload(
 
     assert rc != 0
     assert "invalid" in captured.err.lower()
-    assert not (output / ".agent-ready-state.toml").exists()
+    assert not (output / ".agentbundle-state.toml").exists()
 
 
 def test_assert_pack_metadata_shape_refuses_projection_relpath_with_quote(
@@ -239,7 +239,7 @@ def test_assert_pack_metadata_shape_refuses_non_semver_versions(version):
     "name",
     [
         "core",
-        "agent-ready",
+        "agentbundle",
         "user-guide-diataxis",
         "a",
         "a1",

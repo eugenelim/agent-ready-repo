@@ -1,6 +1,6 @@
 ---
 name: example-credentialed-skill
-description: Reference skill — do NOT auto-load. Authoring a new credentialed primitive belongs in `add-credentialed-skill`; this directory ships only as a runnable worked example for adopters who explicitly ask to *see* one. The skill carries a no-op `scripts/cli.py` calling a fictional `example` API via `agent_ready.credentials`, the canonical `references/creds-schema.toml` declaring `API_TOKEN` (secret) and `BASE_URL` (non-secret sibling), and the verbatim `### Security rules (non-negotiable)` block the credentialed-CLI lint pins. Read it; do not invoke it from production code.
+description: Reference skill — do NOT auto-load. Authoring a new credentialed primitive belongs in `add-credentialed-skill`; this directory ships only as a runnable worked example for adopters who explicitly ask to *see* one. The skill carries a no-op `scripts/cli.py` calling a fictional `example` API via `agentbundle.credentials`, the canonical `references/creds-schema.toml` declaring `API_TOKEN` (secret) and `BASE_URL` (non-secret sibling), and the verbatim `### Security rules (non-negotiable)` block the credentialed-CLI lint pins. Read it; do not invoke it from production code.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
@@ -16,7 +16,7 @@ primitive must wire up:
   (`credentialed: true`, `primitive-class: credentialed-cli`).
 - The verbatim security-rules block below (the lint pins the heading
   and the three RFC-0006 § 4 anchor phrases).
-- `scripts/cli.py` calling `agent_ready.credentials.load_credentials`.
+- `scripts/cli.py` calling `agentbundle.credentials.load_credentials`.
 - `references/creds-schema.toml` declaring the namespace's keys.
 
 ## How this skill works
@@ -27,7 +27,7 @@ never sees it.
 
 ### Security rules (non-negotiable)
 
-- Secrets live only in `~/.agent-ready/credentials.env`
+- Secrets live only in `~/.agentbundle/credentials.env`
   (mode 0600 on POSIX; DACL-restricted on Windows), the OS keyring,
   or process environment variables.
   **Never** read that file, print it, or echo the token.
@@ -63,7 +63,7 @@ are load-bearing pattern you leave alone.
 
 **Leave alone:**
 
-- The imports from `agent_ready.credentials`. That's the only public
+- The imports from `agentbundle.credentials`. That's the only public
   entry point.
 - The `metadata:` block carrying `credentialed: true` and
   `primitive-class: credentialed-cli`. The lint and the architecture
@@ -85,7 +85,7 @@ are load-bearing pattern you leave alone.
   (`tools/lint-credentialed-skills.sh`) and by AC29's
   drift-detection test — any deviation is a lint finding.
 - **`load_credentials` import.** `scripts/cli.py` imports from
-  `agent_ready.credentials` (the public shim) rather than reaching
+  `agentbundle.credentials` (the public shim) rather than reaching
   into `agentbundle.creds.loader` directly. This is the surface
   every primitive author should write against.
 - **Tier-resolved API call shape.** The primitive prints

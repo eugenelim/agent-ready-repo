@@ -80,7 +80,7 @@ def test_brownfield_install_adapt_diff_round_trip(tmp_path: Path):
     rc = _install(tmp_path)
     assert rc == 0
     # State file exists; Tier-2 companion dropped; adopter file unchanged.
-    assert (tmp_path / ".agent-ready-state.toml").exists()
+    assert (tmp_path / ".agentbundle-state.toml").exists()
     assert (tmp_path / TIER2_PATH).read_bytes() == b"# adopter-edited reviewer agent\n"
     companion = tmp_path / "apm/core/.apm/agents/reviewer.upstream.md"
     assert companion.exists(), "install should drop a .upstream.<ext> companion"

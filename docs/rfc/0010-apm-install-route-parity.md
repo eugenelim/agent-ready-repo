@@ -144,7 +144,7 @@ APM installs to one of two locations per
 | APM scope                     | CLI invocation             | Marker file                                 |
 | ----------------------------- | -------------------------- | ------------------------------------------- |
 | Project (default)             | `apm install <source>/<pack>`         | `<repo>/.adapt-install-marker.toml`         |
-| User (`--global`)             | `apm install -g <source>/<pack>`      | `~/.agent-ready/.adapt-install-marker.toml` |
+| User (`--global`)             | `apm install -g <source>/<pack>`      | `~/.agentbundle/.adapt-install-marker.toml` |
 
 The writer detects which by inspecting whether the projected hook
 sits under the current working tree (project) or under `$HOME`
@@ -675,7 +675,7 @@ no design change required today.
 8. **APM `apm-policy.yml` interaction.** Adopter organisations
    may enforce APM policy that disallows hooks writing outside
    `${PLUGIN_ROOT}` (the writer writes to `<repo>/` or
-   `~/.agent-ready/` by design). Does parity require an APM
+   `~/.agentbundle/` by design). Does parity require an APM
    policy whitelist gesture documented per pack?
    **Author lean:** out of scope for this RFC; reference RFC-0008
    §Drawbacks *Marketplace-review friction risk* for the analogous

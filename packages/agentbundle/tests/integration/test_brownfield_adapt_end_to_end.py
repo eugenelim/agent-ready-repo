@@ -44,7 +44,7 @@ def _setup_brownfield(tmp_path: Path) -> Path:
         }
     state = State()
     state.packs["core"] = PackState(installed_version="0.1.0", files=files)
-    (work / ".agent-ready-state.toml").write_text(
+    (work / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"
     )
     # Hand-write the canonical discovery file with [markers].
@@ -164,7 +164,7 @@ def test_pending_report_byte_identical_with_multiple_companions(tmp_path):
 
     state = State()
     state.packs["core"] = PackState(installed_version="0.1.0", files=files)
-    (work / ".agent-ready-state.toml").write_text(
+    (work / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"
     )
     (work / ".adapt-discovery.toml").write_text(

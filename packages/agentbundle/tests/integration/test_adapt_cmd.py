@@ -49,7 +49,7 @@ def _run(
 # ---------------------------------------------------------------------------
 
 def _setup_projected(tmp_path: Path, files: dict[str, str]) -> None:
-    """Write files and seed a .agent-ready-state.toml recording them."""
+    """Write files and seed a .agentbundle-state.toml recording them."""
     from agentbundle.config import PackState, State, dump_state
     from agentbundle.safety import sha256_bytes
 
@@ -70,7 +70,7 @@ def _setup_projected(tmp_path: Path, files: dict[str, str]) -> None:
         installed_version="0.1.0",
         files=file_entries,
     )
-    (tmp_path / ".agent-ready-state.toml").write_text(
+    (tmp_path / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"
     )
 
@@ -295,7 +295,7 @@ def test_binary_file_skipped_without_error(tmp_path):
         installed_version="0.1.0",
         files={"data.bin": {"sha": sha256_bytes(binary_content), "from-pack-version": "0.1.0"}},
     )
-    (tmp_path / ".agent-ready-state.toml").write_text(dump_state(state), encoding="utf-8")
+    (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
     (tmp_path / "data.bin").write_bytes(binary_content)
 
     values_path = ADAPT_FIXTURES / "values.toml"

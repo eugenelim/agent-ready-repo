@@ -28,8 +28,8 @@ surfaces:
 - **Definitional (T1)** — ADR-0002 amendment freezing the narrow
   "hook-shaped" definition the spec depends on. Single-file edit;
   lands in this spec PR alongside the spec itself.
-- **Runtime library (T2–T7)** — `agent_ready.credentials` loader
-  (shim package at `packages/agentbundle/agent_ready/` re-exporting
+- **Runtime library (T2–T7)** — `agentbundle.credentials` loader
+  (shim package at `packages/agentbundle/agentbundle/` re-exporting
   from `agentbundle.creds.loader`), the stdlib `.env` parser,
   per-platform Tier-2 backends (`_keychain_macos.py` subprocess
   wrapper; `_credman_windows.py` ctypes wrapper, dispatch
@@ -37,7 +37,7 @@ surfaces:
   dotfile read/write, and the `creds-schema.toml` parser. All
   library code under `packages/agentbundle/agentbundle/creds/`.
   `pyproject.toml`'s `tool.setuptools.packages.find.include` is
-  extended in T3 so the `agent_ready` shim ships with the wheel.
+  extended in T3 so the `agentbundle` shim ships with the wheel.
   TDD throughout — the contract is small and the failure modes
   are concrete.
 - **CLI surface (T8)** — `agentbundle creds setup`/`check`/`where`/`rm`
@@ -94,8 +94,8 @@ independently.
   pack source-tree layout (`.apm/skills/<name>/SKILL.md`, `assets/`,
   `references/`, `scripts/`); SKILL.md frontmatter schema.
 - [`adapt-to-project` spec](../adapt-to-project/spec.md) — dual-scope
-  state-file walk shape (`<repo>/.agent-ready-state.toml` +
-  `~/.agent-ready/state.toml`) for namespace enumeration in T8.
+  state-file walk shape (`<repo>/.agentbundle-state.toml` +
+  `~/.agentbundle/state.toml`) for namespace enumeration in T8.
 
 ## Construction tests
 
@@ -191,7 +191,7 @@ test file: `packages/agentbundle/tests/unit/test_credentials_parser.py`)
 
 **Done when:** all 9 parser tests pass; no third-party imports.
 
-### T3: `agent_ready.credentials` loader API + Tier-1 env-var backend
+### T3: `agentbundle.credentials` loader API + Tier-1 env-var backend
 
 **Depends on:** T2
 
@@ -209,16 +209,16 @@ test file: `packages/agentbundle/tests/unit/test_credentials_loader.py`)
 - *Missing required key* raises `CredentialsMissingError` naming
   the namespace and the missing key list. [AC3]
 - *`Credentials` is immutable* — attribute assignment raises.
-- *Public surface:* `agent_ready.credentials` re-exports
+- *Public surface:* `agentbundle.credentials` re-exports
   `load_credentials`, `Credentials`, `CredentialsMissingError`,
   `Tier2HardFailError`; nothing else.
 - *Wheel installability:* an integration test runs
   `python -m pip install --target {tmp_path}/site
   packages/agentbundle`, then `PYTHONPATH={tmp_path}/site
-  python -c "from agent_ready.credentials import load_credentials"`,
+  python -c "from agentbundle.credentials import load_credentials"`,
   and asserts exit 0. Runs on every CI platform. [AC4c]
 - *Platform dispatch:* a test monkeypatches `sys.platform = "linux"`,
-  reloads `agent_ready.credentials`, asserts neither
+  reloads `agentbundle.credentials`, asserts neither
   `agentbundle.creds._keychain_macos` nor
   `agentbundle.creds._credman_windows` are in `sys.modules`. [AC4b]
 
@@ -233,14 +233,14 @@ test file: `packages/agentbundle/tests/unit/test_credentials_loader.py`)
 - Define exception hierarchy in
   `packages/agentbundle/agentbundle/creds/exceptions.py`.
 - Create shim package
-  `packages/agentbundle/agent_ready/__init__.py` (empty) and
-  `packages/agentbundle/agent_ready/credentials.py` (re-exports
+  `packages/agentbundle/agentbundle/__init__.py` (empty) and
+  `packages/agentbundle/agentbundle/credentials.py` (re-exports
   from `agentbundle.creds.loader`) so
-  `from agent_ready.credentials import load_credentials` resolves
+  `from agentbundle.credentials import load_credentials` resolves
   for credentialed-primitive authors.
 - **Edit `packages/agentbundle/pyproject.toml`**:
   `[tool.setuptools.packages.find] include` becomes
-  `["agentbundle*", "agent_ready*"]`. Without this edit, the shim
+  `["agentbundle*", "agentbundle*"]`. Without this edit, the shim
   is not picked up by `pip install` and AC4c fails.
 
 **Done when:** all tests pass; the wheel-install test confirms the
@@ -263,17 +263,17 @@ skipped on non-Darwin)
   are absent. [AC6]
 - *`find-generic-password` shape:* mocked subprocess assertion that
   argv is `["/usr/bin/security", "find-generic-password", "-s",
-  "agent-ready", "-a", "<namespace>:<key>", "-w"]`. [AC6]
+  "agentbundle", "-a", "<namespace>:<key>", "-w"]`. [AC6]
 - *`add-generic-password` shape:* mocked subprocess assertion that
   argv is `["/usr/bin/security", "add-generic-password", "-U",
-  "-s", "agent-ready", "-a", "<namespace>:<key>", "-w"]` with no
+  "-s", "agentbundle", "-a", "<namespace>:<key>", "-w"]` with no
   trailing token argument; token passes via `stdin=PIPE`. [AC6]
 - *Missing credential:* `read_credential` on an unset namespace
   returns `None` (the resolver falls through). [AC8 inverse]
 - *Non-Darwin platforms:* per AC4b/AC8, the module is **not
   imported** when `sys.platform != "darwin"`. A loader-level test
   asserts `agentbundle.creds._keychain_macos` is absent from
-  `sys.modules` after a fresh import of `agent_ready.credentials`
+  `sys.modules` after a fresh import of `agentbundle.credentials`
   under monkeypatched `sys.platform = "linux"`.
 - *Test isolation:* every test creates a `tmp_path`-scoped Keychain
   via `security create-keychain`, exports `KEYCHAIN_PATH`, and
@@ -311,7 +311,7 @@ skipped on non-Windows)
 - *Round-trip byte-equality:* write a value, read it,
   `assert read_back == value.encode("utf-16-le")`. [AC10]
 - *Target-name convention:* assert the `TargetName` field on a
-  written credential is exactly `"agent-ready:<namespace>:<key>"`.
+  written credential is exactly `"agentbundle:<namespace>:<key>"`.
   [AC9]
 - *`UserName` field:* assert the `UserName` field is the namespace
   string. [AC9]
@@ -335,7 +335,7 @@ skipped on non-Windows)
   imported** when `sys.platform != "win32"`. Parallel
   assertion-style test to T4's non-Darwin case.
 - *Test isolation:* every test uses a target-name prefix derived
-  from `tmp_path` (`f"agent-ready-test-{tmp_path.name}:..."`),
+  from `tmp_path` (`f"agentbundle-test-{tmp_path.name}:..."`),
   guaranteeing no collision with a developer's real Credential
   Manager entries; `delete_credential` runs in teardown.
 
@@ -370,7 +370,7 @@ assertions guarded by `@pytest.mark.skipif(sys.platform != "win32",
 ...)`. Tests platform-agnostic to the dotfile shape — path
 resolution, atomic write, fallback semantics — run unguarded.)
 
-- *Path resolves* to `pathlib.Path.home() / ".agent-ready" /
+- *Path resolves* to `pathlib.Path.home() / ".agentbundle" /
   "credentials.env"` with `$HOME` redirected to `tmp_path`. [AC13]
 - *Atomic write:* monkeypatch `os.replace` to record the temp-file
   path; assert the temp file lives in the target directory (not in
@@ -381,7 +381,7 @@ resolution, atomic write, fallback semantics — run unguarded.)
   parent, assert `path.stat().st_mode & 0o777 == 0o600` and
   `parent.stat().st_mode & 0o777 == 0o700`. [AC15]
 - *POSIX shared-parent behavior:* on POSIX, create the parent first
-  with mode `0o755` (simulating a brownfield `~/.agent-ready/`
+  with mode `0o755` (simulating a brownfield `~/.agentbundle/`
   shared with RFC-0004 install state), write the credentials file,
   assert the helper **does not rewrite** the parent's mode (mode
   stays `0o755`) but emits a stderr warning naming the permissive
@@ -608,7 +608,7 @@ test file: `packages/agentbundle/tests/integration/test_conventions_check_creds.
   `add_argument("--bearer-header", ...)` is clean.
 - *Dotfile substring in skill scripts:* fixture skill with
   `scripts/leak.py` containing
-  `open(os.path.expanduser("~/.agent-ready/credentials.env"))` —
+  `open(os.path.expanduser("~/.agentbundle/credentials.env"))` —
   lint reports the architectural violation. [AC26(c)]
 - *Opt-out marker:* same fixture with
   `# credentialed-primitive: reads-creds-directly` on the same line
@@ -651,7 +651,7 @@ test file: `packages/agentbundle/tests/integration/test_conventions_check_creds.
 - **AC26(c) — dotfile-substring + opt-out comment.** Per-line
   substring scan of every `scripts/**/*.py` file under a
   `credentialed: true` skill, looking for
-  `.agent-ready/credentials.env`. A line containing the substring
+  `.agentbundle/credentials.env`. A line containing the substring
   is skipped iff the literal opt-out comment
   `# credentialed-primitive: reads-creds-directly` appears on
   the same line (comparison after `str.rstrip()`). Otherwise →
@@ -720,7 +720,7 @@ test file: `packages/agentbundle/tests/integration/test_example_credentialed_ski
   `tools/lint-agent-artifacts.sh`. [AC29]
 - *SKILL.md body:* contains the verbatim credentialed-CLI "Don't"
   block from `add-credentialed-skill`'s template. [AC29]
-- *`scripts/cli.py` imports* `agent_ready.credentials.load_credentials`
+- *`scripts/cli.py` imports* `agentbundle.credentials.load_credentials`
   and refuses argv-ban flags (asserts `SystemExit` non-zero when
   invoked with `--token=x`). [AC29]
 - *`references/creds-schema.toml`* declares two keys —

@@ -87,14 +87,14 @@ def run(args: "argparse.Namespace") -> int:
     # If the pack is at both scopes, --scope is required; at one scope, infer.
     from agentbundle import scope as scope_mod
 
-    repo_state_path = root / ".agent-ready-state.toml"
+    repo_state_path = root / ".agentbundle-state.toml"
     repo_state_for_check = load_state(repo_state_path)
     installed_at_repo = pack_name in repo_state_for_check.packs
     user_state_path = None
     installed_at_user = False
     try:
         user_root_resolved = scope_mod.resolve_user_root()
-        user_state_path = user_root_resolved / ".agent-ready" / "state.toml"
+        user_state_path = user_root_resolved / ".agentbundle" / "state.toml"
         user_state_for_check = load_state(user_state_path)
         installed_at_user = pack_name in user_state_for_check.packs
     except scope_mod.UserScopeUnresolvable:
@@ -110,7 +110,7 @@ def run(args: "argparse.Namespace") -> int:
 
     # Effective scope is "user" only when the CLI explicitly asked or
     # the pack is installed at user only. At user scope, `root` is the
-    # user's home and the state file is `<root>/.agent-ready/state.toml`.
+    # user's home and the state file is `<root>/.agentbundle/state.toml`.
     effective_scope = "repo"
     user_prefixes: list[str] | None = None
     if cli_scope == "user" or (cli_scope is None and installed_at_user and not installed_at_repo):
@@ -175,12 +175,12 @@ def run(args: "argparse.Namespace") -> int:
 
     # ── Load current state ────────────────────────────────────────────────────
     # upgrade is a write — refuse-and-explain on a v0.1 file (RFC-0004).
-    # At user scope, the state file lives at `<root>/.agent-ready/state.toml`,
-    # not the repo-style `<root>/.agent-ready-state.toml`.
+    # At user scope, the state file lives at `<root>/.agentbundle/state.toml`,
+    # not the repo-style `<root>/.agentbundle-state.toml`.
     if effective_scope == "user":
         state_path = user_state_path  # already resolved above
     else:
-        state_path = root / ".agent-ready-state.toml"
+        state_path = root / ".agentbundle-state.toml"
     try:
         state = load_state(state_path, for_write=True)
     except ConfigError as exc:
