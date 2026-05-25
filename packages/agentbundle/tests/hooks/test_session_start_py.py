@@ -14,6 +14,7 @@ self-sufficient and the parity net per the windows-hooks-phase3 spec.
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
 import sys
@@ -23,6 +24,14 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "session-start.py"
+
+
+def _load_hook_module():
+    """Load session-start.py as a module so helpers can be called in-process."""
+    spec = importlib.util.spec_from_file_location("session_start", HOOK)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _run(env_overrides: dict, *args: str) -> subprocess.CompletedProcess:
@@ -161,3 +170,70 @@ def test_session_start_unknown_arg() -> None:
     result = _run(_isolated_env(), "--frobnicate")
     assert result.returncode == 2
     assert "unknown argument" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# AC12 / AC14: v0.4 marker reader tolerance via _pack_names_from_marker
+# ---------------------------------------------------------------------------
+
+
+def test_v04_marker_omits_unresolved_markers_and_new_companions(
+    tmp_path: Path,
+) -> None:
+    """AC12 + AC14: a v0.4-shape marker carrying only name/version/installed-at
+    /install-route (no unresolved-markers, no new-companions) must (a) parse
+    cleanly through tomllib and (b) yield the pack name from
+    _pack_names_from_marker unchanged.
+
+    This pins that the v0.4 field relaxation does not break the existing core
+    session-start nudge reader."""
+    marker = tmp_path / ".adapt-install-marker.toml"
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "core"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-24T10:00:00Z\n"
+        'install-route = "claude-plugins"\n',
+        encoding="utf-8",
+    )
+
+    import tomllib
+
+    # (a) parses cleanly; no unresolved-markers / new-companions keys present
+    parsed = tomllib.loads(marker.read_text(encoding="utf-8"))
+    entry = parsed["packs-installed"][0]
+    assert "unresolved-markers" not in entry
+    assert "new-companions" not in entry
+    assert entry["install-route"] == "claude-plugins"
+
+    # (b) _pack_names_from_marker returns the pack name correctly
+    mod = _load_hook_module()
+    names = mod._pack_names_from_marker(marker)
+    assert names == ["core"]
+
+
+def test_v03_marker_still_parses_under_v04_reader(tmp_path: Path) -> None:
+    """AC12: a v0.3-shape marker (unresolved-markers and new-companions present,
+    no install-route) must be read correctly by the v0.4-era
+    _pack_names_from_marker helper — backward-compat with pre-PR markers.
+
+    The read-side rule is 'treat absence as install-route = cli'; this test
+    pins that the reader is not destabilised by the missing optional field."""
+    marker = tmp_path / ".adapt-install-marker.toml"
+    marker.write_text(
+        'marker-schema-version = "0.1"\n'
+        "\n"
+        "[[packs-installed]]\n"
+        'name = "core"\n'
+        'version = "0.1.0"\n'
+        "installed-at = 2026-05-24T10:00:00Z\n"
+        "unresolved-markers = []\n"
+        "new-companions = []\n",
+        encoding="utf-8",
+    )
+
+    mod = _load_hook_module()
+    names = mod._pack_names_from_marker(marker)
+    assert names == ["core"]
