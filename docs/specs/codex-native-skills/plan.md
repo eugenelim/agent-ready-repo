@@ -409,12 +409,17 @@ routing)
   same-name fixture pair through each of the two adapters'
   `project_packs`; assert the AC6 last-wins rule holds for
   both. [AC6 — claude-code and kiro cases]
-- *`self_host.py` routes through `project_packs`*: a test
-  inspects `self_host._run_direct_self_host_adapters` (or its
-  current symbol — verify) and asserts the body calls
-  `project_packs([pack.path for pack in packs], ...)` rather
-  than `for pack in packs: project(pack.path, ...)`. Either a
-  source-text assertion or a mock-based invocation test. [AC8]
+- *`self_host.py` routes through `project_packs`*: a
+  **mock-based invocation test** patches the per-adapter
+  `project_packs` attribute on each module in `SELF_HOST_ADAPTERS`
+  (`claude_code` and `codex` only — kiro is excluded from self-host
+  per AC8) and runs the self-host entry point; the test asserts
+  each patched mock was called exactly once with
+  `[pack.path for pack in packs]` as the first positional arg. A
+  source-text assertion is rejected because a refactor that
+  preserved the contract but changed the call shape (helper, comp.
+  expression) would break the source-text grep without breaking
+  behaviour. [AC8]
 
 **Approach:**
 
@@ -428,8 +433,11 @@ routing)
   ```
   Same shape in `kiro.py`.
 - In `self_host.py` (currently lines 185-198), replace the
-  per-pack inner loop with a `project_packs` call. **Reuse the
-  existing module-keyed `registry`** in
+  per-pack inner loop with a `project_packs` call. `SELF_HOST_ADAPTERS`
+  (`self_host.py:70` — `("claude-code", "codex")`) is the routing
+  allow-list and is **not** widened by this spec; kiro stays out of
+  self-host per AC8. **Reuse the existing module-keyed `registry`**
+  in
   `packages/agentbundle/agentbundle/build/adapters/__init__.py:24-29`
   (`{"claude_code": claude_code, "kiro": kiro, ...}` — Python
   module names) — do NOT add a third dict. The existing
@@ -463,6 +471,14 @@ routing)
   `project_packs([pack_path], ...)`. Existing callers of
   `claude_code.project(pack_path, ...)` and
   `kiro.project(pack_path, ...)` continue to work unchanged.
+  Known in-tree callers as of 2026-05-25:
+  (1) `self_host.py` (refactored by this task);
+  (2) `packages/agentbundle/agentbundle/commands/install.py:1114,1116`
+  (`_rewrite_user_scope_hook_paths` invokes them against a tempdir
+  for hook-path rewriting). Caller (2) stays on the single-pack
+  wrapper and is not refactored. Pre-T5 verification fires the two
+  `rg` sweeps from AC9; any new caller surfaced is enumerated in
+  the PR.
 
 **Done when:** all listed tests pass; `self_host.py` routes all
 three adapters through `project_packs`; existing `project()`
@@ -635,6 +651,17 @@ no other helpers are added to the module (per the spec's
   every-`direct-directory` post-pass. The `_skill_direct_directory_target`
   helper guards this by name: it explicitly checks
   `entry["primitive"] == "skill"`.
+- **Deliberate duplication of `_skill_direct_directory_target`
+  across `claude_code.py` and `kiro.py`.** The spec's `Never do`
+  boundary forbids expanding `projections/direct_directory.py`
+  beyond `sweep_orphans`, so consolidating the target-resolution
+  helper into a shared module is barred. The two copies must stay
+  in lockstep; each one carries a single-line cross-reference
+  comment pointing at its sibling
+  (`# Mirror of kiro.py:_skill_direct_directory_target; keep in
+  sync.` in `claude_code.py`, inverse in `kiro.py`) so a future
+  maintainer touching one sees the other. A shared helper is a
+  future RFC, not this spec.
 - **Why the helper, not refactor of `project()`.** Refactoring
   `claude_code.project()` / `kiro.project()` to return their
   per-pack `source_dirs` / `target_dir` would broaden the
@@ -661,25 +688,37 @@ plus reviewer pass.
 - *Projection table* — locate by adapter name to avoid
   false positives if any other adapter still uses
   `managed-block-inline`:
-  `grep -nE "codex.*(skill|managed-block|direct-directory)|^\| .*codex" docs/specs/distribution-adapters/spec.md`,
+  `rg -n "codex.*(skill|managed-block|direct-directory)|^\| .*codex" docs/specs/distribution-adapters/spec.md`,
   or read the table by section heading directly. Updated to
   show Codex `skill` as `direct-directory` with target
   `.agents/skills/`.
 - *Uniform multi-pack entry-point invariant subsection* added
   documenting: every `direct-directory` adapter exposes
   `project_packs(pack_paths, contract, output_root)`;
-  `self_host.py` routes through it.
+  `self_host.py` routes through it. **Concrete assertion**:
+  `rg -n "project_packs\(pack_paths" docs/specs/distribution-adapters/spec.md`
+  returns ≥ 1 hit; `rg -n "Uniform multi-pack" docs/specs/distribution-adapters/spec.md`
+  returns ≥ 1 hit (subsection heading).
 - *Orphan-cleanup invariant subsection* added (or existing
   `direct-directory` mode subsection extended) documenting:
   every `direct-directory` projection of `skill` runs a
   post-projection orphan sweep that removes child directories
   not in the union of source skill names across the call's
-  pack list.
+  pack list. **Concrete assertion**:
+  `rg -n "sweep_orphans|orphan sweep|orphan-cleanup" docs/specs/distribution-adapters/spec.md`
+  returns ≥ 1 hit; the surrounding paragraph names the
+  "union of source skill names across the call's pack list"
+  invariant (verified by `rg -n "union of source skill names"`).
 - *Symlink-pass-through invariant* cited explicitly under the
   `direct-directory` mode description (with reference to
-  `shutil.copytree(..., symlinks=True)` semantics).
+  `shutil.copytree(..., symlinks=True)` semantics). Concrete
+  assertion: `rg -n "symlinks=True" docs/specs/distribution-adapters/spec.md`
+  returns ≥ 1 hit.
 - *Cites RFC-0009* by section name (`§ Adapter contract change`,
-  `§ Failure modes`).
+  `§ Failure modes`). Concrete assertion: both literal section
+  names appear in the file
+  (`rg -n "RFC-0009" docs/specs/distribution-adapters/spec.md`
+  returns hits including the two section names).
 - *`make build-check` clean.* [AC27, AC28]
 
 **Approach:**
@@ -750,9 +789,26 @@ extension.
      and the projected `AGENTS.md` contains
      `<!-- agent-skills:start -->`, emit a warning naming the
      file path.
-  3. Returns a warning (not a failure) per the spec — the
-     linter's existing exit-code contract for warnings is the
-     reference shape.
+  3. Routes the warning through the existing `warn(msg)` closure
+     defined inside `main()` at `tools/lint-agents-md.py:53` —
+     `warn()` prints to stderr without incrementing `fail`, so
+     the linter's exit code stays 0. The new check is added
+     **inline inside `main()`** adjacent to the existing
+     `note(...)` checks (rule 10d / 10e at lines 241-268 are the
+     reference shape); a top-level helper is not introduced,
+     matching the established linter idiom. No new exit-code
+     channel invented.
+
+- **T9 linter unit test shape**: the check lives inside `main()`,
+  so the test is a **CLI subprocess invocation**, not a direct
+  function call. Pin the test as: write the synthetic
+  `AGENTS.md` (containing `<!-- agent-skills:start -->`) and the
+  synthetic adapter contract (declaring Codex `skill` as
+  `direct-directory`) to `tmp_path`; invoke `lint-agents-md.py`
+  via `subprocess.run([sys.executable, "tools/lint-agents-md.py"], cwd=tmp_path, capture_output=True)`;
+  assert the return code is 0 (warning, not failure) and that
+  the stderr stream contains both the `⚠` warn marker and the
+  offending file path.
 - Unit test for the linter goes alongside the existing linter
   tests (verify path during EXECUTE — likely `tools/tests/` or
   a fixture-based test under
@@ -882,3 +938,72 @@ restate them.
   `adapter_name.replace("-", "_")` instead of introducing a
   third dict. No new ACs needed; the change is internal to
   T5's Approach.
+- 2026-05-25: post-review seed adapter-neutralisation. The user
+  flagged that `packs/core/seeds/AGENTS.md` mentions `.claude/skills/`
+  and `.claude/agents/` in three places — references that ship to
+  every adopter (via `agentbundle scaffold`) and read as wrong for
+  Codex (whose skills live at `.agents/skills/`) and Kiro (`.kiro/skills/`).
+  Pre-existing issue made visible by RFC-0009 because Codex now has
+  a real distinct surface. Fixed in three small edits: (a) "the
+  content belongs in `docs/`, `.claude/skills/`, …" → "…in `docs/`,
+  a skill, …"; (b) the source-of-truth-table row for `<repeating
+  task>` names the file (`SKILL.md`) instead of the directory,
+  noting "your IDE handles discovery"; (c) the "Specialist
+  subagents" section header names the adapter contract directly —
+  Claude Code only; Codex and Copilot drop the `agent` primitive.
+  No new adapter-templating mechanism introduced; the seed is now
+  adapter-neutral by content.
+- 2026-05-25: post-review course correction. User flagged that
+  with Codex's `skill` projection growing from a tiny managed
+  block to a full body tree, leaving `codex` in
+  `SELF_HOST_ADAPTERS` would mirror every skill into the working
+  tree (`.agents/skills/`) alongside `.claude/skills/` — pure
+  maintainer overload, and the project's stance is "we never want
+  maintainer overload." Narrowed `SELF_HOST_ADAPTERS` to
+  `("claude-code",)`. Removed the `codex.project_packs` call from
+  `_compose_agents_md` (now a no-op for AGENTS.md anyway under the
+  direct-directory contract). Removed the unreachable
+  `if adapter_name == "codex"` branch from `_project_all_adapters`.
+  `.agents/` gitignored. AC8, AC10, and the
+  `distribution-adapters/spec.md` amendment updated to reflect the
+  narrower self-host surface. Codex correctness is gated by unit
+  tests + AC29 tempdir projection (already in place). Test
+  `test_self_host_composes_agents_body_codex_block_and_footer`
+  updated to assert `.agents/` is absent and `.claude/skills/`
+  carries the projected bodies; `SelfHostAdapterRoutingTests`'
+  codex-mock assertion is kept (asserts call_count == 0) to pin
+  the narrowed routing.
+- 2026-05-25: round-5 review revision. Reviewer surfaced two
+  concerns + one nit; addressed all. (1) AC9 extended to
+  enumerate the three test callers at
+  `tests/unit/test_pipeline_phase_order.py:168,228,229` so the
+  spec's "known callers" list matches the world it claims.
+  (2) T9 Approach pinned: the new linter check is added inline
+  inside `main()` (not as a top-level function) because
+  `warn()` is a closure of `main()` capturing `nonlocal fail`;
+  the T9 unit test is now pinned as a `subprocess.run` CLI
+  invocation asserting on exit code and stderr. (3) Line-number
+  citations in AC8 (`self_host.py:70`, `self_host.py:266`)
+  replaced with constant-name citations for line-drift
+  resistance.
+- 2026-05-25: round-4 (pre-EXECUTE confirmation) review
+  revision. Reviewer surfaced two blockers and three
+  high-priority concerns; addressed all five in spec.md and
+  plan.md. (1) AC8 narrowed: `SELF_HOST_ADAPTERS` excludes
+  `kiro` (`self_host.py:70`), so self-host routes only
+  `claude-code` and `codex` through `project_packs`;
+  `kiro.project_packs` exists per AC7/AC19 but is not invoked
+  from self-host. (2) AC9 enumerates the
+  `commands/install.py:1114,1116` callers of single-pack
+  `kiro.project` / `claude_code.project` as known callers that
+  stay on the retained wrapper; grep rewritten as `rg`.
+  (3) T5 routing test committed to mock-based (not source-text).
+  (4) T7 helper duplication named as deliberate with sibling
+  cross-reference comments. (5) T8 concrete `rg` assertions
+  added for each invariant subsection. (6) T9 wires through
+  the existing `warn()` helper at `lint-agents-md.py:53`
+  rather than inventing a warning channel. Concern 6 (T3-T4
+  dead-code interregnum if landed in separate PRs) is moot
+  because this work-loop session lands all nine tasks in a
+  single PR — recorded here for future maintainers reading the
+  plan offline.

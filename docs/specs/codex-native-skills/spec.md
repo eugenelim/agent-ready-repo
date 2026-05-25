@@ -284,38 +284,73 @@ Multi-pack adapter entry point:
       `project(pack_path, contract, output_root)`, then runs the
       post-projection orphan sweep (AC15-AC17).
 - [ ] **AC8.** `packages/agentbundle/agentbundle/build/self_host.py`
-      routes claude-code and kiro through `project_packs([pack.path
-      for pack in packs], contract, output_root)` (matching the
-      existing Codex pattern). The legacy per-pack loop is removed.
+      routes the adapters in its `SELF_HOST_ADAPTERS` allow-list —
+      narrowed by this spec to `("claude-code",)` — through
+      `project_packs([pack.path for pack in packs], contract,
+      output_root)`. The legacy per-pack loop is removed. **Both
+      Codex and Kiro are out of scope for self-host's working-tree
+      projection.** Before RFC-0009, Codex was in the allow-list
+      because its `managed-block-inline` contribution was a tiny
+      AGENTS.md splice; once Codex flipped to `direct-directory`,
+      self-host would carry a full duplicate of every skill body
+      under `<repo>/.agents/skills/` — maintainer-overload that the
+      project rejects on sight. Codex correctness is gated by
+      adapter unit tests + the AC29 tempdir projection test rather
+      than by self-host's working-tree drift gate; Codex adopters
+      get `.agents/skills/` via `agentbundle install` exactly as
+      before. `codex.project_packs` and `kiro.project_packs` still
+      exist per AC7 and are verified at the unit level (AC6, AC17,
+      AC19, AC20). `.agents/` and `.kiro/` are gitignored. Expanding
+      `SELF_HOST_ADAPTERS` is a separate decision.
 - [ ] **AC9.** `claude_code.project(pack_path, ...)` and
       `kiro.project(pack_path, ...)` are retained as single-pack
       convenience wrappers that delegate to `project_packs([pack_path], ...)`.
-      Existing callers (if any outside `self_host.py`) continue to
-      work without edits. Verified by **two grep sweeps** before T5
-      lands: `grep -rn "claude_code\.project\b\|kiro\.project\b" packages/ tools/`
+      Existing callers continue to work without edits. The known
+      in-tree callers as of 2026-05-25 are:
+      (a) `packages/agentbundle/agentbundle/build/self_host.py`
+      (refactored by AC8); (b)
+      `packages/agentbundle/agentbundle/commands/install.py:1114,1116`
+      — `kiro.project(pack_dir, contract, out)` and
+      `claude_code.project(pack_dir, contract, out)` invoked against
+      a tempdir inside `_rewrite_user_scope_hook_paths`; this caller
+      stays on the single-pack `project()` wrapper and is not
+      refactored by this spec;
+      (c) `packages/agentbundle/tests/unit/test_pipeline_phase_order.py`
+      lines 168 (`kiro.project(pack, _load_contract(), out)`), 228
+      (`kiro.project(pack_kiro, contract, out)`), and 229
+      (`claude_code.project(pack_cc, contract, out)`) — unit tests
+      that exercise the single-pack signature directly. Retained
+      `project()` wrapper behaviour makes them no-op-correct; no
+      edits required. Pre-T5 verification is **two `rg` sweeps** (`ripgrep` handles `\b` and alternation uniformly
+      across BSD/GNU):
+      `rg -n "claude_code\.project\b|kiro\.project\b" packages/ tools/`
       (per-adapter `project` callers) and
-      `grep -rn "ADAPTERS\[\|from agentbundle.build.adapters import ADAPTERS" packages/ tools/`
-      (dispatch-table reach-ins). External callers are either
-      zero, or enumerated in the PR description with their
-      adaptation plan.
+      `rg -n "ADAPTERS\[|from agentbundle.build.adapters import ADAPTERS" packages/ tools/`
+      (dispatch-table reach-ins). Any caller surfaced by the sweeps
+      outside (a) and (b) above is enumerated in the PR description
+      with its adaptation plan.
 
 Migration strip — Codex-specific:
 
 - [ ] **AC10.** **Strip target is `<output_root>/AGENTS.md`** — the
-      project-root AGENTS.md composed by
-      `self_host._compose_agents_md` (the same file Codex previously
-      spliced the managed block into). The strip is hardcoded in
+      project-root AGENTS.md the Codex adapter is invoked against
+      (whatever orchestrator runs it). The strip is hardcoded in
       `codex.py` for the migration window; no contract entry, no
-      target-path indirection. **Self-host vs. adopter asymmetry,
-      named for the next maintainer.** In self-host,
-      `_compose_agents_md` overwrites `AGENTS.md` with the seed
-      body *before* calling `codex.project_packs`; since AC15
-      removes the legacy delimiters from the seed, the strip is a
-      documented no-op in self-host. In adopter installs against a
-      pre-existing `AGENTS.md` carrying the legacy block, the strip
-      does real work. Both cases are correct; the strip is not
-      dead code despite looking inactive when read from
-      `_compose_agents_md`'s call site.
+      target-path indirection. **Production-coverage gap, named for
+      the next maintainer.** No live production call-site in this PR
+      exercises the strip against a real legacy `AGENTS.md`. Codex
+      is no longer in `SELF_HOST_ADAPTERS` (per AC8), so self-host
+      never invokes the Codex adapter. `commands/install.py` does
+      not call `codex.project()` either. The strip is therefore
+      exercised only by the construction tests in this PR
+      (AC11-AC14). When the install flow gains a Codex pathway
+      (tracked as a roadmap item against the next minor release),
+      the strip will see real adopter `AGENTS.md` files carrying
+      the legacy block. Removing the strip before that pathway
+      exists would be safe today; keeping it now preserves the
+      migration contract without requiring a follow-on PR. The
+      retention test (AC23) and integration tests guard against
+      silent regression while the live call-site is wired.
 - [ ] **AC11.** **Happy path.** A fixture `AGENTS.md` containing
       `<!-- agent-skills:start -->\n- **a** — ...\n- **b** — ...\n<!-- agent-skills:end -->\n`
       surrounded by outside-delimiter prose, after one Codex
