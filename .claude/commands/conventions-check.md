@@ -27,14 +27,16 @@ Run both repo linters and report findings.
 
 **`bash tools/lint-credentialed-skills.sh`** — credentialed-skill rules
 (skill-secrets spec § AC26 — see `docs/specs/skill-secrets/spec.md`);
-scoped to skills whose `SKILL.md` declares `credentialed: true`:
+scoped to skills whose `SKILL.md` declares `metadata.credentialed: true`
+(per agentskills.io spec, project-specific fields live under
+`metadata:`):
 
 1. The body contains an `### Security rules (non-negotiable)` heading
    and the three RFC-0006 § 4 substrings inside that section (the
    verbatim "Don't" block).
-2. For `primitive-class: credentialed-cli`: no script under the skill's
-   `scripts/` directory accepts an `argparse` flag whose normalised
-   name (strip leading `-`, casefold, `-` → `_`) is one of
+2. For `metadata.primitive-class: credentialed-cli`: no script under
+   the skill's `scripts/` directory accepts an `argparse` flag whose
+   normalised name (strip leading `-`, casefold, `-` → `_`) is one of
    `{token, api_token, api_key, bearer, pat, password}`. Detection
    handles literal strings AND `"--" + "name"`-style concatenation.
 3. No script under a credentialed skill's `scripts/` directory contains

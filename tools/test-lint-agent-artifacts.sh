@@ -25,6 +25,7 @@ mkdir -p \
   "$TMP/.claude/skills/missing-desc" \
   "$TMP/.claude/skills/no-frontmatter" \
   "$TMP/.claude/skills/orphan-dir" \
+  "$TMP/.claude/skills/unknown-top-level-key" \
   "$TMP/.claude/agents" \
   "$TMP/.claude/commands"
 
@@ -58,6 +59,18 @@ EOF
 # Skill directory with a stray .md file and no SKILL.md.
 cat > "$TMP/.claude/skills/orphan-dir/notes.md" <<'EOF'
 Stray file. No SKILL.md alongside.
+EOF
+
+# Skill: frontmatter carries a key outside the agentskills.io spec set
+# (project-specific data belongs under `metadata:`, not at top level).
+cat > "$TMP/.claude/skills/unknown-top-level-key/SKILL.md" <<'EOF'
+---
+name: unknown-top-level-key
+description: Carries a non-spec top-level key the linter should refuse.
+bogus: this-is-not-allowed
+---
+
+Body.
 EOF
 
 # Agent: name in frontmatter mismatched against filename.
@@ -136,6 +149,7 @@ EXPECTED_PATTERNS=(
   "skill directory missing SKILL.md"
   "name 'different-agent-name' does not match filename 'wrong-filename'"
   "unknown frontmatter keys: ['surprise']"
+  "unknown frontmatter keys: ['bogus']"
   "frontmatter opened with --- but never closed"
   "body is empty"
   "missing required key: model"
@@ -171,14 +185,16 @@ TMP_CRED_BAD_BOOL="$(mktemp -d)"
 TMP_CRED_BAD_CLASS="$(mktemp -d)"
 trap 'rm -rf "$TMP" "$TMP_CRED_OK" "$TMP_CRED_BAD_BOOL" "$TMP_CRED_BAD_CLASS"' EXIT
 
-# Positive: a conforming credentialed skill with boolean true + valid class.
+# Positive: a conforming credentialed skill with boolean true + valid class
+# nested under the spec-blessed `metadata:` escape hatch.
 mkdir -p "$TMP_CRED_OK/.claude/skills/conforming-credentialed"
 cat > "$TMP_CRED_OK/.claude/skills/conforming-credentialed/SKILL.md" <<'EOF'
 ---
 name: conforming-credentialed
 description: A credentialed skill with valid frontmatter keys; the lint must accept it.
-credentialed: true
-primitive-class: credentialed-cli
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
 ---
 
 Body content.
@@ -198,13 +214,15 @@ if (( exit_ok != 0 )); then
   exit 1
 fi
 
-# Negative: credentialed value is a quoted string, not a YAML boolean.
+# Negative: credentialed value is a quoted string, not a YAML boolean
+# (nested under `metadata:` per the new shape).
 mkdir -p "$TMP_CRED_BAD_BOOL/.claude/skills/bad-credentialed"
 cat > "$TMP_CRED_BAD_BOOL/.claude/skills/bad-credentialed/SKILL.md" <<'EOF'
 ---
 name: bad-credentialed
 description: credentialed key is a string, not a boolean; lint must reject.
-credentialed: "yes"
+metadata:
+  credentialed: "yes"
 ---
 
 Body content.
@@ -229,14 +247,16 @@ if ! grep -qF -- "must be boolean" <<< "$out_bad_bool"; then
   fail=1
 fi
 
-# Negative: primitive-class value is not one of the two allowed strings.
+# Negative: primitive-class value is not one of the two allowed strings
+# (nested under `metadata:` per the new shape).
 mkdir -p "$TMP_CRED_BAD_CLASS/.claude/skills/bad-primitive-class"
 cat > "$TMP_CRED_BAD_CLASS/.claude/skills/bad-primitive-class/SKILL.md" <<'EOF'
 ---
 name: bad-primitive-class
 description: primitive-class value is unknown; lint must reject.
-credentialed: true
-primitive-class: mcp-broker
+metadata:
+  credentialed: true
+  primitive-class: mcp-broker
 ---
 
 Body content.

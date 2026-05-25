@@ -64,9 +64,12 @@ Concretely the implementing PRs deliver:
    MCP-server-class primitives may accept *header-naming* flags
    (`--bearer-header`, `--auth-header`, `--header-prefix`) but not
    value-shaped flags. Skills carry a verbatim "Don't" block in
-   `SKILL.md`. Two new optional frontmatter keys (`credentialed: bool`,
-   `primitive-class: credentialed-cli | mcp-server`) scope which rules
-   apply; `tools/lint-agent-artifacts.sh` learns to allow them.
+   `SKILL.md`. Two optional frontmatter keys nested under the
+   spec-blessed `metadata:` escape hatch (`metadata.credentialed: bool`,
+   `metadata.primitive-class: credentialed-cli | mcp-server`) scope
+   which rules apply; `tools/lint-agent-artifacts.sh` recognises them
+   while the top-level allow-list stays aligned with
+   [agentskills.io](https://agentskills.io/specification).
 
 5. **An ADR-0002 amendment** freezing the narrow definition of
    "hook-shaped" (binds to runtime event AND requires wiring-merge into
@@ -161,7 +164,11 @@ under time pressure.
 - **Renaming any of the two new SKILL.md frontmatter keys**
   (`credentialed`, `primitive-class`). They're consumed by
   `tools/lint-agent-artifacts.sh` and by `conventions-check`; renaming
-  requires updating every credentialed skill in lockstep.
+  requires updating every credentialed skill in lockstep. The keys
+  live under the `metadata:` escape hatch (per the agentskills.io
+  spec's top-level allow-list) as `metadata.credentialed` and
+  `metadata.primitive-class`; nesting under `metadata:` is **not** a
+  rename and does not invoke this rule.
 - **Adding a Linux Tier-2 backend** (`libsecret`). RFC-0006 § 2 defers
   this to a v2 RFC alongside an adopter-profile audit; adding it in
   this spec doubles the test matrix and re-opens the deferral.
@@ -447,15 +454,17 @@ CLI verb `agentbundle creds`:
       argument) walks both scope state files
       (`<repo>/.agent-ready-state.toml` and
       `~/.agent-ready/state.toml`) for installed primitives whose
-      `SKILL.md` frontmatter declares `credentialed: true`, prints
-      the list, and prompts for a selection. Same dual-scope walk
-      shape as `adapt-to-project`. The walk uses the **existing**
-      `PackState.files` table (no state-schema bump): for each
-      `(pack, relpath)` whose relpath matches the regex
+      `SKILL.md` frontmatter declares `metadata.credentialed: true`
+      (nested under the agentskills.io-spec `metadata:` escape
+      hatch), prints the list, and prompts for a selection. Same
+      dual-scope walk shape as `adapt-to-project`. The walk uses the
+      **existing** `PackState.files` table (no state-schema bump):
+      for each `(pack, relpath)` whose relpath matches the regex
       `^\.claude/skills/[^/]+/SKILL\.md$` (or the equivalent
       adapter-specific projection for non-Claude adapters), the CLI
       opens `<scope-root>/<relpath>`, reads its YAML frontmatter,
-      and includes the skill in the list iff `credentialed: true`.
+      and includes the skill in the list iff
+      `metadata.credentialed: true`.
       The CLI then resolves the selected primitive's schema via the
       canonical convention pinned in AC24b and exits non-zero with
       a clear stderr error if the file is absent.
@@ -557,16 +566,21 @@ CLI verb `agentbundle creds`:
 
 Conventions and lint:
 
-- [x] **AC25.** `tools/lint-agent-artifacts.sh` extends
-      `ALLOWED_SKILL_KEYS` to accept `credentialed` (boolean) and
-      `primitive-class` (string: `credentialed-cli` | `mcp-server`).
-      Schema refuses other values for `primitive-class`; absence of
-      `credentialed` means the skill is not credentialed and the lint
-      skips it.
+- [x] **AC25.** `tools/lint-agent-artifacts.sh` enforces the
+      [agentskills.io](https://agentskills.io/specification)
+      top-level frontmatter allow-list (`name`, `description`,
+      `license`, `compatibility`, `metadata`, `allowed-tools`) and
+      recognises `credentialed` (boolean) and `primitive-class`
+      (string: `credentialed-cli` | `mcp-server`) nested under the
+      spec's `metadata:` escape hatch. Schema refuses other values
+      for `metadata.primitive-class`; absence of `metadata.credentialed`
+      (or of `metadata:` entirely) means the skill is not credentialed
+      and the lint skips the credentialed-specific checks.
 - [x] **AC26.** `packs/core/.apm/commands/conventions-check.md`
       extends to report three credentialed-skill findings:
-      (a) `credentialed: true` skill missing the verbatim "Don't"
-      block under a `### Security rules (non-negotiable)` heading;
+      (a) `metadata.credentialed: true` skill missing the verbatim
+      "Don't" block under a `### Security rules (non-negotiable)`
+      heading;
       (b) for `primitive-class = "credentialed-cli"`: any script under
       the primitive's `scripts/` directory accepts a normalised flag
       name matching `{token, api_token, api_key, bearer, pat,
@@ -600,8 +614,9 @@ Templates and worked example:
       [RFC-0006 § Amendments](../../rfc/0006-skill-secrets-storage.md#amendments).
 - [x] **AC29.** A worked example at
       `packs/core/.apm/skills/example-credentialed-skill/` ships with:
-      a `SKILL.md` declaring `credentialed: true`,
-      `primitive-class: credentialed-cli`, embedding the
+      a `SKILL.md` declaring `metadata.credentialed: true` and
+      `metadata.primitive-class: credentialed-cli` (nested under the
+      agentskills.io-spec `metadata:` escape hatch), embedding the
       credentialed-CLI "Don't" block verbatim; a `scripts/cli.py`
       importing `agent_ready.credentials` and refusing the argv-ban
       flags; a `references/creds-schema.toml` declaring `API_TOKEN`

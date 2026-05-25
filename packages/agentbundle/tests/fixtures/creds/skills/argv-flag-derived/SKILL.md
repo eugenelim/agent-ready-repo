@@ -1,8 +1,9 @@
 ---
 name: argv-flag-derived
 description: Credentialed-CLI fixture exercising round-2 lint widening — f-string, Starred(Tuple), Subscript shapes. All three should produce AC26(b) findings.
-credentialed: true
-primitive-class: credentialed-cli
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
 ---
 
 Body with the full "Don't" block so only AC26(b) variants fire:
