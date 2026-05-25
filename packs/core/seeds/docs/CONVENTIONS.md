@@ -623,10 +623,16 @@ locally before CI, at PLAN before EXECUTE. The
 the work-loop skill is the same pattern at a different layer — moving
 review left from after code is written to before it is.
 
-`pre-pr.py` is the hook downstream consumers wire into their tool's
-lifecycle (see [`tools/hooks/README.md`](../tools/hooks/README.md)).
-The template ships the script; it does **not** ship a committed
-`.claude/settings.json` — wiring is consumer-specific.
+`session-start.py` is shipped pre-wired by the install pipeline (and
+by `make build-self` for this repo's self-host): the SessionStart
+binding lands in `.claude/settings.local.json` automatically, no
+manual paste. `pre-pr.py` is the other half of the triplet — and
+unlike `session-start.py` it stays consumer-wired, because Claude
+Code has no PR-open lifecycle event (`Stop` fires after every agent
+turn — wrong semantics). Wire `pre-pr.py` via `.git/hooks/pre-push`
+if you want it automatic, or run it by hand before opening a PR.
+See [`tools/hooks/README.md`](../tools/hooks/README.md) for both
+surfaces.
 
 ### When to reach for Ralph
 
@@ -731,10 +737,11 @@ template adopter knows when to wire each one up.
   in the work-loop skill: one tool-call message, one Agent use per
   reviewer, barrier-wait, merge in the orchestrator's context.
 - **Profile C** — same as B, plus the [knowledge base](#knowledge-base)
-  is actively populated (`docs/knowledge/patterns.jsonl`) and the
-  `session-start` hook is wired in the consumer's `.claude/settings.json`
-  per [`tools/hooks/README.md`](../tools/hooks/README.md). The template
-  ships the script, not the wiring.
+  is actively populated (`docs/knowledge/patterns.jsonl`). The
+  `session-start` hook is shipped pre-wired by the install pipeline,
+  so the knowledge base shows up in Claude Code session context out
+  of the box; see [`tools/hooks/README.md`](../tools/hooks/README.md)
+  for what lands and where.
 
 ### Above Profile C
 

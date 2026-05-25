@@ -768,6 +768,13 @@ def diff_against_working_tree(
         if not (stat.S_ISREG(shadow_st.st_mode) or stat.S_ISLNK(shadow_st.st_mode)):
             continue
         relative = rendered.relative_to(shadow)
+        # Honour EXCLUDED_PATTERNS: paths self-host projects advisorily
+        # (e.g. gitignored adopter-overrides like `.claude/settings.local.json`)
+        # must not count as drift when absent from disk. Same exclusion
+        # list the unclassified-path enumeration honours at line 639.
+        # `PROJECTED_README_OVERRIDES` still re-includes named paths.
+        if _is_excluded(relative):
+            continue
         on_disk = working_tree / relative
         is_claude_md_row = relative == Path("CLAUDE.md")
 

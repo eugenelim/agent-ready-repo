@@ -3,9 +3,9 @@
 This module exposes the public surface a credentialed-primitive author
 imports (via the ``agent_ready.credentials`` shim, per spec § AC3):
 
-- ``load_credentials(namespace, required_keys, schema_path=None)`` — resolves
-  credentials through Tier 1 (env var) → Tier 2 (OS keyring) → Tier 3
-  (dotfile), first-hit-wins per key.
+- ``load_credentials(namespace, required_keys)`` — resolves credentials
+  through Tier 1 (env var) → Tier 2 (OS keyring) → Tier 3 (dotfile),
+  first-hit-wins per key.
 - ``Credentials`` — immutable, attribute-access view of the resolved values.
 - ``EnvParseError`` — raised by ``parse_env_file`` on unsupported syntax.
 
@@ -492,8 +492,6 @@ def _tier2_backend_label() -> str:
 def load_credentials(
     namespace: str,
     required_keys: list[str],
-    *,
-    schema_path: pathlib.Path | None = None,
 ) -> Credentials:
     """Resolve ``required_keys`` for ``namespace``, walking Tiers 1 → 2 → 3.
 
@@ -508,9 +506,14 @@ def load_credentials(
     ``str()`` form embeds those trailers under the key name so a
     user who ran ``creds setup`` can triage from the message alone.
 
-    The ``schema_path`` kwarg is reserved for T7 — primitive authors who
-    load their own schema can pass it here; the default ``None`` defers
-    to the canonical lookup (T7 wires the canonical path resolver).
+    Single responsibility: this function *resolves*. Schema concerns
+    (which keys a namespace declares, how to prompt for them, whether
+    ``required_keys`` matches the declared key set) live in the
+    ``agentbundle creds setup`` / ``creds check`` CLI surface — they
+    are not crossed through this signature. Primitive code is not
+    expected to validate against the schema at load time; if you
+    suspect a namespace / required-keys mismatch, run
+    ``agentbundle creds check <namespace>`` from the shell.
     """
     resolved: dict[str, str] = {}
     missing: list[str] = []
