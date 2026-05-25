@@ -15,12 +15,21 @@ trips `make build-check` and blocks every PR.
 | Projected path                       | Source of truth (seed)                                       |
 | ------------------------------------ | ------------------------------------------------------------ |
 | `AGENTS.md`, `CLAUDE.md`             | `packs/core/seeds/AGENTS.md` (symlinked at the projection)   |
-| `docs/CHARTER.md`, `docs/CONVENTIONS.md`, `docs/APPROACH.md` | `packs/core/seeds/docs/...`                       |
-| `docs/architecture/overview.md`      | `packs/core/seeds/docs/architecture/overview.md`             |
-| `docs/specs/README.md`               | `packs/core/seeds/docs/specs/README.md`                      |
-| `docs/rfc/README.md`                 | `packs/governance-extras/seeds/docs/rfc/README.md`           |
-| `docs/adr/README.md`                 | `packs/governance-extras/seeds/docs/adr/README.md`           |
-| `docs/guides/**/README.md`           | `packs/user-guide-diataxis/seeds/docs/guides/**/README.md`   |
+| `docs/CONVENTIONS.md`                | `packs/core/seeds/docs/CONVENTIONS.md`                       |
+
+After the 2026-05-25 amendment to RFC-0002, the following paths are
+**Manual** (filled-in on disk; pack seed is placeholder template
+adopters receive on first install via brownfield rules):
+
+| Manual path (this repo's living instance) | Pack seed (placeholder)                                      |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `docs/CHARTER.md`                         | `packs/core/seeds/docs/CHARTER.md` (placeholder template)    |
+| `docs/architecture/overview.md`           | `packs/core/seeds/docs/architecture/overview.md`             |
+| `docs/specs/README.md`                    | `packs/core/seeds/docs/specs/README.md`                      |
+| `docs/knowledge/patterns.jsonl`           | `packs/core/seeds/docs/knowledge/patterns.jsonl` (empty)     |
+| `docs/rfc/README.md`                      | `packs/governance-extras/seeds/docs/rfc/README.md`           |
+| `docs/adr/README.md`                      | `packs/governance-extras/seeds/docs/adr/README.md`           |
+| `docs/guides/**/README.md`                | `packs/user-guide-diataxis/seeds/docs/guides/**/README.md`   |
 | `.claude/skills/<name>/**`           | `packs/<pack>/.apm/skills/<name>/**` (e.g. `packs/core/.apm/skills/new-spec/SKILL.md`) |
 | `.claude/agents/<name>.md`           | `packs/<pack>/.apm/agents/<name>.md`                         |
 | `.claude/commands/<name>.md`         | `packs/<pack>/.apm/commands/<name>.md`                       |

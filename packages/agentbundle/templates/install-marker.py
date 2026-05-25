@@ -1,25 +1,53 @@
-"""Canonical stdlib-only install-marker writer for the Claude-plugins install route.
+"""Canonical stdlib-only install-marker writer for the Claude-plugins and APM install routes.
 
-This script is invoked by the ``SessionStart`` hook derived by ``agentbundle build``
-into every pack's ``.claude-plugin/plugin.json``. It detects first-install-or-update
-and writes a ``[[packs-installed]]`` entry to the scope-correct
-``.adapt-install-marker.toml`` file so the existing core session-start nudge and
-``/adapt-to-project`` skill can consume it.
+This script is invoked by a ``SessionStart`` hook derived by ``agentbundle build``
+into every pack's projected output:
+  - ``dist/claude-plugins/<pack>/.claude-plugin/plugin.json``  — claude-plugins route
+  - ``dist/apm/<pack>/.apm/hooks/install-marker.json``         — APM route
 
-Spec: docs/specs/claude-plugins-install-route/spec.md
+It detects first-install-or-update and writes a ``[[packs-installed]]`` entry
+to the scope-correct ``.adapt-install-marker.toml`` file so the existing core
+session-start nudge and ``/adapt-to-project`` skill can consume it.
 
-Environment variables consumed (all required unless noted):
+Specs:
+  docs/specs/claude-plugins-install-route/spec.md  (route = "claude-plugins")
+  docs/specs/apm-install-route-parity/spec.md      (route = "apm"; --install-route flag)
+
+CLI:
+  ``--install-route {claude-plugins,apm}`` is *required*. The build pipeline bakes
+  the value into the projected hook ``command`` at projection time for both routes;
+  the writer does no runtime route-sniffing. ``"cli"`` is *not* a valid choice — the
+  CLI route uses ``agentbundle install._append_install_marker`` directly and never
+  invokes this template.
+
+Environment variables consumed under ``--install-route claude-plugins``:
   CLAUDE_PLUGIN_ROOT   — path to the pack's root in the Claude-plugins cache.
   CLAUDE_PLUGIN_DATA   — path to the pack's per-session data directory (hash file lives here).
   HOME                 — user home directory (user-scope marker path).
   CLAUDE_PROJECT_DIR   — (optional) path to the current project directory; when absent,
                          local and project scope checks are skipped.
 
+Environment variables consumed under ``--install-route apm`` (precedence-resolved):
+  CLAUDE_PLUGIN_DATA   — APM's Claude Code target rewrites ``${PLUGIN_ROOT}`` to
+                         ``${CLAUDE_PLUGIN_ROOT}`` *and* sets this; used directly when set.
+  PLUGIN_ROOT          — APM's generic per-target token; ``${PLUGIN_ROOT}/.data`` for the
+                         hash file when ``${CLAUDE_PLUGIN_DATA}`` is unset.
+  CURSOR_PLUGIN_ROOT   — APM's Cursor target equivalent; ``${CURSOR_PLUGIN_ROOT}/.data``
+                         when both above are unset.
+  CLAUDE_PLUGIN_ROOT   — APM's Claude Code pack-root token (when set, used as pack root).
+  HOME                 — user home directory (user-scope marker path; also used to
+                         detect ``writer-under-$HOME`` scope).
+  Scope detection under APM is by writer's own resolved ``__file__`` path containment
+  under ``cwd`` (→ repo scope) or ``HOME`` (→ user scope), not by ``enabledPlugins``.
+
 Exit codes:
-  0 — success (marker written, or warm-cache skip, or refused-and-warned on scope mismatch).
+  0 — success (marker written, or warm-cache skip, or refused-and-warned on scope mismatch),
+      or argparse rejected the flag (the latter is exit 2 per argparse's defaults).
   1 — marker write failed (hash file NOT written; next session retries).
+  2 — ``argparse`` parse error (missing or invalid ``--install-route``).
 """
 
+import argparse
 import datetime
 import hashlib
 import json
@@ -627,13 +655,120 @@ def _write_hash(plugin_data: pathlib.Path, current_hash: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# APM-route helpers (apm-install-route-parity AC3 / AC4)
+# ---------------------------------------------------------------------------
+
+
+def _resolve_data_dir(env: "dict[str, str]") -> "pathlib.Path | None":
+    """Resolve hash-file directory per the apm-install-route-parity AC3 precedence.
+
+    Precedence (first set-and-non-empty wins):
+      1. ``${CLAUDE_PLUGIN_DATA}``       — APM at Claude Code target.
+      2. ``${PLUGIN_ROOT}/.data``        — APM's generic per-target token.
+      3. ``${CURSOR_PLUGIN_ROOT}/.data`` — APM at Cursor target.
+
+    Returns ``None`` when none of the three is set-and-non-empty; callers
+    treat this as the no-match fall-through and exit 0 without writing the
+    marker (the no-partial-state rail).
+
+    Empty-string values are treated as unset (an APM target that exports
+    ``PLUGIN_ROOT=""`` must not be silently picked over a later-precedence
+    fallback that *is* set).
+    """
+    cpd = env.get("CLAUDE_PLUGIN_DATA", "")
+    if cpd:
+        return pathlib.Path(cpd)
+    pr = env.get("PLUGIN_ROOT", "")
+    if pr:
+        return pathlib.Path(pr) / ".data"
+    cpr = env.get("CURSOR_PLUGIN_ROOT", "")
+    if cpr:
+        return pathlib.Path(cpr) / ".data"
+    return None
+
+
+def _apm_detect_scope(
+    writer_path: pathlib.Path,
+    cwd: pathlib.Path,
+    home: pathlib.Path,
+) -> "str | None":
+    """Detect APM-route marker scope by writer's resolved ``__file__`` containment.
+
+    Returns:
+      ``"repo"`` if ``writer_path.resolve()`` is contained under
+        ``cwd.resolve()`` — first-branch-wins, even when ``cwd`` is itself
+        nested under ``$HOME`` and the home branch would also succeed in the
+        abstract (AC4 case (a)).
+      ``"user"`` if (and only if) the repo branch fails and ``writer_path``
+        is contained under ``home.resolve()``.
+      ``None`` otherwise — no-match fall-through; the caller exits 0 without
+        writing the marker (the no-partial-state rail).
+
+    Symlinks are resolved on both sides via ``.resolve()`` before comparison
+    so a writer that lives under a symlinked cache directory still passes
+    the containment check (AC4 case (d)).
+    """
+    wp = writer_path.resolve()
+    cwd_r = cwd.resolve()
+    home_r = home.resolve()
+    try:
+        if wp.is_relative_to(cwd_r):
+            return "repo"
+    except ValueError:
+        pass
+    try:
+        if wp.is_relative_to(home_r):
+            return "user"
+    except ValueError:
+        pass
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Main entrypoint
 # ---------------------------------------------------------------------------
 
 
-def main(argv: list[str]) -> int:
-    """Writer entrypoint. Reads ``${CLAUDE_PLUGIN_ROOT}`` and
-    ``${CLAUDE_PLUGIN_DATA}`` from ``os.environ``. Returns exit code.
+def _parse_args(argv: "list[str]") -> argparse.Namespace:
+    """Parse the writer's CLI surface.
+
+    ``--install-route`` is two-valued (``claude-plugins`` | ``apm``) and
+    ``required=True`` — argparse exits non-zero with a usage message on
+    either missing flag or invalid choice. ``"cli"`` is *not* admitted; the
+    CLI route uses ``agentbundle install._append_install_marker`` directly
+    and never invokes this template.
+    """
+    parser = argparse.ArgumentParser(prog="install-marker")
+    parser.add_argument(
+        "--install-route",
+        choices=["claude-plugins", "apm"],
+        required=True,
+        help=(
+            "the install route that projected this writer; baked into the "
+            "[[packs-installed]] entry verbatim. Required; no default."
+        ),
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: "list[str]") -> int:
+    """Writer entrypoint.
+
+    Parses ``--install-route``, dispatches to the route-appropriate scope-
+    detection path, and writes the marker. Returns exit code.
+    """
+    args = _parse_args(argv)
+
+    if args.install_route == "apm":
+        return _main_apm(args)
+    return _main_claude_plugins(args)
+
+
+def _main_claude_plugins(args: argparse.Namespace) -> int:
+    """Claude-plugins-route writer (behaviour-preserving past the argparse prefix).
+
+    Reads ``${CLAUDE_PLUGIN_ROOT}`` and ``${CLAUDE_PLUGIN_DATA}`` from
+    ``os.environ``; scope detection via ``_detect_origin`` (enabledPlugins walk).
     """
     # --- Environment ---
     plugin_root_str = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
@@ -707,7 +842,7 @@ def main(argv: list[str]) -> int:
         print(f"install-marker: failed to hash pack.toml: {exc}", file=sys.stderr)
         return 1
 
-    # --- Scope detection ---
+    # --- Scope detection (claude-plugins route: enabledPlugins walk) ---
     origin = _detect_origin(
         plugin_name=pack_name,
         home=home,
@@ -758,7 +893,7 @@ def main(argv: list[str]) -> int:
         "name": pack_name,
         "version": pack_version,
         "installed-at": datetime.datetime.now(timezone.utc),
-        "install-route": "claude-plugins",
+        "install-route": args.install_route,
     }
 
     # --- Write marker (must succeed before writing hash file) ---
@@ -778,6 +913,184 @@ def main(argv: list[str]) -> int:
         # Hash write failure is non-fatal for the adopter (the marker was written),
         # but log it so the next session retries detection rather than silently skipping.
         print(f"install-marker: hash write failed (next session will retry): {exc}", file=sys.stderr)
+
+    return 0
+
+
+def _main_apm(args: argparse.Namespace) -> int:
+    """APM-route writer (apm-install-route-parity AC2/3/4/5).
+
+    Reads precedence-resolved data directory and pack root from the APM
+    environment; scope detection by writer's own resolved ``__file__`` path
+    containment under ``cwd`` (→ repo) or ``$HOME`` (→ user). The marker
+    schema and the allowed-scopes refusal rail are unchanged from the
+    claude-plugins route — only the *detection* mechanism differs.
+    """
+    # --- Environment ---
+    env = os.environ
+    home_str = env.get("HOME", "")
+    if not home_str:
+        print("install-marker: HOME is not set", file=sys.stderr)
+        return 1
+    home = pathlib.Path(home_str)
+
+    # --- Resolve data directory per AC3 precedence ---
+    plugin_data = _resolve_data_dir(env)
+    if plugin_data is None:
+        # No-match fall-through (no APM data-directory token set); exit 0
+        # without writing marker or hash file (the no-partial-state rail).
+        # Emit a one-line stderr so an APM target whose token names we got
+        # wrong does not silently no-op forever — the writer's failure
+        # mode appears in the target tool's hook log.
+        print(
+            "install-marker: no APM data-directory token set "
+            "(looked for ${CLAUDE_PLUGIN_DATA}, ${PLUGIN_ROOT}, "
+            "${CURSOR_PLUGIN_ROOT}); skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
+
+    # --- Resolve pack root ---
+    # Pack-root precedence mirrors the data-dir chain's structure
+    # (Claude Code → generic → Cursor) but uses the pack-root token
+    # at each tier (CLAUDE_PLUGIN_ROOT / PLUGIN_ROOT / CURSOR_PLUGIN_ROOT);
+    # data-dir's first tier is CLAUDE_PLUGIN_DATA, not CLAUDE_PLUGIN_ROOT,
+    # so the two token sets overlap but are not identical.
+    cpr_pack = env.get("CLAUDE_PLUGIN_ROOT", "")
+    pr_pack = env.get("PLUGIN_ROOT", "")
+    cur_pack = env.get("CURSOR_PLUGIN_ROOT", "")
+    if cpr_pack:
+        plugin_root = pathlib.Path(cpr_pack)
+    elif pr_pack:
+        plugin_root = pathlib.Path(pr_pack)
+    elif cur_pack:
+        plugin_root = pathlib.Path(cur_pack)
+    else:
+        # Data dir resolved (per above) but no pack-root token set: same
+        # no-partial-state rail — exit 0 without writing.
+        print(
+            "install-marker: no APM pack-root token set "
+            "(looked for ${CLAUDE_PLUGIN_ROOT}, ${PLUGIN_ROOT}, "
+            "${CURSOR_PLUGIN_ROOT}); skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
+
+    # --- Load pack manifest ---
+    try:
+        pack = _pack_toml(plugin_root)
+    except Exception as exc:
+        print(f"install-marker: failed to read pack.toml: {exc}", file=sys.stderr)
+        return 1
+
+    pack_meta = pack.get("pack", {})
+    pack_name: str = pack_meta.get("name", "")
+    pack_version: str = pack_meta.get("version", "")
+    install_table = pack_meta.get("install", {})
+    allowed_scopes: list = install_table.get("allowed-scopes", [])
+
+    if not pack_name:
+        print("install-marker: pack.toml is missing [pack].name", file=sys.stderr)
+        return 1
+
+    # Vendored pack-name / pack-version shape rules — identical to the
+    # claude-plugins branch above (security-load-bearing; do not skip).
+    if not isinstance(pack_name, str) or not _PACK_NAME_RE.fullmatch(pack_name):
+        print(
+            f"install-marker: pack name {pack_name!r} fails pack-name shape rule "
+            f"(must match ^[a-z0-9][a-z0-9-]*$); skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
+    if pack_version and (
+        not isinstance(pack_version, str)
+        or not _PACK_VERSION_RE.fullmatch(pack_version)
+    ):
+        print(
+            f"install-marker: pack version for {pack_name!r} fails pack-version "
+            f"shape rule; skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
+
+    # --- Compute hash ---
+    try:
+        current_hash = _manifest_hash(plugin_root)
+    except Exception as exc:
+        print(f"install-marker: failed to hash pack.toml: {exc}", file=sys.stderr)
+        return 1
+
+    # --- Scope detection (APM route: writer's projected-path containment) ---
+    writer_path = pathlib.Path(__file__)
+    cwd = pathlib.Path.cwd()
+    scope = _apm_detect_scope(writer_path, cwd, home)
+    if scope is None:
+        # No-match fall-through: writer not contained under cwd or $HOME.
+        # Emit a one-line stderr so the failure mode is visible — a writer
+        # projected outside both roots is most often a target-tool packaging
+        # bug (cache directory under a non-standard mount point).
+        print(
+            f"install-marker: writer at {writer_path} not under cwd "
+            f"({cwd}) or $HOME ({home}); skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
+
+    # --- Allowed-scopes refusal rail (unchanged grammar from claude-plugins) ---
+    if allowed_scopes and scope not in allowed_scopes:
+        print(
+            f"install-marker: pack {pack_name} declares allowed-scopes={allowed_scopes!r}, "
+            f"detected install scope {scope}; skipping marker write",
+            file=sys.stderr,
+        )
+        return 0
+
+    # --- Derive marker path ---
+    # For APM repo scope, cwd plays the role project_dir plays in the
+    # claude-plugins route — the marker lands under it directly.
+    project_dir_for_marker = cwd if scope == "repo" else None
+    try:
+        marker, resolved_jail = _marker_path(scope, project_dir_for_marker, home)
+    except Exception as exc:
+        print(f"install-marker: failed to resolve marker path: {exc}", file=sys.stderr)
+        return 1
+
+    # --- Ensure data directory exists ---
+    # APM does not pre-create the per-pack .data/ subdirectory; mkdir before
+    # the hash file write rail attempts to open it.
+    try:
+        plugin_data.mkdir(parents=True, exist_ok=True)
+    except Exception as exc:
+        print(f"install-marker: failed to create data directory: {exc}", file=sys.stderr)
+        return 1
+
+    # --- Dual-detection check ---
+    if not _should_fire(marker, pack_name, plugin_data, current_hash):
+        return 0
+
+    # --- Build new entry ---
+    new_entry: dict = {
+        "name": pack_name,
+        "version": pack_version,
+        "installed-at": datetime.datetime.now(timezone.utc),
+        "install-route": args.install_route,
+    }
+
+    # --- Write marker (must succeed before writing hash file) ---
+    try:
+        _write_marker(marker, new_entry, resolved_jail)
+    except Exception as exc:
+        print(f"install-marker: marker write failed: {exc}", file=sys.stderr)
+        return 1
+
+    # --- Write hash file only after marker write succeeds ---
+    try:
+        _write_hash(plugin_data, current_hash)
+    except Exception as exc:
+        print(
+            f"install-marker: hash write failed (next session will retry): {exc}",
+            file=sys.stderr,
+        )
 
     return 0
 

@@ -263,6 +263,18 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "docs/product/*.md",
     "docs/knowledge/*.md",
     "docs/guides/**/*.md",
+    # Manual seed-projected paths (RFC-0002 amendment 2026-05-25). The
+    # `docs/<area>/*.md` patterns above cover 11 of the 19 reclassified
+    # paths; the following 8 are not matched by any pattern and need
+    # explicit listing. See `docs/specs/self-hosting/spec.md` AC20.
+    "docs/CHARTER.md",
+    "docs/knowledge/patterns.jsonl",
+    "docs/rfc/README.md",
+    "docs/adr/README.md",
+    "docs/specs/README.md",
+    "packages/README.md",
+    "packages/_example/README.md",
+    "packages/_example/AGENTS.md",
     "README.md",  # root-level; nested README.md not excluded
     "LICENSE-*",
     ".gitignore",
@@ -326,30 +338,16 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 
 # Hardcoded "Projected README" allow-list — paths classified as
 # *Projected* even when EXCLUDED_PATTERNS would otherwise catch them.
-# These are the seed READMEs RFC-0002 names explicitly. Phase 1 honours
-# them via seed projection; without this allow-list the docs/**/*.md
-# excluded patterns would mask them.
+#
+# The 2026-05-25 amendment to RFC-0002 reclassified 19 paths Projected
+# → Manual; this allow-list shrank to one entry (`docs/CONVENTIONS.md`)
+# accordingly. The reclassified paths now fall through to
+# EXCLUDED_PATTERNS coverage (`docs/architecture/*.md`,
+# `docs/product/*.md`, `docs/knowledge/*.md`, `docs/guides/**/*.md`,
+# and the 8 explicit additions listed above). See RFC-0002 §
+# Amendments § 2026-05-25.
 PROJECTED_README_OVERRIDES: tuple[str, ...] = (
-    "docs/architecture/README.md",
-    "docs/architecture/overview.md",
-    "docs/product/README.md",
-    "docs/product/roadmap.md",
-    "docs/product/changelog.md",
-    "docs/knowledge/README.md",
-    "docs/knowledge/patterns.jsonl",
-    "docs/guides/README.md",
-    "docs/guides/tutorials/README.md",
-    "docs/guides/how-to/README.md",
-    "docs/guides/reference/README.md",
-    "docs/guides/explanation/README.md",
-    "docs/rfc/README.md",
-    "docs/adr/README.md",
-    "docs/specs/README.md",
-    "docs/CHARTER.md",
     "docs/CONVENTIONS.md",
-    "packages/README.md",
-    "packages/_example/README.md",
-    "packages/_example/AGENTS.md",
 )
 
 
@@ -414,7 +412,27 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
                 continue
             seen[relative] = src
     # Second pass: collisions are clean, now write.
+    #
+    # Per the RFC-0002 2026-05-25 amendment: paths that are Manual
+    # (and therefore matched by EXCLUDED_PATTERNS without being
+    # rescued by PROJECTED_README_OVERRIDES) carry placeholder seeds
+    # but their on-disk content is the adopter's living instance —
+    # `_project_seeds` MUST NOT overwrite them. The previous behavior
+    # (blind write) clobbered our living docs when `make build-self`
+    # was run after the override-shrink.
+    #
+    # Predicate: write if the target does NOT yet exist on disk, OR
+    # if the path is not Excluded (i.e., is genuinely Projected per
+    # the source-of-truth split). For first-install scenarios (clean
+    # adopter repo) the target is absent → seed lands as scaffold.
+    # For re-install / self-host against this repo, Manual targets
+    # exist and are preserved.
     for relative, src in seen.items():
+        if _is_excluded(relative) and (output_root / relative).exists():
+            # Manual file on disk — leave it alone. The seed is
+            # placeholder; the on-disk file is the adopter's
+            # filled-in instance per RFC-0002 § Amendments § 2026-05-25.
+            continue
         target = output_root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, target, follow_symlinks=False)
@@ -1192,6 +1210,51 @@ def run_build_check_drift_gates(
                 "packages/agentbundle/agentbundle/_data/install-marker.py` "
                 "to re-sync"
             )
+
+    # ------------------------------------------------------------------
+    # Gate 1c: APM writer-template drift (apm-install-route-parity AC16 a)
+    #
+    # Every dist/apm/<pack>/.apm/hooks/install-marker.py must be byte-
+    # identical to the canonical template. Same rail as Gate 1 (claude-
+    # plugins side); extends the surface to the APM projection so a future
+    # implementer who accidentally diverges the APM-projected writer (or
+    # forgets to refresh dist/apm/ after editing the template) is caught
+    # at make build-check. APM packs are every pack — the apm derivation
+    # runs on the full packs_dir, not just packs declaring claude-plugin.
+    # ------------------------------------------------------------------
+    if template_path.exists() and packs_dir.is_dir():
+        template_hash_apm = hashlib.sha256(template_path.read_bytes()).hexdigest()
+        dist_apm = output_dir / "dist" / "apm"
+        apm_packs = [
+            pack_dir
+            for pack_dir in sorted(packs_dir.iterdir())
+            if pack_dir.is_dir() and (pack_dir / "pack.toml").exists()
+        ]
+        if apm_packs and not dist_apm.is_dir():
+            failures.append(
+                f"build-check: APM writer-template drift — dist/apm/ not "
+                f"present at {dist_apm} (run `make build` before "
+                f"`make build-check`)"
+            )
+        else:
+            for pack_dir in apm_packs:
+                apm_marker = (
+                    dist_apm / pack_dir.name / ".apm" / "hooks" / "install-marker.py"
+                )
+                if not apm_marker.exists():
+                    failures.append(
+                        f"build-check: APM writer-template drift — "
+                        f"pack {pack_dir.name} has no projected APM "
+                        f"install-marker.py at {apm_marker} "
+                        f"(APM derivation rail broken or partial build)"
+                    )
+                    continue
+                if hashlib.sha256(apm_marker.read_bytes()).hexdigest() != template_hash_apm:
+                    failures.append(
+                        f"build-check: APM writer-template drift — "
+                        f"dist/apm/{pack_dir.name}/.apm/hooks/install-marker.py "
+                        f"diverges from canonical template at {template_path}"
+                    )
 
     # ------------------------------------------------------------------
     # Gate 2: Source-shape plugin.json (AC10 gate 2)
