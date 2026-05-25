@@ -361,7 +361,9 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertIn("# Custom AGENTS.md", text)
             self.assertIn("Do not lose me.", text)
-            self.assertIn("<!-- agent-skills:start -->", text)
+            # Post-RFC-0009: Codex no longer writes the managed block.
+            # The legacy delimiter must be absent from projected output.
+            self.assertNotIn("<!-- agent-skills:start -->", text)
 
 
 class SelfHostAdapterAllowListTests(unittest.TestCase):
@@ -396,18 +398,23 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             (working_tree / ".keep").write_text("", encoding="utf-8")
             _git_commit_all(working_tree, "init")
 
-            # Register a sentinel adapter into both ADAPTERS and the
+            # Register a sentinel adapter into ADAPTERS, registry, and the
             # contract; if SELF_HOST_ADAPTERS is honoured, it must not
-            # be invoked.
-            sentinel = MagicMock()
+            # be invoked. Post-T5, `_project_all_adapters` looks up the
+            # adapter module via `registry`, so the sentinel needs an
+            # entry there with a `project_packs` callable.
+            sentinel_module = MagicMock()
             patched_adapters = dict(self_host_module.ADAPTERS)
-            patched_adapters["sentinel"] = sentinel
+            patched_adapters["sentinel"] = sentinel_module.project
+            patched_registry = dict(self_host_module.registry)
+            patched_registry["sentinel"] = sentinel_module
             patched_contract = dict(self.contract)
             patched_contract["adapter"] = {
                 **self.contract["adapter"],
                 "sentinel": {"projection": []},
             }
-            with patch.object(self_host_module, "ADAPTERS", patched_adapters):
+            with patch.object(self_host_module, "ADAPTERS", patched_adapters), \
+                 patch.object(self_host_module, "registry", patched_registry):
                 exit_code = self_host_module.run_self_host(
                     working_tree=working_tree,
                     packs_dir=packs_dir,
@@ -416,7 +423,7 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
                     contract=patched_contract,
                 )
             self.assertEqual(exit_code, 0)
-            sentinel.assert_not_called()
+            sentinel_module.project_packs.assert_not_called()
 
     def test_allow_listed_adapter_runs(self) -> None:
         """An adapter in SELF_HOST_ADAPTERS, registered in ADAPTERS and the
@@ -437,15 +444,18 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             (working_tree / ".keep").write_text("", encoding="utf-8")
             _git_commit_all(working_tree, "init")
 
-            sentinel = MagicMock()
+            sentinel_module = MagicMock()
             patched_adapters = dict(self_host_module.ADAPTERS)
-            patched_adapters["sentinel"] = sentinel
+            patched_adapters["sentinel"] = sentinel_module.project
+            patched_registry = dict(self_host_module.registry)
+            patched_registry["sentinel"] = sentinel_module
             patched_contract = dict(self.contract)
             patched_contract["adapter"] = {
                 **self.contract["adapter"],
                 "sentinel": {"projection": []},
             }
             with patch.object(self_host_module, "ADAPTERS", patched_adapters), \
+                 patch.object(self_host_module, "registry", patched_registry), \
                  patch.object(
                      self_host_module,
                      "SELF_HOST_ADAPTERS",
@@ -459,8 +469,10 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
                     contract=patched_contract,
                 )
             self.assertEqual(exit_code, 0)
-            # Sentinel called once per discovered pack (one here).
-            self.assertEqual(sentinel.call_count, 1)
+            # Sentinel `project_packs` called once with the list of all
+            # discovered pack paths (T5 routing change — previously one
+            # call per pack via single-pack `project`).
+            self.assertEqual(sentinel_module.project_packs.call_count, 1)
 
 
 class AgentsMdCompositionTests(unittest.TestCase):
@@ -506,8 +518,20 @@ class AgentsMdCompositionTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertTrue(text.startswith("# Body\n\nBody source.\n"))
-            self.assertIn("core skill description", text)
-            self.assertIn("governance skill description", text)
+            # Post-RFC-0009: skill descriptions no longer inline into
+            # AGENTS.md; Codex is not in `SELF_HOST_ADAPTERS` so the
+            # `.agents/skills/` tree is not produced in self-host output.
+            # Codex projection is tested against tempdir paths (AC29);
+            # Claude Code's `.claude/skills/` is the self-host surface.
+            self.assertNotIn("core skill description", text)
+            self.assertNotIn("governance skill description", text)
+            self.assertFalse((working_tree / ".agents").exists())
+            self.assertTrue(
+                (working_tree / ".claude" / "skills" / "core-skill" / "SKILL.md").is_file()
+            )
+            self.assertTrue(
+                (working_tree / ".claude" / "skills" / "governance-skill" / "SKILL.md").is_file()
+            )
             self.assertTrue(text.endswith("> Footer source.\n"))
 
 
@@ -1650,6 +1674,64 @@ class RecreateClaudeBridgeInvariantTests(unittest.TestCase):
                 _is_equivalent_claude_md_shape(
                     root / "CLAUDE.md", root / "AGENTS.md"
                 )
+            )
+
+
+class SelfHostAdapterRoutingTests(unittest.TestCase):
+    """Mock-based check that `_project_all_adapters` routes through
+    `project_packs` (not the legacy per-pack `project()` loop).
+
+    Source-text grep was rejected during T5 PLAN: a refactor that
+    preserves the contract but changes the call shape would break a
+    grep without breaking behaviour. The mock-based shape pins
+    behaviour.
+    """
+
+    def test_claude_code_routes_through_project_packs(self) -> None:
+        from unittest import mock
+
+        from agentbundle.build import self_host as self_host_module
+        from agentbundle.build.adapters import claude_code, codex
+
+        contract = load_contract(CONTRACT_PATH)
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            (packs_dir / "core").mkdir(parents=True)
+            (packs_dir / "core" / "pack.toml").write_text(
+                "[pack]\n"
+                'name = "core"\n'
+                'version = "0.0.0"\n'
+                "[pack.adapter-contract]\n"
+                'version = "0.2"\n'
+                "[pack.install]\n"
+                'default-scope = "repo"\n'
+                'allowed-scopes = ["repo"]\n',
+                encoding="utf-8",
+            )
+            (packs_dir / "core" / ".apm").mkdir()
+            out = tmp_path / "out"
+            out.mkdir()
+
+            with mock.patch.object(claude_code, "project_packs") as cc_pp, \
+                 mock.patch.object(codex, "project_packs") as cx_pp:
+                self_host_module._project_all_adapters(out, packs_dir, contract)
+
+            # Post-RFC-0009: `SELF_HOST_ADAPTERS = ("claude-code",)` —
+            # codex is NOT routed from self-host. Codex correctness is
+            # gated by adapter unit tests + the AC29 tempdir test, not
+            # by self-host's working-tree drift gate. Keeping codex out
+            # avoids carrying a duplicate `.agents/skills/` tree in the
+            # working tree (the maintainer-overload concern that RFC-0009
+            # exposed once skills became full bodies rather than
+            # one-line teasers).
+            self.assertEqual(cc_pp.call_count, 1)
+            self.assertEqual(cx_pp.call_count, 0)
+            args, _kwargs = cc_pp.call_args
+            pack_paths_arg = args[0]
+            self.assertEqual(
+                pack_paths_arg,
+                [packs_dir / "core"],
             )
 
 
