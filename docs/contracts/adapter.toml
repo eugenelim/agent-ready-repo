@@ -214,11 +214,9 @@ mode = "dropped"
 
 [[adapter.codex.projection]]
 primitive = "skill"
-mode = "managed-block-inline"
-target-path = "AGENTS.md"
-managed-block-delimiter-start = "<!-- agent-skills:start -->"
-managed-block-delimiter-end = "<!-- agent-skills:end -->"
-on-conflict = "preserve-outside-block"
+mode = "direct-directory"
+target-path = ".agents/skills/"
+on-conflict = "prompt-then-preserve"
 
 [[adapter.codex.projection]]
 primitive = "agent"

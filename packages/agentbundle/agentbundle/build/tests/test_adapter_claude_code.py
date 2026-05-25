@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agentbundle.build.adapters.claude_code import project
+from agentbundle.build.adapters.claude_code import project, project_packs
 from agentbundle.build.contract import load as load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -121,6 +121,133 @@ class ClaudeCodeAdapterTests(unittest.TestCase):
             second_settings = (out / ".claude" / "settings.local.json").read_bytes()
             self.assertEqual(first_agent, second_agent)
             self.assertEqual(first_settings, second_settings)
+
+
+def _seed_minimal_pack(root: Path, name: str, skill_name: str, body: str) -> Path:
+    """Pack with a single skill at .apm/skills/<skill_name>/SKILL.md."""
+    pack = root / name
+    skill_dir = pack / ".apm" / "skills" / skill_name
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(body, encoding="utf-8")
+    return pack
+
+
+class ProjectPacksTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_project_packs_iterates_in_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_minimal_pack(tmp_path, "pack-a", "skill-a", "# a\n")
+            pack_b = _seed_minimal_pack(tmp_path, "pack-b", "skill-b", "# b\n")
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+
+            self.assertTrue((out / ".claude" / "skills" / "skill-a" / "SKILL.md").is_file())
+            self.assertTrue((out / ".claude" / "skills" / "skill-b" / "SKILL.md").is_file())
+
+    def test_single_pack_project_delegates_to_project_packs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_minimal_pack(tmp_path, "pack", "skill-x", "# x\n")
+            out_a = tmp_path / "out-a"
+            out_b = tmp_path / "out-b"
+
+            project(pack, self.contract, out_a)
+            project_packs([pack], self.contract, out_b)
+
+            self.assertEqual(
+                (out_a / ".claude" / "skills" / "skill-x" / "SKILL.md").read_bytes(),
+                (out_b / ".claude" / "skills" / "skill-x" / "SKILL.md").read_bytes(),
+            )
+
+    def test_same_name_last_wins(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_minimal_pack(
+                tmp_path, "pack-a", "same-name", "# pack-a\nPACK_A_SENTINEL\n",
+            )
+            pack_b = _seed_minimal_pack(
+                tmp_path, "pack-b", "same-name", "# pack-b\nPACK_B_SENTINEL\n",
+            )
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+            body = (out / ".claude" / "skills" / "same-name" / "SKILL.md").read_text(
+                encoding="utf-8",
+            )
+            self.assertIn("PACK_B_SENTINEL", body)
+            self.assertNotIn("PACK_A_SENTINEL", body)
+
+    def test_same_name_last_wins_reversed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_minimal_pack(
+                tmp_path, "pack-a", "same-name", "# pack-a\nPACK_A_SENTINEL\n",
+            )
+            pack_b = _seed_minimal_pack(
+                tmp_path, "pack-b", "same-name", "# pack-b\nPACK_B_SENTINEL\n",
+            )
+            out = tmp_path / "out"
+
+            project_packs([pack_b, pack_a], self.contract, out)
+            body = (out / ".claude" / "skills" / "same-name" / "SKILL.md").read_text(
+                encoding="utf-8",
+            )
+            self.assertIn("PACK_A_SENTINEL", body)
+            self.assertNotIn("PACK_B_SENTINEL", body)
+
+
+def _seed_named_skills_pack(root: Path, pack_name: str, skill_names: list[str]) -> Path:
+    pack = root / pack_name
+    for skill_name in skill_names:
+        skill_dir = pack / ".apm" / "skills" / skill_name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            f"# {skill_name}\nfrom {pack_name}\n",
+            encoding="utf-8",
+        )
+    return pack
+
+
+class TestClaudeCodeOrphanSweep(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_two_stage_shrink(self) -> None:
+        # AC18: project {a, b, c} then {a, c} into the same output.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            three = _seed_named_skills_pack(tmp_path, "three-skill", ["a", "b", "c"])
+            shrink = _seed_named_skills_pack(tmp_path, "two-skill-shrink", ["a", "c"])
+            out = tmp_path / "out"
+
+            project_packs([three], self.contract, out)
+            self.assertTrue((out / ".claude" / "skills" / "b").is_dir())
+
+            project_packs([shrink], self.contract, out)
+            children = {p.name for p in (out / ".claude" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "c"})
+
+    def test_two_pack_union(self) -> None:
+        # AC20 — claude-code case.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack_a = _seed_named_skills_pack(tmp_path, "pack-a", ["a", "b"])
+            pack_b = _seed_named_skills_pack(tmp_path, "pack-b", ["b", "c"])
+            out = tmp_path / "out"
+
+            project_packs([pack_a, pack_b], self.contract, out)
+            children = {p.name for p in (out / ".claude" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "b", "c"})
+
+            project_packs([pack_a], self.contract, out)
+            children = {p.name for p in (out / ".claude" / "skills").iterdir()}
+            self.assertEqual(children, {"a", "b"})
 
 
 if __name__ == "__main__":
