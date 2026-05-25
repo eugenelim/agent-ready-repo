@@ -15,6 +15,7 @@
 | [0007](0007-user-scope-converter-pack.md) | First user-scope pack — `converters` (file-to-markdown, markdown-to-html, msg-to-markdown) | Accepted | 2026-05-24 | 2026-05-24 |
 | [0008](0008-claude-plugins-install-route-parity.md) | Claude-plugins install-route parity — per-pack SessionStart writer for the install→adapt chain | Accepted | 2026-05-24 | 2026-05-25 |
 | [0009](0009-codex-native-skills.md) | Migrate Codex adapter from managed-block AGENTS.md to native `.agents/skills/` | Draft | 2026-05-25 | |
+| [0010](0010-apm-install-route-parity.md) | APM install-route parity — per-pack SessionStart writer projected through APM's HookIntegrator | Accepted | 2026-05-25 | 2026-05-25 |
 
 ## Adding a new RFC
 
