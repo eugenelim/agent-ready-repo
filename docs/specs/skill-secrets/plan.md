@@ -8,6 +8,18 @@
 > (a different approach, not just a re-ordering), note why in the changelog
 > at the bottom.
 
+> **Post-shipment frontmatter migration (2026-05-25).** The
+> `credentialed` and `primitive-class` keys named throughout T9 / T10 /
+> T12 below now nest under the agentskills.io-spec `metadata:` escape
+> hatch (`metadata.credentialed`, `metadata.primitive-class`). The
+> spec's AC25 / AC29 / Boundaries sections were updated in lockstep
+> and [RFC-0006 § Amendments](../../rfc/0006-skill-secrets-storage.md#amendments)
+> records the rationale. Construction-test descriptions below name the
+> original top-level shape — the actual on-disk fixtures
+> (`packages/agentbundle/tests/fixtures/creds/skills/*/SKILL.md`,
+> `tools/test-lint-agent-artifacts.sh` heredocs) use the nested shape.
+> The drift is intentional history; spec.md is the contract.
+
 ## Approach
 
 Fifteen tasks (T13 split into T13a/T13b/T13c) across four

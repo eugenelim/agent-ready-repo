@@ -1,8 +1,9 @@
 ---
 name: example-credentialed-skill
 description: Reference skill — do NOT auto-load. Authoring a new credentialed primitive belongs in `add-credentialed-skill`; this directory ships only as a runnable worked example for adopters who explicitly ask to *see* one. The skill carries a no-op `scripts/cli.py` calling a fictional `example` API via `agent_ready.credentials`, the canonical `references/creds-schema.toml` declaring `API_TOKEN` (secret) and `BASE_URL` (non-secret sibling), and the verbatim `### Security rules (non-negotiable)` block the credentialed-CLI lint pins. Read it; do not invoke it from production code.
-credentialed: true
-primitive-class: credentialed-cli
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
 ---
 
 # Skill: example-credentialed-skill
@@ -11,8 +12,8 @@ A no-op credentialed primitive bound to a fictional `example` API.
 The skill exists to demonstrate the four moving parts a credentialed
 primitive must wire up:
 
-- `SKILL.md` frontmatter (`credentialed: true`,
-  `primitive-class: credentialed-cli`).
+- `SKILL.md` frontmatter under `metadata:`
+  (`credentialed: true`, `primitive-class: credentialed-cli`).
 - The verbatim security-rules block below (the lint pins the heading
   and the three RFC-0006 § 4 anchor phrases).
 - `scripts/cli.py` calling `agent_ready.credentials.load_credentials`.
@@ -64,18 +65,21 @@ are load-bearing pattern you leave alone.
 
 - The imports from `agent_ready.credentials`. That's the only public
   entry point.
-- The frontmatter (`credentialed: true`, `primitive-class:
-  credentialed-cli`). The lint and the architecture rule both depend
-  on these flags.
+- The `metadata:` block carrying `credentialed: true` and
+  `primitive-class: credentialed-cli`. The lint and the architecture
+  rule both depend on these flags; the agentskills.io spec keeps
+  project-specific fields nested under `metadata:` rather than at top
+  level.
 - The `### Security rules (non-negotiable)` block. The lint pins the
   three phrases verbatim; the architecture rule depends on the
   reminder being present.
 
 ## What this skill demonstrates
 
-- **Frontmatter declarations.** `credentialed: true` opts the skill
-  into the credentialed-skill lint; `primitive-class:
-  credentialed-cli` opts into the argv-ban check at AC26(b).
+- **Frontmatter declarations.** Under `metadata:`,
+  `credentialed: true` opts the skill into the credentialed-skill
+  lint; `primitive-class: credentialed-cli` opts into the argv-ban
+  check at AC26(b).
 - **Verbatim "Don't" block.** The three bullets under `### Security
   rules (non-negotiable)` are pinned by the lint
   (`tools/lint-credentialed-skills.sh`) and by AC29's
