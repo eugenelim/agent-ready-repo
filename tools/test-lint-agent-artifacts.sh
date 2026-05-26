@@ -295,3 +295,213 @@ if (( fail )); then
 fi
 
 echo "✓ Self-test (credentialed-skill cases): passed (conforming clean; bad-bool + bad-class refused with expected stderr)."
+
+# ── YAML-shape fixtures: depth-2 nesting + multi-line block scalars ──
+# The PyYAML-backed parser handles arbitrary depth and block scalars
+# natively; the prior hand-rolled parser hard-failed on these shapes.
+# Both fixtures must pass lint clean.
+
+TMP_DEEP="$(mktemp -d)"
+TMP_FOLDED="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP_CRED_OK" "$TMP_CRED_BAD_BOOL" "$TMP_CRED_BAD_CLASS" "$TMP_DEEP" "$TMP_FOLDED"' EXIT
+
+# Depth-2: a list nested under a mapping key under metadata.
+mkdir -p "$TMP_DEEP/.claude/skills/deep-metadata"
+cat > "$TMP_DEEP/.claude/skills/deep-metadata/SKILL.md" <<'EOF'
+---
+name: deep-metadata
+description: Declares runtime packages via a depth-2 metadata mapping.
+metadata:
+  credentialed: false
+  requires-packages:
+    - Pillow
+    - playwright
+---
+
+Body content.
+EOF
+
+set +e
+out_deep="$(LINT_ROOT="$TMP_DEEP" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_deep=$?
+set -e
+
+if (( exit_deep != 0 )); then
+  echo "✖ deep-metadata: lint exited $exit_deep; expected 0." >&2
+  echo "---" >&2
+  echo "$out_deep" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+# Folded (>-) and literal (|) block scalars for description.
+mkdir -p "$TMP_FOLDED/.claude/skills/folded-desc"
+cat > "$TMP_FOLDED/.claude/skills/folded-desc/SKILL.md" <<'EOF'
+---
+name: folded-desc
+description: >-
+  A multi-line folded description. PyYAML joins this line and the next
+  with a single space, producing one logical scalar value.
+---
+
+Body content.
+EOF
+
+set +e
+out_folded="$(LINT_ROOT="$TMP_FOLDED" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_folded=$?
+set -e
+
+if (( exit_folded != 0 )); then
+  echo "✖ folded-desc: lint exited $exit_folded; expected 0." >&2
+  echo "---" >&2
+  echo "$out_folded" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+echo "✓ Self-test (YAML-shape cases): passed (depth-2 metadata + folded block scalar both clean)."
+
+# ── YAML 1.1 Norway scalars: bool coercion in metadata, string guard on name ──
+# PyYAML follows YAML 1.1: unquoted yes/no/on/off (any case) become
+# booleans. For `metadata.credentialed:` that's a valid spelling and lint
+# must accept it; for the top-level `name:` that's a type error and lint
+# must surface a clear message (the kebab regex would otherwise crash).
+
+TMP_NORWAY_BOOL="$(mktemp -d)"
+TMP_NORWAY_NAME="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP_CRED_OK" "$TMP_CRED_BAD_BOOL" "$TMP_CRED_BAD_CLASS" "$TMP_DEEP" "$TMP_FOLDED" "$TMP_NORWAY_BOOL" "$TMP_NORWAY_NAME"' EXIT
+
+# Positive: unquoted `yes` as a boolean spelling for credentialed.
+mkdir -p "$TMP_NORWAY_BOOL/.claude/skills/norway-bool"
+cat > "$TMP_NORWAY_BOOL/.claude/skills/norway-bool/SKILL.md" <<'EOF'
+---
+name: norway-bool
+description: Uses the YAML 1.1 'yes' spelling for the credentialed boolean — must lint clean.
+metadata:
+  credentialed: yes
+  primitive-class: credentialed-cli
+---
+
+Body content.
+EOF
+
+set +e
+out_norway_bool="$(LINT_ROOT="$TMP_NORWAY_BOOL" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_norway_bool=$?
+set -e
+
+if (( exit_norway_bool != 0 )); then
+  echo "✖ norway-bool: lint exited $exit_norway_bool; expected 0 (unquoted 'yes' is a YAML 1.1 boolean)." >&2
+  echo "---" >&2
+  echo "$out_norway_bool" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+# Negative: unquoted `yes` as a skill name. PyYAML returns bool True for
+# the name field; the linter must surface a string-required error rather
+# than crash inside the kebab regex.
+mkdir -p "$TMP_NORWAY_NAME/.claude/skills/yes"
+cat > "$TMP_NORWAY_NAME/.claude/skills/yes/SKILL.md" <<'EOF'
+---
+name: yes
+description: Unquoted Norway scalar as a skill name; lint must refuse with a string-required message.
+---
+
+Body.
+EOF
+
+set +e
+out_norway_name="$(LINT_ROOT="$TMP_NORWAY_NAME" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_norway_name=$?
+set -e
+
+if (( exit_norway_name == 0 )); then
+  echo "✖ norway-name: lint exited 0; expected non-zero." >&2
+  exit 1
+fi
+if ! grep -qF -- "must be a string" <<< "$out_norway_name"; then
+  echo "✖ norway-name: stderr missing 'must be a string' message." >&2
+  echo "---" >&2
+  echo "$out_norway_name" >&2
+  echo "---" >&2
+  exit 1
+fi
+if grep -q "Traceback" <<< "$out_norway_name"; then
+  echo "✖ norway-name: leaked a Python traceback." >&2
+  exit 1
+fi
+
+echo "✓ Self-test (Norway-scalar cases): passed (bool spelling accepted; bool-as-name refused cleanly, no traceback)."
+
+# ── Norway scalars on every required string field (description, model) ──
+# Same shape as the name guard above. An unquoted `no`/`yes` would
+# silently become Python False/True without an isinstance check, which
+# (a) bypasses the truthiness presence check (True is truthy), and
+# (b) lets the agent ship with a bool where the runtime expects a
+# string. Each fixture submits a Norway-coerced bool in one required
+# string field and asserts the linter surfaces a string-required error.
+
+TMP_NORWAY_DESC="$(mktemp -d)"
+TMP_NORWAY_MODEL="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP_CRED_OK" "$TMP_CRED_BAD_BOOL" "$TMP_CRED_BAD_CLASS" "$TMP_DEEP" "$TMP_FOLDED" "$TMP_NORWAY_BOOL" "$TMP_NORWAY_NAME" "$TMP_NORWAY_DESC" "$TMP_NORWAY_MODEL"' EXIT
+
+# Skill description as an unquoted Norway scalar → bool False (`no`).
+mkdir -p "$TMP_NORWAY_DESC/.claude/skills/desc-as-bool"
+cat > "$TMP_NORWAY_DESC/.claude/skills/desc-as-bool/SKILL.md" <<'EOF'
+---
+name: desc-as-bool
+description: no
+---
+
+Body.
+EOF
+
+set +e
+out_norway_desc="$(LINT_ROOT="$TMP_NORWAY_DESC" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_norway_desc=$?
+set -e
+
+if (( exit_norway_desc == 0 )); then
+  echo "✖ desc-as-bool: lint exited 0; expected non-zero." >&2
+  exit 1
+fi
+if ! grep -qF -- "'description' must be a string" <<< "$out_norway_desc"; then
+  echo "✖ desc-as-bool: stderr missing \"'description' must be a string\" message." >&2
+  echo "---" >&2
+  echo "$out_norway_desc" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+# Agent model as an unquoted Norway scalar → bool True (`on`).
+mkdir -p "$TMP_NORWAY_MODEL/.claude/agents"
+cat > "$TMP_NORWAY_MODEL/.claude/agents/model-as-bool.md" <<'EOF'
+---
+name: model-as-bool
+description: Model field carries an unquoted Norway scalar; lint must refuse with a string-required message.
+model: on
+---
+
+Body.
+EOF
+
+set +e
+out_norway_model="$(LINT_ROOT="$TMP_NORWAY_MODEL" python3 "$REPO_ROOT/tools/lint-agent-artifacts.py" 2>&1)"
+exit_norway_model=$?
+set -e
+
+if (( exit_norway_model == 0 )); then
+  echo "✖ model-as-bool: lint exited 0; expected non-zero." >&2
+  exit 1
+fi
+if ! grep -qF -- "'model' must be a string" <<< "$out_norway_model"; then
+  echo "✖ model-as-bool: stderr missing \"'model' must be a string\" message." >&2
+  echo "---" >&2
+  echo "$out_norway_model" >&2
+  echo "---" >&2
+  exit 1
+fi
+
+echo "✓ Self-test (Norway-scalar required-string fields): passed (description + model both refused cleanly)."

@@ -47,6 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install tools dependencies
+        run: pip install -r tools/requirements.txt
       - name: Run agent-artifact linter
         run: python tools/lint-agent-artifacts.py
       - name: Self-test the linter (asserts expected errors fire)
@@ -57,6 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install tools dependencies
+        run: pip install -r tools/requirements.txt
       - name: Run skill-spec linter (projection + seeds)
         run: python tools/lint-skill-spec.py
       - name: Self-test the linter (every failure mode + happy path)
@@ -97,6 +101,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install tools dependencies
+        run: pip install -r tools/requirements.txt
       - name: Seed a healthy state.json so the aggregator exercises loop-cohort check
         run: |
           mkdir -p docs/specs/_ci-smoke
