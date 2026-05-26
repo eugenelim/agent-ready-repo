@@ -397,6 +397,35 @@ def run(args: "argparse.Namespace") -> int:
             repo_target_adapter
         )
 
+        # RFC-0012 § *Reliability* (AC22): orphan-projection refusal.
+        # If state.toml has no row for the pack AND on-disk artifacts
+        # exist under the adapter's repo-scope prefix list, the prior
+        # install crashed mid-write. Without this check, Tier-2
+        # squatter logic would drop `.upstream.<ext>` companions next
+        # to every orphan. `--force` clears the orphans and proceeds.
+        if pack_name not in repo_state.packs:
+            orphans = safety.scan_for_pack_artifacts(
+                output_root, allowed_prefixes_repo
+            )
+            if orphans:
+                if force:
+                    for orphan in orphans:
+                        try:
+                            orphan.unlink()
+                        except OSError:
+                            pass
+                else:
+                    print(
+                        f"install: orphan projection files for pack "
+                        f"{pack_name} at "
+                        f"{_format_route_list([str(p) for p in orphans])} "
+                        f"— prior install interrupted; rerun with --force "
+                        f"to clean and reinstall, or delete the listed "
+                        f"paths and rerun",
+                        file=sys.stderr,
+                    )
+                    return 1
+
     # RFC-0005 AC25: refuse install --scope user against an adapter
     # that doesn't declare a working user-scope hook-wiring mode. The
     # heuristic above picks kiro/claude-code; this guard catches a
@@ -849,6 +878,11 @@ def run(args: "argparse.Namespace") -> int:
     # RFC-0011 extends user-scope output with ` via <adapter>` and an
     # optional ` (other declared adapters: …; use --adapter to override)`
     # suffix when multiple CLI homes match the pack's allowed-adapters.
+    # RFC-0012 extends repo-scope output with the same `via <adapter>`
+    # shape for per-IDE projection; the `--emit-install-routes` path
+    # emits an `emitted install routes for ...` line instead (no
+    # single adapter to pin). AC21: repo scope carries no "other
+    # declared adapters" suffix (no probe runs).
     for plan in plans:
         if plan.scope == "user":
             line = f"installed: {pack_name} @ user via {user_target_adapter}"
@@ -869,10 +903,57 @@ def run(args: "argparse.Namespace") -> int:
                         f"use --adapter to override)"
                     )
             print(line)
+        elif plan.scope == "repo" and emit_install_routes:
+            # Dist-tree shape — the two per-pack-emitting recipes
+            # produce `<repo>/claude-plugins/<pack>/` and
+            # `<repo>/apm/<pack>/`. The `marketplace` recipe doesn't
+            # produce a per-pack directory and is excluded from the
+            # route list per RFC-0012 § *Install-time message rail
+            # (repo scope)*.
+            routes = [
+                f"{output_root}/claude-plugins/{pack_name}/",
+                f"{output_root}/apm/{pack_name}/",
+            ]
+            # Emit both the new route-list summary AND the legacy
+            # plain-text line. Order: route-list first (the new info)
+            # so adopters reading the tail see the existing
+            # ``installed: <pack> @ repo`` recap last — preserves the
+            # invariant every pre-RFC-0012 integration test asserts
+            # against (last non-empty stdout line is the install
+            # recap).
+            print(
+                f"emitted install routes for {pack_name} at "
+                f"{_format_route_list(routes)}"
+            )
+            print(f"installed: {pack_name} @ repo")
+        elif plan.scope == "repo" and repo_target_adapter is not None:
+            # RFC-0012 per-IDE projection at repo scope.
+            print(
+                f"installed: {pack_name} @ repo via {repo_target_adapter}"
+            )
         else:
+            # Defensive fallback: matches pre-RFC-0012 wording for any
+            # path the new branches don't capture.
             print(f"installed: {pack_name} @ {plan.scope}")
 
     return 0
+
+
+def _format_route_list(routes: list[str]) -> str:
+    """Format a list of route paths per RFC-0012 § *Install-time
+    message rail (repo scope)*.
+
+      - ``N=1`` → ``"X"``
+      - ``N=2`` → ``"X and Y"``
+      - ``N>=3`` → ``"X, Y, and Z"`` (serial-comma + final "and")
+    """
+    if not routes:
+        return ""
+    if len(routes) == 1:
+        return routes[0]
+    if len(routes) == 2:
+        return f"{routes[0]} and {routes[1]}"
+    return ", ".join(routes[:-1]) + f", and {routes[-1]}"
 
 
 _PACK_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
