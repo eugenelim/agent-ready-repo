@@ -115,7 +115,10 @@ managed-key.user = "hooks"
 [adapter."claude-code".scope]
 repo = "."
 user = "~"
-allowed-prefixes.repo = [".claude/", ".agentbundle/"]
+# RFC-0012: repo-scope projection lands primitives under `.claude/` (skills,
+# agents, commands, hook-wiring) plus `tools/hooks/` for hook bodies — the
+# legacy repo-scope hook-body target that pre-dates the scope dimension.
+allowed-prefixes.repo = [".claude/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".claude/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
@@ -184,7 +187,10 @@ agent-event-vocabulary = [
 [adapter.kiro.scope]
 repo = "."
 user = "~"
-allowed-prefixes.repo = [".kiro/", ".agentbundle/"]
+# RFC-0012: Kiro projects skills/agents to `.kiro/`; hook bodies land in the
+# legacy `tools/hooks/` at repo scope (matching the contract's hook-body
+# array entry above).
+allowed-prefixes.repo = [".kiro/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
@@ -223,7 +229,10 @@ mode = "dropped"
 # `instruction-file` projection target.
 [adapter.copilot.scope]
 repo = "."
-allowed-prefixes.repo = [".github/instructions/"]
+# RFC-0012: Copilot projects skills to `.github/instructions/`; hook bodies
+# land in the legacy `tools/hooks/` (matching copilot's hook-body array
+# entry). Copilot is admissible at repo scope only.
+allowed-prefixes.repo = [".github/instructions/", "tools/hooks/"]
 
 # ---------------------------------------------------------------------------
 # Codex adapter — 5 projections (one per primitive)
@@ -260,7 +269,9 @@ mode = "dropped"
 [adapter.codex.scope]
 repo = "."
 user = "~"
-allowed-prefixes.repo = [".agents/skills/", ".agentbundle/"]
+# RFC-0012: codex projects skills to `.agents/skills/`; hook bodies land in
+# the legacy `tools/hooks/` (matching codex's hook-body array entry).
+allowed-prefixes.repo = [".agents/skills/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".agents/skills/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------

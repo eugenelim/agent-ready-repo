@@ -49,9 +49,12 @@ class TestContractV07(unittest.TestCase):
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(copilot_scope, "copilot scope table missing")
         self.assertEqual(copilot_scope["repo"], ".")
+        # `.github/instructions/` is the Copilot skill / instruction
+        # target; `tools/hooks/` is the legacy hook-body target
+        # (matching copilot's hook-body array entry).
         self.assertEqual(
             copilot_scope["allowed-prefixes"]["repo"],
-            [".github/instructions/"],
+            [".github/instructions/", "tools/hooks/"],
         )
         self.assertNotIn(
             "user",

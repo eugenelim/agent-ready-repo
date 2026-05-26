@@ -64,16 +64,20 @@ def test_addon_manifests_carry_required_dependency(pack_name):
 
 @pytest.mark.parametrize("pack_name", ALL_SHIPPED_PACKS)
 def test_all_packs_declare_install_table(pack_name):
-    """Every shipped pack declares the v0.2 contract + the `[pack.install]`
-    table with `default-scope = "repo"` and `allowed-scopes = ["repo"]`.
-    RFC-0004 sets the install-scope dimension; all four shipped packs
-    are repo-only by content (core ships hooks, addons scaffold project
-    directories) so the four packs land in lockstep with the contract.
+    """Every shipped pack declares the current contract + the
+    `[pack.install]` table with `default-scope = "repo"` and
+    `allowed-scopes = ["repo"]`. RFC-0004 sets the install-scope
+    dimension; all four shipped packs are repo-only by content (core
+    ships hooks, addons scaffold project directories) so the four
+    packs land in lockstep with the contract. RFC-0012 bumps the
+    four repo-only packs from v0.2 to v0.7 (Drawback #7 mitigation —
+    required for the resolver to route them to codex/copilot via the
+    no-flag default at repo scope).
     """
     data = _load(pack_name)
     contract = data.get("pack", {}).get("adapter-contract", {})
-    assert contract.get("version") == "0.2", (
-        f"{pack_name}: [pack.adapter-contract] version must be \"0.2\"; "
+    assert contract.get("version") == "0.7", (
+        f"{pack_name}: [pack.adapter-contract] version must be \"0.7\"; "
         f"got {contract!r}"
     )
     install = data.get("pack", {}).get("install")

@@ -250,12 +250,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--adapter",
         choices=_shipped_for_cli,
         help=(
-            "Override the auto-detected adapter. Admitted at both scopes "
-            "(RFC-0012). Must be in the pack's `allowed-adapters` set "
-            "(or, for legacy packs, a user-scope-capable adapter at user "
-            "scope / any shipped adapter at repo scope). Mutually "
-            f"exclusive with --emit-install-routes at --scope repo. "
-            f"Shipped adapters: {', '.join(_shipped_for_cli)}."
+            "Override the auto-detected adapter. Admitted at both "
+            "install scopes (RFC-0012). Must be in the pack's "
+            "`allowed-adapters` set when declared (legacy packs apply "
+            "the user-scope-capable / shipped-adapter subset by scope). "
+            "Mutually exclusive with --emit-install-routes at --scope "
+            f"repo. Shipped adapters: {', '.join(_shipped_for_cli)}."
         ),
     )
     sp.add_argument(

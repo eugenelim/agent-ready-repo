@@ -81,9 +81,13 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
         scope = contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(scope, "copilot [scope] block missing at v0.7")
         self.assertEqual(scope["repo"], ".")
+        # Two repo prefixes: `.github/instructions/` (skill /
+        # instruction target) and `tools/hooks/` (legacy hook-body
+        # target — copilot's hook-body array entry still projects
+        # there).
         self.assertEqual(
             scope["allowed-prefixes"]["repo"],
-            [".github/instructions/"],
+            [".github/instructions/", "tools/hooks/"],
         )
         # Copilot is admissible at repo scope only — no user-scope analogue
         # exists in the Copilot ecosystem (RFC-0012).
