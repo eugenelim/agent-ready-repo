@@ -183,17 +183,10 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
             f"upgrade should preserve state.adapter; got {after.packs['converters'].adapter!r}",
         )
 
-    def test_adapter_at_repo_scope_refused(self) -> None:
-        rc, stdout, stderr = _run_install(
-            _install_args(
-                catalogue=str(self.cat),
-                repo=str(self.repo),
-                scope="repo",
-                adapter="kiro",
-            )
-        )
-        self.assertEqual(rc, 1)
-        self.assertIn("--adapter is bound to --scope user", stderr)
+    # Note: `test_adapter_at_repo_scope_refused` was deleted by RFC-0012 —
+    # `--adapter` is admitted at both scopes now. The new mutex with
+    # `--emit-install-routes` is covered by
+    # `tests/unit/test_install_argparse_emit_install_routes.py`.
 
 
 if __name__ == "__main__":

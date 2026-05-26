@@ -250,10 +250,23 @@ def _build_parser() -> argparse.ArgumentParser:
         "--adapter",
         choices=_shipped_for_cli,
         help=(
-            "Override the auto-detected adapter at user scope. Bound to "
-            "`--scope user`. Must be in the pack's `allowed-adapters` "
-            f"set (or, for legacy packs, a user-scope-capable adapter). "
+            "Override the auto-detected adapter. Admitted at both scopes "
+            "(RFC-0012). Must be in the pack's `allowed-adapters` set "
+            "(or, for legacy packs, a user-scope-capable adapter at user "
+            "scope / any shipped adapter at repo scope). Mutually "
+            f"exclusive with --emit-install-routes at --scope repo. "
             f"Shipped adapters: {', '.join(_shipped_for_cli)}."
+        ),
+    )
+    sp.add_argument(
+        "--emit-install-routes",
+        action="store_true",
+        help=(
+            "RFC-0012: catalogue-publishing opt-in — emit the legacy "
+            "dist-tree shape (`<repo>/claude-plugins/<pack>/`, "
+            "`<repo>/apm/<pack>/`) at `--scope repo` instead of the "
+            "default per-IDE projection. Bound to `--scope repo`; "
+            "mutually exclusive with `--adapter` at that scope."
         ),
     )
     sp.set_defaults(func=_lazy("install"))

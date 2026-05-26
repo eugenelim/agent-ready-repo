@@ -104,15 +104,12 @@ def run(args: "argparse.Namespace") -> int:
         )
         return 1
 
-    # RFC-0011 AC12: `--adapter` is bound to `--scope user`. Catch an
-    # explicit `--scope repo` early; the resolved-scope check after
-    # Step 2 catches the pack-default-scope-repo case.
-    if cli_adapter is not None and cli_scope == "repo":
-        print(
-            "install: --adapter is bound to --scope user",
-            file=sys.stderr,
-        )
-        return 1
+    # RFC-0012 removes the user-scope-only `--adapter` binding —
+    # `--adapter` is admitted at both scopes now. The handler-level
+    # mutex with `--emit-install-routes` runs after `scope.resolve()`
+    # so it consults the resolved scope (matches the existing
+    # `force_merge` precedent below).
+    emit_install_routes: bool = bool(getattr(args, "emit_install_routes", False))
 
     # Range-check the CLI-supplied pack name before any I/O. The manifest's
     # `pack.name` is checked by `_assert_pack_metadata_shape` below; this
@@ -202,13 +199,25 @@ def run(args: "argparse.Namespace") -> int:
         )
         return 1
 
-    # RFC-0011 AC12: same resolved-scope re-check for `--adapter`. The
-    # early gate above caught the explicit `--scope repo` case; this
-    # one catches the pack-default-scope-repo case where `--scope`
-    # was omitted.
-    if cli_adapter is not None and requested_scope != "user":
+    # RFC-0012 handler-level mutex (after Step 2 so requested_scope is
+    # the resolved value, matching install.py:197's force_merge
+    # precedent). The mutex consults `requested_scope`, not
+    # `args.scope`, so a pack whose `[scope] default-scope = "user"`
+    # surfaces the binding correctly when `--scope` is omitted.
+    if requested_scope == "user" and emit_install_routes:
         print(
-            "install: --adapter is bound to --scope user",
+            "install: --emit-install-routes is bound to --scope repo",
+            file=sys.stderr,
+        )
+        return 1
+    if (
+        requested_scope == "repo"
+        and cli_adapter is not None
+        and emit_install_routes
+    ):
+        print(
+            "install: --adapter and --emit-install-routes are mutually "
+            "exclusive at --scope repo",
             file=sys.stderr,
         )
         return 1
