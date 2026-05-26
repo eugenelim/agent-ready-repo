@@ -316,9 +316,9 @@ def run(args: "argparse.Namespace") -> int:
     # Probe per-adapter scope metadata (for allowed-prefixes at user
     # scope). The Claude Code adapter ships a [scope] block from
     # RFC-0004; RFC-0005's T1 added one to Kiro too; RFC-0011 added
-    # one to Codex. Resolve which adapter the user-scope install
-    # targets via the six-step lookup and use that adapter's
-    # `allowed-prefixes.user`.
+    # one to Codex; RFC-0012 added one to Copilot. Resolve which
+    # adapter the user-scope install targets via the six-step (0–5)
+    # lookup and use that adapter's `allowed-prefixes.user`.
     _pack_allowed_adapters = None
     if isinstance(pack_install, dict):
         _raw = pack_install.get("allowed-adapters")
@@ -326,8 +326,9 @@ def run(args: "argparse.Namespace") -> int:
             _pack_allowed_adapters = [s for s in _raw if isinstance(s, str)]
     _pack_contract_version = pack_spec_version(pack_toml)
     try:
-        user_target_adapter = _resolve_user_scope_target_adapter(
+        user_target_adapter = _resolve_target_adapter(
             pack_dir,
+            scope="user",
             adapter=cli_adapter,
             allowed_adapters=_pack_allowed_adapters,
             contract_version=_pack_contract_version,
@@ -1231,10 +1232,12 @@ def _render_for_user_scope(
     per-primitive layout each IDE reads at ``~/``; we collect the
     result as a relpath→bytes mapping for the install walker.
 
-    The five kwargs flow into ``_resolve_user_scope_target_adapter``
-    per RFC-0011's six-step lookup. They default to ``None`` /
-    ``"install"`` for backward shape with legacy positional callers
-    (tests), but every production call site threads explicit values.
+    The five kwargs flow into ``_resolve_target_adapter`` per
+    RFC-0011's six-step (0–5) lookup with ``scope="user"`` (RFC-0012
+    renamed the helper and added the explicit ``scope`` kwarg). They
+    default to ``None`` / ``"install"`` for backward shape with
+    legacy positional callers (tests), but every production call
+    site threads explicit values.
 
     Other adapters' projections (apm.yml, plugin manifests, etc.) are
     intentionally out of scope at user-scope install — they're
@@ -1257,8 +1260,9 @@ def _render_for_user_scope(
     from agentbundle.render import _collect_tree
 
     contract = tomllib.loads(_read_bundled("adapter.toml"))
-    target_adapter = _resolve_user_scope_target_adapter(
+    target_adapter = _resolve_target_adapter(
         pack_dir,
+        scope="user",
         adapter=adapter,
         allowed_adapters=allowed_adapters,
         contract_version=contract_version,
@@ -1354,11 +1358,12 @@ def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
 
 
 class _AdapterResolutionRefused(Exception):
-    """Raised by `_resolve_user_scope_target_adapter` for any of the
-    pinned refusal paths (publisher-vs-installer drift, `--adapter`
-    not in pack's set, `--adapter` not user-scope-capable, `--adapter`
-    at repo scope). Carries the exact stderr text — the install
-    handler prints `str(exc)` and returns non-zero.
+    """Raised by :func:`_resolve_target_adapter` for any of the pinned
+    refusal paths (publisher-vs-installer drift, ``--adapter`` not in
+    pack's set, ``--adapter`` not user-scope-capable at user scope,
+    ``--adapter`` not shipped at repo scope). Carries the exact
+    stderr text — the install handler prints ``str(exc)`` and returns
+    non-zero.
     """
 
 
@@ -1380,53 +1385,68 @@ def _user_scope_adapter_probes() -> dict[str, "Callable[[Path], bool]"]:
     }
 
 
-def _resolve_user_scope_target_adapter(
+def _resolve_target_adapter(
     pack_dir: Path,
     *,
+    scope: str,
     adapter: str | None = None,
     allowed_adapters: list[str] | None = None,
     contract_version: str | None = None,
     state_adapter: str | None = None,
     command_name: str = "install",
 ) -> str:
-    """Resolve the adapter that a user-scope install/upgrade targets
-    (RFC-0011 / pack-allowed-adapters). The six-step lookup:
+    """Resolve the adapter that an install/upgrade targets at *scope*
+    (RFC-0011 substrate; RFC-0012 widens to repo scope).
 
-      0. Publisher-vs-installer drift refusal (AC15) — if
+    The six-step (0–5) lookup, with scope-branched points at 0, 1, 4,
+    and 5:
+
+      0. **Publisher-vs-installer drift refusal** — if
          ``allowed_adapters`` is declared, intersect with the bundled
          contract's shipped-adapter set; refuse on any miss with the
          pinned message. Runs first so neither ``--adapter`` (step 1)
          nor state-hint (step 2) can leak a no-longer-shipped value
-         through.
+         through. Refusal text is scope-uniform modulo the
+         ``<verb>`` prefix; the user-scope-capability subcheck is
+         **skipped at repo scope** (Copilot is admissible at repo
+         scope but not at user scope).
 
-      1. ``--adapter`` override — validates against
-         ``allowed_adapters`` (when declared) or the live contract's
-         user-scope-capable set (when omitted).
+      1. **``--adapter`` override** — validates against
+         ``allowed_adapters`` (when declared) or, at user scope,
+         against the contract's user-scope-capable set; at repo
+         scope, against the contract's shipped-adapter set (Copilot
+         admissible).
 
-      2. State-hint short-circuit (AC10b) — return ``state_adapter``
-         when admissible; the install was already pinned. Filesystem
-         presence of the recorded adapter's CLI home is NOT
-         re-checked (state-of-record beats filesystem on upgrade).
+      2. **State-hint short-circuit (AC10b)** — return
+         ``state_adapter`` when admissible; the install was already
+         pinned. Scope-uniform.
 
-      3. Contract-version + probe — v0.6+ packs declaring
-         ``allowed_adapters`` walk the declared list against the
-         per-adapter probe table; first match wins. Greenfield
-         fallback: ``DEFAULT_USER_SCOPE_ADAPTER`` if in the pack's
-         set, else ``allowed_adapters[0]``.
+      3. **Contract-version gate** — uses
+         ``contract_supports_hook_wiring(contract_version)``;
+         scope-uniform.
 
-      4. Legacy heuristic — same as pre-RFC-0011 (``.apm/agents/``
-         present ⇒ ``kiro``; else ``claude-code``).
+      4. **Per-scope branch**: at user scope, walk the per-adapter
+         probe table and return the first match; at repo scope,
+         **skip the probe** (RFC-0012 § *Alternatives* #4 — symmetric
+         probing rejected) and return ``DEFAULT_USER_SCOPE_ADAPTER``
+         if in ``allowed_adapters``, else ``allowed_adapters[0]``.
 
-    The function raises :class:`_AdapterResolutionRefused` for the
-    pinned refusal paths; the caller prints the exception text and
+      5. **Legacy heuristic** — preserved for ``< 0.7`` packs that
+         omit ``allowed-adapters``. ``.apm/agents/`` present ⇒
+         ``"kiro"``; else ``"claude-code"``. At repo scope this can
+         only return ``claude-code``/``kiro`` and never
+         ``codex``/``copilot`` (Drawback #7).
+
+    The function raises :class:`_AdapterResolutionRefused` for any of
+    the pinned refusal paths; the caller prints the exception text and
     exits non-zero.
 
     Known limitation: two packs claiming the same Kiro agent name
     (each ships ``.apm/agents/<name>.md``) will both write to the
-    same projected ``.kiro/agents/<name>.json`` and the second
-    install will silently overwrite the first's wiring. A follow-on
-    RFC for shared-agent ownership will need to address this;
-    pack-allowed-adapters preserves the behaviour unchanged.
+    same projected ``.kiro/agents/<name>.json`` and the second install
+    will silently overwrite the first's wiring. A follow-on RFC for
+    shared-agent ownership will need to address this; this spec
+    preserves the behaviour unchanged.
     """
     from agentbundle.build.main import _read_bundled
     from agentbundle.scope import (
@@ -1440,7 +1460,9 @@ def _resolve_user_scope_target_adapter(
     shipped = shipped_adapters_from_contract()
     user_capable = user_scope_capable_adapters_from_contract()
 
-    # Step 0: publisher-vs-installer drift refusal (AC15).
+    # Step 0: publisher-vs-installer drift refusal — scope-uniform
+    # except the user-scope-capability subcheck is skipped at repo
+    # scope (Copilot is admissible there).
     if allowed_adapters is not None:
         for declared in allowed_adapters:
             if declared not in shipped:
@@ -1453,26 +1475,21 @@ def _resolve_user_scope_target_adapter(
                     f"adapter contract v{cv} shipped with agentbundle "
                     f"{cli_version}"
                 )
-        # Defence-in-depth: at install/upgrade we're already routing
-        # this pack to user scope (the resolver only runs for user
-        # scope). Each declared adapter must additionally be
-        # user-scope-capable, mirroring the validate-time cross-field
-        # check (validate.py:_validate_allowed_adapters). Without
-        # this, a v0.6 pack declaring `allowed-adapters = ["copilot"]`
-        # could fall through to the greenfield branch and return
-        # "copilot" — at which point `_render_for_user_scope`'s
-        # if/elif/else would silently land a Claude Code projection
-        # with state.adapter recorded as "copilot". Refuse here so
-        # the on-disk projection and the state file can never
-        # disagree on the resolved adapter.
-        for declared in allowed_adapters:
-            if declared not in user_capable:
-                raise _AdapterResolutionRefused(
-                    f"{command_name}: pack {pack_name!r} declares "
-                    f"allowed-adapter {declared!r} which does not "
-                    f"declare a user-scope root in the v0.6 adapter "
-                    f"contract"
-                )
+        if scope == "user":
+            # User-scope-capability subcheck — fires only at user
+            # scope. RFC-0012: Copilot is admissible at repo scope
+            # without declaring `[scope].user`, so this subcheck
+            # must not fire there.
+            for declared in allowed_adapters:
+                if declared not in user_capable:
+                    contract = tomllib.loads(_read_bundled("adapter.toml"))
+                    cv = contract.get("contract", {}).get("version", "?")
+                    raise _AdapterResolutionRefused(
+                        f"{command_name}: pack {pack_name!r} declares "
+                        f"allowed-adapter {declared!r} which does not "
+                        f"declare a user-scope root in the v{cv} adapter "
+                        f"contract"
+                    )
 
     # Step 1: --adapter override.
     if adapter is not None:
@@ -1483,45 +1500,64 @@ def _resolve_user_scope_target_adapter(
                     f"allowed-adapters set"
                 )
         else:
-            if adapter not in user_capable:
-                contract = tomllib.loads(_read_bundled("adapter.toml"))
-                cv = contract.get("contract", {}).get("version", "?")
-                raise _AdapterResolutionRefused(
-                    f"{command_name}: --adapter {adapter} not admitted as a "
-                    f"user-scope-capable adapter under contract v{cv}"
-                )
+            if scope == "user":
+                if adapter not in user_capable:
+                    contract = tomllib.loads(_read_bundled("adapter.toml"))
+                    cv = contract.get("contract", {}).get("version", "?")
+                    raise _AdapterResolutionRefused(
+                        f"{command_name}: --adapter {adapter} not admitted "
+                        f"as a user-scope-capable adapter under contract v{cv}"
+                    )
+            else:
+                # Repo scope: any shipped adapter is admissible.
+                if adapter not in shipped:
+                    contract = tomllib.loads(_read_bundled("adapter.toml"))
+                    cv = contract.get("contract", {}).get("version", "?")
+                    raise _AdapterResolutionRefused(
+                        f"{command_name}: --adapter {adapter} not admitted "
+                        f"as a shipped adapter under contract v{cv}"
+                    )
         return adapter
 
-    # Step 2: state-hint short-circuit (AC10b).
+    # Step 2: state-hint short-circuit (AC10b) — scope-uniform.
     if state_adapter is not None:
         if allowed_adapters is not None:
             if state_adapter in allowed_adapters:
                 return state_adapter
         else:
-            if state_adapter in user_capable:
+            admissible = user_capable if scope == "user" else shipped
+            if state_adapter in admissible:
                 return state_adapter
-        # state_adapter is not admissible — fall through to step 3/4
+        # state_adapter is not admissible — fall through to step 3+
         # and the existing upgrade.py cross-adapter refusal will fire
         # if the new resolution differs.
 
-    # Step 3: contract-version gate + per-adapter probe.
+    # Step 3 + Step 4: contract-version gate + per-scope branch.
     if (
         allowed_adapters is not None
         and contract_supports_hook_wiring(contract_version)
     ):
-        probes = _user_scope_adapter_probes()
-        home = Path.home()
-        for declared in allowed_adapters:
-            probe = probes.get(declared)
-            if probe is not None and probe(home):
-                return declared
-        # Greenfield: nothing on disk matched.
+        if scope == "user":
+            # Step 4 (user-scope): per-adapter probe table; first
+            # match wins.
+            probes = _user_scope_adapter_probes()
+            home = Path.home()
+            for declared in allowed_adapters:
+                probe = probes.get(declared)
+                if probe is not None and probe(home):
+                    return declared
+        # Step 4 (repo-scope): no probe. RFC-0012 § *Alternatives* #4
+        # rejects symmetric probing as load-bearing asymmetry —
+        # probing `<repo>/.<ide>/` would silently override an explicit
+        # `--adapter` (the probe runs only when `--adapter` is omitted,
+        # but the same rule reads cleaner stated uniformly).
         if DEFAULT_USER_SCOPE_ADAPTER in allowed_adapters:
             return DEFAULT_USER_SCOPE_ADAPTER
         return allowed_adapters[0]
 
-    # Step 4: legacy heuristic — preserved verbatim for `< 0.6` packs
-    # and v0.6+ packs omitting `allowed-adapters`.
+    # Step 5: legacy heuristic — preserved for `< v0.7` packs that
+    # omit `allowed-adapters`. At repo scope this can only return
+    # claude-code/kiro and never codex/copilot (Drawback #7).
     agents_dir = pack_dir / ".apm" / "agents"
     if not agents_dir.exists():
         return "claude-code"
@@ -1529,6 +1565,8 @@ def _resolve_user_scope_target_adapter(
         if entry.is_file() and entry.suffix == ".md":
             return "kiro"
     return "claude-code"
+
+
 
 
 def _rewrite_user_scope_hook_paths(
