@@ -345,6 +345,7 @@ def run(args: "argparse.Namespace") -> int:
         rc = _classify_pre_rfc0012_state(
             output_root=output_root,
             pack_name=pack_name,
+            pack_dir=pack_dir,
             repo_state=repo_state,
             repo_target_adapter=repo_target_adapter,
             allowed_prefixes_repo=allowed_prefixes_repo,
@@ -997,6 +998,7 @@ def _classify_pre_rfc0012_state(
     *,
     output_root: Path,
     pack_name: str,
+    pack_dir: Path,
     repo_state: "State",
     repo_target_adapter: str,
     allowed_prefixes_repo: list[str],
@@ -1102,9 +1104,14 @@ def _classify_pre_rfc0012_state(
     else:
         # (c) Orphan recovery — no state row AND per-IDE artifacts
         # exist under the resolved adapter's allowed-prefixes.repo.
-        # The AC22 refusal text is preserved verbatim.
+        # The scan is **per-pack scoped** via ``pack_dir`` +
+        # ``pack_name`` so a third pack's orphan files (left under the
+        # same adapter prefix by a different crashed install) don't
+        # surface here as a false positive — the cross-pack residual
+        # ROADMAP named after PR #141.
         orphans = safety.scan_for_pack_artifacts(
-            output_root, allowed_prefixes_repo
+            output_root, allowed_prefixes_repo,
+            pack_dir=pack_dir, pack_name=pack_name,
         )
         if orphans:
             _INBAND_DETECTION_SEEN.add(key)

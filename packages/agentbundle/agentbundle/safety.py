@@ -383,14 +383,118 @@ def write_jailed(
     return target.resolve()
 
 
-def scan_for_pack_artifacts(root: Path, allowed_prefixes: list[str]) -> list[Path]:
-    """Return every file on disk under ``root`` matching ``allowed_prefixes``.
+_PACK_PRIMITIVE_TYPES: tuple[str, ...] = (
+    "skills", "agents", "hooks", "hook-wiring", "commands",
+    "shared-libs", "adapter-root-bins",
+)
+"""The primitive-type directories under ``<pack>/.apm/`` that the build
+pipeline projects. Used by :func:`_collect_pack_owned_names` to walk a
+pack's source and build the per-pack scan filter.
 
-    Read-only; walks every ``<root>/<prefix>/`` and returns every file
+Source of truth is ``_data/adapter.toml``'s ``[primitive.*]`` tables
+(seven entries today: five originals + ``shared-libs`` and
+``adapter-root-bins`` introduced by RFC-0013). A contract bump that
+adds a new primitive type must extend this tuple, or the per-pack
+scan will silently miss the new type's orphans at install start —
+catalogue-broker packs (e.g. ``credential-brokers``) project
+load-bearing artifacts under ``adapter-root-bins/``."""
+
+
+def _collect_pack_owned_names(
+    pack_dir: Path, pack_name: str
+) -> tuple[set[str], str]:
+    """Return ``(primitive_names, copilot_stem)`` for per-pack scoping.
+
+    Walks each ``<pack_dir>/.apm/<type>/`` directory (for the five
+    canonical primitive types) and collects the basenames of immediate
+    children — these are the per-skill / per-agent / per-command
+    segments that show up in the on-disk projection. For files (e.g.
+    ``agents/foo.md``) the stem is collected (``foo``) so a
+    file-shape projection matches; for directories (``skills/foo/``)
+    the directory name is collected. Dunder / dotfile children
+    (``__pycache__``, ``.DS_Store``) are skipped — they aren't pack
+    primitives and would needlessly widen the matched-name set.
+
+    The two return values are scoped to different positions in the
+    relative path under an adapter prefix:
+
+      - ``primitive_names`` — matched against any **path segment** of
+        the relative-to-prefix path. Drives claude-code / kiro /
+        codex matching.
+      - ``copilot_stem`` (equals ``pack_name``) — matched against the
+        **file stem** only when ``len(rel.parts) == 1`` (i.e., the
+        Copilot single-file projection at ``<prefix>/<pack>.md``).
+
+    Splitting the two avoids the cross-pack-name-collision false
+    positive: if pack A ships a hook named after pack B's pack name,
+    its projection at ``.claude/hooks/<pack-B>.py`` would otherwise
+    match pack B's scan via a bare segment-equals-pack-name check.
+    The structural restriction (segment for primitives; stem-at-
+    depth-1 for Copilot) eliminates this without requiring a new
+    catalogue lint.
+    """
+    primitive_names: set[str] = set()
+    apm = pack_dir / ".apm"
+    if not apm.is_dir():
+        return primitive_names, pack_name
+    for ptype in _PACK_PRIMITIVE_TYPES:
+        sub = apm / ptype
+        if not sub.is_dir():
+            continue
+        for child in sub.iterdir():
+            if child.name.startswith(("_", ".")):
+                continue
+            primitive_names.add(child.stem if child.is_file() else child.name)
+    return primitive_names, pack_name
+
+
+def scan_for_pack_artifacts(
+    root: Path,
+    allowed_prefixes: list[str],
+    *,
+    pack_dir: Path | None = None,
+    pack_name: str | None = None,
+) -> list[Path]:
+    """Return on-disk files under ``<root>/<prefix>/`` for each prefix.
+
+    Read-only; walks every ``<root>/<prefix>/`` and returns the files
     found. No state mutation. Used by RFC-0012 § *Reliability* — the
     orphan-projection refusal at install start compares this list
     against ``state.toml``; a non-empty result with no state row for
     the pack means a prior install crashed mid-write.
+
+    **Per-pack scoping (preferred).** When ``pack_dir`` and
+    ``pack_name`` are both provided, the result is narrowed via a
+    heuristic stand-in for full render-driven ownership: a file's
+    relative-to-prefix path is matched against names walked from the
+    pack's source. Specifically:
+
+      - ``claude-code`` / ``kiro``: ``<prefix>/<type>/<primitive>/<file>``
+        — the ``<primitive>`` path segment is matched against
+        primitive names walked from ``<pack_dir>/.apm/<type>/``.
+      - ``codex``: ``<prefix>/<primitive>/<file>`` (prefix ends in
+        ``skills/``) — same segment match.
+      - ``copilot``: ``<prefix>/<pack>.md`` — the **file stem** is
+        matched against ``pack_name``, but only when the relative
+        path is a single segment (``len(rel.parts) == 1``); this
+        scopes the stem rule to Copilot's flat projection and avoids
+        a cross-pack-name-collision false positive at other adapters.
+
+    The heuristic admits a narrow residual false-positive surface:
+    if a foreign pack ships a primitive whose stem matches a primitive
+    name in this pack, the foreign file matches via case (b). The
+    path-jail enforces prefix containment (not primitive-name
+    uniqueness across packs); two packs landing files at the same
+    on-disk path would conflict at install-time write, but the scan
+    runs *before* that point. The depth-1 restriction on case (c)
+    closes the larger cross-pack-name-collision surface (foreign
+    primitive named after this pack's pack-name); the remaining
+    stem-in-primitives risk is bounded by catalogue conventions
+    around per-pack-unique primitive naming.
+
+    **Legacy mode.** When ``pack_dir``/``pack_name`` are omitted, the
+    helper preserves its pre-2026-05-26 adapter-prefix-only scoping
+    for any external caller that didn't migrate.
 
     Each ``prefix`` is expected to end in ``/`` (matching the
     contract's `allowed-prefixes.<scope>` convention). Missing prefix
@@ -400,14 +504,43 @@ def scan_for_pack_artifacts(root: Path, allowed_prefixes: list[str]) -> list[Pat
     Results are sorted by path for stable test comparison and stable
     stderr ordering when callers print the list.
     """
+    primitive_names: set[str] | None = None
+    copilot_stem: str | None = None
+    if pack_dir is not None and pack_name is not None:
+        primitive_names, copilot_stem = _collect_pack_owned_names(
+            pack_dir, pack_name
+        )
+
     out: list[Path] = []
     for prefix in allowed_prefixes:
         base = root / prefix
         if not base.exists():
             continue
         for entry in base.rglob("*"):
-            if entry.is_file():
-                out.append(entry)
+            if not entry.is_file():
+                continue
+            if primitive_names is not None:
+                rel = entry.relative_to(base)
+                # Segment match: any path component matches a primitive
+                # directory name. File-shape primitives (e.g.
+                # ``agents/foo.md``) need stem-vs-primitive-names too —
+                # the path part is ``foo.md`` but the collected name is
+                # ``foo``.
+                primitive_hit = (
+                    bool(set(rel.parts) & primitive_names)
+                    or entry.stem in primitive_names
+                )
+                # Copilot single-file projection only — scoped to the
+                # depth-1 case so a cross-pack primitive named after
+                # another pack's pack-name doesn't match here.
+                copilot_hit = (
+                    copilot_stem is not None
+                    and len(rel.parts) == 1
+                    and entry.stem == copilot_stem
+                )
+                if not (primitive_hit or copilot_hit):
+                    continue
+            out.append(entry)
     return sorted(out)
 
 
