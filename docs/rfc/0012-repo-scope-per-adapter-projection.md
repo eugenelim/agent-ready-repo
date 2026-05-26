@@ -1,9 +1,9 @@
 # RFC-0012: Repo-scope per-adapter projection
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-05-26
-- **Date closed:**
+- **Date closed:** 2026-05-26
 - **Related:** [RFC-0001](0001-bundle-distribution-by-adapter-spec.md) (base bundle / install routes); [RFC-0004](0004-install-scope-per-pack.md) (scope dimension); [RFC-0008](0008-claude-plugins-install-route-parity.md) (claude-plugins route); [RFC-0010](0010-apm-install-route-parity.md) (apm route); [RFC-0011](0011-pack-allowed-adapters.md) at commit `af1b6c8` plus PR #132 erratum at commit `45049f1` (user-scope adapter resolution — this RFC closes its repo-scope erratum); [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md) (per-pack scope default + allowance)
 
 ## Summary
