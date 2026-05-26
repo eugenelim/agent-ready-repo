@@ -522,6 +522,54 @@ def run(args: "argparse.Namespace") -> int:
                 print(f"install: {exc}", file=sys.stderr)
                 return 1
 
+    # Dropped-primitives warning rail (docs/specs/dropped-primitives-
+    # coverage T6 / AC10). Pre-write barrier: Step 5's plans are built
+    # and both target adapters are resolved by here; Step 6's pre-flight
+    # hasn't fired yet; no byte has been written. Emit one warning per
+    # (root, pack_name, adapter, scope) where the resolved adapter has
+    # any `dropped` mode for a primitive type the pack actually ships.
+    # Contract-driven — no hardcoded adapter literals.
+    #
+    # Dual-scope late-resolution: `repo_target_adapter` is set at Step 3c
+    # only when ``requested_scope == "repo"``. When ``requested_scope ==
+    # "user"`` AND ``force + other_already`` (Step 4b's dual-scope path),
+    # the run writes to repo too but Step 3c didn't resolve. Resolve here
+    # so the warning fires for both scopes — without this, the
+    # ``--scope user --force`` dual-scope path silently drops the repo-
+    # side warning even though the install does land at repo scope.
+    if "repo" in scopes_to_install and repo_target_adapter is None:
+        try:
+            repo_target_adapter = _resolve_target_adapter(
+                pack_dir,
+                scope="repo",
+                adapter=cli_adapter,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=None,
+                command_name="install",
+            )
+        except _AdapterResolutionRefused:
+            # Repo resolution failed; defer the actual refusal to the
+            # downstream render step which already raises with adopter-
+            # facing wording. Silently skipping the warning is
+            # acceptable in this corner because the install itself
+            # will halt before any byte is written.
+            repo_target_adapter = None
+
+    for plan in plans:
+        scope_adapter = (
+            repo_target_adapter if plan.scope == "repo" else user_target_adapter
+        )
+        if scope_adapter is None:
+            continue
+        _maybe_emit_dropped_warning(
+            root=plan.root,
+            pack_dir=pack_dir,
+            pack_name=pack_name,
+            adapter=scope_adapter,
+            scope=plan.scope,
+        )
+
     # ── Step 6: Pre-flight — rails A/B/C for any user-scope write ────────────
     # Also run the kiro attach-to-agent rail (T2's `check_kiro_wiring`)
     # for user-scope kiro-targeted packs. Catches malformed wiring TOMLs
@@ -972,6 +1020,288 @@ def _clear_inband_detection_seen() -> None:
     storage shape can change without breaking callers.
     """
     _INBAND_DETECTION_SEEN.clear()
+
+
+# ---------------------------------------------------------------------------
+# Dropped-primitives warning rail (docs/specs/dropped-primitives-coverage T6)
+# ---------------------------------------------------------------------------
+
+
+_DROPPED_WARNING_SEEN: set[tuple[str, str, str, str]] = set()
+"""Once-per-``(root, pack_name, adapter, scope)`` short-circuit for the
+dropped-primitives warning rail (spec AC11).
+
+The 4-tuple key's `scope` component is load-bearing: dual-scope installs
+fire one warning per scope where the resolved adapter has dropped modes,
+each silenceable independently on repeat. See spec AC10/AC11 for the
+dual-scope contract."""
+
+
+def _clear_dropped_warning_seen() -> None:
+    """Reset the once-per-session dropped-warning set.
+
+    Public-by-convention helper for tests + long-running embedders;
+    mirrors :func:`_clear_inband_detection_seen` (PR #141 precedent).
+    """
+    _DROPPED_WARNING_SEEN.clear()
+
+
+def _pluralize_primitive_name(name: str) -> str:
+    """Plural form of a primitive-type name.
+
+    Used by both the dropped-count formatter (`2 agents`) and the
+    compatible-list formatter. Bound to the contract's five primitive
+    type names — `hook-body` is the only English-irregular one.
+    """
+    if name == "hook-body":
+        return "hook-bodies"
+    return name + "s"
+
+
+def _enumerate_dropped_primitives(
+    pack_dir: Path,
+    adapter: str,
+    contract: dict | None = None,
+) -> dict[str, int]:
+    """Return ``{primitive-type-name: count}`` for primitives the pack
+    ships AND the adapter projects with ``mode = "dropped"``.
+
+    Counts come from ``<pack_dir>/.apm/<source-dir>/`` (where
+    ``<source-dir>`` is the contract's ``primitive.<type>.source-path``
+    last segment — e.g., ``hook-body`` → ``hooks/``). Each entry counts
+    as one primitive only if it matches the type's expected shape
+    (skills/agents/commands are directories or .md files; hook-wiring is
+    .toml; hook-body is any file). Junk files (``.DS_Store``, editor
+    swap files) and stray directories don't inflate the count. Empty
+    mapping when:
+
+      - The adapter has no ``dropped`` entries at all (e.g. claude-code).
+      - The pack ships nothing under any of the adapter's dropped types.
+    """
+    if contract is None:
+        import tomllib as _tomllib
+        from agentbundle.build.main import _read_bundled
+
+        contract = _tomllib.loads(_read_bundled("adapter.toml"))
+
+    primitives = contract.get("primitive", {})
+    adapter_entries = contract.get("adapter", {}).get(adapter, {}).get("projection", [])
+    out: dict[str, int] = {}
+    for entry in adapter_entries:
+        if entry.get("mode") != "dropped":
+            continue
+        ptype = entry.get("primitive")
+        if not ptype:
+            continue
+        source_path = primitives.get(ptype, {}).get("source-path", "")
+        source_dir = pack_dir / source_path.strip("/")
+        if not source_dir.exists():
+            continue
+        count = _count_primitive_entries(source_dir, ptype)
+        if count > 0:
+            out[ptype] = count
+    return out
+
+
+_JUNK_NAMES = {"Thumbs.db", "desktop.ini"}
+"""Cross-platform editor / OS artifacts that aren't pack content.
+Leading-dot files (``.DS_Store``, editor swaps) are caught by the
+dotfile skip; these are the named exceptions that don't start with a
+dot but still aren't primitives."""
+
+
+def _is_junk_name(name: str) -> bool:
+    """Return True for entries that aren't pack content regardless of type."""
+    if name.startswith("."):
+        return True
+    if name in _JUNK_NAMES:
+        return True
+    # Editor swap / backup suffixes.
+    if name.endswith(("~", ".swp", ".bak")):
+        return True
+    return False
+
+
+def _count_primitive_entries(source_dir: Path, ptype: str) -> int:
+    """Count entries in ``source_dir`` that match ``ptype``'s shape.
+
+    Per the bundled contract's primitive layout:
+      - ``skill``: subdirectories (each a skill bundle with SKILL.md).
+      - ``agent``, ``command``: ``.md`` files.
+      - ``hook-body``: ``.sh`` or ``.py`` files (the two shapes the
+        contract's adapters project via direct-file today; a future
+        primitive shape extends this set explicitly).
+      - ``hook-wiring``: ``.toml`` files.
+
+    Junk entries (``.DS_Store``, ``Thumbs.db``, ``desktop.ini``, editor
+    swap/backup files, stray subdirs) are skipped — they would
+    otherwise inflate the warning rail's count.
+    """
+    count = 0
+    for entry in source_dir.iterdir():
+        if _is_junk_name(entry.name):
+            continue
+        if ptype == "skill":
+            if entry.is_dir():
+                count += 1
+        elif ptype in ("agent", "command"):
+            if entry.is_file() and entry.suffix == ".md":
+                count += 1
+        elif ptype == "hook-wiring":
+            if entry.is_file() and entry.suffix == ".toml":
+                count += 1
+        elif ptype == "hook-body":
+            if entry.is_file() and entry.suffix in (".sh", ".py"):
+                count += 1
+        else:
+            # Unknown primitive type — admit conservatively but only
+            # files (not stray subdirs) so a future contract addition
+            # is surfaced rather than silently filtered.
+            if entry.is_file():
+                count += 1
+    return count
+
+
+def _enumerate_compatible_primitives(
+    pack_dir: Path,
+    adapter: str,
+    contract: dict | None = None,
+) -> list[str]:
+    """Return primitive-type names where ``mode != "dropped"`` AND the
+    pack ships at least one file. Order matches the adapter's projection
+    declaration order for stable output."""
+    if contract is None:
+        import tomllib as _tomllib
+        from agentbundle.build.main import _read_bundled
+
+        contract = _tomllib.loads(_read_bundled("adapter.toml"))
+
+    primitives = contract.get("primitive", {})
+    adapter_entries = contract.get("adapter", {}).get(adapter, {}).get("projection", [])
+    out: list[str] = []
+    for entry in adapter_entries:
+        if entry.get("mode") == "dropped":
+            continue
+        ptype = entry.get("primitive")
+        if not ptype:
+            continue
+        source_path = primitives.get(ptype, {}).get("source-path", "")
+        source_dir = pack_dir / source_path.strip("/")
+        if not source_dir.exists():
+            continue
+        if _count_primitive_entries(source_dir, ptype) > 0:
+            out.append(ptype)
+    return out
+
+
+def _join_serial_comma(items: list[str]) -> str:
+    """Project's list-formatting convention: serial comma + 'and'.
+
+    Mirrors RFC-0012's route-list formatter. Examples:
+      - ``[]`` → ``""``
+      - ``["a"]`` → ``"a"``
+      - ``["a", "b"]`` → ``"a and b"``
+      - ``["a", "b", "c"]`` → ``"a, b, and c"``
+    """
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + ", and " + items[-1]
+
+
+def _format_dropped_warning(
+    pack_name: str,
+    adapter: str,
+    dropped_counts: dict[str, int],
+    compatible_types: list[str],
+) -> str:
+    """Build the AC10 pinned warning string.
+
+    ``warning: pack <name> ships <count-list> that <adapter> projects as
+    'dropped'; these primitives will not be installed. The compatible
+    primitives (<compatible-list>) will proceed.``
+
+    ``<count-list>`` uses singular for N=1 (``1 agent``) and plural for
+    N>1 (``2 agents``); zero-count types are elided.
+    ``<compatible-list>`` uses the plural form of each type name
+    (``skills``, ``agents``, ``hook-bodies``, ``hook-wirings``,
+    ``commands``). Both lists join with serial-comma-plus-``and``.
+
+    Raises:
+        ValueError: when ``dropped_counts`` has no nonzero entries. The
+            caller-side guard in ``_maybe_emit_dropped_warning`` keeps
+            this off the install-handler hot path; the refusal surfaces
+            mis-use from any direct caller (tests, future embedders)
+            rather than emitting a malformed ``ships  that ...`` string.
+    """
+    count_parts: list[str] = []
+    # Sort by type name so the formatted output is deterministic.
+    for ptype, count in sorted(dropped_counts.items()):
+        if count <= 0:
+            continue
+        if count == 1:
+            count_parts.append(f"1 {ptype}")
+        else:
+            count_parts.append(f"{count} {_pluralize_primitive_name(ptype)}")
+    if not count_parts:
+        # All-zero or empty input — the warning has nothing meaningful to
+        # report. _maybe_emit_dropped_warning's caller-side guard catches
+        # this before we get here, but the formatter is module-public
+        # by convention (tests consume it directly) so refuse rather
+        # than emit a malformed "ships  that ..." string.
+        raise ValueError(
+            "dropped_counts has no nonzero entries; "
+            "_format_dropped_warning has nothing to format"
+        )
+    count_list = _join_serial_comma(count_parts)
+
+    compatible_parts = [
+        _pluralize_primitive_name(ptype) for ptype in sorted(compatible_types)
+    ]
+    compatible_list = _join_serial_comma(compatible_parts)
+
+    return (
+        f"warning: pack {pack_name} ships {count_list} that {adapter} "
+        f"projects as 'dropped'; these primitives will not be installed. "
+        f"The compatible primitives ({compatible_list}) will proceed."
+    )
+
+
+def _maybe_emit_dropped_warning(
+    *,
+    root: Path,
+    pack_dir: Path,
+    pack_name: str,
+    adapter: str,
+    scope: str,
+) -> None:
+    """If the pack ships any primitive type the adapter drops, emit the
+    AC10 warning to stderr. Short-circuits once per
+    ``(root, pack_name, adapter, scope)`` per process so repeat calls
+    in the same process stay silent (AC11).
+
+    Pre-write barrier: callers invoke this after Step 5's plans-list is
+    built (both target adapters resolved) and before Step 6's pre-flight
+    rails fire / Step 9's writes execute.
+    """
+    key = (str(root), pack_name, adapter, scope)
+    if key in _DROPPED_WARNING_SEEN:
+        return
+    dropped = _enumerate_dropped_primitives(pack_dir, adapter)
+    if not dropped:
+        # Adapter has no dropped modes OR pack ships nothing droppable.
+        # Record the no-op so even a "no warning" decision is short-circuited
+        # — a future caller flipping the pack's primitives wouldn't expect
+        # a sudden warning mid-process.
+        _DROPPED_WARNING_SEEN.add(key)
+        return
+    compatible = _enumerate_compatible_primitives(pack_dir, adapter)
+    msg = _format_dropped_warning(pack_name, adapter, dropped, compatible)
+    print(msg, file=sys.stderr)
+    _DROPPED_WARNING_SEEN.add(key)
 
 
 def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:

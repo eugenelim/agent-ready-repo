@@ -17,12 +17,16 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Iterator
 
 
 # RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.merge_json import project_merge_json
+from agentbundle.build.projections.codex_agent_toml import (
+    project_codex_agent_toml,
+)
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -139,6 +143,14 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
         elif mode == "direct-file":
             for source_dir in source_dirs:
                 _project_direct_file(source_dir, output_root, rule["target-path"])
+        elif mode == "merge-json":
+            for source_dir in source_dirs:
+                project_merge_json(source_dir, output_root, rule)
+        elif mode == "codex-agent-toml":
+            mapping_name = rule["frontmatter-mapping"]
+            mapping = contract.get("frontmatter-mapping", {}).get(mapping_name, {})
+            for source_dir in source_dirs:
+                project_codex_agent_toml(source_dir, output_root, rule, mapping)
         else:
             raise ValueError(f"codex: unhandled mode {mode!r} for {primitive_name}")
 

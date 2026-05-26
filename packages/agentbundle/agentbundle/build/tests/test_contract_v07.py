@@ -58,12 +58,18 @@ class TestContractV07(unittest.TestCase):
         )
 
     def test_contract_version_is_07(self) -> None:
-        """RFC-0012 + RFC-0013 co-residing at v0.7 on the runtime file."""
-        self.assertEqual(self.contract["contract"]["version"], "0.7")
+        """RFC-0012 + RFC-0013 + dropped-primitives-coverage co-residing at v0.8.
+
+        Name preserved to keep the diff small; the v0.7 invariants below
+        remain load-bearing post-v0.8 bump because dropped-primitives-coverage
+        only widens codex's projection table (it does not regress the v0.7
+        ``allowed-prefixes`` / scope-table contracts pinned in this module).
+        """
+        self.assertEqual(self.contract["contract"]["version"], "0.8")
 
     def test_docs_contract_version_is_07(self) -> None:
-        """RFC-0013 AC1 — docs mirror also pinned at v0.7."""
-        self.assertEqual(self.docs_contract["contract"]["version"], "0.7")
+        """docs mirror also pinned at v0.8 (post dropped-primitives-coverage bump)."""
+        self.assertEqual(self.docs_contract["contract"]["version"], "0.8")
 
     def test_copilot_scope_table_shape(self) -> None:
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")

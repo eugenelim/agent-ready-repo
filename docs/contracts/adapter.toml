@@ -12,9 +12,16 @@
 # RFC-0013 / docs/specs/credential-broker-contract (governance bump, v0.7 —
 # admitted as a co-residing v0.7 contributor; the `metadata.auth` lint
 # surface lives in tools/lint-agent-artifacts.py, not in this file).
+# docs/specs/dropped-primitives-coverage (v0.8): codex `agent` projects to
+# `.codex/agents/<name>.toml` via new `codex-agent-toml` mode; codex
+# `hook-wiring` projects to `.codex/hooks.json` via existing `merge-json`
+# mode; codex `.codex/` added to allowed-prefixes; new `codex-agent-
+# frontmatter-v0.8` mapping. Dropped-primitives warning rail introduced
+# in `agentbundle install` for any (adapter, pack) pair where the
+# resolved adapter projects a primitive type the pack ships as `dropped`.
 
 [contract]
-version = "0.7"
+version = "0.8"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -269,7 +276,10 @@ on-conflict = "prompt-then-preserve"
 
 [[adapter.codex.projection]]
 primitive = "agent"
-mode = "dropped"
+mode = "codex-agent-toml"
+target-path = ".codex/agents/"
+frontmatter-mapping = "codex-agent-frontmatter-v0.8"
+on-conflict = "prompt-then-preserve"
 
 [[adapter.codex.projection]]
 primitive = "hook-body"
@@ -279,7 +289,10 @@ on-conflict = "prompt-then-preserve"
 
 [[adapter.codex.projection]]
 primitive = "hook-wiring"
-mode = "dropped"
+mode = "merge-json"
+target-path = ".codex/hooks.json"
+managed-key = "hooks"
+on-conflict = "merge-managed-key-only"
 
 [[adapter.codex.projection]]
 primitive = "command"
@@ -294,8 +307,8 @@ repo = "."
 user = "~"
 # RFC-0012: codex projects skills to `.agents/skills/`; hook bodies land in
 # the legacy `tools/hooks/` (matching codex's hook-body array entry).
-allowed-prefixes.repo = [".agents/skills/", ".agentbundle/", "tools/hooks/"]
-allowed-prefixes.user = [".agents/skills/", ".agentbundle/"]
+allowed-prefixes.repo = [".agents/skills/", ".codex/", ".agentbundle/", "tools/hooks/"]
+allowed-prefixes.user = [".agents/skills/", ".codex/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Frontmatter mappings — rewrite rules applied when projecting a primitive
@@ -313,6 +326,23 @@ normalize = "to-list"
 
 [frontmatter-mapping."kiro-agent-frontmatter-v0.9".model]
 rename = "model"
+
+# Codex agent frontmatter v0.8 (docs/specs/dropped-primitives-coverage):
+# rewrite rules from claude-code-style markdown agent (YAML frontmatter with
+# `name`, `description`, optionally `tools`, `model`) to codex's TOML agent
+# shape (`name`, `description`, `developer_instructions`). The markdown body
+# lands in TOML `developer_instructions` via a mode-level convention in the
+# `codex-agent-toml` projection mode, NOT via a rename rule (frontmatter
+# mapping is keyed on frontmatter fields; the body is not one). Fields not
+# in this mapping (e.g., `tools`, `model`) drop silently — codex TOML agent
+# format has no equivalent slots; a future RFC can add MCP-server mapping.
+[frontmatter-mapping."codex-agent-frontmatter-v0.8"]
+
+[frontmatter-mapping."codex-agent-frontmatter-v0.8".name]
+rename = "name"
+
+[frontmatter-mapping."codex-agent-frontmatter-v0.8".description]
+rename = "description"
 
 # ---------------------------------------------------------------------------
 # Frontmatter defaults — fields injected when a primitive has no frontmatter

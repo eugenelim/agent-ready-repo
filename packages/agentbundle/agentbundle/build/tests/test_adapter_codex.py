@@ -55,14 +55,90 @@ class CodexAdapterTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_agent_hook_wiring_command_dropped(self) -> None:
+    def test_only_command_dropped_post_v08(self) -> None:
+        """v0.8 inverts the pre-bump assertion: codex now projects `agent`
+        (via codex-agent-toml) and `hook-wiring` (via merge-json) natively.
+        Only `command` stays dropped — codex custom-prompts are deprecated
+        upstream in favour of skills (RFC pointer in spec § Assumptions).
+
+        Renamed from ``test_agent_hook_wiring_command_dropped`` — the
+        v0.7 assertion was the inverse of what the v0.8 contract claims
+        (AC2). Deliberate spec-driven inversion, not a regression hiding
+        behind a test deletion.
+        """
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)
             out = tmp_path / "out"
             project(pack, self.contract, out)
+            # Agent .md no longer appears anywhere (projected as .toml).
             self.assertFalse(any(out.rglob("bar.md")))
+            # Command .md still nowhere (codex command stays dropped).
             self.assertFalse(any(out.rglob("qux.md")))
+            # Agent IS projected as TOML.
+            self.assertTrue((out / ".codex" / "agents" / "bar.toml").exists())
+
+    def test_codex_agent_projects_via_codex_agent_toml_mode(self) -> None:
+        """The pack ships ``.apm/agents/<name>.md``; codex projects each
+        as ``.codex/agents/<name>.toml`` with the three expected keys."""
+        import tomllib
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "bar.md").write_text(
+                "---\nname: bar\ndescription: a bar agent\n---\nAgent body.\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            target = out / ".codex" / "agents" / "bar.toml"
+            self.assertTrue(target.exists(), f"expected {target}")
+            data = tomllib.loads(target.read_text(encoding="utf-8"))
+            self.assertEqual(data["name"], "bar")
+            self.assertEqual(data["description"], "a bar agent")
+            self.assertIn("developer_instructions", data)
+
+    def test_codex_hook_wiring_projects_via_merge_json(self) -> None:
+        """Pack ships ``.apm/hook-wiring/<name>.toml``; codex projects the
+        merged result at ``.codex/hooks.json`` with the ``hooks`` key."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "hook-wiring").mkdir(parents=True)
+            (pack / ".apm" / "hook-wiring" / "wire.toml").write_text(
+                '[hooks]\n'
+                '"SessionStart" = [{matcher = "*", hooks = [{type = "command", command = "echo hi"}]}]\n',
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            target = out / ".codex" / "hooks.json"
+            self.assertTrue(target.exists(), f"expected {target}")
+            data = json.loads(target.read_text(encoding="utf-8"))
+            self.assertIn("hooks", data)
+            self.assertIn("SessionStart", data["hooks"])
+
+    def test_codex_command_still_dropped_at_build_time(self) -> None:
+        """Fixture pack with one command; assert NO command-shaped output
+        anywhere under ``<output>/.codex/`` (mode is `dropped`,
+        ``_iter_primitives`` skips it)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "commands").mkdir(parents=True)
+            (pack / ".apm" / "commands" / "qux.md").write_text(
+                "# qux command\n", encoding="utf-8"
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            self.assertFalse(
+                any(out.rglob("qux.md")),
+                "command projection should be skipped (dropped)",
+            )
 
     def test_hook_body_extensions_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

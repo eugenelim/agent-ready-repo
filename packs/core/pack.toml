@@ -10,7 +10,7 @@ description = "Core agent-ready-repo: work-loop, new-spec, bug-fix skills; revie
 # scope) and AGENTS.md / CONVENTIONS seeds that reference this
 # project's vocabulary by name (the falsifiable user-scope test fails).
 [pack.adapter-contract]
-version = "0.7"
+version = "0.8"
 
 [pack.install]
 default-scope = "repo"
