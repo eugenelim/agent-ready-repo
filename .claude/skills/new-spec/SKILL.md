@@ -26,27 +26,96 @@ look like?" before any code.
    `assets/` folder lives next to this `SKILL.md` wherever your
    installer placed the skill.)
 
-3. **Surface assumptions before writing any spec body.** With the
-   directory scaffolded, stop. Emit a numbered list under the heading
-   `ASSUMPTIONS I'M MAKING:` covering the three buckets below, generated
-   from this repo's actual context — the template serves multiple
-   project types, so don't pull from generic examples and don't carry
-   assumptions across features:
+3. **Surface assumptions before writing any spec body — and run one
+   targeted verification check per candidate first.** With the
+   directory scaffolded, stop. The load-bearing rule: **one targeted
+   check per candidate assumption — a repo read, a web lookup, or a
+   read-only probe script — not a sweep.** Then split the result into
+   what you confirmed and what still needs the user.
 
-   - **Technical** — the stack and shape of what's being built
-     (runtime, data model, persistence, deployment target, transport).
-   - **Product** — who this serves and where the feature ends; surface
-     scope you're inferring rather than verifying.
+   Draft candidates covering the three categories below, generated
+   from this repo's actual context — the template serves multiple
+   project types, so don't carry assumptions across features:
+
+   - **Technical** — runtime, data model, persistence, deployment
+     target, transport. Canonical sources: package manifests
+     (`pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, etc.),
+     build / orchestration configs (`docker-compose.yml`, CI
+     workflows), and the module the feature touches.
+   - **Product** — who this serves and where the feature ends. No
+     canonical local source; goes straight to Unverified. Don't
+     fabricate confirmation.
    - **Process** — review cadence, who signs off on **Boundaries**
      (especially the `Never do` subsection), how the spec moves Draft
-     → Approved.
+     → Approved. Canonical sources: `docs/CHARTER.md`,
+     `docs/CONVENTIONS.md`, recent `docs/specs/<feature>/spec.md` for
+     shape precedent, prior ADRs / RFCs that named the rule.
 
-   The buckets are a coverage check, not a quota; three to seven items
-   total is the usual shape. Then **wait for human confirmation or
-   correction.** Do not write into `Objective`, `Boundaries`,
-   `Testing Strategy`, or `Acceptance Criteria` until the user has
-   signed off on or revised the list. The scaffolded headers can stay;
-   the bodies are gated.
+   See the **Source of truth** table in `AGENTS.md` for the full repo
+   map. For assumptions about an external library, standard, service,
+   or runtime behavior, the right source is a **web search** (cite
+   the URL) or a **read-only probe script** (paste the command and
+   its output) — e.g. `python -c "import x; print(x.__version__)"`,
+   a `GET` on a list endpoint, `git --version`. **Probes must be
+   side-effect-free** against any external service: no writes, no
+   mutations, no calls that bill or page. If the only way to verify
+   is to write, the assumption stays Unverified. **If web search
+   isn't available in the harness**, mark the assumption Unverified
+   with `(web search unavailable)` — never guess a URL.
+
+   Emit the result **in chat** (not into `spec.md` — the body is
+   gated below), under this shape:
+
+   ```
+   ASSUMPTIONS I'M MAKING:
+
+   ## Verified
+   - <category>: <fact> (<single-line citation: path | URL | command + one-line summary>)
+   - …
+
+   ## Unverified
+   - <category>: <open item or reason it couldn't be settled>
+   - …
+   ```
+
+   Each Verified bullet stays single-line. If a probe's output is too
+   long to summarise in one line, paste the full transcript in a
+   fenced block *above* the `ASSUMPTIONS I'M MAKING:` heading and
+   reference it from the bullet (e.g. `(probe #1 above: returned True)`).
+
+   Example Verified entries:
+   `Technical: runtime is Python 3.12 (pyproject.toml)`,
+   `Technical: HTTP client is undici 6.x (package.json)`,
+   `Process: top-level convention changes need an RFC (docs/CONVENTIONS.md §Living-docs)`.
+
+   Three to seven *candidate* assumptions before verification is the
+   usual shape; Verified is whatever subset of those candidates passed
+   the check — no floor, no separate cap. Coverage check is across
+   the three categories (Technical / Product / Process), not the two
+   subsections.
+
+   **Surface the Unverified list and wait** for human confirmation or
+   correction before writing into `Objective`, `Boundaries`,
+   `Testing Strategy`, or `Acceptance Criteria`. If Unverified is
+   empty, surface the Verified list with the highest-stakes item
+   called out and ask the user to confirm *that one specifically* — a
+   vague "looks good" doesn't count when the user may not have read
+   the list.
+
+   Only once Unverified has been signed off (or the highest-stakes
+   Verified item confirmed, if Unverified was empty):
+
+   - Copy the now-confirmed assumption list into the spec's
+     `## Assumptions` section as a flat list — one bullet per item,
+     each citing how it was settled. Verified entries keep their
+     canonical source (path / URL / probe summary); previously-
+     Unverified entries cite `user confirmation YYYY-MM-DD` with
+     today's date. The chat block was the working surface; the spec
+     section is the audit trail.
+   - Write the spec's `Constrained by:` header from any Verified
+     items that name an ADR or RFC the feature must cite. The header
+     lands before any body section; Verified items don't gate the
+     Unverified loop but they do gate `Constrained by:`.
 
 4. Fill in the spec — including the **Testing Strategy** section. Push
    back hard on these failure modes:
@@ -120,8 +189,19 @@ look like?" before any code.
   `plan.md`.
 - Skipping Boundaries → mandatory section. Each of the three
   subsections needs at least one entry.
-- Writing into the spec body before the assumption list has been
+- Writing into the spec body before the Unverified list has been
   confirmed → the headers can stay scaffolded; the bodies are the
   commitment and stay empty until the user has signed off on or
-  revised the assumptions, even if the original prompt sounded
+  revised the Unverified entries, even if the original prompt sounded
   definitive.
+- Classifying a Technical or Process assumption as Unverified
+  without recording the one check you attempted (path read, URL
+  fetched, or read-only probe command + output) → attempt and cite
+  the check. An attempted check that came back ambiguous is fine; a
+  skipped check is not. The user's time is the scarce resource;
+  burning a round-trip on a fact a single command would have answered
+  is a tax on every spec.
+- Fabricating a URL when web search isn't available → mark the
+  assumption Unverified with `(web search unavailable)` and let the
+  user supply the source. Plausible-looking citations the agent
+  didn't actually fetch are worse than honest Unverified items.

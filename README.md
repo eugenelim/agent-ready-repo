@@ -149,6 +149,8 @@ The `work-loop` skill is a Markdown file. Each reviewer is a Markdown file. The 
   - `conventions-check` — runs the agent-artifact and conventions linters in one shot.
 - **Governance seeds** — `AGENTS.md` (canonical agent context, symlinked from `CLAUDE.md`), `CHARTER`, `CONVENTIONS`, and the `docs/specs/` + `docs/architecture/` shapes with README seeds.
 
+For the longer-form walkthrough of how these parts compose into one loop — plus how the result compares to vibe-coding, GitHub's Spec Kit, and Kiro IDE's spec-driven mode — see [The core pack as a system](docs/guides/explanation/core-pack.md).
+
 ## Contributing
 
 Adding a pack, a skill, or a subagent? See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the three contribution lanes, the pack source-of-truth split, and the build/lint gates your PR has to pass.
