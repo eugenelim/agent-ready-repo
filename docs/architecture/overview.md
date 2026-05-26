@@ -8,80 +8,112 @@
 ```
 .
 ├── AGENTS.md             # canonical agent context (CLAUDE.md is a symlink)
-├── apps/                 # deployable applications
-│   └── <app-name>/       # one directory per app
-├── packages/             # shared libraries (consumed by apps and other packages)
-│   └── <package-name>/
-├── tools/                # build, dev, and ops tooling — not shipped to users
+├── AGENTS.local.md       # repo-specific addendum — self-host drift rules etc.
+├── packages/
+│   ├── agentbundle/      # the reference CLI + runtime library (Python, stdlib-only)
+│   └── _example/         # template package consumed by the new-package skill
+├── packs/                # the catalogue — one directory per shippable pack
+│   ├── core/             # the load-bearing pack; every other pack composes against it
+│   ├── governance-extras/
+│   ├── user-guide-diataxis/
+│   ├── monorepo-extras/
+│   ├── contracts/
+│   ├── converters/
+│   ├── atlassian/
+│   └── figma/
 ├── docs/
-│   ├── CHARTER.md        # mission, scope, principles (one page)
+│   ├── CHARTER.md        # mission, scope, principles
 │   ├── CONVENTIONS.md    # how we work
-│   ├── adr/              # architecture decisions (frozen history)
+│   ├── ROADMAP.md        # open spec items, top-level index
 │   ├── rfc/              # proposals (governance)
+│   ├── adr/              # architecture decisions (frozen history)
 │   ├── specs/            # feature specs and plans
-│   ├── architecture/     # this directory — current code structure (for contributors)
-│   ├── product/          # current product state (roadmap, changelog) — for maintainers
-│   └── guides/           # user-facing docs (Diátaxis: tutorials, how-to, reference, explanation)
-├── .claude/
-│   ├── skills/           # agent workflows for repeating tasks (each skill owns its templates under `assets/`)
-│   ├── agents/           # subagent definitions
-│   └── commands/         # custom slash commands
-└── .github/              # CI, issue and PR templates
+│   ├── architecture/     # this directory — internals for contributors
+│   ├── contracts/        # adapter.toml, JSON schemas — the publishable spec
+│   ├── product/          # roadmap + changelog
+│   └── guides/           # Diátaxis: tutorials, how-to, reference, explanation
+├── tools/                # build/lint/test scripts (.py preferred; .sh grandfathered)
+└── .claude/              # self-host projection — for THIS repo's own use; not shipped
 ```
 
-## Apps and packages
+`.claude/` is generated from each pack's `.apm/` sources by `make build-self`
+**solely so the catalogue eats its own dog food** — every primitive the
+packs ship is also active when you open this repo in Claude Code.
+It is **not** part of any pack's deployment surface; adopters never see
+this directory shape. The adopter-facing equivalents are produced by
+`make build` into `dist/` (gitignored build output, regenerated on
+every CI run) under `dist/claude-plugins/<pack>/.claude-plugin/` and
+`dist/apm/<pack>/`; the install routes project equivalent content
+straight into the adopter's own repo without needing to expose `dist/`.
+Edit seeds under `packs/<pack>/.apm/...`, not this projection. See
+[`AGENTS.local.md`](../../AGENTS.local.md) for the full drift workflow.
 
-<!--
-Replace this section with a real listing of your apps and packages.
-The ideal entry tells an agent: what is this, what does it depend on, and
-where do I look first?
+## The catalogue
 
-- `apps/web/` — the public-facing web app (Next.js). Depends on `packages/api-client`,
-  `packages/ui`. Entry point: `app/page.tsx`.
-- `packages/api-client/` — typed HTTP client for the API. Generated from
-  the OpenAPI spec in `apps/api/openapi.yaml`.
-- ...
--->
+`packs/` is a catalogue of eight reference packs. The relationship is
+"compose around `core`", not "subclass": every other pack assumes `core`'s
+seeds and reviewer-agents are available, but they don't import code from
+each other.
 
-## Packs
+| Pack | Scope | Carries |
+| --- | --- | --- |
+| `core` | repo only | `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, `add-credentialed-skill`, `example-credentialed-skill`, the four reviewer agents (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`), `session-start.py` + `pre-pr.py` hooks, `conventions-check`, layer-0 seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`). |
+| `governance-extras` | repo only | `new-rfc`, `new-adr`, `update-conventions` skills + `docs/rfc/` and `docs/adr/` shapes. |
+| `user-guide-diataxis` | repo only | Diátaxis user-docs scaffolding + the `new-guide` skill. |
+| `monorepo-extras` | repo only | `new-package` skill + `packages/_example/` template. |
+| `contracts` | user (default) or repo | `api-contract` (OpenAPI 3.1). |
+| `converters` | user (default) or repo | `file-to-markdown`, `markdown-to-html`, `msg-to-markdown`, `mermaid-renderer`. First pack with `default-scope = "user"`. |
+| `atlassian` | user (default) or repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed CLIs) + the `flow-metrics`, `ai-adoption-report`, `jira-defect-flow` workflows that compose them. |
+| `figma` | user (default) or repo | `figma` credentialed CLI. |
 
-The catalogue ships five reference packs under `packs/`:
+What it means for `core` to be load-bearing: its
+`session-start.py` is the single read-side of the install→adapt chain —
+every install route (CLI, APM, Claude plugins) drops the same
+`.adapt-install-marker.toml`, and `core`'s hook is what surfaces it to the
+agent on next session. Pull `core` out and the chain doesn't close.
 
-- `core` — agent context, conventions, the work-loop skill, and the
-  template spec/plan scaffolding every pack composes against. Repo-only.
-- `governance-extras` — `new-rfc`, `new-adr`, `update-conventions`
-  skills + RFC/ADR templates and seed READMEs. Repo-only.
-- `user-guide-diataxis` — Diátaxis quadrant scaffolding for user-facing
-  guides. Repo-only.
-- `monorepo-extras` — `packages/` layout primitives (the `_example/`
-  reference package + `packages/README.md`). Repo-only.
-- `converters` — file-format conversion skills: documents and images →
-  Markdown; Markdown → styled HTML; Outlook `.msg` → Markdown. The
-  catalogue's first user-scope pack (`default-scope = "user"`,
-  `allowed-scopes = ["user", "repo"]`).
+## Subsystems
 
-## Conventions you'll see across packages
+One file per non-trivial subsystem:
 
-<!--
-Things that are true of every package in the monorepo. Example:
+- [`pack-layout.md`](pack-layout.md) — the canonical shape of a single
+  pack: `pack.toml`, `.claude-plugin/`, `.apm/<primitive>/`, `seeds/`,
+  and how the bundler reads them.
+- [`agentbundle.md`](agentbundle.md) — the Python package: CLI verbs,
+  build pipeline (recipes → adapters → projections), the adapter contract
+  at v0.5, self-host overlay.
+- [`credentials.md`](credentials.md) — the `agentbundle.credentials`
+  loader, three-tier storage (env / OS keyring / `~/.agentbundle/credentials.env`),
+  the credentialed-primitive model, and the AC26(c) substring trap.
 
-- Every package has its own `AGENTS.md` describing package-specific rules.
-- Every package exports a `package.json` with `main`, `module`, and `types`.
-- Every package has a `README.md` aimed at human consumers.
+## Packages
 
-Add yours here.
--->
+- [`packages/agentbundle/`](../../packages/agentbundle/) — the reference
+  CLI and runtime library. Thirteen subcommands, stdlib-only, distributed
+  as a zipapp and as an editable pip install. The `agentbundle.credentials`
+  loader inside it is imported by every credentialed primitive in the
+  `atlassian` and `figma` packs. See [`agentbundle.md`](agentbundle.md).
+- [`packages/_example/`](../../packages/_example/) — a minimal package
+  template the `new-package` skill (in `monorepo-extras`) copies when an
+  adopter scaffolds a new package.
 
 ## Where to start
 
-<!--
-A short, opinionated path for someone new to the repo. Example:
-
-1. Read [`docs/CHARTER.md`](../CHARTER.md) — the project's mission and scope.
-2. Read this file (architecture overview).
-3. Skim [`docs/product/roadmap.md`](../product/roadmap.md) for current direction.
-4. Pick a recent feature in `docs/specs/` and read its `spec.md` and `plan.md`
-   side by side with the resulting code in `apps/` or `packages/`.
-5. Look at the latest 3 ADRs in `docs/adr/` to see the kinds of decisions
-   we record.
--->
+1. Read [`docs/CHARTER.md`](../CHARTER.md) — mission, scope, four principles.
+2. Read this file.
+3. Pick a recent spec under [`docs/specs/`](../specs/) and read its
+   `spec.md` + `plan.md` next to the resulting code under
+   `packages/agentbundle/` or `packs/`. The
+   [`agent-spec-cli`](../specs/agent-spec-cli/spec.md),
+   [`distribution-adapters`](../specs/distribution-adapters/spec.md),
+   and [`skill-secrets`](../specs/skill-secrets/spec.md) specs are the
+   three load-bearing ones.
+4. Skim the two ADRs —
+   [ADR-0001](../adr/0001-adopt-agents-md-and-doc-hierarchy.md)
+   (AGENTS.md + the doc hierarchy this repo runs on) and
+   [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md)
+   (the per-pack default-plus-allowance install-scope model) — plus the
+   most recent accepted RFCs ([0008](../rfc/0008-claude-plugins-install-route-parity.md),
+   [0010](../rfc/0010-apm-install-route-parity.md)) for current direction.
+5. Run `make build-check` once — it's the self-host drift gate, and
+   tripping it explains the seed/projection split better than prose can.

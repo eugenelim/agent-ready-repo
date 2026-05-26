@@ -5,11 +5,20 @@ How the code is *currently* organized. Not why (that's in
 [`../rfc/`](../rfc/)) — **what is**.
 
 - [`overview.md`](overview.md) — the map of the monorepo. What's in
-  `apps/`, `packages/`, `tools/`, `packs/`, and how they relate.
-  Read this first.
-- `<subsystem>.md` — one file per non-trivial subsystem (add as the repo
-  grows). Each describes the structure, the entry points, and links to
-  the ADRs that explain why.
+  `packages/`, `tools/`, `packs/`, and how they relate. Read this first.
+- [`pack-layout.md`](pack-layout.md) — the canonical shape of a single
+  pack: `pack.toml`, `.claude-plugin/`, `.apm/<primitive>/`, `seeds/`.
+  What each directory contains and how the bundler reads it.
+- [`agentbundle.md`](agentbundle.md) — the `agentbundle` Python package:
+  CLI verbs, bundler internals (recipes → adapters → projections), the
+  adapter contract, and the install→adapt chain.
+- [`credentials.md`](credentials.md) — the credential-loading subsystem:
+  three-tier storage, the `agentbundle.credentials` loader, the
+  credentialed-primitive model, and the AC26(c) substring trap.
+
+Add one more `<subsystem>.md` whenever a non-trivial subsystem grows up
+that doesn't fit cleanly under an existing page. Each describes the
+structure, the entry points, and links to the ADRs that explain why.
 
 Architecture docs are the *rolled-up snapshot* — the answer to "what
 does this codebase look like today" without replaying ADR history.
