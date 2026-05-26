@@ -99,7 +99,7 @@
         "properties": {
           "adapter-contract": {
             "type": "object",
-            "properties": {"version": {"enum": ["0.2", "0.3"]}},
+            "properties": {"version": {"enum": ["0.2", "0.3", "0.6"]}},
             "required": ["version"]
           }
         },
@@ -118,7 +118,13 @@
                 "minItems": 1,
                 "items": {"enum": ["repo", "user"]}
               },
-              "user-scope-hooks": {"type": "boolean"}
+              "user-scope-hooks": {"type": "boolean"},
+              "allowed-adapters": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {"type": "string"}
+              }
             },
             "if": {
               "properties": {"default-scope": {"enum": ["user"]}},
