@@ -62,7 +62,9 @@ make zipapp                                              # builds dist/agentbund
 ./dist/agentbundle.pyz install --pack core . --output /path/to/your/project
 ```
 
-Confirm `agentbundle` is importable: `python -c "from agentbundle.credentials import load_credentials"`. The `pip install` step lands `agentbundle` in your active interpreter so credentialed skills (`jira`, `figma`, `confluence-publisher`, and others) can resolve the credential loader when invoked from either user or repo scope; see [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md) for editable-vs-snapshot and venv guidance.
+Confirm `agentbundle` is importable: `python -c "from agentbundle.credentials import load_credentials"`.
+
+**The clone does double duty.** `packs/` is the catalogue the install verb projects into your target repo; `packages/agentbundle/` is the runtime library credentialed skills (`jira`, `figma`, `confluence-publisher`, and others) import from their own subprocess. The `pip install -e` step wires that library into your active interpreter so the skill scripts resolve the credential loader when invoked from either user or repo scope, and `git pull` against the clone cascades to both surfaces. See [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md) for the full mental model, the editable-vs-snapshot choice, and venv guidance.
 
 The catalogue argument is `.` because you're inside the clone; `--output` points at the target repo's root. Use `git checkout <tag>` in the clone first to pin a specific release.
 

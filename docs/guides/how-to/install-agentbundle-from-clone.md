@@ -64,6 +64,52 @@ traceback whose last line is `ModuleNotFoundError: No module named
 runtime. Re-check the [pitfalls](#common-pitfalls) below before
 continuing.
 
+## How this works
+
+The clone carries two things in one repo, and the `pip install` step
+ties them together so they work as a pair:
+
+- **`packs/`** — the **catalogue**. The install verb
+  (`agentbundle install --pack <name> . --output <target>`) reads from
+  here and projects pack content into your target repo (or `~/.claude/`
+  for user-scope packs).
+- **`packages/agentbundle/`** — the **runtime library**. Every
+  credentialed skill in the catalogue does
+  `from agentbundle.credentials import load_credentials` from its own
+  subprocess at runtime. That import has to resolve to *this* directory.
+
+```
+your-clone/
+├── packs/                          ← catalogue source (install verb reads this)
+│   ├── core/.apm/skills/…
+│   └── atlassian/.apm/skills/…
+└── packages/agentbundle/           ← runtime library source (pip install -e links here)
+    └── agentbundle/
+        ├── cli.py                  (entry point for the `agentbundle` command on PATH)
+        ├── credentials.py          (public shim — what skills import)
+        └── creds/                  (loader internals)
+```
+
+`pip install -e packages/agentbundle/` exposes two surfaces on your
+active interpreter:
+
+1. **Importable module** — `from agentbundle.credentials import …`
+   succeeds anywhere that interpreter runs. This is what credentialed
+   skill scripts depend on when an agent harness spawns them.
+2. **`agentbundle` console script on PATH** — the same CLI verbs the
+   zipapp exposes (`install`, `creds`, `validate`, etc.), now running
+   directly from the live source instead of from a frozen archive.
+
+Both surfaces link back at the editable source, so **`git pull`
+cascades to both**: next `agentbundle install` picks up new pack
+content, next Python process importing `agentbundle.credentials` sees
+the updated module — no re-install needed. The zipapp at
+`dist/agentbundle.pyz` is a frozen snapshot of whatever `make zipapp`
+last produced; after the `pip install`, you can run
+`agentbundle install --pack <name> . --output <target>` directly
+against the launcher and leave the zipapp for hand-offs to users who
+don't pip-install.
+
 ## On venvs and which interpreter
 
 Credentialed-skill scripts under `packs/*/.apm/skills/*/scripts/*.py`
