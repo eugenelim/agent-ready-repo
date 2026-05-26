@@ -1881,10 +1881,9 @@ def _resolve_target_adapter(
          if in ``allowed_adapters``, else ``allowed_adapters[0]``.
 
       5. **Legacy heuristic** — preserved for ``< 0.7`` packs that
-         omit ``allowed-adapters``. ``.apm/agents/`` present ⇒
-         ``"kiro"``; else ``"claude-code"``. At repo scope this can
-         only return ``claude-code``/``kiro`` and never
-         ``codex``/``copilot`` (Drawback #7).
+         omit ``allowed-adapters``. Always returns ``DEFAULT_ADAPTER``
+         so downstream catalogues that monkey-patch the constant
+         rebrand uniformly across every resolver branch.
 
     The function raises :class:`_AdapterResolutionRefused` for any of
     the pinned refusal paths; the caller prints the exception text and
@@ -2022,15 +2021,12 @@ def _resolve_target_adapter(
         return DEFAULT_ADAPTER
 
     # Step 5: legacy heuristic — preserved for `< v0.7` packs that
-    # omit `allowed-adapters`. At repo scope this can only return
-    # claude-code/kiro and never codex/copilot (Drawback #7).
-    agents_dir = pack_dir / ".apm" / "agents"
-    if not agents_dir.exists():
-        return "claude-code"
-    for entry in agents_dir.iterdir():
-        if entry.is_file() and entry.suffix == ".md":
-            return "kiro"
-    return "claude-code"
+    # omit `allowed-adapters`. Always returns ``DEFAULT_ADAPTER`` so
+    # downstream catalogues that monkey-patch the constant rebrand
+    # uniformly across every resolver branch. The pre-fix agents-
+    # presence ``"kiro"`` hint was a guess about pack-author intent;
+    # an explicit downstream ``DEFAULT_ADAPTER`` is authoritative.
+    return DEFAULT_ADAPTER
 
 
 
