@@ -50,7 +50,10 @@ from agentbundle.build.main import (
     discover_packs,
     validate_pack_uniqueness,
 )
-from agentbundle.build import shared_libs as _shared_libs
+from agentbundle.build.shared_libs import (
+    apply_projection as _shared_libs_apply,
+    check_drift as _shared_libs_check_drift,
+)
 
 # AC14: canonical lowercase-hyphen marker grammar. The self-host
 # regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
@@ -996,7 +999,7 @@ def run_self_host(
     # Inter-pack basename collision raises ValueError; surface as
     # self-host: <msg> and exit 5.
     try:
-        _shared_libs.apply_projection(packs_dir)
+        _shared_libs_apply(packs_dir)
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 5
@@ -1349,7 +1352,7 @@ def run_build_check_drift_gates(
     # line per drift. Inter-pack basename collision short-circuits to
     # a single description (the projection cannot proceed).
     # ------------------------------------------------------------------
-    for msg in _shared_libs.check_drift(packs_dir):
+    for msg in _shared_libs_check_drift(packs_dir):
         failures.append(msg)
 
     if failures:
