@@ -195,6 +195,7 @@ description: A credentialed skill with valid frontmatter keys; the lint must acc
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 Body content.
@@ -257,6 +258,7 @@ description: primitive-class value is unknown; lint must reject.
 metadata:
   credentialed: true
   primitive-class: mcp-broker
+  auth: creds
 ---
 
 Body content.
@@ -381,6 +383,7 @@ description: Uses the YAML 1.1 'yes' spelling for the credentialed boolean — m
 metadata:
   credentialed: yes
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 Body content.
