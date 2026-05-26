@@ -1,10 +1,12 @@
 ---
 name: example-credentialed-skill
-description: Reference skill — do NOT auto-load. Authoring a new credentialed primitive belongs in `add-credentialed-skill`; this directory ships only as a runnable worked example for adopters who explicitly ask to *see* one. The skill carries a no-op `scripts/cli.py` calling a fictional `example` API via `agentbundle.credentials`, the canonical `references/creds-schema.toml` declaring `API_TOKEN` (secret) and `BASE_URL` (non-secret sibling), and the verbatim `### Security rules (non-negotiable)` block the credentialed-CLI lint pins. Read it; do not invoke it from production code.
+description: Reference skill — do NOT auto-load. Authoring a new credentialed primitive belongs in `add-credentialed-skill`; this directory ships only as a runnable worked example for adopters who explicitly ask to *see* one. The skill carries a no-op `scripts/cli.py` calling a fictional `example` API via the build-projected `credentials_shim` sibling, the canonical `references/creds-schema.toml` declaring `API_TOKEN` (secret) and `BASE_URL` (non-secret sibling), and the verbatim `### Security rules (non-negotiable)` block the credentialed-CLI lint pins. Read it; do not invoke it from production code.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
   auth: creds
+  namespace: example
+  keys: ["API_TOKEN"]
 ---
 
 # Skill: example-credentialed-skill
@@ -17,7 +19,9 @@ primitive must wire up:
   (`credentialed: true`, `primitive-class: credentialed-cli`).
 - The verbatim security-rules block below (the lint pins the heading
   and the three RFC-0006 § 4 anchor phrases).
-- `scripts/cli.py` calling `agentbundle.credentials.load_credentials`.
+- `scripts/cli.py` calling `load_credentials` via the build-projected
+  `from .credentials_shim import …` (the broker ships
+  `credentials_shim.py` alongside the skill's own `scripts/`).
 - `references/creds-schema.toml` declaring the namespace's keys.
 
 ## How this skill works
@@ -64,8 +68,10 @@ are load-bearing pattern you leave alone.
 
 **Leave alone:**
 
-- The imports from `agentbundle.credentials`. That's the only public
-  entry point.
+- The imports from `.credentials_shim`. The `credential-brokers` pack
+  projects `credentials_shim.py` (plus its Tier-2 backends) into your
+  skill's `scripts/` when the build pipeline sees `auth: creds` in
+  your frontmatter — run `make build-self` before tests.
 - The `metadata:` block carrying `credentialed: true` and
   `primitive-class: credentialed-cli`. The lint and the architecture
   rule both depend on these flags; the agentskills.io spec keeps
@@ -83,18 +89,19 @@ are load-bearing pattern you leave alone.
   check at AC26(b).
 - **Verbatim "Don't" block.** The three bullets under `### Security
   rules (non-negotiable)` are pinned by the lint
-  (`tools/lint-credentialed-skills.sh`) and by AC29's
-  drift-detection test — any deviation is a lint finding.
+  (`tools/lint-credentialed-skills.sh`) — the broker-agnostic
+  Don't-block check refuses any deviation as a lint finding.
 - **`load_credentials` import.** `scripts/cli.py` imports from
-  `agentbundle.credentials` (the public shim) rather than reaching
-  into `agentbundle.creds.loader` directly. This is the surface
-  every primitive author should write against.
+  `.credentials_shim` — the sibling shim file the build pipeline
+  projects from `packs/credential-brokers/.apm/shared-libs/` into
+  every consumer skill's `scripts/`. This is the surface every
+  credentialed-skill author should write against.
 - **Tier-resolved API call shape.** The primitive prints
   `would call example API with token=*** at <base_url>` to stdout;
   the token bytes never leave the function-local variable.
 
 ## Reference
 
-- Spec: `docs/specs/skill-secrets/spec.md` (§ AC29 pins this skill's shape)
+- Spec: `docs/specs/credential-broker-contract/spec.md` (§ AC28 pins this skill's shape)
 - Author skill: the `add-credentialed-skill` skill
 - RFC: `docs/rfc/0006-skill-secrets-storage.md`

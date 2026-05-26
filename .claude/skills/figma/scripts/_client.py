@@ -2,7 +2,7 @@
 
 Internal module — the skill agent dispatches to ``figma.py``; this file is
 an implementation detail. The Personal Access Token is resolved via the
-``agentbundle.credentials`` loader (Tier 1 env → Tier 2 OS keyring →
+build-projected ``credentials_shim`` (Tier 1 env → Tier 2 OS keyring →
 Tier 3 dotfile) and is never logged, echoed, or accepted on the command
 line.
 
@@ -147,7 +147,7 @@ class FigmaClient:
                 if resp.status_code == 401:
                     raise AuthError(
                         "401 Unauthorized — Figma token missing, invalid, or "
-                        "expired. Re-run `agentbundle creds setup figma`."
+                        "expired. Re-run `credential-setup` skill."
                     )
                 if resp.status_code == 403:
                     # 403 on Figma typically means the token's scope doesn't
@@ -472,8 +472,9 @@ class FigmaClient:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Figma credentials through the ``agentbundle.credentials``
-    loader (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile).
+    """Resolve Figma credentials through the build-projected
+    ``credentials_shim`` (Tier 1 env → Tier 2 OS keyring → Tier 3
+    dotfile).
 
     Namespace: ``figma``. Required key: ``API_TOKEN``.
 
@@ -482,15 +483,15 @@ def load_credentials() -> Credentials:
     Token bytes never traverse this function's return path other than
     through the ``Credentials`` dataclass into ``FigmaClient.__init__``.
     Schema lives at ``references/creds-schema.toml`` — the
-    ``agentbundle creds setup figma`` flow walks it interactively.
+    ``credential-setup`` skill walks it interactively.
     """
-    from agentbundle.credentials import (
+    from .credentials_shim import (
         CredentialsMissingError,
-        load_credentials as _agentbundle_load,
+        load_credentials as _shim_load,
     )
 
     try:
-        creds = _agentbundle_load("figma", required_keys=["API_TOKEN"])
+        creds = _shim_load("figma", required_keys=["API_TOKEN"])
     except CredentialsMissingError as exc:
         raise AuthError(str(exc)) from exc
 

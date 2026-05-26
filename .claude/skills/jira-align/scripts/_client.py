@@ -2,7 +2,7 @@
 
 Internal module — the skill agent dispatches to ``jira_align.py``; this file
 is an implementation detail. The API token is resolved via the
-``agentbundle.credentials`` loader (Tier 1 env → Tier 2 OS keyring →
+build-projected ``credentials_shim`` (Tier 1 env → Tier 2 OS keyring →
 Tier 3 dotfile) and is never logged, echoed, or accepted on the command
 line.
 
@@ -134,7 +134,7 @@ class JiraAlignClient:
                 if resp.status_code == 401:
                     raise AuthError(
                         "401 Unauthorized — the Jira Align API token is missing, "
-                        "invalid, or expired. Re-run `agentbundle creds setup jiraalign`."
+                        "invalid, or expired. Re-run `credential-setup` skill."
                     )
                 if resp.status_code == 403:
                     raise AuthError(
@@ -332,7 +332,7 @@ def _extract_items(payload: Any) -> list[dict]:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Jira Align credentials via the ``agentbundle.credentials``
+    """Resolve Jira Align credentials via the build-projected ``credentials_shim``
     loader (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile).
 
     Namespace: ``jiraalign``. Required: ``BASE_URL``, ``API_TOKEN``.
@@ -342,15 +342,15 @@ def load_credentials() -> Credentials:
     Env-var shape: ``JIRAALIGN_BASE_URL``, ``JIRAALIGN_API_TOKEN``,
     ``JIRAALIGN_FLAVOR``. The schema lives at
     ``references/creds-schema.toml``; populate any tier with
-    ``agentbundle creds setup jiraalign``.
+    ``credential-setup`` skill.
     """
-    from agentbundle.credentials import (
+    from .credentials_shim import (
         CredentialsMissingError,
-        load_credentials as _agentbundle_load,
+        load_credentials as _shim_load,
     )
 
     try:
-        creds = _agentbundle_load(
+        creds = _shim_load(
             "jiraalign", required_keys=["BASE_URL", "API_TOKEN"]
         )
     except CredentialsMissingError as exc:
@@ -361,7 +361,7 @@ def load_credentials() -> Credentials:
 
     flavor_override: str | None = None
     try:
-        opt = _agentbundle_load("jiraalign", required_keys=["FLAVOR"])
+        opt = _shim_load("jiraalign", required_keys=["FLAVOR"])
         flavor_override = (opt.FLAVOR or "").strip().lower() or None
     except CredentialsMissingError:
         pass

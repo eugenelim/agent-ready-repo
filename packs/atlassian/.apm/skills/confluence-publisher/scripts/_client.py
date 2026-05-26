@@ -1,7 +1,7 @@
 """Confluence REST client for publish operations (Cloud and Server/DC).
 
 Internal module — agent should not invoke directly. The API token is
-resolved via the ``agentbundle.credentials`` loader (Tier 1 env →
+resolved via the build-projected ``credentials_shim`` (Tier 1 env →
 Tier 2 OS keyring → Tier 3 dotfile) and is never logged, echoed, or
 placed on the command line.
 
@@ -136,7 +136,7 @@ class ConfluenceClient:
             if resp.status_code == 401:
                 raise AuthError(
                     "401 Unauthorized — credentials missing, invalid, or expired. "
-                    "Re-run `agentbundle creds setup confluence`.",
+                    "Re-run `credential-setup` skill.",
                     status_code=401,
                 )
             if resp.status_code == 403:
@@ -284,16 +284,16 @@ class ConfluenceClient:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Confluence credentials via the ``agentbundle.credentials``
+    """Resolve Confluence credentials via the build-projected ``credentials_shim``
     loader. Shares the ``confluence`` namespace with confluence-crawler.
     """
-    from agentbundle.credentials import (
+    from .credentials_shim import (
         CredentialsMissingError,
-        load_credentials as _agentbundle_load,
+        load_credentials as _shim_load,
     )
 
     try:
-        creds = _agentbundle_load("confluence", required_keys=["BASE_URL", "API_TOKEN"])
+        creds = _shim_load("confluence", required_keys=["BASE_URL", "API_TOKEN"])
     except CredentialsMissingError as exc:
         raise AuthError(str(exc)) from exc
 
@@ -303,12 +303,12 @@ def load_credentials() -> Credentials:
     email: str | None = None
     flavor_override: str | None = None
     try:
-        opt = _agentbundle_load("confluence", required_keys=["EMAIL"])
+        opt = _shim_load("confluence", required_keys=["EMAIL"])
         email = (opt.EMAIL or "").strip() or None
     except CredentialsMissingError:
         pass
     try:
-        opt = _agentbundle_load("confluence", required_keys=["FLAVOR"])
+        opt = _shim_load("confluence", required_keys=["FLAVOR"])
         flavor_override = (opt.FLAVOR or "").strip().lower() or None
     except CredentialsMissingError:
         pass
@@ -319,6 +319,6 @@ def load_credentials() -> Credentials:
     if flavor == FLAVOR_CLOUD and not email:
         raise AuthError(
             "Cloud authentication requires CONFLUENCE_EMAIL. Run "
-            "`agentbundle creds setup confluence` to supply it."
+            "`credential-setup` skill to supply it."
         )
     return Credentials(base_url=base, token=token, flavor=flavor, email=email)
