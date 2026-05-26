@@ -730,8 +730,31 @@ def run(args: "argparse.Namespace") -> int:
         return adapt_rc
 
     # ── Step 13: Emit installed: lines (repo first, user last) ───────────────
+    # RFC-0011 extends user-scope output with ` via <adapter>` and an
+    # optional ` (other declared adapters: …; use --adapter to override)`
+    # suffix when multiple CLI homes match the pack's allowed-adapters.
     for plan in plans:
-        print(f"installed: {pack_name} @ {plan.scope}")
+        if plan.scope == "user":
+            line = f"installed: {pack_name} @ user via {user_target_adapter}"
+            if cli_adapter is None and _pack_allowed_adapters:
+                probes = _user_scope_adapter_probes()
+                home = Path.home()
+                populated_others = [
+                    a
+                    for a in _pack_allowed_adapters
+                    if a != user_target_adapter
+                    and a in probes
+                    and probes[a](home)
+                ]
+                if populated_others:
+                    line += (
+                        f"  (other declared adapters: "
+                        f"{', '.join(populated_others)}; "
+                        f"use --adapter to override)"
+                    )
+            print(line)
+        else:
+            print(f"installed: {pack_name} @ {plan.scope}")
 
     return 0
 
