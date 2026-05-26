@@ -1,0 +1,148 @@
+"""T8 integration tests for RFC-0011 / pack-allowed-adapters at install
+time (spec AC25).
+
+End-to-end: invoke `agentbundle install --pack <name> --scope user`
+in-process against fixture catalogues with `$HOME` redirected, and
+assert (a) the right `~/.<ide>/skills/` directory receives the pack
+and (b) `~/.agentbundle/state.toml` records the resolved adapter.
+
+Reference idiom mirrors `test_install_converters_user_scope.py`:
+in-process `install.run`, `$HOME` patched via `patch.dict`. The four
+catalogue user-scope packs ship `allowed-adapters = ["claude-code",
+"kiro", "codex"]` post-T4, so this test covers the resolver's three
+adapter-target paths without fabricating fixtures.
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import io
+import os
+import shutil
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+CONVERTERS_PACK_SRC = REPO_ROOT / "packs" / "converters"
+
+
+def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
+    from agentbundle.commands import install
+
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+        rc = install.run(args)
+    return rc, stdout.getvalue(), stderr.getvalue()
+
+
+def _install_args(*, catalogue: str, repo: str, scope: str, adapter: str | None = None) -> argparse.Namespace:
+    return argparse.Namespace(
+        pack="converters",
+        catalogue=catalogue,
+        output=repo,
+        scope=scope,
+        force=False,
+        force_merge=False,
+        adapter=adapter,
+    )
+
+
+class AllowedAdaptersInstallTests(unittest.TestCase):
+    """The four cases that exercise the resolver's distinct paths:
+
+      - kiro-only $HOME → install lands at ~/.kiro/skills/
+      - codex-only $HOME (via ~/.codex/) → install lands at ~/.agents/skills/
+      - greenfield $HOME (no CLI home) → install lands at ~/.claude/skills/
+      - --adapter kiro override against claude-code-populated $HOME →
+        install lands at ~/.kiro/skills/
+    """
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.home = self.tmp / "home"
+        self.home.mkdir()
+        self.repo = self.tmp / "repo"
+        self.repo.mkdir()
+        self._env = patch.dict(
+            os.environ,
+            {"HOME": str(self.home), "USERPROFILE": str(self.home)},
+        )
+        self._env.start()
+        self.addCleanup(self._env.stop)
+        self.cat = self.tmp / "catalogue"
+        (self.cat / "packs").mkdir(parents=True)
+        shutil.copytree(CONVERTERS_PACK_SRC, self.cat / "packs" / "converters")
+
+    def _assert_pack_landed(self, ide_root_relpath: str, expected_adapter: str) -> None:
+        skill_dir = self.home / ide_root_relpath / "file-to-markdown"
+        self.assertTrue(
+            skill_dir.is_dir(),
+            f"expected skill directory at {skill_dir}",
+        )
+        # State records the resolved adapter (AC10a).
+        from agentbundle.config import load_state
+
+        state_path = self.home / ".agentbundle" / "state.toml"
+        state = load_state(state_path)
+        pack_state = state.packs.get("converters")
+        self.assertIsNotNone(pack_state)
+        self.assertEqual(pack_state.adapter, expected_adapter)
+
+    def test_kiro_only_home_lands_at_kiro_skills(self) -> None:
+        (self.home / ".kiro").mkdir()
+        rc, stdout, stderr = _run_install(
+            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user")
+        )
+        self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
+        self._assert_pack_landed(".kiro/skills", "kiro")
+        self.assertIn("installed: converters @ user via kiro", stdout)
+
+    def test_codex_only_home_lands_at_agents_skills(self) -> None:
+        (self.home / ".codex").mkdir()
+        rc, stdout, stderr = _run_install(
+            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user")
+        )
+        self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
+        self._assert_pack_landed(".agents/skills", "codex")
+        self.assertIn("installed: converters @ user via codex", stdout)
+
+    def test_greenfield_home_lands_at_claude_skills(self) -> None:
+        rc, stdout, stderr = _run_install(
+            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user")
+        )
+        self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
+        self._assert_pack_landed(".claude/skills", "claude-code")
+
+    def test_adapter_override_wins_over_probe(self) -> None:
+        (self.home / ".claude").mkdir()  # probe would pick claude-code
+        rc, stdout, stderr = _run_install(
+            _install_args(
+                catalogue=str(self.cat),
+                repo=str(self.repo),
+                scope="user",
+                adapter="kiro",
+            )
+        )
+        self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
+        self._assert_pack_landed(".kiro/skills", "kiro")
+
+    def test_adapter_at_repo_scope_refused(self) -> None:
+        rc, stdout, stderr = _run_install(
+            _install_args(
+                catalogue=str(self.cat),
+                repo=str(self.repo),
+                scope="repo",
+                adapter="kiro",
+            )
+        )
+        self.assertEqual(rc, 1)
+        self.assertIn("--adapter is bound to --scope user", stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
