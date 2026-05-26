@@ -9,9 +9,9 @@ Invocation examples:
     python scripts/publish_page.py --space ENG --title 'Q3 Roadmap' --parent-id 555 --input roadmap.md
     python scripts/publish_page.py --page-id 42 --input report.md --dry-run
 
-Credentials are resolved via the ``agentbundle.credentials`` loader
+Credentials are resolved via the build-projected ``credentials_shim`` sibling
 (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile); run
-``agentbundle creds setup confluence`` to populate the namespace. The
+``credential-setup`` skill to populate the namespace. The
 token is never accepted on the command line.
 
 Exit codes:
@@ -362,7 +362,7 @@ def main(argv: list[str] | None = None) -> int:
     except AuthError as exc:
         print(f"NEED-INPUT: {exc}", file=sys.stderr)
         print(
-            "Run `agentbundle creds setup confluence` to configure credentials.",
+            "Run `credential-setup` skill to configure credentials.",
             file=sys.stderr,
         )
         return EXIT_USER_ACTION

@@ -3,6 +3,7 @@ name: conforming
 description: A credentialed-CLI fixture skill that satisfies every AC26 check; lint should report zero findings.
 metadata:
   credentialed: true
+  auth: creds
   primitive-class: credentialed-cli
 ---
 

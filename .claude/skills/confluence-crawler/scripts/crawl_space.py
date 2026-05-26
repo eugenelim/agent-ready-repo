@@ -8,9 +8,9 @@ Invocation examples:
     python scripts/crawl_space.py --space ENG --root 12345 --force
     python scripts/crawl_space.py --space ENG --no-attachments
 
-Credentials are resolved via the ``agentbundle.credentials`` loader
+Credentials are resolved via the build-projected ``credentials_shim`` sibling
 (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile); run
-``agentbundle creds setup confluence`` to populate the namespace. The
+``credential-setup`` skill to populate the namespace. The
 PAT is never accepted on the command line.
 """
 from __future__ import annotations
