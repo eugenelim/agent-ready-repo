@@ -80,7 +80,7 @@ def main() -> int:
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
     _run("seeds lint",          [py, "tools/lint-seeds.py"])
-    _run("credentialed-skill lint", ["bash", "tools/lint-credentialed-skills.sh"])
+    _run("credentialed-skill lint", [py, "tools/lint_credentialed_skills.py"])
     _run("credentialed-skill lint self-test",
          [py, "tools/test-lint-credentialed-skills.py"])
 

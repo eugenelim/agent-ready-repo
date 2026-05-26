@@ -13,8 +13,10 @@ Closes:
   test diffs the skill's "Don't" block against the
   ``add-credentialed-skill`` template's ``credentialed-cli`` variant
   so a drift in either ships as a test failure.
-- AC29 *cli.py imports the loader* — ``scripts/cli.py`` references
-  ``agentbundle.credentials.load_credentials``.
+- AC28 *cli.py imports the build-projected shim* — ``scripts/cli.py``
+  references ``from .credentials_shim import …`` (replaces the prior
+  AC29 expectation that named ``agentbundle.credentials.load_credentials``,
+  per credential-broker-contract spec § AC28).
 - AC29 *cli.py refuses argv-ban flags* — invoking with ``--token=x``
   exits non-zero with the argparse-default ``unrecognized arguments``
   shape (the lint enforces the *absence* of the flag in the parser
@@ -403,7 +405,31 @@ def test_cli_refuses_argv_borne_token_flag_in_process(tmp_path, monkeypatch, cap
 def test_schema_declares_one_required_and_one_optional_key():
     """AC29: schema declares ``API_TOKEN`` (secret) and ``BASE_URL``
     (non-secret) under the ``example`` namespace."""
-    from agentbundle.creds.loader import _parse_schema, CredsSchema, KeyDef
+    # Load `_parse_schema` from the build-projected shim alongside the
+    # skill's `scripts/` — the agentbundle module no longer exposes it
+    # after T15.
+    import importlib.util
+    import sys
+    import types
+    pkg_name = "example_credentialed_skill_pkg_schema"
+    pkg = types.ModuleType(pkg_name)
+    pkg.__path__ = [str(SKILL_DIR / "scripts")]
+    sys.modules[pkg_name] = pkg
+    try:
+        spec = importlib.util.spec_from_file_location(
+            f"{pkg_name}.credentials_shim",
+            SKILL_DIR / "scripts" / "credentials_shim.py",
+        )
+        shim = importlib.util.module_from_spec(spec)
+        shim.__package__ = pkg_name
+        sys.modules[f"{pkg_name}.credentials_shim"] = shim
+        spec.loader.exec_module(shim)
+        _parse_schema = shim._parse_schema
+        CredsSchema = shim.CredsSchema
+        KeyDef = shim.KeyDef  # noqa: F841 — kept for the existing assertion
+    finally:
+        sys.modules.pop(pkg_name, None)
+        sys.modules.pop(f"{pkg_name}.credentials_shim", None)
 
     schema = _parse_schema(SKILL_DIR / "references" / "creds-schema.toml")
     assert isinstance(schema, CredsSchema)

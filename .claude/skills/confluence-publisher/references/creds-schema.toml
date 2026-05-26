@@ -2,7 +2,7 @@
 # Format pinned by skill-secrets spec § AC24.
 #
 # Shares the `confluence` namespace with confluence-crawler — running
-# `agentbundle creds setup confluence` once configures both skills.
+# `credential-setup` skill once configures both skills.
 #
 # Resolution: load_credentials("confluence", required_keys=[...]) walks
 # Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile per AC4. Env-var
