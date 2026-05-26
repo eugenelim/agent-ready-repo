@@ -140,8 +140,8 @@ class TestValidateAllowedAdaptersCrossField(unittest.TestCase):
         self.assertIn("'copilot'", msg)
         self.assertIn("does not declare a user-scope root", msg)
         # RFC-0012 bumped the message to track the current contract
-        # version (v0.7).
-        self.assertIn("v0.7 adapter contract", msg)
+        # version; dropped-primitives-coverage bumped it to v0.8.
+        self.assertIn("v0.8 adapter contract", msg)
 
     def test_unknown_adapter_refused(self) -> None:
         pack = _v06_pack(
