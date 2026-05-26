@@ -223,12 +223,12 @@ def test_adapter_flag_refused_not_user_scope_capable(tmp_path, fake_home):
             pack,
             adapter="copilot",
             allowed_adapters=None,
-            contract_version="0.6",
+            contract_version="0.7",
         )
     msg = str(exc_info.value)
     assert "--adapter copilot not admitted as a user-scope-capable adapter" in msg
-    # Message references the bundled contract version, which RFC-0012 bumped
-    # to v0.7.
+    # Message references the bundled contract version, which RFC-0012 +
+    # RFC-0013 co-bumped to v0.7.
     assert "v0.7" in msg
 
 

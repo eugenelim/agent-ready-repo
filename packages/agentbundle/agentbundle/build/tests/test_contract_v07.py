@@ -1,19 +1,30 @@
-"""Tests for adapter-contract v0.7 (RFC-0012 / repo-scope-per-adapter-projection).
+"""Tests for adapter-contract v0.7 (RFC-0012 / repo-scope-per-adapter-projection
+and RFC-0013 / credential-broker-contract co-residing at v0.7).
 
-Verifies the T1 atomic edit landed:
+Verifies the T1 edits landed:
 
-  - ``[contract] version == "0.7"`` (AC1).
-  - ``[adapter.copilot.scope]`` exists with ``repo = "."``,
-    ``allowed-prefixes.repo = [".github/instructions/"]``, and NO ``user``
-    key (AC2 — Copilot is admissible at repo scope only).
-  - Every shipped adapter declares ``allowed-prefixes.repo`` as a
-    non-empty list of trailing-slash strings (AC2 + AC4).
-  - Pre-existing ``allowed-prefixes.user`` invariants survive the edit
-    (property-based, not snapshot — header-comment edits and list-order
-    changes are out of scope).
-  - The schema validator refuses a fixture contract that omits the
-    ``repo`` key from any adapter's ``scope`` table (AC4 — validator
-    pins the v0.7 invariant).
+  - ``[contract] version == "0.7"`` in both the runtime data file
+    (`_data/adapter.toml`) and the docs mirror
+    (`docs/contracts/adapter.toml`). The two files must stay byte-
+    aligned per the v0.3-schema sync test; this module pins the
+    version on both as belt-and-braces (AC1 for both RFCs).
+  - **RFC-0012 surface:**
+    * ``[adapter.copilot.scope]`` exists with ``repo = "."``,
+      ``allowed-prefixes.repo`` enumerating the per-IDE skill /
+      hook-body targets, and NO ``user`` key (Copilot is admissible
+      at repo scope only).
+    * Every shipped adapter declares ``allowed-prefixes.repo`` as a
+      non-empty list of trailing-slash strings.
+    * Schema validator refuses fixtures that omit the ``repo`` key
+      or ``allowed-prefixes.repo`` from any adapter's scope table.
+  - **RFC-0013 surface:**
+    * Each user-scope-capable adapter (`claude-code`, `kiro`, `codex`)
+      still carries `.agentbundle/` in `allowed-prefixes.user`
+      (non-regression — the prefix is what `metadata.auth: creds`
+      writes its credential cache under).
+  - Property-based ``allowed-prefixes.user`` invariants for every
+    user-scope-capable adapter (header-comment edits and
+    list-order changes don't trip the assertion).
 """
 
 from __future__ import annotations
@@ -28,6 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 DATA_CONTRACT_PATH = (
     REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "adapter.toml"
 )
+DOCS_CONTRACT_PATH = REPO_ROOT / "docs" / "contracts" / "adapter.toml"
 DATA_SCHEMA_PATH = (
     REPO_ROOT
     / "packages"
@@ -41,9 +53,17 @@ DATA_SCHEMA_PATH = (
 class TestContractV07(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = tomllib.loads(DATA_CONTRACT_PATH.read_text(encoding="utf-8"))
+        self.docs_contract = tomllib.loads(
+            DOCS_CONTRACT_PATH.read_text(encoding="utf-8")
+        )
 
     def test_contract_version_is_07(self) -> None:
+        """RFC-0012 + RFC-0013 co-residing at v0.7 on the runtime file."""
         self.assertEqual(self.contract["contract"]["version"], "0.7")
+
+    def test_docs_contract_version_is_07(self) -> None:
+        """RFC-0013 AC1 — docs mirror also pinned at v0.7."""
+        self.assertEqual(self.docs_contract["contract"]["version"], "0.7")
 
     def test_copilot_scope_table_shape(self) -> None:
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")
@@ -92,9 +112,8 @@ class TestContractV07(unittest.TestCase):
 
     def test_existing_user_prefixes_invariants(self) -> None:
         """Property-based assertion — every user-scope-capable adapter's
-        prefix list still carries its load-bearing entries. The form
-        survives header-comment edits and list-order changes (avoiding a
-        snapshot fixture that would be its own maintenance surface)."""
+        prefix list still carries its load-bearing entries. RFC-0013's
+        `.agentbundle/` non-regression rolls into this same shape."""
         cc = self.contract["adapter"]["claude-code"]["scope"]
         cc_user = cc["allowed-prefixes"]["user"]
         self.assertIn(".claude/", cc_user)
@@ -110,14 +129,28 @@ class TestContractV07(unittest.TestCase):
         self.assertIn(".agents/skills/", codex_user)
         self.assertIn(".agentbundle/", codex_user)
 
+    def test_all_user_scope_adapters_carry_agentbundle_prefix(self) -> None:
+        """RFC-0013 AC2 — `.agentbundle/` is the credential-cache root
+        every user-scope-capable adapter must admit."""
+        for adapter in ("claude-code", "kiro", "codex"):
+            with self.subTest(adapter=adapter):
+                prefixes = (
+                    self.contract["adapter"][adapter]["scope"]
+                    ["allowed-prefixes"]["user"]
+                )
+                self.assertIn(
+                    ".agentbundle/", prefixes,
+                    f"{adapter} user-scope allowed-prefixes must include "
+                    f"'.agentbundle/' (got {prefixes!r})",
+                )
+
     def test_schema_refuses_repo_omission(self) -> None:
-        """AC4 — fixture contract with the ``repo`` key removed from any
-        adapter's scope table fails validation."""
+        """RFC-0012 AC4 — fixture contract with the ``repo`` key removed
+        from any adapter's scope table fails validation."""
         from agentbundle.build.validate import validate
 
         schema = json.loads(DATA_SCHEMA_PATH.read_text(encoding="utf-8"))
         broken = copy.deepcopy(self.contract)
-        # Strip ``repo`` from claude-code's scope table.
         del broken["adapter"]["claude-code"]["scope"]["repo"]
         errors = validate(broken, schema)
         self.assertTrue(
@@ -126,8 +159,8 @@ class TestContractV07(unittest.TestCase):
         )
 
     def test_schema_refuses_allowed_prefixes_repo_omission(self) -> None:
-        """AC4 — fixture contract with ``allowed-prefixes.repo`` removed
-        from any adapter's scope table fails validation."""
+        """RFC-0012 AC4 — fixture contract with ``allowed-prefixes.repo``
+        removed from any adapter's scope table fails validation."""
         from agentbundle.build.validate import validate
 
         schema = json.loads(DATA_SCHEMA_PATH.read_text(encoding="utf-8"))

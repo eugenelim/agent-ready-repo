@@ -4,6 +4,7 @@ description: Reference skill — do NOT auto-load. Authoring a new credentialed 
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 # Skill: example-credentialed-skill

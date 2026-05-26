@@ -9,6 +9,9 @@
 # RFC-0012 / docs/specs/repo-scope-per-adapter-projection (per-IDE projection
 # at repo scope; `allowed-prefixes.repo` on every adapter; copilot scope
 # table; v0.7).
+# RFC-0013 / docs/specs/credential-broker-contract (governance bump, v0.7 —
+# admitted as a co-residing v0.7 contributor; the `metadata.auth` lint
+# surface lives in tools/lint-agent-artifacts.py, not in this file).
 
 [contract]
 version = "0.7"

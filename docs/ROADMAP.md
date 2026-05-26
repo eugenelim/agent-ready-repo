@@ -607,6 +607,52 @@ Adopter disclosure shipped at `packs/core/README.md`.
   `agentbundle adapt --scope <project|user>` manual fallback per
   the per-pack README disclosure.
 
+## `credential-broker-contract` — drafted
+
+Spec: [`specs/credential-broker-contract/spec.md`](specs/credential-broker-contract/spec.md).
+RFC: [`rfc/0013-credential-broker-contract.md`](rfc/0013-credential-broker-contract.md)
+(Accepted 2026-05-26). Amends RFC-0006: promotes the security
+invariants to a broker-agnostic contract; demotes the env →
+keychain → dotfile resolver from "the convention" to "one of four
+brokers" (`env`, `cli`, `creds`, `sso-cookie`); ships the `creds`
+broker as a build-pipeline-projected vendored Python shim (no PyPI
+dependency) and the `sso-cookie` broker as an adapter-root
+subprocess at `~/.agentbundle/bin/sso-broker.py`. Adapter contract
+bumps to the next label above whatever T1 reads at PR-open time
+(governance record-keeping — the `allowed-prefixes.user` widening
+RFC-0013 § 4d describes is already in place since v0.3's
+`.agent-ready/` rename). **Version-label collision with RFC-0012:**
+RFC-0013's body targets v0.7 but RFC-0012 (`repo-scope-per-adapter-projection`,
+Accepted) also targets v0.7 with a substantive scope-table change;
+per RFC-0013 § 4's disjoint-label rule the two cannot share v0.7,
+so the implementing PR resolves to v0.7 → v0.8 if RFC-0012's spec
+lands first, or v0.6 → v0.7 if this lands first. See spec AC1's
+post-merge revision for the reconciliation logic. Two new build-pipeline
+primitive classes (`shared-libs/` for many-to-many shim projection
+into consumer skills' `scripts/`; `adapter-root-bins/` for
+single-target projection to `~/.agentbundle/bin/`). 48 ACs / 15 tasks
+across three phases: Phase 1 broker contract + pack + lint + docs
+(T1-T10); Phase 2 in-tree consumer migration (T11-T14, six skills +
+the `add-credentialed-skill` teaching block); Phase 3 cleanup —
+remove `agentbundle.credentials` + `agentbundle/creds/`, bump
+`agentbundle` 0.1.x → 0.2.0 (T15).
+
+**Manual-QA matrix** (transcript pending until each row is recorded
+under `docs/specs/credential-broker-contract/notes/`):
+
+- `creds` × macOS — `/usr/bin/security` Tier-2; consuming skill resolves PAT.
+- `creds` × Windows — `advapi32.CredReadW`/`CredWriteW` Tier-2; consuming skill resolves PAT.
+- `creds` × Linux — dotfile floor; consuming skill resolves PAT.
+- `sso-cookie` × macOS — real corporate-SSO endpoint (downstream consumer environment); headed Chromium `register` flow; `test` returns 0.
+- `sso-cookie` × Windows — same against same endpoint.
+- `sso-cookie` × Linux — file-floor cookie jar; same flow.
+
+**Depends on:** RFC-0011 (`pack-allowed-adapters`, Accepted 2026-05-26)
+— the v0.6 baseline this spec bumps above; and RFC-0012 sequencing
+for the concrete version label per the collision note above.
+Acceptance-ordering
+gate is met; the implementation spec can proceed.
+
 ## Cross-spec / outside-the-spec-tree
 
 These are open items called out by accepted RFCs or by multiple specs,

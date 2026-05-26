@@ -36,9 +36,10 @@ class ContractVersionTests(unittest.TestCase):
     """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005,
     then to 0.4 by RFC-0008 (T2 / spec claude-plugins-install-route), then to
     0.5 by RFC-0010 (T2 / spec apm-install-route-parity), then to 0.6 by
-    RFC-0011 / pack-allowed-adapters (codex user-scope table), then to 0.7 by
-    RFC-0012 / repo-scope-per-adapter-projection (every adapter declares
-    `allowed-prefixes.repo`; copilot gains a scope table)."""
+    RFC-0011 / pack-allowed-adapters (codex user-scope table), then to 0.7
+    by RFC-0012 / repo-scope-per-adapter-projection (every adapter declares
+    `allowed-prefixes.repo`; copilot gains a scope table) and RFC-0013 /
+    credential-broker-contract (governance bump) co-residing at v0.7."""
 
     def test_contract_version_is_0_5(self) -> None:
         contract = _load_contract()

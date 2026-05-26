@@ -4,6 +4,7 @@ description: Read and mutate Jira (Atlassian Cloud or self-hosted Server / Data 
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 # Jira Client
