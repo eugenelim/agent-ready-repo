@@ -33,6 +33,17 @@ import re
 import subprocess
 import sys
 
+try:
+    import yaml
+except ImportError as exc:  # pragma: no cover — env-setup failure path
+    print(
+        "✖ This linter requires PyYAML. Install with: "
+        "pip install -r tools/requirements.txt "
+        "(or `pip install 'pyyaml>=6.0'` if you're not in the repo root).",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from exc
+
 
 def _repo_root() -> pathlib.Path:
     try:
@@ -86,6 +97,58 @@ RE_DEEP_SAME_SKILL = re.compile(
     r"(?<![\w./~])((?:scripts|references|assets)/[a-z0-9_./-]+/[a-z0-9_.-]+\.[a-z0-9]+)"
 )
 
+# Distinguishes flow-style `allowed-tools: [Read, Grep]` from block-style
+# (subsequent indented `- Read` lines). PyYAML parses both as a Python
+# list — the error message uses this regex against the source frontmatter
+# to keep the block-vs-flow distinction the spec test asserts on.
+RE_ALLOWED_TOOLS_FLOW = re.compile(r"^allowed-tools\s*:\s*\[", re.MULTILINE)
+
+# Scalar shapes acceptable inside `metadata:`. The agentskills.io spec
+# describes metadata as a "mapping of strings"; in practice projects
+# need booleans (e.g. `credentialed: true`), integers, and floats
+# (e.g. `version: 1.0`). PyYAML returns the natural Python types for
+# each. ``None`` covers `key:` with an empty value, which prior versions
+# of this parser normalised to the empty string.
+META_SCALAR_TYPES = (str, bool, int, float, type(None))
+
+
+class _DuplicateKeyError(Exception):
+    """Raised by the custom YAML mapping constructor on a duplicate key.
+
+    See the matching helper in tools/lint-agent-artifacts.py — defensive
+    depth is intentional, the two lints have different lifecycles.
+    """
+
+    def __init__(self, key: object, line: int) -> None:
+        self.key = key
+        self.line = line
+
+
+class _FrontmatterLoader(yaml.SafeLoader):
+    """SafeLoader subclass that rejects duplicate mapping keys."""
+
+
+def _construct_mapping_no_dups(loader, node, deep=False):
+    if not isinstance(node, yaml.MappingNode):
+        raise yaml.constructor.ConstructorError(
+            None, None,
+            f"expected a mapping node, got {node.id}",
+            node.start_mark,
+        )
+    mapping: dict = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise _DuplicateKeyError(key, key_node.start_mark.line + 1)
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_FrontmatterLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_mapping_no_dups,
+)
+
 
 def main() -> int:
     os.chdir(_repo_root())
@@ -134,121 +197,56 @@ def main() -> int:
     def ok(msg: str) -> None:
         print(f"✓ {msg}")
 
-    # ── Block-style frontmatter parser ────────────────────────────────────
-    # Copy of the parser shape in tools/lint-agent-artifacts.py. Defensive
-    # depth is intentional — the two lints have different lifecycles, and
-    # the spec's mapping shapes (str / bool / int / list-of-those under
-    # metadata:) are exactly what the existing parser already handles.
+    # ── Frontmatter parser ────────────────────────────────────────────────
+    # PyYAML's safe_load via a duplicate-rejecting Loader; mirrored in
+    # tools/lint-agent-artifacts.py. Defensive depth is intentional — the
+    # two lints have different lifecycles. The returned 5-tuple includes
+    # ``fm_text`` (frontmatter source) so downstream checks can do
+    # source-level inspection (e.g. flow-vs-block list distinction).
     def parse_frontmatter(path: pathlib.Path):
-        """Return (fields, body_start_line, body, error)."""
+        """Return (fields, body_start_line, body, error, fm_text)."""
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
-            return None, 0, "", f"SKILL.md is not valid UTF-8: {exc}"
+            return None, 0, "", f"SKILL.md is not valid UTF-8: {exc}", ""
         lines = text.splitlines()
         if not lines or lines[0].strip() != "---":
-            return None, 0, text, None
+            return None, 0, text, None, ""
         end = None
         for i in range(1, len(lines)):
             if lines[i].strip() == "---":
                 end = i
                 break
         if end is None:
-            return None, 0, text, "frontmatter opened with --- but never closed"
-        fields: dict = {}
-        i = 1
-        while i < end:
-            raw = lines[i]
-            if not raw.strip():
-                i += 1
-                continue
-            m = re.match(r"^([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", raw)
-            if not m:
-                return None, 0, text, f"malformed frontmatter line {i + 1}: {raw!r}"
-            key, val = m.group(1), m.group(2).strip()
-            if key in fields:
-                return None, 0, text, f"duplicate frontmatter key {key!r} (line {i + 1})"
-            if val == "[]":
-                fields[key] = []
-                i += 1
-                continue
-            if val == "":
-                items: list = []
-                mapping: dict = {}
-                shape = None
-                block_indent: int | None = None
-                j = i + 1
-                while j < end:
-                    nxt = lines[j]
-                    if not nxt.strip():
-                        j += 1
-                        continue
-                    indent = len(nxt) - len(nxt.lstrip())
-                    if indent == 0:
-                        break
-                    if block_indent is None:
-                        block_indent = indent
-                    elif indent != block_indent:
-                        return None, 0, text, (
-                            f"nested frontmatter block under {key!r} "
-                            f"has inconsistent indent at line {j + 1}"
-                        )
-                    list_m = re.match(r"^\s+-\s+(.*)$", nxt)
-                    map_m = re.match(
-                        r"^\s+([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", nxt)
-                    if list_m and shape != "mapping":
-                        shape = "list"
-                        items.append(list_m.group(1).strip())
-                        j += 1
-                        continue
-                    if map_m and shape != "list":
-                        shape = "mapping"
-                        ckey = map_m.group(1)
-                        cval = map_m.group(2).strip()
-                        if (
-                            len(cval) >= 2
-                            and cval[0] == cval[-1]
-                            and cval[0] in ('"', "'")
-                        ):
-                            cval = cval[1:-1]
-                        if ckey in mapping:
-                            return None, 0, text, (
-                                f"duplicate frontmatter key {ckey!r} "
-                                f"under nested mapping (line {j + 1})"
-                            )
-                        mapping[ckey] = cval
-                        j += 1
-                        continue
-                    return None, 0, text, (
-                        f"nested frontmatter block under {key!r} mixes "
-                        f"list and mapping shapes at line {j + 1}"
-                    )
-                if shape == "mapping":
-                    fields[key] = mapping
-                elif shape == "list":
-                    fields[key] = items
-                else:
-                    fields[key] = ""
-                i = j
-                continue
-            # Strip a balanced pair of surrounding quotes — kept in
-            # parity with the nested-mapping branch above so quoted top-
-            # level scalars (e.g. `name: "foo"`) don't carry the quotes
-            # into downstream regex checks.
-            if (
-                len(val) >= 2
-                and val[0] == val[-1]
-                and val[0] in ('"', "'")
-            ):
-                val = val[1:-1]
-            fields[key] = val
-            i += 1
+            return None, 0, text, "frontmatter opened with --- but never closed", ""
+        fm_text = "\n".join(lines[1:end])
         body_start_line = end + 2
-        body = "\n".join(lines[end + 1 :])
-        return fields, body_start_line, body, None
+        body = "\n".join(lines[end + 1:])
+        try:
+            fields = yaml.load(fm_text, Loader=_FrontmatterLoader)
+        except _DuplicateKeyError as exc:
+            return None, 0, text, (
+                f"duplicate frontmatter key {exc.key!r} (line {exc.line + 1})"
+            ), fm_text
+        except yaml.YAMLError as exc:
+            mark = getattr(exc, "problem_mark", None)
+            problem = getattr(exc, "problem", None) or str(exc)
+            if mark is not None:
+                return None, 0, text, (
+                    f"malformed frontmatter (line {mark.line + 2}): {problem}"
+                ), fm_text
+            return None, 0, text, f"malformed frontmatter: {problem}", fm_text
+        if fields is None:
+            fields = {}
+        if not isinstance(fields, dict):
+            return None, 0, text, (
+                "frontmatter must be a mapping at the top level "
+                f"(got {type(fields).__name__})"
+            ), fm_text
+        return fields, body_start_line, body, None, fm_text
 
     # ── Per-skill checks ──────────────────────────────────────────────────
-    def check_frontmatter(path: pathlib.Path, fields: dict) -> None:
+    def check_frontmatter(path: pathlib.Path, fields: dict, fm_text: str) -> None:
         # Top-level key whitelist — spec § Frontmatter.
         unknown = sorted(set(fields) - ALLOWED_SKILL_KEYS)
         if unknown:
@@ -292,18 +290,22 @@ def main() -> int:
                 err(path, f"compatibility exceeds 500 chars (got {len(compat)})")
 
         # metadata — if present, must be a mapping. The agentskills.io
-        # spec describes it as a mapping of strings; the block parser
-        # only yields strings for scalars in any case (booleans and
-        # integers arrive as their string forms). Project-specific value
-        # validation (e.g. `metadata.credentialed` must be the literal
-        # 'true'/'false'; `metadata.primitive-class` must be one of the
-        # two allowed strings) is the job of lint-agent-artifacts.py,
-        # not this linter — this one only enforces the spec's structural
-        # shape so future extensions don't need a code change here.
+        # spec describes it as a mapping of strings; in practice the
+        # `metadata:` escape hatch carries booleans (e.g. `credentialed:
+        # true`), version numbers, and lists. PyYAML returns the natural
+        # Python types for each. Project-specific value validation (e.g.
+        # `metadata.credentialed` must be a literal YAML boolean;
+        # `metadata.primitive-class` must be one of the two allowed
+        # strings) is the job of lint-agent-artifacts.py — this linter
+        # enforces only the spec's structural shape so future extensions
+        # don't need a code change here.
         if "metadata" in fields:
             meta = fields["metadata"]
+            # `metadata:` with no value parses to ``None``; the rare
+            # ``metadata: ""`` form parses to the empty string. Treat
+            # both as "no project-specific data".
             if meta == "" or meta is None:
-                pass  # empty mapping under `metadata:` — fine
+                pass
             elif not isinstance(meta, dict):
                 err(path, f"'metadata' must be a nested mapping "
                           f"(got {type(meta).__name__})")
@@ -311,36 +313,41 @@ def main() -> int:
                 for mk, mv in meta.items():
                     if isinstance(mv, list):
                         for item in mv:
-                            if not isinstance(item, str):
+                            if not isinstance(item, META_SCALAR_TYPES):
                                 err(path, f"'metadata.{mk}' list entries "
                                           f"must be scalars (got "
                                           f"{type(item).__name__})")
                                 break
-                    elif not isinstance(mv, str):
+                    elif isinstance(mv, dict):
+                        # Doubly-nested mappings are allowed under the
+                        # spec's escape hatch — deeper structure is the
+                        # project's problem, not the spec linter's.
+                        pass
+                    elif not isinstance(mv, META_SCALAR_TYPES):
                         err(path, f"'metadata.{mk}' must be a scalar or a "
                                   f"list of scalars (got "
                                   f"{type(mv).__name__})")
 
         # allowed-tools — if present, MUST be a space-separated string,
-        # NOT a list. Spec § Frontmatter is explicit on this. The block
-        # parser yields a list for the YAML block-list shape; for the
-        # YAML flow-list shape (`[Read, Grep]`) the parser yields the
-        # literal `'[Read, Grep]'` string, which the second branch
-        # catches — both list shapes are spec violations.
+        # NOT a list. Spec § Frontmatter is explicit on this. PyYAML
+        # parses both block-style (`- Read` indented under the key) and
+        # flow-style (`[Read, Grep]`) as Python lists; we distinguish
+        # the two by scanning the source frontmatter so the error
+        # message faithfully names which list shape the author used.
         if "allowed-tools" in fields:
             tools = fields["allowed-tools"]
             if isinstance(tools, list):
-                # The parser produces [] for `allowed-tools: []` and a
-                # populated list for block-style; either is wrong shape.
-                shape = "an empty YAML flow list" if tools == [] else "a YAML block list"
-                err(path, f"'allowed-tools' must be a space-separated string, "
-                          f"not {shape}")
+                if RE_ALLOWED_TOOLS_FLOW.search(fm_text):
+                    err(path, "'allowed-tools' must be a space-separated string, "
+                              "not a YAML flow-style list")
+                else:
+                    shape = ("an empty YAML flow list" if tools == []
+                             else "a YAML block list")
+                    err(path, f"'allowed-tools' must be a space-separated "
+                              f"string, not {shape}")
             elif not isinstance(tools, str) or not tools:
                 err(path, "'allowed-tools' must be a space-separated string "
                           "when present")
-            elif tools.startswith("[") and tools.endswith("]"):
-                err(path, "'allowed-tools' must be a space-separated string, "
-                          "not a YAML flow-style list")
 
     def check_body(path: pathlib.Path, body: str, body_start_line: int) -> None:
         body_lines = body.splitlines()
@@ -478,14 +485,14 @@ def main() -> int:
                                             f"must be a non-empty string")
 
     def check_skill(path: pathlib.Path) -> None:
-        fields, body_start, body, ferr = parse_frontmatter(path)
+        fields, body_start, body, ferr, fm_text = parse_frontmatter(path)
         if ferr:
             err(path, ferr)
             return
         if fields is None:
             err(path, "missing YAML frontmatter (--- ... ---)")
             return
-        check_frontmatter(path, fields)
+        check_frontmatter(path, fields, fm_text)
         if not body.strip():
             err(path, "body is empty")
         check_body(path, body, body_start)

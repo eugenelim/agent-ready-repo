@@ -4,7 +4,7 @@
 Pure-stdlib Python so the suite runs on Windows without an MSYS shell.
 Pattern: build a fixture tree in a tempdir, point LINT_ROOT at it, run
 the linter, and assert the output meets the expected substring set.
-Five trees cover the contract:
+Six trees cover the contract:
 
   Tree A — broken: every error-level rule trips here. Linter must
            exit non-zero; every error substring must appear.
@@ -17,6 +17,10 @@ Five trees cover the contract:
            str ids and a resolving files entry — must pass clean.
   Tree E — reliability: bad UTF-8, a symlink loop, and a non-existent
            LINT_ROOT must surface as errors, not Python tracebacks.
+  Tree F — YAML shapes: depth-2 nesting under metadata, folded (>-)
+           and literal (|) block scalars for description. The prior
+           hand-rolled parser hard-failed on depth-2; PyYAML handles
+           all three cleanly.
 
 The agentskills.io specification (https://agentskills.io/specification)
 is the contract this linter enforces; each fixture pins one mechanical
@@ -191,6 +195,30 @@ def build_tree_broken(root: pathlib.Path) -> None:
         name: tools-as-flow-list
         description: allowed-tools rendered as a YAML flow-style list — spec requires a string.
         allowed-tools: [Read, Grep]
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — duplicate top-level key (spec requires uniqueness).
+    write(skills / "duplicate-top-key" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: duplicate-top-key
+        description: First description.
+        description: Second description (duplicate key).
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — duplicate nested key under metadata.
+    write(skills / "duplicate-nested-key" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: duplicate-nested-key
+        description: Duplicate key inside the metadata mapping.
+        metadata:
+          version: "1.0"
+          version: "2.0"
         ---
 
         Body.
@@ -404,6 +432,9 @@ TREE_A_EXPECTED = [
     # allowed-tools shape — both list shapes are spec violations
     "'allowed-tools' must be a space-separated string, not a YAML block list",
     "'allowed-tools' must be a space-separated string, not a YAML flow-style list",
+    # duplicate keys — top-level and nested both surface with the same shape
+    "duplicate frontmatter key 'description'",
+    "duplicate frontmatter key 'version'",
     # body paths
     "absolute system path",
     ".claude/skills/work-loop/",
@@ -480,6 +511,70 @@ def run_tree_b(root: pathlib.Path) -> None:
         "packs/core/.apm/skills/clean-seed/SKILL.md",
     ])
     print("✓ tree-B: happy path clean; both walk roots exercised.")
+
+
+# ── Tree F — YAML shapes the prior hand-rolled parser couldn't reach ─────
+
+def build_tree_yaml_shapes(root: pathlib.Path) -> None:
+    skills = root / ".claude" / "skills"
+
+    # Depth-2 nesting under metadata: a mapping whose value is a list.
+    # The prior hand-rolled parser hard-failed on this; PyYAML handles it.
+    write(skills / "deep-metadata" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: deep-metadata
+        description: Skill declares runtime packages via depth-2 metadata.
+        metadata:
+          credentialed: false
+          requires-packages:
+            - Pillow
+            - playwright
+        ---
+
+        Body.
+        """))
+
+    # Multi-line folded block scalar (>-) for description. PyYAML folds
+    # newlines to spaces and strips the trailing newline; the result is
+    # a single logical string that still fits under the 1024-char cap.
+    write(skills / "folded-description" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: folded-description
+        description: >-
+          A multi-line folded description. PyYAML joins this and the next
+          line with a space, producing one logical string that the lint
+          treats as a normal scalar.
+        ---
+
+        Body.
+        """))
+
+    # Literal block scalar (|) for description preserves newlines. The
+    # length check counts newlines as chars; the result is well under
+    # the 1024-char cap.
+    write(skills / "literal-description" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: literal-description
+        description: |
+          Line one of a literal description.
+          Line two preserves the newline between them.
+        ---
+
+        Body.
+        """))
+
+
+def run_tree_f(root: pathlib.Path) -> None:
+    build_tree_yaml_shapes(root)
+    rc, out = run_linter(root)
+    if rc != 0:
+        fail("tree-F", f"linter exited {rc} on YAML-shape fixtures; expected 0.", out)
+    assert_all_in("tree-F", out, [
+        ".claude/skills/deep-metadata/SKILL.md",
+        ".claude/skills/folded-description/SKILL.md",
+        ".claude/skills/literal-description/SKILL.md",
+    ])
+    print("✓ tree-F: depth-2 metadata + folded + literal block scalars all parsed clean.")
 
 
 # ── Tree C — warns and allow-listed prose ────────────────────────────────
@@ -687,12 +782,14 @@ def main() -> int:
          tempfile.TemporaryDirectory() as tmp_b, \
          tempfile.TemporaryDirectory() as tmp_c, \
          tempfile.TemporaryDirectory() as tmp_d, \
-         tempfile.TemporaryDirectory() as tmp_e:
+         tempfile.TemporaryDirectory() as tmp_e, \
+         tempfile.TemporaryDirectory() as tmp_f:
         run_tree_a(pathlib.Path(tmp_a))
         run_tree_b(pathlib.Path(tmp_b))
         run_tree_c(pathlib.Path(tmp_c))
         run_tree_d(pathlib.Path(tmp_d))
         run_tree_e(pathlib.Path(tmp_e))
+        run_tree_f(pathlib.Path(tmp_f))
 
     print()
     print("Self-test: passed.")

@@ -1,0 +1,4 @@
+# Dev-time dependencies for tools/ — the artifact and skill-spec
+# linters parse YAML frontmatter via PyYAML. CI installs from this file;
+# contributors run `pip install -r tools/requirements.txt` once.
+pyyaml>=6.0

@@ -143,7 +143,7 @@ jobs:
         # path-separator differences make replicating that fragile on
         # Windows, and `pip install -e` is needed for the pytest steps
         # below anyway).
-        run: pip install -e packages/agentbundle/ pytest
+        run: pip install -e packages/agentbundle/ pytest -r tools/requirements.txt
 
       - name: Run bundler build (populates dist/ for build-check drift gates)
         # The drift gates added by docs/specs/claude-plugins-install-route/
