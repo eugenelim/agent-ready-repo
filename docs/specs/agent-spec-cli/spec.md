@@ -980,6 +980,19 @@ QA tails respectively.
 
 ## Changelog
 
+- 2026-05-26: RFC-0012 / `repo-scope-per-adapter-projection`
+  amendment — the `install` CLI surface gains a new
+  `--emit-install-routes` boolean flag (catalogue-publishing
+  opt-in; bound to `--scope repo`; mutually exclusive with
+  `--adapter` at that scope). The pre-existing
+  `install: --adapter is bound to --scope user` refusal is
+  **removed**: `--adapter` is admitted at both scopes now. The
+  install handler's six-step (0–5) adapter resolver gains an
+  explicit `scope` parameter and scope-branches at steps 0, 1, 4,
+  and 5; the repo-scope branch does **not** probe `<repo>/.<ide>/`
+  (load-bearing asymmetry per RFC-0012 § *Alternatives* #4). See
+  [RFC-0012](../../rfc/0012-repo-scope-per-adapter-projection.md)
+  for the full surface.
 - 2026-05-24: RFC-0005 v0.4 amendment — added `## v0.4
   kiro-ide-hook primitive (RFC-0005)` subsection between the
   v0.3 user-scope-hook surfaces and Boundaries. Pins the

@@ -479,15 +479,22 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
 
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:
-    """Cross-field check for ``[pack.install] allowed-adapters`` (RFC-0011).
+    """Cross-field check for ``[pack.install] allowed-adapters``
+    (RFC-0011 substrate; RFC-0012 widens to fire at both scopes).
 
     Returns None when the field is absent / valid; returns a
     refuse-and-explain string suitable for printing under the
     ``validate: pack.toml: ...`` prefix on violation. Reads the
     bundled adapter contract for the shipped + user-scope-capable
     sets; if the contract doesn't ship a value the pack declares,
-    that's the publisher-vs-installer drift case.
+    that's the publisher-vs-installer drift case. **The shipped
+    check fires at both scopes** (RFC-0012); the user-scope-capability
+    subcheck is **scope-conditional** — fires only when the pack's
+    resolved scope is user (so a Copilot-bearing pack at
+    ``default-scope = "repo"`` admits cleanly).
     """
+    import tomllib
+
     from agentbundle.scope import (
         shipped_adapters_from_contract,
         user_scope_capable_adapters_from_contract,
@@ -520,9 +527,18 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
                 f"contract"
             )
         if user_eligible and name not in user_capable:
+            # Read the bundled contract version once so the message
+            # tracks RFC-0012's v0.7 bump without per-spec edits.
+            from agentbundle.build.main import _read_bundled
+
+            cv = (
+                tomllib.loads(_read_bundled("adapter.toml"))
+                .get("contract", {})
+                .get("version", "?")
+            )
             return (
                 f"[pack.install] allowed-adapters contains {name!r}, "
-                f"which does not declare a user-scope root in the v0.6 "
+                f"which does not declare a user-scope root in the v{cv} "
                 f"adapter contract"
             )
 

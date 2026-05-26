@@ -6,7 +6,7 @@ description = "Monorepo scaffolding: new-package skill, packages/ seed README, p
 # RFC-0004 v0.2 contract metadata. new-package scaffolds in `packages/`
 # — meaningless without a monorepo — so the pack is repo-only.
 [pack.adapter-contract]
-version = "0.2"
+version = "0.7"
 
 [pack.install]
 default-scope = "repo"

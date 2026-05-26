@@ -55,7 +55,11 @@ def _args_upgrade(
 
 
 def _args_install(pack: str, catalogue: str, output: str) -> types.SimpleNamespace:
-    return types.SimpleNamespace(pack=pack, catalogue=catalogue, output=output)
+    # RFC-0012: dist-tree fixtures need `emit_install_routes=True`.
+    return types.SimpleNamespace(
+        pack=pack, catalogue=catalogue, output=output,
+        emit_install_routes=True,
+    )
 
 
 def _run_upgrade(**kwargs) -> int:

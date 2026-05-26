@@ -213,7 +213,7 @@ def run(args: "argparse.Namespace") -> int:
     # state's `.claude/...` paths. Mirrors `install._render_for_user_scope`.
     # RFC-0011: thread the pack's allowed-adapters, contract version,
     # and recorded state.adapter through the resolver so v0.6+ packs
-    # use the six-step lookup (and existing adopters get the
+    # use the six-step (0–5) lookup (and existing adopters get the
     # state-hint short-circuit AC10b on upgrade, avoiding the
     # cross-adapter refusal when they've populated a second CLI home).
     _pack_install_table = pack_toml.get("pack", {}).get("install")
@@ -232,7 +232,7 @@ def run(args: "argparse.Namespace") -> int:
             from agentbundle.commands.install import (
                 _AdapterResolutionRefused,
                 _render_for_user_scope,
-                _resolve_user_scope_target_adapter,
+                _resolve_target_adapter,
                 _rewrite_user_scope_hook_paths,
             )
 
@@ -254,8 +254,9 @@ def run(args: "argparse.Namespace") -> int:
             # target. Without this, the path-jail probe refuses
             # `tools/hooks/<name>.sh` at user scope.
             try:
-                _new_target_adapter = _resolve_user_scope_target_adapter(
+                _new_target_adapter = _resolve_target_adapter(
                     pack_dir,
+                    scope="user",
                     adapter=None,
                     allowed_adapters=_pack_allowed_adapters,
                     contract_version=_pack_contract_version,
@@ -345,12 +346,13 @@ def run(args: "argparse.Namespace") -> int:
             _AdapterResolutionRefused,
             _merge_user_scope_hook_wiring,
             _refresh_merge_target_shas,
-            _resolve_user_scope_target_adapter,
+            _resolve_target_adapter,
         )
 
         try:
-            new_target_adapter = _resolve_user_scope_target_adapter(
+            new_target_adapter = _resolve_target_adapter(
                 pack_dir,
+                scope="user",
                 adapter=None,
                 allowed_adapters=_pack_allowed_adapters,
                 contract_version=_pack_contract_version,

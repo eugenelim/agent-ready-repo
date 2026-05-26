@@ -29,7 +29,14 @@ ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 
 def _run_install(pack: str, catalogue: str, output: str) -> int:
     from agentbundle.commands.install import run
-    return run(types.SimpleNamespace(pack=pack, catalogue=catalogue, output=output))
+    # Test fixtures predate RFC-0012's per-IDE projection at repo scope;
+    # pass `emit_install_routes=True` to keep the dist-tree shape these
+    # tests assert against. The per-IDE projection path is covered by
+    # the new `test_install_repo_scope_per_adapter.py` integration suite.
+    return run(types.SimpleNamespace(
+        pack=pack, catalogue=catalogue, output=output,
+        emit_install_routes=True,
+    ))
 
 
 def _run_uninstall(pack: str, root: str) -> int:
