@@ -326,6 +326,12 @@ normalize = "to-list"
 
 [frontmatter-mapping."kiro-agent-frontmatter-v0.9".model]
 rename = "model"
+# Translate Claude Code's friendly aliases to Kiro's documented model IDs
+# (https://kiro.dev/docs/cli/custom-agents/configuration-reference/). A
+# source value not in the map is dropped from the JSON output, leaving
+# Kiro to fall back to its CLI default with a warning rather than
+# rejecting the agent for an unknown model.
+values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "claude-haiku-4.5" }
 
 # Codex agent frontmatter v0.8 (docs/specs/dropped-primitives-coverage):
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with

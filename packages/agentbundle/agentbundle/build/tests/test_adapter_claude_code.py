@@ -68,6 +68,27 @@ class ClaudeCodeAdapterTests(unittest.TestCase):
             self.assertTrue(agent_path.exists())
             self.assertIn("name: bar", agent_path.read_text(encoding="utf-8"))
 
+    def test_agent_model_alias_preserved_verbatim(self) -> None:
+        """Claude Code agents stay markdown-with-frontmatter; `model:
+        opus` is Claude Code's native alias and the projection must
+        not translate it (unlike the kiro JSON projection, which
+        rewrites aliases via the contract's values map). Comma-string
+        `tools` is also preserved verbatim because Claude Code parses
+        the markdown frontmatter itself."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "reviewer.md").write_text(
+                "---\nname: reviewer\nmodel: opus\ntools: Read, Grep, Glob, Bash\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            text = (out / ".claude" / "agents" / "reviewer.md").read_text(encoding="utf-8")
+            self.assertIn("model: opus", text)
+            self.assertIn("tools: Read, Grep, Glob, Bash", text)
+
     def test_hook_body_sh_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

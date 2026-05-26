@@ -242,7 +242,11 @@
               "type": "string",
               "enum": ["to-list", "to-string", "lowercase"]
             },
-            "default": {"type": "string"}
+            "default": {"type": "string"},
+            "values": {
+              "type": "object",
+              "additionalProperties": {"type": "string"}
+            }
           }
         }
       }

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
 import tomllib
 from pathlib import Path
 from typing import Any, Iterator
@@ -448,17 +449,49 @@ def _parse_frontmatter(lines: list[str]) -> dict[str, Any]:
 
 def _apply_mapping(frontmatter: dict[str, Any], mapping: dict) -> dict[str, Any]:
     """Apply the contract's `kiro-agent-frontmatter-v0.9` rename /
-    normalize / default rules. The rules are now interpreted as
-    *markdown-frontmatter → JSON-field* rather than the v0.2
-    interpretation of *frontmatter → frontmatter*; the mapping table
-    grammar is unchanged."""
+    normalize / values / default rules. Interpreted as
+    *markdown-frontmatter → JSON-field*.
+
+    `normalize = "to-list"` on a string splits on commas, strips
+    whitespace, and drops empties — the human-frontmatter convention
+    pack authors use (`tools: Read, Grep, Glob, Bash`) that YAML
+    itself parses as a single scalar.
+
+    `values` translates a scalar source value through the declared
+    alias map. A source value not in the map drops the field from
+    the rewritten output (rather than emitting an unknown identifier
+    the consumer would reject); a stderr line surfaces the drop at
+    build time so a pack-author typo (`opsus` for `opus`) doesn't
+    silently ship a default-model agent.
+
+    `values` and `normalize = "to-list"` are not currently combined
+    on any rule and are not designed to compose — `to-list` runs
+    first and would convert a string scalar to a list, after which
+    the `values` lookup can only miss. Don't declare both on the
+    same field without revisiting the order."""
     rewritten: dict[str, Any] = {}
     for source_key, value in frontmatter.items():
         rule = mapping.get(source_key, {})
         new_key = rule.get("rename", source_key)
         normalize = rule.get("normalize")
-        if normalize == "to-list" and not isinstance(value, list):
-            value = [value]
+        if normalize == "to-list":
+            if isinstance(value, list):
+                pass
+            elif isinstance(value, str):
+                value = [item.strip() for item in value.split(",") if item.strip()]
+            else:
+                value = [value]
+        values_map = rule.get("values")
+        if isinstance(values_map, dict):
+            if isinstance(value, str) and value in values_map:
+                value = values_map[value]
+            else:
+                print(
+                    f"kiro: dropping {new_key}={value!r} — not in contract "
+                    f"values map for source key {source_key!r}",
+                    file=sys.stderr,
+                )
+                continue
         rewritten[new_key] = value
     for source_key, rule in mapping.items():
         default_value = rule.get("default")

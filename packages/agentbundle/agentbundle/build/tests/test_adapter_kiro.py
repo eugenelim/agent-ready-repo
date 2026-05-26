@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import json
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -85,6 +86,150 @@ class KiroAdapterTests(unittest.TestCase):
             # `name` from filename (or frontmatter); body becomes prompt.
             self.assertEqual(data["name"], "bar")
             self.assertEqual(data.get("prompt", "").strip(), "agent body")
+
+    def test_model_alias_translates_to_kiro_id(self) -> None:
+        """Source `model: opus` (Claude Code's friendly alias) translates
+        to Kiro's documented model ID per the contract's values map.
+        Kiro CLI rejects an unknown identifier — emitting the alias
+        verbatim would break the agent at load time."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "opus-agent.md").write_text(
+                "---\nname: opus-agent\nmodel: opus\n---\nbody\n",
+                encoding="utf-8",
+            )
+            (pack / ".apm" / "agents" / "sonnet-agent.md").write_text(
+                "---\nname: sonnet-agent\nmodel: sonnet\n---\nbody\n",
+                encoding="utf-8",
+            )
+            (pack / ".apm" / "agents" / "haiku-agent.md").write_text(
+                "---\nname: haiku-agent\nmodel: haiku\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            opus = json.loads((out / ".kiro" / "agents" / "opus-agent.json").read_text())
+            sonnet = json.loads((out / ".kiro" / "agents" / "sonnet-agent.json").read_text())
+            haiku = json.loads((out / ".kiro" / "agents" / "haiku-agent.json").read_text())
+            self.assertEqual(opus["model"], "claude-opus-4.6")
+            self.assertEqual(sonnet["model"], "claude-sonnet-4.5")
+            self.assertEqual(haiku["model"], "claude-haiku-4.5")
+
+    def test_model_unknown_alias_drops_field_and_warns(self) -> None:
+        """A source `model` value not in the contract's values map is
+        dropped from the JSON output. Kiro then falls back to its CLI
+        default with a warning rather than refusing the agent. The
+        adapter also emits a stderr warning at build time so a
+        pack-author typo (`opsus` for `opus`) surfaces before the
+        agent ships."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "mystery.md").write_text(
+                "---\nname: mystery\nmodel: gpt-5-turbo\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "mystery.json").read_text())
+            self.assertNotIn("model", data)
+            stderr = buf.getvalue()
+            self.assertIn("dropping model=", stderr)
+            self.assertIn("gpt-5-turbo", stderr)
+
+    def test_model_absent_in_source_absent_in_output(self) -> None:
+        """An agent with no `model` frontmatter produces no `model`
+        field in the JSON — regression check that the values rule
+        doesn't inject anything for an absent source key."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "no-model.md").write_text(
+                "---\nname: no-model\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "no-model.json").read_text())
+            self.assertNotIn("model", data)
+
+    def test_model_non_scalar_value_drops_field(self) -> None:
+        """A non-string `model` value (e.g. a YAML flow-sequence
+        `model: [opus]`) takes the values-miss branch and drops the
+        field — `values` is defined to translate scalar source values
+        only, so non-scalar input is intentionally rejected rather
+        than smuggled through as a literal list."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "list-model.md").write_text(
+                "---\nname: list-model\nmodel: [opus]\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "list-model.json").read_text())
+            self.assertNotIn("model", data)
+
+    def test_tools_comma_string_splits_to_list(self) -> None:
+        """Pack authors write `tools: Read, Grep, Glob, Bash` —
+        Claude Code's frontmatter convention, not YAML flow syntax —
+        and the kiro JSON projection must split on commas. Wrapping
+        the whole string in a single-element list (the prior bug)
+        produces `["Read, Grep, Glob, Bash"]`, which Kiro reads as
+        an unknown tool."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "multi.md").write_text(
+                "---\nname: multi\ntools: Read, Grep, Glob, Bash\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "multi.json").read_text())
+            self.assertEqual(data["tools"], ["Read", "Grep", "Glob", "Bash"])
+
+    def test_tools_single_token_one_element_list(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "one.md").write_text(
+                "---\nname: one\ntools: Read\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "one.json").read_text())
+            self.assertEqual(data["tools"], ["Read"])
+
+    def test_tools_bracketed_list_preserved(self) -> None:
+        """A YAML flow-sequence `tools: [Read, Grep]` is parsed as a
+        list by `_parse_frontmatter`; the to-list normalize must not
+        re-wrap or re-split it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "bracketed.md").write_text(
+                "---\nname: bracketed\ntools: [Read, Grep]\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "bracketed.json").read_text())
+            self.assertEqual(data["tools"], ["Read", "Grep"])
 
     def test_hook_wiring_array_entry_removed(self) -> None:
         """AC2: the legacy `degraded-info-log` kiro hook-wiring entry is gone."""
