@@ -70,6 +70,57 @@ root = pathlib.Path(sys.argv[1]).resolve()
 BANNED_FLAGS = {"token", "api_token", "api_key", "bearer", "pat", "password"}
 DOTFILE_SUBSTRING = ".agentbundle/credentials.env"
 OPTOUT_MARKER = "# credentialed-primitive: reads-creds-directly"
+
+# RFC-0013 § 4c — build-projected shim files. Shipped by the
+# `credential-brokers` pack and projected into every `auth: creds`
+# consumer's `scripts/` by `agentbundle.build.shared_libs`. These
+# files legitimately read the Tier-3 dotfile — that is the broker's
+# entire purpose. The credentialed-skill lint applies consumer-code
+# rules; the shim sits below that layer and is exempted from AC26(c)
+# (dotfile-substring check). Other rules (argv ban etc.) still apply,
+# but the shim defines no argparse surface so they're no-ops.
+SHIM_BASENAMES = frozenset({
+    "credentials_shim.py",
+    "_keychain_macos.py",
+    "_credman_windows.py",
+})
+# Resolve canonical source bytes. A consumer file named
+# `credentials_shim.py` is exempted from AC26(c) ONLY if its bytes
+# match the canonical source — otherwise a hand-rolled file using
+# the same basename would silently bypass the dotfile-substring
+# rule. The lookup is cached per-process to avoid re-reading on
+# every skill scan.
+#
+# Resolve from REPO_ROOT (the shell `cd`s here before invoking
+# python) — NOT from LINT_ROOT, which tests override to a tmp-path
+# that doesn't carry the full pack catalogue. The canonical source
+# lives at a fixed path in the project repo; LINT_ROOT picks which
+# *skills* the lint scans, not the source pack the exemption
+# checks against.
+SHIM_SOURCE_DIR = pathlib.Path.cwd() / "packs" / "credential-brokers" / ".apm" / "shared-libs"
+_shim_source_bytes_cache: dict[str, bytes | None] = {}
+
+
+def _shim_source_bytes(basename: str) -> bytes | None:
+    if basename not in _shim_source_bytes_cache:
+        src = SHIM_SOURCE_DIR / basename
+        try:
+            _shim_source_bytes_cache[basename] = src.read_bytes()
+        except OSError:
+            _shim_source_bytes_cache[basename] = None
+    return _shim_source_bytes_cache[basename]
+
+
+def _is_canonical_shim(py: pathlib.Path) -> bool:
+    if py.name not in SHIM_BASENAMES:
+        return False
+    expected = _shim_source_bytes(py.name)
+    if expected is None:
+        return False
+    try:
+        return py.read_bytes() == expected
+    except OSError:
+        return False
 SECURITY_HEADING = "### Security rules (non-negotiable)"
 REQUIRED_PHRASES = (
     "**Never** read that file, print it, or echo the token",
@@ -371,8 +422,15 @@ for skill_md in skill_md_files:
                         f"{norm!r} ∈ {sorted(BANNED_FLAGS)})",
                     )
 
-    # AC26(c) — dotfile substring + opt-out marker.
+    # AC26(c) — dotfile substring + opt-out marker. Build-projected
+    # shim files (RFC-0013 § 4c) are exempt: they ARE the broker that
+    # reads the dotfile, not consumer code on top of one. The
+    # exemption requires byte-equivalence against the canonical
+    # source so a hand-rolled file cannot bypass the rule by sharing
+    # a basename.
     for py in py_files:
+        if _is_canonical_shim(py):
+            continue
         try:
             content = py.read_text(encoding="utf-8")
         except OSError:
