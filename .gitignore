@@ -25,10 +25,18 @@ AGENTS.local.md
 .idea/
 
 # Python build artefacts.
-__pycache__/
 *.egg-info/
 *.pyc
 build/
+# The agentbundle package ships a `build/` subpackage (the build
+# pipeline). Override the generic `build/` ignore for this path so new
+# files there are tracked — previous additions slipped past without
+# notice because the ignore is silent.
+!packages/agentbundle/agentbundle/build/
+!packages/agentbundle/agentbundle/build/**
+# __pycache__ stays ignored everywhere (must come *after* the
+# build/** override so it applies inside the exception too).
+__pycache__/
 
 # Build pipeline output.
 dist/
