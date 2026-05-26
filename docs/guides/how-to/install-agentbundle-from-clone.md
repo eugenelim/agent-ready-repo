@@ -1,23 +1,30 @@
 # How to install `agentbundle` from a clone
 
-You're here because credentialed skills like `jira` or `figma` need
-the `agentbundle` Python module importable on the interpreter that
-runs them. All four [README install routes](../../../README.md#install)
-ship pack content — skills, agents, hooks — but not that Python
-module, so every route converges here for the pip install.
+You're here because the `agentbundle` CLI drives pack install,
+validation, adapt, and build. All four
+[README install routes](../../../README.md#install) ship pack content
+— skills, agents, hooks — but not the CLI, so every route converges
+here for the pip install.
 
-Every credentialed skill in this catalogue (`jira`, `figma`,
-`confluence-publisher`, `confluence-crawler`, `jira-align`, plus the
-worked example `example-credentialed-skill`) imports the credential
-loader directly:
+> **As of 0.2.0 (per RFC-0013), credentialed skills no longer import
+> from `agentbundle.credentials`.** The shim model projects
+> `credentials_shim.py` (and per-platform Tier-2 backends) into each
+> `auth: creds` consumer's `scripts/` directory at build time; the
+> consumer imports `from .credentials_shim import …` against the
+> projected sibling, with no runtime `agentbundle` dependency. The
+> CLI itself remains pip-installed from this clone; what changed is
+> that the *Python skill bodies* no longer reach back into the
+> agentbundle wheel for credential resolution.
+
+Smoke test for the install:
 
 ```python
-from agentbundle.credentials import load_credentials
+from agentbundle.cli import main
 ```
 
-That import has to resolve against the interpreter's `sys.path` at the
-time the agent harness spawns the skill script. The pip install
-registers `agentbundle` on `sys.path` for you; the zipapp at
+That import has to resolve against the interpreter's `sys.path` at
+the time you invoke `agentbundle <verb>` from a shell. The pip
+install registers `agentbundle` on `sys.path` for you; the zipapp at
 `dist/agentbundle.pyz` doesn't (see [Fallback](#fallback-build-the-zipapp)).
 
 ## Before you start
@@ -37,7 +44,7 @@ pip install -e packages/agentbundle/
 
 This writes a finder hook into your active interpreter's
 `site-packages` pointing back at `packages/agentbundle/agentbundle/`.
-`from agentbundle.credentials import load_credentials` succeeds from
+`from agentbundle.cli import main` succeeds from
 anywhere that interpreter runs, and any `git pull` against the clone
 is picked up by importers without re-running `pip install`.
 
@@ -57,7 +64,7 @@ walkthrough uses the same idiom.
 ## Step 2 — Smoke-check the install
 
 ```bash
-python -c "from agentbundle.credentials import load_credentials"
+python -c "from agentbundle.cli import main"
 ```
 
 Exits 0 silently on success. On failure, stderr ends with a multi-line
@@ -75,36 +82,37 @@ ties them together so they work as a pair:
   (`agentbundle install --pack <name> . --output <target>`) reads from
   here and projects pack content into your target repo (or `~/.claude/`
   for user-scope packs).
-- **`packages/agentbundle/`** — the **runtime library**. Every
-  credentialed skill in the catalogue does
-  `from agentbundle.credentials import load_credentials` from its own
-  subprocess at runtime. That import has to resolve to *this* directory.
+- **`packages/agentbundle/`** — the **CLI source**. `agentbundle
+  install / validate / adapt / build / …` lives here. As of 0.2.0
+  credentialed skills don't import from this directory (see the
+  banner above); the CLI is what pip-install gets you.
 
 ```
 your-clone/
 ├── packs/                          ← catalogue source (install verb reads this)
 │   ├── core/.apm/skills/…
+│   ├── credential-brokers/.apm/   ← shim + setup skill (RFC-0013)
 │   └── atlassian/.apm/skills/…
-└── packages/agentbundle/           ← runtime library source (pip install -e links here)
+└── packages/agentbundle/           ← CLI source (pip install -e links here)
     └── agentbundle/
         ├── cli.py                  (entry point for the `agentbundle` command on PATH)
-        ├── credentials.py          (public shim — what skills import)
-        └── creds/                  (loader internals)
+        ├── commands/               (one module per verb)
+        └── build/                  (recipe loader, adapters, projections)
 ```
 
 `pip install -e packages/agentbundle/` exposes two surfaces on your
 active interpreter:
 
-1. **Importable module** — `from agentbundle.credentials import …`
-   succeeds anywhere that interpreter runs. This is what credentialed
-   skill scripts depend on when an agent harness spawns them.
-2. **`agentbundle` console script on PATH** — the same CLI verbs the
-   zipapp exposes (`install`, `creds`, `validate`, etc.), now running
+1. **Importable module** — `from agentbundle.cli import main`
+   succeeds anywhere that interpreter runs. The CLI is the surface;
+   credentialed skill scripts no longer import this module.
+2. **`agentbundle` console script on PATH** — verbs like `install`,
+   `validate`, `adapt`, `build`, now running
    directly from the live source instead of from a frozen archive.
 
 Both surfaces link back at the editable source, so **`git pull`
 cascades to both**: next `agentbundle install` picks up new pack
-content, next Python process importing `agentbundle.credentials` sees
+content, next Python process importing `agentbundle.cli` sees
 the updated module — no re-install needed.
 
 **`make zipapp` is not part of the primary path** once the `pip
@@ -159,7 +167,7 @@ make zipapp                                              # builds dist/agentbund
 **The zipapp does not register `agentbundle` on the interpreter's
 `sys.path`.** The archive contains every module credentialed skills
 import (`zipimport` makes a `.pyz` self-contained), but Python looks
-up `from agentbundle.credentials import …` against `sys.path` at
+up `from agentbundle.cli import main` against `sys.path` at
 import time, and a standalone `.pyz` doesn't add itself. Credentialed
 skills spawned by an agent harness run a bare `#!/usr/bin/env python3`
 subprocess with no `PYTHONPATH` plumbing — that subprocess will fail
@@ -171,11 +179,11 @@ Use the zipapp when one of these holds:
 - **You only install non-credentialed packs** (`core`,
   `governance-extras`, `user-guide-diataxis`, `monorepo-extras`,
   `contracts`). The CLI is all you need; no skill in those packs
-  imports `agentbundle.credentials`.
+  imports `agentbundle.cli`.
 - **Split-host topology where pip is blocked on the install host but
   not the agent host** — host A is locked-down (CI runner, air-gapped
   builder) and runs the zipapp to project pack content into a target
-  repo, the CLI never imports `agentbundle.credentials`; host B is the
+  repo, the CLI never imports `agentbundle.cli`; host B is the
   developer workstation that has a normal Python install where you
   `pip install agentbundle` so skill scripts resolve the loader there.
 - **You're handing the zipapp off to a third party** who doesn't have

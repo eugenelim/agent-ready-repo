@@ -11,7 +11,7 @@
   },
   "credentials": {
     "namespace": "figma",
-    "setup": "agentbundle creds setup figma",
+    "setup": "credential-setup",
     "schema": "references/creds-schema.toml"
   },
   "input": {

@@ -634,7 +634,7 @@ Adopter disclosure shipped at `packs/core/README.md`.
   `agentbundle adapt --scope <project|user>` manual fallback per
   the per-pack README disclosure.
 
-## `credential-broker-contract` — in flight (T1-T14 landed; T15 pending)
+## `credential-broker-contract` — shipped (T1-T15 landed; manual-QA matrix pending)
 
 Spec: [`specs/credential-broker-contract/spec.md`](specs/credential-broker-contract/spec.md).
 ADR: [`adr/0003-credential-broker-contract.md`](adr/0003-credential-broker-contract.md)
@@ -702,15 +702,6 @@ PR-review is the other):
   projection target under a recognised consumer-skill `scripts/`
   directory), or sign the canonical shim and verify the signature at
   build time.
-
-- **Lint script's Python heredoc bypasses static analysis.** The 900-line
-  rule engine lives inside a `python3 - <<'PY' ... PY` heredoc in
-  `tools/lint-credentialed-skills.sh`, so ruff / mypy / IDE tooling see
-  it as a single bash string. Quality-engineer round-4 Concern 4. Follow-
-  up: extract the body to `tools/lint_credentialed_skills.py` (importable
-  module); leave the `.sh` shim as a 5-line wrapper. Unlocks `ruff check`
-  on the lint and lets `tools/test-lint-credentialed-skills.py` `import`
-  the helpers directly instead of round-tripping through subprocess.
 
 - **Integration tests don't cover the projection path.** `_load_cli_module()`
   in `packages/agentbundle/tests/integration/test_example_credentialed_skill.py`

@@ -1,10 +1,12 @@
-"""T3 AC8: credentials_shim.load_credentials round-trip parity with
-today's agentbundle.creds.loader.load_credentials.
+"""T3 AC8: credentials_shim.load_credentials behavioural-contract
+test (post-T15: the prior `agentbundle.creds.loader` baseline is
+removed; this test now pins the contract directly against the shim).
 
-The shim's behavioural contract is byte-equivalent to RFC-0006 § 2's
-loader modulo the import-path delta. This test exercises the shim
-directly (imported as a sibling-package member, the same shape a
-consumer skill will use post-T11) and asserts:
+The shim's behavioural contract — first-hit-wins per key across
+Tier 1 (env) / Tier 2 (keyring) / Tier 3 (dotfile), per RFC-0006 § 2
++ RFC-0013 § 4 — is pinned by AC8. This test exercises the shim
+directly (imported as a sibling-package member, the shape every
+`auth: creds` consumer uses) and asserts:
 
 - Tier 1 env-var resolution returns the same Credentials shape.
 - Missing required key raises CredentialsMissingError with namespace +

@@ -139,10 +139,10 @@
     {
       "id": 12,
       "prompt": "Help me set up Jira — we're on Atlassian Cloud at https://acme.atlassian.net.",
-      "expected_output": "The agent recognizes this is Atlassian Cloud (basic auth with email + API token, REST v3). It explains the one-time setup: run `agentbundle creds setup jira` interactively, enter the base URL when prompted, the Atlassian account email, and paste the Cloud API token from id.atlassian.com → Security → API tokens. It never hardcodes the URL into a CLI argument — the URL lives in the shared credential file.",
+      "expected_output": "The agent recognizes this is Atlassian Cloud (basic auth with email + API token, REST v3). It explains the one-time setup: run `credential-setup` skill interactively, enter the base URL when prompted, the Atlassian account email, and paste the Cloud API token from id.atlassian.com → Security → API tokens. It never hardcodes the URL into a CLI argument — the URL lives in the shared credential file.",
       "assertions": [
         "Agent identifies `acme.atlassian.net` as Atlassian Cloud",
-        "Agent tells the user to run `agentbundle creds setup jira` interactively (not via the Bash tool)",
+        "Agent tells the user to run `credential-setup` skill interactively (not via the Bash tool)",
         "Agent explains the token flow: id.atlassian.com → Security → API tokens (Cloud-specific path)",
         "Agent mentions that Cloud requires both an email AND a token (basic auth)",
         "Agent does NOT pass the base URL as a CLI flag to jira.py (no such flag exists)",
@@ -152,10 +152,10 @@
     {
       "id": 13,
       "prompt": "Help me set up Jira — we're on a self-hosted server at https://jira.corp.example.com.",
-      "expected_output": "The agent recognizes this is Server / Data Center (bearer PAT, REST v2 — no email needed). It explains the one-time setup: run `agentbundle creds setup jira` interactively, enter the base URL, and paste the Personal Access Token from the user's Profile page. The agent mentions that on self-signed installs `--insecure` may be needed but should only be used with explicit user consent.",
+      "expected_output": "The agent recognizes this is Server / Data Center (bearer PAT, REST v2 — no email needed). It explains the one-time setup: run `credential-setup` skill interactively, enter the base URL, and paste the Personal Access Token from the user's Profile page. The agent mentions that on self-signed installs `--insecure` may be needed but should only be used with explicit user consent.",
       "assertions": [
         "Agent identifies `jira.corp.example.com` as Server / Data Center (NOT Atlassian Cloud)",
-        "Agent tells the user to run `agentbundle creds setup jira` interactively (not via the Bash tool)",
+        "Agent tells the user to run `credential-setup` skill interactively (not via the Bash tool)",
         "Agent explains the token flow: avatar → Profile → Personal Access Tokens (Server-specific UI path)",
         "Agent does NOT prompt the user for an email (Server PAT auth doesn't use one)",
         "Agent does NOT prompt the user to paste the token into chat"
@@ -188,11 +188,11 @@
     {
       "id": 16,
       "prompt": "Export Jira data.",
-      "expected_output": "When `jira.py check` exits 2 because no credentials are configured, the agent stops and instructs the user to run `agentbundle creds setup jira` themselves. The agent does not run the setup script non-interactively, does not pipe a token into it, and does not attempt to read or create the config file directly.",
+      "expected_output": "When `jira.py check` exits 2 because no credentials are configured, the agent stops and instructs the user to run `credential-setup` skill themselves. The agent does not run the setup script non-interactively, does not pipe a token into it, and does not attempt to read or create the config file directly.",
       "assertions": [
         "Agent stops after `check` returns a non-zero exit indicating missing credentials",
-        "Agent tells the user to run `agentbundle creds setup jira` themselves",
-        "Agent does NOT invoke `agentbundle creds setup jira` via the Bash tool",
+        "Agent tells the user to run `credential-setup` skill themselves",
+        "Agent does NOT invoke `credential-setup` skill via the Bash tool",
         "Agent does NOT read `~/.agentbundle/credentials.env`",
         "Agent does NOT attempt to export JIRA_API_TOKEN inline",
         "Agent does NOT suggest pasting the token into the chat"
