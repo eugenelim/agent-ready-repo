@@ -12,7 +12,7 @@ You need:
 
 - The target service's authentication shape (token, bearer header, key+secret pair). Note which fields are secret and which aren't (`API_TOKEN` is; `BASE_URL` usually isn't).
 - A namespace name — a short kebab/snake-case identifier the credential store will use (`jira`, `github`, `acme_corp`). This becomes the env-var prefix and the keychain account label.
-- `agentbundle` installed (`pip install -e packages/agentbundle/` in this repo, or your distribution's equivalent).
+- `agentbundle` installed in the interpreter that runs your skill scripts. See [installing `agentbundle` from a clone](install-agentbundle-from-clone.md) for the editable-vs-snapshot choice, venv guidance, and the smoke check.
 
 ## Step 1 — Pick the primitive class
 
