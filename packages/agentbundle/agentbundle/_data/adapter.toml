@@ -5,10 +5,13 @@
 # RFC-0005 (hook-body / hook-wiring forks, v0.3);
 # RFC-0008 (claude-plugins install route, v0.4);
 # RFC-0010 (apm install route, v0.5);
-# RFC-0011 / docs/specs/pack-allowed-adapters (codex user-scope table, v0.6).
+# RFC-0011 / docs/specs/pack-allowed-adapters (codex user-scope table, v0.6);
+# RFC-0012 / docs/specs/repo-scope-per-adapter-projection (per-IDE projection
+# at repo scope; `allowed-prefixes.repo` on every adapter; copilot scope
+# table; v0.7).
 
 [contract]
-version = "0.6"
+version = "0.7"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -112,6 +115,7 @@ managed-key.user = "hooks"
 [adapter."claude-code".scope]
 repo = "."
 user = "~"
+allowed-prefixes.repo = [".claude/", ".agentbundle/"]
 allowed-prefixes.user = [".claude/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
@@ -180,6 +184,7 @@ agent-event-vocabulary = [
 [adapter.kiro.scope]
 repo = "."
 user = "~"
+allowed-prefixes.repo = [".kiro/", ".agentbundle/"]
 allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
@@ -210,6 +215,15 @@ mode = "dropped"
 [[adapter.copilot.projection]]
 primitive = "command"
 mode = "dropped"
+
+# Scope dimension for Copilot (RFC-0012 / repo-scope-per-adapter-projection).
+# Copilot is admissible at repo scope only — no user-scope analogue exists in
+# the Copilot ecosystem — so this table omits `user` and `allowed-prefixes.user`
+# deliberately. The repo-scope prefix matches Copilot's existing repo-scope
+# `instruction-file` projection target.
+[adapter.copilot.scope]
+repo = "."
+allowed-prefixes.repo = [".github/instructions/"]
 
 # ---------------------------------------------------------------------------
 # Codex adapter — 5 projections (one per primitive)
@@ -246,6 +260,7 @@ mode = "dropped"
 [adapter.codex.scope]
 repo = "."
 user = "~"
+allowed-prefixes.repo = [".agents/skills/", ".agentbundle/"]
 allowed-prefixes.user = [".agents/skills/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------

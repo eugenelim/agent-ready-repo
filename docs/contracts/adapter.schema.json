@@ -180,12 +180,31 @@
           },
           "scope": {
             "type": "object",
-            "required": ["repo", "user"],
+            "required": ["repo", "allowed-prefixes"],
             "properties": {
               "repo": {"type": "string"},
               "user": {"type": "string"},
               "allowed-prefixes": {
                 "type": "object",
+                "required": ["repo"],
+                "properties": {
+                  "repo": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^((?!\\.\\.(\\/|$))[^/]+/)+$"
+                    }
+                  },
+                  "user": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^((?!\\.\\.(\\/|$))[^/]+/)+$"
+                    }
+                  }
+                },
                 "additionalProperties": {
                   "type": "array",
                   "minItems": 1,
