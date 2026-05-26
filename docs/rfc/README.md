@@ -18,6 +18,7 @@
 | [0010](0010-apm-install-route-parity.md) | APM install-route parity — per-pack SessionStart writer projected through APM's HookIntegrator | Accepted | 2026-05-25 | 2026-05-25 |
 | [0011](0011-pack-allowed-adapters.md) | Per-pack `allowed-adapters` declaration for user-scope adapter resolution | Open | 2026-05-25 | |
 | [0012](0012-repo-scope-per-adapter-projection.md) | Repo-scope per-adapter projection — `--adapter` at `--scope repo`, dist-tree opt-in via `--emit-install-routes` | Draft | 2026-05-26 | |
+| [0013](0013-credential-broker-contract.md) | Credential broker contract — in-process shim for static tokens, adapter-root subprocess for SSO; formalise four-broker model | Draft | 2026-05-26 | |
 
 ## Adding a new RFC
 
