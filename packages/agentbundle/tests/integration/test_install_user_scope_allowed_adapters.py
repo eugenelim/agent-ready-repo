@@ -131,6 +131,58 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
         self._assert_pack_landed(".kiro/skills", "kiro")
 
+    def test_upgrade_state_hint_preserves_adapter(self) -> None:
+        """AC10b / AC25: install under claude-code; populate ~/.kiro/
+        post-install; upgrade — state.adapter stays claude-code and
+        the cross-adapter refusal at upgrade.py does NOT fire."""
+        # Step 1: greenfield install → claude-code.
+        rc, stdout, stderr = _run_install(
+            _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user")
+        )
+        self.assertEqual(rc, 0, stderr)
+        from agentbundle.config import load_state
+
+        state_path = self.home / ".agentbundle" / "state.toml"
+        before = load_state(state_path)
+        self.assertEqual(before.packs["converters"].adapter, "claude-code")
+
+        # Step 2: populate ~/.kiro/ post-install (would normally
+        # redirect a fresh install to kiro on the probe path).
+        (self.home / ".kiro").mkdir()
+
+        # Step 3: upgrade — state hint should win, no cross-adapter
+        # refusal.
+        from agentbundle.commands import upgrade
+
+        # Same source version → no-op upgrade, but the resolver runs
+        # and the cross-adapter refusal can fire.
+        upgrade_args = argparse.Namespace(
+            pack="converters",
+            catalogue=str(self.cat),
+            to_version="0.1.0",
+            root=str(self.repo),
+            scope="user",
+        )
+        stdout_buf = io.StringIO()
+        stderr_buf = io.StringIO()
+        with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+            rc = upgrade.run(upgrade_args)
+        # The cross-adapter refusal text from upgrade.py:318-326 must
+        # NOT appear; either rc == 0 (upgrade ran clean) or an
+        # unrelated failure surfaced. State.adapter must stay
+        # claude-code in either case.
+        self.assertNotIn(
+            "pack adapter changed from",
+            stderr_buf.getvalue(),
+            f"upgrade triggered cross-adapter refusal despite state hint",
+        )
+        after = load_state(state_path)
+        self.assertEqual(
+            after.packs["converters"].adapter,
+            "claude-code",
+            f"upgrade should preserve state.adapter; got {after.packs['converters'].adapter!r}",
+        )
+
     def test_adapter_at_repo_scope_refused(self) -> None:
         rc, stdout, stderr = _run_install(
             _install_args(

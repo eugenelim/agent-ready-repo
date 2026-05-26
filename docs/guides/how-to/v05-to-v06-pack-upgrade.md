@@ -97,6 +97,29 @@ For v0.6+ packs declaring `allowed-adapters`:
    `DEFAULT_USER_SCOPE_ADAPTER` (currently `claude-code`); declared
    order otherwise.
 
+## Adopters carrying pre-v0.6 state files
+
+The v0.6 contract bump also lifts `PackState.adapter`'s assignment
+out of the kiro-hook-only branch (AC10a). Before this PR, codex and
+non-hook claude-code installs left the field at the dataclass default
+`"claude-code"` regardless of what the on-disk projection actually
+targeted. If you installed `atlassian` / `figma` / `converters` /
+`contracts` against codex (i.e., you only had `~/.codex/` populated
+at install time) on a pre-RFC-0011 CLI, your state file records
+`adapter = "claude-code"` even though the pack landed at
+`~/.agents/skills/`. On the next upgrade, the resolver's state-hint
+(AC10b) will trust the recorded value and try to re-resolve to
+`claude-code`, triggering the cross-adapter refusal at
+`upgrade.py:318-326`.
+
+The one-time fix: `agentbundle uninstall --pack <name> --scope user`
+followed by `agentbundle install --pack <name> --scope user .`
+re-records the adapter correctly. Fresh installs against v0.6+ CLIs
+record their adapter correctly on first install; this migration step
+is only needed once per affected pack, and only for adopters who
+already had a non-claude-code install in flight at the time of the
+contract bump.
+
 ## The legacy path
 
 A `< 0.6` pack — or a v0.6+ pack that omits `allowed-adapters` —

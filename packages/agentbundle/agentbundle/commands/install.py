@@ -202,6 +202,17 @@ def run(args: "argparse.Namespace") -> int:
         )
         return 1
 
+    # RFC-0011 AC12: same resolved-scope re-check for `--adapter`. The
+    # early gate above caught the explicit `--scope repo` case; this
+    # one catches the pack-default-scope-repo case where `--scope`
+    # was omitted.
+    if cli_adapter is not None and requested_scope != "user":
+        print(
+            "install: --adapter is bound to --scope user",
+            file=sys.stderr,
+        )
+        return 1
+
     # ── Step 3: Pre-flight — load state at *both* scopes ──────────────────────
     # Read-only loads (for_write=False) — we do the v0.1 refusal *only*
     # for scopes we're about to write to, after we know which they are.
@@ -1260,8 +1271,17 @@ def _render_for_user_scope(
             kiro.project(pack_dir, contract, out)
         elif target_adapter == "codex":
             codex.project(pack_dir, contract, out)
-        else:
+        elif target_adapter == "claude-code":
             claude_code.project(pack_dir, contract, out)
+        else:
+            # Defence-in-depth: every user-scope-capable adapter
+            # should have an explicit branch above. A future contract
+            # bump that ships a new adapter must extend this dispatch;
+            # falling through to claude-code masked the gap.
+            raise _AdapterResolutionRefused(
+                f"{command_name}: no user-scope projection wired for "
+                f"adapter {target_adapter!r}"
+            )
         return _collect_tree(out)
 
 
@@ -1432,6 +1452,26 @@ def _resolve_user_scope_target_adapter(
                     f"allowed-adapter {declared!r} which is not admitted by "
                     f"adapter contract v{cv} shipped with agentbundle "
                     f"{cli_version}"
+                )
+        # Defence-in-depth: at install/upgrade we're already routing
+        # this pack to user scope (the resolver only runs for user
+        # scope). Each declared adapter must additionally be
+        # user-scope-capable, mirroring the validate-time cross-field
+        # check (validate.py:_validate_allowed_adapters). Without
+        # this, a v0.6 pack declaring `allowed-adapters = ["copilot"]`
+        # could fall through to the greenfield branch and return
+        # "copilot" — at which point `_render_for_user_scope`'s
+        # if/elif/else would silently land a Claude Code projection
+        # with state.adapter recorded as "copilot". Refuse here so
+        # the on-disk projection and the state file can never
+        # disagree on the resolved adapter.
+        for declared in allowed_adapters:
+            if declared not in user_capable:
+                raise _AdapterResolutionRefused(
+                    f"{command_name}: pack {pack_name!r} declares "
+                    f"allowed-adapter {declared!r} which does not "
+                    f"declare a user-scope root in the v0.6 adapter "
+                    f"contract"
                 )
 
     # Step 1: --adapter override.
