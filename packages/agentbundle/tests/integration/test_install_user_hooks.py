@@ -247,8 +247,9 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
     def test_dot_dot_in_attach_to_agent_refuses(self) -> None:
         pack = self.cat / "packs" / "evil-pack"
         (pack / ".apm" / "agents").mkdir(parents=True)
-        # Ship an agent so the heuristic resolves to Kiro (the
-        # adapter that consumes `attach-to-agent`).
+        # Declare kiro explicitly — the legacy agents-presence
+        # heuristic that previously inferred this now defers to
+        # ``DEFAULT_ADAPTER``.
         (pack / ".apm" / "agents" / "evil.md").write_text(
             "---\nname: evil\n---\nbody\n", encoding="utf-8"
         )
@@ -267,7 +268,8 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
             '[pack]\nname = "evil-pack"\nversion = "0.1.0"\n\n'
             '[pack.adapter-contract]\nversion = "0.3"\n\n'
             '[pack.install]\ndefault-scope = "user"\n'
-            'allowed-scopes = ["user"]\nuser-scope-hooks = true\n',
+            'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
+            'allowed-adapters = ["kiro"]\n',
             encoding="utf-8",
         )
         for entry in pack.rglob("*.sh"):

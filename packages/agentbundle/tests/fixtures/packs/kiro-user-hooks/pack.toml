@@ -15,3 +15,7 @@ version = "0.3"
 default-scope = "user"
 allowed-scopes = ["user"]
 user-scope-hooks = true
+# Explicit kiro routing — previously inferred via the legacy
+# agents-presence heuristic at step 5, which now defers to
+# ``DEFAULT_ADAPTER`` (multi-IDE uniformity).
+allowed-adapters = ["kiro"]
