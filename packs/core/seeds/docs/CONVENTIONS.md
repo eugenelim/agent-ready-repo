@@ -799,7 +799,7 @@ the worked example.
 
 ### Frontmatter declarations
 
-A credentialed skill declares two project-specific flags under the
+A credentialed skill declares three project-specific flags under the
 `metadata:` block of its `SKILL.md` frontmatter:
 
 ```yaml
@@ -809,6 +809,11 @@ description: <what triggers it>
 metadata:
   credentialed: true
   primitive-class: credentialed-cli   # or mcp-server
+  auth: creds                         # env / cli / creds / sso-cookie
+  # broker-specific extras follow:
+  # namespace: <ns>                   # required for auth: creds and auth: env
+  # keys: ["<KEY>"]                   # required for auth: creds and auth: env
+  # sso_profile: <profile>            # required for auth: sso-cookie
 ---
 ```
 
@@ -818,7 +823,39 @@ pins the top-level frontmatter set to `name`, `description`,
 `license`, `compatibility`, `metadata`, `allowed-tools` and reserves
 `metadata:` as the project-specific escape hatch. `tools/lint-agent-artifacts.py`
 refuses any top-level key outside that set; `tools/lint-credentialed-skills.sh`
-scopes its AC26 checks to skills with `metadata.credentialed: true`.
+scopes its checks to skills with `metadata.credentialed: true`.
+
+### Four brokers — pick one per skill
+
+`metadata.auth` names the broker that resolves the credential. The
+four ids are pinned by
+[ADR-0003](adr/0003-credential-broker-contract.md) and
+<!-- seed-content-lint-ignore: canonical RFC pointer for the four-broker contract -->
+[RFC-0013](rfc/0013-credential-broker-contract.md):
+
+- **`env`** — the credential is a plain environment variable
+  (`<NAMESPACE>_<KEY>`). Catalogue contributes naming convention and
+  lint; no runtime resolver.
+- **`cli`** — the primitive shells out to a vendor-authenticated
+  binary (`gh`, `aws`, `kubectl`, `gcloud`). Vendor CLI owns the
+  credential.
+- **`creds`** — static token via the three-tier model (env → OS
+  keychain → 0600 dotfile floor). The `credential-brokers` pack
+  projects `credentials_shim.py` plus per-platform Tier-2 backends
+  into the skill's `scripts/` directory on `make build-self`.
+- **`sso-cookie`** — session cookie acquired via a headed-browser SSO
+  flow. The skill subprocess-invokes
+  `~/.agentbundle/bin/sso-broker.py` (projected by the
+  `credential-brokers` pack at user scope).
+
+The broker-agnostic invariants below apply to every credentialed
+primitive regardless of broker. Broker-specific lint extensions layer
+on top (`auth: creds` requires `from .credentials_shim import …` in
+`scripts/`; `auth: env` requires each declared `<NAMESPACE>_<KEY>` to
+be read at least once; `auth: sso-cookie` requires
+subprocess-invocation of the canonical
+`Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` path; `auth:
+cli` falls through to broker-agnostic checks only).
 
 ### Three storage tiers
 

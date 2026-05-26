@@ -185,7 +185,7 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
-## `repo-scope-per-adapter-projection` — in flight (T1-T9 landed)
+## `repo-scope-per-adapter-projection` — in flight (T1-T9 landed; AC24 + AC33 follow-ons landed)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
 RFC: [`rfc/0012-repo-scope-per-adapter-projection.md`](rfc/0012-repo-scope-per-adapter-projection.md)
@@ -217,15 +217,27 @@ adapter-disagreement / orphan recovery) carries adopters across
 the v0.6 → v0.7 transition.
 
 - **Status as of 2026-05-26 (this session):** T1-T9 landed via a
-  single work-loop execution. ACs closed: AC1-AC23, AC25-AC33,
-  AC35-AC37 (subject to T11 final gate verification on the PR).
-  ACs partially closed / deferred to follow-up:
-  - **AC24** — in-band detection of pre-RFC-0012 state. The
-    orphan-recovery (c) trigger ships with T7; the (a)
-    adapter-disagreement and (b) shape-mismatch triggers are a
-    follow-up amendment.
-  - **AC34** — passing on the new tests + green elsewhere; will
-    re-verify on PR CI.
+  single work-loop execution. AC24 (a)/(b) + three AC33 integration
+  cases landed in PR #141 as a follow-on. ACs closed: AC1-AC37
+  (subject to T11 final gate verification on the PR).
+- **AC24 (a)/(b) follow-on landed in PR #141 (2026-05-26).** The
+  orphan-recovery (c) trigger shipped with T7 in PR #140; (a)
+  adapter-disagreement and (b) shape-mismatch shipped in PR #141
+  along with the three AC33 integration cases (upgrade-with-state-
+  hint defensive regression pin; migration-(b) e2e; migration-(a)
+  e2e). The implementer-chosen wording for (a) and (b) is named in
+  the PR body; a follow-on spec amendment can pin the strings
+  verbatim in AC24.
+- **Open follow-on items:**
+  - **Spec amendment** pinning the chosen (a)/(b) stderr wording
+    verbatim in AC24 — implementer's choice today; spec amendment
+    closes the loop.
+  - **Per-pack scoping of (c)'s artifact scan** — pre-existing AC22
+    limitation inherited verbatim. `safety.scan_for_pack_artifacts`
+    is adapter-prefix scoped; tightening to pack-name scoping is a
+    future surface (cross-pack false-positive only fires when an
+    orphan from a third pack sits under the same adapter prefix as
+    the pack being installed).
 - **Tasks landed (this session):**
   - **AC1, AC2, AC3, AC4** close with T1 (contract bump + scope
     tables + schema validator).
@@ -607,9 +619,11 @@ Adopter disclosure shipped at `packs/core/README.md`.
   `agentbundle adapt --scope <project|user>` manual fallback per
   the per-pack README disclosure.
 
-## `credential-broker-contract` — drafted
+## `credential-broker-contract` — in flight (T1-T4 landed)
 
 Spec: [`specs/credential-broker-contract/spec.md`](specs/credential-broker-contract/spec.md).
+ADR: [`adr/0003-credential-broker-contract.md`](adr/0003-credential-broker-contract.md)
+(Accepted 2026-05-26 — records the four-broker decision, two transports, brokers-not-skills with the credential-setup exception, no PyPI shim package, and rejection of alternatives B / D / E / F / G / H / I / J).
 RFC: [`rfc/0013-credential-broker-contract.md`](rfc/0013-credential-broker-contract.md)
 (Accepted 2026-05-26). Amends RFC-0006: promotes the security
 invariants to a broker-agnostic contract; demotes the env →
