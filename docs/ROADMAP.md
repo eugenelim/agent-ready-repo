@@ -185,6 +185,24 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
+## `pack-allowed-adapters` — shipped
+
+Spec: [`specs/pack-allowed-adapters/spec.md`](specs/pack-allowed-adapters/spec.md).
+RFC: [`rfc/0011-pack-allowed-adapters.md`](rfc/0011-pack-allowed-adapters.md).
+`allowed-adapters` landed — Kiro and Codex user-scope installs now
+exercise the integrated path against the catalogue's four
+user-scope-capable packs (`atlassian`, `figma`, `converters`,
+`contracts`). The adapter contract bumped v0.5 → v0.6 with a new
+`[adapter.codex.scope]` table; `_resolve_user_scope_target_adapter`
+rewrote to the six-step lookup (publisher-drift refusal → `--adapter`
+override → state-hint short-circuit → contract-version gate + probe
+→ legacy heuristic); `[pack.install] allowed-adapters` validates
+through both the schema (array-of-strings shape) and the Python
+cross-field check (contract-shipped + user-scope-capable membership).
+
+**Next:** codex-plugins install-route parity (sibling RFC, not yet
+opened; will be modeled on RFC-0008's claude-plugins precedent).
+
 ## `user-scope-hooks` — drafted
 
 Spec: [`specs/user-scope-hooks/spec.md`](specs/user-scope-hooks/spec.md).

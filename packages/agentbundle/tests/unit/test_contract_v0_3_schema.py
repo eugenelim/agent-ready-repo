@@ -69,8 +69,9 @@ def _parse_pack(toml_text: str) -> dict:
 
 class ContractVersionTests(unittest.TestCase):
     def test_contract_version_is_0_5(self) -> None:
-        # T2 of apm-install-route-parity bumped the contract to v0.5.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.5")
+        # T2 of apm-install-route-parity bumped the contract to v0.5;
+        # RFC-0011 / pack-allowed-adapters bumped it to v0.6.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.6")
 
 
 # ---------------------------------------------------------------------------

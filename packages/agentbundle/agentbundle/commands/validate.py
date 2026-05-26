@@ -143,6 +143,19 @@ def run(args) -> int:
             )
             return 1
 
+    # ── 4a. Allowed-adapters cross-field check (RFC-0011 / AC3, AC22) ─────
+    # The schema admits `allowed-adapters` as `array<string>` but doesn't
+    # hardcode the adapter enum (it's contract-derived). Validate here:
+    #   - every entry must be in the bundled contract's shipped-adapter set;
+    #   - when "user" ∈ allowed-scopes, every entry must additionally be in
+    #     the user-scope-capable subset (declare an `[adapter.<name>.scope]`
+    #     table). The refuse-and-explain messages match the wording pinned
+    #     in spec § *Always do*.
+    aa_refusal = _validate_allowed_adapters(pack_data)
+    if aa_refusal is not None:
+        print(f"validate: pack.toml: {aa_refusal}", file=sys.stderr)
+        return 1
+
     # ── 4b. User-scope refusal rails (RFC-0004 A/B/C) ─────────────────────
     # Rails fire only when the pack declares "user" ∈ allowed-scopes. The
     # rails run *after* schema validation so we know `[pack.install]`'s
@@ -349,35 +362,45 @@ def _load_pack_wiring_tomls(pack_path: Path) -> dict[str, dict]:
 
 
 def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
-    """Resolve the target-adapter set for the kiro hook-wiring rail (T2).
+    """Resolve the target-adapter set for the kiro hook-wiring rail.
 
-    Pack-side ``allowed-adapters`` does not exist yet (a future RFC).
-    The rail's purpose is to refuse hook-wiring that *would* project to
-    kiro but lacks the required ``attach-to-agent`` field. Without an
-    explicit declaration, we infer kiro-targeting from on-disk evidence:
+    Two paths:
 
-      - Pack declares the v0.3 adapter contract (the version that
-        introduced ``merge-into-agent-json`` for kiro hook-wiring).
-      - Pack ships **both** ``.apm/agents/`` content (Kiro's projection
-        target — an agent JSON to attach into) **and**
-        ``.apm/hook-wiring/`` content (the wiring this rail validates).
+      - v0.6+ packs declaring ``allowed-adapters`` use the field as the
+        source of truth: ``"kiro" in allowed-adapters`` ⇒ ``{"kiro"}``,
+        else ``set()``. The rail is a no-op for v0.6+ packs that
+        deliberately exclude kiro.
 
-    A Claude-Code-only v0.3 pack that ships wiring without agents
-    cannot project to kiro by construction (no agent file to merge
-    into) and the rail is a no-op for it. v0.1 / v0.2 packs pre-date
-    the requirement.
+      - All other hook-wiring-capable contract versions (v0.3+, per
+        the ``contract_supports_hook_wiring`` predicate that replaces
+        the round-1 literal ``version != "0.3"`` gate) fall through
+        to on-disk inference: pack ships both ``.apm/agents/`` and
+        ``.apm/hook-wiring/`` ⇒ ``{"kiro"}``. Pre-hook-wiring
+        contracts (v0.1, v0.2) skip the rail.
 
-    Returns ``{"kiro"}`` when the heuristic fires; empty set
+    Returns ``{"kiro"}`` when the rail should fire; empty set
     (rail no-op) otherwise.
     """
+    from agentbundle.scope import contract_supports_hook_wiring
+
     pack = pack_data.get("pack", {})
     if not isinstance(pack, dict):
         return set()
     contract = pack.get("adapter-contract")
     if not isinstance(contract, dict):
         return set()
-    if contract.get("version") != "0.3":
+    version = contract.get("version")
+    if not contract_supports_hook_wiring(version):
         return set()
+
+    # v0.6+ declarative early-return from allowed-adapters.
+    install = pack.get("install")
+    if isinstance(install, dict):
+        allowed = install.get("allowed-adapters")
+        if isinstance(allowed, list):
+            allowed_strs = [s for s in allowed if isinstance(s, str)]
+            return {"kiro"} if "kiro" in allowed_strs else set()
+
     # Heuristic: kiro projection requires a same-pack agent. A pack
     # with wiring but no agents has nothing to attach to.
     agents_dir = pack_path / ".apm" / "agents"
@@ -455,6 +478,57 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
     )
 
 
+def _validate_allowed_adapters(pack_data: dict) -> str | None:
+    """Cross-field check for ``[pack.install] allowed-adapters`` (RFC-0011).
+
+    Returns None when the field is absent / valid; returns a
+    refuse-and-explain string suitable for printing under the
+    ``validate: pack.toml: ...`` prefix on violation. Reads the
+    bundled adapter contract for the shipped + user-scope-capable
+    sets; if the contract doesn't ship a value the pack declares,
+    that's the publisher-vs-installer drift case.
+    """
+    from agentbundle.scope import (
+        shipped_adapters_from_contract,
+        user_scope_capable_adapters_from_contract,
+    )
+
+    pack = pack_data.get("pack", {})
+    if not isinstance(pack, dict):
+        return None
+    install = pack.get("install")
+    if not isinstance(install, dict):
+        return None
+    declared = install.get("allowed-adapters")
+    if not isinstance(declared, list):
+        return None
+    declared_strs = [s for s in declared if isinstance(s, str)]
+    if not declared_strs:
+        return None
+    if len(declared_strs) != len(set(declared_strs)):
+        return "[pack.install] allowed-adapters contains duplicate values"
+
+    shipped = shipped_adapters_from_contract()
+    user_capable = user_scope_capable_adapters_from_contract()
+    user_eligible = "user" in _allowed_scopes(pack_data)
+
+    for name in declared_strs:
+        if name not in shipped:
+            return (
+                f"[pack.install] allowed-adapters contains {name!r}, "
+                f"which is not a shipped adapter under the bundled "
+                f"contract"
+            )
+        if user_eligible and name not in user_capable:
+            return (
+                f"[pack.install] allowed-adapters contains {name!r}, "
+                f"which does not declare a user-scope root in the v0.6 "
+                f"adapter contract"
+            )
+
+    return None
+
+
 def _allowed_scopes(pack_data: dict) -> list[str]:
     """Return the pack's resolved allowed-scopes list.
 
@@ -479,12 +553,11 @@ def _allowed_scopes(pack_data: dict) -> list[str]:
         if isinstance(pack.get("adapter-contract"), dict)
         else None
     )
-    # v0.2 introduced `[pack.install]`; v0.3 (RFC-0005) added the
-    # `user-scope-hooks` flag but did not change scope-resolution
-    # semantics. Treat any contract version >= 0.2 as carrying the
-    # install table. The legacy v0.1 path (and any pack without an
-    # adapter-contract declaration) stays repo-only.
-    if contract_version not in ("0.2", "0.3"):
+    # v0.2 introduced `[pack.install]`; v0.3 added `user-scope-hooks`;
+    # v0.6 added `allowed-adapters`. Treat any contract version >= 0.2
+    # as carrying the install table. The legacy v0.1 path (and any pack
+    # without an adapter-contract declaration) stays repo-only.
+    if contract_version is None or contract_version == "0.1":
         return ["repo"]
     install = pack.get("install", {})
     if not isinstance(install, dict):
