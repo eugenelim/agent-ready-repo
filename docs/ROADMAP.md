@@ -185,7 +185,7 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
-## `repo-scope-per-adapter-projection` — in flight (T1-T9 + AC24 + AC30b + AC33 + ADR-0004 follow-ons landed; (c) per-pack scoping open)
+## `repo-scope-per-adapter-projection` — shipped (T1-T9 + AC24 + AC30b + AC33 + ADR-0004 follow-ons all landed; (c) per-pack scoping open as a non-gating enhancement)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
 RFC: [`rfc/0012-repo-scope-per-adapter-projection.md`](rfc/0012-repo-scope-per-adapter-projection.md)
