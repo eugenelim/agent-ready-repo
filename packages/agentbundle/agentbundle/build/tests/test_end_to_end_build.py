@@ -158,6 +158,25 @@ class CheckCommandTests(unittest.TestCase):
                 env=env,
             )
 
+            # `make build-check` depends on `make build` (Makefile:63) so the
+            # writer-template / APM drift gates introduced in commits
+            # 25590fe + 89c0db3 always see a populated dist/ tree. Mirror
+            # that dependency here: run `build` into <working>/dist/ before
+            # invoking `check --output-dir <working>` so `<working>/dist/
+            # claude-plugins/` and `<working>/dist/apm/` exist.
+            build_result = _run_build(
+                [
+                    "build",
+                    "--packs-dir",
+                    str(FIXTURES_PACKS),
+                    "--output-dir",
+                    str(working / "dist"),
+                ]
+            )
+            self.assertEqual(
+                build_result.returncode, 0, msg=build_result.stderr
+            )
+
             result = _run_build(
                 [
                     "check",
