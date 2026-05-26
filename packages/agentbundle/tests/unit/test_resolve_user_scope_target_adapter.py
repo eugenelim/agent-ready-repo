@@ -151,13 +151,13 @@ def test_greenfield_returns_default_when_default_in_pack_list(tmp_path, fake_hom
         allowed_adapters=["claude-code", "kiro"],
         contract_version="0.6",
     )
-    assert result == "claude-code"  # DEFAULT_USER_SCOPE_ADAPTER
+    assert result == "claude-code"  # DEFAULT_ADAPTER
 
 
 def test_greenfield_monkeypatch_default_to_kiro(tmp_path, fake_home, monkeypatch):
     pack = _make_pack(tmp_path)
     monkeypatch.setattr(
-        "agentbundle.scope.DEFAULT_USER_SCOPE_ADAPTER", "kiro"
+        "agentbundle.scope.DEFAULT_ADAPTER", "kiro"
     )
     result = _resolve_user_scope_target_adapter(
         pack,
@@ -173,7 +173,7 @@ def test_greenfield_falls_back_to_first_when_default_not_in_pack_list(
 ):
     pack = _make_pack(tmp_path)
     monkeypatch.setattr(
-        "agentbundle.scope.DEFAULT_USER_SCOPE_ADAPTER", "codex"
+        "agentbundle.scope.DEFAULT_ADAPTER", "codex"
     )
     # codex not in pack's list — falls back to allowed_adapters[0].
     result = _resolve_user_scope_target_adapter(
@@ -509,7 +509,7 @@ def test_step0_copilot_admitted_at_repo_in_allowed_adapters(tmp_path, fake_home)
 
 def test_repo_scope_greenfield_returns_default_adapter(tmp_path, fake_home):
     """Spec AC9 step 4 (repo branch) — no --adapter, no probe; returns
-    DEFAULT_USER_SCOPE_ADAPTER if in allowed_adapters."""
+    DEFAULT_ADAPTER if in allowed_adapters."""
     pack = _make_pack_v07(tmp_path)
     result = _resolve_target_adapter(
         pack,
@@ -524,10 +524,10 @@ def test_repo_scope_greenfield_returns_default_adapter(tmp_path, fake_home):
 def test_repo_scope_greenfield_falls_back_to_first_when_default_absent(
     tmp_path, fake_home, monkeypatch
 ):
-    """When DEFAULT_USER_SCOPE_ADAPTER isn't in the pack's set, repo
+    """When DEFAULT_ADAPTER isn't in the pack's set, repo
     scope returns allowed_adapters[0] (same shape as user scope)."""
     pack = _make_pack_v07(tmp_path)
-    monkeypatch.setattr("agentbundle.scope.DEFAULT_USER_SCOPE_ADAPTER", "codex")
+    monkeypatch.setattr("agentbundle.scope.DEFAULT_ADAPTER", "codex")
     result = _resolve_target_adapter(
         pack,
         scope="repo",
@@ -583,3 +583,46 @@ def test_repo_scope_state_hint_short_circuit(tmp_path, fake_home):
         command_name="upgrade",
     )
     assert result == "kiro"
+
+
+# ---------------------------------------------------------------------------
+# RFC-0012: DEFAULT_ADAPTER rename + deprecation alias (AC18-AC19)
+# ---------------------------------------------------------------------------
+
+
+def test_default_adapter_value_unchanged():
+    """The renamed constant carries the same value (claude-code)."""
+    from agentbundle.scope import DEFAULT_ADAPTER
+
+    assert DEFAULT_ADAPTER == "claude-code"
+
+
+def test_deprecation_alias_fires_warning():
+    """Accessing the old name via getattr raises DeprecationWarning
+    and returns the new constant's value."""
+    import warnings
+
+    import agentbundle.scope as scope_mod
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        value = getattr(scope_mod, "DEFAULT_USER_SCOPE_ADAPTER")
+    assert value == scope_mod.DEFAULT_ADAPTER
+    assert any(issubclass(w.category, DeprecationWarning) for w in caught), (
+        "expected DeprecationWarning on access of DEFAULT_USER_SCOPE_ADAPTER"
+    )
+
+
+def test_default_adapter_direct_access_does_not_warn():
+    """Direct access to DEFAULT_ADAPTER must NOT warn (PEP 562
+    ``__getattr__`` fires only on missing attributes)."""
+    import warnings
+
+    import agentbundle.scope as scope_mod
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _ = scope_mod.DEFAULT_ADAPTER
+    assert not any(
+        issubclass(w.category, DeprecationWarning) for w in caught
+    ), "DEFAULT_ADAPTER access raised an unexpected DeprecationWarning"

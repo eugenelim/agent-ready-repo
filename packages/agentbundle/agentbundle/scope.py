@@ -38,11 +38,35 @@ from typing import Iterable
 # argparse's `choices=` and the runtime resolver agree.
 LEGAL_SCOPES: frozenset[str] = frozenset({"repo", "user"})
 
-# RFC-0011 / pack-allowed-adapters: greenfield-fallback default when
-# no adapter CLI home is present and the pack declares no preferred
-# first adapter. Downstream catalogues can monkey-patch this constant
-# at startup to flip the default for their own distribution.
-DEFAULT_USER_SCOPE_ADAPTER: str = "claude-code"
+# RFC-0011 / pack-allowed-adapters introduced this constant for the
+# greenfield-fallback default at user scope; RFC-0012 widens it to
+# cover both scopes (the constant is the single per-distribution
+# default, consulted at both `--scope user` and `--scope repo`).
+# Downstream catalogues can monkey-patch this constant at startup to
+# flip the default for their own distribution (e.g. an enterprise
+# rebrand sets `DEFAULT_ADAPTER = "kiro"`).
+DEFAULT_ADAPTER: str = "claude-code"
+
+
+# Deprecated alias for ``DEFAULT_ADAPTER`` — kept for one release
+# (removed in agentbundle 0.2.0 per RFC-0012 § *Module-level constant
+# rename*). PEP 562 module-level ``__getattr__`` fires only on access
+# of the deprecated name; direct access to ``DEFAULT_ADAPTER`` is
+# warning-free.
+def __getattr__(name: str) -> str:  # pragma: no cover - exercised via tests
+    if name == "DEFAULT_USER_SCOPE_ADAPTER":
+        import warnings
+
+        warnings.warn(
+            "DEFAULT_USER_SCOPE_ADAPTER is deprecated; use "
+            "DEFAULT_ADAPTER. Removed in agentbundle 0.2.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return DEFAULT_ADAPTER
+    raise AttributeError(
+        f"module 'agentbundle.scope' has no attribute {name!r}"
+    )
 
 
 class ScopeRefused(Exception):

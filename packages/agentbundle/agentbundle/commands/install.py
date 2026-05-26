@@ -1437,7 +1437,7 @@ def _resolve_target_adapter(
       4. **Per-scope branch**: at user scope, walk the per-adapter
          probe table and return the first match; at repo scope,
          **skip the probe** (RFC-0012 § *Alternatives* #4 — symmetric
-         probing rejected) and return ``DEFAULT_USER_SCOPE_ADAPTER``
+         probing rejected) and return ``DEFAULT_ADAPTER``
          if in ``allowed_adapters``, else ``allowed_adapters[0]``.
 
       5. **Legacy heuristic** — preserved for ``< 0.7`` packs that
@@ -1459,7 +1459,7 @@ def _resolve_target_adapter(
     """
     from agentbundle.build.main import _read_bundled
     from agentbundle.scope import (
-        DEFAULT_USER_SCOPE_ADAPTER,
+        DEFAULT_ADAPTER,
         contract_supports_hook_wiring,
         shipped_adapters_from_contract,
         user_scope_capable_adapters_from_contract,
@@ -1560,8 +1560,8 @@ def _resolve_target_adapter(
         # probing `<repo>/.<ide>/` would silently override an explicit
         # `--adapter` (the probe runs only when `--adapter` is omitted,
         # but the same rule reads cleaner stated uniformly).
-        if DEFAULT_USER_SCOPE_ADAPTER in allowed_adapters:
-            return DEFAULT_USER_SCOPE_ADAPTER
+        if DEFAULT_ADAPTER in allowed_adapters:
+            return DEFAULT_ADAPTER
         return allowed_adapters[0]
 
     # Step 5: legacy heuristic — preserved for `< v0.7` packs that
