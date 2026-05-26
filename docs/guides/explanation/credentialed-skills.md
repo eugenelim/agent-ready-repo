@@ -64,10 +64,10 @@ Three storage tiers, walked in order, first-hit-wins per key:
 | **Tier 2** | OS keyring — macOS Keychain or Windows Credential Manager | Your daily-driver developer machine. The default. |
 | **Tier 3** | `~/.agentbundle/credentials.env`, mode `0600` | Locked-down environments where you can't reach a keyring. Opt-in. |
 
-You don't pick the tier — `agentbundle creds setup <namespace>` walks
-top-down and writes to the highest-available tier. On macOS and Windows
-that's Tier 2; on Linux today that's Tier 3 (libsecret support is
-deferred to a future RFC).
+You don't pick the tier — the `credential-setup` skill walks top-down
+and writes to the highest-available tier. On macOS and Windows that's
+Tier 2; on Linux today that's Tier 3 (libsecret support is deferred to
+a future RFC).
 
 On the wire, the tiers are stdlib-only. macOS uses
 `/usr/bin/security` with the token passed via child stdin (never
@@ -75,43 +75,44 @@ argv). Windows uses `ctypes` against `advapi32` directly. The dotfile
 gets POSIX `0600` (or a DACL-verified equivalent on Windows). The
 catalogue ships no native dependencies.
 
-## Why there's no `creds get`
+## Why there's no `get` verb
 
-You can run:
+The four gestures you have are:
 
-```bash
-agentbundle creds setup jira       # interactive prompt, writes to keyring
-agentbundle creds check jira       # confirms keys are present; never prints them
-agentbundle creds where jira       # tells you which tier the token lives in
-agentbundle creds rm jira          # removes from keyring
-```
+- **Set up credentials** — invoke the `credential-setup` skill. It
+  reads the consumer's `references/creds-schema.toml` and prompts
+  interactively for each key, writing to the highest-available tier.
+- **Check resolution** — invoke the consumer skill's own `check`
+  verb (e.g. `python3 scripts/cli.py check`). Exits 0 when every
+  declared key resolves; never prints the value.
+- **Remove credentials** — open your OS keychain UI (Keychain Access
+  on macOS, Credential Manager on Windows) or delete the relevant
+  entry from `~/.agentbundle/credentials.env`. There is no CLI verb.
+- **Verify the token interactively** — run the primitive with a
+  low-stakes call (e.g. the skill's own `whoami` / `call` verb).
 
-You **cannot** run `agentbundle creds get jira` — the verb doesn't
-exist. Adding it would create a tool an agent could invoke to print
-your token. The design hinge of the whole subsystem is: there is no
-code path that returns cleartext to anything but the primitive that
-needs it for the next outbound HTTP call.
-
-If you need to verify your token interactively, run the primitive
-itself with a low-stakes call (`python -m atlassian.jira whoami`).
+There is **no `get` verb** anywhere in the system. Adding one would
+create a tool an agent could invoke to print your token. The design
+hinge of the whole subsystem is: no code path returns cleartext to
+anything but the primitive that needs it for the next outbound HTTP
+call.
 
 ## How this changes day-to-day usage
 
 The first time you install `atlassian` or `figma`, the
 `adapt-to-project` skill notices the new credentialed primitive and
-prompts you through `agentbundle creds setup <namespace>`. That gesture
-needs the `agentbundle` Python module on `$PATH` — if you installed via
-`/plugin install` or `apm install`, follow
-[the pip-install guide](../how-to/install-agentbundle-from-clone.md)
-once to wire it in. After that, nothing changes: you ask the agent to
-fetch a Jira issue, the agent calls the skill, the skill shells out to
-the primitive, the primitive loads the token and makes the call. You
-never see the token; the agent never sees the token; it lives in your
-keyring until you `creds rm` it.
+prompts you to invoke the `credential-setup` skill. After that,
+nothing changes: you ask the agent to fetch a Jira issue, the agent
+calls the skill, the skill shells out to the primitive, the primitive
+loads the token via the build-projected `credentials_shim` and makes
+the call. You never see the token; the agent never sees the token; it
+lives in your keyring until you remove it (open Keychain Access /
+Credential Manager — there is no CLI verb).
 
-If you switch machines or rotate the token, you re-run `creds setup`.
-If you hit the dotfile fallback on a locked-down workstation, the CLI
-prints which tier it landed at and exits non-zero unless you passed
+If you switch machines or rotate the token, you re-run the
+`credential-setup` skill. If you hit the dotfile fallback on a
+locked-down workstation, the skill prints which tier it landed at and
+exits non-zero unless you passed
 `--allow-insecure-fallback` — the surface telling you "you're on Tier 3,
 make sure that's what you meant."
 

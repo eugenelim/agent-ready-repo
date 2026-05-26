@@ -4,9 +4,9 @@
     {
       "id": 1,
       "prompt": "Help me set up Figma — I have a file at https://www.figma.com/design/abc123XYZ/Project.",
-      "expected_output": "The agent identifies the URL as a Figma design file and notes the FILE_KEY (abc123XYZ). It explains the one-time setup: run `agentbundle creds setup figma` interactively, paste the Personal Access Token from Figma → Settings → Security → Personal access tokens. It never prompts the user to paste the token into chat.",
+      "expected_output": "The agent identifies the URL as a Figma design file and notes the FILE_KEY (abc123XYZ). It explains the one-time setup: run `credential-setup` skill interactively, paste the Personal Access Token from Figma → Settings → Security → Personal access tokens. It never prompts the user to paste the token into chat.",
       "assertions": [
-        "Agent tells the user to run `agentbundle creds setup figma` interactively (not via the Bash tool)",
+        "Agent tells the user to run `credential-setup` skill interactively (not via the Bash tool)",
         "Agent explains the token flow: Figma → Settings → Security → Personal access tokens",
         "Agent does NOT pass the token as a CLI flag to figma.py (no such flag exists)",
         "Agent does NOT prompt the user to paste the token into chat",
@@ -126,11 +126,11 @@
     {
       "id": 12,
       "prompt": "Export Figma data.",
-      "expected_output": "When `figma.py check` exits 2 because no credentials are configured, the agent stops and instructs the user to run `agentbundle creds setup figma` themselves. The agent does not run the setup script non-interactively, does not pipe a token into it, and does not attempt to read or create the config file directly.",
+      "expected_output": "When `figma.py check` exits 2 because no credentials are configured, the agent stops and instructs the user to run `credential-setup` skill themselves. The agent does not run the setup script non-interactively, does not pipe a token into it, and does not attempt to read or create the config file directly.",
       "assertions": [
         "Agent stops after `check` returns a non-zero exit indicating missing credentials",
-        "Agent tells the user to run `agentbundle creds setup figma` themselves",
-        "Agent does NOT invoke `agentbundle creds setup figma` via the Bash tool",
+        "Agent tells the user to run `credential-setup` skill themselves",
+        "Agent does NOT invoke `credential-setup` skill via the Bash tool",
         "Agent does NOT read `~/.agentbundle/credentials.env`",
         "Agent does NOT attempt to export FIGMA_API_TOKEN inline",
         "Agent does NOT suggest pasting the token into the chat"

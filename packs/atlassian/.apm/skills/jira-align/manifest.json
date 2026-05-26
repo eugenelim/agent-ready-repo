@@ -13,7 +13,7 @@
   },
   "credentials": {
     "namespace": "jiraalign",
-    "setup": "agentbundle creds setup jiraalign",
+    "setup": "credential-setup",
     "schema": "references/creds-schema.toml"
   },
   "input": {

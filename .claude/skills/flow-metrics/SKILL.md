@@ -47,7 +47,7 @@ Before computing metrics, confirm:
 
 1. The `jira` skill is installed and authenticated. Invoke it:
    `jira: check`. Exit 0 → proceed. Exit 2 → tell the user to run
-   `agentbundle creds setup jira` themselves; do not attempt to read
+   `credential-setup` skill themselves; do not attempt to read
    `~/.agentbundle/credentials.env` from this skill.
 2. For program / portfolio scope, the `jira-align` skill is installed
    and authenticated. If `--program-id` or `--portfolio-id` is in play

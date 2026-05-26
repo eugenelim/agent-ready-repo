@@ -29,7 +29,7 @@ is auto-detected from the base URL (`*.jiraalign.com` → cloud, anything else
 
 ### Configuration location
 
-Credentials are resolved by `agentbundle.credentials.load_credentials`
+Credentials are resolved by the build-projected `credentials_shim.load_credentials`
 through Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile. The dotfile
 lives at `~/.agentbundle/credentials.env`. The declared schema is in
 `references/creds-schema.toml`:
@@ -40,7 +40,7 @@ lives at `~/.agentbundle/credentials.env`. The declared schema is in
 | `JIRAALIGN_API_TOKEN` | yes | Personal API Token from Jira Align Profile. |
 | `JIRAALIGN_FLAVOR` | no | `cloud` or `onprem`. Auto-detected from URL host when unset. |
 
-Populate any tier by running `agentbundle creds setup jiraalign`.
+Populate any tier by running `credential-setup` skill.
 
 ### Security rules (non-negotiable)
 
@@ -52,7 +52,7 @@ Populate any tier by running `agentbundle creds setup jiraalign`.
   refuses flags like `--token` / `--api-token` / `--bearer` /
   `--pat` / `--password` and exits — do not work around it.
 - If `check` exits with the "missing credentials" code, tell the
-  user to run `agentbundle creds setup jiraalign` themselves.
+  user to run `credential-setup` skill themselves.
   It's interactive — do not run it for them.
 
 ### Step 1: Verify the environment
@@ -71,7 +71,7 @@ python scripts/jira_align.py check
 
 - Exit code 0 → authenticated, proceed.
 - Exit code 2 → credentials missing or invalid. Tell the user to run
-  `agentbundle creds setup jiraalign` (interactive — they run it, not
+  `credential-setup` skill (interactive — they run it, not
   you). Stop here.
 
 ### Step 2: Dispatch to the right subcommand
@@ -196,7 +196,7 @@ python scripts/jira_align.py delete stories 5432 --yes
 
 - Don't read `~/.agentbundle/credentials.env` from skill body.
 - Don't print or log the API token.
-- Don't run `agentbundle creds setup jiraalign` non-interactively or
+- Don't run `credential-setup` skill non-interactively or
   pipe the token into it.
 - Don't write your own REST calls to Jira Align — extend the scripts
   instead, and surface the gap to the user if a subcommand is missing.
@@ -218,7 +218,7 @@ python scripts/jira_align.py delete stories 5432 --yes
   resource path.
 - **Token expired or revoked**: 401 Unauthorized. Exit 2. Tell the user
   to regenerate the token on their Jira Align Profile page and re-run
-  `agentbundle creds setup jiraalign`. Tokens do not expire by time,
+  `credential-setup` skill. Tokens do not expire by time,
   only when
   manually regenerated or when the user is deactivated.
 - **Permission denied for one resource** (403): exit 3. The token is

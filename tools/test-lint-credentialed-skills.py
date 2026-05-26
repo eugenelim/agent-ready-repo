@@ -11,14 +11,13 @@ Each case exercises one rule from AC24 (broker-agnostic) or AC25
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LINTER = REPO_ROOT / "tools" / "lint-credentialed-skills.sh"
+LINTER = REPO_ROOT / "tools" / "lint_credentialed_skills.py"
 
 
 def write(path: Path, content: str) -> None:
@@ -27,10 +26,14 @@ def write(path: Path, content: str) -> None:
 
 
 def run_lint(lint_root: Path) -> tuple[int, str, str]:
-    env = {**os.environ, "LINT_ROOT": str(lint_root)}
+    # Invoke the .py directly via the parent's interpreter — same shape
+    # `tools/hooks/pre-pr.py` uses. Avoids the bash-on-Windows trap
+    # (Windows resolves `bash` to WSL, which has no distro on the
+    # GitHub-hosted Windows runner; the lint reported "failed" with
+    # no findings before this extraction).
     proc = subprocess.run(
-        ["bash", str(LINTER)],
-        env=env, capture_output=True, text=True,
+        [sys.executable, str(LINTER), str(lint_root)],
+        capture_output=True, text=True,
     )
     return proc.returncode, proc.stdout, proc.stderr
 

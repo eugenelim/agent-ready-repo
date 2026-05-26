@@ -28,7 +28,7 @@ Flavor is auto-detected from the base URL. Override via `CONFLUENCE_FLAVOR=cloud
 
 ### Configuration location
 
-Credentials are resolved by `agentbundle.credentials.load_credentials`
+Credentials are resolved by the build-projected `credentials_shim.load_credentials`
 through Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile. The dotfile
 lives at `~/.agentbundle/credentials.env`. The declared schema is in
 `references/creds-schema.toml`:
@@ -40,7 +40,7 @@ lives at `~/.agentbundle/credentials.env`. The declared schema is in
 | `CONFLUENCE_EMAIL` | Cloud only | Atlassian account email. |
 | `CONFLUENCE_FLAVOR` | no | `cloud` or `server`. Auto-detected from URL host when unset. |
 
-Populate any tier by running `agentbundle creds setup confluence`.
+Populate any tier by running `credential-setup` skill.
 
 ### Security rules (non-negotiable)
 
@@ -52,7 +52,7 @@ Populate any tier by running `agentbundle creds setup confluence`.
   refuses flags like `--token` / `--api-token` / `--bearer` /
   `--pat` / `--password` and exits — do not work around it.
 - If `--check` reports missing or invalid creds, tell the user to run
-  `agentbundle creds setup confluence` themselves.
+  `credential-setup` skill themselves.
   It's interactive — do not run it for them.
 
 ### Step 1: Verify the environment
@@ -70,7 +70,7 @@ python scripts/crawl_space.py --check
 ```
 
 - Exit code 0 → authenticated, proceed.
-- Exit code 2 → credentials missing or invalid. Tell the user to run `agentbundle creds setup confluence` (interactive — they run it, not you). Stop here.
+- Exit code 2 → credentials missing or invalid. Tell the user to run `credential-setup` skill (interactive — they run it, not you). Stop here.
 
 ### Step 2: Crawl the space
 
@@ -124,7 +124,7 @@ The script is idempotent. On re-run:
 
 - Don't read `~/.agentbundle/credentials.env` from skill body.
 - Don't print or log the PAT.
-- Don't run `agentbundle creds setup confluence` non-interactively or pipe the PAT into it.
+- Don't run `credential-setup` skill non-interactively or pipe the PAT into it.
 - Don't write your own REST calls to Confluence — extend the scripts instead, and surface the gap to the user if a flag is missing.
 - Don't assume `--insecure` is safe to add by default. Only when the user explicitly says they accept it.
 

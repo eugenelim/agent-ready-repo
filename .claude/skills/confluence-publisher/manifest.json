@@ -15,7 +15,7 @@
   },
   "credentials": {
     "namespace": "confluence",
-    "setup": "agentbundle creds setup confluence",
+    "setup": "credential-setup",
     "schema": "references/creds-schema.toml"
   },
   "input": {
