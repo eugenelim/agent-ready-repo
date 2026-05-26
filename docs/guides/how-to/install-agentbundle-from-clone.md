@@ -13,10 +13,10 @@ loader directly:
 from agentbundle.credentials import load_credentials
 ```
 
-The clone-and-build install route ships the bundled CLI as a zipapp at
-`dist/agentbundle.pyz`, but a zipapp is a single executable — it does
-not register `agentbundle` as an importable module on your
-interpreter's `sys.path`. One `pip install` closes the gap.
+That import has to resolve against the interpreter's `sys.path` at the
+time the agent harness spawns the skill script. The pip install
+registers `agentbundle` on `sys.path` for you; the zipapp at
+`dist/agentbundle.pyz` doesn't (see [Fallback](#fallback-build-the-zipapp)).
 
 ## Before you start
 
@@ -103,12 +103,15 @@ active interpreter:
 Both surfaces link back at the editable source, so **`git pull`
 cascades to both**: next `agentbundle install` picks up new pack
 content, next Python process importing `agentbundle.credentials` sees
-the updated module — no re-install needed. The zipapp at
-`dist/agentbundle.pyz` is a frozen snapshot of whatever `make zipapp`
-last produced; after the `pip install`, you can run
-`agentbundle install --pack <name> . --output <target>` directly
-against the launcher and leave the zipapp for hand-offs to users who
-don't pip-install.
+the updated module — no re-install needed.
+
+**`make zipapp` is not part of the primary path** once the `pip
+install` has happened. The launcher on PATH already runs the CLI from
+the live source. The zipapp at `dist/agentbundle.pyz` remains useful
+as a [fallback](#fallback-build-the-zipapp) for environments where
+`pip install` is blocked, or as a portable artifact to hand off to
+users who don't pip-install — but you don't need it for your own
+machine.
 
 ## On venvs and which interpreter
 
@@ -136,6 +139,49 @@ The install is **the same regardless of pack install scope**: a single
 `pip install` covers credentialed skills landed at `~/.claude/skills/<name>/`
 (user scope) and `<repo>/.claude/skills/<name>/` (repo scope), because
 the script-resolved interpreter is the same in both cases.
+
+## Fallback: build the zipapp
+
+If `pip install` is blocked in your environment — locked-down
+corporate Python without venv permissions, PEP 668 strict policy where
+you can't opt in to a venv — the catalogue ships a fallback. `make
+zipapp` packages the `agentbundle/` source into a single executable
+archive at `dist/agentbundle.pyz` that runs the CLI without an
+install:
+
+```bash
+make zipapp                                              # builds dist/agentbundle.pyz
+./dist/agentbundle.pyz install --pack core . --output /path/to/your/project
+```
+
+**The zipapp does not register `agentbundle` on the interpreter's
+`sys.path`.** The archive contains every module credentialed skills
+import (`zipimport` makes a `.pyz` self-contained), but Python looks
+up `from agentbundle.credentials import …` against `sys.path` at
+import time, and a standalone `.pyz` doesn't add itself. Credentialed
+skills spawned by an agent harness run a bare `#!/usr/bin/env python3`
+subprocess with no `PYTHONPATH` plumbing — that subprocess will fail
+`ModuleNotFoundError` against a host where the zipapp is the only
+agentbundle artifact.
+
+Use the zipapp when one of these holds:
+
+- **You only install non-credentialed packs** (`core`,
+  `governance-extras`, `user-guide-diataxis`, `monorepo-extras`,
+  `contracts`). The CLI is all you need; no skill in those packs
+  imports `agentbundle.credentials`.
+- **Split-host topology where pip is blocked on the install host but
+  not the agent host** — host A is locked-down (CI runner, air-gapped
+  builder) and runs the zipapp to project pack content into a target
+  repo, the CLI never imports `agentbundle.credentials`; host B is the
+  developer workstation that has a normal Python install where you
+  `pip install agentbundle` so skill scripts resolve the loader there.
+- **You're handing the zipapp off to a third party** who doesn't have
+  `pip` and won't run credentialed skills — the zipapp is a portable
+  artifact for that case by design.
+
+The pip install remains the right default when nothing blocks it; the
+zipapp is the escape hatch when something does.
 
 ## Common pitfalls
 
