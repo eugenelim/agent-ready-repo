@@ -34,13 +34,18 @@ def _load_pack_toml(name: str) -> dict:
 
 class TestUserScopePacksV07(unittest.TestCase):
     def test_user_scope_packs_bump_to_v07(self) -> None:
+        """Test name preserved across bumps; the version assertion now
+        pins v0.8 (post docs/specs/dropped-primitives-coverage T7).
+        See test_shipped_packs_v08_declarations.py for the load-bearing
+        v0.8 pin; this preserves the structural invariant that the
+        four user-scope packs all share the same contract version."""
         for name in USER_SCOPE_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)
                 self.assertEqual(
                     pack["pack"]["adapter-contract"]["version"],
-                    "0.7",
-                    f"{name} must bump to v0.7",
+                    "0.8",
+                    f"{name} must bump to v0.8",
                 )
 
     def test_user_scope_packs_allowed_adapters_unchanged(self) -> None:
@@ -58,14 +63,16 @@ class TestUserScopePacksV07(unittest.TestCase):
 class TestRepoOnlyPacksV07(unittest.TestCase):
     def test_repo_only_packs_bump_to_v07(self) -> None:
         """Drawback #7 mitigation — without the bump the legacy
-        heuristic at step 5 fires at repo scope for these packs."""
+        heuristic at step 5 fires at repo scope for these packs. Test
+        name preserved; version assertion now pins v0.8 (post
+        docs/specs/dropped-primitives-coverage T7)."""
         for name in REPO_ONLY_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)
                 self.assertEqual(
                     pack["pack"]["adapter-contract"]["version"],
-                    "0.7",
-                    f"{name} must bump to v0.7 (from 0.2)",
+                    "0.8",
+                    f"{name} must bump to v0.8 (from 0.2 → 0.7 → 0.8)",
                 )
 
     def test_repo_only_packs_remain_implicit_default(self) -> None:
