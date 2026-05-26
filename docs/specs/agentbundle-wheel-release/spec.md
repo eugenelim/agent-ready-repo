@@ -174,28 +174,38 @@ against a real workflow run than by an isolated unit test.
 - [ ] AC7. `build-and-smoke` includes a tag/version-assertion step
   gated on `github.ref_type == 'tag'` that fails the workflow with a
   GitHub error annotation when the tag's `X.Y.Z` does not match the
-  pyproject `version`.
+  pyproject `version`. A second tag-gated step asserts the tag points
+  to a commit reachable from `origin/main` (`git merge-base
+  --is-ancestor`); both fail closed before any publish job runs, so
+  the §Never do "tags must point to commits on main" boundary is
+  enforced mechanically, not by maintainer discipline.
 - [ ] AC8. `publish-pypi` runs only on tag push, depends on
   `build-and-smoke`, uses `pypa/gh-action-pypi-publish@release/v1`
   with `permissions: id-token: write` and no `password:` field —
   Trusted Publisher OIDC, no secret.
 - [ ] AC9. `publish-artifactory` runs only on tag push (`if:
   github.ref_type == 'tag'`), depends on `build-and-smoke`, and uses a
-  step-level guard so every step after the secret-presence check is
-  skipped when `secrets.ARTIFACTORY_TOKEN` is empty or absent. On PR
-  events the job is not scheduled at all; on tag events without the
-  secret the job appears Successful with only the guard step having
-  run (PyPI leg unaffected by corp-side coordination).
+  step-level guard that flips `configured=true` **only when all three
+  Artifactory secrets are non-empty** (`ARTIFACTORY_URL`,
+  `ARTIFACTORY_USER`, `ARTIFACTORY_TOKEN`); partial configuration
+  emits a `::warning::` and refuses to publish (avoids sending
+  credentials to a default endpoint). On PR events the job is not
+  scheduled at all; on tag events without the full secret triple every
+  step after the guard reports `Skipped` at step level, the job overall
+  reports `Success`, and the workflow run is not marked Failed (PyPI
+  leg unaffected by corp-side coordination).
 
 **Cross-doc consistency.**
 
 - [ ] AC10. RFC-0003 §F-cli-dist Amendments record: path #2 PyPI
   variant live (link to this spec); path #2 Artifactory variant
-  workflow shipped dormant (activates per-fork when the corp configures
-  the GH secrets); paths #1 (zipapp via GH Releases) and #3 (Homebrew)
-  Deferred with one-line reasons each — #1 because the release-artifact
-  pipeline isn't built; #3 because Homebrew doesn't satisfy the
-  corporate-network constraint in RFC-0001 §Corporate-network discipline.
+  workflow scaffolded, untested against a real Artifactory deployment,
+  awaiting first-firing verification per AC14 (activates per-fork when
+  the corp configures the GH secrets); paths #1 (zipapp via GH Releases)
+  and #3 (Homebrew) Deferred with one-line reasons each — #1 because
+  the release-artifact pipeline isn't built; #3 because Homebrew doesn't
+  satisfy the corporate-network constraint in RFC-0001 §Corporate-network
+  discipline.
 - [ ] AC11. After first successful PyPI publish, README §Install
   route 3 replaces the current headline phrase ``once you've
   pip-installed `agentbundle` (see route 4)`` with a headline that
@@ -204,8 +214,13 @@ against a real workflow run than by an isolated unit test.
   `git+https://` catalogue source vs. local clone). Verifiable by
   `grep -F "once you've pip-installed" README.md` exiting 1 (legacy
   phrase removed) and `grep -F 'pip install agentbundle' README.md`
-  exiting 0 (replacement present). This AC lands in a separate PR
-  sequenced **after** the first successful publish.
+  exiting 0 (replacement present). **Verified-at-AC-creation
+  (2026-05-26):** `README.md:53` reads ``**Reference CLI**
+  ([RFC-0003](docs/rfc/0003-spec-and-cli.md)) — once you've
+  pip-installed `agentbundle` (see route 4):``. If this anchor moves
+  or its content changes between PR-A merge and PR-B's land, T7 must
+  re-anchor before merging. This AC lands in a separate PR sequenced
+  **after** the first successful publish.
 - [ ] AC12. `docs/specs/README.md` lists `agentbundle-wheel-release`
   under the active spec index.
 
@@ -250,3 +265,17 @@ against a real workflow run than by an isolated unit test.
   warnings) + a `grep -c WARNING == 0` verifier. No contract change —
   the post-T1 state ("zero warnings") is unchanged; the baseline
   notation makes the verifier mechanical.
+- 2026-05-26: pre-EXECUTE adversarial review pass — AC9 wording
+  sharpened to match step-level-skip reality (job reports Success,
+  skipped steps render as Skipped, run not Failed); AC10 "shipped
+  dormant" → "scaffolded, untested against a real Artifactory
+  deployment, awaiting AC14"; AC11 carries a verified-at-creation
+  README.md:53 anchor so drift before T7 lands surfaces explicitly.
+  No contract change to the underlying behaviour.
+- 2026-05-26: post-implementation security-review pass — AC7 grows a
+  branch-ancestry assertion (mechanically enforces §Never do "tags
+  must point to commits on main"); AC9 widened so the step-level
+  guard requires all three Artifactory secrets non-empty
+  (`ARTIFACTORY_URL`/`USER`/`TOKEN`) — partial config emits
+  `::warning::` and skips, closing a credential-misrouting trap where
+  a token-only setup would have shipped to twine's default endpoint.

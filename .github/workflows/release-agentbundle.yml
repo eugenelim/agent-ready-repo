@@ -1,0 +1,140 @@
+name: release-agentbundle
+
+on:
+  push:
+    tags:
+      - 'agentbundle-v*'
+  pull_request:
+    paths:
+      - 'packages/agentbundle/**'
+      - '.github/workflows/release-agentbundle.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-agentbundle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Assert tag matches pyproject version
+        if: github.ref_type == 'tag'
+        run: |
+          python3 - <<'PY'
+          import os, re, sys, tomllib
+          tag = os.environ["GITHUB_REF_NAME"]
+          m = re.fullmatch(r"agentbundle-v(\d+\.\d+\.\d+)", tag)
+          if not m:
+              print(f"::error::tag {tag!r} does not match agentbundle-vX.Y.Z (pre-release / build-metadata suffixes refused by this spec)", file=sys.stderr)
+              sys.exit(1)
+          tag_ver = m.group(1)
+          with open("packages/agentbundle/pyproject.toml", "rb") as f:
+              pp_ver = tomllib.load(f)["project"]["version"]
+          if tag_ver != pp_ver:
+              print(f"::error::tag {tag} declares version {tag_ver} but pyproject.toml has {pp_ver}", file=sys.stderr)
+              sys.exit(1)
+          PY
+
+      - name: Assert tag is on main
+        if: github.ref_type == 'tag'
+        run: |
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::tag ${GITHUB_REF_NAME} points to ${GITHUB_SHA} which is not an ancestor of origin/main; refusing to publish (spec §Never do: publish from branches other than main)" >&2
+            exit 1
+          fi
+
+      - name: Install build + twine
+        run: python3 -m pip install --upgrade build twine
+
+      - name: Build wheel + sdist
+        working-directory: packages/agentbundle
+        run: python3 -m build
+
+      - name: twine check
+        run: python3 -m twine check packages/agentbundle/dist/*
+
+      - name: Smoke — install wheel into fresh venv and import load_credentials
+        run: |
+          python3 -m venv /tmp/smokevenv
+          /tmp/smokevenv/bin/pip install --quiet packages/agentbundle/dist/*.whl
+          /tmp/smokevenv/bin/python -c "from agentbundle.credentials import load_credentials"
+
+      - name: Smoke — agentbundle console script on PATH
+        run: PATH="/tmp/smokevenv/bin:$PATH" agentbundle --help
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: packages/agentbundle/dist/
+          if-no-files-found: error
+
+  publish-pypi:
+    needs: [build-and-smoke]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  publish-artifactory:
+    needs: [build-and-smoke]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - id: guard
+        name: Check Artifactory secret presence
+        env:
+          ART_URL: ${{ secrets.ARTIFACTORY_URL }}
+          ART_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ART_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+        run: |
+          if [ -n "$ART_TOKEN" ] && [ -n "$ART_URL" ] && [ -n "$ART_USER" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$ART_TOKEN" ] || [ -n "$ART_URL" ] || [ -n "$ART_USER" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Artifactory secrets partially configured (one of ARTIFACTORY_URL/USER/TOKEN is empty); refusing to publish to avoid sending credentials to a default endpoint."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Artifactory secrets not set; skipping Artifactory publish."
+          fi
+
+      - if: steps.guard.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - if: steps.guard.outputs.configured == 'true'
+        name: Install twine
+        run: python3 -m pip install --upgrade twine
+
+      - if: steps.guard.outputs.configured == 'true'
+        name: Upload to Artifactory
+        env:
+          TWINE_REPOSITORY_URL: ${{ secrets.ARTIFACTORY_URL }}
+          TWINE_USERNAME: ${{ secrets.ARTIFACTORY_USER }}
+          TWINE_PASSWORD: ${{ secrets.ARTIFACTORY_TOKEN }}
+        run: python3 -m twine upload dist/*
