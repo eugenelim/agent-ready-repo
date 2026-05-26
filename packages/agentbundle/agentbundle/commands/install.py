@@ -290,9 +290,6 @@ def run(args: "argparse.Namespace") -> int:
         user_root = None
         user_state_path = None
 
-    installed_at_repo = pack_name in repo_state.packs
-    installed_at_user = user_state is not None and pack_name in user_state.packs
-
     # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
     # Resolves required deps against the union of repo + user state (AC17).
     # Gate runs before any write (and before the already-installed check, so
@@ -307,6 +304,63 @@ def run(args: "argparse.Namespace") -> int:
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+
+    # ── Step 3c: RFC-0012 AC24 in-band detection (repo scope, per-IDE) ──
+    # Pre-RFC-0012 state must surface migration messaging *before* the
+    # already-installed branch fires its "use 'upgrade'" refusal —
+    # otherwise an adopter with stale state would receive misleading
+    # advice ("just upgrade") instead of the correct uninstall +
+    # reinstall path. Detection is gated to ``--scope repo`` without
+    # ``--emit-install-routes`` per spec AC24's narrowed-inference rule
+    # (the legacy dist-tree producer must not trigger (b) on its own
+    # output). The resolver is lifted here so the (a) trigger has a
+    # ``repo_target_adapter`` to compare against ``state.adapter``; the
+    # same values are reused downstream and the original computation
+    # block below is now a no-op for this code path.
+    _pack_allowed_adapters: list[str] | None = None
+    if isinstance(pack_install, dict):
+        _raw = pack_install.get("allowed-adapters")
+        if isinstance(_raw, list):
+            _pack_allowed_adapters = [s for s in _raw if isinstance(s, str)]
+    _pack_contract_version = pack_spec_version(pack_toml)
+    repo_target_adapter: str | None = None
+    allowed_prefixes_repo: list[str] | None = None
+    if requested_scope == "repo" and not emit_install_routes:
+        try:
+            repo_target_adapter = _resolve_target_adapter(
+                pack_dir,
+                scope="repo",
+                adapter=cli_adapter,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=None,
+                command_name="install",
+            )
+        except _AdapterResolutionRefused as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        allowed_prefixes_repo = _adapter_allowed_prefixes_repo(
+            repo_target_adapter
+        )
+        rc = _classify_pre_rfc0012_state(
+            output_root=output_root,
+            pack_name=pack_name,
+            repo_state=repo_state,
+            repo_target_adapter=repo_target_adapter,
+            allowed_prefixes_repo=allowed_prefixes_repo,
+            force=force,
+        )
+        if rc is not None:
+            return rc
+
+    # ``installed_at_*`` is computed AFTER Step 3c because (b)+--force
+    # drops the stale state row inside ``_classify_pre_rfc0012_state``
+    # so the subsequent install proceeds as a clean reinstall. Computing
+    # the flag before detection would cache pre-cleanup state and fire
+    # the misleading "use 'upgrade' to change version" refusal at
+    # Step 4 even after --force succeeded.
+    installed_at_repo = pack_name in repo_state.packs
+    installed_at_user = user_state is not None and pack_name in user_state.packs
 
     # ── Step 4: Branch on already-installed shape ─────────────────────────────
     # 4a. Already at requested scope → refuse (use 'upgrade'); --force does
@@ -349,12 +403,9 @@ def run(args: "argparse.Namespace") -> int:
     # one to Codex; RFC-0012 added one to Copilot. Resolve which
     # adapter the user-scope install targets via the six-step (0–5)
     # lookup and use that adapter's `allowed-prefixes.user`.
-    _pack_allowed_adapters = None
-    if isinstance(pack_install, dict):
-        _raw = pack_install.get("allowed-adapters")
-        if isinstance(_raw, list):
-            _pack_allowed_adapters = [s for s in _raw if isinstance(s, str)]
-    _pack_contract_version = pack_spec_version(pack_toml)
+    # ``_pack_allowed_adapters`` and ``_pack_contract_version`` were
+    # lifted to Step 3c above so the AC24 detection block can resolve
+    # the repo-target adapter early; reuse the same values here.
     # Only resolve the user-scope target adapter when user scope is in
     # this run's plan. Resolving unconditionally at scope="user" would
     # surface the user-scope-capability subcheck refusal (e.g.
@@ -378,61 +429,11 @@ def run(args: "argparse.Namespace") -> int:
             return 1
         allowed_prefixes_user = _adapter_allowed_prefixes_user(user_target_adapter)
 
-    # RFC-0012: at repo scope, when --emit-install-routes is NOT set,
-    # the install path is per-IDE projection (not dist-tree). Resolve
-    # the repo-target adapter via the six-step lookup at scope="repo"
-    # and capture the matching allowed-prefixes.repo for the path-jail.
-    # When --emit-install-routes IS set, we fall back to the legacy
-    # dist-tree behaviour and skip these (the dist-tree producer
-    # writes outside the per-IDE prefix set).
-    repo_target_adapter: str | None = None
-    allowed_prefixes_repo: list[str] | None = None
-    if requested_scope == "repo" and not emit_install_routes:
-        try:
-            repo_target_adapter = _resolve_target_adapter(
-                pack_dir,
-                scope="repo",
-                adapter=cli_adapter,
-                allowed_adapters=_pack_allowed_adapters,
-                contract_version=_pack_contract_version,
-                state_adapter=None,
-                command_name="install",
-            )
-        except _AdapterResolutionRefused as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
-        allowed_prefixes_repo = _adapter_allowed_prefixes_repo(
-            repo_target_adapter
-        )
-
-        # RFC-0012 § *Reliability* (AC22): orphan-projection refusal.
-        # If state.toml has no row for the pack AND on-disk artifacts
-        # exist under the adapter's repo-scope prefix list, the prior
-        # install crashed mid-write. Without this check, Tier-2
-        # squatter logic would drop `.upstream.<ext>` companions next
-        # to every orphan. `--force` clears the orphans and proceeds.
-        if pack_name not in repo_state.packs:
-            orphans = safety.scan_for_pack_artifacts(
-                output_root, allowed_prefixes_repo
-            )
-            if orphans:
-                if force:
-                    for orphan in orphans:
-                        try:
-                            orphan.unlink()
-                        except OSError:
-                            pass
-                else:
-                    print(
-                        f"install: orphan projection files for pack "
-                        f"{pack_name} at "
-                        f"{_format_route_list([str(p) for p in orphans])} "
-                        f"— prior install interrupted; rerun with --force "
-                        f"to clean and reinstall, or delete the listed "
-                        f"paths and rerun",
-                        file=sys.stderr,
-                    )
-                    return 1
+    # RFC-0012 repo-scope per-IDE resolution: ``repo_target_adapter``
+    # and ``allowed_prefixes_repo`` were lifted to Step 3c above so the
+    # AC24 detection block (which covers the AC22 orphan-refusal path
+    # as trigger (c)) can run before the already-installed branch.
+    # No re-resolution here.
 
     # RFC-0005 AC25: refuse install --scope user against an adapter
     # that doesn't declare a working user-scope hook-wiring mode. The
@@ -945,6 +946,188 @@ def run(args: "argparse.Namespace") -> int:
             print(f"installed: {pack_name} @ {plan.scope}")
 
     return 0
+
+
+_INBAND_DETECTION_SEEN: set[tuple[str, str]] = set()
+"""RFC-0012 AC24 once-per-``(root, pack_name)`` short-circuit.
+
+Process-scoped mutable state. The detection block consults this set; an
+entry means "we already emitted a migration line for this (root, pack) in
+this process and any further ``install`` invocation should stay silent."
+Production ``agentbundle`` CLI invocations are short-lived processes so
+the set resets naturally; long-running embedders (an MCP shim that loops
+``install.run`` calls, a test harness) MUST reset via
+:func:`_clear_inband_detection_seen` between logical sessions or detection
+will silently skip on the second call."""
+
+
+def _clear_inband_detection_seen() -> None:
+    """Reset the once-per-session detection set.
+
+    Public-by-convention (single leading underscore) helper for callers
+    that need to bypass the once-per-process short-circuit — tests, and
+    any long-running embedder restarting an install loop. Prefer this
+    over reaching into :data:`_INBAND_DETECTION_SEEN` directly so the
+    storage shape can change without breaking callers.
+    """
+    _INBAND_DETECTION_SEEN.clear()
+
+
+def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
+    """Return pre-RFC-0012 dist-tree projection files for ``pack_name``.
+
+    Scans ``<root>/claude-plugins/<pack>/`` and ``<root>/apm/<pack>/`` —
+    the two per-pack subtrees the legacy ``per-pack-claude-plugin`` and
+    ``per-pack-apm-package`` recipes produce. Other top-level
+    directories (``.claude/`` etc.) belong to AC24 trigger (c)'s
+    ``safety.scan_for_pack_artifacts`` scan, not this one.
+    """
+    out: list[Path] = []
+    for top in ("claude-plugins", "apm"):
+        base = root / top / pack_name
+        if not base.exists():
+            continue
+        for entry in base.rglob("*"):
+            if entry.is_file():
+                out.append(entry)
+    return sorted(out)
+
+
+def _classify_pre_rfc0012_state(
+    *,
+    output_root: Path,
+    pack_name: str,
+    repo_state: "State",
+    repo_target_adapter: str,
+    allowed_prefixes_repo: list[str],
+    force: bool,
+) -> int | None:
+    """RFC-0012 AC24: in-band detection of pre-RFC-0012 state.
+
+    Triggers evaluated per-pack in precedence ``(b) → (a) → (c)``; only
+    the first match emits. Detection runs once per
+    ``(output_root, pack_name)`` per process; subsequent calls
+    short-circuit to silence.
+
+    Returns:
+      - ``None`` — no trigger fired, or ``--force`` cleared the
+        trigger's on-disk shape; caller proceeds with the install.
+      - ``1`` — refused with pinned stderr; caller returns 1.
+    """
+    from agentbundle import safety
+
+    key = (str(output_root), pack_name)
+    if key in _INBAND_DETECTION_SEEN:
+        return None
+
+    state_row = repo_state.packs.get(pack_name)
+
+    # (b) Shape-mismatch — state row exists AND dist-tree files exist.
+    # Pre-RFC-0012 signal per spec AC24: state.toml carries a row AND
+    # the on-disk shape is the legacy dist-tree (post-RFC-0012 the only
+    # code path producing those files is ``--emit-install-routes``,
+    # which short-circuits before this detection runs).
+    if state_row is not None:
+        dist_tree = _scan_dist_tree_artifacts(output_root, pack_name)
+        if dist_tree:
+            _INBAND_DETECTION_SEEN.add(key)
+            if force:
+                # AC25(vi): --force is the corrective action for (b)'s
+                # cross-invocation false positive — clean the dist-tree
+                # files AND drop the stale state row so the install
+                # proceeds as a clean reinstall. Without the row drop
+                # Step 4 would refuse with "use 'upgrade'", trapping the
+                # adopter in a loop (upgrade at repo scope re-emits the
+                # dist-tree shape today). The caller re-computes
+                # ``installed_at_repo`` after this helper returns; the
+                # on-disk state.toml is rewritten here too because the
+                # per-scope plan loop reloads state from disk at
+                # ``install.py:519`` (``load_state(for_write=True)``) and
+                # an in-memory-only pop would silently resurrect.
+                import shutil
+
+                from agentbundle.config import dump_state
+
+                for top in ("claude-plugins", "apm"):
+                    subtree = output_root / top / pack_name
+                    if subtree.exists():
+                        try:
+                            shutil.rmtree(subtree)
+                        except OSError:
+                            pass
+                repo_state.packs.pop(pack_name, None)
+                state_path = output_root / ".agentbundle-state.toml"
+                if state_path.exists():
+                    # Direct write (not ``safety.write_jailed``) because
+                    # the path *is* the jail anchor plus a fixed top-
+                    # level filename; the durability guarantee comes from
+                    # the post-install atomic rewrite at line ~809 a few
+                    # hundred milliseconds later. If detection is ever
+                    # lifted into a standalone verb, route through
+                    # ``safety.write_jailed`` for atomicity.
+                    state_path.write_text(
+                        dump_state(repo_state), encoding="utf-8"
+                    )
+                return None
+            print(
+                f"install: pre-RFC-0012 dist-tree files for pack "
+                f"{pack_name} at "
+                f"{_format_route_list([str(p) for p in dist_tree])} — "
+                f"state recorded but on-disk shape predates per-IDE "
+                f"projection; rerun with --force to clean and reinstall, "
+                f"or delete the listed paths and rerun",
+                file=sys.stderr,
+            )
+            return 1
+
+        # (a) Adapter disagreement — state row exists, no dist-tree
+        # files (so (b) didn't fire), AND resolver's pick disagrees
+        # with the recorded adapter. AC25(iii): the corrective action
+        # is uninstall + reinstall; ``--force`` does NOT clear this.
+        # ``state_row.adapter`` is always a non-empty string per
+        # ``load_state`` (defaults to "claude-code" at read time for
+        # absent / non-string values); no coercion needed.
+        recorded_adapter = state_row.adapter
+        if recorded_adapter != repo_target_adapter:
+            _INBAND_DETECTION_SEEN.add(key)
+            print(
+                f"install: state records adapter "
+                f"{recorded_adapter!r} for pack {pack_name}, but "
+                f"resolver picked {repo_target_adapter!r} — uninstall "
+                f"the pack at repo scope and reinstall to reconcile "
+                f"(cross-adapter install is not supported)",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        # (c) Orphan recovery — no state row AND per-IDE artifacts
+        # exist under the resolved adapter's allowed-prefixes.repo.
+        # The AC22 refusal text is preserved verbatim.
+        orphans = safety.scan_for_pack_artifacts(
+            output_root, allowed_prefixes_repo
+        )
+        if orphans:
+            _INBAND_DETECTION_SEEN.add(key)
+            if force:
+                for orphan in orphans:
+                    try:
+                        orphan.unlink()
+                    except OSError:
+                        pass
+                return None
+            print(
+                f"install: orphan projection files for pack "
+                f"{pack_name} at "
+                f"{_format_route_list([str(p) for p in orphans])} — "
+                f"prior install interrupted; rerun with --force to "
+                f"clean and reinstall, or delete the listed paths and "
+                f"rerun",
+                file=sys.stderr,
+            )
+            return 1
+
+    _INBAND_DETECTION_SEEN.add(key)
+    return None
 
 
 def _format_route_list(routes: list[str]) -> str:
