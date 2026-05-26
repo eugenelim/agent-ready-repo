@@ -1,0 +1,86 @@
+"""Tests for the eight shipped packs' v0.7 declarations (RFC-0012 /
+repo-scope-per-adapter-projection AC5-AC6).
+
+Two cohorts:
+
+  - Four user-scope-capable packs (`atlassian`, `figma`, `converters`,
+    `contracts`) bump `[pack.adapter-contract] version` from 0.6 to
+    0.7. `allowed-adapters` is unchanged from RFC-0011 (`["claude-code",
+    "kiro", "codex"]`).
+  - Four repo-only packs (`core`, `governance-extras`,
+    `user-guide-diataxis`, `monorepo-extras`) bump from 0.2 to 0.7 —
+    load-bearing per Drawback #7: without this bump the legacy
+    heuristic at step 5 still fires at repo scope for these packs and
+    cannot return codex / copilot via the no-flag default. They remain
+    implicit-default (no `allowed-adapters` declared).
+"""
+
+from __future__ import annotations
+
+import tomllib
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[5]
+PACKS_DIR = REPO_ROOT / "packs"
+
+USER_SCOPE_PACKS = ("atlassian", "figma", "converters", "contracts")
+REPO_ONLY_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
+
+
+def _load_pack_toml(name: str) -> dict:
+    return tomllib.loads((PACKS_DIR / name / "pack.toml").read_text(encoding="utf-8"))
+
+
+class TestUserScopePacksV07(unittest.TestCase):
+    def test_user_scope_packs_bump_to_v07(self) -> None:
+        for name in USER_SCOPE_PACKS:
+            with self.subTest(pack=name):
+                pack = _load_pack_toml(name)
+                self.assertEqual(
+                    pack["pack"]["adapter-contract"]["version"],
+                    "0.7",
+                    f"{name} must bump to v0.7",
+                )
+
+    def test_user_scope_packs_allowed_adapters_unchanged(self) -> None:
+        """allowed-adapters is unchanged from RFC-0011."""
+        for name in USER_SCOPE_PACKS:
+            with self.subTest(pack=name):
+                pack = _load_pack_toml(name)
+                self.assertEqual(
+                    pack["pack"]["install"]["allowed-adapters"],
+                    ["claude-code", "kiro", "codex"],
+                    f"{name} declared adapter set wrong",
+                )
+
+
+class TestRepoOnlyPacksV07(unittest.TestCase):
+    def test_repo_only_packs_bump_to_v07(self) -> None:
+        """Drawback #7 mitigation — without the bump the legacy
+        heuristic at step 5 fires at repo scope for these packs."""
+        for name in REPO_ONLY_PACKS:
+            with self.subTest(pack=name):
+                pack = _load_pack_toml(name)
+                self.assertEqual(
+                    pack["pack"]["adapter-contract"]["version"],
+                    "0.7",
+                    f"{name} must bump to v0.7 (from 0.2)",
+                )
+
+    def test_repo_only_packs_remain_implicit_default(self) -> None:
+        """Repo-only packs declare no allowed-adapters — they project
+        to every adapter when targeted via --adapter at repo scope."""
+        for name in REPO_ONLY_PACKS:
+            with self.subTest(pack=name):
+                pack = _load_pack_toml(name)
+                install = pack.get("pack", {}).get("install", {})
+                self.assertNotIn(
+                    "allowed-adapters",
+                    install,
+                    f"{name} unexpectedly declares allowed-adapters",
+                )
+
+
+if __name__ == "__main__":
+    unittest.main()

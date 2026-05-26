@@ -41,7 +41,12 @@ ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 # ---------------------------------------------------------------------------
 
 def _args(pack: str, catalogue: str, output: str) -> types.SimpleNamespace:
-    return types.SimpleNamespace(pack=pack, catalogue=catalogue, output=output)
+    # RFC-0012: test fixtures predate per-IDE projection at repo scope;
+    # pass `emit_install_routes=True` to keep the dist-tree shape.
+    return types.SimpleNamespace(
+        pack=pack, catalogue=catalogue, output=output,
+        emit_install_routes=True,
+    )
 
 
 # ---------------------------------------------------------------------------

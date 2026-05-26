@@ -119,6 +119,7 @@ def _run_install(root: Path, pack_dir: Path) -> int:
         pack=pack_dir.name,
         catalogue=catalogue,
         output=str(root),
+        emit_install_routes=True,
     )
     return run(args)
 
@@ -139,6 +140,7 @@ def _run_render(root: Path, pack_dir: Path) -> int:
         pack=pack_dir.name,
         catalogue=str(pack_dir.parent.parent),
         output=str(root),
+        emit_install_routes=True,
     )
     install_run(install_args)
 
@@ -184,6 +186,7 @@ def _run_uninstall(root: Path, pack_dir: Path) -> int:
         pack=pack_dir.name,
         catalogue=str(pack_dir.parent.parent),
         output=str(root),
+        emit_install_routes=True,
     )
     install_run(install_args)
 

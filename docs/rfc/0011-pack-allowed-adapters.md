@@ -278,3 +278,38 @@ On acceptance — **single PR per RFC-0004's spec-amendment-atomicity precedent*
 - **`docs/ROADMAP.md`** — entry added under "user-scope": *"`allowed-adapters` landed — Kiro and Codex user-scope installs now exercise the integrated path; next: codex-plugins install-route parity (sibling RFC, not yet opened; will be modeled on RFC-0008)."*
 
 - **Sibling RFC (not gated on this RFC's acceptance):** *codex-plugins-install-route-parity* — adds `codex-plugins` to `[adapter.codex.install-routes]`, lands per-pack `dist/codex-plugins/<pack>/.codex-plugin/plugin.json`, aggregates a marketplace at `dist/codex-plugins/marketplace.json`, wires the install→adapt chain via a per-pack `SessionStart`-equivalent writer. Modeled on [RFC-0008](0008-claude-plugins-install-route-parity.md) and [RFC-0010](0010-apm-install-route-parity.md); load-bearing decisions to make in that RFC's own research phase include Codex's `interface` field semantics on `plugin.json`, the marketplace-catalogue location split (`~/.agents/plugins/marketplace.json` vs `~/.codex/plugins/cache/`), and whether the existing `claude-plugins` SessionStart pattern transfers verbatim or needs a Codex-specific lifecycle hook.
+
+---
+
+## Erratum (added 2026-05-26)
+
+This block records three drifts and one rename that landed via
+[RFC-0012 / repo-scope-per-adapter-projection](0012-repo-scope-per-adapter-projection.md).
+RFC-0011 is Accepted/frozen per `docs/CONVENTIONS.md`; the fix is
+appended here rather than edited in-body.
+
+1. **Step-count drift in the body.** RFC-0011's body referred to
+   the adapter resolver as a **"four-step lookup"** (this RFC's
+   bullets at the two surfaces named in RFC-0012 § *Resolver*).
+   The function it described was already implemented with a
+   wider step set; the canonical wording going forward is
+   **"six-step (0–5)"** per RFC-0012 AC8.
+
+2. **Docstring claim drift.** The shipped `install.py:1393`
+   docstring opened with **"six-step lookup"** but enumerated
+   only steps 0–4 (five steps in the body). RFC-0012 reconciles
+   the wording and the body simultaneously.
+
+3. **Resolver function rename.** RFC-0011 shipped
+   `_resolve_user_scope_target_adapter`; RFC-0012 renames it to
+   **`_resolve_target_adapter`** and adds an explicit
+   `scope: str` keyword argument. Existing callers pass
+   `scope="user"` to preserve byte-identical user-scope behaviour;
+   RFC-0012's new repo-scope branches pass `scope="repo"`.
+
+4. **Constant rename.** RFC-0011's `DEFAULT_USER_SCOPE_ADAPTER`
+   constant in `agentbundle/scope.py` becomes **`DEFAULT_ADAPTER`**.
+   A PEP 562 module-level `__getattr__` raises `DeprecationWarning`
+   on access of the legacy name and returns the new value; the
+   alias is targeted for removal in **agentbundle 0.2.0**.
+
