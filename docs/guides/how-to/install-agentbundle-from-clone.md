@@ -1,8 +1,10 @@
 # How to install `agentbundle` from a clone
 
-You're here because you cloned the catalogue ([README route 4](../../../README.md#install))
-and want credentialed skills like `jira` or `figma` to work when an
-agent harness invokes their scripts.
+You're here because credentialed skills like `jira` or `figma` need
+the `agentbundle` Python module importable on the interpreter that
+runs them. All four [README install routes](../../../README.md#install)
+ship pack content — skills, agents, hooks — but not that Python
+module, so every route converges here for the pip install.
 
 Every credentialed skill in this catalogue (`jira`, `figma`,
 `confluence-publisher`, `confluence-crawler`, `jira-align`, plus the
