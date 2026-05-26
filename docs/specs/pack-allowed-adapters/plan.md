@@ -47,7 +47,7 @@ Order matters — listed in the order they should be done. Most `Depends on:` ch
 **Tests:**
 - `packages/agentbundle/agentbundle/build/tests/test_contract_v06.py::test_contract_version_is_06` — load `_data/adapter.toml`, assert `tomllib.loads(...)["contract"]["version"] == "0.6"`.
 - `packages/agentbundle/agentbundle/build/tests/test_contract_v06.py::test_codex_scope_table_shape` — assert `[adapter.codex.scope]` exists with `repo == "."`, `user == "~"`, `allowed-prefixes.user == [".agents/skills/", ".agentbundle/"]`.
-- `packages/agentbundle/agentbundle/build/tests/test_contract_v06.py::test_no_other_scope_table_modified` — assert claude-code and kiro scope tables byte-identical to a fixture snapshot of the v0.5 state.
+- `packages/agentbundle/agentbundle/build/tests/test_contract_v06.py::test_no_other_scope_table_modified` — parse the contract via `tomllib` and assert the parsed `[adapter.claude-code.scope]` and `[adapter.kiro.scope]` *table bodies* are equal to a parsed fixture snapshot of the v0.5 tables (compare dict equality, not file bytes — the contract header comment changes in T1 itself per AC1, and unrelated whitespace/comment edits to the file must not break this assertion).
 
 **Approach:**
 - Edit `packages/agentbundle/agentbundle/_data/adapter.toml`: bump `[contract] version` from `"0.5"` to `"0.6"`; add the `[adapter.codex.scope]` table with the four lines the RFC pins; update the header comment to name RFC-0011 / this spec alongside the existing RFC pointers. **Both edits in one commit.**
@@ -57,11 +57,11 @@ Order matters — listed in the order they should be done. Most `Depends on:` ch
 
 ---
 
-### T2: Module-level `DEFAULT_USER_SCOPE_ADAPTER` constant + four-step resolver rewrite
+### T2: Extend `scope.py` with `DEFAULT_USER_SCOPE_ADAPTER` + helpers, rewrite four-step resolver, lift `pack_state.adapter` assignment, add upgrade-side state-hint
 
 **Depends on:** T1
 
-**Spec mapping:** AC6, AC9, AC10, AC21. Mode: TDD (resolver is a pure function with enumerable cases).
+**Spec mapping:** AC6, AC9, AC10, AC10a, AC10b, AC21. Mode: TDD (resolver is a pure function with enumerable cases).
 
 **Tests:**
 
@@ -76,15 +76,46 @@ Add `packages/agentbundle/tests/unit/test_resolve_user_scope_target_adapter.py`.
 - **`--adapter` flag — refused at repo scope.** Pass `--adapter kiro --scope repo`; assert refusal with stderr matching `install: --adapter is bound to --scope user`.
 - **Legacy heuristic — `< 0.6` pack.** v0.5 pack with `.apm/agents/foo.md`; assert `"kiro"`. v0.5 pack without agents; assert `"claude-code"`.
 - **Legacy heuristic — v0.6 pack omitting `allowed-adapters`.** Assert same heuristic behaviour as `< 0.6`.
-- **Upgrade-side equivalence.** Pin upgrade-time adapter resolution byte-identical to install-time resolution when `adapter=None` (covers AC10's upgrade-side test commitment).
+- **`< 0.6` pack with stray `allowed-adapters`.** A v0.5 pack accidentally declaring `[pack.install] allowed-adapters = ["kiro"]` — assert legacy-heuristic path still fires (the `contract_version` gate pins this; `allowed_adapters is not None` alone is not enough).
+- **Upgrade-side equivalence.** Pin upgrade-time adapter resolution byte-identical to install-time resolution when `adapter=None` AND `state_adapter=None` (covers AC10's upgrade-side test commitment).
+- **State-hint upgrade case (AC10b).** State recorded `adapter = "claude-code"`, pack's current `allowed-adapters = ["claude-code", "kiro", "codex"]`, `~/.kiro/` now populated alongside `~/.claude/` — assert resolver returns `"claude-code"` (state hint wins, no re-probe). Then flip the recorded adapter to one not in `allowed-adapters` (e.g., the pack dropped `"kiro"` support and state recorded `"kiro"`) — assert the resolver falls through to the probe and the upgrade.py:318 refusal fires.
+- **State-file unconditional assignment (AC10a).** Three sub-cases: codex install records `state.adapter == "codex"`; non-hook claude-code install records `state.adapter == "claude-code"` (would silently default before this PR); non-hook kiro install records `state.adapter == "kiro"`.
 
 **Approach:**
-- Create `packages/agentbundle/agentbundle/scope.py` with the module-level constant `DEFAULT_USER_SCOPE_ADAPTER: str = "claude-code"` plus the shared helpers `_user_scope_capable_adapters_from_contract()` (used by T3's validator and T6's handler-side user-scope-capability check) and `_shipped_adapters_from_contract()` (used by T6's argparse `choices=`). Both helpers read the bundled `adapter.toml`; the former returns adapters declaring `[adapter.<name>.scope].user`, the latter returns every adapter declared in `[adapter.<name>]` blocks.
-- Rewrite `_resolve_user_scope_target_adapter` at `install.py:1249-1275` as the four-step lookup. The new signature is `def _resolve_user_scope_target_adapter(pack_dir: Path, *, adapter: str | None, allowed_adapters: list[str] | None) -> str`. Read the `--adapter` value (passed by the install handler from `args.adapter`), read the pack's `[pack.install] allowed-adapters` (already loaded as `pack_install` by the handler), probe `~/.claude/`, `~/.kiro/`, `~/.codex/` OR `~/.agents/skills/` (use `Path.home() / ".<ide>"` plus `Path.exists()`); fall through to greenfield-constant + `allowed-adapters[0]`; finally fall through to legacy heuristic when `allowed_adapters is None`.
-- Update the docstring TODO block to reference RFC-0011's resolution and the four-step lookup.
-- Update the **two call sites** in `upgrade.py` (the actual invocations at lines 228 and 311; lines 218 and 308 are the matching `from ... import _resolve_user_scope_target_adapter` lines and don't change). Upgrade has no `--adapter` flag, so each invocation passes `adapter=None`. Upgrade loads the pack's `pack.toml` at upgrade time (existing code path); thread `allowed_adapters = pack_install.get("allowed-adapters")` into the call. An upgrade-side test pins that upgrade's resolver result is byte-identical to install's when `adapter=None`.
+- **Extend `packages/agentbundle/agentbundle/scope.py`** (which already exists at 170 LOC per RFC-0004 T17, exporting `LEGAL_SCOPES`, `ScopeRefused`, `UserScopeUnresolvable`, `resolve`, `resolve_user_root` — *do not rewrite the file*; the five existing exports are imported by `install.py`, `upgrade.py`, `uninstall.py`, `reconcile.py`, `diff.py`, `adapt.py`, and the unit-test module). Append:
+  - `DEFAULT_USER_SCOPE_ADAPTER: str = "claude-code"` (the module-level greenfield-fallback constant).
+  - `def shipped_adapters_from_contract() -> tuple[str, ...]:` — returns `tuple(sorted(adapter_names))` for every adapter declared in `[adapter.<name>]` blocks of `_data/adapter.toml`. Used by T6 argparse `choices=`.
+  - `def user_scope_capable_adapters_from_contract() -> tuple[str, ...]:` — returns `tuple(sorted(adapter_names))` for adapters that declare `[adapter.<name>.scope].user`. Used by T3 validator + T6 handler.
+  - `def contract_supports_hook_wiring(version: str | None) -> bool:` — returns `True` for `version not in {"0.1", "0.2"}` (semantic predicate; fires for v0.3+; won't trap the next contract bump). Used by T3's `_kiro_target_adapters` rail.
+  A regression test imports the five pre-existing exports verbatim and walks `scope.resolve` + `scope.resolve_user_root` against fixtures to assert behaviour didn't drift.
+- Rewrite `_resolve_user_scope_target_adapter` at `install.py:1249-1275` as the **six-step** lookup (publisher-drift is step 0; state-hint is step 2). The new signature is `def _resolve_user_scope_target_adapter(pack_dir: Path, *, adapter: str | None, allowed_adapters: list[str] | None, contract_version: str | None, state_adapter: str | None = None, command_name: str = "install") -> str`. The six steps in order:
+  0. **Publisher-vs-installer drift refusal (AC15)** — if `allowed_adapters` is declared, intersect with `shipped_adapters_from_contract()`; if any declared adapter is missing from the bundled contract, refuse with the pinned `<command_name>: pack '<name>' declares allowed-adapter '<adapter>' which is not admitted by adapter contract v<X.Y> shipped with agentbundle <cli-version>`. **Runs first** so neither `--adapter` (step 1) nor state-hint (step 2) can leak a no-longer-shipped adapter through.
+  1. **`--adapter` override** — if `adapter` is not None, validate against `allowed_adapters` (when declared) or `user_scope_capable_adapters_from_contract()` (when omitted); return it. Refuse with the pinned messages.
+  2. **State-hint short-circuit (AC10b)** — if `state_adapter` is not None AND `state_adapter` is in `allowed_adapters` (when declared) OR in `user_scope_capable_adapters_from_contract()` (when omitted), return `state_adapter`. This is upgrade-side stability.
+  3. **Contract-version gate + probe** — if `contract_version` is None OR `contract_supports_hook_wiring(contract_version) is False` OR `allowed_adapters is None`, fall through to step 5 (legacy heuristic). Otherwise: probe via the **explicit per-adapter probe table**:
+     ```python
+     PROBES = {
+         "claude-code": lambda h: (h / ".claude").exists(),
+         "kiro":        lambda h: (h / ".kiro").exists(),
+         "codex":       lambda h: (h / ".codex").exists() or (h / ".agents" / "skills").exists(),
+     }
+     ```
+     Walk `allowed_adapters` in declared order; first probe returning True wins. Greenfield: return `DEFAULT_USER_SCOPE_ADAPTER` if in `allowed_adapters`, else `allowed_adapters[0]`.
+  5. **Legacy heuristic** — `.apm/agents/*.md` present ⇒ `"kiro"`; else `"claude-code"`.
+- **Preserve the docstring's "Known limitation" block verbatim** (same-name-Kiro-agent overwrite, per Boundaries — Never do). Rewrite only the TODO block.
+- **Lift `new_pack_state.adapter` assignment out of the kiro-hook-only branch (AC10a).** At `install.py:591-592` today, `new_pack_state.adapter = "kiro"` is set only when `user_target_adapter == "kiro"` AND `user_scope_hooks_enabled`. Move this to run unconditionally for `effective_scope == "user"` before the hook-merge block: `new_pack_state.adapter = user_target_adapter`. Drop the kiro-only conditional. Without this, codex / non-hook claude-code installs leave the field at the dataclass default and AC25 assertions about state shape will never hold.
+- **Update all four `_resolve_user_scope_target_adapter` call sites and both `_render_for_user_scope` call sites.** Failing to thread kwargs through the bridge means install.py:440 (the primary user-scope render) silently falls through to the legacy heuristic — exactly the bug this spec is closing.
+  - **`install.py:299`** (inside `run()` before scope-plan build): pass `adapter=args.adapter`, `allowed_adapters=pack_install.get("allowed-adapters") if isinstance(pack_install, dict) else None`, `contract_version=pack_toml.get("pack", {}).get("adapter-contract", {}).get("version")`, `state_adapter=None`, `command_name="install"`. `pack_toml` is already in scope at this point.
+  - **`install.py:440`** (primary install-time call to `_render_for_user_scope`): widens to pass the same five kwargs through the bridge — `args.adapter`, `pack_install.get("allowed-adapters") if isinstance(pack_install, dict) else None`, the contract version, `state_adapter=None`, `command_name="install"`.
+  - **`install.py:1171`** (inside `_render_for_user_scope`): consumes the kwargs from the bridge's parameters and forwards them to `_resolve_user_scope_target_adapter`.
+  - **`upgrade.py:222`** (primary upgrade-time call to `_render_for_user_scope`): widens to pass `adapter=None`, the pack's `allowed-adapters` and contract version from `pack_toml` (already loaded at line 167 via `load_pack_toml`), `state_adapter=pack_state.adapter`, `command_name="upgrade"`.
+  - **`upgrade.py:228`** and **`upgrade.py:311`** (the direct resolver calls — imports at 218 and 308 unchanged): same five kwargs as upgrade.py:222.
+  
+  **Widen `_render_for_user_scope`'s signature** to `def _render_for_user_scope(pack_dir: Path, *, adapter: str | None = None, allowed_adapters: list[str] | None = None, contract_version: str | None = None, state_adapter: str | None = None, command_name: str = "install") -> dict[str, bytes]`. Defaults preserve backward shape for legacy tests calling positional. Every production call site threads explicit values; a regression test asserts no production call site is left at all-defaults.
+  
+  An upgrade-side test pins that upgrade's resolver result equals install's when `adapter=None` AND `state_adapter=None`.
 
-**Done when:** all parametrized cases in the new test module pass; existing tests under `packages/agentbundle/tests/unit/` that touch the resolver continue to pass; the upgrade-side equivalence test passes; `pytest packages/agentbundle/` exits 0.
+**Done when:** all parametrized cases in the new test module pass; the lifted `pack_state.adapter` assignment is verified by AC10a's three sub-cases; the upgrade-side state-hint case (AC10b) passes; existing tests under `packages/agentbundle/tests/unit/` that touch the resolver continue to pass; the regression test for the five pre-existing `scope.py` exports passes; `pytest packages/agentbundle/` exits 0.
 
 ---
 
@@ -115,7 +146,7 @@ Add `packages/agentbundle/agentbundle/build/tests/test_pack_schema_allowed_adapt
 - Add `allowed-adapters` to `packages/agentbundle/agentbundle/_data/pack.schema.json` as `{"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}` under `[pack.install]`. Don't try to express the adapter-name enum in JSONSchema — the Python validator owns it.
 - In `packages/agentbundle/agentbundle/commands/validate.py`, add the cross-field check after schema validation passes: read the pack's `allowed-adapters` and `allowed-scopes`; intersect with the live contract's shipped-adapter set; if `"user" ∈ allowed-scopes`, additionally intersect with the user-scope-capable subset; refuse with the pinned messages on violation.
 - The "user-scope-capable adapter set" helper lives in `agentbundle/scope.py` (created in T2), shared with T6's argparse derivation.
-- **Widen `_kiro_target_adapters`'s literal version gate at `validate.py:379`.** Replace `if contract.get("version") != "0.3": return set()` with the equivalent of `if contract.get("version") not in {"0.3", "0.6"}: return set()`. For v0.6 packs, *before* falling into the on-disk inference, early-return based on `allowed-adapters`: `"kiro" in allowed_adapters ⇒ {"kiro"}`, `allowed_adapters declared but kiro absent ⇒ set()`, `allowed_adapters omitted ⇒ fall into on-disk inference`. v0.3 path unchanged.
+- **Widen `_kiro_target_adapters`'s literal version gate at `validate.py:379`.** Replace `if contract.get("version") != "0.3": return set()` with the equivalent of `if not contract_supports_hook_wiring(contract.get("version")): return set()`, importing the semantic predicate from `agentbundle.scope`. This fires for v0.3+ (anything not in `{"0.1", "0.2"}`), so the next contract bump (v0.7+) won't re-break the rail by literal-set mismatch. For v0.6+ packs, *before* falling into the on-disk inference, early-return based on `allowed-adapters`: `"kiro" in allowed_adapters ⇒ {"kiro"}`, `allowed_adapters declared but kiro absent ⇒ set()`, `allowed_adapters omitted ⇒ fall into on-disk inference`. v0.3 path unchanged.
 
 **Done when:** all parametrized cases in the new test module pass; existing validate-side tests pass; `pytest packages/agentbundle/` exits 0.
 
@@ -155,7 +186,7 @@ Add `packages/agentbundle/agentbundle/build/tests/test_pack_schema_allowed_adapt
 - Add a case where `target_adapter == "codex"`: assert `codex.project(pack_dir, contract, out)` is invoked; assert the output tree contains `.agents/skills/<skill>/SKILL.md` (using a fixture pack with a single skill).
 
 **Approach:**
-- In `packages/agentbundle/agentbundle/commands/install.py:1170-1178`, extend the two-arm dispatch to a three-arm:
+- In `packages/agentbundle/agentbundle/commands/install.py`, the existing two-arm dispatch lives inside `_render_for_user_scope` at lines 1174-1177 (the `if target_adapter == "kiro": ... else: claude_code.project(...)` block). Extend that block to a three-arm:
   ```python
   if target_adapter == "kiro":
       kiro.project(pack_dir, contract, out)
@@ -164,10 +195,10 @@ Add `packages/agentbundle/agentbundle/build/tests/test_pack_schema_allowed_adapt
   else:
       claude_code.project(pack_dir, contract, out)
   ```
-- Confirm `agentbundle.build.adapters.codex` is already importable at the top of the file (RFC-0009's code added it as a peer to `claude_code` and `kiro`).
-- For codex user-scope, the post-projection path-rewrite needs to map projected `.agents/skills/<skill>/...` paths to `~/.agents/skills/<skill>/...` per the `[adapter.codex.scope]` table. If `_rewrite_user_scope_hook_paths` (or its peer for non-hook content) doesn't already handle the codex-skills shape, extend it.
+- Add `from agentbundle.build.adapters import codex` to `_render_for_user_scope`'s imports alongside the existing `claude_code, kiro` import at line 1166 (RFC-0009's `direct-directory` projection at `adapter.toml:217-237` is the live codex code path).
+- For codex user-scope, the post-projection paths arrive as root-relative `.agents/skills/<skill>/...` (per RFC-0009's `direct-directory` projection at `adapter.toml:217-237`). The path-jail accepts these via the `[adapter.codex.scope].allowed-prefixes.user = [".agents/skills/", ".agentbundle/"]` table from T1. Verify `safety.write_jailed` accepts `.agents/skills/<skill>/SKILL.md` against `allowed_prefixes=[".agents/skills/", ".agentbundle/"]` rooted at `~/`; add a focused unit test under `tests/unit/test_resolve_user_scope_target_adapter.py` (or a sibling) that drives `safety.write_jailed` directly with the codex user-prefixes to pin this — don't rely on T8's integration suite as the only catch. `_rewrite_user_scope_hook_paths` is hook-only by name/docstring; it does NOT need to be extended for codex skills (skills aren't hooks). If codex hook-wiring at user scope is ever needed, that's a future RFC's surface.
 
-**Done when:** the codex-arm dispatch test passes; the integration smoke (T8 below) confirms codex user-scope installs write to `~/.agents/skills/`.
+**Done when:** the codex-arm dispatch test passes; the explicit `safety.write_jailed` test against the codex user-prefixes passes; the integration smoke (T8 below) confirms codex user-scope installs write to `~/.agents/skills/`.
 
 ---
 
@@ -181,7 +212,7 @@ Add `packages/agentbundle/agentbundle/build/tests/test_pack_schema_allowed_adapt
 
 Add `packages/agentbundle/tests/unit/test_install_argparse_adapter_flag.py`. Cases:
 
-- **`choices=` derivation matches the live contract — every shipped adapter.** Call the `_shipped_adapters_from_contract()` helper against the bundled `adapter.toml`; assert it returns `("claude-code", "codex", "copilot", "kiro")` (or whatever sorted-tuple order the helper chooses; stability matters).
+- **`choices=` derivation matches the live contract — every shipped adapter.** Call the `shipped_adapters_from_contract()` helper against the bundled `adapter.toml`; assert it returns exactly `("claude-code", "codex", "copilot", "kiro")` (alphabetic sorted-tuple — T2 pins `tuple(sorted(...))` for stability across Python versions and adapter-toml edits).
 - **`--adapter claude-code` / `kiro` / `codex` / `copilot` all accepted at parse time.** All four shipped adapters parse cleanly.
 - **`--adapter windsurf` rejected at parse time** (argparse refuses unknown choice with stock error — fine, since `windsurf` isn't shipped).
 - **Handler-side user-scope-capability check refuses `--adapter copilot`** (Copilot is shipped but lacks `[adapter.copilot.scope].user`). Pinned stderr matches `install: --adapter copilot not admitted as a user-scope-capable adapter under contract v0.6`. **This is the load-bearing case that requires the choices=any-shipped lift — argparse-level `choices=` restricted to user-scope-capable adapters would short-circuit with its stock "invalid choice" error before the pinned message can fire.**
@@ -189,9 +220,9 @@ Add `packages/agentbundle/tests/unit/test_install_argparse_adapter_flag.py`. Cas
 - **Help text matches RFC wording** — assert `"Override the auto-detected adapter at user scope"` appears in `--help` output for the `install` subcommand.
 
 **Approach:**
-- In `packages/agentbundle/agentbundle/cli.py:199-229`, add `sp.add_argument("--adapter", choices=_shipped_adapters_from_contract(), help=...)` to the `install` subparser. The helper enumerates **every adapter declared in `[adapter.<name>]` blocks**, not just user-scope-capable ones — that admits Copilot into argparse so the handler can issue the pinned refuse-and-explain.
-- The helper `_shipped_adapters_from_contract()` lives in `packages/agentbundle/agentbundle/scope.py` (alongside the `_user_scope_capable_adapters_from_contract()` helper created in T2). Both read the bundled `adapter.toml`.
-- The `install` handler at `commands/install.py` reads `args.adapter` and, when not `None`, checks (a) `--scope user` is resolved (else refuse with `install: --adapter is bound to --scope user`), (b) the adapter is user-scope-capable per `_user_scope_capable_adapters_from_contract()` (else refuse with `install: --adapter <name> not admitted as a user-scope-capable adapter under contract v0.6`), (c) the adapter is in the pack's `allowed-adapters` if declared (else refuse with `install: --adapter <name> not in pack's allowed-adapters set`). Then threads the value into the resolver's first step (covered by T2).
+- In `packages/agentbundle/agentbundle/cli.py:199-229`, add `sp.add_argument("--adapter", choices=shipped_adapters_from_contract(), help=...)` to the `install` subparser. The helper enumerates **every adapter declared in `[adapter.<name>]` blocks**, not just user-scope-capable ones — that admits Copilot into argparse so the handler can issue the pinned refuse-and-explain.
+- The helper `shipped_adapters_from_contract()` lives in `packages/agentbundle/agentbundle/scope.py` (alongside the `user_scope_capable_adapters_from_contract()` helper created in T2). Both read the bundled `adapter.toml`.
+- The `install` handler at `commands/install.py` reads `args.adapter` and, when not `None`, checks (a) `--scope user` is resolved (else refuse with `install: --adapter is bound to --scope user`), (b) the adapter is user-scope-capable per `user_scope_capable_adapters_from_contract()` (else refuse with `install: --adapter <name> not admitted as a user-scope-capable adapter under contract v0.6`), (c) the adapter is in the pack's `allowed-adapters` if declared (else refuse with `install: --adapter <name> not in pack's allowed-adapters set`). Then threads the value into the resolver's first step (covered by T2).
 
 **Done when:** all argparse-test cases pass; `agentbundle install --help` shows the new flag with all four shipped adapters in `choices=`.
 
@@ -207,12 +238,13 @@ Add `packages/agentbundle/tests/unit/test_install_argparse_adapter_flag.py`. Cas
 - Add `packages/agentbundle/tests/unit/test_install_messages.py`. Cases:
   - Successful user-scope install of a v0.6 pack with one matching CLI home: stdout contains `installed: <pack> @ user via <adapter>` (no suffix).
   - Successful user-scope install where two adapters are eligible (both `~/.claude/` and `~/.kiro/` populated, pack declares both) and `--adapter` not passed: stdout contains the suffix `(other declared adapters: kiro; use --adapter to override)`.
+  - **Greenfield user-scope install** (no CLI home populated, pack declares three adapters, no `--adapter`): stdout contains `installed: <pack> @ user via claude-code` with no suffix (the suffix logic intersects `allowed-adapters` with the *populated* CLI-home set minus the chosen adapter — greenfield's populated-set is empty, so the intersection is empty and no suffix renders).
   - Repo-scope install: stdout contains `installed: <pack> @ repo` (no `via`).
   - Publisher-vs-installer drift case: simulate a v0.6 pack declaring an adapter the bundled contract doesn't admit; assert refusal stderr matches `install: pack '<name>' declares allowed-adapter '<adapter>' which is not admitted by adapter contract v<X.Y> shipped with agentbundle <cli-version>`.
 
 **Approach:**
-- In `packages/agentbundle/agentbundle/commands/install.py`, locate the existing `installed: <pack> @ <scope>` print (RFC-0004's rail). Extend with the `via <adapter>` clause when `scope == "user"`. Compute the "other declared adapters" suffix by intersecting `allowed-adapters` with the populated CLI-home set, minus the chosen adapter.
-- Add the install-time contract-drift check: when resolving `allowed-adapters`, intersect with the bundled contract's shipped-adapter set; refuse with the pinned stderr on mismatch.
+- In `packages/agentbundle/agentbundle/commands/install.py`, locate the existing `installed: <pack> @ <scope>` print (RFC-0004's rail). Extend with the `via <adapter>` clause when `scope == "user"`. **Compute the "other declared adapters" suffix using the same per-adapter probe table from T2** (imported from `agentbundle.scope` or shared via a private helper) — so codex-via-`.agents/skills/` is counted as "populated" consistently between the resolver and the suffix logic. Intersect `allowed-adapters` with the populated CLI-home set (per the shared probe), minus the chosen adapter; render the suffix only when the intersection is non-empty.
+- The install-time publisher-vs-installer drift check (AC15) is owned by T2 (lives in the resolver flow); T7 just verifies the message fires through the message-rail path. No duplicate implementation.
 
 **Done when:** all four message-test cases pass; integration smoke (T8) confirms the messages appear in real installs.
 
@@ -233,7 +265,8 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
 - **Multi-IDE, no `--adapter`.** Fixture `$HOME` with both `~/.claude/` and `~/.kiro/` populated; assert install lands at `~/.claude/skills/` (declared order); state records `adapter = "claude-code"`.
 - **Multi-IDE, with `--adapter`.** Same fixture, but `--adapter kiro`; assert install lands at `~/.kiro/skills/`; state records `adapter = "kiro"`.
 - **Codex.** Fixture `$HOME` with `~/.codex/` populated and no other adapter home; assert install lands at `~/.agents/skills/`; state records `adapter = "codex"`.
-- **All three.** Fixture `$HOME` with all three populated; assert default first-match wins; `--adapter codex` overrides cleanly.
+- **All three.** Fixture `$HOME` with all three populated; assert declared-order tie-break (`allowed-adapters = ["claude-code", "kiro", "codex"]` → claude-code wins); `--adapter codex` overrides cleanly.
+- **Upgrade with state-hint (AC10b).** Two-step fixture: (a) `agentbundle install --pack <name> --scope user .` with only `~/.claude/` populated → state records `adapter = "claude-code"`; (b) populate `~/.kiro/` post-install; (c) `agentbundle upgrade --pack <name> --scope user .` → assert state still records `adapter = "claude-code"` and the cross-adapter refusal at `upgrade.py:318-326` does not fire. Covers AC10b and the AC25 upgrade-case commitment.
 
 **Approach:**
 - Use the existing integration-test fixtures (`tmp_path` + monkeypatched `HOME`) and the existing `agentbundle install` invocation harness.
@@ -256,7 +289,7 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
 - Goal-based grep: assert `README.md` contains the substrings `~/.kiro/skills/`, `~/.agents/skills/`, and `--adapter` (per the Packs-table and Install-section commitments).
 - Goal-based grep: assert `docs/guides/how-to/install-user-scope-pack-into-kiro.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.kiro/skills/`.
 - Goal-based grep: assert `docs/guides/how-to/install-user-scope-pack-into-codex.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.agents/skills/`.
-- Goal-based grep: assert `docs/guides/how-to/v05-to-v06-pack-upgrade.md` exists and contains the substring `[pack.adapter-contract] version = "0.6"` and `allowed-adapters`.
+- Goal-based grep: assert `docs/guides/how-to/v05-to-v06-pack-upgrade.md` exists and contains the substrings `[pack.adapter-contract]`, `0.6`, and `allowed-adapters` (three narrower greps instead of one full quoted phrase, so smart quotes / single quotes in the rendered prose don't break the assertion).
 - Manual: read each new file end-to-end against the spec's AC16-AC18 commitments. Render the README locally and confirm the Packs table renders.
 
 **Approach:**
@@ -307,7 +340,7 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
 - (CI replication of `build-check` linux + windows, `pytest` windows, `docs` lint suite — verified post-push on the PR.)
 
 **Approach:**
-- Sweep for any test that touched `_resolve_user_scope_target_adapter`, `_kiro_target_adapters`, the four packs' `pack.toml`, the `[contract] version`, or the install argparse setup. Update each to match v0.6 expectations. Tests that previously asserted "all four directories projected at repo scope" for a user-scope pack now need to assert "three directories projected" once the pack declares `allowed-adapters` excluding copilot.
+- Sweep for any test that touched `_resolve_user_scope_target_adapter`, `_kiro_target_adapters`, the four packs' `pack.toml`, the `[contract] version`, or the install argparse setup. Update each to match v0.6 expectations. (Repo-scope projection is out of scope per Boundaries — Never do; no test asserts "four directories projected at repo scope" today because `agentbundle install --scope repo` emits `dist/apm/` and `dist/claude-plugins/` install-route artifacts, not per-IDE directories. If the sweep surfaces any such test, that's a finding for a separate PR.)
 - Run the full local gate suite. Resolve any drift.
 - Commit; push; verify CI green.
 
@@ -322,7 +355,7 @@ This spec ships behind no flag. The contract bump `v0.5 → v0.6` is the gate: a
 ## Risks
 
 - **Test surface across two test roots is large.** ~6 new test modules across `packages/agentbundle/tests/unit/`, `packages/agentbundle/tests/integration/`, and `packages/agentbundle/agentbundle/build/tests/`. Risk: a regression in one root masks a regression in the other. **Mitigation:** the cross-cutting tests section names the end-to-end smoke as the integration belt; T11's final sweep includes both roots.
-- **The `_kiro_target_adapters` rail and `_resolve_user_scope_target_adapter` are both heuristics that the spec keeps alive for legacy packs but extends with declarative-field early-return.** Risk: drift between the two functions' v0.6-handling logic. **Mitigation:** T3 covers the `_kiro_target_adapters` early-return + literal-gate widening explicitly; T2's resolver tests cover the install-side; the helper `_user_scope_capable_adapters_from_contract()` is shared.
+- **The `_kiro_target_adapters` rail and `_resolve_user_scope_target_adapter` are both heuristics that the spec keeps alive for legacy packs but extends with declarative-field early-return.** Risk: drift between the two functions' v0.6-handling logic. **Mitigation:** T3 covers the `_kiro_target_adapters` early-return + literal-gate widening explicitly; T2's resolver tests cover the install-side; the helper `user_scope_capable_adapters_from_contract()` is shared.
 - **The argparse `choices=` derivation at CLI-load time means a broken `adapter.toml` breaks CLI startup, not just install.** Risk: a typo in the contract file makes `agentbundle --help` fail. **Mitigation:** the helper has its own test (T6); a defensive default (empty tuple → all `--adapter` values refused with "no shipped adapters in contract") could land if the risk materialises post-merge.
 - **The choices=any-shipped lift creates a small additional refusal-message surface** (the handler-side user-scope-capability check). Risk: a future contract that admits a fifth shipped adapter without a `[scope].user` table would silently surface as "refused at the handler" rather than "refused at argparse." **Mitigation:** the handler's refuse-and-explain message names the adapter and the contract version, so the failure mode is loud not silent.
 - **The contract-bump's effect on adopters running pinned CLI versions.** RFC-0011's Drawbacks already names this; not a new risk introduced by the implementation.
@@ -331,3 +364,6 @@ This spec ships behind no flag. The contract bump `v0.5 → v0.6` is the gate: a
 
 - 2026-05-25 — Initial Draft.
 - 2026-05-26 — Post-pre-EXECUTE-review revision. Dropped T3 (the repo-scope projection filter task) per RFC-0011 § *Repo-scope projection* erratum. Renumbered T4-T12 → T3-T11. T3 (formerly T4) explicitly pins the `_kiro_target_adapters` literal-`!= "0.3"`-gate widening as the load-bearing v0.6 fix, with a test for the case the current gate breaks. T6 (formerly T7) lifts argparse `choices=` to admit every shipped adapter and moves the user-scope-capability check to the install handler so the pinned refuse-and-explain messages are reachable. T2 explicitly pins the resolver-signature change and the upgrade.py call-site updates (closes Concern 7 from the round-1 review). T9 (README + how-to) collapses the inline four-landing-paths enumeration into a single canonical link to the `Where primitives land` table.
+- 2026-05-25 (round-2) — Second pre-EXECUTE-review revision. **T2** retitled "extend `scope.py`" (file already exists per RFC-0004 T17). T2 resolver signature gains `contract_version` and `state_adapter` keyword params; the four steps now include a state-hint short-circuit (AC10b) before the contract-version gate, so upgrades don't re-probe and accidentally refuse on adopters who populated a second `~/.<ide>/` post-install. T2 Approach pins the **explicit per-adapter probe table** (not a single `Path.home()/f".{ide}"` interpolation — codex is an OR-probe). T2 also adds the **`pack_state.adapter` unconditional-assignment lift** (AC10a) — without this, codex / non-hook claude-code installs silently default the state field. T3 swaps the literal `{"0.3", "0.6"}` gate for the semantic predicate `contract_supports_hook_wiring` shared with the validator. T1's "no other scope table modified" test re-scoped to parsed-table-body comparison (not byte-identical, because T1 itself edits the header comment). T5 makes the codex jail-prefix wiring explicit — adds a focused `safety.write_jailed` unit test under T5 rather than relying on T8 as the only catch. T6's `choices=` derivation pinned to `tuple(sorted(...))` for stability. T7 adds the greenfield-suffix case (no CLI home populated → no suffix). T9 grep narrowed to three substrings to survive smart-quote / single-quote rendering drift. T11 sweep-language cleaned of the "three directories projected" residue from pre-revision T3. Closes 4 Blockers + 8 Concerns from the round-2 adversarial review.
+- 2026-05-25 (round-2b) — Third pre-EXECUTE-review revision. **T2** lookup re-enumerated as five steps (state-hint at step 2; publisher-drift refused at step 3; probe at step 4; legacy at step 5). **T2** enumerates all four `_resolve_user_scope_target_adapter` call sites — install.py:299 and install.py:1171 in addition to upgrade.py:228 and :311 — and widens `_render_for_user_scope`'s signature to forward the four new kwargs (it's the bridge consumed by both install and upgrade). **T5** Approach now names `_render_for_user_scope` and the exact line (1174-1177) of the existing two-arm dispatch. **T7** suffix logic pinned to use the same per-adapter probe table from T2 so codex-via-`.agents/skills/` is treated consistently between resolver and message rail. **T8** gains an explicit upgrade-with-state-hint integration case (covers AC10b's behavioural commitment). Closes 6 Concerns from the round-2b adversarial review.
+- 2026-05-25 (round-2c) — Fourth pre-EXECUTE-review revision. **T2** lookup re-enumerated as **six steps** with publisher-drift at step 0 (before `--adapter` and state-hint), so a v0.6 pack declaring a no-longer-shipped adapter cannot leak through. **T2** adds `install.py:440` as the primary install-time bridge call site (missed in round-2b — it's the line that builds `user_projection` and calls `_render_for_user_scope`). **T2** signature adds a `command_name` kwarg so AC15's refusal message uses the right verb prefix (`install:` vs `upgrade:`). **scope.py helpers renamed** to drop leading underscores (`shipped_adapters_from_contract`, `user_scope_capable_adapters_from_contract`, `contract_supports_hook_wiring`) — matching `scope.py`'s public-export convention since they're imported cross-module. Closes 3 round-2b Concerns; remaining smaller items deferred to EXECUTE.
