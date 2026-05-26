@@ -125,6 +125,11 @@ _FrontmatterLoader.add_constructor(
 ALLOWED_SKILL_KEYS = {"name", "description", "license", "compatibility",
                       "metadata", "allowed-tools"}
 ALLOWED_PRIMITIVE_CLASSES = {"credentialed-cli", "mcp-server"}
+# The four broker ids per RFC-0013 § 1. The set is closed in v1; adding
+# a fifth broker is a contract change (see docs/specs/credential-broker-
+# contract/spec.md "Ask first" in Boundaries). Order in the refusal
+# message is fixed for the pinned-message assertion.
+ALLOWED_AUTH_BROKERS = ("env", "cli", "creds", "sso-cookie")
 ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}
 ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
 
@@ -299,6 +304,27 @@ def main() -> int:
                           f"must be one of: "
                           f"{', '.join(sorted(ALLOWED_PRIMITIVE_CLASSES))} "
                           f"(got {pval!r})")
+        # `metadata.auth` declares the credential broker (RFC-0013 § 1).
+        # The four ids are enumerated as a closed set in v1; unknown
+        # values are refused with a pinned message that names the
+        # acceptable set so the author can self-correct. The refusal
+        # message ordering matches ALLOWED_AUTH_BROKERS verbatim — tests
+        # assert against this exact string.
+        auth_present = "auth" in meta
+        if auth_present:
+            aval = meta["auth"]
+            if aval not in ALLOWED_AUTH_BROKERS:
+                err(path, f"frontmatter key 'metadata.auth' must be one of "
+                          f"{{{', '.join(ALLOWED_AUTH_BROKERS)}}}; "
+                          f"got {aval!r}")
+        # `metadata.credentialed: true` requires `metadata.auth` — the
+        # broker dispatch shape is not optional for credentialed skills.
+        # `credentialed: false` (or absent) skips the requirement so
+        # non-credentialed skills aren't forced to declare a broker.
+        if meta.get("credentialed") is True and not auth_present:
+            err(path, "frontmatter key 'metadata.auth' is required when "
+                      "metadata.credentialed: true "
+                      f"(declare one of {{{', '.join(ALLOWED_AUTH_BROKERS)}}})")
         if not body.strip():
             err(path, "body is empty")
         check_links(path, body, body_start)

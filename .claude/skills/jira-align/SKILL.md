@@ -4,6 +4,7 @@ description: Read and mutate Jira Align (Atlassian Cloud or self-hosted/on-prem)
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 # Jira Align Client

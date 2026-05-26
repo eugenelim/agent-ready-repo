@@ -5,10 +5,11 @@
 # RFC-0005 (hook-body / hook-wiring forks, v0.3);
 # RFC-0008 (claude-plugins install route, v0.4);
 # RFC-0010 (apm install route, v0.5);
-# RFC-0011 / docs/specs/pack-allowed-adapters (codex user-scope table, v0.6).
+# RFC-0011 / docs/specs/pack-allowed-adapters (codex user-scope table, v0.6);
+# RFC-0013 / docs/specs/credential-broker-contract (governance bump, v0.7).
 
 [contract]
-version = "0.6"
+version = "0.7"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
