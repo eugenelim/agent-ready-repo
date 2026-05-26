@@ -446,7 +446,9 @@ If accepted, this RFC produces:
   as primary; `pip install` and Homebrew as additional paths.
   Minimum Python: 3.11 (for stdlib `tomllib`); adopters on older
   runtimes get a clear refuse-and-explain message rather than
-  silent failure.
+  silent failure. **Status (2026-05-26):** path-status now governed
+  by [`docs/specs/agentbundle-wheel-release/spec.md`](../specs/agentbundle-wheel-release/spec.md);
+  see the dated entry under §Amendments below.
 - **F-conformance — Conformance test suite.** One fixture per
   target adapter at `v0.1`; runner exposed via `agentbundle
   validate --strict`.
@@ -470,3 +472,14 @@ publication + CLI + conformance, all of which are well-scoped.
   identifiers and remain unchanged). Full rationale and the
   `CONVENTIONS.md:80` exception note live in
   [RFC-0001 § Amendments](0001-bundle-distribution-by-adapter-spec.md#amendments).
+- 2026-05-26: §F-cli-dist path-status update via
+  [`docs/specs/agentbundle-wheel-release/spec.md`](../specs/agentbundle-wheel-release/spec.md).
+  Path #2 (`pip install`) ships in two variants: **PyPI — live**
+  (Trusted Publisher OIDC; first publish gesture per the spec's
+  AC13); **Artifactory — scaffolded**, untested against a real
+  Artifactory deployment, awaiting AC14 first-firing verification
+  (workflow exists; activates per-fork when the corp configures the
+  GitHub secrets). Paths **#1 (zipapp via GitHub Releases) — Deferred**
+  because the release-artifact pipeline isn't built; **#3 (Homebrew)
+  — Deferred** because Homebrew doesn't satisfy the corporate-network
+  constraint in [RFC-0001 §Corporate-network discipline](0001-bundle-distribution-by-adapter-spec.md#corporate-network-discipline).

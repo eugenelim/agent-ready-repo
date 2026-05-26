@@ -8,6 +8,22 @@ version = "0.1.0"
 description = "Reference CLI and distribution pipeline for the agent-ready-repo adapter contract."
 requires-python = ">=3.11"
 dependencies = []
+authors = [{ name = "eugenelim", email = "eugenelim@users.noreply.github.com" }]
+license = { text = "Apache-2.0 OR MIT" }
+readme = "README.md"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/eugenelim/agent-ready-repo"
+Source = "https://github.com/eugenelim/agent-ready-repo"
+Documentation = "https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/how-to/install-agentbundle-from-clone.md"
 
 [project.scripts]
 agentbundle = "agentbundle.cli:main"
