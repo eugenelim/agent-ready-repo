@@ -1,0 +1,31 @@
+%% Starter shape for a C4 Container view.
+%% Replace the example with the system you're documenting.
+%% Non-negotiables (per the diagram rubric):
+%%   - Every Container has a technology label (3rd Container arg).
+%%   - Every Container has a short description (4th arg).
+%%   - Every Rel labels the protocol or payload (4th Rel arg).
+%%   - External systems use System_Ext, not System.
+%%   - One system per Container view — multiple systems = Context view.
+
+C4Container
+    title Container view — <system name>
+
+    Person(user, "User", "Who interacts with the system")
+
+    System_Boundary(sys, "<system name>") {
+        Container(web, "Web app", "<tech, version>", "<one phrase>")
+        Container(api, "API", "<tech, version>", "<one phrase>")
+        ContainerDb(db, "Primary store", "<engine, version>", "<one phrase>")
+        ContainerQueue(q, "Event bus", "<broker>", "<one phrase>")
+        Container(worker, "Async worker", "<tech, version>", "<one phrase>")
+    }
+
+    System_Ext(ext1, "<external system>", "<one phrase>")
+
+    Rel(user, web, "<verb-phrase>", "HTTPS")
+    Rel(web, api, "<verb-phrase>", "<protocol>")
+    Rel(api, db, "<verb-phrase>", "<query language>")
+    Rel(api, q, "<verb-phrase>", "<broker / topic>")
+    Rel(q, worker, "<verb-phrase>", "<broker>")
+    Rel(worker, db, "<verb-phrase>", "<query language>")
+    Rel(api, ext1, "<verb-phrase>", "<protocol>")
