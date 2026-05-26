@@ -36,8 +36,8 @@ never sees it.
   refuses flags like `--token` / `--api-token` / `--bearer` /
   `--pat` / `--password` and exits — do not work around it.
 - If `check` exits with the "missing credentials" code, tell the
-  user to run `agentbundle creds setup <namespace>` themselves.
-  It's interactive — do not run it for them.
+  user to run the `credential-setup` skill themselves. It's
+  interactive — do not run it for them.
 
 ## Usage
 

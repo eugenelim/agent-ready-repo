@@ -325,6 +325,16 @@ def test_make_build_check_passes_on_clean_source_packs(tmp_path):
     output_dir.mkdir()
     _run_build_into_dist(packs_shadow, output_dir)
 
+    # T6: adapter-root-bins/ projects to <output_dir>/.agentbundle/bin/.
+    # In real `make build-check`, the working tree carries this from a
+    # prior `make build-self`; for the fresh-workspace test fixture,
+    # apply the projection here so the drift gate has a populated
+    # target to compare against.
+    from agentbundle.build.adapter_root_bins import (
+        apply_projection as _adapter_root_bins_apply,
+    )
+    _adapter_root_bins_apply(output_dir, packs_shadow)
+
     rc = run_build_check_drift_gates(output_dir, packs_shadow)
 
     assert rc == 0, (

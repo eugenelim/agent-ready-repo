@@ -54,6 +54,10 @@ from agentbundle.build.shared_libs import (
     apply_projection as _shared_libs_apply,
     check_drift as _shared_libs_check_drift,
 )
+from agentbundle.build.adapter_root_bins import (
+    apply_projection as _adapter_root_bins_apply,
+    check_drift as _adapter_root_bins_check_drift,
+)
 
 # AC14: canonical lowercase-hyphen marker grammar. The self-host
 # regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
@@ -1003,6 +1007,14 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 5
+    # T6: project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
+    # with 0o755 on POSIX. Inter-pack basename collision raises
+    # ValueError; surface as self-host: <msg> and exit 5.
+    try:
+        _adapter_root_bins_apply(working_tree, packs_dir)
+    except ValueError as exc:
+        print(f"self-host: {exc}", file=sys.stderr)
+        return 5
     _project_all_adapters(working_tree, packs_dir, contract)
     try:
         seed_map = _project_seeds(packs_dir, working_tree)
@@ -1353,6 +1365,16 @@ def run_build_check_drift_gates(
     # a single description (the projection cannot proceed).
     # ------------------------------------------------------------------
     for msg in _shared_libs_check_drift(packs_dir):
+        failures.append(msg)
+
+    # ------------------------------------------------------------------
+    # Gate: adapter-root-bins projection drift (RFC-0013 § 4d).
+    #
+    # Same three outcomes — modified / missing / orphaned. Single-target
+    # projection (not many-to-many like shared-libs) so the diagnostic
+    # shape is simpler.
+    # ------------------------------------------------------------------
+    for msg in _adapter_root_bins_check_drift(output_dir, packs_dir):
         failures.append(msg)
 
     if failures:
