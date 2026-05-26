@@ -194,10 +194,13 @@ def _load_bundled_contract() -> dict:
     Kept private; callers go through the three high-level helpers
     below. Re-reads on every call (cheap; ~5KB TOML parse) so a
     monkeypatch in tests can swap the bundled file without leaking
-    a cached parse.
+    a cached parse. Uses the project's zipapp-safe reader instead of
+    `Path(__file__).parent` — `__file__` inside a zipapp isn't a real
+    filesystem path and `Path.read_text()` raises NotADirectoryError.
     """
-    contract_path = Path(__file__).parent / "_data" / "adapter.toml"
-    return tomllib.loads(contract_path.read_text(encoding="utf-8"))
+    from agentbundle.build.main import _read_bundled
+
+    return tomllib.loads(_read_bundled("adapter.toml"))
 
 
 def shipped_adapters_from_contract() -> tuple[str, ...]:
