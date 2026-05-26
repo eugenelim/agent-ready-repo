@@ -13,9 +13,8 @@ Subcommands:
     raw METHOD PATH     Arbitrary call for endpoints not wrapped above.
 
 The Jira Align bearer token is never accepted on the command line. It
-is resolved via the ``agentbundle.credentials`` loader (Tier 1 env →
-Tier 2 OS keyring → Tier 3 dotfile); run ``agentbundle creds setup
-jiraalign`` to populate the namespace.
+is resolved via the build-projected ``credentials_shim`` sibling (Tier 1 env →
+Tier 2 OS keyring → Tier 3 dotfile); run ``credential-setup`` skill to populate the namespace.
 """
 from __future__ import annotations
 
@@ -60,7 +59,7 @@ def _reject_token_on_cli(argv: list[str]) -> None:
         if head in TOKEN_CLI_FLAGS:
             sys.stderr.write(
                 "error: API tokens must not be passed on the command line. "
-                "Run `agentbundle creds setup jiraalign` to store "
+                "Run `credential-setup` skill to store "
                 "JIRAALIGN_API_TOKEN via env / keyring / dotfile.\n"
             )
             sys.exit(EXIT_USER_ERROR)

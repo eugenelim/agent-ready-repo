@@ -5,6 +5,8 @@ metadata:
   credentialed: true
   primitive-class: credentialed-cli
   auth: creds
+  namespace: jira
+  keys: ["API_TOKEN"]
 ---
 
 # Jira Client

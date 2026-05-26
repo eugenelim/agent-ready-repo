@@ -5,6 +5,8 @@ metadata:
   credentialed: true
   primitive-class: credentialed-cli
   auth: creds
+  namespace: figma
+  keys: ["API_TOKEN"]
 ---
 
 # Figma Client

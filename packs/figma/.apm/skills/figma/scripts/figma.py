@@ -29,8 +29,8 @@ Subcommands:
     raw METHOD PATH
 
 The Figma PAT is never accepted on the command line. It is resolved via
-the ``agentbundle.credentials`` loader (Tier 1 env → Tier 2 OS keyring →
-Tier 3 dotfile); run ``agentbundle creds setup figma`` to populate the
+the build-projected ``credentials_shim`` sibling (Tier 1 env → Tier 2 OS keyring →
+Tier 3 dotfile); run ``credential-setup`` skill to populate the
 namespace.
 """
 from __future__ import annotations
@@ -120,7 +120,7 @@ def _reject_token_on_cli(argv: list[str]) -> None:
         ):
             sys.stderr.write(
                 "error: API tokens must not be passed on the command line. "
-                "Run `agentbundle creds setup figma` to store FIGMA_API_TOKEN "
+                "Run `credential-setup` skill to store FIGMA_API_TOKEN "
                 "via env / keyring / dotfile.\n"
             )
             sys.exit(EXIT_USER_ERROR)
@@ -568,7 +568,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
     except AuthError as exc:
         sys.stderr.write(f"{exc}\n")
         sys.stderr.write(
-            "run `agentbundle creds setup figma` to set FIGMA_API_TOKEN\n"
+            "run `credential-setup` skill to set FIGMA_API_TOKEN\n"
         )
         return EXIT_AUTH_ERROR
 
