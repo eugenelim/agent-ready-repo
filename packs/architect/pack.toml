@@ -1,0 +1,14 @@
+[pack]
+name = "architect"
+version = "0.1.0"
+description = "Solution-architecture skills (architect-design, architect-diagram, architect-review). Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
+
+# RFC-0011 contract level — pure-markdown skills, multi-adapter.
+[pack.adapter-contract]
+version = "0.6"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# Pure-markdown SKILL.md surface — no adapter-specific primitives.
+allowed-adapters = ["claude-code", "kiro", "codex"]
