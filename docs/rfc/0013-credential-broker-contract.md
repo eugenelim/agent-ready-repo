@@ -1,9 +1,9 @@
 # RFC-0013: Credential broker contract — in-process shim for static tokens, adapter-root subprocess for SSO; formalise four-broker model
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-05-26
-- **Date closed:**
+- **Date closed:** 2026-05-26
 - **Amends:** [RFC-0006](0006-skill-secrets-storage.md) — the two-layer
   architecture rule is preserved; the storage-tier model graduates from
   "the resolver" to "one resolver", and the loader's Python-import shape
