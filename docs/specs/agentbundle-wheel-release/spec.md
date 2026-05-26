@@ -152,8 +152,13 @@ against a real workflow run than by an isolated unit test.
 - [ ] AC2. `cd packages/agentbundle && python -m build` produces
   `dist/agentbundle-<version>-py3-none-any.whl` and
   `dist/agentbundle-<version>.tar.gz`.
-- [ ] AC3. `twine check dist/*` exits 0 with no warnings about missing
-  metadata or unrenderable README.
+- [ ] AC3. `twine check dist/*` exits 0 with zero warnings.
+  **Empirical baseline (2026-05-26, pre-T1):** `twine check` exits 0
+  but emits exactly two warnings — `long_description missing` and
+  `long_description_content_type missing`. Both close when T1 adds the
+  `readme` field (setuptools derives both `long_description` and its
+  content type from the `readme` source). Verifier:
+  `twine check dist/* 2>&1 | grep -c WARNING` reports `0`.
 
 **Workflow shape.**
 
@@ -241,3 +246,7 @@ against a real workflow run than by an isolated unit test.
 ## Changelog
 
 - 2026-05-26: initial spec.
+- 2026-05-26: AC3 sharpened with empirical pre-T1 baseline (2 twine
+  warnings) + a `grep -c WARNING == 0` verifier. No contract change —
+  the post-T1 state ("zero warnings") is unchanged; the baseline
+  notation makes the verifier mechanical.

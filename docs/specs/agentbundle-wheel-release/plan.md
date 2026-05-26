@@ -76,6 +76,27 @@ subsections). Cross-cutting tests:
 - *Artifactory first publish* (AC14) — recorded only when the corp
   token lands. Out-of-band against PR-A's ship.
 
+**Baseline empirically verified (2026-05-26, pre-spec-commit):**
+
+- `cd packages/agentbundle && python -m build` succeeds against the
+  current pyproject; produces `agentbundle-0.1.0-py3-none-any.whl` +
+  `agentbundle-0.1.0.tar.gz`. *Validates T1 scope: setuptools backend
+  works as-is, pure-Python wheel shape confirmed, no migration needed.*
+- `twine check dist/*` exits 0 with exactly 2 warnings
+  (`long_description missing`, `long_description_content_type
+  missing`). *Validates T1's metadata-tightening scope is exactly what
+  AC3 promises to close.*
+- Fresh `venv` + `pip install dist/agentbundle-0.1.0-py3-none-any.whl`
+  + `python -c "from agentbundle.credentials import load_credentials"`
+  exits 0; `agentbundle --help` works. *Validates AC6's smoke step
+  shape against the current source, before any spec-driven changes.*
+- `Requires-Dist: (none)` in the built wheel's METADATA. *Validates
+  §Boundaries §Never do #3 ("`[project] dependencies` stays `[]`") as
+  the current state, not aspiration.*
+- PyPI `agentbundle` name still unclaimed (`https://pypi.org/simple/agentbundle/` → 404).
+  Trusted Publisher action repo + PyPI Pending Publisher docs both
+  reachable (200). *Validates Rollout Phase B's preconditions.*
+
 ## Tasks
 
 ### T1: pyproject metadata renders cleanly on PyPI
@@ -87,8 +108,13 @@ subsections). Cross-cutting tests:
 - AC1 — `pyproject.toml` declares `authors`, `license`, `readme`,
   `urls`, `classifiers`.
 - AC2 — `cd packages/agentbundle && python -m build` produces both
-  `.whl` and `.tar.gz`.
-- AC3 — `twine check dist/*` exits 0 with no warnings.
+  `.whl` and `.tar.gz`. Empirically confirmed pre-T1 (2026-05-26):
+  filename today is `agentbundle-0.1.0-py3-none-any.whl` and
+  `agentbundle-0.1.0.tar.gz`; the `py3-none-any` shape (pure-Python,
+  any-platform) is what AC2's filename pattern asserts.
+- AC3 — `twine check dist/* 2>&1 | grep -c WARNING` reports `0`.
+  Pre-T1 baseline is `2` (the two warnings named in AC3); the
+  `readme` field added in T1 closes both.
 - Goal-based: `python -c "import tomllib; m = tomllib.load(open(
   'packages/agentbundle/pyproject.toml', 'rb'))['project']; assert
   set(m) >= {'authors', 'license', 'readme', 'urls', 'classifiers'}"`
@@ -502,3 +528,8 @@ activation.**
 ## Changelog
 
 - 2026-05-26: initial plan.
+- 2026-05-26: empirical baseline added under §Construction tests +
+  AC2/AC3 Tests bullets sharpened with the exact pre-T1 wheel
+  filename and twine warning count. No spec-contract change — the
+  baseline confirms T1's scope matches reality (the two warnings
+  `readme` closes are exactly the two `twine check` flags today).
