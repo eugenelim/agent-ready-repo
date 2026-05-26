@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, and jira-defect-flow workflows that compose them."
 
 [pack.adapter-contract]
-version = "0.6"
+version = "0.7"
 
 [pack.install]
 default-scope = "user"
