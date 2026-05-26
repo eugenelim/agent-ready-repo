@@ -14,11 +14,9 @@ deep-merging the incoming TOML payload.
 
 from __future__ import annotations
 
-import json
 import shutil
-import tomllib
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Iterator
 
 
 # Phase order from RFC-0005 § Build-pipeline ordering invariant.
@@ -27,6 +25,7 @@ from typing import Any, Iterator
 # keeps the phases predictable, which the spec calls for.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.merge_json import project_merge_json
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -103,7 +102,7 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
         elif mode == "direct-file":
             _project_direct_file(source_dir, output_root, rule["target-path"])
         elif mode == "merge-json":
-            _project_merge_json(source_dir, output_root, rule)
+            project_merge_json(source_dir, output_root, rule)
         else:
             raise ValueError(f"claude-code: unhandled mode {mode!r} for {primitive_name}")
 
@@ -141,29 +140,3 @@ def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str
             shutil.copy2(entry, destination, follow_symlinks=False)
 
 
-def _project_merge_json(source_dir: Path, output_root: Path, rule: dict) -> None:
-    target_path = output_root / rule["target-path"].lstrip("/")
-    managed_key = rule.get("managed-key", "hooks")
-
-    incoming: dict[str, Any] = {}
-    for entry in sorted(source_dir.iterdir()):
-        if entry.is_file() and entry.suffix == ".toml":
-            payload = tomllib.loads(entry.read_text(encoding="utf-8"))
-            for key, value in payload.get(managed_key, {}).items():
-                incoming[key] = value
-    if not incoming:
-        return
-
-    existing: dict[str, Any] = {}
-    if target_path.exists():
-        existing = json.loads(target_path.read_text(encoding="utf-8"))
-
-    merged_hooks = dict(existing.get(managed_key, {}))
-    merged_hooks.update(incoming)
-    existing[managed_key] = merged_hooks
-
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    target_path.write_text(
-        json.dumps(existing, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
