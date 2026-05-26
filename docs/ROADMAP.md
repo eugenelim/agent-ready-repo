@@ -185,6 +185,57 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
+## `dropped-primitives-coverage` — shipped (T1-T10 landed; one named follow-on)
+
+Spec: [`specs/dropped-primitives-coverage/spec.md`](specs/dropped-primitives-coverage/spec.md).
+Status: Draft → shipped 2026-05-26. No standalone RFC — the spec
+extends RFC-0009 (codex native `.agents/skills/` projection) and
+RFC-0005 (`merge-json` mode + `managed-key` semantics) per spec
+§ Constrained by.
+
+The spec bumps the adapter contract from v0.7 to v0.8 with two
+behavioural changes:
+
+  1. **Codex agents + hook-wiring project natively.** Pre-v0.8 codex
+     dropped both silently. Post-v0.8, agents land at
+     `<root>/.codex/agents/<name>.toml` via the new `codex-agent-toml`
+     mode (markdown → TOML serialisation with the
+     `codex-agent-frontmatter-v0.8` mapping); hook-wiring lands at
+     `<root>/.codex/hooks.json` via the existing `merge-json` mode
+     reused (lifted to `build/projections/merge_json.py` so codex.py
+     and claude_code.py share the helper). Codex `command` stays
+     `dropped` — upstream custom-prompts deprecated in favour of
+     skills.
+
+  2. **Dropped-primitives warning rail.** `agentbundle install`
+     emits a stderr warning whenever the resolved adapter projects
+     any primitive type the pack ships as `dropped`. Contract-driven
+     (no hardcoded adapter literals); short-circuits once per
+     `(root, pack, adapter, scope)` per process. Pinned wording with
+     singular/plural counts (`1 agent` / `2 agents`), serial-comma-
+     plus-`and` joining, and zero-count elision. Fires for codex
+     (command only post-bump), kiro (command), copilot (agent +
+     command + hook-wiring); silent for claude-code and skills-only
+     packs. The install does NOT refuse; compatible primitives still
+     project.
+
+Eight packs bump to v0.8 in one PR per RFC-0004 atomicity (atlassian,
+figma, converters, contracts, core, governance-extras,
+user-guide-diataxis, monorepo-extras). `architect` (v0.6) and
+`credential-brokers` (v0.7) deliberately stay behind — backward-
+compat path keeps them working under the v0.8 contract.
+
+Migration: [`guides/how-to/v07-to-v08-pack-upgrade.md`](guides/how-to/v07-to-v08-pack-upgrade.md)
+documents the two-step `uninstall + install` path for adopters who
+installed a codex-targeted pack while the catalogue was at v0.7
+(`agentbundle install --force` does NOT auto-detect this case —
+AC24(b) shape-mismatch fires on dist-tree files only).
+
+**Open follow-on (out of this PR):** auto-detection of the v0.7 → v0.8
+codex re-projection case so `--force` (or `agentbundle upgrade`)
+re-projects under the new contract without the documented manual
+two-step. Named in the spec § Risks; deferred to a future RFC.
+
 ## `repo-scope-per-adapter-projection` — shipped (T1-T9 + AC24 + AC30b + AC33 + ADR-0004 + (c) per-pack scoping all landed; no open items)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).

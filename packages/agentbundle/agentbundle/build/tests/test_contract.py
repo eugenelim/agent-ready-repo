@@ -142,7 +142,9 @@ class AllPairsEnumeratedTests(unittest.TestCase):
 
 class ModeEnumTests(unittest.TestCase):
     """adapter.schema.json mode enum: seven RFC-0001 modes plus the two
-    v0.3 additions from RFC-0005 (`user-merge-json`, `merge-into-agent-json`)."""
+    v0.3 additions from RFC-0005 (`user-merge-json`, `merge-into-agent-json`)
+    plus the v0.8 addition from docs/specs/dropped-primitives-coverage
+    (`codex-agent-toml`)."""
 
     def test_mode_enum_contains_expected_modes(self) -> None:
         schema = _load_schema()
@@ -153,11 +155,15 @@ class ModeEnumTests(unittest.TestCase):
             ]["items"]
         )
         mode_enum = set(projection_items["properties"]["mode"]["enum"])
-        expected = SEVEN_RFC_MODES | {"user-merge-json", "merge-into-agent-json"}
+        expected = SEVEN_RFC_MODES | {
+            "user-merge-json",
+            "merge-into-agent-json",
+            "codex-agent-toml",
+        }
         self.assertEqual(
             mode_enum,
             expected,
-            f"schema mode enum differs from RFC-0001+RFC-0005 set: {mode_enum}",
+            f"schema mode enum differs from RFC-0001+RFC-0005+v0.8 set: {mode_enum}",
         )
 
     def test_schema_rejects_unknown_mode(self) -> None:
@@ -382,8 +388,9 @@ class FrontmatterTableTests(unittest.TestCase):
 class ContractV05Tests(unittest.TestCase):
     """T2 (apm-install-route-parity AC9): contract-version assertion.
 
-    Originally pinned v0.5; bumped to v0.6 by RFC-0011 and to v0.7 by
-    RFC-0013 / credential-broker-contract. Class name preserved to avoid
+    Originally pinned v0.5; bumped to v0.6 by RFC-0011, v0.7 by
+    RFC-0013 / credential-broker-contract, v0.8 by
+    docs/specs/dropped-primitives-coverage. Class name preserved to avoid
     needless diff churn against the next bump.
     """
 
@@ -392,14 +399,14 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.7"
-        (bumped from "0.6" by RFC-0012 / repo-scope-per-adapter-projection
-        and RFC-0013 / credential-broker-contract co-residing at v0.7).
+        """tomllib.loads of adapter.toml returns contract.version == "0.8"
+        (bumped from "0.7" by docs/specs/dropped-primitives-coverage —
+        codex `agent` + `hook-wiring` move from `dropped` to first-class).
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.7",
-            "adapter.toml [contract] version must be '0.7' after RFC-0012 + RFC-0013 bump",
+            "0.8",
+            "adapter.toml [contract] version must be '0.8' after dropped-primitives-coverage bump",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:

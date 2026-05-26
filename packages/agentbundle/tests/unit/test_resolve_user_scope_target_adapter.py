@@ -227,9 +227,9 @@ def test_adapter_flag_refused_not_user_scope_capable(tmp_path, fake_home):
         )
     msg = str(exc_info.value)
     assert "--adapter copilot not admitted as a user-scope-capable adapter" in msg
-    # Message references the bundled contract version, which RFC-0012 +
-    # RFC-0013 co-bumped to v0.7.
-    assert "v0.7" in msg
+    # Message references the bundled contract version; bumped to v0.8 by
+    # docs/specs/dropped-primitives-coverage.
+    assert "v0.8" in msg
 
 
 # ---------------------------------------------------------------------------
@@ -441,7 +441,7 @@ def test_step1_copilot_admitted_at_repo_user_refused(tmp_path, fake_home):
         )
     msg = str(exc_info.value)
     assert "--adapter copilot not admitted as a user-scope-capable adapter" in msg
-    assert "v0.7" in msg
+    assert "v0.8" in msg
 
 
 def test_repo_scope_does_not_probe_dot_claude(tmp_path, fake_home):
