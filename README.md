@@ -30,6 +30,28 @@ Pick `core` plus whichever add-ons fit your repo. The detailed breakdown of `cor
 
 ## Install
 
+The reference CLI `agentbundle` is the catalogue's foundation — install it once, then every pack install is one line at either scope.
+
+**One-time setup** (until [RFC-0003](docs/rfc/0003-spec-and-cli.md) § F-cli-dist ships a release artifact, install from a clone):
+
+```bash
+git clone https://github.com/eugenelim/agent-ready-repo
+pip install -e agent-ready-repo/packages/agentbundle/
+```
+
+**Then one line per pack, either scope:**
+
+```bash
+agentbundle install --pack core      git+https://github.com/eugenelim/agent-ready-repo   # repo-scope: into the current repo
+agentbundle install --pack architect git+https://github.com/eugenelim/agent-ready-repo   # user-scope: into ~/.claude/
+```
+
+`core` lands under the current repo's `.claude/`; `architect` lands under `~/.claude/` so it follows you across every project on the machine. Scope is read from each pack's `default-scope` — swap either pack name for any row in the [Packs](#packs) table.
+
+APM and Claude-plugin routes will land the same markdown content without the `pip install` step, but `adapt-to-project` substitution, credentialed skills (`jira`, `figma`, `confluence-publisher`, ...), and upgrade-time safety (`agentbundle init-state`) all require the `agentbundle` CLI on PATH — so the one-time pip step is effectively part of the setup either way.
+
+### All four install routes
+
 Four routes, depending on the agent harness you use and whether you want the catalogue's CLI on your PATH. They install the same packs.
 
 **Where to run these.** The first three commands run from inside *your own* repo and let the install verb fetch the catalogue itself — you don't `git clone agent-ready-repo` first. For a brand-new project, `mkdir my-project && cd my-project && git init` before installing; for a brownfield repo, just `cd` into its root. The fourth route is the exception: you clone the catalogue, build the CLI inside it, and project outward via `--output`. Either way, repo-only packs land under the target repo; user-scope packs land under `~/.claude/` (the adapter target for each non-Claude harness is in the [`Where primitives land`](#where-primitives-land) table).
