@@ -42,7 +42,11 @@ def _find_skill_root(start: Optional[Path] = None) -> Path:
     both ``SKILL.md`` and ``references/`` is found.
 
     Layout-agnostic so the same resolver works for user-scope installs
-    (``~/.claude/skills/flow-metrics/``) and in-pack development trees
+    under any of the three user-scope-capable adapters
+    (``~/.claude/skills/flow-metrics/`` for claude-code,
+    ``~/.kiro/skills/flow-metrics/`` for kiro,
+    ``~/.agents/skills/flow-metrics/`` for codex per Codex's upstream
+    skills docs) and in-pack development trees
     (``<repo>/packs/atlassian/.apm/skills/flow-metrics/``). During
     development the
     ``SKILL.md`` file may not exist yet (T12 ships it); in that case we
