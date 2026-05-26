@@ -607,7 +607,7 @@ Adopter disclosure shipped at `packs/core/README.md`.
   `agentbundle adapt --scope <project|user>` manual fallback per
   the per-pack README disclosure.
 
-## `credential-broker-contract` — in flight (T1-T14 landed; T15 pending)
+## `credential-broker-contract` — shipped (T1-T15 landed; manual-QA matrix pending)
 
 Spec: [`specs/credential-broker-contract/spec.md`](specs/credential-broker-contract/spec.md).
 ADR: [`adr/0003-credential-broker-contract.md`](adr/0003-credential-broker-contract.md)

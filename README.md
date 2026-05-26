@@ -65,11 +65,11 @@ Route 3 still requires route 4's pip install today — RFC-0003 § F-cli-dist's 
 git clone https://github.com/eugenelim/agent-ready-repo
 cd agent-ready-repo
 pip install -e packages/agentbundle/                     # one install, two surfaces (module + CLI on PATH)
-python -c "from agentbundle.credentials import load_credentials"   # smoke: importable?
+agentbundle --version                                              # smoke: CLI on PATH?
 agentbundle install --pack core . --output /path/to/your/project
 ```
 
-**The clone does double duty.** `packs/` is the catalogue the install verb projects into your target repo; `packages/agentbundle/` is the runtime library credentialed skills (`jira`, `figma`, `confluence-publisher`, and others) import from their own subprocess. The `pip install -e` step wires that library into your active interpreter *and* drops the `agentbundle` launcher on PATH, so a single install gives you both the CLI you just ran and the module the skill scripts depend on; `git pull` against the clone cascades to both surfaces. See [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md) for the full mental model, the editable-vs-snapshot choice, and venv guidance.
+**The clone does double duty.** `packs/` is the catalogue the install verb projects into your target repo; `packages/agentbundle/` is the runtime CLI plus the build pipeline. As of 0.2.0 the runtime library no longer exposes a credential-resolution module — credentialed skills (`jira`, `figma`, `confluence-publisher`, and others) import a build-projected `credentials_shim` sibling that the `credential-brokers` pack drops alongside each consumer's `scripts/`. The `pip install -e` step drops the `agentbundle` launcher on PATH; `git pull` against the clone cascades to the catalogue and the CLI. See [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md) for the full mental model, the editable-vs-snapshot choice, and venv guidance.
 
 The catalogue argument is `.` because you're inside the clone; `--output` points at the target repo's root. Use `git checkout <tag>` in the clone first to pin a specific release. If `pip install` is blocked in your environment, see the [zipapp fallback](docs/guides/how-to/install-agentbundle-from-clone.md#fallback-build-the-zipapp).
 

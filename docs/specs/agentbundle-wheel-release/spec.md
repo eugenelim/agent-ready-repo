@@ -260,6 +260,15 @@ against a real workflow run than by an isolated unit test.
 
 ## Changelog
 
+- 2026-05-26 (credential-broker-contract T15 cross-impact): the smoke
+  gate at AC5/AC7 historically used `python -c "from agentbundle.credentials
+  import load_credentials"` as the proof-of-installation. With
+  credential-broker-contract T15 removing `agentbundle.credentials`
+  from the wheel (0.2.0), the smoke check moves to a current export
+  — `python -c "from agentbundle.cli import main"`. The CI workflow
+  at `.github/workflows/release-agentbundle.yml` reflects the new
+  smoke; any reviewer encountering the prior wording in this spec
+  reads it as historical, not contract-binding.
 - 2026-05-26: initial spec.
 - 2026-05-26: AC3 sharpened with empirical pre-T1 baseline (2 twine
   warnings) + a `grep -c WARNING == 0` verifier. No contract change —
