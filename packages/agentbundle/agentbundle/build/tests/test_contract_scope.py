@@ -39,11 +39,13 @@ class ContractVersionTests(unittest.TestCase):
     RFC-0011 / pack-allowed-adapters (codex user-scope table), then to 0.7
     by RFC-0012 / repo-scope-per-adapter-projection (every adapter declares
     `allowed-prefixes.repo`; copilot gains a scope table) and RFC-0013 /
-    credential-broker-contract (governance bump) co-residing at v0.7."""
+    credential-broker-contract (governance bump) co-residing at v0.7, then
+    to 0.8 by docs/specs/dropped-primitives-coverage (codex agent +
+    hook-wiring move from `dropped` to first-class projections)."""
 
     def test_contract_version_is_0_5(self) -> None:
         contract = _load_contract()
-        self.assertEqual(contract["contract"]["version"], "0.7")
+        self.assertEqual(contract["contract"]["version"], "0.8")
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):
@@ -101,9 +103,11 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
         self.assertIsNotNone(scope, "Codex [scope] block missing (RFC-0011)")
         self.assertEqual(scope["repo"], ".")
         self.assertEqual(scope["user"], "~")
+        # v0.8 (dropped-primitives-coverage) adds `.codex/` to allow
+        # codex agent + hook-wiring projection.
         self.assertEqual(
             scope["allowed-prefixes"]["user"],
-            [".agents/skills/", ".agentbundle/"],
+            [".agents/skills/", ".codex/", ".agentbundle/"],
         )
 
     def test_kiro_has_scope_per_rfc_0005(self) -> None:
