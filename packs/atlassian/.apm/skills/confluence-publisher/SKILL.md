@@ -36,7 +36,7 @@ Flavor is auto-detected from the base URL; override via
 
 ### Configuration location
 
-Credentials are resolved by `agentbundle.credentials.load_credentials`
+Credentials are resolved by the build-projected `credentials_shim.load_credentials`
 through Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile. The
 dotfile lives at `~/.agentbundle/credentials.env`. The declared schema
 is at `references/creds-schema.toml` and shares the `confluence`
@@ -50,7 +50,7 @@ configured, this one works.
 | `CONFLUENCE_EMAIL` | Cloud only | Atlassian account email. |
 | `CONFLUENCE_FLAVOR` | no | `cloud` or `server`. Auto-detected from URL host. |
 
-Populate any tier by running `agentbundle creds setup confluence`.
+Populate any tier by running `credential-setup` skill.
 
 ### Security rules (non-negotiable)
 
@@ -62,7 +62,7 @@ Populate any tier by running `agentbundle creds setup confluence`.
   refuses flags like `--token` / `--api-token` / `--bearer` /
   `--pat` / `--password` and exits — do not work around it.
 - If `--check` reports missing or invalid creds, tell the user to run
-  `agentbundle creds setup confluence` themselves.
+  `credential-setup` skill themselves.
   It's interactive — do not run it for them.
 
 ### Step 1: Verify the environment
@@ -74,7 +74,7 @@ python scripts/publish_page.py --check
 
 - Exit code 0 → authenticated, proceed.
 - Exit code 2 → credentials missing or invalid. Tell the user to run
-  `agentbundle creds setup confluence` themselves (interactive — they
+  `credential-setup` skill themselves (interactive — they
   run it, not you). Stop here.
 
 ### Step 2: Decide how to identify the target page
@@ -205,7 +205,7 @@ user a human edited concurrently and ask them to re-run.
 
 - Don't read `~/.agentbundle/credentials.env` from skill body.
 - Don't print or log the token.
-- Don't run `agentbundle creds setup confluence` non-interactively or pipe the token into it.
+- Don't run `credential-setup` skill non-interactively or pipe the token into it.
 - Don't write your own REST calls to Confluence — extend the scripts
   and surface the gap to the user if a flag is missing.
 - Don't auto-resolve a title collision by appending suffixes — surface

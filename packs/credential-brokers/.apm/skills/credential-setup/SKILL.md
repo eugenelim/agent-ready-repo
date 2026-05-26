@@ -1,6 +1,6 @@
 ---
 name: credential-setup
-description: Interactive credential setup for skills declaring `metadata.auth` of creds. Walks the user through entering each required key from the skill's `creds-schema.toml` and writes to the highest-available tier (OS keychain on Darwin/Windows; 0600 dotfile floor on Linux). Triggers on "set up credentials", "credential setup", "agentbundle creds setup". This is interactive, user-invoked, do not auto-run.
+description: Interactive credential setup for skills declaring `metadata.auth` of creds. Walks the user through entering each required key from the skill's `creds-schema.toml` and writes to the highest-available tier (OS keychain on Darwin/Windows; 0600 dotfile floor on Linux). Triggers on "set up credentials", "credential setup", "credential broker setup". This is interactive, user-invoked, do not auto-run.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
@@ -78,9 +78,12 @@ The script:
   permissive DACL on Windows, or any other interactive precondition
   unmet.
 
-## Inverse — `agentbundle creds where <namespace>`
+## Inverse — verifying resolution
 
-To verify resolution after setup, run `agentbundle creds where
-<namespace>` (ships with the agentbundle package). This skill writes;
-the inverse reads. Do not write a `get` verb in this skill — the
-RFC-0006 § 5 wrap-and-leak shape is explicitly refused.
+To verify resolution after setup, invoke the consumer skill's own
+`check` verb (e.g. `python3 scripts/cli.py check` for a credentialed-
+CLI primitive). The consumer's `check` walks Tier 1 → Tier 2 → Tier 3
+through the build-projected `credentials_shim` and exits 0 when every
+declared key resolves. This skill writes; the consumer's `check`
+reads. Do not write a `get` verb in this skill — the RFC-0006 § 5
+wrap-and-leak shape is explicitly refused.

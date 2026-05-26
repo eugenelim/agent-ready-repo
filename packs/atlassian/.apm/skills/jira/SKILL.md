@@ -43,7 +43,7 @@ Cloud.
 
 ### Configuration location
 
-Credentials are resolved by `agentbundle.credentials.load_credentials`
+Credentials are resolved by the build-projected `credentials_shim.load_credentials`
 through the Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile ladder.
 The dotfile lives at `~/.agentbundle/credentials.env` (mode 0600 on
 POSIX; DACL-restricted on Windows). The declared schema is in
@@ -56,7 +56,7 @@ POSIX; DACL-restricted on Windows). The declared schema is in
 | `JIRA_API_TOKEN` | yes | Cloud API token (`id.atlassian.com` → API tokens) or Server PAT. |
 | `JIRA_FLAVOR` | no | `cloud` or `server`. Auto-detected from URL host when unset. |
 
-Populate any tier by running `agentbundle creds setup jira` — the CLI
+Populate any tier by running `credential-setup` skill — the CLI
 walks the schema interactively and writes the values where you choose.
 
 ### Security rules (non-negotiable)
@@ -69,7 +69,7 @@ walks the schema interactively and writes the values where you choose.
   refuses flags like `--token` / `--api-token` / `--bearer` /
   `--pat` / `--password` and exits — do not work around it.
 - If `check` exits with the "missing credentials" code, tell the
-  user to run `agentbundle creds setup jira` themselves.
+  user to run `credential-setup` skill themselves.
   It's interactive — do not run it for them.
 
 ### Step 1: Verify the environment
@@ -88,7 +88,7 @@ python scripts/jira.py check
 
 - Exit code 0 → authenticated, proceed.
 - Exit code 2 → credentials missing or invalid. Tell the user to run
-  `agentbundle creds setup jira` themselves (interactive — they run it,
+  `credential-setup` skill themselves (interactive — they run it,
   not you). Stop here.
 
 ### Step 2: Dispatch to the right subcommand
@@ -234,7 +234,7 @@ python scripts/jira.py transition PROJ-123 --to "In Progress"
 
 - Don't read `~/.agentbundle/credentials.env` from skill body.
 - Don't print or log the API token / PAT.
-- Don't run `agentbundle creds setup jira` non-interactively or pipe the
+- Don't run `credential-setup` skill non-interactively or pipe the
   token into it.
 - Don't write your own REST calls to Jira — extend the scripts instead,
   and surface the gap to the user if a subcommand is missing.
@@ -262,7 +262,7 @@ python scripts/jira.py transition PROJ-123 --to "In Progress"
 - **Token expired or revoked**: 401 Unauthorized → exit 2. Cloud tokens
   can be regenerated at `id.atlassian.com → API tokens`; Server PATs in
   the user's Profile → Personal Access Tokens. Tell the user to
-  re-run `agentbundle creds setup jira` after generating a new one.
+  re-run `credential-setup` skill after generating a new one.
 - **Permission denied for a project / issue** (403): exit 3. Token is
   valid but the user's role does not cover the resource — relay the
   message, don't retry. On Cloud, a 403 with header

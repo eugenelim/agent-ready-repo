@@ -895,10 +895,12 @@ to consult per-request, not the value.
 Five anti-patterns rejected by name:
 
 - **Tokens in skill argv** — defeats the architecture rule.
-- **The `creds get` "wrap-and-leak" shape** — any verb that prints a
-  cleartext token to stdout enables capture from a skill body.
-  `agentbundle creds` ships four verbs (`setup`/`check`/`where`/`rm`)
-  by design; no `get`.
+- **A `get` verb that returns a cleartext token** — any verb that
+  prints the resolved token to stdout enables capture from a skill
+  body. The `credential-setup` skill writes; a consumer's `check`
+  verb reads (resolves and returns 0/non-0 only); no skill or shim
+  surface returns the cleartext token to a caller other than the
+  in-process credentialed primitive that owns the API call.
 - **Per-skill dotfiles** — one well-known per-user file per the spec
   AC13 path; per-skill files multiply the wipe-on-rotation surface.
 - **`SSL_VERIFY=false` defaults** — `--insecure` is opt-in only and

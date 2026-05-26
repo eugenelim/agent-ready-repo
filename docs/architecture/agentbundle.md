@@ -1,12 +1,15 @@
 # `agentbundle` — package and bundler
 
-The reference CLI and runtime library at
+The reference CLI and build pipeline at
 [`packages/agentbundle/`](../../packages/agentbundle/). Stdlib-only,
-zipapp-distributable, and the single Python module every credentialed
-primitive imports. Two surfaces in one install: a CLI on PATH
-(`agentbundle <verb>`) and an importable module (`from agentbundle.credentials
-import load_credentials`). This page describes the package as code; the
-spec lives in [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md),
+zipapp-distributable. One surface in one install: a CLI on PATH
+(`agentbundle <verb>`) that drives pack install, validation, adapt,
+and build. As of 0.2.0 the package no longer exposes a credential-
+resolution module — credentialed primitives import a build-projected
+`credentials_shim` sibling shipped by the `credential-brokers` pack
+(see [`credentials.md`](credentials.md)). This page describes the
+package as code; the spec lives in
+[`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md),
 the contract in [`docs/contracts/adapter.toml`](../contracts/adapter.toml),
 and the *why* in [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md)
 + [RFC-0003](../rfc/0003-spec-and-cli.md).
@@ -22,12 +25,15 @@ packages/agentbundle/agentbundle/
 ├── safety.py             # Tier-1/2/3 enforcement on writes
 ├── scope.py              # scope resolution (repo vs user)
 ├── version.py            # CLI_VERSION, SPEC_VERSION
-├── credentials.py        # public shim → re-exports from creds/loader.py
 ├── commands/             # one module per CLI verb
 ├── build/                # the bundler — recipe loader, adapters, projections
-├── creds/                # credential loader internals (Tier 1/2/3 backends)
 ├── _data/                # bundled schemas + install-marker copy
 └── templates/            # canonical install-marker.py (sync source)
+
+(Credential resolution moved to the build-projected `credentials_shim`
+sibling per RFC-0013; see [`credentials.md`](credentials.md). The
+`credentials.py`, `creds/`, and `commands/creds.py` surfaces shipped
+in 0.1.x were removed in 0.2.0.)
 ```
 
 ## The CLI surface
