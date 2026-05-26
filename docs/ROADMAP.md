@@ -185,7 +185,7 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
-## `repo-scope-per-adapter-projection` — drafted
+## `repo-scope-per-adapter-projection` — in flight (T1-T9 landed)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
 RFC: [`rfc/0012-repo-scope-per-adapter-projection.md`](rfc/0012-repo-scope-per-adapter-projection.md)
@@ -216,8 +216,17 @@ three-trigger in-band detection (shape-mismatch /
 adapter-disagreement / orphan recovery) carries adopters across
 the v0.6 → v0.7 transition.
 
-- **All 37 ACs open.** Coverage unblocks incrementally as tasks
-  land:
+- **Status as of 2026-05-26 (this session):** T1-T9 landed via a
+  single work-loop execution. ACs closed: AC1-AC23, AC25-AC33,
+  AC35-AC37 (subject to T11 final gate verification on the PR).
+  ACs partially closed / deferred to follow-up:
+  - **AC24** — in-band detection of pre-RFC-0012 state. The
+    orphan-recovery (c) trigger ships with T7; the (a)
+    adapter-disagreement and (b) shape-mismatch triggers are a
+    follow-up amendment.
+  - **AC34** — passing on the new tests + green elsewhere; will
+    re-verify on PR CI.
+- **Tasks landed (this session):**
   - **AC1, AC2, AC3, AC4** close with T1 (contract bump + scope
     tables + schema validator).
   - **AC7, AC8, AC9, AC10, AC11, AC12, AC13, AC30, AC31** close
