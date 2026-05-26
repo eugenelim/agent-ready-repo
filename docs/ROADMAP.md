@@ -185,7 +185,7 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
-## `repo-scope-per-adapter-projection` — shipped (T1-T9 + AC24 + AC30b + AC33 + ADR-0004 follow-ons all landed; (c) per-pack scoping open as a non-gating enhancement)
+## `repo-scope-per-adapter-projection` — shipped (T1-T9 + AC24 + AC30b + AC33 + ADR-0004 + (c) per-pack scoping all landed; no open items)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
 RFC: [`rfc/0012-repo-scope-per-adapter-projection.md`](rfc/0012-repo-scope-per-adapter-projection.md)
@@ -246,13 +246,16 @@ the v0.6 → v0.7 transition.
   and 8 from RFC-0012's Alternatives section as explicitly rejected.
   Same PR backfills 0002 and 0003 into `docs/adr/README.md`'s table
   (the index was stale).
-- **Open follow-on items:**
-  - **Per-pack scoping of (c)'s artifact scan** — pre-existing AC22
-    limitation inherited verbatim. `safety.scan_for_pack_artifacts`
-    is adapter-prefix scoped; tightening to pack-name scoping is a
-    future surface (cross-pack false-positive only fires when an
-    orphan from a third pack sits under the same adapter prefix as
-    the pack being installed).
+- **Per-pack scoping of (c)'s artifact scan landed in PR #149 (2026-05-26).**
+  `safety.scan_for_pack_artifacts` gained optional `pack_dir` +
+  `pack_name` kwargs that narrow the scan to pack-owned primitive
+  names (via the pack's `.apm/<type>/` source walk plus pack-name
+  stem matching for Copilot). Install handler threads both values
+  through; the cross-pack false positive (pack A's orphans
+  surfacing when installing pack B) is closed and pinned by a
+  regression test. Legacy two-arg call shape preserved for external
+  callers. AC12 + AC22 wording amended; this was the final open
+  follow-on for RFC-0012.
 - **Tasks landed (this session):**
   - **AC1, AC2, AC3, AC4** close with T1 (contract bump + scope
     tables + schema validator).
