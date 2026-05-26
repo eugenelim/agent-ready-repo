@@ -1041,9 +1041,12 @@ def _enumerate_dropped_primitives(
 
     Counts come from ``<pack_dir>/.apm/<source-dir>/`` (where
     ``<source-dir>`` is the contract's ``primitive.<type>.source-path``
-    last segment — e.g., ``hook-body`` → ``hooks/``); each file or
-    directory entry counts as one primitive (skills are directories,
-    hook-wiring TOMLs are files). Empty mapping when:
+    last segment — e.g., ``hook-body`` → ``hooks/``). Each entry counts
+    as one primitive only if it matches the type's expected shape
+    (skills/agents/commands are directories or .md files; hook-wiring is
+    .toml; hook-body is any file). Junk files (``.DS_Store``, editor
+    swap files) and stray directories don't inflate the count. Empty
+    mapping when:
 
       - The adapter has no ``dropped`` entries at all (e.g. claude-code).
       - The pack ships nothing under any of the adapter's dropped types.
@@ -1064,14 +1067,49 @@ def _enumerate_dropped_primitives(
         if not ptype:
             continue
         source_path = primitives.get(ptype, {}).get("source-path", "")
-        # source-path like ".apm/agents/"; we walk <pack>/.apm/<dir>/.
         source_dir = pack_dir / source_path.strip("/")
         if not source_dir.exists():
             continue
-        count = sum(1 for _ in source_dir.iterdir())
+        count = _count_primitive_entries(source_dir, ptype)
         if count > 0:
             out[ptype] = count
     return out
+
+
+def _count_primitive_entries(source_dir: Path, ptype: str) -> int:
+    """Count entries in ``source_dir`` that match ``ptype``'s shape.
+
+    Per the bundled contract's primitive layout:
+      - ``skill``: subdirectories (each a skill bundle with SKILL.md).
+      - ``agent``, ``command``: ``.md`` files.
+      - ``hook-body``: any regular file (.sh / .py / future shapes).
+      - ``hook-wiring``: ``.toml`` files.
+
+    Junk entries (``.DS_Store``, editor swap files, stray subdirs) are
+    skipped — they would otherwise inflate the warning rail's count.
+    """
+    count = 0
+    for entry in source_dir.iterdir():
+        if entry.name.startswith("."):
+            continue
+        if ptype == "skill":
+            if entry.is_dir():
+                count += 1
+        elif ptype in ("agent", "command"):
+            if entry.is_file() and entry.suffix == ".md":
+                count += 1
+        elif ptype == "hook-wiring":
+            if entry.is_file() and entry.suffix == ".toml":
+                count += 1
+        elif ptype == "hook-body":
+            if entry.is_file():
+                count += 1
+        else:
+            # Unknown primitive type — admit conservatively (count all
+            # non-dotfile entries) so a future contract addition is
+            # surfaced rather than silently filtered.
+            count += 1
+    return count
 
 
 def _enumerate_compatible_primitives(
@@ -1101,7 +1139,7 @@ def _enumerate_compatible_primitives(
         source_dir = pack_dir / source_path.strip("/")
         if not source_dir.exists():
             continue
-        if any(True for _ in source_dir.iterdir()):
+        if _count_primitive_entries(source_dir, ptype) > 0:
             out.append(ptype)
     return out
 
@@ -1151,6 +1189,16 @@ def _format_dropped_warning(
             count_parts.append(f"1 {ptype}")
         else:
             count_parts.append(f"{count} {_pluralize_primitive_name(ptype)}")
+    if not count_parts:
+        # All-zero or empty input — the warning has nothing meaningful to
+        # report. _maybe_emit_dropped_warning's caller-side guard catches
+        # this before we get here, but the formatter is module-public
+        # by convention (tests consume it directly) so refuse rather
+        # than emit a malformed "ships  that ..." string.
+        raise ValueError(
+            "dropped_counts has no nonzero entries; "
+            "_format_dropped_warning has nothing to format"
+        )
     count_list = _join_serial_comma(count_parts)
 
     compatible_parts = [
