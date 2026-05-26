@@ -37,7 +37,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SKILL_DIR = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "example-credentialed-skill"
-TEMPLATE_PATH = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "add-credentialed-skill" / "assets" / "credentialed-skill-SKILL.md"
+TEMPLATE_PATH = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "add-credentialed-skill" / "assets" / "credentialed-skill-SKILL-creds.md"
 
 
 # ── AC29: structure ────────────────────────────────────────────────────
@@ -198,9 +198,11 @@ def test_dont_block_matches_credentialed_cli_template():
     ``### Security rules (non-negotiable)`` through the section's
     terminator) must appear verbatim in the worked example.
 
-    The template at ``add-credentialed-skill/assets/credentialed-skill-SKILL.md``
-    is the canonical source for the block; a future edit to either
-    side without updating the other will trip this test before merge.
+    Per RFC-0013 § 7 / T9 of credential-broker-contract, the canonical
+    source for the block lives in the broker-specific template
+    matching the skill's `metadata.auth` — `credentialed-skill-SKILL-creds.md`
+    for `auth: creds` (the example skill's broker). A future edit to
+    either side without updating the other trips this test before merge.
 
     The slice is anchored on the next heading line (``\\n##`` or
     deeper) rather than a paragraph-break heuristic so a template
@@ -214,31 +216,15 @@ def test_dont_block_matches_credentialed_cli_template():
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
     skill = (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
 
-    # The ``credentialed-cli`` variant ends at the next ``---`` separator
-    # (the file uses ``---`` between variants).
-    variant_start = template.find("### Variant: credentialed-cli")
-    assert variant_start != -1, "template missing credentialed-cli variant"
-    variant_end = template.find("\n---", variant_start)
-    assert variant_end != -1, "template missing closing ---"
-    variant = template[variant_start:variant_end]
-
-    # Pull the fenced-code body — everything between the ```markdown
-    # fence and its closing ```.
-    fence_open = variant.find("```markdown")
-    assert fence_open != -1, "template missing ```markdown fence"
-    body_start = variant.index("\n", fence_open) + 1
-    fence_close = variant.find("\n```", body_start)
-    assert fence_close != -1, "template missing closing ``` fence"
-    block_body = variant[body_start:fence_close]
-
-    # Anchor on the heading + next heading line (the same shape
-    # ``HEADING_TERMINATE_RE`` in ``lint-credentialed-skills.sh`` uses).
+    # Anchor on the heading as a line-start (not embedded in prose).
+    # The new four-file templates carry an inline mention of the section
+    # name in their preamble; the actual block heading begins at column 0.
     heading = "### Security rules (non-negotiable)"
-    heading_in_block = block_body.find(heading)
-    assert heading_in_block != -1, (
-        "template variant missing the Security rules heading"
+    line_anchored = _re.search(r"^### Security rules \(non-negotiable\)$", template, _re.MULTILINE)
+    assert line_anchored is not None, (
+        "template missing the Security rules heading"
     )
-    rest = block_body[heading_in_block:]
+    rest = template[line_anchored.start():]
     terminator = _re.search(r"\n#{1,6}\s", rest[len(heading):])
     template_block = (
         rest[: len(heading) + terminator.start()].rstrip()
@@ -248,10 +234,10 @@ def test_dont_block_matches_credentialed_cli_template():
 
     assert template_block in skill, (
         "Worked example's `### Security rules (non-negotiable)` block "
-        "drifted from the credentialed-cli template — re-copy it "
+        "drifted from the auth: creds template — re-copy it "
         "verbatim from "
         "packs/core/.apm/skills/add-credentialed-skill/assets/"
-        "credentialed-skill-SKILL.md or update the template in lockstep.\n"
+        "credentialed-skill-SKILL-creds.md or update the template in lockstep.\n"
         f"--- template ---\n{template_block!r}\n"
     )
 

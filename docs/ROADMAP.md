@@ -607,9 +607,11 @@ Adopter disclosure shipped at `packs/core/README.md`.
   `agentbundle adapt --scope <project|user>` manual fallback per
   the per-pack README disclosure.
 
-## `credential-broker-contract` — drafted
+## `credential-broker-contract` — in flight (T1-T4 landed)
 
 Spec: [`specs/credential-broker-contract/spec.md`](specs/credential-broker-contract/spec.md).
+ADR: [`adr/0003-credential-broker-contract.md`](adr/0003-credential-broker-contract.md)
+(Accepted 2026-05-26 — records the four-broker decision, two transports, brokers-not-skills with the credential-setup exception, no PyPI shim package, and rejection of alternatives B / D / E / F / G / H / I / J).
 RFC: [`rfc/0013-credential-broker-contract.md`](rfc/0013-credential-broker-contract.md)
 (Accepted 2026-05-26). Amends RFC-0006: promotes the security
 invariants to a broker-agnostic contract; demotes the env →

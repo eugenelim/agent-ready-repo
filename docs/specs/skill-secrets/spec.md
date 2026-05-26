@@ -689,3 +689,8 @@ Verification:
       integration test file must contain the documented isolation
       anchor (`SERVICE` / `SERVICE_PREFIX_OVERRIDE` monkeypatch),
       and dotfile tests must redirect `$HOME`.
+
+
+## Changelog
+
+- **2026-05-26 amendment (credential-broker-contract):** AC34 and AC35 inheritance invariants — that credentialed-skill primitives never see a credential leak through a parent process's environment, and that the loader's API never returns a credential type weaker than `Credentials` — now apply to the vendored `credentials_shim` import surface projected by the `shared-libs/` build-pipeline primitive class, not to the removed `agentbundle.credentials` PyPI module. The migration is byte-equivalent modulo the enumerated import-path deltas in `docs/specs/credential-broker-contract/spec.md` AC6; the inheritance invariants are unchanged. See [`docs/specs/credential-broker-contract/spec.md`](../credential-broker-contract/spec.md).
