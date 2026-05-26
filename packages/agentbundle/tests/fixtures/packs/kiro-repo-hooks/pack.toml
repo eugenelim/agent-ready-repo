@@ -14,3 +14,7 @@ version = "0.3"
 [pack.install]
 default-scope = "repo"
 allowed-scopes = ["repo"]
+# Explicit kiro routing — previously inferred via the legacy
+# agents-presence heuristic at step 5, which now defers to
+# ``DEFAULT_ADAPTER`` (multi-IDE uniformity).
+allowed-adapters = ["kiro"]
