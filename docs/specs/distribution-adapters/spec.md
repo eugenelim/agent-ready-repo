@@ -1343,6 +1343,33 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Changelog
 
+- 2026-05-26: contract bump v0.7 → v0.8 per
+  [`docs/specs/dropped-primitives-coverage/spec.md`](../dropped-primitives-coverage/spec.md).
+  Codex `agent` projection changes from `dropped` to new
+  `codex-agent-toml` mode at `.codex/agents/<name>.toml` with the new
+  `codex-agent-frontmatter-v0.8` mapping (markdown → TOML
+  serialisation, `name` + `description` per-key sub-tables, markdown
+  body → `developer_instructions` via mode-level convention). Codex
+  `hook-wiring` changes from `dropped` to `merge-json` (existing mode
+  reused) at `.codex/hooks.json` with `managed-key = "hooks"`. Codex
+  `command` stays `dropped` (upstream custom-prompts deprecated in
+  favour of skills per
+  https://developers.openai.com/codex/custom-prompts). Codex
+  `[adapter.codex.scope].allowed-prefixes.{repo,user}` gains
+  `.codex/`. Schema enum extended at every site that admits `dropped`
+  to also admit `codex-agent-toml`. New install-handler stderr
+  warning rail enumerates dropped primitives per resolved adapter at
+  install time (contract-driven; no hardcoded adapter literals;
+  short-circuits once per `(root, pack, adapter, scope)` per
+  process); fires for codex / kiro / copilot with the per-adapter
+  type list, silent for claude-code and skills-only packs.
+  Claude-code and kiro projection tables byte-identical to v0.7.
+  Conformance cases: codex installs an agent-bearing pack to
+  `.codex/agents/<name>.toml`; codex installs a hook-wiring-bearing
+  pack to `.codex/hooks.json`; install via each adapter emits the
+  pinned warning when applicable. Migration guide at
+  [`docs/guides/how-to/v07-to-v08-pack-upgrade.md`](../../guides/how-to/v07-to-v08-pack-upgrade.md).
+
 - 2026-05-26: contract bumps v0.6 → v0.7 per `docs/specs/credential-broker-contract/spec.md` — header-comment update naming RFC-0013; `.agentbundle/` prefix non-regression pinned across the three user-scope adapters (claude-code, kiro, codex). Two new build-pipeline primitive classes registered: `shared-libs/` (many-to-many byte-identical projection into consumer skills' `scripts/` directories gated by `metadata.auth: creds`; drift gate per `credential-broker-contract` AC23; inter-pack basename collision is hard-error) and `adapter-root-bins/` (single-target projection to `$HOME/.agentbundle/bin/<basename>.py` at user scope, POSIX mode `0o755`; path-jail compliance per `credential-broker-contract` AC22). No conformance-suite addition to `distribution-adapters/spec.md` — per its own scope statement that *full* per-adapter conformance is RFC-0003's work; the two primitive classes are pinned by `credential-broker-contract`'s own ACs (AC20–AC23 for `shared-libs/`; AC22 for `adapter-root-bins/`).
 - 2026-05-26: contract bump v0.6 → v0.7 per
   [RFC-0012 / `repo-scope-per-adapter-projection`](../../rfc/0012-repo-scope-per-adapter-projection.md).
