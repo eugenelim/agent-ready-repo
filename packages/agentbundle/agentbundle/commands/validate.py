@@ -479,12 +479,11 @@ def _allowed_scopes(pack_data: dict) -> list[str]:
         if isinstance(pack.get("adapter-contract"), dict)
         else None
     )
-    # v0.2 introduced `[pack.install]`; v0.3 (RFC-0005) added the
-    # `user-scope-hooks` flag but did not change scope-resolution
-    # semantics. Treat any contract version >= 0.2 as carrying the
-    # install table. The legacy v0.1 path (and any pack without an
-    # adapter-contract declaration) stays repo-only.
-    if contract_version not in ("0.2", "0.3"):
+    # v0.2 introduced `[pack.install]`; v0.3 added `user-scope-hooks`;
+    # v0.6 added `allowed-adapters`. Treat any contract version >= 0.2
+    # as carrying the install table. The legacy v0.1 path (and any pack
+    # without an adapter-contract declaration) stays repo-only.
+    if contract_version is None or contract_version == "0.1":
         return ["repo"]
     install = pack.get("install", {})
     if not isinstance(install, dict):
