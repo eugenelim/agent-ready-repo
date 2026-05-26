@@ -176,16 +176,24 @@ every field above.
         - '.github/workflows/release-agentbundle.yml'
   ```
 - One job, `build-and-smoke`: `runs-on: ubuntu-latest`,
-  `timeout-minutes: 5`. Steps: `actions/checkout@v4`,
+  `timeout-minutes: 5`. Steps: `actions/checkout@v4` (with
+  `fetch-depth: 0` so the branch-ancestry assertion has main's
+  history),
   `actions/setup-python@v5` with `python-version: "3.11"`, `pip
   install build twine`, `python -m build` (run with cwd =
   `packages/agentbundle/`), `twine check packages/agentbundle/dist/*`,
   fresh-venv install: `python -m venv /tmp/smokevenv && /tmp/smokevenv/bin/pip
   install packages/agentbundle/dist/*.whl && /tmp/smokevenv/bin/python
-  -c "from agentbundle.credentials import load_credentials"`.
-- Upload `packages/agentbundle/dist/` as a workflow artifact
-  (`actions/upload-artifact@v4`) so T4 and T5 can download instead of
-  rebuilding — single-source-of-bytes.
+  -c "from agentbundle.credentials import load_credentials"`,
+  PATH smoke: `/tmp/smokevenv/bin/agentbundle --help` exits 0
+  (closes the Objective's "`agentbundle` console script is on PATH"
+  claim with a mechanical gate instead of leaving it to AC13 manual
+  QA alone).
+- Upload `packages/agentbundle/dist/` as a workflow artifact via
+  `actions/upload-artifact@v4` with **pinned** `name: dist`, `path:
+  packages/agentbundle/dist/`, `if-no-files-found: error` so T4 and
+  T5's `download-artifact` (name: dist) cannot silently produce an
+  empty `dist/`. Single-source-of-bytes — T4 and T5 don't rebuild.
 
 **Done when:** This PR's CI shows `release-agentbundle / build-and-smoke`
 green; the workflow artifact `dist` appears on the run summary page.
@@ -233,6 +241,27 @@ green; the workflow artifact `dist` appears on the run summary page.
   trigger glob `agentbundle-v*` (which matches pre-release tags like
   `agentbundle-v0.1.0-rc1`); the trigger spends a runner-minute on
   those, the assertion fails them closed before any publish.
+- **Pair the version assertion with a branch-ancestry assertion**
+  in the same job (also gated on `github.ref_type == 'tag'`): `git
+  fetch --quiet origin main && git merge-base --is-ancestor
+  "$GITHUB_SHA" origin/main`. Fails closed with `::error::` when the
+  tagged commit isn't reachable from `origin/main`, enforcing the
+  spec's §Never do "tags must point to commits on main" boundary at
+  the workflow layer (not by maintainer discipline). Both publish
+  jobs `needs: [build-and-smoke]`, so either assertion failing blocks
+  every publish path. The
+  spec's §Ask first gate on `X >= 1.0` already routes RC pushes
+  through human sign-off + spec amendment — a future amendment can
+  relax the regex if/when an RC actually needs shipping.
+- **Manual mismatched-tag test recipe (T3 §Tests, manual goal-based):**
+  push the throwaway tag to a branch named `agentbundle-tag-test-<sha>`
+  — *never `main`* — *before* Phase B configures Pending Publisher.
+  In that state `publish-pypi` is `needs: [build-and-smoke]`; the
+  assertion step fails `build-and-smoke` so `publish-pypi` never
+  starts. Delete the throwaway tag (`git push origin :refs/tags/...`)
+  before any subsequent push. Worst-case (Pending Publisher already
+  configured): OIDC handshake fails closed because `publish-pypi`
+  was never invoked.
 
 **Done when:** Manual mismatched-tag test fails the step with the
 expected error message; matching-tag test passes. Document the test
@@ -303,7 +332,13 @@ in the workflow.
 
 - Use a **step-level guard** rather than a separate preflight job —
   fewer runners spun up, AC9's "skipped" semantics map cleanly to
-  step-level skip:
+  step-level skip. **The guard requires all three Artifactory secrets
+  non-empty** so a token-only fork can't accidentally ship credentials
+  to twine's default upload endpoint. **Credentials and the
+  repository URL flow only through `env:`** (`TWINE_*` variables) —
+  no `${{ secrets.* }}` is interpolated into a `run:` shell body, so
+  the bytes never get expanded into the command-line by the runner
+  templater:
   ```yaml
   publish-artifactory:
     needs: [build-and-smoke]
@@ -312,12 +347,19 @@ in the workflow.
     steps:
       - id: guard
         name: Check Artifactory secret presence
+        env:
+          ART_URL: ${{ secrets.ARTIFACTORY_URL }}
+          ART_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ART_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
         run: |
-          if [ -n "${{ secrets.ARTIFACTORY_TOKEN }}" ]; then
+          if [ -n "$ART_TOKEN" ] && [ -n "$ART_URL" ] && [ -n "$ART_USER" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$ART_TOKEN" ] || [ -n "$ART_URL" ] || [ -n "$ART_USER" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Artifactory secrets partially configured; refusing to publish."
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::ARTIFACTORY_TOKEN not set; skipping Artifactory publish."
+            echo "::notice::Artifactory secrets not set; skipping Artifactory publish."
           fi
       - if: steps.guard.outputs.configured == 'true'
         uses: actions/download-artifact@v4
@@ -325,14 +367,13 @@ in the workflow.
           name: dist
           path: dist/
       - if: steps.guard.outputs.configured == 'true'
-        run: pip install twine
+        run: python3 -m pip install --upgrade twine
       - if: steps.guard.outputs.configured == 'true'
-        run: |
-          twine upload \
-            --repository-url "${{ secrets.ARTIFACTORY_URL }}" \
-            --username "${{ secrets.ARTIFACTORY_USER }}" \
-            --password "${{ secrets.ARTIFACTORY_TOKEN }}" \
-            dist/*
+        env:
+          TWINE_REPOSITORY_URL: ${{ secrets.ARTIFACTORY_URL }}
+          TWINE_USERNAME: ${{ secrets.ARTIFACTORY_USER }}
+          TWINE_PASSWORD: ${{ secrets.ARTIFACTORY_TOKEN }}
+        run: python3 -m twine upload dist/*
   ```
 - GitHub Actions does not permit `secrets.X` in job-level `if:`
   expressions, which is why the guard is a step rather than a
@@ -360,9 +401,10 @@ skipped at step level; YAML lints clean.
 **Tests:**
 
 - AC10 — Amendments table records: path #2 PyPI variant live (link
-  to this spec); path #2 Artifactory variant workflow shipped dormant
-  (activates per-fork when the corp configures the GH secrets); paths
-  #1 + #3 Deferred with one-line reasons.
+  to this spec); path #2 Artifactory variant scaffolded, untested
+  against a real Artifactory deployment, awaiting AC14 first-firing
+  verification (activates per-fork when the corp configures the GH
+  secrets); paths #1 + #3 Deferred with one-line reasons.
 - Goal-based: `python3 tools/lint-agents-md.py` and any other lint
   the repo runs on `docs/rfc/` pass.
 
@@ -406,10 +448,12 @@ projected — no drift expected).
 - Goal-based grep gates: `grep -F "once you've pip-installed"
   README.md` exits 1 (legacy phrase removed — distinct enough to
   current route 3 that this is the right anchor); `grep -F 'pip
-  install agentbundle' README.md` exits 0 (replacement present);
-  the four-route block intact: `grep -c '^\*\*' README.md` reports
-  a count consistent with PR #124's four-route shape (no routes
-  added or removed).
+  install agentbundle' README.md` exits 0 (replacement present).
+  Four-route shape preservation: the headline count is sharpened in
+  PR-B's prep (the count grep `grep -c '^\*\*' README.md` returns 7
+  today, not 4 — counts include non-route bold lines, so the gate
+  needs an anchored pattern resolved against README state at PR-B
+  open time, not a flat count baked into the plan now).
 - Manual end-to-end test in PR-B's body: on a clean venv on a
   different machine, run `pip install agentbundle` → `agentbundle
   install --pack core git+https://github.com/eugenelim/agent-ready-repo`
@@ -533,3 +577,22 @@ activation.**
   filename and twine warning count. No spec-contract change — the
   baseline confirms T1's scope matches reality (the two warnings
   `readme` closes are exactly the two `twine check` flags today).
+- 2026-05-26: pre-EXECUTE adversarial review pass — T2 artifact
+  upload pinned to `name: dist` + `path: packages/agentbundle/dist/`
+  + `if-no-files-found: error`; T2 smoke gains a PATH check
+  (`agentbundle --help`); T3 mismatched-tag test recipe spelled out
+  (throwaway branch convention, pre-Phase-B timing, OIDC fail-closed
+  worst case); T7 four-route count gate deferred to PR-B open-time
+  re-anchoring (today's `^**` count is 7, not 4 — was vague).
+- 2026-05-26: post-implementation security-review pass — T2 gains a
+  branch-ancestry assertion (`git merge-base --is-ancestor` against
+  `origin/main`, requires `fetch-depth: 0` on checkout); T5 guard
+  widened to require all three Artifactory secrets non-empty
+  (token-only setups would have shipped creds to twine's default
+  endpoint); T5 upload uses env-only auth (`TWINE_REPOSITORY_URL`
+  added so the URL is no longer interpolated into the shell command);
+  workflow-level `permissions: contents: read` and `concurrency:
+  release-agentbundle-<ref>` added to make blast radius explicit and
+  serialise per-tag publishes. PATH smoke switched from absolute-path
+  invocation to `PATH=...:$PATH agentbundle --help` so the gate
+  matches the Objective's "console script is on PATH" wording.
