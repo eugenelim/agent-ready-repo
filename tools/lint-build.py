@@ -32,6 +32,7 @@ from pathlib import Path
 # entries only when an Accepted RFC authorises the new directory.
 RFC_AUTHORISED_DIRS = (
     "packs",  # RFC-0002 — self-hosting source-of-truth split
+    ".agentbundle",  # RFC-0013 — adapter-root-bins target for sso-broker.py
 )
 
 

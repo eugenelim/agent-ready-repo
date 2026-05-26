@@ -317,7 +317,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 - Same shape as T11: import-shape test, frontmatter test, construction test (existing figma skill tests), lint test (verifies AC29 + AC35 for this consumer).
 
 **Approach:**
-- Same shape as T11. Frontmatter: `metadata.auth: creds`, `metadata.namespace: figma`, `metadata.keys: ["token"]`.
+- Same shape as T11. Frontmatter: `metadata.auth: creds`, `metadata.namespace: figma`, `metadata.keys: ["API_TOKEN"]` (matches the actual `creds-schema.toml`; spec changelog 2026-05-26 (T8/T11-T13) records the correction from the original aspirational `["token"]`).
 - Edit `packs/figma/.apm/skills/figma/scripts/_client.py` import line.
 - Run `make build-self FORCE=1`.
 
@@ -334,31 +334,33 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 
 **Approach:**
 - Bundled into one PR because the four skills share the same pack, the same `creds-schema.toml` pattern, and the import-line change is identical across all four.
-- Per skill, edit `scripts/_client.py` import line and `SKILL.md` frontmatter:
-  - `jira`: `namespace: jira`, `keys: ["email", "api_token"]`.
-  - `jira-align`: `namespace: jira-align`, `keys: ["api_token"]`.
-  - `confluence-publisher`: `namespace: confluence`, `keys: ["email", "api_token"]`.
-  - `confluence-crawler`: `namespace: confluence`, `keys: ["email", "api_token"]`.
+- Per skill, edit `scripts/_client.py` import line and `SKILL.md` frontmatter. Values match the actual `creds-schema.toml`s (spec changelog 2026-05-26 (T8/T11-T13) records the correction from the original aspirational lowercase / hyphenated values):
+  - `jira`: `namespace: jira`, `keys: ["API_TOKEN"]`.
+  - `jira-align`: `namespace: jiraalign` (no hyphen — matches `_client.py`'s `load_credentials("jiraalign", …)`), `keys: ["API_TOKEN"]`.
+  - `confluence-publisher`: `namespace: confluence`, `keys: ["API_TOKEN"]`.
+  - `confluence-crawler`: `namespace: confluence`, `keys: ["API_TOKEN"]`.
 - Run `make build-self FORCE=1`; verify the shim files project into all four skills' `scripts/`.
 
 **Done when:** every test in this task green; `make build-check` exits 0; all four atlassian skills' tests all green.
 
 ### T14: Migrate `add-credentialed-skill` SKILL.md teaching block
 
-**Depends on:** T13 (sequential after T13; same build-self race rationale, even though T14's change is documentation-only — the `make build-self FORCE=1` step still runs)
+**Status (EXECUTE-time amendment, 2026-05-26):** T14's substantive surface — the `from .credentials_shim` teaching block and the broker-selection prose — landed during T9 (templates) and T10 (docs); the live tree at PR-A time already carries the post-migration shape. T14 contributes *no additional code* in PR-A. AC34's separation gate remains strict: T15 lands in a separate PR from whichever commit last modified `add-credentialed-skill/SKILL.md`. The plan changelog 2026-05-26 (T8/T11-T13) records the absorption.
 
-**Verification mode:** TDD.
+**Depends on:** T13 (was: sequential after T13. The dependency is preserved for *temporal* ordering even though no additional commit lands.)
+
+**Verification mode:** Goal-based check.
 
 **Tests:**
-- Grep test: `packs/core/.apm/skills/add-credentialed-skill/SKILL.md` no longer contains `from agentbundle.credentials`; contains `from .credentials_shim` (verifies AC34).
-- Manual-read test (Goal-based): the surrounding teaching prose walks the author through `metadata.auth` selection and the build-pipeline projection.
-- **Separation-gate goal-based check** (per AC34 separation gate — strict, no same-PR escape): T14 and T15 land in distinct PRs. The three-part check from AC34 runs: (a) `git log --oneline --reverse --diff-filter=M packs/core/.apm/skills/add-credentialed-skill/SKILL.md` returns T14's commit; (b) `git log --oneline --reverse --diff-filter=D packages/agentbundle/agentbundle/credentials.py` returns T15's commit; (c) `git merge-base --is-ancestor <T14-merge> <T15-merge>` exits 0.
+- Grep test: `packs/core/.apm/skills/add-credentialed-skill/SKILL.md` no longer contains `from agentbundle.credentials`; contains `from .credentials_shim` (verifies AC34). Already satisfied at PR-A time.
+- Manual-read test (Goal-based): the surrounding teaching prose walks the author through `metadata.auth` selection and the build-pipeline projection. Already satisfied.
+- **Separation-gate goal-based check** (per AC34 separation gate): the teaching-block edit must predate T15's merge commit. Three-part check: (a) `git log --diff-filter=M packs/core/.apm/skills/add-credentialed-skill/SKILL.md` returns at least one commit and the **last** such commit carries the `from .credentials_shim` shape (per the AC34 rewrite to `<teaching-block-last-edit>`); (b) `git log --oneline --reverse --diff-filter=D packages/agentbundle/agentbundle/credentials.py` returns the T15 commit; (c) `git merge-base --is-ancestor <teaching-block-last-edit> <T15-merge>` exits 0.
 
 **Approach:**
-- Edit `packs/core/.apm/skills/add-credentialed-skill/SKILL.md`: replace every `from agentbundle.credentials` in the worked teaching example with `from .credentials_shim`. Update surrounding prose to name `metadata.auth: creds` and the build-pipeline projection.
-- This is a *separate* task per RFC-0013 § 9 — must not be absorbed into the cleanup task.
+- No new edits in PR-A. The substantive teaching-block content shipped via T9/T10.
+- T15 (PR-B) verifies the separation gate as part of its Done-when.
 
-**Done when:** every test in this task green.
+**Done when:** every test in this task green; the AC34 separation-gate query resolves cleanly when T15 lands.
 
 ### T15: Cleanup — remove `agentbundle.credentials` + `agentbundle/creds/`; bump version 0.1.x → 0.2.0; CHANGELOG
 
@@ -394,6 +396,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
   Total: 15 test files explicitly disposed across T11 (1, the example-skill integration) and T15 (10 + 4 helper-logic tests = 14). Any test importing `agentbundle.creds` or `agentbundle.credentials` after T15 lands fails the AC39 grep gate.
 - Bump `packages/agentbundle/pyproject.toml` `version` from `0.1.x` (whatever patch the prior PR shipped) to `0.2.0`.
 - Write `packages/agentbundle/CHANGELOG.md` (create if absent) with the verbatim migration recipe from RFC-0013 § 9. Substitute the concrete prior-minor (via `git describe --tags --match 'agentbundle-v0.1.*' --abbrev=0`) and new-minor (`0.2.0`) versions.
+- **Finishing ghost-CLI sweep** (handed off from PR-A per plan changelog 2026-05-26 (g)): remove or replace remaining `agentbundle creds setup <ns>` / `agentbundle creds where` / `agentbundle creds check` / `agentbundle creds rm` references in: each consumer skill's `SKILL.md` body prose; each `evals/evals.json` expected_output / grading_criteria; each `references/creds-schema.toml` header comment; the seed-side CONVENTIONS template under `packs/core/seeds/docs/CONVENTIONS.md`; the `credential-setup` skill's `## Inverse —` section heading; the `credentials_shim.py` docstring. The replacement maps the four verbs to the post-cleanup language (`setup` → `credential-setup` skill; `where` → drop or describe Tier walk; `check` → drop or describe exit code; `rm` → drop or describe `keychain`/`security` CLI direct usage).
 - Verify the aggregate gates.
 
 **Done when:** every test in this task green; the agentbundle package contains no credential-resolution surface; the final-state pre-pr gate passes.
@@ -421,6 +424,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 
 Revisions are listed most-recent-first; the Initial Draft anchors the floor.
 
+- 2026-05-26 (T8/T11-T13 EXECUTE-time revision) — Multiple discoveries during PR-A execution. **(a) PR bundling revised.** T1's earlier EXECUTE-time amendment added `auth: creds` to all six in-tree credentialed SKILL.md sources upfront. T8's new `auth: creds` AST check (per AC25 — `from .credentials_shim import` must be present in `scripts/`) therefore refuses every pre-migration consumer. The "PR-A: T8 only" structure suggested in Rollout was viable only under the original assumption that T1 had not yet added `auth: creds`. Revised plan: PR-A bundles T8 + T11 + T12 + T13 (lint + import migrations land atomically; gates remain green throughout the diff); PR-B is T15 alone per AC34's strict separation gate. T14 (`add-credentialed-skill` teaching block) had already been absorbed into PRs covering T9 (templates) and T10 (docs) — the live tree already declares `from .credentials_shim` in the teaching prose — so T14 contributes *no additional code* in PR-A. AC34's separation-gate query (`git log --diff-filter=M packs/core/.apm/skills/add-credentialed-skill/SKILL.md`) resolves to the T9/T10 merge commit; the strict-separation requirement (the T14 commit predates the T15 commit) is honored because T15 is PR-B and lands after PR-A. Task count and dependency edges unchanged. **(b) AC29-AC33 keys/namespace amended** to match the actual `creds-schema.toml` of each consumer (see spec changelog 2026-05-26). **(c) AC25 `auth: sso-cookie` text rewritten** to describe the implemented two-coupled-check shape (module-wide path-chain survey + `subprocess.run` presence check); the original "first argument resolves to" wording refused the common `broker = str(Path.home() / …); subprocess.run([…, broker, …])` idiom. **(d) `RFC_AUTHORISED_DIRS` allowlist update for `.agentbundle/`.** T6 (already shipped at commit `df2407c`) introduced the `adapter-root-bins/` projection target at the new top-level `.agentbundle/` directory; `tools/lint-build.py`'s allowlist was not updated to admit it, leaving `make pre-pr` red on every PR touching the catalogue. Closed in PR-A: `.agentbundle` added to `RFC_AUTHORISED_DIRS` with the RFC-0013 reference. Pre-existing gap; not in this spec's ACs but inseparable from the broker-pack surface. **(e) `tools/hooks/pre-pr.py` wires the credentialed-skill lint** per T8 Approach (source: `packs/core/.apm/hooks/pre-pr.py`); previously only run on-demand via `conventions-check`. **(f) `tools/test-lint-credentialed-skills.py` shipped** — 16-case fixture-driven self-test covering all four broker variants plus lint-of-self positive and a lint-source-no-literal-traps guard (asserts the lint script's own source never carries the forbidden multi-segment path strings as one literal). **(g) Partial ghost-CLI sweep in PR-A.** Scripts users execute at runtime (`_client.py` docstrings + runtime stderr messages + the six entry-point `*.py` modules) migrated from `agentbundle creds setup <ns>` / `agentbundle creds where <ns>` / `agentbundle creds check` to the `credential-setup` skill invocation or descriptive prose (per T14 "surrounding prose updated"). The broader sweep — `SKILL.md` body text, `evals/evals.json` expected-output strings, `manifest.json` setup hints, `references/creds-schema.toml` header comments, the seed CONVENTIONS template — is **deferred to T15** (PR-B) where the CLI itself is removed; T15's task body owns the finishing sweep so the cleanup PR also ships the final adopter-facing prose update. Honest scoping: PR-A bridges only the surfaces a running consumer hits; the unmigrated SKILL.md / evals / manifest text remains valid until T15.
 - 2026-05-26 (T2-T4 EXECUTE-time revision) — PR-B (T2 + T3 + T4) execution discoveries: **(a)** AC6.3 amended in spec — Tier-2 backend dispatch is carried over byte-equivalent rather than rewritten (both `from . import X as Y` and `from .X import …` are sibling-relative; the rewrite was unnecessary). **(b)** SHIM_BASENAMES exemption added to `tools/lint-credentialed-skills.sh` for AC26(c) (dotfile-substring check); the exemption is byte-anchored against the canonical source so hand-rolled files cannot bypass — spec AC24 amended to record this. **(c)** Build-self projects shim files into 6 in-tree credentialed consumer skills' `scripts/` from T4 onwards (because T1 added `auth: creds` to their SKILL.md sources); the projection lands the files but consumers still import from `agentbundle.credentials` until T11+ migrates them. **(d)** Apply_projection enhanced to remove orphans (closes AC23's "build-self resolves all three drift outcomes"); orphan rail now uses the static `KNOWN_SHIM_BASENAMES` allow-list so dropping the source pack still surfaces stale projected copies. **(e)** Added `packs/credential-brokers/.claude-plugin/plugin.json` for marketplace inclusion. **Deferred concerns (PR description tracks):** stdlib-name-shadowing rail for `shared-libs/` basenames (Concern); symlink-write hardening in `apply_projection`; lint regex/YAML divergence on quoted `auth: "creds"` form; integration test for drift-gate wiring in `run_build_check_drift_gates`; test for `[primitive."shared-libs"]` declaration in contract.
 - 2026-05-26 (EXECUTE-time revision) — During T1 implementation, discovered that AC26's "metadata.credentialed: true requires metadata.auth" refusal rail breaks `make build-check` against the live tree: the six in-tree credentialed `SKILL.md` sources declare `credentialed: true` today but won't declare `auth: creds` until T11–T14's import migrations land. Resolved by extending T1's Approach with one mechanical edit per existing credentialed skill source — adding `metadata.auth: creds` only — and running `make build-self FORCE=1` to propagate. T11–T14 unchanged in substance: still responsible for the import-line change and the `namespace` + `keys` declarations. The spec's AC text is unchanged; only T1's Approach gains a bullet plus an updated Done-when clause.
 - 2026-05-26 (round-3 review revision) — Round-3 findings addressed. **T10 / Tests** corrected to drop the "conformance-suite addition" reference (contradicted AC45 round-2 revision). **T15 test cleanup** extended to 14 enumerated test files (added the four `_logic` / `_keychain_macos` / `_credman_windows` integration tests and the `test_example_credentialed_skill.py` integration coordination with T11). **T14 separation-gate test** strict-aligned with AC34's distinct-PR requirement (same-PR escape parenthetical removed). **T1 Tests** consolidated to one file (`test_lint_agent_artifacts_metadata_auth.py`) covering AC3 + AC26; the phantom `test_pack_schema_metadata_auth.py` (left over from the dropped pack.schema.json reference) is removed.

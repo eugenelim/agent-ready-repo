@@ -5,6 +5,8 @@ metadata:
   credentialed: true
   primitive-class: credentialed-cli
   auth: creds
+  namespace: confluence
+  keys: ["API_TOKEN"]
 ---
 
 # Confluence Crawler
