@@ -50,6 +50,10 @@ from agentbundle.build.main import (
     discover_packs,
     validate_pack_uniqueness,
 )
+from agentbundle.build.shared_libs import (
+    apply_projection as _shared_libs_apply,
+    check_drift as _shared_libs_check_drift,
+)
 
 # AC14: canonical lowercase-hyphen marker grammar. The self-host
 # regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
@@ -990,6 +994,15 @@ def run_self_host(
 
     # Real write: project directly into the working tree so adapter
     # merge/splice logic sees existing content.
+    # T4: project shared-libs/ into consumer-skill scripts/ FIRST so the
+    # adapter projection that follows picks up the freshest shim files.
+    # Inter-pack basename collision raises ValueError; surface as
+    # self-host: <msg> and exit 5.
+    try:
+        _shared_libs_apply(packs_dir)
+    except ValueError as exc:
+        print(f"self-host: {exc}", file=sys.stderr)
+        return 5
     _project_all_adapters(working_tree, packs_dir, contract)
     try:
         seed_map = _project_seeds(packs_dir, working_tree)
@@ -1331,6 +1344,16 @@ def run_build_check_drift_gates(
                             f"{test_input!r}: source={source_out!r}, "
                             f"vendored={template_out!r}"
                         )
+
+    # ------------------------------------------------------------------
+    # Gate: shared-libs projection drift (RFC-0013 § 4c).
+    #
+    # Three outcomes — modified / missing / orphaned — surfaced as one
+    # line per drift. Inter-pack basename collision short-circuits to
+    # a single description (the projection cannot proceed).
+    # ------------------------------------------------------------------
+    for msg in _shared_libs_check_drift(packs_dir):
+        failures.append(msg)
 
     if failures:
         for msg in failures:

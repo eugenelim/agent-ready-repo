@@ -41,6 +41,26 @@ source-path = ".apm/hook-wiring/"
 [primitive.command]
 source-path = ".apm/commands/"
 
+# RFC-0013 § 4c — `shared-libs/` carries Python sibling files that the
+# build pipeline projects into every consumer skill declaring
+# `metadata.auth: creds`. The projection is cross-cutting (not adapter-
+# keyed) and lives in `agentbundle.build.shared_libs`; the declaration
+# here documents the source path so future readers see the full
+# primitive surface in one place.
+[primitive."shared-libs"]
+source-path = ".apm/shared-libs/"
+
+# RFC-0013 § 4d — `adapter-root-bins/` carries executable scripts that
+# project to the per-scope artifact root (`~/.agentbundle/bin/` at user
+# scope, `<repo>/.agentbundle/bin/` at repo scope). T6 wires the
+# projection; the declaration is here so the contract is complete at
+# v0.7. Adapter projection rules for `adapter-root-bins` are NOT
+# declared because the target is `<scope-root>/.agentbundle/bin/`,
+# which is fenced by `allowed-prefixes.<scope>`, not by per-adapter
+# target paths.
+[primitive."adapter-root-bins"]
+source-path = ".apm/adapter-root-bins/"
+
 # ---------------------------------------------------------------------------
 # Claude Code adapter — 5 projections (one per primitive) + v0.3 forks
 #
