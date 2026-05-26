@@ -144,6 +144,20 @@ def _version_string() -> str:
     return f"agentbundle {CLI_VERSION} (spec {SPEC_VERSION})"
 
 
+def _shipped_adapters_choices() -> tuple[str, ...]:
+    """Derive argparse `--adapter` `choices=` from the live contract.
+
+    Every shipped adapter (not just user-scope-capable ones), per
+    RFC-0011 AC11: the handler issues the pinned refuse-and-explain
+    when an adopter passes a shipped-but-not-user-scope-capable adapter
+    (e.g. `--adapter copilot`), and argparse must accept the value
+    first for the handler to be reached.
+    """
+    from agentbundle.scope import shipped_adapters_from_contract
+
+    return shipped_adapters_from_contract()
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = _VerbAwareParser(
         prog="agentbundle",
@@ -224,6 +238,22 @@ def _build_parser() -> argparse.ArgumentParser:
             "pack's hook. Bound to `install --scope user` against a "
             "Claude-Code-targeted pack only; original command preserved "
             "in the state-file snapshot."
+        ),
+    )
+    # RFC-0011 / pack-allowed-adapters AC11: optional `--adapter`
+    # override at install time. choices=every-shipped-adapter (not
+    # just user-scope-capable) so the handler-level user-scope check
+    # can issue the pinned refuse-and-explain for copilot rather than
+    # argparse's stock "invalid choice" error.
+    _shipped_for_cli = _shipped_adapters_choices()
+    sp.add_argument(
+        "--adapter",
+        choices=_shipped_for_cli,
+        help=(
+            "Override the auto-detected adapter at user scope. Bound to "
+            "`--scope user`. Must be in the pack's `allowed-adapters` "
+            f"set (or, for legacy packs, a user-scope-capable adapter). "
+            f"Shipped adapters: {', '.join(_shipped_for_cli)}."
         ),
     )
     sp.set_defaults(func=_lazy("install"))

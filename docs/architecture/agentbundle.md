@@ -94,15 +94,17 @@ packs/                                dist/
 
 The contract is published, semver'd, and lives at
 [`docs/contracts/adapter.toml`](../contracts/adapter.toml). Currently
-**v0.5** (RFC-0010). Shipped packs on disk target the older **v0.2**
-contract today via their `[pack.adapter-contract]` table — bumping
-packs to track v0.3 / v0.4 / v0.5 is a pending pack-revision cycle, so
-the contract version and any given pack's targeted version are not the
-same number. The contract declares:
+**v0.6** (RFC-0011 / pack-allowed-adapters). The four user-scope-capable
+packs (`atlassian`, `figma`, `converters`, `contracts`) target v0.6 to
+opt into the new resolver; the four repo-only packs still target the
+older **v0.2** contract because they don't need v0.3+ features. Pack
+versions and contract versions are independent; bumping a pack only
+matters when it consumes a feature added past its current target.
+The contract declares:
 
 - **Five primitives**: `skill`, `agent`, `hook-body`, `hook-wiring`, `command`.
   (RFC-0005's `kiro-ide-hook` adds a sixth in design but isn't declared
-  in v0.5 yet.)
+  in v0.6 yet.)
 - **Projection modes** drive how each primitive lands per adapter.
   The schema enum at
   [`adapter.schema.json`](../../packages/agentbundle/agentbundle/_data/adapter.schema.json)
@@ -116,12 +118,59 @@ same number. The contract declares:
   live caller after RFC-0005 lifted Kiro `hook-wiring` out of it.
 - **`install-routes`** array per adapter: `cli`, `claude-plugins`, `apm`
   (and the draft `codex-native`).
-- **`[scope]`** table — `default-scope` ∈ `{repo, user}` and
-  `allowed-scopes`. Three contract-level user-scope refusal rails
-  (`check_seeds`, `check_hooks`, `check_markers`) live in
+- **`[adapter.<name>.scope]`** table — `repo`, `user`, and
+  `allowed-prefixes.user`. Three adapters declare a user-scope root
+  today: `claude-code` (`~/.claude/`), `kiro` (`~/.kiro/`), and `codex`
+  (`~/.agents/skills/`, added in v0.6 per RFC-0011). Copilot is
+  repo-only by construction.
+- **`[pack.install]`** table on packs — `default-scope` ∈ `{repo, user}`,
+  `allowed-scopes`, and (v0.6+) the optional `allowed-adapters` array
+  declaring which user-scope-capable adapters a pack travels with.
+  Three contract-level user-scope refusal rails (`check_seeds`,
+  `check_hooks`, `check_markers`) live in
   [`build/scope_rails.py`](../../packages/agentbundle/agentbundle/build/scope_rails.py).
   The per-pack-default-plus-allowance shape itself is locked by
   [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md).
+
+### User-scope adapter resolution (RFC-0011)
+
+At install time, when `--scope user` is requested, the CLI picks
+which adapter's home tree receives the pack via a six-step lookup
+in
+[`commands/install.py:_resolve_user_scope_target_adapter`](../../packages/agentbundle/agentbundle/commands/install.py):
+
+1. **Publisher-vs-installer drift refusal** — every entry in the
+   pack's `allowed-adapters` must be both shipped by the bundled
+   contract and user-scope-capable. A mismatch refuses with a pinned
+   message that names the pack, the offending adapter, the contract
+   version, and the CLI version.
+2. **`--adapter <name>`** — explicit adopter override, validated
+   against the pack's `allowed-adapters` (or the live contract's
+   user-scope-capable set when the pack omits the field). Bound to
+   `--scope user`; rejected at repo scope.
+3. **State-hint short-circuit** — on upgrade, `PackState.adapter`
+   from `~/.agentbundle/state.toml` wins when admissible. This is
+   what stops the cross-adapter refusal at
+   [`upgrade.py`](../../packages/agentbundle/agentbundle/commands/upgrade.py)
+   from firing when an adopter populates a second `~/.<ide>/`
+   between install and upgrade.
+4. **Per-adapter probe** — walk `allowed-adapters` in declared order
+   against the populated `~/.<ide>/` homes (`~/.claude/`, `~/.kiro/`,
+   and either `~/.codex/` or `~/.agents/skills/` for codex — the
+   OR-probe handles both CLI shapes); first match wins.
+5. **Greenfield fallback** — `DEFAULT_USER_SCOPE_ADAPTER` in
+   [`scope.py`](../../packages/agentbundle/agentbundle/scope.py)
+   (default `"claude-code"`) if it's in the pack's set, else
+   `allowed-adapters[0]`.
+6. **Legacy heuristic** — `< 0.6` packs and v0.6+ packs omitting
+   `allowed-adapters` fall through to the original
+   `.apm/agents/`-presence inference: pack ships agents ⇒ Kiro;
+   otherwise Claude Code.
+
+The resolved adapter is recorded on the state file unconditionally
+for every user-scope install (not just hook-bearing kiro installs as
+in earlier contract versions), so projection and state agree on
+which IDE owns the pack.
 
 The schemas at [`_data/`](../../packages/agentbundle/agentbundle/_data/) —
 `adapter.schema.json`, `pack.schema.json`, `plugin-manifest.schema.json` —

@@ -61,10 +61,10 @@ each other.
 | `governance-extras` | repo only | `new-rfc`, `new-adr`, `update-conventions` skills + `docs/rfc/` and `docs/adr/` shapes. |
 | `user-guide-diataxis` | repo only | Diátaxis user-docs scaffolding + the `new-guide` skill. |
 | `monorepo-extras` | repo only | `new-package` skill + `packages/_example/` template. |
-| `contracts` | user (default) or repo | `api-contract` (OpenAPI 3.1). |
-| `converters` | user (default) or repo | `file-to-markdown`, `markdown-to-html`, `msg-to-markdown`, `mermaid-renderer`. First pack with `default-scope = "user"`. |
-| `atlassian` | user (default) or repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed CLIs) + the `flow-metrics`, `ai-adoption-report`, `jira-defect-flow` workflows that compose them. |
-| `figma` | user (default) or repo | `figma` credentialed CLI. |
+| `contracts` | user (default) or repo | `api-contract` (OpenAPI 3.1). v0.6 contract; declares `allowed-adapters = ["claude-code", "kiro", "codex"]`. |
+| `converters` | user (default) or repo | `file-to-markdown`, `markdown-to-html`, `msg-to-markdown`, `mermaid-renderer`. First pack with `default-scope = "user"`; v0.6 contract; declares `allowed-adapters = ["claude-code", "kiro", "codex"]`. |
+| `atlassian` | user (default) or repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed CLIs) + the `flow-metrics`, `ai-adoption-report`, `jira-defect-flow` workflows that compose them. v0.6 contract; declares `allowed-adapters = ["claude-code", "kiro", "codex"]`. |
+| `figma` | user (default) or repo | `figma` credentialed CLI. v0.6 contract; declares `allowed-adapters = ["claude-code", "kiro", "codex"]`. |
 
 What it means for `core` to be load-bearing: its
 `session-start.py` is the single read-side of the install→adapt chain —
@@ -81,7 +81,8 @@ One file per non-trivial subsystem:
   and how the bundler reads them.
 - [`agentbundle.md`](agentbundle.md) — the Python package: CLI verbs,
   build pipeline (recipes → adapters → projections), the adapter contract
-  at v0.5, self-host overlay.
+  at v0.6 (RFC-0011 added `[adapter.codex.scope]` and the user-scope
+  adapter resolver), self-host overlay.
 - [`credentials.md`](credentials.md) — the `agentbundle.credentials`
   loader, three-tier storage (env / OS keyring / `~/.agentbundle/credentials.env`),
   the credentialed-primitive model, and the AC26(c) substring trap.

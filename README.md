@@ -98,11 +98,13 @@ Upgrades follow your install route's native verb — `apm update <pack>`, `/plug
 
 Each install route projects pack sources through a per-IDE adapter into the shape your harness expects. `agentbundle list-targets` reports four shipped adapters (`claude_code`, `codex`, `copilot`, `kiro`); three of them shown below — Copilot omitted for brevity, see [`docs/contracts/`](docs/contracts/) for its mapping.
 
-| Adapter | Skills | Subagents | Hooks | Governance docs |
-| --- | --- | --- | --- | --- |
-| **Claude Code** | `.claude/skills/<name>/SKILL.md` | `.claude/agents/<name>.md` | bodies in `tools/hooks/`; wiring merged into `.claude/settings.local.json` | top-level `AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md` |
-| **Codex** | inline managed block in root `AGENTS.md` (`<!-- agent-skills:start -->` … `<!-- agent-skills:end -->`); full bodies stay in `.apm/skills/` | dropped (Codex has no subagent concept) | bodies in `tools/hooks/`; wiring dropped | top-level as above |
-| **Kiro** | `.kiro/skills/<name>/SKILL.md` | `.kiro/agents/<name>.md` (frontmatter remapped) | bodies in `tools/hooks/`; wiring degraded to a build-time info log | `.kiro/steering/*.md` (with `inclusion: always`) plus top-level governance |
+| Adapter | Repo-scope skills | User-scope skills | Subagents | Hooks | Governance docs |
+| --- | --- | --- | --- | --- | --- |
+| **Claude Code** | `.claude/skills/<name>/SKILL.md` | `~/.claude/skills/<name>/SKILL.md` | `.claude/agents/<name>.md` | bodies in `tools/hooks/`; wiring merged into `.claude/settings.local.json` | top-level `AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md` |
+| **Codex** | `.agents/skills/<name>/SKILL.md` (RFC-0009 direct-directory) | `~/.agents/skills/<name>/SKILL.md` | dropped (Codex has no subagent concept) | bodies in `tools/hooks/`; wiring dropped | top-level as above |
+| **Kiro** | `.kiro/skills/<name>/SKILL.md` | `~/.kiro/skills/<name>/SKILL.md` | `.kiro/agents/<name>.md` (frontmatter remapped) | bodies in `tools/hooks/`; wiring degraded to a build-time info log | `.kiro/steering/*.md` (with `inclusion: always`) plus top-level governance |
+
+Per RFC-0011, a user-scope pack's `pack.toml` lists which of the three adapters above it travels with (`allowed-adapters`). `agentbundle install --pack <name> --scope user .` picks the right CLI home automatically; pass `--adapter <name>` to override when more than one IDE is present. See [install a user-scope pack into Kiro](docs/guides/how-to/install-user-scope-pack-into-kiro.md) and [install a user-scope pack into Codex](docs/guides/how-to/install-user-scope-pack-into-codex.md).
 
 The mapping is defined in [`docs/contracts/`](docs/contracts/); the contract is the authoritative source when an adapter and this table disagree.
 

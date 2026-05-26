@@ -129,6 +129,20 @@ slash command) reports findings on:
 The architectural rule is wider than the lint can enforce; PR review
 catches what the lint can't.
 
+## Adapter portability — `[pack.install] allowed-adapters`
+
+If your pack's content is portable across IDEs (skills-only, no
+IDE-specific agent shape), list every adapter in `allowed-adapters`
+that supports user scope. The two credentialed packs in this
+catalogue (`atlassian`, `figma`) list `claude-code`, `kiro`, and
+`codex` because their skills are pure text + Python and travel
+cleanly across all three adapters' user-scope skill directories.
+Bumping `[pack.adapter-contract] version` to `"0.6"` opts the pack
+into the resolver behaviour; omitting `allowed-adapters` keeps the
+legacy `.apm/agents/`-presence heuristic alive. See
+`docs/guides/how-to/v05-to-v06-pack-upgrade.md` for the migration
+walkthrough.
+
 ## Reference
 
 - Spec: `docs/specs/skill-secrets/spec.md` (this skill is canonical for AC28)

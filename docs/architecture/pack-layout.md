@@ -69,16 +69,24 @@ the pack targets. Three required tables:
   `dist/apm/<pack>/apm.yml` and
   `dist/claude-plugins/<pack>/.claude-plugin/plugin.json`.
 - **`[pack.adapter-contract]`** — `version`, must reference a
-  published contract version. The contract itself is at **v0.5**
-  today; every shipped pack on disk currently targets **v0.2** (the
-  bump to track v0.3 / v0.4 / v0.5 is a pending pack-revision cycle).
-  When authoring a new pack, copy the value from a sibling pack rather
-  than the contract.
-- **`[pack.install]`** — `default-scope` ∈ `{repo, user}` and
-  `allowed-scopes`. The `default-scope ∈ allowed-scopes` invariant is
-  enforced in
+  published contract version. The contract itself is at **v0.6**
+  today (RFC-0011); the four user-scope-capable packs (`atlassian`,
+  `figma`, `converters`, `contracts`) target v0.6 to opt into the
+  `allowed-adapters` resolver; the four repo-only packs still target
+  v0.2. When authoring a new pack, copy the value from a sibling
+  with the same scope shape rather than the contract.
+- **`[pack.install]`** — `default-scope` ∈ `{repo, user}`,
+  `allowed-scopes`, optional `user-scope-hooks` (v0.3+, RFC-0005),
+  and optional `allowed-adapters` (v0.6+, RFC-0011 — array of
+  user-scope-capable adapter names like `["claude-code", "kiro",
+  "codex"]`; declared order drives the greenfield fallback). The
+  `default-scope ∈ allowed-scopes` invariant is enforced in
   [`_data/pack.schema.json`](../../packages/agentbundle/agentbundle/_data/pack.schema.json)'s
-  `if`/`then`. [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md)
+  `if`/`then`; the `allowed-adapters` array's shape is enforced in
+  the schema, and the cross-field constraint (every entry both
+  shipped and user-scope-capable) lives in the Python validator at
+  [`commands/validate.py:_validate_allowed_adapters`](../../packages/agentbundle/agentbundle/commands/validate.py).
+  [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md)
   locked the per-pack default-plus-allowance shape.
 
 ### `.claude-plugin/plugin.json`
@@ -102,7 +110,7 @@ The five primitives declared in the adapter contract
 
 A sixth primitive — `kiro-ide-hook`, for native Kiro IDE-event hooks —
 is designed in [RFC-0005](../rfc/0005-user-scope-hook-support.md) but
-isn't declared in `adapter.toml` v0.5 yet; the implementation work is
+isn't declared in `adapter.toml` v0.6 yet; the implementation work is
 tracked separately and the source path will be `.apm/kiro-ide-hooks/<name>.kiro.hook`
 once it lands.
 
