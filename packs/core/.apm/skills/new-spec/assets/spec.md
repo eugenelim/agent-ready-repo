@@ -77,3 +77,23 @@ holds.
 - [ ] <observable outcome>
 - [ ] <observable outcome>
 -->
+
+## Assumptions
+
+<!--
+Audit trail for the assumption-surfacing checkpoint that ran when this
+spec was drafted (see `new-spec` SKILL.md step 3). Each item names how
+it was settled. This section is *not* the contract — it's the frame the
+contract was written under. The contract lives above (Objective,
+Boundaries, Testing Strategy, Acceptance Criteria).
+
+Format: `- <category>: <fact> (source: <path | URL | probe | user
+confirmation YYYY-MM-DD>)`
+
+- Technical: <fact> (source: <…>)
+- Process: <fact> (source: <…>)
+- Product: <fact> (source: user confirmation YYYY-MM-DD)
+
+If an assumption later turns out wrong, fix the spec body in the same
+PR and add a one-line note here recording what changed and why.
+-->
