@@ -355,20 +355,28 @@ def run(args: "argparse.Namespace") -> int:
         if isinstance(_raw, list):
             _pack_allowed_adapters = [s for s in _raw if isinstance(s, str)]
     _pack_contract_version = pack_spec_version(pack_toml)
-    try:
-        user_target_adapter = _resolve_target_adapter(
-            pack_dir,
-            scope="user",
-            adapter=cli_adapter,
-            allowed_adapters=_pack_allowed_adapters,
-            contract_version=_pack_contract_version,
-            state_adapter=None,  # First install has no prior state here.
-            command_name="install",
-        )
-    except _AdapterResolutionRefused as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-    allowed_prefixes_user = _adapter_allowed_prefixes_user(user_target_adapter)
+    # Only resolve the user-scope target adapter when user scope is in
+    # this run's plan. Resolving unconditionally at scope="user" would
+    # surface the user-scope-capability subcheck refusal (e.g.
+    # `--adapter copilot` against a repo-only install) even though the
+    # install would never write to user scope.
+    user_target_adapter: str | None = None
+    allowed_prefixes_user: list[str] | None = None
+    if "user" in scopes_to_install:
+        try:
+            user_target_adapter = _resolve_target_adapter(
+                pack_dir,
+                scope="user",
+                adapter=cli_adapter,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=None,  # First install has no prior state here.
+                command_name="install",
+            )
+        except _AdapterResolutionRefused as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        allowed_prefixes_user = _adapter_allowed_prefixes_user(user_target_adapter)
 
     # RFC-0012: at repo scope, when --emit-install-routes is NOT set,
     # the install path is per-IDE projection (not dist-tree). Resolve
@@ -1805,6 +1813,23 @@ def _resolve_target_adapter(
         if DEFAULT_ADAPTER in allowed_adapters:
             return DEFAULT_ADAPTER
         return allowed_adapters[0]
+
+    # Step 4b (repo-scope v0.7+ pack with no `allowed-adapters`):
+    # AC9 step 5 — "legacy heuristic fires only for `< v0.7` packs
+    # at repo scope" — means a v0.7+ pack with no `allowed-adapters`
+    # at repo scope must NOT fall through to step 5; return the
+    # configured default instead. Drawback #7 in RFC-0012 names the
+    # repo-only-pack v0.2 → v0.7 bump as load-bearing precisely for
+    # this branch. The version check is a literal `>= "0.7"` (string
+    # comparison is correct for single-digit minor versions; once
+    # major or two-digit minor bumps land the predicate moves into
+    # a helper).
+    if (
+        scope == "repo"
+        and isinstance(contract_version, str)
+        and contract_version >= "0.7"
+    ):
+        return DEFAULT_ADAPTER
 
     # Step 5: legacy heuristic — preserved for `< v0.7` packs that
     # omit `allowed-adapters`. At repo scope this can only return
