@@ -1,6 +1,6 @@
 # Spec: dropped-primitives-coverage
 
-- **Status:** Draft
+- **Status:** Shipped (2026-05-26)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0009](../../rfc/0009-codex-native-skills.md) (codex `direct-directory` projection at `.agents/skills/` — the precedent this spec extends to native codex `agent` + `hook-wiring` surfaces); [RFC-0005](../../rfc/0005-user-scope-hook-support.md) (`merge-json` mode + `managed-key` semantics this spec reuses for codex hooks); [RFC-0012](../../rfc/0012-repo-scope-per-adapter-projection.md) (per-adapter projection at repo scope — the rail this spec's warning slot hooks into); [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (per-pack default-plus-allowance — atomicity precedent for the contract bump). Modifies [`packages/agentbundle/agentbundle/_data/adapter.toml`](../../../packages/agentbundle/agentbundle/_data/adapter.toml) (contract v0.7 → v0.8; codex `agent` and `hook-wiring` projection entries change from `dropped` to first-class modes; codex `allowed-prefixes` extends to include `.codex/`; new frontmatter mapping for codex agent TOML serialisation). Amends [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md) (v0.7 → v0.8 Changelog entry naming the codex projection additions and the dropped-primitives warning rail).
