@@ -1,4 +1,4 @@
-"""Worked example credentialed-CLI primitive (skill-secrets spec § AC29).
+"""Worked example credentialed-CLI primitive (credential-broker-contract spec § AC28).
 
 Bound to a fictional ``example`` API. The CLI is a no-op — it does
 not make any real network call — so adopters can read the source
@@ -7,7 +7,8 @@ without running it.
 Two verbs:
 
 - ``call`` — resolves both schema keys (``API_TOKEN`` and ``BASE_URL``)
-  through ``agentbundle.credentials.load_credentials``, demonstrates
+  through ``.credentials_shim.load_credentials`` (the build-pipeline-
+  projected sibling), demonstrates
   the sibling-key Tier resolution the schema's ``BASE_URL`` entry
   advertises, validates the URL shape, and prints
   ``would call example API at <base_url> (token=*** present)`` to
@@ -16,7 +17,7 @@ Two verbs:
   and *no length is disclosed* — token-length is a minor side-channel
   adopters should not normalise.
 - ``check`` — resolves the same keys and exits 0 if both are present,
-  exit 2 if any is missing (matches ``agentbundle creds check``).
+  exit 2 if any is missing (the canonical "missing credentials" code).
 
 Exit codes (the contract adopters should copy):
   0 — success.
@@ -30,7 +31,7 @@ The argv parser does **not** declare any of the banned flags
 (``tools/lint-credentialed-skills.sh``) refuses skills that do.
 ``BASE_URL`` is resolved through the same Tier 1 → 2 → 3 ladder as
 ``API_TOKEN`` — it is declared ``secret = false`` so the
-``agentbundle creds setup`` flow prompts for it via ``input()``
+``credential-setup`` skill flow prompts for it via ``input()``
 rather than ``getpass``.
 """
 
@@ -40,7 +41,7 @@ import argparse
 import sys
 from urllib.parse import urlparse
 
-from agentbundle.credentials import (
+from .credentials_shim import (
     CredentialsMissingError,
     Tier2HardFailError,
     load_credentials,
@@ -67,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     except CredentialsMissingError as exc:
         sys.stderr.write(f"{exc}\n")
         sys.stderr.write(
-            "run `agentbundle creds setup example` to set the missing keys\n"
+            "run `credential-setup` skill to set the missing keys\n"
         )
         return 2
     except Tier2HardFailError as exc:
@@ -78,7 +79,8 @@ def main(argv: list[str] | None = None) -> int:
         # narrow attacker reconnaissance.
         sys.stderr.write(f"keychain unavailable: {exc}\n")
         sys.stderr.write(
-            "see `agentbundle creds where example` to inspect tier resolution\n"
+            "check the OS keychain and the user credentials dotfile "
+            "for the `example` namespace\n"
         )
         return 3
 

@@ -634,7 +634,7 @@ Adopter disclosure shipped at `packs/core/README.md`.
   `agentbundle adapt --scope <project|user>` manual fallback per
   the per-pack README disclosure.
 
-## `credential-broker-contract` — in flight (T1-T4 landed)
+## `credential-broker-contract` — in flight (T1-T14 landed; T15 pending)
 
 Spec: [`specs/credential-broker-contract/spec.md`](specs/credential-broker-contract/spec.md).
 ADR: [`adr/0003-credential-broker-contract.md`](adr/0003-credential-broker-contract.md)
@@ -681,6 +681,45 @@ under `docs/specs/credential-broker-contract/notes/`):
 for the concrete version label per the collision note above.
 Acceptance-ordering
 gate is met; the implementation spec can proceed.
+
+**Deferred security-hardening follow-ups** (named in spec changelog
+2026-05-26 (T8 security-hardening revision); the lint is one layer,
+PR-review is the other):
+
+- **D3 dotfile-read substring scan is bypassable by part-composition.**
+  Today `tools/lint-credentialed-skills.sh` matches the literal
+  `.agentbundle/credentials.env` substring. A malicious skill can
+  compose the path from concatenated parts and evade the rule.
+  Follow-up: rewrite D3 as an AST walk over `open(...)` /
+  `Path.read_text` / `Path.read_bytes` call sites using
+  `_path_chain_components`, asserting the resolved tail does not
+  match the dotfile path under `Path.home()`.
+
+- **`_is_canonical_shim` byte-equality is a lint-time integrity check,
+  not a runtime tampering guard.** A post-install hook could mutate
+  the projected shim after the lint has read it. Follow-up: either
+  path-anchor the exemption (admit only files at the canonical
+  projection target under a recognised consumer-skill `scripts/`
+  directory), or sign the canonical shim and verify the signature at
+  build time.
+
+- **Lint script's Python heredoc bypasses static analysis.** The 900-line
+  rule engine lives inside a `python3 - <<'PY' ... PY` heredoc in
+  `tools/lint-credentialed-skills.sh`, so ruff / mypy / IDE tooling see
+  it as a single bash string. Quality-engineer round-4 Concern 4. Follow-
+  up: extract the body to `tools/lint_credentialed_skills.py` (importable
+  module); leave the `.sh` shim as a 5-line wrapper. Unlocks `ruff check`
+  on the lint and lets `tools/test-lint-credentialed-skills.py` `import`
+  the helpers directly instead of round-tripping through subprocess.
+
+- **Integration tests don't cover the projection path.** `_load_cli_module()`
+  in `packages/agentbundle/tests/integration/test_example_credentialed_skill.py`
+  loads from the pack-source `SKILL_DIR`, not from the projected
+  `.claude/skills/...` mirror. A one-sided edit (source only or
+  projection only — per `feedback_self_host_projection` and
+  `feedback_build_self_undoes_projection_only_edits`) can pass the
+  in-process test while the projection drifts. Follow-up: parametrise
+  the test over both paths.
 
 ## Cross-spec / outside-the-spec-tree
 
