@@ -76,8 +76,11 @@ def test_all_packs_declare_install_table(pack_name):
     """
     data = _load(pack_name)
     contract = data.get("pack", {}).get("adapter-contract", {})
-    assert contract.get("version") == "0.7", (
-        f"{pack_name}: [pack.adapter-contract] version must be \"0.7\"; "
+    # docs/specs/dropped-primitives-coverage T7 bumped the four repo-only
+    # packs from v0.7 → v0.8 (codex agent + hook-wiring move from
+    # `dropped` to first-class projections at v0.8).
+    assert contract.get("version") == "0.8", (
+        f"{pack_name}: [pack.adapter-contract] version must be \"0.8\"; "
         f"got {contract!r}"
     )
     install = data.get("pack", {}).get("install")
