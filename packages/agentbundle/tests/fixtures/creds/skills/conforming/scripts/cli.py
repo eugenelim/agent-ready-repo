@@ -1,5 +1,7 @@
 """Conforming credentialed-CLI fixture: no argv flags, no dotfile reads."""
 from __future__ import annotations
+from .credentials_shim import load_credentials  # AC25 fixture stub
+
 
 import argparse
 
