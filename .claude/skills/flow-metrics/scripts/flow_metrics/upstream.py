@@ -117,18 +117,36 @@ def _module_name_for_script(name: str) -> str:
     return name.replace("-", "_")
 
 
+_USER_SCOPE_CAPABLE_ADAPTER_DIRS: Tuple[str, ...] = (".claude", ".kiro", ".agents")
+
+
 def discover_skill_path(name: str, *, env: Optional[Mapping[str, str]] = None, cwd: Optional[Path] = None) -> Path:
     """Locate the upstream skill's CLI entry script.
 
-    Probe order (per spec/plan):
+    Probe order:
 
     1. ``$FLOW_METRICS_<NAME>_SCRIPT`` env var (testing override).
-    2. ``<this-skill-dir>/../<name>/scripts/<name>.py`` (sibling layout).
-    3. ``~/.claude/skills/<name>/scripts/<name>.py`` (user scope).
-    4. ``<cwd>/.claude/skills/<name>/scripts/<name>.py`` (project scope).
+    2. ``<this-skill-dir>/../<name>/scripts/<name>.py`` (sibling layout —
+       covers same-adapter user-scope installs *and* in-pack development).
+    3. ``~/<adapter-dir>/skills/<name>/scripts/<name>.py`` (user scope),
+       walked across every user-scope-capable adapter directory:
+       ``.claude`` (claude-code), ``.kiro`` (kiro), ``.agents`` (codex —
+       per Codex's upstream skills documentation, skills land under the
+       shared ``$HOME/.agents/skills/`` not under ``~/.codex/``).
+    4. ``<cwd>/<adapter-dir>/skills/<name>/scripts/<name>.py`` (project
+       scope), same three adapter directories.
 
     First hit wins. None match → :class:`UpstreamNotFoundError` naming
     every candidate.
+
+    **Multi-root precedence.** When the same upstream skill is installed
+    under more than one adapter root (e.g. both ``~/.claude/skills/jira/``
+    and ``~/.kiro/skills/jira/``), priority 3's declared order is
+    ``claude → kiro → codex`` — claude wins by default. Adopters who
+    want a specific adapter set the priority-1 env override
+    ``FLOW_METRICS_<NAME>_SCRIPT`` to the exact script path; that's the
+    documented runtime escape valve. The install-time analogue lives in
+    ``agentbundle install --scope user --adapter <name>`` per RFC-0011.
     """
     e = env if env is not None else os.environ
     base_cwd = cwd if cwd is not None else Path.cwd()
@@ -136,22 +154,33 @@ def discover_skill_path(name: str, *, env: Optional[Mapping[str, str]] = None, c
 
     candidates: List[Tuple[str, Path]] = []
 
-    # 1. Env override. Honored even if the file doesn't exist *iff* the
-    #    user explicitly set it — but we still require the file to be a
-    #    real file before returning, so a typo'd override falls through
-    #    to the next candidate rather than silently failing later.
+    # 1. Env override appended as a candidate. The `is_file()` check
+    #    below means a typo'd override falls through to the next
+    #    candidate rather than silently failing later.
     env_value = e.get(_env_var_name(name))
     if env_value:
         candidates.append(("env:" + _env_var_name(name), Path(env_value)))
 
-    # 2. Sibling layout under this skill's parent dir.
+    # 2. Sibling layout under this skill's parent dir. This already
+    #    handles the common case where flow-metrics and its upstream
+    #    sibling skill are co-installed under the same adapter root
+    #    (the sibling walk lands one level above flow-metrics' own dir,
+    #    so it works for any adapter the install put us under).
     candidates.append(("sibling", _THIS_SKILL_DIR.parent / name / "scripts" / script))
 
-    # 3. User scope.
-    candidates.append(("user", Path.home() / ".claude" / "skills" / name / "scripts" / script))
+    # 3. User scope — walked across all three user-scope-capable adapter
+    #    directories. Order is claude/kiro/codex, matching the probe
+    #    order in `_resolve_user_scope_target_adapter`.
+    for adapter_dir in _USER_SCOPE_CAPABLE_ADAPTER_DIRS:
+        candidates.append(
+            ("user:" + adapter_dir, Path.home() / adapter_dir / "skills" / name / "scripts" / script)
+        )
 
-    # 4. Project scope.
-    candidates.append(("project", base_cwd / ".claude" / "skills" / name / "scripts" / script))
+    # 4. Project scope — same three adapter directories.
+    for adapter_dir in _USER_SCOPE_CAPABLE_ADAPTER_DIRS:
+        candidates.append(
+            ("project:" + adapter_dir, base_cwd / adapter_dir / "skills" / name / "scripts" / script)
+        )
 
     for _kind, path in candidates:
         if path.is_file():

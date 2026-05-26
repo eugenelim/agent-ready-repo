@@ -1,9 +1,9 @@
 # RFC-0009: Migrate Codex adapter from managed-block AGENTS.md to native .agents/skills/
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-05-25
-- **Date closed:**
+- **Date closed:** 2026-05-25
 - **Related:** [RFC-0001](0001-bundle-distribution-by-adapter-spec.md)
   introduced the per-IDE adapter contract this RFC modifies.
   [RFC-0005](0005-user-scope-hook-support.md) is precedent for the same
