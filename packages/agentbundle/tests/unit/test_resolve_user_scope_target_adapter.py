@@ -286,7 +286,10 @@ def test_state_hint_with_omitted_allowed_adapters_checks_user_capable(
 # ---------------------------------------------------------------------------
 
 
-def test_legacy_v05_pack_with_agents_returns_kiro(tmp_path, fake_home):
+def test_legacy_v05_pack_with_agents_returns_default_adapter(tmp_path, fake_home):
+    """Step 5 returns ``DEFAULT_ADAPTER`` uniformly — the pre-fix
+    agents-presence ``"kiro"`` hardcode assumed a single-IDE world
+    and ignored downstream-rebranded constants."""
     pack = _make_pack(tmp_path, with_agents=True)
     result = _resolve_user_scope_target_adapter(
         pack,
@@ -294,7 +297,7 @@ def test_legacy_v05_pack_with_agents_returns_kiro(tmp_path, fake_home):
         allowed_adapters=None,
         contract_version="0.5",
     )
-    assert result == "kiro"
+    assert result == "claude-code"
 
 
 def test_legacy_v05_pack_without_agents_returns_claude_code(tmp_path, fake_home):
@@ -309,16 +312,17 @@ def test_legacy_v05_pack_without_agents_returns_claude_code(tmp_path, fake_home)
 
 
 def test_v06_pack_omitting_allowed_adapters_uses_legacy_heuristic(tmp_path, fake_home):
+    """v0.6 pack omitting allowed-adapters drops to step 5, which now
+    returns ``DEFAULT_ADAPTER`` regardless of `.apm/agents/` presence."""
     pack = _make_pack(tmp_path, with_agents=True)
     (fake_home / ".claude").mkdir()
-    # v0.6 but no allowed-adapters → legacy heuristic, agents present.
     result = _resolve_user_scope_target_adapter(
         pack,
         adapter=None,
         allowed_adapters=None,
         contract_version="0.6",
     )
-    assert result == "kiro"
+    assert result == "claude-code"
 
 
 def test_stray_allowed_adapters_on_v05_pack_uses_legacy(tmp_path, fake_home):
@@ -540,8 +544,9 @@ def test_repo_scope_greenfield_falls_back_to_first_when_default_absent(
 
 def test_repo_scope_legacy_heuristic_for_pre_v07_pack(tmp_path, fake_home):
     """Spec AC9 step 5 — `< v0.7` pack omitting allowed-adapters falls
-    through to the legacy heuristic at repo scope. Can only return
-    claude-code or kiro (Drawback #7)."""
+    through to the legacy heuristic at repo scope. Returns
+    ``DEFAULT_ADAPTER`` regardless of `.apm/agents/` presence so a
+    downstream-rebranded constant is honored uniformly."""
     pack = _make_pack_v07(tmp_path, with_agents=True)
     result = _resolve_target_adapter(
         pack,
@@ -550,7 +555,7 @@ def test_repo_scope_legacy_heuristic_for_pre_v07_pack(tmp_path, fake_home):
         allowed_adapters=None,
         contract_version="0.6",
     )
-    assert result == "kiro"
+    assert result == "claude-code"
 
     pack_no_agents = _make_pack_v07(tmp_path / "alt", with_agents=False)
     result_no_agents = _resolve_target_adapter(
@@ -561,6 +566,40 @@ def test_repo_scope_legacy_heuristic_for_pre_v07_pack(tmp_path, fake_home):
         contract_version="0.6",
     )
     assert result_no_agents == "claude-code"
+
+
+def test_repo_scope_legacy_heuristic_honors_monkey_patched_default(
+    tmp_path, fake_home, monkeypatch
+):
+    """Step 5 must follow a downstream-rebranded ``DEFAULT_ADAPTER``
+    uniformly — both with and without `.apm/agents/`. Regression test
+    for the pre-fix hardcodes that returned ``"claude-code"`` /
+    ``"kiro"`` literally and ignored the monkey-patch documented at
+    ``agentbundle.scope:45-47``."""
+    import agentbundle.scope as scope_mod
+
+    monkeypatch.setattr(scope_mod, "DEFAULT_ADAPTER", "kiro")
+
+    pack_no_agents = _make_pack_v07(tmp_path, with_agents=False)
+    result_no_agents = _resolve_target_adapter(
+        pack_no_agents,
+        scope="repo",
+        adapter=None,
+        allowed_adapters=None,
+        contract_version="0.6",
+    )
+    assert result_no_agents == "kiro"
+
+    monkeypatch.setattr(scope_mod, "DEFAULT_ADAPTER", "codex")
+    pack_with_agents = _make_pack_v07(tmp_path / "alt", with_agents=True)
+    result_with_agents = _resolve_target_adapter(
+        pack_with_agents,
+        scope="repo",
+        adapter=None,
+        allowed_adapters=None,
+        contract_version="0.6",
+    )
+    assert result_with_agents == "codex"
 
 
 def test_repo_scope_state_hint_short_circuit(tmp_path, fake_home):
