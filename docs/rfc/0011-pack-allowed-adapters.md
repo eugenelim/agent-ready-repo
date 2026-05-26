@@ -1,9 +1,9 @@
 # RFC-0011: Per-pack `allowed-adapters` declaration for user-scope adapter resolution
 
-- **Status:** Open
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-05-25
-- **Date closed:**
+- **Date closed:** 2026-05-26
 - **Builds on:**
   - [RFC-0004](0004-install-scope-per-pack.md) — defines the `[pack.install]` table this RFC extends with a new field (existing fields unchanged).
   - [RFC-0005](0005-user-scope-hook-support.md) — precedent for an adapter-targeted contract bump.
