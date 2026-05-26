@@ -185,6 +185,75 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
+## `repo-scope-per-adapter-projection` — drafted
+
+Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
+RFC: [`rfc/0012-repo-scope-per-adapter-projection.md`](rfc/0012-repo-scope-per-adapter-projection.md)
+(Accepted 2026-05-26). Drafted same day as the RFC's acceptance;
+mirrors `pack-allowed-adapters/spec.md` in shape per RFC-0012's
+*Follow-on artifacts* bullet.
+
+The spec lifts RFC-0011's adapter resolution to **repo scope**:
+`agentbundle install --pack X --scope repo --adapter <ide> .` lands
+the pack at `<repo>/.<ide>/skills/` (per-IDE direct write) instead of
+the dist-tree shape today produces. Contract v0.6 → v0.7 adds
+`allowed-prefixes.repo` to every shipped adapter and introduces
+`[adapter.copilot.scope]` for the first time. The resolver renames
+to `_resolve_target_adapter` with a `scope` kwarg and a six-step
+(0–5) lookup that scope-branches at steps 0, 4, and 5; repo scope
+**does not probe** `<repo>/.<ide>/` (load-bearing asymmetry pin).
+`DEFAULT_USER_SCOPE_ADAPTER` → `DEFAULT_ADAPTER` rename plus a
+one-release deprecation alias. `--emit-install-routes` opt-in
+restores the dist-tree producer for catalogue-publishing
+workflows; a handler-level mutex refuses it combined with
+`--adapter` at repo scope. The eight shipped packs (four
+user-scope-capable + four repo-only) bump to v0.7 in one PR per
+RFC-0004 atomicity; the repo-only bump is load-bearing per
+RFC-0012 Drawback #7. A new `safety.scan_for_pack_artifacts`
+helper closes the projection-vs-state crash-window with an
+orphan-projection refusal + `--force` clean-and-retry. A
+three-trigger in-band detection (shape-mismatch /
+adapter-disagreement / orphan recovery) carries adopters across
+the v0.6 → v0.7 transition.
+
+- **All 37 ACs open.** Coverage unblocks incrementally as tasks
+  land:
+  - **AC1, AC2, AC3, AC4** close with T1 (contract bump + scope
+    tables + schema validator).
+  - **AC7, AC8, AC9, AC10, AC11, AC12, AC13, AC30, AC31** close
+    with T2 (safety helper + path-jail widening + resolver rename
+    + scope-branching + schema validator widening).
+  - **AC14, AC15, AC16, AC17, AC32** close with T3 (CLI flag +
+    handler-level mutex + binding removal).
+  - **AC18, AC19** close with T4 (constant rename + deprecation
+    alias).
+  - **AC5, AC6** close with T5 (eight packs bump to v0.7).
+  - **AC9 (Step 4 repo-scope branch), AC13 (path-jail
+    enforcement)** further close with T6 (`_render_for_repo_scope`
+    dispatch).
+  - **AC20, AC21, AC22, AC23, AC24** close with T7 (install-time
+    messages + in-band detection + orphan refusal).
+  - **AC33** closes with T8 (end-to-end integration).
+  - **AC25, AC26, AC27, AC28, AC29** close with T9 (README +
+    migration guide + RFC-0011 erratum + ROADMAP).
+  - **T10** amends three sibling specs (`pack-allowed-adapters`,
+    `agent-spec-cli`, `distribution-adapters`) per the spec's
+    *Constrained by* line.
+  - **AC34, AC35, AC36, AC37** stay green throughout (T11's final
+    gate sweep).
+- **ADR-0004 is post-acceptance.** RFC-0012 § *Follow-on
+  artifacts* names "ADR at `docs/adr/0004-repo-scope-per-adapter-projection.md`" as the
+  follow-on; the ADR lands after T1-T11 are done, in its own PR.
+  Not gating this spec.
+- **Sibling RFC for repo-only-pack `allowed-adapters`
+  (RFC-0013 candidate) — deferred.** Resolved during RFC-0012's
+  adversarial review as out of scope (Drawback #7 already touches
+  the repo-only packs by forcing the v0.2 → v0.7 bump). The sibling
+  RFC opens after this spec ships; ROADMAP entry will land then.
+- **Codex-plugins install-route parity — deferred (sibling RFC).**
+  RFC-0012 § *Alternatives* #2 rejects building a `codex-plugins`
+  route here; a separate RFC modeled on RFC-0008 is the path.
+
 ## `pack-allowed-adapters` — shipped
 
 Spec: [`specs/pack-allowed-adapters/spec.md`](specs/pack-allowed-adapters/spec.md).
@@ -540,9 +609,16 @@ brokers" (`env`, `cli`, `creds`, `sso-cookie`); ships the `creds`
 broker as a build-pipeline-projected vendored Python shim (no PyPI
 dependency) and the `sso-cookie` broker as an adapter-root
 subprocess at `~/.agentbundle/bin/sso-broker.py`. Adapter contract
-bumps v0.6 → v0.7 (governance record-keeping — the
-`allowed-prefixes.user` widening RFC-0013 § 4d describes is already
-in place since v0.3's `.agent-ready/` rename). Two new build-pipeline
+bumps to the next label above whatever T1 reads at PR-open time
+(governance record-keeping — the `allowed-prefixes.user` widening
+RFC-0013 § 4d describes is already in place since v0.3's
+`.agent-ready/` rename). **Version-label collision with RFC-0012:**
+RFC-0013's body targets v0.7 but RFC-0012 (`repo-scope-per-adapter-projection`,
+Accepted) also targets v0.7 with a substantive scope-table change;
+per RFC-0013 § 4's disjoint-label rule the two cannot share v0.7,
+so the implementing PR resolves to v0.7 → v0.8 if RFC-0012's spec
+lands first, or v0.6 → v0.7 if this lands first. See spec AC1's
+post-merge revision for the reconciliation logic. Two new build-pipeline
 primitive classes (`shared-libs/` for many-to-many shim projection
 into consumer skills' `scripts/`; `adapter-root-bins/` for
 single-target projection to `~/.agentbundle/bin/`). 48 ACs / 15 tasks
@@ -563,7 +639,9 @@ under `docs/specs/credential-broker-contract/notes/`):
 - `sso-cookie` × Linux — file-floor cookie jar; same flow.
 
 **Depends on:** RFC-0011 (`pack-allowed-adapters`, Accepted 2026-05-26)
-— the v0.6 baseline this spec bumps to v0.7. Acceptance-ordering
+— the v0.6 baseline this spec bumps above; and RFC-0012 sequencing
+for the concrete version label per the collision note above.
+Acceptance-ordering
 gate is met; the implementation spec can proceed.
 
 ## Cross-spec / outside-the-spec-tree
