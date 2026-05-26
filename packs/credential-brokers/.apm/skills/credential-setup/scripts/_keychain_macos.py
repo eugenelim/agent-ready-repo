@@ -15,7 +15,7 @@ Token bytes never reach argv:
   ``proc.communicate(input=token.encode())``.
 - **Delete** uses ``delete-generic-password`` (idempotent on miss).
 
-The loader (``agentbundle.creds.loader``) imports this module **only**
+The build-projected ``credentials_shim`` imports this module **only**
 when ``sys.platform == "darwin"`` per AC4b. Tests monkeypatch
 ``SERVICE`` to a ``tmp_path``-derived prefix so test entries never
 collide with the developer's real ``agentbundle`` Keychain entries.

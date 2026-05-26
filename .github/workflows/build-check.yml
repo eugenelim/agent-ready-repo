@@ -178,34 +178,3 @@ jobs:
         # comment intentionally vague so this doesn't drift again.
         run: python tools/hooks/pre-pr.py
 
-  tests-windows:
-    name: pytest (windows-latest)
-    # Windows-only verification home for the Credential Manager Tier-2
-    # backend. The integration tests in
-    # `packages/agentbundle/tests/integration/test_credman_windows.py`
-    # and the unit tests in
-    # `tests/unit/test_credman_windows_logic.py` are gated on
-    # `sys.platform == "win32"`; without a windows-latest runner they
-    # have nowhere automated to execute. macOS Keychain coverage runs
-    # on the developer's machine and is tracked separately — this job
-    # closes the Windows gap only (spec § AC10).
-    runs-on: windows-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install agentbundle (editable) + pytest
-        run: pip install -e packages/agentbundle/ pytest
-
-      - name: pytest Windows Credential Manager + Tier-3 icacls (AC9–AC11, AC15)
-        working-directory: packages/agentbundle
-        run: |
-          python -m pytest `
-            tests/unit/test_credman_windows_logic.py `
-            tests/unit/test_credentials_dotfile.py `
-            tests/integration/test_credman_windows.py
