@@ -1,5 +1,7 @@
 """mcp-server-headers: header-naming flags are allowed for this class."""
 from __future__ import annotations
+from .credentials_shim import load_credentials  # AC25 fixture stub
+
 
 import argparse
 

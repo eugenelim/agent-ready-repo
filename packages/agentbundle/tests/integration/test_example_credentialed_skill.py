@@ -246,22 +246,47 @@ def test_dont_block_matches_credentialed_cli_template():
 
 
 def test_cli_imports_load_credentials():
-    """AC29: ``scripts/cli.py`` imports the public-shim loader."""
+    """AC28: ``scripts/cli.py`` imports the build-projected shim."""
     text = (SKILL_DIR / "scripts" / "cli.py").read_text(encoding="utf-8")
-    assert "from agentbundle.credentials import" in text
+    assert "from .credentials_shim import" in text
     assert "load_credentials" in text
 
 
-def _load_cli_module():
-    """Import the seed-side ``cli.py`` as a module under a unique
-    name so importlib doesn't re-use a cached entry across tests."""
+def _load_cli_module(monkeypatch):
+    """Import the seed-side ``cli.py`` as a module under a synthetic
+    parent package so the ``from .credentials_shim import …`` relative
+    import resolves against the projected sibling modules in
+    ``scripts/``.
+
+    The synthetic package and every submodule it imports are registered
+    in ``sys.modules`` via the test's ``monkeypatch.setitem`` /
+    ``monkeypatch.delitem`` sequence so pytest tears the entries down
+    at test exit. Without the teardown, a test's
+    ``monkeypatch.setattr(cli, "load_credentials", boom)`` leaks into
+    later tests that re-resolve the same cached module.
+    """
     import importlib.util
+    import sys
+    import types
+    pkg_name = "example_credentialed_skill_pkg"
+    pkg = types.ModuleType(pkg_name)
+    pkg.__path__ = [str(SKILL_DIR / "scripts")]
+    monkeypatch.setitem(sys.modules, pkg_name, pkg)
     spec = importlib.util.spec_from_file_location(
-        "example_credentialed_skill_cli",
+        f"{pkg_name}.cli",
         SKILL_DIR / "scripts" / "cli.py",
     )
     cli = importlib.util.module_from_spec(spec)
+    cli.__package__ = pkg_name
+    monkeypatch.setitem(sys.modules, f"{pkg_name}.cli", cli)
     spec.loader.exec_module(cli)
+    # The cli's lazy `from .credentials_shim import …` (executed at
+    # main() time) registers `<pkg_name>.credentials_shim`; record a
+    # delitem so monkeypatch reverses it even though we don't set it
+    # ourselves up front.
+    shim_key = f"{pkg_name}.credentials_shim"
+    if shim_key in sys.modules:
+        monkeypatch.setitem(sys.modules, shim_key, sys.modules[shim_key])
     return cli
 
 
@@ -274,11 +299,13 @@ def test_cli_catches_tier2_hard_fail_with_friendly_stderr(
     escape. Adopters copy this skill; the catch arm is the load-bearing
     pattern they inherit.
     """
-    cli = _load_cli_module()
+    cli = _load_cli_module(monkeypatch)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
 
-    from agentbundle.credentials import Tier2HardFailError
+    # Use the shim's Tier2HardFailError so cli.py's `except` arm
+    # (which imports from .credentials_shim) catches it.
+    Tier2HardFailError = cli.Tier2HardFailError
 
     def boom(*a, **kw):
         raise Tier2HardFailError("keychain locked")
@@ -300,7 +327,7 @@ def test_cli_refuses_invalid_base_url_with_exit_three(
     """Maintainability contract: ``BASE_URL`` resolution that returns
     a non-URL value exits 3 instead of issuing a call to garbage.
     Adopters who copy the pattern inherit the validation seam."""
-    cli = _load_cli_module()
+    cli = _load_cli_module(monkeypatch)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("EXAMPLE_API_TOKEN", "x")
@@ -317,7 +344,7 @@ def test_cli_call_output_does_not_leak_token_bytes_or_length(
     """The token bytes never reach stdout, and neither does
     ``len(token)`` — token-length is a small side-channel adopters
     should not normalise leaking."""
-    cli = _load_cli_module()
+    cli = _load_cli_module(monkeypatch)
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
     secret = "super-secret-token-xyz-deadbeef"
@@ -347,14 +374,10 @@ def test_cli_refuses_argv_borne_token_flag_in_process(tmp_path, monkeypatch, cap
     reason.
     """
     # Load the cli module from the seed path (it is not on the default
-    # PYTHONPATH because the skill is not a Python package).
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "example_credentialed_skill_cli",
-        SKILL_DIR / "scripts" / "cli.py",
-    )
-    cli = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(cli)
+    # PYTHONPATH because the skill is not a Python package). Use the
+    # shared ``_load_cli_module`` helper so the relative ``from
+    # .credentials_shim`` import resolves against the projected siblings.
+    cli = _load_cli_module(monkeypatch)
 
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))

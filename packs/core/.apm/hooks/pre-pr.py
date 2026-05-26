@@ -16,6 +16,9 @@ What it runs:
   - tools/lint-knowledge.py        — docs/knowledge/patterns.jsonl
   - tools/lint-build.py            — build-pipeline hygiene
   - tools/lint-seeds.py            — pack seeds placeholder shape (RFC-0002)
+  - tools/lint-credentialed-skills.sh
+                                   — broker-agnostic + per-broker checks
+                                      (RFC-0013, spec credential-broker-contract)
   - .claude/skills/work-loop/scripts/loop-cohort.py
                                    — for each docs/specs/*/state.json,
                                       `loop-cohort.py check <spec-dir>` in
@@ -77,6 +80,9 @@ def main() -> int:
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
     _run("seeds lint",          [py, "tools/lint-seeds.py"])
+    _run("credentialed-skill lint", ["bash", "tools/lint-credentialed-skills.sh"])
+    _run("credentialed-skill lint self-test",
+         [py, "tools/test-lint-credentialed-skills.py"])
 
     state_files = sorted(Path("docs/specs").glob("*/state.json"))
     if not state_files:

@@ -5,6 +5,8 @@ metadata:
   credentialed: true
   primitive-class: credentialed-cli
   auth: creds
+  namespace: jiraalign
+  keys: ["API_TOKEN"]
 ---
 
 # Jira Align Client
