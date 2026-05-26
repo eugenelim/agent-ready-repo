@@ -28,6 +28,7 @@ This module is import-cheap (no I/O at import time) so the CLI's
 from __future__ import annotations
 
 import os
+import tomllib
 from pathlib import Path
 from typing import Iterable
 
@@ -36,6 +37,12 @@ from typing import Iterable
 # (RFC-0004 § Alternatives considered §6). Keep this single-sourced so
 # argparse's `choices=` and the runtime resolver agree.
 LEGAL_SCOPES: frozenset[str] = frozenset({"repo", "user"})
+
+# RFC-0011 / pack-allowed-adapters: greenfield-fallback default when
+# no adapter CLI home is present and the pack declares no preferred
+# first adapter. Downstream catalogues can monkey-patch this constant
+# at startup to flip the default for their own distribution.
+DEFAULT_USER_SCOPE_ADAPTER: str = "claude-code"
 
 
 class ScopeRefused(Exception):
@@ -168,3 +175,81 @@ def resolve_user_root(home: Path | None = None) -> Path:
     if str(normalised) == "/":
         raise UserScopeUnresolvable("expanduser resolved to '/' ($HOME=/)")
     return normalised
+
+
+# ---------------------------------------------------------------------------
+# Adapter-contract introspection (RFC-0011 / pack-allowed-adapters)
+# ---------------------------------------------------------------------------
+#
+# Three pure-data helpers that derive their answers from the bundled
+# `agentbundle/_data/adapter.toml` shipped inside the wheel. The schema
+# validator (`commands/validate.py`) and the CLI argparse setup
+# (`cli.py`) both consume these so the schema enum, the argparse
+# `choices=` list, and the runtime resolver all read from one place.
+
+
+def _load_bundled_contract() -> dict:
+    """Read `_data/adapter.toml` from the installed package.
+
+    Kept private; callers go through the three high-level helpers
+    below. Re-reads on every call (cheap; ~5KB TOML parse) so a
+    monkeypatch in tests can swap the bundled file without leaking
+    a cached parse. Uses the project's zipapp-safe reader instead of
+    `Path(__file__).parent` — `__file__` inside a zipapp isn't a real
+    filesystem path and `Path.read_text()` raises NotADirectoryError.
+    """
+    from agentbundle.build.main import _read_bundled
+
+    return tomllib.loads(_read_bundled("adapter.toml"))
+
+
+def shipped_adapters_from_contract() -> tuple[str, ...]:
+    """Return every adapter declared in `[adapter.<name>]` blocks of
+    the bundled contract, alphabetic-sorted.
+
+    Consumers: the install CLI's argparse `--adapter` `choices=` list.
+    Sorted-tuple shape so `argparse --help` renders stably across
+    runs and Python versions.
+    """
+    contract = _load_bundled_contract()
+    return tuple(sorted(contract.get("adapter", {}).keys()))
+
+
+def user_scope_capable_adapters_from_contract() -> tuple[str, ...]:
+    """Return adapters that declare `[adapter.<name>.scope].user` —
+    the set that can target user scope at all.
+
+    Consumers: the schema validator's `allowed-adapters` cross-field
+    refusal; the install handler's `--adapter` user-scope-capability
+    check. Sorted-tuple for the same stability reason as above.
+    """
+    contract = _load_bundled_contract()
+    capable = []
+    for name, block in contract.get("adapter", {}).items():
+        scope = block.get("scope")
+        if isinstance(scope, dict) and "user" in scope:
+            capable.append(name)
+    return tuple(sorted(capable))
+
+
+# Contract versions that pre-date hook-wiring (RFC-0005). The
+# `_kiro_target_adapters` rail and any future hook-related code path
+# checks this; a literal-set check would silently break on the next
+# contract bump (v0.7+), so the predicate is the load-bearing form.
+_PRE_HOOK_WIRING_CONTRACT_VERSIONS: frozenset[str] = frozenset({"0.1", "0.2"})
+
+
+def contract_supports_hook_wiring(version: str | None) -> bool:
+    """True for any contract version that ships hook-wiring as a
+    first-class primitive (v0.3 and later).
+
+    The semantic predicate replaces the literal `version != "0.3"`
+    check that lived at `validate.py:379` pre-RFC-0011 — that check
+    silently dropped v0.6+ packs from the kiro-targeting rail and
+    would re-break on v0.7. None / unknown values return False
+    (conservative: a pack with no declared contract version is
+    treated as pre-hook-wiring).
+    """
+    if not isinstance(version, str):
+        return False
+    return version not in _PRE_HOOK_WIRING_CONTRACT_VERSIONS

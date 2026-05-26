@@ -211,21 +211,60 @@ def run(args: "argparse.Namespace") -> int:
     # (`apm/...`, `claude-plugins/...`) would fail the user-scope
     # `allowed-prefixes` jail and wouldn't match the user-scope-installed
     # state's `.claude/...` paths. Mirrors `install._render_for_user_scope`.
+    # RFC-0011: thread the pack's allowed-adapters, contract version,
+    # and recorded state.adapter through the resolver so v0.6+ packs
+    # use the six-step lookup (and existing adopters get the
+    # state-hint short-circuit AC10b on upgrade, avoiding the
+    # cross-adapter refusal when they've populated a second CLI home).
+    _pack_install_table = pack_toml.get("pack", {}).get("install")
+    _pack_allowed_adapters = None
+    if isinstance(_pack_install_table, dict):
+        _raw_aa = _pack_install_table.get("allowed-adapters")
+        if isinstance(_raw_aa, list):
+            _pack_allowed_adapters = [s for s in _raw_aa if isinstance(s, str)]
+    _pack_contract_version = (
+        pack_toml.get("pack", {}).get("adapter-contract", {}).get("version")
+        if isinstance(pack_toml.get("pack", {}).get("adapter-contract"), dict)
+        else None
+    )
     try:
         if effective_scope == "user":
             from agentbundle.commands.install import (
+                _AdapterResolutionRefused,
                 _render_for_user_scope,
                 _resolve_user_scope_target_adapter,
                 _rewrite_user_scope_hook_paths,
             )
 
-            projection = _render_for_user_scope(pack_dir)
+            try:
+                projection = _render_for_user_scope(
+                    pack_dir,
+                    adapter=None,
+                    allowed_adapters=_pack_allowed_adapters,
+                    contract_version=_pack_contract_version,
+                    state_adapter=pack_state.adapter,
+                    command_name="upgrade",
+                )
+            except _AdapterResolutionRefused as exc:
+                print(str(exc), file=sys.stderr)
+                return 1
             # Mirror install: rewrite v0.2 hook-body paths to the v0.3
             # user-scope shape (`.claude/hooks/<pack>/` or
             # `.kiro/hooks/<pack>/`) and drop the v0.2 settings.local.json
             # target. Without this, the path-jail probe refuses
             # `tools/hooks/<name>.sh` at user scope.
-            _new_target_adapter = _resolve_user_scope_target_adapter(pack_dir)
+            try:
+                _new_target_adapter = _resolve_user_scope_target_adapter(
+                    pack_dir,
+                    adapter=None,
+                    allowed_adapters=_pack_allowed_adapters,
+                    contract_version=_pack_contract_version,
+                    state_adapter=pack_state.adapter,
+                    command_name="upgrade",
+                )
+            except _AdapterResolutionRefused as exc:
+                print(str(exc), file=sys.stderr)
+                return 1
             projection = _rewrite_user_scope_hook_paths(
                 projection,
                 pack_name=pack_name,
@@ -303,12 +342,24 @@ def run(args: "argparse.Namespace") -> int:
     # rows accordingly.
     if effective_scope == "user" and not is_per_primitive:
         from agentbundle.commands.install import (
+            _AdapterResolutionRefused,
             _merge_user_scope_hook_wiring,
             _refresh_merge_target_shas,
             _resolve_user_scope_target_adapter,
         )
 
-        new_target_adapter = _resolve_user_scope_target_adapter(pack_dir)
+        try:
+            new_target_adapter = _resolve_user_scope_target_adapter(
+                pack_dir,
+                adapter=None,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=pack_state.adapter,
+                command_name="upgrade",
+            )
+        except _AdapterResolutionRefused as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
         old_adapter_recorded = pack_state.adapter or "claude-code"
 
         # Concern #3: cross-adapter upgrades are out of scope. AC19b

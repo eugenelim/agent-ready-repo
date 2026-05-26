@@ -391,11 +391,13 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.5"."""
+        """tomllib.loads of adapter.toml returns contract.version == "0.6"
+        (bumped from "0.5" by RFC-0011 / pack-allowed-adapters).
+        """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.5",
-            "adapter.toml [contract] version must be '0.5' after T2 bump",
+            "0.6",
+            "adapter.toml [contract] version must be '0.6' after RFC-0011 bump",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:
