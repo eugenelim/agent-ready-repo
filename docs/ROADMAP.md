@@ -185,7 +185,7 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
-## `repo-scope-per-adapter-projection` — in flight (T1-T9 + AC24 + AC30b + AC33 follow-ons landed; ADR-0004 + (c) per-pack scoping open)
+## `repo-scope-per-adapter-projection` — in flight (T1-T9 + AC24 + AC30b + AC33 + ADR-0004 follow-ons landed; (c) per-pack scoping open)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
 RFC: [`rfc/0012-repo-scope-per-adapter-projection.md`](rfc/0012-repo-scope-per-adapter-projection.md)
@@ -239,12 +239,14 @@ the v0.6 → v0.7 transition.
   pinned-wording enumeration. `--force` semantics also pinned per
   trigger. No code change; closes the spec-vs-code drift PR #141
   introduced.
+- **ADR-0004 landed in PR #147 (2026-05-26).** Records the
+  v0.6→v0.7 architectural decision post-implementation per the
+  project's RFC-decided → ADR-recorded pattern. Pairs with ADR-0002
+  (per-pack default-plus-allowance); names alternatives 2, 4, 5, 7,
+  and 8 from RFC-0012's Alternatives section as explicitly rejected.
+  Same PR backfills 0002 and 0003 into `docs/adr/README.md`'s table
+  (the index was stale).
 - **Open follow-on items:**
-  - **ADR-0004** at `docs/adr/0004-repo-scope-per-adapter-projection.md`
-    — RFC-0012 § *Follow-on artifacts* names this. Records the
-    v0.6→v0.7 transition decision post-implementation per the
-    project's RFC-decided → ADR-recorded pattern. Pure prose; not
-    gating anything.
   - **Per-pack scoping of (c)'s artifact scan** — pre-existing AC22
     limitation inherited verbatim. `safety.scan_for_pack_artifacts`
     is adapter-prefix scoped; tightening to pack-name scoping is a
@@ -275,10 +277,7 @@ the v0.6 → v0.7 transition.
     *Constrained by* line.
   - **AC34, AC35, AC36, AC37** stay green throughout (T11's final
     gate sweep).
-- **ADR-0004 is post-acceptance.** RFC-0012 § *Follow-on
-  artifacts* names "ADR at `docs/adr/0004-repo-scope-per-adapter-projection.md`" as the
-  follow-on; the ADR lands after T1-T11 are done, in its own PR.
-  Not gating this spec.
+- **ADR-0004 landed 2026-05-26** (see follow-on bullet above).
 - **Sibling RFC for repo-only-pack `allowed-adapters`
   (RFC-0013 candidate) — deferred.** Resolved during RFC-0012's
   adversarial review as out of scope (Drawback #7 already touches
