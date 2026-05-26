@@ -40,28 +40,37 @@ Four routes, depending on the agent harness you use and whether you want the cat
 /plugin install core@agent-ready-repo
 ```
 
+`/plugin install` lands the markdown and scripts but not the `agentbundle` Python module those scripts import — see [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md) before invoking `jira`, `figma`, or any credentialed skill.
+
 **Any IDE via APM:**
 
 ```bash
 apm install eugenelim/agent-ready-repo/core
 ```
 
-**Reference CLI** ([RFC-0003](docs/rfc/0003-spec-and-cli.md)) — once `agentbundle` is on your PATH:
+`apm install` lands the same pack content but not the `agentbundle` module credentialed skills import — same pip-install step the clone route documents, see [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md).
+
+**Reference CLI** ([RFC-0003](docs/rfc/0003-spec-and-cli.md)) — once you've pip-installed `agentbundle` (see route 4):
 
 ```bash
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
 ```
 
-**From a local clone, no global install** — clone the catalogue, build the bundled CLI as a self-contained zipapp, and project straight into your target repo:
+Route 3 still requires route 4's pip install today — RFC-0003 § F-cli-dist's release artifact (zipapp / wheel / Homebrew) isn't shipped yet, so "on your PATH" resolves to the editable install from the clone. The route's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
+
+**From a local clone** — clone the catalogue, install the runtime library, and project straight into your target repo:
 
 ```bash
 git clone https://github.com/eugenelim/agent-ready-repo
 cd agent-ready-repo
-make zipapp                                              # builds dist/agentbundle.pyz
-./dist/agentbundle.pyz install --pack core . --output /path/to/your/project
+pip install -e packages/agentbundle/                     # one install, two surfaces (module + CLI on PATH)
+python -c "from agentbundle.credentials import load_credentials"   # smoke: importable?
+agentbundle install --pack core . --output /path/to/your/project
 ```
 
-The catalogue argument is `.` because you're inside the clone; `--output` points at the target repo's root. Use `git checkout <tag>` in the clone first to pin a specific release.
+**The clone does double duty.** `packs/` is the catalogue the install verb projects into your target repo; `packages/agentbundle/` is the runtime library credentialed skills (`jira`, `figma`, `confluence-publisher`, and others) import from their own subprocess. The `pip install -e` step wires that library into your active interpreter *and* drops the `agentbundle` launcher on PATH, so a single install gives you both the CLI you just ran and the module the skill scripts depend on; `git pull` against the clone cascades to both surfaces. See [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md) for the full mental model, the editable-vs-snapshot choice, and venv guidance.
+
+The catalogue argument is `.` because you're inside the clone; `--output` points at the target repo's root. Use `git checkout <tag>` in the clone first to pin a specific release. If `pip install` is blocked in your environment, see the [zipapp fallback](docs/guides/how-to/install-agentbundle-from-clone.md#fallback-build-the-zipapp).
 
 Swap `core` for any pack from the table above. Most adopters install `core` plus the add-ons that fit their repo, then run the `adapt-to-project` skill (shipped in `core`) to customize the freshly-installed primitives to local conventions.
 
