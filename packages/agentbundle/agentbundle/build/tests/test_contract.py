@@ -380,10 +380,11 @@ class FrontmatterTableTests(unittest.TestCase):
 
 
 class ContractV05Tests(unittest.TestCase):
-    """T2 (apm-install-route-parity AC9): v0.5 contract assertions.
+    """T2 (apm-install-route-parity AC9): contract-version assertion.
 
-    test_contract_version_is_v05, test_claude_code_install_routes_includes_apm,
-    test_other_adapters_have_no_install_routes, test_adapter_schema_accepts_apm_enum_value.
+    Originally pinned v0.5; bumped to v0.6 by RFC-0011 and to v0.7 by
+    RFC-0013 / credential-broker-contract. Class name preserved to avoid
+    needless diff churn against the next bump.
     """
 
     def setUp(self) -> None:
@@ -391,13 +392,13 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.6"
-        (bumped from "0.5" by RFC-0011 / pack-allowed-adapters).
+        """tomllib.loads of adapter.toml returns contract.version == "0.7"
+        (bumped from "0.6" by RFC-0013 / credential-broker-contract).
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.6",
-            "adapter.toml [contract] version must be '0.6' after RFC-0011 bump",
+            "0.7",
+            "adapter.toml [contract] version must be '0.7' after RFC-0013 bump",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:

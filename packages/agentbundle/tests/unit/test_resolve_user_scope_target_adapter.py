@@ -202,11 +202,11 @@ def test_adapter_flag_refused_not_user_scope_capable(tmp_path, fake_home):
             pack,
             adapter="copilot",
             allowed_adapters=None,
-            contract_version="0.6",
+            contract_version="0.7",
         )
     msg = str(exc_info.value)
     assert "--adapter copilot not admitted as a user-scope-capable adapter" in msg
-    assert "v0.6" in msg
+    assert "v0.7" in msg
 
 
 # ---------------------------------------------------------------------------
