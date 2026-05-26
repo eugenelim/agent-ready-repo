@@ -35,11 +35,12 @@ def _load_contract() -> dict:
 class ContractVersionTests(unittest.TestCase):
     """Contract version: bumped to 0.2 by RFC-0004, then to 0.3 by RFC-0005,
     then to 0.4 by RFC-0008 (T2 / spec claude-plugins-install-route), then to
-    0.5 by RFC-0010 (T2 / spec apm-install-route-parity)."""
+    0.5 by RFC-0010 (T2 / spec apm-install-route-parity), then to 0.6 by
+    RFC-0011 / pack-allowed-adapters (codex user-scope table)."""
 
     def test_contract_version_is_0_5(self) -> None:
         contract = _load_contract()
-        self.assertEqual(contract["contract"]["version"], "0.5")
+        self.assertEqual(contract["contract"]["version"], "0.6")
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):
@@ -70,13 +71,24 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
 class OtherAdaptersOmitScopeTests(unittest.TestCase):
     """Adapters omitting [scope] are accepted as repo-only. v0.3 (RFC-0005)
     adds a `[scope]` table to Kiro alongside Claude Code's existing one;
-    only Copilot and Codex remain scope-less."""
+    v0.6 (RFC-0011) adds one to Codex; only Copilot remains scope-less."""
 
     def test_copilot_codex_omit_scope(self) -> None:
         contract = _load_contract()
-        for name in ("copilot", "codex"):
-            with self.subTest(adapter=name):
-                self.assertNotIn("scope", contract["adapter"][name])
+        # Only Copilot still omits [scope] at v0.6. Codex gained one
+        # via RFC-0011 / pack-allowed-adapters; see test_codex_has_scope_per_rfc_0011.
+        self.assertNotIn("scope", contract["adapter"]["copilot"])
+
+    def test_codex_has_scope_per_rfc_0011(self) -> None:
+        contract = _load_contract()
+        scope = contract["adapter"]["codex"].get("scope")
+        self.assertIsNotNone(scope, "Codex [scope] block missing (RFC-0011)")
+        self.assertEqual(scope["repo"], ".")
+        self.assertEqual(scope["user"], "~")
+        self.assertEqual(
+            scope["allowed-prefixes"]["user"],
+            [".agents/skills/", ".agentbundle/"],
+        )
 
     def test_kiro_has_scope_per_rfc_0005(self) -> None:
         contract = _load_contract()
