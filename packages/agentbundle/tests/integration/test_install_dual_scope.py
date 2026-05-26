@@ -162,9 +162,13 @@ def test_cross_scope_force_proceeds_and_writes_both_state_files(tmp_path, monkey
     # Both state files exist after the run.
     assert (target / ".agentbundle-state.toml").exists()
     assert (fake_home / ".agentbundle" / "state.toml").exists()
-    # Two `installed:` lines, repo first then user.
+    # Two `installed:` lines, repo first then user. RFC-0011 extends
+    # the user-scope line with ` via <adapter>` — strip the suffix
+    # before comparing so the test stays focused on the dual-scope
+    # ordering invariant rather than the adapter-resolution clause.
     lines = [ln for ln in out.splitlines() if ln.startswith("installed:")]
-    assert lines == ["installed: demo-both @ repo", "installed: demo-both @ user"], (
+    stripped = [ln.split(" via ")[0].rstrip() for ln in lines]
+    assert stripped == ["installed: demo-both @ repo", "installed: demo-both @ user"], (
         f"expected repo-then-user stdout sequence; got {lines!r}"
     )
 
