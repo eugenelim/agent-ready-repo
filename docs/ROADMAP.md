@@ -185,7 +185,7 @@ classes 2–4 LLM-judgment writes under the per-scope path-jail).
   preparatory evidence, not closing per AC4a's *(c)* contract
   ("captured against a real adopter session").
 
-## `repo-scope-per-adapter-projection` — in flight (T1-T9 landed; AC24 + AC33 follow-ons landed)
+## `repo-scope-per-adapter-projection` — in flight (T1-T9 + AC24 + AC30b + AC33 follow-ons landed; ADR-0004 + (c) per-pack scoping open)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
 RFC: [`rfc/0012-repo-scope-per-adapter-projection.md`](rfc/0012-repo-scope-per-adapter-projection.md)
@@ -228,10 +228,23 @@ the v0.6 → v0.7 transition.
   e2e). The implementer-chosen wording for (a) and (b) is named in
   the PR body; a follow-on spec amendment can pin the strings
   verbatim in AC24.
+- **AC30b refusal-ordering witness landed in PR #144 (2026-05-26).**
+  Two-case unit test that pins tier 1 → tier 2 → tier 3 ordering by
+  supplying inputs that satisfy two adjacent tiers simultaneously and
+  asserting only the higher-tier line fires. Falsifier for the
+  *Always do* refusal-ordering invariant.
+- **AC24 (a)/(b) pinned-wording amendment landed in PR #146 (2026-05-26).**
+  Promoted the implementer-chosen stderr strings from PR #141 into
+  AC24's body verbatim, plus into **Boundaries — Always do**'s
+  pinned-wording enumeration. `--force` semantics also pinned per
+  trigger. No code change; closes the spec-vs-code drift PR #141
+  introduced.
 - **Open follow-on items:**
-  - **Spec amendment** pinning the chosen (a)/(b) stderr wording
-    verbatim in AC24 — implementer's choice today; spec amendment
-    closes the loop.
+  - **ADR-0004** at `docs/adr/0004-repo-scope-per-adapter-projection.md`
+    — RFC-0012 § *Follow-on artifacts* names this. Records the
+    v0.6→v0.7 transition decision post-implementation per the
+    project's RFC-decided → ADR-recorded pattern. Pure prose; not
+    gating anything.
   - **Per-pack scoping of (c)'s artifact scan** — pre-existing AC22
     limitation inherited verbatim. `safety.scan_for_pack_artifacts`
     is adapter-prefix scoped; tightening to pack-name scoping is a
