@@ -94,13 +94,34 @@ contract kicks in, no silent overwrites. See [the file-safety
 contract](file-safety-contract.md) for the Tier model and per-route
 mechanics.
 
-## Codex-native (draft)
+## Codex skills (shipped)
 
-[RFC-0009](../../rfc/0009-codex-native-skills.md) is in draft and would
-add a fifth route: Codex skills installed as `.agents/skills/` rather
-than via the `AGENTS.md` managed block. It's not shipped yet; today
-Codex installs use the APM or CLI route with managed-block-inline
-projection.
+[RFC-0009](../../rfc/0009-codex-native-skills.md) made Codex skills
+a first-class projection — `direct-directory` writes to
+`.agents/skills/<name>/SKILL.md` instead of the old managed-block
+inline shape. [RFC-0011](../../rfc/0011-pack-allowed-adapters.md) then
+made Codex user-scope-capable, so the same skills also project to
+`~/.agents/skills/` when an adopter passes `--scope user` against a
+pack declaring `codex` in its `allowed-adapters`. The four catalogue
+user-scope packs (`atlassian`, `figma`, `converters`, `contracts`)
+all do; see the
+[Codex user-scope how-to](../how-to/install-user-scope-pack-into-codex.md).
+A future RFC would add a `codex-plugins` install route (sibling to
+`claude-plugins`) so Codex's own plugin manager can install these
+packs without going through the CLI/APM routes — that work isn't
+opened yet.
+
+## The `--adapter` override
+
+Adopters with multiple IDE homes populated (`~/.claude/` plus
+`~/.kiro/`, say) can override the resolver's first-match-wins pick
+by passing `--adapter <name>` to `agentbundle install`. The flag is
+bound to `--scope user` (it's a user-scope-only resolver decision)
+and must name one of the pack's `allowed-adapters`. The pinned
+refuse-and-explain messages name the field and the contract version,
+so failed installs are loud, not silent. See
+[RFC-0011](../../rfc/0011-pack-allowed-adapters.md) for the
+six-step resolver this flag participates in.
 
 ## Where to read next
 
