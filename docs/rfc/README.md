@@ -17,6 +17,7 @@
 | [0009](0009-codex-native-skills.md) | Migrate Codex adapter from managed-block AGENTS.md to native `.agents/skills/` | Accepted | 2026-05-25 | 2026-05-25 |
 | [0010](0010-apm-install-route-parity.md) | APM install-route parity — per-pack SessionStart writer projected through APM's HookIntegrator | Accepted | 2026-05-25 | 2026-05-25 |
 | [0011](0011-pack-allowed-adapters.md) | Per-pack `allowed-adapters` declaration for user-scope adapter resolution | Open | 2026-05-25 | |
+| [0012](0012-repo-scope-per-adapter-projection.md) | Repo-scope per-adapter projection — `--adapter` at `--scope repo`, dist-tree opt-in via `--emit-install-routes` | Draft | 2026-05-26 | |
 
 ## Adding a new RFC
 
