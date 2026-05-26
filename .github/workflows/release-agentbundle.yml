@@ -66,11 +66,11 @@ jobs:
       - name: twine check
         run: python3 -m twine check packages/agentbundle/dist/*
 
-      - name: Smoke — install wheel into fresh venv and import load_credentials
+      - name: Smoke — install wheel into fresh venv and import the CLI entrypoint
         run: |
           python3 -m venv /tmp/smokevenv
           /tmp/smokevenv/bin/pip install --quiet packages/agentbundle/dist/*.whl
-          /tmp/smokevenv/bin/python -c "from agentbundle.credentials import load_credentials"
+          /tmp/smokevenv/bin/python -c "from agentbundle.cli import main"
 
       - name: Smoke — agentbundle console script on PATH
         run: PATH="/tmp/smokevenv/bin:$PATH" agentbundle --help

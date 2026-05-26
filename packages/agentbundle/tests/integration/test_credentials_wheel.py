@@ -1,27 +1,39 @@
-"""T3 / AC4c: ``agentbundle.credentials`` is reachable from an installed wheel.
+"""T15 / AC36 + AC39: ``agentbundle.credentials`` is NOT reachable from
+the installed wheel — the module was removed in version 0.2.0 per
+RFC-0013 § 9.
 
-The test builds + installs ``packages/agentbundle`` into a ``tmp_path``-scoped
-site directory, then runs the import in a subprocess whose ``PYTHONPATH``
-points at that site. Exit 0 from the import is the AC4c contract.
-
-This is slow (~5–30s for the PEP 517 build); it lives under
-``tests/integration`` so the default ``pytest -q`` over ``tests/unit/`` stays
-fast, while CI's full-suite invocation still picks it up.
+The test builds + installs ``packages/agentbundle`` into a
+``tmp_path``-scoped site directory, then asserts that the import in a
+subprocess raises ``ImportError`` / ``ModuleNotFoundError``. The prior
+test (0.1.x baseline) asserted resolution; this rewrite pins the
+absence.
 """
 
 from __future__ import annotations
 
-import os
 import pathlib
 import subprocess
 import sys
 
-def test_agentbundle_credentials_resolves_from_installed_wheel(tmp_path):
+
+def test_agentbundle_credentials_is_removed_from_installed_wheel(tmp_path):
     site_dir = tmp_path / "site"
-    # __file__: packages/agentbundle/tests/integration/test_credentials_wheel.py
-    # parents[2] resolves to packages/agentbundle/ — the package root pip
-    # should pick up.
     pkg_root = pathlib.Path(__file__).resolve().parents[2]
+
+    # Defensive clean before pip install — a stale `build/` or
+    # `*.egg-info/` from a previous local build can shadow the
+    # deletion (setuptools `find_packages` will pull `credentials.py`
+    # from `build/lib/agentbundle/` and ship it in the wheel, making
+    # the absence assertion fail intermittently on dev machines).
+    # `feedback_gitignore_silent_skip` warns about this trap.
+    import shutil
+    for stale in (
+        pkg_root / "build",
+        pkg_root / "agentbundle.egg-info",
+        pkg_root / "dist",
+    ):
+        shutil.rmtree(stale, ignore_errors=True)
+
     install = subprocess.run(
         [
             sys.executable, "-m", "pip", "install",
@@ -29,34 +41,35 @@ def test_agentbundle_credentials_resolves_from_installed_wheel(tmp_path):
             "--quiet", "--no-deps",
             str(pkg_root),
         ],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert install.returncode == 0, (
-        f"pip install failed (rc={install.returncode}):\n"
-        f"stdout: {install.stdout}\nstderr: {install.stderr}"
+        f"pip install failed:\nstdout={install.stdout}\nstderr={install.stderr}"
     )
-    # Confirm the shim package actually landed in the wheel.
-    assert (site_dir / "agentbundle" / "credentials.py").is_file(), (
-        f"agentbundle/credentials.py missing from installed target; "
-        f"listing: {sorted(p.name for p in site_dir.iterdir())}"
+
+    # Import in a subprocess so a transient ``sys.modules`` cache from
+    # another test cannot mask the absence.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import agentbundle.credentials  # noqa: F401\n"
+            "print('imported (regression — module should not exist)')\n",
+        ],
+        env={"PYTHONPATH": str(site_dir), "PATH": ""},
+        capture_output=True,
+        text=True,
     )
-    # PEP 668-friendly: don't inherit the parent's PYTHONPATH; point it
-    # only at the freshly-installed target.
-    env = {
-        "PATH": os.environ.get("PATH", ""),
-        "PYTHONPATH": str(site_dir),
-        # Windows runs need SYSTEMROOT for subprocess.run to find DLLs.
-        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
-    }
-    res = subprocess.run(
-        [sys.executable, "-c",
-         "from agentbundle.credentials import load_credentials; "
-         "from agentbundle.credentials import Credentials, "
-         "CredentialsMissingError, Tier2HardFailError"],
-        env=env,
-        capture_output=True, text=True,
+    assert result.returncode != 0, (
+        f"agentbundle.credentials imported from the wheel — regression "
+        f"against AC36 (the module was removed in 0.2.0):\n"
+        f"stdout={result.stdout}\nstderr={result.stderr}"
     )
-    assert res.returncode == 0, (
-        f"import from installed wheel failed (rc={res.returncode}):\n"
-        f"stdout: {res.stdout}\nstderr: {res.stderr}"
+    assert (
+        "ModuleNotFoundError" in result.stderr
+        or "ImportError" in result.stderr
+    ), (
+        f"expected ImportError-shape failure, got:\n"
+        f"stdout={result.stdout}\nstderr={result.stderr}"
     )

@@ -13,7 +13,7 @@
   },
   "credentials": {
     "namespace": "jira",
-    "setup": "agentbundle creds setup jira",
+    "setup": "credential-setup",
     "schema": "references/creds-schema.toml"
   },
   "input": {

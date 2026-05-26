@@ -1,7 +1,12 @@
 """Loader API and stdlib ``.env`` parser for credentialed primitives.
 
-This module exposes the public surface a credentialed-primitive author
-imports (via the ``agentbundle.credentials`` shim, per spec § AC3):
+This module is the build-pipeline-projected shim that ships alongside
+each ``auth: creds`` consumer skill's ``scripts/`` (per RFC-0013 § 4 +
+credential-broker-contract spec § AC6). The consumer imports
+``from .credentials_shim import …`` against this sibling — there is no
+runtime ``agentbundle`` dependency.
+
+Public surface a credentialed-primitive author imports:
 
 - ``load_credentials(namespace, required_keys)`` — resolves credentials
   through Tier 1 (env var) → Tier 2 (OS keyring) → Tier 3 (dotfile),
@@ -554,16 +559,15 @@ def load_credentials(
     attribute mapping each missing key to an ordered list of trailer
     lines (which tier was checked and why it missed); the default
     ``str()`` form embeds those trailers under the key name so a
-    user who ran ``creds setup`` can triage from the message alone.
+    user who ran the ``credential-setup`` skill can triage from the
+    message alone.
 
     Single responsibility: this function *resolves*. Schema concerns
     (which keys a namespace declares, how to prompt for them, whether
     ``required_keys`` matches the declared key set) live in the
-    ``agentbundle creds setup`` / ``creds check`` CLI surface — they
-    are not crossed through this signature. Primitive code is not
-    expected to validate against the schema at load time; if you
-    suspect a namespace / required-keys mismatch, run
-    ``agentbundle creds check <namespace>`` from the shell.
+    ``credential-setup`` skill — they are not crossed through this
+    signature. Primitive code is not expected to validate against
+    the schema at load time.
     """
     resolved: dict[str, str] = {}
     missing: list[str] = []

@@ -83,17 +83,21 @@ One file per non-trivial subsystem:
   build pipeline (recipes → adapters → projections), the adapter contract
   at v0.6 (RFC-0011 added `[adapter.codex.scope]` and the user-scope
   adapter resolver), self-host overlay.
-- [`credentials.md`](credentials.md) — the `agentbundle.credentials`
-  loader, three-tier storage (env / OS keyring / `~/.agentbundle/credentials.env`),
-  the credentialed-primitive model, and the AC26(c) substring trap.
+- [`credentials.md`](credentials.md) — the build-projected
+  `credentials_shim` model (RFC-0013), three-tier storage
+  (env / OS keyring / `~/.agentbundle/credentials.env`), the four
+  brokers (`creds` / `env` / `cli` / `sso-cookie`), the
+  credentialed-primitive contract, and the substring trap.
 
 ## Packages
 
 - [`packages/agentbundle/`](../../packages/agentbundle/) — the reference
-  CLI and runtime library. Thirteen subcommands, stdlib-only, distributed
-  as a zipapp and as an editable pip install. The `agentbundle.credentials`
-  loader inside it is imported by every credentialed primitive in the
-  `atlassian` and `figma` packs. See [`agentbundle.md`](agentbundle.md).
+  CLI and build pipeline. Stdlib-only, distributed as a zipapp and as
+  an editable pip install. As of 0.2.0 it no longer ships a credential-
+  resolution module; credentialed primitives in the `atlassian` and
+  `figma` packs import a build-projected `credentials_shim` sibling
+  shipped by the `credential-brokers` pack. See
+  [`agentbundle.md`](agentbundle.md) and [`credentials.md`](credentials.md).
 - [`packages/_example/`](../../packages/_example/) — a minimal package
   template the `new-package` skill (in `monorepo-extras`) copies when an
   adopter scaffolds a new package.
