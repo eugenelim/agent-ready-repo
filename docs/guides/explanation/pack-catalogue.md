@@ -72,13 +72,20 @@ install them at user scope.
 
 **User-scope (four packs):** `contracts`, `converters`, `atlassian`,
 `figma`. These land under the user-scope root of whichever adapter
-you're using — `~/.claude/` for Claude Code, `~/.kiro/` for Kiro, the
-IDE's equivalent for the others — and follow you across every repo on
+you're using — `~/.claude/` for Claude Code, `~/.kiro/` for Kiro,
+`~/.agents/skills/` for Codex — and follow you across every repo on
 the machine. They declare `default-scope = "user"` with
-`allowed-scopes = ["user", "repo"]`; pass `--scope repo` if you want a
-copy local to one project (pinning a specific `jira` version per repo,
-for instance). See the [`Where primitives land`](../../../README.md#where-primitives-land)
-table in the README for per-adapter target paths.
+`allowed-scopes = ["user", "repo"]` and (since RFC-0011 / contract
+v0.6) `allowed-adapters = ["claude-code", "kiro", "codex"]`. Pass
+`--scope repo` if you want a copy local to one project (pinning a
+specific `jira` version per repo, for instance); pass
+`--adapter <name>` to override the auto-detected IDE when more than
+one CLI home is populated on your machine. See the [`Where primitives
+land`](../../../README.md#where-primitives-land) table in the README
+for per-adapter target paths, and the
+[Kiro](../how-to/install-user-scope-pack-into-kiro.md) and
+[Codex](../how-to/install-user-scope-pack-into-codex.md) how-to guides
+for the adopter walkthroughs.
 
 The two scopes never share files. A user-scope pack installed with
 `--scope repo` projects into that repo's working tree the way a
