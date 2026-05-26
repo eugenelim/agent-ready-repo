@@ -529,6 +529,33 @@ def run(args: "argparse.Namespace") -> int:
     # (root, pack_name, adapter, scope) where the resolved adapter has
     # any `dropped` mode for a primitive type the pack actually ships.
     # Contract-driven — no hardcoded adapter literals.
+    #
+    # Dual-scope late-resolution: `repo_target_adapter` is set at Step 3c
+    # only when ``requested_scope == "repo"``. When ``requested_scope ==
+    # "user"`` AND ``force + other_already`` (Step 4b's dual-scope path),
+    # the run writes to repo too but Step 3c didn't resolve. Resolve here
+    # so the warning fires for both scopes — without this, the
+    # ``--scope user --force`` dual-scope path silently drops the repo-
+    # side warning even though the install does land at repo scope.
+    if "repo" in scopes_to_install and repo_target_adapter is None:
+        try:
+            repo_target_adapter = _resolve_target_adapter(
+                pack_dir,
+                scope="repo",
+                adapter=cli_adapter,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=None,
+                command_name="install",
+            )
+        except _AdapterResolutionRefused:
+            # Repo resolution failed; defer the actual refusal to the
+            # downstream render step which already raises with adopter-
+            # facing wording. Silently skipping the warning is
+            # acceptable in this corner because the install itself
+            # will halt before any byte is written.
+            repo_target_adapter = None
+
     for plan in plans:
         scope_adapter = (
             repo_target_adapter if plan.scope == "repo" else user_target_adapter
@@ -1076,21 +1103,43 @@ def _enumerate_dropped_primitives(
     return out
 
 
+_JUNK_NAMES = {"Thumbs.db", "desktop.ini"}
+"""Cross-platform editor / OS artifacts that aren't pack content.
+Leading-dot files (``.DS_Store``, editor swaps) are caught by the
+dotfile skip; these are the named exceptions that don't start with a
+dot but still aren't primitives."""
+
+
+def _is_junk_name(name: str) -> bool:
+    """Return True for entries that aren't pack content regardless of type."""
+    if name.startswith("."):
+        return True
+    if name in _JUNK_NAMES:
+        return True
+    # Editor swap / backup suffixes.
+    if name.endswith(("~", ".swp", ".bak")):
+        return True
+    return False
+
+
 def _count_primitive_entries(source_dir: Path, ptype: str) -> int:
     """Count entries in ``source_dir`` that match ``ptype``'s shape.
 
     Per the bundled contract's primitive layout:
       - ``skill``: subdirectories (each a skill bundle with SKILL.md).
       - ``agent``, ``command``: ``.md`` files.
-      - ``hook-body``: any regular file (.sh / .py / future shapes).
+      - ``hook-body``: ``.sh`` or ``.py`` files (the two shapes the
+        contract's adapters project via direct-file today; a future
+        primitive shape extends this set explicitly).
       - ``hook-wiring``: ``.toml`` files.
 
-    Junk entries (``.DS_Store``, editor swap files, stray subdirs) are
-    skipped — they would otherwise inflate the warning rail's count.
+    Junk entries (``.DS_Store``, ``Thumbs.db``, ``desktop.ini``, editor
+    swap/backup files, stray subdirs) are skipped — they would
+    otherwise inflate the warning rail's count.
     """
     count = 0
     for entry in source_dir.iterdir():
-        if entry.name.startswith("."):
+        if _is_junk_name(entry.name):
             continue
         if ptype == "skill":
             if entry.is_dir():
@@ -1102,13 +1151,14 @@ def _count_primitive_entries(source_dir: Path, ptype: str) -> int:
             if entry.is_file() and entry.suffix == ".toml":
                 count += 1
         elif ptype == "hook-body":
-            if entry.is_file():
+            if entry.is_file() and entry.suffix in (".sh", ".py"):
                 count += 1
         else:
-            # Unknown primitive type — admit conservatively (count all
-            # non-dotfile entries) so a future contract addition is
-            # surfaced rather than silently filtered.
-            count += 1
+            # Unknown primitive type — admit conservatively but only
+            # files (not stray subdirs) so a future contract addition
+            # is surfaced rather than silently filtered.
+            if entry.is_file():
+                count += 1
     return count
 
 
@@ -1179,6 +1229,13 @@ def _format_dropped_warning(
     ``<compatible-list>`` uses the plural form of each type name
     (``skills``, ``agents``, ``hook-bodies``, ``hook-wirings``,
     ``commands``). Both lists join with serial-comma-plus-``and``.
+
+    Raises:
+        ValueError: when ``dropped_counts`` has no nonzero entries. The
+            caller-side guard in ``_maybe_emit_dropped_warning`` keeps
+            this off the install-handler hot path; the refusal surfaces
+            mis-use from any direct caller (tests, future embedders)
+            rather than emitting a malformed ``ships  that ...`` string.
     """
     count_parts: list[str] = []
     # Sort by type name so the formatted output is deterministic.

@@ -254,5 +254,132 @@ class SkillsOnlyPackSilenceEndToEnd(unittest.TestCase):
             )
 
 
+class DualScopeWarningEndToEnd(unittest.TestCase):
+    """Dual-scope path: ``--force + other_already`` triggers
+    ``scopes_to_install = ['repo', 'user']``. Warning rail must fire
+    per-scope for whichever scope's resolved adapter has dropped modes.
+
+    Sub-case to pin (iter-2 reviewer Concern #1): when ``requested_scope
+    == 'user'`` and the dual-scope path activates, Step 3c does NOT
+    resolve ``repo_target_adapter``. The warning hook must late-resolve
+    it; otherwise the repo-side warning silently drops even though the
+    install lands at repo scope.
+    """
+
+    PACK_TOML = """
+[pack]
+name = "dual-warn"
+version = "0.1.0"
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+allowed-adapters = ["claude-code", "kiro", "codex"]
+"""
+
+    def _stage_pack(self, root: Path) -> Path:
+        pack = root / "packs" / "dual-warn"
+        pack.mkdir(parents=True)
+        (pack / "pack.toml").write_text(self.PACK_TOML, encoding="utf-8")
+        (pack / ".apm" / "commands").mkdir(parents=True)
+        # Ship a command — codex drops this; the warning must name it
+        # at BOTH scopes when the dual-scope path fires.
+        (pack / ".apm" / "commands" / "do-thing.md").write_text(
+            "# do-thing\n", encoding="utf-8"
+        )
+        return pack
+
+    def _install(self, **kwargs) -> tuple[int, str, str]:
+        import argparse
+        import contextlib
+
+        from agentbundle.commands import install
+
+        install._clear_dropped_warning_seen()
+        install._clear_inband_detection_seen()
+
+        args = argparse.Namespace(**kwargs)
+        out_buf, err_buf = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out_buf), contextlib.redirect_stderr(
+            err_buf
+        ):
+            rc = install.run(args)
+        return rc, out_buf.getvalue(), err_buf.getvalue()
+
+    def _common_args(self, *, catalogue: Path, output: Path) -> dict:
+        return dict(
+            pack="dual-warn",
+            catalogue=str(catalogue),
+            output=str(output),
+            force=False,
+            adapter="codex",
+            emit_install_routes=False,
+            force_merge=False,
+        )
+
+    def test_dual_scope_warning_fires_per_scope_via_user_force(self) -> None:
+        """Install at repo first (no force), then install at user with
+        --force — this hits the dual-scope path with ``requested_scope
+        == 'user'``. The fix resolves repo_target_adapter late so the
+        repo-side warning fires too. Without the late-resolution, the
+        repo warning is silently skipped."""
+        from agentbundle.commands import install
+
+        # Stage a $HOME so user-scope writes don't touch the adopter's
+        # real home directory.
+        with TemporaryDirectory() as raw:
+            cat = Path(raw) / "cat"
+            cat.mkdir()
+            self._stage_pack(cat)
+            repo = Path(raw) / "repo"
+            repo.mkdir()
+            fake_home = Path(raw) / "home"
+            fake_home.mkdir()
+
+            import os
+            old_home = os.environ.get("HOME")
+            os.environ["HOME"] = str(fake_home)
+            try:
+                # First install at repo scope (no force).
+                rc, _, err1 = self._install(
+                    **self._common_args(catalogue=cat, output=repo),
+                    scope="repo",
+                )
+                self.assertEqual(rc, 0, f"repo install failed: {err1}")
+                # The repo-side warning fires here.
+                self.assertIn("codex projects as 'dropped'", err1)
+
+                # Now install at user scope WITH --force.
+                # This activates the dual-scope path:
+                # scopes_to_install = ['repo', 'user'].
+                # Without the late-resolution fix, repo_target_adapter
+                # is None and the repo-side warning is skipped silently.
+                install._clear_dropped_warning_seen()
+                rc, _, err2 = self._install(
+                    pack="dual-warn",
+                    catalogue=str(cat),
+                    output=str(repo),
+                    scope="user",
+                    force=True,
+                    adapter="codex",
+                )
+                self.assertEqual(rc, 0, f"dual-scope install failed: {err2}")
+                # Two warnings must appear — one per scope.
+                self.assertEqual(
+                    err2.count("codex projects as 'dropped'"),
+                    2,
+                    f"expected dual-scope warning to fire per scope; "
+                    f"saw {err2.count('codex projects as ' + chr(0x27) + 'dropped' + chr(0x27))} occurrence(s):\n{err2}",
+                )
+            finally:
+                if old_home is not None:
+                    os.environ["HOME"] = old_home
+                else:
+                    os.environ.pop("HOME", None)
+
+
 if __name__ == "__main__":
     unittest.main()
