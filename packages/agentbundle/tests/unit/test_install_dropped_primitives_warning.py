@@ -150,6 +150,30 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         result = _enumerate_dropped_primitives(pack, "codex")
         self.assertEqual(result, {})
 
+    def test_junk_files_filtered_out_of_count(self) -> None:
+        """``.DS_Store`` and non-matching-suffix files don't inflate
+        the count (concern 6 of iter-1 review). Per-type suffix:
+        agents/commands = .md; hook-wiring = .toml; hook-body = any
+        file; skills = subdirectories."""
+        pack = self.tmp_path / "pack"
+        (pack / ".apm" / "commands").mkdir(parents=True)
+        # One real command (.md), plus junk files.
+        (pack / ".apm" / "commands" / "real.md").write_text("# real\n", encoding="utf-8")
+        (pack / ".apm" / "commands" / ".DS_Store").write_text("junk", encoding="utf-8")
+        (pack / ".apm" / "commands" / "README.txt").write_text("not a command", encoding="utf-8")
+        # Stray subdirectory — shouldn't count toward .md commands.
+        (pack / ".apm" / "commands" / "subdir").mkdir()
+        result = _enumerate_dropped_primitives(pack, "codex")
+        self.assertEqual(result, {"command": 1})
+
+    def test_hook_wiring_filter_by_toml_suffix(self) -> None:
+        pack = self.tmp_path / "pack"
+        (pack / ".apm" / "hook-wiring").mkdir(parents=True)
+        (pack / ".apm" / "hook-wiring" / "real.toml").write_text("[hooks]\n", encoding="utf-8")
+        (pack / ".apm" / "hook-wiring" / "stray.md").write_text("not a wiring", encoding="utf-8")
+        result = _enumerate_dropped_primitives(pack, "copilot")
+        self.assertEqual(result.get("hook-wiring"), 1)
+
 
 class TestEnumerateCompatiblePrimitives(unittest.TestCase):
     def setUp(self) -> None:
@@ -254,8 +278,8 @@ class TestFormatDroppedWarning(unittest.TestCase):
         for plural in ("agents", "hook-bodies", "hook-wirings", "skills"):
             self.assertIn(plural, msg)
 
-    def test_pinned_wording_exact_template(self) -> None:
-        """Spec AC10 pinned wording — exact string match."""
+    def test_pinned_wording_exact_template_plural(self) -> None:
+        """Spec AC10 pinned wording — exact string match for N>1 case."""
         msg = _format_dropped_warning(
             "core", "codex",
             dropped_counts={"command": 3},
@@ -268,6 +292,55 @@ class TestFormatDroppedWarning(unittest.TestCase):
             "will proceed."
         )
         self.assertEqual(msg, expected)
+
+    def test_pinned_wording_exact_template_singular(self) -> None:
+        """Spec AC10 pinned wording — exact string match for N=1 case."""
+        msg = _format_dropped_warning(
+            "core", "codex",
+            dropped_counts={"command": 1},
+            compatible_types=["skill", "agent"],
+        )
+        expected = (
+            "warning: pack core ships 1 command that codex projects as 'dropped'; "
+            "these primitives will not be installed. "
+            "The compatible primitives (agents and skills) will proceed."
+        )
+        self.assertEqual(msg, expected)
+
+    def test_pinned_wording_exact_template_three_type(self) -> None:
+        """Spec AC10 pinned wording — exact string match for serial-comma case."""
+        msg = _format_dropped_warning(
+            "core", "copilot",
+            dropped_counts={"agent": 2, "command": 3, "hook-wiring": 1},
+            compatible_types=["skill", "hook-body"],
+        )
+        expected = (
+            "warning: pack core ships 2 agents, 3 commands, and 1 hook-wiring "
+            "that copilot projects as 'dropped'; "
+            "these primitives will not be installed. "
+            "The compatible primitives (hook-bodies and skills) will proceed."
+        )
+        self.assertEqual(msg, expected)
+
+    def test_all_zero_counts_refused(self) -> None:
+        """Formatter refuses an all-zero count map — caller guards
+        upstream; refusing here surfaces the bug rather than emitting
+        a malformed 'ships  that ...' string."""
+        with self.assertRaises(ValueError):
+            _format_dropped_warning(
+                "core", "codex",
+                dropped_counts={"agent": 0, "command": 0},
+                compatible_types=["skill"],
+            )
+
+    def test_empty_dropped_counts_refused(self) -> None:
+        """Empty dict raises the same way as all-zero."""
+        with self.assertRaises(ValueError):
+            _format_dropped_warning(
+                "core", "codex",
+                dropped_counts={},
+                compatible_types=["skill"],
+            )
 
 
 class TestShortCircuitSeenSet(unittest.TestCase):
@@ -318,8 +391,12 @@ class TestShortCircuitSeenSet(unittest.TestCase):
         self.assertEqual(second, "")
 
     def test_dual_scope_independent(self) -> None:
-        """Same adapter at both scopes — both fire independently, and
-        each is silenceable independently on repeat."""
+        """Each scope is independently silenceable: silencing repo
+        (by repeating it) leaves user free to fire fresh.
+
+        Sequence: fire repo (emits), repeat repo (silent), fire user
+        (emits fresh — independent silencing), repeat user (silent).
+        """
         pack = _seed_pack(
             self.tmp_path / "pack",
             agents=["a"], commands=["c"],
@@ -327,26 +404,16 @@ class TestShortCircuitSeenSet(unittest.TestCase):
         from io import StringIO
         import sys
 
+        # First fire — repo.
         captured = StringIO()
         old = sys.stderr
         sys.stderr = captured
         try:
             _maybe_emit_dropped_warning(
-                root=self.tmp_path,
-                pack_dir=pack,
-                pack_name="pack",
-                adapter="copilot",
-                scope="repo",
+                root=self.tmp_path, pack_dir=pack, pack_name="pack",
+                adapter="copilot", scope="repo",
             )
-            _maybe_emit_dropped_warning(
-                root=self.tmp_path,
-                pack_dir=pack,
-                pack_name="pack",
-                adapter="copilot",
-                scope="user",
-            )
-            both = captured.getvalue()
-            self.assertEqual(both.count("warning:"), 2)
+            self.assertIn("warning:", captured.getvalue())
 
             # Repeat repo — silenced.
             captured.seek(0); captured.truncate()
@@ -356,10 +423,27 @@ class TestShortCircuitSeenSet(unittest.TestCase):
             )
             self.assertEqual(captured.getvalue(), "")
 
-            # User-scope warning still fires once if cleared independently
-            # — but the seen set already short-circuits user too. To pin
-            # AC11 independence, verify only the keys (not message count).
-            from agentbundle.commands.install import _DROPPED_WARNING_SEEN
+            # First fire — user. INDEPENDENT of repo's silencing.
+            captured.seek(0); captured.truncate()
+            _maybe_emit_dropped_warning(
+                root=self.tmp_path, pack_dir=pack, pack_name="pack",
+                adapter="copilot", scope="user",
+            )
+            self.assertIn(
+                "warning:", captured.getvalue(),
+                "user-scope warning should fire fresh despite repo "
+                "being silenced — that's the independence AC11 pins",
+            )
+
+            # Repeat user — silenced.
+            captured.seek(0); captured.truncate()
+            _maybe_emit_dropped_warning(
+                root=self.tmp_path, pack_dir=pack, pack_name="pack",
+                adapter="copilot", scope="user",
+            )
+            self.assertEqual(captured.getvalue(), "")
+
+            # Seen-set contains both 4-tuples.
             keys = {(k[1], k[2], k[3]) for k in _DROPPED_WARNING_SEEN}
             self.assertIn(("pack", "copilot", "repo"), keys)
             self.assertIn(("pack", "copilot", "user"), keys)

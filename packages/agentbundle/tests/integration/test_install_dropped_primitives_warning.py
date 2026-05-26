@@ -95,14 +95,20 @@ class CodexProjectionEndToEnd(unittest.TestCase):
                 self.assertIn("developer_instructions", data)
 
             # Hooks projected to .codex/hooks.json (post-v0.8 merge-json).
+            # `core` ships .apm/hook-wiring/session-start.toml so the
+            # file MUST materialise — a conditional check would let a
+            # regression that drops the merge-json dispatch ship green.
             hooks_json = adopter / ".codex" / "hooks.json"
-            if hooks_json.exists():
-                data = json.loads(hooks_json.read_text(encoding="utf-8"))
-                self.assertIn("hooks", data)
-            # Note: if `core` ships no hook-wiring TOMLs, hooks.json
-            # won't materialise — that's a property of the pack, not the
-            # adapter. The dropped-warning assertions below pin the
-            # observable behaviour either way.
+            self.assertTrue(
+                hooks_json.exists(),
+                f"expected .codex/hooks.json from core's hook-wiring TOMLs",
+            )
+            data = json.loads(hooks_json.read_text(encoding="utf-8"))
+            self.assertIn("hooks", data)
+            self.assertGreater(
+                len(data["hooks"]), 0,
+                "expected at least one event entry under 'hooks'",
+            )
 
             # Warning rail fires for `command` only (codex's one
             # remaining drop). `core` ships at least one command, so
