@@ -314,13 +314,12 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
         orphan per-IDE files but no state row (fires (c)).
 
         The detection key is ``(root, pack_name)``, so each pack lands
-        on its own trigger. Note that (c) re-uses
-        ``safety.scan_for_pack_artifacts`` which is **adapter-prefix
-        scoped, not pack-name scoped** (the AC22 baseline this PR
-        inherits) — so (c) would also fire if pack B were greenfield
-        and the orphan belonged to some third pack under the same
-        adapter prefix. Tightening (c) to pack-name scoping is a
-        follow-up surface (Concern 6 from the round-2 review)."""
+        on its own trigger. As of the per-pack-scoping amendment (2026-
+        05-26) ``safety.scan_for_pack_artifacts`` filters to pack-owned
+        primitive names when ``pack_dir`` + ``pack_name`` are threaded
+        through, so (c) only fires when pack B's *own* primitives are
+        on disk — see ``test_cross_pack_orphan_does_not_trigger_c``
+        below for the negative case."""
         with TemporaryDirectory() as raw:
             tmp = Path(raw)
             packs_dir = tmp / "packs"
@@ -356,6 +355,58 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
             )
             self.assertNotEqual(rc_b, 0)
             self.assertIn("orphan projection files for pack bpack", stderr_b)
+
+    def test_cross_pack_orphan_does_not_trigger_c(self) -> None:
+        """**Regression pin for the per-pack-scoping amendment.**
+
+        Pack A's orphan files under ``.claude/skills/apack-skill/``
+        must NOT trigger (c) when installing pack B (which has no state
+        row, no on-disk files of its own). Before per-pack scoping
+        landed, the AC24(c) trigger surfaced pack A's paths with pack
+        B's name in the stderr line — the cross-pack false positive
+        ROADMAP named as the only open RFC-0012 follow-on.
+
+        Post-fix, the scan walks pack B's source for owned primitive
+        names (``bpack``, ``bpack-skill``), finds no match against
+        pack A's orphan path, and returns an empty list. (c) does not
+        fire; the install completes cleanly.
+        """
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            packs_dir = tmp / "packs"
+            packs_dir.mkdir()
+            _make_pack(packs_dir, name="apack", allowed_adapters=["claude-code"])
+            _make_pack(packs_dir, name="bpack", allowed_adapters=["claude-code"])
+            adopter = tmp / "adopter"
+            adopter.mkdir()
+
+            # Plant pack A's orphan under the shared adapter prefix.
+            # No state row for A (or B); pack B is greenfield.
+            a_orphan = (
+                adopter / ".claude" / "skills" / "apack-skill" / "SKILL.md"
+            )
+            a_orphan.parent.mkdir(parents=True)
+            a_orphan.write_text("stale apack content", encoding="utf-8")
+
+            # Install pack B. (c) must NOT fire on pack A's leftovers.
+            rc, stderr = _run_install(
+                ["--pack", "bpack", "--scope", "repo",
+                 "--output", str(adopter), str(packs_dir)]
+            )
+            self.assertEqual(
+                rc, 0,
+                f"install refused despite cross-pack scan; stderr={stderr!r}",
+            )
+            self.assertNotIn(
+                "orphan projection files for pack bpack", stderr,
+                "(c) fired for pack B with pack A's orphan present — "
+                "cross-pack false positive not fixed",
+            )
+            # Pack A's orphan is untouched (the install didn't sweep it).
+            self.assertTrue(
+                a_orphan.exists(),
+                "install should not have deleted pack A's orphan",
+            )
 
     def test_short_circuit_on_repeat_invocation_same_pack(self) -> None:
         """Re-invoking install for the same ``(root, pack)`` within the
