@@ -20,7 +20,7 @@ Checks (per artifact type):
       and `model` (see docs/CONVENTIONS.md#model-selection)
     - Filename (sans .md) == frontmatter `name`
     - Frontmatter has no unknown keys (allowed: name, description,
-      tools, model, dependencies)
+      tools, model)
 
   Commands (.claude/commands/<name>.md):
     - File has valid YAML frontmatter (optional but if present,
@@ -45,6 +45,17 @@ import re
 import subprocess
 import sys
 
+try:
+    import yaml
+except ImportError as exc:  # pragma: no cover — env-setup failure path
+    print(
+        "✖ This linter requires PyYAML. Install with: "
+        "pip install -r tools/requirements.txt "
+        "(or `pip install 'pyyaml>=6.0'` if you're not in the repo root).",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from exc
+
 
 def _repo_root() -> pathlib.Path:
     try:
@@ -61,6 +72,50 @@ def _repo_root() -> pathlib.Path:
 
 KEBAB = re.compile(r"^[a-z][a-z0-9-]*$")
 LINK = re.compile(r"\]\(([^)]+)\)")
+
+
+class _DuplicateKeyError(Exception):
+    """Raised by the custom YAML mapping constructor on a duplicate key.
+
+    PyYAML's stock SafeLoader silently keeps the last value when a mapping
+    has duplicate keys; the spec contract here is that duplicates are an
+    error. Carry the offending key and its 1-indexed file line so the
+    caller can format a faithful message.
+    """
+
+    def __init__(self, key: object, line: int) -> None:
+        self.key = key
+        self.line = line
+
+
+class _FrontmatterLoader(yaml.SafeLoader):
+    """SafeLoader that rejects duplicate mapping keys.
+
+    Subclass rather than monkey-patch so `yaml.SafeLoader`'s global
+    constructor table stays untouched.
+    """
+
+
+def _construct_mapping_no_dups(loader, node, deep=False):
+    if not isinstance(node, yaml.MappingNode):
+        raise yaml.constructor.ConstructorError(
+            None, None,
+            f"expected a mapping node, got {node.id}",
+            node.start_mark,
+        )
+    mapping: dict = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise _DuplicateKeyError(key, key_node.start_mark.line + 1)
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_FrontmatterLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_mapping_no_dups,
+)
 
 # Top-level SKILL.md frontmatter keys — the agentskills.io spec set
 # (https://agentskills.io/specification). `metadata:` is the spec's own
@@ -102,8 +157,16 @@ def main() -> int:
         print(f"⚠ {msg}", file=sys.stderr)
 
     def parse_frontmatter(path: pathlib.Path):
-        """Return (fields, body_start_line, body, error)."""
-        text = path.read_text()
+        """Return (fields, body_start_line, body, error).
+
+        Frontmatter between the two ``---`` delimiters is parsed with
+        PyYAML's ``safe_load`` via a duplicate-rejecting Loader. Nested
+        mappings, block-list and flow-list sequences, block scalars
+        (``|``, ``>``), and arbitrary depth are all handled by PyYAML
+        itself — this function only owns delimiter discovery and the
+        error-message shapes the linters and their self-tests depend on.
+        """
+        text = path.read_text(encoding="utf-8")
         lines = text.splitlines()
         if not lines or lines[0].strip() != "---":
             return None, 0, text, None
@@ -114,107 +177,35 @@ def main() -> int:
                 break
         if end is None:
             return None, 0, text, "frontmatter opened with --- but never closed"
-        fields: dict = {}
-        i = 1
-        while i < end:
-            raw = lines[i]
-            if not raw.strip():
-                i += 1
-                continue
-            m = re.match(r"^([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", raw)
-            if not m:
-                return None, 0, text, f"malformed frontmatter line {i + 1}: {raw!r}"
-            key, val = m.group(1), m.group(2).strip()
-            if key in fields:
-                return None, 0, text, f"duplicate frontmatter key {key!r} (line {i + 1})"
-            if val == "[]":
-                fields[key] = []
-                i += 1
-                continue
-            if val == "":
-                # Empty value: peek at the next non-blank line to
-                # discriminate list (`  - item`) vs. nested mapping
-                # (`  child: value`). Only a single nesting level is
-                # supported — the first non-blank indented line's
-                # indent fixes the depth, and any deeper-indented or
-                # shallower line ends the block. Mixed list/mapping
-                # shapes within one block are likewise not supported.
-                items: list = []
-                mapping: dict = {}
-                shape = None
-                block_indent: int | None = None
-                j = i + 1
-                while j < end:
-                    nxt = lines[j]
-                    if not nxt.strip():
-                        j += 1
-                        continue
-                    indent = len(nxt) - len(nxt.lstrip())
-                    if indent == 0:
-                        break  # back to top-level
-                    if block_indent is None:
-                        block_indent = indent
-                    elif indent != block_indent:
-                        # Deeper than the first child = doubly-nested;
-                        # shallower = end of block. Either way, this
-                        # parser supports a single depth only.
-                        return None, 0, text, (
-                            f"nested frontmatter block under {key!r} "
-                            f"has inconsistent indent at line {j + 1} "
-                            f"(parser supports one level of nesting; "
-                            f"doubly-nested mappings are not allowed)"
-                        )
-                    list_m = re.match(r"^\s+-\s+(.*)$", nxt)
-                    map_m = re.match(
-                        r"^\s+([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$", nxt)
-                    if list_m and shape != "mapping":
-                        shape = "list"
-                        items.append(list_m.group(1).strip())
-                        j += 1
-                        continue
-                    if map_m and shape != "list":
-                        shape = "mapping"
-                        ckey = map_m.group(1)
-                        cval = map_m.group(2).strip()
-                        # Strip a balanced pair of surrounding quotes
-                        # — the bash linter and creds.py parser do
-                        # the same; keeping them aligned matters
-                        # because a quoted value like
-                        # `primitive-class: "credentialed-cli"`
-                        # would otherwise fail the type-check below.
-                        if (
-                            len(cval) >= 2
-                            and cval[0] == cval[-1]
-                            and cval[0] in ('"', "'")
-                        ):
-                            cval = cval[1:-1]
-                        if ckey in mapping:
-                            return None, 0, text, (
-                                f"duplicate frontmatter key "
-                                f"{ckey!r} under nested mapping "
-                                f"(line {j + 1})"
-                            )
-                        mapping[ckey] = cval
-                        j += 1
-                        continue
-                    return None, 0, text, (
-                        f"nested frontmatter block under {key!r} "
-                        f"mixes list and mapping shapes at line "
-                        f"{j + 1} (each block must be uniformly a "
-                        f"list or a mapping)"
-                    )
-                if shape == "mapping":
-                    fields[key] = mapping
-                elif shape == "list":
-                    fields[key] = items
-                else:
-                    fields[key] = ""  # empty scalar — no children
-                i = j
-                continue
-            fields[key] = val
-            i += 1
+        fm_text = "\n".join(lines[1:end])
         body_start_line = end + 2
-        body = "\n".join(lines[end + 1 :])
+        body = "\n".join(lines[end + 1:])
+        try:
+            fields = yaml.load(fm_text, Loader=_FrontmatterLoader)
+        except _DuplicateKeyError as exc:
+            # exc.line is 0-indexed within fm_text (mark.line + 1); the
+            # frontmatter starts at file line 2 (line 1 is the opening
+            # delimiter), so add 1 to translate to a 1-indexed file line.
+            return None, 0, text, (
+                f"duplicate frontmatter key {exc.key!r} (line {exc.line + 1})"
+            )
+        except yaml.YAMLError as exc:
+            mark = getattr(exc, "problem_mark", None)
+            problem = getattr(exc, "problem", None) or str(exc)
+            if mark is not None:
+                # Translate YAML's 0-indexed line within the frontmatter
+                # chunk to a 1-indexed file line. Same +2 used above.
+                return None, 0, text, (
+                    f"malformed frontmatter (line {mark.line + 2}): {problem}"
+                )
+            return None, 0, text, f"malformed frontmatter: {problem}"
+        if fields is None:
+            fields = {}
+        if not isinstance(fields, dict):
+            return None, 0, text, (
+                "frontmatter must be a mapping at the top level "
+                f"(got {type(fields).__name__})"
+            )
         return fields, body_start_line, body, None
 
     def check_links(path: pathlib.Path, body: str, body_start_line: int) -> None:
@@ -239,15 +230,33 @@ def main() -> int:
         if fields is None:
             err(path, "missing YAML frontmatter (--- ... ---)")
             return
-        if "name" not in fields or not fields["name"]:
+        name = fields.get("name")
+        if name is None or name == "":
             err(path, "frontmatter missing required key: name")
-        elif not KEBAB.match(fields["name"]):
-            err(path, f"name {fields['name']!r} must be kebab-case ([a-z][a-z0-9-]*)")
-        elif fields["name"] != path.parent.name:
-            err(path, f"name {fields['name']!r} does not match directory "
+        elif not isinstance(name, str):
+            # PyYAML follows YAML 1.1, which maps unquoted ``yes``/``no``/
+            # ``on``/``off``/``true``/``false`` (any case) to booleans —
+            # the Norway problem. Surface a clear message before the
+            # kebab-regex below, which would otherwise raise TypeError.
+            err(path, f"frontmatter key 'name' must be a string "
+                      f"(got {type(name).__name__}) — quote "
+                      f"Norway-style scalars like 'yes' / 'no' / 'on' / "
+                      f"'off' to keep them as text")
+        elif not KEBAB.match(name):
+            err(path, f"name {name!r} must be kebab-case ([a-z][a-z0-9-]*)")
+        elif name != path.parent.name:
+            err(path, f"name {name!r} does not match directory "
                       f"{path.parent.name!r}")
-        if "description" not in fields or not fields["description"]:
+        desc = fields.get("description")
+        if desc is None or desc == "":
+            # Both `description:` (no value → None) and `description: ""`
+            # are treated as the key being effectively missing — same
+            # diagnostic the prior parser produced.
             err(path, "frontmatter missing required key: description")
+        elif not isinstance(desc, str):
+            err(path, f"frontmatter key 'description' must be a string "
+                      f"(got {type(desc).__name__}) — "
+                      f"quote Norway-style scalars like 'yes' / 'no'")
         unknown = set(fields) - ALLOWED_SKILL_KEYS
         if unknown:
             err(path, f"unknown frontmatter keys: {sorted(unknown)} "
@@ -258,13 +267,16 @@ def main() -> int:
         # hatch rather than at top level. Absence of `credentialed` (or of
         # `metadata` entirely) means the skill is not credentialed; the
         # lint skips the credentialed-specific checks. When present, the
-        # value must be a literal YAML boolean — strings like "yes" or
-        # "true" are rejected so the type-check is unambiguous.
+        # value must be a YAML boolean — PyYAML follows YAML 1.1 and
+        # converts any boolean spelling (true / True / TRUE / yes / on / y
+        # and their negatives) to a Python bool, so the ``is True`` /
+        # ``is False`` identity check accepts them all and rejects any
+        # quoted form (which arrives as a str).
         metadata = fields.get("metadata")
-        # `metadata:` followed by nothing parses to an empty scalar ("");
-        # treat that as "no project-specific data" rather than a type
-        # error. Anything else non-dict (list, non-empty scalar) is
-        # malformed.
+        # `metadata:` with no value parses to ``None``; the rare
+        # ``metadata: ""`` form parses to the empty string. Treat both as
+        # "no project-specific data" rather than a type error. Anything
+        # else non-dict (list, non-empty scalar) is malformed.
         if metadata is not None and metadata != "" and not isinstance(
                 metadata, dict):
             err(path, f"frontmatter key 'metadata' must be a nested "
@@ -273,7 +285,11 @@ def main() -> int:
         meta = metadata if isinstance(metadata, dict) else {}
         if "credentialed" in meta:
             cval = meta["credentialed"]
-            if cval not in ("true", "false"):
+            # ``is True``/``is False`` rather than ``in (True, False)`` so
+            # that ``1`` and ``0`` (which compare equal to the bool
+            # singletons) don't slip through. Quoted strings such as
+            # ``"true"`` and ``"yes"`` arrive as str and are rejected.
+            if cval is not True and cval is not False:
                 err(path, f"frontmatter key 'metadata.credentialed' must "
                           f"be boolean (true|false), got {cval!r}")
         if "primitive-class" in meta:
@@ -296,18 +312,36 @@ def main() -> int:
             err(path, "missing YAML frontmatter (--- ... ---)")
             return
         expected_name = path.stem
-        if "name" not in fields or not fields["name"]:
+        name = fields.get("name")
+        if name is None or name == "":
             err(path, "frontmatter missing required key: name")
-        elif not KEBAB.match(fields["name"]):
-            err(path, f"name {fields['name']!r} must be kebab-case ([a-z][a-z0-9-]*)")
-        elif fields["name"] != expected_name:
-            err(path, f"name {fields['name']!r} does not match filename "
+        elif not isinstance(name, str):
+            # See the matching note in check_skill — YAML 1.1 Norway
+            # scalars become booleans before this check sees them.
+            err(path, f"frontmatter key 'name' must be a string "
+                      f"(got {type(name).__name__}) — quote "
+                      f"Norway-style scalars like 'yes' / 'no' / 'on' / "
+                      f"'off' to keep them as text")
+        elif not KEBAB.match(name):
+            err(path, f"name {name!r} must be kebab-case ([a-z][a-z0-9-]*)")
+        elif name != expected_name:
+            err(path, f"name {name!r} does not match filename "
                       f"{expected_name!r}")
-        if "description" not in fields or not fields["description"]:
+        desc = fields.get("description")
+        if desc is None or desc == "":
             err(path, "frontmatter missing required key: description")
-        if "model" not in fields or not fields["model"]:
+        elif not isinstance(desc, str):
+            err(path, f"frontmatter key 'description' must be a string "
+                      f"(got {type(desc).__name__}) — "
+                      f"quote Norway-style scalars like 'yes' / 'no'")
+        model = fields.get("model")
+        if model is None or model == "":
             err(path, "frontmatter missing required key: model "
                       "(see docs/CONVENTIONS.md#model-selection)")
+        elif not isinstance(model, str):
+            err(path, f"frontmatter key 'model' must be a string "
+                      f"(got {type(model).__name__}) — "
+                      f"quote Norway-style scalars like 'on' / 'off'")
         unknown = set(fields) - ALLOWED_AGENT_KEYS
         if unknown:
             err(path, f"unknown frontmatter keys: {sorted(unknown)} "
@@ -322,8 +356,13 @@ def main() -> int:
             err(path, ferr)
             return
         if fields is not None:
-            if "description" not in fields or not fields["description"]:
+            desc = fields.get("description")
+            if desc is None or desc == "":
                 err(path, "frontmatter missing required key: description")
+            elif not isinstance(desc, str):
+                err(path, f"frontmatter key 'description' must be a string "
+                          f"(got {type(desc).__name__}) — "
+                          f"quote Norway-style scalars like 'yes' / 'no'")
             unknown = set(fields) - ALLOWED_COMMAND_KEYS
             if unknown:
                 err(path, f"unknown frontmatter keys: {sorted(unknown)} "

@@ -9,6 +9,8 @@ Two reads will save you time:
 - [`AGENTS.md`](AGENTS.md) — how this repo expects agents and contributors to work (the plan → execute → verify → review loop, what's in scope vs out, the non-negotiables).
 - [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) — the single source of truth for *how we work in this repo*: document hierarchy, commit format, PR shape, and the [pack source-of-truth split](docs/CONVENTIONS.md#pack-source-of-truth-split) that every code change in this repo lives under.
 
+One install: the artifact and skill-spec linters parse YAML via PyYAML. Run `pip install -r tools/requirements.txt` once. The linters also print an actionable install hint with exit code 2 if the import fails, so the first lint run will remind you.
+
 If your change is substantive — new top-level directory, new contract surface, a CHARTER edit beyond a typo — open an [RFC](docs/rfc/) first. Typo fixes and small clarifications go straight to PR.
 
 ## The pack source-of-truth split
