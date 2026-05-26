@@ -4,6 +4,7 @@ description: Read and inspect Figma files (Cloud) via the REST API. Supports fet
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 # Figma Client

@@ -4,6 +4,7 @@ description: Crawl an authenticated Confluence space (Atlassian Cloud or on-prem
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 # Confluence Crawler

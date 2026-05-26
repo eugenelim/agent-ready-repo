@@ -4,6 +4,7 @@ description: Publish content to a Confluence page (Atlassian Cloud or Server/Dat
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
+  auth: creds
 ---
 
 # Confluence Publisher
