@@ -57,9 +57,12 @@ agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-rep
 ```bash
 git clone https://github.com/eugenelim/agent-ready-repo
 cd agent-ready-repo
+pip install -e packages/agentbundle/                     # required by credentialed skills
 make zipapp                                              # builds dist/agentbundle.pyz
 ./dist/agentbundle.pyz install --pack core . --output /path/to/your/project
 ```
+
+Confirm `agentbundle` is importable: `python -c "from agentbundle.credentials import load_credentials"`. The `pip install` step lands `agentbundle` in your active interpreter so credentialed skills (`jira`, `figma`, `confluence-publisher`, and others) can resolve the credential loader when invoked from either user or repo scope; see [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md) for editable-vs-snapshot and venv guidance.
 
 The catalogue argument is `.` because you're inside the clone; `--output` points at the target repo's root. Use `git checkout <tag>` in the clone first to pin a specific release.
 
