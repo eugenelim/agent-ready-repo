@@ -7,7 +7,7 @@ description = "Di\u00e1taxis-shaped user-guide skeleton: guides/ + tutorials/how
 # project's users \u2014 no project, no scaffolding target \u2014 so the pack is
 # repo-only.
 [pack.adapter-contract]
-version = "0.2"
+version = "0.7"
 
 [pack.install]
 default-scope = "repo"

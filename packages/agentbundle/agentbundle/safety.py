@@ -281,22 +281,28 @@ def write_jailed(
     write_atomic backups / Tier-2 companion logic — `write_jailed` is the
     primitive, not the policy.
 
-    RFC-0004 extensions:
-      ``scope`` — when ``"user"``, the resolved path must additionally
-      lie under one of the entries in ``allowed_prefixes`` (each
-      relative to ``root``). The two-layer jail (under `~`, under a
-      declared prefix) stops a buggy projection rule resolving under
-      ``~/Documents/`` from passing the basic `..`-escape check.
-      Passing ``scope="user"`` with ``allowed_prefixes=None`` is a
-      *programming* error — the function raises ``TypeError`` rather
-      than silently degrading to the bare `~`-jail.
+    RFC-0004 extensions, generalised at repo scope by RFC-0012:
+      ``scope`` — the resolved path must additionally lie under one of
+      the entries in ``allowed_prefixes`` (each relative to ``root``).
+      The two-layer jail (under the root, under a declared prefix)
+      stops a buggy projection rule from passing the basic `..`-escape
+      check. **Both scopes** consult ``allowed_prefixes`` now —
+      RFC-0012 extends the user-scope rail to repo-scope per-IDE
+      projection at the same shape.
 
       ``allowed_prefixes`` — the spec's declared list (e.g.
-      ``[".claude/", ".agentbundle/"]`` for Claude Code at v0.2). Each
-      entry is expected to end in ``/``; the function compares against
-      the relpath-from-root with a directory-boundary check so
+      ``[".claude/", ".agentbundle/"]`` for Claude Code). Each entry
+      must end in ``/``; the function compares against the
+      relpath-from-root with a directory-boundary check so
       ``allowed-prefixes = [".claude/"]`` rejects a write to a top-
       level file named ``.claudefoo``.
+
+      When ``allowed_prefixes`` is ``None`` at either scope, the
+      per-prefix check is skipped (the bare jail-under-root still
+      applies). Passing ``scope="user"`` with ``allowed_prefixes=None``
+      remains a programming error — every adopter-facing user-scope
+      write must declare its prefix list, so the assertion is the
+      forcing function that catches a callsite that forgot.
     """
     if scope == "user" and allowed_prefixes is None:
         # Programming error in CLI code (not adopter-facing). The rail
@@ -311,14 +317,14 @@ def write_jailed(
     target = root / relpath
     assert_under(root, target)
 
-    if scope == "user":
+    if allowed_prefixes is not None:
         # Check the resolved target is under one of the declared
         # prefixes relative to root. Use directory-boundary matching:
         # the prefix's trailing slash is mandatory, so ``.claude/``
         # admits ``.claude/skills/foo`` but rejects a top-level
         # ``.claude`` file (which would otherwise let a pack replace
         # the directory with a file).
-        prefixes = allowed_prefixes or []
+        prefixes = allowed_prefixes
         # Defense-in-depth: the adapter contract schema enforces a
         # trailing slash on every `allowed-prefixes` entry; assert it
         # at runtime so a future caller that bypasses the schema
@@ -328,14 +334,14 @@ def write_jailed(
         # removal was meant to fix.
         if not all(p.endswith("/") for p in prefixes):
             raise PathJailError(
-                f"refusing to write at scope 'user': allowed_prefixes "
+                f"refusing to write at scope {scope!r}: allowed_prefixes "
                 f"must each end with '/'; got {prefixes!r}"
             )
         target_relpath = target.resolve().relative_to(root.resolve()).as_posix()
         if not any(target_relpath.startswith(p) for p in prefixes):
             raise PathJailError(
-                f"refusing to write outside allowed prefixes for scope 'user': "
-                f"{target.resolve()}"
+                f"refusing to write outside allowed prefixes for scope "
+                f"{scope!r}: {target.resolve()}"
             )
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -375,6 +381,34 @@ def write_jailed(
         tmp.unlink(missing_ok=True)
         raise
     return target.resolve()
+
+
+def scan_for_pack_artifacts(root: Path, allowed_prefixes: list[str]) -> list[Path]:
+    """Return every file on disk under ``root`` matching ``allowed_prefixes``.
+
+    Read-only; walks every ``<root>/<prefix>/`` and returns every file
+    found. No state mutation. Used by RFC-0012 § *Reliability* — the
+    orphan-projection refusal at install start compares this list
+    against ``state.toml``; a non-empty result with no state row for
+    the pack means a prior install crashed mid-write.
+
+    Each ``prefix`` is expected to end in ``/`` (matching the
+    contract's `allowed-prefixes.<scope>` convention). Missing prefix
+    directories are skipped silently — a greenfield install has no
+    on-disk artifacts and that's the expected case, not an error.
+
+    Results are sorted by path for stable test comparison and stable
+    stderr ordering when callers print the list.
+    """
+    out: list[Path] = []
+    for prefix in allowed_prefixes:
+        base = root / prefix
+        if not base.exists():
+            continue
+        for entry in base.rglob("*"):
+            if entry.is_file():
+                out.append(entry)
+    return sorted(out)
 
 
 def write_companion(root: Path, relpath: str, content: bytes | str) -> Path:

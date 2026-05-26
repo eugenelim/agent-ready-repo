@@ -1343,6 +1343,20 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Changelog
 
+- 2026-05-26: contract bump v0.6 → v0.7 per
+  [RFC-0012 / `repo-scope-per-adapter-projection`](../../rfc/0012-repo-scope-per-adapter-projection.md).
+  Every shipped adapter declares `allowed-prefixes.repo` on its
+  `[adapter.<name>.scope]` table; Copilot gains a scope table for
+  the first time (`repo` only — no user-scope analogue). Schema
+  enforces `repo` and `allowed-prefixes` mandatory on every scope
+  table; `user` stays optional. Conformance cases: per-IDE
+  projection at repo scope for each shipped adapter
+  (`<repo>/.claude/skills/`, `<repo>/.kiro/skills/`,
+  `<repo>/.agents/skills/`, `<repo>/.github/instructions/`) plus
+  the `--emit-install-routes` dist-tree fallback. The legacy
+  dist-tree producer at `--scope repo .` becomes an opt-in behind
+  the new flag (one transitional release with `DeprecationWarning`,
+  per RFC-0012 § *Alternatives* #6).
 - 2026-05-24: install-routes contract AC added per docs/specs/claude-plugins-install-route/spec.md — conformance suite ships marker-presence and scope-refusal cases per declared install route.
 - 2026-05-25: contract bumps v0.4 → v0.5 per docs/specs/apm-install-route-parity/spec.md — "apm" appended to install-routes on [adapter."claude-code"].
 - 2026-05-25: APM-route conformance AC added per docs/specs/apm-install-route-parity/spec.md — conformance suite ships marker-presence and scope-refusal cases for the APM route; four-of-seven HookIntegrator coverage documented; the `per-pack-apm-package` recipe row notes the install-marker artifact derivation.

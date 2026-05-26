@@ -61,4 +61,10 @@ def test_help_text_includes_pinned_wording(capsys) -> None:
     with pytest.raises(SystemExit):
         p.parse_args(["install", "--help"])
     captured = capsys.readouterr()
-    assert "Override the auto-detected adapter at user scope" in captured.out
+    # RFC-0012 widens the flag's help text — admitted at both scopes;
+    # the user-scope-only wording is gone. Argparse may wrap the text
+    # across lines, so use a contiguous substring that survives the
+    # default-width wrap.
+    assert "Override the auto-detected adapter" in captured.out
+    # The legacy "at user scope" pin is gone.
+    assert "at user scope" not in captured.out

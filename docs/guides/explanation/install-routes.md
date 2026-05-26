@@ -116,12 +116,36 @@ opened yet.
 Adopters with multiple IDE homes populated (`~/.claude/` plus
 `~/.kiro/`, say) can override the resolver's first-match-wins pick
 by passing `--adapter <name>` to `agentbundle install`. The flag is
-bound to `--scope user` (it's a user-scope-only resolver decision)
-and must name one of the pack's `allowed-adapters`. The pinned
-refuse-and-explain messages name the field and the contract version,
-so failed installs are loud, not silent. See
+admitted at **both scopes** (RFC-0012) — at user scope it must name
+a user-scope-capable adapter from the pack's `allowed-adapters`; at
+repo scope every shipped adapter is admissible (Copilot included).
+The pinned refuse-and-explain messages name the field and the
+contract version, so failed installs are loud, not silent. See
 [RFC-0011](../../rfc/0011-pack-allowed-adapters.md) for the
-six-step resolver this flag participates in.
+six-step (0–5) resolver this flag participates in, plus
+[RFC-0012](../../rfc/0012-repo-scope-per-adapter-projection.md)
+for the scope-branched resolution at steps 0, 1, 4, and 5.
+
+## `--emit-install-routes` — catalogue-publishing opt-in
+
+Pre-RFC-0012, `agentbundle install --pack X --scope repo .` produced
+dist-tree artifacts (`<repo>/claude-plugins/<pack>/`,
+`<repo>/apm/<pack>/`) regardless of adapter choice. RFC-0012 flips
+the default at repo scope to per-IDE projection (the same shape user
+scope has used since RFC-0004); the dist-tree producer becomes an
+explicit opt-in via `--emit-install-routes`:
+
+```
+agentbundle install --pack core --scope repo --emit-install-routes .
+```
+
+Catalogue maintainers scripting the dist-tree shape for publishing
+pipelines add this one flag to their existing invocations. The
+flag is bound to `--scope repo` and mutually exclusive with
+`--adapter` at that scope (the dist-tree producer doesn't pick a
+single adapter). It carries a `DeprecationWarning` from day one
+and is targeted for removal in the next minor — see
+[RFC-0012 § *Alternatives* #6](../../rfc/0012-repo-scope-per-adapter-projection.md).
 
 ## Where to read next
 

@@ -162,14 +162,27 @@ def test_cross_scope_force_proceeds_and_writes_both_state_files(tmp_path, monkey
     # Both state files exist after the run.
     assert (target / ".agentbundle-state.toml").exists()
     assert (fake_home / ".agentbundle" / "state.toml").exists()
-    # Two `installed:` lines, repo first then user. RFC-0011 extends
-    # the user-scope line with ` via <adapter>` — strip the suffix
-    # before comparing so the test stays focused on the dual-scope
-    # ordering invariant rather than the adapter-resolution clause.
-    lines = [ln for ln in out.splitlines() if ln.startswith("installed:")]
-    stripped = [ln.split(" via ")[0].rstrip() for ln in lines]
-    assert stripped == ["installed: demo-both @ repo", "installed: demo-both @ user"], (
+    # RFC-0011 extends the user-scope line with ` via <adapter>`;
+    # RFC-0012 extends repo too (`installed: X @ repo via Y`) at the
+    # default per-IDE projection or emits `emitted install routes
+    # for X at ...` under `--emit-install-routes`. Strip the suffix
+    # / route-list and grep for the repo-then-user ordering invariant
+    # without binding to message-rail surface details.
+    lines = out.splitlines()
+    repo_line = next(
+        (ln for ln in lines if ln.startswith("installed: demo-both @ repo")
+         or ln.startswith("emitted install routes for demo-both")),
+        None,
+    )
+    user_line = next(
+        (ln for ln in lines if ln.startswith("installed: demo-both @ user")),
+        None,
+    )
+    assert repo_line is not None and user_line is not None, (
         f"expected repo-then-user stdout sequence; got {lines!r}"
+    )
+    assert lines.index(repo_line) < lines.index(user_line), (
+        f"expected repo before user; got {lines!r}"
     )
 
 
@@ -191,8 +204,16 @@ def test_force_no_op_when_pack_not_already_other_scope(tmp_path, monkeypatch):
         dict(pack="demo-both", catalogue=str(cat), output=str(target), scope="repo", force=True)
     )
     assert rc == 0
-    lines = [ln for ln in out.splitlines() if ln.startswith("installed:")]
-    assert lines == ["installed: demo-both @ repo"]
+    # RFC-0012: repo-scope install at the dist-tree fallback (no
+    # `emit_install_routes` attribute on the Namespace) emits the
+    # `emitted install routes ...` line instead of the legacy
+    # `installed: X @ repo` plain text.
+    out_lines = out.splitlines()
+    assert any(
+        ln.startswith("emitted install routes for demo-both")
+        or ln.startswith("installed: demo-both @ repo")
+        for ln in out_lines
+    ), f"expected repo-scope install message; got {out_lines!r}"
 
 
 # ---------------------------------------------------------------------------
