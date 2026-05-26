@@ -72,8 +72,9 @@ class ContractVersionTests(unittest.TestCase):
         # T2 of apm-install-route-parity bumped the contract to v0.5;
         # RFC-0011 / pack-allowed-adapters bumped it to v0.6;
         # RFC-0012 / repo-scope-per-adapter-projection and RFC-0013 /
-        # credential-broker-contract co-bumped it to v0.7.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.7")
+        # credential-broker-contract co-bumped it to v0.7;
+        # docs/specs/dropped-primitives-coverage bumped it to v0.8.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.8")
 
 
 # ---------------------------------------------------------------------------
