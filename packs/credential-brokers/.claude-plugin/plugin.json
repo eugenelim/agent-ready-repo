@@ -1,0 +1,5 @@
+{
+  "name": "credential-brokers",
+  "version": "0.1.0",
+  "description": "User-scope credential brokering: credentials_shim (build-projected Python module for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill."
+}
