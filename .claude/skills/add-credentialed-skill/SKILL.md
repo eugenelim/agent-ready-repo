@@ -1,6 +1,6 @@
 ---
 name: add-credentialed-skill
-description: Use this skill when the user wants to author a new credentialed primitive — a skill that calls an authenticated external API on behalf of the user. Triggers on "add a credentialed skill", "new credentialed primitive", "wire up `<service>` API access". The skill walks the author through picking the broker (env, cli, creds, sso-cookie), copying the matching `assets/credentialed-skill-SKILL-<broker>.md` template, declaring frontmatter and schema, and (for the creds broker) running `make build-self`. Do NOT use for skills that just shell out to an already-credentialed binary the user has on PATH — those are not credentialed primitives. See `docs/specs/credential-broker-contract/spec.md` for the full architecture.
+description: Use this skill when the user wants to author a new credentialed primitive -- a skill that calls an authenticated external API on behalf of the user. Triggers on "add a credentialed skill", "new credentialed primitive", "wire up `<service>` API access". The skill walks the author through picking the broker (env, cli, creds, sso-cookie), copying the matching `assets/credentialed-skill-SKILL-<broker>.md` template, declaring frontmatter and schema, and (for the creds broker) running `make build-self`. Do NOT use for skills that just shell out to an already-credentialed binary the user has on PATH -- those are not credentialed primitives. See `docs/specs/credential-broker-contract/spec.md` for the full architecture.
 ---
 
 # Skill: add-credentialed-skill

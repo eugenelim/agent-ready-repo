@@ -1,6 +1,6 @@
 ---
 name: jira-defect-flow
-description: Use this skill when the user points at a Jira defect and asks you to handle it end-to-end — "fix PROJ-123", "work this bug ticket", "diagnose and ship a fix for this defect". The skill pulls the ticket via the `jira` skill, hands the actual fix to the `bug-fix` skill (reproduction-first, root-cause, minimum-diff, regression-test), opens a PR whose body links back to Jira, and comments + transitions the ticket. By default it stops at PR-opened; runs a dev-deploy step only if the consumer repo provides one. Do NOT use for stories, tasks, or feature work — those go through `new-spec`.
+description: Use this skill when the user points at a Jira defect and asks you to handle it end-to-end -- "fix PROJ-123", "work this bug ticket", "diagnose and ship a fix for this defect". The skill pulls the ticket via the `jira` skill, hands the actual fix to the `bug-fix` skill (reproduction-first, root-cause, minimum-diff, regression-test), opens a PR whose body links back to Jira, and comments + transitions the ticket. By default it stops at PR-opened; runs a dev-deploy step only if the consumer repo provides one. Do NOT use for stories, tasks, or feature work -- those go through `new-spec`.
 metadata:
   version: "1.0"
 ---
