@@ -31,6 +31,25 @@ import tomllib
 import urllib.error
 import urllib.request
 
+# Bootstrap when invoked as ``python ~/.agentbundle/bin/sso-broker.py``
+# so the ``from . import _sso_keychain_macos`` dispatch below resolves
+# against the projected siblings in the same directory. Gated on
+# ``__spec__ is None`` so the block only fires for true file-path
+# invocation; an importlib-based test harness is responsible for its
+# own package context.
+#
+# Note: even with this bootstrap, the per-platform ``_sso_*`` modules
+# still need ``credentials_shim.py`` as a sibling to load successfully
+# — the ``adapter-root-bins`` projection rule does not currently
+# include the shim, so under bare user-scope the Tier-2 backend
+# gracefully degrades to ``None`` via the try/except cascade below.
+# Tracked under "Deferred projection follow-ups" in
+# ``docs/ROADMAP.md`` § `credential-broker-contract`.
+if __package__ in (None, "") and __spec__ is None:
+    _here = pathlib.Path(__file__).resolve().parent
+    sys.path.insert(0, str(_here.parent))
+    __package__ = _here.name
+
 
 # Per AC12 — chosen explicitly to leave headroom under the Win32
 # CRED_MAX_CREDENTIAL_BLOB_SIZE lower-bound of 2560 bytes pre-Windows 7.
