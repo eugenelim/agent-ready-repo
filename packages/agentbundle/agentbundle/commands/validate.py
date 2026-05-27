@@ -23,6 +23,7 @@ import sys
 import tomllib
 from pathlib import Path
 
+from agentbundle.commands import _drop_warning
 from agentbundle.commands._common import check_spec_version_gate
 
 # Stdlib only — no third-party deps.
@@ -178,44 +179,74 @@ def run(args) -> int:
         )
         return 1
 
-    # ── 4c. Kiro hook-wiring `attach-to-agent` rail (RFC-0005, T2) ────────
-    # Fires when the pack is v0.3-bound AND ships *both* `.apm/agents/`
-    # (Kiro requires an agent to attach to) AND `.apm/hook-wiring/`
-    # (the wiring being validated). Pack-side `allowed-adapters` is a
-    # future RFC; the both-dirs heuristic is the proxy for "this pack
-    # would project to kiro." A Claude-Code-only v0.3 pack that ships
-    # wiring but no agents has no kiro projection target — the rail is
-    # a no-op for it (AC6: "field is ignored, not refused").
-    from agentbundle.build.scope_rails import (
-        check_kiro_event_vocabulary,
-        check_kiro_wiring,
-    )
+    # ── 4c/4d. Kiro hook-wiring rails (RFC-0005, T2 / T6) ────────────────
+    # Rails 4c (attach-to-agent) and 4d (event-vocabulary) are now merged
+    # into a single dispatch that swallows the compatibility-only refusals
+    # (missing attach-to-agent, out-of-vocab event) while preserving
+    # exit-1 for security (symlink) and correctness (parse-fail,
+    # unknown-agent) violations.
+    #
+    # Spec: docs/specs/incompatible-hook-event-drop AC1–AC5, AC6b.
+    from agentbundle.build.scope_rails import _load_pack_hook_wiring_safely
 
     target_adapters = _kiro_target_adapters(pack_data, pack_path)
     pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
-    kiro_refusal = check_kiro_wiring(pack_path, pack_name, target_adapters)
-    if kiro_refusal is not None:
-        print(f"validate: {kiro_refusal}", file=sys.stderr)
-        return 1
 
-    # ── 4d. Kiro per-adapter event-vocabulary rail (RFC-0005, T6) ─────────
-    # AC17 / AC17b: a wiring TOML naming an event outside the resolved
-    # target adapter's `agent-event-vocabulary` is refused. Claude Code's
-    # projection declares no vocabulary, so its packs pass through;
-    # Kiro's vocabulary is loaded from the v0.3 adapter contract.
     if "kiro" in target_adapters:
-        kiro_vocab = _kiro_event_vocabulary()
-        kiro_wiring_tomls = _load_pack_wiring_tomls(pack_path)
-        vocab_refusal = check_kiro_event_vocabulary(
-            pack_name=pack_name,
-            wiring_tomls=kiro_wiring_tomls,
-            vocabulary=kiro_vocab,
-            target_adapters=target_adapters,
-            adapter_name="kiro",
-        )
-        if vocab_refusal is not None:
-            print(f"validate: {vocab_refusal}", file=sys.stderr)
+        # 1. Safe-load: security + correctness refusals (AC3, AC3b, AC4).
+        loaded = _load_pack_hook_wiring_safely(pack_path, pack_name)
+        if isinstance(loaded, str):
+            print(f"validate: {loaded}", file=sys.stderr)
             return 1
+        wiring_tomls, agent_basenames = loaded
+
+        # 2. Unknown-agent refusal (AC4b) — discriminated from input data,
+        #    NOT from inspecting check_kiro_attach_to_agent's refusal text,
+        #    which is bytewise identical for missing-vs-unknown subcases per
+        #    scope_rails.py:333-337 (load-bearing per round-2 review).
+        #
+        #    Condition: attach is not None AND is a string AND not in
+        #    agent_basenames — matches spec AC4b exactly.
+        #    Empty string is preserved as "unknown agent" (kept refusal,
+        #    exit 1) to match today's helper behavior at scope_rails.py:332
+        #    — `"" not in agent_basenames` is True, so today's helper
+        #    refuses on attach = ""; this spec preserves that.
+        for stem, body in sorted(wiring_tomls.items()):
+            attach = body.get("attach-to-agent") if isinstance(body, dict) else None
+            if (
+                attach is not None
+                and isinstance(attach, str)
+                and attach not in agent_basenames
+            ):
+                # Refusal text matches check_kiro_attach_to_agent's
+                # pinned wording byte-for-byte (RFC-0005:474). Single
+                # source of truth: the helper composes the same string;
+                # a future RFC-0005 wording change must update both.
+                refusal = (
+                    f"pack {pack_name}'s hook-wiring {stem}.toml "
+                    f"does not declare 'attach-to-agent' (or names an unknown "
+                    f"agent); required for kiro projection"
+                )
+                print(f"validate: {refusal}", file=sys.stderr)
+                return 1
+
+        # 3. Compatibility drops (missing-attach OR out-of-vocab event) —
+        #    flow to the shared enumerator + info-line emit. Single source
+        #    of truth with the install side (AC6b).
+        contract = _load_adapter_contract()
+        info_drops = _drop_warning.enumerate_event_dropped_wirings(
+            pack_path, "kiro", contract,
+        )
+        if info_drops:
+            info = _drop_warning.format_drop_message(
+                mode="validate_info",
+                pack_name=pack_name,
+                adapter="kiro",
+                dropped_counts={},
+                compatible_types=[],
+                event_drops=info_drops,
+            )
+            print(info)  # stdout per AC2 + adopter direction
 
     # ── 4e. kiro-ide-hook validate rail (RFC-0005 v0.4, T-C2) ────────────
     # Fires whenever the pack ships `.apm/kiro-ide-hooks/` content. The
@@ -299,66 +330,6 @@ def _user_scope_hooks_opt_in(pack_data: dict) -> bool:
         return False
     flag = install.get("user-scope-hooks")
     return flag is True
-
-
-def _kiro_event_vocabulary() -> list[str] | None:
-    """Resolve Kiro's ``agent-event-vocabulary`` from the v0.3 contract.
-
-    Returns the list when the contract declares it (the post-T1 v0.3
-    state); returns None when the field is absent (the rail is then a
-    no-op per AC17b). Looked up on every call to keep the
-    contract-file the source of truth — no module-level cache so a
-    test-time contract swap is visible.
-    """
-    from agentbundle.build.contract import load as load_contract
-
-    here = Path(__file__).resolve().parent
-    bundled = here.parent / "_data" / "adapter.toml"
-    if bundled.exists():
-        contract_path = bundled
-    else:
-        # Dev-checkout fallback: the package lives at
-        # packages/agentbundle/agentbundle/commands/, so four `.parent`
-        # hops land at the repo root. Installed layouts (site-packages
-        # via pip) will always have the bundled `_data/adapter.toml`
-        # above, so this branch only fires when running from a working
-        # tree that excludes the bundle. Returning None on miss keeps
-        # the rail a no-op rather than crashing.
-        contract_path = here.parent.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
-        if not contract_path.exists():
-            return None
-    contract = load_contract(contract_path)
-    kiro = contract.get("adapter", {}).get("kiro", {})
-    projections = kiro.get("projections", {}) if isinstance(kiro, dict) else {}
-    hook_wiring = projections.get("hook-wiring", {}) if isinstance(projections, dict) else {}
-    vocab = hook_wiring.get("agent-event-vocabulary") if isinstance(hook_wiring, dict) else None
-    if isinstance(vocab, list):
-        return [str(v) for v in vocab if isinstance(v, str)]
-    return None
-
-
-def _load_pack_wiring_tomls(pack_path: Path) -> dict[str, dict]:
-    """Parse every ``.apm/hook-wiring/*.toml`` under *pack_path*.
-
-    Mirrors the in-memory shape ``check_kiro_event_vocabulary``
-    consumes. A malformed wiring TOML would already have been refused
-    by ``check_kiro_wiring`` earlier in the validate pipeline, so this
-    helper silently skips parse errors.
-    """
-    import tomllib
-
-    out: dict[str, dict] = {}
-    wiring_dir = pack_path / ".apm" / "hook-wiring"
-    if not wiring_dir.exists():
-        return out
-    for entry in sorted(wiring_dir.iterdir()):
-        if not entry.is_file() or entry.suffix != ".toml":
-            continue
-        try:
-            out[entry.stem] = tomllib.loads(entry.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, OSError):
-            continue
-    return out
 
 
 def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
@@ -448,9 +419,9 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
     unresolvable placeholder) still fire because they're vocabulary-
     independent.
 
-    Same load-at-call-time discipline as ``_kiro_event_vocabulary`` —
-    the contract file is the source of truth; no module-level cache
-    so a test-time swap is visible immediately.
+    Load-at-call-time discipline: the contract file is the source of
+    truth; no module-level cache so a test-time swap is visible
+    immediately.
     """
     from agentbundle.build.contract import load as load_contract
 
@@ -476,6 +447,31 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
         _as_string_list(rule.get("ide-event-vocabulary")) if isinstance(rule, dict) else None,
         _as_string_list(rule.get("ide-action-vocabulary")) if isinstance(rule, dict) else None,
     )
+
+
+def _load_adapter_contract() -> dict:
+    """Load the bundled adapter contract dict.
+
+    Same load-at-call-time discipline as
+    ``_kiro_ide_hook_vocabularies`` — the contract file is the source of
+    truth; no module-level cache so a test-time swap is visible.
+
+    Returns an empty dict when neither the bundled nor the dev-checkout
+    path exists (keeps the enumeration rail a no-op rather than crashing).
+    """
+    from agentbundle.build.contract import load as load_contract
+
+    here = Path(__file__).resolve().parent
+    bundled = here.parent / "_data" / "adapter.toml"
+    if bundled.exists():
+        contract_path = bundled
+    else:
+        contract_path = (
+            here.parent.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
+        )
+        if not contract_path.exists():
+            return {}
+    return load_contract(contract_path)
 
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:

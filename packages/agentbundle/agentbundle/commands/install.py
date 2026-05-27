@@ -41,6 +41,11 @@ if TYPE_CHECKING:
     from agentbundle.config import State
     from agentbundle.safety import Tier
 
+# enumerate_event_dropped_wirings is imported at module level so it is
+# patchable from tests (the mock target is
+# ``agentbundle.commands.install.enumerate_event_dropped_wirings``).
+from agentbundle.commands._drop_warning import enumerate_event_dropped_wirings
+
 
 @dataclass
 class _ScopePlan:
@@ -1046,18 +1051,6 @@ def _clear_dropped_warning_seen() -> None:
     _DROPPED_WARNING_SEEN.clear()
 
 
-def _pluralize_primitive_name(name: str) -> str:
-    """Plural form of a primitive-type name.
-
-    Used by both the dropped-count formatter (`2 agents`) and the
-    compatible-list formatter. Bound to the contract's five primitive
-    type names — `hook-body` is the only English-irregular one.
-    """
-    if name == "hook-body":
-        return "hook-bodies"
-    return name + "s"
-
-
 def _enumerate_dropped_primitives(
     pack_dir: Path,
     adapter: str,
@@ -1194,79 +1187,32 @@ def _enumerate_compatible_primitives(
     return out
 
 
-def _join_serial_comma(items: list[str]) -> str:
-    """Project's list-formatting convention: serial comma + 'and'.
-
-    Mirrors RFC-0012's route-list formatter. Examples:
-      - ``[]`` → ``""``
-      - ``["a"]`` → ``"a"``
-      - ``["a", "b"]`` → ``"a and b"``
-      - ``["a", "b", "c"]`` → ``"a, b, and c"``
-    """
-    if not items:
-        return ""
-    if len(items) == 1:
-        return items[0]
-    if len(items) == 2:
-        return f"{items[0]} and {items[1]}"
-    return ", ".join(items[:-1]) + ", and " + items[-1]
-
-
 def _format_dropped_warning(
     pack_name: str,
     adapter: str,
     dropped_counts: dict[str, int],
     compatible_types: list[str],
 ) -> str:
-    """Build the AC10 pinned warning string.
+    """Backward-compat shim — delegates to the shared formatter.
 
-    ``warning: pack <name> ships <count-list> that <adapter> projects as
-    'dropped'; these primitives will not be installed. The compatible
-    primitives (<compatible-list>) will proceed.``
-
-    ``<count-list>`` uses singular for N=1 (``1 agent``) and plural for
-    N>1 (``2 agents``); zero-count types are elided.
-    ``<compatible-list>`` uses the plural form of each type name
-    (``skills``, ``agents``, ``hook-bodies``, ``hook-wirings``,
-    ``commands``). Both lists join with serial-comma-plus-``and``.
+    Thin positional-argument wrapper around
+    :func:`agentbundle.commands._drop_warning.format_drop_message` so
+    existing callers (tests + ``_maybe_emit_dropped_warning``) keep
+    working without modification. T4 of spec incompatible-hook-event-drop
+    moved the canonical implementation to ``_drop_warning.py``; this
+    shim lives here for backward compat.
 
     Raises:
-        ValueError: when ``dropped_counts`` has no nonzero entries. The
-            caller-side guard in ``_maybe_emit_dropped_warning`` keeps
-            this off the install-handler hot path; the refusal surfaces
-            mis-use from any direct caller (tests, future embedders)
-            rather than emitting a malformed ``ships  that ...`` string.
+        ValueError: when ``dropped_counts`` has no nonzero entries (same
+            contract as the pre-move implementation).
     """
-    count_parts: list[str] = []
-    # Sort by type name so the formatted output is deterministic.
-    for ptype, count in sorted(dropped_counts.items()):
-        if count <= 0:
-            continue
-        if count == 1:
-            count_parts.append(f"1 {ptype}")
-        else:
-            count_parts.append(f"{count} {_pluralize_primitive_name(ptype)}")
-    if not count_parts:
-        # All-zero or empty input — the warning has nothing meaningful to
-        # report. _maybe_emit_dropped_warning's caller-side guard catches
-        # this before we get here, but the formatter is module-public
-        # by convention (tests consume it directly) so refuse rather
-        # than emit a malformed "ships  that ..." string.
-        raise ValueError(
-            "dropped_counts has no nonzero entries; "
-            "_format_dropped_warning has nothing to format"
-        )
-    count_list = _join_serial_comma(count_parts)
+    from agentbundle.commands._drop_warning import format_drop_message
 
-    compatible_parts = [
-        _pluralize_primitive_name(ptype) for ptype in sorted(compatible_types)
-    ]
-    compatible_list = _join_serial_comma(compatible_parts)
-
-    return (
-        f"warning: pack {pack_name} ships {count_list} that {adapter} "
-        f"projects as 'dropped'; these primitives will not be installed. "
-        f"The compatible primitives ({compatible_list}) will proceed."
+    return format_drop_message(
+        pack_name=pack_name,
+        adapter=adapter,
+        dropped_counts=dropped_counts,
+        compatible_types=compatible_types,
     )
 
 
@@ -1278,28 +1224,52 @@ def _maybe_emit_dropped_warning(
     adapter: str,
     scope: str,
 ) -> None:
-    """If the pack ships any primitive type the adapter drops, emit the
-    AC10 warning to stderr. Short-circuits once per
+    """If the pack ships any primitive type the adapter drops, or any
+    hook-wiring file uses an event the adapter doesn't support, emit the
+    warning to stderr. Short-circuits once per
     ``(root, pack_name, adapter, scope)`` per process so repeat calls
     in the same process stay silent (AC11).
+
+    Covers both the coarse-grained primitive-type drop rail
+    (``_enumerate_dropped_primitives``) and the per-file event-level
+    drop rail (``enumerate_event_dropped_wirings``). The short-circuit
+    key is unchanged — both drop kinds derive from the same inputs, so
+    one warning per scope per process covers both (spec AC9).
 
     Pre-write barrier: callers invoke this after Step 5's plans-list is
     built (both target adapters resolved) and before Step 6's pre-flight
     rails fire / Step 9's writes execute.
     """
+    from agentbundle.commands._drop_warning import format_drop_message
+
     key = (str(root), pack_name, adapter, scope)
     if key in _DROPPED_WARNING_SEEN:
         return
-    dropped = _enumerate_dropped_primitives(pack_dir, adapter)
-    if not dropped:
+
+    # Load the contract once for both enumerators so we don't hit disk twice.
+    import tomllib as _tomllib
+    from agentbundle.build.main import _read_bundled
+    contract = _tomllib.loads(_read_bundled("adapter.toml"))
+
+    dropped = _enumerate_dropped_primitives(pack_dir, adapter, contract)
+    event_drops = enumerate_event_dropped_wirings(pack_dir, adapter, contract)
+
+    if not dropped and not event_drops:
         # Adapter has no dropped modes OR pack ships nothing droppable.
         # Record the no-op so even a "no warning" decision is short-circuited
         # — a future caller flipping the pack's primitives wouldn't expect
         # a sudden warning mid-process.
         _DROPPED_WARNING_SEEN.add(key)
         return
-    compatible = _enumerate_compatible_primitives(pack_dir, adapter)
-    msg = _format_dropped_warning(pack_name, adapter, dropped, compatible)
+    compatible = _enumerate_compatible_primitives(pack_dir, adapter, contract)
+    msg = format_drop_message(
+        pack_name=pack_name,
+        adapter=adapter,
+        dropped_counts=dropped,
+        compatible_types=compatible,
+        event_drops=event_drops,
+        mode="install_warning",
+    )
     print(msg, file=sys.stderr)
     _DROPPED_WARNING_SEEN.add(key)
 

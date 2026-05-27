@@ -381,5 +381,148 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
                     os.environ.pop("HOME", None)
 
 
+class KiroPerFileDropEndToEnd(unittest.TestCase):
+    """T6 of docs/specs/incompatible-hook-event-drop.
+
+    Installs core via kiro at repo scope and asserts:
+      - rc 0
+      - stderr contains the exact three-clause warning (built via
+        _drop_warning.format_drop_message so the test stays in sync
+        with any formatter wording change — single source of truth pin).
+      - each agent in core/.apm/agents/ produces a kiro agent JSON at
+        <tmp>/.kiro/agents/<basename>.json
+      - <tmp>/.kiro/skills/<skill>/SKILL.md exists for each core skill
+      - no kiro agent JSON contains a top-level hooks.SessionStart key
+
+    The positive-control test in ClaudeCodeSessionStartPositiveControl
+    pins that the drop is per-adapter, not blanket.
+    """
+
+    def test_install_core_via_kiro_emits_three_clause_warning_and_projects_other_primitives(
+        self,
+    ) -> None:
+        import tomllib as _tomllib
+
+        from agentbundle.build.main import _read_bundled
+        from agentbundle.commands._drop_warning import (
+            enumerate_event_dropped_wirings,
+            format_drop_message,
+        )
+        from agentbundle.commands.install import (
+            _enumerate_compatible_primitives,
+            _enumerate_dropped_primitives,
+        )
+
+        contract = _tomllib.loads(_read_bundled("adapter.toml"))
+        pack_dir = PACKS_DIR / "core"
+
+        # Build expected warning via the formatter — single source of truth
+        # pin (spec AC10).
+        expected_warning = format_drop_message(
+            pack_name="core",
+            adapter="kiro",
+            dropped_counts=_enumerate_dropped_primitives(pack_dir, "kiro", contract),
+            compatible_types=_enumerate_compatible_primitives(pack_dir, "kiro", contract),
+            event_drops=enumerate_event_dropped_wirings(pack_dir, "kiro", contract),
+            mode="install_warning",
+        )
+
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw) / "adopter"
+            adopter.mkdir()
+            rc, stdout, stderr = _install_core_via("kiro", adopter)
+
+            self.assertEqual(
+                rc, 0, f"install returned non-zero:\nstdout={stdout}\nstderr={stderr}"
+            )
+
+            # Exact three-clause warning in stderr.
+            self.assertIn(
+                expected_warning,
+                stderr,
+                f"expected three-clause kiro warning in stderr.\n"
+                f"Expected substring:\n  {expected_warning}\n"
+                f"Got stderr:\n  {stderr}",
+            )
+
+            # Each agent in core/.apm/agents/ produces a kiro agent JSON.
+            agents_src = sorted((pack_dir / ".apm" / "agents").glob("*.md"))
+            self.assertGreater(len(agents_src), 0, "no agents found in core pack")
+            kiro_agents_dir = adopter / ".kiro" / "agents"
+            for agent_md in agents_src:
+                expected_json = kiro_agents_dir / (agent_md.stem + ".json")
+                self.assertTrue(
+                    expected_json.exists(),
+                    f"expected kiro agent JSON at {expected_json.relative_to(adopter)}"
+                    f" (derived from {agent_md.name})",
+                )
+
+            # Each skill in core/.apm/skills/ produces a SKILL.md.
+            skills_src = [
+                p for p in (pack_dir / ".apm" / "skills").iterdir() if p.is_dir()
+            ]
+            self.assertGreater(len(skills_src), 0, "no skills found in core pack")
+            for skill_dir in skills_src:
+                expected_skill_md = adopter / ".kiro" / "skills" / skill_dir.name / "SKILL.md"
+                self.assertTrue(
+                    expected_skill_md.exists(),
+                    f"expected skill at {expected_skill_md.relative_to(adopter)}"
+                    f" (derived from skill {skill_dir.name})",
+                )
+
+            # No kiro agent JSON contains a top-level hooks.SessionStart key.
+            for json_path in sorted(kiro_agents_dir.glob("*.json")):
+                data = json.loads(json_path.read_text(encoding="utf-8"))
+                self.assertNotIn(
+                    "SessionStart",
+                    data.get("hooks", {}),
+                    f"{json_path.name} unexpectedly contains hooks.SessionStart "
+                    f"— the session-start wiring was supposed to be dropped",
+                )
+
+
+class ClaudeCodeSessionStartPositiveControl(unittest.TestCase):
+    """T6 positive control: claude-code at repo scope writes SessionStart.
+
+    Pins that the per-file drop is per-adapter, not blanket. The kiro
+    install above drops hooks/session-start.toml; the claude-code install
+    here must project it (spec AC10).
+    """
+
+    def test_install_core_via_claude_code_writes_sessionstart_positive_control(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw) / "adopter"
+            adopter.mkdir()
+            rc, stdout, stderr = _install_core_via("claude-code", adopter)
+
+            self.assertEqual(
+                rc, 0, f"install returned non-zero:\nstdout={stdout}\nstderr={stderr}"
+            )
+
+            # For claude-code at repo scope (per-IDE path, not
+            # --emit-install-routes), hook-wiring merges into
+            # .claude/settings.local.json per
+            # [adapter."claude-code".projections.hook-wiring].target.repo
+            # in _data/adapter.toml.
+            hook_wiring_target = adopter / ".claude" / "settings.local.json"
+            self.assertTrue(
+                hook_wiring_target.exists(),
+                f"expected hook-wiring target at "
+                f"{hook_wiring_target.relative_to(adopter)} — "
+                f"claude-code repo-scope hook-wiring did not project",
+            )
+
+            data = json.loads(hook_wiring_target.read_text(encoding="utf-8"))
+            session_start_entries = data.get("hooks", {}).get("SessionStart")
+            self.assertTrue(
+                session_start_entries,
+                f"expected non-empty hooks.SessionStart in "
+                f"{hook_wiring_target.relative_to(adopter)}; "
+                f"got: {session_start_entries!r}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

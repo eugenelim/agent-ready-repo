@@ -393,30 +393,36 @@ def check_kiro_event_vocabulary(
     return None
 
 
-def check_kiro_wiring(
+def _load_pack_hook_wiring_safely(
     pack_path: Path,
     pack_name: str,
-    target_adapters: Iterable[str],
-) -> str | None:
-    """Filesystem wrapper around ``check_kiro_attach_to_agent``.
+) -> tuple[dict, set] | str:
+    """Load hook-wiring TOMLs and agent basenames from a pack directory.
 
-    Reads ``.apm/hook-wiring/*.toml`` and ``.apm/agents/*.md`` from
-    ``pack_path``, parses each wiring TOML with ``tomllib``, and
-    dispatches to the in-memory rail. Mirrors rail C's symlink
-    discipline: a symlink under either directory is refused — a
-    legitimate primitive is a regular file, and following a symlink
-    would let a pack reach outside its source tree. A wiring TOML that
-    fails to parse counts as a refusal on its own.
+    Applies the security and correctness rails (symlink check + TOML parse)
+    without invoking the compatibility rail (``check_kiro_attach_to_agent``).
+    Returns either a ``(wiring_tomls, agent_basenames)`` tuple on success, or
+    a refusal string for any of three violations:
+
+    - A symlink under ``.apm/hook-wiring/`` (security rail).
+    - A TOML that fails to parse (correctness rail).
+    - A symlink under ``.apm/agents/`` (security rail).
+
+    When the ``.apm/hook-wiring/`` directory does not exist, returns
+    ``({}, set())`` so the type signature is uniform for callers — the
+    compatibility rail has nothing to check, so agent discovery is skipped
+    too (matches the early-return behaviour of ``check_kiro_wiring``).
+
+    This helper is module-private by convention (underscore prefix) but
+    importable by ``validate.py`` so that the security/correctness rails are
+    callable independently of the compatibility rail.
     """
-    if "kiro" not in set(target_adapters or ()):
-        return None
+    import tomllib
+    from stat import S_ISLNK
 
     wiring_dir = pack_path / ".apm" / "hook-wiring"
     if not wiring_dir.exists():
-        return None
-
-    import tomllib
-    from stat import S_ISLNK
+        return ({}, set())
 
     wiring_tomls: dict[str, dict] = {}
     for entry in sorted(wiring_dir.iterdir()):
@@ -461,6 +467,31 @@ def check_kiro_wiring(
             if entry.is_file():
                 agent_basenames.add(entry.stem)
 
+    return (wiring_tomls, agent_basenames)
+
+
+def check_kiro_wiring(
+    pack_path: Path,
+    pack_name: str,
+    target_adapters: Iterable[str],
+) -> str | None:
+    """Filesystem wrapper around ``check_kiro_attach_to_agent``.
+
+    Reads ``.apm/hook-wiring/*.toml`` and ``.apm/agents/*.md`` from
+    ``pack_path``, parses each wiring TOML with ``tomllib``, and
+    dispatches to the in-memory rail. Mirrors rail C's symlink
+    discipline: a symlink under either directory is refused — a
+    legitimate primitive is a regular file, and following a symlink
+    would let a pack reach outside its source tree. A wiring TOML that
+    fails to parse counts as a refusal on its own.
+    """
+    if "kiro" not in set(target_adapters or ()):
+        return None
+
+    loaded = _load_pack_hook_wiring_safely(pack_path, pack_name)
+    if isinstance(loaded, str):
+        return loaded  # security or correctness refusal
+    wiring_tomls, agent_basenames = loaded
     return check_kiro_attach_to_agent(
         pack_name,
         wiring_tomls,
