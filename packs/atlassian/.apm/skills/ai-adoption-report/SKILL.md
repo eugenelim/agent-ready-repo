@@ -1,6 +1,6 @@
 ---
 name: ai-adoption-report
-description: Use this skill to compare flow-metrics JSON outputs and produce a Markdown comparison report — "how do our flow metrics now compare to pre-AI?", "within Q4 did AI-tagged tickets behave differently from untagged?", "what does Q4 look like across all teams in the program?". Three modes — baseline (two windows, one scope), cohort (within-window AI vs control), program (roll up many scopes for one window). Read-only — consumes flow-metrics JSON files, makes no upstream calls, never invokes flow-metrics / jira / jira-align. Writes only the Markdown report and an optional JSON sidecar.
+description: Use this skill to compare flow-metrics JSON outputs and produce a Markdown comparison report -- "how do our flow metrics now compare to pre-AI?", "within Q4 did AI-tagged tickets behave differently from untagged?", "what does Q4 look like across all teams in the program?". Three modes -- baseline (two windows, one scope), cohort (within-window AI vs control), program (roll up many scopes for one window). Read-only -- consumes flow-metrics JSON files, makes no upstream calls, never invokes flow-metrics / jira / jira-align. Writes only the Markdown report and an optional JSON sidecar.
 metadata:
   version: "1.0"
 ---
