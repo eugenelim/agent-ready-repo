@@ -143,10 +143,87 @@ A future RFC can add `--accept-degraded` to silence the rail
 entirely if telemetry shows it's been learned-ignored — that's out
 of scope for this guide.
 
+## Per-file hook-wiring drops on incompatible adapters
+
+The v0.7 → v0.8 warning rail above fires at the **primitive-type** level:
+when an adapter's contract marks a whole primitive type as `dropped`
+(Kiro drops all `command`s; Copilot drops `agent` + `command` +
+`hook-wiring`), the install proceeds and the rail warns. The follow-on
+spec [`incompatible-hook-event-drop`](../../specs/incompatible-hook-event-drop/spec.md)
+adds a **per-file** layer to the same warning rail for hook-wirings
+whose event isn't in the target adapter's vocabulary.
+
+The motivating concrete case: `packs/core/.apm/hook-wiring/session-start.toml`
+declares `[[hooks.SessionStart]]`. Claude Code's `SessionStart` event has
+no equivalent in Kiro CLI's `agent-event-vocabulary`
+(`agentSpawn / userPromptSubmit / preToolUse / postToolUse / stop`)
+or in Kiro IDE's `ide-event-vocabulary`. Pre-spec, `agentbundle validate
+packs/core` refused with exit 1 — the whole pack was un-installable
+against Kiro because of this one file. Post-spec:
+
+```
+$ agentbundle install --pack core --scope repo --adapter kiro .
+warning: pack core ships 1 command that kiro projects as 'dropped'; these
+primitives will not be installed. Additionally, the following hook-wiring
+file(s) will be skipped (event not in adapter vocabulary + kiro requires
+'attach-to-agent'): hook-wiring/session-start.toml. The compatible
+primitives (skill, agent, hook-body, hook-wiring) will proceed.
+
+$ echo $?
+0
+```
+
+Skills, agents, and the pack's other hook-wirings (if any) project
+normally. The single incompatible file is named in the warning and
+skipped.
+
+`agentbundle validate <pack>` becomes informational rather than refusing:
+
+```
+$ agentbundle validate packs/core
+info: pack core: the following hook-wiring file(s) will not project to kiro
+(event not in adapter vocabulary + kiro requires 'attach-to-agent'):
+hook-wiring/session-start.toml.
+
+$ echo $?
+0
+```
+
+The `info:` line goes to **stdout** (validate's stdout was empty
+pre-spec; no CI script can depend on text that didn't exist). The
+exit code becomes 0 — the pack is valid; the file just doesn't carry
+to every adapter.
+
+**Install-vs-validate parse-fail asymmetry.** A hook-wiring TOML that
+**fails to parse** (malformed syntax) has split semantics: `agentbundle
+validate` refuses with exit 1 and the existing `failed to parse`
+substring on stderr (correctness rail); `agentbundle install`
+enumerates the file as a drop entry with reason category
+`hook-wiring TOML failed to parse` (single backtick-wrapped phrase) and proceeds. The split is intentional: validate is the
+development-time gate where parse failures are loud bugs to fix;
+install is the adopter-time degradation rail where the parse failure
+becomes one more reason a file won't project. Adopters running
+install-without-validate see the file named in the warning rather
+than a silent absence.
+
+**What still refuses with exit 1 at validate:**
+
+  - Symlink under `.apm/hook-wiring/` or `.apm/agents/` (security).
+  - Malformed `.toml` that fails `tomllib.loads` (correctness).
+  - `attach-to-agent = "ghost-agent"` referencing an agent file that
+    isn't in `.apm/agents/` (correctness — distinct from "field
+    missing" which is the swallowed compatibility case).
+  - `attach-to-agent = ""` (explicit empty string — preserved as
+    "unknown agent" semantics to match pre-spec behaviour). To get
+    the new compatibility-swallow, omit the field entirely rather
+    than setting it to an empty string.
+
 ## Sibling reading
 
   - [`docs/specs/dropped-primitives-coverage/spec.md`](../../specs/dropped-primitives-coverage/spec.md):
     the contract for what this guide describes.
+  - [`docs/specs/incompatible-hook-event-drop/spec.md`](../../specs/incompatible-hook-event-drop/spec.md):
+    the per-file event-level extension this guide's last section covers.
   - [`docs/specs/distribution-adapters/spec.md`](../../specs/distribution-adapters/spec.md):
     the v0.7 → v0.8 Changelog entry name lives here.
   - [`docs/contracts/adapter.toml`](../../contracts/adapter.toml):
