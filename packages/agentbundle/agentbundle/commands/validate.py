@@ -332,66 +332,6 @@ def _user_scope_hooks_opt_in(pack_data: dict) -> bool:
     return flag is True
 
 
-def _kiro_event_vocabulary() -> list[str] | None:
-    """Resolve Kiro's ``agent-event-vocabulary`` from the v0.3 contract.
-
-    Returns the list when the contract declares it (the post-T1 v0.3
-    state); returns None when the field is absent (the rail is then a
-    no-op per AC17b). Looked up on every call to keep the
-    contract-file the source of truth — no module-level cache so a
-    test-time contract swap is visible.
-    """
-    from agentbundle.build.contract import load as load_contract
-
-    here = Path(__file__).resolve().parent
-    bundled = here.parent / "_data" / "adapter.toml"
-    if bundled.exists():
-        contract_path = bundled
-    else:
-        # Dev-checkout fallback: the package lives at
-        # packages/agentbundle/agentbundle/commands/, so four `.parent`
-        # hops land at the repo root. Installed layouts (site-packages
-        # via pip) will always have the bundled `_data/adapter.toml`
-        # above, so this branch only fires when running from a working
-        # tree that excludes the bundle. Returning None on miss keeps
-        # the rail a no-op rather than crashing.
-        contract_path = here.parent.parent.parent.parent / "docs" / "contracts" / "adapter.toml"
-        if not contract_path.exists():
-            return None
-    contract = load_contract(contract_path)
-    kiro = contract.get("adapter", {}).get("kiro", {})
-    projections = kiro.get("projections", {}) if isinstance(kiro, dict) else {}
-    hook_wiring = projections.get("hook-wiring", {}) if isinstance(projections, dict) else {}
-    vocab = hook_wiring.get("agent-event-vocabulary") if isinstance(hook_wiring, dict) else None
-    if isinstance(vocab, list):
-        return [str(v) for v in vocab if isinstance(v, str)]
-    return None
-
-
-def _load_pack_wiring_tomls(pack_path: Path) -> dict[str, dict]:
-    """Parse every ``.apm/hook-wiring/*.toml`` under *pack_path*.
-
-    Mirrors the in-memory shape ``check_kiro_event_vocabulary``
-    consumes. A malformed wiring TOML would already have been refused
-    by ``check_kiro_wiring`` earlier in the validate pipeline, so this
-    helper silently skips parse errors.
-    """
-    import tomllib
-
-    out: dict[str, dict] = {}
-    wiring_dir = pack_path / ".apm" / "hook-wiring"
-    if not wiring_dir.exists():
-        return out
-    for entry in sorted(wiring_dir.iterdir()):
-        if not entry.is_file() or entry.suffix != ".toml":
-            continue
-        try:
-            out[entry.stem] = tomllib.loads(entry.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, OSError):
-            continue
-    return out
-
-
 def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
     """Resolve the target-adapter set for the kiro hook-wiring rail.
 
@@ -479,9 +419,9 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
     unresolvable placeholder) still fire because they're vocabulary-
     independent.
 
-    Same load-at-call-time discipline as ``_kiro_event_vocabulary`` —
-    the contract file is the source of truth; no module-level cache
-    so a test-time swap is visible immediately.
+    Load-at-call-time discipline: the contract file is the source of
+    truth; no module-level cache so a test-time swap is visible
+    immediately.
     """
     from agentbundle.build.contract import load as load_contract
 
@@ -512,7 +452,7 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
 def _load_adapter_contract() -> dict:
     """Load the bundled adapter contract dict.
 
-    Same load-at-call-time discipline as ``_kiro_event_vocabulary`` and
+    Same load-at-call-time discipline as
     ``_kiro_ide_hook_vocabularies`` — the contract file is the source of
     truth; no module-level cache so a test-time swap is visible.
 
