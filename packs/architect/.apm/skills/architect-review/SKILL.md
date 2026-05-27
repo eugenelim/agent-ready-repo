@@ -1,6 +1,6 @@
 ---
 name: architect-review
-description: Use this skill when the user pastes a design doc, diagram, or other architecture artifact and asks for a critique. Triggers on "review this", "what's wrong with…", "is this any good", or any artifact-shaped paste with a question attached. Produces a one-line verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), a 3-sentence executive summary, severity-tagged findings (🟥 / 🟧 / 🟨 / ⚪), and a closing "what's working" section. Inline only — no file write. Do NOT use to *produce* a design doc or diagram (use `architect-design` or `architect-diagram`); use this when the artifact already exists.
+description: Use when the user pastes an architecture artifact (design doc, diagram, RFC, ADR) and asks for critique. Triggers on "review this", "what's wrong with", "is this any good", or any artifact-shaped paste with a question attached. Produces a verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), executive summary, severity-tagged findings, and a closing "what's working" section. Inline only. Do NOT use to produce an artifact (use `architect-design` or `architect-diagram`).
 ---
 
 # Skill: architect-review
