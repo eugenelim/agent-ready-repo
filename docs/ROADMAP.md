@@ -236,6 +236,45 @@ codex re-projection case so `--force` (or `agentbundle upgrade`)
 re-projects under the new contract without the documented manual
 two-step. Named in the spec § Risks; deferred to a future RFC.
 
+**Open follow-on (in flight 2026-05-26):** per-file event-level drop
+extension for hook-wiring — `incompatible-hook-event-drop/spec.md`
+(Draft, sibling spec). PR #156's warning rail is whole-primitive-type
+level only (`Kiro drops all commands` → warn). The follow-on extends
+it to per-file granularity (`Kiro accepts hook-wirings, but this one
+uses an event Kiro doesn't know` → drop just the file, warn). The
+motivating case: `packs/core/.apm/hook-wiring/session-start.toml`
+uses `SessionStart` which isn't in Kiro's `agent-event-vocabulary` —
+today `agentbundle validate packs/core` refuses the whole pack at
+exit 1. The sibling spec also switches `validate.py` from
+refuse-on-compatibility-violation to non-refuse for hook-wiring
+specifically (info to stdout, exit 0); symlink + TOML-parse rails
+keep exit-1. Reuses the warning-rail substrate this spec shipped;
+no contract bump; lives in a new shared module
+`commands/_drop_warning.py`.
+
+## `incompatible-hook-event-drop` — drafted 2026-05-26 (in flight)
+
+Spec: [`specs/incompatible-hook-event-drop/spec.md`](specs/incompatible-hook-event-drop/spec.md).
+Status: Draft. Drafted 2026-05-26 as a follow-on to the just-shipped
+`dropped-primitives-coverage` (which is **frozen** per
+`docs/CONVENTIONS.md:80`); a new spec is the right surface for the
+event-level extension.
+
+The spec stops throwing the baby out with the bathwater when a pack's
+hook-wiring file uses an event the target IDE doesn't understand.
+Today `agentbundle validate packs/core` exits 1 because Kiro has no
+`SessionStart` equivalent — refuses the whole pack rather than just
+the one incompatible file. The fix in two parts: (a) drop the
+incompatible file, install everything else (skills + agents + other
+compatible hook-wirings still project to Kiro); (b) tell the adopter
+clearly what got dropped via a three-clause install-time warning
+(extending PR #156's formatter to admit an event-level clause) and
+a validate-time `info:` line to stdout (exit 0).
+
+17 ACs / 8 tasks; one PR. Four rounds of adversarial spec review
+converged Clean (18 → 7 → 3 → 1 fresh findings, no stasis between
+rounds).
+
 ## `repo-scope-per-adapter-projection` — shipped (T1-T9 + AC24 + AC30b + AC33 + ADR-0004 + (c) per-pack scoping all landed; no open items)
 
 Spec: [`specs/repo-scope-per-adapter-projection/spec.md`](specs/repo-scope-per-adapter-projection/spec.md).
