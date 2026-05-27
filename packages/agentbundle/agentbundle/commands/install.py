@@ -1218,55 +1218,26 @@ def _format_dropped_warning(
     dropped_counts: dict[str, int],
     compatible_types: list[str],
 ) -> str:
-    """Build the AC10 pinned warning string.
+    """Backward-compat shim — delegates to the shared formatter.
 
-    ``warning: pack <name> ships <count-list> that <adapter> projects as
-    'dropped'; these primitives will not be installed. The compatible
-    primitives (<compatible-list>) will proceed.``
-
-    ``<count-list>`` uses singular for N=1 (``1 agent``) and plural for
-    N>1 (``2 agents``); zero-count types are elided.
-    ``<compatible-list>`` uses the plural form of each type name
-    (``skills``, ``agents``, ``hook-bodies``, ``hook-wirings``,
-    ``commands``). Both lists join with serial-comma-plus-``and``.
+    Thin positional-argument wrapper around
+    :func:`agentbundle.commands._drop_warning.format_drop_message` so
+    existing callers (tests + ``_maybe_emit_dropped_warning``) keep
+    working without modification. T4 of spec incompatible-hook-event-drop
+    moved the canonical implementation to ``_drop_warning.py``; this
+    shim lives here for backward compat.
 
     Raises:
-        ValueError: when ``dropped_counts`` has no nonzero entries. The
-            caller-side guard in ``_maybe_emit_dropped_warning`` keeps
-            this off the install-handler hot path; the refusal surfaces
-            mis-use from any direct caller (tests, future embedders)
-            rather than emitting a malformed ``ships  that ...`` string.
+        ValueError: when ``dropped_counts`` has no nonzero entries (same
+            contract as the pre-move implementation).
     """
-    count_parts: list[str] = []
-    # Sort by type name so the formatted output is deterministic.
-    for ptype, count in sorted(dropped_counts.items()):
-        if count <= 0:
-            continue
-        if count == 1:
-            count_parts.append(f"1 {ptype}")
-        else:
-            count_parts.append(f"{count} {_pluralize_primitive_name(ptype)}")
-    if not count_parts:
-        # All-zero or empty input — the warning has nothing meaningful to
-        # report. _maybe_emit_dropped_warning's caller-side guard catches
-        # this before we get here, but the formatter is module-public
-        # by convention (tests consume it directly) so refuse rather
-        # than emit a malformed "ships  that ..." string.
-        raise ValueError(
-            "dropped_counts has no nonzero entries; "
-            "_format_dropped_warning has nothing to format"
-        )
-    count_list = _join_serial_comma(count_parts)
+    from agentbundle.commands._drop_warning import format_drop_message
 
-    compatible_parts = [
-        _pluralize_primitive_name(ptype) for ptype in sorted(compatible_types)
-    ]
-    compatible_list = _join_serial_comma(compatible_parts)
-
-    return (
-        f"warning: pack {pack_name} ships {count_list} that {adapter} "
-        f"projects as 'dropped'; these primitives will not be installed. "
-        f"The compatible primitives ({compatible_list}) will proceed."
+    return format_drop_message(
+        pack_name=pack_name,
+        adapter=adapter,
+        dropped_counts=dropped_counts,
+        compatible_types=compatible_types,
     )
 
 
