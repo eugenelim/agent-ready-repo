@@ -1,6 +1,6 @@
 # Spec: incompatible-hook-event-drop
 
-- **Status:** Draft
+- **Status:** Shipped (T1–T8 landed 2026-05-26)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/dropped-primitives-coverage/spec.md`](../dropped-primitives-coverage/spec.md) (shipped 2026-05-26 — primitive-type-level warning rail; this spec extends it to per-file event-level drops, reusing the same helpers and formatter); [RFC-0005](../../rfc/0005-user-scope-hook-support.md) (`merge-into-agent-json` + `agent-event-vocabulary` semantics whose refusal sites this spec swallows for the hook-wiring primitive). Modifies [`packages/agentbundle/agentbundle/commands/validate.py`](../../../packages/agentbundle/agentbundle/commands/validate.py) (rails 4c/4d swallow the per-file compatibility refusal for the hook-wiring primitive; symlink + TOML-parse refusals continue to fail loudly), [`packages/agentbundle/agentbundle/commands/install.py`](../../../packages/agentbundle/agentbundle/commands/install.py) (warning-rail enumeration + formatter extended for event-level), and [`packages/agentbundle/agentbundle/build/scope_rails.py`](../../../packages/agentbundle/agentbundle/build/scope_rails.py) (refactor only — extract the safe-load layer that today lives inside `check_kiro_wiring` so validate.py can call the security/correctness rails without dragging the compatibility refusal it now swallows).
