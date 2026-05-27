@@ -1,6 +1,6 @@
 ---
 name: update-conventions
-description: Use this skill when the user wants to change `docs/CONVENTIONS.md` or `docs/CHARTER.md`. Triggers on "let's change the convention for…", "update the rules", "amend the charter", "change our principles". Conventions and charter changes go through RFC review, not direct PR.
+description: Use this skill when the user wants to change `docs/CONVENTIONS.md` or `docs/CHARTER.md`. Triggers on "let's change the convention for...", "update the rules", "amend the charter", "change our principles". Conventions and charter changes go through RFC review, not direct PR.
 ---
 
 # Skill: update-conventions

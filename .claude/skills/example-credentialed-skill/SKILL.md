@@ -1,6 +1,6 @@
 ---
 name: example-credentialed-skill
-description: Reference skill — do NOT auto-load. Authoring a new credentialed primitive belongs in `add-credentialed-skill`; this directory ships only as a runnable worked example for adopters who explicitly ask to *see* one. The skill carries a no-op `scripts/cli.py` calling a fictional `example` API via the build-projected `credentials_shim` sibling, the canonical `references/creds-schema.toml` declaring `API_TOKEN` (secret) and `BASE_URL` (non-secret sibling), and the verbatim `### Security rules (non-negotiable)` block the credentialed-CLI lint pins. Read it; do not invoke it from production code.
+description: Reference skill -- do NOT auto-load. Authoring a new credentialed primitive belongs in `add-credentialed-skill`; this directory ships only as a runnable worked example for adopters who explicitly ask to *see* one. The skill carries a no-op `scripts/cli.py` calling a fictional `example` API via the build-projected `credentials_shim` sibling, the canonical `references/creds-schema.toml` declaring `API_TOKEN` (secret) and `BASE_URL` (non-secret sibling), and the verbatim `### Security rules (non-negotiable)` block the credentialed-CLI lint pins. Read it; do not invoke it from production code.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli

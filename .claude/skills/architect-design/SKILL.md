@@ -1,6 +1,6 @@
 ---
 name: architect-design
-description: Use this skill when the user is framing a problem, weighing a technical choice, or designing a system or integration and no diagram is the headline ask. Triggers on "how should we…", "we need to…", "what's the right way to build X", tech-selection questions, integration design, NFR trade-offs. Produces a Google-style design doc (TL;DR → context → goals/non-goals → proposal → alternatives → risks → rollout → open questions), 2–5 pages, with Mermaid diagrams inline where structure needs a picture. Do NOT use when the headline ask is a diagram (use `architect-diagram`) or a critique of an existing artifact (use `architect-review`).
+description: Use when the user is framing a problem, weighing a technical choice, or designing a system or integration without a diagram as the headline ask. Triggers on "how should we", "we need to", "what's the right way to build X", tech-selection, integration design, NFR trade-offs. Produces a Google-style design doc (TL;DR, context, goals/non-goals, proposal, alternatives, risks, rollout, open questions), 2-5 pages, with Mermaid inline. Do NOT use when the ask is a diagram (use `architect-diagram`) or a critique (use `architect-review`).
 ---
 
 # Skill: architect-design
