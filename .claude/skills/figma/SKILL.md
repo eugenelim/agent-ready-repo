@@ -1,6 +1,6 @@
 ---
 name: figma
-description: Read and inspect Figma files (Cloud) via the REST API. Supports fetching files / specific nodes / file metadata / version history / comments, rendering frames to PNG/SVG/JPG/PDF, posting comments (file-level or pinned to a node), converting FigJam connector graphs to Mermaid, and best-effort reads of design tokens (variables) and dev resources where the token's plan allows. Use when the user wants to read, render, comment on, or extract structure from a Figma file. Does NOT modify design content — that requires the Figma Plugin API, not REST.
+description: Read and inspect Figma files (Cloud) via the REST API. Supports fetching files / specific nodes / file metadata / version history / comments, rendering frames to PNG/SVG/JPG/PDF, posting comments (file-level or pinned to a node), converting FigJam connector graphs to Mermaid, and best-effort reads of design tokens (variables) and dev resources where the token's plan allows. Use when the user wants to read, render, comment on, or extract structure from a Figma file. Does NOT modify design content -- that requires the Figma Plugin API, not REST.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
