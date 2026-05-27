@@ -1051,18 +1051,6 @@ def _clear_dropped_warning_seen() -> None:
     _DROPPED_WARNING_SEEN.clear()
 
 
-def _pluralize_primitive_name(name: str) -> str:
-    """Plural form of a primitive-type name.
-
-    Used by both the dropped-count formatter (`2 agents`) and the
-    compatible-list formatter. Bound to the contract's five primitive
-    type names — `hook-body` is the only English-irregular one.
-    """
-    if name == "hook-body":
-        return "hook-bodies"
-    return name + "s"
-
-
 def _enumerate_dropped_primitives(
     pack_dir: Path,
     adapter: str,
@@ -1197,24 +1185,6 @@ def _enumerate_compatible_primitives(
         if _count_primitive_entries(source_dir, ptype) > 0:
             out.append(ptype)
     return out
-
-
-def _join_serial_comma(items: list[str]) -> str:
-    """Project's list-formatting convention: serial comma + 'and'.
-
-    Mirrors RFC-0012's route-list formatter. Examples:
-      - ``[]`` → ``""``
-      - ``["a"]`` → ``"a"``
-      - ``["a", "b"]`` → ``"a and b"``
-      - ``["a", "b", "c"]`` → ``"a, b, and c"``
-    """
-    if not items:
-        return ""
-    if len(items) == 1:
-        return items[0]
-    if len(items) == 2:
-        return f"{items[0]} and {items[1]}"
-    return ", ".join(items[:-1]) + ", and " + items[-1]
 
 
 def _format_dropped_warning(

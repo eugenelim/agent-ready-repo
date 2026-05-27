@@ -109,9 +109,18 @@ def enumerate_event_dropped_wirings(
 
     for toml_path in sorted(hook_wiring_dir.glob("*.toml")):
         relpath = f"hook-wiring/{toml_path.name}"
+        # Split read + parse so OSError (unreadable file: permission,
+        # truncation, race after glob) doesn't masquerade as a parse
+        # failure in the warning. Unreadable files are skipped silently
+        # — they'll surface elsewhere (project_pack's read attempt) and
+        # the warning rail is for compatibility issues, not I/O.
         try:
-            data = tomllib.loads(toml_path.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, OSError):
+            text = toml_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        try:
+            data = tomllib.loads(text)
+        except tomllib.TOMLDecodeError:
             # AC6c: install-time emits a parse-fail drop entry;
             # validate-time refuses earlier (separate code path).
             drops.append((relpath, "hook-wiring TOML failed to parse"))

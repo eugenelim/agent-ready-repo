@@ -176,6 +176,27 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
             [("hook-wiring/bad.toml", "hook-wiring TOML failed to parse")],
         )
 
+    def test_enumerate_event_drops_emits_entry_on_empty_attach_to_agent(
+        self,
+    ) -> None:
+        """Kiro+pack with attach-to-agent = "" produces a drop entry —
+        install-side is more permissive than validate-side (which refuses
+        on empty string per AC4b).
+
+        Documented asymmetry: validate refuses on `attach = ""` (kept
+        refusal, exit 1); install enumerates it as a drop entry so the
+        file is named in the warning rather than projecting a corrupt
+        target. Adopters who run install-without-validate see the file
+        listed instead of a silent bad projection at .kiro/agents/.json.
+        """
+        pack = self.tmp_path / "pack"
+        _seed_wiring(pack, "empty-attach", 'attach-to-agent = ""\n')
+        result = enumerate_event_dropped_wirings(pack, "kiro", self.contract)
+        self.assertEqual(
+            result,
+            [("hook-wiring/empty-attach.toml", "kiro requires 'attach-to-agent'")],
+        )
+
     def test_enumerate_event_drops_attach_to_agent_only_when_adapter_is_kiro(
         self,
     ) -> None:

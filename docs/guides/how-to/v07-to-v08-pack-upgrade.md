@@ -167,11 +167,18 @@ warning: pack core ships 1 command that kiro projects as 'dropped'; these
 primitives will not be installed. Additionally, the following hook-wiring
 file(s) will be skipped (event not in adapter vocabulary + kiro requires
 'attach-to-agent'): hook-wiring/session-start.toml. The compatible
-primitives (skill, agent, hook-body, hook-wiring) will proceed.
+primitives (agents, hook-bodies, hook-wirings, and skills) will proceed.
 
 $ echo $?
 0
 ```
+
+(The compatible-primitives list is pluralized + lexicographically sorted
++ serial-comma-plus-`and` joined — same grammar PR #156 shipped for the
+primitive-type clause. The list names *type-level* compatible primitives;
+in the kiro+core case `hook-wirings` appears even though the one file
+got dropped because the type itself is still projected for adapters
+that admit non-`SessionStart` events.)
 
 Skills, agents, and the pack's other hook-wirings (if any) project
 normally. The single incompatible file is named in the warning and
