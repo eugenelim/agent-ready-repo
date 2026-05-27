@@ -20,14 +20,14 @@ Stop throwing the baby out with the bathwater when a pack's hook-wiring file use
 1. **Drop the incompatible file, install everything else.** When a hook-wiring file uses an event the target adapter's `agent-event-vocabulary` doesn't list (or, for Kiro CLI specifically, the file lacks the required `attach-to-agent` field), skip just that file. The pack's other primitives install normally.
 2. **Tell the user clearly what got dropped.** At install time, surface a warning naming the file and reason as part of the same per-scope warning line PR #156 emits — so the install is visibly partial instead of refused outright. At validate time, surface the same information as `info:` to **stdout** (exit 0), so an adopter running `agentbundle validate <pack>` still sees which files won't carry to which adapters without the tool refusing the pack.
 
-Example install-time wording (Kiro adopter installing `core`):
+Example install-time wording (Kiro adopter installing `core`; in production both reason categories fire because `core`'s `session-start.toml` lacks an `attach-to-agent` field — see AC4b):
 
 ```
 warning: pack core ships 1 command that kiro projects as 'dropped'; these
 primitives will not be installed. Additionally, the following hook-wiring
-file(s) will be skipped (event not in adapter vocabulary):
-hook-wiring/session-start.toml. The compatible primitives (skill, agent,
-hook-body, hook-wiring) will proceed.
+file(s) will be skipped (event not in adapter vocabulary + kiro requires
+'attach-to-agent'): hook-wiring/session-start.toml. The compatible
+primitives (agents, hook-bodies, hook-wirings, and skills) will proceed.
 ```
 
 Example validate-time wording (same pack, same adapter heuristic):
@@ -132,8 +132,8 @@ The spec is closed when each of the following observable outcomes is verifiable 
   
   The full line starts with `warning: ` and joins firing clauses with a single space. `<reason-summary>` is the **deduped set** of reason categories from `event_drops`, in pinned order: `event not in adapter vocabulary` precedes `kiro requires 'attach-to-agent'`. When both categories are present, joined with ` + ` (space-plus-space). `<file-list>` is the **lexicographically sorted, file-level-deduped** list of `hook-wiring/<name>.toml` paths, joined with serial-comma-plus-`and`.
 - **AC8.** When `event_drops` is empty, the formatter output is **byte-identical** to PR #156's shipped wording. Pinned by an explicit byte-string assertion in a new test `test_format_warning_pre_amendment_wording_pinned` that quotes the shipped wording inline (not by reference to "what the existing tests pass") so an accidental edit of the existing tests in the same module is caught. The verbatim shipped wording (single-clause case) is:
-  > `warning: pack core ships 1 command that codex projects as 'dropped'; these primitives will not be installed. The compatible primitives (skill, agent, hook-body, hook-wiring) will proceed.`
-  The test asserts this exact string for the `pack=core, adapter=codex, dropped_counts={"command": 1}, compatible=["skill","agent","hook-body","hook-wiring"], event_drops=[]` input. Existing tests at `packages/agentbundle/tests/unit/test_install_dropped_primitives_warning.py` also stay green without modification — the new test is belt-and-suspenders, not duplicative, because it catches the case where someone edits *both* the existing tests *and* the formatter to match a drifted wording.
+  > `warning: pack core ships 1 command that codex projects as 'dropped'; these primitives will not be installed. The compatible primitives (agents, hook-bodies, hook-wirings, and skills) will proceed.`
+  The test asserts this exact string for the `pack=core, adapter=codex, dropped_counts={"command": 1}, compatible_types=["skill","agent","hook-body","hook-wiring"], event_drops=[]` input. (`<compatible-list>` is pluralized + lexicographically sorted + serial-comma-plus-`and` joined — the PR #156 formatter grammar; the input is unsorted singular but the output is sorted plural.) Existing tests at `packages/agentbundle/tests/unit/test_install_dropped_primitives_warning.py` also stay green without modification — the new test is belt-and-suspenders, not duplicative, because it catches the case where someone edits *both* the existing tests *and* the formatter to match a drifted wording.
 - **AC9.** `_maybe_emit_dropped_warning` is extended to call `_enumerate_event_dropped_wirings` and pass its result to the formatter. The short-circuit key (`(root, pack_name, adapter, scope)`) is unchanged — both drop kinds derive from the same inputs; one warning per scope per process covers both.
 - **AC10.** Integration test: `agentbundle install --pack core --scope repo --adapter kiro <root>` on the merged tree exits 0; stderr contains the exact three-clause warning naming `hook-wiring/session-start.toml`; the on-disk projection writes each kiro agent JSON to `<root>/.kiro/agents/<attach-to-agent>.json` (per the contract `[adapter.kiro.projections.hook-wiring].target.repo = ".kiro/agents/<attach-to-agent>.json"` at `_data/adapter.toml`); no agent JSON's `hooks.SessionStart` key contains an entry derived from `session-start.toml`; skills land at `<root>/.kiro/skills/<skill>/SKILL.md`. **Positive control:** `--adapter claude-code` projection of the same pack writes the SessionStart hook entry into the claude-code projection target (per `[adapter."claude-code".projections.hook-wiring]` — typically `<root>/claude-plugins/core/.claude/settings.local.json`'s `hooks.SessionStart` key under RFC-0012 repo-scope dist-tree). The per-file drop is per-adapter, not blanket.
 
