@@ -490,7 +490,7 @@ class AgentsMdCompositionTests(unittest.TestCase):
             )
             _seed_pack_with_skill(
                 packs_dir,
-                "governance",
+                "governance-extras",
                 "governance-skill",
                 "governance skill description",
             )
@@ -533,6 +533,112 @@ class AgentsMdCompositionTests(unittest.TestCase):
                 (working_tree / ".claude" / "skills" / "governance-skill" / "SKILL.md").is_file()
             )
             self.assertTrue(text.endswith("> Footer source.\n"))
+
+    def test_compose_preserves_existing_agents_md(self) -> None:
+        """When the working tree already carries an AGENTS.md (Manual file
+        per EXCLUDED_PATTERNS), `_compose_agents_md` must not clobber it
+        with the body+footer composition. Regression guard for the
+        2026-05-25 amendment that classified AGENTS.md as Manual."""
+        from agentbundle.build.self_host import _compose_agents_md
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            core = _seed_pack(packs_dir, "core")
+            (core / "seeds").mkdir()
+            (core / "seeds" / "AGENTS.md").write_text(
+                "# Seed body\n", encoding="utf-8"
+            )
+            (core / "seeds" / "_agents-footer.md").write_text(
+                "> Seed footer.\n", encoding="utf-8"
+            )
+
+            output = tmp_path / "out"
+            output.mkdir()
+            adopter_content = "# Adopter's filled-in AGENTS.md\n\nLive content.\n"
+            (output / "AGENTS.md").write_text(adopter_content, encoding="utf-8")
+
+            result = _compose_agents_md(packs_dir, output, self.contract)
+
+            self.assertIsNone(result)
+            self.assertEqual(
+                (output / "AGENTS.md").read_text(encoding="utf-8"),
+                adopter_content,
+            )
+
+
+class SelfHostPackFilterTests(unittest.TestCase):
+    """`SELF_HOST_PACKS` narrows which packs contribute to the working-tree
+    projection. User-scope-default packs (architect, atlassian, etc.) are
+    advertised via marketplace.json but their primitives must not land in
+    this repo's `.claude/skills/` tree.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_non_allow_listed_pack_skills_do_not_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack_with_skill(
+                packs_dir, "core", "core-skill", "core skill"
+            )
+            _seed_pack_with_skill(
+                packs_dir, "atlassian", "jira", "user-scope skill"
+            )
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(
+                (working_tree / ".claude" / "skills" / "core-skill" / "SKILL.md").is_file()
+            )
+            self.assertFalse(
+                (working_tree / ".claude" / "skills" / "jira").exists(),
+                msg="atlassian/jira skill must not project to .claude/skills/ — "
+                "atlassian is not in SELF_HOST_PACKS",
+            )
+
+    def test_non_allow_listed_pack_seeds_do_not_project(self) -> None:
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            for name in ("core", "atlassian"):
+                pack = packs_dir / name
+                (pack / "seeds" / "docs").mkdir(parents=True)
+                (pack / "seeds" / "docs" / f"{name}.md").write_text(
+                    f"# {name}\n", encoding="utf-8"
+                )
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            _project_seeds(packs_dir, output)
+
+            self.assertTrue((output / "docs" / "core.md").exists())
+            self.assertFalse(
+                (output / "docs" / "atlassian.md").exists(),
+                msg="atlassian seed must not project — not in SELF_HOST_PACKS",
+            )
 
 
 class ExcludedGlobTests(unittest.TestCase):
@@ -750,7 +856,7 @@ class SeedProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name, fname in [("core", "spec.md"), ("governance", "rfc.md")]:
+            for name, fname in [("core", "spec.md"), ("governance-extras", "rfc.md")]:
                 pack = packs_dir / name
                 (pack / "seeds" / "docs" / "_templates").mkdir(parents=True)
                 (pack / "seeds" / "docs" / "_templates" / fname).write_text(
@@ -775,7 +881,7 @@ class SeedProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name, content in [("core", "v1\n"), ("other", "v2\n")]:
+            for name, content in [("core", "v1\n"), ("governance-extras", "v2\n")]:
                 pack = packs_dir / name
                 (pack / "seeds").mkdir(parents=True)
                 (pack / "seeds" / "AGENTS.md").write_text(content, encoding="utf-8")
