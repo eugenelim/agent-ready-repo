@@ -27,10 +27,19 @@ from typing import Iterable
 import yaml
 from slugify import slugify
 
-# Ensure sibling modules resolve when script is invoked directly.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Bootstrap when invoked as ``python scripts/crawl_space.py`` so the
+# relative imports of sibling modules — including ``_client``'s
+# ``from .credentials_shim import …`` — resolve against the
+# build-projected siblings in this directory. Gated on
+# ``__spec__ is None`` so the block only fires for true file-path
+# invocation; an importlib-based test harness is responsible for
+# its own package context.
+if __package__ in (None, "") and __spec__ is None:
+    _here = Path(__file__).resolve().parent
+    sys.path.insert(0, str(_here.parent))
+    __package__ = _here.name
 
-from _client import (  # noqa: E402
+from ._client import (  # noqa: E402
     AuthError,
     ConfluenceClient,
     ConfluenceError,
@@ -38,8 +47,8 @@ from _client import (  # noqa: E402
     Page,
     load_credentials,
 )
-from _convert import to_markdown  # noqa: E402
-from _links import LinkTargets  # noqa: E402
+from ._convert import to_markdown  # noqa: E402
+from ._links import LinkTargets  # noqa: E402
 
 log = logging.getLogger("confluence_crawler")
 SLUG_MAX_LEN = 80
