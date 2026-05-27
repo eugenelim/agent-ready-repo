@@ -111,6 +111,20 @@ RE_ALLOWED_TOOLS_FLOW = re.compile(r"^allowed-tools\s*:\s*\[", re.MULTILINE)
 # of this parser normalised to the empty string.
 META_SCALAR_TYPES = (str, bool, int, float, type(None))
 
+# Per YAML 1.2 § 5.3 (Reserved Indicators). At the leading position of an
+# unquoted plain scalar these characters give the scalar a YAML-structural
+# meaning the author almost certainly didn't intend. Wrapping the value
+# in double quotes makes any of them safe. We refuse them at lint time
+# with a policy-named message so the author gets a remediation hint
+# rather than PyYAML's downstream parse error (or worse, a silent
+# anchor-consumption like `&foo bar` → `bar`).
+YAML_LEADING_INDICATORS = "#[]{}|>&*@`%!?"
+
+# Block-scalar markers and their chomping indicators. A `description:`
+# value position holding any of these turns the description into a
+# multi-line scalar, which the cross-IDE norm refuses for portability.
+FOLDED_LITERAL_MARKERS = (">", "|", ">-", "|-", ">+", "|+")
+
 
 class _DuplicateKeyError(Exception):
     """Raised by the custom YAML mapping constructor on a duplicate key.
@@ -148,6 +162,93 @@ _FrontmatterLoader.add_constructor(
     yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
     _construct_mapping_no_dups,
 )
+
+
+def _check_description_source(
+    fm_lines: list[str],
+) -> tuple[int, str] | None:
+    """Source-level policy checks on the raw `description:` line.
+
+    Runs before PyYAML parse so each violation surfaces with a
+    policy-named message and remediation, instead of PyYAML's generic
+    `mapping values are not allowed here` (Kiro #8329 colon-space) or
+    silent anchor consumption (`description: &foo bar` -> `bar`).
+    PyYAML stays as the backstop for anything not enumerated here.
+
+    Returns None on clean, or `(line_index, message)` where line_index
+    is 0-based into `fm_lines` (callers convert to the file-absolute
+    line for err()). Returns on the first `description:` line found;
+    later duplicates are caught by the duplicate-key path.
+    """
+    for i, line in enumerate(fm_lines):
+        m = re.match(r"^description:\s*(.*)$", line)
+        if not m:
+            continue
+        value = m.group(1).rstrip()
+        # Folded / literal block markers - agentskills.io requires
+        # single-line scalars; some downstream loaders fail on
+        # multi-line even when YAML parses cleanly.
+        if value in FOLDED_LITERAL_MARKERS:
+            return i, (
+                f"description must be a single-line scalar; folded/literal "
+                f"block syntax ({value!r}) is not portable"
+            )
+        # Continuation lines (next line indented and non-blank) =
+        # multi-line in disguise, whether the first line is empty or
+        # not. `.strip()` filters out trailing-whitespace artifacts so
+        # we only fire on actual indented content.
+        if i + 1 < len(fm_lines):
+            nxt = fm_lines[i + 1]
+            if nxt.strip() and (nxt.startswith(" ") or nxt.startswith("\t")):
+                return i, (
+                    "description must be a single-line scalar; "
+                    "continuation lines (indented next line) are not portable"
+                )
+        if value == "":
+            return None  # genuinely empty - missing-required check downstream
+        # Quoted scalars escape the source-level rules: YAML handles
+        # their content uniformly across parsers.
+        if (
+            len(value) >= 2
+            and value[0] == value[-1]
+            and value[0] in ('"', "'")
+        ):
+            return None
+        # Unquoted scalar - apply leading + mid-scalar rules. Anchor
+        # `&` and alias `*` get a sharper message because PyYAML
+        # silently consumes them (the highest-impact case): the value
+        # mutates rather than the parse failing.
+        leading = value[0]
+        if leading in ("&", "*"):
+            name = "anchor" if leading == "&" else "alias"
+            return i, (
+                f"description starts with YAML {name} indicator {leading!r} "
+                f"in an unquoted scalar; the YAML parser will consume the "
+                f"{name} and the value silently mutates. Wrap in double quotes."
+            )
+        if leading in YAML_LEADING_INDICATORS:
+            return i, (
+                f"description starts with YAML indicator {leading!r} in an "
+                f"unquoted scalar; wrap value in double quotes (the parser "
+                f"may consume the indicator and silently alter the value)"
+            )
+        if ": " in value:
+            return i, (
+                "description contains ': ' in an unquoted scalar; wrap "
+                "value in double quotes (Kiro silently drops skills with "
+                "this pattern from agent discovery -- kirodotdev/Kiro#8329)"
+            )
+        # Comment trap: any whitespace followed by `#` ends a plain
+        # scalar in YAML. `\s#` catches both ` # ` (space-padded) and
+        # ` #x` (no space after hash) - PyYAML truncates both.
+        if re.search(r"\s#", value):
+            return i, (
+                "description contains whitespace-then-'#' in an unquoted "
+                "scalar; the YAML parser treats everything from '#' as a "
+                "comment and truncates the value. Wrap in double quotes."
+            )
+        return None
+    return None
 
 
 def main() -> int:
@@ -205,8 +306,29 @@ def main() -> int:
     # source-level inspection (e.g. flow-vs-block list distinction).
     def parse_frontmatter(path: pathlib.Path):
         """Return (fields, body_start_line, body, error, fm_text)."""
+        # Read bytes first so BOM detection runs before any decode that
+        # would silently strip it. Each BOM has its own policy message.
         try:
-            text = path.read_text(encoding="utf-8")
+            raw = path.read_bytes()
+        except OSError as exc:
+            # Match the wording the outer `check_skill` handler used to
+            # emit for the same failure class (symlink loops, vanished
+            # files, permission denials) so tree-E and any downstream
+            # log scrapers see the same substring.
+            return None, 0, "", f"could not read skill: {exc}", ""
+        if raw.startswith(b"\xef\xbb\xbf"):
+            return None, 0, "", (
+                "UTF-8 BOM detected at file start; save the file as UTF-8 "
+                "without BOM (some skill loaders treat the BOM as content "
+                "and fail to find the --- frontmatter fence)"
+            ), ""
+        if raw.startswith(b"\xff\xfe") or raw.startswith(b"\xfe\xff"):
+            return None, 0, "", (
+                "UTF-16 BOM detected at file start; save the file as UTF-8 "
+                "without BOM"
+            ), ""
+        try:
+            text = raw.decode("utf-8")
         except UnicodeDecodeError as exc:
             return None, 0, "", f"SKILL.md is not valid UTF-8: {exc}", ""
         lines = text.splitlines()
@@ -219,9 +341,21 @@ def main() -> int:
                 break
         if end is None:
             return None, 0, text, "frontmatter opened with --- but never closed", ""
-        fm_text = "\n".join(lines[1:end])
+        fm_lines = lines[1:end]
+        fm_text = "\n".join(fm_lines)
         body_start_line = end + 2
         body = "\n".join(lines[end + 1:])
+        # Source-level description policy checks run before PyYAML parse
+        # so the author gets a policy-named message + remediation instead
+        # of PyYAML's downstream error (or a silent anchor consumption).
+        # The helper returns (fm_relative_line, message); we convert to
+        # the file-absolute line (frontmatter starts at file line 1; the
+        # fence opens at line 1, so fm_line 0 maps to file line 2).
+        desc_check = _check_description_source(fm_lines)
+        if desc_check is not None:
+            fm_line_idx, desc_msg = desc_check
+            file_line = fm_line_idx + 2
+            return None, 0, text, f"line {file_line}: {desc_msg}", fm_text
         try:
             fields = yaml.load(fm_text, Loader=_FrontmatterLoader)
         except _DuplicateKeyError as exc:

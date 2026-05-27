@@ -1,6 +1,6 @@
 ---
 name: adapt-to-project
-description: Use this skill to walk the adopter through the four classes of post-install change (substitution, .upstream companion merges, discovery + restructuring, within-layout consolidation). Triggers after installing a pack (the install→adapt chain nudges via session-start hook) or any time `<repo>/.adapt-install-marker.toml` / `~/.agentbundle/.adapt-install-marker.toml` is on disk. Walks both scopes' state files for Tier-2 detection; class-1 substitution shells out to `agentbundle adapt`; classes 2–4 write files directly under the per-scope path-jail.
+description: Use this skill to walk the adopter through the four classes of post-install change (substitution, .upstream companion merges, discovery + restructuring, within-layout consolidation). Triggers after installing a pack (the install->adapt chain nudges via session-start hook) or any time `<repo>/.adapt-install-marker.toml` / `~/.agentbundle/.adapt-install-marker.toml` is on disk. Walks both scopes' state files for Tier-2 detection; class-1 substitution shells out to `agentbundle adapt`; classes 2-4 write files directly under the per-scope path-jail.
 ---
 
 # Skill: adapt-to-project

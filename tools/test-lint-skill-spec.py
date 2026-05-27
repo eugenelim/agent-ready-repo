@@ -224,6 +224,106 @@ def build_tree_broken(root: pathlib.Path) -> None:
         Body.
         """))
 
+    # Frontmatter — UTF-8 BOM at file start. Must surface as a BOM error,
+    # not as the generic "missing YAML frontmatter" the prior code emitted
+    # when the BOM byte broke the `---` fence match.
+    bom_path = skills / "utf8-bom" / "SKILL.md"
+    bom_path.parent.mkdir(parents=True, exist_ok=True)
+    bom_path.write_bytes(
+        b"\xef\xbb\xbf"
+        b"---\nname: utf8-bom\ndescription: Clean description after the BOM.\n---\n\nBody.\n"
+    )
+
+    # Frontmatter — UTF-16 LE BOM. Same policy, different encoding.
+    utf16_path = skills / "utf16-bom" / "SKILL.md"
+    utf16_path.parent.mkdir(parents=True, exist_ok=True)
+    utf16_path.write_bytes(b"\xff\xfe" + b"\x00" * 4)  # bytes after BOM don't matter
+
+    # Frontmatter — folded block scalar for description (>-). Spec
+    # requires single-line scalars; aligns with lint_packs.py refusal.
+    write(skills / "folded-description-broken" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: folded-description-broken
+        description: >-
+          A multi-line folded description that PyYAML would happily
+          parse, but the cross-IDE single-line norm refuses.
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — literal block scalar for description (|).
+    write(skills / "literal-description-broken" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: literal-description-broken
+        description: |
+          Line one of a literal description.
+          Line two preserves the newline.
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — single-line head with indented continuation. Even
+    # without a folded/literal marker, the indented next line makes this
+    # a multi-line plain scalar.
+    write(skills / "continuation-description" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: continuation-description
+        description: First line of a continued
+          description that spills onto the next.
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — unquoted scalar containing ': ' (Kiro #8329). Kiro's
+    # YAML parser silently drops the skill from agent discovery.
+    write(skills / "colon-space-description" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: colon-space-description
+        description: Convert X: then do Y unquoted.
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — unquoted scalar containing ' # ' (comment trap). The
+    # YAML parser truncates the value at the '#'.
+    write(skills / "hash-comment-description" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: hash-comment-description
+        description: Real description # silently truncated to the # mark.
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — unquoted scalar starting with a leading anchor
+    # indicator '&'. PyYAML consumes the anchor and silently sets the
+    # value to the rest of the line, so without source-level detection
+    # this is invisible at parse time.
+    write(skills / "anchor-description" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: anchor-description
+        description: &anchor leading-anchor causes silent value mutation.
+        ---
+
+        Body.
+        """))
+
+    # Frontmatter — unquoted scalar starting with a flow-sequence '['.
+    # Parses as a list, then the type check downstream complains, but
+    # the source-level rule fires first with a clearer message.
+    write(skills / "flow-bracket-description" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: flow-bracket-description
+        description: [not, a, list, but, looks, like, one]
+        ---
+
+        Body.
+        """))
+
     # Body — absolute system path.
     write(skills / "abs-path" / "SKILL.md", textwrap.dedent("""\
         ---
@@ -435,6 +535,20 @@ TREE_A_EXPECTED = [
     # duplicate keys — top-level and nested both surface with the same shape
     "duplicate frontmatter key 'description'",
     "duplicate frontmatter key 'version'",
+    # YAML-correctness policy — each fixture maps to a named rule with
+    # its own remediation message. PyYAML stays as the backstop; these
+    # explicit checks surface the policy violation before PyYAML's
+    # generic parse error or silent value mutation.
+    "UTF-8 BOM detected at file start",
+    "UTF-16 BOM detected at file start",
+    "folded/literal block syntax ('>-') is not portable",
+    "folded/literal block syntax ('|') is not portable",
+    "continuation lines (indented next line) are not portable",
+    "description contains ': ' in an unquoted scalar",
+    "kirodotdev/Kiro#8329",
+    "description contains whitespace-then-'#' in an unquoted scalar",
+    "description starts with YAML anchor indicator '&'",
+    "description starts with YAML indicator '['",
     # body paths
     "absolute system path",
     ".claude/skills/work-loop/",
@@ -534,34 +648,11 @@ def build_tree_yaml_shapes(root: pathlib.Path) -> None:
         Body.
         """))
 
-    # Multi-line folded block scalar (>-) for description. PyYAML folds
-    # newlines to spaces and strips the trailing newline; the result is
-    # a single logical string that still fits under the 1024-char cap.
-    write(skills / "folded-description" / "SKILL.md", textwrap.dedent("""\
-        ---
-        name: folded-description
-        description: >-
-          A multi-line folded description. PyYAML joins this and the next
-          line with a space, producing one logical string that the lint
-          treats as a normal scalar.
-        ---
-
-        Body.
-        """))
-
-    # Literal block scalar (|) for description preserves newlines. The
-    # length check counts newlines as chars; the result is well under
-    # the 1024-char cap.
-    write(skills / "literal-description" / "SKILL.md", textwrap.dedent("""\
-        ---
-        name: literal-description
-        description: |
-          Line one of a literal description.
-          Line two preserves the newline between them.
-        ---
-
-        Body.
-        """))
+    # Folded / literal / continuation descriptions used to live here as
+    # expected-pass fixtures. They moved to tree-A (expected-fail) when
+    # the source-level "single-line description" policy landed --
+    # the agentskills.io cross-IDE norm requires single-line scalars
+    # for portability, matching lint_packs.py's longstanding refusal.
 
 
 def run_tree_f(root: pathlib.Path) -> None:
@@ -571,10 +662,8 @@ def run_tree_f(root: pathlib.Path) -> None:
         fail("tree-F", f"linter exited {rc} on YAML-shape fixtures; expected 0.", out)
     assert_all_in("tree-F", out, [
         ".claude/skills/deep-metadata/SKILL.md",
-        ".claude/skills/folded-description/SKILL.md",
-        ".claude/skills/literal-description/SKILL.md",
     ])
-    print("✓ tree-F: depth-2 metadata + folded + literal block scalars all parsed clean.")
+    print("✓ tree-F: depth-2 metadata parses clean (PyYAML handles nested shapes).")
 
 
 # ── Tree C — warns and allow-listed prose ────────────────────────────────
