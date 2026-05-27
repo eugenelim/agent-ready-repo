@@ -41,6 +41,11 @@ if TYPE_CHECKING:
     from agentbundle.config import State
     from agentbundle.safety import Tier
 
+# enumerate_event_dropped_wirings is imported at module level so it is
+# patchable from tests (the mock target is
+# ``agentbundle.commands.install.enumerate_event_dropped_wirings``).
+from agentbundle.commands._drop_warning import enumerate_event_dropped_wirings
+
 
 @dataclass
 class _ScopePlan:
@@ -1249,28 +1254,52 @@ def _maybe_emit_dropped_warning(
     adapter: str,
     scope: str,
 ) -> None:
-    """If the pack ships any primitive type the adapter drops, emit the
-    AC10 warning to stderr. Short-circuits once per
+    """If the pack ships any primitive type the adapter drops, or any
+    hook-wiring file uses an event the adapter doesn't support, emit the
+    warning to stderr. Short-circuits once per
     ``(root, pack_name, adapter, scope)`` per process so repeat calls
     in the same process stay silent (AC11).
+
+    Covers both the coarse-grained primitive-type drop rail
+    (``_enumerate_dropped_primitives``) and the per-file event-level
+    drop rail (``enumerate_event_dropped_wirings``). The short-circuit
+    key is unchanged — both drop kinds derive from the same inputs, so
+    one warning per scope per process covers both (spec AC9).
 
     Pre-write barrier: callers invoke this after Step 5's plans-list is
     built (both target adapters resolved) and before Step 6's pre-flight
     rails fire / Step 9's writes execute.
     """
+    from agentbundle.commands._drop_warning import format_drop_message
+
     key = (str(root), pack_name, adapter, scope)
     if key in _DROPPED_WARNING_SEEN:
         return
-    dropped = _enumerate_dropped_primitives(pack_dir, adapter)
-    if not dropped:
+
+    # Load the contract once for both enumerators so we don't hit disk twice.
+    import tomllib as _tomllib
+    from agentbundle.build.main import _read_bundled
+    contract = _tomllib.loads(_read_bundled("adapter.toml"))
+
+    dropped = _enumerate_dropped_primitives(pack_dir, adapter, contract)
+    event_drops = enumerate_event_dropped_wirings(pack_dir, adapter, contract)
+
+    if not dropped and not event_drops:
         # Adapter has no dropped modes OR pack ships nothing droppable.
         # Record the no-op so even a "no warning" decision is short-circuited
         # — a future caller flipping the pack's primitives wouldn't expect
         # a sudden warning mid-process.
         _DROPPED_WARNING_SEEN.add(key)
         return
-    compatible = _enumerate_compatible_primitives(pack_dir, adapter)
-    msg = _format_dropped_warning(pack_name, adapter, dropped, compatible)
+    compatible = _enumerate_compatible_primitives(pack_dir, adapter, contract)
+    msg = format_drop_message(
+        pack_name=pack_name,
+        adapter=adapter,
+        dropped_counts=dropped,
+        compatible_types=compatible,
+        event_drops=event_drops,
+        mode="install_warning",
+    )
     print(msg, file=sys.stderr)
     _DROPPED_WARNING_SEEN.add(key)
 
