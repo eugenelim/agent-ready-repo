@@ -80,6 +80,30 @@ TARGET_PATHS = (
 # are excluded from the self-host runner.
 SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code",)
 
+# Self-host *pack* allow-list. This repo is the catalogue's home, not
+# an adopter — `make build-self` should only project the in-house
+# packs into the working tree. User-scope-default packs (architect,
+# atlassian, contracts, converters, credential-brokers, figma) are
+# advertised via `marketplace.json` but their primitives don't belong
+# in this repo's `.claude/skills/` (or future `.kiro/skills/`) tree.
+# `monorepo-extras` is repo-only by metadata but the bundle is not a
+# canonical monorepo consumer of `new-package`, so it's left out too.
+# `_aggregate_marketplace` intentionally ignores this filter — the
+# catalogue advertises every pack.
+SELF_HOST_PACKS: tuple[str, ...] = (
+    "core",
+    "governance-extras",
+    "user-guide-diataxis",
+)
+
+
+def _filter_self_host_packs(pack_paths: list[Path]) -> list[Path]:
+    """Return the subset of *pack_paths* whose directory name is in
+    `SELF_HOST_PACKS`. Order is preserved.
+    """
+    allow = set(SELF_HOST_PACKS)
+    return [p for p in pack_paths if p.name in allow]
+
 
 def is_dirty_tree(working_tree: Path) -> bool:
     """Return True if `git status --porcelain` against working_tree is non-empty.
@@ -191,11 +215,15 @@ def _project_all_adapters(
     packs_dir: Path,
     contract: dict,
 ) -> None:
-    """Run direct self-host adapter projections against every discovered pack."""
+    """Run direct self-host adapter projections against the
+    `SELF_HOST_PACKS`-filtered pack list. Pack uniqueness validation
+    still runs across every discovered pack so naming collisions in
+    user-scope-default packs aren't masked by the filter.
+    """
     packs = discover_packs(packs_dir)
     for pack in packs:
         validate_pack_uniqueness(pack)
-    pack_paths = [pack.path for pack in packs]
+    pack_paths = _filter_self_host_packs([pack.path for pack in packs])
     for adapter_name in ADAPTERS:
         if adapter_name not in contract["adapter"]:
             continue
@@ -226,6 +254,16 @@ def _compose_agents_md(
         return None
     footer_path = packs_dir / "core" / "seeds" / "_agents-footer.md"
     target_path = output_root / "AGENTS.md"
+
+    # Mirror the preserve-on-disk gate `_project_seeds` applies to
+    # Manual paths. `AGENTS.md` is in `EXCLUDED_PATTERNS` since the
+    # 2026-05-25 amendment (Manual file, adopter-owned); composition
+    # must not clobber the adopter's living instance. Returning `None`
+    # signals "didn't compose" so the caller skips marker resolution
+    # against this path (the live file has no unresolved markers by
+    # contract — they were resolved at install).
+    if target_path.exists() and _is_excluded(Path("AGENTS.md")):
+        return None
 
     body = body_path.read_text(encoding="utf-8").replace("\r\n", "\n")
     if body and not body.endswith("\n"):
@@ -390,8 +428,11 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
     # anything, so a collision-mid-real-write doesn't leave a partial
     # projection on disk.
     seen: dict[Path, Path] = {}
+    allow = set(SELF_HOST_PACKS)
     for pack_path in sorted(packs_dir.iterdir()):
         if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
+            continue
+        if pack_path.name not in allow:
             continue
         seeds_dir = pack_path / "seeds"
         if not seeds_dir.is_dir():
@@ -559,8 +600,11 @@ def _build_projected_to_source_map(
     mapping: dict[Path, Path] = {}
     if "primitive" not in contract or "adapter" not in contract:
         return mapping
+    allow = set(SELF_HOST_PACKS)
     for pack_path in sorted(packs_dir.iterdir()):
         if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
+            continue
+        if pack_path.name not in allow:
             continue
         for adapter_name in SELF_HOST_ADAPTERS:
             if adapter_name not in contract["adapter"]:
@@ -963,12 +1007,17 @@ def run_self_host(
             shadow = Path(shadow_str)
             _clone_target_subtree(working_tree, shadow)
             _project_all_adapters(shadow, packs_dir, contract)
+            # Compose AGENTS.md BEFORE seed projection: on a fresh tree the
+            # composed output (body + footer) must win over the body-only
+            # seed at `packs/core/seeds/AGENTS.md`; on an existing tree
+            # both layers honour the preserve-on-disk gate and leave the
+            # live file alone.
+            agents_path = _compose_agents_md(packs_dir, shadow, contract)
             try:
                 seed_map = _project_seeds(packs_dir, shadow)
             except ValueError as exc:
                 print(f"self-host: {exc}", file=sys.stderr)
                 return 4
-            agents_path = _compose_agents_md(packs_dir, shadow, contract)
             _aggregate_marketplace(packs_dir, shadow, owner=owner)
             _recreate_claude_symlink(shadow, force_copy=no_symlink)
             extra_marker_paths = list(seed_map.keys()) + [
@@ -1016,12 +1065,15 @@ def run_self_host(
         print(f"self-host: {exc}", file=sys.stderr)
         return 5
     _project_all_adapters(working_tree, packs_dir, contract)
+    # Compose AGENTS.md BEFORE seed projection — see dry-run branch for
+    # rationale (the body-only seed at packs/core/seeds/AGENTS.md must
+    # not race the body+footer composition on fresh trees).
+    agents_path = _compose_agents_md(packs_dir, working_tree, contract)
     try:
         seed_map = _project_seeds(packs_dir, working_tree)
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 4
-    agents_path = _compose_agents_md(packs_dir, working_tree, contract)
     _aggregate_marketplace(packs_dir, working_tree, owner=owner)
     _recreate_claude_symlink(working_tree, force_copy=no_symlink)
     extra_marker_paths = list(seed_map.keys()) + [
