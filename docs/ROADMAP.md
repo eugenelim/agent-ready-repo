@@ -802,6 +802,25 @@ PR-review is the other):
   in-process test while the projection drifts. Follow-up: parametrise
   the test over both paths.
 
+**Deferred projection follow-ups** (named in PR
+`eugenelim/fix-credential-user-install`):
+
+- **`adapter-root-bins` projection omits `credentials_shim.py`.** The
+  rule in `packages/agentbundle/agentbundle/build/adapter_root_bins.py`
+  copies only `.apm/adapter-root-bins/*.py` to `~/.agentbundle/bin/`.
+  The `_sso_keychain_macos.py` / `_sso_credman_windows.py` siblings
+  rely on a sibling `credentials_shim.py` for `Tier2HardFailError`,
+  but it is never projected there — so under bare user-scope
+  install, `sso-broker.py`'s Tier-2 backend silently degrades to
+  `None` via the try/except cascade. The `__package__`-bootstrap
+  added by this PR fixes the relative-import resolution at the
+  broker entry-point but does not paper over this gap.
+  Follow-up: either project `credentials_shim.py` (and the platform
+  backends?) alongside adapter-root-bins, or refactor the `_sso_*`
+  modules to not depend on a shim-provided exception class. RFC-0013
+  § 4d frames the projection contract; this gap was not in scope of
+  the original spec.
+
 ## Cross-spec / outside-the-spec-tree
 
 These are open items called out by accepted RFCs or by multiple specs,

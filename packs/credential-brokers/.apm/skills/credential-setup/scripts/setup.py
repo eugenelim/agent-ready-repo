@@ -18,6 +18,18 @@ import getpass
 import pathlib
 import sys
 
+# Bootstrap when invoked as ``python scripts/setup.py`` (Python sets
+# ``__package__`` to None for file-path invocation, which breaks the
+# ``from .credentials_shim import …`` line below). Gated on
+# ``__spec__ is None`` so the block only fires for true file-path
+# invocation; an importlib-based test harness (which sets ``__spec__``
+# but may leave ``__package__`` empty) is not disturbed — the harness
+# is responsible for its own package context.
+if __package__ in (None, "") and __spec__ is None:
+    _here = pathlib.Path(__file__).resolve().parent
+    sys.path.insert(0, str(_here.parent))
+    __package__ = _here.name
+
 from .credentials_shim import (
     PermissiveAclError,
     SchemaError,
