@@ -498,5 +498,214 @@ class TestShortCircuitSeenSet(unittest.TestCase):
                 self.assertEqual(captured.getvalue(), "")
 
 
+class TestMaybeEmitEventDrops(unittest.TestCase):
+    """T5 tests — event-level enumerator wired into _maybe_emit_dropped_warning.
+
+    Covers spec AC9: the short-circuit key is unchanged; both drop kinds
+    derive from the same inputs; one warning per scope per process covers both.
+    """
+
+    def setUp(self) -> None:
+        _clear_dropped_warning_seen()
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp_path = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        _clear_dropped_warning_seen()
+        self._tmp.cleanup()
+
+    def test_maybe_emit_calls_event_enumerator(self) -> None:
+        """Monkey-patch enumerate_event_dropped_wirings; assert called once
+        with the pack_dir + adapter + contract matching the install scope.
+        """
+        import sys
+        from io import StringIO
+        from unittest.mock import patch, call
+
+        pack = _seed_pack(
+            self.tmp_path / "pack",
+            agents=["a"],
+            commands=["c"],
+        )
+
+        captured = StringIO()
+        with patch(
+            "agentbundle.commands.install.enumerate_event_dropped_wirings",
+            return_value=[],
+        ) as mock_enum:
+            old = sys.stderr
+            sys.stderr = captured
+            try:
+                _maybe_emit_dropped_warning(
+                    root=self.tmp_path,
+                    pack_dir=pack,
+                    pack_name="pack",
+                    adapter="copilot",
+                    scope="repo",
+                )
+            finally:
+                sys.stderr = old
+
+        # Must be called exactly once.
+        self.assertEqual(mock_enum.call_count, 1)
+        # First positional arg is pack_dir, second is adapter.
+        args, kwargs = mock_enum.call_args
+        # Called with positional or keyword args — accept both.
+        if args:
+            self.assertEqual(args[0], pack)
+            self.assertEqual(args[1], "copilot")
+            # Third arg is the contract dict (non-empty).
+            self.assertIsInstance(args[2], dict)
+            self.assertIn("adapter", args[2])
+        else:
+            self.assertEqual(kwargs["pack_dir"] if "pack_dir" in kwargs else args[0], pack)
+
+    def test_maybe_emit_short_circuit_covers_event_only_case(self) -> None:
+        """First call against a pack with ONLY event drops fires once;
+        second call same (root, pack, adapter, scope) is silent.
+        Pins the short-circuit key is unchanged for event-only drops.
+        """
+        import sys
+        from io import StringIO
+
+        # Pack with no command/agent/hook-wiring primitive drops BUT has
+        # an out-of-vocab hook-wiring that enumerate_event_dropped_wirings
+        # will detect. Kiro drops only 'command'; pack ships no commands.
+        pack = self.tmp_path / "event-only-pack"
+        pack.mkdir(parents=True)
+        hw_dir = pack / ".apm" / "hook-wiring"
+        hw_dir.mkdir(parents=True)
+        # SessionStart is NOT in kiro's event vocabulary.
+        (hw_dir / "session-start.toml").write_text(
+            '[[hooks.SessionStart]]\nhooks = [{type = "command", command = "x"}]\n',
+            encoding="utf-8",
+        )
+
+        captured = StringIO()
+        old = sys.stderr
+        sys.stderr = captured
+        try:
+            _maybe_emit_dropped_warning(
+                root=self.tmp_path,
+                pack_dir=pack,
+                pack_name="event-only-pack",
+                adapter="kiro",
+                scope="repo",
+            )
+            first_output = captured.getvalue()
+
+            # Second call — same key — must be silent.
+            captured.seek(0)
+            captured.truncate()
+            _maybe_emit_dropped_warning(
+                root=self.tmp_path,
+                pack_dir=pack,
+                pack_name="event-only-pack",
+                adapter="kiro",
+                scope="repo",
+            )
+            second_output = captured.getvalue()
+        finally:
+            sys.stderr = old
+
+        # First call must emit a warning naming the file.
+        self.assertIn("warning:", first_output)
+        self.assertIn("hook-wiring/session-start.toml", first_output)
+        # Second call must be silent (short-circuit key unchanged).
+        self.assertEqual(second_output, "")
+
+    def test_maybe_emit_silent_when_both_empty(self) -> None:
+        """Pack with no primitive-type drops AND no event drops: no warning
+        fires, but the seen-set is updated (consistent with PR #156 no-op
+        caching).
+        """
+        import sys
+        from io import StringIO
+
+        # claude-code has no dropped modes; pack ships no out-of-vocab wirings.
+        pack = _seed_pack(
+            self.tmp_path / "no-drop-pack",
+            skills=["s"],
+        )
+
+        captured = StringIO()
+        old = sys.stderr
+        sys.stderr = captured
+        try:
+            _maybe_emit_dropped_warning(
+                root=self.tmp_path,
+                pack_dir=pack,
+                pack_name="no-drop-pack",
+                adapter="claude-code",
+                scope="repo",
+            )
+        finally:
+            sys.stderr = old
+
+        # No warning.
+        self.assertEqual(captured.getvalue(), "")
+        # Seen-set updated (no-op cached).
+        keys = {(k[1], k[2], k[3]) for k in _DROPPED_WARNING_SEEN}
+        self.assertIn(("no-drop-pack", "claude-code", "repo"), keys)
+
+    def test_maybe_emit_full_three_clause_for_kiro_core(self) -> None:
+        """Fixture install of core via kiro: stderr contains the exact
+        AC10 three-clause warning text naming hook-wiring/session-start.toml.
+
+        Integration-shape but lives in the unit module per plan T5 for
+        inputs-stable assertion.
+        """
+        import sys
+        from io import StringIO
+        from agentbundle.build.main import REPO_ROOT
+        from agentbundle.commands._drop_warning import (
+            enumerate_event_dropped_wirings,
+            format_drop_message,
+        )
+        import tomllib as _tomllib
+        from agentbundle.build.main import _read_bundled
+
+        pack_dir = REPO_ROOT / "packs" / "core"
+
+        # Build the expected message via the formatter (single source of truth).
+        contract = _tomllib.loads(_read_bundled("adapter.toml"))
+        dropped = _enumerate_dropped_primitives(pack_dir, "kiro", contract)
+        event_drops = enumerate_event_dropped_wirings(pack_dir, "kiro", contract)
+        compatible = _enumerate_compatible_primitives(pack_dir, "kiro", contract)
+        expected = format_drop_message(
+            pack_name="core",
+            adapter="kiro",
+            dropped_counts=dropped,
+            compatible_types=compatible,
+            event_drops=event_drops,
+            mode="install_warning",
+        )
+
+        # Sanity: the expected string must mention the file and contain both
+        # reason categories.
+        self.assertIn("hook-wiring/session-start.toml", expected)
+        self.assertIn("event not in adapter vocabulary", expected)
+        self.assertIn("kiro requires 'attach-to-agent'", expected)
+        self.assertIn("Additionally,", expected)
+
+        # Now exercise _maybe_emit_dropped_warning and assert the same text.
+        captured = StringIO()
+        old = sys.stderr
+        sys.stderr = captured
+        try:
+            _maybe_emit_dropped_warning(
+                root=self.tmp_path,
+                pack_dir=pack_dir,
+                pack_name="core",
+                adapter="kiro",
+                scope="repo",
+            )
+        finally:
+            sys.stderr = old
+
+        actual = captured.getvalue().rstrip("\n")
+        self.assertEqual(actual, expected)
+
+
 if __name__ == "__main__":
     unittest.main()
