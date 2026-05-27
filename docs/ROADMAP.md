@@ -252,12 +252,12 @@ keep exit-1. Reuses the warning-rail substrate this spec shipped;
 no contract bump; lives in a new shared module
 `commands/_drop_warning.py`.
 
-## `incompatible-hook-event-drop` — drafted 2026-05-26 (in flight)
+## `incompatible-hook-event-drop` — shipped 2026-05-26 (T1–T8 landed; no open items)
 
 Spec: [`specs/incompatible-hook-event-drop/spec.md`](specs/incompatible-hook-event-drop/spec.md).
-Status: Draft. Drafted 2026-05-26 as a follow-on to the just-shipped
+Status: Shipped. Drafted + landed 2026-05-26 as a follow-on to the same-day-shipped
 `dropped-primitives-coverage` (which is **frozen** per
-`docs/CONVENTIONS.md:80`); a new spec is the right surface for the
+`docs/CONVENTIONS.md:80`); a new spec was the right surface for the
 event-level extension.
 
 The spec stops throwing the baby out with the bathwater when a pack's
