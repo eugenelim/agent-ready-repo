@@ -14,6 +14,15 @@ attach-to-agent missing, and attach-to-agent naming an unknown agent.
 Spec ACs covered: AC6 (refusal text), AC28 (fixtures exist + are
 exercised), AC29 (no test writes to ~/.claude, ~/.kiro, ~/.agentbundle
 outside tmp_path).
+
+**T2 update (incompatible-hook-event-drop spec):** The
+``test_missing_attach_to_agent_refused`` and
+``test_pascal_events_refused_with_vocabulary_text`` tests below have
+been updated to reflect the new T2 behaviour: these compatibility-only
+refusals are now swallowed by validate, which exits 0 and emits an
+``info:`` line on stdout instead. The
+``test_unknown_agent_refused`` test remains exit-1 (correctness
+refusal — AC4b of the incompatible-hook-event-drop spec).
 """
 
 from __future__ import annotations
@@ -47,6 +56,23 @@ def _run_validate(pack_path: Path) -> tuple[int, str]:
     with contextlib.redirect_stderr(buf):
         rc = cmd.run(args)
     return rc, buf.getvalue()
+
+
+def _run_validate_with_stdout(pack_path: Path) -> tuple[int, str, str]:
+    """Invoke ``agentbundle validate`` and return (rc, stdout, stderr).
+
+    Used by tests that need to assert on both streams.
+    """
+    import argparse
+
+    from agentbundle.commands import validate as cmd
+
+    args = argparse.Namespace(pack_path=str(pack_path), strict=False)
+    out_buf = io.StringIO()
+    err_buf = io.StringIO()
+    with contextlib.redirect_stdout(out_buf), contextlib.redirect_stderr(err_buf):
+        rc = cmd.run(args)
+    return rc, out_buf.getvalue(), err_buf.getvalue()
 
 
 def _ensure_executable(path: Path) -> None:
@@ -113,16 +139,28 @@ class WellFormedFixturesValidateTests(unittest.TestCase):
 
 
 class MalformedFixturesRefusedTests(unittest.TestCase):
-    """The malformed fixtures the T2 rails cover refuse with the
-    RFC-0005 verbatim text. The pascal-events fixture's refusal lives
-    in T6; this test class only exercises the two attach-to-agent
-    refusal classes."""
+    """Fixture-pack tests for attach-to-agent rails.
 
-    def test_missing_attach_to_agent_refused(self) -> None:
-        rc, err = _run_validate(FIXTURES / "malformed-kiro-missing-attach")
-        self.assertEqual(rc, 1, "malformed-kiro-missing-attach was accepted")
-        self.assertIn("does not declare 'attach-to-agent'", err)
-        self.assertIn("required for kiro projection", err)
+    Updated for incompatible-hook-event-drop T2:
+    - ``malformed-kiro-missing-attach``: the missing-attach-to-agent case
+      is now a *compatibility drop* (exit 0, info on stdout) — the T2
+      swallow per spec AC1.
+    - ``malformed-kiro-unknown-agent``: the unknown-agent case is a
+      *correctness refusal* (exit 1, stderr) — AC4b of the same spec.
+    """
+
+    def test_missing_attach_to_agent_swallowed_as_compat_drop(self) -> None:
+        """T2 (incompatible-hook-event-drop): missing attach-to-agent is now
+        a compatibility drop — validate exits 0 with an info: line on stdout."""
+        rc, out, err = _run_validate_with_stdout(FIXTURES / "malformed-kiro-missing-attach")
+        self.assertEqual(rc, 0, f"malformed-kiro-missing-attach was refused: {err}")
+        self.assertNotIn("validate:", err, f"Unexpected refusal on stderr: {err!r}")
+        self.assertIn("info:", out, f"Expected info: line on stdout, got: {out!r}")
+        self.assertIn(
+            "kiro requires 'attach-to-agent'",
+            out,
+            f"Expected attach-to-agent reason in stdout: {out!r}",
+        )
 
     def test_unknown_agent_refused(self) -> None:
         rc, err = _run_validate(FIXTURES / "malformed-kiro-unknown-agent")
@@ -133,17 +171,26 @@ class MalformedFixturesRefusedTests(unittest.TestCase):
 
 
 class PascalEventsRefusedByT6Tests(unittest.TestCase):
-    """T6 introduces the per-adapter `agent-event-vocabulary` rail.
-    The pascal-events fixture uses Claude-Code-style PascalCase event
-    names (`UserPromptSubmit`) which fall outside Kiro's declared
-    vocabulary (`agentSpawn`, `userPromptSubmit`, ...). Validate must
-    refuse with the RFC-0005 verbatim text."""
+    """T6 introduced the per-adapter ``agent-event-vocabulary`` rail.
 
-    def test_pascal_events_refused_with_vocabulary_text(self) -> None:
-        rc, err = _run_validate(FIXTURES / "malformed-kiro-pascal-events")
-        self.assertEqual(rc, 1, f"pascal-events fixture was accepted: {err}")
-        self.assertIn("UserPromptSubmit", err)
-        self.assertIn("not in adapter 'kiro' agent-event-vocabulary", err)
+    Updated for incompatible-hook-event-drop T2: PascalCase events
+    that fall outside Kiro's declared vocabulary are now a
+    *compatibility drop* (exit 0, info on stdout) rather than a
+    refusal. The test is renamed accordingly.
+    """
+
+    def test_pascal_events_swallowed_as_compat_drop(self) -> None:
+        """T2 (incompatible-hook-event-drop): out-of-vocab events are now
+        a compatibility drop — validate exits 0 with an info: line on stdout."""
+        rc, out, err = _run_validate_with_stdout(FIXTURES / "malformed-kiro-pascal-events")
+        self.assertEqual(rc, 0, f"pascal-events fixture was refused: {err}")
+        self.assertNotIn("validate:", err, f"Unexpected refusal on stderr: {err!r}")
+        self.assertIn("info:", out, f"Expected info: line on stdout, got: {out!r}")
+        self.assertIn(
+            "event not in adapter vocabulary",
+            out,
+            f"Expected vocab reason in stdout: {out!r}",
+        )
 
 
 class FixtureIsolationTests(unittest.TestCase):
