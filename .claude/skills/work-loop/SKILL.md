@@ -208,6 +208,41 @@ goal. Resist the urge to fix unrelated things you notice along the way;
 note them in `notes/` for later. Scope creep is the single biggest source
 of plan-vs-implementation drift.
 
+<!-- Bundled-fixes carve-out — canonical site. Mirrored by
+     implementer.md (operating envelope) and adversarial-reviewer.md
+     (scope check #4). Keep all three in sync. -->
+**Bundled-fixes carve-out.** Same-area, same-concern, mechanical
+ride-alongs land in the change — dead import, stale comment that now
+contradicts the new code, unused local the change orphaned, typo in a
+sibling file. *Same area* means a file in a directory that already
+contains a file the change is editing — siblings in the touched
+directory, not a walk-up to the parent and not a sideways jump to a
+directory the change isn't editing. "The change" = the current plan
+task for the executor; the merged PR diff for the reviewer. The
+reviewer is loading that directory's context for the primary change;
+tagging along is cheap. List ride-alongs in the PR description under
+`Bundled fixes:`, one line each, so the reviewer can scan them at a
+glance. The carve-out fails closed on any of: a file outside a
+touched directory, a design call, a behavior change. Those still go
+to `notes/` (EXECUTE-phase surplus, picked up by a future plan task);
+contrast with the DECIDE-phase `Deferred:` bucket below, which holds
+reviewer findings the loop chose not to fix — different lifecycle,
+different reader. **Volume guard** — bundled fixes are individually small
+(a line or two each). The bundle should also be visibly smaller than
+the primary change: if a reviewer reading the PR couldn't immediately
+tell which part is the primary change and which are ride-alongs, you
+sprawled — move the surplus to `notes/`. In supervisor mode, the
+dispatch brief explicitly authorizes the carve-out and restates the
+gates so the implementer applies them per its own task; without that
+authorization line the implementer defaults to no-carve-out.
+
+**`Bundled fixes:` in the PR description.** The work-loop emits a
+named `Bundled fixes:` section in the PR description that doesn't
+appear in the project's PR template — one line per ride-along landed
+under the carve-out above. Append it as a standalone section below
+the standard template content; do not modify the template itself.
+(See step 5 for the companion `Deferred:` section.)
+
 #### Parallel dispatch discipline
 
 When this skill fans out — multiple implementers in supervisor mode, or
@@ -328,9 +363,29 @@ checklist instead:
 
 ### 5. DECIDE — fix or finish
 
-- **Blockers from review** → go to FIX, then re-run GATES and REVIEW.
-- **Concerns from review** → fix the ones you can in this PR; capture the
-  rest as follow-up issues. Don't let "concerns" rot in chat.
+Route each reviewer finding into one of two resolution modes — `apply`
+(fix in this PR) or `defer` (capture as a follow-up). This is the
+work-loop's interpretation of reviewer output; the reviewer keeps its
+narrow Blockers / Concerns / Nits contract. Once routed, act on each
+mode below, then evaluate the terminal-state bullet last.
+
+- **Blockers** → `apply`. Re-run GATES and REVIEW after each fix.
+- **Concerns** → `apply` if mechanical and in scope (default for any
+  Concern whose fix meets the bundled-fixes gates above). `defer` if
+  the fix would cross files outside the plan, require a design call,
+  or change user-visible behavior the spec didn't authorize. Don't let
+  Concerns rot in chat — every Concern resolves into one of the two.
+- **Nits** → same two modes as Concerns. `apply` if they meet the
+  bundled-fixes gates above (ride along in `Bundled fixes:`).
+  Otherwise `defer` — one line in `Deferred:`. Every Nit resolves
+  into one of the two; the `Deferred:` line *is* the acknowledgement
+  that the loop saw the Nit and chose not to fix.
+- **Deferred items** → one-line follow-up note in the PR description
+  under `Deferred:` so they don't rot. Append it as a standalone
+  section below the standard template content alongside the
+  `Bundled fixes:` section from EXECUTE; do not modify the template
+  itself. Don't open separate issues by default — the PR is the
+  durable record.
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
   checklist; refuse to declare done until every line is true:
   - GATES were clean (lint, typecheck, tests).

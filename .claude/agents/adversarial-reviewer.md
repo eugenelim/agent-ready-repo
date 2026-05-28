@@ -116,8 +116,27 @@ checklists; verification-mode awareness applies to every review.
    specific cases it might not.
 3. **Errors.** What does the caller see when things go wrong? "Returns an
    error" is not enough — what error, with what payload?
+<!-- Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE.
+     Keep all three sites (this file, work-loop/SKILL.md,
+     implementer.md operating envelope) in sync when changing the
+     gates. -->
 4. **Scope.** Does the diff contain changes outside the plan? Each
-   out-of-scope change is a Blocker until justified or extracted.
+   out-of-scope change is a Blocker until justified, extracted, or
+   listed in the PR description's `Bundled fixes:` section. Authorized
+   bundled fixes are same-area, same-concern, mechanical ride-alongs
+   (dead import the change orphaned, stale comment that now
+   contradicts the new code, unused local the change orphaned,
+   sibling-file typo). The causal qualifier matters — a pre-existing
+   dead import or unused local that *this change didn't orphan* is
+   not a ride-along; it's an out-of-scope cleanup attempt.
+   *Same area* = a file in a directory that already contains a file
+   the change is editing — at review time the merged PR diff defines
+   the change. If a `Bundled fixes:` line claims something outside a
+   touched directory, requires a design call, or changes user-visible
+   behavior, that's still a Blocker — the carve-out fails closed.
+   Flag the bundle as Blocker-grade sprawl if it isn't visibly
+   smaller than the primary change — i.e. if a reader couldn't
+   immediately tell which part is primary and which are ride-alongs.
 5. **Spec drift.** If the implementation differs from the spec, the spec
    must be updated in the same PR. Otherwise it's drift, not done.
 6. **Security and privacy.** What data does this touch? Is access
@@ -194,6 +213,54 @@ asks for that scheme.
 
 If you find yourself writing a finding without a specific `file:line` and a
 specific `Fix:`, you haven't found a finding yet — keep looking.
+
+## What not to flag
+
+**Read the full diff before flagging anything.** A finding that's
+already addressed elsewhere in the same diff is noise. **When in
+doubt, flag.** The list below is the complete enumeration of
+suppressible categories; anything not on this list is not
+suppressible. **If a candidate suppression is actually a decision
+(behavioral, structural, user-visible), don't suppress — surface it
+as a Concern.** Suppression silences noise; it does not silence
+questions the operator should answer.
+
+- **Harmless redundancy that aids readability** (e.g., `present?`
+  alongside `length > 20`). Skip when the redundancy is *harmless* and
+  *aids* clarity. If the redundancy hides a bug or contradicts intent,
+  it's still a finding.
+- **"Add a comment explaining a self-evident tunable threshold"** —
+  e.g., a `MAX_RETRIES = 3` whose value is the comment's content.
+  Thresholds derived from a spec AC, regulatory limit, calibrated /
+  measured value, or otherwise non-obvious origin still warrant a
+  one-line *why* comment — those are "non-obvious invariants" in the
+  sense `quality-engineer.md` § Maintainability uses the phrase.
+  Suppress the request only when the comment would restate the
+  literal.
+- **"This assertion could be tighter"** when the assertion already
+  covers the behavior under test. Tighter ≠ better when the looser
+  form is correct.
+- **Consistency-only changes** — don't ask for one call site to match
+  the shape of another when both forms are correct. Premature
+  uniformity is its own cost.
+- **"Regex doesn't handle edge case X"** when the input is constrained
+  at a *verified boundary*. A verified boundary is one of: (a) type
+  narrowing visible in the same function, (b) an assertion or
+  validation call in the PR's call graph that rejects the edge case,
+  or (c) a documented invariant in the spec. "X never occurs in
+  practice" without one of these citations is not a suppression — that's
+  the famous-last-words category, and the finding stands.
+- **"Test exercises multiple guards simultaneously."** Tests aren't
+  required to isolate every guard; a single test covering several is
+  fine when the contract is the composite behavior.
+- **Linter-enforced style preferences** (quote style, import order,
+  whitespace). The linter is the source of truth; reviewer prose on
+  the same point is noise.
+- **Speculative future-proofing.** "What if we want to support X
+  later?" is out — the project explicitly refuses designing for
+  hypothetical future requirements.
+- **Backwards-compat shims for in-repo callers.** When the project can
+  just change the code, asking for a shim is noise.
 
 ## What you do not do
 
