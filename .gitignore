@@ -43,3 +43,4 @@ dist/
 
 # Conductor scratch + per-workspace probe scaffolding.
 .context/
+.claude/scheduled_tasks.lock
