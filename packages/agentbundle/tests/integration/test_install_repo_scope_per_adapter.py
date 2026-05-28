@@ -341,6 +341,184 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             )
 
 
+class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
+    """Regression: same-version `upgrade` at repo scope must not
+    silently re-shape `state.files` into the dist-tree projection nor
+    drop `apm/<pack>/` and `claude-plugins/<pack>/` subtrees into the
+    adopter's repo.
+
+    The bug: pre-fix, `upgrade.run` at repo scope called
+    `render.render_pack(pack_dir)` (the dist-tree producer used by
+    `make build`), which emits `apm/<pack>/...` +
+    `claude-plugins/<pack>/...` + `marketplace.json` keys. RFC-0012's
+    install lift uses `_render_for_repo_scope` (per-IDE shape such as
+    `.claude/skills/<name>/SKILL.md`). Same-version upgrade therefore
+    (i) wrote the dist-tree subtree on top of the per-IDE install and
+    (ii) accreted those paths into `state.files` while the
+    install-time per-IDE entries lingered — net ~3× growth.
+
+    Pin: install via the RFC-0012 default path, snapshot
+    `state.files`, run `upgrade --to <same-version>`, then assert the
+    keyset is byte-identical (same paths, no dist-tree leak) and no
+    `apm/` or `claude-plugins/` directories appear under the adopter
+    root."""
+
+    def setUp(self) -> None:
+        _clear_inband_detection_seen()
+
+    def test_same_version_upgrade_does_not_corrupt_state_or_leak_dist_tree(self) -> None:
+        from agentbundle.cli import _build_parser
+        from agentbundle.commands import install, upgrade
+
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw) / "adopter"
+            adopter.mkdir()
+            parser = _build_parser()
+
+            # Step 1: install at repo scope (RFC-0012 default — no
+            # `--emit-install-routes`, no `--adapter`).
+            install_args = parser.parse_args(
+                [
+                    "install",
+                    "--pack", "core",
+                    "--scope", "repo",
+                    "--output", str(adopter),
+                    str(REPO_ROOT),
+                ]
+            )
+            rc = install.run(install_args)
+            self.assertEqual(rc, 0, "install of core must succeed")
+
+            state_before = _load_state(adopter)
+            files_before = set(
+                state_before["pack"]["core"].get("files", {}).keys()
+            )
+            self.assertTrue(
+                files_before,
+                "install must record at least one entry in state.files",
+            )
+            # Per-IDE projection — no dist-tree-shaped paths recorded.
+            for relpath in files_before:
+                self.assertFalse(
+                    relpath.startswith("apm/")
+                    or relpath.startswith("claude-plugins/")
+                    or relpath == "marketplace.json",
+                    f"install recorded unexpected dist-tree path {relpath!r}; "
+                    f"all paths: {sorted(files_before)}",
+                )
+
+            # Step 2: upgrade to the same version. The pack's `version`
+            # in `packs/core/pack.toml` is the source of truth; pin via
+            # the state row so the test stays valid through bumps.
+            installed_version = state_before["pack"]["core"]["installed-version"]
+            upgrade_args = parser.parse_args(
+                [
+                    "upgrade",
+                    "--pack", "core",
+                    "--to", installed_version,
+                    str(REPO_ROOT),
+                    "--root", str(adopter),
+                    "--scope", "repo",
+                ]
+            )
+            rc = upgrade.run(upgrade_args)
+            self.assertEqual(
+                rc, 0, "same-version upgrade at repo scope must succeed"
+            )
+
+            # Step 3: `state.files` keyset must match the install
+            # snapshot — same paths, no dist-tree leak.
+            state_after = _load_state(adopter)
+            files_after = set(
+                state_after["pack"]["core"].get("files", {}).keys()
+            )
+            new_keys = files_after - files_before
+            self.assertFalse(
+                new_keys,
+                f"upgrade added new entries to state.files: "
+                f"{sorted(new_keys)}",
+            )
+            stale_keys = files_before - files_after
+            self.assertFalse(
+                stale_keys,
+                f"upgrade dropped install-time entries from state.files: "
+                f"{sorted(stale_keys)}",
+            )
+
+            # Step 4: the adopter tree must not have grown a
+            # `claude-plugins/` or `apm/` subtree under the repo root.
+            self.assertFalse(
+                (adopter / "claude-plugins").exists(),
+                f"upgrade leaked claude-plugins/ subtree under {adopter}; "
+                f"tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",
+            )
+            self.assertFalse(
+                (adopter / "apm").exists(),
+                f"upgrade leaked apm/ subtree under {adopter}",
+            )
+            self.assertFalse(
+                (adopter / "marketplace.json").exists(),
+                f"upgrade leaked marketplace.json under {adopter}",
+            )
+
+
+class RepoScopeDiffAfterInstallTests(unittest.TestCase):
+    """Regression: `diff` against a freshly-installed pack at repo scope
+    must report no drift.
+
+    The bug: pre-fix, `diff.run` unconditionally rendered the dist-tree
+    shape via `render.render_pack`, but RFC-0012's install lift landed
+    files at `<repo>/.claude/...` (or `.kiro/...`, etc.). The two
+    shapes never overlap, so diff returned exit 1 with every per-IDE
+    file flagged as missing — and any in-place adopter edit slipped
+    past detection because diff was looking at the wrong tree."""
+
+    def setUp(self) -> None:
+        _clear_inband_detection_seen()
+
+    def test_diff_after_install_reports_no_drift(self) -> None:
+        from agentbundle.cli import _build_parser
+        from agentbundle.commands import diff, install
+
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw) / "adopter"
+            adopter.mkdir()
+            parser = _build_parser()
+
+            install_args = parser.parse_args(
+                [
+                    "install",
+                    "--pack", "core",
+                    "--scope", "repo",
+                    "--output", str(adopter),
+                    str(REPO_ROOT),
+                ]
+            )
+            rc = install.run(install_args)
+            self.assertEqual(rc, 0, "install must succeed")
+
+            diff_args = parser.parse_args(
+                [
+                    "diff",
+                    str(REPO_ROOT / "packs" / "core"),
+                    "--root", str(adopter),
+                ]
+            )
+            out_buf, err_buf = io.StringIO(), io.StringIO()
+            with redirect_stdout(out_buf), redirect_stderr(err_buf):
+                rc = diff.run(diff_args)
+
+            self.assertEqual(
+                rc, 0,
+                f"diff must report exit 0 when nothing has drifted post-install; "
+                f"stdout={out_buf.getvalue()!r} stderr={err_buf.getvalue()!r}",
+            )
+            self.assertEqual(
+                out_buf.getvalue().strip(), "",
+                f"diff must produce no stdout when in sync; got: {out_buf.getvalue()!r}",
+            )
+
+
 class RepoScopeMigrationTriggerBTests(unittest.TestCase):
     """AC33 + AC24(b): a pre-RFC-0012 state file plus on-disk dist-tree
     files refuses the install with the pinned (b) message."""
