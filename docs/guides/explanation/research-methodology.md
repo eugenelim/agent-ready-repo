@@ -137,6 +137,52 @@ token alone — `comprehensively map the sources` is a depth cue to
 `/source-map`, not a re-dispatch into `/research` deep mode. The cue
 applies at whichever skill the user named.
 
+### Applied mode — the practitioner-discipline extension
+
+The original mode parameter shipped three values — `quick`, `standard`,
+`deep` — across one axis (depth). Use-case feedback surfaced a second
+axis the schema had collapsed onto standard: **discipline**. A prompt
+like "best ways to optimise inventory for shipping" wants
+prior-art / best-practice work across practitioner grey literature
+(blogs, conference talks, vendor case studies, community threads),
+not peer-reviewed material. Running it in standard mode produced
+findings rated `[low]` by construction — the GRADE schema's
+`no peer review` downgrade factor applied to every finding, because
+the domain has no peer-reviewed alternative.
+
+The alternative considered was a standalone `/applied-research` or
+`/patterns` skill. We rejected it on the same description-collision
+grounds that motivated mode-on-research in the first place — a user
+saying "look up best practices for X" should not have to think about
+which slash command to type. Instead the mode parameter extends to
+four values (`quick | standard | applied | deep`), with applied as
+the fourth flat value alongside the existing three. The discipline
+extension lives in the same skill body; the dispatcher picks the
+mode from the prompt's cues.
+
+The mechanism the overlay introduces is in
+`references/confidence-schema.md`: an `Applied-mode overlay` section
+drops `no peer review` from the closed downgrade-factor set
+(practitioner domains have no alternative by construction), and adds
+`survivorship bias` (only successes blog; failures rarely do) and
+`stale prior art` (>5-year-old patterns in fast-moving domains are
+suspect). The `mode` parameter is the rule-set selector; the
+artifact's discipline marker —
+`> Discipline: applied (practitioner-pattern survey)`
+— is the post-condition audit signal, not a way to retroactively
+re-rate findings.
+
+Cue precedence — **applied cues are scored before standard / deep
+cues** — closes the obvious collision: a prompt like "comprehensively
+survey the applied patterns for X" contains both `comprehensively`
+(a standard cue) and `applied patterns for` (an applied cue);
+precedence puts it in applied mode. The four applied cue phrases
+(`applied patterns for`, `best practice for`, `prior art on`,
+`grey literature`) are phrase-shaped rather than bare words —
+refusing the failure mode where `applied` alone would trigger on
+incidental academic mentions ("GRADE has been applied to clinical
+reviewing").
+
 ### Retrieval-only subagents
 
 The pack ships two subagents — `evidence-retriever` and

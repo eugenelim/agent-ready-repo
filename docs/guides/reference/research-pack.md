@@ -61,17 +61,22 @@ thorough ones.
 
 **name:** `research`.
 
-**description:** Evidence-grounded research with selectable depth.
-Use for any look-up, find-out, fact-check, or comprehensive
-investigation. Carries `mode: quick | standard | deep` with `quick`
-as default — casual phrasings (`look up`, `find out`, `quick check`,
-`quickly`) stay quick; explicit phrasings (`research with citations`,
-`evidence-grounded`, `go deep`, `comprehensively`) escalate. Quick
-mode is inline, ≤5 fetches, no artifact. Standard mode produces
-`research.md` with GRADE-style confidence per finding and ≥3
-independent sources per material claim. Deep mode additionally
-auto-runs `/devils-advocate`, producing `counterpoints.md` with
-proposed rating downgrades.
+**description:** Evidence-grounded research with selectable depth
+and discipline. Use for any look-up, find-out, fact-check, or
+comprehensive investigation, including prior art and best practice
+surveys. Carries a mode parameter (quick / standard / applied /
+deep) with `quick` as default — casual phrasings (`look up`,
+`find out`, `quick check`) stay quick; academic phrasings
+(`research with citations`, `evidence-grounded`, `go deep`,
+`comprehensively`) bias standard or deep; practitioner phrasings
+(`applied patterns for`, `best practice for`, `prior art on`,
+`grey literature`) bias applied. Quick mode is inline, ≤5 fetches,
+no artifact. Standard mode produces `research.md` with GRADE-style
+confidence per finding from peer-reviewed and primary sources.
+Applied mode produces `research.md` calibrated for practitioner
+grey literature with a discipline-aware confidence overlay. Deep
+mode additionally auto-runs `/devils-advocate`, producing
+`counterpoints.md`.
 
 ### devils-advocate
 
@@ -153,13 +158,41 @@ source; returns per-source syntheses with citations.
 ## `/research` mode parameter
 
 `/research` is the only skill with a formal mode parameter (the
-other six use depth-via-prompt cues). The closed set:
+other six use depth-via-prompt cues). The closed set, four modes:
 
-| Mode | Default? | Artifact | Retrievers | Triangulation |
-|---|---|---|---|---|
-| `quick` | yes | none (inline) | built-in WebFetch + WebSearch only; ≤5 fetches | not required |
-| `standard` | no | `research.md` | all available | ≥3 independent sources |
-| `deep` | no | `research.md` + `counterpoints.md` | all available | ≥3 independent sources |
+| Mode | Default? | Artifact | Discipline | Retrievers | Triangulation |
+|---|---|---|---|---|---|
+| `quick` | yes | none (inline) | n/a | built-in WebFetch + WebSearch only; ≤5 fetches | not required |
+| `standard` | no | `research.md` | academic / primary-source | all available | ≥3 independent sources |
+| `applied` | no | `research.md` + discipline marker | practitioner / grey-literature | all available | ≥3 independent sources; practitioner-independence calibration (same vendor / same employer count as one) |
+| `deep` | no | `research.md` + `counterpoints.md` | academic / primary-source | all available | ≥3 independent sources |
+
+### Cue vocabulary
+
+The dispatcher selects modes from the prompt's wording. Cue precedence:
+**applied cues are scored before standard / deep cues** — a prompt
+containing any applied cue dispatches `applied`, even when standard or
+deep cues co-occur. Closed tuples (single-sourced from the conformance
+test):
+
+| Mode | Cue tuple (any one biases toward this mode) |
+|---|---|
+| `quick` (default; all three required in description) | `look up`, `find out`, `quick check` |
+| `standard` / `deep` | `research with citations`, `evidence-grounded`, `go deep`, `comprehensively` |
+| `applied` | `applied patterns for`, `best practice for`, `prior art on`, `grey literature` |
+
+### Applied-mode discipline marker
+
+Applied-mode `research.md` carries this canonical, byte-for-byte
+literal as its first non-heading line:
+
+```
+> Discipline: applied (practitioner-pattern survey)
+```
+
+No bold, no em-dash variant. The marker is an audit signal recording
+that applied mode fired; it is NOT the rule-set selector (the `mode`
+parameter is — see the confidence schema overlay below).
 
 ## Confidence schema
 
@@ -186,11 +219,22 @@ artifact says so".
 Named explicitly when applied — silent downgrade is a defect.
 
 - `single source` — claim rests on one citation.
-- `no peer review` — sources are not peer-reviewed and alternatives exist.
+- `no peer review` — sources are not peer-reviewed and alternatives exist. **Standard / deep mode only — dropped under the applied-mode overlay.**
 - `vendor-blogged` — sources are vendor blog or marketing material.
 - `contested-in-field` — `/devils-advocate` surfaced substantive counter-evidence.
 - `heterogeneity` — cited sources do not agree on specifics.
 - `indirectness` — sources address an adjacent question, not the exact one.
+
+### Applied-mode overlay
+
+Applied mode swaps two amendments into the base schema:
+
+- **Drops** `no peer review` from the closed downgrade-factor set. The practitioner / grey-literature domain has no peer-reviewed alternative by construction; applying the factor would poison every finding to `[low]`.
+- **Adds** two new downgrade factors:
+  - `survivorship bias` — only successes blog; failed adopters rarely write post-mortems; the cited literature systematically under-represents failure stories.
+  - `stale prior art` — a pattern from >5 years ago in a fast-moving domain may have been superseded.
+
+The mode parameter (`mode: applied`) is the rule-set selector. The discipline marker on the produced artifact is the audit signal that the overlay fired — it does NOT retroactively re-rate findings if added to a standard-mode artifact after the fact.
 
 ## Retriever interface
 

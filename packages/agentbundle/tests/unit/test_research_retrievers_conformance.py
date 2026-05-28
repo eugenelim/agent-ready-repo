@@ -191,20 +191,43 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
             "— AC11 bias requires `quick` named as default",
         )
 
-    def test_escalation_cue_tokens_present(self) -> None:
-        # At least one explicit-escalation cue must appear so the
-        # description biases standard/deep on the other side.
-        escalation_tokens = (
+    def test_standard_or_deep_cue_tokens_present(self) -> None:
+        # At least one standard/deep cue must appear so the description
+        # biases away from quick on the academic-discipline side. The
+        # tuple is the canonical contract — Always-do / AC11 / AC28
+        # single-source the closed set from this test method.
+        standard_deep_tokens = (
             "research with citations",
             "evidence-grounded",
             "go deep",
             "comprehensively",
         )
-        for token in escalation_tokens:
+        for token in standard_deep_tokens:
             if token in self.description:
                 return
         self.fail(
-            f"description missing every escalation cue {escalation_tokens!r} "
+            f"description missing every standard/deep cue {standard_deep_tokens!r} "
+            f"— AC11 bias requires at least one"
+        )
+
+    def test_applied_cue_tokens_present(self) -> None:
+        # At least one applied cue from AC28's closed four-cue set
+        # must appear so the description biases practitioner-
+        # discipline dispatch. Phrase-shaped tokens only — the bare
+        # token `applied` was deliberately excluded from AC28's
+        # closed set to refuse incidental academic mentions
+        # ("GRADE has been applied to clinical reviewing").
+        applied_tokens = (
+            "applied patterns for",
+            "best practice for",
+            "prior art on",
+            "grey literature",
+        )
+        for token in applied_tokens:
+            if token in self.description:
+                return
+        self.fail(
+            f"description missing every applied cue {applied_tokens!r} "
             f"— AC11 bias requires at least one"
         )
 

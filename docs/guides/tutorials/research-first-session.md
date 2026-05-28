@@ -1,7 +1,7 @@
 # Your first research session
 
-In about fifteen minutes you'll install the `research` pack at user
-scope, run `/research` in all three modes against a real question, and
+In about twenty minutes you'll install the `research` pack at user
+scope, run `/research` in all four modes against real questions, and
 see the artifact signature that distinguishes them. By the end you'll
 know which mode to reach for and what each one leaves behind on disk.
 
@@ -47,7 +47,7 @@ and two retrieval subagents under `~/.claude/agents/`:
 ~/.claude/agents/source-extractor.md
 ```
 
-## Step 2 — quick mode
+## Step 2 — quick mode (default)
 
 Quick mode is the default. Casual phrasings stay quick — `look up`,
 `find out`, `quick check`. Try it.
@@ -115,7 +115,56 @@ Every finding ends with a confidence tag from the closed set —
 are named explicitly. That's the standard-mode signature: an artifact
 with cited, rated findings.
 
-## Step 4 — deep mode
+## Step 4 — applied mode
+
+Applied mode is for prior-art and best-practice surveys across
+practitioner grey literature (blogs, conference talks, vendor case
+studies, community threads) — the kind of research where standard
+mode's `no peer review` downgrade factor would otherwise mis-rate
+every finding to `[low]` because the domain has no peer-reviewed
+alternative by construction. The trigger is one of four phrase-shaped
+cues: `applied patterns for`, `best practice for`, `prior art on`,
+`grey literature`.
+
+Try:
+
+```
+applied patterns for inventory optimisation in last-mile shipping
+```
+
+The skill takes a while — it dispatches WebSearch + WebFetch across
+practitioner sources (vendor case studies, logistics blogs,
+conference talks, supply-chain community threads). When done, open
+`research.md`. The **first non-heading line** is the canonical
+discipline marker, byte-for-byte:
+
+```markdown
+> Discipline: applied (practitioner-pattern survey)
+
+# Applied patterns for inventory optimisation in last-mile shipping
+
+## Findings
+
+- Finding: hub-and-spoke micro-fulfilment cuts last-mile cost per
+  parcel by 20-30% in dense urban areas with ≥10 daily orders per
+  square kilometre. [moderate]
+  Downgrade: survivorship bias (cited adopters are success stories;
+  no failed-adopter post-mortems surfaced).
+- ...
+```
+
+That's the applied-mode signature. Two structural differences from
+standard mode: the discipline marker on line 1, and the confidence
+schema swaps in `survivorship bias` and `stale prior art` as new
+downgrade factors (and drops `no peer review`, which doesn't apply
+when no peer review exists in the domain).
+
+When in doubt about which mode to reach for — academic standard or
+practitioner applied — the heuristic is the source taxonomy you're
+expecting. Peer-reviewed papers and primary specs → standard.
+Practitioner blogs, conference talks, case studies → applied.
+
+## Step 5 — deep mode
 
 Deep mode is standard plus an adversarial review pass. The trigger is
 `go deep`, `exhaustively`, `extensive`.
@@ -157,18 +206,19 @@ similarity search at scale.
 That's the deep-mode signature: two artifacts, the second arguing
 against the first.
 
-## Step 5 — see the signature
+## Step 6 — see the signatures
 
-The three modes leave three distinct on-disk signatures:
+The four modes leave four distinct on-disk signatures:
 
-| Mode | Artifact in working directory |
-|---|---|
-| `quick` | none — inline answer in chat |
-| `standard` | `research.md` |
-| `deep` | `research.md` + `counterpoints.md` |
+| Mode | Artifact in working directory | Distinguishing signal |
+|---|---|---|
+| `quick` | none — inline answer in chat | absence of any of the seven enumerated artifacts |
+| `standard` | `research.md` | `research.md` present, no discipline marker on line 1 |
+| `applied` | `research.md` | `research.md` present, canonical discipline marker as first non-heading line |
+| `deep` | `research.md` + `counterpoints.md` | second artifact present |
 
-That signature is the work-loop verification gate — quick mode is
-*observably* quick because no file was written.
+That signature is the work-loop verification gate — each mode is
+*observably* itself by what is or isn't on disk and what's on line 1.
 
 ## Where to go next
 
@@ -181,8 +231,10 @@ That signature is the work-loop verification gate — quick mode is
 
 ## Manual-QA timing note
 
-This tutorial is designed to land in fifteen minutes for an adopter
-who already has `agentbundle` installed. Authors of the implementing
-PR should append a timing note (e.g., "ran end-to-end in 13m on a
+This tutorial is designed to land in twenty minutes for an adopter
+who already has `agentbundle` installed (four modes at roughly five
+minutes each; extended from the original three-mode ≤15-minute
+target by the applied-mode amendment). Authors of the implementing
+PR should append a timing note (e.g., "ran end-to-end in 18m on a
 fresh shell against an installed CLI") to the PR description as
-verification that the ≤15-minute target was met.
+verification that the ≤20-minute target was met.
