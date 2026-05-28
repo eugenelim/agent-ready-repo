@@ -802,6 +802,20 @@ PR-review is the other):
   in-process test while the projection drifts. Follow-up: parametrise
   the test over both paths.
 
+**Deferred projection follow-ups:**
+
+- ~~**`adapter-root-bins` projection omits `credentials_shim.py`.**~~
+  *Closed 2026-05-27 by PR `eugenelim/fix-sso-broker-shim-projection`*
+  — `adapter_root_bins.apply_projection` now projects
+  `credentials_shim.py` as a sibling under `~/.agentbundle/bin/` when
+  a pack ships both `.apm/adapter-root-bins/` and
+  `.apm/shared-libs/credentials_shim.py`; a content-grep hard-error
+  rail refuses the build if any `adapter-root-bins/*.py` imports the
+  shim but the source is absent (generalised past `_sso_*`). Spec
+  AC22b / AC22c added; AC23 widened to cover adapter-root-bins drift
+  outcomes with the `[adapter-root-bins:shim-companion]` diagnostic
+  prefix.
+
 ## Cross-spec / outside-the-spec-tree
 
 These are open items called out by accepted RFCs or by multiple specs,

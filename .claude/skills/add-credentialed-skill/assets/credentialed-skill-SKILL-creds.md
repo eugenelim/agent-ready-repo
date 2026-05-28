@@ -75,9 +75,24 @@ tool argument.
 
 ## Usage
 
-The primitive's Python entry point imports the projected sibling:
+The primitive's Python entry point imports the projected sibling.
+Two boilerplate blocks are non-negotiable in any credentialed CLI:
 
 ```python
+import sys
+from pathlib import Path
+
+# Bootstrap when invoked as ``python scripts/cli.py`` — Python sets
+# ``__package__`` to None for file-path invocation, which breaks the
+# ``from .credentials_shim import …`` line below. Gated on
+# ``__spec__ is None`` so the block only fires for true file-path
+# invocation; an importlib-based test harness is responsible for
+# its own package context.
+if __package__ in (None, "") and __spec__ is None:
+    _here = Path(__file__).resolve().parent
+    sys.path.insert(0, str(_here.parent))
+    __package__ = _here.name
+
 from .credentials_shim import (
     CredentialsMissingError,
     Tier2HardFailError,
@@ -91,4 +106,7 @@ token = creds.<KEY>  # never printed, never echoed
 Invoke the primitive via `subprocess.run([sys.executable,
 "scripts/cli.py", "<verb>", ...])`. The primitive resolves
 credentials inside its own process and constructs the API call
-without surfacing the token to the LLM.
+without surfacing the token to the LLM. The `__package__` bootstrap
+makes the documented file-path invocation work under both project-
+scope and user-scope install layouts (a flat `scripts/` dir with no
+`__init__.py`).
