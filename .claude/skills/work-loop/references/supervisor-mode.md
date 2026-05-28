@@ -49,8 +49,15 @@ not edit `state.json` or invoke `git worktree` directly.
 
 2. **Dispatch implementers in parallel** per the parallel-dispatch
    discipline (see parent SKILL body). Each brief includes: the task
-   ID, the plan-task body, the worktree path, and paths to the spec +
-   plan.
+   ID, the plan-task body, the worktree path, paths to the spec +
+   plan, and an explicit **bundled-fixes authorization line** —
+   "Bundled fixes authorized per the carve-out in `work-loop/SKILL.md`
+   (EXECUTE phase); apply same-area, same-concern, mechanical
+   ride-alongs only and report under `Bundled fixes:` in your output."
+   If a particular task should run without the carve-out (e.g. a
+   high-blast-radius migration), omit the authorization line; the
+   implementer defaults to no-carve-out and routes everything to
+   "Out of scope observed".
 
 3. **Persist each report and update state.** For each returning
    subagent, write its markdown report to disk, then run
@@ -101,6 +108,15 @@ not edit `state.json` or invoke `git worktree` directly.
    weren't actually independent — the tool runs `git merge --abort`,
    exits non-zero, and names the offending task ID. Return to PLAN and
    fix the `Depends on:` declarations.
+
+   **Lift `Bundled fixes:` into the PR body.** Each implementer report
+   may carry a `Bundled fixes:` section listing ride-alongs landed
+   under the carve-out. After merge succeeds, collect those lines
+   from every ready report, dedupe by exact-string match (falling
+   back to operator judgment when two lines describe the same change
+   in different words), and emit a single `Bundled fixes:` section
+   in the PR description below the standard template. If no
+   implementer landed ride-alongs, omit the section.
 
 6. **Clean up worktrees.** After all merges succeed, run
 

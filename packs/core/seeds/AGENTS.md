@@ -41,7 +41,10 @@ Scope each change precisely to the request.
 - **Add a flag or option only when a second caller actually needs to
   differ.** Today's one caller is enough to define the shape.
 - **Add docstrings and types to code the change actually touches.**
-  Leave nearby untouched code as it is.
+  Leave nearby untouched code as it is — except under the
+  bundled-fixes carve-out defined in the `work-loop` skill (same-area,
+  same-concern, mechanical ride-alongs only; surplus still goes to
+  follow-up).
 - **Validate at boundaries the request crosses** (user input, external
   APIs). Trust internal callers and framework guarantees.
 - **Inline a single-use operation.** Extract a helper once a second
