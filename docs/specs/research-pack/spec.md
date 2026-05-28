@@ -1,0 +1,277 @@
+# Spec: research-pack
+
+- **Status:** Draft
+- **Owner:** eugenelim
+- **Plan:** [`plan.md`](plan.md)
+- **Constrained by:** [RFC-0004](../../rfc/0004-install-scope-per-pack.md) (user-scope dimension); [RFC-0009](../../rfc/0009-codex-native-skills.md) (codex `agent` projection at v0.8 contract enables `.apm/agents/` on codex); [RFC-0011](../../rfc/0011-pack-allowed-adapters.md) (per-pack allowed-adapters); [RFC-0012](../../rfc/0012-repo-scope-per-adapter-projection.md) (repo-scope per-adapter projection; this pack supports both scopes per AC1's `allowed-scopes`); [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (install-scope precedence)
+
+> **Spec contract:** this document defines what "done" means. The implementing PR must match this spec, or update it. Verification must be derivable from it.
+
+## Objective
+
+Ship `research`, a user-scope agent-skills pack that gives adopters evidence-grounded research portable across every repo they open. The pack contains seven skills covering the research lifecycle: scoping (`identify-perspectives`, `build-outline`), source curation (`source-map`), synthesis (`research` — the lifecycle's anchor, carrying a formal `mode: quick | standard | deep` parameter with `quick` as default so casual "go find out X" prompts do not fire the heavy pipeline), adversarial review (`devils-advocate`), decision support (`compare-hypotheses`), and rationale reconstruction (`decision-archaeology`). Two retrieval subagents (`evidence-retriever`, `source-extractor`) provide context-preserving parallel fetch on Claude Code; on hosts without subagents the skills run inline. Methodology rests on seven convergent disciplines from mature fields (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN journalism, GRADE) — codified in skill bodies, documented in `references/methodologies.md`. Standard and deep modes produce durable artifacts (`research.md`, `counterpoints.md`, `hypotheses.md`, `archaeology.md`, plus the scoping artifacts `perspectives.md` / `outline.md` / `sources.md`) with GRADE-style confidence ratings on every finding. Extensible via a documented retriever convention: built-in WebFetch + WebSearch, MCP tools available in the session, plus user-registered Python script retrievers invoked from the main session via `Bash` (e.g., arXiv unauth + Perplexity env-broker — both compose with the existing credentialed-skill contract via `metadata.auth`). From an adopter's perspective: after `agentbundle install research --scope user`, `/research` works in any project — `quick` for inline lookups, `standard` for cited synthesis, `deep` for adversarially-reviewed research with downgraded confidence on contested findings.
+
+## Boundaries
+
+The three-tier guard that keeps an implementing agent inside the lines. *Always do* applies without asking; *Ask first* requires human sign-off before proceeding; *Never do* is a hard rule, even under time pressure.
+
+### Always do
+
+- Default `/research` mode to `quick`; require an explicit user signal in the prompt to escalate (`go deep on this`, `with citations`, `evidence-grounded`).
+- Enforce GRADE-style per-finding confidence rating (`high` | `moderate` | `low` | `uncertain` plus named downgrade factors) in every artifact produced by standard or deep mode.
+- Triangulate ≥3 independent sources per material claim in standard or deep mode (OSINT, GIJN, ACH, PRISMA, STORM, GRADE convergence).
+- Tag every source by primacy: `primary` / `secondary` / `tertiary`.
+- Enumerate available retrievers (built-in WebFetch + WebSearch + MCP tools in session + user-registered scripts) before dispatching queries in standard or deep mode.
+- Invoke user-registered Python script retrievers from the main session via `Bash`; the two subagents do not execute scripts (their tool surface excludes `Bash` per AC4).
+- Run the moderator unused-snippet pass before declaring any standard or deep research done (Co-STORM contribution: scan retrieved-but-uncited material; generate one more query from the highest-signal unused snippet).
+- Cite every claim, or mark it `[synthesis]` / `[inference]` — citation-forcing per Wikipedia V/RS and GRADE convergence.
+- Treat any "who is authoritative on X" intuition the LLM produces as suspect; `/source-map` discovers voices by surveying adjacent material, not by direct prompting (STORM finding: direct question-asking does not work well).
+- Keep the skill directory layout flat for this pack: one level of files under `scripts/` and `references/` for every skill; no nested subdirectories. (Spec recommends one-level-deep file references; in-pack consistency closes the rule under one Boundary.)
+- Document depth-via-prompt cues in every skill body other than `/research` (which carries a formal mode parameter) so adopters can request lighter or heavier behavior in natural language without a formal mode parameter on each skill.
+
+### Ask first
+
+- Adding a retriever mechanism beyond the documented MCP and script conventions (e.g., a binary protocol, a websocket retriever).
+- Promoting any deferred candidate skill (the watch-list items from design conversation: standalone `/lookup`, `/research-protocol`, `/triangulate`, etc.) to its own surface beyond what this spec ships.
+- Applying the formal `mode` parameter pattern to skills other than `/research`. The collision argument that motivates mode on `/research` does not apply elsewhere; promotion requires evidence of misfire in production usage.
+- Changing the GRADE schema (the four levels or the downgrade-factor set).
+- Shipping a third subagent beyond `evidence-retriever` and `source-extractor`.
+- Any pack-level convention extending beyond the existing user-scope contract (RFC-0004 + RFC-0011 + RFC-0009 + RFC-0012 v0.8).
+
+### Never do
+
+- No `seeds/` directory under `packs/research/` (RFC-0004 § seeds rail refuses user-scope packs with non-empty `seeds/`).
+- No `.apm/hooks/` or `.apm/hook-wiring/` (RFC-0004 § hook rail at user scope; orthogonal to RFC-0005's hook-user-scope work).
+- No `<adapt:NAME>` markers in any primitive file (RFC-0004 § Rail C).
+- No reviewer-style subagents that do research *reasoning* — reasoning stays in the main session per the multi-agent failure-mode evidence (Cognition "Don't Build Multi-Agents"; UC Berkeley 79% handoff-failure study; arXiv 2604.02460 single-agent-wins-at-equal-token-budget on multi-hop reasoning).
+- No spawning subagents from subagents (Claude Code one-level-deep constraint).
+- No new top-level directory in the casablanca repo — this is a `packs/research/` addition, nothing else.
+- No casablanca-vocabulary references in any shipped artifact under `packs/research/` (content portability — would fail RFC-0004's falsifiable user-scope test; `core`'s reviewer agents are the pinned anti-pattern per RFC-0004 line 46).
+- No auto-escalation from `quick` to `standard` or `deep` without an explicit user signal in the prompt.
+- No retriever script returning un-citable answers — every retriever response must include a `citations` array (empty array permitted only when retriever declares `shape: meta`).
+- No retriever script declaring `metadata.auth` outside `env` or `cli` in this PR; `creds` and `sso-cookie` brokers require the `credential-brokers` pack which `research` does not depend on.
+- No vendoring of any external research-agent library (STORM, GPT-Researcher) — methodology is documented in `references/`, not packaged.
+- No nested subdirectories under `references/` or `scripts/` for any skill in this pack.
+- No module boundary or abstraction layer added in `packages/agentbundle/` beyond what the integration test in T12 requires.
+
+## Testing Strategy
+
+Verification mixes goal-based checks (file shape, content greps), TDD (the install/uninstall integration test mirrors the `converters-pack` precedent), and manual QA for end-to-end pipeline behavior. The mode-selection heuristic (AC11) is verified by a *filesystem-signature* check (quick mode produces no artifact per AC12), not by self-report — closing the spec-implementation drift hook for an LLM that might claim to have fired quick when it actually fired standard.
+
+| AC | Mode | Why |
+| --- | --- | --- |
+| AC1 (`pack.toml` shape) | Goal-based | `agentbundle validate` one-liner. |
+| AC2 (`plugin.json` shape) | Goal-based | File presence + field check. |
+| AC3 (seven skills + frontmatter) | Goal-based | `lint-agent-artifacts.py`. |
+| AC4 (two subagents + frontmatter, `model:` set) | Goal-based | Same lint. |
+| AC5 (content portability) | Goal-based | `rg` grep over the pack. |
+| AC6 (user-scope rails clean) | Goal-based | File-presence absence + Rail C grep. |
+| AC7 (retriever convention documented, keys pinned) | Goal-based | Text grep against `/research`'s SKILL.md, including the literal JSON keys and `shape` enum values. |
+| AC8 (example retrievers shipped, flat layout, Bash invocation) | Goal-based | File presence + interface conformance + nested-dir refusal grep. |
+| AC9 (GRADE schema documented) | Goal-based | File presence + named-element grep. |
+| AC10 (fixture-`$HOME` install/uninstall) | TDD | State machine with side effects. |
+| AC11 (`/research` mode parameter, default quick — filesystem-signature observable) | Manual QA + goal-based | Quick mode's no-artifact signature (AC12) is the observable signal. |
+| AC12 (quick mode bounded, cap documented) | Goal-based + manual QA | SKILL.md grep on the cap; session transcript counts WebFetch/WebSearch blocks. |
+| AC13 (standard mode artifact + rating tag per finding) | Manual QA + goal-based | Run + post-hoc structural grep on `## Findings` section. |
+| AC14 (deep mode auto-runs devils-advocate) | Manual QA | One observable run produces both artifacts. |
+| AC15 (decision pipeline composes; downstream skills document upstream expectations) | Manual QA + goal-based | Sequential invocation produces four artifacts; per-skill grep confirms upstream documentation. |
+| AC16 (archaeology pipeline self-contained; documented refusal of `/source-map` invocation) | Manual QA + goal-based | One observable run; SKILL.md grep on self-contained discipline. |
+| AC17 (subagents preserve context) | Goal-based | Grep over subagent body text. |
+| AC18 (citation-forcing per claim; explicit set of seven skills) | Goal-based + manual QA | Body grep against each of the seven enumerated skills + observed artifact compliance. |
+| AC19 (moderator unused-snippet pass) | Goal-based | Body grep. |
+| AC20 (seven methodologies referenced) | Goal-based | File presence + named-discipline grep. |
+| AC21 (depth-via-prompt cues — closed vocabulary) | Goal-based | Body grep per skill against a closed cue-token set. |
+| AC22 (Diataxis tutorial guide) | Goal-based + manual QA | File presence + content grep; manual read-through verifies the ≤15-minute walkthrough lands. |
+| AC23 (Diataxis how-to guide) | Goal-based | Three pipeline-name + artifact-filename greps. |
+| AC24 (Diataxis reference guide) | Goal-based | Comprehensive content greps against the closed sets (skills, modes, confidence, retrievers, cues). |
+| AC25 (Diataxis explanation guide) | Goal-based | Seven-methodology + architectural-choices greps. |
+
+## Acceptance Criteria
+
+- [ ] **AC1 — `pack.toml` shape.** `packs/research/pack.toml` declares `name = "research"`, `version = "0.1.0"`, `[pack.adapter-contract] version = "0.8"`, `[pack.install] default-scope = "user"`, `allowed-scopes = ["user", "repo"]`, `allowed-adapters = ["claude-code", "kiro", "codex"]`. `agentbundle validate packs/research/` exits zero.
+
+- [ ] **AC2 — `plugin.json` shape.** `packs/research/.claude-plugin/plugin.json` exists with `name`, `version`, `description` matching `pack.toml`.
+
+- [ ] **AC3 — Seven skills present.** `packs/research/.apm/skills/` contains directories named `identify-perspectives`, `build-outline`, `source-map`, `research`, `devils-advocate`, `compare-hypotheses`, `decision-archaeology`. Each has a `SKILL.md` with top-level `name` + `description` frontmatter only (other fields from the agentskills.io reserved set may appear under `metadata:`; no project-invented top-level fields). `lint-agent-artifacts.py packs/research/` returns zero.
+
+- [ ] **AC4 — Two retrieval subagents present.** `packs/research/.apm/agents/` contains `evidence-retriever.md` and `source-extractor.md`. Frontmatter: `name`, `description`, `tools = "Read, Grep, Glob, WebFetch, WebSearch"` (read-only-plus-web; no `Bash` — script retrievers are invoked from the main session per AC8), `model: sonnet` (declared explicitly per CONVENTIONS § Model selection; retrieval is bounded and parallelization-shaped). `lint-agent-artifacts.py` returns zero.
+
+- [ ] **AC5 — Content portability.** No casablanca-specific vocabulary in any shipped file under `packs/research/`. Grep refuses (zero hits): `rg -i --hidden 'agent-ready-repo|casablanca|AGENTS\.md|docs/CONVENTIONS|docs/CHARTER|docs/specs|docs/rfc' packs/research/`. The pack must serve every repo verbatim (RFC-0004 falsifiable test). References material may name *external* methodologies (STORM etc.) and *external* URLs; the grep targets only repo-internal vocabulary.
+
+- [ ] **AC6 — User-scope rails clean.** No `seeds/` directory; no `.apm/hooks/`; no `.apm/hook-wiring/`. `rg --hidden '<adapt:[A-Z_][A-Z0-9_]*>|<adapt:[a-z][a-z0-9-]*>' packs/research/` exits non-zero (zero hits). `agentbundle validate` confirms.
+
+- [ ] **AC7 — Retriever convention documented in SKILL.md, keys pinned.** `packs/research/.apm/skills/research/SKILL.md` contains a section titled `Retrievers` that names three surfaces: built-in (WebFetch + WebSearch), MCP tools available in the session, and user-registered Python script retrievers invoked via `Bash` from the main session. The section literally names the three top-level JSON keys (`content`, `citations`, `shape`) and the three `shape` enum values (`raw`, `synthesized`, `meta`). Greps confirm:
+  - `rg '^## Retrievers' packs/research/.apm/skills/research/SKILL.md` returns one hit.
+  - The section contains a code-fenced JSON-shape block with the three keys as quoted JSON strings (not English words in prose). Verification — six separate invocations, each required to return ≥1 hit (`rg -F` accepts one pattern per invocation; chaining `-F` flags treats subsequent values as filenames):
+    - `rg -F '"content"' packs/research/.apm/skills/research/SKILL.md`
+    - `rg -F '"citations"' packs/research/.apm/skills/research/SKILL.md`
+    - `rg -F '"shape"' packs/research/.apm/skills/research/SKILL.md`
+    - `rg -F '"raw"' packs/research/.apm/skills/research/SKILL.md`
+    - `rg -F '"synthesized"' packs/research/.apm/skills/research/SKILL.md`
+    - `rg -F '"meta"' packs/research/.apm/skills/research/SKILL.md`
+
+- [ ] **AC8 — Example retrievers shipped, flat layout, Bash invocation documented.** Files exist at:
+  - `packs/research/.apm/skills/research/scripts/arxiv-retriever.py` — no auth, public arXiv API wrapper, returns `shape: raw`.
+  - `packs/research/.apm/skills/research/scripts/perplexity-retriever.py` — declares `metadata.auth: env` per the credentialed-skill contract (compatible with RFC-0006 shipped; forward-compatible with RFC-0013 broker contract); reads `PERPLEXITY_API_KEY` from environment; returns `shape: synthesized`.
+  - `packs/research/.apm/skills/research/references/retriever-interface.md` — documents the interface contract; names the two example shapes shipped; documents MCP as the third surface; states explicitly that script retrievers are invoked from the main session via `Bash`, not by subagents.
+
+  Each `.py` example exposes a `retrieve(query: str) -> dict` function; a stub conformance check imports each module and confirms the function exists. Layout grep refuses nested subdirs: `find packs/research/.apm/skills/*/references packs/research/.apm/skills/*/scripts -mindepth 2 -type d` returns no results.
+
+- [ ] **AC9 — GRADE schema documented.** `packs/research/.apm/skills/research/references/confidence-schema.md` exists, names the four levels (`high` / `moderate` / `low` / `uncertain`), enumerates downgrade factors (single source / no peer review / vendor-blogged / contested-in-field / heterogeneity / indirectness), and shows at least one worked example of `/devils-advocate` proposing a rating change (any source/target level).
+
+- [ ] **AC10 — Fixture-`$HOME` install/uninstall test (TDD).** A test at `packages/agentbundle/tests/integration/test_install_research_user_scope.py` matches the `test_install_converters_user_scope.py` shape:
+  - TestCase fixtures: `self.tmp = Path(tempfile.mkdtemp())` (with `addCleanup(shutil.rmtree, …)`), `self.home`, `self.repo`, `self.cat` (the temporary catalogue populated via `shutil.copytree` from `packs/research/`).
+  - Calls `install.run(argparse.Namespace(pack="research", catalogue=str(self.cat), output=str(self.repo), scope="user", force=False, force_merge=False))` and asserts exit 0.
+  - HOME-resolution guard: asserts `(self.home / ".agentbundle").exists()` before state-file assertions.
+  - Asserts `self.home / ".agentbundle" / "state.toml"` schema-version equals `agentbundle.config.STATE_SCHEMA_VERSION`; the `research` entry has `scope = "user"` and `len(state.packs["research"].files) >= 7` — one file-tracking entry per shipped skill, matching the converters precedent (`AC6a` in `docs/specs/converters-pack/spec.md` uses the same skill-count floor; agent files may or may not appear in the same list depending on the install implementation, so the floor counts skills only).
+  - Asserts the projected primitives land at `self.home / ".claude" / "skills" / <skill>` for every skill and `self.home / ".claude" / "agents" / <agent>.md` for both subagents.
+  - Calls `uninstall.run(argparse.Namespace(pack="research", root=str(self.repo), scope="user"))` and asserts the projected primitives are gone.
+  - Passes locally via `pytest packages/agentbundle/tests/integration/test_install_research_user_scope.py`.
+
+- [ ] **AC11 — `/research` mode parameter, default quick, filesystem-signature observable.** `packs/research/.apm/skills/research/SKILL.md` documents the `mode: quick | standard | deep` parameter with `quick` as the default. The skill's `description` frontmatter is worded so casual phrasings (`look up`, `find out`, `quick check`) bias toward `quick` and explicit phrasings (`research with citations`, `evidence-grounded`, `go deep`) bias toward `standard` / `deep`. Manual QA: a probe prompt `"the LLM is asking me how a how-to guide should be written; go find out"` produces NO artifact file under the working directory matching any of `research.md`, `counterpoints.md`, `hypotheses.md`, `archaeology.md`, `perspectives.md`, `outline.md`, `sources.md` (per AC12's quick-mode artifact-free guarantee — mirrored verbatim, not just `research.md` since a non-quick fallback could write a different artifact). The absence of every enumerated artifact is the observable signal that quick mode fired; self-report from the model is not sufficient.
+
+- [ ] **AC12 — Quick mode bounded; cap documented.** Quick mode performs ≤5 fetches total (built-in WebFetch + WebSearch only — no MCP, no script retrievers, no subagents), returns inline in chat, produces NO `research.md` or other artifact. SKILL.md documents the ≤5-fetch cap as a hard rail and the abort/downgrade behavior when exceeded. Verification:
+  - Goal-based: `rg -F '5 fetch' packs/research/.apm/skills/research/SKILL.md` (or normalised equivalent — `rg -i 'cap.*5|five.*fetch|<=\s*5\s*fetch'` tolerant grep) confirms the cap is documented; `rg -F 'no artifact' packs/research/.apm/skills/research/SKILL.md` confirms the artifact-free guarantee.
+  - Manual QA: the session transcript of a quick-mode probe records ≤5 `WebFetch` / `WebSearch` tool-use blocks (counted post-hoc from the transcript log) and produces no `research.md` artifact (this is the AC11 cross-signal).
+
+- [ ] **AC13 — Standard mode produces `research.md` with structural rating tags.** Standard-mode invocation produces `research.md` with a `## Findings` section in which every Finding line ends with a literal rating tag from the closed set `[high]` / `[moderate]` / `[low]` / `[uncertain]`. The skill body documents the triangulation rule (≥3 independent sources for `[high]` or `[moderate]` ratings; downgrade reason cited for `[low]` / `[uncertain]`). Verification (structural grep, not subjective claim-counting):
+  - Manual QA: one observable standard-mode run produces `research.md`.
+  - Post-hoc grep using flag-based awk (the range-pattern form `/start/,/end/` collapses when the heading line matches both start and end patterns — this is the awk range-degeneracy defect; flag-based extraction avoids it): `awk '/^## Findings/{f=1;next} f && /^## /{f=0} f' research.md | rg -v '^\s*$' | rg -v '\[(high|moderate|low|uncertain)\]'` returns zero non-blank lines (every Finding carries a rating tag).
+  - SKILL.md grep: `rg '≥3|three.*source|triangulat' packs/research/.apm/skills/research/SKILL.md` confirms the triangulation rule is documented.
+
+- [ ] **AC14 — Deep mode auto-runs `/devils-advocate`.** Deep mode produces `research.md` AND `counterpoints.md`. SKILL.md documents the auto-invocation. Manual QA: one observable run produces both artifacts.
+
+- [ ] **AC15 — Decision pipeline composes; downstream skills document upstream expectations.** Sequential invocation of `/identify-perspectives` → `/source-map` → `/compare-hypotheses` → `/devils-advocate` on a decision-shaped question produces `perspectives.md` + `sources.md` + `hypotheses.md` + `counterpoints.md`. Each downstream skill in the pipeline documents in its SKILL.md the expected upstream artifacts and the degraded-mode behavior if upstream is absent — specifically:
+  - `/source-map` documents that decision-shaped invocations expect an upstream `perspectives.md` (sources can group by camp); standalone invocations skip the camp-grouping step.
+  - `/compare-hypotheses` documents that decision-pipeline invocations expect upstream `perspectives.md` + `sources.md`; standalone invocations enumerate hypotheses inline.
+  - `/devils-advocate` documents that pipeline invocations expect a target artifact (`research.md` or `hypotheses.md`); standalone invocations target a user-supplied claim.
+
+  Verification (pinned per-skill greps, each clause separately enforced):
+  - `/source-map`: `rg -F 'perspectives.md' packs/research/.apm/skills/source-map/SKILL.md` returns ≥1 hit AND `rg -i 'standalone|without upstream|decision-shaped' packs/research/.apm/skills/source-map/SKILL.md` returns ≥1 hit (the previous `decision.shaped` form used regex `.` as a metachar; replaced with literal hyphen).
+  - `/compare-hypotheses`: `rg -F 'perspectives.md' packs/research/.apm/skills/compare-hypotheses/SKILL.md` AND `rg -F 'sources.md' packs/research/.apm/skills/compare-hypotheses/SKILL.md` AND `rg -i 'enumerate.*inline|standalone' packs/research/.apm/skills/compare-hypotheses/SKILL.md` each return ≥1 hit.
+  - `/devils-advocate`: `rg -F 'research.md' packs/research/.apm/skills/devils-advocate/SKILL.md` AND `rg -i 'user.supplied|standalone' packs/research/.apm/skills/devils-advocate/SKILL.md` each return ≥1 hit.
+
+  Manual QA: one observable run produces all four artifacts.
+
+- [ ] **AC16 — Archaeology pipeline self-contained; documented refusal of upstream chain.** `/decision-archaeology` produces `archaeology.md` without invoking `/source-map` or other research-pack skills. SKILL.md documents the self-contained orchestration explicitly — naming that `/source-map`'s authority-curation discipline does not apply (the source surface is time-ordered, internal artifacts dominate, and authority is established by the artifact's place in the history, not by external curation). Verification (pinned literal-token greps, each separately enforced — closing the soft-regex risk that AC21's pass-1 amendment already closed elsewhere):
+- `rg -F 'self-contained' packs/research/.apm/skills/decision-archaeology/SKILL.md` returns ≥1 hit.
+- `rg -F 'does not invoke' packs/research/.apm/skills/decision-archaeology/SKILL.md` AND `rg -F 'source-map' packs/research/.apm/skills/decision-archaeology/SKILL.md` each return ≥1 hit (the body names the source-map skill explicitly as the one not invoked).
+- `rg -F 'time-ordered' packs/research/.apm/skills/decision-archaeology/SKILL.md` returns ≥1 hit (the body names the source-surface discipline explicitly).
+
+Manual QA: one observable archaeology-shaped run produces `archaeology.md` and produces no `sources.md`.
+
+- [ ] **AC17 — Subagents preserve context.** Both subagent body texts instruct the subagent to "return synthesis with citations only; do not return raw fetched HTML or untruncated source text". Verification — three separate `rg -F` invocations per file, each required to return ≥1 hit (the `-F` flag accepts one pattern per invocation):
+  - For `packs/research/.apm/agents/evidence-retriever.md`:
+    - `rg -F 'synthesis' packs/research/.apm/agents/evidence-retriever.md`
+    - `rg -F 'citations' packs/research/.apm/agents/evidence-retriever.md`
+    - `rg -F 'do not return' packs/research/.apm/agents/evidence-retriever.md`
+  - Same three invocations mirrored against `packs/research/.apm/agents/source-extractor.md`.
+
+- [ ] **AC18 — Citation-forcing per claim; explicit set of artifact-producing skills enumerated.** Each of the seven artifact-producing skills documents the citation-forcing rule in its SKILL.md: factual claims carry a citation or are marked `[synthesis]` / `[inference]`. The enumerated set is — `/identify-perspectives` (`perspectives.md`), `/build-outline` (`outline.md`), `/source-map` (`sources.md`), `/research` (`research.md` in standard/deep modes; the SKILL.md still documents the rule because the rule applies whenever an artifact is produced), `/devils-advocate` (`counterpoints.md`), `/compare-hypotheses` (`hypotheses.md`), `/decision-archaeology` (`archaeology.md`). Grep against each of the seven SKILL.md files confirms the rule is named. Manual QA: one observable artifact-producing run produces zero un-cited un-marked factual claims.
+
+- [ ] **AC19 — Moderator unused-snippet pass documented.** `research/SKILL.md` and `devils-advocate/SKILL.md` document the final-step pass ("before declaring done, scan retrieved-but-uncited material and consider one more query from the highest-signal unused snippet"). Grep confirms both files.
+
+- [ ] **AC20 — Seven convergent methodologies referenced.** `packs/research/.apm/skills/research/references/methodologies.md` exists and names all seven disciplines: STORM, PRISMA, ACH, Wikipedia (V/RS/NPOV), OSINT, GIJN, GRADE. Each gets a one-paragraph summary stating the discipline's contribution to the skill bodies. Grep: each named discipline appears at least once.
+
+- [ ] **AC21 — Depth-via-prompt cues documented (closed vocabulary, scoped to a named section).** Each of the six skills other than `/research` (`identify-perspectives`, `build-outline`, `source-map`, `devils-advocate`, `compare-hypotheses`, `decision-archaeology`) contains an explicitly-titled depth-cues section in its SKILL.md naming the depth cues an adopter can include in a prompt to adjust behavior. The section must literally contain at least two cue tokens from the closed vocabulary: `quickly`, `comprehensively`, `top three`, `exhaustively`, `in depth`, `briefly`, `summary only`, `extensive`. The pattern is documented as natural-language depth selection, not as a formal mode parameter. Verification (section-scoped grep, not whole-file — closing the trivially-satisfiable risk):
+- `rg '^## (Depth cues|Depth selection|Adopter cues)\s*$' packs/research/.apm/skills/<skill>/SKILL.md` returns exactly one section heading (end-anchored so `## Cues for X` and similar leakages cannot pass; the bare `Cues` alternative is dropped from the closed set as too generic).
+- Within the section body (extracted via flag-based awk that avoids the range-degeneracy defect on overlapping start/end patterns: `awk '/^## (Depth cues|Depth selection|Adopter cues)\s*$/{f=1;next} f && /^## /{f=0} f' SKILL.md`), at least two distinct tokens from the closed vocabulary appear.
+
+- [ ] **AC22 — Diátaxis tutorial guide.** `docs/guides/tutorials/research-first-session.md` exists. The guide walks an adopter from `agentbundle install research --scope user` through invoking `/research` in `quick`, `standard`, and `deep` modes, with one transcript excerpt per mode demonstrating the artifact-presence signature (no artifact for quick; `research.md` for standard; `research.md` + `counterpoints.md` for deep). Target completion time ≤15 minutes for an adopter following along — verified by a manual-QA timing note appended to the implementing PR's description (per the visual/manual-QA discipline; a soft aspiration alone is not the contract). Diátaxis discipline per `docs/guides/README.md` (and the canonical framework): the tutorial *leads*, doesn't *enumerate*; explanations link out to AC25's explanation guide, reference details link out to AC24's reference guide. Verification — each `rg -F` invocation separate, each required to return ≥1 hit:
+  - File exists.
+  - `rg -F 'agentbundle install research' docs/guides/tutorials/research-first-session.md`.
+  - Each mode walked (substring match intentional — `quick` also catches `quickly` / `quick check`, both of which AC11 lists as casual phrasings; the mode is the subject, not a literal word boundary):
+    - `rg -F 'quick' docs/guides/tutorials/research-first-session.md`
+    - `rg -F 'standard' docs/guides/tutorials/research-first-session.md`
+    - `rg -F 'deep' docs/guides/tutorials/research-first-session.md`
+  - Transcript excerpts name the artifacts they demonstrate (closes the trivially-satisfiable-by-mode-name-alone risk):
+    - `rg -F 'research.md' docs/guides/tutorials/research-first-session.md`
+    - `rg -F 'counterpoints.md' docs/guides/tutorials/research-first-session.md`
+  - Code-fence floor (three transcript excerpts × two fence lines each = ≥6 fence lines): `grep -c '^```' docs/guides/tutorials/research-first-session.md` returns ≥6.
+  - `wc -l docs/guides/tutorials/research-first-session.md` returns ≥50 lines (sanity floor; a one-paragraph stub fails).
+
+- [ ] **AC23 — Diátaxis how-to guide.** `docs/guides/how-to/research-pipelines.md` exists. The how-to documents three recipes — the survey pipeline (`/build-outline → /source-map → /research`), the decision pipeline (`/identify-perspectives → /source-map → /compare-hypotheses → /devils-advocate`), and the archaeology pipeline (`/decision-archaeology`). Each recipe names the invocation sequence, the expected artifacts produced, and one degraded-mode example (e.g., what happens if `/source-map` is skipped in the decision pipeline). Diátaxis discipline: task-shaped, not learning-shaped; assumes the adopter knows the pack exists and wants to *do* something specific. Verification:
+  - File exists.
+  - Three pipeline names appear (each separately enforced): `rg -F 'survey' docs/guides/how-to/research-pipelines.md` AND `rg -F 'decision' docs/guides/how-to/research-pipelines.md` AND `rg -F 'archaeology' docs/guides/how-to/research-pipelines.md` each return ≥1 hit.
+  - All seven artifact filenames appear (each separately enforced): `rg -F 'perspectives.md'`, `rg -F 'outline.md'`, `rg -F 'sources.md'`, `rg -F 'research.md'`, `rg -F 'counterpoints.md'`, `rg -F 'hypotheses.md'`, `rg -F 'archaeology.md'` — each against the file, each returning ≥1 hit.
+
+- [ ] **AC24 — Diátaxis reference guide.** `docs/guides/reference/research-pack.md` exists. The reference is the authoritative dry catalog: enumerates the seven skills with their SKILL.md `name` + `description` reproduced verbatim, the two retrieval subagents with their tool surface and model, the `/research` mode parameter with the closed set `quick | standard | deep` and default `quick`, the GRADE-style confidence schema with all four levels and downgrade factors, the retriever interface contract (`content` / `citations` / `shape` keys; `raw | synthesized | meta` values), and the closed depth-cues vocabulary from AC21. Diátaxis discipline: information-oriented, complete, dry; no narrative; sectioned by primitive type. Verification — each `rg -F` invocation separate, each required to return ≥1 hit (`rg -F` accepts one pattern per call; chaining `-F` flags treats subsequent values as filenames):
+  - File exists.
+  - All seven skill names (each separate):
+    - `rg -F 'identify-perspectives' docs/guides/reference/research-pack.md`
+    - `rg -F 'build-outline' docs/guides/reference/research-pack.md`
+    - `rg -F 'source-map' docs/guides/reference/research-pack.md`
+    - `rg -F 'research' docs/guides/reference/research-pack.md`
+    - `rg -F 'devils-advocate' docs/guides/reference/research-pack.md`
+    - `rg -F 'compare-hypotheses' docs/guides/reference/research-pack.md`
+    - `rg -F 'decision-archaeology' docs/guides/reference/research-pack.md`
+  - All four confidence levels (each separate):
+    - `rg -F 'high' docs/guides/reference/research-pack.md`
+    - `rg -F 'moderate' docs/guides/reference/research-pack.md`
+    - `rg -F 'low' docs/guides/reference/research-pack.md`
+    - `rg -F 'uncertain' docs/guides/reference/research-pack.md`
+  - All three retriever interface keys as quoted strings (each separate — mirroring AC7's pass-3 form):
+    - `rg -F '"content"' docs/guides/reference/research-pack.md`
+    - `rg -F '"citations"' docs/guides/reference/research-pack.md`
+    - `rg -F '"shape"' docs/guides/reference/research-pack.md`
+  - All three retriever shape values as quoted strings (each separate):
+    - `rg -F '"raw"' docs/guides/reference/research-pack.md`
+    - `rg -F '"synthesized"' docs/guides/reference/research-pack.md`
+    - `rg -F '"meta"' docs/guides/reference/research-pack.md`
+  - All eight cue vocabulary tokens from AC21 (each separate):
+    - `rg -F 'quickly' docs/guides/reference/research-pack.md`
+    - `rg -F 'comprehensively' docs/guides/reference/research-pack.md`
+    - `rg -F 'top three' docs/guides/reference/research-pack.md`
+    - `rg -F 'exhaustively' docs/guides/reference/research-pack.md`
+    - `rg -F 'in depth' docs/guides/reference/research-pack.md`
+    - `rg -F 'briefly' docs/guides/reference/research-pack.md`
+    - `rg -F 'summary only' docs/guides/reference/research-pack.md`
+    - `rg -F 'extensive' docs/guides/reference/research-pack.md`
+  - Both subagent names (each separate):
+    - `rg -F 'evidence-retriever' docs/guides/reference/research-pack.md`
+    - `rg -F 'source-extractor' docs/guides/reference/research-pack.md`
+
+- [ ] **AC25 — Diátaxis explanation guide.** `docs/guides/explanation/research-methodology.md` exists. The explanation describes the *why* — the seven convergent disciplines and what each contributes to the pack's skill bodies, plus the architectural choices that fell out of the design conversation: mode-on-`/research` (description-collision avoidance); retrieval-only subagents (multi-agent failure-mode evidence); flat directory layout (agentskills.io spec recommendation); citation-forcing per claim; the moderator unused-snippet pass. Diátaxis discipline: understanding-oriented, narrative, links to the canonical references rather than restating them. Verification — each `rg` invocation separate, each required to return ≥1 hit:
+  - File exists.
+  - All seven methodologies named (each separate `rg -F` invocation):
+    - `rg -F 'STORM' docs/guides/explanation/research-methodology.md`
+    - `rg -F 'PRISMA' docs/guides/explanation/research-methodology.md`
+    - `rg -F 'ACH' docs/guides/explanation/research-methodology.md`
+    - `rg -F 'Wikipedia' docs/guides/explanation/research-methodology.md`
+    - `rg -F 'OSINT' docs/guides/explanation/research-methodology.md`
+    - `rg -F 'GIJN' docs/guides/explanation/research-methodology.md`
+    - `rg -F 'GRADE' docs/guides/explanation/research-methodology.md`
+  - Each named architectural choice appears at least once (each verified by a separate `rg -E` invocation with alternation — `rg -E` accepts a regex with `|` alternation; success on either alternative satisfies the check; the alternatives are substring-disjoint so the OR is meaningful):
+    - `rg -E 'mode-on-research|mode parameter' docs/guides/explanation/research-methodology.md`
+    - `rg -E 'retrieval-only subagents|retrieval subagents' docs/guides/explanation/research-methodology.md`
+    - `rg -E 'citation-forcing|citation forcing' docs/guides/explanation/research-methodology.md`
+    - `rg -E 'moderator pass|unused snippet' docs/guides/explanation/research-methodology.md`
+    - `rg -E 'flat directory layout|flat layout' docs/guides/explanation/research-methodology.md`
+
+## Assumptions
+
+- Technical: Pack lives at `packs/research/` following the `converters` precedent (source: `packs/converters/`).
+- Technical: User-scope packs ship no `seeds/`, no `.apm/hooks/`, no `<adapt:>` markers per RFC-0004 rails (source: `docs/rfc/0004-install-scope-per-pack.md`).
+- Technical: `.apm/agents/` projects at every scope per the adapter contract; no user-scope refusal (source: `docs/rfc/0004-install-scope-per-pack.md` line 274).
+- Technical: Adapter-contract version is `0.8` (source: `packs/converters/pack.toml`). RFC-0009's codex-agent-toml mode at v0.8 enables `.apm/agents/` projection to codex; RFC-0012's repo-scope per-adapter projection enables the dual-scope declaration in AC1 (source: `docs/specs/dropped-primitives-coverage/spec.md` summary in `docs/specs/README.md`; `docs/rfc/0009-codex-native-skills.md`; `docs/rfc/0012-repo-scope-per-adapter-projection.md`).
+- Technical: `allowed-adapters = ["claude-code", "kiro", "codex"]` matches the user-scope-pack precedent; per-adapter degradation handled by the `dropped-primitives-coverage` warning rail (source: `packs/converters/pack.toml`).
+- Technical: agentskills.io spec recommends one-level-deep file references; `references/` is conventionally flat across existing packs; nested subdirectories under `references/` are explicitly discouraged by the spec (source: agentskills.io specification fetched 2026-05-28). This pack also keeps `scripts/` flat for in-pack consistency (Boundaries Never do), even though nested subdirectories under `scripts/` are permitted by precedent in other packs (source: `packs/atlassian/.apm/skills/ai-adoption-report/scripts/ai_adoption_report/`).
+- Technical: Retriever scripts are invoked via the main session's `Bash` tool when `/research` standard or deep mode enumerates them; subagents do not execute scripts (their tool surface excludes `Bash` per AC4) (source: AC8 design; subagent tool scoping per CONVENTIONS § Model selection conventions for tool-narrow subagents).
+- Process: Net-new user-scope packs consuming existing conventions do not require an RFC (source: user confirmation 2026-05-28; `docs/CONVENTIONS.md § 3 RFC` triggers).
+- Process: Spec follows the `new-spec` template (source: `.claude/skills/new-spec/assets/spec.md`).
+- Process: Adversarial-review pass required after spec body lands (source: new-spec SKILL.md step 6).
+- Product: Pack is user-scope, portable across any project an adopter opens (source: user confirmation 2026-05-28).
+- Product: Pack does not integrate with casablanca's spec/plan/build, customer discovery, or any other repo-specific workflow (source: user confirmation 2026-05-28).
+- Product: `/research` carries a `mode` parameter (`quick | standard | deep`) rather than splitting to a separate `/lookup` skill — separate-skill description-collision on "research" cues is the misfire mode (source: user confirmation 2026-05-28; pressure-test sustained).
+- Product: Other skills carry depth-via-prompt guidance rather than formal mode parameters; collision-driven scaffolding does not extend to them; promotion to formal modes deferred until misfire evidence emerges (source: user confirmation 2026-05-28).
+- Product: Retriever extensibility supports MCP-native and credentialed Python scripts; examples ship for arXiv (unauth) and Perplexity (env-broker); Google Deep Research documented in convention but no shipped example (Workspace-paid surface) (source: user confirmation 2026-05-28; `docs/rfc/0013-credential-broker-contract.md` for forward-compatible composition).
+- Product: Retrieval subagents (`evidence-retriever`, `source-extractor`) are content-portable by design — task spec in, citations out, no repo vocabulary — distinguishing them from `core`'s reviewer agents which `RFC-0004` line 46 names as content-portability-failing (source: `docs/rfc/0004-install-scope-per-pack.md`).
+
+## Changelog
+
+- 2026-05-28: initial draft.
+- 2026-05-28: post-adversarial-review pass 1: tightened AC11/AC12 observability (filesystem-signature + transcript-counting); pinned AC13 structural grep over `## Findings` section; added RFC-0009 + RFC-0012 to Constrained-by; named the script-Bash-invocation rule across AC7/AC8/AC4/Always-do/Assumptions; reconciled `scripts/` nesting disposition (now forbidden for this pack, per `Never do`); added Never-do entry refusing `creds` / `sso-cookie` broker declarations on retriever scripts; enumerated the seven artifact-producing skills in AC18; pinned closed-vocabulary cue-token list in AC21; required downstream skills to document upstream-artifact expectations in AC15; required self-contained discipline grep in AC16; relaxed AC9 worked-example direction; relaxed AC10 file-tracking floor from `>= 9` to `>= 7` to match the converters precedent (one file-tracking entry per shipped skill).
+- 2026-05-28: post-adversarial-review pass 2: tightened AC7 key-grep to quoted JSON keys (closing the prose-trivially-satisfiable risk); widened AC11 artifact-absence check to all seven artifact filenames (not just `research.md`); pinned AC15 per-skill grep clauses (filename + degraded-mode tokens, each enforced separately); pinned AC16 literal-token greps including explicit `source-map` skill-name reference and `time-ordered` discipline anchor; scoped AC21 grep to a named depth-cues section via awk-extract; reframed T13 with explicit Constrained-by-drift failure mode in plan.md.
+- 2026-05-28: post-adversarial-review pass 3 (mechanical fixes only): split AC7 quoted-key greps into six separate `rg -F` invocations (the chained `-F` form treats subsequent values as filenames); split AC17 multi-`-F` similarly into three per-token invocations per subagent file; replaced AC13 and AC21 awk range-pattern extractors with flag-based extractors (the `/start/,/end/` form collapses when the heading line matches both patterns); end-anchored the AC21 closed-set heading regex and dropped the bare `Cues` alternative (too generic); replaced AC15 `decision.shaped` regex metachar with literal `decision-shaped`.
+- 2026-05-28: post-clean amendment — added AC22 (Diátaxis tutorial), AC23 (how-to), AC24 (reference), AC25 (explanation) per user direction to ship all four quadrants of user-facing guide docs in the same PR as the pack. Guides live under `docs/guides/<quadrant>/` (casablanca repo scope); they document the pack from an adopter's perspective. Pair-amendment in plan.md adds T14–T17.
+- 2026-05-28: amendment-review pass (mechanical fixes only): AC22 added explicit artifact-name greps and code-fence floor (closing the trivially-satisfiable-by-mode-name-alone risk); AC24 restructured verification to enumerate every closed-set token as a separate `rg -F` invocation (mirroring AC7's pass-3 form), including the three retriever interface keys (`"content"`/`"citations"`/`"shape"`) that the pre-amendment form omitted; AC25 restructured architectural-choice verification to use `rg -E` alternation per choice (each alternative substring-disjoint); T14 added the manual-QA timing-note bullet to match the spec's Testing Strategy declaration.
