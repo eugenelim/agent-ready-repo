@@ -87,6 +87,49 @@ them right the first time. See
 [`.claude/skills/README.md`](.claude/skills/README.md#spec-compliance)
 for the full ruleset.
 
+## Install-test coverage rule
+
+Tests that exercise an on-disk projection layout, the per-pack orphan
+scanner (`safety.scan_for_pack_artifacts`), or the install handler's
+adapter-resolution path **must parametrize over every shipped
+adapter** — today `claude-code`, `kiro`, `codex`, `copilot` — not just
+the default. Each adapter projects to a different directory layout
+(`.claude/`, `.kiro/`, `.agents/skills/`, `.github/instructions/`) and
+the per-pack scanner's primitive-name heuristic interacts differently
+with each shape; coverage at one adapter does not prove coverage at
+the others.
+
+The rule scopes to tests that interact with the *projection or
+scanner*; tests deliberately scoped to scope-resolution, dependency
+gates, or state-accumulation (which are adapter-independent by
+construction) may opt out, and the test's docstring should say so —
+see `test_user_scope_multi_pack_accumulates_state` for the shape.
+
+**The reference shape** is `packages/agentbundle/tests/integration/test_multi_pack_install.py`:
+`packages/agentbundle/agentbundle/_data/adapter.toml` is the source of
+truth for which adapters ship; the test module derives
+`_SHIPPED_ADAPTERS` from it via
+`scope.shipped_adapters_from_contract()` so adding a new
+`[adapter.<name>]` table to the contract expands every parametrized
+test in the same PR. Adapter-specific behaviour gaps are pinned as
+their own tests rather than silently elided. The
+`_skill_path(adapter, skill_name)` helper hand-mirrors the
+`[[adapter.<name>.projection]]` table — when a new adapter ships,
+both the contract entry and `_skill_path` must change in the same PR.
+
+A known coverage asymmetry pinned by `test_copilot_orphan_scan_finds_hooks_but_not_instructions`:
+copilot's flat `.github/instructions/<primitive>.instructions.md`
+projection has a stem (`<primitive>.instructions`) that matches none
+of the scanner's heuristic conditions, so the per-pack scanner
+returns `[]` for copilot's instructions directory. The scanner still
+fires at copilot for packs that ship `tools/hooks/` files (copilot's
+`allowed-prefixes.repo` includes both surfaces), so cross-pack tests
+parametrize Direction A (force-installing a skills-only pack) over a
+narrower adapter set and Direction B (force-installing a pack with
+hooks) over the full set. When new adapter-specific orphan-scan gaps
+are discovered, follow this pattern — pin the gap explicitly so it
+can't drift unnoticed.
+
 ## New tool scripts: Python, not bash
 
 When adding a new tool, self-test, or hook under `tools/`, write it in
