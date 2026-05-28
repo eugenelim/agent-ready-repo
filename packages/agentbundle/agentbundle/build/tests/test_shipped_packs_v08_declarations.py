@@ -1,14 +1,19 @@
-"""Tests for T7 of docs/specs/dropped-primitives-coverage — the eight
-shipped packs declare ``[pack.adapter-contract] version = "0.8"``.
+"""Tests for T7 of docs/specs/dropped-primitives-coverage — the shipped
+packs declaring ``[pack.adapter-contract] version = "0.8"``.
 
-Per spec AC12, exactly these eight packs bump in this PR:
+Per `dropped-primitives-coverage` AC12, eight packs bumped to v0.8:
 
   - atlassian, figma, converters, contracts (the four credentialed /
     consumer packs).
   - core, governance-extras, user-guide-diataxis, monorepo-extras (the
     four scaffold packs).
 
-Two other packs in-tree are NOT bumped here:
+The `research` pack (shipped later by the `research-pack` spec) also
+declares v0.8 at birth, bringing the in-tree v0.8 set to nine. A future
+pack landing at v0.8 should add itself to ``V08_PACKS`` so this test
+surfaces the new declaration.
+
+Two other packs in-tree are NOT at v0.8:
 
   - ``architect``: still at v0.6 (older, pre-RFC-0013).
   - ``credential-brokers``: still at v0.7 (RFC-0013 shipped on v0.7 and
@@ -34,6 +39,7 @@ V08_PACKS = (
     "figma",
     "governance-extras",
     "monorepo-extras",
+    "research",
     "user-guide-diataxis",
 )
 
@@ -52,10 +58,10 @@ class TestShippedPacksDeclareV08(unittest.TestCase):
                     f"pack {name!r} expected adapter-contract.version='0.8', got {version!r}",
                 )
 
-    def test_eight_packs_declare_v08(self) -> None:
-        """Exactly eight pack.tomls in-tree declare v0.8 — the named set
-        above. A future pack landing at v0.8 should add itself to this
-        list explicitly so the test surfaces the new declaration."""
+    def test_shipped_v08_packs_match_named_set(self) -> None:
+        """The pack.tomls in-tree declaring v0.8 are exactly ``V08_PACKS``.
+        A future pack landing at v0.8 should add itself to that tuple
+        explicitly so this test surfaces the new declaration."""
         v08_seen: list[str] = []
         for pack_dir in sorted(PACKS_DIR.iterdir()):
             pack_toml = pack_dir / "pack.toml"
