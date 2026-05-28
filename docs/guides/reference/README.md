@@ -4,6 +4,13 @@
 > commands, configuration, and data shapes. Dry, complete, accurate.
 > Read by people who already know what they're looking for.
 
+## Pages
+
+- [`agentbundle.md`](agentbundle.md) — install the CLI, install a pack,
+  configure the default adapter.
+- [`research-pack.md`](research-pack.md) — every primitive in the
+  `research` pack (skills, retrieval subagents).
+
 ## Writing reference
 
 Reference is the easiest kind of docs to write *badly* (just dump
