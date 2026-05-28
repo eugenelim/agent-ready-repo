@@ -7,10 +7,10 @@ description: Use this skill to draft a new user-facing guide under `docs/guides/
 
 Create a new user-facing guide under `docs/guides/<quadrant>/<slug>.md`,
 following the [Diátaxis framework](https://diataxis.fr/). The framework
-itself is documented in this repo's [`docs/guides/README.md`](../../../../docs/guides/README.md)
-and the per-quadrant README in each subdirectory — read those for the
-*what*; this skill is the *procedure* for landing a new piece on the
-right side of the line.
+itself is documented in this repo at `docs/guides/README.md` and the
+per-quadrant README in each subdirectory — read those for the *what*;
+this skill is the *procedure* for landing a new piece on the right
+side of the line.
 
 The load-bearing rule is **link out, don't blend**. When mid-draft you
 find yourself wanting to add theory inside a tutorial, or steps inside an
