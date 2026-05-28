@@ -35,6 +35,13 @@ Refused (raises ``EnvParseError``):
 
 Trailing ``\\r`` from CRLF line endings is stripped; ``\\r`` *inside* a
 quoted value is preserved (``KEY="a\\rb"`` → ``{"KEY": "a\\rb"}``).
+
+When loaded outside a consumer-skill ``scripts/`` directory — e.g. as
+a sibling under ``~/.agentbundle/bin/`` per the credential-broker-contract
+AC22b companion projection — the shim's own ``_tier2_backend`` resolves
+to ``None``. Callers in that context must not rely on ``load_credentials``
+for Tier-2 resolution; that path is the consumer-skill ``scripts/``
+projection only.
 """
 
 from __future__ import annotations

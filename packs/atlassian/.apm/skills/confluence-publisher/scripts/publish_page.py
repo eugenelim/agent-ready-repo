@@ -27,10 +27,19 @@ import sys
 from pathlib import Path
 from urllib.parse import urljoin
 
-# Ensure sibling modules resolve when script is invoked directly.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Bootstrap when invoked as ``python scripts/publish_page.py`` so the
+# relative imports of sibling modules — including ``_client``'s
+# ``from .credentials_shim import …`` — resolve against the
+# build-projected siblings in this directory. Gated on
+# ``__spec__ is None`` so the block only fires for true file-path
+# invocation; an importlib-based test harness is responsible for
+# its own package context.
+if __package__ in (None, "") and __spec__ is None:
+    _here = Path(__file__).resolve().parent
+    sys.path.insert(0, str(_here.parent))
+    __package__ = _here.name
 
-from _client import (  # noqa: E402
+from ._client import (  # noqa: E402
     AuthError,
     ConflictError,
     ConfluenceClient,
@@ -38,13 +47,13 @@ from _client import (  # noqa: E402
     PageRef,
     load_credentials,
 )
-from _render import (  # noqa: E402
+from ._render import (  # noqa: E402
     ALLOWED_INPUT_FORMATS,
     INPUT_MARKDOWN,
     as_storage_xhtml,
     extract_title_from_markdown,
 )
-from _target import (  # noqa: E402
+from ._target import (  # noqa: E402
     ResolvedTarget,
     TargetResolutionError,
     read_input,

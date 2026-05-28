@@ -45,11 +45,19 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Allow ``python scripts/jira.py`` to import the sibling _client module
-# regardless of cwd.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Bootstrap when invoked as ``python scripts/jira.py`` so the
+# relative imports of sibling modules — including ``_client``'s
+# ``from .credentials_shim import …`` — resolve against the
+# build-projected siblings in this directory. Gated on
+# ``__spec__ is None`` so the block only fires for true file-path
+# invocation; an importlib-based test harness is responsible for
+# its own package context.
+if __package__ in (None, "") and __spec__ is None:
+    _here = Path(__file__).resolve().parent
+    sys.path.insert(0, str(_here.parent))
+    __package__ = _here.name
 
-from _client import (  # noqa: E402
+from ._client import (  # noqa: E402
     AuthError,
     JiraClient,
     JiraError,
