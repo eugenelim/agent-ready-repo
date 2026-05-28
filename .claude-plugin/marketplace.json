@@ -49,6 +49,11 @@
       "version": "0.1.0"
     },
     {
+      "description": "Evidence-grounded research portable across every repo. Seven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
+      "name": "research",
+      "version": "0.1.0"
+    },
+    {
       "description": "Di\u00e1taxis-shaped user-guide skeleton: guides/ + tutorials/how-to/reference/explanation seed READMEs, new-guide skill.",
       "name": "user-guide-diataxis",
       "version": "0.1.0"

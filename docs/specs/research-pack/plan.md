@@ -61,6 +61,8 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 
 **Depends on:** T1
 
+> Note: T2 originally specified the three-mode parameter `quick | standard | deep`. The same-day applied-mode amendment (see T19 below and the spec's `2026-05-28 post-clean amendment` changelog entry) supersedes that — the canonical mode parameter is `quick | standard | applied | deep`. T19 amends what T2 produced; on a fresh end-to-end re-run, treat T2's three-mode tests and approach as superseded by T19.
+
 **Tests:**
 - SKILL.md frontmatter has top-level `name = "research"` and `description` matching both casual and deep cues per AC11.
 - Body documents `mode: quick | standard | deep` with `quick` as default.
@@ -370,6 +372,112 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
 - **Layout drift.** Risk: a future change adds nested subdirectories under `references/`. Mitigation: AC8's `find -mindepth 2 -type d` check runs in CI; **Never do** documents the rule.
 - **Forward-compat with RFC-0013 broker contract.** Risk: `perplexity-retriever.py` declares `metadata.auth: env` today (RFC-0006 shape, shipped); when RFC-0013 ships its full broker contract, the declaration may need updating. Mitigation: env-broker is the most stable of the four broker shapes; updating one example file is a thin follow-up if RFC-0013 alters the env declaration grammar.
 
+### T19: `/research` SKILL.md body — applied mode dispatcher
+
+**Depends on:** T2 (mode dispatcher landed in original PR)
+
+**Tests:**
+- `mode: quick | standard | applied | deep` literal in body (AC11 amendment + AC26 first grep).
+- Description frontmatter biases applied-mode cues per AC11 — at least one of AC28's closed four-cue set (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) appears in the description; AC28's positive `/research`-SKILL.md greps still demand each cue appears at least once *somewhere* in the file (which the body's Applied-mode section satisfies), but the description's role is to bias the dispatcher and a single phrase is enough for that. Floor pinned at 1 to match T22's conformance test floor.
+- Body has an `Applied mode` section (heading `### Applied mode` under `## Modes` parent) that names all four AC29 discipline frames (`prior art`, `best practice`, `case studies`, `anti-patterns`) within the section body; documents practitioner-independence (`same vendor`, `same employer`); documents recency (`>5-year` or `stale prior art`). Section-scoped via flag-based awk per AC29 verification — `prior art` and `best practice` would otherwise auto-satisfy via AC28 cue documentation elsewhere in the file, so the AC29 greps run against the awk-extracted section only.
+- Body documents the discipline marker convention — `> Discipline: applied (practitioner-pattern survey)` — that applied-mode `research.md` emits as its first non-heading line (AC26 second grep, full-string literal).
+- Body documents the cue-precedence rule (applied cues scored before standard/deep cues) explicitly so the dispatcher reads consistently (AC11 amendment). Verified by `rg -iE 'precedence|applied cues.*before|score.*applied.*first|before standard|applied.*ahead of' packs/research/.apm/skills/research/SKILL.md` returning ≥1 hit per AC11's body-grep clause.
+- Body cross-links to `references/confidence-schema.md` for the mode-aware overlay (AC27), section-scoped: `awk '/^### Applied mode/{f=1;next} f && /^#{1,3} /{f=0} f' packs/research/.apm/skills/research/SKILL.md | rg -F 'references/confidence-schema.md'` returns ≥1 hit (the cross-link lives inside the Applied-mode body section, not just anywhere in the file — mirrors AC29's awk-extract pattern).
+- `lint-agent-artifacts.py packs/research/.apm/skills/research/` returns zero.
+- Content-portability grep clean.
+- The frontmatter description has no unquoted `: ` (colon-space) sequence — the description is YAML-quoted (`description: "..."`) or, if unquoted, contains no `: ` inside the value. Kiro's frontmatter parser fail-silently drops the entry on unquoted colon-space (#8329; documented in the user-global memory `reference_kiro_frontmatter_parser`); the existing description is already quoted from iter-1 review pass 1 of the original PR, but the T19 amendment editing must preserve quoting. Verification: `python3 -c "import yaml,sys; meta=next(yaml.safe_load_all(open('packs/research/.apm/skills/research/SKILL.md')));assert 'description' in meta;print(meta['description'][:80])"` returns the description without parser errors.
+
+**Approach:**
+- Mode: goal-based check.
+- Amend the frontmatter description to include at least one applied-cue phrase (e.g., `applied patterns for`). The current description is well under the agentskills.io 1024-char cap, so all existing casual cues (`look up`, `find out`, `quick check`) and the existing escalation cues stay verbatim — the conformance test `test_casual_cue_tokens_present` asserts all three casual cues are present (looping, not "any one of"), and the amendment must not break that gate. Keep the description YAML-quoted (the iter-1 pass-1 amendment to the original PR added quoting to refuse the `: ` parser bug — that quoting must remain). Adding two or three cues is fine; the floor is 1 to match T22's `test_applied_cue_tokens_present` "any one of" assertion.
+- Add a new `### Applied mode` section under `## Modes`. Body explicitly:
+  - Names all four AC29 discipline frames within the section: `prior art`, `best practice`, `case studies`, `anti-patterns` — covering positive shapes (prior art / best practice) and failure-mode shapes (case studies / anti-patterns).
+  - Documents the source taxonomy bias (blogs, conference talks, vendor case studies, community threads, podcasts, Substack — practitioner grey literature).
+  - Documents the practitioner-independence rule (three sources from the same vendor / employer count as one).
+  - Documents the recency rule (>5-year-old patterns in fast-moving domains are suspect under the `stale prior art` downgrade factor).
+  - Documents the discipline marker — the produced `research.md`'s first non-heading line is `> Discipline: applied (practitioner-pattern survey)` (canonical-form byte-for-byte literal per AC26).
+  - Documents the cue-precedence rule (applied cues scored before standard/deep cues) per AC11.
+  - Cross-links to `references/confidence-schema.md` for the mode-aware overlay.
+
+**Done when:** All greps return their expected counts and lint is clean.
+
+### T20: `confidence-schema.md` mode-aware overlay
+
+**Depends on:** T11 (base schema landed)
+
+**Tests:**
+- New section titled exactly `## Applied-mode overlay` present (AC27 first grep — single canonical form; em-dash variant not accepted).
+- Names two new factors as headings or as bold-tagged definitions: `survivorship bias`, `stale prior art` (AC27 second and third greps).
+- Acknowledges `no peer review` is dropped for applied mode but still in the base schema (AC27 fourth grep — `no peer review` still appears in the doc).
+- Contains one worked example of `/devils-advocate` proposing a rating change using `survivorship bias` or `stale prior art` against an applied-mode `research.md` (AC27 fifth grep — `devils-advocate` or `adversarial`).
+
+**Approach:**
+- Mode: goal-based check.
+- Append `## Applied-mode overlay` section after the existing worked example. Body:
+  - Restates that applied mode uses the same `high` / `moderate` / `low` / `uncertain` levels and the same step-down arithmetic (one factor → one level down).
+  - Drops `no peer review` for applied invocations (with the discipline-marker as the rule-set selector).
+  - Adds `survivorship bias` — only successes blog; failure stories underweighted.
+  - Adds `stale prior art` — a pattern from >5 years ago in a fast-moving domain may have been superseded.
+  - Worked example: a finding rated `[high]` in applied-mode `research.md` downgraded to `[moderate]` by `/devils-advocate` flagging `survivorship bias` after retrieving practitioner post-mortems on failed adopters.
+
+**Done when:** All AC27 greps return expected counts; worked example present.
+
+### T21: Reference + explanation + tutorial guide touches
+
+**Depends on:** T19, T20
+
+**Tests:**
+- Reference guide mode table includes `applied` row with default? = no, artifact = `research.md` + discipline marker, retrievers, triangulation rule (AC24 mode-greps enforce the four mode tokens including `applied`; AC28 cue-greps enforce the four applied-cue phrases inside the reference guide).
+- Reference guide enumerates the closed applied-cue set (AC28 greps).
+- Explanation guide mentions the applied-mode rationale as a sixth architectural choice (or extends the mode-on-research section to acknowledge the discipline-axis extension). Manual edit; no separate spec grep added (AC25's existing five-choice grep continues to pass).
+- Tutorial guide adds a short mention of applied mode in the modes table (optional sentence in the "Where to go next" section).
+
+**Approach:**
+- Mode: goal-based check.
+- Reference guide:
+  - Extend the `/research` mode parameter table with the `applied` row.
+  - Add the applied-cue set to the Depth cue vocabulary section (or a parallel "Applied cues" section if the depth-cue framing doesn't fit).
+- Explanation guide:
+  - Extend the mode-on-research architectural-choice section to acknowledge that the discipline axis (academic vs practitioner) was the second use-case feedback shape that motivated extending the flat mode parameter; cross-reference AC27's overlay as the mechanism.
+- Tutorial guide:
+  - One-line mention of applied mode in the mode table or a new "what about practitioner patterns?" footnote.
+
+**Done when:** AC28 reference greps pass; explanation + tutorial edits land coherently.
+
+### T22: Conformance test extension — split escalation regression into two tests
+
+**Depends on:** T19
+
+**Tests:**
+- `test_research_retrievers_conformance.py::ResearchSkillDescriptionRegression` splits `test_escalation_cue_tokens_present` into two parallel "any one of" tests:
+  - `test_standard_or_deep_cue_tokens_present` — keeps the existing 4-tuple (`research with citations`, `evidence-grounded`, `go deep`, `comprehensively`). Each invocation must find at least one.
+  - `test_applied_cue_tokens_present` — NEW. Asserts at least one of the four applied cues (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) appears in the description.
+- Both tests must pass — splitting closes the gap where a single combined tuple would silently accept a description carrying *only* applied cues and dropping all standard/deep escalation cues.
+- `test_casual_cue_tokens_present` is unchanged (already loops on `look up`, `find out`, `quick check`).
+
+**Approach:**
+- Mode: TDD (each new test fails until the corresponding cue side is present in the description).
+- Add `test_applied_cue_tokens_present` mirroring the existing `test_escalation_cue_tokens_present` shape but with the applied-cue tuple; rename the existing method to `test_standard_or_deep_cue_tokens_present` to keep the contract explicit.
+
+**Done when:** Both split tests pass with the T19 amended description; either test fails locally if the corresponding cue side loses every token.
+
+### T23: docs/specs/README.md row + post-amendment gates + review
+
+**Depends on:** T19, T20, T21, T22
+
+**Tests:**
+- `docs/specs/README.md` Active-specs row for `research-pack` updated: description mentions `mode: quick | standard | applied | deep`; the architectural-choice note for applied mode is one sentence in the description column.
+- `make pre-pr` passes.
+- `make build-self` does not produce drift (the marketplace.json description is set on the pack — re-run if pack.toml description changed; pack.toml is unchanged in this amendment, so build-self should be a no-op).
+- Integration test `test_install_research_user_scope.py` still passes (no new files projected; applied mode is body-level).
+- Adversarial-reviewer returns `Clean — ready to commit.` after gates.
+
+**Approach:**
+- Mode: goal-based check + adversarial review.
+- Update the README row; run `make pre-pr`; spot-check integration test; dispatch adversarial-reviewer with the diff scope (the spec/plan amendments + the body/overlay/guide edits + the conformance test extension).
+
+**Done when:** Catalogue row in sync; gates green; reviewer clean.
+
 ## Changelog
 
 - 2026-05-28: initial plan drafted alongside spec.
@@ -377,3 +485,4 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
 - 2026-05-28: post-adversarial-review pass 3 (mechanical fixes only): T2 Tests bullet sync'd to spec AC7's pass-3 quoted-JSON-key form (six separate `rg -F` invocations expected at construction time).
 - 2026-05-28: post-clean amendment — added T14 (Diátaxis tutorial), T15 (how-to), T16 (reference), T17 (explanation) paired with spec AC22–AC25. Tasks land in the same PR; dependencies wire each guide to the skill bodies it documents.
 - 2026-05-28: amendment-review pass (mechanical fixes only): T14 Tests bullet extended with explicit artifact-name greps + code-fence count + manual-QA timing-note dimension (matching the spec's Testing Strategy row for AC22).
+- 2026-05-28: post-clean amendment — added T19 (`/research` body, applied mode dispatcher), T20 (`confidence-schema.md` applied-mode overlay), T21 (reference / explanation / tutorial guide touches), T22 (conformance test extension), T23 (catalogue row + gates) paired with spec AC26–AC29. Tasks land in the same PR (the still-open #173) since they extend the still-shipping `/research` skill body and its references; stacking would split a single primitive's contract across two reviews. The integration test is unchanged — applied mode is body-level (no new file projected).
