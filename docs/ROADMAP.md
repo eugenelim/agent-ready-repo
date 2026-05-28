@@ -802,24 +802,19 @@ PR-review is the other):
   in-process test while the projection drifts. Follow-up: parametrise
   the test over both paths.
 
-**Deferred projection follow-ups** (named in PR
-`eugenelim/fix-credential-user-install`):
+**Deferred projection follow-ups:**
 
-- **`adapter-root-bins` projection omits `credentials_shim.py`.** The
-  rule in `packages/agentbundle/agentbundle/build/adapter_root_bins.py`
-  copies only `.apm/adapter-root-bins/*.py` to `~/.agentbundle/bin/`.
-  The `_sso_keychain_macos.py` / `_sso_credman_windows.py` siblings
-  rely on a sibling `credentials_shim.py` for `Tier2HardFailError`,
-  but it is never projected there — so under bare user-scope
-  install, `sso-broker.py`'s Tier-2 backend silently degrades to
-  `None` via the try/except cascade. The `__package__`-bootstrap
-  added by this PR fixes the relative-import resolution at the
-  broker entry-point but does not paper over this gap.
-  Follow-up: either project `credentials_shim.py` (and the platform
-  backends?) alongside adapter-root-bins, or refactor the `_sso_*`
-  modules to not depend on a shim-provided exception class. RFC-0013
-  § 4d frames the projection contract; this gap was not in scope of
-  the original spec.
+- ~~**`adapter-root-bins` projection omits `credentials_shim.py`.**~~
+  *Closed 2026-05-27 by PR `eugenelim/fix-sso-broker-shim-projection`*
+  — `adapter_root_bins.apply_projection` now projects
+  `credentials_shim.py` as a sibling under `~/.agentbundle/bin/` when
+  a pack ships both `.apm/adapter-root-bins/` and
+  `.apm/shared-libs/credentials_shim.py`; a content-grep hard-error
+  rail refuses the build if any `adapter-root-bins/*.py` imports the
+  shim but the source is absent (generalised past `_sso_*`). Spec
+  AC22b / AC22c added; AC23 widened to cover adapter-root-bins drift
+  outcomes with the `[adapter-root-bins:shim-companion]` diagnostic
+  prefix.
 
 ## Cross-spec / outside-the-spec-tree
 
