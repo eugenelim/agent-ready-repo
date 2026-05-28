@@ -240,26 +240,24 @@ def _plant_state_row(
 
 
 class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
-    """AC33 upgrade-with-state-hint case — **defensive regression pin**.
+    """AC33 upgrade-with-state-hint case — **AC10b parity at repo scope**.
 
-    The spec asks for "AC10b parity at repo scope". AC10b proper (the
-    state-hint short-circuit inside ``_resolve_target_adapter``) is
-    not exercised at repo-scope upgrade today because
-    ``upgrade.py:230+`` only invokes the resolver when
-    ``effective_scope == "user"`` — repo scope falls through to
-    ``render_pack`` (dist-tree shape). The cross-adapter refusal at
-    ``upgrade.py:371-379`` is structurally unreachable at repo scope
-    by the same gating.
+    Now that repo-scope upgrade routes through
+    ``_render_for_repo_scope`` (mirroring install), AC10b is real at
+    this scope: ``upgrade.run`` invokes ``_resolve_target_adapter``
+    with ``state_adapter=pack_state.adapter`` so a Kiro-installed
+    pack stays on Kiro even when the resolver's legacy heuristic
+    would otherwise pick Claude Code on observing a populated
+    ``<repo>/.claude/`` directory.
 
-    This test pins that structure: ``state.adapter`` stays ``"kiro"``
-    after a repo-scope upgrade, and the ``pack adapter changed``
-    refusal does not fire. A future refactor that extends the
-    cross-adapter refusal block to repo scope without also threading
-    the state-hint short-circuit would break this test — that's the
-    regression the pin catches. Lifting repo-scope upgrade onto the
-    per-IDE projection path is explicitly Ask-first in the spec; if
-    that lift lands, this test wants tightening (assert the resolver
-    *was* called with ``state_adapter=pack_state.adapter``)."""
+    Pin: install ``--adapter kiro``, plant a Claude Code marker
+    under ``.claude/skills/``, run an upgrade with no flags. Assert
+    (a) ``state.adapter`` stays ``"kiro"``, (b) the cross-adapter
+    ``pack adapter changed`` refusal does not fire, (c) the
+    post-upgrade projection lands at ``.kiro/`` — the load-bearing
+    evidence the resolver was called with the state-hint and routed
+    to Kiro (a regression to ``render_pack`` or to the unhinted
+    resolver would re-emit dist-tree or ``.claude/`` shape)."""
 
     def setUp(self) -> None:
         _clear_inband_detection_seen()
@@ -291,6 +289,10 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
                 state["pack"]["core"].get("adapter"), "kiro",
                 f"install did not record adapter=kiro: {state!r}",
             )
+            self.assertTrue(
+                (adopter / ".kiro").exists(),
+                f"install did not land .kiro/ projection under {adopter}",
+            )
 
             # Step 2: populate <repo>/.claude/ to simulate the
             # adopter having Claude Code state present alongside Kiro.
@@ -317,20 +319,23 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             )
             err_buf = io.StringIO()
             with redirect_stderr(err_buf):
-                _rc = upgrade.run(upgrade_args)
+                rc_upgrade = upgrade.run(upgrade_args)
             stderr = err_buf.getvalue()
 
-            # The cross-adapter refusal text from upgrade.py:371-379
-            # must not fire at repo scope. Pinning the exact substring
-            # makes a future refactor that extends the refusal block
-            # to repo scope (without state-hint) trip this assertion.
+            self.assertEqual(
+                rc_upgrade, 0,
+                f"upgrade must succeed at repo scope with state-hint; "
+                f"stderr={stderr!r}",
+            )
+
+            # The cross-adapter refusal text from upgrade.py's
+            # cross-adapter block must not fire at repo scope. Pinning
+            # the exact substring makes a future refactor that extends
+            # the refusal block to repo scope (without state-hint)
+            # trip this assertion.
             self.assertNotIn("pack adapter changed", stderr)
 
-            # State row's adapter stays kiro regardless of the upgrade's
-            # outcome (the test pins state preservation, not upgrade
-            # success — repo-scope upgrade still goes through the
-            # dist-tree renderer today; per-IDE upgrade at repo scope
-            # is a future RFC's surface).
+            # State row's adapter stays kiro across the upgrade.
             state_after = _load_state(adopter)
             recorded_after = (
                 state_after.get("pack", {}).get("core", {}).get("adapter", "claude-code")
@@ -338,6 +343,31 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             self.assertEqual(
                 recorded_after, "kiro",
                 f"state.adapter regressed post-upgrade: {state_after!r}",
+            )
+
+            # Load-bearing evidence the resolver was called with
+            # `state_adapter="kiro"` and that the per-IDE projection
+            # landed (not the dist-tree producer's output): post-upgrade,
+            # `.kiro/` is still on disk and no `apm/`, `claude-plugins/`,
+            # or `marketplace.json` leaked into the adopter root.
+            self.assertTrue(
+                (adopter / ".kiro").exists(),
+                f"upgrade dropped .kiro/ projection — resolver was not "
+                f"called with state_adapter=kiro, or the per-IDE branch "
+                f"was bypassed; tree: "
+                f"{sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",
+            )
+            self.assertFalse(
+                (adopter / "apm").exists(),
+                f"upgrade leaked apm/ subtree under {adopter}",
+            )
+            self.assertFalse(
+                (adopter / "claude-plugins").exists(),
+                f"upgrade leaked claude-plugins/ subtree under {adopter}",
+            )
+            self.assertFalse(
+                (adopter / "marketplace.json").exists(),
+                f"upgrade leaked marketplace.json under {adopter}",
             )
 
 
