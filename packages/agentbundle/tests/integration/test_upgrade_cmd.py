@@ -364,6 +364,71 @@ def test_pack_not_installed_exits_nonzero(tmp_path, capsys):
     assert "not installed" in captured.err
 
 
+# ---------------------------------------------------------------------------
+# 7. Success recap — upgrade must print a one-line recap to stdout on
+#    success, mirroring install/uninstall. Regression: shipped silent in
+#    cd4f3e58; users couldn't tell whether an upgrade had taken effect.
+# ---------------------------------------------------------------------------
+
+
+def test_whole_pack_upgrade_prints_success_recap(tmp_path, capsys):
+    """A successful whole-pack upgrade must emit a one-line recap on stdout
+    naming the pack and the target version. Regression test for the
+    silent-success bug — stdout must not be empty on the happy path."""
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()  # drop install output
+
+    rc = _run_upgrade(
+        pack="core",
+        catalogue=str(CAT_V2),
+        to_version="0.2.0",
+        root=str(tmp_path),
+    )
+    assert rc == 0
+
+    captured = capsys.readouterr()
+    assert captured.out.strip(), (
+        "whole-pack upgrade must print a non-empty recap to stdout"
+    )
+    last = captured.out.strip().splitlines()[-1]
+    assert last.startswith("upgraded:"), (
+        f"recap must start with 'upgraded:'; got: {last!r}"
+    )
+    assert "core" in last and "0.2.0" in last, (
+        f"recap must name pack and target version; got: {last!r}"
+    )
+
+
+def test_per_primitive_upgrade_prints_success_recap(tmp_path, capsys):
+    """A successful per-primitive upgrade must emit a one-line recap on stdout
+    naming the pack, the primitive, and the target version."""
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()
+
+    rc = _run_upgrade(
+        pack="core",
+        catalogue=str(CAT_V2),
+        to_version="0.2.0",
+        root=str(tmp_path),
+        skill="work-loop",
+    )
+    assert rc == 0
+
+    captured = capsys.readouterr()
+    assert captured.out.strip(), (
+        "per-primitive upgrade must print a non-empty recap to stdout"
+    )
+    last = captured.out.strip().splitlines()[-1]
+    assert last.startswith("upgraded:"), (
+        f"recap must start with 'upgraded:'; got: {last!r}"
+    )
+    assert "core" in last and "work-loop" in last and "0.2.0" in last, (
+        f"recap must name pack, primitive, and target version; got: {last!r}"
+    )
+
+
 def test_filter_for_primitive_refuses_ambiguous_name():
     """If a pack would project both `<src_dir>/<name>/...` and
     `<src_dir>/<name>.<ext>` for the same primitive name, `_filter_for_primitive`
