@@ -1413,6 +1413,42 @@ def _classify_pre_rfc0012_state(
             output_root, allowed_prefixes_repo,
             pack_dir=pack_dir, pack_name=pack_name,
         )
+        # The scanner's primitive-name heuristic is best-effort scoping,
+        # not authoritative ownership. When two packs ship primitives
+        # whose names collide (segment-match or stem-match), the
+        # scanner mis-attributes the foreign pack's file as an orphan
+        # of the installing pack — and the --force branch below would
+        # unlink another state-tracked pack's file. ``state.toml`` IS
+        # authoritative: filter out paths claimed by any other pack's
+        # state row before treating the scanner's result as orphans.
+        #
+        # Compare with NFC + ``os.path.normcase`` on both sides so a
+        # case-insensitive filesystem (Windows NTFS, HFS+) or a
+        # filesystem that returned the path in a different Unicode
+        # normalisation form (macOS NFD ↔ NFC) doesn't fail-open and
+        # let a foreign-owned path slip through into the unlink set.
+        if orphans:
+            import os as _os
+            import unicodedata as _unicodedata
+
+            def _canon_relpath(rel: str) -> str:
+                return _unicodedata.normalize(
+                    "NFC", _os.path.normcase(rel)
+                )
+
+            foreign_owned: set[str] = set()
+            for other_name, other_state in repo_state.packs.items():
+                if other_name == pack_name:
+                    continue
+                foreign_owned.update(
+                    _canon_relpath(rel) for rel in other_state.files.keys()
+                )
+            if foreign_owned:
+                orphans = [
+                    p for p in orphans
+                    if _canon_relpath(p.relative_to(output_root).as_posix())
+                    not in foreign_owned
+                ]
         if orphans:
             _INBAND_DETECTION_SEEN.add(key)
             if force:
