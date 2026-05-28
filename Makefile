@@ -12,7 +12,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs validate clean zipapp release-preflight
+.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr validate clean zipapp release-preflight
 
 # Windows-portability gate. Refuses packs that ship symlinks or
 # Windows-poisonous names under seeds/ or .apm/. Runs before every
@@ -60,8 +60,18 @@ endif
 build-self-dry-run: lint-packs
 	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
 
+# Projected-artifact + spec-state aggregator. Mirrors what
+# docs.yml's per-layer jobs and the `Lifecycle hooks` job run in CI;
+# chained into build-check below so `make build-check` is the single
+# local gate that covers both lint surfaces (packs source via
+# lint-packs, projected .claude/* artifacts via pre-pr). Safe to call
+# directly when you want only the artifact checks without rebuilding.
+pre-pr:
+	$(PYTHON) tools/hooks/pre-pr.py
+
 build-check: lint-packs build
 	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
+	$(PYTHON) tools/hooks/pre-pr.py
 
 build-scaffold:
 	@test -n "$(OUTPUT)" || (echo "make build-scaffold OUTPUT=<dir> required" >&2; exit 1)
