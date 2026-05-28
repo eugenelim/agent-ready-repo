@@ -274,20 +274,75 @@ def test_derivation_recovers_from_phantom_files(tmp_path):
 def test_make_build_check_passes_post_migration(tmp_path):
     """AC9: agentbundle build check exits zero against the migrated working tree.
 
-    Concerns 7+8: uses the Python entry point (not 'make build-check') and
-    copies packs/ into tmp_path so the real repo tree is never mutated.
-    __pycache__ directories inside the copy are removed before the check so
-    the self-host gate does not flag them as unexpected projection artifacts.
+    Hermetic: shadow-copies packs/ + .adapt-discovery.toml into tmp_path, then
+    pre-runs `agentbundle build self --force` and `agentbundle build build`
+    against the shadow so the writer-template drift gates (which require
+    dist/{claude-plugins,apm}/ under output_dir) have artifacts to check.
+    The real repo is never mutated and the test does not require a prior
+    `make build` to have populated REPO_ROOT/dist/ (Makefile chains
+    build-check: build, but the Python entry point on its own does not).
     """
-    # Shadow-copy packs/ into tmp_path so the real repo is never mutated.
-    packs_shadow = tmp_path / "packs_shadow"
+    packs_shadow = tmp_path / "packs"
     shutil.copytree(REPO_ROOT / "packs", packs_shadow, symlinks=True)
+    shutil.copy2(
+        REPO_ROOT / ".adapt-discovery.toml",
+        tmp_path / ".adapt-discovery.toml",
+    )
 
     # Remove any __pycache__ from the shadow copy — they would be flagged as
     # unexpected projection artifacts by the self-host gate.
     for pycache in packs_shadow.rglob("__pycache__"):
         if pycache.is_dir():
             shutil.rmtree(pycache, ignore_errors=True)
+
+    # Populate the shadow working tree by running the real self-host
+    # projection against it. --force bypasses the dirty-tree refusal
+    # (tmp_path is not a git repo, so is_dirty_tree fails closed).
+    self_host = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agentbundle.build",
+            "self",
+            "--force",
+            "--packs-dir",
+            str(packs_shadow),
+            "--output-dir",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    assert self_host.returncode == 0, (
+        f"agentbundle build self (pre-check setup) failed (exit {self_host.returncode}):\n"
+        f"stdout: {self_host.stdout}\n"
+        f"stderr: {self_host.stderr}"
+    )
+
+    # Populate dist/{claude-plugins,apm}/ so the writer-template drift gates
+    # have artifacts to compare against. Replaces the implicit Makefile
+    # precondition `build-check: build`.
+    build = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agentbundle.build",
+            "build",
+            "--packs-dir",
+            str(packs_shadow),
+            "--output-dir",
+            str(tmp_path / "dist"),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+    assert build.returncode == 0, (
+        f"agentbundle build (pre-check setup) failed (exit {build.returncode}):\n"
+        f"stdout: {build.stdout}\n"
+        f"stderr: {build.stderr}"
+    )
 
     result = subprocess.run(
         [
@@ -297,6 +352,8 @@ def test_make_build_check_passes_post_migration(tmp_path):
             "check",
             "--packs-dir",
             str(packs_shadow),
+            "--output-dir",
+            str(tmp_path),
         ],
         capture_output=True,
         text=True,
