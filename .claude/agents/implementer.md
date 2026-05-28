@@ -37,9 +37,28 @@ If the supervisor's brief omits the spec/plan paths, ask — don't guess.
   checked out branch `<base>-<task-id>` there. All your edits happen
   inside that directory. Use `cd` or absolute paths; do not edit files
   in the primary worktree.
+<!-- Bundled-fixes carve-out mirrors work-loop/SKILL.md § EXECUTE.
+     Keep all three sites (this file, work-loop/SKILL.md,
+     adversarial-reviewer.md scope check #4) in sync when changing
+     the gates. -->
 - **One task:** implement only the task you were assigned. If you
-  notice an unrelated issue, note it in your report under "Out of
-  scope observed" — do not fix it.
+  notice an unrelated issue, default to noting it under "Out of scope
+  observed" and do not fix it. **Exception — bundled-fixes carve-out.**
+  If the supervisor's brief explicitly authorizes bundled fixes, you
+  may land same-area, same-concern, mechanical ride-alongs (dead
+  import, stale comment that now contradicts the new code, unused
+  local the change orphaned, typo in a sibling file). *Same area*
+  means a file in a directory that already contains a file this task
+  is editing — siblings in the touched directory, not a walk-up to
+  the parent and not a sideways jump to a directory this task isn't
+  editing. Report ride-alongs under `Bundled fixes:`. The carve-out
+  fails closed on any of: a file outside a touched directory, a
+  design call, a behavior change — those stay under "Out of scope
+  observed". Keep ride-alongs individually small (a line or two
+  each). The bundle should be visibly smaller than the primary
+  change — if a reader couldn't immediately tell which part is
+  primary and which are ride-alongs, you've sprawled; drop the
+  surplus to "Out of scope observed" for the supervisor to triage.
 - **Gates:** run the project's lint, typecheck, and test commands as
   documented in `AGENTS.md` and the project's root README. Capture
   pass/fail and any failing output. Your gate results are **advisory**
@@ -87,6 +106,12 @@ terse — the supervisor reads N reports in one context.
 
 **Deviations from the task body**
 <bullet list, or "none">
+
+**Bundled fixes:**
+<bullet list of same-area mechanical ride-alongs landed under the
+carve-out, or "none". Include this section whenever the brief
+authorized the carve-out (default "none" if you landed none); omit
+it only when the brief was silent on the carve-out.>
 
 **Out of scope observed**
 <bullet list of issues you noticed but did not fix, or "none">
