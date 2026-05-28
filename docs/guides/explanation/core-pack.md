@@ -49,6 +49,12 @@ they all read:
   the editor lifecycle. `session-start.py` reads the install-marker
   and nudges into `adapt-to-project` on first session.
 
+Plus a sibling skill that runs alongside the six: **`bug-fix`** ships
+in `core` too and runs a parallel discipline (reproduce → red test →
+root vs. symptom → minimum fix → regression test stays) without
+entering the spec / loop pipeline. It composes with `work-loop` when
+the fix grows past one file. See [how to fix a bug](../how-to/bug-fix.md).
+
 ## How they tie together
 
 A feature lifecycle, end to end, with the parts named:

@@ -170,7 +170,7 @@ are *forward-looking governance*; ADRs are *backward-looking record*.
 **Lifecycle:**
 
 ```
-Draft → Open for comment → Final comment period → Accepted | Rejected | Withdrawn
+Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn
 ```
 
 Once an RFC is **Accepted**, it produces follow-on artifacts:
