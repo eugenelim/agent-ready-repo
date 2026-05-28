@@ -165,44 +165,62 @@ def test_entry_point_imports_resolve_under_user_scope_layout(
     _assert_no_relative_import_error(result, f"{skill_relpath}/{entry_name}")
 
 
-def test_sso_broker_imports_resolve_under_user_scope_layout(
+def test_sso_broker_tier2_backend_loads_under_user_scope_layout(
     tmp_path: pathlib.Path,
 ) -> None:
-    """The SSO broker ships at adapter-root (``~/.agentbundle/bin/``)
-    rather than under a skill's scripts/. The ``adapter-root-bins``
-    projection rule copies ONLY ``*.py`` files from
-    ``.apm/adapter-root-bins/`` — it does NOT include
-    ``credentials_shim.py``. Real user-scope therefore stages:
-    ``sso-broker.py`` + ``_sso_keychain_macos.py`` +
-    ``_sso_credman_windows.py``. The ``_sso_*`` modules' own
-    ``from .credentials_shim import …`` lines fail under that layout,
-    but ``sso-broker.py``'s try/except cascade catches the import
-    error and degrades to ``_tier2_backend = None`` — a preexisting
-    shim-projection gap (see ``docs/ROADMAP.md`` /
-    ``packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py``
-    bootstrap comment).
+    """AC22b regression: the SSO broker's Tier-2 backend must load
+    under the realistic post-fix `~/.agentbundle/bin/` layout, not
+    silently degrade to None on macOS/Windows.
 
-    This test asserts what the bootstrap-plus-cascade does own:
-    `python sso-broker.py --help` exits 0 (graceful degradation)
-    and does not surface the relative-import error to the user."""
+    The AC22b shim-companion projection puts `credentials_shim.py`
+    next to `sso-broker.py` + `_sso_keychain_macos.py` +
+    `_sso_credman_windows.py` in the bin/ target, so
+    `_sso_*`'s `from .credentials_shim import Tier2HardFailError`
+    resolves. Without the companion, the `_sso_*` import fails and
+    `sso-broker.py`'s try/except cascade degrades `_tier2_backend`
+    to `None` — exactly on the platforms the broker's Tier-2 path
+    is supposed to exercise.
+
+    Invocation shape: documented user-facing form
+    `python bin/sso-broker.py show-tier2-backend` (positional verb).
+    Per `feedback_test_real_invocation_not_synthesised_import` — no
+    runpy.run_path, no importlib synthesis, no package-context
+    forging. The `show-tier2-backend` verb prints `repr(_tier2_backend)`
+    and exits 0; that's all the test asserts on.
+
+    Platform-keyed assertion against the design contract:
+    `_sso_keychain_macos` on darwin / `_sso_credman_windows` on win32
+    / `None` on linux (no Tier-2 backend on Linux is by design per
+    spec § Boundaries § Never do)."""
     src = PACKS / "credential-brokers" / ".apm" / "adapter-root-bins"
+    shim_src = PACKS / "credential-brokers" / ".apm" / "shared-libs"
     if not (src / "sso-broker.py").is_file():
         pytest.skip("sso-broker.py not present")
-    # Stage the realistic adapter-root-bins layout: NO shim sibling.
+    # Stage the realistic post-AC22b user-scope layout.
     staged_bin = tmp_path / "bin"
     staged_bin.mkdir()
     for entry in src.iterdir():
         if entry.is_file() and entry.suffix == ".py":
             shutil.copy(entry, staged_bin / entry.name)
-    assert not (staged_bin / "credentials_shim.py").exists(), (
-        "test staging drifted: realistic adapter-root-bins/ projection "
-        "must NOT include credentials_shim.py — see RFC-0013 § 4d / "
-        "docs/ROADMAP.md credential-broker-contract entry"
+    # AC22b companion: the build pipeline projects credentials_shim.py
+    # next to sso-broker.py + the _sso_* siblings. Re-project here
+    # from the canonical source so the test does not depend on a
+    # prior `make build-self` having run.
+    shutil.copy(
+        shim_src / "credentials_shim.py",
+        staged_bin / "credentials_shim.py",
     )
+    assert (staged_bin / "credentials_shim.py").exists()
     assert not (staged_bin / "__init__.py").exists()
+    # The shim's own platform backends MUST NOT be projected into
+    # bin/ — sso-broker uses its own _sso_* backends; the shim's
+    # _tier2_backend resolves to None when loaded from bin/ per
+    # AC22c, which is correct behaviour.
+    assert not (staged_bin / "_keychain_macos.py").exists()
+    assert not (staged_bin / "_credman_windows.py").exists()
 
     result = subprocess.run(
-        [sys.executable, "bin/sso-broker.py", "--help"],
+        [sys.executable, "bin/sso-broker.py", "show-tier2-backend"],
         cwd=str(tmp_path),
         capture_output=True,
         text=True,
@@ -210,3 +228,25 @@ def test_sso_broker_imports_resolve_under_user_scope_layout(
         timeout=30,
     )
     _assert_no_relative_import_error(result, "sso-broker.py")
+    assert result.returncode == 0, (
+        f"show-tier2-backend exited {result.returncode}.\n"
+        f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+    )
+    stdout = result.stdout
+    if sys.platform == "darwin":
+        assert "_sso_keychain_macos" in stdout, (
+            f"AC22b regression: Tier-2 backend silently degraded to None "
+            f"on darwin under realistic user-scope layout. stdout: {stdout!r}"
+        )
+    elif sys.platform == "win32":
+        assert "_sso_credman_windows" in stdout, (
+            f"AC22b regression: Tier-2 backend silently degraded to None "
+            f"on win32 under realistic user-scope layout. stdout: {stdout!r}"
+        )
+    else:
+        # Linux / other: no Tier-2 backend by design.
+        assert "None" in stdout, (
+            f"sso-broker on {sys.platform!r}: expected `None` Tier-2 "
+            f"backend (no Tier-2 on non-darwin / non-win32 per spec § "
+            f"Boundaries); got {stdout!r}"
+        )
