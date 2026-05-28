@@ -24,6 +24,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install tools dependencies
+        # `make build-check` chains `tools/hooks/pre-pr.py`, which calls
+        # `tools/lint-agent-artifacts.py` (and siblings) — those import
+        # PyYAML from tools/requirements.txt. Install before invoking make
+        # so the projected-artifact lint surface is reachable in CI.
+        run: pip install -r tools/requirements.txt
+
       - name: Run make build-check
         run: make build-check PACKS_DIR=packs
 
