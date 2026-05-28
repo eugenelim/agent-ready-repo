@@ -240,26 +240,24 @@ def _plant_state_row(
 
 
 class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
-    """AC33 upgrade-with-state-hint case — **defensive regression pin**.
+    """AC33 upgrade-with-state-hint case — **AC10b parity at repo scope**.
 
-    The spec asks for "AC10b parity at repo scope". AC10b proper (the
-    state-hint short-circuit inside ``_resolve_target_adapter``) is
-    not exercised at repo-scope upgrade today because
-    ``upgrade.py:230+`` only invokes the resolver when
-    ``effective_scope == "user"`` — repo scope falls through to
-    ``render_pack`` (dist-tree shape). The cross-adapter refusal at
-    ``upgrade.py:371-379`` is structurally unreachable at repo scope
-    by the same gating.
+    Now that repo-scope upgrade routes through
+    ``_render_for_repo_scope`` (mirroring install), AC10b is real at
+    this scope: ``upgrade.run`` invokes ``_resolve_target_adapter``
+    with ``state_adapter=pack_state.adapter`` so a Kiro-installed
+    pack stays on Kiro even when the resolver's legacy heuristic
+    would otherwise pick Claude Code on observing a populated
+    ``<repo>/.claude/`` directory.
 
-    This test pins that structure: ``state.adapter`` stays ``"kiro"``
-    after a repo-scope upgrade, and the ``pack adapter changed``
-    refusal does not fire. A future refactor that extends the
-    cross-adapter refusal block to repo scope without also threading
-    the state-hint short-circuit would break this test — that's the
-    regression the pin catches. Lifting repo-scope upgrade onto the
-    per-IDE projection path is explicitly Ask-first in the spec; if
-    that lift lands, this test wants tightening (assert the resolver
-    *was* called with ``state_adapter=pack_state.adapter``)."""
+    Pin: install ``--adapter kiro``, plant a Claude Code marker
+    under ``.claude/skills/``, run an upgrade with no flags. Assert
+    (a) ``state.adapter`` stays ``"kiro"``, (b) the cross-adapter
+    ``pack adapter changed`` refusal does not fire, (c) the
+    post-upgrade projection lands at ``.kiro/`` — the load-bearing
+    evidence the resolver was called with the state-hint and routed
+    to Kiro (a regression to ``render_pack`` or to the unhinted
+    resolver would re-emit dist-tree or ``.claude/`` shape)."""
 
     def setUp(self) -> None:
         _clear_inband_detection_seen()
@@ -291,6 +289,10 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
                 state["pack"]["core"].get("adapter"), "kiro",
                 f"install did not record adapter=kiro: {state!r}",
             )
+            self.assertTrue(
+                (adopter / ".kiro").exists(),
+                f"install did not land .kiro/ projection under {adopter}",
+            )
 
             # Step 2: populate <repo>/.claude/ to simulate the
             # adopter having Claude Code state present alongside Kiro.
@@ -317,20 +319,23 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             )
             err_buf = io.StringIO()
             with redirect_stderr(err_buf):
-                _rc = upgrade.run(upgrade_args)
+                rc_upgrade = upgrade.run(upgrade_args)
             stderr = err_buf.getvalue()
 
-            # The cross-adapter refusal text from upgrade.py:371-379
-            # must not fire at repo scope. Pinning the exact substring
-            # makes a future refactor that extends the refusal block
-            # to repo scope (without state-hint) trip this assertion.
+            self.assertEqual(
+                rc_upgrade, 0,
+                f"upgrade must succeed at repo scope with state-hint; "
+                f"stderr={stderr!r}",
+            )
+
+            # The cross-adapter refusal text from upgrade.py's
+            # cross-adapter block must not fire at repo scope. Pinning
+            # the exact substring makes a future refactor that extends
+            # the refusal block to repo scope (without state-hint)
+            # trip this assertion.
             self.assertNotIn("pack adapter changed", stderr)
 
-            # State row's adapter stays kiro regardless of the upgrade's
-            # outcome (the test pins state preservation, not upgrade
-            # success — repo-scope upgrade still goes through the
-            # dist-tree renderer today; per-IDE upgrade at repo scope
-            # is a future RFC's surface).
+            # State row's adapter stays kiro across the upgrade.
             state_after = _load_state(adopter)
             recorded_after = (
                 state_after.get("pack", {}).get("core", {}).get("adapter", "claude-code")
@@ -338,6 +343,209 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             self.assertEqual(
                 recorded_after, "kiro",
                 f"state.adapter regressed post-upgrade: {state_after!r}",
+            )
+
+            # Load-bearing evidence the resolver was called with
+            # `state_adapter="kiro"` and that the per-IDE projection
+            # landed (not the dist-tree producer's output): post-upgrade,
+            # `.kiro/` is still on disk and no `apm/`, `claude-plugins/`,
+            # or `marketplace.json` leaked into the adopter root.
+            self.assertTrue(
+                (adopter / ".kiro").exists(),
+                f"upgrade dropped .kiro/ projection — resolver was not "
+                f"called with state_adapter=kiro, or the per-IDE branch "
+                f"was bypassed; tree: "
+                f"{sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",
+            )
+            self.assertFalse(
+                (adopter / "apm").exists(),
+                f"upgrade leaked apm/ subtree under {adopter}",
+            )
+            self.assertFalse(
+                (adopter / "claude-plugins").exists(),
+                f"upgrade leaked claude-plugins/ subtree under {adopter}",
+            )
+            self.assertFalse(
+                (adopter / "marketplace.json").exists(),
+                f"upgrade leaked marketplace.json under {adopter}",
+            )
+
+
+class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
+    """Regression: same-version `upgrade` at repo scope must not
+    silently re-shape `state.files` into the dist-tree projection nor
+    drop `apm/<pack>/` and `claude-plugins/<pack>/` subtrees into the
+    adopter's repo.
+
+    The bug: pre-fix, `upgrade.run` at repo scope called
+    `render.render_pack(pack_dir)` (the dist-tree producer used by
+    `make build`), which emits `apm/<pack>/...` +
+    `claude-plugins/<pack>/...` + `marketplace.json` keys. RFC-0012's
+    install lift uses `_render_for_repo_scope` (per-IDE shape such as
+    `.claude/skills/<name>/SKILL.md`). Same-version upgrade therefore
+    (i) wrote the dist-tree subtree on top of the per-IDE install and
+    (ii) accreted those paths into `state.files` while the
+    install-time per-IDE entries lingered — net ~3× growth.
+
+    Pin: install via the RFC-0012 default path, snapshot
+    `state.files`, run `upgrade --to <same-version>`, then assert the
+    keyset is byte-identical (same paths, no dist-tree leak) and no
+    `apm/` or `claude-plugins/` directories appear under the adopter
+    root."""
+
+    def setUp(self) -> None:
+        _clear_inband_detection_seen()
+
+    def test_same_version_upgrade_does_not_corrupt_state_or_leak_dist_tree(self) -> None:
+        from agentbundle.cli import _build_parser
+        from agentbundle.commands import install, upgrade
+
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw) / "adopter"
+            adopter.mkdir()
+            parser = _build_parser()
+
+            # Step 1: install at repo scope (RFC-0012 default — no
+            # `--emit-install-routes`, no `--adapter`).
+            install_args = parser.parse_args(
+                [
+                    "install",
+                    "--pack", "core",
+                    "--scope", "repo",
+                    "--output", str(adopter),
+                    str(REPO_ROOT),
+                ]
+            )
+            rc = install.run(install_args)
+            self.assertEqual(rc, 0, "install of core must succeed")
+
+            state_before = _load_state(adopter)
+            files_before = set(
+                state_before["pack"]["core"].get("files", {}).keys()
+            )
+            self.assertTrue(
+                files_before,
+                "install must record at least one entry in state.files",
+            )
+            # Per-IDE projection — no dist-tree-shaped paths recorded.
+            for relpath in files_before:
+                self.assertFalse(
+                    relpath.startswith("apm/")
+                    or relpath.startswith("claude-plugins/")
+                    or relpath == "marketplace.json",
+                    f"install recorded unexpected dist-tree path {relpath!r}; "
+                    f"all paths: {sorted(files_before)}",
+                )
+
+            # Step 2: upgrade to the same version. The pack's `version`
+            # in `packs/core/pack.toml` is the source of truth; pin via
+            # the state row so the test stays valid through bumps.
+            installed_version = state_before["pack"]["core"]["installed-version"]
+            upgrade_args = parser.parse_args(
+                [
+                    "upgrade",
+                    "--pack", "core",
+                    "--to", installed_version,
+                    str(REPO_ROOT),
+                    "--root", str(adopter),
+                    "--scope", "repo",
+                ]
+            )
+            rc = upgrade.run(upgrade_args)
+            self.assertEqual(
+                rc, 0, "same-version upgrade at repo scope must succeed"
+            )
+
+            # Step 3: `state.files` keyset must match the install
+            # snapshot — same paths, no dist-tree leak.
+            state_after = _load_state(adopter)
+            files_after = set(
+                state_after["pack"]["core"].get("files", {}).keys()
+            )
+            new_keys = files_after - files_before
+            self.assertFalse(
+                new_keys,
+                f"upgrade added new entries to state.files: "
+                f"{sorted(new_keys)}",
+            )
+            stale_keys = files_before - files_after
+            self.assertFalse(
+                stale_keys,
+                f"upgrade dropped install-time entries from state.files: "
+                f"{sorted(stale_keys)}",
+            )
+
+            # Step 4: the adopter tree must not have grown a
+            # `claude-plugins/` or `apm/` subtree under the repo root.
+            self.assertFalse(
+                (adopter / "claude-plugins").exists(),
+                f"upgrade leaked claude-plugins/ subtree under {adopter}; "
+                f"tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",
+            )
+            self.assertFalse(
+                (adopter / "apm").exists(),
+                f"upgrade leaked apm/ subtree under {adopter}",
+            )
+            self.assertFalse(
+                (adopter / "marketplace.json").exists(),
+                f"upgrade leaked marketplace.json under {adopter}",
+            )
+
+
+class RepoScopeDiffAfterInstallTests(unittest.TestCase):
+    """Regression: `diff` against a freshly-installed pack at repo scope
+    must report no drift.
+
+    The bug: pre-fix, `diff.run` unconditionally rendered the dist-tree
+    shape via `render.render_pack`, but RFC-0012's install lift landed
+    files at `<repo>/.claude/...` (or `.kiro/...`, etc.). The two
+    shapes never overlap, so diff returned exit 1 with every per-IDE
+    file flagged as missing — and any in-place adopter edit slipped
+    past detection because diff was looking at the wrong tree."""
+
+    def setUp(self) -> None:
+        _clear_inband_detection_seen()
+
+    def test_diff_after_install_reports_no_drift(self) -> None:
+        from agentbundle.cli import _build_parser
+        from agentbundle.commands import diff, install
+
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw) / "adopter"
+            adopter.mkdir()
+            parser = _build_parser()
+
+            install_args = parser.parse_args(
+                [
+                    "install",
+                    "--pack", "core",
+                    "--scope", "repo",
+                    "--output", str(adopter),
+                    str(REPO_ROOT),
+                ]
+            )
+            rc = install.run(install_args)
+            self.assertEqual(rc, 0, "install must succeed")
+
+            diff_args = parser.parse_args(
+                [
+                    "diff",
+                    str(REPO_ROOT / "packs" / "core"),
+                    "--root", str(adopter),
+                ]
+            )
+            out_buf, err_buf = io.StringIO(), io.StringIO()
+            with redirect_stdout(out_buf), redirect_stderr(err_buf):
+                rc = diff.run(diff_args)
+
+            self.assertEqual(
+                rc, 0,
+                f"diff must report exit 0 when nothing has drifted post-install; "
+                f"stdout={out_buf.getvalue()!r} stderr={err_buf.getvalue()!r}",
+            )
+            self.assertEqual(
+                out_buf.getvalue().strip(), "",
+                f"diff must produce no stdout when in sync; got: {out_buf.getvalue()!r}",
             )
 
 
