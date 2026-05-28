@@ -401,6 +401,55 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 
 **Done when:** every test in this task green; the agentbundle package contains no credential-resolution surface; the final-state pre-pr gate passes.
 
+### T16: Shim-companion projection for `adapter-root-bins/` (closes the `sso-broker` Tier-2 silent-degradation gap)
+
+**Depends on:** T6 (`adapter-root-bins/` build-pipeline primitive class).
+
+**Verification mode:** TDD.
+
+**Tests:**
+- Unit test in `packages/agentbundle/agentbundle/build/tests/test_adapter_root_bins_projection.py` (extends the existing file):
+  - `test_apply_projection_writes_shim_companion`: fixture pack with `adapter-root-bins/sso-broker.py` + `shared-libs/credentials_shim.py`; after `apply_projection`, both `bin/sso-broker.py` and `bin/credentials_shim.py` exist (verifies AC22b projection rail).
+  - `test_apply_projection_does_not_project_shim_when_adapter_root_bins_absent`: fixture pack with `shared-libs/credentials_shim.py` only (no `adapter-root-bins/`); `apply_projection` does NOT write the companion (opt-in by ship-both).
+  - `test_apply_projection_hard_errors_when_adapter_root_bins_imports_shim_but_companion_missing`: fixture pack with `adapter-root-bins/_oauth_macos.py` containing `from .credentials_shim import Foo` but no `shared-libs/credentials_shim.py`; `apply_projection` raises with the pinned message (verifies AC22b content-based hard-error rail; the message generalises past `_sso_*`).
+  - `test_check_drift_modified_shim_companion`: companion target file tampered; `check_drift` returns one entry prefixed `[adapter-root-bins:shim-companion]` containing `modified` (verifies AC22b drift diagnostic shape).
+  - `test_check_drift_missing_shim_companion`: companion target absent; same shape (one entry prefixed `[adapter-root-bins:shim-companion]` containing `missing`).
+  - `test_check_drift_orphaned_companion_not_misfiring`: full apply, then re-run `check_drift`; the companion target is in `expected_targets` so the existing orphan-detection rail does not misfire on it.
+- Unit test in `packages/agentbundle/tests/unit/test_credentials_shim_bin_load_degradation.py` (new file):
+  - `test_shim_docstring_records_bin_load_degradation`: read `packs/credential-brokers/.apm/shared-libs/credentials_shim.py`'s module docstring; assert the verbatim AC22c degradation phrase is present.
+  - `test_bin_loaded_shim_tier2_backend_is_none`: stage `tmp_path/bin/credentials_shim.py` only (no `_keychain_macos.py` / `_credman_windows.py` siblings — the realistic `bin/` companion projection). Use subprocess to invoke a `python -c` that loads the file via `runpy.run_path` and asserts the resulting `_tier2_backend is None` on every platform. (This is a sibling test that *does* use runpy — but it tests the SHIM's bin/-load behavior, not the broker's documented invocation; the broker's own behavior is covered by the integration test below via the `show-tier2-backend` subcommand.)
+- Integration test in `packages/agentbundle/tests/integration/test_credential_user_scope_invocation.py` — replace existing `test_sso_broker_imports_resolve_under_user_scope_layout`:
+  - Stage the realistic post-fix `~/.agentbundle/bin/` layout: `sso-broker.py` + `_sso_keychain_macos.py` + `_sso_credman_windows.py` + `credentials_shim.py` (the AC22b companion); no `__init__.py`.
+  - Subprocess-invoke `python bin/sso-broker.py show-tier2-backend` (documented file-path invocation, positional verb).
+  - Assert exit 0 and stdout matches platform-keyed expectations: `_sso_keychain_macos` substring on darwin; `_sso_credman_windows` substring on win32; `None` literal on linux. The assertion shape is keyed to the design contract (each platform's correct backend identity), not "not-None on darwin/win32 / no-exception on linux".
+
+**Approach:**
+
+**Two distinct error rails:** (a) inter-pack `credentials_shim.py` basename collision is delegated to `shared_libs.collect_sources()` (single source of truth, unchanged from round-2); (b) the new content-based "imports-shim-but-pack-doesn't-ship-it" check lives in `adapter_root_bins.py` because it inspects adapter-root-bins source content, not shared-libs content. The two never cross-pollinate.
+
+- Extend `packages/agentbundle/agentbundle/build/adapter_root_bins.py`:
+  - Add `collect_companion_shim(packs_dir: Path) -> dict[Path, Path]` returning `{target → source}` for the companion projection. Iterates packs that ship `.apm/adapter-root-bins/`; for each, looks up `credentials_shim.py` via `shared_libs.collect_sources(packs_dir)` (rail (a) above); binds it to `<wt>/.agentbundle/bin/credentials_shim.py`.
+  - Add a content-based hard-error helper (rail (b) above): for each pack's `.apm/adapter-root-bins/*.py` source, grep for the literal substring `from .credentials_shim import`; if any match AND the pack does not ship `.apm/shared-libs/credentials_shim.py`, raise `ValueError` with the broker-agnostic pinned message naming the offending source file (`the importing module's Tier-2 dispatch would degrade silently on macOS/Windows`). Generalises past `_sso_*` so future modules with the same shim dependency are auto-covered.
+  - Update `compute_projections` to return adapter-root-bins ∪ companion. Companion entries use a separate dataclass `AdapterRootBinShimCompanion(source, target)` so the diagnostic prefix can pick the right shape; alternatively reuse `AdapterRootBinProjection` and dispatch on whether `proj.source.parent.name == "shared-libs"`. Decide at implementation time per minimal-diff principle.
+  - Update `apply_projection` to write the companion at mode `0o755` (POSIX) — same rail as the existing adapter-root-bins write loop.
+  - Update `check_drift` to emit companion drift descriptions with the `[adapter-root-bins:shim-companion]` prefix (modified / missing / orphaned). The orphan rail already keys on `expected_targets`; the companion target is now in that set so no orphan misfire.
+- Extend `packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py`:
+  - Add a `show-tier2-backend` subparser (positional verb, sits alongside `register` / `get-cookies` / `test` / `refresh` / `list-profiles` / `rm`). Argparse's existing `subparsers(required=True)` accommodates the addition cleanly.
+  - The verb's handler prints `repr(_tier2_backend)` to stdout and returns 0.
+  - Remove the deferred-projection comment block at `sso-broker.py:41-47` (closes round-1 reviewer Concern 8). The bootstrap mechanism itself stays — only the prose that misdescribes the post-fix state is removed.
+- Edit the shim source `packs/credential-brokers/.apm/shared-libs/credentials_shim.py`'s module docstring to include the verbatim AC22c degradation note: *"When loaded outside a consumer-skill `scripts/` directory — e.g. as a sibling under `~/.agentbundle/bin/` per the credential-broker-contract AC22b companion projection — the shim's own `_tier2_backend` resolves to `None`. Callers in that context must not rely on `load_credentials` for Tier-2 resolution; that path is the consumer-skill `scripts/` projection only."* After editing the source, run `make build-self FORCE=1` to regenerate every projected copy (including `packs/credential-brokers/.apm/skills/credential-setup/scripts/credentials_shim.py` and the new `.agentbundle/bin/credentials_shim.py` companion). **Never** edit projected copies directly — per `feedback_self_host_projection`.
+- Update `docs/ROADMAP.md`: close the "Deferred projection follow-ups" entry naming this gap (remove the `adapter-root-bins` projection omission bullet; leave the entry itself if other deferred items remain — currently only the one named here).
+- Run `make build-self FORCE=1` to project `credentials_shim.py` into `.agentbundle/bin/` and to mirror the docstring change across consumer-skill `scripts/` copies.
+
+**Done when:**
+- All new tests in `test_adapter_root_bins_projection.py` (six listed above) and `test_credentials_shim_bin_load_degradation.py` (two listed above) pass.
+- The replaced integration test in `test_credential_user_scope_invocation.py` passes on the CI matrix (linux + macOS + Windows runners).
+- `make build-self FORCE=1` produces a clean working tree (`git status --short` empty).
+- `make build-check` exits 0.
+- `python3 tools/hooks/pre-pr.py` exits 0.
+- `docs/ROADMAP.md` no longer references the "adapter-root-bins projection omits credentials_shim.py" deferred item.
+- The deferred-projection comment block at `sso-broker.py:41-47` is removed; the bootstrap block itself remains.
+
 ## Rollout
 
 **Sequencing.** Phase 1 (T1–T10) lands first. T1 alone (contract + schema + parser) can ship as a small standalone PR; T2–T10 ship as four-to-six PRs grouped by surface (broker pack + shim; sso-broker + adapter-root-bins; setup skill; lint; templates; docs). Phase 2 (T11–T14) ships next, with T11 first as the canonical reference and T12/T13/T14 sequenced or parallel depending on reviewer bandwidth. Phase 3 (T15) ships last.
