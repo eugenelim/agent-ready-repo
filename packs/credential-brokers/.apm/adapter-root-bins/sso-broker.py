@@ -36,15 +36,10 @@ import urllib.request
 # against the projected siblings in the same directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
 # invocation; an importlib-based test harness is responsible for its
-# own package context.
-#
-# Note: even with this bootstrap, the per-platform ``_sso_*`` modules
-# still need ``credentials_shim.py`` as a sibling to load successfully
-# — the ``adapter-root-bins`` projection rule does not currently
-# include the shim, so under bare user-scope the Tier-2 backend
-# gracefully degrades to ``None`` via the try/except cascade below.
-# Tracked under "Deferred projection follow-ups" in
-# ``docs/ROADMAP.md`` § `credential-broker-contract`.
+# own package context. The shim companion (``credentials_shim.py``)
+# is co-located by the AC22b projection rule, so the per-platform
+# ``_sso_*`` modules' ``from .credentials_shim import Tier2HardFailError``
+# resolves under user-scope install.
 if __package__ in (None, "") and __spec__ is None:
     _here = pathlib.Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
@@ -598,6 +593,25 @@ def _do_list_profiles() -> int:
 # ----------------------------------------------------------------------
 
 
+def _do_show_tier2_backend() -> int:
+    """Print ``repr(_tier2_backend)`` and exit 0.
+
+    Test surface for the AC22b shim-companion projection regression
+    (`packages/agentbundle/tests/integration/test_credential_user_scope_invocation.py`):
+    invoking ``python bin/sso-broker.py show-tier2-backend`` under the
+    documented user-scope layout asserts the Tier-2 backend module
+    loaded successfully — `_sso_keychain_macos` on darwin /
+    `_sso_credman_windows` on win32 / `None` on linux.
+
+    Does not touch the Tier-2 store, the cookie jar, the file floor,
+    profile TOMLs, or any credential bytes — purely an introspection
+    echo of the module-load result that already happened at import
+    time.
+    """
+    sys.stdout.write(f"{_tier2_backend!r}\n")
+    return 0
+
+
 def _do_rm(profile: str) -> int:
     path = _profile_path(profile)
     if not path.exists():
@@ -652,6 +666,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p_rm = sub.add_parser("rm", help="Remove a profile + its cookie jar.")
     p_rm.add_argument("profile")
 
+    sub.add_parser(
+        "show-tier2-backend",
+        help="Print repr(_tier2_backend) (AC22b shim-companion probe).",
+    )
+
     return parser
 
 
@@ -674,6 +693,8 @@ def main(argv: list[str] | None = None) -> int:
         return _do_list_profiles()
     if verb == "rm":
         return _do_rm(args.profile)
+    if verb == "show-tier2-backend":
+        return _do_show_tier2_backend()
     raise AssertionError(f"unreachable verb: {verb}")  # pragma: no cover
 
 

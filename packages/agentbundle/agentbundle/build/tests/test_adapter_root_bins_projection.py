@@ -23,7 +23,12 @@ from pathlib import Path
 from agentbundle.build import adapter_root_bins as arb
 
 
-def _make_fixture_pack(packs_dir: Path, name: str, bins: dict[str, bytes]) -> Path:
+def _make_fixture_pack(
+    packs_dir: Path,
+    name: str,
+    bins: dict[str, bytes],
+    shared_libs: dict[str, bytes] | None = None,
+) -> Path:
     pack = packs_dir / name
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(
@@ -33,10 +38,16 @@ def _make_fixture_pack(packs_dir: Path, name: str, bins: dict[str, bytes]) -> Pa
         f'allowed-scopes = ["user", "repo"]\n',
         encoding="utf-8",
     )
-    bins_dir = pack / ".apm" / "adapter-root-bins"
-    bins_dir.mkdir(parents=True)
-    for basename, content in bins.items():
-        (bins_dir / basename).write_bytes(content)
+    if bins:
+        bins_dir = pack / ".apm" / "adapter-root-bins"
+        bins_dir.mkdir(parents=True)
+        for basename, content in bins.items():
+            (bins_dir / basename).write_bytes(content)
+    if shared_libs:
+        sl_dir = pack / ".apm" / "shared-libs"
+        sl_dir.mkdir(parents=True)
+        for basename, content in shared_libs.items():
+            (sl_dir / basename).write_bytes(content)
     return pack
 
 
@@ -214,6 +225,202 @@ class AdapterRootBinsTests(unittest.TestCase):
         source = (
             real_packs / "credential-brokers" / ".apm"
             / "adapter-root-bins" / "sso-broker.py"
+        )
+        self.assertEqual(target.read_bytes(), source.read_bytes())
+
+
+class AdapterRootBinsShimCompanionTests(unittest.TestCase):
+    """AC22b: shim-companion projection alongside adapter-root-bins/.
+
+    Closes the deferred-projection gap from PR
+    `eugenelim/fix-credential-user-install` — under bare user-scope
+    install, `_sso_*` modules' `from .credentials_shim import
+    Tier2HardFailError` previously failed and `sso-broker.py`'s
+    try/except cascade silently degraded `_tier2_backend` to `None`
+    on macOS / Windows.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp_path = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _packs(self) -> Path:
+        packs = self.tmp_path / "packs"
+        packs.mkdir(exist_ok=True)
+        return packs
+
+    def _wt(self) -> Path:
+        wt = self.tmp_path / "wt"
+        wt.mkdir(exist_ok=True)
+        return wt
+
+    def test_apply_projection_writes_shim_companion(self) -> None:
+        """AC22b: pack ships both adapter-root-bins/ and
+        shared-libs/credentials_shim.py — companion projected as a
+        sibling under bin/."""
+        packs = self._packs()
+        _make_fixture_pack(
+            packs,
+            "p1",
+            bins={"sso-broker.py": b"# broker\n"},
+            shared_libs={"credentials_shim.py": b"# shim\n"},
+        )
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
+        bin_dir = wt / ".agentbundle" / "bin"
+        self.assertEqual((bin_dir / "sso-broker.py").read_bytes(), b"# broker\n")
+        self.assertEqual(
+            (bin_dir / "credentials_shim.py").read_bytes(), b"# shim\n"
+        )
+
+    def test_apply_projection_omits_companion_when_adapter_root_bins_absent(
+        self,
+    ) -> None:
+        """Opt-in by ship-both. A pack that ships only shared-libs/ —
+        no adapter-root-bins/ — does NOT trigger the bin/ companion."""
+        packs = self._packs()
+        # Use ``bins={}`` then strip the empty dir so the fixture
+        # really only has shared-libs/.
+        _make_fixture_pack(
+            packs,
+            "p1",
+            bins={},
+            shared_libs={"credentials_shim.py": b"# shim\n"},
+        )
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
+        bin_dir = wt / ".agentbundle" / "bin"
+        # No adapter-root-bins source → no bin/ at all.
+        self.assertFalse(
+            (bin_dir / "credentials_shim.py").exists(),
+            "companion projected without an adapter-root-bins/ trigger",
+        )
+
+    def test_apply_projection_hard_errors_on_shim_import_without_companion(
+        self,
+    ) -> None:
+        """AC22b content-grep rail. A pack ships an adapter-root-bins
+        module that imports the shim, but does NOT ship the shim
+        source — refuse the build with the broker-agnostic message.
+        Uses a non-`_sso_*` basename to exercise the generalised
+        trigger (the rail must not be coupled to `_sso_*`)."""
+        packs = self._packs()
+        _make_fixture_pack(
+            packs,
+            "p1",
+            bins={
+                "oauth-broker.py": b"# stub\n",
+                "_oauth_macos.py": (
+                    b"from .credentials_shim import Tier2HardFailError\n"
+                ),
+            },
+            shared_libs=None,  # NB: no credentials_shim.py in pack.
+        )
+        wt = self._wt()
+        with self.assertRaises(ValueError) as cm:
+            arb.apply_projection(wt, packs)
+        msg = str(cm.exception)
+        self.assertIn("_oauth_macos.py", msg)
+        self.assertIn("credentials_shim.py is missing", msg)
+        self.assertIn(
+            "Tier-2 dispatch would degrade silently on macOS/Windows", msg,
+            f"hard-error message must be broker-agnostic; got: {msg!r}",
+        )
+
+    def test_check_drift_modified_shim_companion_carries_prefix(self) -> None:
+        """AC22b: companion drift descriptions use the
+        `[adapter-root-bins:shim-companion]` prefix so the source-side
+        reference (under `shared-libs/`) reads coherently."""
+        packs = self._packs()
+        _make_fixture_pack(
+            packs,
+            "p1",
+            bins={"sso-broker.py": b"# broker\n"},
+            shared_libs={"credentials_shim.py": b"# shim\n"},
+        )
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
+        # Tamper the companion target.
+        (wt / ".agentbundle" / "bin" / "credentials_shim.py").write_bytes(
+            b"# tampered\n"
+        )
+
+        drifts = arb.check_drift(wt, packs)
+        companion_drifts = [
+            d for d in drifts if "[adapter-root-bins:shim-companion]" in d
+        ]
+        self.assertEqual(len(companion_drifts), 1, drifts)
+        self.assertIn("modified", companion_drifts[0])
+        # The companion source is rooted in shared-libs/ — the
+        # diagnostic reference must name that.
+        self.assertIn("shared-libs/credentials_shim.py", companion_drifts[0])
+
+    def test_check_drift_missing_shim_companion_carries_prefix(self) -> None:
+        """Companion target absent → missing drift with the
+        shim-companion prefix."""
+        packs = self._packs()
+        _make_fixture_pack(
+            packs,
+            "p1",
+            bins={"sso-broker.py": b"# broker\n"},
+            shared_libs={"credentials_shim.py": b"# shim\n"},
+        )
+        wt = self._wt()
+        # No apply_projection — every target is missing. We isolate
+        # the companion's diagnostic shape.
+        drifts = arb.check_drift(wt, packs)
+        companion_missing = [
+            d for d in drifts
+            if "[adapter-root-bins:shim-companion]" in d and "missing" in d
+        ]
+        self.assertEqual(len(companion_missing), 1, drifts)
+
+    def test_check_drift_orphaned_companion_not_misfiring(self) -> None:
+        """The companion target must land in `expected_targets` so
+        the orphan rail does not flag it. After `apply_projection`,
+        `check_drift` returns no entries — and in particular no
+        `orphaned` entry referencing `credentials_shim.py`."""
+        packs = self._packs()
+        _make_fixture_pack(
+            packs,
+            "p1",
+            bins={"sso-broker.py": b"# broker\n"},
+            shared_libs={"credentials_shim.py": b"# shim\n"},
+        )
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
+        drifts = arb.check_drift(wt, packs)
+        self.assertEqual(drifts, [])
+        # Explicit invariant: even if a future contributor relaxes the
+        # equality check above, the companion must never be reported
+        # as orphaned.
+        self.assertFalse(
+            any("orphaned" in d and "credentials_shim.py" in d for d in drifts),
+            f"orphan rail misfired on the shim companion: {drifts}",
+        )
+
+    def test_real_pack_projection_includes_shim_companion(self) -> None:
+        """Smoke test: the real `credential-brokers` pack projects
+        `credentials_shim.py` into `<wt>/.agentbundle/bin/` with the
+        real shared-libs source bytes."""
+        real_packs = Path(__file__).resolve().parents[5] / "packs"
+        if not (real_packs / "credential-brokers").is_dir():
+            self.skipTest("credential-brokers pack not present")
+        wt = self.tmp_path / "real-wt"
+        wt.mkdir()
+        arb.apply_projection(wt, real_packs)
+        target = wt / ".agentbundle" / "bin" / "credentials_shim.py"
+        source = (
+            real_packs / "credential-brokers" / ".apm"
+            / "shared-libs" / "credentials_shim.py"
+        )
+        self.assertTrue(
+            target.is_file(),
+            "AC22b companion projection did not write "
+            "credentials_shim.py into bin/ from the real pack",
         )
         self.assertEqual(target.read_bytes(), source.read_bytes())
 
