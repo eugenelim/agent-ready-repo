@@ -486,6 +486,14 @@ def run(args: "argparse.Namespace") -> int:
         print(f"upgrade: {exc}", file=sys.stderr)
         return 1
 
+    if is_per_primitive:
+        ptype, _src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]
+        print(
+            f"upgraded: {pack_name} {ptype}/{prim_name} @ "
+            f"{effective_scope} -> {to_version}"
+        )
+    else:
+        print(f"upgraded: {pack_name} @ {effective_scope} -> {to_version}")
     return 0
 
 
