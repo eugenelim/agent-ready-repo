@@ -112,7 +112,7 @@ def run(args: "argparse.Namespace") -> int:
     # the pack is installed at user only. At user scope, `root` is the
     # user's home and the state file is `<root>/.agentbundle/state.toml`.
     effective_scope = "repo"
-    user_prefixes: list[str] | None = None
+    allowed_prefixes: list[str] | None = None
     if cli_scope == "user" or (cli_scope is None and installed_at_user and not installed_at_repo):
         if user_state_path is None:
             print(
@@ -131,7 +131,7 @@ def run(args: "argparse.Namespace") -> int:
             if pack_name in user_state_for_check.packs
             else "claude-code"
         ) or "claude-code"
-        user_prefixes = _adapter_allowed_prefixes_user(recorded_adapter)
+        allowed_prefixes = _adapter_allowed_prefixes_user(recorded_adapter)
 
     # ── Detect per-primitive flag ─────────────────────────────────────────────
     prim_flag: str | None = None
@@ -272,7 +272,50 @@ def run(args: "argparse.Namespace") -> int:
                 target_adapter=_new_target_adapter,
             )
         else:
-            projection = render_pack(pack_dir)
+            # Repo-scope render. RFC-0012 lifted the install default at
+            # this scope from the dist-tree producer to a per-IDE
+            # projection (`.claude/...`, `.kiro/...`, ...). Upgrade
+            # must mirror that shape, else the rendered keys won't
+            # overlap the install-time state.files keys and a whole-
+            # pack upgrade silently accretes a parallel dist-tree
+            # subtree into state.files (and onto disk via
+            # safety.write_jailed below).
+            #
+            # Backward compat for the `--emit-install-routes` install
+            # path (RFC-0012 § *CLI surface*): if existing state.files
+            # already carries dist-tree-shaped paths, this was a
+            # catalogue-publishing install — keep rendering the legacy
+            # shape so we don't accrete a parallel per-IDE subtree on
+            # top.
+            _was_dist_tree_install = any(
+                rp.startswith(("apm/", "claude-plugins/"))
+                or rp == "marketplace.json"
+                for rp in pack_state.files
+            )
+            if _was_dist_tree_install:
+                projection = render_pack(pack_dir)
+            else:
+                from agentbundle.commands.install import (
+                    _AdapterResolutionRefused,
+                    _adapter_allowed_prefixes_repo,
+                    _render_for_repo_scope,
+                )
+
+                try:
+                    _resolved_adapter, projection = _render_for_repo_scope(
+                        pack_dir,
+                        adapter=None,
+                        allowed_adapters=_pack_allowed_adapters,
+                        contract_version=_pack_contract_version,
+                        state_adapter=pack_state.adapter,
+                        command_name="upgrade",
+                    )
+                except _AdapterResolutionRefused as exc:
+                    print(str(exc), file=sys.stderr)
+                    return 1
+                allowed_prefixes = _adapter_allowed_prefixes_repo(
+                    _resolved_adapter
+                )
     except (FileNotFoundError, ValueError) as exc:
         print(f"upgrade: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
         return 1
@@ -323,7 +366,7 @@ def run(args: "argparse.Namespace") -> int:
                 safety.write_jailed(
                     root, relpath, content,
                     scope=effective_scope,
-                    allowed_prefixes=user_prefixes,
+                    allowed_prefixes=allowed_prefixes,
                 )
             except safety.PathJailError as exc:
                 print(f"upgrade: {exc}", file=sys.stderr)
@@ -426,11 +469,18 @@ def run(args: "argparse.Namespace") -> int:
 
     state_toml_content = dump_state(state)
     state_relpath = state_path.relative_to(root).as_posix()
+    # Mirror install.py:858-861 — the repo-scope state file lives at
+    # `<root>/.agentbundle-state.toml`, a top-level path that won't
+    # match the per-IDE `allowed-prefixes.repo` list. Skip the prefix
+    # check for that one file so the state write isn't blocked.
+    state_prefixes = allowed_prefixes
+    if effective_scope == "repo" and state_relpath == ".agentbundle-state.toml":
+        state_prefixes = None
     try:
         safety.write_jailed(
             root, state_relpath, state_toml_content,
             scope=effective_scope,
-            allowed_prefixes=user_prefixes,
+            allowed_prefixes=state_prefixes,
         )
     except safety.PathJailError as exc:
         print(f"upgrade: {exc}", file=sys.stderr)

@@ -49,6 +49,8 @@ def run(args: argparse.Namespace) -> int:
     installed_at_repo = False
     installed_at_user = False
     user_root_resolved: Path | None = None
+    repo_state_for_check = None
+    user_state_for_check = None
     if pack_name:
         repo_state_for_check = load_state(root / ".agentbundle-state.toml")
         installed_at_repo = pack_name in repo_state_for_check.packs
@@ -80,6 +82,19 @@ def run(args: argparse.Namespace) -> int:
                 return 1
             root = user_root_resolved
 
+    # Resolve effective scope and the matching pack_state (if any) so
+    # the renderer below can mirror the shape install used.
+    effective_scope = "repo"
+    pack_state = None
+    if cli_scope == "user" or (
+        cli_scope is None and installed_at_user and not installed_at_repo
+    ):
+        effective_scope = "user"
+        if user_state_for_check is not None and pack_name:
+            pack_state = user_state_for_check.packs.get(pack_name)
+    elif repo_state_for_check is not None and pack_name:
+        pack_state = repo_state_for_check.packs.get(pack_name)
+
     if not (pack_path / "pack.toml").exists():
         print(
             f"error: no pack.toml found at {pack_path}",
@@ -95,8 +110,84 @@ def run(args: argparse.Namespace) -> int:
     if gate is not None:
         return gate
 
+    # Pick the projection shape to compare against. RFC-0012 changed
+    # install's default at repo scope from the dist-tree producer
+    # (`render_pack`) to a per-IDE projection (`.claude/...`,
+    # `.kiro/...`). Comparing on-disk per-IDE files against a dist-tree
+    # render flags every per-IDE path as missing — exactly what makes
+    # `agentbundle diff` useless after a v0.7+ install.
+    #
+    # Detection rule: if the pack is recorded in state, the install
+    # itself tells us which shape landed:
+    #   - state.files contains `apm/<pack>/...`, `claude-plugins/<pack>/...`,
+    #     or `marketplace.json` → install used `--emit-install-routes`
+    #     (legacy dist-tree); keep the dist-tree render.
+    #   - otherwise → install used the RFC-0012 per-IDE path; render
+    #     via `_render_for_repo_scope` / `_render_for_user_scope` with
+    #     the recorded `state.adapter` as the hint.
+    # When state has no row (a maintainer running diff against a fresh
+    # render directory, the test_diff_cmd.py shape), fall back to the
+    # dist-tree render — that's the catalogue-publishing surface.
+    _use_dist_tree = pack_state is None or any(
+        rp.startswith(("apm/", "claude-plugins/")) or rp == "marketplace.json"
+        for rp in pack_state.files
+    )
     try:
-        rendered: dict[str, bytes] = render.render_pack(pack_path)
+        if _use_dist_tree:
+            rendered: dict[str, bytes] = render.render_pack(pack_path)
+        else:
+            import tomllib as _tomllib
+
+            _pack_toml = _tomllib.loads(
+                (pack_path / "pack.toml").read_text(encoding="utf-8")
+            )
+            _install_table = _pack_toml.get("pack", {}).get("install")
+            _allowed_adapters = None
+            if isinstance(_install_table, dict):
+                _raw_aa = _install_table.get("allowed-adapters")
+                if isinstance(_raw_aa, list):
+                    _allowed_adapters = [s for s in _raw_aa if isinstance(s, str)]
+            _contract_version = (
+                _pack_toml.get("pack", {}).get("adapter-contract", {}).get("version")
+                if isinstance(_pack_toml.get("pack", {}).get("adapter-contract"), dict)
+                else None
+            )
+            if effective_scope == "user":
+                from agentbundle.commands.install import (
+                    _AdapterResolutionRefused,
+                    _render_for_user_scope,
+                )
+
+                try:
+                    rendered = _render_for_user_scope(
+                        pack_path,
+                        adapter=None,
+                        allowed_adapters=_allowed_adapters,
+                        contract_version=_contract_version,
+                        state_adapter=pack_state.adapter,
+                        command_name="diff",
+                    )
+                except _AdapterResolutionRefused as exc:
+                    print(str(exc), file=sys.stderr)
+                    return 1
+            else:
+                from agentbundle.commands.install import (
+                    _AdapterResolutionRefused,
+                    _render_for_repo_scope,
+                )
+
+                try:
+                    _adapter, rendered = _render_for_repo_scope(
+                        pack_path,
+                        adapter=None,
+                        allowed_adapters=_allowed_adapters,
+                        contract_version=_contract_version,
+                        state_adapter=pack_state.adapter,
+                        command_name="diff",
+                    )
+                except _AdapterResolutionRefused as exc:
+                    print(str(exc), file=sys.stderr)
+                    return 1
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: render failed for pack at '{pack_path}': {exc}", file=sys.stderr)
         return 1
