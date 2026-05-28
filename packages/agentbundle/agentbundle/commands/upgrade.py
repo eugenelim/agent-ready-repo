@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     import argparse
 
     from agentbundle.config import State
+    from agentbundle.user_config import UserConfig
 
 
 # Mapping from CLI flag attribute name → (primitive-type key, source-dir segment).
@@ -81,6 +82,13 @@ def run(args: "argparse.Namespace") -> int:
     catalogue_uri: str = args.catalogue
     to_version: str = args.to_version
     cli_scope: str | None = getattr(args, "scope", None)
+    # User-config attached by `cli.py:main()` via args._user_config.
+    # The pre-flight in `_resolve_target_adapter` no-ops when
+    # `state_adapter` is set (upgrades preserve their existing-install
+    # adapter), so on a normal upgrade this is read but unused. We
+    # still thread it so the AC15(c) AST check is satisfied and so the
+    # state-pin-mismatch fall-through path stays well-defined.
+    user_config: "UserConfig | None" = getattr(args, "_user_config", None)
     root = Path(args.root).resolve()
 
     # ── Multi-scope disambiguator (RFC-0004) ──────────────────────────────────
@@ -244,6 +252,7 @@ def run(args: "argparse.Namespace") -> int:
                     contract_version=_pack_contract_version,
                     state_adapter=pack_state.adapter,
                     command_name="upgrade",
+                    user_config=user_config,
                 )
             except _AdapterResolutionRefused as exc:
                 print(str(exc), file=sys.stderr)
@@ -262,6 +271,7 @@ def run(args: "argparse.Namespace") -> int:
                     contract_version=_pack_contract_version,
                     state_adapter=pack_state.adapter,
                     command_name="upgrade",
+                    user_config=user_config,
                 )
             except _AdapterResolutionRefused as exc:
                 print(str(exc), file=sys.stderr)
@@ -309,6 +319,7 @@ def run(args: "argparse.Namespace") -> int:
                         contract_version=_pack_contract_version,
                         state_adapter=pack_state.adapter,
                         command_name="upgrade",
+                        user_config=user_config,
                     )
                 except _AdapterResolutionRefused as exc:
                     print(str(exc), file=sys.stderr)
@@ -401,6 +412,7 @@ def run(args: "argparse.Namespace") -> int:
                 contract_version=_pack_contract_version,
                 state_adapter=pack_state.adapter,
                 command_name="upgrade",
+                user_config=user_config,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
