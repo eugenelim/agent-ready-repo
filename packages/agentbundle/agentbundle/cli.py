@@ -373,6 +373,27 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.set_defaults(func=_lazy("init_state"))
 
+    # --- config --- (post-pip-install user-scope settings)
+    sp = subparsers.add_parser(
+        "config",
+        help="Get or set adapter-scoped user settings.",
+        epilog=(
+            "User-config overrides scope.DEFAULT_ADAPTER on fresh "
+            "installs. CLI flags (e.g. install --adapter) and existing "
+            "install state still take precedence."
+        ),
+    )
+    sp.add_argument(
+        "config_action",
+        choices=("get", "set", "unset", "path"),
+        help="Action: get / set / unset / path.",
+    )
+    sp.add_argument("key", nargs="?", help="Setting key (e.g. adapter).")
+    sp.add_argument(
+        "value", nargs="?", help="Setting value (set only)."
+    )
+    sp.set_defaults(func=_lazy("config"))
+
     # --- reconcile --- (read-only orphan reporter, RFC-0005 / T9)
     # No --apply flag — the subcommand is report-only by design.
     # `argparse`'s default "unrecognized argument" rejects --apply.
@@ -444,6 +465,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.print_help()
         return 0
     _normalise_path_separators(args)
+    # Load the user-scope config once at dispatch start and attach to
+    # `args._user_config`. Handlers that consume it read
+    # `getattr(args, "_user_config", None)` — see install.run / upgrade.run.
+    # `load_user_config()` is fail-soft (T1 contract): a malformed
+    # file emits a stderr warning and returns UserConfig(adapter=None)
+    # without raising, so `--help`, `config path`, and `config unset`
+    # all keep working when the file is broken.
+    from agentbundle.user_config import load_user_config
+
+    args._user_config = load_user_config()
     return int(args.func(args))
 
 

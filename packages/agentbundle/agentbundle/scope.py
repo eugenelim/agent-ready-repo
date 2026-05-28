@@ -30,7 +30,15 @@ from __future__ import annotations
 import os
 import tomllib
 from pathlib import Path
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
+
+if TYPE_CHECKING:
+    # TYPE_CHECKING-only — does NOT execute at runtime, so the
+    # `user_config.py → scope.py` import direction stays acyclic
+    # (only the type annotation in configured_adapter() needs the
+    # name resolved, and PEP 563 keeps it a string until anyone
+    # calls get_type_hints()).
+    from agentbundle.user_config import UserConfig
 
 
 # The spec's only legal scope values; ``global`` is deliberately absent
@@ -261,6 +269,38 @@ def user_scope_capable_adapters_from_contract() -> tuple[str, ...]:
 # checks this; a literal-set check would silently break on the next
 # contract bump (v0.7+), so the predicate is the load-bearing form.
 _PRE_HOOK_WIRING_CONTRACT_VERSIONS: frozenset[str] = frozenset({"0.1", "0.2"})
+
+
+def configured_adapter(user_config: "UserConfig | None") -> str | None:
+    """Report the user-configured adapter when set and known by the
+    bundled adapter contract.
+
+    Returns `user_config.adapter` when set AND in
+    `shipped_adapters_from_contract()`; returns `None` otherwise.
+
+    Scope-agnostic and pack-agnostic by design. Scope-capability and
+    pack-`allowed_adapters` enforcement live in the resolver's
+    pre-flight (`_resolve_target_adapter` in `commands/install.py`),
+    not here. The `None` return is load-bearing: it lets the resolver
+    distinguish "user configured something usable" from "nothing
+    configured, fall through to existing defaults" so that the probe
+    and `DEFAULT_ADAPTER` cascade preserved for users who never ran
+    `agentbundle config set`.
+
+    The `shipped` check is the contract-drift guard: an adapter
+    dropped from the contract since the user wrote their config
+    returns None here and falls through to the constant — same
+    fail-soft contract as `read_user_config`'s warning path. The
+    annotation is a string under `from __future__ import annotations`,
+    so this module does NOT import `agentbundle.user_config` at
+    runtime — that keeps the cycle broken
+    (`user_config.py → scope.py` is the only direction).
+    """
+    if user_config is None or user_config.adapter is None:
+        return None
+    if user_config.adapter not in shipped_adapters_from_contract():
+        return None
+    return user_config.adapter
 
 
 def contract_supports_hook_wiring(version: str | None) -> bool:

@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
     from agentbundle.config import State
     from agentbundle.safety import Tier
+    from agentbundle.user_config import UserConfig
 
 # enumerate_event_dropped_wirings is imported at module level so it is
 # patchable from tests (the mock target is
@@ -95,6 +96,12 @@ def run(args: "argparse.Namespace") -> int:
     force: bool = bool(getattr(args, "force", False))
     force_merge: bool = bool(getattr(args, "force_merge", False))
     cli_adapter: str | None = getattr(args, "adapter", None)
+    # User-config attached by `cli.py:main()` via args._user_config.
+    # Default to None for callers that construct an args namespace by
+    # hand (tests) or for any code path that bypasses main(). The
+    # pre-flight in `_resolve_target_adapter` no-ops when this is None,
+    # so legacy callers see exactly today's behavior.
+    user_config: "UserConfig | None" = getattr(args, "_user_config", None)
     output_root = Path(args.output).resolve()
 
     # `--force-merge` runtime binding (Step 2's resolved scope is the
@@ -340,6 +347,7 @@ def run(args: "argparse.Namespace") -> int:
                 contract_version=_pack_contract_version,
                 state_adapter=None,
                 command_name="install",
+                user_config=user_config,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -429,6 +437,7 @@ def run(args: "argparse.Namespace") -> int:
                 contract_version=_pack_contract_version,
                 state_adapter=None,  # First install has no prior state here.
                 command_name="install",
+                user_config=user_config,
             )
         except _AdapterResolutionRefused as exc:
             print(str(exc), file=sys.stderr)
@@ -552,6 +561,7 @@ def run(args: "argparse.Namespace") -> int:
                 contract_version=_pack_contract_version,
                 state_adapter=None,
                 command_name="install",
+                user_config=user_config,
             )
         except _AdapterResolutionRefused:
             # Repo resolution failed; defer the actual refusal to the
@@ -648,6 +658,7 @@ def run(args: "argparse.Namespace") -> int:
                     contract_version=_pack_contract_version,
                     state_adapter=None,
                     command_name="install",
+                    user_config=user_config,
                 )
         if any(p.scope == "user" for p in plans):
             user_projection = _render_for_user_scope(
@@ -657,6 +668,7 @@ def run(args: "argparse.Namespace") -> int:
                 contract_version=_pack_contract_version,
                 state_adapter=None,
                 command_name="install",
+                user_config=user_config,
             )
             user_scope_hooks_enabled = bool(
                 isinstance(pack_install, dict)
@@ -1946,6 +1958,7 @@ def _render_for_user_scope(
     contract_version: str | None = None,
     state_adapter: str | None = None,
     command_name: str = "install",
+    user_config: "UserConfig | None" = None,
 ) -> dict[str, bytes]:
     """Project a pack via the Claude Code / Kiro / Codex adapter
     (depending on RFC-0011 resolution), for user-scope install.
@@ -1993,6 +2006,7 @@ def _render_for_user_scope(
         allowed_adapters=allowed_adapters,
         contract_version=contract_version,
         state_adapter=state_adapter,
+        user_config=user_config,
         command_name=command_name,
     )
     with tempfile.TemporaryDirectory() as raw:
@@ -2023,6 +2037,7 @@ def _render_for_repo_scope(
     contract_version: str | None = None,
     state_adapter: str | None = None,
     command_name: str = "install",
+    user_config: "UserConfig | None" = None,
 ) -> tuple[str, dict[str, bytes]]:
     """Project a pack via the resolved adapter (RFC-0011 + RFC-0012
     six-step lookup at ``scope="repo"``), for repo-scope install at
@@ -2055,6 +2070,7 @@ def _render_for_repo_scope(
         contract_version=contract_version,
         state_adapter=state_adapter,
         command_name=command_name,
+        user_config=user_config,
     )
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
@@ -2179,6 +2195,7 @@ def _resolve_target_adapter(
     contract_version: str | None = None,
     state_adapter: str | None = None,
     command_name: str = "install",
+    user_config: "UserConfig | None" = None,
 ) -> str:
     """Resolve the adapter that an install/upgrade targets at *scope*
     (RFC-0011 substrate; RFC-0012 widens to repo scope).
@@ -2235,6 +2252,7 @@ def _resolve_target_adapter(
     from agentbundle.build.main import _read_bundled
     from agentbundle.scope import (
         DEFAULT_ADAPTER,
+        configured_adapter,
         contract_supports_hook_wiring,
         shipped_adapters_from_contract,
         user_scope_capable_adapters_from_contract,
@@ -2315,6 +2333,44 @@ def _resolve_target_adapter(
         # state_adapter is not admissible — fall through to step 3+
         # and the existing upgrade.py cross-adapter refusal will fire
         # if the new resolution differs.
+
+    # Step 2.5: user-config pre-flight (agentbundle-config-subcommand
+    # spec AC12). Runs only when state_adapter is None — upgrades
+    # preserve whatever adapter the existing install used; user-config
+    # only affects fresh installs. When a user actively configured a
+    # known adapter, either return it (when admissible at scope and
+    # in pack allowed_adapters) or raise with AC13/AC14 messages. When
+    # nothing is configured, this block is a no-op and Steps 3+ run
+    # as today — preserving the probe-by-default behavior for users
+    # who never ran `agentbundle config set`.
+    candidate = (
+        configured_adapter(user_config) if state_adapter is None else None
+    )
+    if candidate is not None:
+        admissible_at_scope = user_capable if scope == "user" else shipped
+        if candidate not in admissible_at_scope:
+            raise _AdapterResolutionRefused(
+                f"{command_name}: configured adapter {candidate!r} is "
+                f"not supported at {scope} scope. Adapters supported "
+                f"at {scope} scope: {sorted(admissible_at_scope)}. To "
+                f"proceed: invoke the command at a different scope "
+                f"(e.g. --scope repo) where {candidate!r} is "
+                f"supported, or pass --adapter <name> for a per-install "
+                f"override, or run `agentbundle config set adapter "
+                f"<name>` to change the default, or `agentbundle "
+                f"config unset adapter` to clear it."
+            )
+        if allowed_adapters is not None and candidate not in allowed_adapters:
+            raise _AdapterResolutionRefused(
+                f"{command_name}: pack {pack_name} is not supported "
+                f"with your configured adapter {candidate!r}. The pack "
+                f"supports: {sorted(allowed_adapters)}. To proceed: "
+                f"pass --adapter <name> for a per-install override, or "
+                f"run `agentbundle config set adapter <name>` to change "
+                f"the default, or `agentbundle config unset adapter` to "
+                f"clear it."
+            )
+        return candidate
 
     # Step 3 + Step 4: contract-version gate + per-scope branch.
     if (
