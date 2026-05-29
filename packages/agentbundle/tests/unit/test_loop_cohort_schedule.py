@@ -312,3 +312,155 @@ def test_dispatch_decision_verb_parallel_emits_rationale_to_stderr():
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "parallel"
     assert "parallel-eligible" in r.stderr.lower()
+
+
+# ── supervisor-auto-classify T1: classify_task (AC1–AC4) ────────────────────
+
+
+def test_classify_all_added_is_cannot_collide():
+    assert lc.classify_task([("A", "src/new_a.py"), ("A", "src/new_b.py")]) == "cannot-collide"
+
+
+def test_classify_iff_reverse_single_non_added_flips_off():
+    # AC1 reverse direction: one M among adds → not cannot-collide.
+    assert lc.classify_task([("A", "src/new.py"), ("M", "src/old.py")]) != "cannot-collide"
+
+
+def test_classify_all_added_but_danger_path_is_not_cannot_collide():
+    # AC1 reverse: an added danger-path is still not cannot-collide.
+    assert lc.classify_task([("A", "pkg/__init__.py")]) == "danger-path"
+
+
+def test_classify_rename_copy_delete_are_move_or_delete():
+    assert lc.classify_task([("R100", "old.py", "new.py")]) == "move-or-delete"
+    assert lc.classify_task([("C", "a.py", "b.py")]) == "move-or-delete"
+    assert lc.classify_task([("D", "gone.py")]) == "move-or-delete"
+
+
+def test_classify_danger_paths_each_serialize():
+    for path in [
+        "poetry.lock", "pyproject.toml", "pkg/__init__.py", "web/index.ts",
+        ".github/workflows/ci.yml", "Makefile", "marketplace.json",
+        "a/b/migrations/0001_init.py",  # nested — anchoring (AC3)
+        "migrations/0001_init.py",      # top-level — Django/Alembic default (AC3)
+    ]:
+        assert lc.classify_task([("M", path)]) == "danger-path", path
+
+
+def test_classify_modified_existing_is_fail_closed_label():
+    assert lc.classify_task([("M", "src/handler.py")]) == "modified-existing"
+
+
+def test_classify_labels_outside_safe_categories_except_cannot_collide():
+    # cannot-collide is the only auto label in SAFE_CATEGORIES; the rest serialize.
+    assert "cannot-collide" in lc.SAFE_CATEGORIES
+    for label in ("move-or-delete", "danger-path", "modified-existing", "cross-branch-symbol"):
+        assert label not in lc.SAFE_CATEGORIES, label
+
+
+# ── T1: added_paths_may_share_symbol (AC8 unit) ─────────────────────────────
+
+
+def test_share_symbol_shared_basename_true():
+    assert lc.added_paths_may_share_symbol([{"x/plugin.py"}, {"y/plugin.py"}]) is True
+
+
+def test_share_symbol_shared_parent_dir_true():
+    assert lc.added_paths_may_share_symbol([{"plugins/a.py"}, {"plugins/b.py"}]) is True
+
+
+def test_share_symbol_disjoint_false():
+    assert lc.added_paths_may_share_symbol([{"x/a.py"}, {"y/b.py"}]) is False
+
+
+def test_share_symbol_distinct_root_files_false():
+    # two distinct-basename repo-root additions must NOT serialize (root "" is
+    # excluded from the shared-dir match; a same-named root add is a merge-tree
+    # conflict caught elsewhere). Pins the Concern-3 fix.
+    assert lc.added_paths_may_share_symbol([{"README.md"}, {"LICENSE"}]) is False
+
+
+# ── supervisor-auto-classify T2: dispatch-decision auto-path (AC5–AC10) ──────
+
+
+def _git(repo, *args):
+    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+
+
+def _mk_repo(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "a@x")
+    _git(repo, "config", "user.name", "a")
+    (repo / "base.py").write_text("BASE = 1\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    return repo
+
+
+def _branch(repo, name, relpath, content="X = 1\n", *, modify=False):
+    _git(repo, "checkout", "-q", "-b", name, "main")
+    f = repo / relpath
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(content)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", name)
+    _git(repo, "checkout", "-q", "main")
+
+
+def _dispatch_in(repo, *args):
+    return subprocess.run(
+        [sys.executable, str(LC_PATH), "dispatch-decision", *args],
+        cwd=repo, capture_output=True, text=True,
+    )
+
+
+def test_verb_auto_all_added_disjoint_is_parallel(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "p", "feat_p/p.py")
+    _branch(repo, "q", "feat_q/q.py")
+    r = _dispatch_in(repo, "--branch", "p", "--branch", "q")
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "parallel"
+    assert "auto-derived" in r.stderr.lower()          # AC7: auto, not human
+
+
+def test_verb_auto_modified_existing_is_serial(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "m", "base.py", "BASE = 2\n")         # modifies existing
+    _branch(repo, "p", "feat_p/p.py")
+    r = _dispatch_in(repo, "--branch", "m", "--branch", "p")
+    assert r.stdout.strip() == "serial"
+    assert "modified-existing" in r.stderr             # AC7 names the signal
+
+
+def test_verb_auto_cross_branch_shared_basename_is_serial(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "c1", "dirA/plugin.py")               # both add plugin.py
+    _branch(repo, "c2", "dirB/plugin.py")
+    r = _dispatch_in(repo, "--branch", "c1", "--branch", "c2")
+    assert r.stdout.strip() == "serial"
+    assert "cross-branch-symbol" in r.stderr            # AC8 integration
+
+
+def test_verb_auto_unresolvable_base_fails_closed(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "p", "feat_p/p.py")
+    _git(repo, "checkout", "-q", "--orphan", "orphan")  # no common ancestor
+    (repo / "o.py").write_text("O = 1\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "orphan")
+    _git(repo, "checkout", "-q", "main")
+    r = _dispatch_in(repo, "--branch", "p", "--branch", "orphan")
+    assert r.stdout.strip() == "serial"                 # AC9 fail-closed
+    assert "base" in r.stderr.lower()
+
+
+def test_verb_category_override_takes_precedence(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "p", "feat_p/p.py")
+    r = _dispatch_in(repo, "--branch", "p", "--category", "typed-group-b")
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "parallel"               # typed-group-b is safe
+    assert "human-supplied" in r.stderr.lower()         # AC6 override path
