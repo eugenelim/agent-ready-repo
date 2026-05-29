@@ -7,6 +7,7 @@
   "consecutive_same_error_count": 0,
   "consecutive_same_error_threshold": 3,
   "plan_review_status": "pending",
+  "auto_parallel": false,
   "last_commit_sha": null,
   "finding_fingerprints": [],
   "previous_finding_fingerprints": [],
