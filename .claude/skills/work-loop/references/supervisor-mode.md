@@ -27,6 +27,11 @@ deliberately — never automatically — and only for a wave that clears the
   read-only **preview** of that check (it classifies each branch + runs
   `wave_is_disjoint`, printing `parallel` or `serial`) before paying for a
   merge you expect to abort.
+- **Even earlier — `Touches:` screen (optional).** If the plan's tasks declare
+  `Touches:` globs, `loop-cohort schedule` prints `predicted-disjoint:
+  yes|no|unknown` per wave. Treat a `no` as a reason to keep the wave serial
+  *before* dispatch; `yes`/`unknown` change nothing — they **never** greenlight
+  (the merge-tree check above stays the sole authority). Serialize-only screen.
 
 Any non-safe category, or any merge-tree conflict, stays serial. Reviewer
 (read) fan-out is a separate, always-safe path.
