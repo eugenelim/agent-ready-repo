@@ -26,9 +26,19 @@ deliberately — never automatically — and only for a wave that clears the
   paying for a merge you expect to abort.
 
 Any non-safe category, or any merge-tree conflict, stays serial. Reviewer
-(read) fan-out is a separate, always-safe path. The trigger and concept
-stay in [`../SKILL.md` § EXECUTE](../SKILL.md); this file owns the
-step-by-step procedure once the opt-in parallel path is taken.
+(read) fan-out is a separate, always-safe path.
+
+**Present the cleared-gate opportunity.** When `dispatch-decision` returns
+`parallel`, do not enter the procedure below silently — **present the
+cleared-gate opportunity to the human** (the parallel-eligible wave and its
+tasks; the verb's stderr rationale is the line to relay) and take the
+parallel path **only on an explicit opt-in**. Absent one, run the wave
+sequentially — the safe default. This is present-and-default-safe, not the
+halt-and-wait Surface verb, so an unattended run proceeds sequentially
+rather than blocking.
+
+The trigger and concept stay in [`../SKILL.md` § EXECUTE](../SKILL.md); this
+file owns the step-by-step procedure once the opt-in parallel path is taken.
 
 Throughout this procedure, **"task-id order" means numeric where IDs
 look like `T1`, `T2`, … ; lexicographic otherwise.** The `loop-cohort`

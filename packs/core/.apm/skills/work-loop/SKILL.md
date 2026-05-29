@@ -280,13 +280,19 @@ wave of mutually-independent tasks may run in parallel *only* when it
 clears the dispatch gate (`loop-cohort dispatch-decision`): every task in
 a safe category (cannot-collide / typed-Group-B / textual-loud) **and** a
 clean `git merge-tree` file-disjointness check. Any other category, or any
-merge-tree conflict, stays serial (fail closed). When you do opt in, select
-a subagent matching `implementer` per the parallel-dispatch discipline
-above; **the full 7-step worktree procedure** lives in
-[`references/supervisor-mode.md`](references/supervisor-mode.md) — load it
-on demand. Parallel *reviewer* (read) fan-out is a separate, always-safe
-path and is unaffected. The single-agent fallback (no `implementer`
-subagent installed) is documented in the reference too.
+merge-tree conflict, stays serial (fail closed). When the gate returns
+`parallel`, **present the cleared-gate opportunity to the human** — name the
+parallel-eligible wave and its tasks (the verb's stderr rationale gives you
+the line) and fan out **only on an explicit opt-in**; absent one, run the
+wave sequentially. Never fan out silently on a cleared gate. This is
+present-and-default-safe, **not** the halt-and-wait Surface verb — an
+unattended run simply proceeds sequentially rather than blocking. When you
+do opt in, select a subagent matching `implementer` per the
+parallel-dispatch discipline above; **the full 7-step worktree procedure**
+lives in [`references/supervisor-mode.md`](references/supervisor-mode.md) —
+load it on demand. Parallel *reviewer* (read) fan-out is a separate,
+always-safe path and is unaffected. The single-agent fallback (no
+`implementer` subagent installed) is documented in the reference too.
 
 ### 3. GATES — mechanical verification
 
