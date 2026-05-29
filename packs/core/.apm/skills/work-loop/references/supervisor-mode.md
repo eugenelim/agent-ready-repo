@@ -12,30 +12,48 @@ This file owns the **opt-in parallel-write path** only. It is entered
 deliberately — never automatically — and only for a wave that clears the
 **dispatch gate**, which has two halves checked at two points:
 
-- **Category half — before dispatch.** Every task must be in a safe
-  category (cannot-collide / typed-Group-B / textual-loud). If any task
-  is in another category, do not enter this path — run the wave serial.
-  This is a judgement made up front, when branches are still empty.
+- **Category half — auto-derived from the diff.** You **don't hand-classify**:
+  omit `--category` and `dispatch-decision` derives each task's category from
+  its branch's committed diff, fail-closed (only an all-added, no-danger-path
+  diff is `cannot-collide`; rename/delete, danger-paths, modified-existing, and
+  cross-branch basename/dir collisions all serialize). Pass `--category` only
+  to **override** — the sole way to assert `typed-group-b`, which is never
+  auto-derived (deciding a change is type-shaped isn't fail-closed-mechanizable).
 - **Disjointness half — on populated branches.** A clean `git merge-tree`
   file-disjointness check is only meaningful once the implementers have
   written and committed, so it is enforced at the **merge** step (step 5's
   `git merge --no-ff` aborts on any collision — the loud backstop). Run
-  `loop-cohort dispatch-decision --category <c> … --branch <b> …` as a
-  read-only **preview** of that check (it runs `wave_is_disjoint` +
-  applies the category rule, printing `parallel` or `serial`) before
-  paying for a merge you expect to abort.
+  `loop-cohort dispatch-decision --branch <b> …` (categories auto-derived) as a
+  read-only **preview** of that check (it classifies each branch + runs
+  `wave_is_disjoint`, printing `parallel` or `serial`) before paying for a
+  merge you expect to abort.
+- **Even earlier — `Touches:` screen (optional).** If the plan's tasks declare
+  `Touches:` globs, `loop-cohort schedule` prints `predicted-disjoint:
+  yes|no|unknown` per wave. Treat a `no` as a reason to keep the wave serial
+  *before* dispatch; `yes`/`unknown` change nothing — they **never** greenlight
+  (the merge-tree check above stays the sole authority). Serialize-only screen.
 
 Any non-safe category, or any merge-tree conflict, stays serial. Reviewer
 (read) fan-out is a separate, always-safe path.
 
 **Present the cleared-gate opportunity.** When `dispatch-decision` returns
-`parallel`, do not enter the procedure below silently — **present the
-cleared-gate opportunity to the human** (the parallel-eligible wave and its
-tasks; the verb's stderr rationale is the line to relay) and take the
-parallel path **only on an explicit opt-in**. Absent one, run the wave
-sequentially — the safe default. This is present-and-default-safe, not the
-halt-and-wait Surface verb, so an unattended run proceeds sequentially
-rather than blocking.
+`parallel`, branch on `state.json.auto_parallel` (set per-run via `loop-cohort
+auto-parallel`, default off):
+
+- **`auto_parallel` unset (default):** do not enter the procedure below
+  silently — **present the cleared-gate opportunity to the human** (the
+  parallel-eligible wave and its tasks; the verb's stderr rationale is the line
+  to relay) and take the parallel path **only on an explicit opt-in**. Absent
+  one, run the wave sequentially — the safe default. Present-and-default-safe,
+  not the halt-and-wait Surface verb, so — *with `auto_parallel` unset* — an
+  unattended run proceeds sequentially rather than blocking.
+- **`auto_parallel` set:** the human pre-authorized this run; a **gate-cleared**
+  wave enters the parallel procedure below **without** the opt-in (this is what
+  lets a plan finish unattended). **GO-approval-only** — it skips only the
+  human-confirm step for an **already-cleared** wave; it is never a gate input,
+  never enters the parallel path for a wave the gate didn't clear, and a failed
+  parallel wave (step-5 merge-abort, or a blocked/failed implementer at step 4)
+  still **Surfaces and stops** — never auto-retries or relaxes a gate.
 
 The trigger and concept stay in [`../SKILL.md` § EXECUTE](../SKILL.md); this
 file owns the step-by-step procedure once the opt-in parallel path is taken.

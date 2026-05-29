@@ -170,21 +170,6 @@ Sibling of `user-scope-hooks` for RFC-0005's third surface (standalone
     `_load_cli_module()` loads from pack source, not the projected
     `.claude/skills/…` mirror; parametrise over both.
 
-## `wave-scheduled-supervisor`
-
-Autonomy increments toward hands-off whole-plan execution (none gating):
-
-- **Auto-classify task conflict categories.** The safe-category half of
-  the dispatch gate is a human/agent judgement today; infer it from the
-  task's declared touched-files / change shape.
-- **Predict disjointness before dispatch.** `git merge-tree` is only
-  meaningful post-write (step-5 merge-abort is the real enforcement);
-  predicting from plan-declared touched-file globs would let the gate
-  decide up front. Requires per-task touched-file globs in the plan template.
-- **Explicit per-run opt-in flag / state field.** A single "parallelize
-  what's safe" flag (or `state.json` field) set once per run, vs. today's
-  per-wave manual opt-in.
-
 ## Cross-spec / outside-the-spec-tree
 
 Open items called out by accepted RFCs or multiple specs, without a spec
