@@ -273,21 +273,40 @@ order, single-agent, by default** — on every adapter. `schedule` fails
 loud on a dependency **cycle** and warns on a **forward-reference** (a dep
 authored later — it reorders so the dep runs first), so an ill-formed plan
 is caught here, not run out of order. This is the proven, zero-hazard path;
-its win is correct ordering, not speed. (RFC-0015 / ADR-0005.)
+its win is correct ordering, not speed. (RFC-0015 / ADR-0005.) If tasks
+declare optional `Touches:` globs, `schedule` also prints
+`predicted-disjoint: yes|no|unknown` per wave — a **serialize-only screen**
+(a predicted overlap is a reason to keep the wave serial; it **never**
+greenlights parallel — the gate below stays authoritative).
 
 **Parallel implementer fan-out is opt-in and gated — never automatic.** A
 wave of mutually-independent tasks may run in parallel *only* when it
 clears the dispatch gate (`loop-cohort dispatch-decision`): every task in
 a safe category (cannot-collide / typed-Group-B / textual-loud) **and** a
 clean `git merge-tree` file-disjointness check. Any other category, or any
-merge-tree conflict, stays serial (fail closed). When the gate returns
-`parallel`, **present the cleared-gate opportunity to the human** — name the
-parallel-eligible wave and its tasks (the verb's stderr rationale gives you
-the line) and fan out **only on an explicit opt-in**; absent one, run the
-wave sequentially. Never fan out silently on a cleared gate. This is
-present-and-default-safe, **not** the halt-and-wait Surface verb — an
-unattended run simply proceeds sequentially rather than blocking. When you
-do opt in, select a subagent matching `implementer` per the
+merge-tree conflict, stays serial (fail closed). **You don't hand-classify
+the categories** — omit `--category` and the verb auto-derives each from its
+`--branch`'s committed diff (fail-closed: only all-added, no-danger-path,
+no cross-branch basename/dir collision → `cannot-collide`); pass `--category`
+only to override (the sole way to assert `typed-group-b`, which is never
+auto-derived). When the gate returns
+`parallel`, behavior depends on `state.json.auto_parallel` (set per-run via
+`loop-cohort auto-parallel`, default off):
+- **`auto_parallel` unset (default):** **present the cleared-gate opportunity
+  to the human** — name the parallel-eligible wave and its tasks (the verb's
+  stderr rationale gives you the line) and fan out **only on an explicit
+  opt-in**; absent one, run the wave sequentially. Never fan out silently.
+  Present-and-default-safe, **not** the halt-and-wait Surface verb — so, *with
+  `auto_parallel` unset*, an unattended run simply proceeds sequentially rather
+  than blocking.
+- **`auto_parallel` set:** the human pre-authorized this run, so a
+  **gate-cleared** wave fans out **without** the opt-in (this is what lets a
+  plan finish unattended). **GO-approval-only** — it skips *only* the
+  human-confirm step for an **already-cleared** wave; it is never a gate input,
+  never parallelizes a wave the gate didn't clear, and a parallel wave that
+  **fails** (merge-abort) still **Surfaces and stops** — never auto-retries.
+
+When you do opt in (either path), select a subagent matching `implementer` per the
 parallel-dispatch discipline above; **the full 7-step worktree procedure**
 lives in [`references/supervisor-mode.md`](references/supervisor-mode.md) —
 load it on demand. Parallel *reviewer* (read) fan-out is a separate,
