@@ -71,11 +71,19 @@ too vague — sharpen it before moving on.
 <!--
 The verifiable goals that close this spec. Each item should be checkable
 without subjective judgement — a reviewer can read it and know whether it
-holds.
+holds. Notation: `- [ ]` open, `- [x]` met (see CONVENTIONS § 4 Spec
+metadata contract).
 
 - [ ] <observable outcome>
 - [ ] <observable outcome>
 - [ ] <observable outcome>
+
+A criterion that ships unmet *on purpose* is never left silently unchecked —
+mark it deferred with an inline anchor into the backlog register:
+
+- [ ] <observable outcome> (deferred: <backlog-anchor>)
+
+where <backlog-anchor> resolves to a heading in `docs/backlog.md`.
 -->
 
 ## Assumptions
