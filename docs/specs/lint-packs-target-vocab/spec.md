@@ -1,6 +1,6 @@
 # Spec: lint-packs-target-vocab
 
-- **Status:** Drafting
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0001 (base adapter contract; byte-equal projection invariant). The new gate **refuses** offending source content; it never rewrites at emit time. No `adapter.schema.json` or `adapter.toml` change here.

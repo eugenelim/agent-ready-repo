@@ -326,6 +326,17 @@ Run, in order, and only proceed if each passes:
 These are the project's **objective** completion criteria. If a gate fails,
 go to FIX. Don't move past a failing gate by editing the gate.
 
+> **Catalogue governance (this bundle's own repo only).** This catalogue adds a
+> mechanical doc-drift gate, `tools/lint-spec-status.py`, run from the Makefile
+> `build-check` target in CI. It checks spec *metadata* invariants (status
+> vocabulary, ACs checked-or-deferred at the ship transition, deferral anchors
+> resolve in `docs/backlog.md`) against the contract pinned in `CONVENTIONS.md`
+> § 4. It is **catalogue-internal** — there is no such file in an adopter's tree
+> (linters don't project, and no polyglot runtime is assumed), so adopters get
+> the same invariants through construction (the spec template) and judgment (the
+> `adversarial-reviewer` "Spec drift" check and the finish-time checklist below),
+> not this script.
+
 ### 4. REVIEW — adversarial self-review
 
 After gates pass, run adversarial review against the spec. Select a
@@ -411,12 +422,18 @@ mode below, then evaluate the terminal-state bullet last.
   Otherwise `defer` — one line in `Deferred:`. Every Nit resolves
   into one of the two; the `Deferred:` line *is* the acknowledgement
   that the loop saw the Nit and chose not to fix.
-- **Deferred items** → one-line follow-up note in the PR description
-  under `Deferred:` so they don't rot. Append it as a standalone
-  section below the standard template content alongside the
-  `Bundled fixes:` section from EXECUTE; do not modify the template
-  itself. Don't open separate issues by default — the PR is the
-  durable record.
+- **Deferred items** → record each in the durable register,
+  `docs/backlog.md`, under a heading, so they don't rot. The spec criterion
+  that defers carries an inline `(deferred: <anchor>)` marker pointing at that
+  heading (`CONVENTIONS.md` § 4 Spec metadata contract). The PR description
+  keeps only a one-line **pointer** to the register entry — append it as a
+  standalone `Deferred:` section below the standard template content alongside
+  the `Bundled fixes:` section from EXECUTE; do not modify the template itself.
+  The register, not the PR comment, is the durable record: it's
+  version-controlled and greppable, and the `(deferred:) ↔ backlog.md`
+  resolution is mechanically checked (catalogue lint) or reviewer-checked
+  (adopters). Mirroring an item to an issue tracker is an option where one
+  exists, never assumed.
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
   checklist; refuse to declare done until every line is true:
   - GATES were clean (lint, typecheck, tests).
@@ -435,6 +452,11 @@ mode below, then evaluate the terminal-state bullet last.
     contracts; this is the pass that verifies the integrated journey.
   - `git status` shows no uncommitted or untracked files (except
     gitignored scratch).
+  - **Doc-drift invariants hold** (the four the `adversarial-reviewer`'s
+    "Spec drift" check names, against `CONVENTIONS.md` § 4): the touched spec's
+    status reflects the change; every Acceptance Criterion is `[x]` or carries
+    `(deferred: <anchor>)`; each deferral resolves to a `docs/backlog.md`
+    heading; intra-repo references the change touches resolve.
   - Conventional commit format used; no force-push to shared branches.
   - Learnings captured per the next section (AGENTS.md, skill, or doc).
   - PR opened — or merged directly, if that's your workflow — with the
