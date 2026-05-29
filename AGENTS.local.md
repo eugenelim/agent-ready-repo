@@ -4,6 +4,73 @@ Repo-local addendum for maintainers of this checkout. Keep guidance here
 specific to this repository instance; shared agent instructions belong in
 `packs/core/seeds/AGENTS.md` and are projected to `AGENTS.md`.
 
+## Pack-shipped features run in adopters' repos — design against projected/installed state
+
+This repo is a **pack catalogue**: packs (`core`, `governance-extras`,
+`user-guide-diataxis`, `monorepo-extras`) are projected and **installed
+into other people's repositories** via APM / Claude plugins / the CLI.
+A feature that ships inside a pack — a lint, a hook, a skill, a gate —
+does its real work in the *adopter's* projected/installed tree, not here.
+
+**When you design or validate any pack-shipped feature, reason about the
+end-user projected/installed pack state, not this repo's internal state.**
+Concretely:
+
+- The contract an adopter's artifacts follow is the **pack template /
+  seed** (e.g. `packs/core/.apm/skills/new-spec/assets/spec.md`), not
+  this repo's hand-authored examples. An adopter's `docs/specs/` are
+  template-shaped from birth (canonical status vocabulary, `- [ ]`
+  acceptance-criteria checkboxes); validate the feature against *that*
+  shape.
+- This repo's own `docs/specs/`, `docs/rfc/`, `docs/adr/` are
+  **bundle-governance** about the catalogue's own evolution, and this
+  repo is merely the **self-host adopter** (`make build-self`). Much of
+  that internal corpus pre-dates the canonical formats and is
+  heterogeneous. Do **not** let internal-corpus quirks drive
+  pack-feature design — they are at most a self-host edge case to keep
+  the local build green, never the requirement.
+- Before concluding "the feature breaks / false-positives / needs a
+  migration," ask: *does this happen in a fresh adopter's template-shaped
+  tree, or only in this repo's legacy internal corpus?* The former is a
+  design bug; the latter is a self-host cleanup.
+- Coverage that matters is **per-adapter projected layout** (see the
+  Install-test coverage rule below) and the installed runtime surface
+  (CI vs. lifecycle-event hooks), not what happens to be true in this
+  checkout.
+
+## Agents PROJECT — they are not "Claude Code only" (stop getting this wrong)
+
+The `agent` primitive (e.g. `adversarial-reviewer`, `quality-engineer`)
+projects to **three of four** shipped adapters. Verified against
+`docs/contracts/adapter.toml` *and* each tool's docs (checked 2026-05):
+
+| Adapter | agent mode | target | Ships? |
+| --- | --- | --- | --- |
+| claude-code | `direct-file` | `.claude/agents/` | ✓ |
+| kiro | `direct-file` (`kiro-agent-frontmatter`) | `.kiro/agents/` | ✓ |
+| codex | `codex-agent-toml` (`codex-agent-frontmatter`) | `.codex/agents/` | ✓ |
+| copilot | `dropped` | — | ✗ (see below) |
+
+All three consuming tools genuinely support subagents as of 2026:
+[Codex subagents GA 2026-03-16](https://developers.openai.com/codex/subagents),
+[Kiro custom subagents (IDE 0.9, Feb 2026)](https://kiro.dev/docs/chat/subagents/).
+**Copilot's `dropped` is a contract-lag, not a capability ceiling** —
+Copilot itself added custom subagents in 2026
+([GitHub Copilot custom agents](https://docs.github.com/en/copilot/how-tos/copilot-sdk/use-copilot-sdk/custom-agents)),
+so copilot agent support is *addable* when we choose to.
+
+**Corrected 2026-05-29:** `packs/core/seeds/AGENTS.md` previously read
+"Codex and Copilot drop the agent primitive" — wrong (codex projects
+agents via `codex-agent-toml`); fixed to "where your tool supports
+them". Note the root `AGENTS.md` is a **Manual** file — `build-self`
+won't regenerate it (`_compose_agents_md` returns early when it exists),
+so the seed and the working-tree `AGENTS.md` are maintained
+*independently*; a fix like this must edit **both** surfaces.
+
+When reasoning about reviewer/agent reach, the correct default is
+"agents reach claude-code + kiro + codex today (copilot addable)," not
+"Claude Code only."
+
 ## Self-hosting drift — check before editing any file at a projected path
 
 This repo is self-hosted from `packs/`. Many files at `<repo>/...` paths
