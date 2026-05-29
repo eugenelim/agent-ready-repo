@@ -604,3 +604,40 @@ def test_schedule_is_screen_only_no_gate_call(tmp_path):
         assert "wave_is_disjoint" not in src, fn.__name__
     # full signature string captures the `*` keyword-only marker, not just names
     assert str(inspect.signature(lc.dispatch_decision)) == "(categories, *, merge_tree_clean)"
+
+
+# ── supervisor-auto-parallel AP-PT1: auto_parallel field + verb ─────────────
+
+import json as _json  # noqa: E402
+
+
+def _run_lc(*args):
+    return subprocess.run([sys.executable, str(LC_PATH), *args],
+                          capture_output=True, text=True)
+
+
+def test_init_state_has_auto_parallel_false(tmp_path):
+    spec = tmp_path / "spec"; spec.mkdir()
+    r = _run_lc("init", str(spec))
+    assert r.returncode == 0, r.stderr
+    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC1
+
+
+def test_auto_parallel_verb_flips_both_ways(tmp_path):
+    spec = tmp_path / "spec"; spec.mkdir()
+    _run_lc("init", str(spec))
+    assert _run_lc("auto-parallel", str(spec)).returncode == 0
+    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is True   # AC2
+    assert _run_lc("auto-parallel", str(spec), "--off").returncode == 0
+    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC2 --off
+
+
+def test_auto_parallel_not_a_gate_input():
+    import inspect
+    assert "auto_parallel" not in str(inspect.signature(lc.dispatch_decision))  # AC5
+
+
+def test_merge_abort_backstop_free_of_auto_parallel():
+    import inspect
+    # AC4a: the merge-abort backstop cannot be influenced by the flag.
+    assert "auto_parallel" not in inspect.getsource(lc.cmd_worktree_merge)

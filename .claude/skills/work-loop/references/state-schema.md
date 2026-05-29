@@ -9,8 +9,9 @@ the data lives at `docs/specs/<feature>/state.json`, and the template
 lives at [`assets/state.json`](../assets/state.json).
 
 **State mutation is owned by `loop-cohort`.** The tool's verbs (`init`,
-`approve-plan`, `review record`, `worktree {add, record, list, merge,
-cleanup, preflight}`) are the only sanctioned way to write `state.json`.
+`approve-plan`, `auto-parallel`, `review record`, `worktree {add, record,
+list, merge, cleanup, preflight}`) are the only sanctioned way to write
+`state.json`.
 Do not edit the file by hand or invoke `git worktree` directly — the
 tool guarantees atomic writes, fingerprint algorithm consistency, and
 match-first/write-second/state-last ordering. SKILL prose calls each
@@ -25,6 +26,7 @@ verb at the appropriate phase.
 | `token_budget_used_pct` / `token_budget_cap_pct` | session token budget — **advisory in Phase 1**; the kill criterion fires only if the orchestrator populates `_used_pct`, which is wired up in a later phase |
 | `consecutive_same_error_count` / `consecutive_same_error_threshold` | gate-error stuck-loop counter / cap. **Advisory in Phase 1** — the SKILL doesn't yet prescribe when to increment `_count`. Threshold lives in data so a project can tune it. |
 | `plan_review_status` | `pending` until the spec-mode adversarial review clears, then `approved` (flipped by `loop-cohort approve-plan`). Enforced as a gate on **all phases** (not just `--phase plan`) — `implement` and `review` also reject a `pending` state. |
+| `auto_parallel` | per-run unattended pre-authorization (default `false`; flipped by `loop-cohort auto-parallel` / `--off`). When `true`, supervisor mode fans out a wave that has **already cleared the gate** without the follow-on-1 human opt-in. **GO-approval-only**: never a gate input, never parallelizes a non-cleared wave, and a failed parallel wave still Surfaces and stops (no auto-recover). Per-run session scratch — a fresh run defaults `false`. Flat top-level field, distinct from the dry-run-gated `worktrees` schema. |
 | `last_commit_sha` | latest commit produced by the loop (informational; advisory in Phase 1) |
 | `finding_fingerprints` / `previous_finding_fingerprints` | hashes of reviewer findings, rotated each REVIEW iteration by `loop-cohort review record`; used to detect circling. Algorithm: `sha1("<file>|<line>|<title>")`, anchored on the adversarial-reviewer's documented `**N. <title>.** \`file:line\`. … Fix: …` format. |
 | `worktrees` | one entry per `implementer` subagent dispatched in the current session's supervisor pass: `{task_id, branch, path, status, report_path}` where status is `in-progress` / `ready` / `blocked` / `failed` and `report_path` points at the implementer's markdown report under `docs/specs/<feature>/notes/`. Report files are gitignored (`docs/specs/**/notes/implementer-*.md`) — session-scratch like `state.json`, not history. Entries persist with their terminal status for the rest of the loop so a future reader can reconstruct what each task did. Empty in single-agent loops. See [`supervisor-mode.md`](supervisor-mode.md) for the dispatch/merge procedure. |
