@@ -1,6 +1,6 @@
 # Spec: wave-scheduled supervisor mode
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0005, RFC-0015
@@ -98,38 +98,38 @@ gate.
 
 ## Acceptance Criteria
 
-- [ ] AC1 — `loop-cohort` builds the full dependency graph from every task's
+- [x] AC1 — `loop-cohort` builds the full dependency graph from every task's
   `Depends on:` and produces a topological order (Kahn supersteps).
-- [ ] AC2 — a dependency **cycle** is detected and reported as a PLAN-level
+- [x] AC2 — a dependency **cycle** is detected and reported as a PLAN-level
   error (non-zero exit), naming the cycle.
-- [ ] AC3 — a **forward-reference** (a task whose declared dep is authored
+- [x] AC3 — a **forward-reference** (a task whose declared dep is authored
   later) is detected and **reported as a warning**, and the topological order
   **reorders it** so the dependency runs first (a forward-ref is a valid
   acyclic edge — unlike a cycle, it is schedulable; only AC2's cycle is a hard
   error). The two real cases in the repo's plans (`agent-spec-cli` T13→T15;
   `incompatible-hook-event-drop` T2→T3,T4) are covered by tests.
-- [ ] AC4 — default execution is **sequential in topological order on every
+- [x] AC4 — default execution is **sequential in topological order on every
   adapter**; the old auto-parallel-on-`Depends on: none` branch no longer fires.
-- [ ] AC5 *(required — RFC-0015 decision 3)* — parallel-write dispatch occurs
+- [x] AC5 *(required — RFC-0015 decision 3)* — parallel-write dispatch occurs
   **only** when a wave's tasks are all in a safe category (cannot-collide /
   typed-Group-B / textual-loud) **and** the wave passes a `git merge-tree`
   file-disjointness check; **both** an allow-path test and a
   serialize-on-fail-path test exist and pass.
-- [ ] AC6 — the `Depends on:` parser handles prose, letter-suffixed IDs (`T1a`),
+- [x] AC6 — the `Depends on:` parser handles prose, letter-suffixed IDs (`T1a`),
   ranges (`T1-T6`), and the cross-spec marker `spec:<name>/TN`, and ignores
   cross-spec deps for intra-plan scheduling (the `self-hosting` no-collision
   regression passes).
-- [ ] AC7 — the plan template documents the `Depends on:` grammar + cross-spec
+- [x] AC7 — the plan template documents the `Depends on:` grammar + cross-spec
   marker; the `new-spec` lint **fails on cycles** and **warns on
   forward-references**, and over all current plans reports **zero cycles**
   (the two forward-refs — `agent-spec-cli`, `incompatible-hook-event-drop` —
   surface as warnings, not failures), with `kiro-ide-hook` excluded (no
   `### T<n>` headings; 20 of 21 plans parse).
-- [ ] AC8 — `make build-self` leaves a clean tree and both lint surfaces pass;
+- [x] AC8 — `make build-self` leaves a clean tree and both lint surfaces pass;
   no new module, dependency, or top-level directory was introduced.
-- [ ] AC9 — the worktree/merge dispatch path was exercised by a real
+- [x] AC9 — the worktree/merge dispatch path was exercised by a real
   `git worktree add` + 2-task dry-run (not a prose walk-through), per CONVENTIONS.
-- [ ] AC10 *(follow-on 1)* — when the dispatch gate returns `parallel`, the
+- [x] AC10 *(follow-on 1)* — when the dispatch gate returns `parallel`, the
   `dispatch-decision` verb emits a **human-readable rationale** (to stderr)
   naming the wave as parallel-eligible and why (N tasks, all safe-category +
   file-disjoint); on `serial` it names the disqualifying reason — that the
