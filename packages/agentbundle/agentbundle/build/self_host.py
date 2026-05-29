@@ -314,6 +314,9 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     # paths; the following 8 are not matched by any pattern and need
     # explicit listing. See `docs/specs/self-hosting/spec.md` AC20.
     "docs/CHARTER.md",
+    "docs/backlog.md",  # per-instance work/deferral register; seed is
+                        # placeholder, on-disk file is the curated instance
+                        # (RFC-0016 mechanism 5). Preserved like docs/product/*.
     "docs/knowledge/patterns.jsonl",
     "docs/rfc/README.md",
     "docs/adr/README.md",
