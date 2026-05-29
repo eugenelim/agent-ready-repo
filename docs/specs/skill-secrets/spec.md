@@ -658,7 +658,7 @@ Conventions, guide, roadmap:
       pick a namespace; write the schema; import the loader; embed
       the "Don't" block; declare frontmatter; run `setup`; run
       `check`. References the worked example.
-- [x] **AC32.** `docs/ROADMAP.md` carries a `## skill-secrets` section
+- [x] **AC32.** `docs/backlog.md` carries a `## skill-secrets` section
       replacing the previous cross-spec stub. Entries close
       incrementally **per task** following the existing ROADMAP
       grouping convention (one bullet per task / AC range, not one

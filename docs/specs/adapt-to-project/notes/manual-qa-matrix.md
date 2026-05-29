@@ -79,7 +79,7 @@ each branch and surface obvious specification gaps, but they are
 transcript "captured against a real adopter session" — a human
 adopter exercising the skill against their own brownfield repo.
 The simulated captures stay under AC4b until that real-adopter
-capture is feasible; the AC4b entry in `docs/ROADMAP.md` tracks
+capture is feasible; the AC4b entry in `docs/backlog.md` tracks
 the open work.
 
 ### Repo-scope class-2 transcript artifacts (Claude-simulated)
