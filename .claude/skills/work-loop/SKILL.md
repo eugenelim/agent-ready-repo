@@ -265,22 +265,34 @@ discipline rather than restating it.
   (state.json for implementers; severity buckets for reviewers), then
   decide.
 
-#### Supervisor mode (parallel implementers)
+#### Supervisor mode (wave-scheduled; sequential by default)
 
-If the plan has **two or more tasks declaring `Depends on: none`**, the
-loop branches into supervisor mode for EXECUTE. You become the
-supervisor; for each independent task, select a subagent matching
-`implementer` and dispatch it against the task in its own worktree per
-the parallel-dispatch discipline above.
+Run `loop-cohort schedule docs/specs/<feature>` to build the plan's full
+`Depends on:` DAG and get the topological order. **Execute tasks in that
+order, single-agent, by default** — on every adapter. `schedule` fails
+loud on a dependency **cycle** and warns on a **forward-reference** (a dep
+authored later — it reorders so the dep runs first), so an ill-formed plan
+is caught here, not run out of order. This is the proven, zero-hazard path;
+its win is correct ordering, not speed. (RFC-0015 / ADR-0005.)
 
-**The full 7-step procedure** (pre-flight, worktree setup, dispatch,
-report persistence, non-ready handling, merge, cleanup) lives in
-[`references/supervisor-mode.md`](references/supervisor-mode.md) — load
-it on demand when this branch fires. The single-agent fallback (when no
-`implementer`-matching subagent is installed) is documented there too.
-
-In single-agent mode (no independent tasks), skip the supervisor branch
-entirely and execute as the sole agent — that's the default flow above.
+**Parallel implementer fan-out is opt-in and gated — never automatic.** A
+wave of mutually-independent tasks may run in parallel *only* when it
+clears the dispatch gate (`loop-cohort dispatch-decision`): every task in
+a safe category (cannot-collide / typed-Group-B / textual-loud) **and** a
+clean `git merge-tree` file-disjointness check. Any other category, or any
+merge-tree conflict, stays serial (fail closed). When the gate returns
+`parallel`, **present the cleared-gate opportunity to the human** — name the
+parallel-eligible wave and its tasks (the verb's stderr rationale gives you
+the line) and fan out **only on an explicit opt-in**; absent one, run the
+wave sequentially. Never fan out silently on a cleared gate. This is
+present-and-default-safe, **not** the halt-and-wait Surface verb — an
+unattended run simply proceeds sequentially rather than blocking. When you
+do opt in, select a subagent matching `implementer` per the
+parallel-dispatch discipline above; **the full 7-step worktree procedure**
+lives in [`references/supervisor-mode.md`](references/supervisor-mode.md) —
+load it on demand. Parallel *reviewer* (read) fan-out is a separate,
+always-safe path and is unaffected. The single-agent fallback (no
+`implementer` subagent installed) is documented in the reference too.
 
 ### 3. GATES — mechanical verification
 

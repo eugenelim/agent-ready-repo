@@ -21,9 +21,13 @@ execution is **sequential by default on every adapter** (no auto-parallel
 fan-out), so no *silent* parallel-write breakage can ship; (3) parallel
 implementer **writes** happen **only** when explicitly opted in *and* a wave
 clears the safety gate (a measured safe category **and** a `git merge-tree`
-file-disjointness check), otherwise that wave runs serial. The `Depends on:`
-field becomes machine-parseable (robust parser + a cross-spec marker) so the
-scheduler can consume it. Success: a plan with declared dependencies runs in
+file-disjointness check), otherwise that wave runs serial; (4) when a wave
+**does** clear the gate, the work-loop **presents that parallel-eligible wave
+to the human** (which tasks, and why it qualified) and fans out only on an
+explicit opt-in — so the opportunity is visible at the moment it exists rather
+than defaulting to sequential by inertia, and is never taken silently. The
+`Depends on:` field becomes machine-parseable (robust parser + a cross-spec
+marker) so the scheduler can consume it. Success: a plan with declared dependencies runs in
 correct order on any adapter; an ill-formed plan (cycle / forward-ref) fails
 loud at PLAN; and parallel writes never run for a wave that can't clear the
 gate.
@@ -83,6 +87,14 @@ gate.
   `CONVENTIONS.md` §Supervisor mode + §Multi-agent shape by profile) —
   **goal-based check**: both lint surfaces (`lint-packs` + `tools/lint-agent-artifacts.py`)
   pass and `make build-self` leaves a clean tree.
+- **Cleared-gate surface** (AC10) — two halves, two modes. The
+  `dispatch-decision` stderr rationale is **TDD** (subprocess tests over the
+  `parallel` / serial-overlap / serial-non-safe outcomes; a compressible
+  invariant). The "present the opportunity, fan out only on opt-in" instruction
+  is a **goal-based check**: a grep asserts the present-the-opportunity
+  instruction exists in both `work-loop` SKILL §EXECUTE and
+  `references/supervisor-mode.md` (same shape as the doc-of-record check above),
+  so outcome (4)'s behavioral half can't ship as ignorable prose.
 
 ## Acceptance Criteria
 
@@ -91,9 +103,11 @@ gate.
 - [ ] AC2 — a dependency **cycle** is detected and reported as a PLAN-level
   error (non-zero exit), naming the cycle.
 - [ ] AC3 — a **forward-reference** (a task whose declared dep is authored
-  later) is detected and reported as a PLAN-level error; the two real cases in
-  the repo's plans (`agent-spec-cli` T13→T15; `incompatible-hook-event-drop`
-  T2→T3,T4) are covered by tests.
+  later) is detected and **reported as a warning**, and the topological order
+  **reorders it** so the dependency runs first (a forward-ref is a valid
+  acyclic edge — unlike a cycle, it is schedulable; only AC2's cycle is a hard
+  error). The two real cases in the repo's plans (`agent-spec-cli` T13→T15;
+  `incompatible-hook-event-drop` T2→T3,T4) are covered by tests.
 - [ ] AC4 — default execution is **sequential in topological order on every
   adapter**; the old auto-parallel-on-`Depends on: none` branch no longer fires.
 - [ ] AC5 *(required — RFC-0015 decision 3)* — parallel-write dispatch occurs
@@ -106,13 +120,30 @@ gate.
   cross-spec deps for intra-plan scheduling (the `self-hosting` no-collision
   regression passes).
 - [ ] AC7 — the plan template documents the `Depends on:` grammar + cross-spec
-  marker; the `new-spec` lint flags cycles/forward-refs and runs over all
-  current plans with no *real* findings — the only exclusion is `kiro-ide-hook`
-  (no `### T<n>` headings; 20 of 21 plans parse).
+  marker; the `new-spec` lint **fails on cycles** and **warns on
+  forward-references**, and over all current plans reports **zero cycles**
+  (the two forward-refs — `agent-spec-cli`, `incompatible-hook-event-drop` —
+  surface as warnings, not failures), with `kiro-ide-hook` excluded (no
+  `### T<n>` headings; 20 of 21 plans parse).
 - [ ] AC8 — `make build-self` leaves a clean tree and both lint surfaces pass;
   no new module, dependency, or top-level directory was introduced.
 - [ ] AC9 — the worktree/merge dispatch path was exercised by a real
   `git worktree add` + 2-task dry-run (not a prose walk-through), per CONVENTIONS.
+- [ ] AC10 *(follow-on 1)* — when the dispatch gate returns `parallel`, the
+  `dispatch-decision` verb emits a **human-readable rationale** (to stderr)
+  naming the wave as parallel-eligible and why (N tasks, all safe-category +
+  file-disjoint); on `serial` it names the disqualifying reason — that the
+  wave's branches **conflict under `git merge-tree`**, or the **non-safe
+  categories** present. When *both* disqualify, the merge-tree-conflict reason
+  is named (matching `dispatch_decision`'s short-circuit order, which tests
+  `merge_tree_clean` first). The `work-loop` SKILL §EXECUTE + supervisor-mode
+  procedure instruct the agent to **present that cleared-gate opportunity to
+  the human and fan out only on explicit opt-in**, defaulting to sequential
+  absent one — never fanning out silently. The "opt-in" is the **existing
+  per-wave human decision** (read the rationale, then run the parallel worktree
+  procedure); AC10 adds **no new flag or `state.json` field** — a per-run opt-in
+  affordance is a separate follow-on. (stdout stays the bare `parallel`/`serial`
+  token so scripted reads are unaffected.)
 
 ## Assumptions
 

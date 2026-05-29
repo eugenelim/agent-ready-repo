@@ -14,7 +14,7 @@ line under `make build-check` per AC6 of the self-hosting spec.
 For shipped work, see [`product/changelog.md`](product/changelog.md)
 and each spec's own Changelog section.
 
-**Last updated:** 2026-05-25 (later same day: closed the AC22 install-route coverage extension follow-on under `self-hosting` as moot — `make build` confirmed neither the `per-pack-claude-plugin` nor the `per-pack-apm-package` recipe projects a `dist/<route>/<pack>/seeds/` subtree and the install→adapt chain never invokes `scaffold`, so the route axis was empty by construction; AC22 wording rescoped single-route in the spec, paired RFC-0002 § Amendments entry added, cross-source invariant remains enforced by AC21's `tools/lint-seeds.py`. Earlier today: added `apm-install-route-parity` — Approved → Shipped after T1-T12 implementation via work-loop in a single session; canonical install-marker writer now serves both claude-plugins and APM routes via a required `--install-route` argparse flag, build pipeline projects matching artifacts under `dist/apm/<pack>/.apm/hooks/`, contract bumped v0.4 → v0.5 with `"apm"` on `[adapter."claude-code"].install-routes`, sibling specs amended in-PR for AC1 allow-list / AC9 hook command / AC27 stale-entry drop / `per-pack-apm-package` recipe note / `apm-route conformance` AC; live-install transcripts at three targets (Copilot, Cursor, Gemini) deferred per AC17's manual-QA matrix rows with `verification = transcript`, gated on adopter availability rather than on the PR. Mid-EXECUTE Cohort C surfaced a pre-existing drift in `tools/hooks/pre-pr.py` vs `packs/core/.apm/hooks/pre-pr.py` from PR #111 — projection had `lint-skill-spec` but source did not; closed the drift in-PR by adding the same `lint-skill-spec` line to the source pack hook so `make build-self` produces a stable projection.) Earlier today: added `kiro-ide-hook` — Draft, sibling of `user-scope-hooks` covering RFC-0005's third hook surface (Kiro standalone `.kiro.hook` files for IDE events); new `kiro-ide-hook` primitive, contract bumps `0.3 → 0.4`; non-probe tasks A/B/C1-4/D1/G land in-session, T-CONTRACT gated on Q6 / Q11 probes against real Kiro install, T-F ADR carries bullets (a)+(b) from RFC § Follow-on artifacts; the RFC-text drift on uninstall semantics in § State-file impact is recorded as a deferred follow-up. Earlier today: shipped `wire-session-start-hook` — Approved → Shipped after T1-T7 implementation via work-loop; PR #98 also fixed a latent `self_host.py` drift-loop bug uncovered by CI (`diff_against_working_tree` now consults `EXCLUDED_PATTERNS` the same way the unclassified-path enumeration does). Mid-EXECUTE the spec was amended to correct AC1/AC2/AC3/AC9/AC10 paths from flat to dist-tree shape after work-loop discovered repo-scope install produces `<output>/claude-plugins/<pack>/...`, not the flat shape the original spec assumed. Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
+**Last updated:** 2026-05-29 (added `wave-scheduled-supervisor` — shipped T1–T6 via PR #182; RFC-0015 + ADR-0005 Accepted; the cleared-gate surface lands in the same PR as T7/AC10 (not yet merged), leaving three autonomy follow-ons open. Earlier — 2026-05-25: closed the AC22 install-route coverage extension follow-on under `self-hosting` as moot — `make build` confirmed neither the `per-pack-claude-plugin` nor the `per-pack-apm-package` recipe projects a `dist/<route>/<pack>/seeds/` subtree and the install→adapt chain never invokes `scaffold`, so the route axis was empty by construction; AC22 wording rescoped single-route in the spec, paired RFC-0002 § Amendments entry added, cross-source invariant remains enforced by AC21's `tools/lint-seeds.py`. Earlier today: added `apm-install-route-parity` — Approved → Shipped after T1-T12 implementation via work-loop in a single session; canonical install-marker writer now serves both claude-plugins and APM routes via a required `--install-route` argparse flag, build pipeline projects matching artifacts under `dist/apm/<pack>/.apm/hooks/`, contract bumped v0.4 → v0.5 with `"apm"` on `[adapter."claude-code"].install-routes`, sibling specs amended in-PR for AC1 allow-list / AC9 hook command / AC27 stale-entry drop / `per-pack-apm-package` recipe note / `apm-route conformance` AC; live-install transcripts at three targets (Copilot, Cursor, Gemini) deferred per AC17's manual-QA matrix rows with `verification = transcript`, gated on adopter availability rather than on the PR. Mid-EXECUTE Cohort C surfaced a pre-existing drift in `tools/hooks/pre-pr.py` vs `packs/core/.apm/hooks/pre-pr.py` from PR #111 — projection had `lint-skill-spec` but source did not; closed the drift in-PR by adding the same `lint-skill-spec` line to the source pack hook so `make build-self` produces a stable projection.) Earlier today: added `kiro-ide-hook` — Draft, sibling of `user-scope-hooks` covering RFC-0005's third hook surface (Kiro standalone `.kiro.hook` files for IDE events); new `kiro-ide-hook` primitive, contract bumps `0.3 → 0.4`; non-probe tasks A/B/C1-4/D1/G land in-session, T-CONTRACT gated on Q6 / Q11 probes against real Kiro install, T-F ADR carries bullets (a)+(b) from RFC § Follow-on artifacts; the RFC-text drift on uninstall semantics in § State-file impact is recorded as a deferred follow-up. Earlier today: shipped `wire-session-start-hook` — Approved → Shipped after T1-T7 implementation via work-loop; PR #98 also fixed a latent `self_host.py` drift-loop bug uncovered by CI (`diff_against_working_tree` now consults `EXCLUDED_PATTERNS` the same way the unclassified-path enumeration does). Mid-EXECUTE the spec was amended to correct AC1/AC2/AC3/AC9/AC10 paths from flat to dist-tree shape after work-loop discovered repo-scope install produces `<output>/claude-plugins/<pack>/...`, not the flat shape the original spec assumed. Kiro support deferred to a parallel spec that needs a new `steering` primitive. Earlier today: closed `skill-secrets` — all T1–T13c shipped; status flipped Draft → Shipped; round-1 end-of-spec review fixes landed via PRs #81/#82/#83; round-2 review-pass follow-ons (windows-latest CI matrix, AC22 macOS symbolic exit-code matrix, `CredentialsMissingError` tier observability, robustness pass, lint widening) landed as separate focused PRs. AC34/AC35 inheritance invariants and the post-implementation "Credential storage" ADR remain as cross-spec items.)
 
 ## How this file is maintained
 
@@ -815,6 +815,62 @@ PR-review is the other):
   AC22b / AC22c added; AC23 widened to cover adapter-root-bins drift
   outcomes with the `[adapter-root-bins:shim-companion]` diagnostic
   prefix.
+
+## `wave-scheduled-supervisor` — shipped (T1–T6 landed; autonomy follow-ons open)
+
+Spec: [`specs/wave-scheduled-supervisor/spec.md`](specs/wave-scheduled-supervisor/spec.md).
+RFC: [`rfc/0015-wave-scheduled-supervisor-mode.md`](rfc/0015-wave-scheduled-supervisor-mode.md)
+(Accepted 2026-05-29). ADR: [`adr/0005-supervisor-topological-default-and-write-gate.md`](adr/0005-supervisor-topological-default-and-write-gate.md)
+(Accepted 2026-05-29). T1–T6 landed via work-loop in PR #182.
+
+Supervisor mode now schedules a plan's **full `Depends on:` DAG** instead of
+only the `Depends on: none` subset. The scheduler lives entirely inside
+`loop-cohort.py` (`parse_depends_on`, `parse_plan`, `topological_waves`,
+`detect_cycles`, `detect_forward_refs`, `dispatch_decision`,
+`wave_is_disjoint`; the `schedule` + `dispatch-decision` verbs) — no new
+module, dependency, or top-level dir (AC8). Default execution flips to
+**sequential topological order on every adapter** (AC4); the old
+auto-parallel-on-`Depends on: none` branch is gone. Parallel writes are
+**opt-in and gated** on safe-category ∧ `git merge-tree` disjointness, fail
+closed (AC5), with the step-5 merge-abort as the enforcing backstop. The
+plan template documents the grammar and `tools/lint-plan-deps.py` lints the
+corpus (AC7). AC9's worktree dry-run is reproducible in-tree at
+`notes/ac9_worktree_dryrun.py`.
+
+- **Forward-reference disposition corrected (RFC-0015 § Errata, 2026-05-29).**
+  RFC-0015 decision 1's body said a forward-ref is a "PLAN error"; the
+  implementation treats it as a **warning the scheduler reorders** (only a
+  cycle hard-fails), recorded as an Approver-signed erratum rather than a
+  superseding RFC. Closed in PR #182.
+
+Open follow-ons (not gating this spec — autonomy increments toward
+hands-off whole-plan execution):
+
+- ~~**Surface the cleared-gate parallel opportunity to the human.**~~
+  **Lands in PR #182 (T7 / AC10; not yet merged).** `dispatch-decision` now emits
+  a human-readable rationale to stderr — on `parallel` it names the wave as
+  parallel-eligible (task count); on `serial` it names the disqualifying
+  reason (merge-tree conflict, or the non-safe categories). The `work-loop`
+  SKILL §EXECUTE + `supervisor-mode.md` instruct the agent to **present the
+  cleared-gate opportunity** and fan out only on an explicit opt-in, defaulting
+  to sequential — never silently. (Present-and-default-safe, *not* the
+  halt-and-wait Surface verb, so unattended/Ralph runs proceed sequentially.)
+  A per-run opt-in *flag/state field* remains the separate follow-on below.
+- **Auto-classify task conflict categories.** The safe-category half of the
+  gate (cannot-collide / typed-Group-B / textual-loud vs. dangerous) is a
+  human/agent judgement today. Inferring it from the task's declared
+  touched-files / change shape would remove the manual step.
+- **Predict disjointness before dispatch.** The `git merge-tree`
+  disjointness check is only meaningful on populated branches, so the real
+  enforcement is post-write (step-5 merge-abort). Predicting disjointness
+  from plan-declared touched-files *before* paying for dispatch would let
+  the gate decide up front. Requires the plan template to declare per-task
+  touched-file globs.
+- **Explicit per-run opt-in flag / state field.** Today opting into
+  parallelism is a deliberate procedure choice per wave. A single
+  "parallelize what's safe" flag (or `state.json` field) a driver sets once
+  for the whole run would make autonomous selective parallelism a
+  first-class mode rather than a manual per-wave act.
 
 ## Cross-spec / outside-the-spec-tree
 

@@ -7,6 +7,23 @@
 - **Date closed:** 2026-05-29
 - **Related:** `work-loop` skill (§EXECUTE, `references/supervisor-mode.md`); `docs/CONVENTIONS.md` §Supervisor mode + §Multi-agent shape by profile; `new-spec` plan template (`assets/plan.md`); RFC-0014 (the answer-first format this RFC follows).
 
+## Errata
+
+- **2026-05-29 — forward-reference disposition corrected (decision 1).**
+  This RFC's body (decision 1, below) says "a forward-ref is a PLAN error —
+  the plan is wrong, not the code." Implementation
+  (`docs/specs/wave-scheduled-supervisor/`) corrected this: a
+  forward-reference is a **warning that the scheduler reorders**, not a hard
+  error — only a dependency **cycle** is unschedulable and hard-fails. A
+  forward-ref is a valid acyclic edge (a task declaring a dep authored
+  later); the topological sort runs the dep first, so the plan is still
+  schedulable. The repo's own corpus contains 3 real forward-refs across 2
+  plans (`agent-spec-cli`, `incompatible-hook-event-drop`); hard-failing
+  them would reject valid plans. Approver-signed (@eugenelim, 2026-05-29) as
+  an erratum rather than a superseding RFC because it narrows one decision's
+  disposition, not the architecture. The frozen body below is unchanged;
+  this annotation is the correction of record.
+
 ## The ask
 
 - **Recommendation (BLUF):** Make **sequential topological ordering the
