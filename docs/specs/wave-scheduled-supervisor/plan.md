@@ -1,0 +1,195 @@
+# Plan: wave-scheduled supervisor mode
+
+- **Spec:** [`spec.md`](spec.md)
+- **Status:** Drafting <!-- Drafting | Executing | Done -->
+
+> **Plan contract:** this is the implementation strategy. Unlike the spec, this
+> document is allowed to change as you learn. When it changes substantially
+> (a different approach, not just a re-ordering), note why in the changelog
+> at the bottom.
+
+## Approach
+
+The change lands inside the existing `loop-cohort.py`
+(`packs/core/.apm/skills/work-loop/scripts/`) plus the `new-spec` plan
+template — **no new module, dependency, or top-level dir** (ADR-0005). Build
+order is bottom-up: first make `Depends on:` machine-parseable (T1), then the
+pure graph logic that consumes it — DAG build + cycle/forward-ref detection
+(T2) — then the execution change that flips the default to sequential
+topological order (T3), then the opt-in parallel-write dispatch gate (T4, the
+load-bearing decision-3 AC). The doc/template surface (T5 grammar + lint, T6
+SKILL/supervisor-mode/CONVENTIONS + build-self) follows once behavior is
+settled. The riskiest part is T4's worktree/merge surface — it carries a
+mandatory real `git worktree add` dry-run (AC9), never a prose walk-through.
+All scheduler logic is pure functions over parsed edges, so the bulk is TDD;
+the worktree dry-run and the doc/lint surface are goal-based.
+
+## Constraints
+
+- **ADR-0005** + **RFC-0015** — topological-order default; parallel writes
+  opt-in and gated on safe-category ∧ `git merge-tree` disjointness; read/write
+  split; `merge-abort` preserved; reuse `loop-cohort`, no new subsystem.
+- `docs/CONVENTIONS.md` §Supervisor mode — two-levels-deep; sequential merge in
+  task-id order; conflict⇒PLAN; gates in primary; the dry-run "Known limitation".
+- Self-host projection rule — edit `packs/core/...` source, then `make
+  build-self`; never edit the generated `.claude/...` copies.
+
+## Construction tests
+
+Most live per-task below. Cross-cutting:
+
+**Integration tests:** none beyond per-task tests (the scheduler is pure
+functions over parsed edges; the gate's decision function is unit-tested).
+**Manual verification:** AC9 — a real `git worktree add` + 2-task dispatch
+round against a throwaway spec, exercising the parallel-write path end to end
+(records the result in `notes/`); this is the dry-run CONVENTIONS mandates
+before trusting the worktree/merge surface.
+
+## Tasks
+
+### T1: `Depends on:` is machine-parseable (robust parser + cross-spec marker)
+
+**Depends on:** none
+
+**Tests:** (`packages/agentbundle/tests/unit/test_loop_cohort_schedule.py`)
+- prose-bearing field (`T11 (not parallelizable with T13/T14)`) → `{T11}` only.
+- letter-suffixed IDs (`T1a`) and ranges (`T1-T6`) → expanded edge set.
+- cross-spec marker `spec:<name>/TN` parses as a *cross-spec* dep and is
+  **excluded** from the intra-plan edge set (verifies AC6).
+- regression: `self-hosting`'s `` `distribution-adapters` T7 `` does **not**
+  collide with its local `T7` (no phantom cycle).
+- `parse_plan` preserves the **authored task-ID order** (the sequence of
+  `### T<n>` headings) — required downstream for forward-ref detection (AC3).
+
+**Approach:**
+- Add `parse_depends_on(field, local_task_ids) -> (local_edges, cross_spec)`
+  to `loop-cohort.py`; strip parenthetical prose, expand ranges, admit the
+  `spec:<name>/TN` marker, intersect with local IDs.
+- Add `parse_plan(text) -> (ordered_task_ids, deps_by_task)` that walks the
+  `### T<n>` headings **in file order** and applies `parse_depends_on` per
+  task — so authored position is captured, not just the edge set.
+
+**Done when:** the five tests above are green, incl. authored-order preservation.
+
+### T2: DAG build + cycle / forward-ref detection
+
+**Depends on:** T1
+
+**Tests:**
+- topological order (Kahn supersteps) over a known plan = expected layers (AC1).
+- a planted cycle → detection function returns/raises a PLAN-level error naming
+  the cycle (AC2).
+- forward-reference detection flags `agent-spec-cli` T13→T15 and
+  `incompatible-hook-event-drop` T2→T3,T4 (AC3); a clean plan flags neither.
+
+**Approach:**
+- Add `build_dag(ordered_task_ids, deps_by_task)` + `detect_cycles` +
+  `detect_forward_refs` to `loop-cohort.py`, consuming T1's `parse_plan`.
+- `detect_forward_refs` compares each declared dep's **authored index**
+  against the depending task's authored index (a forward-ref is a valid edge
+  whose target is authored *later*) — hence T1's ordered-task-ID capture.
+- Surface failures via the existing `stop(reason)` non-zero-exit path.
+
+**Done when:** AC1–AC3 tests green; a cycle/forward-ref exits non-zero.
+
+### T3: sequential topological execution is the default (remove auto-parallel branch)
+
+**Depends on:** T2
+
+**Tests:**
+- execution order equals the topological order from T2 (AC4).
+- a plan with ≥2 `Depends on: none` tasks **no longer** auto-branches to
+  parallel fan-out — it runs sequentially (asserts the removed branch).
+
+**Approach:**
+- Replace the "≥2 `Depends on: none` ⇒ supervisor fan-out" trigger in
+  `loop-cohort.py` + `references/supervisor-mode.md` with: compute the DAG (T2),
+  run tasks in topological order, single-agent, by default.
+- The `supervisor-mode.md` edit is confined to the **trigger/header text**
+  (the loaded-on-demand intro); it touches **none** of the six dry-run-gated
+  procedure surfaces (pre-flight, worktree creation, report ordering, merge
+  order, cleanup, `state.json.worktrees` schema), so T3 needs no worktree
+  dry-run — that obligation attaches to T4, which does touch dispatch.
+
+**Done when:** AC4 tests green; no auto-parallel dispatch occurs by default.
+
+### T4: opt-in parallel-write dispatch gate (decision 3 — required AC5)
+
+**Depends on:** T2, T3
+
+**Tests:**
+- **allow-path:** a wave of **cannot-collide / typed-Group-B** tasks that
+  `git merge-tree` reports disjoint → gate returns `parallel` (AC5).
+- **serialize-on-fail, both halves independently:** (a) a *textual-loud*
+  wave whose tasks **overlap** (merge-tree reports a conflict) → `serial`;
+  (b) a wave containing any **non-safe** category (e.g. shared-state) →
+  `serial` even if merge-tree is clean. Fail closed on either (AC5).
+- `merge-abort → re-PLAN` still fires on a real merge conflict.
+- **AC9 dry-run:** a real `git worktree add` + 2-task dispatch round against a
+  throwaway spec exercises the parallel path end-to-end; result recorded in
+  `notes/` (the CONVENTIONS-mandated worktree/merge dry-run).
+
+**Approach:**
+- Add `dispatch_decision(wave) -> "parallel" | "serial"` to `loop-cohort.py`:
+  classify each task's category, run `git merge-tree` on the wave's branches
+  for disjointness, require both; default off (opt-in flag). Wire into the
+  worktree path behind the opt-in.
+
+**Done when:** allow-path + both serialize-on-fail tests green; gate is off by
+default; **and the AC9 worktree dry-run has been run with its result in
+`notes/`** (not a prose walk-through).
+
+### T5: plan-template `Depends on:` grammar + `new-spec` cycle/forward-ref lint
+
+**Depends on:** T1
+
+**Tests:** (goal-based)
+- the lint, run over a fixture plan with a planted cycle, exits non-zero.
+- run over the current `docs/specs/*/plan.md`: no *real* findings — the only
+  exclusion is `kiro-ide-hook` (no `### T<n>` headings; 20 of 21 plans parse).
+  Verifies AC7.
+
+**Approach:**
+- Document the grammar (local IDs, ranges, `spec:<name>/TN` marker) in
+  `packs/core/.apm/skills/new-spec/assets/plan.md`; add a `new-spec` lint that
+  reuses T1/T2 to flag cycles/forward-refs, invoked via `sys.executable`.
+
+**Done when:** lint exits non-zero on the planted cycle and zero on current plans.
+
+### T6: doc-of-record updates + clean projection
+
+**Depends on:** T3, T4, T5
+
+**Tests:** (goal-based)
+- `make build-self` leaves a clean tree (`git status --short` empty).
+- both lint surfaces pass: `lint-packs` (source) + `tools/lint-agent-artifacts.py`
+  (projection) — verifies AC8.
+- grep confirms no new module/dir/dependency was added (AC8).
+
+**Approach:**
+- Update `work-loop/SKILL.md` §EXECUTE, `references/supervisor-mode.md`, and
+  `docs/CONVENTIONS.md` §Supervisor mode + §Multi-agent shape by profile to
+  describe the topological default + the opt-in gate; `make build-self`.
+
+**Done when:** clean tree, both lint surfaces green, AC8 holds.
+
+## Rollout
+
+Behavior change ships behind the **default flip** (sequential topological is the
+new default; parallel writes are an opt-in flag, off by default). Reversible:
+the opt-in flag gates all new parallel behavior, and the sequential path is the
+pre-existing safe baseline. AC9's dry-run gates trusting the worktree surface
+before any parallel path is exercised for real.
+
+## Risks
+
+- T4's worktree/merge surface is the historically under-validated part
+  (CONVENTIONS "Known limitation"); the AC9 dry-run is mandatory, not optional.
+- `git merge-tree` output parsing varies by git version; pin behavior with a
+  fixture and the probed `git 2.50.1`.
+- The default flip changes supervisor-mode behavior for every adopter — T6's
+  doc updates and the clean-projection gate must land in the same change.
+
+## Changelog
+
+- 2026-05-29: initial plan (implements RFC-0015 + ADR-0005).
