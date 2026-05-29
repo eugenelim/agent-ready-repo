@@ -693,4 +693,13 @@ Verification:
 
 ## Changelog
 
+- **2026-05-29 erratum (doc-drift-prevention / RFC-0016, PR #188):** AC32's
+  per-task incremental-closure convention for the `docs/backlog.md`
+  `## skill-secrets` section is **superseded**. RFC-0016 mechanism 5 recurated
+  the register to **open items only**, dropping the per-task / AC-range bullet
+  grouping (and the `— shipped` / `— drafted` heading suffixes) that AC32
+  describes. The `## skill-secrets` section persists, but now tracks open items
+  by presence (an item is removed when it closes), not by per-task closure.
+  AC32's body is unchanged — the spec is Frozen; this note records the
+  divergence rather than rewriting history. Approver: eugenelim.
 - **2026-05-26 amendment (credential-broker-contract):** AC34 and AC35 inheritance invariants — that credentialed-skill primitives never see a credential leak through a parent process's environment, and that the loader's API never returns a credential type weaker than `Credentials` — now apply to the vendored `credentials_shim` import surface projected by the `shared-libs/` build-pipeline primitive class, not to the removed `agentbundle.credentials` PyPI module. The migration is byte-equivalent modulo the enumerated import-path deltas in `docs/specs/credential-broker-contract/spec.md` AC6; the inheritance invariants are unchanged. See [`docs/specs/credential-broker-contract/spec.md`](../credential-broker-contract/spec.md).
