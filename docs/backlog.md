@@ -178,14 +178,27 @@ of their own yet.
 - **F-conformance fixtures (RFC-0003).** The per-adapter conformance suite
   `agentbundle validate --strict` would consume. Scoped out of v1; needs
   its own spec.
-- **Reconcile stale `[x]` doc-surface ACs after the `ROADMAP.md` → `backlog.md`
-  rename.** The open-items-only curation dropped the old per-task closure
-  grouping and the `— shipped`/`— drafted` heading suffixes, so
-  `skill-secrets` AC32 (describes per-task grouping) and
-  `credential-broker-contract` AC42 (describes a status-in-heading-suffix
-  convention) now describe a shape `backlog.md` no longer has. Both are
-  `[x]` on Frozen specs; reconcile via a Changelog note or AC amendment.
-  Deferred from RFC-0016's PR (would edit Frozen spec bodies).
+- **Reconcile stale doc-surface ACs after the `ROADMAP.md` → `backlog.md`
+  rename** — *reconciled via errata 2026-05-29.* The open-items-only curation
+  dropped the old per-task closure grouping and the `— shipped`/`— drafted`
+  heading suffixes, so `skill-secrets` AC32 and `credential-broker-contract`
+  AC42 described a shape `backlog.md` no longer has. Both specs now carry a
+  dated `## Changelog` erratum recording the divergence (rather than editing a
+  Frozen/in-flight AC body). **Residual:** `credential-broker-contract` is still
+  `Draft`; its implementer reconciles AC42's wording to the open-items-only
+  convention when that spec ships. Remove this item then.
+- **Copilot `agent`-projection enablement (RFC-0016 open question 1).** The
+  sharpened `adversarial-reviewer` "Spec drift" check reaches 3/4 adapters;
+  copilot's `agent` primitive is `dropped` in `docs/contracts/adapter.toml`.
+  Flipping it to enabled is a contract change (with its own conformance work in
+  `distribution-adapters`) — needs its own spec. The other four doc-drift
+  mechanisms (template, work-loop, CONVENTIONS, backlog seed) already reach
+  copilot via skill/seed surfaces.
+- **Tier-1 lint invariant (iii) → code-path references (RFC-0016 open question 3,
+  v1.1).** `tools/lint-spec-status.py` invariant (iii) checks dangling *doc*
+  references only, warn-only. RFC-0016 defers extending it to code paths (and
+  deciding whether to promote it to a hard invariant) until the warn-only rate
+  is observed across a few `build-check` runs.
 - **v2 RFC: Linux `libsecret` tier (RFC-0006).** Defers the Linux keyring
   tier to a v2 RFC alongside an adopter-profile audit (headless/SSH, WSL2,
   Docker, corporate fleet). Three integration paths on the table
