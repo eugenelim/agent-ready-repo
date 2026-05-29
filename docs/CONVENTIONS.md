@@ -173,6 +173,15 @@ are *forward-looking governance*; ADRs are *backward-looking record*.
 Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn
 ```
 
+**Optional `Experimental` status.** An RFC that proposes running an
+experiment — using the optional `Experiment / validation` section of the
+`new-rfc` template — may sit in `Experimental` while the trial runs and
+results are pending, instead of being forced to a premature Accept or Reject.
+Results live in a linked spike note (or a follow-up RFC / superseding ADR),
+not the RFC body; when they land, the RFC moves to `Accepted | Rejected |
+Withdrawn`. An `Experimental` RFC is still in-flight (Governance class, not
+Frozen). Use it only when an experiment is genuinely running.
+
 Once an RFC is **Accepted**, it produces follow-on artifacts:
 
 - Architectural decisions → one or more ADRs
