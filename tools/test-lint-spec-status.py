@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+"""Self-test for tools/lint-spec-status.py (RFC-0016 Tier-1 lint).
+
+Builds fixture spec trees in a tempdir and runs the linter as a
+subprocess against the documented `python tools/lint-spec-status.py
+--root <dir>` invocation — the same shape `make build-check` uses.
+Exercises each of the four invariants red-and-green, including the
+lenient leading-token parse, the diff-triggered ship transition (with
+real git base fixtures), the grandfather and no-base branches, and the
+warn-only doc-reference invariant.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+LINTER = REPO_ROOT / "tools" / "lint-spec-status.py"
+
+_AC_HEADER = "## Acceptance Criteria\n\n"
+
+
+def write_spec(root: Path, name: str, status: str, acs: str) -> None:
+    p = root / "docs" / "specs" / name / "spec.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        f"# Spec: {name}\n\n- **Status:** {status}\n\n{_AC_HEADER}{acs}\n",
+        encoding="utf-8",
+    )
+
+
+def write_backlog(root: Path, headings: list[str]) -> None:
+    p = root / "docs" / "backlog.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    body = "# Backlog\n\n" + "".join(f"## {h}\n\n- item\n\n" for h in headings)
+    p.write_text(body, encoding="utf-8")
+
+
+def run_lint(root: Path, base_ref: str | None = None) -> tuple[int, str, str]:
+    argv = [sys.executable, str(LINTER), "--root", str(root)]
+    if base_ref is not None:
+        argv += ["--base-ref", base_ref]
+    proc = subprocess.run(argv, capture_output=True, text=True)
+    return proc.returncode, proc.stdout, proc.stderr
+
+
+def git_init_commit(root: Path) -> None:
+    env_argv = [
+        ["git", "-C", str(root), "init", "-q"],
+        ["git", "-C", str(root), "add", "-A"],
+        ["git", "-C", str(root), "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-q", "-m", "base"],
+    ]
+    for argv in env_argv:
+        subprocess.run(argv, check=True, capture_output=True)
+
+
+FAILURES: list[str] = []
+
+
+def expect(cond: bool, msg: str) -> None:
+    if not cond:
+        FAILURES.append(msg)
+
+
+def case_clean() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        write_spec(root, "ok", "Draft", "- [ ] AC1 open\n")
+        rc, _, err = run_lint(root)  # no base ref → invariant (ii) skipped
+        expect(rc == 0, f"clean fixture should exit 0, got {rc}: {err}")
+
+
+def case_invariant_i_out_of_vocab() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        write_spec(root, "bad", "Drafting", "- [ ] AC1\n")
+        rc, _, err = run_lint(root)
+        expect(rc == 1, f"out-of-vocab 'Drafting' should exit 1, got {rc}")
+        expect("invariant (i)" in err, f"expected invariant (i) msg: {err}")
+
+
+def case_invariant_i_lenient() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        write_spec(root, "annotated", "Shipped (2026-05-26)", "- [x] AC1\n")
+        write_spec(root, "arrowed", "Approved → Shipped (landed)", "- [x] AC1\n")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"annotated/arrowed status should pass (i), got {rc}: {err}")
+
+
+def case_invariant_ii_transition_fails() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        # Flip to Shipped in the working tree with an unchecked, undeferred AC.
+        write_spec(root, "shipping", "Shipped", "- [ ] AC1 open\n")
+        rc, _, err = run_lint(root, base_ref="HEAD")
+        expect(rc == 1, f"ship transition w/ unchecked AC should exit 1, got {rc}")
+        expect("invariant (ii)" in err, f"expected invariant (ii) msg: {err}")
+
+
+def case_invariant_ii_transition_ok_when_deferred() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, ["later-work"])
+        write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        write_spec(
+            root, "shipping", "Shipped",
+            "- [x] AC1 done\n- [ ] AC2 later (deferred: later-work)\n",
+        )
+        rc, _, err = run_lint(root, base_ref="HEAD")
+        expect(rc == 0, f"ship w/ checked+deferred ACs should exit 0, got {rc}: {err}")
+
+
+def case_invariant_ii_grandfather() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        # Already Shipped on the base with an unchecked AC → grandfathered.
+        write_spec(root, "old", "Shipped", "- [ ] AC1 never checked\n")
+        git_init_commit(root)
+        rc, _, err = run_lint(root, base_ref="HEAD")
+        expect(rc == 0, f"already-Shipped spec should be grandfathered, got {rc}: {err}")
+
+
+def case_invariant_ii_no_base() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)  # plain dir, not a git repo, no base ref
+        write_backlog(root, [])
+        write_spec(root, "shipping", "Shipped", "- [ ] AC1 open\n")
+        rc, _, err = run_lint(root)  # resolve_default_base_ref → None
+        expect(rc == 0, f"no base ref → (ii) skipped, should exit 0, got {rc}: {err}")
+        expect("no base ref resolvable" in err, f"expected skip warning: {err}")
+
+
+def case_invariant_i_missing_status() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        # A spec with no `- **Status:**` header line at all.
+        p = root / "docs" / "specs" / "headless" / "spec.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(f"# Spec: headless\n\n{_AC_HEADER}- [ ] AC1\n", encoding="utf-8")
+        rc, _, err = run_lint(root)
+        expect(rc == 1, f"missing Status header should exit 1, got {rc}")
+        expect("no `- **Status:**`" in err, f"expected missing-status msg: {err}")
+
+
+def case_invariant_iv_resolves_multiword_anchor() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # A real multi-word, punctuated heading must slugify and resolve.
+        write_backlog(root, ["Cross Spec Work!"])
+        write_spec(root, "deferring", "Draft",
+                   "- [ ] AC1 (deferred: cross-spec-work)\n")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"deferral to slugified heading should resolve, got {rc}: {err}")
+
+
+def case_invariant_iv_github_double_hyphen_anchor() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # GitHub turns `## A / b` into anchor `a--b` (double hyphen, no
+        # collapse). The lint must match that to keep its "GitHub slug
+        # rules" promise.
+        write_backlog(root, ["Cross-spec / outside"])
+        write_spec(root, "deferring", "Draft",
+                   "- [ ] AC1 (deferred: cross-spec--outside)\n")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"double-hyphen GitHub anchor should resolve, got {rc}: {err}")
+
+
+def case_invariant_ii_born_shipped_fails() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        # A brand-new spec absent at base, born Shipped with an unchecked AC.
+        write_spec(root, "preexisting", "Draft", "- [x] AC1\n")
+        git_init_commit(root)  # base has no `newborn` spec
+        write_spec(root, "newborn", "Shipped", "- [ ] AC1 open\n")
+        rc, _, err = run_lint(root, base_ref="HEAD")
+        expect(rc == 1, f"new spec born Shipped w/ unchecked AC should exit 1, got {rc}")
+        expect("invariant (ii)" in err, f"expected invariant (ii) msg: {err}")
+
+
+def case_invariant_iv_missing_anchor() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, ["some-other-heading"])
+        write_spec(root, "deferring", "Draft",
+                   "- [ ] AC1 (deferred: nonexistent-anchor)\n")
+        rc, _, err = run_lint(root)
+        expect(rc == 1, f"dangling deferral anchor should exit 1, got {rc}")
+        expect("invariant (iv)" in err, f"expected invariant (iv) msg: {err}")
+
+
+def case_invariant_iv_placeholder_ignored() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        # The template placeholder `<anchor>` must NOT be treated as a real
+        # deferral marker (it would never resolve).
+        write_spec(root, "templatey", "Draft",
+                   "- [ ] AC1 uses `(deferred: <anchor>)` in prose\n")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"placeholder <anchor> should be ignored, got {rc}: {err}")
+
+
+def case_invariant_iii_warn_only() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        p = root / "docs" / "specs" / "linky" / "spec.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(
+            "# Spec: linky\n\n- **Status:** Draft\n\n"
+            "See [the plan](plan.md) which does not exist.\n\n"
+            f"{_AC_HEADER}- [ ] AC1\n",
+            encoding="utf-8",
+        )
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"dangling doc ref must be warn-only (exit 0), got {rc}")
+        expect("invariant (iii)" in err, f"expected invariant (iii) warning: {err}")
+
+
+def main() -> int:
+    for case in (
+        case_clean,
+        case_invariant_i_out_of_vocab,
+        case_invariant_i_lenient,
+        case_invariant_ii_transition_fails,
+        case_invariant_ii_transition_ok_when_deferred,
+        case_invariant_ii_grandfather,
+        case_invariant_ii_no_base,
+        case_invariant_i_missing_status,
+        case_invariant_ii_born_shipped_fails,
+        case_invariant_iv_resolves_multiword_anchor,
+        case_invariant_iv_github_double_hyphen_anchor,
+        case_invariant_iv_missing_anchor,
+        case_invariant_iv_placeholder_ignored,
+        case_invariant_iii_warn_only,
+    ):
+        case()
+    if FAILURES:
+        for f in FAILURES:
+            print(f"FAIL: {f}", file=sys.stderr)
+        print(f"test-lint-spec-status: {len(FAILURES)} failure(s).", file=sys.stderr)
+        return 1
+    print("test-lint-spec-status: all invariant cases pass.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

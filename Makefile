@@ -72,6 +72,10 @@ pre-pr:
 build-check: lint-packs build
 	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
 	$(PYTHON) tools/hooks/pre-pr.py
+	# Catalogue-governance doc-drift gate (RFC-0016 Tier 1). Catalogue-only:
+	# NOT wired into tools/hooks/pre-pr.py, which projects to adopter trees.
+	$(PYTHON) tools/test-lint-spec-status.py
+	$(PYTHON) tools/lint-spec-status.py
 
 build-scaffold:
 	@test -n "$(OUTPUT)" || (echo "make build-scaffold OUTPUT=<dir> required" >&2; exit 1)
