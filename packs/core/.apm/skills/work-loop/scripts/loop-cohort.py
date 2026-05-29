@@ -257,6 +257,29 @@ def dispatch_decision(categories, *, merge_tree_clean):
     return "parallel"
 
 
+def _dispatch_rationale(categories, *, merge_tree_clean, decision) -> str:
+    """Human-readable one-line rationale for a `dispatch-decision` outcome —
+    the cleared-gate surface (AC10). On ``parallel`` it names the wave as
+    parallel-eligible + the task count; on ``serial`` it names the
+    disqualifying reason, **merge-tree conflict first** to match
+    `dispatch_decision`'s short-circuit order (so a both-fail wave names the
+    conflict, not the category)."""
+    if decision == "parallel":
+        return (
+            f"wave is PARALLEL-ELIGIBLE — {len(categories)} task(s), all "
+            "safe-category and file-disjoint. Present this to the human for "
+            "opt-in before fan-out; absent an explicit opt-in, run the wave "
+            "sequentially (the safe default)."
+        )
+    if not merge_tree_clean:
+        reason = "the wave's branches conflict under git merge-tree"
+    else:
+        unsafe = [c for c in categories if c not in SAFE_CATEGORIES]
+        plural = "ies" if len(unsafe) != 1 else "y"
+        reason = f"non-safe categor{plural} present: {', '.join(unsafe)}"
+    return f"wave is SERIAL — {reason}; run it sequentially."
+
+
 def wave_is_disjoint(branches) -> bool:
     """True iff the wave's branches merge without conflict, via read-only
     ``git merge-tree`` (no working-tree mutation). Pairwise over the wave;
@@ -338,7 +361,16 @@ def cmd_dispatch_decision(args: argparse.Namespace) -> int:
     This is the command the supervisor-mode procedure runs before any parallel
     fan-out — it makes the gate reachable, not merely unit-tested."""
     clean = wave_is_disjoint(args.branch) if len(args.branch) > 1 else True
-    print(dispatch_decision(args.category, merge_tree_clean=clean))
+    decision = dispatch_decision(args.category, merge_tree_clean=clean)
+    print(decision)  # stdout: the machine-readable token (scripted reads)
+    # stderr: the human-facing cleared-gate surface (AC10) — so the agent has
+    # something to present to the human for opt-in, never fanning out silently.
+    print(
+        "dispatch-decision: " + _dispatch_rationale(
+            args.category, merge_tree_clean=clean, decision=decision
+        ),
+        file=sys.stderr,
+    )
     return 0
 
 
