@@ -136,7 +136,7 @@ The spec is closed when each of the following observable outcomes is verifiable 
   Both cross-linked from the README install section.
 - **AC18.** A new migration guide lands at `docs/guides/how-to/v05-to-v06-pack-upgrade.md`. It covers the `[pack.adapter-contract] version` bump, the `allowed-adapters` field shape and the three currently-admitted user-scope-capable values (`claude-code`, `kiro`, `codex`), the schema's refuse-and-explain messages, the user-scope-only semantics (per RFC-0011's post-merge erratum), and the legacy path for older packs.
 - **AC19.** The `add-credentialed-skill` skill body (`packs/core/.apm/skills/add-credentialed-skill/SKILL.md` and the projected `.claude/skills/...` copy) gains one paragraph naming `allowed-adapters` and the per-pack-author guidance. `docs/specs/skill-secrets/spec.md` gains the same paragraph in its author-facing section. No change to credential loading (skill-secrets AC3 untouched).
-- **AC20.** `docs/ROADMAP.md` gains an entry under "user-scope": *"`allowed-adapters` landed — Kiro and Codex user-scope installs now exercise the integrated path; next: codex-plugins install-route parity (sibling RFC, not yet opened; will be modeled on RFC-0008)."*
+- **AC20.** `docs/backlog.md` gains an entry under "user-scope": *"`allowed-adapters` landed — Kiro and Codex user-scope installs now exercise the integrated path; next: codex-plugins install-route parity (sibling RFC, not yet opened; will be modeled on RFC-0008)."*
 
 ### Tests
 

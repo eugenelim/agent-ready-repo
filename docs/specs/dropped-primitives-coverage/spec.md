@@ -108,7 +108,7 @@ The spec is closed when each of the following observable outcomes is verifiable 
 ### Documentation surface
 
 - **AC14.** `docs/specs/distribution-adapters/spec.md` Changelog gains an entry naming the v0.7 → v0.8 bump, the codex projection additions, the new `codex-agent-toml` mode, and the warning rail.
-- **AC15.** `docs/ROADMAP.md` gains a section for `dropped-primitives-coverage` recording the spec → shipped milestone and any open follow-ons.
+- **AC15.** `docs/backlog.md` gains a section for `dropped-primitives-coverage` recording the spec → shipped milestone and any open follow-ons.
 
 ### Tests
 

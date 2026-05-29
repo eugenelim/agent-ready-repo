@@ -942,7 +942,7 @@ Filled in upon acceptance.
   and the `conventions-check` rule extensions. No new pack.
 - **Guide: `docs/guides/how-to/add-a-credentialed-skill.md`** — the
   Diátaxis how-to walking an adopter through the convention.
-- **Roadmap entry**: `docs/ROADMAP.md` gains a new section for
+- **Roadmap entry**: `docs/backlog.md` gains a new section for
   `skill-secrets` once the spec lands, plus a v2-libsecret roadmap
   stub citing this RFC's Q1 so the deferred Linux tier doesn't get
   lost.

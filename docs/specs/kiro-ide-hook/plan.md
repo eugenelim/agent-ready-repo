@@ -73,7 +73,7 @@
   file — number is next-available; ADR-0002 is the last extant one)*
   — records the primitive-per-surface decision for Kiro hooks
   (deliverable F, post-implementation).
-- `docs/ROADMAP.md` — add tracking item for first `kiro-ide-hook`
+- `docs/backlog.md` — add tracking item for first `kiro-ide-hook`
   consumer pack; confirm-already-closed line for RFC-0001 Open Q1.
 
 **What tests will demonstrate done.**
@@ -811,12 +811,12 @@ search problem.
 
 **Acceptance Criteria:**
 
-- [ ] `docs/ROADMAP.md` grows an open item under the
+- [ ] `docs/backlog.md` grows an open item under the
       `distribution-adapters` (or `agent-spec-cli`) section tracking
       the first `kiro-ide-hook` consumer pack — separate from any
       existing user-scope-hooks consumer.
 - [ ] Verify the `closes RFC-0001 Open Q1` closure marker is already
-      in place in `docs/ROADMAP.md` (search by text, not line
+      in place in `docs/backlog.md` (search by text, not line
       number) from the v0.3 work; if so, no edit needed. If absent,
       add the closure marker.
 

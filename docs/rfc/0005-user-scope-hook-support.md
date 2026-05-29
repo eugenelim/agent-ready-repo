@@ -1128,7 +1128,7 @@ either example.
   — absent, same as RFC-0004.
 - **No APM / Claude-plugins install-route parity.** Out-of-CLI
   install routes for hooks at user scope are tracked separately
-  under [`docs/ROADMAP.md`](../ROADMAP.md) § `adapt-to-project`;
+  under [`docs/backlog.md`](../backlog.md) § `adapt-to-project`;
   this RFC is CLI-only.
 - **No F-conformance fixtures.** F-conformance is owned by
   RFC-0003's deferred task and is not gated by this RFC.
@@ -1925,7 +1925,7 @@ On acceptance, this RFC produces:
   Future Kiro hook surfaces follow the same primitive-per-surface
   discipline rather than overloading existing modes.
 
-- **Entry on [`docs/ROADMAP.md`](../ROADMAP.md):** open item
+- **Entry on [`docs/backlog.md`](../backlog.md):** open item
   under the `agent-spec-cli` or `distribution-adapters` section
   (whichever picks up the implementation pass) tracking the
   amendments above through to landed code. The Kiro

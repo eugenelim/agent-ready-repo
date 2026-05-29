@@ -271,7 +271,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 **Tests:**
 - File-presence checks: `docs/adr/NNNN-credential-broker-contract.md` exists and parses as an ADR (verifies AC40).
 - `docs/CONVENTIONS.md` contains a § Credentialed skills section naming the four brokers and `metadata.auth` (verifies AC41).
-- `docs/ROADMAP.md` contains a `credential-broker-contract` entry with the manual-QA matrix lines (verifies AC42).
+- `docs/backlog.md` contains a `credential-broker-contract` entry with the manual-QA matrix lines (verifies AC42).
 - `docs/guides/how-to/add-a-credentialed-skill.md` "pick a broker" section replaces the old "pick a primitive class" section (verifies AC43).
 - `docs/specs/skill-secrets/spec.md` carries the footer note pointing AC34/AC35 invariants to the new shim (verifies AC44).
 - `docs/specs/distribution-adapters/spec.md` carries a single new dated bullet under `## Changelog` matching the verbatim text from `notes/distribution-adapters-amendment.md` — no conformance-suite addition (per AC45 round-2 revision: distribution-adapters defers conformance to RFC-0003; the two primitive classes are pinned by *this* spec's ACs).
@@ -280,7 +280,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 **Approach:**
 - Write the new ADR per existing format under `docs/adr/`. Record the binding architectural choices and one-line rejections of alternatives B / D / E / F / G / H / I / J.
 - Amend `docs/CONVENTIONS.md` with the new § Credentialed skills section (or extend an existing one).
-- Add the `credential-broker-contract` entry to `docs/ROADMAP.md`.
+- Add the `credential-broker-contract` entry to `docs/backlog.md`.
 - Rewrite the relevant section of `docs/guides/how-to/add-a-credentialed-skill.md`.
 - Amend `docs/specs/skill-secrets/spec.md` (footer note).
 - Amend `docs/specs/distribution-adapters/spec.md` with a single Changelog bullet (verbatim from `notes/distribution-adapters-amendment.md`); no conformance-suite addition.
@@ -438,7 +438,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
   - The verb's handler prints `repr(_tier2_backend)` to stdout and returns 0.
   - Remove the deferred-projection comment block at `sso-broker.py:41-47` (closes round-1 reviewer Concern 8). The bootstrap mechanism itself stays — only the prose that misdescribes the post-fix state is removed.
 - Edit the shim source `packs/credential-brokers/.apm/shared-libs/credentials_shim.py`'s module docstring to include the verbatim AC22c degradation note: *"When loaded outside a consumer-skill `scripts/` directory — e.g. as a sibling under `~/.agentbundle/bin/` per the credential-broker-contract AC22b companion projection — the shim's own `_tier2_backend` resolves to `None`. Callers in that context must not rely on `load_credentials` for Tier-2 resolution; that path is the consumer-skill `scripts/` projection only."* After editing the source, run `make build-self FORCE=1` to regenerate every projected copy (including `packs/credential-brokers/.apm/skills/credential-setup/scripts/credentials_shim.py` and the new `.agentbundle/bin/credentials_shim.py` companion). **Never** edit projected copies directly — per `feedback_self_host_projection`.
-- Update `docs/ROADMAP.md`: close the "Deferred projection follow-ups" entry naming this gap (remove the `adapter-root-bins` projection omission bullet; leave the entry itself if other deferred items remain — currently only the one named here).
+- Update `docs/backlog.md`: close the "Deferred projection follow-ups" entry naming this gap (remove the `adapter-root-bins` projection omission bullet; leave the entry itself if other deferred items remain — currently only the one named here).
 - Run `make build-self FORCE=1` to project `credentials_shim.py` into `.agentbundle/bin/` and to mirror the docstring change across consumer-skill `scripts/` copies.
 
 **Done when:**
@@ -447,7 +447,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 - `make build-self FORCE=1` produces a clean working tree (`git status --short` empty).
 - `make build-check` exits 0.
 - `python3 tools/hooks/pre-pr.py` exits 0.
-- `docs/ROADMAP.md` no longer references the "adapter-root-bins projection omits credentials_shim.py" deferred item.
+- `docs/backlog.md` no longer references the "adapter-root-bins projection omits credentials_shim.py" deferred item.
 - The deferred-projection comment block at `sso-broker.py:41-47` is removed; the bootstrap block itself remains.
 
 ## Rollout

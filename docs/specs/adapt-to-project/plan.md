@@ -537,7 +537,7 @@ preparatory evidence, not for AC4a *(c)* closure).
   line 759 are amended; the count is ≥ 2 because both
   occurrences must independently contain the widened pattern,
   whether via union regex or two separate grep declarations).
-- **(new)** `docs/ROADMAP.md` contains an entry under the
+- **(new)** `docs/backlog.md` contains an entry under the
   `distribution-adapters` per-spec section naming
   "Rail C grep widening to canonical syntax — paired with AC21
   of adapt-to-project" (the code-side widening deferral per
@@ -564,7 +564,7 @@ preparatory evidence, not for AC4a *(c)* closure).
   `<adapt:([A-Z_][A-Z0-9_]*|[a-z][a-z0-9-]*)>` or two separate
   grep passes. Both occurrences MUST be amended; widening line
   342 alone leaves the AC narrow and the contract bypassed.
-- `docs/ROADMAP.md`: under the `distribution-adapters` per-spec
+- `docs/backlog.md`: under the `distribution-adapters` per-spec
   section, add the open item
   `Rail C grep widening to canonical syntax — paired with AC21
   of adapt-to-project; code-side widening deferred when AC21
@@ -573,7 +573,7 @@ preparatory evidence, not for AC4a *(c)* closure).
 **Done when:** all six one-liners hit; `git diff` of
 self-hosting/spec.md confined to Changelog.
 
-### T16: Update `docs/specs/README.md` and `docs/ROADMAP.md`
+### T16: Update `docs/specs/README.md` and `docs/backlog.md`
 
 **Depends on:** T13
 
@@ -583,7 +583,7 @@ self-hosting/spec.md confined to Changelog.
 - `grep -F "adapt-to-project" docs/specs/README.md` hits the new
   Active-specs row.
 - ROADMAP bullet replaced with `## adapt-to-project — drafted`
-  section matching the format at `docs/ROADMAP.md:33`
+  section matching the format at `docs/backlog.md`
   (`## self-hosting — Phase 1 shipped; Phase 2 pending`).
   Cross-refs to `self-hosting`, `agent-spec-cli`, **and RFC-0004**
   survive.
