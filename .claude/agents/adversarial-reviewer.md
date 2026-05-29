@@ -138,7 +138,23 @@ checklists; verification-mode awareness applies to every review.
    smaller than the primary change — i.e. if a reader couldn't
    immediately tell which part is primary and which are ride-alongs.
 5. **Spec drift.** If the implementation differs from the spec, the spec
-   must be updated in the same PR. Otherwise it's drift, not done.
+   must be updated in the same PR. Otherwise it's drift, not done. *Semantic*
+   drift (does the behavior match the contract?) is your judgment call — but
+   four *metadata* invariants are concrete; check each by name (the contract
+   they measure against is pinned in `CONVENTIONS.md` § 4 Spec metadata
+   contract):
+   - (a) **Status flipped to match the change.** A PR that completes a spec
+     moves its `- **Status:**` to `Shipped`; one that starts it moves to
+     `Implementing`. A stale status is drift.
+   - (b) **Every Acceptance Criterion `[x]` or deferred.** No criterion ships
+     silently unchecked — each is `- [x]` (met) or carries an inline
+     `(deferred: <anchor>)` marker. An unchecked, undeferred AC on a shipping
+     spec is a Blocker.
+   - (c) **Deferred items recorded in the register.** Every `(deferred: <anchor>)`
+     points to a real heading in `docs/backlog.md`. A deferral that lives only in
+     the PR description rots — flag it.
+   - (d) **Intra-repo references resolve.** Doc links and `<spec>/<anchor>`
+     references the diff touches actually resolve. Dangling refs are drift.
 6. **Security and privacy.** What data does this touch? Is access
    controlled? Is anything logged that shouldn't be?
 7. **Architectural fit.** Does this diff introduce a structural pattern

@@ -1,10 +1,10 @@
 # RFC-0016: Doc-drift prevention — construction + judgment, with a catalogue-governance linter
 
-- **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-05-29
-- **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Date closed:** 2026-05-29
 - **Related:** `docs/CONVENTIONS.md` § 4 + § Document lifecycle; `packs/core/.apm/agents/adversarial-reviewer.md` #5; `packs/core/.apm/skills/work-loop/SKILL.md` § GATES / § DECIDE; `packs/core/.apm/skills/new-spec/assets/spec.md`; `packs/core/.apm/hooks/pre-pr.py`; `docs/contracts/adapter.toml`
 
 ## The ask
