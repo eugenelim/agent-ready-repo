@@ -663,6 +663,27 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+# ── auto-parallel (per-run unattended pre-authorization) ────────────────────
+
+
+def cmd_auto_parallel(args: argparse.Namespace) -> int:
+    """Per-run pre-authorization for unattended supervisor runs (follow-on 4).
+    Sets `state.json.auto_parallel` (default off; `--off` clears it). When set,
+    the supervisor proceeds in parallel on a wave that has ALREADY cleared the
+    gate, skipping only the follow-on-1 human opt-in — it is never a gate input
+    and never causes auto-recovery (a failed wave still Surfaces). Per-run
+    session scratch: a fresh run defaults off."""
+    spec_dir = Path(args.spec_dir)
+    try:
+        state = read_state(spec_dir)
+    except (FileNotFoundError, ValueError) as exc:
+        return stop(str(exc))
+    state["auto_parallel"] = not args.off
+    write_state_atomic(spec_dir, state)
+    print(f"loop-cohort: auto_parallel={state['auto_parallel']} for {spec_dir.name}")
+    return 0
+
+
 # ── review record ─────────────────────────────────────────────────────────
 
 # Anchors on the adversarial-reviewer's documented format:
@@ -1009,6 +1030,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("approve-plan", help="flip plan_review_status to approved")
     sp.add_argument("spec_dir")
     sp.set_defaults(func=cmd_approve_plan)
+
+    sp = sub.add_parser(
+        "auto-parallel",
+        help="per-run: pre-authorize unattended parallel on already-cleared waves "
+             "(default off; --off clears)",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--off", action="store_true", help="clear auto_parallel (set false)")
+    sp.set_defaults(func=cmd_auto_parallel)
 
     sp_review = sub.add_parser("review", help="review-phase state mutations")
     review_sub = sp_review.add_subparsers(dest="review_verb", required=True)
