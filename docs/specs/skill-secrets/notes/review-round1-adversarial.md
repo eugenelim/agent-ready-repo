@@ -6,7 +6,7 @@ in T13c while AC34, AC35 remain unchecked.
 
 ## Blockers
 
-**1. AC34 unimplemented — orphan-fixture detection test does not exist.** `docs/specs/skill-secrets/spec.md:632`. Spec mandates "An orphan-fixture detection check (a test that walks the fixtures tree and asserts each file's relative path appears as a substring in the test corpus) is part of the suite." Grep across `packages/agentbundle/tests/` returns zero hits for any orphan-walking test; the ROADMAP at `docs/ROADMAP.md:235` reframes AC34 as a "future test PR" inheritance invariant — the spec did not authorise that deferral. The status was nevertheless flipped to `Shipped` at `docs/specs/skill-secrets/spec.md:3`. Fix: add the orphan-walker test under `packages/agentbundle/tests/unit/test_credentials_fixtures.py` and re-check AC34, or move AC34 out of this spec via amendment before claiming Shipped.
+**1. AC34 unimplemented — orphan-fixture detection test does not exist.** `docs/specs/skill-secrets/spec.md:632`. Spec mandates "An orphan-fixture detection check (a test that walks the fixtures tree and asserts each file's relative path appears as a substring in the test corpus) is part of the suite." Grep across `packages/agentbundle/tests/` returns zero hits for any orphan-walking test; the ROADMAP at `docs/backlog.md` reframes AC34 as a "future test PR" inheritance invariant — the spec did not authorise that deferral. The status was nevertheless flipped to `Shipped` at `docs/specs/skill-secrets/spec.md:3`. Fix: add the orphan-walker test under `packages/agentbundle/tests/unit/test_credentials_fixtures.py` and re-check AC34, or move AC34 out of this spec via amendment before claiming Shipped.
 
 **2. AC35 unimplemented — no-live-writes posture assertion not in the suite.** `docs/specs/skill-secrets/spec.md:640`. Spec mandates verification that no test writes to the developer's real `~/.agentbundle/`, real Keychain, or real Credential Manager. Grep finds only doc-comment references in three backend tests; no test asserts the posture. Fix: add `test_no_live_writes_posture` that walks the test corpus and asserts (a) every test setting up the dotfile/keychain uses an `isolated_home`-style fixture, or (b) the Tier-2 backends carry `SERVICE_PREFIX_OVERRIDE` / `SERVICE` monkeypatching in every keychain test — and re-check AC35.
 
@@ -32,13 +32,13 @@ in T13c while AC34, AC35 remain unchecked.
 
 **12. Spec's "fixture-driven tests are the load-bearing shape" was abandoned without amendment.** `docs/specs/skill-secrets/spec.md:264`. Spec lists six required fixture files (`schema-valid/`, `schema-missing-required/`, `dotfile-valid.env`, `dotfile-quoted.env`, `dotfile-crlf.env`, `dotfile-comment.env`) — none exist on disk; tests inline content via `tmp_path` writes. Either amend the spec's Testing Strategy bullet or land the fixtures; AC34's orphan-walker reveals the inconsistency once it exists.
 
-**13. T13c per-task ROADMAP closure conflates AC closure with task closure.** `docs/ROADMAP.md:212-234`. ROADMAP marks each T1–T13c as `[x]` and claims they "closed" specific ACs — but T8 is marked closing "AC16–AC23" while AC22 is unimplemented (finding #5), and AC26 lint inversion (finding #3) was introduced in T10 ("closed AC26, AC27"). Fix: once findings #1, #2, #3, #5 are addressed, re-walk per-task closure list.
+**13. T13c per-task ROADMAP closure conflates AC closure with task closure.** `docs/backlog.md`. ROADMAP marks each T1–T13c as `[x]` and claims they "closed" specific ACs — but T8 is marked closing "AC16–AC23" while AC22 is unimplemented (finding #5), and AC26 lint inversion (finding #3) was introduced in T10 ("closed AC26, AC27"). Fix: once findings #1, #2, #3, #5 are addressed, re-walk per-task closure list.
 
 ## Nits
 
 **14. `EnvParseError` class defined below its first use.** `packages/agentbundle/agentbundle/creds/loader.py:551`. Defined after `parse_env_file`, which references it. Fix: move `class EnvParseError` to live next to the other exceptions imported at line 46.
 
-**15. ROADMAP's "Last updated" claim names only the inheritance invariants as remaining work.** `docs/ROADMAP.md:17`. Note "only AC34/AC35 inheritance invariants and the post-implementation 'Credential storage' ADR remain" tells a reader the spec is essentially done — but findings #3, #5, #6, #7 represent real spec drift. Fix: tighten language after the real findings close.
+**15. ROADMAP's "Last updated" claim names only the inheritance invariants as remaining work.** `docs/backlog.md`. Note "only AC34/AC35 inheritance invariants and the post-implementation 'Credential storage' ADR remain" tells a reader the spec is essentially done — but findings #3, #5, #6, #7 represent real spec drift. Fix: tighten language after the real findings close.
 
 ---
 

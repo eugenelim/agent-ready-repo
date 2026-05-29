@@ -116,8 +116,7 @@ Use the generated skill list below when a task matches a named workflow.
 
 ## Specialist subagents
 
-Specialist subagents — Claude Code only; Codex and Copilot drop the
-`agent` primitive per the adapter contract — provide sharp,
+Specialist subagents — where your tool supports them — provide sharp,
 differentiable lenses for diff review, plus the executor used by
 `work-loop`'s supervisor mode. Pick the reviewers the diff actually
 warrants; don't run all three by default.

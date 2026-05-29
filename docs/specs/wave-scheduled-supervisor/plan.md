@@ -207,7 +207,7 @@ default; **and the AC9 worktree dry-run has been run with its result in
   (pre-flight, worktree creation, report ordering, merge order, cleanup,
   `state.json.worktrees` schema), so T7 needs no worktree dry-run (same carve-out
   as T3).
-- `make build-self`; close follow-on 1 in `docs/ROADMAP.md`.
+- `make build-self`; close follow-on 1 in `docs/backlog.md`.
 
 **Done when:** the AC10 verb tests (incl. the both-fail tie-break) are green; a
 grep confirms the present-the-opportunity instruction is present in **both**
