@@ -37,13 +37,23 @@ Any non-safe category, or any merge-tree conflict, stays serial. Reviewer
 (read) fan-out is a separate, always-safe path.
 
 **Present the cleared-gate opportunity.** When `dispatch-decision` returns
-`parallel`, do not enter the procedure below silently — **present the
-cleared-gate opportunity to the human** (the parallel-eligible wave and its
-tasks; the verb's stderr rationale is the line to relay) and take the
-parallel path **only on an explicit opt-in**. Absent one, run the wave
-sequentially — the safe default. This is present-and-default-safe, not the
-halt-and-wait Surface verb, so an unattended run proceeds sequentially
-rather than blocking.
+`parallel`, branch on `state.json.auto_parallel` (set per-run via `loop-cohort
+auto-parallel`, default off):
+
+- **`auto_parallel` unset (default):** do not enter the procedure below
+  silently — **present the cleared-gate opportunity to the human** (the
+  parallel-eligible wave and its tasks; the verb's stderr rationale is the line
+  to relay) and take the parallel path **only on an explicit opt-in**. Absent
+  one, run the wave sequentially — the safe default. Present-and-default-safe,
+  not the halt-and-wait Surface verb, so — *with `auto_parallel` unset* — an
+  unattended run proceeds sequentially rather than blocking.
+- **`auto_parallel` set:** the human pre-authorized this run; a **gate-cleared**
+  wave enters the parallel procedure below **without** the opt-in (this is what
+  lets a plan finish unattended). **GO-approval-only** — it skips only the
+  human-confirm step for an **already-cleared** wave; it is never a gate input,
+  never enters the parallel path for a wave the gate didn't clear, and a failed
+  parallel wave (step-5 merge-abort, or a blocked/failed implementer at step 4)
+  still **Surfaces and stops** — never auto-retries or relaxes a gate.
 
 The trigger and concept stay in [`../SKILL.md` § EXECUTE](../SKILL.md); this
 file owns the step-by-step procedure once the opt-in parallel path is taken.
