@@ -22,7 +22,7 @@ twice.
 | Question | RFC | ADR |
 | --- | --- | --- |
 | Tense | Forward-looking ("should we change X?") | Backward-facing ("we chose X over Y") |
-| Lifecycle | `Draft` → `Open` → `Final Comment Period` → `Accepted` \| `Rejected` \| `Withdrawn` | `Proposed` → `Accepted` → (`Deprecated` \| `Superseded by ADR-NNNN`) |
+| Lifecycle | `Draft` → `Open` → `Final Comment Period` → `Accepted` \| `Rejected` \| `Withdrawn` (optional `Experimental` while a trial runs) | `Proposed` → `Accepted` → (`Deprecated` \| `Superseded by ADR-NNNN`) |
 | Body after acceptance | Frozen at acceptance (status field can change later, body cannot); stays as historical record; produces follow-on ADRs, specs, or CONVENTIONS edits | Frozen at acceptance (status field can change later, body cannot) |
 | Reject path | `Rejected` is a normal terminal state — the discussion was the point | A pre-acceptance ADR that doesn't earn `Accepted` just isn't committed; there's no `Rejected` state |
 | Trigger | The decision is still being debated, or affects external users | The decision is made (or is being formally proposed) and has a concrete tradeoff |
@@ -173,7 +173,8 @@ then cascading detail:
 - **Experiment / validation** (optional). Present only if the proposal
   needs an experiment — hypothesis, what's measured, success/failure
   criteria — with the *results* linked out to a spike note, not pasted
-  into the RFC.
+  into the RFC. Once circulating, while the trial runs the RFC sits in
+  `Experimental` (see Step 5).
 
 The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft` and
 an `Approver` named in the frontmatter.
@@ -208,6 +209,11 @@ the discussion progresses:
 - **`Open`** — ready for reviewers. Update the frontmatter and push.
 - **`Final Comment Period`** — discussion is winding down; last call
   for objections.
+- **`Experimental`** (optional) — the proposal includes an
+  `Experiment / validation` section and the trial is running; the RFC
+  sits here, results pending in a linked spike note, until they land and
+  it moves to a terminal status. Use only when an experiment is genuinely
+  in flight.
 - **`Accepted`** | **`Rejected`** | **`Withdrawn`** — terminal. Fill in
   `Date closed:`. The RFC freezes here (see [`CONVENTIONS.md` § Document
   lifecycle](../../CONVENTIONS.md#document-lifecycle)) — status field
