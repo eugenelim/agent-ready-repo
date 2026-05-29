@@ -12,18 +12,21 @@ This file owns the **opt-in parallel-write path** only. It is entered
 deliberately — never automatically — and only for a wave that clears the
 **dispatch gate**, which has two halves checked at two points:
 
-- **Category half — before dispatch.** Every task must be in a safe
-  category (cannot-collide / typed-Group-B / textual-loud). If any task
-  is in another category, do not enter this path — run the wave serial.
-  This is a judgement made up front, when branches are still empty.
+- **Category half — auto-derived from the diff.** You **don't hand-classify**:
+  omit `--category` and `dispatch-decision` derives each task's category from
+  its branch's committed diff, fail-closed (only an all-added, no-danger-path
+  diff is `cannot-collide`; rename/delete, danger-paths, modified-existing, and
+  cross-branch basename/dir collisions all serialize). Pass `--category` only
+  to **override** — the sole way to assert `typed-group-b`, which is never
+  auto-derived (deciding a change is type-shaped isn't fail-closed-mechanizable).
 - **Disjointness half — on populated branches.** A clean `git merge-tree`
   file-disjointness check is only meaningful once the implementers have
   written and committed, so it is enforced at the **merge** step (step 5's
   `git merge --no-ff` aborts on any collision — the loud backstop). Run
-  `loop-cohort dispatch-decision --category <c> … --branch <b> …` as a
-  read-only **preview** of that check (it runs `wave_is_disjoint` +
-  applies the category rule, printing `parallel` or `serial`) before
-  paying for a merge you expect to abort.
+  `loop-cohort dispatch-decision --branch <b> …` (categories auto-derived) as a
+  read-only **preview** of that check (it classifies each branch + runs
+  `wave_is_disjoint`, printing `parallel` or `serial`) before paying for a
+  merge you expect to abort.
 
 Any non-safe category, or any merge-tree conflict, stays serial. Reviewer
 (read) fan-out is a separate, always-safe path.

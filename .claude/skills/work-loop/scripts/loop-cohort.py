@@ -257,27 +257,129 @@ def dispatch_decision(categories, *, merge_tree_clean):
     return "parallel"
 
 
-def _dispatch_rationale(categories, *, merge_tree_clean, decision) -> str:
+def _dispatch_rationale(categories, *, merge_tree_clean, decision, source=None) -> str:
     """Human-readable one-line rationale for a `dispatch-decision` outcome —
     the cleared-gate surface (AC10). On ``parallel`` it names the wave as
     parallel-eligible + the task count; on ``serial`` it names the
     disqualifying reason, **merge-tree conflict first** to match
     `dispatch_decision`'s short-circuit order (so a both-fail wave names the
-    conflict, not the category)."""
+    conflict, not the category). ``source`` (``"auto"`` | ``"human"`` | None)
+    names whether categories were auto-derived from branch diffs or
+    human-supplied; **None preserves the original output verbatim** so the
+    parent spec's AC10 tests stay green (additive change)."""
     if decision == "parallel":
-        return (
+        msg = (
             f"wave is PARALLEL-ELIGIBLE — {len(categories)} task(s), all "
             "safe-category and file-disjoint. Present this to the human for "
             "opt-in before fan-out; absent an explicit opt-in, run the wave "
             "sequentially (the safe default)."
         )
-    if not merge_tree_clean:
-        reason = "the wave's branches conflict under git merge-tree"
     else:
-        unsafe = [c for c in categories if c not in SAFE_CATEGORIES]
-        plural = "ies" if len(unsafe) != 1 else "y"
-        reason = f"non-safe categor{plural} present: {', '.join(unsafe)}"
-    return f"wave is SERIAL — {reason}; run it sequentially."
+        if not merge_tree_clean:
+            reason = "the wave's branches conflict under git merge-tree"
+        else:
+            unsafe = [c for c in categories if c not in SAFE_CATEGORIES]
+            plural = "ies" if len(unsafe) != 1 else "y"
+            reason = f"non-safe categor{plural} present: {', '.join(unsafe)}"
+        msg = f"wave is SERIAL — {reason}; run it sequentially."
+    if source == "auto":
+        msg += " (categories auto-derived from branch diffs)"
+    elif source == "human":
+        msg += " (categories human-supplied)"
+    return msg
+
+
+# ── auto-classification (supervisor-auto-classify; RFC-0015 / ADR-0005) ──────
+# Auto-derive a task's conflict category from its committed branch diff so the
+# supervisor stops hand-feeding `--category`. FAIL-CLOSED: only an all-added,
+# no-danger-path diff is `cannot-collide` (the lone auto-safe label); every
+# other shape gets a named non-safe label that serializes. This establishes
+# file-additive ∧ (with the gate's merge-tree half) file-disjoint — NOT
+# ADR-0005's full disjoint-no-shared-symbol; the cross-branch guard below
+# shrinks that residual, and the irreducible string-key/cross-file-symbol case
+# is backstopped by the post-merge test gate, not claimed here.
+_DANGER_PATH_RE = re.compile(
+    r"(^|/)(poetry\.lock|package-lock\.json|Cargo\.lock|go\.sum|uv\.lock"
+    r"|yarn\.lock|requirements\.txt|pyproject\.toml|package\.json|__init__\.py"
+    r"|index\.(ts|js|tsx|jsx|mjs|cjs)|mod\.rs|barrel\.\w+|registry\.\w+"
+    r"|Makefile|marketplace\.json)$"
+    r"|(^|/)migrations?/|(^|/)\.github/workflows/"
+)
+
+
+def classify_task(name_status) -> str:
+    """Classify one task's diff into a conflict category from parsed
+    ``git diff --name-status`` rows. Each row is a tuple whose first element is
+    the status code (``A``/``M``/``D``/``R100``/``C``…) and whose remaining
+    elements are path operands (two for rename/copy). Precedence (fail-closed):
+    rename/copy/delete → ``move-or-delete``; any danger-path → ``danger-path``;
+    all-added → ``cannot-collide`` (the only auto label in SAFE_CATEGORIES);
+    else → ``modified-existing``."""
+    statuses = [row[0][0] for row in name_status]
+    paths = [p for row in name_status for p in row[1:]]
+    if any(s in ("R", "C", "D") for s in statuses):
+        return "move-or-delete"
+    if any(_DANGER_PATH_RE.search(p) for p in paths):
+        return "danger-path"
+    if statuses and all(s == "A" for s in statuses):
+        return "cannot-collide"
+    return "modified-existing"
+
+
+def _resolve_diff_base(explicit, branches):
+    """Resolve the ref to diff each branch against. ``--base`` wins; else the
+    `git merge-base` of the wave's branches. Returns ``(base, err)`` — fail
+    closed: ``err`` is set (and base None) when there are <2 branches and no
+    explicit base, or the merge base is empty/ambiguous (multiple bases)."""
+    if explicit:
+        return explicit, None
+    if len(branches) < 2:
+        return None, "need >=2 branches (or an explicit --base) to resolve a merge base"
+    proc = run_git(["merge-base", "--all", *branches])
+    bases = proc.stdout.split() if proc.returncode == 0 else []
+    if not bases:
+        return None, "no common merge base among the wave's branches (unrelated histories?)"
+    if len(bases) > 1:
+        return None, "ambiguous base: multiple merge bases among the wave's branches"
+    return bases[0], None
+
+
+def _branch_name_status(base, branch):
+    """Parse ``git diff --name-status <base>...<branch>`` into a list of
+    ``(status, *paths)`` tuples (two paths for rename/copy)."""
+    proc = run_git(["diff", "--name-status", f"{base}...{branch}"])
+    rows = []
+    for line in proc.stdout.splitlines():
+        if line.strip():
+            rows.append(tuple(line.split("\t")))
+    return rows
+
+
+def added_paths_may_share_symbol(per_branch_added) -> bool:
+    """Cross-branch symbol guard: True iff two branches' **added** paths share a
+    basename or an immediate parent directory — a likely symbol/registration
+    collision that file-level ``git merge-tree`` cannot see. Conservative
+    (over-serializes, never under). ``per_branch_added`` is a list of sets of
+    repo-relative paths (git's forward-slash form)."""
+    def _bn(p):  # basename, git-path semantics (always '/')
+        return p.rsplit("/", 1)[-1]
+
+    def _dir(p):
+        return p.rsplit("/", 1)[0] if "/" in p else ""
+
+    for i in range(len(per_branch_added)):
+        for j in range(i + 1, len(per_branch_added)):
+            a, b = per_branch_added[i], per_branch_added[j]
+            if {_bn(p) for p in a} & {_bn(p) for p in b}:
+                return True
+            # only *real* shared subdirectories count — exclude repo root (""),
+            # so two distinct-basename root additions aren't needlessly serial
+            # (a same-named root add is already a merge-tree conflict anyway).
+            dirs_a = {_dir(p) for p in a} - {""}
+            dirs_b = {_dir(p) for p in b} - {""}
+            if dirs_a & dirs_b:
+                return True
+    return False
 
 
 def wave_is_disjoint(branches) -> bool:
@@ -354,20 +456,47 @@ def cmd_schedule(args: argparse.Namespace) -> int:
 
 def cmd_dispatch_decision(args: argparse.Namespace) -> int:
     """Gate one write wave: print ``parallel`` or ``serial`` (RFC-0015
-    decision 3 / AC5). Combines the agent-supplied safe-category judgement
-    (``--category`` per task) with a mechanical ``git merge-tree``
-    file-disjointness check over the wave's branches (``--branch`` per task).
-    Fail closed: any non-safe category or any merge-tree conflict → serial.
-    This is the command the supervisor-mode procedure runs before any parallel
-    fan-out — it makes the gate reachable, not merely unit-tested."""
+    decision 3 / AC5). The wave's conflict categories are **auto-derived** from
+    each ``--branch``'s committed diff when ``--category`` is omitted, else the
+    explicit ``--category`` list is used verbatim (human override). Combined
+    with a mechanical ``git merge-tree`` file-disjointness check; fail closed:
+    any non-safe category, any merge-tree conflict, or (auto path) an
+    unresolvable diff base or cross-branch symbol collision → serial. stdout is
+    the machine-readable token; stderr carries the cleared-gate rationale."""
     clean = wave_is_disjoint(args.branch) if len(args.branch) > 1 else True
-    decision = dispatch_decision(args.category, merge_tree_clean=clean)
+
+    if args.category:  # human override — used verbatim (still the only typed-group-b path)
+        categories, source = args.category, "human"
+    else:  # auto-classify each branch from its committed diff
+        source = "auto"
+        base, err = _resolve_diff_base(args.base, args.branch)
+        if err:
+            print("serial")
+            print(
+                f"dispatch-decision: wave is SERIAL — diff base unresolved ({err}); "
+                "run it sequentially. (categories auto-derived from branch diffs)",
+                file=sys.stderr,
+            )
+            return 0
+        categories, added_sets = [], []
+        for br in args.branch:
+            rows = _branch_name_status(base, br)
+            categories.append(classify_task(rows))
+            added_sets.append({row[-1] for row in rows if row[0][0] == "A"})
+        # cross-branch symbol guard: an all-cannot-collide wave whose added
+        # files share a basename/parent-dir injects a non-safe marker so the
+        # unchanged gate serializes it and the rationale names the cause.
+        if (categories and all(c == "cannot-collide" for c in categories)
+                and added_paths_may_share_symbol(added_sets)):
+            categories = categories + ["cross-branch-symbol"]
+
+    decision = dispatch_decision(categories, merge_tree_clean=clean)
     print(decision)  # stdout: the machine-readable token (scripted reads)
     # stderr: the human-facing cleared-gate surface (AC10) — so the agent has
     # something to present to the human for opt-in, never fanning out silently.
     print(
         "dispatch-decision: " + _dispatch_rationale(
-            args.category, merge_tree_clean=clean, decision=decision
+            categories, merge_tree_clean=clean, decision=decision, source=source
         ),
         file=sys.stderr,
     )
@@ -761,12 +890,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="gate a write wave: safe-category ∧ git merge-tree disjointness → parallel|serial",
     )
     sp.add_argument(
-        "--category", action="append", default=[], required=True,
-        help="one task's conflict category (repeat per task in the wave)",
+        "--category", action="append", default=[],
+        help="one task's conflict category (repeat per task); OMIT to "
+             "auto-classify each --branch from its committed diff",
     )
     sp.add_argument(
         "--branch", action="append", default=[],
-        help="one task's worktree branch (repeat per task; merge-tree disjointness)",
+        help="one task's worktree branch (repeat per task; merge-tree "
+             "disjointness + auto-classification source)",
+    )
+    sp.add_argument(
+        "--base",
+        help="ref to diff each branch against for auto-classification "
+             "(default: git merge-base of the --branches)",
     )
     sp.set_defaults(func=cmd_dispatch_decision)
 

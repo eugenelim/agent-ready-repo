@@ -280,7 +280,12 @@ wave of mutually-independent tasks may run in parallel *only* when it
 clears the dispatch gate (`loop-cohort dispatch-decision`): every task in
 a safe category (cannot-collide / typed-Group-B / textual-loud) **and** a
 clean `git merge-tree` file-disjointness check. Any other category, or any
-merge-tree conflict, stays serial (fail closed). When the gate returns
+merge-tree conflict, stays serial (fail closed). **You don't hand-classify
+the categories** — omit `--category` and the verb auto-derives each from its
+`--branch`'s committed diff (fail-closed: only all-added, no-danger-path,
+no cross-branch basename/dir collision → `cannot-collide`); pass `--category`
+only to override (the sole way to assert `typed-group-b`, which is never
+auto-derived). When the gate returns
 `parallel`, **present the cleared-gate opportunity to the human** — name the
 parallel-eligible wave and its tasks (the verb's stderr rationale gives you
 the line) and fan out **only on an explicit opt-in**; absent one, run the
