@@ -144,7 +144,7 @@ The spec is closed when each of the following observable outcomes is verifiable 
 ### Documentation surface
 
 - **AC12.** `docs/specs/README.md` gains a row for `incompatible-hook-event-drop`.
-- **AC13.** `docs/ROADMAP.md` gains a section recording the spec → shipped milestone.
+- **AC13.** `docs/backlog.md` gains a section recording the spec → shipped milestone.
 
 ### Cross-caller integrity
 

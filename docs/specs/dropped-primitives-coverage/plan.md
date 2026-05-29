@@ -288,13 +288,13 @@ New module `packages/agentbundle/tests/integration/test_install_dropped_primitiv
 
 - Goal-based grep: `docs/guides/how-to/v07-to-v08-pack-upgrade.md` exists; contains substrings `[pack.adapter-contract]`, `0.8`, `.codex/agents/`, `.codex/hooks.json`, `--force`.
 - Goal-based grep: `docs/specs/distribution-adapters/spec.md` Changelog gains a v0.7 → v0.8 entry naming the codex projection additions and the new `codex-agent-toml` mode.
-- Goal-based grep: `docs/ROADMAP.md` contains a `dropped-primitives-coverage` section.
+- Goal-based grep: `docs/backlog.md` contains a `dropped-primitives-coverage` section.
 
 **Approach:**
 
 - Write `docs/guides/how-to/v07-to-v08-pack-upgrade.md`: one section for the contract bump; one for the codex projection additions (with the one-time `--force` reinstall instruction for adopters who installed under codex in the v0.7 window and got silent drops); one for the warning rail purpose and residual drops per adapter.
 - Edit `docs/specs/distribution-adapters/spec.md`: append a Changelog entry naming this spec's contract bump and the new mode.
-- Edit `docs/ROADMAP.md`: add a `dropped-primitives-coverage` heading section mirroring the layout of the existing `repo-scope-per-adapter-projection` section.
+- Edit `docs/backlog.md`: add a `dropped-primitives-coverage` heading section mirroring the layout of the existing `repo-scope-per-adapter-projection` section.
 
 **Done when:** the three grep cases pass; manual read confirms each commitment landed.
 

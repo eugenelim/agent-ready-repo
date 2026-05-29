@@ -393,13 +393,13 @@ Extend `packages/agentbundle/tests/integration/test_install_dropped_primitives_w
 - `make build-self FORCE=1 && git status --short` shows no output (AC16).
 - `python3 tools/hooks/pre-pr.py` exits 0 (AC17).
 - `grep -n "incompatible-hook-event-drop" docs/specs/README.md` returns a non-empty match (AC12).
-- `grep -n "incompatible-hook-event-drop" docs/ROADMAP.md` returns a non-empty match (AC13).
+- `grep -n "incompatible-hook-event-drop" docs/backlog.md` returns a non-empty match (AC13).
 - `grep -rn -E "does not declare 'attach-to-agent'|not in adapter.*agent-event-vocabulary" tools/ .github/ docs/guides/ docs/architecture/ docs/product/` returns empty (AC14). The whitelisted-directories command sidesteps the spec/RFC self-match documented in spec § Boundaries.
 
 **Approach:**
 
 - Add a row to `docs/specs/README.md`'s active-spec table for `incompatible-hook-event-drop` (status Shipped, brief one-line summary, cross-link to spec).
-- Add a section to `docs/ROADMAP.md` recording the spec → shipped milestone (mirror the layout of the existing `dropped-primitives-coverage` section).
+- Add a section to `docs/backlog.md` recording the spec → shipped milestone (mirror the layout of the existing `dropped-primitives-coverage` section).
 - Run the cross-caller survey one more time at merge-prep; record the result.
 - **Flip status fields** as the final edit before commit:
   - `docs/specs/incompatible-hook-event-drop/spec.md` line `- **Status:** Draft` → `- **Status:** Shipped (YYYY-MM-DD)`.

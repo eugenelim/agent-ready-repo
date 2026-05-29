@@ -1897,7 +1897,7 @@ On acceptance:
   follow the same diff shape. The prior minor stays on PyPI as
   the rollback target named in Drawbacks.
 
-- **Roadmap entry:** `docs/ROADMAP.md` gains a section for
+- **Roadmap entry:** `docs/backlog.md` gains a section for
   `credential-broker-contract` covering the broker pack, the
   six in-tree migrations, and a manual-QA matrix line for each
   broker × OS combination — parallel to RFC-0006's matrix.
