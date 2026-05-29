@@ -75,6 +75,17 @@ DAG. The scheduler **fails on a dependency cycle** and **warns on a
 forward-reference** (a dep authored later — it still schedules correctly by
 running the dep first); `tools/lint-plan-deps.py` enforces this.
 
+**Optional `Touches:` grammar** (RFC-0015 follow-on 3 / `loop-cohort schedule`).
+A task *may* add a `**Touches:**` line listing the file globs it expects to
+touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
+trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
+`predicted-disjoint: yes|no|unknown` **before** dispatch — a cheap
+*serialize-only* screen. It **never greenlights** parallel: a predicted overlap
+serializes early, but `yes`/`unknown` still require the authoritative post-write
+`git merge-tree` check to actually parallelize (under-declaration is unsafe).
+The field is **optional** — omit it freely; a task with no `Touches:` makes its
+wave `unknown`, never an error.
+
 <!--
 Order matters — list tasks in the order they should be done. Mark
 dependencies inline. Format each task so a contributor (human or agent)

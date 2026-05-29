@@ -38,6 +38,8 @@ Schema reference: ../assets/state.json and ../references/state-schema.md.
 from __future__ import annotations
 
 import argparse
+import fnmatch
+import glob as _glob
 import hashlib
 import json
 import os
@@ -123,6 +125,7 @@ def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
 
 TASK_HEADING_RE = re.compile(r"^###\s+(T\d+[a-z]?)\b", re.MULTILINE)
 DEPENDS_LINE_RE = re.compile(r"^\*\*Depends on:\*\*\s*(.+)$", re.MULTILINE)
+TOUCHES_LINE_RE = re.compile(r"^\*\*Touches:\*\*\s*(.+)$", re.MULTILINE)
 _RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")
 _TASK_ID_RE = re.compile(r"T\d+[a-z]?")
 # Cross-spec deps, two accepted forms — both excluded from the intra-plan
@@ -175,6 +178,89 @@ def parse_plan(text: str):
         local, _ = parse_depends_on(dm.group(1), taskset) if dm else (set(), [])
         deps[m.group(1)] = local
     return ordered, deps
+
+
+# ── supervisor-predict-disjointness (follow-on 3): optional `Touches:` globs ──
+# A per-task `**Touches:**` line declares the file globs the task expects to
+# touch. Parsed like `Depends on:` but kept in a SEPARATE accessor so
+# `parse_plan`'s (ordered, deps) signature — and its ~8 callers — stay
+# unchanged. The globs drive a *screen-only* pre-dispatch disjointness
+# prediction in `schedule`; they never greenlight parallel (RFC-0015 / ADR-0005;
+# the post-write `git merge-tree` stays authoritative).
+
+
+def parse_touches(field: str):
+    """Parse one `Touches:` field body into a set of path globs. Tolerates
+    trailing parenthetical prose, like `parse_depends_on`."""
+    head = field.split("(")[0]
+    return {g.strip() for g in head.split(",") if g.strip()}
+
+
+def parse_touches_by_task(text: str):
+    """Map each ``### T<n>`` task to its declared `Touches:` globs. A task with
+    no `**Touches:**` line is **absent from the map** (optional — never an
+    empty-set key, never an error)."""
+    matches = list(TASK_HEADING_RE.finditer(text))
+    out: dict[str, set] = {}
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        tm = TOUCHES_LINE_RE.search(text[m.end():end])
+        if tm:
+            globs = parse_touches(tm.group(1))
+            if globs:
+                out[m.group(1)] = globs
+    return out
+
+
+def _is_literal_seg(seg: str) -> bool:
+    """A path segment is a *pure literal* iff it carries no glob metacharacter
+    (`* ? [`). `glob.escape(seg) == seg` is the exact test."""
+    return _glob.escape(seg) == seg
+
+
+def _seg_provably_disjoint(x: str, y: str) -> bool:
+    """Two aligned path segments are *provably* non-co-matching only when both
+    are pure literals that differ, or one is a literal the other (a pattern)
+    cannot `fnmatch`. Two patterns are never provably disjoint (could co-match)."""
+    xl, yl = _is_literal_seg(x), _is_literal_seg(y)
+    if xl and yl:
+        return x != y
+    if xl and not yl:
+        return not fnmatch.fnmatch(x, y)
+    if yl and not xl:
+        return not fnmatch.fnmatch(y, x)
+    return False  # both patterns → conservatively could overlap
+
+
+def globs_overlap(a: str, b: str) -> bool:
+    """Conservative, segment-wise: **return True (overlap) unless provably
+    disjoint** (so a both-ways match-miss is NOT taken as proof of disjointness).
+    `*`/`?` match within one `/`-segment and never across `/`; any `**` →
+    conservatively True. Disjoint only when (a) no `**` and the segment counts
+    differ, or (b) some aligned segment pair is provably disjoint."""
+    if "**" in a or "**" in b:
+        return True
+    sa, sb = a.split("/"), b.split("/")
+    if len(sa) != len(sb):
+        return False  # different depth, no `**` → no shared path
+    return not any(_seg_provably_disjoint(x, y) for x, y in zip(sa, sb))
+
+
+def wave_touches_disjoint(per_task_globs) -> str:
+    """Screen verdict for a wave from declared `Touches:` globs. Each element is
+    a set of globs or a falsy value (task omitted `Touches:`). Returns ``"no"``
+    if any pair of *declared* globs overlaps (even when other tasks omit
+    `Touches:` — a provable overlap is always worth serializing early),
+    ``"unknown"`` if no overlap is found and at least one task omitted, else
+    ``"yes"``. Screen-only: never feeds the authoritative dispatch gate."""
+    declared = [g for g in per_task_globs if g]
+    for i in range(len(declared)):
+        for j in range(i + 1, len(declared)):
+            if any(globs_overlap(x, y) for x in declared[i] for y in declared[j]):
+                return "no"
+    if any(not g for g in per_task_globs):
+        return "unknown"
+    return "yes"
 
 
 def build_dag(ordered, deps):
@@ -445,12 +531,21 @@ def cmd_schedule(args: argparse.Namespace) -> int:
         )
 
     waves, _ = topological_waves(ordered, deps)
+    # Optional `Touches:` globs drive a SCREEN-ONLY pre-dispatch disjointness
+    # prediction per multi-task wave. Advisory: a `no` is a reason to serialize
+    # early; `yes`/`unknown` never greenlight — the authoritative post-write
+    # `git merge-tree` (in `dispatch-decision`) is untouched. (Follow-on 3.)
+    touches = parse_touches_by_task(plan_path.read_text())
     print(
         f"loop-cohort: topological order for {spec_dir.name} "
         "(run sequentially by default; waves mark what *could* parallelize):"
     )
     for i, wave in enumerate(waves, 1):
         print(f"  wave {i}: {', '.join(wave)}")
+        if len(wave) > 1:
+            verdict = wave_touches_disjoint([touches.get(t) for t in wave])
+            print(f"    predicted-disjoint: {verdict}  "
+                  "(Touches: screen — serialize-only, never a greenlight)")
     return 0
 
 
