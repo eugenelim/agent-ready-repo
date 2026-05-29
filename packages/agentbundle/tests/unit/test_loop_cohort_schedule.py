@@ -254,3 +254,61 @@ def test_dispatch_decision_verb_non_safe_serial():
     r = _dispatch("--category", "cannot-collide", "--category", "dangerous")
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "serial"
+
+
+# ── T7: cleared-gate surface rationale (AC10) ───────────────────────────────
+
+
+def test_dispatch_rationale_parallel_names_eligible_and_count():
+    # parallel-eligible rationale names the wave as eligible + the task count.
+    msg = lc._dispatch_rationale(
+        ["cannot-collide", "typed-group-b"], merge_tree_clean=True, decision="parallel"
+    )
+    assert "parallel-eligible" in msg.lower()
+    assert "2" in msg
+
+
+def test_dispatch_rationale_serial_non_safe_names_category():
+    msg = lc._dispatch_rationale(
+        ["cannot-collide", "shared-state"], merge_tree_clean=True, decision="serial"
+    )
+    assert "non-safe" in msg.lower()
+    assert "shared-state" in msg
+
+
+def test_dispatch_rationale_serial_overlap_names_merge_tree():
+    # branch overlap → name the git merge-tree conflict, not specific files.
+    msg = lc._dispatch_rationale(
+        ["cannot-collide"], merge_tree_clean=False, decision="serial"
+    )
+    assert "git merge-tree" in msg
+
+
+def test_dispatch_rationale_both_fail_tiebreak_is_merge_tree():
+    # both non-safe AND overlapping → merge-tree reason wins (short-circuit order).
+    msg = lc._dispatch_rationale(
+        ["shared-state"], merge_tree_clean=False, decision="serial"
+    )
+    assert "git merge-tree" in msg
+    assert "shared-state" not in msg  # the category reason is NOT what's named
+
+
+def test_decision_and_rationale_stay_coupled_on_both_fail():
+    # AC10 tie-break correctness depends on dispatch_decision and
+    # _dispatch_rationale sharing the merge_tree_clean-first short-circuit.
+    # Drive BOTH from the same both-fail input so a future reorder of either
+    # function trips this test (not just a stale docstring).
+    cats, clean = ["shared-state"], False
+    decision = lc.dispatch_decision(cats, merge_tree_clean=clean)
+    assert decision == "serial"
+    msg = lc._dispatch_rationale(cats, merge_tree_clean=clean, decision=decision)
+    assert "git merge-tree" in msg          # the merge-tree half is named first
+    assert "shared-state" not in msg        # not the category half
+
+
+def test_dispatch_decision_verb_parallel_emits_rationale_to_stderr():
+    # stdout stays the bare token; the human-facing rationale lands on stderr.
+    r = _dispatch("--category", "cannot-collide", "--category", "typed-group-b")
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "parallel"
+    assert "parallel-eligible" in r.stderr.lower()

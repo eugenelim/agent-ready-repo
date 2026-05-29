@@ -173,6 +173,47 @@ default; **and the AC9 worktree dry-run has been run with its result in
 
 **Done when:** clean tree, both lint surfaces green, AC8 holds.
 
+### T7: proactive cleared-gate parallel surface (follow-on 1 — AC10)
+
+**Depends on:** T4, T6
+
+**Tests:** (`packages/agentbundle/tests/unit/test_loop_cohort_schedule.py`)
+- on a `parallel` outcome, `dispatch-decision` prints the bare token `parallel`
+  to **stdout** (unchanged) **and** a parallel-eligible rationale naming the
+  task count to **stderr** (AC10).
+- on a `serial` outcome from branch overlap (`merge_tree_clean` false), stderr
+  names that the branches **conflict under `git merge-tree`** (not specific
+  filenames — `wave_is_disjoint` returns a bool, so the observable is the
+  conflict, not the path set); on a `serial` outcome from a non-safe category
+  (merge clean), stderr names the **offending category**. stdout stays `serial`.
+- **both-fail tie-break:** a wave that is *both* non-safe and overlapping →
+  stderr names the **merge-tree-conflict** reason (matching the decision's
+  short-circuit order), stdout `serial`.
+
+**Approach:**
+- Add the human-facing rationale to `cmd_dispatch_decision` in `loop-cohort.py`
+  — stderr only; compute the serialize reason (merge-tree conflict vs. non-safe
+  category, conflict-first to match `dispatch_decision`'s short-circuit) from
+  the same inputs the decision used. stdout token unchanged so T4's existing
+  verb tests still pass. No change to `wave_is_disjoint`'s bool contract.
+- Instruct the agent in `work-loop/SKILL.md` §EXECUTE + `references/supervisor-mode.md`
+  to **present** the cleared-gate opportunity (the parallel-eligible wave + its
+  tasks) and fan out only on explicit human opt-in, defaulting to sequential
+  absent one — never silently. This is *present-and-default-safe*, not the
+  halt-and-wait Surface verb (which would block unattended/Ralph runs). The
+  opt-in is the existing per-wave human decision — **no new flag/state field**
+  (that is follow-on 4). The edit touches SKILL §EXECUTE + the supervisor-mode
+  **header/concept only — none of the six dry-run-gated procedure surfaces**
+  (pre-flight, worktree creation, report ordering, merge order, cleanup,
+  `state.json.worktrees` schema), so T7 needs no worktree dry-run (same carve-out
+  as T3).
+- `make build-self`; close follow-on 1 in `docs/ROADMAP.md`.
+
+**Done when:** the AC10 verb tests (incl. the both-fail tie-break) are green; a
+grep confirms the present-the-opportunity instruction is present in **both**
+`work-loop/SKILL.md` §EXECUTE and `references/supervisor-mode.md` (the goal-based
+half of AC10); build-self leaves a clean tree.
+
 ## Rollout
 
 Behavior change ships behind the **default flip** (sequential topological is the
@@ -204,3 +245,10 @@ before any parallel path is exercised for real.
   (Approver-signed 2026-05-29), not just here. The `schedule` verb + lint
   **warn** on a forward-ref and reorder; only a **cycle** is the hard error.
   Spec AC3/AC7 amended in this PR (drift closed in-place).
+- 2026-05-29 (post-review, in-PR): **added T7 / AC10 — proactive cleared-gate
+  surface** (ROADMAP follow-on 1, pulled into this PR at the user's request).
+  The gate being opt-in (AC5) left no affordance that *presents* a cleared
+  wave to the human, so parallelism defaulted to sequential by inertia. T7
+  makes `dispatch-decision` emit a human-readable rationale and instructs the
+  loop to present the opportunity for explicit opt-in. No new module/dep/dir;
+  stdout token unchanged.
