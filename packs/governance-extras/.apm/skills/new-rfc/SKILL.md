@@ -134,8 +134,10 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
      decide-by; aim for ≤3.
    - **Experiment / validation** (optional). Only if the proposal needs an
      experiment: hypothesis + what you measure + success/failure criteria.
-     Route *results* to a linked spike note, not the RFC body. Delete the
-     section otherwise.
+     Route *results* to a linked spike note, not the RFC body; once the RFC
+     is circulating and the trial is actually running, it moves to
+     `Experimental` while results are pending (a post-circulation state — see
+     `docs/CONVENTIONS.md` § RFC lifecycle). Delete the section otherwise.
 
 5. **Pre-handoff gate — mandatory, before status → Open.** Each item is
    *executed and its result recorded, never self-certified*:
