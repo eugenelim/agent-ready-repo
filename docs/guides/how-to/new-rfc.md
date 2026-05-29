@@ -4,8 +4,9 @@ You have a change in mind that touches more than one package, alters a
 convention, or reverses a previous decision — the kind of change where
 "open a PR and see what happens" is the wrong shape. This guide walks
 the path of drafting an RFC with the `new-rfc` skill: scaffolding the
-file, running the research phase before any body sentence gets written,
-and circulating the proposal for comment.
+file, running the per-subpoint research-and-de-risk phase before any body
+sentence gets written, drafting answer-first, and circulating the proposal
+after a self-review gate.
 
 For the surrounding system — where RFCs sit relative to ADRs, specs,
 and the loop that builds features once an RFC is accepted — read [the
@@ -100,38 +101,42 @@ Natural phrasings (`propose a change to …`, `let's get input on …`,
 `draft an RFC for …`) match the skill's description and often
 trigger it. The explicit form is the reliable one.
 
-## Step 2 — Watch the research phase
+## Step 2 — Watch the research + de-risk phase
 
 The skill scaffolds `docs/rfc/NNNN-<kebab-title>.md` from the bundled
 template and then **stops** before writing any body sentence. This is
-the load-bearing move: RFCs handed to reviewers with bare unresolved
-questions waste reviewer time on research the author should have done
-first.
+the load-bearing move: a complex RFC is a tree, not one blob, so the
+skill researches each *subpoint*, models its options out, and de-risks
+its own riskiest assumption — rather than handing you a pile of
+un-researched questions to rescue.
 
 You'll see a `RESEARCH FINDINGS:` block in chat (not in the RFC file —
-the body is gated) with three sections:
+the body is gated) with these sections:
 
-1. **Prior art (in repo).** Hits from grep across `docs/CHARTER.md`,
-   `docs/CONVENTIONS.md`, `docs/adr/`, `docs/rfc/`, `docs/specs/`,
-   and `docs/architecture/`. Each with a file path. Read these —
-   they often reveal that the proposal touches something you didn't
-   know was decided.
-2. **Prior art (external).** Web-search results on how comparable
-   projects, languages, or processes handled this shape of problem
-   (Rust RFCs, PEPs, IETF BCPs, internal RFCs from similar orgs).
-   Each as a markdown link. Empty here is a finding — say so — not
-   an omission.
-3. **Recommendations on unresolved questions.** Every question your
-   intent raised, paired with: what repo precedent suggests, what
-   external prior art suggests, and a recommended answer with
-   one-sentence reasoning.
+1. **Decisions / subpoints.** The proposal broken into the decisions it
+   asks for. Each lists its options — *collectively exhaustive (MECE)
+   along a stated axis and grounded in prior art, not a round number
+   someone invented* — plus a recommendation, an owner, and a decide-by.
+   This is where to push: if a subpoint shows "3 options" with no axis
+   or sources, the space wasn't modelled.
+2. **Prior art (in repo).** Grep hits across `docs/CHARTER.md`,
+   `docs/CONVENTIONS.md`, `docs/adr/`, `docs/rfc/`, `docs/specs/`, and
+   `docs/architecture/`, each with a file path. They often reveal the
+   proposal touches something you didn't know was decided.
+3. **Prior art (external).** Web-search results on how comparable
+   projects or processes handled this shape of problem (Rust RFCs, PEPs,
+   IETF BCPs). Each a markdown link. Empty here is a finding — say so —
+   not an omission.
+4. **De-risk.** The one assumption that, if false, sinks the proposal,
+   and the result of a small spike against it (or why none was needed).
 
 Read the recommendations carefully. For each:
 
 - **Accept** — the recommendation folds into the body when drafting
   resumes.
 - **Reject without an alternative** — the question stays in the body's
-  `Unresolved questions` section, with your lean noted.
+  `Open questions` section, with a recommended default + owner +
+  decide-by.
 - **Revise** — give the skill the alternative; it will re-thread that
   one finding into the body.
 
@@ -140,29 +145,60 @@ Read the recommendations carefully. For each:
 > recommendation you're accepting, especially when the skill flagged
 > one as load-bearing.
 
-## Step 3 — Drafting resumes against the research
+## Step 3 — Drafting resumes, answer-first
 
-Once you sign off, the skill drafts the body sections of the RFC,
-threading the findings:
+Once you sign off, the skill drafts the body — leading with the decision,
+then cascading detail:
 
-- **Motivation.** Repo-precedent citations land here. The cost of
-  inaction lives here too — "we spend ~3 hours a week working
-  around X" beats "it would be nice to…".
-- **Proposal.** The concrete shape of the change. Specific enough
-  that a reviewer can disagree with the *substance*, not just the
-  framing.
-- **Alternatives considered.** Mandatory. Always includes "do
-  nothing." The skill pushes back if this section is empty.
-- **Prior art.** The external-sweep citations from the research
-  phase. Empty-with-explanation is a valid outcome; empty-with-no-
-  explanation is not.
-- **Drawbacks.** Mandatory. The skill pushes back on "none."
-- **Unresolved questions.** Carries your lean from research, even if
-  the lean is "punt to reviewers."
+- **The ask.** Answer-first: the recommendation (BLUF) + an SCQA framing
+  (Situation → Complication → Question) + the numbered decisions you're
+  being asked to make, each with a recommended option and a decide-by. A
+  reviewer should know what they're approving from the first screen.
+- **Problem & goals.** Diagnosis before solution, plus **Non-goals** —
+  the could-have-been-goals deliberately dropped (not "won't crash").
+- **Proposal.** The concrete shape of the change, detailed under each
+  decision.
+- **Options considered.** Mandatory and MECE along a stated axis, each
+  option grounded in prior art and including "do nothing." The skill
+  pushes back if the enumeration is a round number with no exhaustiveness
+  argument.
+- **Risks & what would make this wrong.** A pre-mortem (assume it shipped
+  and failed), falsifiable key assumptions, and drawbacks. The skill
+  pushes back on "no drawbacks."
+- **Evidence & prior art.** The spike result and the prior-art citations
+  from the research phase. Empty-with-explanation is valid; empty-with-no-
+  explanation is not, and every citation is fetched and confirmed.
+- **Open questions.** Each carries a recommended default + owner +
+  decide-by.
+- **Experiment / validation** (optional). Present only if the proposal
+  needs an experiment — hypothesis, what's measured, success/failure
+  criteria — with the *results* linked out to a spike note, not pasted
+  into the RFC.
 
-The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft`.
+The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft` and
+an `Approver` named in the frontmatter.
 
-## Step 4 — Move through the lifecycle
+## Step 4 — The pre-handoff gate
+
+Before the RFC moves to `Open`, the skill runs a mandatory self-review gate
+so you aren't the one catching obvious misses. Each check is *run, not
+asserted*:
+
+- **Citation-integrity.** Every reference is fetched and confirmed to
+  actually contain the claim it's cited for — a link that merely loads
+  isn't enough. Citations are challenged the same way (by fetching), never
+  by eyeballing whether an identifier "looks real."
+- **Verify-before-you-assert.** Self-claims the RFC makes about itself
+  (counts, "lighter", "readable") are checked against the artifact.
+- **Per-subpoint backing + completeness.** Each decision is backed; the
+  `Approver` is named; every decision has a recommendation; do-nothing is
+  present; open questions are ≤3 and owned.
+- **A different-lens review.** A fresh-context `adversarial-reviewer` pass
+  (and `security-reviewer` if the RFC touches a security boundary), re-run
+  until clean — because a same-session self-check rationalises its own
+  draft.
+
+## Step 5 — Move through the lifecycle
 
 The lifecycle is `Draft → Open → Final Comment Period →
 Accepted | Rejected | Withdrawn`. You move the status manually as
@@ -180,7 +216,7 @@ the discussion progresses:
 The skill also updates `docs/rfc/README.md` so the new file shows up
 in the index.
 
-## Step 5 — After acceptance
+## Step 6 — After acceptance
 
 An accepted RFC is rarely the last artifact. It points at concrete
 follow-on work, which lives in `docs/specs/<feature>/`, `docs/adr/`,
@@ -205,20 +241,33 @@ history.
 > makes the RFC worth reading. Let the research phase emit, sign off,
 > *then* let the body fill.
 
-> **Empty `Prior art` when web search was available.** "We didn't
-> look" isn't an answer — the external sweep is exactly what
+> **Empty `Evidence & prior art` when web search was available.** "We
+> didn't look" isn't an answer — the external sweep is exactly what
 > distinguishes an RFC from a wishlist. If the sweep genuinely
 > returned nothing, say so explicitly under the heading and link the
 > queries you ran.
 
-> **Bare unresolved questions with no author lean.** Every entry in
-> `Unresolved questions` should carry your lean from the research
-> phase, even if it's "punt to reviewers." Reviewers reading bare
-> questions waste a round asking for context the author already had.
+> **An invented, round-number option list.** "Three categories" with no
+> stated axis and no sources means the space wasn't modelled — exactly
+> the failure the per-subpoint research phase exists to prevent. Push
+> the skill to make each `Options considered` enumeration MECE along a
+> stated axis and grounded in prior art.
+
+> **An unverified citation.** A link that loads is not proof — the
+> claim has to actually be in the source. The skill's gate fetches and
+> confirms every reference (and challenges a doubtful one by fetching,
+> not by judging whether the identifier "looks real"); don't wave a
+> citation through on plausibility.
+
+> **Bare open questions with no recommended default.** Every entry in
+> `Open questions` should carry a recommended default + owner +
+> decide-by, even if the default is "punt to reviewers." Reviewers
+> reading bare questions waste a round asking for context the author
+> already had.
 
 > **Treating an RFC as a venue to relitigate an accepted ADR
 > without naming it.** If you're proposing a reversal, cite the ADR
-> in `Related:` and address its reasoning directly in `Motivation`.
+> in `Related:` and address its reasoning directly in `Problem & goals`.
 > The skill's repo-sweep will surface the ADR anyway; engaging with
 > it up-front saves a review round.
 
