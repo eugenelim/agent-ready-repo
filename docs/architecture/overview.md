@@ -24,7 +24,7 @@
 ├── docs/
 │   ├── CHARTER.md        # mission, scope, principles
 │   ├── CONVENTIONS.md    # how we work
-│   ├── ROADMAP.md        # open spec items, top-level index
+│   ├── backlog.md        # open spec items, top-level index
 │   ├── rfc/              # proposals (governance)
 │   ├── adr/              # architecture decisions (frozen history)
 │   ├── specs/            # feature specs and plans

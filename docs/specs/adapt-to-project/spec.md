@@ -575,7 +575,7 @@ Per the work-loop's three-mode taxonomy:
       test, or an inline transcript). Method *(c)* artifacts that
       cannot be captured in v1 belong under AC4b, not AC4a.
 - [ ] **AC4b (manual QA matrix — deferred rows).**
-      The deferred rows are enumerated by name in `docs/ROADMAP.md`
+      The deferred rows are enumerated by name in `docs/backlog.md`
       under this spec's section; no row is silently dropped. The
       matrix file is the per-row trigger source — multiple deferral
       triggers apply:
@@ -693,7 +693,7 @@ Per the work-loop's three-mode taxonomy:
       - `docs/specs/self-hosting/spec.md` Changelog gains
         `- 2026-05-23: AC12 implementation migrates from reading [adapt] to reading [markers] per docs/specs/adapt-to-project/spec.md; AC12 contract unchanged.`
         AC12 body itself is byte-unchanged.
-- [x] **AC13 (cross-spec index update).** `docs/ROADMAP.md`'s
+- [x] **AC13 (cross-spec index update).** `docs/backlog.md`'s
       *Cross-spec / outside-the-spec-tree* bullet for
       `adapt-to-project` is rewritten to cite this spec as the
       active home while preserving its cross-references to
@@ -835,7 +835,7 @@ Per the work-loop's three-mode taxonomy:
       implementation pass picks up the widened AC. Until then, a
       user-scope pack carrying lowercase-hyphen markers passes
       `validate` in code even though the contract refuses it.
-      `docs/ROADMAP.md` gains an entry under
+      `docs/backlog.md` gains an entry under
       `distribution-adapters` naming this as a known gap with
       trigger "Rail C grep widening to canonical syntax — paired
       with AC21 of adapt-to-project".

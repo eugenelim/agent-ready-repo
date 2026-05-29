@@ -315,12 +315,12 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
 **Tests:**
 - Goal-based grep: `packs/core/.apm/skills/add-credentialed-skill/SKILL.md` (source) and `.claude/skills/add-credentialed-skill/SKILL.md` (projected) both contain a paragraph naming `allowed-adapters` and the three-adapter guidance.
 - Goal-based grep: `docs/specs/skill-secrets/spec.md` contains the same paragraph.
-- Goal-based grep: `docs/ROADMAP.md` contains the line `allowed-adapters landed` (or close match per spec AC20).
+- Goal-based grep: `docs/backlog.md` contains the line `allowed-adapters landed` (or close match per spec AC20).
 
 **Approach:**
 - Edit `packs/core/.apm/skills/add-credentialed-skill/SKILL.md`: add one paragraph in the author-facing section per RFC-0011 *Follow-on artifacts* — "If your pack's content is portable across IDEs (skills-only, no IDE-specific agent shape), list every adapter in `allowed-adapters` that supports user scope. The two credentialed packs in this catalogue (`atlassian`, `figma`) list `claude-code`, `kiro`, and `codex` because their skills are pure text + Python and travel cleanly across all three adapters' user-scope skill directories."
 - Edit `docs/specs/skill-secrets/spec.md`: add the same paragraph in the author-facing section. No change to AC3 (credential loading).
-- Edit `docs/ROADMAP.md`: add the entry under "user-scope" per spec AC20.
+- Edit `docs/backlog.md`: add the entry under "user-scope" per spec AC20.
 - Run `make build-self FORCE=1` to sync the projected `.claude/skills/add-credentialed-skill/SKILL.md` copy.
 
 **Done when:** the three grep cases pass; `make build-self FORCE=1` produces a clean working tree.
