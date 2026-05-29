@@ -516,8 +516,8 @@ future maintainer would ask "why", surface it in the PR description.
 
 ### Supervisor mode
 
-**Supervisor mode is wave-scheduled and sequential by default** (RFC-0015
-/ ADR-0005). The work-loop builds the plan's full `Depends on:` DAG
+**Supervisor mode is wave-scheduled and sequential by default.** The
+work-loop builds the plan's full `Depends on:` DAG
 (`loop-cohort schedule`) and runs tasks in topological order, single-agent,
 on every adapter — failing loud on a cycle and warning on a
 forward-reference. Parallel `implementer` fan-out is **opt-in and gated**,
