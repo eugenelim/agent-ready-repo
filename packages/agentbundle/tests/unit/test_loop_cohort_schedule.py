@@ -464,3 +464,143 @@ def test_verb_category_override_takes_precedence(tmp_path):
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "parallel"               # typed-group-b is safe
     assert "human-supplied" in r.stderr.lower()         # AC6 override path
+
+
+# ── supervisor-predict-disjointness PD-T1: parse Touches: (AC1) ──────────────
+
+
+def test_parse_touches_comma_list():
+    assert lc.parse_touches("src/api/*.py, docs/api.md") == {"src/api/*.py", "docs/api.md"}
+
+
+def test_parse_touches_tolerates_prose():
+    assert lc.parse_touches("src/*.py (the handlers)") == {"src/*.py"}
+
+
+def test_parse_touches_by_task_maps_declared_only():
+    plan = (
+        "### T1: a\n**Depends on:** none\n**Touches:** src/a/*.py\n"
+        "### T2: b\n**Depends on:** none\n"  # no Touches: line
+        "### T3: c\n**Touches:** docs/c.md, src/c.py\n"
+    )
+    m = lc.parse_touches_by_task(plan)
+    assert m["T1"] == {"src/a/*.py"}
+    assert m["T3"] == {"docs/c.md", "src/c.py"}
+    assert "T2" not in m            # optional: absent, not an empty-set key, no error
+
+
+def test_parse_plan_signature_unchanged():
+    # parse_plan must still return exactly (ordered, deps) — no arity change.
+    ordered, deps = lc.parse_plan("### T1: a\n**Depends on:** none\n")
+    assert ordered == ["T1"]
+
+
+# ── PD-T2: globs_overlap (AC2) — conservative, segment-wise ─────────────────
+
+
+def test_globs_overlap_literal_segment_mismatch_disjoint():
+    assert lc.globs_overlap("src/a/*", "src/b/*") is False
+
+
+def test_globs_overlap_different_depth_no_doublestar_disjoint():
+    assert lc.globs_overlap("src/*", "src/api/x.py") is False  # * never crosses /
+
+
+def test_globs_overlap_prefix_path_true():
+    assert lc.globs_overlap("src/api/*", "src/api/x.py") is True
+
+
+def test_globs_overlap_identical_true():
+    assert lc.globs_overlap("src/api/x.py", "src/api/x.py") is True
+
+
+def test_globs_overlap_wildcard_vs_wildcard_true():
+    # the case a both-ways .match MISSES — both match src/api/handler.py
+    assert lc.globs_overlap("src/api/*.py", "src/*/handler.py") is True
+    assert lc.globs_overlap("a/*/x.py", "*/b/x.py") is True
+
+
+def test_globs_overlap_doublestar_failsafe_true():
+    assert lc.globs_overlap("**/*.py", "src/x.py") is True
+
+
+def test_globs_overlap_distinct_dirs_disjoint():
+    assert lc.globs_overlap("foo/*.py", "bar/*.py") is False
+
+
+def test_globs_overlap_charclass_is_pattern_not_literal_true():
+    # [abc].py is a PATTERN (not a pure literal); fnmatch("a.py","[abc].py") True
+    assert lc.globs_overlap("[abc].py", "a.py") is True
+
+
+# ── PD-T2: wave_touches_disjoint (AC3) ──────────────────────────────────────
+
+
+def test_wave_touches_disjoint_all_disjoint_yes():
+    assert lc.wave_touches_disjoint([{"src/a/*"}, {"src/b/*"}]) == "yes"
+
+
+def test_wave_touches_disjoint_overlap_no():
+    assert lc.wave_touches_disjoint([{"src/api/*"}, {"src/api/x.py"}]) == "no"
+
+
+def test_wave_touches_disjoint_overlap_wins_over_missing():
+    # two declared tasks overlap; a third omits Touches -> still "no" (AC3)
+    assert lc.wave_touches_disjoint([{"src/api/*"}, {"src/api/x.py"}, None]) == "no"
+
+
+def test_wave_touches_disjoint_missing_blocks_yes_only():
+    # no overlap found but a task is absent -> unknown (not yes)
+    assert lc.wave_touches_disjoint([{"src/a/*"}, None]) == "unknown"
+
+
+# ── PD-T3: schedule predicted-disjoint annotation (AC4) + screen-only (AC5) ──
+
+
+def test_schedule_predicts_no_on_overlapping_touches(tmp_path):
+    r = _schedule(
+        tmp_path,
+        "### T1: a\n**Depends on:** none\n**Touches:** src/api/*\n"
+        "### T2: b\n**Depends on:** none\n**Touches:** src/api/x.py\n",
+    )
+    assert r.returncode == 0, r.stderr
+    assert "predicted-disjoint: no" in r.stdout
+
+
+def test_schedule_predicts_yes_on_disjoint_touches(tmp_path):
+    r = _schedule(
+        tmp_path,
+        "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n"
+        "### T2: b\n**Depends on:** none\n**Touches:** src/b/*\n",
+    )
+    assert "predicted-disjoint: yes" in r.stdout
+
+
+def test_schedule_predicts_unknown_when_a_task_omits_touches(tmp_path):
+    r = _schedule(
+        tmp_path,
+        "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n"
+        "### T2: b\n**Depends on:** none\n",  # no Touches:
+    )
+    assert "predicted-disjoint: unknown" in r.stdout
+
+
+def test_schedule_no_annotation_on_single_task_wave(tmp_path):
+    r = _schedule(tmp_path, "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n")
+    assert r.returncode == 0, r.stderr
+    assert "predicted-disjoint" not in r.stdout  # single-task wave → no annotation
+
+
+def test_schedule_is_screen_only_no_gate_call(tmp_path):
+    # AC5 positive form: the predict path (cmd_schedule) shares no call with the
+    # authoritative gate; and dispatch_decision's signature is unchanged.
+    import inspect
+    # the whole predict path (cmd_schedule -> wave_touches_disjoint ->
+    # globs_overlap) must share no call with the gate path — guard all three so
+    # a future refactor can't slip a gate call into a transitive helper.
+    for fn in (lc.cmd_schedule, lc.wave_touches_disjoint, lc.globs_overlap):
+        src = inspect.getsource(fn)
+        assert "dispatch_decision" not in src, fn.__name__
+        assert "wave_is_disjoint" not in src, fn.__name__
+    # full signature string captures the `*` keyword-only marker, not just names
+    assert str(inspect.signature(lc.dispatch_decision)) == "(categories, *, merge_tree_clean)"
