@@ -46,6 +46,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import defaultdict
 from pathlib import Path
 
 DEFAULTS = {
@@ -112,6 +113,187 @@ def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
     )
 
 
+# ── scheduler (wave-scheduled supervisor mode; RFC-0015 / ADR-0005) ────────
+#
+# Pure functions over a plan's `Depends on:` graph. The supervisor mode runs
+# tasks in topological order *sequentially by default* on every adapter
+# (RFC-0015 decision 1); parallel writes are opt-in and gated (decision 3,
+# `dispatch_decision`). `Depends on:` is made machine-parseable here
+# (decision 4) — prose, ranges, letter-suffixed IDs, and a cross-spec marker.
+
+TASK_HEADING_RE = re.compile(r"^###\s+(T\d+[a-z]?)\b", re.MULTILINE)
+DEPENDS_LINE_RE = re.compile(r"^\*\*Depends on:\*\*\s*(.+)$", re.MULTILINE)
+_RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")
+_TASK_ID_RE = re.compile(r"T\d+[a-z]?")
+# Cross-spec deps, two accepted forms — both excluded from the intra-plan
+# edge set so a cross-spec TN can't collide with a local TN:
+#   marker : spec:<name>/TN              (the documented going-forward grammar)
+#   legacy : `distribution-adapters` TN  (backtick-quoted spec name + id)
+_CROSS_MARKER_RE = re.compile(r"spec:([A-Za-z0-9._-]+)/(T\d+[a-z]?)")
+# The backtick group is a spec *name*; the negative-lookahead rejects a
+# backtick-quoted bare task ID (e.g. `T1`) so a local dep written `` `T1` T2 ``
+# isn't mis-read as a cross-spec dep and silently dropped from local edges.
+_CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?)")
+
+
+def parse_depends_on(field: str, local_task_ids):
+    """Parse one `Depends on:` field body.
+
+    Returns ``(local_edges: set[str], cross_spec: list[tuple[str, str]])``.
+    Strips parenthetical prose, expands ranges (``T1-T6``), admits
+    letter-suffixed IDs (``T1a``), and recognizes cross-spec deps in either
+    the ``spec:<name>/TN`` marker or the legacy `` `<name>` TN `` form,
+    excluding them from the local edge set.
+    """
+    head = field.split("(")[0]
+    cross = _CROSS_MARKER_RE.findall(head) + _CROSS_LEGACY_RE.findall(head)
+    cleaned = _CROSS_MARKER_RE.sub("", head)
+    cleaned = _CROSS_LEGACY_RE.sub("", cleaned)
+    if not cleaned.strip() or re.fullmatch(r"\s*none\s*", cleaned, re.IGNORECASE):
+        return set(), cross
+    ids: set[str] = set()
+    for lo, hi in _RANGE_RE.findall(cleaned):
+        ids.update(f"T{i}" for i in range(int(lo[1:]), int(hi[1:]) + 1))
+    ids.update(_TASK_ID_RE.findall(cleaned))
+    return {t for t in ids if t in local_task_ids}, cross
+
+
+def parse_plan(text: str):
+    """Parse a plan.md body into ``(ordered_task_ids, deps_by_task)``.
+
+    ``ordered_task_ids`` preserves authored (file) order — required for
+    forward-reference detection. ``deps_by_task[tid]`` is the set of local
+    task IDs ``tid`` depends on.
+    """
+    matches = list(TASK_HEADING_RE.finditer(text))
+    ordered = [m.group(1) for m in matches]
+    taskset = set(ordered)
+    deps: dict[str, set] = {}
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        dm = DEPENDS_LINE_RE.search(text[m.end():end])
+        local, _ = parse_depends_on(dm.group(1), taskset) if dm else (set(), [])
+        deps[m.group(1)] = local
+    return ordered, deps
+
+
+def build_dag(ordered, deps):
+    """Return ``(indegree, children)`` over local edges only."""
+    taskset = set(ordered)
+    indeg = {t: 0 for t in ordered}
+    children = defaultdict(list)
+    for t in ordered:
+        for d in deps.get(t, ()):
+            if d in taskset:
+                indeg[t] += 1
+                children[d].append(t)
+    return indeg, children
+
+
+def topological_waves(ordered, deps):
+    """Kahn level-ordering → ``(waves, placed_count)``.
+
+    Each wave is a list of mutually-independent task IDs; ``placed_count <
+    len(ordered)`` signals a cycle. Ties break by authored order.
+    """
+    indeg, children = build_dag(ordered, deps)
+    order = {t: i for i, t in enumerate(ordered)}
+    work = dict(indeg)
+    frontier = sorted([t for t in ordered if work[t] == 0], key=order.get)
+    waves = []
+    while frontier:
+        waves.append(frontier)
+        nxt = []
+        for t in frontier:
+            for c in children[t]:
+                work[c] -= 1
+                if work[c] == 0:
+                    nxt.append(c)
+        frontier = sorted(nxt, key=order.get)
+    return waves, sum(len(w) for w in waves)
+
+
+def detect_cycles(ordered, deps):
+    """Return the unschedulable task IDs (the cycle), or [] if acyclic."""
+    waves, placed = topological_waves(ordered, deps)
+    if placed == len(ordered):
+        return []
+    scheduled = {t for w in waves for t in w}
+    return [t for t in ordered if t not in scheduled]
+
+
+def detect_forward_refs(ordered, deps):
+    """Return ``(task, dep)`` pairs whose dep is authored *later* — a valid
+    edge that would run before its input in authored order."""
+    order = {t: i for i, t in enumerate(ordered)}
+    return [
+        (t, d)
+        for t in ordered
+        for d in deps.get(t, ())
+        if d in order and order[d] > order[t]
+    ]
+
+
+# The only categories whose conflicts fail *loud* (caught by merge or a
+# post-merge compile) and so are eligible for opt-in parallel writes. Every
+# other category — dynamic-semantic interference, shared mutable state,
+# move/extract-vs-edit, migration ordering, shared fixtures — fails *silent*
+# and stays serial. (RFC-0015 §3 / ADR-0005.)
+SAFE_CATEGORIES = frozenset({"cannot-collide", "typed-group-b", "textual-loud"})
+
+
+def dispatch_decision(categories, *, merge_tree_clean):
+    """Decide whether a wave of writes may run in parallel.
+
+    Parallel only when **every** task is in a safe category **and** the wave
+    is file-disjoint (a clean ``git merge-tree``). Fail closed: any non-safe
+    category, or any merge-tree conflict, serializes. (RFC-0015 decision 3.)
+    This gates *writes* only; reviewer (read) fan-out is unaffected.
+    """
+    if not merge_tree_clean:
+        return "serial"
+    if any(c not in SAFE_CATEGORIES for c in categories):
+        return "serial"
+    return "parallel"
+
+
+def _dispatch_rationale(categories, *, merge_tree_clean, decision) -> str:
+    """Human-readable one-line rationale for a `dispatch-decision` outcome —
+    the cleared-gate surface (AC10). On ``parallel`` it names the wave as
+    parallel-eligible + the task count; on ``serial`` it names the
+    disqualifying reason, **merge-tree conflict first** to match
+    `dispatch_decision`'s short-circuit order (so a both-fail wave names the
+    conflict, not the category)."""
+    if decision == "parallel":
+        return (
+            f"wave is PARALLEL-ELIGIBLE — {len(categories)} task(s), all "
+            "safe-category and file-disjoint. Present this to the human for "
+            "opt-in before fan-out; absent an explicit opt-in, run the wave "
+            "sequentially (the safe default)."
+        )
+    if not merge_tree_clean:
+        reason = "the wave's branches conflict under git merge-tree"
+    else:
+        unsafe = [c for c in categories if c not in SAFE_CATEGORIES]
+        plural = "ies" if len(unsafe) != 1 else "y"
+        reason = f"non-safe categor{plural} present: {', '.join(unsafe)}"
+    return f"wave is SERIAL — {reason}; run it sequentially."
+
+
+def wave_is_disjoint(branches) -> bool:
+    """True iff the wave's branches merge without conflict, via read-only
+    ``git merge-tree`` (no working-tree mutation). Pairwise over the wave;
+    called by the ``dispatch-decision`` verb (and the AC9 worktree dry-run)."""
+    for i in range(len(branches)):
+        for j in range(i + 1, len(branches)):
+            proc = run_git(
+                ["merge-tree", "--write-tree", "--name-only", branches[i], branches[j]]
+            )
+            if proc.returncode != 0:  # git merge-tree exits non-zero on conflict
+                return False
+    return True
+
+
 # ── init ──────────────────────────────────────────────────────────────────
 
 
@@ -126,6 +308,69 @@ def cmd_init(args: argparse.Namespace) -> int:
     template["feature"] = spec_dir.name
     write_state_atomic(spec_dir, template)
     print(f"loop-cohort: initialised {dest} (feature={spec_dir.name})")
+    return 0
+
+
+# ── schedule (topological order; sequential by default) ───────────────────
+
+
+def cmd_schedule(args: argparse.Namespace) -> int:
+    spec_dir = Path(args.spec_dir)
+    plan_path = Path(args.plan) if args.plan else spec_dir / "plan.md"
+    if not plan_path.exists():
+        return stop(f"plan not found at {plan_path}")
+    ordered, deps = parse_plan(plan_path.read_text())
+    if not ordered:
+        return stop(f"no '### T<n>' tasks found in {plan_path}")
+
+    cyc = detect_cycles(ordered, deps)
+    if cyc:
+        return stop(
+            f"dependency cycle among tasks: {', '.join(cyc)} — unschedulable; "
+            "the plan is wrong, fix Depends on:"
+        )
+    # A forward-reference is a *valid* acyclic edge (a task declares a dep
+    # authored later); the topological order below reorders it correctly, so
+    # it is a WARNING (authored-order smell), not a hard error. Only a cycle
+    # is unschedulable. (Surfaced during EXECUTE — see plan.md changelog.)
+    fwd = detect_forward_refs(ordered, deps)
+    if fwd:
+        pairs = ", ".join(f"{a}->{b}" for a, b in fwd)
+        print(
+            f"loop-cohort: warning — forward-reference(s) in {spec_dir.name} "
+            f"(dep authored later; reordered below): {pairs}",
+            file=sys.stderr,
+        )
+
+    waves, _ = topological_waves(ordered, deps)
+    print(
+        f"loop-cohort: topological order for {spec_dir.name} "
+        "(run sequentially by default; waves mark what *could* parallelize):"
+    )
+    for i, wave in enumerate(waves, 1):
+        print(f"  wave {i}: {', '.join(wave)}")
+    return 0
+
+
+def cmd_dispatch_decision(args: argparse.Namespace) -> int:
+    """Gate one write wave: print ``parallel`` or ``serial`` (RFC-0015
+    decision 3 / AC5). Combines the agent-supplied safe-category judgement
+    (``--category`` per task) with a mechanical ``git merge-tree``
+    file-disjointness check over the wave's branches (``--branch`` per task).
+    Fail closed: any non-safe category or any merge-tree conflict → serial.
+    This is the command the supervisor-mode procedure runs before any parallel
+    fan-out — it makes the gate reachable, not merely unit-tested."""
+    clean = wave_is_disjoint(args.branch) if len(args.branch) > 1 else True
+    decision = dispatch_decision(args.category, merge_tree_clean=clean)
+    print(decision)  # stdout: the machine-readable token (scripted reads)
+    # stderr: the human-facing cleared-gate surface (AC10) — so the agent has
+    # something to present to the human for opt-in, never fanning out silently.
+    print(
+        "dispatch-decision: " + _dispatch_rationale(
+            args.category, merge_tree_clean=clean, decision=decision
+        ),
+        file=sys.stderr,
+    )
     return 0
 
 
@@ -502,6 +747,28 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("spec_dir")
     sp.add_argument("--force", action="store_true")
     sp.set_defaults(func=cmd_init)
+
+    sp = sub.add_parser(
+        "schedule",
+        help="parse the plan DAG; detect cycles/forward-refs; print topological order",
+    )
+    sp.add_argument("spec_dir")
+    sp.add_argument("--plan", help="path to plan.md (default: <spec-dir>/plan.md)")
+    sp.set_defaults(func=cmd_schedule)
+
+    sp = sub.add_parser(
+        "dispatch-decision",
+        help="gate a write wave: safe-category ∧ git merge-tree disjointness → parallel|serial",
+    )
+    sp.add_argument(
+        "--category", action="append", default=[], required=True,
+        help="one task's conflict category (repeat per task in the wave)",
+    )
+    sp.add_argument(
+        "--branch", action="append", default=[],
+        help="one task's worktree branch (repeat per task; merge-tree disjointness)",
+    )
+    sp.set_defaults(func=cmd_dispatch_decision)
 
     sp = sub.add_parser("check", help="phase termination check")
     sp.add_argument("spec_dir")

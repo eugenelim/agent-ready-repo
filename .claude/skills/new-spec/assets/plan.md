@@ -64,6 +64,17 @@ with separate commits when the change is non-trivial.
 or `none`. Don't omit the field; "obvious from order" is the failure mode
 that hides serial-by-default thinking. `none` is a valid and common answer.
 
+**`Depends on:` grammar** (so the supervisor-mode scheduler can read it —
+RFC-0015 / `loop-cohort schedule`). The field is a comma-separated list of:
+local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
+`spec:<name>/TN` for a dependency on another spec's task (e.g.
+`spec:distribution-adapters/T7`). Parenthetical prose after the IDs is
+ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
+*spec-sequencing*, not intra-plan waves, and are excluded from this plan's
+DAG. The scheduler **fails on a dependency cycle** and **warns on a
+forward-reference** (a dep authored later — it still schedules correctly by
+running the dep first); `tools/lint-plan-deps.py` enforces this.
+
 <!--
 Order matters — list tasks in the order they should be done. Mark
 dependencies inline. Format each task so a contributor (human or agent)
