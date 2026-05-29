@@ -1,6 +1,6 @@
 # RFC-NNNN: <proposal title>
 
-- **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn -->
+- **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental (optional: trial running, results pending — see the Experiment / validation section) -->
 - **Author:** <github-handle>
 - **Approver:** <github-handle who signs off — the one person whose yes starts implementation>
 - **Date opened:** YYYY-MM-DD
@@ -97,7 +97,9 @@ experiment. Frame the experiment here; do NOT paste raw results into the RFC
 - **Success / failure criteria.**
 
 Capture the results in a separate, linked spike note (or a follow-up RFC / a
-superseding ADR), and keep the RFC in Draft/Open while they're pending.
+superseding ADR), and mark the RFC `Experimental` while they're pending (see
+docs/CONVENTIONS.md § RFC lifecycle); move it to a terminal status once they
+land.
 -->
 
 ## Open questions
