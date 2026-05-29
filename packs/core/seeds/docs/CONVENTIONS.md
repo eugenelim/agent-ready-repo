@@ -516,16 +516,19 @@ future maintainer would ask "why", surface it in the PR description.
 
 ### Supervisor mode
 
-When a plan has multiple tasks declaring `Depends on: none`, the
-work-loop enters **supervisor mode**: one primary orchestrator
-dispatches `implementer` subagents in parallel, each working in its own
-git worktree, then merges the results back and runs gates in the
-primary. The trigger and one-sentence concept live in the
-`work-loop` skill §EXECUTE; the
-step-by-step procedure (pre-flight, worktree setup, dispatch, report
-persistence, non-ready handling, merge, cleanup) lives in the skill's
-`references/supervisor-mode.md`.
-This section is the why and the boundary.
+**Supervisor mode is wave-scheduled and sequential by default** (RFC-0015
+/ ADR-0005). The work-loop builds the plan's full `Depends on:` DAG
+(`loop-cohort schedule`) and runs tasks in topological order, single-agent,
+on every adapter — failing loud on a cycle and warning on a
+forward-reference. Parallel `implementer` fan-out is **opt-in and gated**,
+never automatic: a wave runs in parallel only when every task is in a safe
+category (cannot-collide / typed-Group-B / textual-loud) **and** passes a
+`git merge-tree` file-disjointness check (`loop-cohort dispatch-decision`),
+each in its own worktree, merged back with gates run in the primary; any
+other category or merge conflict stays serial. The trigger and concept live
+in the `work-loop` skill §EXECUTE; the step-by-step worktree procedure
+lives in the skill's `references/supervisor-mode.md`. This section is the
+why and the boundary.
 
 **Why a separate mode instead of a separate skill.** The trigger is
 structural (the plan's shape), not a choice the user makes. Branching
@@ -732,8 +735,10 @@ template adopter knows when to wire each one up.
   `Depends on:` chains, and the parallel-dispatch payoff doesn't beat
   the coordination overhead. Specialist reviewers are usually skipped,
   and `adversarial-reviewer` itself is optional at this size.
-- **Profile B** — [supervisor mode](#supervisor-mode) earns its keep
-  when a plan produces two or more `Depends on: none` tasks. Reviewer
+- **Profile B** — [supervisor mode](#supervisor-mode) runs every
+  multi-task plan in topological order (sequential by default); its
+  parallel-write fan-out earns its keep only when a wave of independent
+  tasks clears the safe-category ∧ `git merge-tree` gate. Reviewer
   fan-out follows the
   *Parallel dispatch discipline* section
   in the work-loop skill: one tool-call message, one Agent use per

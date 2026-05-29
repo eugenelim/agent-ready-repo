@@ -1,9 +1,34 @@
 # Supervisor mode — procedure
 
-Loaded on demand by the `work-loop` skill when the plan has **two or
-more tasks declaring `Depends on: none`**. The trigger and concept stay
-in [`../SKILL.md` § EXECUTE](../SKILL.md); this file owns the
-step-by-step procedure once the branch fires.
+**Default is sequential.** Supervisor mode computes the plan's full
+`Depends on:` DAG (`loop-cohort schedule <spec-dir>`) and runs tasks in
+**topological order, single-agent, on every adapter** — it does *not*
+auto-fan-out. `schedule` also fails loud on a dependency cycle or a
+forward-reference (a task whose declared dep is authored later), so an
+ill-formed plan is caught at PLAN, not run out of order. (RFC-0015 /
+ADR-0005.)
+
+This file owns the **opt-in parallel-write path** only. It is entered
+deliberately — never automatically — and only for a wave that clears the
+**dispatch gate**, which has two halves checked at two points:
+
+- **Category half — before dispatch.** Every task must be in a safe
+  category (cannot-collide / typed-Group-B / textual-loud). If any task
+  is in another category, do not enter this path — run the wave serial.
+  This is a judgement made up front, when branches are still empty.
+- **Disjointness half — on populated branches.** A clean `git merge-tree`
+  file-disjointness check is only meaningful once the implementers have
+  written and committed, so it is enforced at the **merge** step (step 5's
+  `git merge --no-ff` aborts on any collision — the loud backstop). Run
+  `loop-cohort dispatch-decision --category <c> … --branch <b> …` as a
+  read-only **preview** of that check (it runs `wave_is_disjoint` +
+  applies the category rule, printing `parallel` or `serial`) before
+  paying for a merge you expect to abort.
+
+Any non-safe category, or any merge-tree conflict, stays serial. Reviewer
+(read) fan-out is a separate, always-safe path. The trigger and concept
+stay in [`../SKILL.md` § EXECUTE](../SKILL.md); this file owns the
+step-by-step procedure once the opt-in parallel path is taken.
 
 Throughout this procedure, **"task-id order" means numeric where IDs
 look like `T1`, `T2`, … ; lexicographic otherwise.** The `loop-cohort`

@@ -91,9 +91,11 @@ gate.
 - [ ] AC2 — a dependency **cycle** is detected and reported as a PLAN-level
   error (non-zero exit), naming the cycle.
 - [ ] AC3 — a **forward-reference** (a task whose declared dep is authored
-  later) is detected and reported as a PLAN-level error; the two real cases in
-  the repo's plans (`agent-spec-cli` T13→T15; `incompatible-hook-event-drop`
-  T2→T3,T4) are covered by tests.
+  later) is detected and **reported as a warning**, and the topological order
+  **reorders it** so the dependency runs first (a forward-ref is a valid
+  acyclic edge — unlike a cycle, it is schedulable; only AC2's cycle is a hard
+  error). The two real cases in the repo's plans (`agent-spec-cli` T13→T15;
+  `incompatible-hook-event-drop` T2→T3,T4) are covered by tests.
 - [ ] AC4 — default execution is **sequential in topological order on every
   adapter**; the old auto-parallel-on-`Depends on: none` branch no longer fires.
 - [ ] AC5 *(required — RFC-0015 decision 3)* — parallel-write dispatch occurs
@@ -106,9 +108,11 @@ gate.
   cross-spec deps for intra-plan scheduling (the `self-hosting` no-collision
   regression passes).
 - [ ] AC7 — the plan template documents the `Depends on:` grammar + cross-spec
-  marker; the `new-spec` lint flags cycles/forward-refs and runs over all
-  current plans with no *real* findings — the only exclusion is `kiro-ide-hook`
-  (no `### T<n>` headings; 20 of 21 plans parse).
+  marker; the `new-spec` lint **fails on cycles** and **warns on
+  forward-references**, and over all current plans reports **zero cycles**
+  (the two forward-refs — `agent-spec-cli`, `incompatible-hook-event-drop` —
+  surface as warnings, not failures), with `kiro-ide-hook` excluded (no
+  `### T<n>` headings; 20 of 21 plans parse).
 - [ ] AC8 — `make build-self` leaves a clean tree and both lint surfaces pass;
   no new module, dependency, or top-level directory was introduced.
 - [ ] AC9 — the worktree/merge dispatch path was exercised by a real
