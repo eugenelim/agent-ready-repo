@@ -273,7 +273,11 @@ order, single-agent, by default** — on every adapter. `schedule` fails
 loud on a dependency **cycle** and warns on a **forward-reference** (a dep
 authored later — it reorders so the dep runs first), so an ill-formed plan
 is caught here, not run out of order. This is the proven, zero-hazard path;
-its win is correct ordering, not speed. (RFC-0015 / ADR-0005.)
+its win is correct ordering, not speed. (RFC-0015 / ADR-0005.) If tasks
+declare optional `Touches:` globs, `schedule` also prints
+`predicted-disjoint: yes|no|unknown` per wave — a **serialize-only screen**
+(a predicted overlap is a reason to keep the wave serial; it **never**
+greenlights parallel — the gate below stays authoritative).
 
 **Parallel implementer fan-out is opt-in and gated — never automatic.** A
 wave of mutually-independent tasks may run in parallel *only* when it
