@@ -249,6 +249,28 @@ behavior changes.
 constrain it. ADRs do not link to specs (specs are too small and short-lived
 to be worth citing from an ADR).
 
+### Spec metadata contract
+
+A spec's *metadata* — the few machine-checkable fields below — is pinned so the
+new-spec template, the `adversarial-reviewer` drift check, and the work-loop's
+finish-time checklist all measure against one source. This contract is
+**metadata-only**: it governs the shape of status, criteria, and deferrals, not
+whether the spec matches the code. Detecting *semantic* spec↔code drift remains
+the `adversarial-reviewer`'s judgment call (its "Spec drift" check), not a
+mechanical rule.
+
+- **Status vocabulary.** A spec's `- **Status:**` field is exactly one of
+  `Draft | Approved | Implementing | Shipped | Archived`. (Plans carry their own
+  vocabulary, `Drafting | Executing | Done` — a separate field, separate set.)
+- **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
+  `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
+- **Deferral token.** A criterion that ships *unmet on purpose* is not left
+  unchecked and silent — it carries an inline `(deferred: <anchor>)` marker whose
+  `<anchor>` resolves to a heading in `docs/backlog.md`, the durable register of
+  open work. Form: `- [ ] <outcome> (deferred: <backlog-anchor>)`. A deferral
+  recorded only in a PR comment rots; the register is version-controlled and
+  greppable.
+
 ### Contract vs. construction tests
 
 Tests are designed *up front, before any implementation*. The contract and
