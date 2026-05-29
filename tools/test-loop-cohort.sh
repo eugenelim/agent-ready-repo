@@ -208,7 +208,7 @@ expected_keys = {
     "feature", "iteration_count", "max_iterations",
     "token_budget_used_pct", "token_budget_cap_pct",
     "consecutive_same_error_count", "consecutive_same_error_threshold",
-    "plan_review_status", "last_commit_sha",
+    "plan_review_status", "auto_parallel", "last_commit_sha",
     "finding_fingerprints", "previous_finding_fingerprints",
     "worktrees",
 }

@@ -312,3 +312,332 @@ def test_dispatch_decision_verb_parallel_emits_rationale_to_stderr():
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "parallel"
     assert "parallel-eligible" in r.stderr.lower()
+
+
+# ── supervisor-auto-classify T1: classify_task (AC1–AC4) ────────────────────
+
+
+def test_classify_all_added_is_cannot_collide():
+    assert lc.classify_task([("A", "src/new_a.py"), ("A", "src/new_b.py")]) == "cannot-collide"
+
+
+def test_classify_iff_reverse_single_non_added_flips_off():
+    # AC1 reverse direction: one M among adds → not cannot-collide.
+    assert lc.classify_task([("A", "src/new.py"), ("M", "src/old.py")]) != "cannot-collide"
+
+
+def test_classify_all_added_but_danger_path_is_not_cannot_collide():
+    # AC1 reverse: an added danger-path is still not cannot-collide.
+    assert lc.classify_task([("A", "pkg/__init__.py")]) == "danger-path"
+
+
+def test_classify_rename_copy_delete_are_move_or_delete():
+    assert lc.classify_task([("R100", "old.py", "new.py")]) == "move-or-delete"
+    assert lc.classify_task([("C", "a.py", "b.py")]) == "move-or-delete"
+    assert lc.classify_task([("D", "gone.py")]) == "move-or-delete"
+
+
+def test_classify_danger_paths_each_serialize():
+    for path in [
+        "poetry.lock", "pyproject.toml", "pkg/__init__.py", "web/index.ts",
+        ".github/workflows/ci.yml", "Makefile", "marketplace.json",
+        "a/b/migrations/0001_init.py",  # nested — anchoring (AC3)
+        "migrations/0001_init.py",      # top-level — Django/Alembic default (AC3)
+    ]:
+        assert lc.classify_task([("M", path)]) == "danger-path", path
+
+
+def test_classify_modified_existing_is_fail_closed_label():
+    assert lc.classify_task([("M", "src/handler.py")]) == "modified-existing"
+
+
+def test_classify_labels_outside_safe_categories_except_cannot_collide():
+    # cannot-collide is the only auto label in SAFE_CATEGORIES; the rest serialize.
+    assert "cannot-collide" in lc.SAFE_CATEGORIES
+    for label in ("move-or-delete", "danger-path", "modified-existing", "cross-branch-symbol"):
+        assert label not in lc.SAFE_CATEGORIES, label
+
+
+# ── T1: added_paths_may_share_symbol (AC8 unit) ─────────────────────────────
+
+
+def test_share_symbol_shared_basename_true():
+    assert lc.added_paths_may_share_symbol([{"x/plugin.py"}, {"y/plugin.py"}]) is True
+
+
+def test_share_symbol_shared_parent_dir_true():
+    assert lc.added_paths_may_share_symbol([{"plugins/a.py"}, {"plugins/b.py"}]) is True
+
+
+def test_share_symbol_disjoint_false():
+    assert lc.added_paths_may_share_symbol([{"x/a.py"}, {"y/b.py"}]) is False
+
+
+def test_share_symbol_distinct_root_files_false():
+    # two distinct-basename repo-root additions must NOT serialize (root "" is
+    # excluded from the shared-dir match; a same-named root add is a merge-tree
+    # conflict caught elsewhere). Pins the Concern-3 fix.
+    assert lc.added_paths_may_share_symbol([{"README.md"}, {"LICENSE"}]) is False
+
+
+# ── supervisor-auto-classify T2: dispatch-decision auto-path (AC5–AC10) ──────
+
+
+def _git(repo, *args):
+    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+
+
+def _mk_repo(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "a@x")
+    _git(repo, "config", "user.name", "a")
+    (repo / "base.py").write_text("BASE = 1\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    return repo
+
+
+def _branch(repo, name, relpath, content="X = 1\n", *, modify=False):
+    _git(repo, "checkout", "-q", "-b", name, "main")
+    f = repo / relpath
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(content)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", name)
+    _git(repo, "checkout", "-q", "main")
+
+
+def _dispatch_in(repo, *args):
+    return subprocess.run(
+        [sys.executable, str(LC_PATH), "dispatch-decision", *args],
+        cwd=repo, capture_output=True, text=True,
+    )
+
+
+def test_verb_auto_all_added_disjoint_is_parallel(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "p", "feat_p/p.py")
+    _branch(repo, "q", "feat_q/q.py")
+    r = _dispatch_in(repo, "--branch", "p", "--branch", "q")
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "parallel"
+    assert "auto-derived" in r.stderr.lower()          # AC7: auto, not human
+
+
+def test_verb_auto_modified_existing_is_serial(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "m", "base.py", "BASE = 2\n")         # modifies existing
+    _branch(repo, "p", "feat_p/p.py")
+    r = _dispatch_in(repo, "--branch", "m", "--branch", "p")
+    assert r.stdout.strip() == "serial"
+    assert "modified-existing" in r.stderr             # AC7 names the signal
+
+
+def test_verb_auto_cross_branch_shared_basename_is_serial(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "c1", "dirA/plugin.py")               # both add plugin.py
+    _branch(repo, "c2", "dirB/plugin.py")
+    r = _dispatch_in(repo, "--branch", "c1", "--branch", "c2")
+    assert r.stdout.strip() == "serial"
+    assert "cross-branch-symbol" in r.stderr            # AC8 integration
+
+
+def test_verb_auto_unresolvable_base_fails_closed(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "p", "feat_p/p.py")
+    _git(repo, "checkout", "-q", "--orphan", "orphan")  # no common ancestor
+    (repo / "o.py").write_text("O = 1\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "orphan")
+    _git(repo, "checkout", "-q", "main")
+    r = _dispatch_in(repo, "--branch", "p", "--branch", "orphan")
+    assert r.stdout.strip() == "serial"                 # AC9 fail-closed
+    assert "base" in r.stderr.lower()
+
+
+def test_verb_category_override_takes_precedence(tmp_path):
+    repo = _mk_repo(tmp_path)
+    _branch(repo, "p", "feat_p/p.py")
+    r = _dispatch_in(repo, "--branch", "p", "--category", "typed-group-b")
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "parallel"               # typed-group-b is safe
+    assert "human-supplied" in r.stderr.lower()         # AC6 override path
+
+
+# ── supervisor-predict-disjointness PD-T1: parse Touches: (AC1) ──────────────
+
+
+def test_parse_touches_comma_list():
+    assert lc.parse_touches("src/api/*.py, docs/api.md") == {"src/api/*.py", "docs/api.md"}
+
+
+def test_parse_touches_tolerates_prose():
+    assert lc.parse_touches("src/*.py (the handlers)") == {"src/*.py"}
+
+
+def test_parse_touches_by_task_maps_declared_only():
+    plan = (
+        "### T1: a\n**Depends on:** none\n**Touches:** src/a/*.py\n"
+        "### T2: b\n**Depends on:** none\n"  # no Touches: line
+        "### T3: c\n**Touches:** docs/c.md, src/c.py\n"
+    )
+    m = lc.parse_touches_by_task(plan)
+    assert m["T1"] == {"src/a/*.py"}
+    assert m["T3"] == {"docs/c.md", "src/c.py"}
+    assert "T2" not in m            # optional: absent, not an empty-set key, no error
+
+
+def test_parse_plan_signature_unchanged():
+    # parse_plan must still return exactly (ordered, deps) — no arity change.
+    ordered, deps = lc.parse_plan("### T1: a\n**Depends on:** none\n")
+    assert ordered == ["T1"]
+
+
+# ── PD-T2: globs_overlap (AC2) — conservative, segment-wise ─────────────────
+
+
+def test_globs_overlap_literal_segment_mismatch_disjoint():
+    assert lc.globs_overlap("src/a/*", "src/b/*") is False
+
+
+def test_globs_overlap_different_depth_no_doublestar_disjoint():
+    assert lc.globs_overlap("src/*", "src/api/x.py") is False  # * never crosses /
+
+
+def test_globs_overlap_prefix_path_true():
+    assert lc.globs_overlap("src/api/*", "src/api/x.py") is True
+
+
+def test_globs_overlap_identical_true():
+    assert lc.globs_overlap("src/api/x.py", "src/api/x.py") is True
+
+
+def test_globs_overlap_wildcard_vs_wildcard_true():
+    # the case a both-ways .match MISSES — both match src/api/handler.py
+    assert lc.globs_overlap("src/api/*.py", "src/*/handler.py") is True
+    assert lc.globs_overlap("a/*/x.py", "*/b/x.py") is True
+
+
+def test_globs_overlap_doublestar_failsafe_true():
+    assert lc.globs_overlap("**/*.py", "src/x.py") is True
+
+
+def test_globs_overlap_distinct_dirs_disjoint():
+    assert lc.globs_overlap("foo/*.py", "bar/*.py") is False
+
+
+def test_globs_overlap_charclass_is_pattern_not_literal_true():
+    # [abc].py is a PATTERN (not a pure literal); fnmatch("a.py","[abc].py") True
+    assert lc.globs_overlap("[abc].py", "a.py") is True
+
+
+# ── PD-T2: wave_touches_disjoint (AC3) ──────────────────────────────────────
+
+
+def test_wave_touches_disjoint_all_disjoint_yes():
+    assert lc.wave_touches_disjoint([{"src/a/*"}, {"src/b/*"}]) == "yes"
+
+
+def test_wave_touches_disjoint_overlap_no():
+    assert lc.wave_touches_disjoint([{"src/api/*"}, {"src/api/x.py"}]) == "no"
+
+
+def test_wave_touches_disjoint_overlap_wins_over_missing():
+    # two declared tasks overlap; a third omits Touches -> still "no" (AC3)
+    assert lc.wave_touches_disjoint([{"src/api/*"}, {"src/api/x.py"}, None]) == "no"
+
+
+def test_wave_touches_disjoint_missing_blocks_yes_only():
+    # no overlap found but a task is absent -> unknown (not yes)
+    assert lc.wave_touches_disjoint([{"src/a/*"}, None]) == "unknown"
+
+
+# ── PD-T3: schedule predicted-disjoint annotation (AC4) + screen-only (AC5) ──
+
+
+def test_schedule_predicts_no_on_overlapping_touches(tmp_path):
+    r = _schedule(
+        tmp_path,
+        "### T1: a\n**Depends on:** none\n**Touches:** src/api/*\n"
+        "### T2: b\n**Depends on:** none\n**Touches:** src/api/x.py\n",
+    )
+    assert r.returncode == 0, r.stderr
+    assert "predicted-disjoint: no" in r.stdout
+
+
+def test_schedule_predicts_yes_on_disjoint_touches(tmp_path):
+    r = _schedule(
+        tmp_path,
+        "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n"
+        "### T2: b\n**Depends on:** none\n**Touches:** src/b/*\n",
+    )
+    assert "predicted-disjoint: yes" in r.stdout
+
+
+def test_schedule_predicts_unknown_when_a_task_omits_touches(tmp_path):
+    r = _schedule(
+        tmp_path,
+        "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n"
+        "### T2: b\n**Depends on:** none\n",  # no Touches:
+    )
+    assert "predicted-disjoint: unknown" in r.stdout
+
+
+def test_schedule_no_annotation_on_single_task_wave(tmp_path):
+    r = _schedule(tmp_path, "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n")
+    assert r.returncode == 0, r.stderr
+    assert "predicted-disjoint" not in r.stdout  # single-task wave → no annotation
+
+
+def test_schedule_is_screen_only_no_gate_call(tmp_path):
+    # AC5 positive form: the predict path (cmd_schedule) shares no call with the
+    # authoritative gate; and dispatch_decision's signature is unchanged.
+    import inspect
+    # the whole predict path (cmd_schedule -> wave_touches_disjoint ->
+    # globs_overlap) must share no call with the gate path — guard all three so
+    # a future refactor can't slip a gate call into a transitive helper.
+    for fn in (lc.cmd_schedule, lc.wave_touches_disjoint, lc.globs_overlap):
+        src = inspect.getsource(fn)
+        assert "dispatch_decision" not in src, fn.__name__
+        assert "wave_is_disjoint" not in src, fn.__name__
+    # full signature string captures the `*` keyword-only marker, not just names
+    assert str(inspect.signature(lc.dispatch_decision)) == "(categories, *, merge_tree_clean)"
+
+
+# ── supervisor-auto-parallel AP-PT1: auto_parallel field + verb ─────────────
+
+import json as _json  # noqa: E402
+
+
+def _run_lc(*args):
+    return subprocess.run([sys.executable, str(LC_PATH), *args],
+                          capture_output=True, text=True)
+
+
+def test_init_state_has_auto_parallel_false(tmp_path):
+    spec = tmp_path / "spec"; spec.mkdir()
+    r = _run_lc("init", str(spec))
+    assert r.returncode == 0, r.stderr
+    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC1
+
+
+def test_auto_parallel_verb_flips_both_ways(tmp_path):
+    spec = tmp_path / "spec"; spec.mkdir()
+    _run_lc("init", str(spec))
+    assert _run_lc("auto-parallel", str(spec)).returncode == 0
+    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is True   # AC2
+    assert _run_lc("auto-parallel", str(spec), "--off").returncode == 0
+    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC2 --off
+
+
+def test_auto_parallel_not_a_gate_input():
+    import inspect
+    assert "auto_parallel" not in str(inspect.signature(lc.dispatch_decision))  # AC5
+
+
+def test_merge_abort_backstop_free_of_auto_parallel():
+    import inspect
+    # AC4a: the merge-abort backstop cannot be influenced by the flag.
+    assert "auto_parallel" not in inspect.getsource(lc.cmd_worktree_merge)
