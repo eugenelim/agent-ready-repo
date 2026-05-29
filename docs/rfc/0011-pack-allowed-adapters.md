@@ -275,7 +275,7 @@ On acceptance — **single PR per RFC-0004's spec-amendment-atomicity precedent*
 
 - **`docs/CONVENTIONS.md`** — no edit required. The pack source-of-truth section already covers the `[pack.install]` table at the right granularity; `allowed-adapters` slots in without a section addition.
 
-- **`docs/ROADMAP.md`** — entry added under "user-scope": *"`allowed-adapters` landed — Kiro and Codex user-scope installs now exercise the integrated path; next: codex-plugins install-route parity (sibling RFC, not yet opened; will be modeled on RFC-0008)."*
+- **`docs/backlog.md`** — entry added under "user-scope": *"`allowed-adapters` landed — Kiro and Codex user-scope installs now exercise the integrated path; next: codex-plugins install-route parity (sibling RFC, not yet opened; will be modeled on RFC-0008)."*
 
 - **Sibling RFC (not gated on this RFC's acceptance):** *codex-plugins-install-route-parity* — adds `codex-plugins` to `[adapter.codex.install-routes]`, lands per-pack `dist/codex-plugins/<pack>/.codex-plugin/plugin.json`, aggregates a marketplace at `dist/codex-plugins/marketplace.json`, wires the install→adapt chain via a per-pack `SessionStart`-equivalent writer. Modeled on [RFC-0008](0008-claude-plugins-install-route-parity.md) and [RFC-0010](0010-apm-install-route-parity.md); load-bearing decisions to make in that RFC's own research phase include Codex's `interface` field semantics on `plugin.json`, the marketplace-catalogue location split (`~/.agents/plugins/marketplace.json` vs `~/.codex/plugins/cache/`), and whether the existing `claude-plugins` SessionStart pattern transfers verbatim or needs a Codex-specific lifecycle hook.
 

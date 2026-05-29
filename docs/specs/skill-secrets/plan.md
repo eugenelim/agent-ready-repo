@@ -801,13 +801,13 @@ warnings.
 
 **Done when:** the file lands; the lint passes.
 
-### T13c: `ROADMAP.md` per-task entries close
+### T13c: `backlog.md` per-task entries close
 
 **Depends on:** T12
 
 **Tests:** (verification mode: goal-based check)
 
-- *Section structure:* `docs/ROADMAP.md` contains a top-level
+- *Section structure:* `docs/backlog.md` contains a top-level
   `## skill-secrets` section (already drafted in the spec PR;
   this task closes its open items as work lands). [AC32]
 - *Per-task grouping:* the section bullets are grouped by task
@@ -828,7 +828,7 @@ warnings.
   the final close-out pass before the spec moves Draft → Shipped.
 
 **Done when:** every task T1–T13c's row is checked; the `Last
-updated` date at the top of ROADMAP.md is bumped.
+updated` date at the top of backlog.md is bumped.
 
 ## Rollout
 

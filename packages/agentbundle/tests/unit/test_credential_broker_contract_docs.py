@@ -1,5 +1,5 @@
 """T10 (credential-broker-contract): documentation surface presence
-checks for AC40-AC45 (ADR, CONVENTIONS, ROADMAP, guide, sibling
+checks for AC40-AC45 (ADR, CONVENTIONS, backlog, guide, sibling
 spec amendments).
 """
 
@@ -45,10 +45,10 @@ def test_ac41_conventions_credentialed_section_names_brokers():
 
 
 def test_ac42_roadmap_entry_carries_manual_qa_matrix():
-    """AC42: ROADMAP entry tracks the six manual-QA rows."""
-    roadmap = (REPO_ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+    """AC42: backlog entry tracks the six manual-QA rows."""
+    roadmap = (REPO_ROOT / "docs" / "backlog.md").read_text(encoding="utf-8")
     start = roadmap.find("## `credential-broker-contract`")
-    assert start > 0, "ROADMAP missing credential-broker-contract entry"
+    assert start > 0, "backlog missing credential-broker-contract entry"
     end = roadmap.find("\n## ", start + 1)
     section = roadmap[start:end] if end > 0 else roadmap[start:]
     # Six rows: creds × {macOS, Windows, Linux} and sso-cookie × {macOS, Windows, Linux}.
@@ -60,7 +60,7 @@ def test_ac42_roadmap_entry_carries_manual_qa_matrix():
         "`sso-cookie` × Windows",
         "`sso-cookie` × Linux",
     ):
-        assert combo in section, f"ROADMAP missing manual-QA row: {combo}"
+        assert combo in section, f"backlog missing manual-QA row: {combo}"
 
 
 def test_ac43_guide_walks_broker_first():

@@ -609,7 +609,7 @@ and the Codex multi-pack aggregation fix land.
   single-route (chronologically follows the same-day scaffold-leak
   closure entry below). The original 2026-05-25
   amendment named Claude-plugins and APM as deferred routes,
-  tracking the gap in `docs/ROADMAP.md`'s "AC22 install-route
+  tracking the gap in `docs/backlog.md`'s "AC22 install-route
   coverage extension" follow-on. Investigation against `make
   build` output confirmed no per-adapter seed-projection path
   exists today — `dist/claude-plugins/<pack>/` and
