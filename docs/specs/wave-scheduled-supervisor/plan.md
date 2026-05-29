@@ -193,3 +193,14 @@ before any parallel path is exercised for real.
 ## Changelog
 
 - 2026-05-29: initial plan (implements RFC-0015 + ADR-0005).
+- 2026-05-29 (mid-EXECUTE): **forward-references are warnings, not hard
+  errors.** Discovered while building T5's lint — AC3-as-a-hard-error
+  conflicted with AC7's "no real findings over current plans", because the
+  corpus genuinely contains forward-refs (the two AC3 cases). This
+  **diverges from RFC-0015 decision 1**, whose body says "a forward-ref is a
+  PLAN error"; the divergence is correct on the merits (a forward-ref is a
+  valid acyclic edge the topological sort reorders — only a *cycle* is
+  unschedulable) and is recorded in governance as **RFC-0015 § Errata**
+  (Approver-signed 2026-05-29), not just here. The `schedule` verb + lint
+  **warn** on a forward-ref and reorder; only a **cycle** is the hard error.
+  Spec AC3/AC7 amended in this PR (drift closed in-place).
