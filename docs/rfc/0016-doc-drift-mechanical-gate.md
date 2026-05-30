@@ -89,3 +89,42 @@ On acceptance:
 - ADR-NNNN: "Doc drift — prevented by construction + judgment for adopters; mechanically gated only as catalogue governance."
 - Spec: `docs/specs/doc-drift-prevention/` — the five mechanisms as acceptance criteria, the Tier-1 lint contract + corpus construction test, the `ROADMAP.md`→`backlog.md` rename + seed, and the living-spec normalization.
 - Convention/template/seed: `CONVENTIONS.md § 4` (status vocab, AC notation, `(deferred:)` token, metadata-only note); `new-spec` `assets/spec.md`; `work-loop` § GATES (name the Tier-1 lint) + § DECIDE (register-not-PR rule); seed `backlog.md`.
+
+## Errata
+
+This RFC is Accepted (Frozen): the body above is preserved as the original
+decision record. Corrections are appended here, Approver-signed.
+
+- **2026-05-29 (Approver: eugenelim) — the "linters don't project" premise is
+  false; delivery Decision #1 is corrected.** The § Proposal ("Tier 1"),
+  § Options considered (row D, row C's "all 4 (skills/seeds)" excluding the
+  lint), the § Evidence "Delivery facts" bullet ("Linters have no `packs/`
+  source (repo-only)"), and **Decision #1** all rest on the claim that a
+  `lint-spec-status.py` *cannot reach adopters* because "linters don't project —
+  `tools/lint-*.py` have no `packs/` source." **That premise is wrong.** A
+  skill's `scripts/` folder is a first-class projecting surface that already
+  ships governance Python helpers to all four adapters: `governance-extras`'s
+  `new-adr` / `new-rfc` `scripts/next-ordinal.py` (with their bundled tests) and
+  `core`'s `work-loop` `scripts/loop-cohort.py`. A linter given a `packs/`
+  source under a skill's `scripts/` projects exactly the same way.
+
+  Of the three "cannot reach adopters" reasons, **only the third survives**:
+  there is no PR-open lifecycle event to fire a *fail-closed* gate in an adopter
+  repo (and copilot can't fire hooks). Reason one (projection) is false per
+  above; reason two (no runtime) is the same Python bet `loop-cohort.py` and
+  `next-ordinal.py` already make — the agent runs them where Python exists and
+  they degrade where it doesn't. The RFC conflated "can't be a *fail-closed
+  gate* for adopters" (true) with "can't be *delivered* to adopters at all"
+  (false).
+
+  **Corrected decision (supersedes Decision #1's "catalogue-governance only,
+  Tier 1"):** the mechanical lint **ships to adopters as a `work-loop` skill
+  script** (`packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`),
+  invoked by the agent at the work-loop's finish-time checklist — *available and
+  agent-invoked, not fail-closed*. The catalogue additionally runs it as a
+  fail-closed CI gate via `make build-check`, where a PR event and Python both
+  exist. The adopter delivery model is therefore construction + judgment **plus
+  an agent-invocable mechanical check on every adapter that has Python** — not
+  construction + judgment alone. Implemented in
+  `docs/specs/lint-work-loop-delivery/`; the `doc-drift-prevention` spec's
+  catalogue-only Boundaries carry a matching erratum.
