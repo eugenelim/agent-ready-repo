@@ -334,9 +334,12 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
             (adopter / "claude-plugins" / "apack" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
             )
-            # Pack B: no state row but orphan per-IDE files → (c) should
-            # fire when installing B.
-            orphan = adopter / ".claude" / "skills" / "bpack-skill" / "SKILL.md"
+            # Pack B: no state row but a GENUINE non-projection orphan under
+            # its skill dir → (c) should fire when installing B. Issue #190 —
+            # a file that *is* a projection path (SKILL.md) is now companion-
+            # protected; `STALE.md` matches the `bpack-skill` segment but is
+            # not a projected relpath, so it stays an orphan.
+            orphan = adopter / ".claude" / "skills" / "bpack-skill" / "STALE.md"
             orphan.parent.mkdir(parents=True)
             orphan.write_text("stale", encoding="utf-8")
 
@@ -354,7 +357,10 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
                  "--output", str(adopter), str(packs_dir)]
             )
             self.assertNotEqual(rc_b, 0)
-            self.assertIn("orphan projection files for pack bpack", stderr_b)
+            self.assertIn(
+                "unrecognized files at projection paths not shipped by pack bpack",
+                stderr_b,
+            )
 
     def test_cross_pack_orphan_does_not_trigger_c(self) -> None:
         """**Regression pin for the per-pack-scoping amendment.**

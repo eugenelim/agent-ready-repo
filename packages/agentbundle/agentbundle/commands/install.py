@@ -355,6 +355,27 @@ def run(args: "argparse.Namespace") -> int:
         allowed_prefixes_repo = _adapter_allowed_prefixes_repo(
             repo_target_adapter
         )
+        # Issue #190: render the current per-IDE projection's relpaths so
+        # orphan recovery can exclude paths Step 9 companion-protects.
+        # Best-effort and deterministic (same inputs as the Step-7 render).
+        # On FileNotFoundError/ValueError the orphan filter degrades to off
+        # (None) and Step 7 re-renders to surface the canonical error; any
+        # other render exception propagates here exactly as it did from
+        # Step 7 before this change (no new swallowing).
+        _orphan_filter_relpaths: "set[str] | None" = None
+        try:
+            _, _early_repo_projection = _render_for_repo_scope(
+                pack_dir,
+                adapter=cli_adapter,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=None,
+                command_name="install",
+                user_config=user_config,
+            )
+            _orphan_filter_relpaths = set(_early_repo_projection.keys())
+        except (FileNotFoundError, ValueError):
+            _orphan_filter_relpaths = None
         rc = _classify_pre_rfc0012_state(
             output_root=output_root,
             pack_name=pack_name,
@@ -363,6 +384,7 @@ def run(args: "argparse.Namespace") -> int:
             repo_target_adapter=repo_target_adapter,
             allowed_prefixes_repo=allowed_prefixes_repo,
             force=force,
+            projection_relpaths=_orphan_filter_relpaths,
         )
         if rc is not None:
             return rc
@@ -800,6 +822,50 @@ def run(args: "argparse.Namespace") -> int:
                 "sha": safety.sha256_bytes(content),
                 "from-pack-version": pack_version,
             }
+
+        # Deliver the pack's seeds (governance docs: AGENTS.md, docs/CHARTER.md,
+        # …) into the repo at repo scope. Seeds land at the repo root / docs/,
+        # outside the adapter projection prefixes, so they never interact with
+        # the orphan scan. Tier-1/2/3 + composition-fragment handling is shared
+        # with `scaffold` via `deliver_seeds`; here we also record each delivered
+        # seed in state so upgrades give edited seeds Tier-2 companion safety.
+        # (RFC-0001 §281-284 / file-safety contract.)
+        if plan.scope == "repo":
+            seeds_dir = pack_dir / "seeds"
+            if seeds_dir.is_dir():
+                from agentbundle.commands._common import deliver_seeds
+
+                try:
+                    seed_deliveries = deliver_seeds(seeds_dir, plan.root)
+                except safety.PathJailError as exc:
+                    print(f"install: {exc}", file=sys.stderr)
+                    return 1
+                for rec in seed_deliveries:
+                    new_pack_state.files[rec.relpath] = {
+                        "sha": safety.sha256_bytes(rec.content),
+                        "from-pack-version": pack_version,
+                    }
+                    if rec.companion_relpath is not None:
+                        plan.new_companions.append(rec.companion_relpath)
+                # Observability: tell the operator that seeds landed and,
+                # crucially, when an edited file was preserved as a companion
+                # rather than overwritten (the silent-companion diagnosability
+                # gap on a brownfield install). stderr so the stdout
+                # `installed:` rail stays parseable.
+                if seed_deliveries:
+                    _n_companion = sum(
+                        1 for r in seed_deliveries if r.action == "companion"
+                    )
+                    _summary = (
+                        f"install: delivered {len(seed_deliveries)} seed(s) "
+                        f"for pack {pack_name}"
+                    )
+                    if _n_companion:
+                        _summary += (
+                            f"; {_n_companion} collided with your edits and "
+                            f"were kept as *.upstream.<ext> companions"
+                        )
+                    print(_summary, file=sys.stderr)
 
         # RFC-0005 T8b — user-scope hook-wiring merge phase.
         # Runs after file writes (so hook bodies exist where wiring
@@ -1315,6 +1381,7 @@ def _classify_pre_rfc0012_state(
     repo_target_adapter: str,
     allowed_prefixes_repo: list[str],
     force: bool,
+    projection_relpaths: "set[str] | None" = None,
 ) -> int | None:
     """RFC-0012 AC24: in-band detection of pre-RFC-0012 state.
 
@@ -1425,6 +1492,37 @@ def _classify_pre_rfc0012_state(
             output_root, allowed_prefixes_repo,
             pack_dir=pack_dir, pack_name=pack_name,
         )
+        # Canonicalise relpaths (NFC + ``os.path.normcase``) before any
+        # membership test so a case-insensitive filesystem (Windows NTFS,
+        # HFS+) or one that returns paths in a different Unicode normal
+        # form (macOS NFD ↔ NFC) doesn't fail-open. Shared by the
+        # issue-#190 projection filter and the foreign-owned filter below;
+        # both compare on-disk orphan paths against an authored relpath set.
+        import os as _os
+        import unicodedata as _unicodedata
+
+        def _canon_relpath(rel: str) -> str:
+            return _unicodedata.normalize("NFC", _os.path.normcase(rel))
+
+        # Issue #190: a file the *current* projection ships is not an
+        # interrupted-install orphan — it is a path Step 9 companion-
+        # protects (adopter edit → ``*.upstream.<ext>``; identical →
+        # clean Tier-1). Drop those from the orphan set so a first
+        # install over hand-authored primitives proceeds to Step 9
+        # instead of refusing. What remains is the genuine residual:
+        # files under a still-shipped primitive's dir that the current
+        # projection no longer includes (a stale crumb from an older or
+        # interrupted install — or an adopter file the scanner's
+        # primitive-name heuristic happened to match). Canonicalise both
+        # sides so the comparison can't fail-open and leave a projected
+        # path in the unlink set on a case-folding / NFD filesystem.
+        if orphans and projection_relpaths is not None:
+            _canon_projection = {_canon_relpath(r) for r in projection_relpaths}
+            orphans = [
+                p for p in orphans
+                if _canon_relpath(p.relative_to(output_root).as_posix())
+                not in _canon_projection
+            ]
         # The scanner's primitive-name heuristic is best-effort scoping,
         # not authoritative ownership. When two packs ship primitives
         # whose names collide (segment-match or stem-match), the
@@ -1434,20 +1532,11 @@ def _classify_pre_rfc0012_state(
         # authoritative: filter out paths claimed by any other pack's
         # state row before treating the scanner's result as orphans.
         #
-        # Compare with NFC + ``os.path.normcase`` on both sides so a
-        # case-insensitive filesystem (Windows NTFS, HFS+) or a
-        # filesystem that returned the path in a different Unicode
-        # normalisation form (macOS NFD ↔ NFC) doesn't fail-open and
-        # let a foreign-owned path slip through into the unlink set.
+        # ``state.toml`` is authoritative: filter out paths claimed by any
+        # other pack's state row (compared with the same ``_canon_relpath``
+        # canonicalisation defined above) before treating the scanner's
+        # result as orphans.
         if orphans:
-            import os as _os
-            import unicodedata as _unicodedata
-
-            def _canon_relpath(rel: str) -> str:
-                return _unicodedata.normalize(
-                    "NFC", _os.path.normcase(rel)
-                )
-
             foreign_owned: set[str] = set()
             for other_name, other_state in repo_state.packs.items():
                 if other_name == pack_name:
@@ -1471,12 +1560,12 @@ def _classify_pre_rfc0012_state(
                         pass
                 return None
             print(
-                f"install: orphan projection files for pack "
-                f"{pack_name} at "
-                f"{_format_route_list([str(p) for p in orphans])} — "
-                f"prior install interrupted; rerun with --force to "
-                f"clean and reinstall, or delete the listed paths and "
-                f"rerun",
+                f"install: unrecognized files at projection paths not "
+                f"shipped by pack {pack_name} at "
+                f"{_format_route_list([str(p) for p in orphans])} — these "
+                f"may be left over from an older or interrupted install, or "
+                f"your own files; rerun with --force to remove them and "
+                f"reinstall, or move them aside and rerun",
                 file=sys.stderr,
             )
             return 1
@@ -1584,10 +1673,35 @@ def _assert_pack_metadata_shape(
                 )
 
 
+def _strip_markdown_code(text: str) -> str:
+    """Remove fenced code blocks and inline-code spans from Markdown text.
+
+    Issue #190 minor: a `<adapt:NAME>`-shaped token inside a code span is
+    *documentation about* the marker syntax (e.g. the `adapt-to-project`
+    SKILL.md says "for each `<adapt:name>` marker …"), not a live
+    substitution marker. Stripping code before the marker scan keeps such
+    examples from leaking into the install-marker's `unresolved-markers`.
+    Heuristic, not a full CommonMark parser — fences first, then inline spans.
+    """
+    import re
+
+    # Fenced blocks: a line opening with 3+ backticks/tildes to the matching
+    # close fence (or end-of-text for an unclosed fence).
+    no_fences = re.sub(
+        r"(?ms)^[ \t]*(`{3,}|~{3,}).*?(?:^[ \t]*\1[ \t]*$|\Z)", "", text
+    )
+    # Inline code: a run of N backticks to the next run of exactly N backticks.
+    no_inline = re.sub(r"(`+)(?:.|\n)*?\1", "", no_fences)
+    return no_inline
+
+
 def _collect_unresolved_markers(projection: dict) -> list[str]:
     """Return sorted, deduplicated list of `<adapt:NAME>` markers found
     in the projection's byte content. The skill resolves these later;
-    the install marker just enumerates them for the nudge surface."""
+    the install marker just enumerates them for the nudge surface.
+
+    Markers inside Markdown code spans/blocks are ignored — those are
+    documentation examples, not live substitution points (issue #190)."""
     import re
 
     marker_re = re.compile(r"<adapt:([a-z][a-z0-9-]*)>")
@@ -1600,7 +1714,7 @@ def _collect_unresolved_markers(projection: dict) -> list[str]:
                 continue
         else:
             text = str(content)
-        for name in marker_re.findall(text):
+        for name in marker_re.findall(_strip_markdown_code(text)):
             seen.add(name)
     return sorted(seen)
 
