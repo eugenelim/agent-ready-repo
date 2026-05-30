@@ -72,10 +72,12 @@ pre-pr:
 build-check: lint-packs build
 	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
 	$(PYTHON) tools/hooks/pre-pr.py
-	# Catalogue-governance doc-drift gate (RFC-0016 Tier 1). Catalogue-only:
-	# NOT wired into tools/hooks/pre-pr.py, which projects to adopter trees.
-	$(PYTHON) tools/test-lint-spec-status.py
-	$(PYTHON) tools/lint-spec-status.py
+	# Doc-drift spec-metadata gate (RFC-0016 § Errata / ADR-0007). The lint is a
+	# work-loop skill script that ships to adopters; the catalogue runs the
+	# PROJECTED copy as its fail-closed CI gate (mirrors how pre-pr.py invokes
+	# the projected loop-cohort.py). NOT wired into the projected pre-pr.py hook.
+	$(PYTHON) .claude/skills/work-loop/scripts/test-lint-spec-status.py
+	$(PYTHON) .claude/skills/work-loop/scripts/lint-spec-status.py
 
 build-scaffold:
 	@test -n "$(OUTPUT)" || (echo "make build-scaffold OUTPUT=<dir> required" >&2; exit 1)
