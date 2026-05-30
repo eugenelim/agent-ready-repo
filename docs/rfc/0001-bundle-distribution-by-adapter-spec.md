@@ -1464,3 +1464,40 @@ absorbed into the build pipeline.
   change, bodies cannot" frozen-doc rule) since paths are convention,
   not load-bearing decisions. This footnote records the deliberate
   deviation so a future reader can audit the exception.
+
+## Errata
+
+- **2026-05-30 — seed delivery is automatic on the CLI route only (issue #190).**
+  Short version: **the seeds now ship inside every artifact, but only the CLI
+  route drops them into your repo for you.** Two clauses of this RFC needed
+  correcting once the plugin/APM mechanics (RFC-0008, RFC-0010) landed:
+
+  1. **§595 is now implemented.** The `per-pack-apm-package` recipe's
+     `seeds/ → seeds/` copy — and the equivalent for the Claude-plugin
+     artifact (§281-284) — was specified here but never built. It is now built:
+     `agentbundle build` copies each pack's `seeds/` into both
+     `dist/apm/<pack>/seeds/` and `dist/claude-plugins/<pack>/seeds/`.
+
+  2. **§281-284's "regardless of install route" is narrowed.** The body says
+     seeds ship in both artifacts "so that — regardless of install route — the
+     adopter ends up with the expected directory layout and README seeds in
+     their repo." That auto-placement holds **only for the CLI route**:
+     `agentbundle install` writes the seeds into the repo (at the repo root and
+     `docs/`) with Tier-1/2/3 safety and records them in
+     `.agentbundle-state.toml`. On the **plugin** route files land in a
+     Claude-managed cache, and on the **APM** route the HookIntegrator projects
+     primitives to tool directories — neither places repo-root governance docs,
+     and the install-marker `SessionStart` hook is contractually forbidden from
+     writing anything but the marker (`apm-install-route-parity`). On those two
+     routes the seeds travel *inside* the artifact and are landed in the working
+     tree by a CLI verb (`agentbundle install`/`scaffold`/`adapt`) — which
+     plugin/APM adopters already need on PATH for credentialed skills and
+     upgrade-safety. A session-time auto-copy from the cache would be its own
+     RFC (it crosses the file-safety contract's "the catalogue cannot intercept
+     plugin/APM" line); it is explicitly out of scope here.
+
+  Approver-signed (@eugenelim, 2026-05-30) as an erratum rather than a
+  superseding RFC: it implements one unbuilt mapping and narrows one clause's
+  disposition, not the architecture. The frozen body above is unchanged; this
+  annotation is the correction of record. See
+  `docs/specs/core-install-seed-delivery/` for the implementing spec.

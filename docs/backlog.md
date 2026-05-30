@@ -204,3 +204,12 @@ of their own yet.
   Docker, corporate fleet). Three integration paths on the table
   (`secret-tool` CLI, `gi.repository.Secret`, `ctypes` direct). Until then
   Linux lands on Tier 3 (dotfile).
+
+- **`core-install-seed-delivery` reviewer nits (deferred, non-blocking).** Two
+  cosmetic items from the issue #190 review, deferred as out of the change's
+  scope: (a) `deliver_seeds`' `PathJailError` raise-path is exercised via
+  `scaffold`'s monkeypatch test but `install`'s identical catch arm has no
+  dedicated test — add one if the catch arms are ever touched; (b)
+  `_strip_markdown_code` and `_collect_unresolved_markers` each carry a local
+  `import re` (matches install.py's local-import idiom; hoist if the module is
+  ever refactored to module-level imports). Neither affects behaviour.
