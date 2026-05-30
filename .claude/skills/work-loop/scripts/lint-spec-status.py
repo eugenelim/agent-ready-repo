@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
-"""Catalogue-governance lint for spec *metadata* drift (RFC-0016, Tier 1).
+"""Spec *metadata* drift lint (RFC-0016; § Errata + ADR-0007).
 
-This linter is **catalogue-internal**. It has no `packs/` source and does
-not project to adopters — adopters get the same invariants through
-construction (the new-spec template) and judgment (the `adversarial-reviewer`
-"Spec drift" check + the work-loop finish-time checklist). It runs only from
-the Makefile `build-check` target, where Python + CI are both present. Do NOT
-wire it into `tools/hooks/pre-pr.py`; that hook projects to adopter trees and
-would then call a script they don't have.
+This is a `work-loop` **skill script**: it lives at
+`packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` and projects to
+every adapter's `.../skills/work-loop/scripts/`, the same way `loop-cohort.py`
+does. The agent runs it at the work-loop's finish-time checklist — *available
+and agent-invoked, not fail-closed* (there is no PR-open hook event in an
+adopter repo). It no-ops gracefully where Python is absent.
+
+The catalogue additionally runs it as a **fail-closed CI gate** via
+`make build-check` (where a PR event and Python both exist). Do NOT wire it into
+`tools/hooks/pre-pr.py`: that hook is a *body* that projects to adopter trees
+and would mis-fire — the finish-time skill checklist and the Makefile gate are
+the two invocation surfaces. (RFC-0016 originally shipped this as a
+catalogue-only `tools/` linter on the false premise that "linters don't
+project"; corrected in RFC-0016 § Errata and ADR-0007.)
 
 It checks four invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in `CONVENTIONS.md` § 4 (Spec metadata contract). Only the
@@ -23,9 +30,13 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         have every Acceptance Criterion `[x]` or carrying `(deferred: <anchor>)`.
         Specs already `Shipped` on the base are grandfathered. If no base ref
         resolves, the invariant is skipped with a warning. HARD when it runs.
-  (iii) dangling intra-repo doc references — markdown links to local `.md`
-        paths that don't exist. WARN-ONLY (doc-refs only in v1; code paths
-        deferred to v1.1 per RFC-0016).
+  (iii) dangling intra-repo references — both **doc** references (markdown
+        links to local `.md` paths) and, since v1.1, repo-relative **code**
+        references (full paths rooted at a known top-level dir or an explicit
+        relative link, ending in `.py`/`.toml`/`.sh`/`.json`, locator suffix
+        stripped) that don't resolve to a file. WARN-ONLY (never changes the
+        exit code); promoting it to a hard invariant stays deferred per
+        RFC-0016 pending the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
         resolves to a heading anchor in `docs/backlog.md`. HARD (exit non-zero).
 
@@ -53,6 +64,14 @@ _STATUS_RE = re.compile(r"\*\*Status:\*\*\s*(.+?)\s*$")
 _DEFERRED_RE = re.compile(r"\(deferred:\s*([A-Za-z0-9][A-Za-z0-9._\-]*)\s*\)")
 # Markdown inline link target: [text](target)
 _LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+# Backticked span: `…` — the dominant carrier of code references in specs.
+_BACKTICK_RE = re.compile(r"`([^`]+)`")
+# Invariant (iii) v1.1: repo-relative *code* references. A reference is only
+# resolvable if it's a full repo-relative path — rooted at a known top-level
+# directory (or an explicit ../ / ./ relative link target) and ending in a
+# recognised code extension. Bare basenames, placeholders, and globs are out.
+_CODE_ROOTS = ("packages/", "tools/", "packs/", "apps/", "docs/", ".github/")
+_CODE_EXTS = (".py", ".toml", ".sh", ".json")
 # Markdown heading line.
 _HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$")
 # AC checklist items.
@@ -111,6 +130,55 @@ def deferred_anchors(spec_text: str) -> list[tuple[int, str]]:
     for lineno, line in enumerate(spec_text.splitlines(), start=1):
         for m in _DEFERRED_RE.finditer(line):
             out.append((lineno, m.group(1)))
+    return out
+
+
+def _candidate_code_path(token: str) -> str | None:
+    """Return the repo-relative code path from a raw reference token, or None
+    if the token is not a full repo-relative code reference (invariant iii v1.1).
+
+    Accepts: contains `/`, ends in a recognised code extension (after stripping
+    a trailing `:<line>` / `:<range>` / `#<anchor>` locator), and is either
+    rooted at a known top-level directory or an explicit `../` / `./` relative
+    link target. Rejects bare basenames, placeholders (`<>`), and globs (`*`).
+    """
+    # Reject placeholders (`<>`), globs (`*`), and brace-expansion shorthand
+    # (`{a,b}.py`) — none denote a single literal path.
+    if any(c in token for c in "<>*{}") or "://" in token or "/" not in token:
+        return None
+    path: str | None = None
+    for ext in _CODE_EXTS:
+        idx = token.find(ext)
+        if idx == -1:
+            continue
+        end = idx + len(ext)
+        rest = token[end:]
+        # The extension must terminate the path or be followed only by a
+        # locator (`:` line/range or `#` anchor) — so `.python` won't match `.py`.
+        if rest == "" or rest[0] in ":#":
+            path = token[:end]
+            break
+    if path is None:
+        return None
+    if not (path.startswith(_CODE_ROOTS) or path.startswith(("../", "./"))):
+        return None
+    return path
+
+
+def code_references(text: str) -> list[tuple[int, str]]:
+    """Yield (lineno, repo-relative path) for full repo-relative code
+    references in backticked spans or markdown links. De-duplicated per path
+    so a file referenced many times warns once."""
+    out: list[tuple[int, str]] = []
+    seen: set[str] = set()
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        tokens = [m.group(1) for m in _BACKTICK_RE.finditer(line)]
+        tokens += [m.group(1) for m in _LINK_RE.finditer(line)]
+        for tok in tokens:
+            path = _candidate_code_path(tok.strip())
+            if path is not None and path not in seen:
+                seen.add(path)
+                out.append((lineno, path))
     return out
 
 
@@ -227,7 +295,8 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                             f"Shipped but AC is unchecked and not deferred"
                         )
 
-        # (iii) dangling intra-repo doc references (warn-only)
+        # (iii) dangling intra-repo references (warn-only) — doc links (.md)
+        # and, since v1.1, repo-relative code references.
         for lineno, line in enumerate(text.splitlines(), start=1):
             for m in _LINK_RE.finditer(line):
                 target = m.group(1).split("#", 1)[0].strip()
@@ -241,6 +310,13 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                         f"{rel}:{lineno}: invariant (iii) — doc link '{target}' "
                         f"does not resolve (warn-only)"
                     )
+        for lineno, path in code_references(text):
+            candidates = [spec_path.parent / path, root / path]
+            if not any(c.is_file() for c in candidates):
+                warn.append(
+                    f"{rel}:{lineno}: invariant (iii) — code reference '{path}' "
+                    f"does not resolve (warn-only)"
+                )
 
     return hard, warn
 
