@@ -194,11 +194,14 @@ of their own yet.
   `distribution-adapters`) — needs its own spec. The other four doc-drift
   mechanisms (template, work-loop, CONVENTIONS, backlog seed) already reach
   copilot via skill/seed surfaces.
-- **Tier-1 lint invariant (iii) → code-path references (RFC-0016 open question 3,
-  v1.1).** `tools/lint-spec-status.py` invariant (iii) checks dangling *doc*
-  references only, warn-only. RFC-0016 defers extending it to code paths (and
-  deciding whether to promote it to a hard invariant) until the warn-only rate
-  is observed across a few `build-check` runs.
+- **Tier-1 lint invariant (iii) — promote to hard? (RFC-0016 open question 3).**
+  Code-path references **shipped** in the `spec-code-ref-lint` spec (warn-only):
+  `work-loop`'s `scripts/lint-spec-status.py` invariant (iii) now flags dangling repo-relative
+  doc *and* code references. **Residual:** promoting (iii) from warn-only to a
+  hard (exit-non-zero) invariant stays deferred — the measured baseline is ~16
+  dangling code references in the corpus, almost all on Frozen specs whose
+  bodies cannot be edited, so a hard gate would need that backlog cleaned first.
+  Revisit once the warn rate is driven down (or a cleanup pass lands).
 - **v2 RFC: Linux `libsecret` tier (RFC-0006).** Defers the Linux keyring
   tier to a v2 RFC alongside an adopter-profile audit (headless/SSH, WSL2,
   Docker, corporate fleet). Three integration paths on the table
