@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Self-test for tools/lint-spec-status.py (RFC-0016 Tier-1 lint).
+"""Self-test for the sibling lint-spec-status.py (RFC-0016 Tier-1 lint).
 
 Builds fixture spec trees in a tempdir and runs the linter as a
-subprocess against the documented `python tools/lint-spec-status.py
+subprocess against the documented `python <skill>/scripts/lint-spec-status.py
 --root <dir>` invocation — the same shape `make build-check` uses.
 Exercises each of the four invariants red-and-green, including the
 lenient leading-token parse, the diff-triggered ship transition (with
@@ -17,8 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-LINTER = REPO_ROOT / "tools" / "lint-spec-status.py"
+LINTER = Path(__file__).resolve().parent / "lint-spec-status.py"
 
 _AC_HEADER = "## Acceptance Criteria\n\n"
 
@@ -233,6 +232,90 @@ def case_invariant_iii_warn_only() -> None:
         expect("invariant (iii)" in err, f"expected invariant (iii) warning: {err}")
 
 
+def write_spec_body(root: Path, name: str, body: str) -> None:
+    """Write a Draft spec whose body (between Status and the AC section)
+    is `body` — used to exercise invariant (iii) code references."""
+    p = root / "docs" / "specs" / name / "spec.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        f"# Spec: {name}\n\n- **Status:** Draft\n\n{body}\n\n{_AC_HEADER}- [ ] AC1\n",
+        encoding="utf-8",
+    )
+
+
+def touch(root: Path, rel: str) -> None:
+    p = root / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("x\n", encoding="utf-8")
+
+
+def case_iii_code_ref_resolves_and_missing() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        touch(root, "tools/real.py")
+        write_spec_body(root, "coderef",
+                        "Touches `tools/real.py` and `tools/missing.py`.")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"code-ref check must be warn-only (exit 0), got {rc}")
+        expect("tools/missing.py" in err, f"missing code ref should warn: {err}")
+        expect("tools/real.py" not in err, f"resolving code ref must not warn: {err}")
+
+
+def case_iii_code_ref_exclusions_with_controls() -> None:
+    # Each excluded shape is paired with a shape-matched full-path control that
+    # IS flagged — so a no-op extractor (matching nothing) fails this case.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        write_spec_body(
+            root, "excl",
+            "Bare `install.py`; placeholder `packages/<pkg>/x.py`; glob "
+            "`tools/lint-*.py`. Controls: `tools/install.py`, "
+            "`packages/real/x.py`, `tools/lint-missing.py`.",
+        )
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"exit 0 expected, got {rc}: {err}")
+        # excluded shapes never warn
+        for excluded in ("`install.py`", "packages/<pkg>", "lint-*.py"):
+            expect(excluded not in err, f"excluded shape leaked into warnings: {excluded}")
+        # brace-expansion shorthand is excluded even when rooted (so the brace
+        # rule, not the root check, is what's under test).
+        write_spec_body(root, "braces", "See `packages/adapters/{a,b}.py`.")
+        rc2, _, err2 = run_lint(root)
+        expect("{a,b}" not in err2 and rc2 == 0,
+               f"brace-expansion shorthand must not warn: {err2}")
+        # shape-matched full-path controls DO warn
+        for control in ("tools/install.py", "packages/real/x.py", "tools/lint-missing.py"):
+            expect(control in err, f"control should warn but didn't: {control}: {err}")
+
+
+def case_iii_code_ref_suffix_strip() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        touch(root, "tools/y.py")
+        write_spec_body(
+            root, "suffix",
+            "See `tools/y.py:42`, `tools/y.py:42:10`, `tools/y.py#L42`; "
+            "but `tools/gone.py:7` is stale.",
+        )
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"exit 0 expected, got {rc}")
+        expect("tools/y.py" not in err, f"located path (with locator) must not warn: {err}")
+        expect("tools/gone.py" in err, f"missing path with locator should warn: {err}")
+
+
+def case_iii_code_ref_markdown_link() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        write_spec_body(root, "linkref", "See [the helper](../../tools/nope.py).")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"exit 0 expected, got {rc}")
+        expect("nope.py" in err, f"dangling markdown code link should warn: {err}")
+
+
 def main() -> int:
     for case in (
         case_clean,
@@ -249,6 +332,10 @@ def main() -> int:
         case_invariant_iv_missing_anchor,
         case_invariant_iv_placeholder_ignored,
         case_invariant_iii_warn_only,
+        case_iii_code_ref_resolves_and_missing,
+        case_iii_code_ref_exclusions_with_controls,
+        case_iii_code_ref_suffix_strip,
+        case_iii_code_ref_markdown_link,
     ):
         case()
     if FAILURES:

@@ -326,16 +326,22 @@ Run, in order, and only proceed if each passes:
 These are the project's **objective** completion criteria. If a gate fails,
 go to FIX. Don't move past a failing gate by editing the gate.
 
-> **Catalogue governance (this bundle's own repo only).** This catalogue adds a
-> mechanical doc-drift gate, `tools/lint-spec-status.py`, run from the Makefile
-> `build-check` target in CI. It checks spec *metadata* invariants (status
-> vocabulary, ACs checked-or-deferred at the ship transition, deferral anchors
-> resolve in `docs/backlog.md`) against the contract pinned in `CONVENTIONS.md`
-> § 4. It is **catalogue-internal** — there is no such file in an adopter's tree
-> (linters don't project, and no polyglot runtime is assumed), so adopters get
-> the same invariants through construction (the spec template) and judgment (the
-> `adversarial-reviewer` "Spec drift" check and the finish-time checklist below),
-> not this script.
+> **Mechanical doc-drift check — `scripts/lint-spec-status.py`.** This skill
+> ships a stdlib Python lint at `scripts/lint-spec-status.py` (sibling to
+> `loop-cohort.py`) that checks spec *metadata* invariants against the contract
+> pinned in `CONVENTIONS.md` § 4: (i) status vocabulary, (ii) ACs
+> checked-or-deferred at the ship transition, (iii) dangling doc/code references
+> (warn-only), (iv) deferral anchors resolve in `docs/backlog.md`. Where you have
+> Python, **run it at the finish-time checklist** (DECIDE, below) —
+> `python <skill>/scripts/lint-spec-status.py` — as the mechanical companion to
+> the four drift invariants the `adversarial-reviewer` checks by judgment; it
+> no-ops where Python is absent. It is *available and agent-invoked, not
+> fail-closed* (there is no PR-open hook event to bind it to). **Do not** wire it
+> into `pre-pr.py` (a projected hook body that would mis-fire). The catalogue
+> additionally runs it as a fail-closed CI gate via `make build-check`. (Why a
+> skill script and not a `tools/` linter: skill `scripts/` project to every
+> adapter — RFC-0016 § Errata / ADR-0007 corrected the original "linters don't
+> project" premise.)
 
 ### 4. REVIEW — adversarial self-review
 
@@ -456,7 +462,10 @@ mode below, then evaluate the terminal-state bullet last.
     "Spec drift" check names, against `CONVENTIONS.md` § 4): the touched spec's
     status reflects the change; every Acceptance Criterion is `[x]` or carries
     `(deferred: <anchor>)`; each deferral resolves to a `docs/backlog.md`
-    heading; intra-repo references the change touches resolve.
+    heading; intra-repo references the change touches resolve. Where you have
+    Python, run `scripts/lint-spec-status.py` (this skill's sibling to
+    `loop-cohort.py`) to check these mechanically — it's the agent-invoked
+    companion to the judgment check; no-ops without Python.
   - Conventional commit format used; no force-push to shared branches.
   - Learnings captured per the next section (AGENTS.md, skill, or doc).
   - PR opened — or merged directly, if that's your workflow — with the
