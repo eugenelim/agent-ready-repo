@@ -389,18 +389,30 @@ def test_reinstall_same_pack_repo_scope_refused(tmp_path, adapter):
 
 
 @pytest.mark.parametrize("adapter", _SHIPPED_ADAPTERS)
-def test_orphan_recovery_refusal_when_state_lost(tmp_path, adapter):
-    """S4: install core, delete state.toml, install core again →
-    orphan-recovery trigger (c) fires with the ``--force`` recovery
-    hint at every shipped adapter.
+def test_lost_state_reinstall_over_projection_files_is_clean(tmp_path, adapter):
+    """Issue #190: install core, delete state.toml, reinstall core → a CLEAN
+    reinstall, NOT an orphan refusal, at every shipped adapter.
 
-    Works even at copilot — core ships ``tools/hooks/pre-pr.py`` and
-    ``tools/hooks/session-start.py``, both of which fall under copilot's
-    ``allowed-prefixes.repo = [".github/instructions/", "tools/hooks/"]``,
-    and the scanner matches by stem against ``pre-pr`` / ``session-start``
-    in core's primitive_names set. So the refusal cites the hook files
-    at copilot (not the ``.github/instructions/*.instructions.md``
-    files, which the stem rule doesn't catch — see module docstring).
+    The on-disk files are all in the current projection (byte-identical to what
+    the first install wrote), so they are companion-protected / Tier-1, never
+    misclassified as interrupted-install orphans. This pins spec
+    `core-install-seed-delivery` AC4 across adapters.
+
+    The orphan-recovery feature still fires for *genuine* non-projection crumbs
+    — see `test_install_orphan_reshape.py` (install-level) and
+    `test_copilot_orphan_scan_finds_hooks_but_not_instructions` (scanner-level).
+    Before issue #190 this scenario refused with a "prior install interrupted"
+    message and `--force` would `unlink()` the adopter's files; that hostile
+    behaviour is exactly what the fix removes.
+
+    **Also pins the early-render ↔ Step-7 key-match invariant across adapters.**
+    The orphan filter compares on-disk files against a projection relpath set
+    rendered at Step-3c, which must stay byte-identical to the Step-7 render the
+    first install wrote. If the two `_render_for_repo_scope` call sites ever
+    desync (e.g. one gains a `state_adapter`/`--adapter` argument the other
+    lacks), the relpaths stop matching and this lost-state reinstall would
+    wrongly refuse as an orphan — failing here at the affected adapter. Do not
+    delete this as "redundant" with the single-adapter orphan-reshape tests.
     """
     adopter = tmp_path / "adopter"
     adopter.mkdir()
@@ -421,28 +433,15 @@ def test_orphan_recovery_refusal_when_state_lost(tmp_path, adapter):
     _install_mod._clear_inband_detection_seen()
 
     rc2, _, err2 = _install_pack_at_adapter("core", adopter, adapter)
-    assert rc2 != 0
-    assert "orphan projection files for pack core" in err2, (
-        f"orphan refusal didn't fire at {adapter}; stderr: {err2!r}"
+    assert rc2 == 0, (
+        f"lost-state reinstall over byte-identical projection files must be a "
+        f"clean reinstall at {adapter}, not a refusal; stderr: {err2!r}"
     )
-    assert "--force" in err2
-
-    # Pin the path-citation shape at copilot: the refusal must cite
-    # hook files (which the scanner DOES match) and must NOT cite
-    # ``.github/instructions/`` files (which the stem rule misses).
-    # If a future scanner fix closes the instructions/ gap, this
-    # assertion fails so the parametrization can be widened in lockstep.
-    if adapter == "copilot":
-        assert "tools/hooks/" in err2, (
-            "S4 at copilot should cite tools/hooks/* (the surface "
-            f"the scanner DOES match); stderr: {err2!r}"
-        )
-        assert ".github/instructions/" not in err2, (
-            "S4 at copilot is now citing .github/instructions/ — the "
-            "scanner stem-equality gap appears to have been closed. "
-            "Widen `_ADAPTERS_WHERE_GOV_ORPHAN_SCAN_FIRES` and update "
-            "test_copilot_orphan_scan_finds_hooks_but_not_instructions."
-        )
+    assert "orphan" not in err2.lower(), (
+        f"reinstall over current-projection files must not be flagged as an "
+        f"orphan at {adapter}; stderr: {err2!r}"
+    )
+    assert state_path.exists(), "the clean reinstall must rewrite state.toml"
 
 
 def test_copilot_orphan_scan_finds_hooks_but_not_instructions(tmp_path):
