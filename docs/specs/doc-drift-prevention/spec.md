@@ -216,3 +216,21 @@ Tier-1 lint and the backlog-preserve behavior carrying real **TDD** invariants.
   `credential-broker-contract` (AC42) specs after the `ROADMAP.md`→`backlog.md`
   rename — **stays deferred**; fixing it would edit Frozen spec bodies, which the
   `Never do` Boundary forbids (source: `docs/backlog.md` § Cross-spec).
+
+## Changelog
+
+- **2026-05-29 erratum (lint-work-loop-delivery / RFC-0016 erratum, Approver:
+  eugenelim):** two `Never do` Boundaries here — "Add a pack `packs/` source for
+  `tools/lint-spec-status.py` … No `seeds/` entry, no `.apm/` entry" and the
+  framing that the lint is catalogue-only — are **superseded**. RFC-0016's
+  erratum corrected its "linters don't project" premise: the lint now ships to
+  adopters as a `work-loop` skill script at
+  `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` (agent-invoked,
+  not fail-closed), while the catalogue still runs it as a fail-closed CI gate
+  via `make build-check`. The other `Never do` Boundary — never wire the lint
+  into the *projected* `pre-pr.py` — **still holds** (pre-pr is a hook body that
+  would mis-fire; the lint is invoked from the work-loop skill's finish-time
+  checklist instead). AC9/AC10/AC11 bodies are unchanged (this spec is Frozen);
+  the lint's new home and the code-reference invariant (iii) extension are
+  specified in `docs/specs/spec-code-ref-lint/` and
+  `docs/specs/lint-work-loop-delivery/`.
