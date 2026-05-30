@@ -106,8 +106,13 @@ class OrphanRefusalTests(unittest.TestCase):
 
             adopter = tmp / "adopter"
             adopter.mkdir()
-            # Plant an orphan projection file for the pack.
-            orphan = adopter / ".claude" / "skills" / "demo-skill" / "SKILL.md"
+            # Plant a GENUINE orphan: a file under the skill's directory that
+            # the current projection does NOT ship. Issue #190 — a file that
+            # *is* a projection path (e.g. SKILL.md itself) is now companion-
+            # protected, not refused. `STALE.md` matches the `demo-skill`
+            # primitive-name segment so the scanner flags it, but it is not a
+            # projected relpath, so the issue-#190 filter keeps it an orphan.
+            orphan = adopter / ".claude" / "skills" / "demo-skill" / "STALE.md"
             orphan.parent.mkdir(parents=True)
             orphan.write_text("stale", encoding="utf-8")
             # No state row recorded.
@@ -130,7 +135,11 @@ class OrphanRefusalTests(unittest.TestCase):
                 rc = install.run(args)
             stderr = buf.getvalue()
             self.assertNotEqual(rc, 0)
-            self.assertIn("orphan projection files for pack demo", stderr)
+            self.assertIn(
+                "unrecognized files at projection paths not shipped by pack demo",
+                stderr,
+            )
+            self.assertNotIn("prior install interrupted", stderr)
             self.assertIn("rerun with --force", stderr)
 
     def test_orphan_files_cleared_by_force(self) -> None:
@@ -145,7 +154,8 @@ class OrphanRefusalTests(unittest.TestCase):
 
             adopter = tmp / "adopter"
             adopter.mkdir()
-            orphan = adopter / ".claude" / "skills" / "demo-skill" / "SKILL.md"
+            # Genuine non-projection orphan (see the without-force test).
+            orphan = adopter / ".claude" / "skills" / "demo-skill" / "STALE.md"
             orphan.parent.mkdir(parents=True)
             orphan.write_text("stale", encoding="utf-8")
 
@@ -165,11 +175,14 @@ class OrphanRefusalTests(unittest.TestCase):
             )
             rc = install.run(args)
             self.assertEqual(rc, 0)
-            # The fresh install replaced the orphan with the pack's
-            # actual projection — the file exists but the content
-            # differs from `stale`.
-            self.assertTrue(orphan.exists())
-            self.assertNotEqual(orphan.read_text(encoding="utf-8"), "stale")
+            # `--force` removed the genuine non-projection orphan and reinstalled.
+            # The crumb is gone (it is not a projected relpath, so nothing
+            # re-creates it), while the pack's real projection landed.
+            self.assertFalse(orphan.exists(), "--force must remove the orphan crumb")
+            self.assertTrue(
+                (adopter / ".claude" / "skills" / "demo-skill" / "SKILL.md").exists(),
+                "the pack's real projection must land after --force reinstall",
+            )
 
 
 if __name__ == "__main__":
