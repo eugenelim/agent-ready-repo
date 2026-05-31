@@ -1,6 +1,6 @@
 [pack]
 name = "contracts"
-version = "0.1.0"
+version = "0.2.0"
 description = "Contract-authoring skills: OpenAPI 3.1 (api-contract) and more to come. User-scope default — contract style is portable across projects."
 
 [pack.adapter-contract]
