@@ -46,10 +46,11 @@ components:
   problem: references/problem-1.0.1.yaml
 
 # Applied rules cited by the method that live in no phase rule file, enumerated
-# here so the standard's applied-rule set is complete and authoritative. (In a
-# delta, the same `rules:` map disables an inherited rule with `<id>: false`.)
+# here so the standard's applied-rule set is complete and authoritative. Keys
+# are the canonical rule tokens. (In a delta, the same `rules:` map disables an
+# inherited rule with `"#<id>": false`.)
 rules:
-  "100": "API-first principle — design and review the contract before implementation."
-  "102": "Plan an API user manual for complex APIs."
-  "139": "Model complete business processes, not just isolated resources."
-  "140": "Define useful resources with clear identity and lifecycle."
+  "#100": "API-first principle — design and review the contract before implementation."
+  "#102": "Plan an API user manual for complex APIs."
+  "#139": "Model complete business processes, not just isolated resources."
+  "#140": "Define useful resources with clear identity and lifecycle."
