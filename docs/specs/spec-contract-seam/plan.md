@@ -1,7 +1,7 @@
 # Plan: spec-contract-seam
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -67,8 +67,9 @@ verified byte-identical to the projected top-level `docs/CONVENTIONS.md`),
 - The CONVENTIONS **seed** has a section documenting the repo-level
   `contracts/<type>/` tree, the per-domain kebab-case naming + versioning
   (`info.version` + parallel-file for a breaking major), and bidirectional
-  spec↔contract traceability, **citing RFC-0017** as the gate. Verifies the
-  CONVENTIONS AC.
+  spec↔contract traceability — in **adopter-generic placeholder shape** (no
+  catalogue RFC number, so `lint-seeds` passes). The RFC-0017 gate is recorded in
+  ADR-0008 + the spec, not the seed. Verifies the CONVENTIONS AC.
 - `docs/adr/0008-*.md` exists (0007 is the current max), Status Accepted,
   recording: separate pack + agnostic convention-first seam (not a merge),
   repo-level contract tree, capability-name convention; **and its row is present
@@ -78,7 +79,9 @@ verified byte-identical to the projected top-level `docs/CONVENTIONS.md`),
 
 **Approach:**
 - Edit the **seed** `packs/core/seeds/docs/CONVENTIONS.md` (NOT the top-level —
-  it is the projection); the top-level refreshes via `build-self` in T5.
+  it is the projection); the top-level refreshes via `build-self` in T5. Keep the
+  seed **placeholder-shaped** — no catalogue RFC number (the `lint-seeds` gate in
+  `pre-pr` forbids `RFC-NNNN` in seeds); put the RFC-0017 gate in ADR-0008/spec.
 - Write `docs/adr/0008-…md` (cite RFC-0017; cross-link `pluggable-api-standards`
   + this spec). ADRs are not seed-projected — top-level `docs/adr/` is source.
 - Do **not** create `contracts/`.
@@ -233,6 +236,11 @@ inert in this repo (no contracts authored here).
 
 ## Changelog
 
+- 2026-05-31: mid-EXECUTE correction (T1). The `lint-seeds` gate forbids
+  catalogue RFC numbers (`RFC-NNNN`) in pack seeds (adopter-facing placeholder
+  shape). Reworded the CONVENTIONS seed to drop the two `RFC-0017` citations; the
+  RFC-0017 gate now lives in ADR-0008 + the spec (catalogue governance). Spec AC,
+  Always-do, and T1 updated accordingly.
 - 2026-05-31: initial plan. Governance-first 5-task breakdown. Decisions per
   RFC-0017 + author confirmation 2026-05-31: no empty `contracts/` tree in this
   repo; traceability lint extends `lint-spec-status.py` (no new script); one spec

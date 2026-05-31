@@ -304,8 +304,7 @@ tests, 15% integration, 5% end-to-end — a target shape, not a quota.
 ### Contracts — `contracts/<type>/`
 
 API contracts are **long-lived, repo-level, single-source-of-truth** artifacts —
-not per-feature files. They live at the repo root, grouped by contract type
-(authorized by RFC-0017):
+not per-feature files. They live at the repo root, grouped by contract type:
 
 ```
 contracts/
@@ -349,8 +348,9 @@ is drift. A contract is authored through its type's skill when one is installed
 (so the active API standard's compatibility rules catch breaking changes);
 absent a skill, it is hand-authored into the same conventional location.
 
-> **Authorized by RFC-0017**, which also gates this section (a substantive
-> CONVENTIONS change routes through an RFC).
+> The repo-root `contracts/` directory is a new top-level directory; proposing
+> it, and any substantive change to this convention, routes through your RFC
+> process (see § 3).
 
 ---
 
