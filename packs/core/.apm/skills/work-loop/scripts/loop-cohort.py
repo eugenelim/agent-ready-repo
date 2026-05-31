@@ -51,17 +51,40 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
+
+
+def _template_max_iterations(_fallback: int = 5) -> int:
+    """The iteration cap's single source of truth is the bundled `state.json`
+    template (the adopter-visible per-spec knob); ``DEFAULTS`` derives from it so
+    the value lives in exactly one place. ``_fallback`` is a last resort only for
+    a missing/broken template (a broken install) — not an adopter-facing knob."""
+    try:
+        val = json.loads(TEMPLATE_PATH.read_text()).get("max_iterations")
+    except (OSError, json.JSONDecodeError):
+        val = None
+    if isinstance(val, int) and val > 0:
+        return val
+    # Broken/missing template (a broken install) — fall back, but say so, so the
+    # cap silently reverting isn't a 3am mystery. `_fallback` must be hand-synced
+    # with the template's shipped value (a drift test pins this).
+    print(
+        f"loop-cohort: warning — could not read max_iterations from {TEMPLATE_PATH}; "
+        f"defaulting to {_fallback}",
+        file=sys.stderr,
+    )
+    return _fallback
+
+
 DEFAULTS = {
-    "max_iterations": 5,
+    "max_iterations": _template_max_iterations(),
     "token_budget_cap_pct": 0.85,
     "consecutive_same_error_threshold": 3,
 }
 
 PHASES = ("plan", "implement", "review")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 
 
 def stop(reason: str, code: int = 1) -> int:

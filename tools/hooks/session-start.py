@@ -126,8 +126,9 @@ def _emit_knowledge(path: Path, scope_filter: str) -> None:
 
     if malformed:
         print(
-            f"session-start: skipped {malformed} malformed line(s) — "
-            f"run tools/lint-knowledge.py",
+            f"session-start: skipped {malformed} malformed line(s) in "
+            f"docs/knowledge/patterns.jsonl — each line must be a JSON object "
+            f"(see docs/knowledge/README.md)",
             file=sys.stderr,
         )
 

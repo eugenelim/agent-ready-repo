@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Self-test for tools/hooks/pre-pr.py. For each layer the aggregator
-# runs, plant a single-character corruption in a sandbox copy of the
-# repo, invoke pre-pr.py against it, and assert it fails with the
-# matching `pre-pr: ✖ <label> failed` line. Catches the regression
-# where a refactor silently drops a layer.
+# Self-test for tools/pre-pr-catalogue.py (this catalogue's full gate: the 8
+# catalogue checks + delegation to the shipped tools/hooks/pre-pr.py). For each
+# layer the aggregator runs, plant a single-character corruption in a sandbox
+# copy of the repo, invoke the catalogue hook against it, and assert it fails
+# with the matching `pre-pr: ✖ <label> failed` line. Catches the regression
+# where a refactor silently drops a layer. (Covers the 4 linters it corrupts +
+# loop-cohort; the other catalogue checks are covered by their own CI jobs.)
 
 set -uo pipefail
 
@@ -44,7 +46,7 @@ seed_sandbox
 
 # A baseline run against the clean sandbox must succeed — sanity-check.
 set +e
-out=$(cd "$SANDBOX" && python3 tools/hooks/pre-pr.py 2>&1)
+out=$(cd "$SANDBOX" && python3 tools/pre-pr-catalogue.py 2>&1)
 got=$?
 set -e
 if [[ "$got" -ne 0 ]]; then
@@ -67,7 +69,7 @@ run_corruption() {
   (cd "$SANDBOX" && eval "$corrupt")
 
   set +e
-  out=$(cd "$SANDBOX" && python3 tools/hooks/pre-pr.py 2>&1)
+  out=$(cd "$SANDBOX" && python3 tools/pre-pr-catalogue.py 2>&1)
   got=$?
   set -e
 

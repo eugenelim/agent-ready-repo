@@ -1,31 +1,28 @@
 #!/usr/bin/env python3
-"""Pre-PR hook: runs every artifact linter and the work-loop's
-mechanical termination check against any active spec state. Exits
-non-zero on the first failure so a contributor can't open a PR
-whose artifacts are inconsistent with the conventions.
+"""Pre-PR hook (adopter-facing): the work-loop's mechanical termination
+check, plus a place to wire *your* project's gate.
 
-Pure-stdlib Python port of pre-pr.sh. Native-Windows-parity companion
-of the bash version: same four linters in the same order, same
-state.json iteration shape, same `pre-pr: ✓ <label>` /
-`pre-pr: ✖ <label> failed` / `pre-pr: all checks passed` output.
+Most agent tools fire no pre-PR / pre-push event, so wire this via a Git
+``pre-push`` hook (``.git/hooks/pre-push``) or run it by hand before opening
+a PR — the same way regardless of which agent tool you use:
+
+    python tools/hooks/pre-pr.py
 
 What it runs:
-  - tools/lint-agents-md.py        — root AGENTS.md hygiene, drift-watch
-  - tools/lint-agent-artifacts.py  — skill/agent/command frontmatter
-  - tools/lint-skill-spec.py       — agentskills.io spec compliance
-  - tools/lint-knowledge.py        — docs/knowledge/patterns.jsonl
-  - tools/lint-build.py            — build-pipeline hygiene
-  - tools/lint-seeds.py            — pack seeds placeholder shape (RFC-0002)
-  - tools/lint-credentialed-skills.sh
-                                   — broker-agnostic + per-broker checks
-                                      (RFC-0013, spec credential-broker-contract)
-  - .claude/skills/work-loop/scripts/loop-cohort.py
-                                   — for each docs/specs/*/state.json,
-                                      `loop-cohort.py check <spec-dir>` in
-                                      --phase implement and --phase review
+  - ``loop-cohort.py check <spec-dir>`` for each ``docs/specs/*/state.json``,
+    in ``--phase implement`` and ``--phase review`` — the work-loop's
+    iteration/stasis caps. The script ships with the work-loop skill; this
+    hook finds it under whichever skills directory your agent tool installed
+    into (``.claude/``, ``.agents/``, ``.kiro/`` …). Skipped cleanly when
+    there are no active specs (or the work-loop isn't installed).
 
-Wiring lives in each tool's hook surface (Claude Code:
-.claude/settings.json; see tools/hooks/README.md).
+It deliberately runs **none** of this catalogue's own artifact linters —
+those enforce the catalogue's conventions on the catalogue's own tree and
+don't apply to your repo. Wire your project's lint/typecheck/test commands
+into the stub below instead (or let the ``adapt-to-project`` skill do it).
+
+This hook degrades gracefully: a missing tool is a skip with a notice, never
+a hard failure.
 """
 
 from __future__ import annotations
@@ -34,6 +31,28 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
+
+# The work-loop skill ships with `core` but lands under different roots
+# depending on which agent tool the pack was installed for — so probe the
+# known adapter skill directories rather than assuming Claude Code's `.claude/`.
+_SKILL_ROOTS = (
+    ".claude/skills",  # Claude Code
+    ".agents/skills",  # Codex
+    ".kiro/skills",    # Kiro
+    ".apm/skills",     # APM (and the pack's own source layout)
+)
+
+
+def _find_loop_cohort() -> Path | None:
+    """Locate the work-loop's ``loop-cohort.py`` under whichever adapter skill
+    root it was installed into. Returns ``None`` when the work-loop isn't
+    present (caps check is then skipped, not failed)."""
+    for root in _SKILL_ROOTS:
+        candidate = Path(root) / "work-loop" / "scripts" / "loop-cohort.py"
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _repo_root() -> Path:
@@ -50,15 +69,20 @@ def _repo_root() -> Path:
 
 
 def _run(label: str, argv: list[str]) -> None:
-    """Run *argv*; on non-zero exit, print the bash-parity failure
-    line and `sys.exit(1)`. On success, print the parity success line."""
-    result = subprocess.run(argv, capture_output=True, text=True, check=False)
+    """Run *argv*; on non-zero exit, surface the tool's output, print the
+    failure line, and ``sys.exit(1)``. On success, print the success line.
+
+    A missing executable/script is treated as a **skip** (not a failure) so a
+    fresh adopter tree that hasn't wired a given gate yet doesn't hard-crash.
+    """
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        # To stderr (not stdout) so a *wired-but-mistyped* tool is visually
+        # distinct from a passing check and doesn't scroll past as a ✓.
+        print(f"pre-pr: — {label} skipped (not found: {argv[0]})", file=sys.stderr)
+        return
     if result.returncode != 0:
-        # Surface the linter's own output before the aggregator's failure
-        # line so the contributor sees both. Bash version redirects > /dev/null
-        # so the linter output is suppressed — we keep parity on the exit/label
-        # behaviour and surface the linter output for debuggability since the
-        # bash > /dev/null silenced useful diagnostics.
         if result.stdout:
             sys.stdout.write(result.stdout)
         if result.stderr:
@@ -72,23 +96,16 @@ def main() -> int:
     repo_root = _repo_root()
     os.chdir(repo_root)
 
-    py = sys.executable  # use parent's interpreter for child linters
+    py = sys.executable  # use the parent interpreter for child scripts
 
-    _run("agents-md hygiene",   [py, "tools/lint-agents-md.py"])
-    _run("agent-artifact lint", [py, "tools/lint-agent-artifacts.py"])
-    _run("skill-spec lint",     [py, "tools/lint-skill-spec.py"])
-    _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
-    _run("build lint",          [py, "tools/lint-build.py"])
-    _run("seeds lint",          [py, "tools/lint-seeds.py"])
-    _run("credentialed-skill lint", [py, "tools/lint_credentialed_skills.py"])
-    _run("credentialed-skill lint self-test",
-         [py, "tools/test-lint-credentialed-skills.py"])
-
+    # --- Work-loop caps gate (ships with `core`) -----------------------------
+    loop_cohort = _find_loop_cohort()
     state_files = sorted(Path("docs/specs").glob("*/state.json"))
-    if not state_files:
+    if loop_cohort is None:
+        print("pre-pr: — loop-cohort.py not found — skipping work-loop caps check")
+    elif not state_files:
         print("pre-pr: (no active state.json — skipping loop-cohort check)")
     else:
-        loop_cohort = Path(".claude/skills/work-loop/scripts/loop-cohort.py")
         for state in state_files:
             spec_dir = state.parent
             for phase in ("implement", "review"):
@@ -107,6 +124,18 @@ def main() -> int:
                     )
                     sys.exit(1)
                 print(f"pre-pr: ✓ loop-cohort check {spec_dir} ({phase})")
+
+    # --- Wire your own gate here ---------------------------------------------
+    # This is your project's pre-PR gate. Add your lint / typecheck / test
+    # commands as `_run(...)` calls — they run in repo-root, fail the hook on a
+    # non-zero exit, and skip gracefully if the tool isn't present. Examples:
+    #
+    #   _run("lint", ["make", "lint"])
+    #   _run("typecheck", ["npx", "tsc", "--noEmit"])
+    #   _run("test", ["make", "test"])
+    #
+    # (The `adapt-to-project` skill can fill these in from your project's
+    # detected build/test commands.)
 
     print("pre-pr: all checks passed")
     return 0
