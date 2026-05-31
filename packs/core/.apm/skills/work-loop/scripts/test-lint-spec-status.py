@@ -318,6 +318,85 @@ def case_iii_code_ref_markdown_link() -> None:
         expect("nope.py" in err, f"dangling markdown code link should warn: {err}")
 
 
+def write_spec_with_contract(
+    root: Path, name: str, contract_value: str, status: str = "Draft"
+) -> None:
+    """Draft spec carrying a `- **Contract:**` header — exercises invariant (v)."""
+    p = root / "docs" / "specs" / name / "spec.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        f"# Spec: {name}\n\n- **Status:** {status}\n"
+        f"- **Contract:** {contract_value}\n\n{_AC_HEADER}- [ ] AC1\n",
+        encoding="utf-8",
+    )
+
+
+def write_contract(root: Path, relpath: str, content: str) -> None:
+    p = root / relpath
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content, encoding="utf-8")
+
+
+def case_v_agreement_passes() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        write_contract(root, "contracts/openapi/orders.yaml",
+                       "openapi: 3.1.0\nx-spec: [docs/specs/orders/]\n")
+        write_spec_with_contract(root, "orders", "`contracts/openapi/orders.yaml`")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"agreement should exit 0, got {rc}: {err}")
+        expect("invariant (v)" not in err, f"agreement must not warn (v): {err}")
+
+
+def case_v_forward_without_backward_warns() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        # contract exists but carries no x-spec back-ref, and no REGISTRY.md
+        write_contract(root, "contracts/openapi/orders.yaml", "openapi: 3.1.0\n")
+        write_spec_with_contract(root, "orders", "`contracts/openapi/orders.yaml`")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"missing backward ref must be warn-only (exit 0), got {rc}")
+        expect("invariant (v)" in err, f"expected invariant (v) warning: {err}")
+
+
+def case_v_no_contracts_noop() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        # template placeholder value + an explicit "none"; no contracts/ tree
+        write_spec_with_contract(
+            root, "templ", '<!-- contracts/<type>/<name> … or "none" -->')
+        write_spec_with_contract(root, "plain", "none")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"no-contracts should exit 0, got {rc}: {err}")
+        expect("invariant (v)" not in err, f"no-contracts must not warn (v): {err}")
+
+
+def case_v_extensionless_registry_and_dangling() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_backlog(root, [])
+        # extensionless format → REGISTRY.md is the backward channel
+        write_contract(root, "contracts/proto/payments/v1/payments.proto",
+                       'syntax = "proto3";\n')
+        write_contract(
+            root, "contracts/REGISTRY.md",
+            "# Registry\n\n- `contracts/proto/payments/v1/payments.proto` "
+            "→ docs/specs/payments/\n")
+        write_spec_with_contract(
+            root, "payments", "`contracts/proto/payments/v1/payments.proto`")
+        rc, _, err = run_lint(root)
+        expect(rc == 0, f"registry-backed extensionless should exit 0, got {rc}: {err}")
+        expect("invariant (v)" not in err, f"REGISTRY backref should satisfy (v): {err}")
+        # a Contract: header naming a non-existent contract warns (dangling)
+        write_spec_with_contract(root, "ghost", "`contracts/openapi/ghost.yaml`")
+        rc2, _, err2 = run_lint(root)
+        expect(rc2 == 0 and "invariant (v)" in err2 and "ghost.yaml" in err2,
+               f"dangling Contract: ref should warn (v), warn-only: {err2}")
+
+
 def main() -> int:
     for case in (
         case_clean,
@@ -338,6 +417,10 @@ def main() -> int:
         case_iii_code_ref_exclusions_with_controls,
         case_iii_code_ref_suffix_strip,
         case_iii_code_ref_markdown_link,
+        case_v_agreement_passes,
+        case_v_forward_without_backward_warns,
+        case_v_no_contracts_noop,
+        case_v_extensionless_registry_and_dangling,
     ):
         case()
     if FAILURES:

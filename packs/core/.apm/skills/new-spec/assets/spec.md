@@ -4,6 +4,7 @@
 - **Owner:** <github-handle>
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
+- **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / CONVENTIONS § 4 Contracts), or "none" for a non-API feature -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
