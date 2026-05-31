@@ -75,8 +75,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Ask first
 
-- Adding any type→skill row beyond `openapi → api-contract` (other contract
-  types are deferred — D4).
+- Wiring any type→**skill** mapping (binding an authoring skill to a type)
+  beyond `openapi → api-contract` — location-only rows for new types are fine and
+  expected; binding a non-OpenAPI authoring *skill* is gated (D4 defers it).
 - Making the traceability lint a **hard/fail-closed** gate rather than the
   warn-only shape RFC-0016's dangling-ref invariant uses.
 - Materializing an actual `contracts/` directory in this repo (default: no).
