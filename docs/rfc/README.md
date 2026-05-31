@@ -23,6 +23,7 @@
 | [0015](0015-wave-scheduled-supervisor-mode.md) | Wave-scheduled supervisor mode — topological-order default, parallel writes opt-in and gated on measured file-disjointness | Accepted | 2026-05-28 | 2026-05-29 |
 | [0016](0016-doc-drift-mechanical-gate.md) | Doc-drift prevention — construction + judgment (template / reviewer / DECIDE / CONVENTIONS / in-repo backlog), with a catalogue-governance linter | Draft | 2026-05-29 | |
 | [0017](0017-pluggable-api-contract-standards.md) | Pluggable API-contract standards (base+delta, Zalando as starter) + a contract-type-agnostic `new-spec` seam | Accepted | 2026-05-30 | 2026-05-30 |
+| [0018](0018-event-asyncapi-authoring-engine.md) | Event/AsyncAPI authoring engine for `contracts` — `event-contract` skill (AsyncAPI 3.1.0 + CloudEvents 1.0.2 envelope, Zalando event rules as starter) | Accepted | 2026-05-31 | 2026-05-31 |
 
 ## Adding a new RFC
 
