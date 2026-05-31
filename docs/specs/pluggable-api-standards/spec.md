@@ -1,6 +1,6 @@
 # Spec: pluggable-api-standards
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0017
@@ -125,14 +125,14 @@ complete and the agent applies it." The modes:
 
 ## Acceptance Criteria
 
-- [ ] `api-contract/SKILL.md` method prose cites **"the active standard"**
+- [x] `api-contract/SKILL.md` method prose cites **"the active standard"**
   generically; no literal Zalando `[#NNN]` rule references remain in the
   method or quality-gate prose (they live only in the standard bundle).
-- [ ] A bundled Zalando standard exists as a **YAML manifest** at
+- [x] A bundled Zalando standard exists as a **YAML manifest** at
   `references/standards-manifest-zalando.yaml`, declaring `name`, `version`,
   `license` (CC-BY-4.0), Zalando SE provenance, and an enumeration of its
   phase-grouped rule files.
-- [ ] **No rule token is lost in the method→bundle move:** the set of distinct
+- [x] **No rule token is lost in the method→bundle move:** the set of distinct
   `#NNN` tokens over `SKILL.md` + `references/**` after the change is a
   **superset** of the `git show HEAD` baseline over the **same** scope. That
   baseline today is **133 distinct tokens** (token count ≠ rule count: the
@@ -142,26 +142,26 @@ complete and the agent applies it." The modes:
   de-cited: the four modeling/API-first rules #100, #102, #139, #140 (→ manifest
   rule enumeration, as they exist in no rule file) and the five excluded IDs
   (→ manifest provenance note, per the next criterion).
-- [ ] The **manifest** is the authoritative enumeration of the standard's
+- [x] The **manifest** is the authoritative enumeration of the standard's
   applied rule IDs and carries the attribution/provenance — licence (CC-BY-4.0)
   and the 5 excluded internal rules (#183, #184, #223, #224, #233). The 5
   excluded IDs appear in that provenance note only, never as an active rule in a
   rule-file body or the manifest's rule enumeration (as `SKILL.md`'s provenance
   note holds them today, before that note moves to the manifest).
-- [ ] The quality-gate checklist is carried in
+- [x] The quality-gate checklist is carried in
   `references/standards-quality-gates-zalando.md` (lifted out of `SKILL.md`) as
   an agent-verifiable `- [ ]` checklist that is **byte-identical** to the block
   lifted from `SKILL.md` (verified by diff against `git show HEAD`); today that
   is **31** `- [ ]` items, each retaining its `#NNN` citation.
-- [ ] An authoring guide at `references/standards-authoring.md` documents the
+- [x] An authoring guide at `references/standards-authoring.md` documents the
   base + delta format — `extends: zalando`, `rules` override-to-`false`
   (the Spectral model), `adds` for house rules — plus a worked example and the
   filename-namespacing convention for multiple standards coexisting in
   `references/`.
-- [ ] The authoring guide documents delivery via `adapt-to-project` **Class 2**
+- [x] The authoring guide documents delivery via `adapt-to-project` **Class 2**
   `.upstream` companion-merge at the pack's scope (no new resolver, no edit to
   `adapt-to-project`).
-- [ ] `SKILL.md` carries a **standard-independent "Design discipline" section**
+- [x] `SKILL.md` carries a **standard-independent "Design discipline" section**
   — rationalizations to reject (contract-is-the-docs / Hyrum's Law /
   internal-APIs-are-contracts / compatibility-is-a-day-one-concern) and red
   flags phrased as **consistency properties** (a representation's shape varies
@@ -172,19 +172,19 @@ complete and the agent applies it." The modes:
   URL grammar, versioning) explicitly deferred to the active standard, no
   literal `[#NNN]` and no defaulted rule (e.g. "apply Problem JSON") stated as
   method law.
-- [ ] Existing direct `api-contract` invocations produce Zalando-default output
+- [x] Existing direct `api-contract` invocations produce Zalando-default output
   unchanged — the 3 existing evals still describe correct output against the
   new skill body.
-- [ ] The `contracts` pack version is bumped `0.1.0` → `0.2.0` in **both**
+- [x] The `contracts` pack version is bumped `0.1.0` → `0.2.0` in **both**
   `packs/contracts/pack.toml` and `packs/contracts/.claude-plugin/plugin.json`
   (kept in sync) — a **minor** bump: additive standard-bundle surface, no
   breaking change to existing direct invocations. `[pack.adapter-contract]`
   version is left at `0.8` (pinned by the shipped-pack-manifest test).
-- [ ] The source-pack gate is green: `make lint-packs`,
+- [x] The source-pack gate is green: `make lint-packs`,
   `agentbundle validate packs/contracts`, and `make build` (dist build succeeds
   and `contracts` aggregates into the marketplace), and the shipped-pack-manifest
   pytest still passes.
-- [ ] No `core` edit, no repo-level `contracts/` directory, and no `new-spec`
+- [x] No `core` edit, no repo-level `contracts/` directory, and no `new-spec`
   change — the Stage 2 boundary is respected.
 
 ## Assumptions
