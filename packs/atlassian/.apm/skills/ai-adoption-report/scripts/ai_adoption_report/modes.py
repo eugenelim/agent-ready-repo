@@ -1,15 +1,17 @@
-"""T3 file-consumer modes: ``baseline`` and ``cohort``.
+"""File-consumer modes: ``baseline`` and ``cohort``.
 
-Both modes load one or two flow-metrics JSONs via T2's
-:func:`inputs.load_input`, run T5's :func:`delta.compute_deltas` on the
-relevant aggregate pair, and return a :class:`ReportData` for T7 to
-render. ``program`` mode (T4/T6) populates the same dataclass with
+Both modes load one or two flow-metrics JSONs via the input loader's
+:func:`inputs.load_input`, run the delta engine's
+:func:`delta.compute_deltas` on the relevant aggregate pair, and return
+a :class:`ReportData` for the renderer to render. ``program`` mode
+(program discovery + aggregation) populates the same dataclass with
 :attr:`ReportData.per_scope_rows`; the field is ``None`` for baseline
 and cohort.
 
-Notes-merge contract: T5 returns its notes
-unsorted; T3 concatenates them onto :attr:`ReportData.notes` in append
-order. T7 sorts and dedupes the final list — T3 does NOT pre-sort.
+Notes-merge contract: the delta engine returns its notes
+unsorted; the modes concatenate them onto :attr:`ReportData.notes` in
+append order. The renderer sorts and dedupes the final list — the modes
+do NOT pre-sort.
 
 All exit-2 conditions raise :class:`ValidationError`; the CLI entry
 point in :mod:`ai_adoption_report` catches and prints them.
@@ -36,9 +38,9 @@ from .program_discovery import discover_inputs
 # ---------------------------------------------------------------------------
 # Canonical scope representation
 # ---------------------------------------------------------------------------
-# Temporary home — T7 may relocate when it owns the renderer. Kept here
-# because both header-line assembly (T3) and per-scope-row labels (T6)
-# need the same string.
+# Temporary home — the renderer (render.py) may relocate this. Kept here
+# because both header-line assembly (the modes) and per-scope-row labels
+# (aggregation) need the same string.
 _SCOPE_FIELDS = ("project", "team", "program_id", "portfolio_id")
 
 
@@ -61,19 +63,21 @@ def canonical_scope_repr(scope: dict, kind: str) -> str:
 # ---------------------------------------------------------------------------
 @dataclass
 class ReportData:
-    """The mode-agnostic data bundle T7 renders.
+    """The mode-agnostic data bundle the renderer renders.
 
     ``deltas`` and ``cohort_deltas`` carry the
     :meth:`delta.DeltaResult.to_dict` shape (the canonical
-    insertion-order metric dict that the JSON sidecar emits). T3 calls
-    ``to_dict`` so T7 sees the same structure regardless of mode.
+    insertion-order metric dict that the JSON sidecar emits). The modes
+    call ``to_dict`` so the renderer sees the same structure regardless
+    of mode.
 
-    ``per_scope_rows`` stays ``None`` for baseline + cohort; T4/T6
-    populates it for program mode.
+    ``per_scope_rows`` stays ``None`` for baseline + cohort; program
+    discovery and aggregation populate it for program mode.
 
-    ``notes`` is the merged unsorted list (T2's mixed-major note +
-    T3's drift / per_team / cohort-jql notes + T5's compute_deltas
-    notes). T7 sorts and dedupes the final list.
+    ``notes`` is the merged unsorted list (the input loader's
+    mixed-major note + the modes' drift / per_team / cohort-jql notes +
+    the delta engine's compute_deltas notes). The renderer sorts and
+    dedupes the final list.
     """
 
     mode: Literal["baseline", "cohort", "program"]
@@ -86,7 +90,7 @@ class ReportData:
     notes: List[str] = field(default_factory=list)
     # Side labels for ``cohort_deltas`` cells. Carries the
     # ``(a_label, b_label)`` tuple that the originating ``compute_deltas``
-    # call used so T7 can label the Cohort breakdown table columns
+    # call used so the renderer can label the Cohort breakdown table columns
     # accurately (baseline+cohort uses ``("baseline-cohort",
     # "current-cohort")``; program mode uses ``("control", "cohort")``).
     # ``None`` whenever ``cohort_deltas`` is ``None``.
@@ -108,8 +112,8 @@ def run_baseline(args) -> ReportData:
     inputs = [baseline, current]
     notes: List[str] = []
 
-    # T2 cross-input note (mixed schema majors). Same call pattern T4
-    # will use in program mode, kept here for the baseline pair so the
+    # Cross-input note (mixed schema majors). Same call pattern program
+    # discovery uses in program mode, kept here for the baseline pair so the
     # warning surfaces in single-pair runs too.
     mixed_major = collect_mixed_major_note(inputs)
     if mixed_major is not None:
@@ -159,8 +163,8 @@ def run_baseline(args) -> ReportData:
         if inp.per_team:
             notes.append(Note.per_team_ignored_in_baseline(inp.basename))
 
-    # Primary deltas. T5 returns notes unsorted; T3 concatenates per
-    # the notes-merge contract.
+    # Primary deltas. The delta engine returns notes unsorted; the modes
+    # concatenate per the notes-merge contract.
     primary = compute_deltas(
         baseline.aggregates,
         current.aggregates,
@@ -235,11 +239,11 @@ def _baseline_cohort_section(
     # The spec is silent on which sub-side gets compared across windows
     # in baseline mode. The natural reading of "cohort-vs-control deltas
     # across the two windows" is: compare the cohort side at baseline
-    # vs the cohort side at current (and likewise for control). Our T5
-    # engine handles one pair at a time; the section here compares
+    # vs the cohort side at current (and likewise for control). Our
+    # delta engine handles one pair at a time; the section here compares
     # ``baseline.cohort`` vs ``current.cohort`` because that's the
     # quantity a baseline reader asks about ("did AI adoption move the
-    # cohort?"). T7 may add a second sub-table for control later;
+    # cohort?"). The renderer may add a second sub-table for control later;
     # extending requires only another compute_deltas call.
     result = compute_deltas(
         baseline.cohort_breakdown.get("cohort", {}),
@@ -296,7 +300,7 @@ def run_cohort(args) -> ReportData:
 
 
 # ---------------------------------------------------------------------------
-# Mode: program (T4 + T6)
+# Mode: program (program discovery + aggregation)
 # ---------------------------------------------------------------------------
 def run_program(args) -> ReportData:
     """Run program mode end-to-end and return :class:`ReportData`.
@@ -308,13 +312,13 @@ def run_program(args) -> ReportData:
 
     Pipeline:
 
-    1. T4: ``discover_inputs`` — glob, validate, dedupe, overlap-check,
-       per_team flatten.
-    2. T6: ``aggregate_non_cohort`` — program-wide aggregates.
-    3. T6: ``aggregate_cohort_side`` (twice) when
+    1. Program discovery: ``discover_inputs`` — glob, validate, dedupe,
+       overlap-check, per_team flatten.
+    2. Aggregation: ``aggregate_non_cohort`` — program-wide aggregates.
+    3. Aggregation: ``aggregate_cohort_side`` (twice) when
        ``--include-cohort-breakdown`` — cohort and control side
        rollups, computed independently.
-    4. T5: ``compute_deltas`` ONCE — only for the cohort-vs-control
+    4. Delta engine: ``compute_deltas`` ONCE — only for the cohort-vs-control
        rollup comparison. Program mode's main table is per-scope rows
        + aggregate row, NOT a two-side comparison, so the global
        ``deltas`` block stays empty.
@@ -341,7 +345,7 @@ def run_program(args) -> ReportData:
     # Throughput is reported as a raw count AND as a per-week rate.
     # The non-cohort aggregate is the only place this is computed;
     # cohort-side rollups don't carry a window-normalised variant
-    # (T7's renderer can compute one if it wants).
+    # (the renderer can compute one if it wants).
     if "throughput" in global_agg:
         try:
             d_from = date.fromisoformat(from_endpoint)

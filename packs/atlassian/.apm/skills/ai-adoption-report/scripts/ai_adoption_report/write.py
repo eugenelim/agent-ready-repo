@@ -1,6 +1,6 @@
-"""T8 output write path — atomic, collision-detecting, --overwrite-aware.
+"""Output write path — atomic, collision-detecting, --overwrite-aware.
 
-The only place the skill writes to disk. T7's :func:`render.render_markdown`
+The only place the skill writes to disk. The renderer's :func:`render.render_markdown`
 and :func:`render.render_json` produce the wire strings; this module takes
 ``(path, contents)`` pairs and lands them on disk atomically.
 
@@ -34,8 +34,8 @@ the Markdown and sidecar cannot collide on the same filename.
 
 Env var: :data:`GENERATED_AT_ENV_VAR` (``AI_ADOPTION_REPORT_GENERATED_AT``)
 is read by the CLI dispatch in :mod:`ai_adoption_report` to pin
-``generated_at`` for deterministic-build tests. T7 stays pure; T8 owns
-the clock.
+``generated_at`` for deterministic-build tests. The renderer stays
+pure; the write path owns the clock.
 
 Stdlib only. Python >= 3.10.
 """
@@ -49,7 +49,7 @@ from typing import List, Sequence, Tuple
 from . import ValidationError
 
 
-# Pinned for the CLI dispatch + T9's SKILL.md to reference.
+# Pinned for the CLI dispatch + the SKILL.md docs to reference.
 GENERATED_AT_ENV_VAR = "AI_ADOPTION_REPORT_GENERATED_AT"
 
 

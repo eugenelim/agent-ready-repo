@@ -1,8 +1,8 @@
 """Per-issue derivation — :class:`PerIssueRow` and :func:`derive_row`.
 
-T5 substrate: walks each issue's :class:`Timeline`, applies the four
+Walks each issue's :class:`Timeline`, applies the four
 population predicates, and emits a :class:`PerIssueRow` carrying every
-field a downstream aggregator (T6) or per-issue consumer
+field a downstream aggregator or per-issue consumer
 (``ai-adoption-cohort``) needs.
 
 Field-presence rules for per-issue mode:
@@ -14,15 +14,15 @@ Field-presence rules for per-issue mode:
 - Cancelled-in-window or WIP-only rows emit ``null`` for the
   delivery-based fields and ``0`` for ``rework_count``;
   ``cycle_eligible`` is ``false``.
-- ``cohort`` is left as ``None`` here; the cohort path (T8) stamps it.
+- ``cohort`` is left as ``None`` here; the cohort split stamps it.
 - ``wip_samples`` carries one bool per inclusive calendar day in the
-  window (anchor: ``(d + 1 day) 00:00 UTC − 1µs``). T6's Flow Load
+  window (anchor: ``(d + 1 day) 00:00 UTC − 1µs``). The aggregator's Flow Load
   computation is a streaming sum across rows of these per-day samples;
   the last sample is identically ``wip_at_to``.
 
 The streaming entry point :func:`iter_per_issue_rows` calls
 :meth:`JiraClient.search` once (with ``compose_jql(..., order_by_key=
-True)``) and walks each issue via T4's
+True)``) and walks each issue via the changelog pager's
 :func:`iter_issue_changelog`. Rows are yielded lazily so peak memory is
 O(transitions per issue), per the spec's bounded-memory contract.
 
@@ -79,7 +79,7 @@ class PerIssueRow:
     wip_samples: Tuple[bool, ...] = field(default_factory=tuple)
     # Full team list for array-kind team_field semantics — ``team`` keeps
     # the first non-empty entry for backward compat with single-value
-    # consumers; ``teams`` is the complete list T9's per_team rollup
+    # consumers; ``teams`` is the complete list the per-team rollup
     # needs to count one issue in every membership bucket. For
     # ``single_value`` kind, ``teams`` is a one-element tuple
     # ``(team,)`` (or ``(NO_TEAM,)`` when the field is missing).
@@ -111,17 +111,17 @@ def _resolve_teams(issue: Mapping, state_config: StateConfig) -> Tuple[str, Tupl
     """Return ``(primary_team, full_team_list)`` for the issue's row.
 
     ``primary_team`` is the first non-empty team name (matching the
-    pre-T13 ``_resolve_team`` contract pinned by T5's per-issue tests).
-    ``full_team_list`` is the deduplicated tuple of every team name on
-    the issue — used by T9's per_team rollup under ``array`` kind to
-    bucket one issue into every team's row.
+    pre-pipeline-wiring ``_resolve_team`` contract pinned by the
+    per-issue tests). ``full_team_list`` is the deduplicated tuple of
+    every team name on the issue — used by the per-team rollup under
+    ``array`` kind to bucket one issue into every team's row.
 
     Field-level permission undercount: if ``team_field.id`` is missing
     or the issue's value is null / empty / unrecognised, returns
     ``(NO_TEAM, ())``. Downstream callers translate the empty list into
     a single ``NO_TEAM`` bucket; the empty tuple is the signal "this
-    issue carried no readable team membership" so T9's K-count for
-    array kind doesn't include it.
+    issue carried no readable team membership" so the per-team rollup's
+    K-count for array kind doesn't include it.
 
     For ``single_value`` kind, ``full_team_list`` is always a
     one-element tuple ``(primary_team,)`` so the iteration shape is
@@ -166,7 +166,7 @@ def _resolve_teams(issue: Mapping, state_config: StateConfig) -> Tuple[str, Tupl
 def _resolve_team(issue: Mapping, state_config: StateConfig) -> str:
     """Backward-compat shim — returns just the primary team.
 
-    Kept so existing T5 contract tests
+    Kept so existing per-issue contract tests
     (``test_per_issue_team_resolves_*``) that imported the original
     helper symbol keep passing.
     """
@@ -228,8 +228,8 @@ def _wip_samples(
     ``True`` per day where its canonical state at the anchor is in
     ``active_states``. Samples taken before the issue's ``created`` are
     forced to ``False`` (an issue cannot be WIP before it exists).
-    T6's :func:`aggregate.aggregate` sums these column-wise across rows
-    to derive Flow Load.
+    The aggregator's :func:`aggregate.aggregate` sums these column-wise
+    across rows to derive Flow Load.
     """
     sample_count = (window.to_date - window.from_date).days + 1
     if delivered:

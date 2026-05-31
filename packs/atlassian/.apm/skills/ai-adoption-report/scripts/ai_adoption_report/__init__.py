@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """ai-adoption-report CLI entry point.
 
-T1 scaffold: argparse subcommands (baseline / cohort / program), Python
+CLI scaffold: argparse subcommands (baseline / cohort / program), Python
 version guard, path-safety helper, --window FROM..TO parser, exit codes.
 Each subcommand body is a stub that prints "not yet implemented" and
-exits 0. Later tasks fill in the real work.
+exits 0. Later layers fill in the real work.
 
 Stdlib only. Python >= 3.10.
 """
@@ -276,19 +276,19 @@ def _path_roles_for_mode(args: argparse.Namespace) -> Iterator[Tuple[str, str]]:
 
 
 def validate_args(args: argparse.Namespace) -> None:
-    """Apply T1 flag-combo validation.
+    """Apply CLI flag-combo validation.
 
     Currently only path-safety: every path-bearing flag must resolve
-    inside ``Path.cwd()``. Later tasks layer on input-file validation
-    (T2) and mode-specific checks (T3, T4).
+    inside ``Path.cwd()``. Later layers add input-file validation
+    (the input loader) and mode-specific checks (modes, program discovery).
     """
     for role, value in _path_roles_for_mode(args):
         validate_local_path(value, role=role)
 
 
 # ---------------------------------------------------------------------------
-# Subcommand dispatch. baseline + cohort delegate to T3's modes module;
-# program is still stubbed for T4/T6.
+# Subcommand dispatch. baseline + cohort delegate to the modes module;
+# program is still stubbed for program discovery + aggregation.
 # ---------------------------------------------------------------------------
 def _default_title(mode: str) -> str:
     return "AI-adoption report — {}".format(mode)
@@ -299,12 +299,13 @@ def _resolve_generated_at() -> str:
 
     Honors the test-pinning env var :data:`write.GENERATED_AT_ENV_VAR`
     (``AI_ADOPTION_REPORT_GENERATED_AT``) for deterministic-build tests
-    (T9's golden-file diffs rely on this). When unset, returns the
+    (golden-file diffs rely on this). When unset, returns the
     current UTC clock in ISO-8601 seconds precision with the trailing
     ``Z`` form (``2026-05-19T14:30:00Z``).
 
-    T7 stays pure — never reads the clock or env. T8 owns the timestamp
-    and threads it through ``render_markdown`` / ``render_json``.
+    The renderer stays pure — never reads the clock or env. The write
+    path owns the timestamp and threads it through ``render_markdown`` /
+    ``render_json``.
     """
     from .write import GENERATED_AT_ENV_VAR
 

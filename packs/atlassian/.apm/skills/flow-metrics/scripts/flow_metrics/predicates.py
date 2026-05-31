@@ -24,7 +24,7 @@ def wip_instant(window: Any) -> datetime:
     """Spec-defined WIP-instant: the last representable instant of the
     inclusive window — ``(to + 1 day) 00:00 UTC − 1 microsecond``.
 
-    Both :func:`wip_at_to` and Flow Load (T6) sample at this anchor so
+    Both :func:`wip_at_to` and Flow Load (the aggregator) sample at this anchor so
     the last Flow Load sample is identical to the WIP count.
     """
     return window.to_exclusive_utc - timedelta(microseconds=1)
