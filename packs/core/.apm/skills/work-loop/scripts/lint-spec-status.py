@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Spec *metadata* drift lint (RFC-0016; § Errata + ADR-0007).
+"""Spec *metadata* drift lint.
 
 This is a `work-loop` **skill script**: it lives at
 `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` and projects to
@@ -12,9 +12,9 @@ The catalogue additionally runs it as a **fail-closed CI gate** via
 `make build-check` (where a PR event and Python both exist). Do NOT wire it into
 `tools/hooks/pre-pr.py`: that hook is a *body* that projects to adopter trees
 and would mis-fire — the finish-time skill checklist and the Makefile gate are
-the two invocation surfaces. (RFC-0016 originally shipped this as a
-catalogue-only `tools/` linter on the false premise that "linters don't
-project"; corrected in RFC-0016 § Errata and ADR-0007.)
+the two invocation surfaces. (An earlier design shipped this as a
+catalogue-only `tools/` linter; it now ships as a skill script so it projects
+to adopters too.)
 
 It checks four invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in `CONVENTIONS.md` § 4 (Spec metadata contract). Only the
@@ -35,8 +35,8 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         references (full paths rooted at a known top-level dir or an explicit
         relative link, ending in `.py`/`.toml`/`.sh`/`.json`, locator suffix
         stripped) that don't resolve to a file. WARN-ONLY (never changes the
-        exit code); promoting it to a hard invariant stays deferred per
-        RFC-0016 pending the observed warn rate.
+        exit code); promoting it to a hard invariant stays deferred pending
+        the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
         resolves to a heading anchor in `docs/backlog.md`. HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
