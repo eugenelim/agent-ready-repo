@@ -39,7 +39,7 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         RFC-0016 pending the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
         resolves to a heading anchor in `docs/backlog.md`. HARD (exit non-zero).
-  (v)   spec↔contract traceability (RFC-0017 Stage 2) — a spec's
+  (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
         `contracts/<type>/`; each must exist and carry a backward pointer — an
         `x-spec` extension (OpenAPI/AsyncAPI YAML/JSON) or a `contracts/REGISTRY.md`
