@@ -1910,3 +1910,43 @@ On acceptance:
 - **No CHARTER edit.** This RFC operates within the
   charter's existing scope; no mission, principle, or
   scope-line change is implied.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, Approver-signed.
+
+- **2026-05-31 (Approver: eugenelim) — § 9's two teaching skills are
+  retired; § 5 / § 7's author-skill framing is superseded by the how-to.**
+  § 9 ("Migration scope — commitment, not construction") committed two
+  *teaching* primitives to `core`: the `example-credentialed-skill` worked
+  example and the `add-credentialed-skill` author skill (the latter with the
+  four `assets/credentialed-skill-SKILL-<broker>.md` templates from § 5, and
+  the build-self walkthrough from § 7). Both are **retired** as structurally
+  redundant.
+
+  **Why the original framing was over-built.** The architectural enforcement
+  is the lint (`tools/lint-credentialed-skills.sh` → `lint_credentialed_skills.py`)
+  plus the frontmatter schema (`tools/lint-agent-artifacts.py`) — *not* the
+  skills. The lint walks pack **source** (`packs/*/.apm/skills/*/SKILL.md`)
+  and already covers every real credentialed skill: `credential-setup`
+  (`credential-brokers`), `jira`, `jira-align`, `confluence-publisher`,
+  `confluence-crawler` (`atlassian`), and `figma`. Deleting the fictional
+  no-op `example-credentialed-skill` removes **zero** lint coverage. The
+  `add-credentialed-skill` SKILL.md was instructional prose that duplicated
+  the Diátaxis how-to (`docs/guides/how-to/add-a-credentialed-skill.md`)
+  almost verbatim; the four verbatim per-broker `### Security rules
+  (non-negotiable)` blocks (§ 5) are consolidated into the how-to's Step 7,
+  and the `auth: creds` → `make build-self` step (§ 7) is stated there. The
+  example only ran because `make build-self` committed a copy of
+  `credential-brokers`' shim into `core`, coupling `core` to the broker pack.
+
+  **What is unchanged.** The four-broker contract, the two transports, the
+  brokers-not-skills architecture, the shim, the `credential-brokers` pack,
+  and the five real consumer skills are untouched. Only the redundant
+  teaching surface is removed.
+
+  **Where this is recorded.** Implementation lives in
+  `docs/specs/credential-broker-contract/spec.md` § Changelog (2026-05-31):
+  AC27/AC28/AC34 superseded, AC30 takes the canonical-reference designation,
+  consumer count six → five.

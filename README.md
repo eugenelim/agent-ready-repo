@@ -166,7 +166,6 @@ The `work-loop` skill is a Markdown file. Each reviewer is a Markdown file. The 
   - `new-spec` — opens a feature directory with paired spec and plan; assumptions surface up front.
   - `bug-fix` — reproduce, root-cause, write a failing test, ship the minimum diff.
   - `adapt-to-project` — walks the adopter through customizing freshly-installed primitives to local conventions.
-  - `add-credentialed-skill` — scaffolds a new skill that calls an authenticated external API on the user's behalf.
 - **Subagents** — the four reviewer / executor lenses described above.
 - **Hooks**
   - `session-start` — runs at session start; surfaces context the agent needs before its first action.
