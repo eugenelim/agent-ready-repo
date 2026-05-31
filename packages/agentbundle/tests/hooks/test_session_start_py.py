@@ -75,7 +75,9 @@ def test_session_start_malformed_warns_to_stderr(tmp_path: Path) -> None:
     result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)))
     assert result.returncode == 0
     assert "skipped 1 malformed line(s)" in result.stderr
-    assert "run tools/lint-knowledge.py" in result.stderr
+    # Adopter-clean: the hint must not point at a repo-native catalogue linter.
+    assert "tools/lint-" not in result.stderr
+    assert "patterns.jsonl" in result.stderr
 
 
 def test_session_start_mixed_valid_and_malformed(tmp_path: Path) -> None:

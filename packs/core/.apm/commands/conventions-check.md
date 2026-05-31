@@ -2,7 +2,12 @@
 description: Lint AGENTS.md, CLAUDE.md, and projected agent artifacts against the conventions in this repo
 ---
 
-Run both repo linters and report findings.
+Run these repo linters and report findings.
+
+> These linters are *this catalogue's own* (they enforce its conventions on its
+> `.apm/` and seed artifacts) and aren't shipped into an adopter tree — if
+> they're absent, substitute your project's equivalent checks, or fall back to
+> inspecting the files directly (see the closing note).
 
 **`python tools/lint-agents-md.py`** — AGENTS.md hygiene:
 

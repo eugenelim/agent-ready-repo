@@ -94,8 +94,9 @@ jobs:
 
   # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
   # those each surface with their own check name in PR UI; this one catches
-  # regressions in pre-pr.sh's composition (a layer dropped, a reorder
-  # breaking a dependency, exit-code propagation).
+  # regressions in the catalogue gate's composition (a layer dropped, a reorder
+  # breaking a dependency, exit-code propagation). Runs the repo-native
+  # `tools/pre-pr-catalogue.py` (the 8 catalogue checks + the shipped pre-pr.py).
   hooks:
     name: Lifecycle hooks
     runs-on: ubuntu-latest
@@ -109,7 +110,7 @@ jobs:
           sed 's/"pending"/"approved"/' .claude/skills/work-loop/assets/state.json \
             > docs/specs/_ci-smoke/state.json
       - name: Run pre-pr aggregator (mirrors local enforcement triplet)
-        run: python tools/hooks/pre-pr.py
+        run: python tools/pre-pr-catalogue.py
       - name: Self-test the aggregator (each layer corruption surfaces)
         run: bash tools/test-pre-pr.sh
       - name: Self-test session-start (scope filter + malformed warning)

@@ -683,34 +683,28 @@ section points contributors at this file as the destination for
 pattern/gotcha/antipattern-shaped learnings; other shapes still go
 where they already belong (AGENTS.md, skill bodies, architecture/).
 
-### Enforcement (the triplet)
+### Enforcement
 
-Three layered mechanisms enforce the project's discipline. They are
-named together so contributors and reviewers can refer to "the
-enforcement triplet" and mean the same three things:
+Two layered mechanisms enforce discipline before a PR opens:
 
 | Layer | Mechanism | What it gates |
 |---|---|---|
 | Caps | `scripts/loop-cohort.py check` in the `work-loop` skill | Iteration cap, token budget, plan approval, fingerprint stasis (see `references/state-schema.md` in the `work-loop` skill). The same tool owns every state mutation upstream of the check. |
-| Artifacts | `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-knowledge.py`, `lint-build.py` | Shape and content hygiene for every `.claude/`, `AGENTS.md`, and `docs/knowledge/` artifact. |
-| Aggregation | [`tools/hooks/pre-pr.py`](../tools/hooks/pre-pr.py) | Runs caps + artifact linters together before a PR opens. CI mirrors this — `.github/workflows/docs.yml` has a job per enforcement layer, including a `hooks` job that runs the aggregator end-to-end. Keep the local hook green and CI follows. |
+| Your gate | `tools/hooks/pre-pr.py` | Runs the caps check, then **your project's own** lint / typecheck / test commands — wire them into the stub in `pre-pr.py` (or let the `adapt-to-project` skill fill them in from your detected build commands). |
 
-The triplet is **Shift Left**: catch problems as early as possible,
-locally before CI, at PLAN before EXECUTE. The
-pre-EXECUTE adversarial review in
-the work-loop skill is the same pattern at a different layer — moving
-review left from after code is written to before it is.
+This is **Shift Left**: catch problems as early as possible, locally
+before CI, at PLAN before EXECUTE. The pre-EXECUTE adversarial review
+in the work-loop skill is the same pattern at a different layer —
+moving review left from after code is written to before it is.
 
-`session-start.py` is shipped pre-wired by the install pipeline (and
-by `make build-self` for this repo's self-host): the SessionStart
-binding lands in `.claude/settings.local.json` automatically, no
-manual paste. `pre-pr.py` is the other half of the triplet — and
-unlike `session-start.py` it stays consumer-wired, because Claude
-Code has no PR-open lifecycle event (`Stop` fires after every agent
-turn — wrong semantics). Wire `pre-pr.py` via `.git/hooks/pre-push`
-if you want it automatic, or run it by hand before opening a PR.
-See [`tools/hooks/README.md`](../tools/hooks/README.md) for both
-surfaces.
+`session-start.py` is shipped pre-wired by the install pipeline: the
+SessionStart binding lands in `.claude/settings.local.json`
+automatically, no manual paste. `pre-pr.py` stays consumer-wired,
+because Claude Code has no PR-open lifecycle event (`Stop` fires after
+every agent turn — wrong semantics). Wire `pre-pr.py` via
+`.git/hooks/pre-push` if you want it automatic, or run it by hand
+before opening a PR. See [`tools/hooks/README.md`](../tools/hooks/README.md)
+for both surfaces.
 
 ### When to reach for Ralph
 

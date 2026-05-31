@@ -243,3 +243,21 @@ of their own yet.
   `_strip_markdown_code` and `_collect_unresolved_markers` each carry a local
   `import re` (matches install.py's local-import idiom; hoist if the module is
   ever refactored to module-level imports). Neither affects behaviour.
+
+- **`lint-plan-deps.py` is unwired (RFC-0015 / `wave-scheduled-supervisor` AC7).**
+  AC7's deliverable `tools/lint-plan-deps.py` (repo-wide plan-DAG sweep) is invoked
+  by **no gate** — not in `Makefile`, `.github/workflows/`, or `pre-pr` — and has no
+  test; `adopter-clean-enforcement-gate` removed its last anchor (the `new-spec`
+  `plan.md` template now points adopters at the shipped per-spec `loop-cohort
+  schedule`). Decide in `wave-scheduled-supervisor`: wire it into `build-check` to
+  enforce AC7 continuously, or retire it as redundant with `loop-cohort schedule`.
+- **Credentialed-authoring skills don't belong in adopter-facing `core` (RFC-0013 /
+  `credential-broker-contract`).** From first principles the adopter artifact for
+  *authoring* a credentialed skill is the **how-to** — which already exists
+  (`docs/guides/how-to/add-a-credentialed-skill.md` + `docs/guides/explanation/credentialed-skills.md`).
+  The `add-credentialed-skill` **skill** is redundant for adopters and bound to the
+  catalogue build pipeline (`make build-self`, `assets/` templates), and
+  `example-credentialed-skill` is `auth: creds` (same coupling). Reconcile their
+  adopter-shipping — demote to catalogue-local / retire in favour of the how-to —
+  against `credential-broker-contract` AC27/AC43 and RFC-0013 §7. Not touched by
+  `adopter-clean-enforcement-gate` (that spec owns these primitives).
