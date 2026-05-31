@@ -7,7 +7,7 @@
 
 > **Spec contract:** this document defines what "done" means. The implementing PR must match this spec, or update it. Verification must be derivable from it.
 
-> **Scope: one PR, one contract bump.** The contract bump, the new frontmatter mapping, the codex projection logic, the eight packs' v0.8 bump, the warning rail, and the migration guide all land in a single PR per RFC-0004 atomicity (inherited from `pack-allowed-adapters/` and `repo-scope-per-adapter-projection/`). Splitting risks (a) the contract claims `.codex/agents/` / `.codex/hooks.json` projection but no implementation writes there, or (b) packs declare v0.8 but the resolver can't dispatch codex agents.
+> **Scope: one PR, one contract bump.** The contract bump, the new frontmatter mapping, the codex projection logic, the eight packs' v0.8 bump, and the warning rail all land in a single PR per RFC-0004 atomicity (inherited from `pack-allowed-adapters/` and `repo-scope-per-adapter-projection/`). Splitting risks (a) the contract claims `.codex/agents/` / `.codex/hooks.json` projection but no implementation writes there, or (b) packs declare v0.8 but the resolver can't dispatch codex agents.
 
 ## Objective
 
@@ -67,7 +67,6 @@ The three-tier guard that keeps an implementing agent inside the lines. *Always 
 | Eight packs declare `[pack.adapter-contract] version = "0.8"` | **Goal-based check** — `grep -rln 'version = "0.8"' packs/*/pack.toml`; expect 8 matches. | TOML edit per pack; verify via grep. |
 | `make build-self FORCE=1` is a noop after the final commit | **Goal-based check** — `make build-self FORCE=1 && git status --short` empty. | Build-pipeline gate. |
 | `python3 tools/hooks/pre-pr.py` exits 0 | **Goal-based check** — aggregate enforcement. | Covered by CI. |
-| Migration guide (`docs/guides/how-to/v07-to-v08-pack-upgrade.md`) lands | **Manual QA** — read end-to-end; spot-check the codex projection callout names both new targets (`.codex/agents/<name>.toml` + `.codex/hooks.json`) and the warning-rail call out names what's still dropped (codex `command`, kiro `command`, copilot `agent` + `command` + `hook-wiring`). | Adopter-facing prose. |
 
 ## Acceptance Criteria
 
@@ -100,10 +99,6 @@ The spec is closed when each of the following observable outcomes is verifiable 
 
 - **AC12.** Each of `packs/atlassian/pack.toml`, `packs/figma/pack.toml`, `packs/converters/pack.toml`, `packs/contracts/pack.toml`, `packs/core/pack.toml`, `packs/governance-extras/pack.toml`, `packs/user-guide-diataxis/pack.toml`, `packs/monorepo-extras/pack.toml` bumps `[pack.adapter-contract] version = "0.7"` → `"0.8"`. No other field changes.
 
-### Migration
-
-- **AC13.** Migration guide at `docs/guides/how-to/v07-to-v08-pack-upgrade.md` covers: (i) the `[pack.adapter-contract] version` bump v0.7 → v0.8; (ii) the codex new projection targets (`.codex/agents/<name>.toml`, `.codex/hooks.json`) — an adopter who previously installed under codex and got silent drops follows a **two-step migration**: `agentbundle uninstall --pack <pack> --scope repo .` followed by `agentbundle install --pack <pack> --scope repo --adapter codex .`. The guide explicitly notes that `agentbundle upgrade` at repo scope does NOT re-project under the new contract today (repo-scope upgrade uses the dist-tree renderer per RFC-0012's Ask-first surface), and `--force` does NOT auto-detect this case — AC24(b) shape-mismatch fires on dist-tree files only, not on missing-new-projection-paths. Auto-detection of the v0.7→v0.8 codex re-projection case is named as an out-of-scope follow-on; the documented uninstall + install path is the migration contract; (iii) the dropped-primitives warning rail's purpose (visibility, not refusal) and the residual drops adopters will see on each adapter.
-
 ### Documentation surface
 
 - **AC14.** `docs/specs/distribution-adapters/spec.md` Changelog gains an entry naming the v0.7 → v0.8 bump, the codex projection additions, the new `codex-agent-toml` mode, and the warning rail.
@@ -130,7 +125,7 @@ The spec is closed when each of the following observable outcomes is verifiable 
 - Technical: Codex `command` and Kiro `command` remain genuinely without a projection target — codex custom-prompts are deprecated in favour of skills ([source](https://developers.openai.com/codex/custom-prompts) 2026-05-26); kiro slash-commands are manual-trigger hooks rather than standalone files ([source](https://kiro.dev/docs/chat/slash-commands/) 2026-05-26). Copilot has no native agent / command / hook-wiring surface ([source](https://developers.openai.com/codex/hooks) confirms via absence; copilot scope table in `adapter.toml:248-258` documents the absence).
 - Technical: The pre-write barrier point in `install.py` is after both adapter resolutions complete (~line 461 post-RFC-0012 layout). Both `repo_target_adapter` (lifted to Step 3c by RFC-0012's PR #141 amendments) and `user_target_adapter` (line 415-431) are resolved by then, before the plan loop at ~line 510+ builds any writes (source: `packages/agentbundle/agentbundle/commands/install.py` read 2026-05-26).
 - Technical: Pack source primitive layout `<pack_dir>/.apm/<type>/` covers seven directory names (`skills`, `agents`, `hooks`, `hook-wiring`, `commands`, `shared-libs`, `adapter-root-bins`) per `_PACK_PRIMITIVE_TYPES` in `safety.py` shipped in PR #150 (source: existing constant).
-- Technical: Practical impact today is narrow on the warning side — only `core` (the one repo-only pack that ships agents/commands/hook-wiring) triggers the warning. The other three repo-only packs and the four user-scope-capable packs ship only skills (source: `ls packs/*/.apm/` 2026-05-26). On the contract side, codex adopters who installed `core` via `--adapter codex` in the v0.7 window got silent `agent` + `hook-wiring` drops; the migration guide names this as the population needing the one-time `--force` reinstall.
+- Technical: Practical impact today is narrow on the warning side — only `core` (the one repo-only pack that ships agents/commands/hook-wiring) triggers the warning. The other three repo-only packs and the four user-scope-capable packs ship only skills (source: `ls packs/*/.apm/` 2026-05-26). On the contract side, codex adopters who installed `core` via `--adapter codex` in the v0.7 window got silent `agent` + `hook-wiring` drops — the population that needs the one-time `--force` reinstall.
 - Process: New specs land via normal PR; specs are "living documents" for the duration of a feature's life. Substantive Boundaries-section changes don't require RFC (source: `docs/CONVENTIONS.md:79`, 230).
 - Process: Tests live in `packages/agentbundle/tests/unit/` and `packages/agentbundle/tests/integration/` per memory rule `reference_agentbundle_two_test_roots`. New module names match `test_install_*.py` for install-handler tests.
 - Product: Warning, not refusal — adopter explicit ask 2026-05-26 ("think of other safeguards rather than flat refusal").

@@ -277,20 +277,19 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
 
 ---
 
-### T9: README + how-to guides + migration guide
+### T9: README + how-to guides
 
-(Plan task — Approach references map to spec AC16 for README, AC17 for how-to guides, AC18 for migration guide.)
+(Plan task — Approach references map to spec AC16 for README, AC17 for how-to guides.)
 
 **Depends on:** T1, T4
 
-**Spec mapping:** AC16, AC17, AC18. Mode: manual QA (adopter-facing prose).
+**Spec mapping:** AC16, AC17. Mode: manual QA (adopter-facing prose).
 
 **Tests:**
 - Goal-based grep: assert `README.md` contains the substrings `~/.kiro/skills/`, `~/.agents/skills/`, and `--adapter` (per the Packs-table and Install-section commitments).
 - Goal-based grep: assert `docs/guides/how-to/install-user-scope-pack-into-kiro.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.kiro/skills/`.
 - Goal-based grep: assert `docs/guides/how-to/install-user-scope-pack-into-codex.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.agents/skills/`.
-- Goal-based grep: assert `docs/guides/how-to/v05-to-v06-pack-upgrade.md` exists and contains the substrings `[pack.adapter-contract]`, `0.6`, and `allowed-adapters` (three narrower greps instead of one full quoted phrase, so smart quotes / single quotes in the rendered prose don't break the assertion).
-- Manual: read each new file end-to-end against the spec's AC16-AC18 commitments. Render the README locally and confirm the Packs table renders.
+- Manual: read each new file end-to-end against the spec's AC16-AC17 commitments. Render the README locally and confirm the Packs table renders.
 
 **Approach:**
 - Edit `README.md` (per AC16):
@@ -299,10 +298,9 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
   - Add a one-line note in the `Install` section's `Where to run these` paragraph about user-scope adapter resolution; link to the relevant how-to.
 - Write `docs/guides/how-to/install-user-scope-pack-into-kiro.md` per spec AC17 first bullet.
 - Write `docs/guides/how-to/install-user-scope-pack-into-codex.md` per spec AC17 second bullet.
-- Write `docs/guides/how-to/v05-to-v06-pack-upgrade.md` per spec AC18.
 - Add cross-links from the README install section.
 
-**Done when:** the four grep cases pass; manual read confirms each commitment landed.
+**Done when:** the three grep cases pass; manual read confirms each commitment landed.
 
 ---
 

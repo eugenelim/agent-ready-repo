@@ -7,7 +7,7 @@
 
 ## Approach
 
-Single-PR implementation that lands the contract bump (v0.7 → v0.8) + schema enum extension, the shared `merge-json` projection helper, the new `codex-agent-toml` projection helper, the build-pipeline codex.py wiring (the sole projection-mode dispatcher), the eight packs' contract version bump, the dropped-primitives warning rail, the migration guide, the sibling-spec amendment, and the test surface in one merge per RFC-0004 atomicity. Order of operations: (1) contract data edits + schema-enum extension — *the floor* (T1); (2) shared `merge-json` helper lifted from claude-code-private into `build/projections/merge_json.py` (T2); (3) shared `codex-agent-toml` serialiser at `build/projections/codex_agent_toml.py` (T3); (4) build-pipeline codex.py wiring — codex's per-adapter handler dispatches the new modes to the shared helpers (T4 — the **only** dispatcher; install routes through this via `render.py` → `build.main.run_recipe`); (5) install-handler runtime-accessor pin — verify codex's extended `allowed-prefixes` flow through the runtime accessors (T5, no new dispatcher code); (6) warning-rail helpers + install handler hook (T6); (7) eight packs bump to v0.8 (T7); (8) integration tests across the install handler routing through the build pipeline (T8); (9) migration guide + sibling-spec amendment + ROADMAP (T9); (10) gates (T10). Tests-first per task per `work-loop` discipline. Task graph: T2 and T3 are independent siblings (both `Depends on: none`) consumable from T4; the rest is sequential because the contract is the shared substrate.
+Single-PR implementation that lands the contract bump (v0.7 → v0.8) + schema enum extension, the shared `merge-json` projection helper, the new `codex-agent-toml` projection helper, the build-pipeline codex.py wiring (the sole projection-mode dispatcher), the eight packs' contract version bump, the dropped-primitives warning rail, the sibling-spec amendment, and the test surface in one merge per RFC-0004 atomicity. Order of operations: (1) contract data edits + schema-enum extension — *the floor* (T1); (2) shared `merge-json` helper lifted from claude-code-private into `build/projections/merge_json.py` (T2); (3) shared `codex-agent-toml` serialiser at `build/projections/codex_agent_toml.py` (T3); (4) build-pipeline codex.py wiring — codex's per-adapter handler dispatches the new modes to the shared helpers (T4 — the **only** dispatcher; install routes through this via `render.py` → `build.main.run_recipe`); (5) install-handler runtime-accessor pin — verify codex's extended `allowed-prefixes` flow through the runtime accessors (T5, no new dispatcher code); (6) warning-rail helpers + install handler hook (T6); (7) eight packs bump to v0.8 (T7); (8) integration tests across the install handler routing through the build pipeline (T8); (9) sibling-spec amendment + ROADMAP (T9); (10) gates (T10). Tests-first per task per `work-loop` discipline. Task graph: T2 and T3 are independent siblings (both `Depends on: none`) consumable from T4; the rest is sequential because the contract is the shared substrate.
 
 ## Constraints
 
@@ -26,10 +26,6 @@ Most construction tests live under **Tasks** below (per-task `Tests:`).
 - **End-to-end install integration suite** at `packages/agentbundle/tests/integration/test_install_dropped_primitives_warning.py`. Installs `core` against each of the four shipped adapters at repo scope and asserts (a) the codex projection now lands `.codex/agents/<agent>.toml` + `.codex/hooks.json` (the contract-bump verification), (b) the warning rail fires for codex/kiro/copilot with the correct per-adapter type list, (c) the warning rail stays silent for claude-code. This *is* T8; cross-referenced here for the cross-cutting view. Covers spec AC18; prerequisites span T1-T7.
 - **`pre-pr.py` end-to-end** — `python3 tools/hooks/pre-pr.py` exits 0 on the final tree. Covers spec AC21; spans every task.
 - **`make build-self FORCE=1` clean** after the final commit. Covers spec AC20; spans T7 (the eight pack bumps).
-
-**Manual verification:**
-
-- Read the migration guide end-to-end against AC13. Spot-check the codex projection callout names both new targets and the warning-rail callout names what's still dropped per adapter.
 
 ## Tasks
 
@@ -278,25 +274,23 @@ New module `packages/agentbundle/tests/integration/test_install_dropped_primitiv
 
 ---
 
-### T9: Migration guide + sibling-spec amendment + ROADMAP
+### T9: Sibling-spec amendment + ROADMAP
 
 **Depends on:** T1, T7
 
-**Spec mapping:** AC13, AC14, AC15. Mode: manual QA + goal-based grep.
+**Spec mapping:** AC14, AC15. Mode: manual QA + goal-based grep.
 
 **Tests:**
 
-- Goal-based grep: `docs/guides/how-to/v07-to-v08-pack-upgrade.md` exists; contains substrings `[pack.adapter-contract]`, `0.8`, `.codex/agents/`, `.codex/hooks.json`, `--force`.
 - Goal-based grep: `docs/specs/distribution-adapters/spec.md` Changelog gains a v0.7 → v0.8 entry naming the codex projection additions and the new `codex-agent-toml` mode.
 - Goal-based grep: `docs/backlog.md` contains a `dropped-primitives-coverage` section.
 
 **Approach:**
 
-- Write `docs/guides/how-to/v07-to-v08-pack-upgrade.md`: one section for the contract bump; one for the codex projection additions (with the one-time `--force` reinstall instruction for adopters who installed under codex in the v0.7 window and got silent drops); one for the warning rail purpose and residual drops per adapter.
 - Edit `docs/specs/distribution-adapters/spec.md`: append a Changelog entry naming this spec's contract bump and the new mode.
 - Edit `docs/backlog.md`: add a `dropped-primitives-coverage` heading section mirroring the layout of the existing `repo-scope-per-adapter-projection` section.
 
-**Done when:** the three grep cases pass; manual read confirms each commitment landed.
+**Done when:** the two grep cases pass; manual read confirms each commitment landed.
 
 ---
 
@@ -334,7 +328,7 @@ This spec ships behind no flag. The contract bump v0.7 → v0.8 is the gate: any
 - **Eight packs bumping in one PR.** Per RFC-0012 precedent — risk is a typo in one of the eight breaks `agentbundle validate` for that pack. **Mitigation:** T5's per-pack test loads each `pack.toml` via `tomllib.loads` and asserts the bumped version; `make build-self FORCE=1` is the second belt.
 - **Warning noise.** If too many adopters install `core` via codex/kiro/copilot, the warning may become learned-ignored. **Mitigation:** the warning fires once per `(root, pack, adapter, scope)` per session via short-circuit. If telemetry later shows the warning is ignored, a future RFC can add `--accept-degraded` to silence + a confirmation gate (Option 2 from the design discussion).
 - **Codex `command` drop is residual and may not have a clean fix.** The OpenAI deprecation of custom-prompts in favour of skills means commands can't migrate trivially. **Mitigation:** the warning rail makes this visible; pack authors can choose to omit commands from codex-targeted packs or accept the drop.
-- **v0.7→v0.8 codex re-projection requires a documented manual migration.** Adopters who installed a multi-primitive pack via `--adapter codex` in the v0.7 window have a state row + skills + hook-bodies on disk but no `.codex/agents/` or `.codex/hooks.json` (those types were `dropped`). Running `agentbundle install` again hits Step 4a's `already installed; use 'upgrade'` refusal; `--force` does NOT auto-detect this case (AC24(b) shape-mismatch fires on dist-tree files only); `agentbundle upgrade` at repo scope uses the dist-tree renderer per RFC-0012's Ask-first surface, so it doesn't re-project under the new contract either. **Mitigation:** AC13's migration guide pins the explicit two-step path (`agentbundle uninstall --pack <pack> --scope repo .` then `agentbundle install --pack <pack> --scope repo --adapter codex .`). Auto-detection of this case is named as a follow-on; getting `--force` semantics wrong here would strand adopters with partial installs.
+- **v0.7→v0.8 codex re-projection requires a documented manual migration.** Adopters who installed a multi-primitive pack via `--adapter codex` in the v0.7 window have a state row + skills + hook-bodies on disk but no `.codex/agents/` or `.codex/hooks.json` (those types were `dropped`). Running `agentbundle install` again hits Step 4a's `already installed; use 'upgrade'` refusal; `--force` does NOT auto-detect this case (AC24(b) shape-mismatch fires on dist-tree files only); `agentbundle upgrade` at repo scope uses the dist-tree renderer per RFC-0012's Ask-first surface, so it doesn't re-project under the new contract either. **Mitigation:** the explicit two-step path is the documented migration (`agentbundle uninstall --pack <pack> --scope repo .` then `agentbundle install --pack <pack> --scope repo --adapter codex .`). Auto-detection of this case is named as a follow-on; getting `--force` semantics wrong here would strand adopters with partial installs.
 
 ## Changelog
 
