@@ -129,13 +129,12 @@ The skill writes a Markdown report and (by default) a JSON sidecar:
   touches `report.md`.
 
 For the full output schema (delta math, JSON canonicalisation, scope
-canonical representation, metric row order) see
-`docs/specs/ai-adoption-report.md` §"Output: Markdown" and §"Output:
-JSON sidecar".
+canonical representation, metric row order) see the Outputs section
+above and the JSON sidecar description.
 
 ## Examples
 
-The three literal commands from spec §"Users and use cases".
+The three main invocation patterns:
 
 ### Baseline: pre-AI vs current
 
@@ -201,9 +200,9 @@ for atomic replace). The contract is enforced by tests in
 `os.spawn*` / `os.system` surface and snapshot the working
 directory before and after a run.
 
-## Spec reference
+## Implementation notes
 
-See `docs/specs/ai-adoption-report.md` for:
+Key behavioural contracts:
 
 - the full Inputs table and validation rules,
 - delta math (zero baseline, null on either side, distribution
@@ -217,5 +216,4 @@ See `docs/specs/ai-adoption-report.md` for:
 - Markdown rendering rules (Unicode minus in numeric cells, em-dash
   for absent / undefined cells, scope/team name escaping),
 - JSON canonicalisation (codepoint-sorted keys, 4 dp floats,
-  `deltas` block in canonical metric order),
-- the complete contract-test inventory.
+  `deltas` block in canonical metric order).

@@ -1,4 +1,4 @@
-"""Interactive credential setup — credential-broker-contract T7.
+"""Interactive credential setup.
 
 Walks the user through writing each required key in a skill's
 ``creds-schema.toml`` to the highest-available tier (OS keychain on

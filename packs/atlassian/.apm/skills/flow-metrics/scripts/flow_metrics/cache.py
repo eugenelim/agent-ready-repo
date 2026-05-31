@@ -1,6 +1,6 @@
 """On-disk cache for per-issue derived rows.
 
-Implements docs/specs/flow-metrics.md § "Caching":
+Caching behaviour:
 
 - :func:`cache_key` derives the sha256 over a canonical-JSON dict whose
   fields are exactly those listed in the spec. Cohort JQL, ``--metrics``

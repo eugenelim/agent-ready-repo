@@ -17,10 +17,9 @@ team names (``"Zebra"``, ``"Über-team"``, ``"alpha"``); plain
 
 Program-scope JQL composition lives here too: given the resolved team-id
 list (from T9's :mod:`flow_metrics.align`), build the Jira-side query
-that intersects the team field against those ids. Per spec § "Data
-sources" v1 assumes one Jira ↔ one Jira Align instance pair, so the JQL
-deliberately has no ``project = ...`` clause — the team field id is the
-sole scope selector.
+that intersects the team field against those ids. v1 assumes one Jira ↔
+one Jira Align instance pair, so the JQL deliberately has no
+``project = ...`` clause — the team field id is the sole scope selector.
 
 Field-level permission undercount: when an in-scope issue has no
 readable ``team_field`` value (Jira's field-level security strips it),

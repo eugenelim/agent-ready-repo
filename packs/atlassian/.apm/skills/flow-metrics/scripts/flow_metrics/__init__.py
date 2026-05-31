@@ -719,8 +719,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print("error: {}".format(e), file=sys.stderr)
         return EXIT_VALIDATION
     except _UnmappedStatusError as e:
-        # Spec § "Unmapped-status policy": data-dependent exit 2 naming
-        # the offending raw status. The exception message already does so.
+        # Unmapped-status policy: data-dependent exit 2 naming the
+        # offending raw status. The exception message already does so.
         print("error: {}".format(e), file=sys.stderr)
         return EXIT_VALIDATION
     except ValueError as e:
