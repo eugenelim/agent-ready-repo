@@ -1,4 +1,11 @@
-# windows-ci-bundler — TRIO
+# windows-ci-bundler — plan
+
+- **Status:** Done
+
+> Promoted 2026-05-31 from the work-loop TRIO to `plan.md` (the contract now
+> lives in [`spec.md`](spec.md)). Preserved verbatim as the design record; the
+> shipped form diverged to a separate `build-check-windows.yml` workflow — see
+> `spec.md` § Assumptions.
 
 Step 1 of a five-step Windows-support action plan. Adds a `windows-latest`
 job to `.github/workflows/build-check.yml` so the Phase-3 bash→Python port
