@@ -170,7 +170,6 @@ The spec is closed when each of the following observable outcomes is verifiable 
 - Technical: `packs/core/.apm/hook-wiring/session-start.toml` declares `[[hooks.SessionStart]]` — confirms the load-bearing case is real (source: read `packs/core/.apm/hook-wiring/session-start.toml`).
 - Technical: cross-caller survey found no CI/tool consumer of the refusal substrings — only RFC-0005 and spec documentation hits (source: `grep -rn` 2026-05-26).
 - Process: shipped specs are frozen per `docs/CONVENTIONS.md:80` — a new spec is required for follow-ons rather than amending `dropped-primitives-coverage` in place (source: `docs/CONVENTIONS.md:80`).
-- Process: commit identity `eugenelim <eugenelim@users.noreply.github.com>`, no Claude trailer; `gh auth status` before push (source: user-global memory `git_identity` / `feedback_check_github_auth` / `feedback_no_claude_trailer_in_pr_body`).
 - Product: warning-not-refusal — extending PR #156's stance, no flag introduces refusal path (source: user confirmation 2026-05-26).
 - Product: install-time three-clause formatter grammar is option (A) — extend the existing single formatter, degrade byte-identically when event list is empty (source: user confirmation 2026-05-26).
 - Product: validate-time output is `info:` to **stdout**, exit 0 (source: user confirmation 2026-05-26).
