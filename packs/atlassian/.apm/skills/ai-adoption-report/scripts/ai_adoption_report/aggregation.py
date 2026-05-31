@@ -1,4 +1,4 @@
-"""T6 program-mode aggregation engine.
+"""Program-mode aggregation engine.
 
 Turns a list of :class:`program_discovery.ProgramScope` into:
 
@@ -23,12 +23,12 @@ Aggregation rules for program mode:
   aggregated ``flow_distribution.denominator`` is the integer sum
   across contributing scopes.
 
-Insertion order matches :data:`delta.CANONICAL_METRIC_ORDER` so T7's
-``CanonicalEncoder`` reads insertion order for the aggregates / cohort
-subtrees the way it does for ``deltas``.
+Insertion order matches :data:`delta.CANONICAL_METRIC_ORDER` so the
+renderer's ``CanonicalEncoder`` reads insertion order for the
+aggregates / cohort subtrees the way it does for ``deltas``.
 
-Notes are returned in append order — T7 sorts and dedupes the merged
-list. T6 does NOT pre-sort.
+Notes are returned in append order — the renderer sorts and dedupes the
+merged list. The aggregation engine does NOT pre-sort.
 
 Stdlib only. Python >= 3.10.
 """
@@ -43,7 +43,7 @@ from .program_discovery import ProgramScope
 
 
 # Top-level keys in the order they appear in the aggregates / cohort
-# side dicts T6 produces. Follows the canonical metric row order,
+# side dicts the aggregation engine produces. Follows the canonical metric row order,
 # collapsed to one entry per top-level metric.
 _TOP_LEVEL_METRIC_ORDER: Tuple[str, ...] = (
     "throughput",
@@ -115,8 +115,8 @@ def aggregate_non_cohort(
     notes is ``"non-cohort"``.
 
     The returned dict matches the shape of flow-metrics's ``aggregates``
-    block: same keys, same nesting. T7 may layer on derived fields
-    (e.g. ``throughput_per_week``) at the renderer boundary.
+    block: same keys, same nesting. The renderer may layer on derived
+    fields (e.g. ``throughput_per_week``) at the renderer boundary.
     """
     blocks_with_basenames = [(s.aggregates, s.source_basename) for s in scopes]
     out, _missing_fd, notes = _aggregate_blocks(
@@ -141,7 +141,7 @@ def aggregate_cohort_side(
 
     - ``from_per_team=True`` scopes are excluded from BOTH cohort and
       control rollups (flow-metrics v1 doesn't split per_team rows by
-      cohort; T4 already emits the per_team-cohort-deferred note).
+      cohort; program discovery already emits the per_team-cohort-deferred note).
     - Scopes missing ``cohort_breakdown`` are excluded from both sides;
       a ``cohort-breakdown-missing`` note records the basenames.
     - Scopes whose ``cohort_breakdown.<side>.flow_distribution`` is
@@ -151,8 +151,8 @@ def aggregate_cohort_side(
       basenames.
 
     Returns ``(None, notes)`` when zero scopes contribute, and emits a
-    ``cohort-breakdown-section-empty`` note. T7 dedupes the duplicate
-    emission across the two side calls.
+    ``cohort-breakdown-section-empty`` note. The renderer dedupes the
+    duplicate emission across the two side calls.
     """
     notes: List[str] = []
 
@@ -160,7 +160,7 @@ def aggregate_cohort_side(
     total_m = len(eligible)
     if total_m == 0:
         # No eligible scopes at all (every input was per_team-flattened).
-        # The per_team-cohort-deferred note is T4's responsibility; we
+        # The per_team-cohort-deferred note is program discovery's responsibility; we
         # only need to record the section-empty literal.
         notes.append(Note.cohort_breakdown_section_empty())
         return None, notes
@@ -198,7 +198,7 @@ def aggregate_cohort_side(
     # aggregates are produced. aggregate_non_cohort is the canonical
     # emission point, but firing here too defends against the (contrived)
     # case where the non-cohort table has no distribution metrics yet a
-    # cohort side does. T7 dedupes by exact match, so the duplicate
+    # cohort side does. The renderer dedupes by exact match, so the duplicate
     # emission is free.
     if any(m in out for m in _DISTRIBUTION_METRICS):
         notes.append(Note.median_of_medians_approximation())
@@ -230,8 +230,8 @@ def _aggregate_blocks(
 
     Returns ``(aggregate_dict, missing_flow_dist_basenames, notes)``.
     The dict's keys are inserted in :data:`_TOP_LEVEL_METRIC_ORDER` —
-    T7's CanonicalEncoder relies on insertion order for the aggregates
-    subtree the same way it does for ``deltas``.
+    the renderer's CanonicalEncoder relies on insertion order for the
+    aggregates subtree the same way it does for ``deltas``.
 
     ``missing_flow_dist_basenames`` is the list of basenames whose
     block lacked a ``flow_distribution`` sub-block. The caller decides

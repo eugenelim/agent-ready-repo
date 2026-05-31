@@ -168,7 +168,7 @@ def _tuple_field_names() -> frozenset:
     JSON has no tuple type, so ``asdict`` → ``json.dumps`` → ``json.loads``
     on a tuple-valued field returns a list. Without re-tupling on read,
     a cached round-trip would not compare equal to the source row, which
-    breaks both T7's roundtrip equality guarantee and any downstream
+    breaks both the cache's roundtrip equality guarantee and any downstream
     code that relies on tuple semantics (immutability, hashing).
     """
     global _TUPLE_FIELD_NAMES

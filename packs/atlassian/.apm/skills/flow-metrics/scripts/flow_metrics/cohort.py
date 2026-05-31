@@ -1,4 +1,4 @@
-"""T8 cohort split — `--cohort-jql` resolution + `cohort_breakdown`.
+"""Cohort split — `--cohort-jql` resolution + `cohort_breakdown`.
 
 Cohort behaviour:
 
@@ -9,7 +9,7 @@ Cohort behaviour:
 - :func:`tag_cohort` stamps each :class:`PerIssueRow` with a
   ``cohort: bool`` derived from set membership in the resolved key set.
 - :func:`aggregate_cohort` filters tagged rows by the ``cohort`` flag
-  and runs T6's :func:`aggregate` on the subset. The cohort-restricted
+  and runs the aggregator's :func:`aggregate` on the subset. The cohort-restricted
   denominators (throughput, rework_rate, flow_distribution) follow
   automatically: the subset has its own throughput and its own backward-
   edge sum, so ``rework_rate = cohort_edges / cohort_throughput`` and
@@ -21,8 +21,8 @@ Cohort behaviour:
   ``{"cohort": AggregateBlock, "control": AggregateBlock}`` pair. When
   the resolved cohort set is disjoint from in-scope rows, the duck-
   typed ``notes`` collector is asked to record the empty-cohort note
-  (T11 owns the wording).
-- :func:`cohort_meta` is the meta-block helper T10 will call: returns a
+  (the notes collector owns the wording).
+- :func:`cohort_meta` is the meta-block helper the renderer will call: returns a
   one-key dict when ``--cohort-jql`` was set, empty dict otherwise.
   Locked in here because the spec contract-tests "meta.cohort_jql is
   omitted entirely when --cohort-jql is absent".
@@ -114,7 +114,7 @@ def aggregate_cohort(
 ) -> AggregateBlock:
     """Aggregate the subset of ``rows`` whose ``cohort`` flag matches.
 
-    Wraps T6's :func:`aggregate` against a generator that filters by
+    Wraps the aggregator's :func:`aggregate` against a generator that filters by
     ``row.cohort``. The subset carries its own throughput and backward-
     edge totals, so the spec's "denominator-restricted" cohort metrics
     fall out for free: ``rework_rate`` divides by the cohort throughput,
@@ -128,7 +128,7 @@ def aggregate_cohort(
     cohort/control split when cohort tagging was skipped by mistake.
     """
     subset = (r for r in rows if r.cohort is cohort)
-    # T6-API: aggregate(rows, window, config, *, include_subtasks=False).
+    # aggregator API: aggregate(rows, window, config, *, include_subtasks=False).
     return aggregate(subset, window, config, include_subtasks=include_subtasks)
 
 
@@ -145,12 +145,13 @@ def build_cohort_breakdown(
 
     Materialises the row stream once (two passes are required —
     cohort+control — and the source is single-pass). For very large
-    runs T10 may replace this with a T7 ``read_cache`` re-iteration to
-    avoid the materialisation; the interface is identical either way.
+    runs the renderer may replace this with a ``read_cache`` re-iteration
+    from the cache to avoid the materialisation; the interface is
+    identical either way.
 
     When the resolved cohort set is disjoint from the in-scope rows
     (i.e. zero tagged rows have ``cohort=True``), ``notes`` is asked to
-    record the empty-cohort note. ``notes`` is duck-typed — the T11
+    record the empty-cohort note. ``notes`` is duck-typed — the
     :class:`NotesCollector` will satisfy the interface, but tests pass
     a ``MagicMock()`` and assert the call.
     """
@@ -161,7 +162,7 @@ def build_cohort_breakdown(
     if not cohort_rows:
         notes.add_empty_cohort()
 
-    # T6-API: aggregate(rows, window, config, *, include_subtasks=False).
+    # aggregator API: aggregate(rows, window, config, *, include_subtasks=False).
     cohort_block = aggregate(
         iter(cohort_rows), window, config, include_subtasks=include_subtasks
     )
@@ -177,7 +178,7 @@ def cohort_meta(cohort_jql: Optional[str]) -> Dict[str, str]:
     Empty dict when ``--cohort-jql`` was not provided (None or empty
     string). The spec contract-test ``test_meta_cohort_jql_omitted_when
     _absent`` pins this: the key must be missing, not null, not empty.
-    T10 merges the returned dict into the top-level ``meta`` object.
+    The renderer merges the returned dict into the top-level ``meta`` object.
     """
     if cohort_jql is None or cohort_jql.strip() == "":
         return {}

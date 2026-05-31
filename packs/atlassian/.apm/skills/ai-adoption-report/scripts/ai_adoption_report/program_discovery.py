@@ -1,4 +1,4 @@
-"""T4 program-mode input discovery.
+"""Program-mode input discovery.
 
 Globs ``<DIR>/*.json`` (non-recursive), filters by ``--window``, runs
 duplicate + cross-kind overlap detection, flattens ``per_team`` arrays
@@ -29,10 +29,11 @@ from .notes import Note
 class ProgramScope:
     """One row in the program-mode per-scope table.
 
-    Carries enough state for T6 to drive per-metric aggregation without
-    re-reading files. ``from_per_team=True`` rows are synthesised from
-    a parent input's ``per_team`` array and are excluded from cohort
-    rollups (flow-metrics v1 does not split per_team rows by cohort).
+    Carries enough state for the aggregation engine to drive per-metric
+    aggregation without re-reading files. ``from_per_team=True`` rows
+    are synthesised from a parent input's ``per_team`` array and are
+    excluded from cohort rollups (flow-metrics v1 does not split
+    per_team rows by cohort).
     """
 
     scope: dict
@@ -51,8 +52,9 @@ class ProgramInputs:
 
     ``scopes`` is the post-flattening, post-dedupe, post-overlap-check
     list. ``source_inputs`` is the original :class:`InputFile` set that
-    survived the window filter — T7 reads this for the Provenance
-    section. ``notes`` is unsorted; T7 sorts and dedupes.
+    survived the window filter — the renderer reads this for the
+    Provenance section. ``notes`` is unsorted; the renderer sorts and
+    dedupes.
     """
 
     scopes: List[ProgramScope]
@@ -89,7 +91,7 @@ def canonical_scope_repr(scope: dict, scope_kind: str) -> str:
     Used for:
 
     - duplicate-scope detection (group key in :func:`discover_inputs`),
-    - per-scope row ordering in T7's Markdown / JSON output,
+    - per-scope row ordering in the renderer's Markdown / JSON output,
     - the canonical sort key for ``meta.inputs`` per-scope rows.
 
     The kind is taken as an argument (rather than re-inferred) so this
@@ -118,7 +120,7 @@ def discover_inputs(
 
     1. ``directory.glob("*.json")`` — no recursion.
        Results sorted codepoint-ascending for deterministic errors.
-    2. ``load_input`` each (T2). Failures exit 2 naming the basename.
+    2. ``load_input`` each (input loader). Failures exit 2 naming the basename.
     3. Window filter: ``input.window_from == FROM and
        input.window_to == TO`` (string equality).
     4. Empty result → ValidationError.
@@ -129,10 +131,11 @@ def discover_inputs(
     9. Post-flatten duplicate-scope safeguard.
     10. Emit notes (per_team-double-counted, per_team-cohort-deferred).
 
-    ``window`` is the tuple returned by T1's ``parse_window_flag``.
+    ``window`` is the tuple returned by the CLI scaffold's ``parse_window_flag``.
 
     ``include_cohort_breakdown`` controls the
-    ``per_team-cohort-deferred`` note only; T4 has no other use for it.
+    ``per_team-cohort-deferred`` note only; program discovery has no
+    other use for it.
     """
     candidates = sorted(directory.glob("*.json"), key=lambda p: p.name)
 

@@ -1,9 +1,9 @@
 """Per-issue Timeline — canonical-state walk over the changelog.
 
-T5 substrate: builds an in-memory ordered view of one issue's
+Builds an in-memory ordered view of one issue's
 status and issuetype transitions, derived from its baseline
 (``issue.fields.created`` + initial ``status`` + initial ``issuetype``)
-and a stream of :class:`ChangelogEntry` records produced by T4.
+and a stream of :class:`ChangelogEntry` records produced by the changelog pager.
 
 Every raw status the walker encounters — baseline AND every
 ``from_value`` / ``to_value`` on a status transition — is mapped through
