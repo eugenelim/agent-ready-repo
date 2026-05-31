@@ -45,6 +45,11 @@ they all read:
     adversarial; not a duplicate.
   - **`implementer`** (Sonnet): single-task executor for supervisor
     mode. Not a reviewer.
+
+  The reviewers are diff-source-agnostic — the work loop points them at
+  your own working tree, but you can point them at any diff, including a
+  teammate's branch or open PR. See
+  [Review a branch or PR you didn't write](../how-to/review-someone-elses-pr.md).
 - **The `session-start.py` + `pre-pr.py` hooks** — wire the loop into
   the editor lifecycle. `session-start.py` reads the install-marker
   and nudges into `adapt-to-project` on first session.
