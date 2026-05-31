@@ -271,13 +271,14 @@ def case_iii_code_ref_exclusions_with_controls() -> None:
         write_spec_body(
             root, "excl",
             "Bare `install.py`; placeholder `packages/<pkg>/x.py`; glob "
-            "`tools/lint-*.py`. Controls: `tools/install.py`, "
-            "`packages/real/x.py`, `tools/lint-missing.py`.",
+            "`tools/lint-*.py`; prose ellipsis `packs/core/...x.toml`. "
+            "Controls: `tools/install.py`, `packages/real/x.py`, "
+            "`tools/lint-missing.py`, `packs/core/ctrl-missing.toml`.",
         )
         rc, _, err = run_lint(root)
         expect(rc == 0, f"exit 0 expected, got {rc}: {err}")
         # excluded shapes never warn
-        for excluded in ("`install.py`", "packages/<pkg>", "lint-*.py"):
+        for excluded in ("`install.py`", "packages/<pkg>", "lint-*.py", "...x.toml"):
             expect(excluded not in err, f"excluded shape leaked into warnings: {excluded}")
         # brace-expansion shorthand is excluded even when rooted (so the brace
         # rule, not the root check, is what's under test).
@@ -286,7 +287,8 @@ def case_iii_code_ref_exclusions_with_controls() -> None:
         expect("{a,b}" not in err2 and rc2 == 0,
                f"brace-expansion shorthand must not warn: {err2}")
         # shape-matched full-path controls DO warn
-        for control in ("tools/install.py", "packages/real/x.py", "tools/lint-missing.py"):
+        for control in ("tools/install.py", "packages/real/x.py",
+                        "tools/lint-missing.py", "packs/core/ctrl-missing.toml"):
             expect(control in err, f"control should warn but didn't: {control}: {err}")
 
 
