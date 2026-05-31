@@ -30,6 +30,8 @@ rule_files:
   methods_and_status: references/http-methods-and-status-codes.md
   representations: references/data-formats-and-common-objects.md
   pagination_and_filtering: references/pagination-and-filtering.md
+  errors: references/http-methods-and-status-codes.md
+  security: references/http-methods-and-status-codes.md
   compatibility: references/compatibility-and-versioning.md
   hypermedia_and_performance: references/hypermedia-and-performance.md
   events: references/events.md
