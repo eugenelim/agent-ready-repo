@@ -64,18 +64,18 @@ with separate commits when the change is non-trivial.
 or `none`. Don't omit the field; "obvious from order" is the failure mode
 that hides serial-by-default thinking. `none` is a valid and common answer.
 
-**`Depends on:` grammar** (so the supervisor-mode scheduler can read it —
-RFC-0015 / `loop-cohort schedule`). The field is a comma-separated list of:
+**`Depends on:` grammar** (so the supervisor-mode scheduler —
+`loop-cohort schedule` — can read it). The field is a comma-separated list of:
 local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
 `spec:<name>/TN` for a dependency on another spec's task (e.g.
-`spec:distribution-adapters/T7`). Parenthetical prose after the IDs is
+`spec:auth-tokens/T7`). Parenthetical prose after the IDs is
 ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
 *spec-sequencing*, not intra-plan waves, and are excluded from this plan's
 DAG. The scheduler **fails on a dependency cycle** and **warns on a
 forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first); `tools/lint-plan-deps.py` enforces this.
+running the dep first).
 
-**Optional `Touches:` grammar** (RFC-0015 follow-on 3 / `loop-cohort schedule`).
+**Optional `Touches:` grammar** (read by `loop-cohort schedule`).
 A task *may* add a `**Touches:**` line listing the file globs it expects to
 touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
 trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
