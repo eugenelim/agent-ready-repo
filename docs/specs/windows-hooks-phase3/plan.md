@@ -1,4 +1,11 @@
-# Trio — windows-hooks-phase3 (Option B1)
+# windows-hooks-phase3 — plan
+
+- **Status:** Done
+
+> Promoted 2026-05-31 from the work-loop TRIO to `plan.md` (the contract now
+> lives in [`spec.md`](spec.md)). Preserved verbatim as the design record,
+> including the per-script behaviour matrices. References to "TRIO.md" below are
+> historical (this file).
 
 Work-loop PLAN artifact for one focused PR. Not a spec — Phase 3 is a
 focused port. Updated post-reviewer-iteration-1: behaviour matrices for
