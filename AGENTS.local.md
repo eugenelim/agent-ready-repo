@@ -63,6 +63,42 @@ all run it. If you're tempted to make a shipped hook/command/template reference
 stop: that's catalogue-internal — it breaks on arrival in an adopter's repo
 (this is the issue #190 / `adopter-clean-enforcement-gate` class of bug).
 
+### Shipped pack content carries no internal-governance citations
+
+When you author or edit anything under a pack's `.apm/**` (skills, agents,
+commands, hooks, their `scripts/`, `references/`, `shared-libs/`,
+`adapter-root-bins/`), **never cite this catalogue's own governance**. Adopters
+receive the artifact but none of the governance it was written under, so the
+citation is dangling noise on arrival. The four types to keep out:
+
+1. **RFC numbers** — `RFC-0001`…`RFC-00NN` (our zero-padded form).
+2. **ADR numbers** — `ADR-0001`…`ADR-00NN`.
+3. **Named-spec / acceptance-criterion / plan citations** — `spec § AC15`,
+   `skill-secrets spec § AC24`, `credential-broker-contract T7`,
+   `plan §T5 lines 357-362`, `docs/specs/flow-metrics.md § "Outputs"`.
+4. **Internal doc paths** — `docs/specs/<named-feature>.md`, `docs/adr/…`,
+   `docs/rfc/…`, `.github/workflows/…` (the adopter-clean rule above already
+   bars these from shipped *hooks/commands*; it holds for all `.apm/**`).
+
+Drop the citation, keep the rule: *"Markers are repo-only per RFC-0004"* →
+*"Markers are repo-only"*; *"Refuses the reserved `sso` namespace (spec § AC4b)"*
+→ *"Refuses the reserved `sso` namespace"*. Where the citation carried a "why",
+reword to self-contained prose ("by convention", "a known gap"), never a
+dangling back-reference or an orphaned connective.
+
+**What is NOT a citation — leave it:** the generic spec-driven *workflow
+vocabulary* that ships as the convention itself (`docs/specs/<feature>/spec.md`
+and `plan.md` placeholders, the words "spec" / "plan" / "acceptance criteria"),
+**real external standards** (IETF/W3C — `RFC 9457`, `RFC 8259` — distinguished
+by the space + large number), and **functional fixture/template content** (e.g.
+`- [ ] AC1` rows in the spec-status linter's test fixtures, where `AC1` is data
+the parser consumes, not a citation).
+
+Precedent: `lint-seeds` already enforces this for `seeds/**`. There is **no
+automated lint for `.apm/**` skills/agents yet** — a `lint-seeds`-analogue is a
+possible follow-on, but adding one is a new convention and therefore RFC-gated.
+Until then this is a hand-checked authoring rule.
+
 ## Agents PROJECT — they are not "Claude Code only" (stop getting this wrong)
 
 The `agent` primitive (e.g. `adversarial-reviewer`, `quality-engineer`)

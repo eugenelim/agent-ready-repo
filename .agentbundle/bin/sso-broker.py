@@ -1,4 +1,4 @@
-"""SSO-cookie broker — credential-broker-contract T5.
+"""SSO-cookie broker.
 
 Six verbs: register / get-cookies / test / refresh / list-profiles / rm.
 
@@ -13,8 +13,6 @@ and ``agentbundle:sso:<profile>:<n>`` for continuation slots.
 
 This script lives at ``~/.agentbundle/bin/sso-broker.py`` and is
 subprocess-invoked from `auth: sso-cookie` consumer skills.
-
-Refs: docs/specs/credential-broker-contract/spec.md (AC9-AC17).
 """
 
 from __future__ import annotations
@@ -36,7 +34,7 @@ import urllib.request
 # ``__spec__ is None`` so the block only fires for true file-path
 # invocation; an importlib-based test harness is responsible for its
 # own package context. The shim companion (``credentials_shim.py``)
-# is co-located by the AC22b projection rule, so the per-platform
+# is co-located by the shim-companion projection rule, so the per-platform
 # ``_sso_*`` modules' ``from .credentials_shim import Tier2HardFailError``
 # resolves under user-scope install.
 if __package__ in (None, "") and __spec__ is None:
@@ -45,13 +43,13 @@ if __package__ in (None, "") and __spec__ is None:
     __package__ = _here.name
 
 
-# Per AC12 — chosen explicitly to leave headroom under the Win32
+# Chosen explicitly to leave headroom under the Win32
 # CRED_MAX_CREDENTIAL_BLOB_SIZE lower-bound of 2560 bytes pre-Windows 7.
 # macOS Keychain and Linux dotfile have higher capacity but the same
 # threshold is applied uniformly for cross-platform determinism.
 CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES = 2048
 
-# Reserved keychain-target namespace for this broker (AC12).
+# Reserved keychain-target namespace for this broker.
 # Every write_credential / read_credential call site constructs target
 # names of shape agentbundle:sso:<profile> (or :<n> for continuation).
 _SSO_NAMESPACE = "agentbundle:sso"
@@ -374,7 +372,7 @@ def _do_register(profile: str, args: argparse.Namespace) -> int:
     success = False
     success_re = re.compile(success_pattern)
 
-    # Corporate-network env passthrough — explicit per AC14.
+    # Corporate-network env passthrough — explicit by design.
     env_for_browser = {**os.environ}
 
     with sync_playwright() as pw:
@@ -595,7 +593,7 @@ def _do_list_profiles() -> int:
 def _do_show_tier2_backend() -> int:
     """Print ``repr(_tier2_backend)`` and exit 0.
 
-    Test surface for the AC22b shim-companion projection regression
+    Test surface for the shim-companion projection regression
     (`packages/agentbundle/tests/integration/test_credential_user_scope_invocation.py`):
     invoking ``python bin/sso-broker.py show-tier2-backend`` under the
     documented user-scope layout asserts the Tier-2 backend module
@@ -667,7 +665,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser(
         "show-tier2-backend",
-        help="Print repr(_tier2_backend) (AC22b shim-companion probe).",
+        help="Print repr(_tier2_backend) (shim-companion probe).",
     )
 
     return parser

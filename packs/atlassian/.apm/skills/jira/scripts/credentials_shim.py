@@ -13,9 +13,9 @@ Public surface a credentialed-primitive author imports:
 - ``Credentials`` — immutable, attribute-access view of the resolved values.
 - ``EnvParseError`` — raised by ``parse_env_file`` on unsupported syntax.
 
-Stdlib-only per spec § Boundaries § Never do — no ``python-dotenv``, no
+Stdlib-only by design — no ``python-dotenv``, no
 ``keyring``, no third-party imports. The Tier-2 backend is dispatched at
-module-load time per AC4b: ``_keychain_macos`` iff ``sys.platform ==
+module-load time: ``_keychain_macos`` iff ``sys.platform ==
 "darwin"``, ``_credman_windows`` iff ``"win32"``, no Tier-2 backend on
 other platforms (resolver falls through directly to Tier 3).
 
@@ -36,8 +36,8 @@ Trailing ``\\r`` from CRLF line endings is stripped; ``\\r`` *inside* a
 quoted value is preserved (``KEY="a\\rb"`` → ``{"KEY": "a\\rb"}``).
 
 When loaded outside a consumer-skill ``scripts/`` directory — e.g. as
-a sibling under ``~/.agentbundle/bin/`` per the credential-broker-contract
-AC22b companion projection — the shim's own ``_tier2_backend`` resolves
+a sibling under ``~/.agentbundle/bin/`` per the shim companion
+projection — the shim's own ``_tier2_backend`` resolves
 to ``None``. Callers in that context must not rely on ``load_credentials``
 for Tier-2 resolution; that path is the consumer-skill ``scripts/``
 projection only.
@@ -94,7 +94,7 @@ class Tier2HardFailError(Exception):
 class PermissiveAclError(Exception):
     """Raised when the Windows DACL on the Tier-3 dotfile is too permissive.
 
-    Per spec § AC15: ``icacls`` is invoked after each write; non-default
+    ``icacls`` is invoked after each write; non-default
     ACEs (anything beyond the inherited user / ``NT AUTHORITY\\SYSTEM`` /
     ``BUILTIN\\Administrators``) cause the helper to refuse unless
     ``allow_permissive_acl=True`` was passed.
@@ -104,7 +104,7 @@ class PermissiveAclError(Exception):
 class SchemaError(Exception):
     """Raised when a ``creds-schema.toml`` file is malformed or missing.
 
-    Per spec § AC24 / AC24b — names the offending file path and the
+    Names the offending file path and the
     specific shape violation (missing ``[namespace]``, empty
     ``namespace.keys``, non-boolean ``secret``, or unresolvable
     canonical path).
@@ -186,11 +186,11 @@ def parse_env_file(path: pathlib.Path) -> dict[str, str]:
         result[key] = value
     return result
 
-# Tier-2 backend dispatch at module-load time (spec § AC4b). The backend
-# modules are added by T4 (macOS) and T5 (Windows); until they land, the
-# try/except yields ``None`` and the resolver skips Tier 2 on the matching
-# platform. On Linux (and any non-Darwin / non-Windows platform), no import
-# is attempted at all — Tier 2 is unavailable by absence.
+# Tier-2 backend dispatch at module-load time. If a platform's backend
+# module is absent, the try/except yields ``None`` and the resolver skips
+# Tier 2 on the matching platform. On Linux (and any non-Darwin /
+# non-Windows platform), no import is attempted at all — Tier 2 is
+# unavailable by absence.
 if sys.platform == "darwin":
     try:
         from . import _keychain_macos as _tier2_backend  # type: ignore[no-redef]
@@ -208,7 +208,7 @@ else:
 class Credentials:
     """Immutable, attribute-access view of a namespace's resolved credentials.
 
-    Constructed by ``load_credentials``. The contract (spec § AC3) is:
+    Constructed by ``load_credentials``. The contract is:
 
     - Attribute access returns the resolved value:
       ``creds.API_TOKEN`` returns the resolved ``API_TOKEN`` for the
@@ -276,7 +276,7 @@ class Credentials:
 
 
 def _tier1_env(namespace: str, key: str) -> str | None:
-    """Resolve ``<NAMESPACE>_<KEY>`` from ``os.environ`` (spec § AC5).
+    """Resolve ``<NAMESPACE>_<KEY>`` from ``os.environ``.
 
     Empty-string env vars count as unset and return ``None`` so the
     resolver falls through to lower tiers.
@@ -289,12 +289,12 @@ def _tier1_env(namespace: str, key: str) -> str | None:
 
 
 def _tier2(namespace: str, key: str) -> str | None:
-    """Resolve via the platform-specific keyring backend (spec § AC6, AC9).
+    """Resolve via the platform-specific keyring backend.
 
     Returns ``None`` when the backend is absent (non-Darwin / non-Windows
-    platforms, or backend modules not yet shipped) or reports a clean
+    platforms, or backend modules not shipped) or reports a clean
     miss. Hard-fail error codes from the underlying API propagate as
-    ``Tier2HardFailError`` per AC11.
+    ``Tier2HardFailError``.
     """
     if _tier2_backend is None:
         return None
@@ -302,7 +302,7 @@ def _tier2(namespace: str, key: str) -> str | None:
 
 
 def _tier3(namespace: str, key: str) -> str | None:
-    """Resolve from the Tier-3 dotfile (spec § AC13).
+    """Resolve from the Tier-3 dotfile.
 
     Reads ``~/.agentbundle/credentials.env`` via the stdlib parser and
     looks up ``<NAMESPACE>_<KEY>``. Returns ``None`` on miss; a malformed
@@ -317,7 +317,7 @@ def _tier3(namespace: str, key: str) -> str | None:
 
 
 def _dotfile_path() -> pathlib.Path:
-    """Canonical Tier-3 dotfile path per spec § AC13.
+    """Canonical Tier-3 dotfile path.
 
     Resolves to ``pathlib.Path.home() / ".agentbundle" / "credentials.env"``
     on every platform. Tests redirect ``HOME`` (and ``USERPROFILE`` on
@@ -399,7 +399,7 @@ def _verify_icacls(
     path: pathlib.Path, *, allow_permissive_acl: bool = False
 ) -> None:
     """Run ``icacls /findsid`` and refuse if any well-known "broad
-    access" SID is granted access on the path (spec § AC15). No-op on
+    access" SID is granted access on the path. No-op on
     POSIX.
 
     Default ACEs on a per-user file are the inheriting user,
@@ -437,7 +437,7 @@ def _verify_icacls(
 
 
 def _ensure_parent(parent: pathlib.Path) -> None:
-    """Create the dotfile parent at mode 0o700 if absent (spec § AC15).
+    """Create the dotfile parent at mode 0o700 if absent.
 
     If the parent already exists, do **not** rewrite its mode — the
     directory is shared with ``~/.agentbundle/state.toml``.
@@ -465,7 +465,7 @@ def _dotfile_write(
 ) -> None:
     """Write ``(namespace, key) → value`` to the Tier-3 dotfile atomically.
 
-    Atomic write contract per spec § AC14:
+    Atomic write contract:
     ``tempfile.mkstemp(dir=target_dir)`` → ``os.write`` →
     ``os.fchmod`` (POSIX) → ``os.close`` → ``os.replace``. A mid-write
     read sees either the prior contents or the new contents, never
@@ -556,7 +556,7 @@ def load_credentials(
 ) -> Credentials:
     """Resolve ``required_keys`` for ``namespace``, walking Tiers 1 → 2 → 3.
 
-    First-hit-wins per key (spec § AC4): a key resolved at Tier 1 is not
+    First-hit-wins per key: a key resolved at Tier 1 is not
     re-checked at lower tiers; mixing tiers across keys within one
     namespace is permitted.
 
@@ -593,8 +593,8 @@ def load_credentials(
         attempts.append(f"Tier 1: env {env_name!r} not set")
 
         # Tier 2 — OS keyring (when loaded). Tier2HardFailError
-        # propagates per AC11 (no silent fallback to Tier 3 on hard
-        # fail); only a clean miss falls through.
+        # propagates (no silent fallback to Tier 3 on hard fail);
+        # only a clean miss falls through.
         if _tier2_backend is None:
             attempts.append("Tier 2: not loaded (no keyring backend on this platform)")
         else:
@@ -621,8 +621,8 @@ def load_credentials(
         tiers_tried[key] = attempts
 
     if missing:
-        # One-line preamble preserves the AC3 contract (message names
-        # namespace and the missing-keys list); the per-key trailer
+        # One-line preamble names the namespace and the missing-keys
+        # list; the per-key trailer
         # block comes below for triage.
         lines = [
             f"namespace {namespace!r}: missing required credential(s): "
@@ -641,7 +641,7 @@ def load_credentials(
     return Credentials(namespace, resolved)
 
 
-# ── creds-schema.toml parser (spec § AC24, AC24b) ─────────────────────
+# ── creds-schema.toml parser ──────────────────────────────────────────
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -649,7 +649,7 @@ class KeyDef:
     """A single required key declared in ``creds-schema.toml``.
 
     ``secret=True`` keys are prompted via ``getpass.getpass`` (no echo);
-    ``secret=False`` keys are prompted via ``input()`` per spec § AC24.
+    ``secret=False`` keys are prompted via ``input()``.
     """
 
     name: str
@@ -668,7 +668,7 @@ class CredsSchema:
 def _parse_schema(path: pathlib.Path) -> CredsSchema:
     """Parse a ``creds-schema.toml`` file into a typed ``CredsSchema``.
 
-    Per spec § AC24, the expected shape is::
+    The expected shape is::
 
         [namespace]
         name = "<namespace>"
@@ -733,7 +733,7 @@ _SKILL_MD_RE = re.compile(r"^\.claude/skills/([^/]+)/SKILL\.md$")
 def _relative_schema_path(
     state: "object", pack: str, skill_name: str
 ) -> pathlib.Path:
-    """Resolve the *state-relative* ``creds-schema.toml`` path per spec § AC24b.
+    """Resolve the *state-relative* ``creds-schema.toml`` path.
 
     Walks ``state.packs[pack].files`` for a relpath matching
     ``^\\.claude/skills/<skill_name>/SKILL\\.md$``; returns the
@@ -745,7 +745,7 @@ def _relative_schema_path(
     underscore-prefixed name reflects that contract; CLI callers go
     through `commands/creds._resolve_schema_for_namespace` which joins
     against `SKILL.md.parent` directly instead of calling this helper.
-    Kept around because it pins the AC24b state-walk shape with its
+    Kept around because it pins the state-walk shape with its
     own tests.
 
     Raises ``SchemaError`` if no matching SKILL.md row is in

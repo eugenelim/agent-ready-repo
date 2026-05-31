@@ -9,8 +9,8 @@ The factories are pure formatters — they return strings. Buffering and
 sorting live in a higher layer (T3/T4's report assembly), mirroring the
 ``flow_metrics.notes`` collector-vs-formatter split.
 
-Spec line references point at ``docs/specs/ai-adoption-report.md`` unless
-noted otherwise.
+Note wording is pinned here as the single source of truth for each
+note string emitted by the report.
 
 Stdlib only. Python >= 3.10.
 """
@@ -36,15 +36,14 @@ class Note:
         cls,
         versions_and_basenames: Iterable[Tuple[int, str]],
     ) -> str:
-        """Spec lines 116-118: ``"mixed-major-schema-versions: <list of
-        distinct majors and their input basenames>"``.
+        """Note for mixed major schema versions: ``"mixed-major-schema-versions:
+        <list of distinct majors and their input basenames>"``.
 
         Accepts an iterable of ``(major, basename)`` pairs. Groups by
         major (ascending), sorts basenames lex within each group, and
         renders ``"<major> (<basename>, <basename>)"`` segments joined
-        by ``", "``. The spec pins the prefix but not the precise
-        rendering of the list; this format keeps the output stable
-        across runs (deterministic sort) and human-readable.
+        by ``", "``. The prefix is fixed; this format keeps the output
+        stable across runs (deterministic sort) and human-readable.
 
         Raises ``ValueError`` on empty input or a single-major input.
         The spec only emits this note when majors disagree; calling
@@ -71,16 +70,15 @@ class Note:
     # ------------------------------------------------------------------
     @classmethod
     def config_sha_drift(cls, sha_name: str, a: str, b: str) -> str:
-        """Spec line 163: ``"config-sha-drift: <sha_name> <a> → <b>"``.
+        """Config-SHA drift note: ``"config-sha-drift: <sha_name> <a> → <b>"``.
 
-        ``sha_name`` is ``"state_config_sha"`` or ``"issuetype_config_sha"``;
-        the spec gives both variants under one rule.
+        ``sha_name`` is ``"state_config_sha"`` or ``"issuetype_config_sha"``.
         """
         return "config-sha-drift: {} {} → {}".format(sha_name, a, b)
 
     @classmethod
     def cohort_jql_mismatch(cls, a_jql: str, b_jql: str) -> str:
-        """Spec lines 173-175: ``"cohort-jql-mismatch: <baseline-jql>
+        """Cohort JQL mismatch note: ``"cohort-jql-mismatch: <baseline-jql>
         vs <current-jql>; cohort breakdown comparison omitted"``."""
         return (
             "cohort-jql-mismatch: {} vs {}; cohort breakdown comparison "
@@ -89,12 +87,10 @@ class Note:
 
     @classmethod
     def cohort_breakdown_absent_noop(cls, basenames: Iterable[str]) -> str:
-        """Spec lines 167-172. ``--include-cohort-breakdown`` set in
-        baseline mode but at least one input lacks ``cohort_breakdown``;
-        the flag no-ops.
+        """``--include-cohort-breakdown`` set in baseline mode but at least
+        one input lacks ``cohort_breakdown``; the flag no-ops.
 
-        Spec does not pin the wording verbatim. Literal form chosen by T3
-        (spec reviewers should bless or amend):
+        Literal form:
         ``"cohort-breakdown-absent: cohort_breakdown missing from
         <comma-sep basenames sorted codepoint-ascending>;
         --include-cohort-breakdown no-op"``.
@@ -111,7 +107,7 @@ class Note:
 
     @classmethod
     def per_team_ignored_in_baseline(cls, basename: str) -> str:
-        """Spec lines 180-182: ``"per_team data present in <file>;
+        """Per-team ignored note: ``"per_team data present in <file>;
         ignored in baseline mode (use program mode for multi-team
         rollup)"``."""
         return (
@@ -124,7 +120,7 @@ class Note:
     # ------------------------------------------------------------------
     @classmethod
     def per_team_cohort_deferred(cls, n_rows: int) -> str:
-        """Spec lines 241-244. Literal form:
+        """Per-team cohort deferred note. Literal form:
         ``"per_team-cohort-deferred: N flattened per-team rows have no
         cohort_breakdown; excluded from cohort rollup"``.
 
@@ -140,7 +136,7 @@ class Note:
 
     @classmethod
     def per_team_double_counted(cls, basenames: Iterable[str]) -> str:
-        """Spec lines 246-250. Literal form:
+        """Per-team double-counted note. Literal form:
         ``"per_team-double-counted: <comma-separated input basenames
         whose meta.per_team_double_counted is true, sorted
         codepoint-ascending>; flattened per-team rows may double-count
@@ -168,7 +164,7 @@ class Note:
         scope: dict,
         sources: Iterable[Tuple[str, bool]],
     ) -> str:
-        """Spec lines 222-225. Literal form:
+        """Duplicate scope error. Literal form:
         ``"duplicate scope in input set: <scope dict> in <basename-a>
         and <basename-b>"``.
 
@@ -179,7 +175,7 @@ class Note:
         ``sources`` is an iterable of ``(basename, from_per_team)``
         tuples. ``from_per_team=True`` basenames are annotated with
         ``" (per_team flattened)"`` to distinguish a post-flatten
-        collision (plan lines 287-301) from a pre-flatten duplicate of
+        collision from a pre-flatten duplicate of
         two explicit inputs. The annotation deliberately omits the
         source's parent kind (program/portfolio/project+team) because
         the per_team flattening path admits all three; the source's
@@ -215,10 +211,8 @@ class Note:
         cls,
         pairs: Iterable[Tuple[Tuple[dict, str], Tuple[dict, str]]],
     ) -> str:
-        """Spec lines 210-228. The spec pins the *behaviour* ("exit 2
-        listing the overlapping scopes") but not a verbatim wording. T4
-        introduces this literal form so the error is a single source of
-        truth across the overlap rules:
+        """Overlapping scopes error. Exit 2 listing the overlapping scopes.
+        Literal form:
 
         ``"overlapping scopes in input set: <a-basename> (<a-scope>) "
         "overlaps <b-basename> (<b-scope>); ..."``
@@ -250,12 +244,8 @@ class Note:
     # ------------------------------------------------------------------
     @classmethod
     def aggregation_zero_denominator(cls, metric: str, side: str) -> str:
-        """Spec lines 377-379. The spec pins the *behaviour* ("zero
-        denominator → cell rendered as em-dash + notes entry") but does
-        NOT pin the literal note wording. T6 introduces this literal
-        form; spec reviewers should bless or amend.
-
-        Literal form (T6-introduced, not spec-pinned):
+        """Aggregation zero denominator note. Zero denominator causes
+        the cell to render as em-dash. Literal form:
         ``"aggregation-zero-denominator: <metric>; weighted-average
         undefined (total weight is zero on <side>)"``.
 
@@ -270,13 +260,11 @@ class Note:
 
     @classmethod
     def median_of_medians_approximation(cls) -> str:
-        """Spec lines 381-384. The spec pins the *behaviour* ("a notes
-        entry on program-mode reports records this and points users to
-        per-scope rows for honest distribution inspection") but NOT a
-        verbatim wording. T6 introduces this literal form; spec
-        reviewers should bless or amend.
+        """Median-of-medians approximation note. Program-mode reports emit
+        this once to flag that distribution aggregates are approximations;
+        readers should inspect per-scope rows for honest distribution detail.
 
-        Literal form (T6-introduced, not spec-pinned):
+        Literal form:
         ``"median-of-medians-approximation: distribution aggregates
         (cycle_time/lead_time/flow_time/flow_efficiency) computed as
         median-of-medians across scopes; see per-scope rows for
@@ -295,7 +283,7 @@ class Note:
         missing_basenames: Iterable[str],
         total: int,
     ) -> str:
-        """Spec lines 302-304. Literal form:
+        """Cohort breakdown missing note. Literal form:
         ``"cohort-breakdown-missing: N of M scopes (basenames: a.json,
         b.json); cohort rollup computed over the remaining M-N"``.
 
@@ -321,7 +309,7 @@ class Note:
 
     @classmethod
     def cohort_breakdown_section_empty(cls) -> str:
-        """Spec line 310. Literal form: ``"cohort-breakdown-section-empty"``."""
+        """Cohort breakdown section empty note. Literal form: ``"cohort-breakdown-section-empty"``."""
         return "cohort-breakdown-section-empty"
 
     @classmethod
@@ -331,7 +319,7 @@ class Note:
         missing_basenames: Iterable[str],
         total: int,
     ) -> str:
-        """Spec lines 289-294. Literal form:
+        """Cohort flow_distribution missing note. Literal form:
         ``"cohort-flow_distribution-missing: side=<cohort|control>
         dropped N of M scopes (basenames: a.json, b.json); defect_ratio
         and flow_distribution rollups computed over the remaining M-N"``.
@@ -358,7 +346,7 @@ class Note:
         cls,
         jqls_and_basenames: Iterable[Tuple[str, Iterable[str]]],
     ) -> str:
-        """Spec lines 305-308. Literal form:
+        """Mixed cohort JQL note. Literal form:
         ``"mixed-cohort-jql: <list of distinct JQLs and their input
         basenames>; rollup proceeds but cohort definitions differ across
         scopes"``.
@@ -393,7 +381,7 @@ class Note:
     # ------------------------------------------------------------------
     @classmethod
     def metric_absent(cls, metric: str, side_label: str) -> str:
-        """Spec lines 110-112: ``"<metric> absent in <file>; cell omitted"``.
+        """Metric absent note: ``"<metric> absent in <file>; cell omitted"``.
 
         T5 calls this when a metric key is present on one side of the
         comparison but missing on the other. ``side_label`` is the
@@ -406,7 +394,7 @@ class Note:
 
     @classmethod
     def metric_null_on_one_side(cls, metric: str, side_label: str) -> str:
-        """Spec line 331: ``"<metric> null in <which-side> for <scope>"``.
+        """Metric null on one side: ``"<metric> null in <which-side> for <scope>"``.
 
         T5 does not know the scope (it operates on raw aggregate dicts),
         so it emits the leading clause only. T3 / T6 may later wrap or
@@ -417,7 +405,7 @@ class Note:
 
     @classmethod
     def metric_zero_both_sides(cls, metric: str) -> str:
-        """Spec lines 323-325: ``"<metric> zero on both sides; percent
+        """Metric zero on both sides: ``"<metric> zero on both sides; percent
         delta undefined"``."""
         return "{} zero on both sides; percent delta undefined".format(metric)
 
@@ -429,15 +417,11 @@ class Note:
         n_b: int,
         side_labels: Tuple[str, str],
     ) -> str:
-        """Spec lines 338-345 (per-side ``n`` differs by more than 10%,
+        """N-differs note (per-side ``n`` differs by more than 10%,
         or zero on either side).
 
-        The spec text describes the *behaviour* ("records the per-side
-        ``n`` values when they differ by more than 10%") but does NOT
-        pin a verbatim wording. T5 introduced the literal form below;
-        spec reviewers should bless or amend.
-
-        Literal form (T5-introduced, not spec-pinned):
+        Records the per-side ``n`` values when they differ by more than 10%.
+        Literal form:
         ``"n-differs: <metric> n=<n_a> in <a_label>, n=<n_b> in <b_label>
         (>10% delta)"``.
         """

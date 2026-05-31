@@ -1,5 +1,4 @@
-"""Core population predicates from docs/specs/flow-metrics.md §
-"Metric definitions" → "Core population predicates".
+"""Core population predicates for flow-metrics metric definitions.
 
 Each predicate is a pure function of a :class:`Timeline` and a window.
 The four predicates are intentionally independent — an issue can satisfy

@@ -5,7 +5,7 @@ take a :class:`modes.ReportData` plus a caller-supplied ``title`` and
 ``generated_at`` (T8 supplies the latter; tests stub it) and return the
 final wire strings. No I/O, no clock reads.
 
-Markdown rules (spec lines 388-453, plan lines 463-500):
+Markdown rules:
 
 - Section order fixed; empty sections omitted entirely (no header).
 - Numeric cells: integers bare; floats rounded to 4dp with trailing
@@ -21,7 +21,7 @@ Markdown rules (spec lines 388-453, plan lines 463-500):
   start, which never happens inside a table cell, and dates like
   ``2024-Q1`` and team names like ``Mobile-Web`` are common).
 
-JSON canonicalization (spec lines 495-516, plan lines 502-516):
+JSON canonicalization rules:
 
 - All object keys sorted codepoint-ascending EXCEPT the ``deltas``
   subtree, whose keys follow :data:`delta.CANONICAL_METRIC_ORDER`.
@@ -37,26 +37,27 @@ The deltas-key-order exception is implemented via a sentinel
 placeholder: the document is built with ``deltas`` replaced by a
 unique string, serialized with ``sort_keys=True``, and the placeholder
 is then string-replaced with the separately-serialized canonical-order
-deltas blob (plan line 514-516, "Recommend this over the encoder
-subclass unless you find a cleaner encoder pattern").
+deltas blob (chosen over an encoder subclass unless a cleaner
+encoder pattern emerges).
 
 T7 invariants and decisions (flagged for spec amendment):
 
 1. Summary string is composed by T7 from :attr:`ReportData.deltas` (or
    ``cohort_deltas`` in cohort mode, or scope-count + window in program
-   mode). The spec shows an example (lines 400-402) but doesn't pin the
-   producer; T7 takes the role and emits a best-effort sentence.
+   mode). An example exists but the producer isn't pinned;
+   T7 takes the role and emits a best-effort sentence.
 2. Per-scope table column set: every canonical-order scalar metric +
    every distribution metric's p50 only (p75/p90 elided; readers wanting
-   full percentile detail look at the JSON sidecar). The spec example
-   (line 413) doesn't pin the full column set.
+   full percentile detail look at the JSON sidecar). No example pins
+   the full column set.
 3. Aggregate row: emitted as a final ``"Aggregate"``-labeled row in the
    per-scope table, sourced from :attr:`ReportData.program_aggregates`.
    Spec doesn't require it explicitly; T6 computes the math so this
    surfaces it.
 4. ``cohort_breakdown`` JSON subtree keys are sorted codepoint-ascending
    (not canonical-metric-order) — only ``deltas`` gets the order
-   exception per spec line 508 ("the one intentional exception").
+   exception (the one intentional exception to the global sort-keys
+   rule).
 
 Stdlib only. Pure functions. Python >= 3.10.
 """
@@ -81,7 +82,7 @@ from .modes import ReportData
 SKILL_NAME = "ai-adoption-report"
 SKILL_VERSION = "1.0"
 
-# Markdown escape characters per plan §T7 lines 483-498. ASCII hyphen ``-``
+# Markdown escape characters. ASCII hyphen ``-``
 # is deliberately excluded: date strings like ``2024-Q1`` and team names
 # like ``Mobile-Web`` are common, and ``-`` only acquires list-item
 # meaning at line start (never inside a table cell).
@@ -295,7 +296,7 @@ def render_json(
 
 
 # ---------------------------------------------------------------------------
-# Notes merge + finalize (plan §T5 lines 357-362)
+# Notes merge + finalize
 # ---------------------------------------------------------------------------
 def _finalize_notes(notes: Iterable[str]) -> List[str]:
     """Dedupe + codepoint-sort. Used by both renderers so they emit the
@@ -585,7 +586,10 @@ def _fmt_cell(value: Any, *, kind: str) -> str:
     """Format one Markdown table cell value.
 
     ``kind`` is one of ``"int" | "float" | "hours" | "percent"``.
-    See spec lines 441-453 + plan lines 472-482 for the rules.
+    ``None`` → ``—``; ``percent`` delegates to ``_fmt_percent``; ``int``
+    emits the bare signed integer (4dp shortest-repr if the value arrived
+    as a float); ``float``/``hours`` emit a 4dp trailing-zero-stripped
+    value; infinities render as ``∞``.
     """
     if value is None:
         return "—"
@@ -641,8 +645,8 @@ def _format_float_value(v: float) -> str:
 def _fmt_percent(value: Any) -> str:
     """Format the percent column.
 
-    Per spec lines 446-449: signed with one decimal; ``+0.0%`` for true
-    zero; ``−`` for negative; ``±∞%`` for infinite.
+    Signed with one decimal; ``+0.0%`` for true zero; ``−`` for
+    negative; ``±∞%`` for infinite.
     """
     if value is None:
         return "—"
@@ -675,8 +679,8 @@ def _md_escape(s: str) -> str:
 def _build_inputs_json(inputs: List[InputFile]) -> list[dict]:
     """Build the ``meta.inputs`` array.
 
-    Sorted by basename codepoint-ascending (spec line 502). Each entry
-    carries the per-file provenance fields the spec pins (lines 469-477).
+    Sorted by basename codepoint-ascending. Each entry carries the
+    per-file provenance fields.
     """
     out: list[dict] = []
     for inp in sorted(inputs, key=lambda i: i.basename):

@@ -4,7 +4,7 @@ Used identically for scope, ``--jql``, ``--cohort-jql``, ``--align-filter``,
 and (T9) the program-scope JQL. Parenthesization is contract-tested:
 ``(scope) AND (user)`` whenever a user clause is present, regardless of
 its internal operator precedence. ``ORDER BY key ASC`` is appended for
-canonical iteration order (spec § Output canonicalization).
+canonical iteration order.
 
 Stdlib only. Python >= 3.10.
 """
@@ -21,9 +21,8 @@ def compose_jql(
 ) -> str:
     """Compose a JQL query from a scope clause and an optional user clause.
 
-    Always wraps both clauses in parentheses before ``AND`` (spec § Inputs,
-    Decision #15). Appends ``ORDER BY key ASC`` for canonical iteration
-    order unless suppressed (spec § Output canonicalization).
+    Always wraps both clauses in parentheses before ``AND``. Appends
+    ``ORDER BY key ASC`` for canonical iteration order unless suppressed.
 
     Used identically for ``--jql`` (Jira) and ``--align-filter`` (Jira
     Align OData) at the string-shape level — both follow the same

@@ -17,7 +17,7 @@
 # No `id` field: repo-scope merge-json does not consume it (the field
 # is a user-scope concern in _merge_user_scope_hook_wiring). No
 # `attach-to-agent`: that's a Kiro-only field, and Kiro is out of
-# scope (see docs/specs/wire-session-start-hook/spec.md § Non-goals).
+# scope here.
 [[hooks.SessionStart]]
 hooks = [
   { type = "command", command = "python tools/hooks/session-start.py" },

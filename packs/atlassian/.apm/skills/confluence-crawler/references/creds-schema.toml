@@ -1,8 +1,8 @@
 # Credentials schema for the confluence-crawler credentialed primitive.
-# Format pinned by skill-secrets spec § AC24.
+# Format: a [namespace] table plus one [[namespace.keys]] entry per key.
 #
 # Resolution: load_credentials("confluence", required_keys=[...]) walks
-# Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile per AC4. Env-var
+# Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile. Env-var
 # shape is <NAMESPACE>_<KEY> — CONFLUENCE_BASE_URL, CONFLUENCE_EMAIL,
 # CONFLUENCE_API_TOKEN, CONFLUENCE_FLAVOR.
 #
