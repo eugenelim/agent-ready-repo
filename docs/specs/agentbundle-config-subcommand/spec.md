@@ -1,6 +1,6 @@
 # Spec: agentbundle-config-subcommand
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eu.gene.lim@accenture.com
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0011](../../rfc/0011-pack-allowed-adapters.md), [RFC-0012](../../rfc/0012-repo-scope-per-adapter-projection.md)
@@ -391,6 +391,7 @@ Manual QA is not needed; every behavior above is mechanically verifiable.
 
 ## Changelog
 
+- 2026-05-31: Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `agentbundle config {get,set,unset,path}` subcommand (`commands/config.py`, wired in `cli.py`), the `scope.configured_adapter` reporter, the `_resolve_target_adapter` pre-flight block, the fail-soft TOML loader, the autouse HOME/XDG/APPDATA conftest fixture, and the `docs/guides/reference/agentbundle.md` page. ACs use a non-checkbox format; verified against the merged tree. No deferrals.
 - 2026-05-28: Initial draft.
 - 2026-05-28: Pre-EXECUTE adversarial review pass 5 (user-directed
   fail-loud redesign). Behavioural change: when user-config sets an

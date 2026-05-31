@@ -1,6 +1,6 @@
 # Spec: claude-plugins-install-route
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md)
@@ -334,7 +334,7 @@ taxonomy.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 (canonical writer ships at the documented path,
+- [x] **AC1 (canonical writer ships at the documented path,
       stdlib-only).**
       `packages/agentbundle/templates/install-marker.py` exists
       and contains only standard-library imports. The verification
@@ -356,7 +356,7 @@ taxonomy.
       surface and the function-shape contracts pinned in AC2–AC8;
       RFC-0008's ~80-line estimate is design guidance, not a
       verifiable rule.
-- [ ] **AC2 (scope detection — precedence local → project → user
+- [x] **AC2 (scope detection — precedence local → project → user
       with fall-through semantics; origin-scope vs marker-scope
       collapse).** The writer reads, in order:
       `${CLAUDE_PROJECT_DIR}/.claude/settings.local.json`,
@@ -396,7 +396,7 @@ taxonomy.
       (g) `${CLAUDE_PROJECT_DIR}` unset + user opt-in for a
       user-only pack → user-scope marker written, project /
       local checks skipped without raising.
-- [ ] **AC3 (allowed-scopes refusal rail, origin-scope vocabulary
+- [x] **AC3 (allowed-scopes refusal rail, origin-scope vocabulary
       in stderr).** When the writer's collapsed
       `marker_scope ∈ {repo, user}` is not in the installing pack's
       `[pack.install] allowed-scopes`, it emits exactly one stderr
@@ -416,7 +416,7 @@ taxonomy.
       local` (regression guard on the origin-vocabulary rail). Each
       asserts the exact stderr line, a zero exit, and the absence
       of `pack-manifest-hash` after the refusal.
-- [ ] **AC4 (atomic marker write).** The marker write at every
+- [x] **AC4 (atomic marker write).** The marker write at every
       scope uses `os.replace`-based atomic rename: read-modify-
       write into a tempfile in the same directory as the marker
       file, then `os.replace(tempfile, marker_path)`. A unit test
@@ -432,7 +432,7 @@ taxonomy.
       reads back the final marker file via `tomllib` and asserts
       both the pre-crash and post-recovery entries are present
       and well-formed.
-- [ ] **AC5 (hash file written only after marker write
+- [x] **AC5 (hash file written only after marker write
       succeeds).** When the marker write raises, the writer exits
       non-zero **and does not write
       `${CLAUDE_PLUGIN_DATA}/pack-manifest-hash`**. The next
@@ -445,7 +445,7 @@ taxonomy.
       hash file on disk; (b) re-running the writer against the
       same `${CLAUDE_PLUGIN_ROOT}` produces a marker write and
       then a hash file.
-- [ ] **AC6 (dual-detection branch).** The writer fires when
+- [x] **AC6 (dual-detection branch).** The writer fires when
       **either** `sha256(${CLAUDE_PLUGIN_ROOT}/pack.toml)` differs
       from the stored hash **or** the scope-correct marker file
       has no `[[packs-installed]]` entry naming this pack. Three
@@ -454,7 +454,7 @@ taxonomy.
       marker file absent / no entry for this pack) → writes; (c)
       warm cache (hash file matches **and** marker contains an
       entry for this pack) → no write, no stderr, exit 0.
-- [ ] **AC7 (two-writers-racing read-modify-write; CLI marker
+- [x] **AC7 (two-writers-racing read-modify-write; CLI marker
       round-trip preservation).** Two writers invoked sequentially
       against the same marker file (the common case when multiple
       Claude-plugin packs ship the same `SessionStart` hook and
@@ -479,7 +479,7 @@ taxonomy.
       *Two-process true-concurrency testing is out of scope —
       AC7 asserts sequential-writer correctness against the
       `os.replace` atomicity rail; see Risks.*
-- [ ] **AC8 (plugin upgrade replaces marker entry).** When
+- [x] **AC8 (plugin upgrade replaces marker entry).** When
       `/plugin update` bumps a pack version, the next session's
       writer detects the manifest hash changed and re-writes the
       marker by **replacing** the existing entry for the same pack
@@ -492,7 +492,7 @@ taxonomy.
       [RFC-0008 §Unresolved questions Q3](../../rfc/0008-claude-plugins-install-route-parity.md#unresolved-questions)
       the replace semantics match the CLI route's
       `agentbundle install` overwrite-on-re-install.
-- [ ] **AC9 (build-pipeline derivation projects three artifacts
+- [x] **AC9 (build-pipeline derivation projects three artifacts
       per pack; hook-command shell-exec contract pinned).**
       `agentbundle build` against every pack in `packs/`
       produces, under each pack's
@@ -528,7 +528,7 @@ taxonomy.
       A goal-based test diffs the produced tree against a
       checked-in fixture. `make build-check` exits zero against
       the migrated tree.
-- [ ] **AC10 (hand-authored `plugin.json` migration; two-gate
+- [x] **AC10 (hand-authored `plugin.json` migration; two-gate
       drift protection).** Each pack's source-tree
       `packs/<pack>/.claude-plugin/plugin.json` declares only
       `name`, `version`, `description` (the fields the build
@@ -556,7 +556,7 @@ taxonomy.
          silently neutered by a contract edit.
       Both gates fire on every `make build-check` invocation;
       AC20's writer-drift gate runs alongside.
-- [ ] **AC11 (adapter contract bumps v0.3 → v0.4 with
+- [x] **AC11 (adapter contract bumps v0.3 → v0.4 with
       `install-routes` array; pack-side `adapter-contract.version`
       pin clarified).** `docs/contracts/adapter.toml`
       declares `[contract] version = "0.4"` and
@@ -583,7 +583,7 @@ taxonomy.
       PR**; pack-side version pin updates are scoped to a
       separate future change if and when v0.4-only fields appear
       on the pack manifest.
-- [ ] **AC12 (marker schema gains optional `install-route` and
+- [x] **AC12 (marker schema gains optional `install-route` and
       relaxes two existing arrays).** Per RFC-0008
       §*Marker entry fields*: under v0.4 each `[[packs-installed]]`
       entry MAY carry `install-route = "cli" | "claude-plugins"`
@@ -599,7 +599,7 @@ taxonomy.
       and one v0.4-shaped marker; both parse cleanly through the
       core pack session-start nudge and the `adapt-to-project`
       skill.
-- [ ] **AC13 (CLI route emits `install-route = "cli"`;
+- [x] **AC13 (CLI route emits `install-route = "cli"`;
       cross-version reader tolerance pinned).**
       `agentbundle install._append_install_marker` is amended to
       emit `install-route = "cli"` on every entry. A regression
@@ -616,7 +616,7 @@ taxonomy.
       asserts the returned pack-name list is correct — pinning
       that the existing core session-start hook is not
       destabilised by the new optional field.
-- [ ] **AC14 (session-start hook reads marker unchanged).**
+- [x] **AC14 (session-start hook reads marker unchanged).**
       `packs/core/.apm/hooks/session-start.py:182-193` (the
       `_emit_adapt_nudge` function) is **byte-unchanged** by this
       spec. A regression test loads a v0.4-shaped marker via the
@@ -625,7 +625,7 @@ taxonomy.
       a v0.3-shaped marker (with the same pack names) produces.
       The hook is route-agnostic by design; this AC pins that
       property as a regression test.
-- [ ] **AC15 (`adapt-to-project` skill amendment — proactive
+- [x] **AC15 (`adapt-to-project` skill amendment — proactive
       cache-scan branch).** `packs/core/.apm/skills/adapt-to-project/SKILL.md`
       Pre-flight section gains a sixth step (after the existing
       five) that scans `~/.claude/plugins/cache/` and
@@ -656,7 +656,7 @@ taxonomy.
       End-to-end verification of the idempotence behaviour ships
       as a manual-QA matrix row under AC19 — `verification =
       transcript`, deferred per the matrix's existing pattern.
-- [ ] **AC16 (`adapt-to-project` spec amendment — Acceptance
+- [x] **AC16 (`adapt-to-project` spec amendment — Acceptance
       Criteria).** `docs/specs/adapt-to-project/spec.md` gains
       **three** new Acceptance Criteria (numbered AC24 / AC25 /
       AC26 to extend the existing AC23):
@@ -689,7 +689,7 @@ taxonomy.
         — explicitly forward-referenced.
       The three ACs land as `[ ]` entries; their implementation
       is in the plan below.
-- [ ] **AC17 (`distribution-adapters` spec amendment —
+- [x] **AC17 (`distribution-adapters` spec amendment —
       conformance suite cases).** `docs/specs/distribution-adapters/spec.md`
       § *Recipe set* and § *Acceptance Criteria* gain references
       to the v0.4 contract bump (one line in the Changelog naming
@@ -704,7 +704,7 @@ taxonomy.
       `packages/agentbundle/tests/integration/test_claude_plugins_install_route.py`
       (this spec's owned test file) and are referenced from the
       sibling spec by path.
-- [ ] **AC18 (integration tests cover the five RFC-named
+- [x] **AC18 (integration tests cover the five RFC-named
       scenarios with explicit test names).**
       `packages/agentbundle/tests/integration/test_claude_plugins_install_route.py`
       exists and contains tests pinning the five scenarios named
@@ -734,7 +734,7 @@ taxonomy.
       named in RFC-0008 §Follow-on artifacts, exercising the
       writer against the same environment quartet a real
       Claude-plugins install presents.
-- [ ] **AC19 (manual-QA matrix gains three rows; close-trigger
+- [x] **AC19 (manual-QA matrix gains three rows; close-trigger
       rows pinned).** `docs/specs/adapt-to-project/notes/manual-qa-matrix.md`
       gains three rows:
       (a) `claude-plugins install of core at project scope —
@@ -752,7 +752,7 @@ taxonomy.
       PR; the transcript artifacts are deferred to follow-up
       per the matrix convention (AC19 itself is a structural
       gate on the matrix shape, not on the live transcripts).
-- [ ] **AC20 (self-host drift gate covers the projected
+- [x] **AC20 (self-host drift gate covers the projected
       writer at two axes).** `make build-check` is amended to
       assert two things at every invocation:
       (a) **Template-to-projection drift:** every
@@ -831,3 +831,10 @@ taxonomy.
   `docs/specs/apm-install-route-parity/spec.md` — both specs
   reconcile to the same post-edit module set and the same
   projected hook command.
+- 2026-05-31: Status reconciled to Shipped; ACs checked against
+  the merged implementation (retroactive — implementation landed
+  in prior PRs). All 20 ACs verified satisfied against the current
+  working tree (writer template, integration/hook tests green,
+  contract at v0.8 with `install-routes` including
+  `"claude-plugins"`, schemas, skill amendment, and sibling-spec
+  amendments all present); no deferrals.

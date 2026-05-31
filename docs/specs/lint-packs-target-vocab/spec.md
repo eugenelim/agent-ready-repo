@@ -1,6 +1,6 @@
 # Spec: lint-packs-target-vocab
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0001 (base adapter contract; byte-equal projection invariant). The new gate **refuses** offending source content; it never rewrites at emit time. No `adapter.schema.json` or `adapter.toml` change here.
@@ -291,3 +291,7 @@ final tree):
 
 The split is for reviewer ergonomics. A squash-merge would lose it,
 but AC9 doesn't require the split to survive merge.
+
+## Changelog
+
+- 2026-05-31 — Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `make build`-time gate in `packages/agentbundle/agentbundle/build/lint_packs.py` reading the sibling `docs/contracts/target-vocab.toml`, covered by `build/tests/test_lint_packs.py`. The gate refuses offending source content and never rewrites at emit time, preserving RFC-0001's byte-equal projection invariant. ACs use a non-checkbox format; verified against the merged tree. No deferrals.
