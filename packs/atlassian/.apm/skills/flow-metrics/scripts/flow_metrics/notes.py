@@ -4,12 +4,10 @@ Buffers note strings emitted opportunistically by T5/T6/T8/T9 during a
 run, then :meth:`finalize` returns the lex-sorted list T10's renderer
 splices into the canonical output.
 
-Wording rules pinned by docs/specs/flow-metrics.md § "Outputs" (the
-``notes`` array in the JSON example, lines 434-444) and the Decisions
-section. Where the spec gives a verbatim example string, it is
-reproduced exactly. Where the spec only describes the contract (e.g.
-empty-cohort) the wording is this module's call and the PR description
-flags it for review.
+Wording rules for the ``notes`` output block. Where a verbatim example
+string is tested by the contract tests, it is reproduced exactly. Where
+only the behaviour is pinned (e.g. empty-cohort) the wording is this
+module's call and the PR description flags it for review.
 
 Dedup is by **full final string**, not by counter-method-name: two calls
 to ``add_cancelled(5)`` produce one notes line. Two calls to
@@ -77,8 +75,7 @@ class NotesCollector:
     disclaimer, two) string(s) and appends them iff not already present.
     :meth:`finalize` returns a freshly-sorted copy each call so the
     collector remains non-destructive — T10's renderer also sorts
-    defensively (spec § "Output canonicalization"); both layers must be
-    idempotent under repeated calls.
+    defensively; both layers must be idempotent under repeated calls.
     """
 
     def __init__(self) -> None:
@@ -100,52 +97,49 @@ class NotesCollector:
     # ------------------------------------------------------------------
     def add_cancelled(self, n: int) -> None:
         """Single line listing all five metrics cancelled-in-window
-        issues are excluded from (spec § "Outputs" line 439)."""
+        issues are excluded from."""
         self._append(_CANCELLED_TEMPLATE.format(n=n))
 
     def add_skipped_commitment(self, n: int) -> None:
         """Delivered-in-window but no commitment_state entry — excluded
-        from cycle_time (spec § Metric correctness line 998-999)."""
+        from cycle_time."""
         self._append(_SKIPPED_COMMITMENT_TEMPLATE.format(n=n))
 
     def add_zero_denominator_flow_eff(self, n: int) -> None:
         """Cycle-eligible but ``active_t + wait_t == 0`` — excluded
-        from flow_efficiency (spec § "Outputs" line 437)."""
+        from flow_efficiency."""
         self._append(_ZERO_DENOMINATOR_TEMPLATE.format(n=n))
 
     def add_unmapped_issuetype(self, name: str, n: int) -> None:
-        """One line per distinct unmapped issuetype name (spec § "Outputs"
-        line 436). Callers tally per-name before calling — two calls
-        with the same name+n collapse via dedup; with same name+different
-        n produce TWO lines (caller bug)."""
+        """One line per distinct unmapped issuetype name. Callers tally
+        per-name before calling — two calls with the same name+n collapse
+        via dedup; with same name+different n produce TWO lines (caller
+        bug)."""
         self._append(_UNMAPPED_ISSUETYPE_TEMPLATE.format(n=n, name=name))
 
     def add_permission_undercount(self, n: int) -> None:
         """Project-scope permission undercount: ``jira: get-project``
-        reports a higher total than the in-scope JQL (spec § "Permission
-        undercounting" line 642-643)."""
+        reports a higher total than the in-scope JQL."""
         self._append(_PERMISSION_UNDERCOUNT_TEMPLATE.format(n=n))
 
     def add_field_permission_undercount(self, field: Optional[str], n: int) -> None:
-        """N in-scope issues had no readable team_field value (spec §
-        "Permission undercounting" line 647-656). ``field`` is the
-        team_field id for diagnostics; the spec wording does not embed
-        the field id, but we accept it so call sites stay informative
-        if the wording changes."""
+        """N in-scope issues had no readable team_field value. ``field``
+        is the team_field id for diagnostics; the note wording does not
+        embed the field id, but we accept it so call sites stay
+        informative if the wording changes."""
         del field  # spec wording does not embed the field id today
         self._append(_FIELD_PERMISSION_UNDERCOUNT_TEMPLATE.format(n=n))
 
     def add_window_edge_count(self, n: int) -> None:
-        """Issues that entered in-progress before window start (spec §
-        "Outputs" line 435)."""
+        """Issues that entered in-progress before window start."""
         self._append(_WINDOW_EDGE_TEMPLATE.format(n=n))
 
     def add_flow_load_sample_count(self, n: int, weekend_policy: str = "included") -> None:
-        """Sample count + weekend policy line (spec § "Outputs" line 442;
-        Metric correctness ``test_flow_load_weekend_inclusion_recorded``).
-        v1 always emits ``"weekends included"`` because business-day-only
-        Flow Load is deferred to v2 (spec § "Deferred to v2" line 1523);
-        the parameter is kept so the v2 wiring is a one-arg change."""
+        """Sample count + weekend policy line
+        (``test_flow_load_weekend_inclusion_recorded``). v1 always emits
+        ``"weekends included"`` because business-day-only Flow Load is
+        deferred to v2; the parameter is kept so the v2 wiring is a
+        one-arg change."""
         self._append(
             _FLOW_LOAD_SAMPLE_TEMPLATE.format(n=n, policy=weekend_policy)
         )
@@ -158,17 +152,16 @@ class NotesCollector:
             self._append(line)
 
     def add_empty_cohort(self) -> None:
-        """``--cohort-jql`` matched zero in-scope issues. Spec § "Cohort
-        behaviour" test ``test_empty_cohort_does_not_exit_nonzero`` pins
-        the behaviour (no exit) but not the wording — this string is
-        T11's call (flagged in PR)."""
+        """``--cohort-jql`` matched zero in-scope issues.
+        ``test_empty_cohort_does_not_exit_nonzero`` pins the behaviour
+        (no exit) but not the wording — this string is T11's call
+        (flagged in PR)."""
         self._append(_EMPTY_COHORT_LINE)
 
     def add_per_team_double_counted(self, n: int) -> None:
         """K issues belong to more than one team (array team_field kind)
-        and are counted in each team's per_team row. Spec § "Outputs"
-        line 230-233 mentions the note but doesn't quote it verbatim;
-        wording matches the test fixture in T9's
+        and are counted in each team's per_team row. Wording matches the
+        test fixture in T9's
         ``test_per_team_array_kind_double_count_flagged``."""
         self._append(_PER_TEAM_DOUBLE_COUNTED_TEMPLATE.format(n=n))
 

@@ -6,11 +6,10 @@ output. Owns one upstream call — ``jira: whoami`` for ``meta.caller``
 unset, ``sources`` lex-sorted, ``metrics_requested`` in canonical
 ``--metrics`` order).
 
-Scope rendering matches the spec example (§ "Outputs" line 374):
-``{ "project": "PROJ", "team": "Foo" }`` for project scope (team
-omitted when ``--team`` was not provided); ``{ "program_id": "42" }``
-or ``{ "portfolio_id": "42" }`` for Jira Align scope. Mirrors the
-``_format_scope`` CSV helper in :mod:`flow_metrics.output`.
+Scope rendering: ``{ "project": "PROJ", "team": "Foo" }`` for project
+scope (team omitted when ``--team`` was not provided); ``{ "program_id":
+"42" }`` or ``{ "portfolio_id": "42" }`` for Jira Align scope. Mirrors
+the ``_format_scope`` CSV helper in :mod:`flow_metrics.output`.
 
 Stdlib only. Python >= 3.10.
 """
@@ -22,17 +21,16 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from .output import CANONICAL_METRICS_ORDER
 
 
-# Per spec § "Outputs" line 382: schema_version is pinned at "1.0" for
-# the v1 wire format. Future major versions bump this; T10's renderer
-# does not interpret the value, so the bump is single-source-changeable
-# here.
+# schema_version is pinned at "1.0" for the v1 wire format. Future major
+# versions bump this; T10's renderer does not interpret the value, so the
+# bump is single-source-changeable here.
 SCHEMA_VERSION = "1.0"
 
 
 class CallerResolutionError(Exception):
     """``jira: whoami`` returned a payload with neither ``accountId``
-    nor ``name`` — spec § "Permission undercounting" line 637-638 maps
-    to exit 3 (``test_caller_unrecognized_whoami_exits_3``).
+    nor ``name`` — maps to exit 3
+    (``test_caller_unrecognized_whoami_exits_3``).
 
     Distinct from :class:`flow_metrics.upstream.JiraError`: the upstream
     subprocess exited zero but the payload shape is unusable. The CLI
@@ -47,7 +45,7 @@ def resolve_caller(whoami_payload: Any) -> str:
 
     Cloud responses carry ``accountId`` (24-char opaque); Server / Data
     Center responses carry ``name`` (username). If both are present,
-    prefer ``accountId`` (spec § "Permission undercounting" line 637).
+    prefer ``accountId``.
     If neither is present, raise :class:`CallerResolutionError` —
     the CLI maps to exit 3 with a message mentioning ``whoami`` so the
     user can tell which upstream call produced the bad shape.
@@ -185,13 +183,12 @@ def build_meta(
     - ``metrics_requested`` — canonical ``--metrics`` order, deduped,
       unknown names dropped (see :func:`_canonical_metrics`).
     - ``generated_at`` — ISO-8601 UTC string. Test fixtures
-      historically use ``"2026-05-19T14:00:00Z"`` (spec example line
-      380); we render via ``isoformat`` and append ``Z`` for naive UTC.
+      historically use ``"2026-05-19T14:00:00Z"``; we render via
+      ``isoformat`` and append ``Z`` for naive UTC.
     - ``per_team_double_counted`` — set by T9; threaded through here.
-    - ``cohort_jql`` — **omitted** when ``None`` or empty (spec § "Cohort
-      behaviour" line 1128-1131). The key must be absent, not null, not
-      "". T10's renderer also drops null / empty values; this is the
-      first line of defence.
+    - ``cohort_jql`` — **omitted** when ``None`` or empty. The key must
+      be absent, not null, not "". T10's renderer also drops null / empty
+      values; this is the first line of defence.
     """
     meta: Dict[str, Any] = {
         "caller": caller,
@@ -214,10 +211,10 @@ def _iso_generated_at(value: datetime) -> str:
     """Render ``generated_at`` as ISO-8601 with a ``Z`` suffix for UTC.
 
     Naive datetimes are treated as UTC (the rest of the skill normalises
-    to UTC at boundary; spec § Decisions line 1374: "Time zones: UTC
-    throughout"). Tz-aware datetimes serialise via ``isoformat`` and the
-    offset is normalised to ``Z`` when the offset is zero — matching the
-    spec example ``"2026-05-19T14:00:00Z"``.
+    to UTC at boundary; the convention is UTC throughout). Tz-aware
+    datetimes serialise via ``isoformat`` and the offset is normalised to
+    ``Z`` when the offset is zero — matching the expected format
+    ``"2026-05-19T14:00:00Z"``.
     """
     if not isinstance(value, datetime):
         return str(value)

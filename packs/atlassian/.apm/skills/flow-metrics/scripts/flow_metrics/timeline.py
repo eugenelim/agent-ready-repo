@@ -9,7 +9,7 @@ Every raw status the walker encounters — baseline AND every
 ``from_value`` / ``to_value`` on a status transition — is mapped through
 :meth:`StateConfig.canonical_for`. An unmapped raw status raises
 :class:`UnmappedStatusError`; main translates this to exit 2 naming the
-offending status (spec § "Unmapped-status policy", data-dependent path).
+offending status (data-dependent path).
 
 Stdlib only. Python >= 3.10.
 """
@@ -27,8 +27,8 @@ class UnmappedStatusError(Exception):
     """Walker hit a raw status not present in ``canonical_states``.
 
     Carries the offending raw status name so :func:`flow_metrics.main`
-    can name it in the exit-2 error string (spec § "Unmapped-status
-    policy" — refusal rather than silent canonicalisation).
+    can name it in the exit-2 error string (refusal rather than silent
+    canonicalisation).
     """
 
     def __init__(self, status: str) -> None:

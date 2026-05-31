@@ -49,15 +49,15 @@ from .per_issue import PerIssueRow
 # ---------------------------------------------------------------------------
 # Canonical orders
 # ---------------------------------------------------------------------------
-# Spec § "Outputs" → bucket order locked here (not lex). The order matches
+# Bucket order locked here (not lex). The order matches
 # :data:`flow_metrics.aggregate.FLOW_DISTRIBUTION_BUCKETS` plus the trailing
 # ``denominator`` field that lives inside the same map.
 BUCKET_ORDER: tuple = FLOW_DISTRIBUTION_BUCKETS + ("denominator",)
 
-# Spec § "Outputs" → meta.metrics_requested canonical order. Matches the
-# ``--metrics`` enumeration in :data:`flow_metrics.ALL_METRICS`. Duplicated
-# here so the output module doesn't import the CLI module (which would
-# create a cycle: __init__.py imports several submodules at import time).
+# Canonical order for meta.metrics_requested. Matches the ``--metrics``
+# enumeration in :data:`flow_metrics.ALL_METRICS`. Duplicated here so the
+# output module doesn't import the CLI module (which would create a cycle:
+# __init__.py imports several submodules at import time).
 CANONICAL_METRICS_ORDER: tuple = (
     "cycle_time",
     "lead_time",
@@ -132,7 +132,7 @@ def _aggregates_to_dict(
     The mapping from ``--metrics`` name to wire key is spec-pinned:
     ``cycle_time / lead_time / flow_time`` get the ``_hours`` suffix in
     the wire output; everything else keeps its bare name. Unrequested
-    metrics are absent (not emitted as ``null`` — spec § "Outputs").
+    metrics are absent (not emitted as ``null``).
     """
     requested = set(metrics_requested)
     out: Dict[str, Any] = {}
@@ -209,10 +209,10 @@ def _meta_to_dict(
         if k == "metrics_requested":
             continue  # Report-level field wins
         if k == "cohort_jql" and (v is None or (isinstance(v, str) and v == "")):
-            # Spec § "Cohort behaviour": key is **absent** when --cohort-jql
-            # was not provided — not null, not "". A generic meta builder
-            # that always sets the field (with None when unused) would
-            # otherwise leak `"cohort_jql":null` past the contract test.
+            # cohort_jql is **absent** when --cohort-jql was not provided —
+            # not null, not "". A generic meta builder that always sets the
+            # field (with None when unused) would otherwise leak
+            # `"cohort_jql":null` past the contract test.
             continue
         if k == "sources" and isinstance(v, (list, tuple)):
             out[k] = sorted(v)
@@ -413,17 +413,17 @@ def _per_issue_row_to_dict(row: PerIssueRow) -> Dict[str, Any]:
     """Per-issue wire dict.
 
     ``wip_samples`` is omitted — it's an internal flow_load aggregation
-    detail, not part of the documented per-issue contract (spec § "Per-
-    issue mode" lists every emitted field; ``wip_samples`` is not among
-    them). Every other field is emitted; nullable fields emit JSON
-    ``null`` for ``None``.
+    detail, not part of the per-issue output contract (the per-issue mode
+    lists every emitted field; ``wip_samples`` is not among them). Every
+    other field is emitted; nullable fields emit JSON ``null`` for
+    ``None``.
 
     ``cohort`` is **only** emitted when set (``True`` / ``False``). When
     ``--cohort-jql`` is not in play, T8's :func:`tag_cohort` doesn't run
     and ``row.cohort`` stays ``None``; emitting ``"cohort": null`` would
     mislead consumers into thinking the row was tagged as not-in-cohort.
-    Spec § "Cohort behaviour" line 1124 binds cohort-field presence to
-    cohort-jql mode; absence is the documented signal for "no cohort".
+    Cohort-field presence is bound to cohort-jql mode; absence is the
+    documented signal for "no cohort".
     """
     out: Dict[str, Any] = {
         "key": row.key,
@@ -509,7 +509,7 @@ def _emit_aggregate_rows(
 
     Percentile metrics fill ``p50/p75/p90`` and ``count`` from the
     :class:`PercentileStat`. Scalar metrics put the value in ``p50`` and
-    leave ``p75 / p90 / count`` blank (spec § "Outputs"). flow_distribution
+    leave ``p75 / p90 / count`` blank. flow_distribution
     expands into one row per bucket with the ratio in ``p50`` and the
     distribution denominator in ``count`` — keeping the long-form contract
     intact for downstream CSV consumers that pivot by ``(metric, scope,

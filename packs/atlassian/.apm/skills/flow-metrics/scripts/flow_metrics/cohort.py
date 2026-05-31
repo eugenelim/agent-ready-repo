@@ -1,11 +1,11 @@
 """T8 cohort split — `--cohort-jql` resolution + `cohort_breakdown`.
 
-Implements docs/specs/flow-metrics.md § "Cohort behaviour":
+Cohort behaviour:
 
 - :func:`resolve_cohort_keys` issues exactly one ``jira: search`` for
   ``(scope) AND (cohort_jql) ORDER BY key ASC`` and returns the matching
   issue-key set. No window clause is added — intersection against the
-  main fetch's in-scope rows happens at tagging time, per spec.
+  main fetch's in-scope rows happens at tagging time.
 - :func:`tag_cohort` stamps each :class:`PerIssueRow` with a
   ``cohort: bool`` derived from set membership in the resolved key set.
 - :func:`aggregate_cohort` filters tagged rows by the ``cohort`` flag
