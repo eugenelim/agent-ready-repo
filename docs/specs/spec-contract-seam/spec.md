@@ -147,12 +147,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] The seam is **convention-first**: the skill body states the
   `contracts/<type>/` location is the anchor and that a missing authoring skill
   degrades to a direct file-edit + a note, never blocking.
-- [x] **Adopter-ready skill content:** the seam's adopter-facing skill content
-  (the 4b step, `contract-types.md`) and the `adapt` contract carve-out carry
-  **no catalogue RFC numbers** (adopters don't have our RFCs) — RFC-0017
-  provenance lives in ADR-0008 + this spec. Real external standards (e.g. IETF
-  RFC 9457) are unaffected. (`RFC-0017` no longer appears anywhere under
-  `packs/`.)
+- [x] **Adopter-ready skill content:** every skill file this PR touches —
+  `new-spec` (4b, `contract-types.md`, `assets/spec.md`), `adapt-to-project/SKILL.md`,
+  and `work-loop/scripts/lint-spec-status.py` — carries **no catalogue RFC/ADR
+  numbers** (adopters don't have our RFCs); the scrub covers pre-existing refs in
+  those files (RFC-0004/0008 in `adapt`, RFC-0016/ADR-0007 in the lint docstring),
+  not just the ones this PR added. Provenance lives in `docs/` governance
+  (ADR-0008 + this spec). Real external standards (e.g. IETF RFC 9457) are
+  unaffected. (`RFC-0017` appears nowhere under `packs/`.) Internal RFC refs in
+  *untouched* skills (`work-loop/SKILL.md`, `credential-setup`, …) are a separate
+  catalogue-wide follow-up.
 - [x] The CONVENTIONS **seed** `packs/core/seeds/docs/CONVENTIONS.md` (source of
   truth; top-level `docs/CONVENTIONS.md` is its projection) records the repo-level
   `contracts/<type>/` tree, the per-domain kebab-case naming + versioning
