@@ -301,6 +301,57 @@ honest (you can't drift from the spec if the criteria's verification artifacts a
 The typical mix follows the test pyramid — roughly 80% fast unit / construction
 tests, 15% integration, 5% end-to-end — a target shape, not a quota.
 
+### Contracts — `contracts/<type>/`
+
+API contracts are **long-lived, repo-level, single-source-of-truth** artifacts —
+not per-feature files. They live at the repo root, grouped by contract type
+(authorized by RFC-0017):
+
+```
+contracts/
+  openapi/      # REST — .yaml
+  asyncapi/     # event-driven APIs — descriptor + standalone event-payload schemas
+  proto/        # gRPC / protobuf — buf-style versioned package dirs
+  graphql/      # GraphQL SDL
+  jsonschema/   # standalone JSON Schema
+  jsonrpc/      # JSON-RPC service descriptors
+  mcp/          # Model Context Protocol tool/resource schemas
+```
+
+This is distinct from `docs/contracts/` (adapter schemas) and from the
+`contracts` *pack* of authoring skills; the API tree is unambiguously repo-root
+`contracts/`.
+
+**Naming.** One contract per logical API/service/domain, kebab-case by domain
+(`contracts/openapi/orders.yaml`). Proto follows buf's convention — versioned
+package directories (`contracts/proto/payments/v1/payments.proto`) and
+`lower_snake_case.proto` filenames.
+
+**Versioning.** Minor/patch track in-contract (`info.version`) plus git history;
+a breaking **major** that must be served alongside the old one gets a parallel
+file/dir (`orders.v2.yaml`, `…/v2/`).
+
+**Bidirectional traceability.** A contract and the specs that define or modify it
+point at each other:
+
+- **Forward (spec → contract):** the spec header `- **Contract:**` names the
+  contract file(s) the spec defines or touches.
+- **Backward (contract → spec):** the contract carries an `x-spec` vendor
+  extension naming its defining/modifying specs (OpenAPI/AsyncAPI:
+  `x-spec: [docs/specs/orders/]`); for extensionless formats (proto, graphql) a
+  top-level `contracts/REGISTRY.md` map is the fallback.
+
+Both sides are repo-scope artifacts, so forward/backward agreement is checkable
+by an in-repo lint — the **traceability invariant** in `lint-spec-status.py`
+(warn-only, and a no-op where no `contracts/` tree exists). Contract ↔ spec
+Acceptance Criteria ↔ implementation must agree; changing one without the others
+is drift. A contract is authored through its type's skill when one is installed
+(so the active API standard's compatibility rules catch breaking changes);
+absent a skill, it is hand-authored into the same conventional location.
+
+> **Authorized by RFC-0017**, which also gates this section (a substantive
+> CONVENTIONS change routes through an RFC).
+
 ---
 
 ## 5. Current-state docs — `docs/architecture/`, `docs/product/`, `docs/guides/`
