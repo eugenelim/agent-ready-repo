@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Spec *metadata* drift lint (RFC-0016; § Errata + ADR-0007).
+"""Spec *metadata* drift lint.
 
 This is a `work-loop` **skill script**: it lives at
 `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` and projects to
@@ -12,11 +12,11 @@ The catalogue additionally runs it as a **fail-closed CI gate** via
 `make build-check` (where a PR event and Python both exist). Do NOT wire it into
 `tools/hooks/pre-pr.py`: that hook is a *body* that projects to adopter trees
 and would mis-fire — the finish-time skill checklist and the Makefile gate are
-the two invocation surfaces. (RFC-0016 originally shipped this as a
-catalogue-only `tools/` linter on the false premise that "linters don't
-project"; corrected in RFC-0016 § Errata and ADR-0007.)
+the two invocation surfaces. (An earlier design shipped this as a
+catalogue-only `tools/` linter; it now ships as a skill script so it projects
+to adopters too.)
 
-It checks four invariants over `docs/specs/*/spec.md`, measured against the
+It checks five invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in `CONVENTIONS.md` § 4 (Spec metadata contract). Only the
 header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
 
@@ -35,10 +35,18 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         references (full paths rooted at a known top-level dir or an explicit
         relative link, ending in `.py`/`.toml`/`.sh`/`.json`, locator suffix
         stripped) that don't resolve to a file. WARN-ONLY (never changes the
-        exit code); promoting it to a hard invariant stays deferred per
-        RFC-0016 pending the observed warn rate.
+        exit code); promoting it to a hard invariant stays deferred pending
+        the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
         resolves to a heading anchor in `docs/backlog.md`. HARD (exit non-zero).
+  (v)   spec↔contract traceability — a spec's
+        `- **Contract:**` header (forward ref) names contract file(s) under
+        `contracts/<type>/`; each must exist and carry a backward pointer — an
+        `x-spec` extension (OpenAPI/AsyncAPI YAML/JSON) or a `contracts/REGISTRY.md`
+        row (extensionless formats). WARN-ONLY (never changes the exit code;
+        mirrors invariant (iii)). No-ops where the spec names no contract
+        (non-API features: empty / "none" / the template placeholder) or no
+        `contracts/` tree exists — the common case in repos with no API surface.
 
 Exit codes: 0 = clean (warnings allowed), 1 = one or more HARD violations.
 Usage: lint-spec-status.py [--root DIR] [--base-ref REF]
@@ -72,6 +80,13 @@ _BACKTICK_RE = re.compile(r"`([^`]+)`")
 # recognised code extension. Bare basenames, placeholders, and globs are out.
 _CODE_ROOTS = ("packages/", "tools/", "packs/", "apps/", "docs/", ".github/")
 _CODE_EXTS = (".py", ".toml", ".sh", ".json")
+# Header contract line (invariant v), e.g. `- **Contract:** `contracts/openapi/orders.yaml``.
+_CONTRACT_HEADER_RE = re.compile(r"\*\*Contract:\*\*\s*(.+?)\s*$")
+# A repo-relative contract path token under the `contracts/` tree.
+_CONTRACT_TOKEN_RE = re.compile(r"contracts/[A-Za-z0-9._/-]+")
+# Vendor-extension-bearing contract formats (carry `x-spec` inline); other
+# formats (e.g. .proto, .graphql) use the REGISTRY.md back-ref channel.
+_XSPEC_FORMATS = (".yaml", ".yml", ".json")
 # Markdown heading line.
 _HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$")
 # AC checklist items.
@@ -183,6 +198,21 @@ def code_references(text: str) -> list[tuple[int, str]]:
                 seen.add(path)
                 out.append((lineno, path))
     return out
+
+
+def contract_header_refs(spec_text: str) -> list[tuple[int, str]]:
+    """Return (lineno, contract-path) for each `contracts/...` token on the
+    spec's `- **Contract:**` header line. Returns [] for a non-API feature —
+    an empty value, `none`, or the template placeholder (an HTML comment)."""
+    for lineno, line in enumerate(spec_text.splitlines(), start=1):
+        m = _CONTRACT_HEADER_RE.search(line)
+        if not m:
+            continue
+        value = m.group(1).strip()
+        if not value or value.lower() == "none" or value.startswith("<!--"):
+            return []
+        return [(lineno, tm.group(0)) for tm in _CONTRACT_TOKEN_RE.finditer(value)]
+    return []
 
 
 def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
@@ -320,6 +350,38 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                     f"{rel}:{lineno}: invariant (iii) — code reference '{path}' "
                     f"does not resolve (warn-only)"
                 )
+
+        # (v) spec↔contract traceability (warn-only). Forward `Contract:` header
+        # must point at an existing contract carrying a backward ref. No-ops when
+        # the spec names no contract (non-API) or no `contracts/` tree exists.
+        contract_refs = contract_header_refs(text)
+        if contract_refs:
+            feature_dir = spec_path.parent.relative_to(root).as_posix()
+            registry_path = root / "contracts" / "REGISTRY.md"
+            registry_text = (
+                registry_path.read_text(encoding="utf-8", errors="replace")
+                if registry_path.is_file()
+                else ""
+            )
+            for lineno, token in contract_refs:
+                contract_file = root / token
+                if not contract_file.is_file():
+                    warn.append(
+                        f"{rel}:{lineno}: invariant (v) — Contract: '{token}' does "
+                        f"not resolve to a file (warn-only)"
+                    )
+                    continue
+                backward = False
+                if token.endswith(_XSPEC_FORMATS):
+                    ctext = contract_file.read_text(encoding="utf-8", errors="replace")
+                    backward = "x-spec" in ctext and feature_dir in ctext
+                if not backward:
+                    backward = token in registry_text and feature_dir in registry_text
+                if not backward:
+                    warn.append(
+                        f"{rel}:{lineno}: invariant (v) — contract '{token}' lacks a "
+                        f"backward x-spec/REGISTRY.md ref to {feature_dir} (warn-only)"
+                    )
 
     return hard, warn
 
