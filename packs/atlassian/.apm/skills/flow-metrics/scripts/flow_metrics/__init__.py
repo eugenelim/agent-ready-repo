@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """flow-metrics CLI entry point.
 
-T1 scaffold: argparse, version guard, window resolution, path safety,
+CLI scaffold: argparse, version guard, window resolution, path safety,
 flag-combo validation. Every command path is a stub that prints
-"not yet implemented" and exits 0. Later tasks fill in the actual work.
+"not yet implemented" and exits 0. Later layers fill in the actual work.
 
 Stdlib only. Python >= 3.10.
 """
@@ -38,7 +38,8 @@ def _check_python_version(version_info=None) -> None:
 
 
 # Run guard BEFORE internal imports so any 3.10+ syntax in sibling modules
-# (T2+: config.py, upstream.py, ...) only parses on a supported interpreter.
+# (config.py, upstream.py, and other stage modules) only parses on a
+# supported interpreter.
 # The stdlib imports above are 3.7-safe; siblings below need the guard
 # to print a friendly message instead of a SyntaxError on 3.9 and older.
 _check_python_version()
@@ -294,9 +295,9 @@ def validate_args(args: argparse.Namespace) -> None:
     if args.issuetype_config is not None:
         validate_path(args.issuetype_config, "issuetype-config")
 
-    # Metrics list (just shape-check here; no fail-on-unknown until T10
-    # owns the canonical list emission. But typo'd metric names should
-    # surface early).
+    # Metrics list (just shape-check here; no fail-on-unknown until the
+    # renderer owns the canonical list emission. But typo'd metric names
+    # should surface early).
     if args.metrics is not None:
         names = [m.strip() for m in args.metrics.split(",") if m.strip()]
         unknown = [n for n in names if n not in ALL_METRICS]
@@ -309,8 +310,9 @@ def validate_args(args: argparse.Namespace) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Overwrite-confirm helper (T1 ships the prompt + TTY-detection helper that
-# the test exercises via a stub; the actual write path is T10).
+# Overwrite-confirm helper (the CLI scaffold ships the prompt +
+# TTY-detection helper that the test exercises via a stub; the actual
+# write path is the renderer).
 # ---------------------------------------------------------------------------
 def confirm_overwrite(
     path: Path,
@@ -345,7 +347,7 @@ def confirm_overwrite(
 
 
 # ---------------------------------------------------------------------------
-# Pipeline wiring (T13 — orchestrates T2-T11 module APIs end-to-end)
+# Pipeline wiring — orchestrates the per-stage module APIs end-to-end
 # ---------------------------------------------------------------------------
 def _format_team_id_literal(team_id: str) -> str:
     """Render a Jira Align team id as a JQL literal for the IN clause.
@@ -419,14 +421,14 @@ def _resolve_metrics(args: argparse.Namespace):
 def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
     """Drive the full pipeline end-to-end. Returns a process exit code.
 
-    Orchestration only — every computation step lives in a T2-T11 module.
+    Orchestration only — every computation step lives in a per-stage module.
     Exceptions raised by modules (ValidationError, AllowlistError,
     UpstreamNotFoundError, JiraError, CallerResolutionError, ConfigError,
     AlignResponseError, ValueError from align_join_field / align_teams_path)
     bubble out to main()'s try/except, which maps to the right exit code.
     """
-    # Local imports — keep top-level import surface minimal so the T1
-    # stub-only paths (--help, validation errors) don't pay the full
+    # Local imports — keep top-level import surface minimal so the CLI
+    # scaffold's stub-only paths (--help, validation errors) don't pay the full
     # module-graph cost.
     from dataclasses import replace as _replace
     from .config import ConfigError, TeamField, load_issuetype_config, load_state_config
@@ -586,7 +588,7 @@ def _run_pipeline(args: argparse.Namespace, window: "Window") -> int:
     if should_per_team and rows:
         # Array-kind team_field: enumerate the full membership list per
         # row so an issue with N>1 teams lands in each team's bucket.
-        # The list is canonical on the row (T5 derive_row populates
+        # The list is canonical on the row (per-issue derivation's derive_row populates
         # ``teams`` deduped, in encounter order) — bucket_by_team
         # dedupes within the row again defensively. NO_TEAM rows have
         # an empty ``teams`` tuple; bucket_by_team's "no teams →
@@ -682,16 +684,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print("error: {}".format(e), file=sys.stderr)
         return EXIT_VALIDATION
     except (AllowlistError, UpstreamNotFoundError) as e:
-        # T3 test seam — these exceptions are raised by the upstream
-        # wrapper layer, never by validate_args itself in production, but
-        # T3's test_main_catches_* contract tests monkeypatch validate_args
-        # to inject them and assert main()'s exit-code mapping.
+        # Upstream-wrapper test seam — these exceptions are raised by the
+        # upstream wrapper layer, never by validate_args itself in
+        # production, but the upstream wrapper's test_main_catches_*
+        # contract tests monkeypatch validate_args to inject them and
+        # assert main()'s exit-code mapping.
         print("error: {}".format(e), file=sys.stderr)
         return EXIT_VALIDATION
     except JiraError:
         return EXIT_UPSTREAM
 
-    # Overwrite confirmation gate (T1 contract — applies before the
+    # Overwrite confirmation gate (CLI scaffold contract — applies before the
     # pipeline so a missing TTY aborts before any subprocess fires).
     if args.output is not None:
         out_path = Path(args.output)

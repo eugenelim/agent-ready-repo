@@ -1,7 +1,8 @@
-"""T11 notes collector.
+"""Notes collector.
 
-Buffers note strings emitted opportunistically by T5/T6/T8/T9 during a
-run, then :meth:`finalize` returns the lex-sorted list T10's renderer
+Buffers note strings emitted opportunistically by per-issue derivation,
+the aggregator, the cohort split, and the per-team rollup during a
+run, then :meth:`finalize` returns the lex-sorted list the renderer
 splices into the canonical output.
 
 Wording rules for the ``notes`` output block. Where a verbatim example
@@ -74,7 +75,7 @@ class NotesCollector:
     Each ``add_*`` method renders one (or, for the defect-ratio
     disclaimer, two) string(s) and appends them iff not already present.
     :meth:`finalize` returns a freshly-sorted copy each call so the
-    collector remains non-destructive — T10's renderer also sorts
+    collector remains non-destructive — the renderer also sorts
     defensively; both layers must be idempotent under repeated calls.
     """
 
@@ -154,14 +155,14 @@ class NotesCollector:
     def add_empty_cohort(self) -> None:
         """``--cohort-jql`` matched zero in-scope issues.
         ``test_empty_cohort_does_not_exit_nonzero`` pins the behaviour
-        (no exit) but not the wording — this string is T11's call
-        (flagged in PR)."""
+        (no exit) but not the wording — this string is the notes
+        collector's call (flagged in PR)."""
         self._append(_EMPTY_COHORT_LINE)
 
     def add_per_team_double_counted(self, n: int) -> None:
         """K issues belong to more than one team (array team_field kind)
         and are counted in each team's per_team row. Wording matches the
-        test fixture in T9's
+        test fixture in the per-team rollup's
         ``test_per_team_array_kind_double_count_flagged``."""
         self._append(_PER_TEAM_DOUBLE_COUNTED_TEMPLATE.format(n=n))
 
@@ -173,7 +174,7 @@ class NotesCollector:
 
         Non-destructive: repeated calls return equivalent lists; the
         collector remains usable for further add_* calls (subsequent
-        finalize calls reflect them). T10's renderer also sorts
+        finalize calls reflect them). The renderer also sorts
         defensively at emit time; both passes must be idempotent.
         """
         return sorted(self._notes)

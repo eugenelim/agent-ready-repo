@@ -1,6 +1,6 @@
 """Per-issue changelog pagination — Cloud-regression workaround.
 
-T4 substrate: the upstream ``jira: search ... --expand changelog`` call
+The upstream ``jira: search ... --expand changelog`` call
 inlines at most the first ~100 changelog entries per issue under
 ``issue.changelog``. Long-lived issues need a follow-up
 ``jira: raw GET issue/<KEY>/changelog`` to drain the rest, or every
@@ -16,7 +16,7 @@ This module exposes a single streaming entry point,
 - yields entries lazily so the iterator's peak memory is
   O(transitions per issue), not O(total transitions across the run);
 - filters to ``field in {"status", "issuetype"}`` (the only two fields
-  T5 consumes) at this layer to keep per-issue memory bounded.
+  per-issue derivation consumes) at this layer to keep per-issue memory bounded.
 
 Pagination is detected from three signals in priority order:
 
@@ -43,7 +43,7 @@ from typing import Any, Iterator, List, Mapping, Optional
 from .upstream import JiraClient
 
 
-# Fields T5 consumes. Other field changes (labels, assignee, custom
+# Fields per-issue derivation consumes. Other field changes (labels, assignee, custom
 # fields) are filtered out at this layer so per-issue memory stays
 # bounded at O(state + issuetype transitions) rather than O(every edit).
 _KEPT_FIELDS: frozenset = frozenset({"status", "issuetype"})
@@ -159,8 +159,8 @@ def _entries_from_history(history: Mapping[str, Any]) -> Iterator[ChangelogEntry
         ts = _parse_jira_timestamp(created)
     except ValueError:
         # An unparseable timestamp on a single history record should not
-        # corrupt the whole iterator — skip it and let T5 surface any
-        # downstream consequences via the per-issue derivation checks.
+        # corrupt the whole iterator — skip it and let per-issue
+        # derivation surface any downstream consequences via its checks.
         return
     author = _author_name(history.get("author"))
     items = history.get("items")
@@ -232,7 +232,7 @@ def iter_issue_changelog(
     without the metadata we can't tell whether to drain. A bare list is
     still tolerated and treated as a complete, unpaginated changelog.
 
-    The follow-up ``raw_get`` calls go through the T3 allowlist:
+    The follow-up ``raw_get`` calls go through the upstream wrapper's allowlist:
     ``issue/<KEY>/changelog`` is one of the three permitted patterns;
     nothing else is.
     """
