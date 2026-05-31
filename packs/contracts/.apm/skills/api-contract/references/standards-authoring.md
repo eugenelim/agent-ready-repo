@@ -39,7 +39,7 @@ See `standards-manifest-zalando.yaml` for the canonical base.
 | `example` | A complete validated example authored against the standard. |
 | `components` | Reusable schema fragments (e.g. `money`, `problem`). |
 | `rules` | Rule-id → definition (in a base) **or** rule-id → `false` to disable an inherited rule (in a delta). Keys are canonical tokens, e.g. `"#129"`. |
-| `adds` | List of house rules the standard adds: `{ id, phase, text }`. |
+| `adds` | List of house rules the standard adds: `{ id, phase, text }`. `phase` is one of the `rule_files` keys — `naming`, `methods_and_status`, `representations`, `pagination_and_filtering`, `errors`, `security`, `compatibility`, `hypermedia_and_performance`, `events`. |
 
 ## Base + delta resolution
 
