@@ -1,7 +1,7 @@
 # Spec: agentbundle-config-subcommand
 
 - **Status:** Shipped
-- **Owner:** eu.gene.lim@accenture.com
+- **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0011](../../rfc/0011-pack-allowed-adapters.md), [RFC-0012](../../rfc/0012-repo-scope-per-adapter-projection.md)
 

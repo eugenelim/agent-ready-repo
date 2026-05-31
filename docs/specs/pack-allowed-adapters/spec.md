@@ -28,7 +28,6 @@ The three-tier guard that keeps an implementing agent inside the lines. *Always 
 - **Pin the schema's adapter-enum hydration in Python validator code** (not in `pack.schema.json` literal `enum`). The JSON file declares `"items": {"type": "string"}`; the validator reads `adapter.toml` at validate time and intersects with the live `[adapter.<name>.scope].user` set when the pack declares `"user" ∈ allowed-scopes`. A test under `build/tests/` pins the derivation against a fixture contract.
 - **Hydrate the argparse `choices=` on `--adapter` from the live contract at CLI-load time** via a helper shared with the validator. Same symmetry as above. A test in `tests/unit/` pins the helper's output against the shipped contract and fails on drift.
 - **Run `make build-self FORCE=1` after every change to `packs/<pack>/.apm/` or `packs/<pack>/seeds/`** so projected `.claude/skills/...` etc. stay in sync. Closing a build-self drift is in-scope for this PR (per memory rule `feedback_build_self_undoes_projection_only_edits`).
-- **Use `eugenelim <eugenelim@users.noreply.github.com>` commit identity**, no Claude trailer; run `gh auth status` before push.
 
 ### Ask first
 
