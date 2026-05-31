@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for the sibling lint-spec-status.py (RFC-0016 Tier-1 lint).
+"""Self-test for the sibling lint-spec-status.py (the Tier-1 spec-status lint).
 
 Builds fixture spec trees in a tempdir and runs the linter as a
 subprocess against the documented `python <skill>/scripts/lint-spec-status.py

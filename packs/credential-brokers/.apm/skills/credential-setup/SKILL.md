@@ -10,7 +10,7 @@ metadata:
 # Skill: credential-setup
 
 This skill is the **single LLM-cooperative exception** to the
-brokers-not-skills rule (per RFC-0013 § 4e). It lives at
+brokers-not-skills rule. It lives at
 `<skills-dir>/credential-setup/` rather than at adapter-root because
 its job is to *prompt the user for a token* — an LLM-discoverable
 operation by design. The skill's body says, explicitly: this is
@@ -50,7 +50,7 @@ python3 scripts/setup.py <namespace> --schema-path <path>
 
 The script:
 
-1. Refuses the reserved `sso` namespace (per RFC-0013 § 4b — the
+1. Refuses the reserved `sso` namespace (the
    `sso-cookie` broker owns the `agentbundle:sso:*` keychain
    target-name prefix and the `credential-brokers` pack reserves
    the `sso` namespace globally for that broker's use).
@@ -85,5 +85,5 @@ To verify resolution after setup, invoke the consumer skill's own
 CLI primitive). The consumer's `check` walks Tier 1 → Tier 2 → Tier 3
 through the build-projected `credentials_shim` and exits 0 when every
 declared key resolves. This skill writes; the consumer's `check`
-reads. Do not write a `get` verb in this skill — the RFC-0006 § 5
+reads. Do not write a `get` verb in this skill — the
 wrap-and-leak shape is explicitly refused.
