@@ -34,8 +34,8 @@ Steps:
    - `pack.toml` — manifest. Conforms to [`docs/contracts/pack.schema.json`](docs/contracts/pack.schema.json). Required tables: `[pack]`, `[pack.adapter-contract]`, `[pack.install]`. Cross-field invariant `default-scope ∈ allowed-scopes` is schema-enforced.
    - `.apm/` — upstream for adapter-projected primitives (`skills/`, `agents/`, `hooks/`, `commands/`, `hook-wiring/`).
    - `seeds/` — upstream for seed-projected files (README, governance content). Files prefixed `_` are composition fragments, not standalone.
-3. **Run the pack validator.** `agentbundle validate packs/<your-pack>`. Exit codes and the failure modes are in [`docs/guides/how-to/v01-to-v02-pack-upgrade.md`](docs/guides/how-to/v01-to-v02-pack-upgrade.md).
-4. **If you claim `user` scope**, justify it. The user-scope eligibility test is the falsifiable check in the migration guide — content must be project-portable (no hooks that wire into a specific repo's surface, no seeds that name *this* project).
+3. **Run the pack validator.** `agentbundle validate packs/<your-pack>`; fix anything it reports before opening the PR.
+4. **If you claim `user` scope**, justify it. The user-scope eligibility test is falsifiable: content must be project-portable (no hooks that wire into a specific repo's surface, no seeds that name *this* project).
 5. **Update the `Packs` table in [`README.md`](README.md)** and the catalogue manifest (`make build-self` regenerates the latter).
 
 ### Adding or modifying a skill

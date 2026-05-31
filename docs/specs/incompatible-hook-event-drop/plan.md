@@ -13,7 +13,7 @@ Single-PR implementation. The change has three thin layers, none of which requir
 2. **Validate-side swallow:** `commands/validate.py`'s two refusal sites (rails 4c / 4d) stop returning 1 on the compatibility refusal categories. Instead, the per-file drop list flows to **stdout** as `info:` text. Symlink and parse-fail refusals continue to exit 1.
 3. **Install-side enumeration + formatter extension:** add `_enumerate_event_dropped_wirings` alongside the shipped `_enumerate_dropped_primitives`; extend `_format_dropped_warning` to compose the three-clause grammar; wire the enumeration into `_maybe_emit_dropped_warning`. The single-clause (primitive-type-only) case stays byte-identical.
 
-Tests-first per the work-loop discipline. Most tasks are TDD-shaped; two are goal-based (migration guide + cross-caller survey at merge). Task graph: T1 (refactor) is `Depends on: none`; T2 (validate swallow) depends on T1; T3 / T4 (enumerator + formatter) are independent siblings both `Depends on: none`; T5 (wire-up) depends on T3 + T4; T6 (integration tests) depends on T2 + T5; T7 (migration guide) depends on T1-T6 conceptually but `Depends on: none` for execution; T8 (gates + status flip) depends on everything.
+Tests-first per the work-loop discipline. Most tasks are TDD-shaped; one is goal-based (cross-caller survey at merge). Task graph: T1 (refactor) is `Depends on: none`; T2 (validate swallow) depends on T1; T3 / T4 (enumerator + formatter) are independent siblings both `Depends on: none`; T5 (wire-up) depends on T3 + T4; T6 (integration tests) depends on T2 + T5; T8 (gates + status flip) depends on everything.
 
 The riskiest part is **AC8** — the existing primitive-type-only tests at `packages/agentbundle/tests/unit/test_install_dropped_primitives_warning.py` must stay green byte-for-byte. The formatter extension is additive; degrade-when-event-list-empty is the load-bearing invariant.
 
@@ -34,10 +34,6 @@ Most construction tests live under **Tasks** below (per-task `Tests:` subsection
 - **End-to-end install integration suite extension** at `packages/agentbundle/tests/integration/test_install_dropped_primitives_warning.py` (existing module — extended, not replaced). New cases: `agentbundle install --pack core --scope repo --adapter kiro <root>` exits 0 + emits the three-clause warning + projects skills/agents but not the session-start wiring; positive control `--adapter claude-code` projects the SessionStart wiring. This is T6; cross-referenced here for the cross-cutting view. Covers spec AC10; prerequisites span T1-T5.
 - **`pre-pr.py` end-to-end** — `python3 tools/hooks/pre-pr.py` exits 0 on the final tree. Covers spec AC17; spans every task.
 - **`make build-self FORCE=1` clean** after the final commit. Covers spec AC16; spans T1-T8 (no pack-content changes in this spec, so the projection invariant is "no diff" rather than "diff matches expectations").
-
-**Manual verification:**
-
-- Read the new section of `docs/guides/how-to/v07-to-v08-pack-upgrade.md` end-to-end against spec AC11. Spot-check that the wording matches the install-time warning + validate-time info exactly.
 
 ## Tasks
 
@@ -357,33 +353,9 @@ Extend `packages/agentbundle/tests/integration/test_install_dropped_primitives_w
 
 ---
 
-### T7: Migration-guide update — per-file drop section
-
-**Depends on:** none (can land independently; gated only by AC11)
-
-**Spec mapping:** AC11. Mode: manual QA + goal-based grep.
-
-**Tests:**
-
-- Goal-based grep: `grep -n "^## Per-file hook-wiring drops on incompatible adapters" docs/guides/how-to/v07-to-v08-pack-upgrade.md` returns exactly one match. (Heading pinned exactly for AC11 falsifiability.)
-- Goal-based grep: `grep -n "hook-wiring/session-start.toml" docs/guides/how-to/v07-to-v08-pack-upgrade.md` returns at least one match (the example file is named).
-- Goal-based grep: `grep -n "incompatible-hook-event-drop" docs/guides/how-to/v07-to-v08-pack-upgrade.md` returns at least one match (cross-link to this spec is present).
-- Goal-based grep: the new section also names the parse-fail asymmetry per AC6c — `grep -n "hook-wiring TOML failed to parse" docs/guides/how-to/v07-to-v08-pack-upgrade.md` returns at least one match.
-- Manual: read the new section end-to-end. Spot-check that the wording matches the install-time warning + validate-time info exactly. Cross-references the parent spec by relative-path link.
-
-**Approach:**
-
-- Append a new section to `docs/guides/how-to/v07-to-v08-pack-upgrade.md` (the migration guide PR #156 shipped). **Section heading (pinned by AC11):** `## Per-file hook-wiring drops on incompatible adapters` — exactly this text, used by the AC11 grep gate.
-- Content covers: (a) when it fires (kiro install of any pack whose hook-wiring uses an event Kiro doesn't know); (b) the warning the adopter sees at install time (paste the AC7 wording with `core` substituted); (c) the validate-time info line (paste the AC2 one-file-one-reason wording); (d) why this is an extension of PR #156's coarse-grained rail (one-paragraph rationale); (e) **the parse-fail asymmetry (AC6c):** a hook-wiring TOML that fails to parse refuses validate (exit 1, fix the file) but install enumerates it as a drop entry (the file is named in the warning, install proceeds without that wiring). One paragraph naming the asymmetry so adopters running install without validate aren't surprised when a malformed file disappears from the projection.
-- Cross-link to this spec: `[incompatible-hook-event-drop spec](../../specs/incompatible-hook-event-drop/spec.md)`.
-
-**Done when:** the grep returns content; manual read confirms the section is end-to-end coherent.
-
----
-
 ### T8: Spec README + ROADMAP + gates + status flip
 
-**Depends on:** T1, T2, T3, T4, T5, T6, T7
+**Depends on:** T1, T2, T3, T4, T5, T6
 
 **Spec mapping:** AC12, AC13, AC14, AC15, AC16, AC17. Mode: goal-based check.
 
@@ -422,7 +394,7 @@ This spec ships behind no flag. The validate-side change makes a previously-fail
 - **The validate.py swallow accidentally broadens beyond hook-wiring compatibility.** The risk: a future call-site refactor uses the same code path for a different rail and the swallow leaks. **Mitigation:** AC5's scoping test (`test_validate_still_refuses_on_other_rail_failures`) pins that rails 4a / 4b / 4e continue to refuse; the T1 helper's name (`_load_pack_hook_wiring_safely`) makes the scoping explicit. A future broadening would have to either rename the helper or wire it into another rail — both visible in diff.
 - **The `<reason-summary>` order is a free-floating contract surface.** Adopters reading the warning text may build expectations on the order. **Mitigation:** the pinned tuple at T4's formatter ("event-vocabulary first, then attach-to-agent") is tested explicitly; future categories must be appended (defensive sort), not interleaved.
 - **`enumerate_event_dropped_wirings`'s "unknown agent" case is not enumerated AND the validate swallow MUST also exclude it.** The validate-time `check_kiro_attach_to_agent` refuses on both "missing attach-to-agent" AND "names an unknown agent". The spec splits these: AC1's swallow covers missing-only; AC4b keeps unknown-agent (and explicit empty string `""`) as an exit-1 refusal. **Discrimination is from input data, NOT from refusal-string inspection** (round-2 fix): validate.py's call site re-implements the two-branch check inline against the loaded `(wiring_tomls, agent_basenames)` from T1's safe-load helper, then constructs the refusal text inline byte-for-byte matching `scope_rails.py:333-337`'s composition. The helper at `scope_rails.py:302-338` returns a single composed refusal string that can't tell its caller which branch fired, so validate.py doesn't call it for the swallow path. **Risk:** a future RFC-0005 wording change must update both the helper composition AND the validate.py inline construction. Mitigation: the plan T2 inline comment names the duplication; AC4b's `test_validate_still_refuses_on_unknown_agent_reference` (and the round-3 sibling `test_validate_refuses_on_empty_attach_to_agent_string`) catch text drift. The install-time enumerator deliberately doesn't enumerate unknown-agent references (the install handler's downstream projection rail catches missing target files with a clearer error than "drop"), but DOES enumerate omitted-or-empty attach as a compat drop entry — see T3 step 2b for the empty-string carve-out.
-- **Install-time tolerates a malformed hook-wiring TOML; validate refuses it.** AC6c documents the asymmetry. **Mitigation:** install enumerates the parse-fail as a drop entry so the file is visibly named in the warning (not silently absent); the migration guide (AC11) names the asymmetry so an adopter running install-only sees the warning name the file. The risk that an adopter only runs install (never validate) and ignores the warning is real but small — the warning grammar is loud and the parse-fail reason category is distinct.
+- **Install-time tolerates a malformed hook-wiring TOML; validate refuses it.** AC6c documents the asymmetry. **Mitigation:** install enumerates the parse-fail as a drop entry so the file is visibly named in the warning (not silently absent). The risk that an adopter only runs install (never validate) and ignores the warning is real but small — the warning grammar is loud and the parse-fail reason category is distinct.
 - **Perf nod: `enumerate_event_dropped_wirings` walks every hook-wiring TOML at every install.** For packs with no hook-wirings this is a no-op (the directory-exists check at T3's step 2 short-circuits). For packs with many wirings (none in the catalogue today), the cost is O(N · M) where N is wirings × M is events-per-wiring — small constants. No mitigation needed at this scale; revisit if a future pack ships hundreds of wirings.
 
 ## Changelog

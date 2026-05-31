@@ -73,5 +73,4 @@ design — only the upstream-managed Tier-1 files are removed.
 ## Related
 
 - [How to adapt a freshly-installed pack](../../specs/adapt-to-project/spec.md) — the skill that walks `*.upstream.<ext>` companions.
-- [How to upgrade a pack from contract v0.1 to v0.2](v01-to-v02-pack-upgrade.md) — for pack authors, not adopters.
 - [RFC-0001 § Adopter file safety contract](../../rfc/0001-bundle-distribution-by-adapter-spec.md#adopter-file-safety-contract) — the underlying guarantees.

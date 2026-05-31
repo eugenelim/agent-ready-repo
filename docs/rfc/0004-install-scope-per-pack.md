@@ -648,11 +648,6 @@ merged ahead of the others leaves the CLI in an incoherent state.
 - **CONVENTIONS:** one paragraph under the pack-catalogue section
   pointing at scope as the dimension publishers choose and
   adopters can override within the publisher's declared set.
-- **Migration note for third-party pack authors:** a one-page
-  how-to under `docs/guides/how-to/` covering the v0.1 → v0.2 pack
-  upgrade — which fields to add, the `validate` exit codes,
-  examples for the implied-defaults case, and the marker rail's
-  rule when `"user" ∈ allowed-scopes`.
 
 ## Amendments
 

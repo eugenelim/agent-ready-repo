@@ -52,8 +52,8 @@ The decision applies to the four user-scope-capable packs (`atlassian`, `figma`,
 
 **Negative:**
 
-- **Behavioural change at the default.** Adopters scripting `agentbundle install --scope repo .` against any of the four user-scope-capable packs see a different on-disk shape post-merge. The migration guide (`docs/guides/how-to/v06-to-v07-pack-upgrade.md`) names this and the `--emit-install-routes` workaround; the in-band detection at AC24 surfaces it at install time.
-- **Two contract bumps in two RFCs for downstream pack authors.** RFC-0011 bumped to v0.6 last week; RFC-0012 bumped to v0.7. Pack-version pinning friction is real; the migration guide consolidates both walks.
+- **Behavioural change at the default.** Adopters scripting `agentbundle install --scope repo .` against any of the four user-scope-capable packs see a different on-disk shape post-merge. The `--emit-install-routes` workaround preserves the legacy shape; the in-band detection at AC24 surfaces the change at install time.
+- **Two contract bumps in two RFCs for downstream pack authors.** RFC-0011 bumped to v0.6 last week; RFC-0012 bumped to v0.7. Pack-version pinning friction is real.
 - **Legacy step-5 heuristic doubles its live-pack surface.** `< v0.7` packs at repo scope now also hit the heuristic, which can only return `kiro` or `claude-code` — an enterprise rebrand to `codex` / `copilot` cannot route a pre-v0.7 pack at repo scope to those adapters via no-flag default. Pre-existing packs need v0.7 + `allowed-adapters` to escape; retirement of the heuristic gets pushed out at least one minor release.
 - **Probe asymmetry between scopes.** User scope probes `~/.<ide>/`; repo scope does not (RFC-0012 § Alternatives #4 — auto-detect would silently misdirect on greenfield repos). This is intentional and load-bearing — the asymmetry is pinned by a dedicated unit test — but counterintuitive to a reader expecting symmetry.
 
@@ -82,5 +82,4 @@ The numbering follows [RFC-0012 § Alternatives considered](../rfc/0012-repo-sco
 - [RFC-0012 — Repo-scope per-adapter projection](../rfc/0012-repo-scope-per-adapter-projection.md)
 - [`repo-scope-per-adapter-projection` spec](../specs/repo-scope-per-adapter-projection/spec.md) (implementation contract; AC1-AC37)
 - [ADR-0002 — Install-scope per-pack default and allowance](0002-install-scope-per-pack-default-and-allowance.md) (the paired ADR; this one extends ADR-0002's per-pack scope dimension with the per-adapter resolution at the repo half)
-- [Migration guide for v0.6 → v0.7 pack upgrade](../guides/how-to/v06-to-v07-pack-upgrade.md)
 - [RFC-0011 — Pack allowed-adapters](../rfc/0011-pack-allowed-adapters.md) (the user-scope substrate this decision lifts to repo scope)

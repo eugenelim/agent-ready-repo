@@ -70,7 +70,6 @@ The numbering follows RFC-0004 § *Alternatives considered* for traceability. Th
 - [RFC-0004 — Install-scope dimension](../rfc/0004-install-scope-per-pack.md)
 - [`distribution-adapters` spec § Install-scope dimension (contract v0.2)](../specs/distribution-adapters/spec.md)
 - [`agent-spec-cli` spec § Install-scope dimension (CLI surface, contract v0.2)](../specs/agent-spec-cli/spec.md)
-- [Migration guide for third-party pack authors](../guides/how-to/v01-to-v02-pack-upgrade.md)
 
 ## Amendments
 

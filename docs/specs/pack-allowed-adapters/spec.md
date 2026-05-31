@@ -63,7 +63,7 @@ The three-tier guard that keeps an implementing agent inside the lines. *Always 
 | Install-time print line `installed: <pack> @ <scope> via <adapter>` is visible | **Goal-based check** — run `agentbundle install` in a fixture and grep stdout for the line. | Format-string check; no need for a behavioural test. |
 | `make build-self FORCE=1` is a noop after the final commit | **Goal-based check** — `make build-self FORCE=1 && git status --short` shows no changes. | Build-pipeline gate; covered by CI but verified locally too. |
 | `pre-pr.py` passes on the merged tree | **Goal-based check** — `python3 tools/hooks/pre-pr.py` exits 0. | Aggregate enforcement gate; covered by CI. |
-| Documentation surface (README + two how-to guides + migration guide + author-doc paragraph) is internally consistent and grep-able by adopter | **Manual QA** — read the diff end-to-end against the RFC's *Follow-on artifacts* list and verify every commitment landed. | Adopter-facing prose; no automated equivalent. |
+| Documentation surface (README + two how-to guides + author-doc paragraph) is internally consistent and grep-able by adopter | **Manual QA** — read the diff end-to-end against the RFC's *Follow-on artifacts* list and verify every commitment landed. | Adopter-facing prose; no automated equivalent. |
 
 ## Acceptance Criteria
 
@@ -133,7 +133,6 @@ The spec is closed when each of the following observable outcomes is verifiable 
   - `docs/guides/how-to/install-user-scope-pack-into-kiro.md` covers the Kiro adopter path: prerequisites (`~/.kiro/` exists), the `agentbundle install --pack <name> --scope user .` invocation, the `installed: ... via kiro` confirmation line, upgrade and uninstall verbs.
   - `docs/guides/how-to/install-user-scope-pack-into-codex.md` covers the Codex adopter path: prerequisites, the same invocation (or with `--adapter codex` if multiple CLI homes are present), the `~/.agents/skills/` discovery model, the interaction with `~/.codex/plugins/` (separate surface, not addressed here), upgrade and uninstall verbs.
   Both cross-linked from the README install section.
-- **AC18.** A new migration guide lands at `docs/guides/how-to/v05-to-v06-pack-upgrade.md`. It covers the `[pack.adapter-contract] version` bump, the `allowed-adapters` field shape and the three currently-admitted user-scope-capable values (`claude-code`, `kiro`, `codex`), the schema's refuse-and-explain messages, the user-scope-only semantics (per RFC-0011's post-merge erratum), and the legacy path for older packs.
 - **AC19.** The `add-credentialed-skill` skill body (`packs/core/.apm/skills/add-credentialed-skill/SKILL.md` and the projected `.claude/skills/...` copy) gains one paragraph naming `allowed-adapters` and the per-pack-author guidance. `docs/specs/skill-secrets/spec.md` gains the same paragraph in its author-facing section. No change to credential loading (skill-secrets AC3 untouched).
 - **AC20.** `docs/backlog.md` gains an entry under "user-scope": *"`allowed-adapters` landed — Kiro and Codex user-scope installs now exercise the integrated path; next: codex-plugins install-route parity (sibling RFC, not yet opened; will be modeled on RFC-0008)."*
 
