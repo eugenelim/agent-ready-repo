@@ -5,8 +5,8 @@ Walks the user through writing each required key in a skill's
 Darwin/Windows; 0600 dotfile floor on Linux or with
 ``--allow-insecure-fallback``).
 
-Refuses the reserved ``sso`` namespace (RFC-0013 § 4b). Refuses
-argv-borne credential flags and non-tty stdin (RFC-0006 § 4).
+Refuses the reserved ``sso`` namespace. Refuses
+argv-borne credential flags and non-tty stdin.
 
 This script is interactive, user-invoked, do not auto-run.
 """
@@ -43,7 +43,7 @@ from .credentials_shim import (
 
 RESERVED_NAMESPACES = frozenset({"sso"})
 
-# Argv-borne credential flags refused per RFC-0006 § 4 / argv ban.
+# Argv-borne credential flags refused per the argv ban.
 _ARGV_BAN = frozenset({
     "--token",
     "--api-token",

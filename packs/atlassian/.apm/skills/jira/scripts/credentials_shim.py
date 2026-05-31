@@ -1,8 +1,7 @@
 """Loader API and stdlib ``.env`` parser for credentialed primitives.
 
 This module is the build-pipeline-projected shim that ships alongside
-each ``auth: creds`` consumer skill's ``scripts/`` (per RFC-0013 § 4 +
-credential-broker-contract spec § AC6). The consumer imports
+each ``auth: creds`` consumer skill's ``scripts/``. The consumer imports
 ``from .credentials_shim import …`` against this sibling — there is no
 runtime ``agentbundle`` dependency.
 
@@ -441,7 +440,7 @@ def _ensure_parent(parent: pathlib.Path) -> None:
     """Create the dotfile parent at mode 0o700 if absent (spec § AC15).
 
     If the parent already exists, do **not** rewrite its mode — the
-    directory is shared with ``~/.agentbundle/state.toml`` per RFC-0004.
+    directory is shared with ``~/.agentbundle/state.toml``.
     On POSIX warn on stderr if the existing mode is more permissive
     than 0o755.
     """

@@ -5,8 +5,7 @@
 **topological order, single-agent, on every adapter** — it does *not*
 auto-fan-out. `schedule` also fails loud on a dependency cycle or a
 forward-reference (a task whose declared dep is authored later), so an
-ill-formed plan is caught at PLAN, not run out of order. (RFC-0015 /
-ADR-0005.)
+ill-formed plan is caught at PLAN, not run out of order.
 
 This file owns the **opt-in parallel-write path** only. It is entered
 deliberately — never automatically — and only for a wave that clears the
