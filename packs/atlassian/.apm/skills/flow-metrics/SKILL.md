@@ -23,10 +23,9 @@ verbs or replicate them inline.
 
 The pipeline (config validation, scope JQL, changelog walk, per-issue
 derivation, aggregation, cohort split, per-team rollup, notes, meta,
-output rendering, caching) lives in `scripts/flow_metrics/` — the
-canonical reference is `docs/specs/flow-metrics.md`. This SKILL.md tells
-the agent how to **invoke** the CLI for common flows; for design
-questions, read the spec.
+output rendering, caching) lives in `scripts/flow_metrics/`. This SKILL.md
+tells the agent how to **invoke** the CLI for common flows; for design
+details, read the inline module docstrings.
 
 ## Cross-skill invocation — name, not path
 
@@ -84,7 +83,7 @@ flow_metrics` if you're invoking from a clone.
 
 ### CLI flags
 
-The full surface, lifted from `docs/specs/flow-metrics.md` §"Inputs":
+The full flag surface:
 
 - **`--project KEY`** — Jira project key. Mutually exclusive with
   `--program-id` / `--portfolio-id`.
@@ -227,10 +226,9 @@ JSONL on disk, one row per in-scope issue. Downstream consumers
 ## Don't
 
 - **Don't bypass the upstream-skill allowlist.** This skill invokes
-  only the verbs and `raw GET` paths spelled out in spec §"Read-only
-  contract — upstream-skill allowlist". Any other invocation is a
-  regression. If a verb is missing, extend the `jira` or `jira-align`
-  skill — don't shim around it here.
+  only the allowlisted verbs and `raw GET` paths. Any other invocation
+  is a regression. If a verb is missing, extend the `jira` or
+  `jira-align` skill — don't shim around it here.
 - **Don't read `credentials.env` from this skill.** Credentials live
   in the `jira` / `jira-align` skills and are isolated from this one.
   Authentication failures surface as upstream exit 3; the fix is to
@@ -254,20 +252,20 @@ JSONL on disk, one row per in-scope issue. Downstream consumers
   collapses whitespace; two semantically equivalent JQL expressions
   with different clause order produce different cache files. That's
   the documented v1 trade.
-- **Don't paraphrase the metric definitions.** They are spec-pinned
-  and tested. If a metric "feels wrong", read spec §"Metric
-  definitions" before changing anything.
+- **Don't paraphrase the metric definitions.** They are pinned
+  and tested. If a metric "feels wrong", read the module docstrings
+  before changing anything.
 
 ## Security rules
 
 This skill operates under a **read-only contract** with credential
 isolation:
 
-- **Read-only contract:** the upstream-skill allowlist (spec §"Read-
-  only contract") names every verb and `raw GET` path this skill is
-  permitted to invoke. Any other upstream invocation, including the
-  `raw POST` / `PUT` / `PATCH` / `DELETE` escape hatches, is forbidden
-  and enforced by a contract test that wraps the upstream skills.
+- **Read-only contract:** the upstream-skill allowlist names every
+  verb and `raw GET` path this skill is permitted to invoke. Any other
+  upstream invocation, including the `raw POST` / `PUT` / `PATCH` /
+  `DELETE` escape hatches, is forbidden and enforced by a contract test
+  that wraps the upstream skills.
 - **Credential isolation:** this skill **never reads
   `credentials.env`** or any other secret file directly. Credentials
   belong to the `jira` / `jira-align` skills; this skill invokes them
@@ -286,7 +284,7 @@ isolation:
 
 ## Edge cases
 
-A short pointer; the full enumeration lives in spec §"Edge cases".
+The key edge cases to know about:
 
 - **Cancelled issues.** An issue transitioning into a
   `terminal_non_delivery_states` canonical state (default: `cancelled`)
@@ -351,14 +349,13 @@ rounded to 4 decimal places, per_team sorted by team name codepoint.
 The schema does **not** re-validate canonicalisation rules — those are
 enforced by the renderer's contract tests in T10.
 
-## Spec reference
+## Further reading
 
-See `docs/specs/flow-metrics.md` for:
+The module docstrings in `scripts/flow_metrics/` cover:
 
-- the full Inputs table,
-- metric definitions and core population predicates,
-- the upstream-skill allowlist (verbs and `raw GET` paths),
-- state-config and issuetype-config schemas,
-- canonicalisation rules,
-- cache-key derivation,
-- the complete edge-case enumeration.
+- metric definitions and core population predicates (`predicates.py`, `aggregate.py`),
+- the upstream-skill allowlist and verbs (`upstream.py`),
+- state-config and issuetype-config schemas (`config.py`),
+- canonicalisation rules and output rendering (`output.py`),
+- cache-key derivation (`cache.py`),
+- edge-case handling (`per_issue.py`, `notes.py`).

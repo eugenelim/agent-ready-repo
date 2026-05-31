@@ -1,10 +1,9 @@
 """Upstream skill wrappers — discovery, allowlist, subprocess.
 
 T3 substrate: every downstream task reads Jira / Jira Align data through
-this module. The wrapper enforces the read-only allowlist from
-docs/specs/flow-metrics.md § "Read-only contract — upstream-skill
-allowlist" — verbs and ``raw GET`` paths are validated against exact
-regex patterns before any subprocess is spawned.
+this module. The wrapper enforces the read-only allowlist — verbs and
+``raw GET`` paths are validated against exact regex patterns before any
+subprocess is spawned.
 
 Architectural invariants (load-bearing; do not relax):
 
@@ -101,10 +100,10 @@ _THIS_SKILL_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 def _env_var_name(name: str) -> str:
-    """Per spec/plan: FLOW_METRICS_<NAME>_SCRIPT with hyphens stripped.
+    """Return the env-var name for the named upstream skill's script path.
 
-    Matches the literals in docs/specs/flow-metrics-plan.md
-    (``FLOW_METRICS_JIRA_SCRIPT`` / ``FLOW_METRICS_JIRAALIGN_SCRIPT``).
+    Produces ``FLOW_METRICS_<NAME>_SCRIPT`` with hyphens stripped
+    (e.g. ``FLOW_METRICS_JIRA_SCRIPT`` / ``FLOW_METRICS_JIRAALIGN_SCRIPT``).
     """
     return "FLOW_METRICS_{}_SCRIPT".format(name.upper().replace("-", ""))
 

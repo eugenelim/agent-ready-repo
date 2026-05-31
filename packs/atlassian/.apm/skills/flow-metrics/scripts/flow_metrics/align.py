@@ -3,8 +3,8 @@
 Resolves team membership for program-id / portfolio-id scope runs via
 the ``jira-align`` skill's nested-resource ``raw GET`` endpoints, then
 hands the resulting team-id list to the Jira side for the actual issue
-query (per spec § "Data sources": Jira Align supplies team membership;
-Jira's changelog supplies the metrics).
+query (Jira Align supplies team membership; Jira's changelog supplies
+the metrics).
 
 Allowlist alignment: every endpoint touched here is also enumerated in
 :class:`flow_metrics.upstream.JiraAlignClient._ALLOWED_RAW_PATTERNS`, so
@@ -92,7 +92,7 @@ def validate_align_teams_path(path: str) -> str:
 # Scope + team types
 # ---------------------------------------------------------------------------
 # Canonical scope_kind values, shared with :mod:`flow_metrics.cache` (which
-# pins the same vocabulary in the cache-key payload — spec § Caching:
+# pins the same vocabulary in the cache-key payload:
 # ``scope_kind: "project" | "program" | "portfolio"``). Using anything
 # else here would silently break cache-key derivation when T10 wires this
 # module into the main run.
@@ -285,8 +285,7 @@ def require_align_join_field(
     state_config: StateConfig,
     cli_override: Optional[str],
 ) -> str:
-    """Resolve the Jira ↔ Jira Align join field name per spec § "Data
-    sources" — Joining Jira ↔ Jira Align.
+    """Resolve the Jira ↔ Jira Align join field name.
 
     Resolution order:
       1. ``--align-join-field NAME`` CLI override (if non-empty).

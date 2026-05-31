@@ -18,8 +18,7 @@ This module exposes a single streaming entry point,
 - filters to ``field in {"status", "issuetype"}`` (the only two fields
   T5 consumes) at this layer to keep per-issue memory bounded.
 
-Pagination is detected from three signals in priority order, per
-docs/specs/flow-metrics.md § "Changelog pagination (Cloud regression)":
+Pagination is detected from three signals in priority order:
 
 1. ``histories.length < total`` (Server / DC) — drain with
    ``startAt=<N>`` until ``total`` is reached.
@@ -83,8 +82,7 @@ def _parse_jira_timestamp(s: str) -> datetime:
     - ``2026-01-15T14:30:00.000+0000`` (Cloud)
     - ``2026-01-15T14:30:00.000+05:30`` (already-normalized offset)
     - ``2026-01-15T14:30:00+0530`` (no milliseconds)
-    - ``2026-01-15T14:30:00`` (no offset — interpreted as UTC, per spec
-      § Decisions: "UTC throughout")
+    - ``2026-01-15T14:30:00`` (no offset — interpreted as UTC)
     - trailing ``Z``
     """
     text = s.strip()

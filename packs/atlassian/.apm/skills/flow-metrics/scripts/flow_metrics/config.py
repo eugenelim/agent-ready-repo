@@ -1,6 +1,6 @@
 """State + issuetype config loading, integrity validation, sha derivation.
 
-Implements the 9 startup integrity rules from spec § "State configuration"
+Implements the 9 startup integrity rules for state configuration
 and ships the canonical-state lookup helper consumed at walk-time by T5.
 
 Stdlib only. Python >= 3.10.
@@ -154,16 +154,16 @@ def _require_list_of_str(value: Any, label: str) -> List[str]:
 
 
 def validate_state_config(parsed: Any) -> None:
-    """Run the 9 startup integrity rules from spec § State configuration.
+    """Run the 9 startup integrity rules for state configuration.
 
-    Each violation raises ``ConfigError`` with a spec-pinned message
-    naming the offending field. The data-dependent unmapped-status
-    check (rule for unmapped raw statuses) belongs to T5 — this routine
-    does NOT consult any changelog data. Rule 9 (``team_field.id``
-    validated against Jira's field catalog) is a startup check that
-    requires the T3 upstream wrapper; the *config-shape* portion (id is
-    a string, kind is one of the allowed values) is enforced here, but
-    the field-catalog lookup itself is left to the caller after T3 lands.
+    Each violation raises ``ConfigError`` with a message naming the
+    offending field. The data-dependent unmapped-status check (rule for
+    unmapped raw statuses) belongs to T5 — this routine does NOT consult
+    any changelog data. Rule 9 (``team_field.id`` validated against
+    Jira's field catalog) is a startup check that requires the T3
+    upstream wrapper; the *config-shape* portion (id is a string, kind
+    is one of the allowed values) is enforced here, but the field-catalog
+    lookup itself is left to the caller after T3 lands.
     """
     if not isinstance(parsed, dict):
         raise ConfigError(
@@ -388,8 +388,7 @@ class IssuetypeConfig:
         """Return the bucket name for ``raw_issuetype``, or ``None`` if unmapped.
 
         Unmapped issuetypes are bucketed as ``"other"`` by the consumer
-        (Flow Distribution); they do NOT exit 2 (spec § Issuetype
-        configuration).
+        (Flow Distribution); they do NOT exit 2.
         """
         return self._raw_to_bucket.get(raw_issuetype)
 

@@ -12,7 +12,7 @@ control the wording of any notes (``("baseline", "current")``,
 ``("control", "cohort")``, etc.).
 
 Notes are returned in append order — T7 sorts and dedupes the final
-merged list (see plan §T5 "Notes merge contract"). Do NOT pre-sort.
+merged list (see the notes-merge contract). Do NOT pre-sort.
 
 Percent deltas are decimal fractions, not formatted strings. Rounding
 to 4 decimal places is T7's job; T5 emits full precision.
@@ -30,7 +30,7 @@ from .notes import Note
 
 
 # ---------------------------------------------------------------------------
-# Canonical orderings (spec lines 354-364, 332-350)
+# Canonical orderings
 # ---------------------------------------------------------------------------
 CANONICAL_METRIC_ORDER: Tuple[str, ...] = (
     "throughput",
@@ -128,7 +128,7 @@ class DeltaResult:
     notes: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        """Render the ``deltas`` subtree per spec §"Output: JSON sidecar".
+        """Render the ``deltas`` subtree for the JSON sidecar.
 
         Scalar metrics map to a flat ``{a, b, abs, pct}`` dict.
         Distribution metrics nest under ``p50`` / ``p75`` / ``p90``
@@ -136,7 +136,7 @@ class DeltaResult:
         order follows :data:`CANONICAL_METRIC_ORDER` because :attr:`rows`
         is already in that order — T7's canonical encoder preserves
         insertion order for the ``deltas`` block (the one intentional
-        exception to the global sort-keys rule, spec lines 507-509).
+        exception to the global sort-keys rule).
         """
         out: dict = {}
         for row in self.rows:
@@ -412,7 +412,7 @@ def _delta_pair(
         return abs_delta, math.inf
     if a_val == 0 and b_val < 0:
         # Unreachable today (flow-metrics emits no negative metrics);
-        # coded for spec completeness, spec lines 326-327.
+        # coded defensively for completeness.
         return abs_delta, -math.inf
     return abs_delta, (b_val - a_val) / a_val
 
@@ -442,9 +442,8 @@ def _maybe_emit_n_note(
     a_label: str,
     b_label: str,
 ) -> None:
-    """Spec lines 338-345. Emits one ``n-differs`` note per metric when
-    the per-side sample counts diverge by more than 10% or are zero on
-    either side.
+    """Emits one ``n-differs`` note per metric when the per-side sample
+    counts diverge by more than 10% or are zero on either side.
 
     Skipped silently when either side lacks an ``n`` / ``denominator``
     field (e.g. a synthetic test fixture). flow-metrics always emits

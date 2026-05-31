@@ -1,8 +1,8 @@
-"""macOS Keychain Tier-2 backend (spec § AC6-AC8).
+"""macOS Keychain Tier-2 backend.
 
 Stdlib subprocess against ``/usr/bin/security`` — the system-shipped
-Keychain CLI. Guaranteed present on every macOS install per spec §
-Boundaries § Never do (no third-party ``keyring`` dependency).
+Keychain CLI. Guaranteed present on every macOS install (no third-party
+``keyring`` dependency).
 
 Token bytes never reach argv:
 
@@ -16,7 +16,7 @@ Token bytes never reach argv:
 - **Delete** uses ``delete-generic-password`` (idempotent on miss).
 
 The build-projected ``credentials_shim`` imports this module **only**
-when ``sys.platform == "darwin"`` per AC4b. Tests monkeypatch
+when ``sys.platform == "darwin"``. Tests monkeypatch
 ``SERVICE`` to a ``tmp_path``-derived prefix so test entries never
 collide with the developer's real ``agentbundle`` Keychain entries.
 """
@@ -34,9 +34,9 @@ SERVICE = "agentbundle"
 # developer's login Keychain. ``security``'s ``-w`` prompt mode requires
 # ``-w`` as the trailing argv element, which forecloses the trailing-
 # keychain-positional approach to test isolation; the service-prefix
-# approach lets the canonical AC6 argv shape stay untouched.
+# approach lets the canonical argv shape stay untouched.
 
-# macOS Security framework OSStatus codes (spec § AC22):
+# macOS Security framework OSStatus codes:
 #   44      errSecItemNotFound          — legitimate "no such credential",
 #                                         falls through to Tier 3.
 #   45      errSecDuplicateItem         — only relevant on add; the ``-U``
@@ -46,7 +46,7 @@ SERVICE = "agentbundle"
 #
 # Names taken from ``<Security/SecBase.h>``. The two "Keychain locked /
 # unavailable" codes (25308 / -25291) MUST raise ``Tier2HardFailError``
-# so ``run_setup`` can route the AC22 fallback gate — silently
+# so ``run_setup`` can route the fallback gate — silently
 # degrading to Tier 3 defeats the security posture the user chose.
 EXIT_NOT_FOUND = 44
 EXIT_DUPLICATE_ITEM = 45
@@ -62,8 +62,7 @@ def _classify_macos_exit_code(rc: int, op: str) -> str | None:
     embed it in a ``Tier2HardFailError`` message. Returns ``None`` for
     ``EXIT_NOT_FOUND`` (the caller treats that as a legitimate miss).
 
-    Parallel in shape to ``_credman_windows._classify_last_error``;
-    AC22 cites this matrix explicitly.
+    Parallel in shape to ``_credman_windows._classify_last_error``.
     """
     if rc == 0:
         return None
@@ -92,12 +91,12 @@ def _classify_macos_exit_code(rc: int, op: str) -> str | None:
 
 
 def _account(namespace: str, key: str) -> str:
-    """Compose the Keychain account label per spec § AC6."""
+    """Compose the Keychain account label."""
     return f"{namespace}:{key}"
 
 
 def read_credential(namespace: str, key: str) -> str | None:
-    """Read ``(namespace, key)`` from the Keychain (spec § AC6, AC7)."""
+    """Read ``(namespace, key)`` from the Keychain."""
     argv = [
         SECURITY_BIN, "find-generic-password",
         "-s", SERVICE,
@@ -121,7 +120,7 @@ def read_credential(namespace: str, key: str) -> str | None:
 
 def write_credential(namespace: str, key: str, value: str) -> None:
     """Write ``value`` to ``(namespace, key)``. Token enters via child stdin
-    only — never argv (spec § AC6, AC7).
+    only — never argv.
 
     Refuses values containing ``\\n`` or ``\\r`` up front. ``security -w``
     prompts twice and the stdin payload is ``token + b"\\n" + token + b"\\n"``;

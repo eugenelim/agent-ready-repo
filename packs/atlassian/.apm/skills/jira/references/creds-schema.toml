@@ -1,9 +1,9 @@
 # Credentials schema for the jira credentialed primitive.
-# Format pinned by skill-secrets spec § AC24.
+# Format: a [namespace] table plus one [[namespace.keys]] entry per key.
 #
 # Resolution: load_credentials("jira", required_keys=[...]) walks
-# Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 (~/.agentbundle/credentials.env)
-# per AC4. Env-var shape is <NAMESPACE>_<KEY> — JIRA_BASE_URL, JIRA_EMAIL,
+# Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 (~/.agentbundle/credentials.env).
+# Env-var shape is <NAMESPACE>_<KEY> — JIRA_BASE_URL, JIRA_EMAIL,
 # JIRA_API_TOKEN, JIRA_FLAVOR.
 #
 # BASE_URL and API_TOKEN are required for any operation. EMAIL is

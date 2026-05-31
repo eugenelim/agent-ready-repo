@@ -5,7 +5,7 @@ population predicates, and emits a :class:`PerIssueRow` carrying every
 field a downstream aggregator (T6) or per-issue consumer
 (``ai-adoption-cohort``) needs.
 
-Field-presence rules per docs/specs/flow-metrics.md § "Per-issue mode":
+Field-presence rules for per-issue mode:
 
 - Delivered-in-window rows carry ``cycle_time_hours``,
   ``lead_time_hours``, ``flow_efficiency``, ``first_commitment_at``,
@@ -364,10 +364,9 @@ def iter_per_issue_rows(
     ``user_clause``) over ``window``.
 
     Composes JQL via :func:`compose_jql` with ``order_by_key=True`` so
-    every ``jira: search`` invocation ends in ``ORDER BY key ASC``
-    (spec output-canonicalization rule 4). Per the bounded-memory
-    contract, both the search and the per-issue changelog drain are
-    streamed; rows are yielded one at a time.
+    every ``jira: search`` invocation ends in ``ORDER BY key ASC``.
+    Per the bounded-memory contract, both the search and the per-issue
+    changelog drain are streamed; rows are yielded one at a time.
 
     Only emits rows that are in scope per the spec's per-issue
     membership rule:

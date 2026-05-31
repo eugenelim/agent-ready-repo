@@ -207,7 +207,7 @@ fold into `~/.claude/agents/bot.md`. Per-finding accept / edit /
 decline; recordings land in the scope of the file the finding was
 observed in.
 
-**Cross-scope restructure (AC23, never executed as a single move).**
+**Cross-scope restructure (never executed as a single move).**
 When a class-3 finding's `source-path` and `destination-path` live
 at different scopes (e.g., source under `<repo>/`, destination under
 `~/.claude/`), this cross-scope restructure is never executed as a single move. The skill detects the scope crossing, names both

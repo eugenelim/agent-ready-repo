@@ -59,8 +59,7 @@ def parse_window_flag(s: str) -> Tuple[str, str]:
     """Parse `--window FROM..TO` into two YYYY-MM-DD strings.
 
     Returns the two strings verbatim — no normalization. String equality
-    is the spec's window-match rule for program mode (see spec §"Input
-    file validation").
+    is the window-match rule for program mode.
     """
     parts = s.split("..")
     if len(parts) != 2 or not parts[0] or not parts[1]:
@@ -326,8 +325,8 @@ def _render_and_write(args: argparse.Namespace, report) -> None:
 
     - ``markdown``: write only the Markdown file at ``--output``.
     - ``json``: write only the derived ``.json`` sidecar; the Markdown
-      renderer is **not** invoked at all (spec line 86, "json skips
-      Markdown rendering"). The ``--output`` flag is interpreted as the
+      renderer is **not** invoked at all. The ``--output`` flag is
+      interpreted as the
       Markdown-path-shaped value and the sidecar is derived from it —
       so ``--format=json --output report.md`` writes ``report.json``
       and never touches ``report.md``.
@@ -348,9 +347,9 @@ def _render_and_write(args: argparse.Namespace, report) -> None:
             overwrite=args.overwrite,
         )
     elif fmt == "json":
-        # Per spec line 86 + T8 brief option (a): the --output path is
-        # always Markdown-shaped; for --format=json we still derive the
-        # sidecar path from it but skip the Markdown renderer entirely.
+        # The --output path is always Markdown-shaped; for --format=json
+        # we still derive the sidecar path from it but skip the Markdown
+        # renderer entirely.
         json_path = derive_sidecar_path(markdown_path)
         json_text = render_json(report, title=title, generated_at=generated_at)
         write_outputs(
