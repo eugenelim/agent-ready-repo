@@ -193,8 +193,8 @@ def load_input(path: Path) -> InputFile:
 
     # flow-metrics emits ``notes`` at the top level (see
     # flow_metrics.notes.NotesCollector + the fixture in
-    # tests/fixtures/proj_alpha/golden.json). An older layout used
-    # ``meta.notes``; we read both for forward-compat with no
+    # tests/fixtures/proj_alpha/golden.json). Some inputs may instead
+    # carry ``meta.notes``; we read both for forward-compat with no
     # source of truth conflict (only one is present in practice).
     upstream_notes = _coerce_notes_list(
         doc.get("notes", meta.get("notes", [])), basename=basename

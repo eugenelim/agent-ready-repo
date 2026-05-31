@@ -586,7 +586,10 @@ def _fmt_cell(value: Any, *, kind: str) -> str:
     """Format one Markdown table cell value.
 
     ``kind`` is one of ``"int" | "float" | "hours" | "percent"``.
-    ``kind`` is one of ``"int" | "float" | "hours" | "percent"``.
+    ``None`` → ``—``; ``percent`` delegates to ``_fmt_percent``; ``int``
+    emits the bare signed integer (4dp shortest-repr if the value arrived
+    as a float); ``float``/``hours`` emit a 4dp trailing-zero-stripped
+    value; infinities render as ``∞``.
     """
     if value is None:
         return "—"
