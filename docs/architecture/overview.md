@@ -57,7 +57,7 @@ each other.
 
 | Pack | Scope | Carries |
 | --- | --- | --- |
-| `core` | repo only | `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, `add-credentialed-skill`, `example-credentialed-skill`, the four reviewer agents (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`), `session-start.py` + `pre-pr.py` hooks, `conventions-check`, layer-0 seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`). |
+| `core` | repo only | `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the four reviewer agents (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`), `session-start.py` + `pre-pr.py` hooks, `conventions-check`, layer-0 seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`). |
 | `governance-extras` | repo only | `new-rfc`, `new-adr`, `update-conventions` skills + `docs/rfc/` and `docs/adr/` shapes. |
 | `user-guide-diataxis` | repo only | Diátaxis user-docs scaffolding + the `new-guide` skill. |
 | `monorepo-extras` | repo only | `new-package` skill + `packages/_example/` template. |

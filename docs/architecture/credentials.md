@@ -165,9 +165,10 @@ description = "https://<your-org>.atlassian.net"
 The schema is what the `credential-setup` skill reads to know which
 prompts to issue. Secret vs non-secret distinguishes which keys go
 to keyring storage (secret) vs which go to the dotfile / env var
-unconditionally (non-secret siblings like `BASE_URL`). The canonical
+unconditionally (non-secret siblings like `BASE_URL`). A canonical
 reference is
-[`packs/core/.apm/skills/example-credentialed-skill/references/creds-schema.toml`](../../packs/core/.apm/skills/example-credentialed-skill/references/creds-schema.toml).
+[`packs/atlassian/.apm/skills/jira/references/creds-schema.toml`](../../packs/atlassian/.apm/skills/jira/references/creds-schema.toml)
+(`API_TOKEN` secret; `BASE_URL` / `EMAIL` non-secret).
 
 ## The substring trap
 
@@ -205,5 +206,4 @@ primitive script that mentions the dotfile defensively.
 - [`docs/guides/explanation/credentialed-skills.md`](../guides/explanation/credentialed-skills.md) —
   the adopter-facing companion.
 - [`docs/guides/how-to/add-a-credentialed-skill.md`](../guides/how-to/add-a-credentialed-skill.md) —
-  how to author a new credentialed primitive (via the
-  `add-credentialed-skill` skill in `core`).
+  the step-by-step procedure for authoring a new credentialed primitive.
