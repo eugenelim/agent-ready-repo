@@ -1,6 +1,6 @@
 # Spec: codex-native-skills
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0009](../../rfc/0009-codex-native-skills.md)
@@ -229,7 +229,7 @@ Every Acceptance Criterion maps to at least one construction test.
 
 Contract surface:
 
-- [ ] **AC1.** `docs/contracts/adapter.toml` and
+- [x] **AC1.** `docs/contracts/adapter.toml` and
       `packages/agentbundle/agentbundle/_data/adapter.toml` declare
       the Codex `skill` projection as
       `mode = "direct-directory"`,
@@ -238,34 +238,34 @@ Contract surface:
       `managed-block-delimiter-start` / `-end` keys are removed from
       the Codex `skill` entry only (the contract schema retains the
       keys; they remain valid on entries with `mode = "managed-block-inline"`).
-- [ ] **AC2.** `docs/contracts/adapter.toml` and
+- [x] **AC2.** `docs/contracts/adapter.toml` and
       `packages/agentbundle/agentbundle/_data/adapter.toml` are
       byte-identical after T1 lands (preserves the pre-existing
       invariant; verified `diff -q` exit 0 in the tree as of 2026-05-25).
 
 Adapter behaviour — Codex `direct-directory` projection:
 
-- [ ] **AC3.** `codex.project_packs(pack_paths, contract, output_root)`
+- [x] **AC3.** `codex.project_packs(pack_paths, contract, output_root)`
       dispatches the `skill` primitive through a new
       `direct-directory` branch. Each skill at
       `<pack>/.apm/skills/<name>/` projects to
       `<output_root>/.agents/skills/<name>/`, with every file under
       the skill directory copied through.
-- [ ] **AC4.** **Byte-equal projection.** For every file in the
+- [x] **AC4.** **Byte-equal projection.** For every file in the
       `fixtures/codex-native/two-skill/` fixture (one flat skill,
       one with `scripts/run.sh` and `references/notes.md`
       subdirectories), the projected file at
       `<output_root>/.agents/skills/<name>/<path>` is byte-equal to
       the source. Asserted by `Path.read_bytes()` comparison.
       Non-negotiable per RFC-0009 § Tests.
-- [ ] **AC5.** **Symlink pass-through.** Against the
+- [x] **AC5.** **Symlink pass-through.** Against the
       `fixtures/codex-native/symlinked/` fixture, the projected
       `<output_root>/.agents/skills/linker/references/shared.md` is a
       symlink (`os.path.islink(...)` is true) and
       `os.readlink(...)` equals `../assets/shared.md` (the source
       link target string, byte-for-byte). Confirms
       `shutil.copytree(..., symlinks=True)` semantics.
-- [ ] **AC6.** **Same-name collision — deterministic last-wins,
+- [x] **AC6.** **Same-name collision — deterministic last-wins,
       uniformly across all three adapters.** For each adapter in
       `{codex, claude-code, kiro}`, when `project_packs([pack_a, pack_b], ...)`
       is called against the same-name fixture pair, the projected
@@ -277,13 +277,13 @@ Adapter behaviour — Codex `direct-directory` projection:
 
 Multi-pack adapter entry point:
 
-- [ ] **AC7.** `claude_code.project_packs(pack_paths, contract, output_root)`
+- [x] **AC7.** `claude_code.project_packs(pack_paths, contract, output_root)`
       and `kiro.project_packs(pack_paths, contract, output_root)`
       exist as canonical multi-pack entry points. Each iterates
       `pack_paths` in order, calling the existing per-pack
       `project(pack_path, contract, output_root)`, then runs the
       post-projection orphan sweep (AC15-AC17).
-- [ ] **AC8.** `packages/agentbundle/agentbundle/build/self_host.py`
+- [x] **AC8.** `packages/agentbundle/agentbundle/build/self_host.py`
       routes the adapters in its `SELF_HOST_ADAPTERS` allow-list —
       narrowed by this spec to `("claude-code",)` — through
       `project_packs([pack.path for pack in packs], contract,
@@ -302,7 +302,7 @@ Multi-pack adapter entry point:
       exist per AC7 and are verified at the unit level (AC6, AC17,
       AC19, AC20). `.agents/` and `.kiro/` are gitignored. Expanding
       `SELF_HOST_ADAPTERS` is a separate decision.
-- [ ] **AC9.** `claude_code.project(pack_path, ...)` and
+- [x] **AC9.** `claude_code.project(pack_path, ...)` and
       `kiro.project(pack_path, ...)` are retained as single-pack
       convenience wrappers that delegate to `project_packs([pack_path], ...)`.
       Existing callers continue to work without edits. The known
@@ -332,7 +332,7 @@ Multi-pack adapter entry point:
 
 Migration strip — Codex-specific:
 
-- [ ] **AC10.** **Strip target is `<output_root>/AGENTS.md`** — the
+- [x] **AC10.** **Strip target is `<output_root>/AGENTS.md`** — the
       project-root AGENTS.md the Codex adapter is invoked against
       (whatever orchestrator runs it). The strip is hardcoded in
       `codex.py` for the migration window; no contract entry, no
@@ -351,23 +351,23 @@ Migration strip — Codex-specific:
       migration contract without requiring a follow-on PR. The
       retention test (AC23) and integration tests guard against
       silent regression while the live call-site is wired.
-- [ ] **AC11.** **Happy path.** A fixture `AGENTS.md` containing
+- [x] **AC11.** **Happy path.** A fixture `AGENTS.md` containing
       `<!-- agent-skills:start -->\n- **a** — ...\n- **b** — ...\n<!-- agent-skills:end -->\n`
       surrounded by outside-delimiter prose, after one Codex
       `project_packs` call, has: (a) no `<!-- agent-skills:start -->`
       substring; (b) no `<!-- agent-skills:end -->` substring; (c)
       all outside-delimiter prose preserved verbatim, byte-for-byte.
-- [ ] **AC12.** **Already-clean.** A fixture `AGENTS.md` with no
+- [x] **AC12.** **Already-clean.** A fixture `AGENTS.md` with no
       delimiters is byte-identical after a Codex `project_packs`
       call — the strip step is a no-op when there is nothing to
       strip. Asserted at both the pure-function and integration
       layers.
-- [ ] **AC13.** **Idempotent.** Two consecutive `project_packs`
+- [x] **AC13.** **Idempotent.** Two consecutive `project_packs`
       calls against an `<output_root>` whose `AGENTS.md` originally
       contained the legacy block produce a byte-identical
       `AGENTS.md` after the second call (compared to after the
       first). The second call is a pure no-op on that file.
-- [ ] **AC14.** **Non-list content between delimiters is lost
+- [x] **AC14.** **Non-list content between delimiters is lost
       (explicit).** After one `project_packs` call against the
       `hand-edited.md` fixture (which contains a sentinel string
       between the delimiters), the projected `<output_root>/AGENTS.md`
@@ -378,14 +378,14 @@ Migration strip — Codex-specific:
 
 Seed cleanup:
 
-- [ ] **AC15.** `packs/core/seeds/AGENTS.md` no longer contains
+- [x] **AC15.** `packs/core/seeds/AGENTS.md` no longer contains
       the `<!-- agent-skills:start -->` or `<!-- agent-skills:end -->`
       literals after T1 lands. `make build-check` clean after the
       seed edit.
 
 Orphan-skill cleanup — shared across `direct-directory` adapters:
 
-- [ ] **AC16.** A new module
+- [x] **AC16.** A new module
       `packages/agentbundle/agentbundle/build/projections/direct_directory.py`
       exposes `sweep_orphans(target_dir: Path, expected_names: set[str]) -> None`.
       The function deletes every immediate-child entry of
@@ -395,19 +395,19 @@ Orphan-skill cleanup — shared across `direct-directory` adapters:
       `shutil.rmtree(<entry>)`; non-directory non-symlink entries
       (regular files at the target-dir root) are not touched. The
       function is a no-op when `target_dir` does not exist.
-- [ ] **AC17.** **Codex orphan sweep.** A two-stage projection
+- [x] **AC17.** **Codex orphan sweep.** A two-stage projection
       against the same `<output_root>`: first
       `codex.project_packs([three-skill])` (skills `{a, b, c}`),
       then `codex.project_packs([two-skill-shrink])` (skills `{a, c}`),
       leaves `<output_root>/.agents/skills/` containing exactly
       `{a, c}`. `b/` is gone.
-- [ ] **AC18.** **Claude Code orphan sweep.** Same fixture, same
+- [x] **AC18.** **Claude Code orphan sweep.** Same fixture, same
       assertion against `<output_root>/.claude/skills/` via
       `claude_code.project_packs(...)`.
-- [ ] **AC19.** **Kiro orphan sweep.** Same fixture, same
+- [x] **AC19.** **Kiro orphan sweep.** Same fixture, same
       assertion against `<output_root>/.kiro/skills/` via
       `kiro.project_packs(...)`.
-- [ ] **AC20.** **Two-pack union (cross-pack regression guard).**
+- [x] **AC20.** **Two-pack union (cross-pack regression guard).**
       For each of the three adapters, a single
       `project_packs([pack_a, pack_b], ...)` call with
       `pack_a.skills = {a, b}` and `pack_b.skills = {b, c}`
@@ -417,7 +417,7 @@ Orphan-skill cleanup — shared across `direct-directory` adapters:
       (b surviving because pack_a still ships it) and removes
       `c`. Guards against per-pack-instead-of-union sweep
       miscalculation.
-- [ ] **AC21.** **Symlink-safe sweep.** A `target_dir` containing
+- [x] **AC21.** **Symlink-safe sweep.** A `target_dir` containing
       a symlink-to-directory named `b -> /tmp/<external>/` with
       `expected_names = {"a"}` removes the symlink (the entry `b`
       under `target_dir`) but leaves `/tmp/<external>/` intact.
@@ -426,13 +426,13 @@ Orphan-skill cleanup — shared across `direct-directory` adapters:
 
 Removed surface and retention:
 
-- [ ] **AC22.** `_project_managed_block` (codex.py lines 66-112
+- [x] **AC22.** `_project_managed_block` (codex.py lines 66-112
       in the pre-change state) is removed in T4;
       `_extract_description` (codex.py lines 115-132 pre-change) is
       removed in T4; `_splice_managed_block` (codex.py lines 135-149
       pre-change) is **retained** as the implementation engine of
       the migration strip until the post-strip release removes it.
-- [ ] **AC23.** **Retention is defended by a direct test, not a
+- [x] **AC23.** **Retention is defended by a direct test, not a
       tautology.** Two assertions, both in
       `test_adapter_codex.py`:
       (i) `from agentbundle.build.adapters.codex import _splice_managed_block`
@@ -449,13 +449,13 @@ Removed surface and retention:
       retention signal, unlike a same-output-as-implementation
       check which would pass for both correct and incorrect
       removals.
-- [ ] **AC24.** Five managed-block-specific tests are removed in T4:
+- [x] **AC24.** Five managed-block-specific tests are removed in T4:
       `test_adapter_codex.py::test_skill_description_appears_in_managed_block`,
       `test_outside_block_preserved`, `test_idempotent`,
       `test_project_packs_aggregates_skills_before_splicing`, and
       `test_security.py::test_skill_description_with_end_marker_is_rejected`.
       No analogue post-migration.
-- [ ] **AC25.** **Retained tests still pass.** Named tests
+- [x] **AC25.** **Retained tests still pass.** Named tests
       (line ranges intentionally omitted — they go stale on
       reformat):
       `tests/unit/test_pipeline_phase_order.py::test_codex_project_iterates_in_phase_order`,
@@ -463,14 +463,14 @@ Removed surface and retention:
       therein), `tests/unit/test_render.py::test_list_adapters_matches_runtime_registry`,
       and `tests/integration/test_zipapp.py` (Codex CLI smoke
       case). Pass unchanged.
-- [ ] **AC26.** `test_self_host_check.py`'s assertion that
+- [x] **AC26.** `test_self_host_check.py`'s assertion that
       `<!-- agent-skills:start -->` appears in projected output
       (currently at line 364, pre-change) is flipped to
       `assertNotIn`.
 
 Spec amendment:
 
-- [ ] **AC27.** `docs/specs/distribution-adapters/spec.md` is
+- [x] **AC27.** `docs/specs/distribution-adapters/spec.md` is
       amended to reflect: the Codex `skill` projection table entry
       flipped to `direct-directory`; the new uniform multi-pack
       `project_packs` entry point invariant across all three
@@ -481,24 +481,30 @@ Spec amendment:
 
 Self-host, linter, and verification:
 
-- [ ] **AC28.** `make build-check` exits clean with all changes
+- [x] **AC28.** `make build-check` exits clean with all changes
       applied — no drift between `packs/<P>/seeds/` and `<repo>/`,
       no drift between contract files, no drift between `dist/` and
       its expected projection.
-- [ ] **AC29.** `dist/codex/.agents/skills/<name>/SKILL.md` exists
+- [x] **AC29.** `dist/codex/.agents/skills/<name>/SKILL.md` exists
       for every skill the core pack ships. Asserted by a test that
       iterates `packs/core/.apm/skills/*/` and checks each
       projected file exists at the expected `dist/codex/` path.
       Spot-check sentinel: `work-loop`, `new-spec`, `new-rfc`, and
       `new-adr` are explicitly present.
-- [ ] **AC30.** Changelog entry at `docs/product/changelog.md`
+- [x] **AC30.** Changelog entry at `docs/product/changelog.md`
       records RFC-0009's contract change, the migration-strip
       rollout window (released N; strip removed in N+1), and the
       `_splice_managed_block` removal target release.
-- [ ] **AC31.** `tools/lint-agents-md.py` emits a warning when
+- [x] **AC31.** `tools/lint-agents-md.py` emits a warning when
       `<!-- agent-skills:start -->` is present in a projected
       `AGENTS.md` whose Codex `skill` projection contract entry
       declares `mode = "direct-directory"`. Linter exit code is
       unchanged (warning, not failure); the warning text names the
       offending file. Verified by a unit test against a synthetic
       fixture.
+
+## Changelog
+
+- 2026-05-31: Status reconciled to Shipped; ACs checked against the
+  merged implementation (retroactive — implementation landed in prior
+  PRs). All 31 ACs evidenced as satisfied; no deferrals.
