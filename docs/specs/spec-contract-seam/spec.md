@@ -1,6 +1,6 @@
 # Spec: spec-contract-seam
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0017
@@ -57,7 +57,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Keep the integration **convention-first**: the `contracts/<type>/` location
   convention is the anchor; the type→skill roster match is an enhancement, never
   on the critical path (D7).
-- Cite **RFC-0017 as the gate** for the CONVENTIONS amendment, and keep the
+- Record the **RFC-0017 gate** for the CONVENTIONS amendment in **ADR-0008 + this
+  spec** (catalogue governance) — keep the adopter-facing CONVENTIONS **seed**
+  placeholder-shaped (no catalogue RFC number; `lint-seeds` forbids it). Keep the
   `adapt` anti-pattern carve-out **narrow** (only the authorized `contracts/`
   root).
 
@@ -108,61 +110,63 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] `new-spec/SKILL.md` carries a **conditional contract step between step 4
+- [x] `new-spec/SKILL.md` carries a **conditional contract step between step 4
   (fill spec) and step 5 (fill plan)**: detect an interface surface + its type
   (auto-detected, confirmed with the user), locate or create the contract at
   `contracts/<type>/`, delegate to the type's authoring skill if present in the
   roster else direct-edit + note, link via the `Contract:` header, and point the
   plan's construction tests at the contract. A non-API feature runs the existing
   path untouched.
-- [ ] `new-spec/assets/spec.md` carries a `Contract:` header field — the literal
+- [x] `new-spec/assets/spec.md` carries a `Contract:` header field — the literal
   token `- **Contract:**` — alongside `Plan:` / `Constrained by:`. This exact
   token is the shared contract between the seam (writes it) and the traceability
   invariant (parses it).
-- [ ] `new-spec/references/contract-types.md` is the consumer-side capability
+- [x] `new-spec/references/contract-types.md` is the consumer-side capability
   map — a markdown table with one row (`openapi → api-contract`) and the
   runtime-note degrade rule documented.
-- [ ] The seam is **convention-first**: the skill body states the
+- [x] The seam is **convention-first**: the skill body states the
   `contracts/<type>/` location is the anchor and that a missing authoring skill
   degrades to a direct file-edit + a note, never blocking.
-- [ ] The CONVENTIONS **seed** `packs/core/seeds/docs/CONVENTIONS.md` (source of
+- [x] The CONVENTIONS **seed** `packs/core/seeds/docs/CONVENTIONS.md` (source of
   truth; top-level `docs/CONVENTIONS.md` is its projection) records the repo-level
   `contracts/<type>/` tree, the per-domain kebab-case naming + versioning
   (`info.version` + parallel-file for a breaking major), and bidirectional
-  spec↔contract traceability — citing **RFC-0017** as the gate, and projects
-  cleanly via `build-self`. **No empty `contracts/` directory is created in this
-  repo.**
-- [ ] Bidirectional traceability is specified: forward via the spec `Contract:`
+  spec↔contract traceability — in **adopter-generic / placeholder shape** (no
+  catalogue-specific RFC number, so `lint-seeds` passes), and projects cleanly via
+  `build-self`. The **RFC-0017 gate** for this convention is recorded in
+  **ADR-0008** and this spec (catalogue governance), not the adopter-facing seed.
+  **No empty `contracts/` directory is created in this repo.**
+- [x] Bidirectional traceability is specified: forward via the spec `Contract:`
   header; backward via an `x-spec` vendor extension (OpenAPI/AsyncAPI) with
   `contracts/REGISTRY.md` as the fallback for extensionless formats.
-- [ ] `lint-spec-status.py` gains a **traceability invariant** checking
+- [x] `lint-spec-status.py` gains a **traceability invariant** checking
   forward/backward agreement (the `- **Contract:**` spec header ↔
   `x-spec`/`REGISTRY.md` back-ref) that **no-ops when no `contracts/` tree
   exists**, is **warn-only** (mirrors RFC-0016 invariant (iii)'s deferred
   warn-only shape — finding lands on stderr, `returncode == 0`), and runs through
   the existing `make build-check`.
-- [ ] The traceability invariant has construction tests (TDD) over **tempdir
+- [x] The traceability invariant has construction tests (TDD) over **tempdir
   fixtures** (build spec+contract trees under `tmp_path`, invoke `--root <dir>`
   per the existing `test-lint-spec-status.py` `write_spec` pattern — no real
   `contracts/` tree in this repo): agreement passes (no finding); a forward ref
   with no backward ref warns (stderr, `returncode == 0`); no `contracts/` tree
   no-ops; an extensionless format resolves via `REGISTRY.md`.
-- [ ] `adapt-to-project/SKILL.md` Class 3 gains a **contract-relocation branch**:
+- [x] `adapt-to-project/SKILL.md` Class 3 gains a **contract-relocation branch**:
   walk for contracts in non-canonical locations (`api/openapi.yaml`,
   `swagger.json`, top-level `proto/`, `schemas/`), propose per-finding relocation
   into `contracts/<type>/`, repo-scope only, with downstream-path rewriting
   explicitly out of scope.
-- [ ] `adapt-to-project/SKILL.md`'s compound anti-pattern bullet "Never add a new
+- [x] `adapt-to-project/SKILL.md`'s compound anti-pattern bullet "Never add a new
   top-level directory **or a new package**" is amended with a **narrow carve-out**
   for the RFC-0017-authorized `contracts/` root specifically (not a general
   license); the **"or a new package" clause stays byte-identical**; absent the
   carve-out, Class 3 relocates only into an existing tree.
-- [ ] A new **ADR (0008)** records the decisions — separate pack + agnostic
+- [x] A new **ADR (0008)** records the decisions — separate pack + agnostic
   convention-first seam (not a merge); repo-level contract tree; the
   capability-name convention — **and its row is added to `docs/adr/README.md`**.
-- [ ] `core` imports no code from `contracts` (convention-coupling only).
-- [ ] `make build-self` re-projects cleanly and both lint surfaces pass.
-- [ ] No new contract type/authoring skill, no runtime resolver, no new
+- [x] `core` imports no code from `contracts` (convention-coupling only).
+- [x] `make build-self` re-projects cleanly and both lint surfaces pass.
+- [x] No new contract type/authoring skill, no runtime resolver, no new
   dependency, and no empty `contracts/` directory in this repo (Stage-2
   boundary).
 

@@ -229,6 +229,18 @@ responses:
 
 No "execute as cross-scope" outcome exists.
 
+**Contract relocation (RFC-0017).** Many adopters keep API contracts in
+non-canonical locations — `api/openapi.yaml`, a root `swagger.json`, a top-level
+`proto/`, `schemas/`. On adapt, walk the adopter tree for these and propose
+relocating each into the canonical `contracts/<type>/` layout (CONVENTIONS § 4
+*Contracts*) — per-finding accept / edit / decline, recorded at **repo scope**
+(contracts are repo artifacts, so no cross-scope move). Creating the `contracts/`
+root to do so is the **narrow anti-pattern exception** below; absent that
+exception, relocate only into an already-present `contracts/` tree. **Rewriting
+the adopter's downstream path references** (codegen configs, CI globs pointing at
+the old path) is **out of scope** — propose and flag the move; the adopter owns
+their tooling paths.
+
 ## Class 4 — Within-layout consolidation
 
 Per-pack consolidation proposals — e.g. an adopter has both
@@ -277,7 +289,12 @@ identical content at each scope.
 - **Never paper over inference failures with plausible defaults.**
 - **Never touch a Tier-3 path** outside an adopter-approved class-3
   finding (per-scope).
-- **Never add a new top-level directory or a new package.**
+- **Never add a new top-level directory or a new package.** *Narrow exception
+  (RFC-0017):* a Class 3 contract-relocation may create the **`contracts/`** root
+  specifically — the one top-level directory RFC-0017 authorizes — when
+  canonicalizing an adopter's contracts into `contracts/<type>/`. This names
+  `contracts/` only; it is not a general license to invent directories, and the
+  "or a new package" half admits no exception.
 - **Never add a new third-party Python dependency.**
 - **Never shell out to anything other than `agentbundle adapt`** for
   class-1 substitution.

@@ -135,6 +135,34 @@ look like?" before any code.
      hypothetical futures.
    - **No Acceptance Criteria.** Without a checklist, "done" is opinion.
 
+4b. **Author the API contract — only if this feature exposes an interface
+   surface.** This conditional step sits between the spec body and the plan. If
+   the feature exposes **no** interface surface, skip it: the spec→plan path runs
+   unchanged.
+
+   - **Detect & confirm.** From the Objective's interface-facing Acceptance
+     Criteria, auto-detect whether the feature exposes an API surface and of
+     which type (REST/OpenAPI, event/AsyncAPI, gRPC/proto, …). Confirm with the
+     user — it's a judgment, not a flag.
+   - **Locate or create** the contract at its conventional path
+     `contracts/<type>/<domain>.<ext>` (CONVENTIONS § 4 *Contracts*) — a new file
+     for a new API, the existing file when this spec modifies a known one. The
+     **location convention is the anchor**: anyone finds contracts by globbing
+     `contracts/<type>/`, no installed skill required.
+   - **Author it.** Look up the type's authoring skill in
+     [`references/contract-types.md`](references/contract-types.md) and check your
+     available-skills roster (the same roster step 6 uses). **If present, invoke
+     it** to author/modify the contract against the active standard; **if absent,
+     edit the file directly and note** it was authored without rule-enforcement.
+     A missing skill degrades *enforcement*, never the *integration*, and **never
+     blocks** the spec.
+   - **Link it (both ways).** Fill the spec's `- **Contract:**` header with the
+     contract file(s) this spec defines or touches, and add the backward pointer
+     in the contract (an `x-spec` extension, or a `contracts/REGISTRY.md` row for
+     extensionless formats) — CONVENTIONS § 4 *Contracts*.
+   - **Point the plan at it.** The plan's construction tests reference the
+     contract as the artifact the implementation is verified against.
+
 5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
    - Break the work into tasks small enough to be a single PR each.
