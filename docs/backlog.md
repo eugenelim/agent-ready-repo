@@ -79,6 +79,17 @@ marker — see RFC-0016).
   #2 rejected building it inline.
 - **Sibling RFC for repo-only-pack `allowed-adapters`** — deferred during
   RFC-0012 review as out of scope; opens as its own RFC when prioritised.
+- **AC19 + plan T (lines 316/321/324) target the retired `add-credentialed-skill`
+  skill.** The `add-credentialed-skill` author skill was deleted 2026-05-31
+  (credential-broker-contract § Changelog; RFC-0013 § Errata). AC19's
+  `allowed-adapters` author-guidance paragraph has no host skill any more —
+  when this Draft spec is implemented, add that `allowed-adapters`
+  author-guidance paragraph to the how-to
+  `docs/guides/how-to/add-a-credentialed-skill.md` instead (the deleted
+  skill's "Adapter portability" section was not carried over — it's
+  pack-authoring guidance this spec owns). Left unfixed here to avoid
+  editing another spec's open ACs out of scope; the references are
+  warn-only (invariant iii).
 
 ## `user-scope-hooks`
 

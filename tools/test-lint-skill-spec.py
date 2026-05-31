@@ -361,7 +361,7 @@ def build_tree_broken(root: pathlib.Path) -> None:
         description: Body references a seed path; lint must refuse.
         ---
 
-        Worked example at `packs/core/.apm/skills/example-credentialed-skill/SKILL.md`.
+        Worked example at `packs/core/.apm/skills/new-spec/SKILL.md`.
         """))
 
     # Body — bare install-path mention (no skill name after the slash).
@@ -553,7 +553,7 @@ TREE_A_EXPECTED = [
     "absolute system path",
     ".claude/skills/work-loop/",
     ".claude/skills/self-skill-path/",
-    "packs/core/.apm/skills/example-credentialed-skill/",
+    "packs/core/.apm/skills/new-spec/",
     # bare install-path mention (no kebab-name after the slash) — both branches
     "install-path reference in body: '.claude/skills/'",
     "install-path reference in body: 'packs/core/.apm/skills/'",
