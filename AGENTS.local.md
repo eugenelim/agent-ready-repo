@@ -38,6 +38,31 @@ Concretely:
   (CI vs. lifecycle-event hooks), not what happens to be true in this
   checkout.
 
+## Adopter-facing materials ship; repo-specific tooling stays local-only
+
+The governing line for *what goes where*: **adopter-facing materials ship;
+this repo's own projection artifacts and repo-specific tooling stay
+local-only** (the `AGENTS.local.md` / `*.local.*` convention — like the
+`AGENTS.local.md` footer pointer itself). A shipped primitive (anything under
+a pack's `.apm/` or `seeds/`) must reference and run **only** things that
+install into an adopter's tree. Catalogue-internal tooling — which enforces
+*this catalogue's* conventions on *this catalogue's* own artifacts — never
+ships and is never referenced by a shipped primitive.
+
+**This catalogue's own enforcement gate is local-only.** The shipped
+`pre-pr.py` runs only the work-loop caps check (`loop-cohort.py check`, which
+ships) plus a wire-your-gate stub — it references none of our linters. This
+repo's full gate is the **repo-native, never-projected**
+`tools/pre-pr-catalogue.py`, which runs the 8 catalogue checks
+(`lint-agents-md`, `lint-agent-artifacts`, `lint-skill-spec`, `lint-knowledge`,
+`lint-build`, `lint-seeds`, `lint_credentialed_skills`, and the
+`test-lint-credentialed-skills` self-test) and then delegates to the shipped
+`pre-pr.py`. `make pre-pr`, `make build-check`, and CI's `docs.yml` `hooks` job
+all run it. If you're tempted to make a shipped hook/command/template reference
+`tools/lint-*` (or `make build-self`, `docs/specs/`, `.github/workflows/`),
+stop: that's catalogue-internal — it breaks on arrival in an adopter's repo
+(this is the issue #190 / `adopter-clean-enforcement-gate` class of bug).
+
 ## Agents PROJECT — they are not "Claude Code only" (stop getting this wrong)
 
 The `agent` primitive (e.g. `adversarial-reviewer`, `quality-engineer`)
