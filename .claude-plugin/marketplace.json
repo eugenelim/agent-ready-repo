@@ -14,9 +14,9 @@
       "version": "0.1.0"
     },
     {
-      "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and more to come.",
+      "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract).",
       "name": "contracts",
-      "version": "0.2.0"
+      "version": "0.3.0"
     },
     {
       "description": "File-format conversion skills: documents and images \u2192 Markdown; Markdown \u2192 styled HTML; Outlook .msg \u2192 Markdown.",
