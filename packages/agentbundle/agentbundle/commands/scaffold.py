@@ -19,8 +19,8 @@ import sys
 from pathlib import Path
 
 from agentbundle import safety
-from agentbundle.commands._common import check_spec_version_gate
-from agentbundle.config import ConfigError, State, load_pack_toml, load_state
+from agentbundle.commands._common import check_spec_version_gate, deliver_seeds
+from agentbundle.config import ConfigError, load_pack_toml
 
 
 def run(args: argparse.Namespace) -> int:
@@ -49,33 +49,21 @@ def run(args: argparse.Namespace) -> int:
         print(f"no seeds/ in pack {pack_name}", file=sys.stderr)
         return 1
 
-    # Load existing state from the output dir (may be absent — returns empty State).
-    state_path = output / ".agentbundle-state.toml"
-    state: State = load_state(state_path)
+    # Seed delivery (Tier-1/2/3, composition-fragment handling) is shared with
+    # `install`; see ``commands._common.deliver_seeds``. `scaffold` does NOT
+    # write `.agentbundle-state.toml` — that is `install`'s job.
+    try:
+        deliveries = deliver_seeds(seeds_dir, output)
+    except safety.PathJailError as exc:
+        print(f"scaffold: {exc}", file=sys.stderr)
+        return 1
 
-    for seed_file in sorted(seeds_dir.rglob("*")):
-        if not seed_file.is_file():
-            continue
-
-        relpath = seed_file.relative_to(seeds_dir).as_posix()
-        content = seed_file.read_bytes()
-
-        on_disk = output / relpath
-        try:
-            if not on_disk.exists():
-                # Absent → Tier-1 fast-path: write the seed.
-                safety.write_jailed(output, relpath, content)
-                print(f"{relpath}: wrote (new)")
-            elif on_disk.read_bytes() == content:
-                # Present, content matches → already in sync, no-op.
-                print(f"{relpath}: up-to-date (skipped)")
-            else:
-                # Present, content differs → Tier-2 fast-path: drop companion.
-                safety.write_companion(output, relpath, content)
-                companion = safety.companion_path(Path(relpath))
-                print(f"{relpath}: kept original, wrote companion {companion.as_posix()}")
-        except safety.PathJailError as exc:
-            print(f"scaffold: {exc}", file=sys.stderr)
-            return 1
+    for rec in deliveries:
+        if rec.action == "wrote":
+            print(f"{rec.relpath}: wrote (new)")
+        elif rec.action == "skipped":
+            print(f"{rec.relpath}: up-to-date (skipped)")
+        else:  # companion
+            print(f"{rec.relpath}: kept original, wrote companion {rec.companion_relpath}")
 
     return 0

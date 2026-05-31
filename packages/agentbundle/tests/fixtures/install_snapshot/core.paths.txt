@@ -1,6 +1,5 @@
 .gitignore
 AGENTS.md
-_agents-footer.md
 docs/CHARTER.md
 docs/CONVENTIONS.md
 docs/architecture/README.md
