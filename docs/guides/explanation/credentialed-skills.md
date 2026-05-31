@@ -124,5 +124,6 @@ make sure that's what you meant."
   the contributor-facing internals of the loader.
 - [RFC-0006](../../rfc/0006-skill-secrets-storage.md) — the
   authoritative source on the three-tier design.
-- [The example credentialed skill](../../../packs/core/.apm/skills/example-credentialed-skill/) —
-  a runnable, no-op reference shipped in `core`.
+- [The `jira` skill](../../../packs/atlassian/.apm/skills/jira/) —
+  a runnable `auth: creds` credentialed primitive shipped in the
+  `atlassian` pack.

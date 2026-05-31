@@ -13,10 +13,9 @@ the top of each entry-point raises::
 
 before argparse ever runs. The fix is a ``__package__``-bootstrap block
 at the top of every entry-point script (see
-``docs/specs/credential-broker-contract/spec.md`` AC28). The bootstrap
-is a no-op when ``__package__`` is already set (e.g. by the
-``_load_cli_module`` test helper in
-``test_example_credentialed_skill.py``).
+``docs/specs/credential-broker-contract/spec.md`` AC35). The bootstrap
+is a no-op when ``__package__`` is already set (e.g. by an importlib-based
+test harness that synthesises its own parent package).
 
 This test verifies the bootstrap holds for every shipped entry-point
 under the real user-scope layout — no test harness, no synthetic
@@ -142,7 +141,6 @@ def _assert_no_relative_import_error(result: subprocess.CompletedProcess, entry:
     "skill_relpath,entry_name",
     [
         ("credential-brokers/.apm/skills/credential-setup/scripts", "setup.py"),
-        ("core/.apm/skills/example-credentialed-skill/scripts", "cli.py"),
         ("figma/.apm/skills/figma/scripts", "figma.py"),
         ("atlassian/.apm/skills/jira/scripts", "jira.py"),
         ("atlassian/.apm/skills/jira-align/scripts", "jira_align.py"),
