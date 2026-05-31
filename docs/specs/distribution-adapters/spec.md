@@ -1367,8 +1367,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   Conformance cases: codex installs an agent-bearing pack to
   `.codex/agents/<name>.toml`; codex installs a hook-wiring-bearing
   pack to `.codex/hooks.json`; install via each adapter emits the
-  pinned warning when applicable. Migration guide at
-  [`docs/guides/how-to/v07-to-v08-pack-upgrade.md`](../../guides/how-to/v07-to-v08-pack-upgrade.md).
+  pinned warning when applicable.
 
 - 2026-05-26: contract bumps v0.6 → v0.7 per `docs/specs/credential-broker-contract/spec.md` — header-comment update naming RFC-0013; `.agentbundle/` prefix non-regression pinned across the three user-scope adapters (claude-code, kiro, codex). Two new build-pipeline primitive classes registered: `shared-libs/` (many-to-many byte-identical projection into consumer skills' `scripts/` directories gated by `metadata.auth: creds`; drift gate per `credential-broker-contract` AC23; inter-pack basename collision is hard-error) and `adapter-root-bins/` (single-target projection to `$HOME/.agentbundle/bin/<basename>.py` at user scope, POSIX mode `0o755`; path-jail compliance per `credential-broker-contract` AC22). No conformance-suite addition to `distribution-adapters/spec.md` — per its own scope statement that *full* per-adapter conformance is RFC-0003's work; the two primitive classes are pinned by `credential-broker-contract`'s own ACs (AC20–AC23 for `shared-libs/`; AC22 for `adapter-root-bins/`).
 - 2026-05-26: contract bump v0.6 → v0.7 per
