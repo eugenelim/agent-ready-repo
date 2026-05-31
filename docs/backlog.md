@@ -170,6 +170,31 @@ Sibling of `user-scope-hooks` for RFC-0005's third surface (standalone
     `_load_cli_module()` loads from pack source, not the projected
     `.claude/skills/…` mirror; parametrise over both.
 
+## `agentbundle-wheel-release`
+
+Implementation shipped (`.github/workflows/release-agentbundle.yml`, three
+jobs: build-and-smoke / publish-pypi / publish-artifactory). Three ACs remain
+open, all gated on the out-of-band first release.
+
+### readme-route3-after-first-publish
+
+AC11 — the README install-route-3 headline edit (replacing the legacy
+"once you've pip-installed `agentbundle`" phrasing in `README.md`) lands only
+**after** `pip install agentbundle` is true at PyPI. **Unblocks when:** the
+first PyPI publish succeeds.
+
+### pypi-first-publish-gesture
+
+AC13 — end-to-end PyPI publish: push an `agentbundle-v*` tag, Trusted-Publisher
+OIDC first-firing, then a clean-venv `pip install agentbundle` plus a
+credentialed-skill smoke. **Unblocks when:** the first release tag is pushed.
+
+### artifactory-first-publish-gesture
+
+AC14 — corp Artifactory publish first-firing. **Unblocks when:** the three
+Artifactory secrets (`ARTIFACTORY_URL` / `ARTIFACTORY_USER` /
+`ARTIFACTORY_TOKEN`) are configured and a tag is pushed.
+
 ## Cross-spec / outside-the-spec-tree
 
 Open items called out by accepted RFCs or multiple specs, without a spec
@@ -178,15 +203,6 @@ of their own yet.
 - **F-conformance fixtures (RFC-0003).** The per-adapter conformance suite
   `agentbundle validate --strict` would consume. Scoped out of v1; needs
   its own spec.
-- **Reconcile stale doc-surface ACs after the `ROADMAP.md` → `backlog.md`
-  rename** — *reconciled via errata 2026-05-29.* The open-items-only curation
-  dropped the old per-task closure grouping and the `— shipped`/`— drafted`
-  heading suffixes, so `skill-secrets` AC32 and `credential-broker-contract`
-  AC42 described a shape `backlog.md` no longer has. Both specs now carry a
-  dated `## Changelog` erratum recording the divergence (rather than editing a
-  Frozen/in-flight AC body). **Residual:** `credential-broker-contract` is still
-  `Draft`; its implementer reconciles AC42's wording to the open-items-only
-  convention when that spec ships. Remove this item then.
 - **Copilot `agent`-projection enablement (RFC-0016 open question 1).** The
   sharpened `adversarial-reviewer` "Spec drift" check reaches 3/4 adapters;
   copilot's `agent` primitive is `dropped` in `docs/contracts/adapter.toml`.
