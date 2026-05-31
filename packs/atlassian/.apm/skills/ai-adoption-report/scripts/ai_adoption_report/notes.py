@@ -1,4 +1,4 @@
-"""T2 notes-string formatter.
+"""Notes-string formatter.
 
 Every ``notes`` entry the report emits goes through one of :class:`Note`'s
 factory methods. Centralising the wording prevents drift across the
@@ -6,8 +6,9 @@ modes (baseline, cohort, program) and keeps the spec-literal strings in
 one auditable place.
 
 The factories are pure formatters — they return strings. Buffering and
-sorting live in a higher layer (T3/T4's report assembly), mirroring the
-``flow_metrics.notes`` collector-vs-formatter split.
+sorting live in a higher layer (the modes and program-discovery report
+assembly), mirroring the ``flow_metrics.notes`` collector-vs-formatter
+split.
 
 Note wording is pinned here as the single source of truth for each
 note string emitted by the report.
@@ -24,12 +25,12 @@ class Note:
 
     Each ``@classmethod`` renders one entry exactly as the spec pins it.
     Where the spec gives a verbatim example the wording is reproduced;
-    later tasks (T3/T4/T6) only fill in the stubbed methods, never
-    invent new wording outside this class.
+    later layers (modes, program discovery, aggregation) only fill in
+    the stubbed methods, never invent new wording outside this class.
     """
 
     # ------------------------------------------------------------------
-    # T2 — emitted during input loading
+    # Emitted during input loading
     # ------------------------------------------------------------------
     @classmethod
     def mixed_major_schema_versions(
@@ -66,7 +67,7 @@ class Note:
         return "mixed-major-schema-versions: " + ", ".join(parts)
 
     # ------------------------------------------------------------------
-    # T3 — baseline-mode + cohort-mode
+    # Emitted by the file-consumer modes (baseline + cohort)
     # ------------------------------------------------------------------
     @classmethod
     def config_sha_drift(cls, sha_name: str, a: str, b: str) -> str:
@@ -116,7 +117,7 @@ class Note:
         )
 
     # ------------------------------------------------------------------
-    # T4 — program-mode input discovery, dedupe, overlap, per_team
+    # Emitted by program-mode input discovery — dedupe, overlap, per_team
     # ------------------------------------------------------------------
     @classmethod
     def per_team_cohort_deferred(cls, n_rows: int) -> str:
@@ -124,7 +125,7 @@ class Note:
         ``"per_team-cohort-deferred: N flattened per-team rows have no
         cohort_breakdown; excluded from cohort rollup"``.
 
-        T4 emits this only when ``--include-cohort-breakdown`` is set
+        Program discovery emits this only when ``--include-cohort-breakdown`` is set
         and at least one per_team-flattened row exists (n_rows > 0).
         ``n_rows`` is the count of ``from_per_team=True`` rows in
         :class:`ProgramInputs.scopes`.
@@ -240,7 +241,7 @@ class Note:
         )
 
     # ------------------------------------------------------------------
-    # T6 — program-mode aggregation
+    # Emitted by program-mode aggregation
     # ------------------------------------------------------------------
     @classmethod
     def aggregation_zero_denominator(cls, metric: str, side: str) -> str:
@@ -250,8 +251,8 @@ class Note:
         undefined (total weight is zero on <side>)"``.
 
         ``side`` is one of ``"non-cohort"`` / ``"cohort"`` / ``"control"``
-        — the rollup side whose denominator collapsed to zero. T6 fills
-        in the side label at the call site.
+        — the rollup side whose denominator collapsed to zero. The
+        aggregation engine fills in the side label at the call site.
         """
         return (
             "aggregation-zero-denominator: {}; weighted-average undefined "
@@ -377,18 +378,19 @@ class Note:
         )
 
     # ------------------------------------------------------------------
-    # T5 — delta math (compute_deltas note factories)
+    # Emitted by the delta engine (compute_deltas note factories)
     # ------------------------------------------------------------------
     @classmethod
     def metric_absent(cls, metric: str, side_label: str) -> str:
         """Metric absent note: ``"<metric> absent in <file>; cell omitted"``.
 
-        T5 calls this when a metric key is present on one side of the
-        comparison but missing on the other. ``side_label`` is the
-        per-side label supplied to :func:`compute_deltas` (``"baseline"``
-        / ``"current"`` / ``"cohort"`` / ``"control"`` / a basename in
-        program-mode rollups) — T5 has no access to filenames, so the
-        caller pre-resolves ``<file>`` into the label.
+        The delta engine calls this when a metric key is present on one
+        side of the comparison but missing on the other. ``side_label``
+        is the per-side label supplied to :func:`compute_deltas`
+        (``"baseline"`` / ``"current"`` / ``"cohort"`` / ``"control"`` /
+        a basename in program-mode rollups) — the delta engine has no
+        access to filenames, so the caller pre-resolves ``<file>`` into
+        the label.
         """
         return "{} absent in {}; cell omitted".format(metric, side_label)
 
@@ -396,10 +398,10 @@ class Note:
     def metric_null_on_one_side(cls, metric: str, side_label: str) -> str:
         """Metric null on one side: ``"<metric> null in <which-side> for <scope>"``.
 
-        T5 does not know the scope (it operates on raw aggregate dicts),
-        so it emits the leading clause only. T3 / T6 may later wrap or
-        rewrite if they want to thread the scope through; the stable
-        wording lives here.
+        The delta engine does not know the scope (it operates on raw
+        aggregate dicts), so it emits the leading clause only. The modes
+        or aggregation engine may later wrap or rewrite if they want to
+        thread the scope through; the stable wording lives here.
         """
         return "{} null in {}".format(metric, side_label)
 

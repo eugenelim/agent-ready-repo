@@ -17,7 +17,7 @@
   "input": {
     "arguments": "Required: subcommand MODE (one of baseline / cohort / program) plus --output FILE. baseline mode also requires --baseline PATH --current PATH; cohort mode requires --input PATH; program mode requires --inputs DIR --window FROM..TO. Common optional flags: --format {markdown,json,both} (default both), --overwrite (replace existing output without prompting), --title TITLE, --verbose. Mode-specific optional flags: --include-cohort-breakdown (baseline + program).",
     "env": {
-      "AI_ADOPTION_REPORT_GENERATED_AT": "Optional. When set, the skill uses this ISO-8601 string verbatim for the report's meta.generated_at instead of reading the runtime clock. Intended for deterministic-build tests and golden-file diffs (T9 golden tests rely on this). Unset in normal operation."
+      "AI_ADOPTION_REPORT_GENERATED_AT": "Optional. When set, the skill uses this ISO-8601 string verbatim for the report's meta.generated_at instead of reading the runtime clock. Intended for deterministic-build tests and golden-file diffs (the golden tests rely on this). Unset in normal operation."
     },
     "_invocation_note": "CLI is invoked as `python -m ai_adoption_report MODE ...` (the package's __main__.py shims to ai_adoption_report.main). Resolving the package as importable Python is the user's responsibility (typically PYTHONPATH pointed at scripts/)."
   },

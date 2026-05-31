@@ -1,8 +1,8 @@
-"""T2 input file loader.
+"""Input file loader.
 
 Reads one flow-metrics JSON, validates the ``meta`` block, infers the
 scope ``kind`` from key presence, and returns an :class:`InputFile`
-dataclass that the three mode-runners (T3/T4) consume.
+dataclass that the three mode-runners (modes, program discovery) consume.
 
 Validation rules for input file validation are enforced here. Every
 error message names the file basename; the basename is the only
@@ -76,15 +76,17 @@ def infer_scope_kind(scope: dict, *, basename: str) -> str:
     Recognised kinds:
     ``portfolio`` / ``program`` / ``project`` / ``project+team``.
 
-    Synthesized-only kinds (introduced by T4's per_team flattening of a
-    program- or portfolio-scope input; flagged for spec amendment):
+    Synthesized-only kinds (introduced when program discovery
+    (program_discovery.py) flattens the per_team array of a program- or
+    portfolio-scope input; flagged for spec amendment):
     ``program+team`` / ``portfolio+team``. These are not produced by
-    `flow-metrics` directly — they only arise when T4 synthesises a
-    scope dict by carrying forward the source input's
+    `flow-metrics` directly — they only arise when program discovery
+    synthesises a scope dict by carrying forward the source input's
     ``program_id`` / ``portfolio_id`` and attaching a ``team`` value
     from a ``per_team`` entry. Accepting them here keeps inference in
-    one place; the alternative (a special-case path in T4) was rejected
-    so that T4 can re-infer the kind on the synthesised dict.
+    one place; the alternative (a special-case path in program
+    discovery) was rejected so that program discovery can re-infer the
+    kind on the synthesised dict.
 
     Anything outside the table raises :class:`ValidationError`.
 

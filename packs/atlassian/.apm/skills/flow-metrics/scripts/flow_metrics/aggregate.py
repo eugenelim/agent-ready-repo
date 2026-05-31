@@ -1,4 +1,4 @@
-"""T6 aggregation — percentiles, throughput, WIP, Flow Load, Flow
+"""Aggregation — percentiles, throughput, WIP, Flow Load, Flow
 Distribution, defect ratio, rework rate, flow efficiency.
 
 :func:`aggregate` consumes an :class:`Iterator[PerIssueRow]` exactly
@@ -10,10 +10,10 @@ drained, percentiles are computed via :func:`statistics.quantiles` (n=
 metric on the way out (the round-once contract, locked in by
 ``test_percentile_computed_at_full_precision``).
 
-T6 owns the zero-denominator / unmapped-issuetype / delivered-without-
-commitment counters that T11 turns into ``notes`` lines. Cohort split
-(T8), caching (T7), output filtering and rendering (T10), and notes
-wording (T11) are downstream.
+The aggregator owns the zero-denominator / unmapped-issuetype /
+delivered-without-commitment counters that the notes collector turns
+into ``notes`` lines. The cohort split, the cache, output filtering and
+rendering, and notes wording are downstream.
 
 Stdlib only. Python >= 3.10.
 """
@@ -57,7 +57,7 @@ class PercentileStat:
 class AggregateBlock:
     """Flat one-field-per-metric aggregate.
 
-    Carries every metric the spec defines; the T10 serializer filters to
+    Carries every metric the spec defines; the renderer's serializer filters to
     ``--metrics``. Notes-block counters live alongside the metrics so the
     aggregator's single pass is the only place that needs to touch the
     raw row stream.
@@ -74,7 +74,7 @@ class AggregateBlock:
     flow_distribution: Mapping[str, float]
     flow_distribution_denominator: int
     defect_ratio: float
-    # Notes-block counters (T11 wordsmiths them into notes lines).
+    # Notes-block counters (the notes collector wordsmiths them into notes lines).
     cancelled_in_window: int
     delivered_without_commitment: int
     flow_efficiency_zero_denominator: int
@@ -119,10 +119,10 @@ def aggregate(
     than ``O(rows)``.
 
     ``config`` is reserved for future metric-config hooks (e.g., a
-    rework-signal override at aggregate time). T6 does not read it
-    today — every populated PerIssueRow already carries the
+    rework-signal override at aggregate time). The aggregator does not
+    read it today — every populated PerIssueRow already carries the
     state-config-derived booleans — but threading it keeps the
-    signature stable for T7+.
+    signature stable for the cache and downstream stages.
     """
     del config  # reserved; rows are pre-derived against state config
 
@@ -149,8 +149,9 @@ def aggregate(
             # Custom user-configured buckets (anything outside the spec's
             # standard six) funnel to "other" for the AggregateBlock's
             # fixed-shape distribution. They are NOT counted as unmapped
-            # — only T5's None-mapped-to-"other" sink (raw issuetype not
-            # in any user bucket) signals "unmapped" for the notes line.
+            # — only per-issue derivation's None-mapped-to-"other" sink
+            # (raw issuetype not in any user bucket) signals "unmapped"
+            # for the notes line.
             bucket = raw_bucket if raw_bucket in buckets else OTHER_BUCKET
             buckets[bucket] += 1
             if raw_bucket == OTHER_BUCKET:
@@ -174,7 +175,7 @@ def aggregate(
                     else:
                         # Cycle-eligible but ``(active_t + wait_t) == 0``
                         # — excluded from the flow_efficiency percentile
-                        # array, surfaced in notes by T11.
+                        # array, surfaced in notes by the notes collector.
                         flow_efficiency_zero_denominator += 1
                 else:
                     delivered_without_commitment += 1

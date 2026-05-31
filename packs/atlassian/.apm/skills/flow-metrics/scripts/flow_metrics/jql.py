@@ -1,7 +1,7 @@
 """JQL composition helper — the canonical iteration-order anchor.
 
 Used identically for scope, ``--jql``, ``--cohort-jql``, ``--align-filter``,
-and (T9) the program-scope JQL. Parenthesization is contract-tested:
+and (in the per-team rollup) the program-scope JQL. Parenthesization is contract-tested:
 ``(scope) AND (user)`` whenever a user clause is present, regardless of
 its internal operator precedence. ``ORDER BY key ASC`` is appended for
 canonical iteration order.

@@ -1,6 +1,6 @@
 """Upstream skill wrappers — discovery, allowlist, subprocess.
 
-T3 substrate: every downstream task reads Jira / Jira Align data through
+Every downstream stage reads Jira / Jira Align data through
 this module. The wrapper enforces the read-only allowlist — verbs and
 ``raw GET`` paths are validated against exact regex patterns before any
 subprocess is spawned.
