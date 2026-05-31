@@ -31,7 +31,6 @@ The three-tier guard that keeps an implementing agent inside the lines. *Always 
 - **Lift `[pack.install] allowed-adapters` validation to both scopes.** Today the cross-field check at `validate.py` only fires when the pack is user-scope-eligible. Post-PR the field is validated at both scopes; the user-scope-capability subcheck (the substring `not admitted as a user-scope-capable adapter`) becomes scope-conditional — only fires when the pack's resolved scope is user.
 - **Bump every pack `pack.toml` v0.6 → v0.7.** Four user-scope-capable packs (`atlassian`, `figma`, `converters`, `contracts`) plus the four repo-only packs (`core`, `governance-extras`, `user-guide-diataxis`, `monorepo-extras`). Drawback #7 of RFC-0012 names the repo-only bump as load-bearing — at `< 0.7` packs the legacy heuristic at step 5 still fires at repo scope, which can only return `"claude-code"` or `"kiro"` and never `"codex"` / `"copilot"`.
 - **Run `make build-self FORCE=1` after every change to `packs/<pack>/.apm/` or `packs/<pack>/seeds/`** so projected `.claude/skills/...` etc. stay in sync (memory rule `feedback_build_self_undoes_projection_only_edits`).
-- **Use `eugenelim <eugenelim@users.noreply.github.com>` commit identity**, no Claude trailer; run `gh auth status` before push (memory rules `git_identity` + `feedback_check_github_auth`).
 
 ### Ask first
 
@@ -209,7 +208,6 @@ The spec is closed when each of the following observable outcomes is verifiable 
 - Technical: `build/recipes/self-host.toml` exists and already produces per-IDE direct writes for self-hosting; RFC-0012 § *Prior art* names this as the in-tree mechanism this spec generalises to the adopter-side install path (source: `ls packages/agentbundle/agentbundle/build/recipes/` 2026-05-26).
 - Process: RFC-0012 Status = Accepted, Date closed 2026-05-26 (source: this session's edit to `docs/rfc/0012-repo-scope-per-adapter-projection.md`).
 - Process: spec mirrors `docs/specs/pack-allowed-adapters/spec.md` in shape; single PR per RFC-0004 atomicity (source: RFC-0012 § *Follow-on artifacts* explicit "mirroring `pack-allowed-adapters/spec.md` in shape" + the inherited atomicity statement from the sibling spec).
-- Process: commit identity `eugenelim <eugenelim@users.noreply.github.com>` with no Claude trailer; `gh auth status` before push (source: memory rules `git_identity` + `feedback_check_github_auth`).
 
 ## Changelog
 

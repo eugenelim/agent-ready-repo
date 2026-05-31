@@ -232,8 +232,8 @@ class AdapterRootBinsTests(unittest.TestCase):
 class AdapterRootBinsShimCompanionTests(unittest.TestCase):
     """AC22b: shim-companion projection alongside adapter-root-bins/.
 
-    Closes the deferred-projection gap from PR
-    `eugenelim/fix-credential-user-install` — under bare user-scope
+    Closes the deferred-projection gap from the credential
+    user-install fix — under bare user-scope
     install, `_sso_*` modules' `from .credentials_shim import
     Tier2HardFailError` previously failed and `sso-broker.py`'s
     try/except cascade silently degraded `_tier2_backend` to `None`

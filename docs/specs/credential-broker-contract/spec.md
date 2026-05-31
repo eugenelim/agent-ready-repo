@@ -39,7 +39,6 @@ The three-tier guard that keeps an implementing agent inside the lines. *Always 
 - **Compose path checks via basename and `Path.parts`** in the lint, never via the literal full path string — per `feedback_credentialed_lint_substring_trap`. Both the existing AC26(c) trap and the new positive-grep targets for broker-specific checks fall under this rail; lint checks for `auth: creds` and `auth: sso-cookie` are AST-based (`ImportFrom` / `subprocess.run` shape match), not raw grep.
 - **Run `make build-self FORCE=1` after every change to `packs/credential-brokers/.apm/`** so projected copies in consumer skills' `scripts/` stay in sync. Closing a build-self drift is in-scope for the PR that introduces it (per `feedback_build_self_undoes_projection_only_edits`).
 - **Honour corporate-network env passthrough in every broker subprocess** — `subprocess.run(..., env={**os.environ, ...})`; never a fresh empty env. Playwright browser context launched via `chromium.launch_persistent_context(user_data_dir, env={**os.environ, ...})` with `HTTPS_PROXY` / `NO_PROXY` / `REQUESTS_CA_BUNDLE` / `SSL_CERT_FILE` / `SSL_CERT_DIR` forwarded explicitly. A unit test pins the env-passthrough; the manual-QA matrix covers browser-context propagation.
-- **Use `eugenelim <eugenelim@users.noreply.github.com>` commit identity**, no Claude trailer; run `gh auth status` before push (per `feedback_check_github_auth`).
 
 ### Ask first
 
