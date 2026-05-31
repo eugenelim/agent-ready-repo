@@ -36,7 +36,7 @@ discovery-schema-version = "0.1"
 
 [markers]
 project-name = "agent-ready-repo"
-owner        = "eugenelim"
+owner        = "acme"
 
 [[findings.accepted]]
 finding-id       = "core/restructure:7a3f2c91"
@@ -127,7 +127,7 @@ def test_canonical_schema_parses_repo_scope(tmp_path):
 
     assert isinstance(d, AdaptDiscovery)
     assert d.schema_version == "0.1"
-    assert d.markers == {"project-name": "agent-ready-repo", "owner": "eugenelim"}
+    assert d.markers == {"project-name": "agent-ready-repo", "owner": "acme"}
 
     assert len(d.findings_accepted) == 1
     acc = d.findings_accepted[0]
