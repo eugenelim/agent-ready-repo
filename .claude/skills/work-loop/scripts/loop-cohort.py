@@ -138,13 +138,13 @@ def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
     )
 
 
-# ── scheduler (wave-scheduled supervisor mode; RFC-0015 / ADR-0005) ────────
+# ── scheduler (wave-scheduled supervisor mode) ─────────────────────────────
 #
 # Pure functions over a plan's `Depends on:` graph. The supervisor mode runs
-# tasks in topological order *sequentially by default* on every adapter
-# (RFC-0015 decision 1); parallel writes are opt-in and gated (decision 3,
-# `dispatch_decision`). `Depends on:` is made machine-parseable here
-# (decision 4) — prose, ranges, letter-suffixed IDs, and a cross-spec marker.
+# tasks in topological order *sequentially by default* on every adapter;
+# parallel writes are opt-in and gated (`dispatch_decision`). `Depends on:` is
+# made machine-parseable here — prose, ranges, letter-suffixed IDs, and a
+# cross-spec marker.
 
 TASK_HEADING_RE = re.compile(r"^###\s+(T\d+[a-z]?)\b", re.MULTILINE)
 DEPENDS_LINE_RE = re.compile(r"^\*\*Depends on:\*\*\s*(.+)$", re.MULTILINE)
@@ -208,8 +208,8 @@ def parse_plan(text: str):
 # touch. Parsed like `Depends on:` but kept in a SEPARATE accessor so
 # `parse_plan`'s (ordered, deps) signature — and its ~8 callers — stay
 # unchanged. The globs drive a *screen-only* pre-dispatch disjointness
-# prediction in `schedule`; they never greenlight parallel (RFC-0015 / ADR-0005;
-# the post-write `git merge-tree` stays authoritative).
+# prediction in `schedule`; they never greenlight parallel (the post-write
+# `git merge-tree` stays authoritative).
 
 
 def parse_touches(field: str):
@@ -347,7 +347,7 @@ def detect_forward_refs(ordered, deps):
 # post-merge compile) and so are eligible for opt-in parallel writes. Every
 # other category — dynamic-semantic interference, shared mutable state,
 # move/extract-vs-edit, migration ordering, shared fixtures — fails *silent*
-# and stays serial. (RFC-0015 §3 / ADR-0005.)
+# and stays serial.
 SAFE_CATEGORIES = frozenset({"cannot-collide", "typed-group-b", "textual-loud"})
 
 
@@ -356,7 +356,7 @@ def dispatch_decision(categories, *, merge_tree_clean):
 
     Parallel only when **every** task is in a safe category **and** the wave
     is file-disjoint (a clean ``git merge-tree``). Fail closed: any non-safe
-    category, or any merge-tree conflict, serializes. (RFC-0015 decision 3.)
+    category, or any merge-tree conflict, serializes.
     This gates *writes* only; reviewer (read) fan-out is unaffected.
     """
     if not merge_tree_clean:
@@ -398,13 +398,13 @@ def _dispatch_rationale(categories, *, merge_tree_clean, decision, source=None) 
     return msg
 
 
-# ── auto-classification (supervisor-auto-classify; RFC-0015 / ADR-0005) ──────
+# ── auto-classification (supervisor-auto-classify) ───────────────────────────
 # Auto-derive a task's conflict category from its committed branch diff so the
 # supervisor stops hand-feeding `--category`. FAIL-CLOSED: only an all-added,
 # no-danger-path diff is `cannot-collide` (the lone auto-safe label); every
 # other shape gets a named non-safe label that serializes. This establishes
 # file-additive ∧ (with the gate's merge-tree half) file-disjoint — NOT
-# ADR-0005's full disjoint-no-shared-symbol; the cross-branch guard below
+# a full disjoint-no-shared-symbol guarantee; the cross-branch guard below
 # shrinks that residual, and the irreducible string-key/cross-file-symbol case
 # is backstopped by the post-merge test gate, not claimed here.
 _DANGER_PATH_RE = re.compile(
@@ -573,8 +573,8 @@ def cmd_schedule(args: argparse.Namespace) -> int:
 
 
 def cmd_dispatch_decision(args: argparse.Namespace) -> int:
-    """Gate one write wave: print ``parallel`` or ``serial`` (RFC-0015
-    decision 3 / AC5). The wave's conflict categories are **auto-derived** from
+    """Gate one write wave: print ``parallel`` or ``serial``. The wave's
+    conflict categories are **auto-derived** from
     each ``--branch``'s committed diff when ``--category`` is omitted, else the
     explicit ``--category`` list is used verbatim (human override). Combined
     with a mechanical ``git merge-tree`` file-disjointness check; fail closed:

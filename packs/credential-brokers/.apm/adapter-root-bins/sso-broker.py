@@ -14,8 +14,7 @@ and ``agentbundle:sso:<profile>:<n>`` for continuation slots.
 This script lives at ``~/.agentbundle/bin/sso-broker.py`` and is
 subprocess-invoked from `auth: sso-cookie` consumer skills.
 
-Refs: docs/specs/credential-broker-contract/spec.md (AC9-AC17);
-RFC-0013 § 4b.
+Refs: docs/specs/credential-broker-contract/spec.md (AC9-AC17).
 """
 
 from __future__ import annotations
@@ -52,7 +51,7 @@ if __package__ in (None, "") and __spec__ is None:
 # threshold is applied uniformly for cross-platform determinism.
 CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES = 2048
 
-# Reserved keychain-target namespace for this broker (AC12 / RFC-0013 § 4b).
+# Reserved keychain-target namespace for this broker (AC12).
 # Every write_credential / read_credential call site constructs target
 # names of shape agentbundle:sso:<profile> (or :<n> for continuation).
 _SSO_NAMESPACE = "agentbundle:sso"
@@ -83,7 +82,7 @@ elif sys.platform == "win32":
             _tier2_backend = None
 
 
-# Argv-borne credential flags refused per RFC-0006 § 4 / argv ban.
+# Argv-borne credential flags refused per the argv ban.
 _ARGV_BAN = frozenset({
     "--token",
     "--api-token",

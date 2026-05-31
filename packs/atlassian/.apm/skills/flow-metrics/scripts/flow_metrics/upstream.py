@@ -146,7 +146,7 @@ def discover_skill_path(name: str, *, env: Optional[Mapping[str, str]] = None, c
     want a specific adapter set the priority-1 env override
     ``FLOW_METRICS_<NAME>_SCRIPT`` to the exact script path; that's the
     documented runtime escape valve. The install-time analogue lives in
-    ``agentbundle install --scope user --adapter <name>`` per RFC-0011.
+    ``agentbundle install --scope user --adapter <name>``.
     """
     e = env if env is not None else os.environ
     base_cwd = cwd if cwd is not None else Path.cwd()
