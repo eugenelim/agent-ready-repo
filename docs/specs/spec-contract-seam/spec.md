@@ -16,11 +16,15 @@ contract between them, and a contract has no canonical location or lifecycle.
 This is **Stage 2** of RFC-0017 (Stage 1, `pluggable-api-standards`, shipped).
 
 For a feature that exposes an interface surface, `new-spec` gains a
-**conditional seam**: detect the surface and its type, locate or create the
-contract at its conventional path (`contracts/<type>/`), **delegate authoring
-to the type's skill if one is installed — else fall back to a direct file-edit
-and note the absence**, link it from the spec via a `Contract:` header, and
-point the plan's construction tests at it. Contracts become **long-lived,
+**conditional, contract-type-agnostic seam**: detect the surface and its type
+(REST/OpenAPI, events/AsyncAPI, RPC/proto, GraphQL, schemas — the seam routes
+*any* type, not just REST), locate or create the contract at its conventional
+path (`contracts/<type>/`), **delegate authoring to the type's skill if one is
+installed — else fall back to a direct file-edit and note the absence**, link it
+from the spec via a `Contract:` header, and point the plan's construction tests
+at it. v1 bundles only the OpenAPI authoring skill (`api-contract`); every other
+type — events included — still routes to `contracts/<type>/` and degrades to a
+direct-edit + note. Contracts become **long-lived,
 repo-level, single-source-of-truth** artifacts that many specs can create and
 modify over time, with **bidirectional spec↔contract traceability** (forward
 `Contract:` header; backward `x-spec` extension or `REGISTRY.md`) kept honest
@@ -57,6 +61,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Keep the integration **convention-first**: the `contracts/<type>/` location
   convention is the anchor; the type→skill roster match is an enhancement, never
   on the critical path (D7).
+- Keep the seam **contract-type-agnostic**: every type (events/AsyncAPI, proto,
+  GraphQL, schemas) routes to `contracts/<type>/` and degrades the same way REST
+  does; the only type-specific thing v1 ships is the OpenAPI authoring *skill*.
+- Keep adopter-facing **skill** content free of **catalogue RFC numbers** —
+  adopters don't have our RFCs; put provenance in the ADR + spec (governance).
+  Real external standards (IETF RFC 9457, etc.) are fine.
 - Record the **RFC-0017 gate** for the CONVENTIONS amendment in **ADR-0008 + this
   spec** (catalogue governance) — keep the adopter-facing CONVENTIONS **seed**
   placeholder-shaped (no catalogue RFC number; `lint-seeds` forbids it). Keep the
@@ -77,8 +87,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   only here (Decision 1).
 - Make `core` import from or depend on `contracts` (compose-around-core
   invariant, `docs/architecture/overview.md`).
-- Add a new contract **type** or its authoring skill (v1 = OpenAPI only; D4), or
-  a runtime multi-standard resolver (RFC-0017 Open Q1).
+- Ship a **non-OpenAPI authoring skill or its rules** (v1 bundles only
+  `api-contract`/OpenAPI; D4). The seam **routing** every type to
+  `contracts/<type>/` and degrading is *in scope* — building a non-OpenAPI
+  authoring *engine* is the deferred follow-on. No runtime multi-standard
+  resolver (RFC-0017 Open Q1).
+- Put a **catalogue RFC number** in adopter-facing skill content (it ships to
+  adopters who don't have our RFCs); provenance goes in the ADR + spec.
 - Relax the `adapt` "never add a new top-level directory" rule into a general
   license — the carve-out names the RFC-authorized `contracts/` root **only**.
 - Add a **new standalone lint script** for traceability — extend
@@ -121,12 +136,22 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   token `- **Contract:**` — alongside `Plan:` / `Constrained by:`. This exact
   token is the shared contract between the seam (writes it) and the traceability
   invariant (parses it).
-- [x] `new-spec/references/contract-types.md` is the consumer-side capability
-  map — a markdown table with one row (`openapi → api-contract`) and the
-  runtime-note degrade rule documented.
+- [x] `new-spec/references/contract-types.md` is the consumer-side,
+  **type-agnostic** registry — a table mapping every known contract type to its
+  `contracts/<type>/` location and authoring skill: `openapi → api-contract`
+  (bundled), and the other types (events/`asyncapi`, `proto`, `graphql`,
+  `jsonschema`, `jsonrpc`, `mcp`) to their location with **no bundled skill**
+  (degrade to direct-edit + note). The seam routes *any* type, events included;
+  the runtime-note degrade rule is documented.
 - [x] The seam is **convention-first**: the skill body states the
   `contracts/<type>/` location is the anchor and that a missing authoring skill
   degrades to a direct file-edit + a note, never blocking.
+- [x] **Adopter-ready skill content:** the seam's adopter-facing skill content
+  (the 4b step, `contract-types.md`) and the `adapt` contract carve-out carry
+  **no catalogue RFC numbers** (adopters don't have our RFCs) — RFC-0017
+  provenance lives in ADR-0008 + this spec. Real external standards (e.g. IETF
+  RFC 9457) are unaffected. (`RFC-0017` no longer appears anywhere under
+  `packs/`.)
 - [x] The CONVENTIONS **seed** `packs/core/seeds/docs/CONVENTIONS.md` (source of
   truth; top-level `docs/CONVENTIONS.md` is its projection) records the repo-level
   `contracts/<type>/` tree, the per-domain kebab-case naming + versioning

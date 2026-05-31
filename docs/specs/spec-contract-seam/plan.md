@@ -236,6 +236,18 @@ inert in this repo (no contracts authored here).
 
 ## Changelog
 
+- 2026-05-31: post-review enhancement (user-directed). (a) Generalized the seam
+  to be explicitly **contract-type-agnostic** — step 4b + `contract-types.md` now
+  route *any* type (events/AsyncAPI, proto, GraphQL, schemas) to
+  `contracts/<type>/`, delegating to a type's skill if installed else degrading;
+  v1 still bundles only the OpenAPI authoring skill (D4 — no event-authoring
+  engine built). (b) **Adopter-ready** skill content: scrubbed catalogue RFC
+  numbers (RFC-0017) from `contract-types.md`, the `adapt` carve-out, and the lint
+  docstring — `RFC-0017` now appears nowhere under `packs/`; provenance lives in
+  ADR-0008 + spec. Pre-existing internal RFC refs in other shipped skills
+  (`adapt` RFC-0004/0008, `work-loop` RFC-0015, `new-spec/assets/plan.md`
+  RFC-0015) are a broader catalogue cleanup, surfaced as a follow-up — not in this
+  PR's scope.
 - 2026-05-31: mid-EXECUTE correction (T1). The `lint-seeds` gate forbids
   catalogue RFC numbers (`RFC-NNNN`) in pack seeds (adopter-facing placeholder
   shape). Reworded the CONVENTIONS seed to drop the two `RFC-0017` citations; the
