@@ -67,11 +67,11 @@ build-self-dry-run: lint-packs
 # lint-packs, projected .claude/* artifacts via pre-pr). Safe to call
 # directly when you want only the artifact checks without rebuilding.
 pre-pr:
-	$(PYTHON) tools/hooks/pre-pr.py
+	$(PYTHON) tools/pre-pr-catalogue.py
 
 build-check: lint-packs build
 	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
-	$(PYTHON) tools/hooks/pre-pr.py
+	$(PYTHON) tools/pre-pr-catalogue.py
 	# Doc-drift spec-metadata gate (RFC-0016 § Errata / ADR-0007). The lint is a
 	# work-loop skill script that ships to adopters; the catalogue runs the
 	# PROJECTED copy as its fail-closed CI gate (mirrors how pre-pr.py invokes

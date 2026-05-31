@@ -40,32 +40,31 @@ value exits 2 with `--scope requires a path or glob value`.
 See [`docs/knowledge/README.md`](../../docs/knowledge/README.md) for
 the schema and curation conventions.
 
-### `pre-pr.py`
+### `pre-pr.py` (shipped, adopter-facing)
 
-Runs before a PR opens — the local mirror of CI's artifact-hygiene
-checks plus the work-loop's mechanical termination check.
+Runs before a PR opens. The **shipped** hook runs:
 
-What it runs, in order:
-
-1. `tools/lint-agents-md.py` — root `AGENTS.md` hygiene, drift-watch
-2. `tools/lint-agent-artifacts.py` — skill/agent/command frontmatter
-3. `tools/lint-knowledge.py` — `patterns.jsonl` validation
-4. `tools/lint-build.py` — build-pipeline hygiene
-5. `.claude/skills/work-loop/scripts/loop-cohort.py check <spec-dir>`
+1. `.claude/skills/work-loop/scripts/loop-cohort.py check <spec-dir>`
    against every `docs/specs/*/` that owns a `state.json`, in both
-   `--phase implement` and `--phase review` modes
+   `--phase implement` and `--phase review` modes — the work-loop caps gate.
+2. Your project's own lint / typecheck / test commands, wired into the stub
+   in `pre-pr.py` (the `adapt-to-project` skill can fill these in).
 
-Exits non-zero on the first failure with a one-line reason. If there
-are no active `state.json` files, the loop-cohort step is skipped.
+It runs **none** of this catalogue's own artifact linters — those enforce the
+catalogue's conventions on its own tree and don't apply to an adopter's repo.
+Exits non-zero on the first failure; a missing tool is skipped, not fatal.
 
-These three layers — `loop-cohort.py` (caps) + the four linters
-(artifact hygiene) + `pre-pr.py` (the gate that runs them together) —
-make up the project's **enforcement triplet**. Documented in
-[`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement-the-triplet).
+**This catalogue's own full gate** is the repo-native, never-projected
+`tools/pre-pr-catalogue.py`: it runs the 8 catalogue checks
+(`lint-agents-md`, `lint-agent-artifacts`, `lint-skill-spec`, `lint-knowledge`,
+`lint-build`, `lint-seeds`, `lint_credentialed_skills`, and the
+`test-lint-credentialed-skills` self-test), then delegates to the shipped
+`pre-pr.py`. `make pre-pr` and `make build-check` run it. See
+[`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement).
 
 ## Runtime
 
-The hooks and the five sibling linters under `tools/lint-*.py`
+The hooks and the catalogue linters under `tools/lint*.py`
 require **Python ≥ 3.11** (for stdlib `tomllib`). The repo's
 `packages/agentbundle/pyproject.toml` already pins this floor.
 Invoke as `python tools/hooks/<name>.py` — works on native Windows
@@ -163,26 +162,26 @@ are the canonical parity net:
 - `test_session_start_py.py` — exercises `--scope` validation, the
   malformed-line warning, the `KNOWLEDGE_FILE` override, and the
   empty/missing-file silent-exit paths.
-- `test_pre_pr_py.py` — corrupts each of the enforcement layers
-  (three linters plus `loop-cohort.py`) in a sandbox copy of the repo
-  and asserts `pre-pr.py` fails with the right label.
+- `test_pre_pr_py.py` — asserts the **shipped** `pre-pr.py` is adopter-clean
+  (references no catalogue check, runs loop-cohort + a wire-your-gate stub,
+  degrades gracefully) and that the catalogue hook runs all 8 checks + delegates.
 
 Two bash self-tests still ship for parity with the pre-Phase-3
 contract — they invoke the Python hooks rather than the bash
 versions, but their sandbox setup remains bash:
 
-- `tools/test-pre-pr.sh` — the bash-runner equivalent of
-  `test_pre_pr_py.py`.
+- `tools/test-pre-pr.sh` — corrupts each layer the **catalogue** gate
+  (`tools/pre-pr-catalogue.py`) runs and asserts it fails with the right label.
 - `tools/test-session-start.sh` — the bash-runner equivalent of
   `test_session_start_py.py`.
 
 The umbrella `tools/test-all.py` runs every self-test in `tools/`.
 Run it by hand whenever a linter, hook, or `loop-cohort.py` changes.
 
-**CI parity.** `pre-pr.py` and CI run the same set of checks in
-parallel. CI's `.github/workflows/docs.yml` has a job per
-enforcement layer — the four linters, the caps-enforcer self-test,
-and a `hooks` job that exercises the aggregator end-to-end (after
-seeding a healthy `state.json` so `loop-cohort.py check` actually
-runs). Run `python tools/test-all.py` and `python tools/hooks/pre-pr.py`
+**CI parity.** The catalogue gate and CI run the same checks. CI's
+`.github/workflows/docs.yml` has a job per catalogue linter, the
+caps-enforcer self-test, and a `hooks` job that exercises
+`tools/pre-pr-catalogue.py` end-to-end (after seeding a healthy
+`state.json` so `loop-cohort.py check` actually runs). Run
+`python tools/test-all.py` and `python tools/pre-pr-catalogue.py`
 locally before opening a PR; CI runs the same checks afterward.
