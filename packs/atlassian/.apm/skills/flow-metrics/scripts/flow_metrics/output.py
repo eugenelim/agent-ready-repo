@@ -1,7 +1,7 @@
-"""T10 output rendering — JSON canonicalisation, CSV long-form, per-issue JSONL.
+"""Output rendering — JSON canonicalisation, CSV long-form, per-issue JSONL.
 
-The renderer is the seam between the pipeline (T6 aggregate, T8 cohort,
-T9 per_team, T11 notes + meta) and the wire format. It takes an already-
+The renderer is the seam between the pipeline (aggregate, cohort,
+per_team, notes + meta) and the wire format. It takes an already-
 built :class:`Report` and emits bytes in the spec-pinned shape, applying:
 
 * ``--metrics`` filtering — :class:`~flow_metrics.aggregate.AggregateBlock`
@@ -20,9 +20,9 @@ built :class:`Report` and emits bytes in the spec-pinned shape, applying:
 * Defensive sorting — ``notes`` is sorted at emit; ``meta.sources`` and
   ``meta.metrics_requested`` are re-sorted (lex / canonical respectively)
   so the test passes even when the caller hands an unsorted list. The
-  per_team list is *not* re-sorted here — T9's :func:`per_team_rollup`
-  already sorts by team name in codepoint order, and re-sorting would
-  silently mask a regression there.
+  per_team list is *not* re-sorted here — the per-team rollup's
+  :func:`per_team_rollup` already sorts by team name in codepoint
+  order, and re-sorting would silently mask a regression there.
 
 Stdlib only. Python >= 3.10.
 """
@@ -41,7 +41,7 @@ from .aggregate import (
 )
 from .per_issue import PerIssueRow
 
-# T9-API: imported lazily so a Report can carry rows of the spec'd shape
+# per-team rollup API: imported lazily so a Report can carry rows of the spec'd shape
 # even if a tester stubs PerTeamRow locally (the only attributes accessed
 # are ``.team`` and ``.aggregates``).
 
@@ -171,8 +171,8 @@ def _sort_metrics_requested(metrics: Iterable[str]) -> List[str]:
     the published meta block stays consistent with what ``aggregates``
     actually carries — ``_aggregates_to_dict`` does not emit unknown
     metrics, so listing them in ``meta.metrics_requested`` would lie to
-    downstream consumers. CLI flag validation (T1) catches unknown
-    names before they reach the renderer; this is the last-line
+    downstream consumers. CLI flag validation (the CLI scaffold) catches
+    unknown names before they reach the renderer; this is the last-line
     defence.
     """
     seen: set = set()
@@ -190,7 +190,7 @@ def _meta_to_dict(
     """Build the meta wire dict, applying the defensive resorts.
 
     The caller is supposed to pre-sort ``meta.sources`` lex and
-    ``meta.metrics_requested`` canonical, but T11 produces ``notes`` /
+    ``meta.metrics_requested`` canonical, but the meta builder produces ``notes`` /
     ``sources`` opportunistically and the contract tests want stable
     output regardless. Re-sort here so a missing or unsorted upstream
     list doesn't surface as test churn.
@@ -246,7 +246,7 @@ def _build_report_dict(report: Report) -> Dict[str, Any]:
         #
         # Spec lines 406-428: cohort_breakdown emits both `cohort` and
         # `control` sides together — the example always shows both, and
-        # T8's :func:`build_cohort_breakdown` always returns both. A
+        # the cohort split's :func:`build_cohort_breakdown` always returns both. A
         # partial breakdown (one side only) is upstream contract
         # violation; rather than silently produce spec-undefined output,
         # require both-or-neither and skip emission when one is missing.
@@ -419,7 +419,7 @@ def _per_issue_row_to_dict(row: PerIssueRow) -> Dict[str, Any]:
     ``None``.
 
     ``cohort`` is **only** emitted when set (``True`` / ``False``). When
-    ``--cohort-jql`` is not in play, T8's :func:`tag_cohort` doesn't run
+    ``--cohort-jql`` is not in play, the cohort split's :func:`tag_cohort` doesn't run
     and ``row.cohort`` stays ``None``; emitting ``"cohort": null`` would
     mislead consumers into thinking the row was tagged as not-in-cohort.
     Cohort-field presence is bound to cohort-jql mode; absence is the

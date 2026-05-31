@@ -347,7 +347,7 @@ Output is canonicalised at serialisation: codepoint-sorted object keys
 (except `flow_distribution` which uses a fixed bucket order), floats
 rounded to 4 decimal places, per_team sorted by team name codepoint.
 The schema does **not** re-validate canonicalisation rules — those are
-enforced by the renderer's contract tests in T10.
+enforced by the renderer's contract tests.
 
 ## Further reading
 

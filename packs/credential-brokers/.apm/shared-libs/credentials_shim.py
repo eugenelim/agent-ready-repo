@@ -19,7 +19,7 @@ module-load time: ``_keychain_macos`` iff ``sys.platform ==
 "darwin"``, ``_credman_windows`` iff ``"win32"``, no Tier-2 backend on
 other platforms (resolver falls through directly to Tier 3).
 
-``.env`` parser (T2 surface, retained here):
+``.env`` parser (retained here):
 
 Supported:
     ``KEY=value``

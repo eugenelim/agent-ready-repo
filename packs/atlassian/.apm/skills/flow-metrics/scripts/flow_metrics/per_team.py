@@ -1,7 +1,7 @@
-"""T9 per-team rollup.
+"""Per-team rollup.
 
 Buckets :class:`~flow_metrics.per_issue.PerIssueRow` instances by team
-and runs T6's :func:`~flow_metrics.aggregate.aggregate` against each
+and runs the aggregator's :func:`~flow_metrics.aggregate.aggregate` against each
 bucket. For ``team_field.kind == "single_value"`` the buckets are
 disjoint and ``sum(per_team[*].throughput) == aggregates.throughput``.
 For ``team_field.kind == "array"`` the buckets overlap (an issue with
@@ -16,22 +16,24 @@ team names (``"Zebra"``, ``"Über-team"``, ``"alpha"``); plain
 :func:`sorted` on strings is what produces the documented order.
 
 Program-scope JQL composition lives here too: given the resolved team-id
-list (from T9's :mod:`flow_metrics.align`), build the Jira-side query
-that intersects the team field against those ids. v1 assumes one Jira ↔
-one Jira Align instance pair, so the JQL deliberately has no
-``project = ...`` clause — the team field id is the sole scope selector.
+list (from the Jira Align integration, :mod:`flow_metrics.align`), build
+the Jira-side query that intersects the team field against those ids. v1
+assumes one Jira ↔ one Jira Align instance pair, so the JQL deliberately
+has no ``project = ...`` clause — the team field id is the sole scope
+selector.
 
 Field-level permission undercount: when an in-scope issue has no
 readable ``team_field`` value (Jira's field-level security strips it),
 its :class:`PerIssueRow` carries ``team == "(no team)"``. Those rows go
 into a synthetic ``"(no team)"`` bucket so global aggregates still
 reconcile with the per-team sum (for the ``single_value`` kind). The
-count is surfaced through the duck-typed ``notes`` collector so T11 can
+count is surfaced through the duck-typed ``notes`` collector so it can
 emit the spec's ``"per_team: N issues had no readable team_field
 value; bucketed as '(no team)'"`` line.
 
 ``meta.per_team_double_counted`` is computed by :func:`per_team_double_counted`
-and threaded into the output by T10. T9 sets the bool; T10 emits it.
+and threaded into the output by the renderer. The per-team rollup sets
+the bool; the renderer emits it.
 
 Stdlib only. Python >= 3.10.
 """
@@ -52,7 +54,7 @@ class PerTeamRow:
 
     Shape matches the spec's JSON example: ``{ "team": <name>,
     "aggregates": <AggregateBlock> }``. The ``aggregates`` value is the
-    full T6 :class:`AggregateBlock` for the bucket — same shape as the
+    full :class:`AggregateBlock` for the bucket — same shape as the
     top-level ``aggregates``, so downstream serializers can reuse the
     canonicalisation path on both.
     """
@@ -93,7 +95,7 @@ def bucket_by_team(
 
     Array semantics (``team_field.kind == "array"``): each row may land
     in multiple buckets. Callers supply ``teams_for_row`` to enumerate
-    the row's team list (T5's per-issue derivation collapses array
+    the row's team list (per-issue derivation collapses array
     values to the first non-empty entry, so the full list lives on the
     caller side — usually a ``key -> [teams]`` lookup built while
     walking issues). If ``teams_for_row`` returns an empty sequence the
@@ -108,16 +110,16 @@ def bucket_by_team(
     :data:`NO_TEAM` bucket is counted, and ``notes`` is asked to record
     the total via ``notes.add_field_permission_undercount(field_id, n)``
     when ``notes`` is provided and ``n > 0``. ``notes`` is duck-typed —
-    the T11 NotesCollector satisfies the interface; tests pass a
+    the NotesCollector satisfies the interface; tests pass a
     ``MagicMock``.
     """
     # Array-kind footgun: PerIssueRow.team carries only the *first* team
-    # for array-valued team fields (T5's _resolve_team collapses on the
-    # way in). Without a teams_for_row callable to enumerate the full
-    # list, bucket_by_team would silently degrade array kind to single-
-    # value semantics — wrong throughput, missing overlap, no rationale
-    # in the output. Refuse upfront so the caller is forced to thread
-    # the team list through.
+    # for array-valued team fields (per-issue derivation's _resolve_team
+    # collapses on the way in). Without a teams_for_row callable to
+    # enumerate the full list, bucket_by_team would silently degrade
+    # array kind to single-value semantics — wrong throughput, missing
+    # overlap, no rationale in the output. Refuse upfront so the caller
+    # is forced to thread the team list through.
     if (
         teams_for_row is None
         and team_field is not None
@@ -169,7 +171,7 @@ def bucket_by_team(
 
     # Surface the per_team_double_counted note on array kind. We supply
     # the K count the spec asks for ("K issues belong to multiple teams
-    # and are counted in each"); T11's NotesCollector renders the line.
+    # and are counted in each"); the NotesCollector renders the line.
     if (
         notes is not None
         and team_field is not None
@@ -205,7 +207,7 @@ def per_team_rollup(
     """
     out: List[PerTeamRow] = []
     for team_name in sorted(buckets.keys()):
-        # T6-API: aggregate(rows, window, config, *, include_subtasks=False).
+        # aggregator API: aggregate(rows, window, config, *, include_subtasks=False).
         block = aggregate(
             iter(buckets[team_name]),
             window,
@@ -220,9 +222,9 @@ def per_team_double_counted(team_field: Optional[TeamField]) -> bool:
     """Compute ``meta.per_team_double_counted`` from the team_field config.
 
     ``True`` iff ``team_field.kind == "array"`` — the only kind where
-    per_team rows overlap. T10 reads this value into the meta block; T9
-    owns the definition so the trigger condition is documented in one
-    place.
+    per_team rows overlap. The renderer reads this value into the meta
+    block; the per-team rollup owns the definition so the trigger
+    condition is documented in one place.
     """
     return team_field is not None and team_field.kind == "array"
 
@@ -269,10 +271,10 @@ def compose_program_scope_jql(
 
     The ``--jql`` user clause (if any) is merged via :func:`compose_jql`
     so the parenthesization and ``ORDER BY`` suffix follow the canonical
-    rule shared with every other JQL the skill builds. (T8 owns the
-    canonical helper; we route through it rather than reimplementing.)
+    rule shared with every other JQL the skill builds. (The cohort split
+    owns the canonical helper; we route through it rather than reimplementing.)
     """
-    # T8-API: compose_jql(scope, user, *, order_by_key=True) — canonical
+    # cohort-split API: compose_jql(scope, user, *, order_by_key=True) — canonical
     # parenthesization helper. Imported above; called below.
     if not isinstance(team_field_id, str) or not team_field_id:
         raise ValueError("team_field_id must be a non-empty string")
