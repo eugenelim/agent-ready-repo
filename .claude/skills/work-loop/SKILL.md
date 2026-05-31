@@ -273,7 +273,7 @@ order, single-agent, by default** — on every adapter. `schedule` fails
 loud on a dependency **cycle** and warns on a **forward-reference** (a dep
 authored later — it reorders so the dep runs first), so an ill-formed plan
 is caught here, not run out of order. This is the proven, zero-hazard path;
-its win is correct ordering, not speed. (RFC-0015 / ADR-0005.) If tasks
+its win is correct ordering, not speed. If tasks
 declare optional `Touches:` globs, `schedule` also prints
 `predicted-disjoint: yes|no|unknown` per wave — a **serialize-only screen**
 (a predicted overlap is a reason to keep the wave serial; it **never**
@@ -340,7 +340,7 @@ go to FIX. Don't move past a failing gate by editing the gate.
 > into `pre-pr.py` (a projected hook body that would mis-fire). The catalogue
 > additionally runs it as a fail-closed CI gate via `make build-check`. (Why a
 > skill script and not a `tools/` linter: skill `scripts/` project to every
-> adapter — RFC-0016 § Errata / ADR-0007 corrected the original "linters don't
+> adapter — a later correction to the original "linters don't
 > project" premise.)
 
 ### 4. REVIEW — adversarial self-review
