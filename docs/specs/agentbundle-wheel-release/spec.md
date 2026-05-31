@@ -1,6 +1,6 @@
 # Spec: agentbundle-wheel-release
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0003](../../rfc/0003-spec-and-cli.md) §Distribution
@@ -143,16 +143,16 @@ against a real workflow run than by an isolated unit test.
 
 **Metadata + build.**
 
-- [ ] AC1. `packages/agentbundle/pyproject.toml` declares `authors`,
+- [x] AC1. `packages/agentbundle/pyproject.toml` declares `authors`,
   `license = { text = "Apache-2.0 OR MIT" }`, `readme` (dynamic or
   file, pointing at content that renders on PyPI), `urls` covering
   `Homepage`, `Source`, and `Documentation`, and `classifiers` covering
   development status, Python 3.11+, OS-independent, and the dual
   license.
-- [ ] AC2. `cd packages/agentbundle && python -m build` produces
+- [x] AC2. `cd packages/agentbundle && python -m build` produces
   `dist/agentbundle-<version>-py3-none-any.whl` and
   `dist/agentbundle-<version>.tar.gz`.
-- [ ] AC3. `twine check dist/*` exits 0 with zero warnings.
+- [x] AC3. `twine check dist/*` exits 0 with zero warnings.
   **Empirical baseline (2026-05-26, pre-T1):** `twine check` exits 0
   but emits exactly two warnings — `long_description missing` and
   `long_description_content_type missing`. Both close when T1 adds the
@@ -162,16 +162,16 @@ against a real workflow run than by an isolated unit test.
 
 **Workflow shape.**
 
-- [ ] AC4. `.github/workflows/release-agentbundle.yml` exists with
+- [x] AC4. `.github/workflows/release-agentbundle.yml` exists with
   three jobs: `build-and-smoke`, `publish-pypi`, `publish-artifactory`.
-- [ ] AC5. `build-and-smoke` runs on (a) `push: tags: ['agentbundle-v*']`
+- [x] AC5. `build-and-smoke` runs on (a) `push: tags: ['agentbundle-v*']`
   and (b) `pull_request` touching `packages/agentbundle/**` or the
   workflow file itself.
-- [ ] AC6. `build-and-smoke` builds the wheel + sdist, runs `twine
+- [x] AC6. `build-and-smoke` builds the wheel + sdist, runs `twine
   check dist/*`, installs the built wheel into a fresh venv, and runs
   `python -c "from agentbundle.credentials import load_credentials"`.
   Any step failing fails the job.
-- [ ] AC7. `build-and-smoke` includes a tag/version-assertion step
+- [x] AC7. `build-and-smoke` includes a tag/version-assertion step
   gated on `github.ref_type == 'tag'` that fails the workflow with a
   GitHub error annotation when the tag's `X.Y.Z` does not match the
   pyproject `version`. A second tag-gated step asserts the tag points
@@ -179,11 +179,11 @@ against a real workflow run than by an isolated unit test.
   --is-ancestor`); both fail closed before any publish job runs, so
   the §Never do "tags must point to commits on main" boundary is
   enforced mechanically, not by maintainer discipline.
-- [ ] AC8. `publish-pypi` runs only on tag push, depends on
+- [x] AC8. `publish-pypi` runs only on tag push, depends on
   `build-and-smoke`, uses `pypa/gh-action-pypi-publish@release/v1`
   with `permissions: id-token: write` and no `password:` field —
   Trusted Publisher OIDC, no secret.
-- [ ] AC9. `publish-artifactory` runs only on tag push (`if:
+- [x] AC9. `publish-artifactory` runs only on tag push (`if:
   github.ref_type == 'tag'`), depends on `build-and-smoke`, and uses a
   step-level guard that flips `configured=true` **only when all three
   Artifactory secrets are non-empty** (`ARTIFACTORY_URL`,
@@ -197,7 +197,7 @@ against a real workflow run than by an isolated unit test.
 
 **Cross-doc consistency.**
 
-- [ ] AC10. RFC-0003 §F-cli-dist Amendments record: path #2 PyPI
+- [x] AC10. RFC-0003 §F-cli-dist Amendments record: path #2 PyPI
   variant live (link to this spec); path #2 Artifactory variant
   workflow scaffolded, untested against a real Artifactory deployment,
   awaiting first-firing verification per AC14 (activates per-fork when
@@ -206,7 +206,7 @@ against a real workflow run than by an isolated unit test.
   the release-artifact pipeline isn't built; #3 because Homebrew doesn't
   satisfy the corporate-network constraint in RFC-0001 §Corporate-network
   discipline.
-- [ ] AC11. After first successful PyPI publish, README §Install
+- [ ] AC11. (deferred: readme-route3-after-first-publish) After first successful PyPI publish, README §Install
   route 3 replaces the current headline phrase ``once you've
   pip-installed `agentbundle` (see route 4)`` with a headline that
   names `pip install agentbundle` directly, and the trailing
@@ -221,12 +221,12 @@ against a real workflow run than by an isolated unit test.
   or its content changes between PR-A merge and PR-B's land, T7 must
   re-anchor before merging. This AC lands in a separate PR sequenced
   **after** the first successful publish.
-- [ ] AC12. `docs/specs/README.md` lists `agentbundle-wheel-release`
+- [x] AC12. `docs/specs/README.md` lists `agentbundle-wheel-release`
   under the active spec index.
 
 **End-to-end (manual QA, one pass per registry).**
 
-- [ ] AC13. **PyPI first-publish gesture.** Push tag
+- [ ] AC13. (deferred: pypi-first-publish-gesture) **PyPI first-publish gesture.** Push tag
   `agentbundle-v<X.Y.Z>` (matching pyproject `version`) on `main`. The
   workflow run shows `build-and-smoke` and `publish-pypi` succeeded
   (the Artifactory job is skipped if the corp secret isn't set, or
@@ -234,7 +234,7 @@ against a real workflow run than by an isolated unit test.
   install agentbundle` resolves to the just-published version; `python
   -c "from agentbundle.credentials import load_credentials"` exits 0;
   a credentialed-skill smoke (e.g., `jira --help`) exits 0.
-- [ ] AC14. **Artifactory first-publish gesture (deferred, gated on
+- [ ] AC14. (deferred: artifactory-first-publish-gesture) **Artifactory first-publish gesture (deferred, gated on
   out-of-band).** When the corp issues an Artifactory token and
   configures `ARTIFACTORY_URL`/`ARTIFACTORY_USER`/`ARTIFACTORY_TOKEN`
   GitHub secrets, the next tag push runs `publish-artifactory` to
@@ -260,6 +260,9 @@ against a real workflow run than by an isolated unit test.
 
 ## Changelog
 
+- 2026-05-31: Status reconciled to Shipped; ACs checked against the
+  merged implementation (retroactive). Publish-dependent ACs deferred
+  pending first release.
 - 2026-05-26 (credential-broker-contract T15 cross-impact): the smoke
   gate at AC5/AC7 historically used `python -c "from agentbundle.credentials
   import load_credentials"` as the proof-of-installation. With
