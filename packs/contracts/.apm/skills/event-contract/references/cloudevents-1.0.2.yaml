@@ -1,0 +1,142 @@
+# CloudEvents 1.0.2 envelope component — the bundled Axis-B default.
+#
+# Source:  CloudEvents specification v1.0.2 (CNCF, Graduated).
+#          https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md
+# License: Apache-2.0 (CloudEvents spec), CNCF.
+#
+# This is the reusable message envelope the standard manifest's reserved
+# `components.envelope` key names. The event-contract method composes it into a
+# target AsyncAPI 3.1.0 document's `components.messages`. An org swaps the
+# envelope by overriding that one manifest key (see standards-authoring.md);
+# nothing here is hardcoded into the method.
+#
+# Two content modes are supported (CloudEvents protocol-binding concept):
+#   - Structured mode: the CloudEvents context attributes ARE the message
+#     payload schema; the business payload nests under `data`.
+#     Default content type: application/cloudevents+json.
+#   - Binary mode: the CloudEvents context attributes ride as message HEADERS
+#     (via the AsyncAPI message trait below); the business payload is the
+#     message payload, and `datacontenttype` becomes the message content type.
+
+# ---------------------------------------------------------------------------
+# Structured mode — context attributes as the message payload schema.
+# Compose: a message's `payload` is an allOf of this schema plus a `data`
+# property referencing the business payload schema.
+# ---------------------------------------------------------------------------
+schemas:
+  CloudEventEnvelope:
+    type: object
+    description: >-
+      CloudEvents 1.0.2 context attributes (structured mode). The business
+      payload is carried under `data`. Required attributes: id, source,
+      specversion, type.
+    required:
+      - specversion
+      - id
+      - source
+      - type
+    properties:
+      specversion:
+        type: string
+        const: "1.0.2"
+        description: CloudEvents specification version.
+        example: "1.0.2"
+      id:
+        type: string
+        minLength: 1
+        description: >-
+          Unique event identifier; unique per `source`. Maps to Zalando [#211].
+        example: "a2c8f3d1-7b4e-4f5a-9c6d-8e2f1a3b5c7d"
+      source:
+        type: string
+        format: uri-reference
+        minLength: 1
+        description: Context in which the event happened (producing service/URI).
+        example: "/acme/order-service"
+      type:
+        type: string
+        minLength: 1
+        description: >-
+          Fully qualified event type, org.domain.resource.verb. Maps to [#213].
+        example: "acme.order.order.placed"
+      time:
+        type: string
+        format: date-time
+        description: RFC 3339 timestamp of when the event occurred. Maps to [#203].
+        example: "2025-06-15T14:30:00.000Z"
+      datacontenttype:
+        type: string
+        description: Content type of `data` (RFC 2046).
+        default: application/json
+        example: application/json
+      dataschema:
+        type: string
+        format: uri
+        description: >-
+          URI of the schema that `data` adheres to; carries the schema semver
+          per [#246].
+        example: "https://schemas.acme.com/order/order-placed/1.2.0"
+      subject:
+        type: string
+        description: Event subject in the producer's context (e.g. the resource id).
+        example: "order-12345"
+      partitionkey:
+        type: string
+        description: >-
+          CloudEvents Partitioning extension; the hash partition key per [#204].
+        example: "order-12345"
+      data:
+        description: >-
+          The business payload. Each event type references its own schema here
+          via allOf composition (see categories.md). Must not duplicate context
+          attributes ([#247]) or carry sensitive data ([#200]).
+
+# ---------------------------------------------------------------------------
+# Binary mode — context attributes as message headers.
+# Compose: reference this trait from a message's `traits`, and set the message
+# `payload` directly to the business payload schema.
+# ---------------------------------------------------------------------------
+messageTraits:
+  CloudEventBinary:
+    name: CloudEventBinary
+    contentType: application/json
+    description: >-
+      CloudEvents 1.0.2 binary content mode. Context attributes ride as message
+      headers prefixed `ce-`; the message payload is the business payload, and
+      `datacontenttype` becomes the message contentType.
+    headers:
+      type: object
+      required:
+        - ce-specversion
+        - ce-id
+        - ce-source
+        - ce-type
+      properties:
+        ce-specversion:
+          type: string
+          const: "1.0.2"
+        ce-id:
+          type: string
+          minLength: 1
+          description: Unique event identifier [#211].
+        ce-source:
+          type: string
+          format: uri-reference
+          minLength: 1
+        ce-type:
+          type: string
+          minLength: 1
+          description: Fully qualified event type [#213].
+        ce-time:
+          type: string
+          format: date-time
+          description: RFC 3339 occurrence time [#203].
+        ce-subject:
+          type: string
+        ce-dataschema:
+          type: string
+          format: uri
+          description: Schema URI; carries schema semver [#246].
+        ce-partitionkey:
+          type: string
+          description: Hash partition key [#204].

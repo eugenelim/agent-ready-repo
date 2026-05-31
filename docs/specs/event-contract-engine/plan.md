@@ -1,7 +1,7 @@
 # Plan: event-contract-engine
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -330,3 +330,8 @@ and the regenerated `marketplace.json`.
 ## Changelog
 
 - 2026-05-31: initial plan (RFC-0018 follow-on; Open Q1 resolved per its default).
+- 2026-05-31: executed T1-T9 in one PR. All 9 tasks landed as planned with no
+  re-plan. Golden example validated clean under `npx @asyncapi/cli@6.0.0 validate`
+  (no governance issues). `events.md` left byte-identical (D6); `event-contract`
+  confirmed not self-host-projected (contracts excluded from `SELF_HOST_PACKS`);
+  only the `core` seam edit + regenerated `marketplace.json` project. Status: Done.
