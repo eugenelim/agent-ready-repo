@@ -1,6 +1,6 @@
 # Spec: event-contract-engine
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0018, ADR-0008
@@ -122,89 +122,89 @@ edits.
 
 ## Acceptance Criteria
 
-- [ ] `packs/contracts/.apm/skills/event-contract/SKILL.md` carries the
+- [x] `packs/contracts/.apm/skills/event-contract/SKILL.md` carries the
   event-design **method as ordered phases** (model the event domain → name event
   types → choose categories → design the message envelope → design payload
   schemas → ordering/partitioning → compatibility/versioning → quality gates →
   emit AsyncAPI 3.1.0), **standard-agnostic** — no hardcoded ruleset, envelope,
   or version in the method body (D2 method).
-- [ ] `references/standards-manifest-zalando-events.yaml` exists with
+- [x] `references/standards-manifest-zalando-events.yaml` exists with
   `name`/`version`/`title`/`attribution` (Zalando CC-BY-4.0)/`extends: null`/
   `rule_files` (phase-grouped)/`quality_gates`/`example`/`components`, **and** the
   swappable Axis-B envelope binding as a **single reserved key
   `components.envelope`** (a member of the `components:` map, distinct from the
   reusable-schema members) naming the bundled CloudEvents component — this is the
   one key an org overrides to swap the envelope (D2 Axis A+B, D4, D5).
-- [ ] Phase-grouped event rule files express the Zalando ch. 19–21 (~24) rules
+- [x] Phase-grouped event rule files express the Zalando ch. 19–21 (~24) rules
   for **AsyncAPI output** — naming, categories, schema design,
   ordering/partitioning, metadata, compatibility/versioning — each rule anchored
   on its `[#NNN]` token (D2, D5 Axis A, Open Q1 anchor).
-- [ ] The **CloudEvents 1.0.2 envelope** ships as a reusable component the
+- [x] The **CloudEvents 1.0.2 envelope** ships as a reusable component the
   manifest names, documenting **structured mode** (CE attributes as the message
   payload, business payload under `data`) and **binary mode** (CE attributes as
   message headers via an AsyncAPI message trait); default content type
   `application/cloudevents+json` (D4).
-- [ ] The method **composes whatever envelope the manifest's envelope key names**
+- [x] The method **composes whatever envelope the manifest's envelope key names**
   into AsyncAPI `components.messages` — the envelope is data; an org swaps to
   AWS-native / Avro / bare JSON Schema by overriding the one key, with no method
   edit and no runtime resolver (D2 Axis B, D5 Axis E).
-- [ ] `references/standards-authoring.md` (event variant) documents base+delta on
+- [x] `references/standards-authoring.md` (event variant) documents base+delta on
   **both axes**: a worked org delta that `extends: zalando-events`, `adds` house
   rules (Axis A), and optionally overrides the envelope key (Axis B); resolution
   is by reading; delivery reuses `adapt-to-project`'s Class 2 `.upstream`
   companion-merge — no new mechanism (D5).
-- [ ] `references/golden-example.yaml` is a **complete, valid AsyncAPI 3.1.0
+- [x] `references/golden-example.yaml` is a **complete, valid AsyncAPI 3.1.0
   document** using `channels`/`operations`/`components.messages`/
   `components.schemas` with a **CloudEvents 1.0.2 structured-mode** envelope,
   every design decision citing a `[#NNN]`, and **validates** under
   `npx @asyncapi/cli validate` **with the validator output captured in the PR
   description**; absent toolchain blocks merge (D3, RFC-0018 § Evidence spike).
-- [ ] `references/standards-quality-gates-zalando-events.md` is a
+- [x] `references/standards-quality-gates-zalando-events.md` is a
   machine-checkable MUST/MUST-NOT checklist for AsyncAPI output that **includes
   the Open-Q1 drift-by-number gate** — an item asserting every rule traces to its
   shared Zalando `[#NNN]` anchor, so divergence from `api-contract`'s `events.md`
   is diffable by number (Open Q1 resolution).
-- [ ] Output target is AsyncAPI **3.1.0**; the `SKILL.md` emit phase documents
+- [x] Output target is AsyncAPI **3.1.0**; the `SKILL.md` emit phase documents
   that **authored output** carries the backward spec→contract `x-spec` extension
   the seam mandates (`x-spec: [docs/specs/<feature>/]`, CONVENTIONS § 4). The
   bundled `golden-example.yaml` is a teaching artifact, **not** authored against a
   real spec, so it carries **no** `x-spec` (parity with `api-contract`'s example;
   avoids a dangling intra-repo reference) (D3).
-- [ ] `evals/evals.json` for `event-contract` carries event-authoring prompts +
+- [x] `evals/evals.json` for `event-contract` carries event-authoring prompts +
   assertions, in parity shape with `api-contract`'s evals.
-- [ ] `core`'s `new-spec/references/contract-types.md` `asyncapi` row skill column
+- [x] `core`'s `new-spec/references/contract-types.md` `asyncapi` row skill column
   is filled `event-contract` (D7).
-- [ ] `contract-types.md` gains the **producer-vs-consumer detection refinement**
+- [x] `contract-types.md` gains the **producer-vs-consumer detection refinement**
   (D8): produces/owns → author or modify the AsyncAPI contract; consumes an
   in-repo contract → **reference** it (set the spec's `- **Contract:**` header to
   the producer contract, add **no** `x-spec` back-pointer, point the plan's tests
   at it); consumes an external stream → **no contract**, optional upstream note.
   The `event-contract` skill restates the full three-outcome table.
-- [ ] `core` imports no code from `contracts` (convention/seam coupling only) —
+- [x] `core` imports no code from `contracts` (convention/seam coupling only) —
   verified by grep, as the compose-around-core invariant requires.
-- [ ] `api-contract`'s `references/events.md` is **byte-identical** to its
+- [x] `api-contract`'s `references/events.md` is **byte-identical** to its
   pre-PR state (D6 leaves it put).
-- [ ] **Non-goals hold:** no `contracts/cloudevents/` peer row/type; no
+- [x] **Non-goals hold:** no `contracts/cloudevents/` peer row/type; no
   `contracts/asyncapi/` tree (or any `contracts/` content) created in this repo;
   no validator / codegen / mock / SDK bundled; no new dependency; no runtime
   resolver.
-- [ ] `packs/contracts/pack.toml` + `.claude-plugin/plugin.json` bump
+- [x] `packs/contracts/pack.toml` + `.claude-plugin/plugin.json` bump
   `0.2.0 → 0.3.0`; `event-contract` is **not** projected to `.claude/skills/`
   (contracts is user-scope, excluded from `SELF_HOST_PACKS`); `make build-self`
   refreshes top-level `marketplace.json`; `make lint-packs` and the
   projected-artifact lint (for the `core` edit) pass.
-- [ ] Adopter-facing skill/bundle content (`SKILL.md`, manifest, rule files,
+- [x] Adopter-facing skill/bundle content (`SKILL.md`, manifest, rule files,
   quality gates, golden example, evals, authoring guide) carries **no catalogue
   RFC/ADR numbers**; provenance is RFC-0018 + this spec. External standard refs
   (CloudEvents, AsyncAPI, Zalando) are unaffected.
-- [ ] RFC-0018 gains an **Approver-signed `## Errata`** with two clauses: (a) the
+- [x] RFC-0018 gains an **Approver-signed `## Errata`** with two clauses: (a) the
   Migration-path correction — the `event-contract` skill is user-scope and is
   **not** self-host-projected into `.claude/skills/` (only the `core` seam edit
   projects); and (b) D7's "that is the entire `core` change" should read as **two
   parts** — fill the `asyncapi` row *and* add the D8 producer-vs-consumer
   detection note — since D8 adds detection prose to the same `core` file (no new
   mechanism, per the confirmed decision).
-- [ ] `docs/specs/README.md` lists `event-contract-engine` in the active set.
+- [x] `docs/specs/README.md` lists `event-contract-engine` in the active set.
 
 ## Assumptions
 

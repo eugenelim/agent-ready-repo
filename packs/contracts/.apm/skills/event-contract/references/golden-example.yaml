@@ -1,0 +1,227 @@
+# Golden Example: Order Events (AsyncAPI 3.1.0 + CloudEvents 1.0.2 structured mode)
+#
+# Demonstrates the bundled Zalando-events ruleset (Axis A) composed with the
+# bundled CloudEvents envelope (Axis B). Every design decision cites a rule
+# [#NNN]. The business payload nests under the envelope's `data` member
+# (structured mode); CloudEvents context attributes carry the mandatory metadata.
+#
+# This is a TEACHING artifact — it is authored against no real spec, so it
+# carries no backward spec-pointer extension (it would dangle). A contract
+# authored against a real spec carries one naming its spec dir; see the emit
+# phase of SKILL.md for the shape.
+#
+# Derived from the Zalando RESTful API and Event Guidelines (CC-BY-4.0, Zalando SE)
+# and the CloudEvents 1.0.2 spec (Apache-2.0, CNCF).
+
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 1.0.0
+  description: >-
+    Events published by the order service. Two event types: a general event
+    (order placed) and a data change event (order changed). Both use the
+    CloudEvents structured-mode envelope.
+  contact:                                       # [#207] ownership of event types
+    name: Order Team
+    email: order-team@example.com
+
+channels:
+  orderEvents:
+    address: acme.order.events                   # [#197] stream the event types are published to
+    description: Order lifecycle event stream.
+    messages:
+      orderPlaced:
+        $ref: '#/components/messages/OrderPlaced'
+      orderChanged:
+        $ref: '#/components/messages/OrderChanged'
+
+operations:
+  publishOrderPlaced:
+    action: send
+    channel:
+      $ref: '#/channels/orderEvents'
+    summary: Publish an order-placed general event.
+    messages:
+      - $ref: '#/channels/orderEvents/messages/orderPlaced'
+  publishOrderChanged:
+    action: send
+    channel:
+      $ref: '#/channels/orderEvents'
+    summary: Publish an order data-change event.
+    messages:
+      - $ref: '#/channels/orderEvents/messages/orderChanged'
+
+components:
+  messages:
+    # [#201] general event — signals a business-process milestone
+    OrderPlaced:
+      name: OrderPlaced
+      title: Order Placed
+      summary: An order was placed. [#199] useful business resource.
+      contentType: application/cloudevents+json  # CloudEvents structured-mode default
+      tags:
+        - name: category:general                 # [#198] category declared on the message
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CloudEventEnvelope'   # [#247] envelope = metadata
+          - type: object
+            required:
+              - type
+              - data
+            properties:
+              type:
+                const: acme.order.order.placed   # [#213] org.domain.resource.verb
+              data:
+                $ref: '#/components/schemas/OrderPlacedData'
+
+    # [#202] data change event — signals a resource mutation
+    OrderChanged:
+      name: OrderChanged
+      title: Order Changed
+      summary: An order resource was created, updated, or deleted.
+      contentType: application/cloudevents+json
+      tags:
+        - name: category:data-change             # [#198] category declared
+        - name: compatibility:backward           # [#245] compatibility mode declared
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CloudEventEnvelope'
+          - type: object
+            required:
+              - type
+              - data
+            properties:
+              type:
+                const: acme.order.order.changed  # [#213]
+              data:
+                $ref: '#/components/schemas/OrderChangedData'
+
+  schemas:
+    # CloudEvents 1.0.2 context attributes (structured mode) — the metadata
+    # envelope [#247]. The business payload nests under `data`.
+    CloudEventEnvelope:
+      type: object
+      required:
+        - specversion
+        - id
+        - source
+        - type
+      properties:
+        specversion:
+          type: string
+          const: "1.0.2"
+        id:                                       # [#211] unique event id
+          type: string
+          minLength: 1
+          examples:
+            - a2c8f3d1-7b4e-4f5a-9c6d-8e2f1a3b5c7d
+        source:
+          type: string
+          format: uri-reference
+          minLength: 1
+          examples:
+            - /acme/order-service
+        type:
+          type: string
+          minLength: 1
+        time:                                     # [#203] occurrence time for ordering
+          type: string
+          format: date-time
+          examples:
+            - "2025-06-15T14:30:00.000Z"
+        datacontenttype:
+          type: string
+          default: application/json
+        dataschema:                               # [#246] schema semver via dataschema URI
+          type: string
+          format: uri
+          examples:
+            - https://schemas.acme.com/order/order-placed/1.0.0
+        subject:
+          type: string
+          examples:
+            - order-12345
+        partitionkey:                             # [#204] hash partition key
+          type: string
+          examples:
+            - order-12345
+
+    # [#205] data change payload mirrors the REST Order resource;
+    # [#210] closed schema (additionalProperties: false)
+    OrderChangedData:
+      type: object
+      additionalProperties: false
+      required:
+        - sequence_number
+        - operation
+        - resource
+      properties:
+        sequence_number:                          # [#242] explicit monotonic ordering
+          type: integer
+          format: int64
+          examples:
+            - 42
+        operation:
+          type: string
+          enum:
+            - create
+            - update
+            - delete
+        resource:
+          $ref: '#/components/schemas/Order'
+
+    # [#199] meaningful business resource; [#208] snake_case, ISO formats
+    OrderPlacedData:
+      type: object
+      additionalProperties: false
+      required:
+        - order_id
+        - placed_at
+      properties:
+        order_id:
+          type: string
+          examples:
+            - order-12345
+        customer_id:                              # [#200] reference id, not PII
+          type: string
+          examples:
+            - cust-67890
+        placed_at:
+          type: string
+          format: date-time
+          examples:
+            - "2025-06-15T14:30:00.000Z"
+        total_amount:
+          type: number
+          format: double
+          examples:
+            - 99.95
+        currency:                                 # [#208] ISO 4217
+          type: string
+          examples:
+            - EUR
+
+    Order:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          examples:
+            - order-12345
+        status:                                   # [#208] UPPER_SNAKE_CASE enum
+          type: string
+          enum:
+            - PLACED
+            - CONFIRMED
+            - SHIPPED
+            - DELIVERED
+            - CANCELLED
+        customer_id:
+          type: string
+        updated_at:
+          type: string
+          format: date-time

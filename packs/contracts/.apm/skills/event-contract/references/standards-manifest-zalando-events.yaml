@@ -1,0 +1,76 @@
+# Zalando-events standard bundle — manifest.
+#
+# This is the *active standard* the event-contract method applies by default.
+# It is agent-read: no program parses this file. The method (SKILL.md) loads
+# the rule files and quality gates named here and applies them as hard rails
+# when emitting an AsyncAPI 3.1.0 document.
+#
+# The standard spans TWO swappable axes:
+#   Axis A — the event-design ruleset (this manifest's rule_files + quality_gates).
+#   Axis B — the message envelope/schema format (the reserved components.envelope
+#            key below). CloudEvents 1.0.2 is the bundled default; an org swaps it
+#            by overriding that one key — no method edit, no runtime resolver.
+#
+# To author your organisation's own standard on either axis, write a delta that
+# `extends` this one — see references/standards-authoring.md for the base+delta
+# format.
+
+name: zalando-events
+version: "1.0.0"            # version of this bundle, not of Zalando's guidelines
+title: Zalando Event Guidelines (AsyncAPI output)
+extends: null              # Zalando-events is the bundled base; it inherits nothing.
+
+attribution:
+  source: Zalando RESTful API and Event Guidelines, chapters 19-21
+  url: https://opensource.zalando.com/restful-api-guidelines/
+  publisher: Zalando SE
+  license: CC-BY-4.0
+  license-url: https://creativecommons.org/licenses/by/4.0/
+  note: >-
+    Derivative work: Zalando's chapter 19-21 event rules (~24 numbered rules)
+    restated for AsyncAPI 3.1.0 output. Each rule keeps its shared [#NNN] token
+    so it is diffable by number against api-contract's references/events.md
+    (which expresses the same rules for events surfaced inside an OpenAPI
+    contract). The two copies target different output surfaces and are kept put
+    deliberately; the quality-gate checklist carries a drift-by-number item.
+
+# Axis A — phase-grouped event-design rule files. The method loads these as
+# "the active standard's rule files"; each carries the [#NNN] rules for its
+# phase, restated for AsyncAPI 3.1.0 structures (channels / operations /
+# components.messages / components.schemas).
+#
+# These rule files are the AUTHORITATIVE enumeration of this standard's [#NNN]
+# tokens (this base does not duplicate them into a `rules:` map — that map is for
+# a *delta*, where `"#<id>": false` disables an inherited rule by its token
+# regardless of which phase file it sits in; see standards-authoring.md).
+rule_files:
+  naming: references/naming.md
+  categories: references/categories.md
+  schema_design: references/schema-design.md
+  ordering_and_partitioning: references/ordering-and-partitioning.md
+  metadata: references/metadata.md
+  compatibility: references/compatibility.md
+
+# The machine-checkable checklist the method verifies before finalizing.
+quality_gates: references/standards-quality-gates-zalando-events.md
+
+# A complete validated example authored against this standard.
+example: references/golden-example.yaml
+
+# Reusable components this standard provides.
+#
+# `envelope` is the RESERVED Axis-B key (distinct from ordinary reusable-schema
+# members an org might add alongside it): it names the message envelope the
+# method composes into components.messages. CloudEvents 1.0.2 is the bundled
+# default. An org swaps the envelope for AWS EventBridge-native / Avro / bare
+# JSON Schema by overriding THIS ONE KEY in its delta — see standards-authoring.md.
+components:
+  envelope: references/cloudevents-1.0.2.yaml
+
+# Output target and envelope defaults — DATA, not method. A spec bump (AsyncAPI
+# 3.x or CloudEvents 1.x) is a one-line edit here, never a SKILL.md change.
+output:
+  format: asyncapi
+  version: "3.1.0"
+envelope_defaults:
+  content_type: application/cloudevents+json   # CloudEvents structured-mode default
