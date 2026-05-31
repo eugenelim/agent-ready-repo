@@ -135,6 +135,43 @@ look like?" before any code.
      hypothetical futures.
    - **No Acceptance Criteria.** Without a checklist, "done" is opinion.
 
+4b. **Author the interface contract — only if this feature exposes an interface
+   surface.** This conditional step sits between the spec body and the plan, and
+   is **contract-type-agnostic** — it handles any interface, not just REST APIs.
+   If the feature exposes **no** interface surface, skip it: the spec→plan path
+   runs unchanged.
+
+   - **Detect & confirm the type.** From the Objective's interface-facing
+     Acceptance Criteria, auto-detect whether the feature exposes a contract
+     surface and of **which type** — a synchronous REST API (`openapi`), an
+     **event interface** (`asyncapi`), an RPC service (`proto`), a GraphQL schema
+     (`graphql`), a standalone schema (`jsonschema`), … The type drives
+     everything below. Confirm with the user — it's a judgment, not a flag.
+   - **Locate or create** the contract at its type's conventional path
+     `contracts/<type>/<domain>.<ext>` (CONVENTIONS § 4 *Contracts*;
+     [`references/contract-types.md`](references/contract-types.md) maps every
+     type to its location) — a new file for a new interface, the existing file
+     when this spec modifies a known one. The **location convention is the
+     anchor**: anyone finds contracts by globbing `contracts/<type>/`, no
+     installed skill required, so *any* type (events included) lands in its
+     canonical place.
+   - **Author it.** Look up the type's authoring skill in
+     [`references/contract-types.md`](references/contract-types.md) and check your
+     available-skills roster (the same roster step 6 uses). **If a skill is
+     present** (today: `api-contract` for `openapi`), invoke it to author/modify
+     the contract against the active standard. **If absent** (today: every
+     non-OpenAPI type, e.g. events), **edit the file directly and note** it was
+     authored without rule-enforcement — a serviceable file for YAML-shaped types
+     (AsyncAPI, JSON Schema), a **stub + note** for formats you can't reliably
+     hand-author unaided (proto, GraphQL). A missing skill degrades *enforcement*,
+     never the *integration*, and **never blocks** the spec.
+   - **Link it (both ways).** Fill the spec's `- **Contract:**` header with the
+     contract file(s) this spec defines or touches, and add the backward pointer
+     in the contract (an `x-spec` extension, or a `contracts/REGISTRY.md` row for
+     extensionless formats) — CONVENTIONS § 4 *Contracts*.
+   - **Point the plan at it.** The plan's construction tests reference the
+     contract as the artifact the implementation is verified against.
+
 5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
    - Break the work into tasks small enough to be a single PR each.

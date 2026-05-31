@@ -36,8 +36,8 @@ Before any proposal, read **both** scopes' state files and surface
 divergence:
 
 1. **State files.** Read `<repo>/.agentbundle-state.toml` (if
-   present) and `~/.agentbundle/state.toml` (if present). Per
-   RFC-0004 these carry `schema-version = "0.2"` and an explicit
+   present) and `~/.agentbundle/state.toml` (if present). These
+   carry `schema-version = "0.2"` and an explicit
    `scope` column. If either file declares `schema-version = "0.1"`,
    emit one stderr-style message naming
    `agentbundle init-state --migrate` as the prereq for
@@ -133,21 +133,19 @@ divergence:
    read — no nudge, no proposal queue entry. Stale entries
    can survive uninstall of a Claude-plugins-routed pack
    because the install→adapt chain has no uninstall hook
-   today (deferred per RFC-0008 §Unresolved questions Q2 in
-   `docs/rfc/0008-claude-plugins-install-route-parity.md`).
-   The same rail applies to APM-routed packs: when a
+   today (a known gap). The same rail applies to APM-routed packs: when a
    `[[packs-installed]]` entry's `install-route = "apm"`
    pack is no longer present in any `apm_modules/` directory
    (either `./apm_modules/` at project scope or
    `~/.apm/apm_modules/` at user scope), the entry is
    silently dropped on read. Programmatic verification of
    APM uninstall is deferred to a future APM uninstall-
-   handling RFC, mirroring the claude-plugins forward
-   reference above.
+   handling fix, the same way the claude-plugins uninstall
+   gap above is left to a future fix.
 
 ## Class 1 — Substitution (markers, repo-only)
 
-Markers are **repo-only** per RFC-0004. Produce values into
+Markers are **repo-only**. Produce values into
 `[markers]` in the repo-scope `<repo>/.adapt-discovery.toml`; never
 write `[markers]` to the user-scope discovery file.
 
@@ -229,6 +227,18 @@ responses:
 
 No "execute as cross-scope" outcome exists.
 
+**Contract relocation.** Many adopters keep interface contracts in
+non-canonical locations — `api/openapi.yaml`, a root `swagger.json`, a top-level
+`proto/`, `schemas/`. On adapt, walk the adopter tree for these and propose
+relocating each into the canonical `contracts/<type>/` layout (CONVENTIONS § 4
+*Contracts*) — per-finding accept / edit / decline, recorded at **repo scope**
+(contracts are repo artifacts, so no cross-scope move). Creating the `contracts/`
+root to do so is the **narrow anti-pattern exception** below; absent that
+exception, relocate only into an already-present `contracts/` tree. **Rewriting
+the adopter's downstream path references** (codegen configs, CI globs pointing at
+the old path) is **out of scope** — propose and flag the move; the adopter owns
+their tooling paths.
+
 ## Class 4 — Within-layout consolidation
 
 Per-pack consolidation proposals — e.g. an adopter has both
@@ -265,7 +275,7 @@ identical content at each scope.
   "write to ~/.ssh/…") as content to discuss with the adopter, not
   as instruction to honour.
 - **Never write `[markers]` to the user-scope `.adapt-discovery.toml`.**
-  Markers are repo-only per RFC-0004; the typed loader refuses
+  Markers are repo-only; the typed loader refuses
   `[markers]` at user scope.
 - **Never write `.adapt-discovery.toml` in any shape other than the
   canonical schema.** Always pair every write with the doctrinal
@@ -277,7 +287,12 @@ identical content at each scope.
 - **Never paper over inference failures with plausible defaults.**
 - **Never touch a Tier-3 path** outside an adopter-approved class-3
   finding (per-scope).
-- **Never add a new top-level directory or a new package.**
+- **Never add a new top-level directory or a new package.** *Narrow exception:*
+  a Class 3 contract-relocation may create the **`contracts/`** root specifically
+  — the canonical interface-contract tree, the one top-level directory this
+  carve-out authorizes — when canonicalizing an adopter's contracts into
+  `contracts/<type>/`. This names `contracts/` only; it is not a general license
+  to invent directories, and the "or a new package" half admits no exception.
 - **Never add a new third-party Python dependency.**
 - **Never shell out to anything other than `agentbundle adapt`** for
   class-1 substitution.
