@@ -140,8 +140,8 @@ divergence:
    `~/.apm/apm_modules/` at user scope), the entry is
    silently dropped on read. Programmatic verification of
    APM uninstall is deferred to a future APM uninstall-
-   handling RFC, mirroring the claude-plugins forward
-   reference above.
+   handling fix, the same way the claude-plugins uninstall
+   gap above is left to a future fix.
 
 ## Class 1 — Substitution (markers, repo-only)
 
