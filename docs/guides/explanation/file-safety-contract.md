@@ -87,6 +87,28 @@ This walks the projected paths the catalogue knows about and hashes
 each into `.agentbundle-state.toml`. After that, `agentbundle upgrade`
 behaves identically across all three install routes.
 
+## Seeds, by install route
+
+The Tier model above applies to **seeds** (`AGENTS.md`, `docs/CHARTER.md`,
+governance docs) the same as to projected primitives — but *which route lands
+them in your working tree* differs, and this is the same CLI-vs-cache split as
+above:
+
+- **CLI route** (`agentbundle install`) writes the seeds directly into your
+  repo (repo root and `docs/`) with the first-install companion behaviour
+  described above, and records them in `.agentbundle-state.toml`.
+- **APM and Claude-plugin routes** ship the seeds *inside* the installed
+  artifact (the APM package / the Claude-managed plugin cache), but do not
+  place repo-root governance docs in your working tree — the plugin cache and
+  APM HookIntegrator project primitives, not seeds, and the install-marker
+  `SessionStart` hook writes only the marker. To land the seeds, run
+  `agentbundle install` or `agentbundle scaffold --pack <name> --output .` (the
+  `agentbundle` CLI those routes already need on PATH).
+
+A session-time auto-copy of seeds out of the plugin cache would cross the "the
+catalogue cannot intercept APM/plugins" line above; it is deliberately not done.
+See [RFC-0001 § Errata](../../rfc/0001-bundle-distribution-by-adapter-spec.md#errata).
+
 ## Why this exists
 
 The simplest alternative would have been: overwrite Tier-1 files on

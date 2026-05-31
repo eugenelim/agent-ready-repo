@@ -10,6 +10,7 @@ Test cases:
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 import pytest
@@ -37,14 +38,38 @@ def _make_args(packs_dir: Path, output: Path, pack: str = "test-pack") -> argpar
 # ---------------------------------------------------------------------------
 
 
-def _seed_contents(pack_fixture: Path) -> dict[str, bytes]:
-    """Return {relpath: bytes} for every file under pack_fixture/seeds/."""
+def _composed_agents_md(pack_fixture: Path) -> bytes:
+    """Return the expected delivered AGENTS.md bytes: body seed + footer fragment.
+
+    Mirrors `commands._common._compose_agents_md_bytes`; the footer fragment
+    `_agents-footer.md` is folded in, not delivered standalone.
+    """
+    seeds = pack_fixture / "seeds"
+    body = (seeds / "AGENTS.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+    if body and not body.endswith("\n"):
+        body += "\n"
+    footer_path = seeds / "_agents-footer.md"
+    if not footer_path.exists():
+        return (seeds / "AGENTS.md").read_bytes()
+    footer = footer_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    if footer and not footer.endswith("\n"):
+        footer += "\n"
+    return (body + footer).encode("utf-8")
+
+
+def _expected_delivered(pack_fixture: Path) -> dict[str, bytes]:
+    """Return {relpath: bytes} for the seeds `scaffold` should deliver.
+
+    Composition fragments (names starting with `_`) are *not* delivered
+    standalone; `AGENTS.md` is delivered composed with its footer.
+    """
     seeds = pack_fixture / "seeds"
     result: dict[str, bytes] = {}
     for f in seeds.rglob("*"):
-        if f.is_file():
-            relpath = f.relative_to(seeds).as_posix()
-            result[relpath] = f.read_bytes()
+        if not f.is_file() or f.name.startswith("_"):
+            continue
+        relpath = f.relative_to(seeds).as_posix()
+        result[relpath] = _composed_agents_md(pack_fixture) if relpath == "AGENTS.md" else f.read_bytes()
     return result
 
 
@@ -63,8 +88,8 @@ def test_happy_path_empty_output(tmp_path):
 
     assert exit_code == 0, "scaffold should return 0 on success"
 
-    expected = _seed_contents(FIXTURES_DIR)
-    assert expected, "fixture pack must have at least one seed file"
+    expected = _expected_delivered(FIXTURES_DIR)
+    assert expected, "fixture pack must have at least one delivered seed file"
 
     for relpath, content in expected.items():
         on_disk = output / relpath
@@ -72,6 +97,15 @@ def test_happy_path_empty_output(tmp_path):
         assert on_disk.read_bytes() == content, (
             f"seed {relpath!r} content mismatch; expected byte-identical copy"
         )
+
+    # Composition fragment is folded into AGENTS.md, not delivered standalone.
+    assert not (output / "_agents-footer.md").exists(), (
+        "_agents-footer.md is a composition fragment and must not be delivered standalone"
+    )
+    footer_line = (FIXTURES_DIR / "seeds" / "_agents-footer.md").read_bytes().rstrip()
+    assert footer_line in (output / "AGENTS.md").read_bytes(), (
+        "delivered AGENTS.md must contain the footer fragment content"
+    )
 
 
 def test_tier2_fastpath_existing_adopter_content(tmp_path):
@@ -102,10 +136,81 @@ def test_tier2_fastpath_existing_adopter_content(tmp_path):
     upstream = output / "AGENTS.upstream.md"
     assert upstream.exists(), "AGENTS.upstream.md companion was not created"
 
-    seed_content = (FIXTURES_DIR / "seeds" / "AGENTS.md").read_bytes()
-    assert upstream.read_bytes() == seed_content, (
-        "AGENTS.upstream.md must contain the seed content verbatim"
+    # The companion carries the *composed* AGENTS.md (body + footer), the bytes
+    # delivery would otherwise have written.
+    assert upstream.read_bytes() == _composed_agents_md(FIXTURES_DIR), (
+        "AGENTS.upstream.md must contain the composed seed content"
     )
+
+
+def test_no_footer_agents_md_delivered_verbatim(tmp_path):
+    """A seed-bearing pack with no _agents-footer.md delivers AGENTS.md verbatim."""
+    packs_dir = tmp_path / "packs"
+    seeds = packs_dir / "no-footer" / "seeds"
+    seeds.mkdir(parents=True)
+    body = b"# Body only, no footer\n"
+    (seeds / "AGENTS.md").write_bytes(body)
+
+    output = tmp_path / "out"
+    output.mkdir()
+
+    exit_code = run(_make_args(packs_dir, output, pack="no-footer"))
+
+    assert exit_code == 0
+    assert (output / "AGENTS.md").read_bytes() == body, (
+        "footer-less pack must deliver AGENTS.md byte-for-byte unchanged"
+    )
+
+
+def _symlink_or_skip(src, dst) -> None:
+    """Create a symlink dst → src, or skip the test if the OS refuses
+    (Windows without privilege)."""
+    try:
+        os.symlink(src, dst)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlinks unsupported on this platform: {exc}")
+
+
+def test_symlinked_seed_file_is_not_delivered(tmp_path):
+    """Defence-in-depth: a pack-shipped symlinked seed must not be read through
+    and delivered (it could point at a host secret)."""
+    secret = tmp_path / "secret.txt"
+    secret.write_text("TOP SECRET HOST FILE\n", encoding="utf-8")
+
+    packs_dir = tmp_path / "packs"
+    seeds = packs_dir / "evil" / "seeds"
+    seeds.mkdir(parents=True)
+    (seeds / "AGENTS.md").write_text("# ok\n", encoding="utf-8")
+    _symlink_or_skip(secret, seeds / "leak.md")
+
+    output = tmp_path / "out"
+    output.mkdir()
+    assert run(_make_args(packs_dir, output, pack="evil")) == 0
+    assert (output / "AGENTS.md").exists(), "the real seed should still be delivered"
+    assert not (output / "leak.md").exists(), "a symlinked seed must not be delivered"
+
+
+def test_symlinked_seed_directory_is_not_traversed(tmp_path):
+    """A symlinked seed *directory* must not be traversed — closes the
+    Python 3.11/3.12 rglob-recurses-into-symlinks gap (os.walk followlinks=False)."""
+    external = tmp_path / "external"
+    external.mkdir()
+    (external / "secret.txt").write_text("HOST SECRET\n", encoding="utf-8")
+
+    packs_dir = tmp_path / "packs"
+    seeds = packs_dir / "evil" / "seeds"
+    seeds.mkdir(parents=True)
+    (seeds / "AGENTS.md").write_text("# ok\n", encoding="utf-8")
+    _symlink_or_skip(external, seeds / "evildir")
+
+    output = tmp_path / "out"
+    output.mkdir()
+    assert run(_make_args(packs_dir, output, pack="evil")) == 0
+    assert (output / "AGENTS.md").exists()
+    assert not (output / "evildir" / "secret.txt").exists(), (
+        "contents of a symlinked seed directory must not be delivered"
+    )
+    assert not (output / "evildir").exists(), "the symlinked seed dir must not be recreated"
 
 
 def test_no_seeds_dir_returns_nonzero(tmp_path):
@@ -128,11 +233,9 @@ def test_up_to_date_seed_is_skipped(tmp_path):
     output = tmp_path / "out"
     output.mkdir()
 
-    seed_content = (FIXTURES_DIR / "seeds" / "AGENTS.md").read_bytes()
+    seed_content = _composed_agents_md(FIXTURES_DIR)
     agents_md = output / "AGENTS.md"
     agents_md.write_bytes(seed_content)
-
-    mtime_before = agents_md.stat().st_mtime_ns
 
     exit_code = run(_make_args(packs_dir, output))
 
@@ -141,7 +244,7 @@ def test_up_to_date_seed_is_skipped(tmp_path):
     assert not (output / "AGENTS.upstream.md").exists(), (
         "no companion should be created when file already matches the seed"
     )
-    # Original must still be byte-identical to the seed.
+    # Original must still be byte-identical to the composed seed.
     assert agents_md.read_bytes() == seed_content
 
 

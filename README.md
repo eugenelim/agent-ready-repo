@@ -103,6 +103,8 @@ Pack content that collides with files you've edited lands as `*.upstream.<ext>` 
 
 ## After install — adapt to your project
 
+**Where seeds land, by route.** The pack's governance seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`, …) travel inside every artifact. The **CLI route** (`agentbundle install`) writes them straight into your repo with the file-safety guarantee below — an edited file at a seed path keeps a `*.upstream.<ext>` companion, never an overwrite. On the **plugin** and **APM** routes the seeds ride along inside the installed artifact (a Claude-managed cache / the APM package); you land them in your working tree with `agentbundle install` or `agentbundle scaffold --pack <name> --output .` — the same `agentbundle` CLI those routes already need on PATH for credentialed skills and upgrade-safety.
+
 Seed content lands generic; the `adapt-to-project` skill (shipped in `core`) tailors it to your repo's name, stack, and existing conventions. In Claude Code or any harness that loads skills:
 
 ```
