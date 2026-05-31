@@ -1,7 +1,8 @@
 """State + issuetype config loading, integrity validation, sha derivation.
 
 Implements the 9 startup integrity rules for state configuration
-and ships the canonical-state lookup helper consumed at walk-time by T5.
+and ships the canonical-state lookup helper consumed at walk-time by
+per-issue derivation.
 
 Stdlib only. Python >= 3.10.
 """
@@ -49,7 +50,7 @@ def _find_skill_root(start: Optional[Path] = None) -> Path:
     skills docs) and in-pack development trees
     (``<repo>/packs/atlassian/.apm/skills/flow-metrics/``). During
     development the
-    ``SKILL.md`` file may not exist yet (T12 ships it); in that case we
+    ``SKILL.md`` file may not exist yet (the skill docs add it); in that case we
     fall back to a directory that contains ``references/`` and a sibling
     ``scripts/`` so tests run from a clone before packaging is complete.
     """
@@ -118,7 +119,7 @@ class StateConfig:
         """O(1) lookup from raw Jira status name to canonical state.
 
         Returns ``None`` if ``raw_status`` is not mapped under any
-        ``canonical_states`` entry. T5's per-issue derivation converts a
+        ``canonical_states`` entry. Per-issue derivation converts a
         ``None`` return into the data-dependent unmapped-status exit-2.
         """
         return self._raw_to_canonical.get(raw_status)
@@ -158,12 +159,13 @@ def validate_state_config(parsed: Any) -> None:
 
     Each violation raises ``ConfigError`` with a message naming the
     offending field. The data-dependent unmapped-status check (rule for
-    unmapped raw statuses) belongs to T5 — this routine does NOT consult
-    any changelog data. Rule 9 (``team_field.id`` validated against
-    Jira's field catalog) is a startup check that requires the T3
-    upstream wrapper; the *config-shape* portion (id is a string, kind
-    is one of the allowed values) is enforced here, but the field-catalog
-    lookup itself is left to the caller after T3 lands.
+    unmapped raw statuses) belongs to per-issue derivation — this
+    routine does NOT consult any changelog data. Rule 9 (``team_field.id``
+    validated against Jira's field catalog) is a startup check that
+    requires the upstream wrapper; the *config-shape* portion (id is a
+    string, kind is one of the allowed values) is enforced here, but the
+    field-catalog lookup itself is left to the caller after the upstream
+    wrapper lands.
     """
     if not isinstance(parsed, dict):
         raise ConfigError(
@@ -272,7 +274,7 @@ def validate_state_config(parsed: Any) -> None:
         _check_refs(tos, "rework_signals[{}].to".format(i))
 
     # team_field shape check. Rule 9's field-catalog lookup is deferred to
-    # the T3 upstream wrapper; here we enforce shape + the v2 deferral.
+    # the upstream wrapper; here we enforce shape + the v2 deferral.
     team_field = parsed.get("team_field")
     if team_field is not None:
         if not isinstance(team_field, dict):
@@ -461,12 +463,12 @@ def validate_team_field_against_catalog(
 ) -> None:
     """Spec rule 9: the configured ``team_field.id`` must exist in Jira's
     field catalog. Deferred from :func:`validate_state_config` because it
-    requires the T3 upstream wrapper.
+    requires the upstream wrapper.
 
     Resolution order: ``--team-field-override`` (if set) wins; else
     ``state_config.team_field.id``. If neither is set, this is a no-op
     (the field is optional unless team rollup is requested; that gate
-    lives in T9).
+    lives in the per-team rollup).
 
     Raises :class:`ConfigError` (exit 2) naming the offending id when
     the field is absent from ``jira: raw GET field``.

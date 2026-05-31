@@ -1,9 +1,9 @@
-"""T7 output rendering — Markdown + JSON sidecar.
+"""Output rendering — Markdown + JSON sidecar.
 
 Pure transformation layer. :func:`render_markdown` and :func:`render_json`
 take a :class:`modes.ReportData` plus a caller-supplied ``title`` and
-``generated_at`` (T8 supplies the latter; tests stub it) and return the
-final wire strings. No I/O, no clock reads.
+``generated_at`` (the write path supplies the latter; tests stub it) and
+return the final wire strings. No I/O, no clock reads.
 
 Markdown rules:
 
@@ -40,20 +40,21 @@ is then string-replaced with the separately-serialized canonical-order
 deltas blob (chosen over an encoder subclass unless a cleaner
 encoder pattern emerges).
 
-T7 invariants and decisions (flagged for spec amendment):
+Renderer invariants and decisions (flagged for spec amendment):
 
-1. Summary string is composed by T7 from :attr:`ReportData.deltas` (or
-   ``cohort_deltas`` in cohort mode, or scope-count + window in program
-   mode). An example exists but the producer isn't pinned;
-   T7 takes the role and emits a best-effort sentence.
+1. Summary string is composed by the renderer from
+   :attr:`ReportData.deltas` (or ``cohort_deltas`` in cohort mode, or
+   scope-count + window in program mode). An example exists but the
+   producer isn't pinned; the renderer takes the role and emits a
+   best-effort sentence.
 2. Per-scope table column set: every canonical-order scalar metric +
    every distribution metric's p50 only (p75/p90 elided; readers wanting
    full percentile detail look at the JSON sidecar). No example pins
    the full column set.
 3. Aggregate row: emitted as a final ``"Aggregate"``-labeled row in the
    per-scope table, sourced from :attr:`ReportData.program_aggregates`.
-   Spec doesn't require it explicitly; T6 computes the math so this
-   surfaces it.
+   Spec doesn't require it explicitly; the aggregation engine computes
+   the math so this surfaces it.
 4. ``cohort_breakdown`` JSON subtree keys are sorted codepoint-ascending
    (not canonical-metric-order) — only ``deltas`` gets the order
    exception (the one intentional exception to the global sort-keys
@@ -135,9 +136,10 @@ def render_markdown(
 ) -> str:
     """Render the full Markdown document for ``report``.
 
-    ``generated_at`` is a UTC ISO-8601 string; T8 passes it. T7 never
-    reads the clock. The function is pure — same inputs produce
-    byte-identical output (per the ``test_byte_identical_rerun`` test).
+    ``generated_at`` is a UTC ISO-8601 string; the write path passes it.
+    The renderer never reads the clock. The function is pure — same
+    inputs produce byte-identical output (per the
+    ``test_byte_identical_rerun`` test).
     """
     lines: List[str] = []
 
@@ -233,7 +235,7 @@ def render_json(
 ) -> str:
     """Render the JSON sidecar as a serialized string.
 
-    Pure — no I/O, no clock reads. T8 calls this and writes the bytes.
+    Pure — no I/O, no clock reads. The write path calls this and writes the bytes.
     """
     # Build meta block.
     meta = {
@@ -300,7 +302,8 @@ def render_json(
 # ---------------------------------------------------------------------------
 def _finalize_notes(notes: Iterable[str]) -> List[str]:
     """Dedupe + codepoint-sort. Used by both renderers so they emit the
-    same list. T3/T4/T5/T6 produced notes unsorted; T7 finalizes.
+    same list. The modes, program discovery, delta engine, and
+    aggregation engine produced notes unsorted; the renderer finalizes.
     """
     return sorted(set(notes))
 
@@ -311,7 +314,7 @@ def _finalize_notes(notes: Iterable[str]) -> List[str]:
 def _build_summary(report: ReportData) -> str:
     """Compose the one-line plain-English summary.
 
-    T7 invention (the spec shows an example but doesn't pin the
+    Renderer invention (the spec shows an example but doesn't pin the
     producer). Strategy: pick a few canonical-order key metrics from
     ``report.deltas`` (throughput, cycle_time_hours p50, rework_rate) and
     render their pct deltas in human-readable form. Falls back to a
@@ -501,7 +504,7 @@ def _render_per_scope_table(
 ) -> List[str]:
     """Render the per-scope table plus the final Aggregate row.
 
-    ``per_scope_rows`` arrives sorted by ``scope_repr`` (T6 sorts).
+    ``per_scope_rows`` arrives sorted by ``scope_repr`` (aggregation sorts).
     """
     header_cells = ["Scope"] + [label for label, _, _ in _PER_SCOPE_COLUMNS]
     out = [

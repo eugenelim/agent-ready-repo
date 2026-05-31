@@ -220,3 +220,29 @@ No existing state to convert — there is no `contracts/asyncapi/` content in th
 - ADR-NNNN: record the event-engine architecture decision (CloudEvents-as-envelope; standard family) if it warrants a standalone record beyond ADR-0008.
 - Spec: `docs/specs/event-contract-engine/` — the implementation contract for the skill, the Zalando-events standard bundle, the CloudEvents component, the one-row seam edit, and the producer-vs-consumer detection rule (D8).
 - No `docs/CONVENTIONS.md` change (the `contracts/<type>/` convention and the seam already exist).
+
+## Errata
+
+> Approver-signed corrections recorded during implementation
+> (`docs/specs/event-contract-engine/`). The body above is frozen at acceptance;
+> these clauses supersede it where they conflict. — Approved: eugenelim, 2026-05-31.
+
+1. **Migration-path correction — `event-contract` is *not* self-host-projected.**
+   The *Migration path* section above states "Self-hosting projection
+   (`make build-self`) projects the new skill into `.claude/skills/` like any
+   other `contracts` skill." This is **wrong**: `contracts` is a user-scope-default
+   pack and is **excluded from `SELF_HOST_PACKS`**, so `make build-self` does
+   **not** project `event-contract` (or `api-contract`) into this repo's
+   `.claude/skills/`. The only part of this change that projects is the **`core`
+   seam edit** (`contract-types.md`). Adopters who install the `contracts` pack
+   still receive `event-contract` through their own install route; the
+   non-projection is specific to this repo's self-hosting.
+
+2. **D7 "that is the entire `core` change" reads as *two parts*.** D7 says
+   filling the `asyncapi` row is "the entire `core` change." Per the confirmed
+   decision, the `core` edit is **two parts in one file**: (a) fill the
+   `asyncapi` row's skill column with `event-contract`, **and** (b) add the D8
+   producer-vs-consumer detection note to the same `contract-types.md`. Part (b)
+   is detection prose only — it adds **no new `core` mechanism** — so D7's
+   "no other `core` change" still holds in substance; the row-fill is simply not
+   the *only* line that changes in that file.

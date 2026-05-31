@@ -1,6 +1,6 @@
-"""T11 ``meta`` block builder.
+"""``meta`` block builder.
 
-Composes the meta dict T10's renderer splices into the canonical
+Composes the meta dict the renderer splices into the canonical
 output. Owns one upstream call — ``jira: whoami`` for ``meta.caller``
 — and the spec-pinned omission rules (``cohort_jql`` absent when
 unset, ``sources`` lex-sorted, ``metrics_requested`` in canonical
@@ -22,7 +22,7 @@ from .output import CANONICAL_METRICS_ORDER
 
 
 # schema_version is pinned at "1.0" for the v1 wire format. Future major
-# versions bump this; T10's renderer does not interpret the value, so the
+# versions bump this; the renderer does not interpret the value, so the
 # bump is single-source-changeable here.
 SCHEMA_VERSION = "1.0"
 
@@ -81,7 +81,7 @@ def _format_scope(
     """Build the ``meta.scope`` dict matching the spec example shape.
 
     Exactly one of ``project`` / ``program_id`` / ``portfolio_id``
-    should be set; the CLI's flag-combo validation (T1) already enforces
+    should be set; the CLI's flag-combo validation (the CLI scaffold) already enforces
     that. ``team`` is only emitted on the project path and only when
     non-empty — an empty team is the same wire shape as no team for the
     test that pins meta.scope passthrough.
@@ -99,10 +99,10 @@ def _format_scope(
 
 
 def _format_window(window: Any) -> Dict[str, str]:
-    """Render ``window`` as the ``{from, to}`` shape T10 emits.
+    """Render ``window`` as the ``{from, to}`` shape the renderer emits.
 
     Accepts either a :class:`flow_metrics.Window` (the runtime type
-    from T1) or a dict with ``from`` / ``to`` keys (tests). Date values
+    from the CLI scaffold) or a dict with ``from`` / ``to`` keys (tests). Date values
     serialise as ISO ``YYYY-MM-DD``; datetime values strip to date.
     """
     if isinstance(window, Mapping):
@@ -174,20 +174,20 @@ def build_meta(
     - ``scope`` — passes through as a mapping. Callers compose via
       :func:`_format_scope` when they have raw ``--project`` / team
       / ``--program-id`` / ``--portfolio-id`` values; pre-shaped dicts
-      are also accepted so T1 can pass an existing ``args``-derived
+      are also accepted so the CLI scaffold can pass an existing ``args``-derived
       shape unmodified.
     - ``window`` — accepts a :class:`flow_metrics.Window` or a mapping
       with ``from`` / ``to`` keys; rendered as ``YYYY-MM-DD`` strings.
-    - ``sources`` — lex-sorted at build time. T10 also sorts
+    - ``sources`` — lex-sorted at build time. The renderer also sorts
       defensively, but pre-sorting keeps the on-wire shape obvious.
     - ``metrics_requested`` — canonical ``--metrics`` order, deduped,
       unknown names dropped (see :func:`_canonical_metrics`).
     - ``generated_at`` — ISO-8601 UTC string. Test fixtures
       historically use ``"2026-05-19T14:00:00Z"``; we render via
       ``isoformat`` and append ``Z`` for naive UTC.
-    - ``per_team_double_counted`` — set by T9; threaded through here.
+    - ``per_team_double_counted`` — set by the per-team rollup; threaded through here.
     - ``cohort_jql`` — **omitted** when ``None`` or empty. The key must
-      be absent, not null, not "". T10's renderer also drops null / empty
+      be absent, not null, not "". The renderer also drops null / empty
       values; this is the first line of defence.
     """
     meta: Dict[str, Any] = {

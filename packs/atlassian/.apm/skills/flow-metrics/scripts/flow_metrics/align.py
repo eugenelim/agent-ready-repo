@@ -1,4 +1,4 @@
-"""T9 Jira Align integration.
+"""Jira Align integration.
 
 Resolves team membership for program-id / portfolio-id scope runs via
 the ``jira-align`` skill's nested-resource ``raw GET`` endpoints, then
@@ -94,8 +94,8 @@ def validate_align_teams_path(path: str) -> str:
 # Canonical scope_kind values, shared with :mod:`flow_metrics.cache` (which
 # pins the same vocabulary in the cache-key payload:
 # ``scope_kind: "project" | "program" | "portfolio"``). Using anything
-# else here would silently break cache-key derivation when T10 wires this
-# module into the main run.
+# else here would silently break cache-key derivation when the renderer
+# wires this module into the main run.
 PROJECT_KIND = "project"
 PROGRAM_KIND = "program"
 PORTFOLIO_KIND = "portfolio"
@@ -308,7 +308,7 @@ def require_align_join_field(
 
 
 # ---------------------------------------------------------------------------
-# meta.sources helper (T10 emits; T9 surfaces the value)
+# meta.sources helper (the renderer emits; the Align integration surfaces the value)
 # ---------------------------------------------------------------------------
 def compute_sources(scope_kind: Optional[str]) -> List[str]:
     """Return the sorted list of upstream skill names used for this run.
@@ -318,7 +318,7 @@ def compute_sources(scope_kind: Optional[str]) -> List[str]:
     vocabulary (also accepted in their CLI-flag spellings ``program-id``
     / ``portfolio-id`` so call sites can pass either without an explicit
     conversion). The contract test ``test_meta_sources_reflects_skills_
-    called`` pins both shapes. T10 merges this into the top-level
+    called`` pins both shapes. The renderer merges this into the top-level
     ``meta`` block.
     """
     sources = ["jira"]
