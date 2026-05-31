@@ -6,9 +6,8 @@ into per-scope rows, and emits the program-mode notes. Every error
 names the offending basename(s); every note goes through
 :class:`ai_adoption_report.notes.Note`.
 
-Spec references: ``docs/specs/ai-adoption-report.md`` §"Mode: program"
-(lines 196-250) and §"Scope shape and ``kind`` inference" (lines
-130-146). Plan references: §T4 (lines 239-308).
+Handles program-mode input discovery: glob, filter, dedupe, overlap
+check, per_team flatten, and notes.
 
 Stdlib only. Read-only — no subprocess, no writes.
 """
@@ -33,7 +32,7 @@ class ProgramScope:
     Carries enough state for T6 to drive per-metric aggregation without
     re-reading files. ``from_per_team=True`` rows are synthesised from
     a parent input's ``per_team`` array and are excluded from cohort
-    rollups (spec lines 232-244).
+    rollups (flow-metrics v1 does not split per_team rows by cohort).
     """
 
     scope: dict
@@ -62,7 +61,7 @@ class ProgramInputs:
 
 
 # ---------------------------------------------------------------------------
-# Canonical scope representation (spec lines 510-513).
+# Canonical scope representation.
 # ---------------------------------------------------------------------------
 _CANONICAL_FIELDS: Tuple[str, ...] = ("project", "team", "program_id", "portfolio_id")
 
@@ -86,8 +85,8 @@ def canonical_scope_repr(scope: dict, scope_kind: str) -> str:
     """Return the spec-pinned canonical scope string.
 
     Form: ``kind=<kind>;project=<v>;team=<v>;program_id=<v>;portfolio_id=<v>``
-    with absent fields rendered as the empty string after the ``=``
-    (spec lines 510-513). Used for:
+    with absent fields rendered as the empty string after the ``=``.
+    Used for:
 
     - duplicate-scope detection (group key in :func:`discover_inputs`),
     - per-scope row ordering in T7's Markdown / JSON output,
@@ -115,19 +114,19 @@ def discover_inputs(
 ) -> ProgramInputs:
     """Glob, load, validate, dedupe, overlap-check, and flatten per_team.
 
-    Pipeline (spec §"Mode: program"):
+    Pipeline:
 
-    1. ``directory.glob("*.json")`` — no recursion (spec line 200).
+    1. ``directory.glob("*.json")`` — no recursion.
        Results sorted codepoint-ascending for deterministic errors.
     2. ``load_input`` each (T2). Failures exit 2 naming the basename.
     3. Window filter: ``input.window_from == FROM and
-       input.window_to == TO`` (string equality; spec lines 204-208).
-    4. Empty result → ValidationError (spec line 207).
-    5. Pre-flatten duplicate-scope check (spec lines 222-225).
-    6. Pre-flatten cross-kind overlap check (spec lines 214-228).
+       input.window_to == TO`` (string equality).
+    4. Empty result → ValidationError.
+    5. Pre-flatten duplicate-scope check.
+    6. Pre-flatten cross-kind overlap check.
     7. Build one ProgramScope per surviving input.
-    8. Per-team flattening (spec lines 232-244).
-    9. Post-flatten duplicate-scope safeguard (plan lines 287-301).
+    8. Per-team flattening.
+    9. Post-flatten duplicate-scope safeguard.
     10. Emit notes (per_team-double-counted, per_team-cohort-deferred).
 
     ``window`` is the tuple returned by T1's ``parse_window_flag``.
@@ -177,11 +176,10 @@ def discover_inputs(
 
     notes: List[str] = []
 
-    # Spec lines 246-250: only inputs that actually flattened (per_team
-    # non-empty) AND carry per_team_double_counted=true contribute to
-    # the note. An input with the flag set but no per_team produced no
-    # flattened rows, so the "may double-count" warning would be
-    # misleading. Spec phrasing "in any flattened input" pins this.
+    # Only inputs that actually flattened (per_team non-empty) AND carry
+    # per_team_double_counted=true contribute to the note. An input with
+    # the flag set but no per_team produced no flattened rows, so the
+    # "may double-count" warning would be misleading.
     double_counted_basenames = [
         inp.basename for inp in matching if _double_counted(inp) and inp.per_team
     ]
@@ -200,10 +198,10 @@ def discover_inputs(
 # Duplicate detection
 # ---------------------------------------------------------------------------
 def _check_duplicates_preflatten(inputs: List[InputFile]) -> None:
-    """Spec lines 222-225: across the window-filtered set, two inputs
-    sharing the same ``(scope_kind, canonical_scope_repr)`` exit 2 with
-    both basenames named. If more than two duplicates, all basenames
-    are listed in codepoint-ascending order.
+    """Across the window-filtered set, two inputs sharing the same
+    ``(scope_kind, canonical_scope_repr)`` exit 2 with both basenames
+    named. If more than two duplicates, all basenames are listed in
+    codepoint-ascending order.
     """
     groups: Dict[str, List[Tuple[InputFile, bool]]] = {}
     for inp in inputs:
@@ -278,28 +276,24 @@ def _overlaps(
     scope_b: dict,
     kind_b: str,
 ) -> bool:
-    """Return True if two scopes overlap per spec lines 214-228.
+    """Return True if two scopes overlap.
 
     Order-insensitive. Same-kind pairs are handled by duplicate
-    detection upstream — this function returns ``False`` for them. The
-    spec-pinned rules:
+    detection upstream — this function returns ``False`` for them.
+    Overlap rules:
 
-    - ``portfolio`` family vs any other family → overlap (spec line 218).
-    - ``program`` family vs ``project`` family → overlap (spec line 219).
+    - ``portfolio`` family vs any other family → overlap.
+    - ``program`` family vs ``project`` family → overlap.
     - Within the same family, base vs ``+team`` overlaps iff the parent
-      identifier matches (spec lines 220-221 for ``project`` vs
-      ``project+team``; T4 extends the same rule to ``portfolio`` and
-      ``program`` so explicit ``+team`` inputs of any family Just Work).
+      identifier matches (``project`` vs ``project+team``; the same rule
+      extends to ``portfolio`` and ``program``).
     - Same-kind same-identifier is the duplicate path; same-kind
       different-identifier is no overlap.
 
-    The spec does NOT resolve Jira hierarchy beyond declared scope
-    fields (spec line 229). The synthesised ``portfolio+team`` /
-    ``program+team`` kinds inherit their parent's cross-family rules:
-    portfolio+team overlaps any non-portfolio kind (because the parent
-    portfolio would), program+team overlaps project family (because
-    program would). This is conservative — it never under-reports
-    overlaps.
+    Jira hierarchy beyond declared scope fields is not resolved. The
+    synthesised ``portfolio+team`` / ``program+team`` kinds inherit
+    their parent's cross-family rules (conservative — never
+    under-reports overlaps).
     """
     if kind_a == kind_b:
         return False
@@ -340,17 +334,16 @@ def _check_overlaps(inputs: List[InputFile]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# per_team flattening (spec lines 232-244)
+# per_team flattening
 # ---------------------------------------------------------------------------
 def _flatten_per_team(inputs: List[InputFile]) -> List[ProgramScope]:
     """Synthesise per-team rows for every input carrying a non-empty
     ``per_team`` array.
 
     The source input remains in :class:`ProgramInputs.scopes`; it is
-    not replaced by its flattened children. Spec lines 232-238 read as
-    "both participate in the non-cohort aggregation table", and the
-    plan §T4 lists the original-plus-children pattern as the expected
-    behaviour. Flagged for spec amendment if reviewers disagree.
+    not replaced by its flattened children. Both the original scope and
+    each flattened child participate in the non-cohort aggregation
+    table.
 
     For each ``per_team`` entry:
 
@@ -364,8 +357,8 @@ def _flatten_per_team(inputs: List[InputFile]) -> List[ProgramScope]:
       for a program-scope source, ``portfolio+team`` for a portfolio
       source.
     - ``aggregates`` is the entry's own ``aggregates`` block.
-    - ``cohort_breakdown`` is ``None`` (spec lines 240-244 —
-      ``flow-metrics`` v1 doesn't split per_team rows by cohort).
+    - ``cohort_breakdown`` is ``None`` (``flow-metrics`` v1 doesn't
+      split per_team rows by cohort).
     - ``cohort_jql`` is ``None`` (same reason).
     - ``per_team_double_counted`` propagates from the source input's
       ``meta.per_team_double_counted``.

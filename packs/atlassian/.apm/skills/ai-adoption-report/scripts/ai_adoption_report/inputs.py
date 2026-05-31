@@ -4,10 +4,10 @@ Reads one flow-metrics JSON, validates the ``meta`` block, infers the
 scope ``kind`` from key presence, and returns an :class:`InputFile`
 dataclass that the three mode-runners (T3/T4) consume.
 
-Validation rules come from ``docs/specs/ai-adoption-report.md`` §
-"Input file validation" (lines 100-146). Every error message names the
-file basename; the basename is the only locator the user reliably
-recognises across the program-mode glob and the single-file modes.
+Validation rules for input file validation are enforced here. Every
+error message names the file basename; the basename is the only
+locator the user reliably recognises across the program-mode glob and
+the single-file modes.
 
 Stdlib only. Read-only — no subprocess, no writes.
 """
@@ -22,9 +22,7 @@ from typing import Any, Iterable, List, Optional, Tuple
 
 from . import ValidationError
 
-# Required meta keys per spec lines 102-105. Order matches the spec
-# sentence so the test parameter set reads top-to-bottom against the
-# spec.
+# Required meta keys. Order matches the documented input contract.
 REQUIRED_META_KEYS: Tuple[str, ...] = (
     "scope",
     "window",
@@ -34,14 +32,14 @@ REQUIRED_META_KEYS: Tuple[str, ...] = (
     "generated_at",
 )
 
-# Spec lines 121-124: YYYY-MM-DD only — no time component, no timezone.
+# Window dates must be YYYY-MM-DD only — no time component, no timezone.
 # ``date.fromisoformat`` accepts ``2026-02-19T00:00:00`` on newer Pythons,
 # so the regex is the first gate; ``date.fromisoformat`` then validates
 # that the YYYY/MM/DD parts form a real calendar date.
 _ISO_DATE_RE = re.compile(r"\A\d{4}-\d{2}-\d{2}\Z")
 
-# Spec lines 114-119: schema_version is ``<int>.<int>``. Anything else
-# exits 2. Trailing ``.0`` is fine (still two parts); ``1.0.0`` is not.
+# schema_version must be ``<int>.<int>``. Anything else exits 2.
+# Trailing ``.0`` is fine (still two parts); ``1.0.0`` is not.
 _SCHEMA_VERSION_RE = re.compile(r"\A(\d+)\.(\d+)\Z")
 
 
@@ -70,12 +68,12 @@ class InputFile:
 
 
 # ---------------------------------------------------------------------------
-# Scope-kind inference (spec lines 130-146).
+# Scope-kind inference.
 # ---------------------------------------------------------------------------
 def infer_scope_kind(scope: dict, *, basename: str) -> str:
     """Return one of the six recognised scope kinds.
 
-    Spec-pinned kinds (spec lines 130-146):
+    Recognised kinds:
     ``portfolio`` / ``program`` / ``project`` / ``project+team``.
 
     Synthesized-only kinds (introduced by T4's per_team flattening of a
@@ -309,12 +307,12 @@ def _coerce_notes_list(value: Any, *, basename: str) -> List[str]:
 def collect_mixed_major_note(inputs: Iterable[InputFile]) -> Optional[str]:
     """Return the ``mixed-major-schema-versions`` note, or ``None``.
 
-    Spec lines 114-118: if input files in the same run disagree on the
-    major component of ``schema_version``, emit a note listing each
-    distinct major and the basenames carrying it. Mixed minors are
-    silently allowed. Lives in :mod:`inputs` (not :mod:`notes`) so the
-    rule itself is testable in isolation from the wording; the wording
-    is delegated to :class:`Note.mixed_major_schema_versions`.
+    If input files in the same run disagree on the major component of
+    ``schema_version``, emit a note listing each distinct major and the
+    basenames carrying it. Mixed minors are silently allowed. Lives in
+    :mod:`inputs` (not :mod:`notes`) so the rule itself is testable in
+    isolation from the wording; the wording is delegated to
+    :class:`Note.mixed_major_schema_versions`.
     """
     # Local import to avoid a module-level cycle if Note ever wants to
     # call back into this module (it doesn't today, but keeping the

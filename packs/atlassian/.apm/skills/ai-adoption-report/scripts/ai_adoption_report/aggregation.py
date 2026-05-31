@@ -8,8 +8,7 @@ Turns a list of :class:`program_discovery.ProgramScope` into:
   ``flow-metrics``'s ``cohort_breakdown.<side>`` shape), produced only
   when ``--include-cohort-breakdown`` is set.
 
-Aggregation rules (spec §"Aggregation math (program mode only)" lines
-366-384 and §"Mode: program" lines 252-311):
+Aggregation rules for program mode:
 
 - ``throughput`` / ``wip`` / ``flow_load`` — sum across scopes.
 - ``cycle_time_hours`` / ``lead_time_hours`` / ``flow_time_hours`` /
@@ -18,8 +17,8 @@ Aggregation rules (spec §"Aggregation math (program mode only)" lines
 - ``rework_rate`` — throughput-weighted average. Side's own throughput
   is the weight (cohort uses cohort throughput, control uses control
   throughput, non-cohort uses per-scope ``aggregates.throughput``).
-- ``defect_ratio`` — flow_distribution.denominator-weighted average
-  (spec lines 273-281 + line 378). NOT throughput-weighted.
+- ``defect_ratio`` — flow_distribution.denominator-weighted average.
+  NOT throughput-weighted.
 - ``flow_distribution.<bucket>`` — denominator-weighted average. The
   aggregated ``flow_distribution.denominator`` is the integer sum
   across contributing scopes.
@@ -44,8 +43,8 @@ from .program_discovery import ProgramScope
 
 
 # Top-level keys in the order they appear in the aggregates / cohort
-# side dicts T6 produces. Derived from spec §"Metric row order" (lines
-# 352-364) collapsed to one entry per top-level metric.
+# side dicts T6 produces. Follows the canonical metric row order,
+# collapsed to one entry per top-level metric.
 _TOP_LEVEL_METRIC_ORDER: Tuple[str, ...] = (
     "throughput",
     "wip",
@@ -112,8 +111,8 @@ def aggregate_non_cohort(
     """Return ``(aggregates_dict, notes)`` for the non-cohort rollup.
 
     Includes every scope (per_team-flattened rows participate in the
-    non-cohort aggregation per spec lines 232-244). Side label woven
-    into zero-denominator notes is ``"non-cohort"``.
+    non-cohort aggregation). Side label woven into zero-denominator
+    notes is ``"non-cohort"``.
 
     The returned dict matches the shape of flow-metrics's ``aggregates``
     block: same keys, same nesting. T7 may layer on derived fields
@@ -138,7 +137,7 @@ def aggregate_cohort_side(
 ) -> Tuple[Optional[dict], List[str]]:
     """Return ``(cohort_breakdown_side_dict | None, notes)`` for one side.
 
-    Exclusions per spec lines 252-311:
+    Exclusions for cohort-side rollup:
 
     - ``from_per_team=True`` scopes are excluded from BOTH cohort and
       control rollups (flow-metrics v1 doesn't split per_team rows by
@@ -195,12 +194,12 @@ def aggregate_cohort_side(
     )
     notes.extend(agg_notes)
 
-    # Spec lines 381-384: emit the median-of-medians approximation note
-    # whenever distribution aggregates are produced. aggregate_non_cohort
-    # is the canonical emission point, but firing here too defends
-    # against the (contrived) case where the non-cohort table has no
-    # distribution metrics yet a cohort side does. T7 dedupes by exact
-    # match, so the duplicate emission is free.
+    # Emit the median-of-medians approximation note whenever distribution
+    # aggregates are produced. aggregate_non_cohort is the canonical
+    # emission point, but firing here too defends against the (contrived)
+    # case where the non-cohort table has no distribution metrics yet a
+    # cohort side does. T7 dedupes by exact match, so the duplicate
+    # emission is free.
     if any(m in out for m in _DISTRIBUTION_METRICS):
         notes.append(Note.median_of_medians_approximation())
 

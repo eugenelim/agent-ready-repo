@@ -34,11 +34,11 @@ from .program_discovery import discover_inputs
 
 
 # ---------------------------------------------------------------------------
-# Canonical scope representation (spec lines 510-515)
+# Canonical scope representation
 # ---------------------------------------------------------------------------
 # Temporary home — T7 may relocate when it owns the renderer. Kept here
 # because both header-line assembly (T3) and per-scope-row labels (T6)
-# need the same string and the spec defines it once.
+# need the same string.
 _SCOPE_FIELDS = ("project", "team", "program_id", "portfolio_id")
 
 
@@ -73,7 +73,7 @@ class ReportData:
 
     ``notes`` is the merged unsorted list (T2's mixed-major note +
     T3's drift / per_team / cohort-jql notes + T5's compute_deltas
-    notes). T7 sorts and dedupes the final list per spec line 504.
+    notes). T7 sorts and dedupes the final list.
     """
 
     mode: Literal["baseline", "cohort", "program"]
@@ -115,16 +115,16 @@ def run_baseline(args) -> ReportData:
     if mixed_major is not None:
         notes.append(mixed_major)
 
-    # Spec lines 153-156: exact dict equality on meta.scope.
+    # Exact dict equality on meta.scope is required in baseline mode.
     if baseline.scope != current.scope:
         raise ValidationError(
             "baseline-mode scope mismatch: baseline scope {} vs current "
             "scope {}".format(baseline.scope, current.scope)
         )
 
-    # Spec lines 157-160: baseline.window.to <= current.window.from.
+    # baseline.window.to must be <= current.window.from.
     # ISO YYYY-MM-DD strings compare correctly under lex order
-    # (spec line 127 — string equality is the official match rule).
+    # (string equality is the official match rule).
     if baseline.window_to > current.window_from:
         raise ValidationError(
             "baseline-mode window overlap: baseline {}..{} overlaps "
@@ -134,7 +134,7 @@ def run_baseline(args) -> ReportData:
             )
         )
 
-    # Spec lines 161-165: drift emits a note; deltas still compute.
+    # Config-SHA drift emits a note; deltas still compute.
     if baseline.meta.get("state_config_sha") != current.meta.get("state_config_sha"):
         notes.append(
             Note.config_sha_drift(
@@ -152,15 +152,15 @@ def run_baseline(args) -> ReportData:
             )
         )
 
-    # Spec lines 177-183: per_team is ignored in baseline mode; note
-    # per input that carries one. ``per_team`` arrives as a list (or
-    # None); only non-empty lists trigger the note.
+    # per_team is ignored in baseline mode; note per input that carries
+    # one. ``per_team`` arrives as a list (or None); only non-empty
+    # lists trigger the note.
     for inp in inputs:
         if inp.per_team:
             notes.append(Note.per_team_ignored_in_baseline(inp.basename))
 
-    # Primary deltas (spec §"Delta math"). T5 returns notes unsorted;
-    # T3 concatenates per the notes-merge contract.
+    # Primary deltas. T5 returns notes unsorted; T3 concatenates per
+    # the notes-merge contract.
     primary = compute_deltas(
         baseline.aggregates,
         current.aggregates,
@@ -210,7 +210,7 @@ def _baseline_cohort_section(
 ) -> tuple[Optional[dict], List[str]]:
     """Return ``(cohort_deltas, notes)`` for the optional cohort section.
 
-    Three branches per spec lines 167-175:
+    Three branches:
     1. Either input lacks ``cohort_breakdown`` → no-op + note,
        ``cohort_deltas`` stays ``None``.
     2. Both present but ``meta.cohort_jql`` differs → section omitted,
@@ -256,13 +256,12 @@ def _baseline_cohort_section(
 def run_cohort(args) -> ReportData:
     """Run cohort mode end-to-end and return :class:`ReportData`.
 
-    Side A is ``control`` and side B is ``cohort`` per spec line 194
-    and plan §T3 line 230.
+    Side A is ``control`` and side B is ``cohort``.
     """
     inp = load_input(args.input)
 
     if inp.cohort_breakdown is None:
-        # Spec line 191: literal error string.
+        # Literal error string for missing cohort_breakdown.
         raise ValidationError(
             "--input was not produced with --cohort-jql; no "
             "cohort_breakdown block present"
@@ -314,7 +313,7 @@ def run_program(args) -> ReportData:
     2. T6: ``aggregate_non_cohort`` — program-wide aggregates.
     3. T6: ``aggregate_cohort_side`` (twice) when
        ``--include-cohort-breakdown`` — cohort and control side
-       rollups, computed independently per spec lines 252-311.
+       rollups, computed independently.
     4. T5: ``compute_deltas`` ONCE — only for the cohort-vs-control
        rollup comparison. Program mode's main table is per-scope rows
        + aggregate row, NOT a two-side comparison, so the global
@@ -322,11 +321,10 @@ def run_program(args) -> ReportData:
     5. Mixed-cohort-jql note: emitted when contributing cohort-rollup
        scopes carry distinct ``meta.cohort_jql`` values.
     6. Per-scope rows: every scope in :attr:`ProgramInputs.scopes`,
-       sorted by canonical scope-repr per spec lines 510-513.
-    7. Header line: spec line 439. Kind counting is family-collapsed —
-       ``project+team`` counts as ``project``, ``program+team`` as
-       ``program``, ``portfolio+team`` as ``portfolio``. The spec does
-       not pin this rule; flagged for amendment.
+       sorted by canonical scope-repr.
+    7. Header line. Kind counting is family-collapsed — ``project+team``
+       counts as ``project``, ``program+team`` as ``program``,
+       ``portfolio+team`` as ``portfolio``.
     """
     from_endpoint, to_endpoint = args.window
     program_inputs = discover_inputs(
@@ -340,10 +338,10 @@ def run_program(args) -> ReportData:
     global_agg, non_cohort_notes = aggregate_non_cohort(program_inputs.scopes)
     notes.extend(non_cohort_notes)
 
-    # Spec line 373: throughput is reported as a raw count AND as a
-    # per-week rate. The non-cohort aggregate is the only place this
-    # is computed; cohort-side rollups don't carry a window-normalised
-    # variant (T7's renderer can compute one if it wants).
+    # Throughput is reported as a raw count AND as a per-week rate.
+    # The non-cohort aggregate is the only place this is computed;
+    # cohort-side rollups don't carry a window-normalised variant
+    # (T7's renderer can compute one if it wants).
     if "throughput" in global_agg:
         try:
             d_from = date.fromisoformat(from_endpoint)
@@ -374,10 +372,9 @@ def run_program(args) -> ReportData:
         notes.extend(control_notes)
 
         if cohort_agg is not None and control_agg is not None:
-            # Spec lines 305-308: collect cohort_jql across the scopes
-            # that actually contribute (non-per_team, have
-            # cohort_breakdown). Emit the mixed-cohort-jql note when
-            # >1 distinct value.
+            # Collect cohort_jql across the scopes that actually
+            # contribute (non-per_team, have cohort_breakdown). Emit
+            # the mixed-cohort-jql note when >1 distinct value.
             jql_groups: dict = {}
             for s in program_inputs.scopes:
                 if s.from_per_team or s.cohort_breakdown is None:
@@ -397,7 +394,7 @@ def run_program(args) -> ReportData:
             cohort_deltas = delta_result.to_dict()
             cohort_side_labels = ("control", "cohort")
 
-    # Per-scope rows: canonical sort by scope-repr (spec lines 506-507).
+    # Per-scope rows: canonical sort by scope-repr.
     sorted_scopes = sorted(
         program_inputs.scopes,
         key=lambda s: _program_scope_repr(s.scope, s.scope_kind),
@@ -412,8 +409,8 @@ def run_program(args) -> ReportData:
         for s in sorted_scopes
     ]
 
-    # Header line (spec line 439). Kind counts collapse ``+team`` into
-    # the parent family — flagged in the task report.
+    # Header line. Kind counts collapse ``+team`` into the parent
+    # family.
     kind_counts = {"project": 0, "program": 0, "portfolio": 0}
     for s in program_inputs.scopes:
         family = s.scope_kind.split("+", 1)[0]

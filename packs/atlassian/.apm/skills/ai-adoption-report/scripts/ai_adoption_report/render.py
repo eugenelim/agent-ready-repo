@@ -5,7 +5,7 @@ take a :class:`modes.ReportData` plus a caller-supplied ``title`` and
 ``generated_at`` (T8 supplies the latter; tests stub it) and return the
 final wire strings. No I/O, no clock reads.
 
-Markdown rules (spec lines 388-453, plan lines 463-500):
+Markdown rules:
 
 - Section order fixed; empty sections omitted entirely (no header).
 - Numeric cells: integers bare; floats rounded to 4dp with trailing
@@ -21,7 +21,7 @@ Markdown rules (spec lines 388-453, plan lines 463-500):
   start, which never happens inside a table cell, and dates like
   ``2024-Q1`` and team names like ``Mobile-Web`` are common).
 
-JSON canonicalization (spec lines 495-516, plan lines 502-516):
+JSON canonicalization rules:
 
 - All object keys sorted codepoint-ascending EXCEPT the ``deltas``
   subtree, whose keys follow :data:`delta.CANONICAL_METRIC_ORDER`.
@@ -56,7 +56,8 @@ T7 invariants and decisions (flagged for spec amendment):
    surfaces it.
 4. ``cohort_breakdown`` JSON subtree keys are sorted codepoint-ascending
    (not canonical-metric-order) — only ``deltas`` gets the order
-   exception per spec line 508 ("the one intentional exception").
+   exception (the one intentional exception to the global sort-keys
+   rule).
 
 Stdlib only. Pure functions. Python >= 3.10.
 """
@@ -585,7 +586,7 @@ def _fmt_cell(value: Any, *, kind: str) -> str:
     """Format one Markdown table cell value.
 
     ``kind`` is one of ``"int" | "float" | "hours" | "percent"``.
-    See spec lines 441-453 + plan lines 472-482 for the rules.
+    ``kind`` is one of ``"int" | "float" | "hours" | "percent"``.
     """
     if value is None:
         return "—"
@@ -641,8 +642,8 @@ def _format_float_value(v: float) -> str:
 def _fmt_percent(value: Any) -> str:
     """Format the percent column.
 
-    Per spec lines 446-449: signed with one decimal; ``+0.0%`` for true
-    zero; ``−`` for negative; ``±∞%`` for infinite.
+    Signed with one decimal; ``+0.0%`` for true zero; ``−`` for
+    negative; ``±∞%`` for infinite.
     """
     if value is None:
         return "—"
@@ -675,8 +676,8 @@ def _md_escape(s: str) -> str:
 def _build_inputs_json(inputs: List[InputFile]) -> list[dict]:
     """Build the ``meta.inputs`` array.
 
-    Sorted by basename codepoint-ascending (spec line 502). Each entry
-    carries the per-file provenance fields the spec pins (lines 469-477).
+    Sorted by basename codepoint-ascending. Each entry carries the
+    per-file provenance fields.
     """
     out: list[dict] = []
     for inp in sorted(inputs, key=lambda i: i.basename):
