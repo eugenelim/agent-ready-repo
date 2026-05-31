@@ -16,7 +16,7 @@ the two invocation surfaces. (An earlier design shipped this as a
 catalogue-only `tools/` linter; it now ships as a skill script so it projects
 to adopters too.)
 
-It checks four invariants over `docs/specs/*/spec.md`, measured against the
+It checks five invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in `CONVENTIONS.md` § 4 (Spec metadata contract). Only the
 header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
 
