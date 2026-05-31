@@ -15,15 +15,16 @@ leak:
      `agent-ready-repo`, RFC-NNNN, K-NNNN, or internal-spec names.
      Catches "seed scrub got reverted" regressions.
 
-*Single-route scope (per the 2026-05-25 rescope amendment to AC22;
-see `docs/specs/self-hosting/spec.md` § Changelog):* `agentbundle
-scaffold` is the only function that drops `packs/<pack>/seeds/` into
-an adopter tree. Seed projection is route-agnostic by construction —
-the `per-pack-claude-plugin` and `per-pack-apm-package` build recipes
-produce no `dist/<route>/<pack>/seeds/` subtree, and the install→adapt
-chain reads marker files but never invokes `scaffold`. Testing
-`scaffold` directly is therefore sufficient to catch leaks at the
-source; AC21's `tools/lint-seeds.py` is the cross-source invariant.
+*Scope:* this test exercises `agentbundle scaffold` — one of the two CLI
+functions that drop `packs/<pack>/seeds/` into an adopter tree (the other is
+`agentbundle install`, which shares the same `deliver_seeds` Tier-1/2/3 helper;
+see `docs/specs/core-install-seed-delivery/`). As of issue #190 the
+`per-pack-claude-plugin` and `per-pack-apm-package` build recipes also ship
+`seeds/` *inside* the dist artifact (`dist/<route>/<pack>/seeds/`, covered by
+`build/tests/test_build_ships_seeds.py`); that copy is byte-verbatim from the
+same source tree this golden/leak test guards, so testing `scaffold` here
+remains sufficient to catch a seed-scrub regression at the source. AC21's
+`tools/lint-seeds.py` is the cross-source invariant.
 
 Goldens live at
 `packages/agentbundle/tests/fixtures/install_snapshot/<pack>.paths.txt`

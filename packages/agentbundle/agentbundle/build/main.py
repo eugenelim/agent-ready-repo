@@ -416,6 +416,15 @@ def _run_per_pack_single(
     scripts_dir.mkdir(parents=True, exist_ok=True)
     (scripts_dir / "install-marker.py").write_bytes(_read_install_marker_template())
 
+    # Issue #190: ship the pack's seeds/ inside the plugin artifact so the
+    # governance content travels with the pack on the Claude-plugin route
+    # (RFC-0001 §281-284). symlinks=True preserves a seed symlink as a
+    # symlink rather than dereferencing the build host's file into dist/
+    # at build time — matching the APM recipe's copytree posture.
+    seeds_src = pack.path / "seeds"
+    if seeds_src.is_dir():
+        shutil.copytree(seeds_src, per_pack_output / "seeds", symlinks=True)
+
     produced[pack.name] = str(per_pack_output)
 
 
@@ -468,6 +477,14 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
                 per_pack_output / "pack.toml",
                 follow_symlinks=False,
             )
+
+        # Issue #190 / RFC-0001 §595: ship the pack's seeds/ inside the APM
+        # package so the governance content travels with the pack on the APM
+        # route. symlinks=True preserves a seed symlink as a symlink rather
+        # than dereferencing the build host's file into dist/ at build time.
+        seeds_src = pack.path / "seeds"
+        if seeds_src.is_dir():
+            shutil.copytree(seeds_src, per_pack_output / "seeds", symlinks=True)
 
         produced[pack.name] = str(per_pack_output)
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}

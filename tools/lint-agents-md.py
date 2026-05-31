@@ -117,7 +117,16 @@ def main() -> int:
             continue
         lines = len(f.read_text().splitlines())
         limit = MAX_SUB_LINES
-        if f.as_posix() == "packs/core/seeds/AGENTS.md":
+        # The core pack's governance seed (AGENTS.md) is a root-class doc
+        # (250-line cap), not a nested package AGENTS.md — wherever it lands.
+        # That covers packs/core/seeds/AGENTS.md and its build-projected copies
+        # under dist/<route>/core/seeds/AGENTS.md (issue #190 ships seeds inside
+        # the APM and Claude-plugin artifacts).
+        if (
+            f.name == "AGENTS.md"
+            and f.parent.name == "seeds"
+            and f.parent.parent.name == "core"
+        ):
             limit = MAX_ROOT_LINES
         if lines > limit:
             note(f"./{f.as_posix()} is {lines} lines (max {limit}). Trim or split.")

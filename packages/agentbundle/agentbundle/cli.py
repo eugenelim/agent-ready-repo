@@ -225,7 +225,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "RFC-0004: bypass the cross-scope-conflict refusal — install at "
             "the requested scope even when the pack is already installed at "
-            "the other scope. Does *not* override the in-place re-install "
+            "the other scope. Also REMOVES on-disk files at the pack's "
+            "projection paths that the current version does not ship "
+            "(unrecognized leftovers from an older or interrupted install) "
+            "before reinstalling. Does *not* override the in-place re-install "
             "refusal; use `upgrade` for that."
         ),
     )
