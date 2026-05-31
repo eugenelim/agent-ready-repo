@@ -140,11 +140,14 @@ def _candidate_code_path(token: str) -> str | None:
     Accepts: contains `/`, ends in a recognised code extension (after stripping
     a trailing `:<line>` / `:<range>` / `#<anchor>` locator), and is either
     rooted at a known top-level directory or an explicit `../` / `./` relative
-    link target. Rejects bare basenames, placeholders (`<>`), and globs (`*`).
+    link target. Rejects bare basenames, placeholders (`<>`), globs (`*`),
+    and prose ellipses (`...`).
     """
-    # Reject placeholders (`<>`), globs (`*`), and brace-expansion shorthand
-    # (`{a,b}.py`) — none denote a single literal path.
-    if any(c in token for c in "<>*{}") or "://" in token or "/" not in token:
+    # Reject placeholders (`<>`), globs (`*`), brace-expansion shorthand
+    # (`{a,b}.py`), and prose ellipses (`...`, e.g. an abbreviated path like
+    # `packs/core/...session-start.toml`) — none denote a single literal path.
+    if (any(c in token for c in "<>*{}") or "://" in token
+            or "..." in token or "/" not in token):
         return None
     path: str | None = None
     for ext in _CODE_EXTS:
