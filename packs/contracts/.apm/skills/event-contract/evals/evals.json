@@ -1,0 +1,48 @@
+{
+  "skill_name": "event-contract",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our order service publishes an event whenever an order is placed. Design the event contract. Other teams consume it to kick off fulfillment and analytics.",
+      "expected_output": "A valid AsyncAPI 3.1.0 document with a channel for the order stream, a send operation, and an OrderPlaced general event whose payload composes the CloudEvents structured-mode envelope (context attributes + business payload under data). Event type named acme.order.order.placed; snake_case payload properties; reference ids instead of PII.",
+      "assertions": [
+        "Output is valid AsyncAPI 3.1.0 YAML (passes npx @asyncapi/cli validate)",
+        "Uses channels, operations, components.messages, and components.schemas",
+        "Message payload composes a CloudEvents envelope (specversion, id, source, type) with the business payload under data",
+        "Message contentType is application/cloudevents+json",
+        "Event type name follows org.domain.resource.verb (e.g. acme.order.order.placed) [#213]",
+        "Event is declared as the general category [#198][#201]",
+        "Payload properties are snake_case and carry reference ids, not PII [#200][#208]",
+        "Each design decision cites its Zalando [#NNN] rule"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Design a data change event for the customer resource: emitted on create, update, and delete. Consumers maintain a read model and need to apply changes in order and tolerate duplicates.",
+      "expected_output": "A valid AsyncAPI 3.1.0 document with a CustomerChanged data change event. Payload carries operation (create/update/delete), the resource state mirroring the REST customer resource, a monotonic sequence_number for ordering, a hash partition key in the envelope, a declared compatibility mode, and a closed schema.",
+      "assertions": [
+        "Output is valid AsyncAPI 3.1.0 YAML",
+        "Event is declared as the data-change category [#202]",
+        "Payload includes operation with enum create/update/delete and the resource state [#202]",
+        "Payload mirrors the corresponding REST resource structure [#205]",
+        "An explicit monotonic sequence_number is present for ordering [#242]",
+        "A hash partition key is carried in the envelope metadata [#204]",
+        "Payload schemas set additionalProperties: false (closed schemas) [#210]",
+        "A compatibility mode is declared on the event type [#245]",
+        "Schema is semantically versioned, carried via the envelope dataschema URI [#246]"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We are standing up a Kafka consumer that subscribes to the payments.captured event published by the payments team, which already owns an AsyncAPI contract in contracts/asyncapi/. Author the event contract for our feature.",
+      "expected_output": "No new AsyncAPI contract is authored. The feature consumes an event it does not own, so the skill references the producer's existing contract instead of fabricating one: it sets the spec's Contract header to the producer contract (read-only) and points the plan's tests at it, with no back-pointer added.",
+      "assertions": [
+        "No new contracts/asyncapi/ file is authored (consumer-only feature)",
+        "Recognizes the feature consumes, not produces/owns, the event type",
+        "References the producer's existing contract rather than fabricating one",
+        "Sets the spec Contract header to the producer contract as a read-only reference",
+        "Adds no backward spec-pointer extension to the producer's contract"
+      ]
+    }
+  ]
+}

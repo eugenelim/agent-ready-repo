@@ -206,6 +206,27 @@ AC14 — corp Artifactory publish first-firing. **Unblocks when:** the three
 Artifactory secrets (`ARTIFACTORY_URL` / `ARTIFACTORY_USER` /
 `ARTIFACTORY_TOKEN`) are configured and a tag is pushed.
 
+## `event-contract-engine`
+
+Shipped. AC8's drift-by-number quality gate is present as a prose checklist item,
+as RFC-0018's resolved Open Q1 specified ("anchor both copies on the shared
+`[#NNN]` numbers + a diff-by-number quality-gate item; no cross-skill file
+dependency; escalate only if drift is observed in practice").
+
+### drift-by-number-mechanical-gate
+
+Quality-engineer review (post-ship) noted the by-number check is trivially
+mechanizable: extract `[#NNN]` tokens from `api-contract/references/events.md`
+ch. 19-21 and from the six `event-contract` phase rule files, fail on any
+asymmetric difference (two `grep -oE '#[0-9]+' | sort -u` lists, compared).
+**Deferred** — RFC-0018's Open Q1 deliberately chose the prose gate now and
+"escalate to a shared file only if drift is observed in practice", and a CI lint
+reading both skills' files is exactly the cross-skill dependency the RFC declined.
+**Unblocks when:** drift between the two copies is observed in practice, or the
+team decides to override the RFC's wait-and-see stance (then build a stdlib
+`tools/` lint — mind the Windows bash→py and two-lint-surface wiring traps — and
+wire it into `make build-check`).
+
 ## Cross-spec / outside-the-spec-tree
 
 Open items called out by accepted RFCs or multiple specs, without a spec
