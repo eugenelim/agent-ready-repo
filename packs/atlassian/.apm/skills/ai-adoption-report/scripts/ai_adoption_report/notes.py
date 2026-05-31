@@ -175,7 +175,7 @@ class Note:
         ``sources`` is an iterable of ``(basename, from_per_team)``
         tuples. ``from_per_team=True`` basenames are annotated with
         ``" (per_team flattened)"`` to distinguish a post-flatten
-        collision (plan lines 287-301) from a pre-flatten duplicate of
+        collision from a pre-flatten duplicate of
         two explicit inputs. The annotation deliberately omits the
         source's parent kind (program/portfolio/project+team) because
         the per_team flattening path admits all three; the source's

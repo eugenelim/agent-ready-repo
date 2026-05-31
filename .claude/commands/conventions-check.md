@@ -30,14 +30,13 @@ Run these repo linters and report findings.
 4. Skill dirs contain a `SKILL.md` (and no stray `.md` siblings).
 5. Internal markdown links inside each artifact resolve.
 
-**`bash tools/lint-credentialed-skills.sh`** — credentialed-skill rules
-(skill-secrets spec § AC26 — see `docs/specs/skill-secrets/spec.md`);
+**`bash tools/lint-credentialed-skills.sh`** — credentialed-skill rules,
 scoped to skills whose `SKILL.md` declares `metadata.credentialed: true`
 (per agentskills.io spec, project-specific fields live under
 `metadata:`):
 
 1. The body contains an `### Security rules (non-negotiable)` heading
-   and the three RFC-0006 § 4 substrings inside that section (the
+   and the three required security substrings inside that section (the
    verbatim "Don't" block).
 2. For `metadata.primitive-class: credentialed-cli`: no script under
    the skill's `scripts/` directory accepts an `argparse` flag whose

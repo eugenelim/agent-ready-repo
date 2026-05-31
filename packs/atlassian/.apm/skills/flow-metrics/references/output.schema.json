@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:atlassian-pack:flow-metrics:output.schema.json",
   "title": "flow-metrics canonical output",
-  "description": "Wire shape for the aggregate-mode JSON output of the flow-metrics CLI. Matches docs/specs/flow-metrics.md §\"Outputs\". The schema does not re-validate canonicalisation rules (key sort order, float rounding); those live in T10's renderer contract tests. Per-issue mode (--per-issue) emits JSONL with a different shape and is not covered here.",
+  "description": "Wire shape for the aggregate-mode JSON output of the flow-metrics CLI. The schema does not re-validate canonicalisation rules (key sort order, float rounding); those are covered by the renderer contract tests. Per-issue mode (--per-issue) emits JSONL with a different shape and is not covered here.",
   "type": "object",
   "required": ["meta", "aggregates", "notes"],
   "additionalProperties": false,

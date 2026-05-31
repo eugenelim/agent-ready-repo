@@ -47,7 +47,7 @@ _SCHEMA_VERSION_RE = re.compile(r"\A(\d+)\.(\d+)\Z")
 class InputFile:
     """One validated flow-metrics JSON file.
 
-    Fields mirror the plan §T2 dataclass shape (lines 169-175). Raw
+    Fields mirror the validated-input dataclass shape. Raw
     blocks (``scope``, ``meta``, ``aggregates``) are kept intact for
     downstream consumers; ``scope_kind``, ``window_from``, ``window_to``
     and ``schema_version`` are the parsed/inferred conveniences.
@@ -193,8 +193,8 @@ def load_input(path: Path) -> InputFile:
 
     # flow-metrics emits ``notes`` at the top level (see
     # flow_metrics.notes.NotesCollector + the fixture in
-    # tests/fixtures/proj_alpha/golden.json). The plan §T2 description
-    # mentions ``meta.notes``; we read both for forward-compat with no
+    # tests/fixtures/proj_alpha/golden.json). An older layout used
+    # ``meta.notes``; we read both for forward-compat with no
     # source of truth conflict (only one is present in practice).
     upstream_notes = _coerce_notes_list(
         doc.get("notes", meta.get("notes", [])), basename=basename

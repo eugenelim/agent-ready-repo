@@ -726,7 +726,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
                 # but the architecture rule that skills do not read the
                 # credential store applies transitively to --data-file
                 # input. Path components compared separately so the
-                # forbidden-substring lint (AC26c) does not trip on
+                # forbidden-substring lint does not trip on
                 # this guard line.
                 resolved = args.data_file.expanduser().resolve()
                 parts = set(resolved.parts)

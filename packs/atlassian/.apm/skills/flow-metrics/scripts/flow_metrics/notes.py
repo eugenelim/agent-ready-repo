@@ -54,7 +54,7 @@ _WINDOW_EDGE_TEMPLATE = (
 )
 _FLOW_LOAD_SAMPLE_TEMPLATE = "flow_load: {n} samples, weekends {policy}."
 _DEFECT_RATIO_DISCLAIMER_LINES = (
-    "defect_ratio is not Change Failure Rate; see spec §Out of scope.",
+    "defect_ratio is not Change Failure Rate (intentionally out of scope).",
     "defect_ratio uses flow_distribution denominator; throughput "
     "excludes subtasks (override: --include-subtasks).",
 )

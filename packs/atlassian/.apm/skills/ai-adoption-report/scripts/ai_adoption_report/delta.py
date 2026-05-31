@@ -12,7 +12,7 @@ control the wording of any notes (``("baseline", "current")``,
 ``("control", "cohort")``, etc.).
 
 Notes are returned in append order — T7 sorts and dedupes the final
-merged list (see plan §T5 "Notes merge contract"). Do NOT pre-sort.
+merged list (see the notes-merge contract). Do NOT pre-sort.
 
 Percent deltas are decimal fractions, not formatted strings. Rounding
 to 4 decimal places is T7's job; T5 emits full precision.

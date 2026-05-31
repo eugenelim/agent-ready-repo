@@ -1,4 +1,4 @@
-"""Windows Credential Manager Tier-2 backend (spec § AC9-AC12).
+"""Windows Credential Manager Tier-2 backend.
 
 In-process ``ctypes`` against ``advapi32.dll``'s ``CredReadW`` /
 ``CredWriteW`` / ``CredDeleteW`` / ``CredFree`` — stdlib only, no
@@ -15,7 +15,7 @@ zero-initialised via ``ctypes.Structure`` defaults — required by
 NULL when ``AttributeCount`` is 0; ``LastWritten`` is set by the API
 and ignored on write).
 
-Per spec § AC4b the loader imports this module **only** when
+The loader imports this module **only** when
 ``sys.platform == "win32"``. The advapi32 binding is platform-guarded
 below so the module itself stays importable on every platform; tests
 that don't actually call the OS can construct ``CREDENTIAL`` instances
@@ -31,11 +31,11 @@ from ctypes import POINTER, Structure, byref
 
 from .credentials_shim import Tier2HardFailError
 
-# Constants from ``wincred.h`` (spec § AC9):
+# Constants from ``wincred.h``:
 CRED_TYPE_GENERIC = 1
 CRED_PERSIST_LOCAL_MACHINE = 2
 
-# Win32 error codes — sourced from ``winerror.h`` and AC11:
+# Win32 error codes — sourced from ``winerror.h``:
 ERROR_NOT_FOUND = 1168          # falls through to Tier 3
 ERROR_NO_SUCH_LOGON_SESSION = 1312
 ERROR_INVALID_FLAGS = 1004
@@ -44,7 +44,7 @@ ERROR_LOGON_FAILURE = 1326
 TARGET_PREFIX = "agentbundle"
 # Tests can monkeypatch this to a ``tmp_path``-derived value so test
 # target-names can't collide with the developer's real Credential
-# Manager entries (spec § AC35 / plan T5 § Test isolation).
+# Manager entries.
 SERVICE_PREFIX_OVERRIDE: str | None = None
 
 
@@ -53,7 +53,7 @@ class CREDENTIAL(Structure):
 
     Field order and types must match the Win32 ABI exactly — a wrong-
     sized field on Windows returns garbage rather than raising, which
-    is why AC10 mandates a byte-equality round-trip test on every field.
+    is why a byte-equality round-trip test covers every field.
     """
 
     _fields_ = [
@@ -104,18 +104,18 @@ else:
 
 
 def _target_name(namespace: str, key: str) -> str:
-    """Compose the Win32 ``TargetName`` per spec § AC9."""
+    """Compose the Win32 ``TargetName``."""
     prefix = SERVICE_PREFIX_OVERRIDE or TARGET_PREFIX
     return f"{prefix}:{namespace}:{key}"
 
 
 def _classify_last_error(rc: int, op: str) -> None:
-    """Map the Win32 last-error code to the AC11 dispatch matrix.
+    """Map the Win32 last-error code to the dispatch matrix.
 
     ``ERROR_NOT_FOUND`` is the caller's responsibility (it indicates a
     legitimate miss — caller returns ``None``). Every other code on
     this matrix raises ``Tier2HardFailError`` so the resolver does not
-    silently degrade to Tier 3 (spec § Never do).
+    silently degrade to Tier 3.
     """
     if rc == ERROR_NO_SUCH_LOGON_SESSION:
         raise Tier2HardFailError(
@@ -144,7 +144,7 @@ def read_credential(namespace: str, key: str) -> str | None:
 
     Returns ``None`` on ``ERROR_NOT_FOUND`` (resolver falls through to
     Tier 3); raises ``Tier2HardFailError`` on every other documented
-    failure (AC11).
+    failure.
     """
     target = _target_name(namespace, key)
     out_ptr = POINTER(CREDENTIAL)()
@@ -169,7 +169,7 @@ def read_credential(namespace: str, key: str) -> str | None:
 
 
 def write_credential(namespace: str, key: str, value: str) -> None:
-    """Write ``value`` to ``(namespace, key)`` (AC9, AC10).
+    """Write ``value`` to ``(namespace, key)``.
 
     The token is UTF-16-LE encoded and stored in a writable buffer
     pointed to by ``CredentialBlob``; ``CredentialBlobSize`` is the
@@ -183,7 +183,7 @@ def write_credential(namespace: str, key: str, value: str) -> None:
     # All other fields stay at ctypes.Structure's zero-init defaults
     # (Flags=0, Comment=None, LastWritten=FILETIME(0,0),
     # AttributeCount=0, Attributes=None, TargetAlias=None) — required
-    # by CRED_TYPE_GENERIC per spec § AC9.
+    # by CRED_TYPE_GENERIC.
     cred.Type = CRED_TYPE_GENERIC
     cred.TargetName = target
     cred.CredentialBlobSize = len(blob)

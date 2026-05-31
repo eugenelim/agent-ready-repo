@@ -37,19 +37,19 @@ The deltas-key-order exception is implemented via a sentinel
 placeholder: the document is built with ``deltas`` replaced by a
 unique string, serialized with ``sort_keys=True``, and the placeholder
 is then string-replaced with the separately-serialized canonical-order
-deltas blob (plan line 514-516, "Recommend this over the encoder
-subclass unless you find a cleaner encoder pattern").
+deltas blob (chosen over an encoder subclass unless a cleaner
+encoder pattern emerges).
 
 T7 invariants and decisions (flagged for spec amendment):
 
 1. Summary string is composed by T7 from :attr:`ReportData.deltas` (or
    ``cohort_deltas`` in cohort mode, or scope-count + window in program
-   mode). The spec shows an example (lines 400-402) but doesn't pin the
-   producer; T7 takes the role and emits a best-effort sentence.
+   mode). An example exists but the producer isn't pinned;
+   T7 takes the role and emits a best-effort sentence.
 2. Per-scope table column set: every canonical-order scalar metric +
    every distribution metric's p50 only (p75/p90 elided; readers wanting
-   full percentile detail look at the JSON sidecar). The spec example
-   (line 413) doesn't pin the full column set.
+   full percentile detail look at the JSON sidecar). No example pins
+   the full column set.
 3. Aggregate row: emitted as a final ``"Aggregate"``-labeled row in the
    per-scope table, sourced from :attr:`ReportData.program_aggregates`.
    Spec doesn't require it explicitly; T6 computes the math so this
@@ -82,7 +82,7 @@ from .modes import ReportData
 SKILL_NAME = "ai-adoption-report"
 SKILL_VERSION = "1.0"
 
-# Markdown escape characters per plan §T7 lines 483-498. ASCII hyphen ``-``
+# Markdown escape characters. ASCII hyphen ``-``
 # is deliberately excluded: date strings like ``2024-Q1`` and team names
 # like ``Mobile-Web`` are common, and ``-`` only acquires list-item
 # meaning at line start (never inside a table cell).
@@ -296,7 +296,7 @@ def render_json(
 
 
 # ---------------------------------------------------------------------------
-# Notes merge + finalize (plan §T5 lines 357-362)
+# Notes merge + finalize
 # ---------------------------------------------------------------------------
 def _finalize_notes(notes: Iterable[str]) -> List[str]:
     """Dedupe + codepoint-sort. Used by both renderers so they emit the

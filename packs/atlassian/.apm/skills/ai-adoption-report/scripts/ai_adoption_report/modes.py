@@ -7,7 +7,7 @@ render. ``program`` mode (T4/T6) populates the same dataclass with
 :attr:`ReportData.per_scope_rows`; the field is ``None`` for baseline
 and cohort.
 
-Notes-merge contract (plan §T5 lines 355-362): T5 returns its notes
+Notes-merge contract: T5 returns its notes
 unsorted; T3 concatenates them onto :attr:`ReportData.notes` in append
 order. T7 sorts and dedupes the final list — T3 does NOT pre-sort.
 

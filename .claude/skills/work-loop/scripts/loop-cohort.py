@@ -368,14 +368,14 @@ def dispatch_decision(categories, *, merge_tree_clean):
 
 def _dispatch_rationale(categories, *, merge_tree_clean, decision, source=None) -> str:
     """Human-readable one-line rationale for a `dispatch-decision` outcome —
-    the cleared-gate surface (AC10). On ``parallel`` it names the wave as
+    the cleared-gate surface. On ``parallel`` it names the wave as
     parallel-eligible + the task count; on ``serial`` it names the
     disqualifying reason, **merge-tree conflict first** to match
     `dispatch_decision`'s short-circuit order (so a both-fail wave names the
     conflict, not the category). ``source`` (``"auto"`` | ``"human"`` | None)
     names whether categories were auto-derived from branch diffs or
-    human-supplied; **None preserves the original output verbatim** so the
-    parent spec's AC10 tests stay green (additive change)."""
+    human-supplied; **None preserves the original output verbatim** so
+    existing output-shape tests stay green (additive change)."""
     if decision == "parallel":
         msg = (
             f"wave is PARALLEL-ELIGIBLE — {len(categories)} task(s), all "
@@ -494,7 +494,7 @@ def added_paths_may_share_symbol(per_branch_added) -> bool:
 def wave_is_disjoint(branches) -> bool:
     """True iff the wave's branches merge without conflict, via read-only
     ``git merge-tree`` (no working-tree mutation). Pairwise over the wave;
-    called by the ``dispatch-decision`` verb (and the AC9 worktree dry-run)."""
+    called by the ``dispatch-decision`` verb (and the worktree dry-run)."""
     for i in range(len(branches)):
         for j in range(i + 1, len(branches)):
             proc = run_git(
@@ -610,7 +610,7 @@ def cmd_dispatch_decision(args: argparse.Namespace) -> int:
 
     decision = dispatch_decision(categories, merge_tree_clean=clean)
     print(decision)  # stdout: the machine-readable token (scripted reads)
-    # stderr: the human-facing cleared-gate surface (AC10) — so the agent has
+    # stderr: the human-facing cleared-gate surface — so the agent has
     # something to present to the human for opt-in, never fanning out silently.
     print(
         "dispatch-decision: " + _dispatch_rationale(
