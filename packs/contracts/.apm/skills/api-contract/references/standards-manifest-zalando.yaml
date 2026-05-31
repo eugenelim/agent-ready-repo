@@ -1,0 +1,58 @@
+# Zalando standard bundle — manifest.
+#
+# This is the *active standard* the api-contract method applies by default.
+# It is agent-read: no program parses this file. The method (SKILL.md) loads
+# the rule files and quality gates named here and applies them as hard rails.
+#
+# To author your organisation's own standard, write a delta that `extends` this
+# one — see references/standards-authoring.md for the base+delta format.
+
+name: zalando
+version: "1.0.0"            # version of this bundle, not of Zalando's guidelines
+title: Zalando RESTful API Guidelines
+extends: null              # Zalando is the bundled base; it inherits nothing.
+
+attribution:
+  source: Zalando RESTful API Guidelines
+  url: https://opensource.zalando.com/restful-api-guidelines/
+  publisher: Zalando SE
+  license: CC-BY-4.0
+  license-url: https://creativecommons.org/licenses/by/4.0/
+  note: >-
+    Derivative work reformatted for agent consumption. 138 of Zalando's 143
+    rules apply; 5 Zalando-internal rules are excluded and never enforced:
+    #183, #184, #223, #224, #233.
+
+# Phase-grouped rule files. The method loads these as "the active standard's
+# rule files"; each carries the [#NNN] rules for its phase.
+rule_files:
+  naming: references/naming-conventions.md
+  methods_and_status: references/http-methods-and-status-codes.md
+  representations: references/data-formats-and-common-objects.md
+  pagination_and_filtering: references/pagination-and-filtering.md
+  errors: references/http-methods-and-status-codes.md
+  security: references/http-methods-and-status-codes.md
+  compatibility: references/compatibility-and-versioning.md
+  hypermedia_and_performance: references/hypermedia-and-performance.md
+  events: references/events.md
+
+# The machine-checkable checklist the method verifies before finalizing.
+quality_gates: references/standards-quality-gates-zalando.md
+
+# A complete validated example authored against this standard.
+example: references/golden-example.yaml
+
+# Reusable schema components this standard provides.
+components:
+  money: references/money-1.0.0.yaml
+  problem: references/problem-1.0.1.yaml
+
+# Applied rules cited by the method that live in no phase rule file, enumerated
+# here so the standard's applied-rule set is complete and authoritative. Keys
+# are the canonical rule tokens. (In a delta, the same `rules:` map disables an
+# inherited rule with `"#<id>": false`.)
+rules:
+  "#100": "API-first principle — design and review the contract before implementation."
+  "#102": "Plan an API user manual for complex APIs."
+  "#139": "Model complete business processes, not just isolated resources."
+  "#140": "Define useful resources with clear identity and lifecycle."
