@@ -30,7 +30,7 @@ Most construction tests live under **Tasks** below (per-task `Tests:`).
 
 **Manual verification:**
 
-- Read the diff end-to-end against RFC-0012 *Follow-on artifacts* list (AC25-AC29). Spot-check the README's extended `Where primitives land` table renders correctly on GitHub. Confirm the RFC-0011 erratum block reads cleanly without contradicting RFC-0011's body.
+- Read the diff end-to-end against RFC-0012 *Follow-on artifacts* list (AC26-AC29). Spot-check the README's extended `Where primitives land` table renders correctly on GitHub. Confirm the RFC-0011 erratum block reads cleanly without contradicting RFC-0011's body.
 
 ## Tasks
 
@@ -327,31 +327,29 @@ New module `packages/agentbundle/tests/integration/test_install_repo_scope_per_a
 
 ---
 
-### T9: README + migration guide + RFC-0011 erratum + ROADMAP
+### T9: README + RFC-0011 erratum + ROADMAP
 
 **Depends on:** T1, T5
 
-**Spec mapping:** AC25, AC26, AC27, AC28, AC29. Mode: manual QA + goal-based grep.
+**Spec mapping:** AC26, AC27, AC28, AC29. Mode: manual QA + goal-based grep.
 
 **Tests:**
 
 - Goal-based grep: `README.md` `Where primitives land` table contains a `repo-scope` column for each of the four shipped adapters; per-adapter substrings `<repo>/.claude/skills/`, `<repo>/.kiro/skills/`, `<repo>/.agents/skills/`, `<repo>/.github/instructions/`.
 - Goal-based grep: `docs/guides/explanation/install-routes.md` mentions `--emit-install-routes` and the default per-IDE projection at repo scope.
-- Goal-based grep: `docs/guides/how-to/v06-to-v07-pack-upgrade.md` exists; contains substrings `[pack.adapter-contract]`, `0.7`, `--emit-install-routes`, `v0.2` (the repo-only-pack jump origin).
 - Goal-based grep: `docs/rfc/0011-pack-allowed-adapters.md` ends with an erratum block recording the three RFC-0012 reconciliations (step-count, resolver rename, deprecation alias).
 - Goal-based grep: `docs/backlog.md` contains the line `repo-scope-per-adapter-projection` with the spec's open ACs.
-- Manual: read each new file end-to-end against AC25-AC29 commitments.
+- Manual: read each new file end-to-end against AC26-AC29 commitments.
 
 **Approach:**
 
 - Edit `README.md` (per AC26):
   - Extend `Where primitives land` table with per-adapter repo-scope landing paths. Pack rows continue to link into the table (single canonical location per memory rule `feedback_writing_style`).
 - Edit `docs/guides/explanation/install-routes.md` (per AC27) to note the default per-IDE projection at repo scope and the `--emit-install-routes` opt-in.
-- Write `docs/guides/how-to/v06-to-v07-pack-upgrade.md` (per AC25): one section for the contract bump; one for the v0.2 → v0.7 repo-only-pack jump (Drawback #7); one for the uninstall + reinstall flow on AC24 (a) disagreement.
 - Append erratum block to `docs/rfc/0011-pack-allowed-adapters.md` (per AC28) — recording all three step-count drifts plus the renames: (i) RFC-0011's body literal "four-step" at `:59` and `:74`; (ii) the function docstring's pre-fix "six-step" claim that enumerated only 0–4 (five-step body); (iii) RFC-0012's reconciliation to "six-step (0–5)"; (iv) the resolver rename to `_resolve_target_adapter` plus the `DEFAULT_USER_SCOPE_ADAPTER` → `DEFAULT_ADAPTER` rename and deprecation alias. The erratum names RFC-0012 as the closing reference. RFC-0011 is Accepted/frozen, so this is an appended block, not an in-body edit.
 - Add `docs/backlog.md` section for `repo-scope-per-adapter-projection` (per AC29) listing the open ACs.
 
-**Done when:** the five grep cases pass; manual read confirms each commitment landed.
+**Done when:** the four grep cases pass; manual read confirms each commitment landed.
 
 ---
 
@@ -400,7 +398,7 @@ New module `packages/agentbundle/tests/integration/test_install_repo_scope_per_a
 
 ## Rollout
 
-This spec ships behind no flag. The contract bump `v0.6 → v0.7` is the gate: any v0.7 pack at repo scope routes through the new per-IDE projection path; any pack at `< v0.7` continues through the legacy heuristic at step 5 (claude-code/kiro only). **Adopter-facing behaviour change:** post-merge, a Kiro or Codex adopter installing any of the eight shipped packs at repo scope lands the pack at their IDE's project-local skills directory; a Claude Code adopter sees `<repo>/.claude/skills/` instead of `<repo>/claude-plugins/<pack>/...` (visible on-disk diff). Catalogue maintainers scripting `agentbundle install --scope repo` for publishing add `--emit-install-routes` to their script — one-line fix; the migration guide names this explicitly.
+This spec ships behind no flag. The contract bump `v0.6 → v0.7` is the gate: any v0.7 pack at repo scope routes through the new per-IDE projection path; any pack at `< v0.7` continues through the legacy heuristic at step 5 (claude-code/kiro only). **Adopter-facing behaviour change:** post-merge, a Kiro or Codex adopter installing any of the eight shipped packs at repo scope lands the pack at their IDE's project-local skills directory; a Claude Code adopter sees `<repo>/.claude/skills/` instead of `<repo>/claude-plugins/<pack>/...` (visible on-disk diff). Catalogue maintainers scripting `agentbundle install --scope repo` for publishing add `--emit-install-routes` to their script — one-line fix.
 
 **Reversible.** If a regression surfaces post-merge, revert the implementation PR (the contract bump reverts to v0.6; the eight packs' `pack.toml` reverts; the resolver renames back; the path-jail widening reverts). No data migration; no persistent state change beyond `state.adapter` (which v0.6 already wrote for user scope, this spec extends to repo scope; `state.adapter`'s field shape is unchanged).
 

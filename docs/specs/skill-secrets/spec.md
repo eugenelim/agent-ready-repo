@@ -634,9 +634,7 @@ Adapter portability (RFC-0011 / pack-allowed-adapters):
       section naming the three currently-admitted user-scope-capable
       values (`claude-code`, `kiro`, `codex`) and the catalogue's
       `atlassian` / `figma` packs' declaration as the reference
-      example. No change to credential loading (AC3 untouched). The
-      migration walkthrough lives at
-      `docs/guides/how-to/v05-to-v06-pack-upgrade.md`.
+      example. No change to credential loading (AC3 untouched).
 
 Conventions, guide, roadmap:
 

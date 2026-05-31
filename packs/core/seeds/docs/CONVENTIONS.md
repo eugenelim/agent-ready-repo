@@ -473,9 +473,9 @@ Each pack declares its install **scope** — `repo` (project-local), `user`
 `pack.toml`'s `[pack.install]` table. The pack author picks the
 dimension; adopters can override within the publisher's declared set
 via `--scope`. The default landing for every pack we ship today is
-`repo`; user-scope eligibility requires content portability that the
-falsifiable test in [the migration guide](guides/how-to/v01-to-v02-pack-upgrade.md)
-governs. The schema enforces `default-scope ∈ allowed-scopes` so the
+`repo`; user-scope eligibility requires content portability — no hooks
+wired into a specific repo's surface, no seeds that name a particular
+project. The schema enforces `default-scope ∈ allowed-scopes` so the
 rule holds outside the CLI. `agentbundle install` re-runs the
 contract-level user-scope rails (seeds / hooks / marker) against the
 resolved pack content at install time, closing the
