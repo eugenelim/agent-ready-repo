@@ -1,21 +1,23 @@
-"""T5 delta math engine.
+"""Delta math engine.
 
 :func:`compute_deltas` consumes two aggregate-shaped dicts (the same
 shape ``flow-metrics`` emits in ``aggregates`` or in
 ``cohort_breakdown.<side>``) and returns a :class:`DeltaResult` carrying
 per-metric rows and unsorted notes.
 
-T5 knows nothing about modes. Baseline mode passes two ``aggregates``
-blocks; cohort mode and the program cohort rollup pass two
-``cohort_breakdown.<side>`` blocks. ``side_labels`` lets the caller
+The delta engine knows nothing about modes. Baseline mode passes two
+``aggregates`` blocks; cohort mode and the program cohort rollup pass
+two ``cohort_breakdown.<side>`` blocks. ``side_labels`` lets the caller
 control the wording of any notes (``("baseline", "current")``,
 ``("control", "cohort")``, etc.).
 
-Notes are returned in append order — T7 sorts and dedupes the final
-merged list (see the notes-merge contract). Do NOT pre-sort.
+Notes are returned in append order — the renderer (render.py) sorts and
+dedupes the final merged list (see the notes-merge contract). Do NOT
+pre-sort.
 
 Percent deltas are decimal fractions, not formatted strings. Rounding
-to 4 decimal places is T7's job; T5 emits full precision.
+to 4 decimal places is the renderer's job; the delta engine emits full
+precision.
 
 Stdlib only. Python >= 3.10.
 """
@@ -103,7 +105,7 @@ class DeltaRow:
     null). ``abs_delta`` is ``b - a`` (``None`` when either side is
     ``None``). ``pct_delta`` is the decimal fraction ``(b - a) / a``
     (``math.inf`` / ``-math.inf`` for the zero-baseline case, ``None``
-    when undefined). T7 formats both for Markdown.
+    when undefined). The renderer formats both for Markdown.
     """
 
     metric_label: str
@@ -120,8 +122,9 @@ class DeltaResult:
     ``rows`` is in canonical metric row order; metrics absent on BOTH
     sides are omitted entirely.
 
-    ``notes`` is in append order (unsorted). T3 / T6 concatenate this
-    onto ``ReportData.notes``; T7 sorts and dedupes the final list.
+    ``notes`` is in append order (unsorted). The modes and aggregation
+    engine concatenate this onto ``ReportData.notes``; the renderer
+    sorts and dedupes the final list.
     """
 
     rows: List[DeltaRow] = field(default_factory=list)
@@ -134,7 +137,7 @@ class DeltaResult:
         Distribution metrics nest under ``p50`` / ``p75`` / ``p90``
         keys; ``flow_distribution`` nests under bucket keys. Insertion
         order follows :data:`CANONICAL_METRIC_ORDER` because :attr:`rows`
-        is already in that order — T7's canonical encoder preserves
+        is already in that order — the renderer's canonical encoder preserves
         insertion order for the ``deltas`` block (the one intentional
         exception to the global sort-keys rule).
         """
@@ -235,8 +238,8 @@ def _emit_absent_side(
     Emits placeholder rows (``a=None`` or ``b=None`` as appropriate,
     ``abs`` / ``pct`` both ``None``) plus ONE ``metric_absent`` note —
     not one per percentile or bucket. The note's ``<file>`` slot is
-    filled with the absent side's label since T5 has no access to
-    filenames.
+    filled with the absent side's label since the delta engine has no
+    access to filenames.
     """
     absent_label = a_label if metric not in a else b_label
     result.notes.append(Note.metric_absent(metric, absent_label))
