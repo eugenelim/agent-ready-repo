@@ -175,7 +175,7 @@ class KiroHookWiringMergeDuringBuildTests(unittest.TestCase):
             # Body fields from agent .md frontmatter present.
             self.assertEqual(data["name"], "reviewer")
             self.assertEqual(data["description"], "Demo agent.")
-            self.assertEqual(data["tools"], ["Read"])
+            self.assertEqual(data["tools"], ["read_file"])
 
             # Wiring merged: hooks.agentSpawn with an id-tagged entry.
             self.assertIn("hooks", data, "wiring did not merge into agent JSON")
