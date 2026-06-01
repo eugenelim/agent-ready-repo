@@ -27,6 +27,7 @@
 | [0019](0019-product-brief-intake.md) | Product-brief intake + LLD-aware spec/plan — `brief` artifact + `receive-brief` skill (own-the-repo-slice) and a stack-neutral, stack-derived `## Design (LLD)` in spec/plan | Accepted | 2026-06-01 | 2026-06-01 |
 | [0020](0020-reference-architecture-foundation.md) | Reference-architecture foundation — normative `docs/architecture/reference.md` golden path (arc42), **template-instantiated on demand** (not core-seeded — avoids guaranteed stack-pack collisions); populated by stack pack / brownfield harvest / greenfield `init-project`; the LLD's steering | Accepted | 2026-06-01 | 2026-06-01 |
 | [0021](0021-greenfield-inception.md) | Greenfield inception — the idea→repo front-door (research + value gate → foundation → walking skeleton), the greenfield twin of `adapt-to-project`; composes brief/foundation/spec, declines autonomous generation | Accepted | 2026-06-01 | 2026-06-01 |
+| [0022](0022-kiro-adapter-split.md) | Split `kiro` adapter into `kiro-ide` (default, VS Code-fork IDE) and `kiro-cli` (terminal binary); `kiro` kept as deprecated alias; contract v0.8→v0.9; errata to RFC-0005 | Open | 2026-06-01 | |
 
 ## Adding a new RFC
 
