@@ -540,7 +540,7 @@ def main() -> int:
             err(path, "evals/ directory present but evals/evals.json is missing")
             return
         try:
-            data = json.loads(evals_json.read_text())
+            data = json.loads(evals_json.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             err(evals_json, f"evals/evals.json is not valid JSON: {exc}")
             return

@@ -110,9 +110,9 @@ class KiroAdapterTests(unittest.TestCase):
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            opus = json.loads((out / ".kiro" / "agents" / "opus-agent.json").read_text())
-            sonnet = json.loads((out / ".kiro" / "agents" / "sonnet-agent.json").read_text())
-            haiku = json.loads((out / ".kiro" / "agents" / "haiku-agent.json").read_text())
+            opus = json.loads((out / ".kiro" / "agents" / "opus-agent.json").read_text(encoding="utf-8"))
+            sonnet = json.loads((out / ".kiro" / "agents" / "sonnet-agent.json").read_text(encoding="utf-8"))
+            haiku = json.loads((out / ".kiro" / "agents" / "haiku-agent.json").read_text(encoding="utf-8"))
             self.assertEqual(opus["model"], "claude-opus-4.6")
             self.assertEqual(sonnet["model"], "claude-sonnet-4.5")
             self.assertEqual(haiku["model"], "claude-haiku-4.5")
@@ -136,7 +136,7 @@ class KiroAdapterTests(unittest.TestCase):
             buf = io.StringIO()
             with redirect_stderr(buf):
                 project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "mystery.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "mystery.json").read_text(encoding="utf-8"))
             self.assertNotIn("model", data)
             stderr = buf.getvalue()
             self.assertIn("dropping model=", stderr)
@@ -156,7 +156,7 @@ class KiroAdapterTests(unittest.TestCase):
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "no-model.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "no-model.json").read_text(encoding="utf-8"))
             self.assertNotIn("model", data)
 
     def test_model_non_scalar_value_drops_field(self) -> None:
@@ -177,7 +177,7 @@ class KiroAdapterTests(unittest.TestCase):
             buf = io.StringIO()
             with redirect_stderr(buf):
                 project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "list-model.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "list-model.json").read_text(encoding="utf-8"))
             self.assertNotIn("model", data)
 
     def test_tools_comma_string_splits_to_list(self) -> None:
@@ -196,7 +196,7 @@ class KiroAdapterTests(unittest.TestCase):
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "multi.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "multi.json").read_text(encoding="utf-8"))
             self.assertEqual(
                 data["tools"], ["read_file", "grep_search", "file_search", "execute_bash"]
             )
@@ -212,7 +212,7 @@ class KiroAdapterTests(unittest.TestCase):
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "one.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "one.json").read_text(encoding="utf-8"))
             self.assertEqual(data["tools"], ["read_file"])
 
     def test_tools_bracketed_list_preserved(self) -> None:
@@ -230,7 +230,7 @@ class KiroAdapterTests(unittest.TestCase):
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "bracketed.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "bracketed.json").read_text(encoding="utf-8"))
             self.assertEqual(data["tools"], ["read_file", "grep_search"])
 
     def test_tools_web_search_maps_to_web_tag(self) -> None:
@@ -247,7 +247,7 @@ class KiroAdapterTests(unittest.TestCase):
             )
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "web.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "web.json").read_text(encoding="utf-8"))
             self.assertEqual(data["tools"], ["read_file", "web_fetch", "web"])
 
     def test_tools_unmapped_token_drops_with_warning(self) -> None:
@@ -266,7 +266,7 @@ class KiroAdapterTests(unittest.TestCase):
             stderr = io.StringIO()
             with redirect_stderr(stderr):
                 project(pack, self.contract, out)
-            data = json.loads((out / ".kiro" / "agents" / "nb.json").read_text())
+            data = json.loads((out / ".kiro" / "agents" / "nb.json").read_text(encoding="utf-8"))
             self.assertEqual(data["tools"], ["read_file"])
             self.assertIn("NotebookEdit", stderr.getvalue())
 

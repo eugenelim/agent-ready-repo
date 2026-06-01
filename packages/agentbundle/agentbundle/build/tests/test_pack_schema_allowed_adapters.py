@@ -167,10 +167,10 @@ class TestKiroTargetAdaptersV06Gate(unittest.TestCase):
         apm.mkdir(parents=True)
         if with_agents:
             (apm / "agents").mkdir()
-            (apm / "agents" / "a.md").write_text("dummy")
+            (apm / "agents" / "a.md").write_text("dummy", encoding="utf-8")
         if with_wiring:
             (apm / "hook-wiring").mkdir()
-            (apm / "hook-wiring" / "w.toml").write_text("event = 'PreToolUse'\n")
+            (apm / "hook-wiring" / "w.toml").write_text("event = 'PreToolUse'\n", encoding="utf-8")
         return tmp_path
 
     def test_v06_pack_with_on_disk_shape_no_allowed_adapters_fires_rail(self) -> None:

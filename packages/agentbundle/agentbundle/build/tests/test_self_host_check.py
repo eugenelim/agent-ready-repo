@@ -699,7 +699,7 @@ class SelfHostPackFilterTests(unittest.TestCase):
 
             landed = output / "docs" / "backlog.md"
             self.assertTrue(landed.is_file())
-            self.assertIn("<!-- no deferred items yet -->", landed.read_text())
+            self.assertIn("<!-- no deferred items yet -->", landed.read_text(encoding="utf-8"))
 
 
 class ExcludedGlobTests(unittest.TestCase):

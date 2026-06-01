@@ -22,7 +22,7 @@ LINTER = REPO_ROOT / "tools" / "lint_credentialed_skills.py"
 
 def write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content)
+    path.write_text(content, encoding="utf-8")
 
 
 def run_lint(lint_root: Path) -> tuple[int, str, str]:
