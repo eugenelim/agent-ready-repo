@@ -200,7 +200,7 @@ default; **and the AC9 worktree dry-run has been run with its result in
   to **present** the cleared-gate opportunity (the parallel-eligible wave + its
   tasks) and fan out only on explicit human opt-in, defaulting to sequential
   absent one — never silently. This is *present-and-default-safe*, not the
-  halt-and-wait Surface verb (which would block unattended/Ralph runs). The
+  halt-and-wait Surface verb (which would block unattended runs). The
   opt-in is the existing per-wave human decision — **no new flag/state field**
   (that is follow-on 4). The edit touches SKILL §EXECUTE + the supervisor-mode
   **header/concept only — none of the six dry-run-gated procedure surfaces**

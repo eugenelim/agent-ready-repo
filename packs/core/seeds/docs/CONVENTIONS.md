@@ -544,8 +544,8 @@ discipline is "match thinking depth to stakes," not "always think hardest."
 **Why iterate, not retry-from-scratch.** Most loops converge: gates fail,
 review surfaces a finding, the next pass fixes it. Restart-from-scratch
 loses the planning context. We do it the other way only when fresh context
-is the *point* — which is what the Ralph harness in [`tools/ralph.sh`](../tools/ralph.sh)
-is for.
+is the *point* — an unattended, fresh-session-per-iteration loop (see the
+work-loop skill).
 
 **Why a hard iteration cap.** Without one, you're hoping. The cap lives as
 data in `state.json` (see below) and is enforced by `loop-cohort check`
@@ -553,7 +553,7 @@ at `.claude/skills/work-loop/scripts/loop-cohort.py`; if you hit it, the
 task is bigger than you thought — stop, re-plan, or split.
 
 **Why capture learnings.** A loop that finishes without updating *some*
-doc, skill, or note has wasted what it learned. The next agent (Ralph or
+doc, skill, or note has wasted what it learned. The next agent (or a
 human) will pay for it again. The work-loop skill enumerates where each
 kind of learning belongs.
 
@@ -706,15 +706,14 @@ every agent turn — wrong semantics). Wire `pre-pr.py` via
 before opening a PR. See [`tools/hooks/README.md`](../tools/hooks/README.md)
 for both surfaces.
 
-### When to reach for Ralph
+### When to reach for an unattended loop
 
-The same loop can run unattended — fresh Claude Code session per
-iteration, state in files only. That's a [Ralph loop](../tools/RALPH.md).
-Use it when *all* of these hold: completion is mechanical, work slices
-into context-window-sized items, verification is reliable, and you've
-already validated the approach in-session. Read [`tools/RALPH.md`](../tools/RALPH.md)
-before running. Ralph is a sharp tool — useful, narrow, and not the answer
-to most work.
+The same loop can run unattended — a fresh agent session per iteration,
+state in files only. Some agents ship a native mode for this. Use it when
+*all* of these hold: completion is mechanical, work slices into
+context-window-sized items, verification is reliable, and you've already
+validated the approach in-session. It's a sharp tool — useful, narrow, and
+not the answer to most work; the work-loop skill covers when it fits.
 
 
 

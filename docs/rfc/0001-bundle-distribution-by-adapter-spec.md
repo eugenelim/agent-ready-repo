@@ -1439,7 +1439,7 @@ If accepted, this RFC produces:
   rewrite skill bodies to reference shape rather than file path;
   add a `lint-skill-isolation.py` that flags out-of-skill references.
 - **F-hooks-python.** (Carried over.) Port `tools/hooks/*.sh` to
-  Python; document Ralph as Mac/Linux-only.
+  Python.
 
 The earlier draft's F3, F4, F5, F6, F7, F8, F9, F10, F11 all
 collapse — they're either delegated to APM/Claude plugins or
