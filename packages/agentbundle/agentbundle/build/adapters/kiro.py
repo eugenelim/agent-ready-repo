@@ -69,6 +69,12 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
                 continue
             yield primitive_name
         elif primitive_name in table_form:
+            rule = table_form[primitive_name]
+            effective_mode = rule.get("mode")
+            if isinstance(effective_mode, dict):
+                effective_mode = effective_mode.get("repo")
+            if effective_mode == "dropped":
+                continue
             yield primitive_name
 
 

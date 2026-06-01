@@ -64,8 +64,12 @@ NO_WRITE_MODES = {"degraded-info-log", "dropped"}
 # All five primitive names.
 ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
-# All four reference adapter names.
-ALL_ADAPTERS = {"claude-code", "kiro", "copilot", "codex"}
+# All reference adapter names (RFC-0022: kiro-cli added; kiro retained as alias).
+ALL_ADAPTERS = {"claude-code", "kiro", "kiro-cli", "copilot", "codex"}
+
+# Extra primitives that are kiro-specific and OK to declare in kiro-family
+# adapter blocks without failing the "no extra primitives" check.
+KIRO_EXTRA_PRIMITIVES = frozenset({"kiro-ide-hook"})
 
 
 def _load_contract() -> dict:
@@ -108,6 +112,10 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         Under v0.3 (RFC-0005), kiro's `hook-wiring` no longer appears in the
         legacy `projection` array — it lives in the new
         `projections.<primitive>` table. The coverage union walks both forms.
+
+        RFC-0022: kiro-family adapters (kiro, kiro-ide, kiro-cli) may
+        additionally declare `kiro-ide-hook` in their `projections` table;
+        this is a known extra and is not flagged.
         """
         missing: list[str] = []
         extra: list[str] = []
@@ -119,25 +127,29 @@ class AllPairsEnumeratedTests(unittest.TestCase):
                 if prim not in primitives_in_adapter:
                     missing.append(f"({prim}, {adapter_name})")
             for prim in primitives_in_adapter:
-                if prim not in ALL_PRIMITIVES:
+                if prim not in ALL_PRIMITIVES and prim not in KIRO_EXTRA_PRIMITIVES:
                     extra.append(f"({prim}, {adapter_name})")
         self.assertEqual(missing, [], f"missing pairs: {missing}")
         self.assertEqual(extra, [], f"extra unknown primitives: {extra}")
 
     def test_exactly_twenty_pairs_total(self) -> None:
-        """Twenty (primitive × adapter) pairs — counted across array + table forms.
+        """Count (primitive × adapter) pairs across array + table forms.
 
         Pairs that appear in BOTH forms (the transitional hook-body declarations
         on claude-code/kiro and the claude-code hook-wiring legacy entry that
         coexists with its v0.3 table) count once per adapter, matching the
         "primitive coverage" semantic.
+
+        RFC-0022: kiro-cli added (+5 standard + 1 kiro-ide-hook = +6).
+        Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-cli) + 5 (copilot)
+               + 5 (codex) = 26. Class name preserved to avoid churn.
         """
         total = 0
         for adapter_block in self.contract["adapter"].values():
             array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
             table_form = set(adapter_block.get("projections", {}).keys())
             total += len(array_form | table_form)
-        self.assertEqual(total, 20, f"expected 20 pairs total, got {total}")
+        self.assertEqual(total, 26, f"expected 26 pairs total, got {total}")
 
 
 class ModeEnumTests(unittest.TestCase):
@@ -419,10 +431,11 @@ class ContractV05Tests(unittest.TestCase):
         )
 
     def test_other_adapters_have_no_install_routes(self) -> None:
-        """Kiro, Copilot, and Codex do not declare install-routes (regression guard:
-        the v0.4 → v0.5 bump must not silently extend the field's surface to those
-        adapters; per-adapter optionality / default ['cli'] on read is unchanged)."""
-        for adapter_name in ("kiro", "copilot", "codex"):
+        """kiro-family, Copilot, and Codex do not declare install-routes (regression
+        guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
+        those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
+        RFC-0022: kiro-ide and kiro-cli added to the checked set."""
+        for adapter_name in ("kiro", "kiro-cli", "copilot", "codex"):
             adapter_block = self.contract["adapter"].get(adapter_name, {})
             self.assertNotIn(
                 "install-routes",

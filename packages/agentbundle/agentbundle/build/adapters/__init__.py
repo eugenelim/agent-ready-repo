@@ -2,16 +2,33 @@
 
 from __future__ import annotations
 
+import logging
+import warnings
 from types import ModuleType
 from typing import Callable, Dict, Mapping
 
-from agentbundle.build.adapters import claude_code, codex, copilot, kiro
+from agentbundle.build.adapters import claude_code, codex, copilot, kiro, kiro_cli, kiro_ide
+
+_LOG = logging.getLogger(__name__)
+
+
+def _kiro_alias_project(pack_path, contract, output_root) -> None:
+    """Deprecated alias: `kiro` → `kiro-ide`. Emits a build-time warning."""
+    warnings.warn(
+        "kiro: deprecated alias for kiro-ide; update allowed-adapters in pack.toml",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    kiro_ide.project(pack_path, contract, output_root)
+
 
 # Original callable registry (hyphenated contract names) — preserved for
 # F-build's recipe runner which keys recipes by contract names.
 ADAPTERS: Dict[str, Callable] = {
     "claude-code": claude_code.project,
-    "kiro": kiro.project,
+    "kiro-ide": kiro_ide.project,
+    "kiro-cli": kiro_cli.project,
+    "kiro": _kiro_alias_project,  # deprecated alias → kiro-ide (RFC-0022 D1)
     "copilot": copilot.project,
     "codex": codex.project,
 }
@@ -23,7 +40,9 @@ ADAPTERS: Dict[str, Callable] = {
 # attribute the sibling spec pins onto `AdapterModule`.
 registry: Mapping[str, ModuleType] = {
     "claude_code": claude_code,
-    "kiro": kiro,
+    "kiro_ide": kiro_ide,
+    "kiro_cli": kiro_cli,
+    "kiro": kiro,  # legacy module; use kiro_ide for new code
     "copilot": copilot,
     "codex": codex,
 }
