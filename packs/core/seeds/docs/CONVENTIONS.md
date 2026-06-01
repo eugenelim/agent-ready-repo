@@ -49,10 +49,10 @@ below assigns every kind of doc to exactly one bucket.
    │  How the code is         │      │  What the product is       │
    │  organized today.        │      │  doing today.              │
    │  Living. For contributors│      │  Living. For maintainers.  │
-   │                          │      │  - roadmap.md              │
-   │                          │      │  - briefs/<slug>.md        │
-   │                          │      │  - changelog.md            │
-   │                          │      │  - personas.md (optional)  │
+   │  - overview.md (map;     │      │  - roadmap.md              │
+   │    descriptive)          │      │  - briefs/<slug>.md        │
+   │  - reference.md (golden  │      │  - changelog.md            │
+   │    path; normative)      │      │  - personas.md (optional)  │
    └──────────────────────────┘      └────────────────────────────┘
                                                      │
                                        ┌─────────────▼─────────────┐
@@ -64,6 +64,15 @@ below assigns every kind of doc to exactly one bucket.
                                        │  Living. For users.        │
                                        └────────────────────────────┘
 ```
+
+Inside `architecture/`, the two docs play opposite roles. `overview.md` is
+**descriptive** — the map of how the code is organized today, read to find
+things. `reference.md` is **normative** — the golden path (stack, building
+blocks, component stereotypes, cross-cutting standards) that new work conforms
+to, the target a feature's low-level design steers by. The map tells you where
+things are; the golden path tells you how new things should be shaped. A thin
+repo has only the map; the golden path appears once there are real architecture
+decisions to hold work to.
 
 The bottom layers cite the upper layers; upper layers do not know about
 lower layers. That's the whole point of the hierarchy.
