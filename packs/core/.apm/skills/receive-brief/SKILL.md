@@ -91,7 +91,10 @@ For each confirmed slice, in dependency order:
 
 1. **Chain `new-spec`** to scaffold the slice's `spec.md` + `plan.md`. Pass the
    slice's outcome and scope so `new-spec`'s assumption-surfacing starts from
-   the brief, not a blank page.
+   the brief, not a blank page. `new-spec`'s **shape/stack-derivation step**
+   runs as part of that chain — it sets each slice's `Shape:` (the brief's
+   framing usually decides it) and derives the stack the plan's `## Design (LLD)`
+   names; pass the brief's stack context so it conforms rather than re-elicits.
 2. **Stamp the `Brief:` back-link** on the derived spec — set it to this
    brief's slug. In **Shape B**, also stamp `Satisfies: US-n` on each
    acceptance criterion that satisfies a story, so the trace is bidirectional.

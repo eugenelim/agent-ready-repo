@@ -1,6 +1,6 @@
 # Spec: lld-aware-spec-plan
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0019, ADR-0009
@@ -21,8 +21,9 @@ so an LLD fits — **without baking any one tech stack into a universal template
 The author (human or agent, via `new-spec` or `receive-brief`) gets: a
 stack-neutral `Shape:` field on the spec that selects which design sub-sections
 scaffold; a `## Design (LLD)` section in the plan built from **ten stack-neutral
-categories** (optional and shape-pruned, so a one-file change keeps a thin
-plan); and an expanded `## Rollout` that finally covers infra, external-system
+categories** (nine scaffold as Design sub-headings; the tenth — rollout &
+deployment — lives in the expanded `## Rollout`) — optional and shape-pruned, so
+a one-file change keeps a thin plan; and an expanded `## Rollout` that finally covers infra, external-system
 integration, and deployment sequencing. The **spec stays the contract** — it
 gains only the light `Shape:` selector and AC guidance (a UI state/trigger/
 outcome becomes an acceptance criterion; an NFR with a pass/fail bar becomes
@@ -92,18 +93,18 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] The **`spec.md` template** gains an optional, stack-neutral `Shape:` field
+- [x] The **`spec.md` template** gains an optional, stack-neutral `Shape:` field
   (`ui | service | data | integration | mixed`) documented as selecting which
   plan `## Design (LLD)` sub-sections scaffold.
-- [ ] The spec's **AC guidance** is extended so a UI **state / trigger / outcome**
+- [x] The spec's **AC guidance** is extended so a UI **state / trigger / outcome**
   lands as an acceptance criterion and an **NFR with a pass/fail bar** (e.g.
   WCAG-AA, p99 latency) is an acceptance criterion.
-- [ ] The `spec.md` template's `Testing Strategy` comment names **integration /
+- [x] The `spec.md` template's `Testing Strategy` comment names **integration /
   E2E** and its `Contract:` comment names **events / BFF** as verification
   surfaces (grep-verifiable in the shipped template).
-- [ ] The spec gains **no LLD body** — only the `Shape:` field and AC guidance;
+- [x] The spec gains **no LLD body** — only the `Shape:` field and AC guidance;
   the design lives in the plan (reviewer-verifiable negative criterion).
-- [ ] The **`plan.md` template** gains a `## Design (LLD)` section **before
+- [x] The **`plan.md` template** gains a `## Design (LLD)` section **before
   `## Tasks`** carrying **nine** of the ten stack-neutral categories as optional,
   shape-selected `###` sub-headings: design decisions; data & schema; interfaces
   & contracts; component / module decomposition; state & control flow; behavior &
@@ -112,32 +113,32 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   **not** a Design sub-heading; it is realized by the expanded `## Rollout` (which
   lives after `## Tasks` in the template), referenced as a cross-link, never
   duplicated.
-- [ ] Each `## Design (LLD)` sub-section's guidance says it **traces to the AC(s)
+- [x] Each `## Design (LLD)` sub-section's guidance says it **traces to the AC(s)
   it satisfies and the `contracts/` it implements**.
-- [ ] The existing **`## Rollout`** section is **expanded** to cover infra,
+- [x] The existing **`## Rollout`** section is **expanded** to cover infra,
   external-system integration, and deployment sequencing (the rollout &
   deployment category is realized here, not duplicated as a Design sub-heading).
-- [ ] **No new dependency tier or testing tier** is added — `Depends on:` /
+- [x] **No new dependency tier or testing tier** is added — `Depends on:` /
   `Touches:` carry dependencies; `Construction tests` + the spec's `Testing
   Strategy` carry testing (reviewer-verifiable negative criterion).
-- [ ] **`new-spec`** gains a shape/stack-derivation step: derive the `Shape:`
+- [x] **`new-spec`** gains a shape/stack-derivation step: derive the `Shape:`
   (from the brief or by asking) and the stack.
-- [ ] The derivation step **reads `docs/architecture/reference.md` when present**
+- [x] The derivation step **reads `docs/architecture/reference.md` when present**
   and conforms the LLD to it (referencing its components/stereotypes/standards by
   name); **when absent it degrades** to established-repo detection (lockfiles /
   build files / imports) and/or brief-intake context, eliciting gaps.
-- [ ] **`receive-brief`** gains the same shape/stack-derivation step when it
+- [x] **`receive-brief`** gains the same shape/stack-derivation step when it
   scaffolds specs (depends on `receive-brief` existing — `product-brief-intake`).
-- [ ] The **shipped templates contain only the universal category names** — no
+- [x] The **shipped templates contain only the universal category names** — no
   concrete framework/library/stack string appears (Principle 1; grep-verifiable).
-- [ ] Every change is **additive**: no existing spec/plan section removed or
+- [x] Every change is **additive**: no existing spec/plan section removed or
   renamed; all prior specs/plans stay valid; `make build-self` projects the
   enriched templates cleanly.
-- [ ] The **`CONVENTIONS.md` seed amendment** documenting the LLD enrichment in §4
+- [x] The **`CONVENTIONS.md` seed amendment** documenting the LLD enrichment in §4
   (the `Shape:` field, the `## Design (LLD)` categories, stack-derivation) lands
   in this spec's implementing PR (it documents artifacts this spec creates).
-- [ ] **`make build-check`** is green.
-- [ ] The adopter-facing **reference / explanation guides** covering the spec/plan
+- [x] **`make build-check`** is green.
+- [x] The adopter-facing **reference / explanation guides** covering the spec/plan
   LLD additions (`Shape:`, the `## Design (LLD)` categories, stack-derivation) are
   authored via `new-guide`, coordinated with `product-brief-intake`'s guide work.
   *(Authored in this catalogue repo; `new-guide` lives in the non-core
