@@ -1,6 +1,6 @@
 # Spec: product-brief-intake
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (2026-06-01) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0019, ADR-0009
@@ -96,58 +96,58 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] A **brief template** ships as a `core` seed at
+- [x] A **brief template** ships as a `core` seed at
   `packs/core/seeds/docs/product/briefs/` carrying the documented fields:
   Outcome, Success metrics, Scope / Non-goals, Appetite, optional User stories,
   optional `Epic:`, and the Spec map (coverage table).
-- [ ] The **`receive-brief`** skill ships at
+- [x] The **`receive-brief`** skill ships at
   `packs/core/.apm/skills/receive-brief/SKILL.md` with valid frontmatter that
   passes `tools/lint-skill-spec.py`.
-- [ ] `receive-brief`'s documented procedure includes an explicit
+- [x] `receive-brief`'s documented procedure includes an explicit
   **never-reject / elicit-load-bearing-fields-only** step (insist on outcome +
   scope; offer the rest; surface gaps), verified by a manual-QA walk-through of
   the two examples.
-- [ ] `receive-brief` documents **decomposition by the shippability test** and
+- [x] `receive-brief` documents **decomposition by the shippability test** and
   **surfaces the proposed cut** for confirmation; in Shape B it groups stories
   into specs and flags any epic-sized story for splitting.
-- [ ] `receive-brief` documents the **execute** spine: chain `new-spec` per
+- [x] `receive-brief` documents the **execute** spine: chain `new-spec` per
   slice, stamp the `Brief:` back-link (and `Satisfies: US-n` on ACs in Shape B),
   hand off to `work-loop`.
-- [ ] The **`spec.md` template and `new-spec`** gain an optional `Brief:`
+- [x] The **`spec.md` template and `new-spec`** gain an optional `Brief:`
   front-matter field (sibling to `Constrained by:` / `Contract:`); the change is
   additive and specs authored before it stay valid.
-- [ ] The optional **`Satisfies: US-n`** acceptance-criterion marker and the
+- [x] The optional **`Satisfies: US-n`** acceptance-criterion marker and the
   optional **`Epic:`** brief field are documented in their conventional places.
-- [ ] **`examples/`** ships **two** worked briefs — a no-stories outcome brief
+- [x] **`examples/`** ships **two** worked briefs — a no-stories outcome brief
   (Shape A) and a story-list brief (Shape B) — each carrying a header that
   clearly labels it an **example demonstrating the shape, not a schema**.
-- [ ] An **auto-rollup lint** reads every `docs/specs/*/spec.md` `Status:` field,
+- [x] An **auto-rollup lint** reads every `docs/specs/*/spec.md` `Status:` field,
   follows `Brief:` back-links, and rolls each brief's Spec map up from its
   children; a brief whose every child spec is `Shipped` reports *delivered*.
-- [ ] A brief whose Spec map has **no mapped child specs** reports **not
+- [x] A brief whose Spec map has **no mapped child specs** reports **not
   delivered** (not vacuously delivered) — an empty rollup is never *delivered*.
-- [ ] The lint **no-ops cleanly when no brief exists** — exit 0, no diagnostic —
+- [x] The lint **no-ops cleanly when no brief exists** — exit 0, no diagnostic —
   verified against this repo (which ships no brief).
-- [ ] A spec whose `Brief:` back-link is **missing** shows as **untracked** in
+- [x] A spec whose `Brief:` back-link is **missing** shows as **untracked** in
   the brief's map, not as a lint error.
-- [ ] The lint is wired into **`make build-check`** (fail-closed) and passes on
+- [x] The lint is wired into **`make build-check`** (fail-closed) and passes on
   this repo.
-- [ ] The **`CONVENTIONS.md` seed amendment** — `briefs/` added to the
+- [x] The **`CONVENTIONS.md` seed amendment** — `briefs/` added to the
   document-hierarchy diagram under `product/`, the `Brief:` field on specs, and
   the `roadmap → brief → spec → AC` altitude — lands in this spec's implementing
   PR (it documents artifacts this spec creates, so it ships atomically with them).
-- [ ] **No new top-level directory and no cross-pack import** are introduced; the
+- [x] **No new top-level directory and no cross-pack import** are introduced; the
   brief lives under `docs/product/`, the skill under `packs/core/.apm/skills/`.
-- [ ] **`make build-self`** projects the new core primitives (skill + seed)
+- [x] **`make build-self`** projects the new core primitives (skill + seed)
   cleanly and `make build-check` is green.
-- [ ] Three adopter-facing **guide files exist** under `docs/guides/` at their
+- [x] Three adopter-facing **guide files exist** under `docs/guides/` at their
   Diátaxis paths — a how-to ("Receive a product brief and decompose it into
   specs"), a reference (brief fields incl. `Epic:` + the spec map; the `Brief:` /
   `Satisfies:` fields), and an explanation ("Why a brief layer"). *(Authored in
   this catalogue repo via `new-guide`, which lives in the non-core
   `user-guide-diataxis` pack; guide authoring is not a capability `core` ships to
   adopters — per RFC-0019's "guides in this catalogue repo" scoping.)*
-- [ ] Each of the three guides **reads accurately** against the shipped skill +
+- [x] Each of the three guides **reads accurately** against the shipped skill +
   template (manual-QA review recorded in the implementing PR).
 
 ## Assumptions

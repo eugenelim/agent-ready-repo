@@ -4,6 +4,7 @@
 - **Owner:** <github-handle>
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
+- **Brief:** <!-- optional: the product brief this spec was derived from (`docs/product/briefs/<slug>.md`); stamped by receive-brief. Omit, or "none", for a spec authored directly. Distinct from Constrained by: this is product provenance, not a governance constraint. -->
 - **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / CONVENTIONS § 4 Contracts), or "none" for a non-API feature -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -85,6 +86,16 @@ mark it deferred with an inline anchor into the backlog register:
 - [ ] <observable outcome> (deferred: <backlog-anchor>)
 
 where <backlog-anchor> resolves to a heading in `docs/backlog.md`.
+
+Optional story trace: when this spec was derived from a product brief that
+carries user stories (Shape B; see receive-brief), append `Satisfies: US-n`
+to each acceptance criterion that satisfies that story, so coverage is
+story-granular:
+
+- [x] <observable outcome>. Satisfies: US-2
+
+The marker is optional — omit it for a no-stories brief (Shape A) or a spec
+authored directly.
 -->
 
 ## Assumptions

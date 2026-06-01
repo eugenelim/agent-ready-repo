@@ -78,6 +78,11 @@ build-check: lint-packs build
 	# the projected loop-cohort.py). NOT wired into the projected pre-pr.py hook.
 	$(PYTHON) .claude/skills/work-loop/scripts/test-lint-spec-status.py
 	$(PYTHON) .claude/skills/work-loop/scripts/lint-spec-status.py
+	# Brief-coverage auto-rollup gate (receive-brief skill script). Same shape
+	# as the spec-status pair above: run the PROJECTED self-test then the lint.
+	# No-ops on this repo (it ships no brief); fail-closed on a stale Spec map.
+	$(PYTHON) .claude/skills/receive-brief/scripts/test-lint-brief-coverage.py
+	$(PYTHON) .claude/skills/receive-brief/scripts/lint-brief-coverage.py
 
 build-scaffold:
 	@test -n "$(OUTPUT)" || (echo "make build-scaffold OUTPUT=<dir> required" >&2; exit 1)
