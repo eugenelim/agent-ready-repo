@@ -58,7 +58,7 @@ def main() -> int:
 
     seen_ids: dict[str, int] = {}
 
-    for line_no, raw in enumerate(knowledge_file.read_text().splitlines(), start=1):
+    for line_no, raw in enumerate(knowledge_file.read_text(encoding="utf-8").splitlines(), start=1):
         if not raw.strip():
             continue
 
