@@ -14,6 +14,8 @@
   `research` pack (skills, retrieval subagents).
 - [`spec-shape-and-lld.md`](spec-shape-and-lld.md) — the spec `Shape:` field,
   the plan's `## Design (LLD)` categories, and stack-derivation.
+- [`reference-architecture.md`](reference-architecture.md) — the
+  `docs/architecture/reference.md` arc42 sections and the stack-pack contract.
 
 ## Writing reference
 

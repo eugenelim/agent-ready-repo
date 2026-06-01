@@ -239,6 +239,36 @@ the adopter's downstream path references** (codegen configs, CI globs pointing a
 the old path) is **out of scope** — propose and flag the move; the adopter owns
 their tooling paths.
 
+**Reference-architecture harvest.** A repo with real architecture decisions
+benefits from a `docs/architecture/reference.md` — the normative *golden path*
+(stack, internal building blocks, component stereotypes, cross-cutting
+standards) that a feature's low-level design conforms to, distinct from the
+descriptive `overview.md` map. On adapt, when the repo has none, offer to
+**propose a draft** — never write one authoritatively:
+
+1. **Detect.** Read the codebase for the signal a `reference.md` would record:
+   the stack and runtimes in use, the reusable internal building blocks and
+   shared libraries, the recurring component stereotypes, and the cross-cutting
+   standards (error handling, logging, auth, validation) that already repeat
+   across the tree. A thin repo with no real decisions yet has nothing to
+   harvest — say so and stop rather than inventing constraints.
+2. **Instantiate.** Fill the arc42 template shipped with this skill at
+   `assets/reference.md` (four sections: Constraints, Solution strategy,
+   Building-block view / component catalogue, Crosscutting concepts /
+   standards) from what detection found.
+3. **Propose, per finding.** Present the draft `docs/architecture/reference.md`
+   as a proposal — per-section, per-finding **accept / edit / decline**. Each
+   accepted finding is the adopter's confirmed decision, not the skill's
+   inference; decline anything detection guessed at. Record declines under
+   `[[findings.declined]]` at repo scope with `kind = "reference-architecture"`.
+4. **Never authoritative before confirmation.** The skill does not write
+   `docs/architecture/reference.md` until the adopter confirms the draft, and it
+   **never overwrites** an existing `reference.md` without an explicit per-file
+   accept (treat a present one as the adopter's living instance, like a
+   class-2 companion merge). The write stays inside the **repo-scope path-jail**
+   — `reference.md` is a repo artifact, so there is no cross-scope move and no
+   user-scope finding entry.
+
 ## Class 4 — Within-layout consolidation
 
 Per-pack consolidation proposals — e.g. an adopter has both

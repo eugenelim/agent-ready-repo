@@ -1,7 +1,7 @@
 # Plan: reference-architecture
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -123,18 +123,24 @@ acceptance criterion lives here — each sub-section traces to the AC(s) it serv
 
 **Touches:** `packs/core/.apm/skills/adapt-to-project/assets/reference.md`, `.claude/skills/adapt-to-project/assets/reference.md`
 
-**Tests:** *(goal-based — AC1, AC2, AC3)*
+**Tests:** *(goal-based — AC1, AC2, AC3, adopter-clean AC)*
 - grep asserts all four arc42 section headings present (Constraints / Solution
   strategy / Building-block view / Crosscutting concepts).
 - grep-absence over a representative framework-token set → stack-neutral
   invariant holds. Use **collision-resistant** tokens (`react`, `spring`,
   `django`, `fastapi`, `express.js`, `postgresql`) with word-boundary anchoring,
   not bare English-colliding stems like `express` (would fire on "expressed").
+- grep-absence over the template body for `RFC-NNNN` / `ADR-NNNN` tokens and
+  `docs/(specs|rfc|adr)/` path strings → the adopter-clean invariant (the asset
+  ships to every core adopter; no existing lint scans `.apm/`).
 - the template carries the "fill only when there are real architecture decisions"
   guidance line.
 - `make build-self` succeeds and `.claude/skills/adapt-to-project/assets/reference.md`
   is byte-identical to source; `git status` shows no unexpected projection revert.
-- assert `packs/core/seeds/docs/architecture/reference.md` does NOT exist.
+- assert `packs/core/seeds/docs/architecture/reference.md` does NOT exist (the
+  build-self-succeeds-without-it half of AC3; the **canonical** contract-binding
+  copy of this absence assertion lives in T2, where it pairs with the collision
+  guard — the duplication here is deliberate, covering AC3's projection check).
 
 **Approach:**
 - Author `packs/core/.apm/skills/adapt-to-project/assets/reference.md`: a brief
@@ -154,7 +160,7 @@ build-self clean.
 
 **Touches:** `packages/agentbundle/agentbundle/build/tests/` (or the integration test root)
 
-**Tests:** *(goal-based, integration — AC6; the *characterization* half of AC5)*
+**Tests:** *(goal-based, integration — the characterization AC)*
 - a pytest stages two temp packs each with `seeds/docs/architecture/reference.md`
   of differing content and asserts `_project_seeds` raises the collision
   `ValueError` with the expected message shape.
@@ -163,13 +169,23 @@ build-self clean.
 
 **Approach:**
 - This is a **characterization** test of behavior that *already ships*
-  (`self_host.py` `_project_seeds`, ~L459 — this PR changes nothing about the
-  bundler). It pins the load-bearing guarantee the contract leans on; it does
-  **not** cover the *documented* convention — that prose is verified by the AC5
+  (`self_host.py` `_project_seeds`, L457-463 — this PR changes nothing about the
+  bundler). The *generic* collision mechanism is already proven by the existing
+  `test_collision_with_different_content_raises` (`test_self_host_check.py:938`,
+  staged on `AGENTS.md`), and the collision branch is path-agnostic — so a
+  reference.md-named test asserts the same production path. It earns its place as
+  **living documentation of the stack-pack contract**: a contract-labelled,
+  path-named guard so that any *future* special-casing of
+  `docs/architecture/reference.md` (e.g. the pack-override the contract forbids)
+  trips a test that names the contract, not a generic one — and it co-asserts the
+  no-pre-placed-seed precondition, binding the sole-producer-is-collision-free
+  guarantee in the same test. It pins the guarantee the contract leans on; it
+  does **not** cover the *documented* convention — that prose is verified by the
   presence check in the T5 reference guide. The two ACs are not satisfied by this
   one test.
 - Add the test next to the existing `_project_seeds`/self-host tests (grep both
-  `agentbundle` test roots for the current home).
+  `agentbundle` test roots for the current home — it is
+  `test_self_host_check.py` `SeedProjectionTests`).
 - Capture the actual `ValueError` message bytes from a real invocation rather
   than reconstructing it.
 
@@ -181,11 +197,13 @@ build-self clean.
 
 **Touches:** `packs/core/.apm/skills/adapt-to-project/SKILL.md`, `.claude/skills/adapt-to-project/SKILL.md`
 
-**Tests:** *(goal-based — AC4)*
+**Tests:** *(goal-based — AC4, adopter-clean AC)*
 - a self-test (presence check) asserts SKILL.md documents the harvest: detect
   stack + reusable components + recurring patterns → instantiate the T1 template
   → propose a draft at `docs/architecture/reference.md` → repo-scope path-jail →
   per-finding accept/edit/decline, never authoritative pre-confirmation.
+- grep-absence over the new harvest subsection for `RFC-NNNN` / `ADR-NNNN` and
+  `docs/(specs|rfc|adr)/` paths → adopter-clean (SKILL.md ships to adopters).
 - `lint-packs` AND `lint-agent-artifacts` both pass (two lint surfaces); any
   frontmatter-length / `: `-in-description lints stay green.
 
@@ -207,18 +225,23 @@ green, and both lint surfaces pass.
 
 **Touches:** `packs/core/seeds/docs/CONVENTIONS.md`, `docs/CONVENTIONS.md`
 
-**Tests:** *(goal-based — AC7)*
+**Tests:** *(goal-based — AC7, adopter-clean AC)*
 - grep the seed shows `reference.md` under the `architecture/` node, glossed as
   the **normative** sibling of the **descriptive** `overview.md`.
 - `make build-self` projects the edit to `docs/CONVENTIONS.md`; the
   **projection-parity check** (`make build-check` / `agentbundle.build check`)
-  is green; no RFC number embedded in the seed (lint-seeds).
+  is green; no `RFC-NNNN` / `ADR-NNNN` token in **the diagram lines this task
+  adds** (scope the grep to the edit hunk — CONVENTIONS.md legitimately names
+  `docs/specs|rfc|adr` and cites RFC/ADR numbers elsewhere, so a whole-file scan
+  would falsely fail; lint-seeds catches RFC, the adopter-clean grep additionally
+  covers ADR + paths in the new lines).
 
 **Approach:**
-- Edit the ASCII document-hierarchy diagram's `architecture/` node in
-  `packs/core/seeds/docs/CONVENTIONS.md` to list `overview.md` (descriptive map)
-  and `reference.md` (normative golden path) as siblings, with a one-line gloss
-  on the descriptive/normative split.
+- The diagram's `architecture/` node today carries no file list (unlike the
+  `product/` box). Edit it in `packs/core/seeds/docs/CONVENTIONS.md` to enumerate
+  both `overview.md` (descriptive map) and `reference.md` (normative golden path)
+  as the node's children — adding the first child listing under that node — with
+  a one-line gloss on the descriptive/normative split.
 - `make build-self`; confirm projection + drift gate.
 
 **Done when:** the diagram shows both docs distinctly in source and projection,
@@ -230,17 +253,21 @@ and the projection-parity check is green.
 
 **Touches:** `docs/guides/tutorials/`, `docs/guides/how-to/`, `docs/guides/explanation/`, `docs/guides/reference/`
 
-**Tests:** *(goal-based — AC8; the *documentation* half of AC5)*
+**Tests:** *(goal-based — the user-guides AC; the documentation half of the
+stack-pack-contract AC; adopter-clean AC)*
 - four files exist at the correct `docs/guides/<quadrant>/<slug>.md` paths.
 - a **task-local self-test** greps each guide's `](relative/path)` targets and
-  asserts every intra-repo target resolves on disk; `tools/lint-agents-md.py`'s
-  Diátaxis-directory check stays satisfied. (No repo-wide markdown-link or
-  guide-frontmatter gate exists, so this task ships its own goal-based
-  link-resolution grep — not a new shared linter. `new-guide` supplies the
-  audience-contract front matter.)
+  asserts every intra-repo target resolves on disk. (No repo-wide markdown-link
+  or guide-frontmatter gate exists, so this task ships its own goal-based
+  link-resolution grep — not a new shared linter. `tools/lint-agents-md.py`'s
+  Diátaxis check only asserts the quadrant dirs exist, so it is a no-op coverage
+  source here. `new-guide` supplies the audience-contract front matter.)
+- grep-absence over the four guides for `RFC-NNNN` / `ADR-NNNN` and
+  `docs/(specs|rfc|adr)/` paths → adopter-clean.
 - a presence check confirms the **reference** guide states all four stack-pack
   contract clauses (sole-producer / two-producer `.upstream`-merge / never
-  `overview.md` / no override field) — the AC5 documentation coverage.
+  `overview.md` / no override field) — the documentation coverage for the
+  stack-pack-contract AC.
 
 **Approach:**
 - These guides are this repo's own `docs/guides/` content (repo-owned, not
@@ -251,8 +278,11 @@ and the projection-parity check is green.
     / stack-pack pre-bake, then use it — how a design conforms, references
     components/stereotypes by name, and how the LLD reads it as steering).
   - *How-to* — "Establish your repo's reference architecture" (brownfield
-    harvest / stack-pack pre-bake; greenfield via `init-project` noted as
-    RFC-0021, not yet shipped — name it honestly, don't hide it).
+    harvest / stack-pack pre-bake). A greenfield path (an `init-project` skill
+    that writes the first `reference.md` at project bootstrap) is **not yet
+    available** — name it honestly in plain prose as planned-not-shipped, with
+    **no** proposal/RFC number and no implication it ships today (adopter-clean
+    AC; the consumer this guide describes must not leak internal references).
   - *Explanation* — "Foundation vs. map" (why `reference.md` is normative
     steering and `overview.md` is descriptive; why template-instantiated, not
     seeded).
@@ -296,3 +326,20 @@ check passes, and the reference guide states all four stack-pack contract clause
 ## Changelog
 
 - 2026-06-01: initial plan.
+- 2026-06-01: pre-EXECUTE review amendments. (1) Encoded the user's
+  adopter-clean constraint as a new acceptance criterion plus a per-task
+  grep-absence test (T1/T3/T4/T5) — no `RFC-NNNN`/`ADR-NNNN` token or
+  `docs/(specs|rfc|adr)/` path in any adopter-facing created/edited file;
+  `lint-seeds` covers only RFC numbers under `seeds/`, so the `.apm/` template,
+  the SKILL.md harvest, and the guides need the explicit grep. (2) Reworded the
+  T5 how-to to name the greenfield/`init-project` path as planned-not-shipped in
+  plain prose, dropping the `RFC-0021` citation (the citation was itself the
+  leak; `init-project` does not exist yet). (3) Reframed T2 as living
+  documentation of the stack-pack contract — the generic collision mechanism is
+  already covered by `test_collision_with_different_content_raises`, so the
+  reference.md-named test is a contract-labelled regression guard paired with the
+  no-pre-placed-seed precondition, not a duplicate. (4) Noted the CONVENTIONS
+  `architecture/` node has no child listing today (T4 adds both `overview.md`
+  and `reference.md`), pinned the `_project_seeds` collision citation to
+  L457-463, and downgraded the `lint-agents-md` Diátaxis citation to a non-coverage
+  guard.

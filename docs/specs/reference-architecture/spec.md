@@ -1,6 +1,6 @@
 # Spec: reference-architecture
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0020 (the accepted proposal — Decisions 1–6); ADR-0010 (records those decisions); ADR-0009 (the consumer relationship: the LLD reads `reference.md` when present); RFC-0019 (ships that consumer; **not touched here**)
@@ -123,55 +123,85 @@ test. Modes, per user-visible outcome from the Objective:
 - **User guides ship** — *goal-based*: four files exist under the right
   `docs/guides/<quadrant>/` paths, and a **task-local self-test** greps each
   guide's `](relative/path)` link targets and asserts every intra-repo target
-  resolves on disk; `tools/lint-agents-md.py`'s Diátaxis-directory check stays
-  satisfied. (There is no *repo-wide* markdown-link or guide-frontmatter gate, so
-  T5 carries its own link-resolution self-test — a goal-based grep, not a new
-  shared linter. `new-guide` supplies the audience-contract front matter.)
+  resolves on disk. (There is no *repo-wide* markdown-link or guide-frontmatter
+  gate, so T5 carries its own link-resolution self-test — a goal-based grep, not
+  a new shared linter. `tools/lint-agents-md.py`'s Diátaxis-directory check only
+  asserts the four quadrant dirs *exist* — which they already do — so it stays
+  green but is **not** a coverage source for the new guides. `new-guide` supplies
+  the audience-contract front matter.)
+- **No internal-repo references in adopter-facing artifacts** — *goal-based*: a
+  grep-absence check over the template asset, the `adapt-to-project` SKILL.md
+  harvest subsection, the CONVENTIONS seed edit, and the four guides asserts no
+  `RFC-NNNN` / `ADR-NNNN` token and no `docs/(specs|rfc|adr)/` path string. A
+  string-level invariant; grep is the right altitude. (`lint-seeds` enforces only
+  RFC-number absence and only under `packs/*/seeds/**`, so it covers neither the
+  `.apm/` template nor the SKILL nor the guides — hence the explicit per-task
+  grep. Governance provenance lives in `docs/rfc|adr|specs`, never in the
+  shipped/guide files.)
 
 ## Acceptance Criteria
 
-- [ ] The arc42 `reference.md` template exists at
+- [x] The arc42 `reference.md` template exists at
   `packs/core/.apm/skills/adapt-to-project/assets/reference.md` with all four
   sections — **Constraints** (arc42 §2), **Solution strategy** (§4),
   **Building-block view / component catalogue** (§5), **Crosscutting concepts /
   standards** (§8) — and carries guidance that it is filled only when there are
   real architecture decisions (a thin repo simply never instantiates it).
-- [ ] The template names no specific tech stack or framework — a
+- [x] The template names no specific tech stack or framework — a
   grep-absence check over a representative token set passes.
-- [ ] No `packs/core/seeds/docs/architecture/reference.md` exists; `make
+- [x] No `packs/core/seeds/docs/architecture/reference.md` exists; `make
   build-self` succeeds and projects the template to
   `.claude/skills/adapt-to-project/assets/reference.md` byte-identical to source.
-- [ ] `adapt-to-project` SKILL.md documents a Class-3 reference-architecture
+- [x] `adapt-to-project` SKILL.md documents a Class-3 reference-architecture
   **harvest** path that: detects the stack + reusable components + recurring
   patterns, instantiates the template, **proposes a draft** `reference.md` at
   `docs/architecture/reference.md`, writes only within the repo-scope path-jail,
   and is per-finding accept/edit/decline — never authoritative before
   confirmation.
-- [ ] The stack-pack delivery contract is documented (this spec + the reference
+- [x] The stack-pack delivery contract is documented (this spec + the reference
   guide): a stack pack ships a filled `reference.md` as
   `packs/<stack>/seeds/docs/architecture/reference.md`; sole-producer ⇒ no
   collision; the two-producer / atop-an-adopter's-own case routes through the
   `.upstream` companion + `adapt-to-project` merge; a stack pack never ships
   `overview.md`; **no bundler override field is added**. A presence check
-  confirms the reference guide (AC8) states each of these four clauses — so the
-  *documented* half of the contract fails on absence, not only the mechanism.
-- [ ] A regression test **characterizes** the existing bundler behavior the
-  contract leans on (`self_host.py` `_project_seeds`, ~L459): two packs seeding
-  `docs/architecture/reference.md` with differing content raise the collision
-  `ValueError`. This pins the two-producer guard; it does **not** by itself prove
-  the contract is documented (that is the AC5 presence check).
-- [ ] `docs/CONVENTIONS.md` (via its seed
+  confirms the reference guide (the AC for user guides, below) states each of
+  these four clauses — so the *documented* half of the contract fails on absence,
+  not only the mechanism. AC closure is the **conjunction** of that presence
+  check (T5) and the characterization test (next AC, T2); neither alone closes it.
+- [x] A **contract-specific** regression test characterizes the existing bundler
+  behavior the contract leans on (`self_host.py` `_project_seeds`'s seed-collision
+  branch — the `raise ValueError(... "seed collision" ...)`, ~L457-463 as a
+  navigational aid): two packs seeding `docs/architecture/reference.md` with
+  differing content raise the collision `ValueError`. The generic mechanism is already proven by
+  `test_collision_with_different_content_raises`; this test is **living
+  documentation of the stack-pack contract** — a path-named guard so that any
+  future special-casing of `docs/architecture/reference.md` in `_project_seeds`
+  (e.g. a stack-pack override, which the contract forbids) fails a
+  contract-labelled test — paired with an assertion that no
+  `packs/core/seeds/docs/architecture/reference.md` exists (the precondition that
+  makes the sole-producer case collision-free). It pins the two-producer guard;
+  it does **not** by itself prove the contract is documented (that is the
+  previous AC's presence check).
+- [x] `docs/CONVENTIONS.md` (via its seed
   `packs/core/seeds/docs/CONVENTIONS.md`) document-hierarchy diagram seats
   `reference.md` under `architecture/` as the **normative** sibling of the
   **descriptive** `overview.md`; build-self projects the edit and the doc-drift
   gate is green.
-- [ ] User guides ship under `docs/guides/`: a **tutorial** ("Create and use
+- [x] User guides ship under `docs/guides/`: a **tutorial** ("Create and use
   your `reference.md`"), a **how-to** ("Establish your repo's reference
   architecture"), an **explanation** ("Foundation vs. map"), and a **reference**
   ("`reference.md` arc42 sections + the stack-pack contract"); a task-local
   self-test asserts the four files exist at the right paths and that every
   intra-repo relative link in them resolves.
-- [ ] All gates green: `lint-packs`, `lint-agent-artifacts`, `validate`,
+- [x] **No adopter-facing created/edited artifact embeds an internal-repo
+  reference.** The template asset, the `adapt-to-project` SKILL.md harvest text,
+  the `packs/core/seeds/docs/CONVENTIONS.md` seed edit, and the four
+  `docs/guides/` files contain no `RFC-NNNN` / `ADR-NNNN` token and no
+  `docs/(specs|rfc|adr)/` path string. A goal-based grep-absence check in
+  T1/T3/T4/T5 enforces it. The greenfield/`init-project` path is named honestly
+  as *not yet available* without citing any proposal number. (Governance
+  provenance stays in `docs/rfc|adr|specs` — not in the shipped or guide files.)
+- [x] All gates green: `lint-packs`, `lint-agent-artifacts`, `validate`,
   `build`, `build-self`, the relevant `pre-pr` subset, and `pytest`.
 
 ## Assumptions
