@@ -1938,3 +1938,16 @@ On acceptance, this RFC produces:
   after the amendments above are merged. The first pack shipping
   `.apm/kiro-ide-hooks/<name>.kiro.hook` files is a separate
   follow-on, tracked under the new ROADMAP item.
+
+---
+
+## Errata
+
+Corrections below are Approver-signed amendments. The RFC body above is preserved
+unchanged; errata supersede where noted. (Approver: eugenelim, 2026-06-01.)
+
+| ID | Introduced by | Date | Correction |
+|----|--------------|------|------------|
+| E1 | RFC-0022 | 2026-06-01 | RFC-0005 assumed a single `kiro` adapter. Superseded: `kiro` is a deprecated alias for `kiro-ide`; `kiro-cli` is the separate CLI target. |
+| E2 | RFC-0022 | 2026-06-01 | `hook-wiring` (merge-into-agent-json) is CLI-only for Kiro. The IDE loader drops any agent carrying a `hooks` key. `hook-wiring` moves to `kiro-cli`; `kiro-ide` drops it in favour of the `kiro-ide-hook` primitive. |
+| E3 | RFC-0022 | 2026-06-01 | RFC-0005 described the IDE event vocabulary as a "best-guess" (Unresolved Q11); `distribution-adapters/spec.md:749` marked it `<probe-pinned per Q11>`. RFC-0022 closes Q11 via static analysis of `extension.js` `IDEListenableEvent` enum (2026-06-01) — a deliberate substitution of RFC-0005's stated fixture-probe verification method. Authoritative vocabulary: `fileEdited`, `fileCreated`, `fileDeleted`, `userTriggered`, `promptSubmit`, `agentStop`, `preToolUse`, `postToolUse`, `preTaskExecution`, `postTaskExecution`, `sessionStart`. Actions: `askAgent` / `runCommand`. Shipped validate rail (`fileSave`/`fileEdit`/`manualTrigger`) superseded; updates in T2 of the `kiro-adapter-split` spec. `probes.md` Q11 outcome recorded in T10. |
