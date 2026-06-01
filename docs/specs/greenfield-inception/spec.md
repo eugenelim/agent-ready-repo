@@ -1,6 +1,6 @@
 # Spec: greenfield-inception
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0021, ADR-0011
@@ -119,52 +119,52 @@ checks plus manual QA of the documented judgment.
 
 ## Acceptance Criteria
 
-- [ ] The **`init-project`** skill ships at
+- [x] The **`init-project`** skill ships at
   `packs/core/.apm/skills/init-project/SKILL.md` with valid frontmatter that
   passes `tools/lint-skill-spec.py`.
-- [ ] The skill documents the **trigger gate as its first step** — real
+- [x] The skill documents the **trigger gate as its first step** — real
   stack/structure/tooling decisions → continue; a script / spike / throwaway →
   scaffold directly and skip the flow (Decision 3).
-- [ ] The skill documents **consuming fed-in discovery** from any of the three
+- [x] The skill documents **consuming fed-in discovery** from any of the three
   sources (`research`-pack output, a provided PRD, a `receive-brief` brief) and
   states explicitly that it **does not perform discovery itself**.
-- [ ] The skill documents the **value gate**: derive business value + MVP from the
+- [x] The skill documents the **value gate**: derive business value + MVP from the
   discovery; pause and send discovery upstream if the value can't be stated
   plainly. Its output is the first **brief** (the RFC-0019 artifact).
-- [ ] The skill documents the **foundation step**: choose the stack/architecture
+- [x] The skill documents the **foundation step**: choose the stack/architecture
   with recorded rationale — an **ADR** (what / why / alternatives / re-evaluation
   date) **and `reference.md`**, authored from the arc42 template asset at
   `packs/core/.apm/skills/adapt-to-project/assets/reference.md` (the greenfield
   population path ADR-0010 names).
-- [ ] The skill documents the **walking-skeleton step**: author a single spec via
+- [x] The skill documents the **walking-skeleton step**: author a single spec via
   `new-spec` for a thin end-to-end slice that links the main architectural
   components, and **hand the build to `work-loop`** — kept and minimal, not a
   throwaway (resolves RFC-0021 Open Question 1: orchestrate, don't execute).
-- [ ] The skill documents the **handoff**: from the skeleton on, the normal
+- [x] The skill documents the **handoff**: from the skeleton on, the normal
   `brief → spec → LLD → work-loop` loop runs with `reference.md` in place for every
   LLD to conform to.
-- [ ] The skill documents the **fluid-not-waterfall** posture (revisitable phases)
+- [x] The skill documents the **fluid-not-waterfall** posture (revisitable phases)
   and **scoped handoffs** (each step receives only the artifacts the next needs).
-- [ ] The skill's **anti-patterns** explicitly **decline the autonomous
+- [x] The skill's **anti-patterns** explicitly **decline the autonomous
   multi-agent generator** and **forbid forcing ceremony on throwaways** (Decision
   4 + the trigger gate).
-- [ ] **No new top-level directory and no cross-pack import** are introduced — the
+- [x] **No new top-level directory and no cross-pack import** are introduced — the
   skill lives under `packs/core/.apm/skills/` and composes other skills by
   reference, not import.
-- [ ] The **`CONVENTIONS.md` seed amendment** documents the **two front-doors**
+- [x] The **`CONVENTIONS.md` seed amendment** documents the **two front-doors**
   (greenfield `init-project` / brownfield `adapt-to-project`) and where each enters
   the loop; it lands in this spec's implementing PR (it documents an entry point
   this spec creates, so it ships atomically with it).
-- [ ] **`make build-self`** projects the new core skill cleanly (no unexpected
+- [x] **`make build-self`** projects the new core skill cleanly (no unexpected
   reverts to projected paths) and **`make build-check`** is green.
-- [ ] Three adopter-facing **guide files exist** under `docs/guides/` at their
+- [x] Three adopter-facing **guide files exist** under `docs/guides/` at their
   Diátaxis paths — a **tutorial** ("From idea to a walking skeleton: start a new
   project"), a **how-to** ("Decide and record your foundation during inception"),
   and an **explanation** ("Why a walking skeleton beats a throwaway prototype").
   *(Authored in this catalogue repo via `new-guide`, which lives in the non-core
   `user-guide-diataxis` pack; guide authoring is not a capability `core` ships to
   adopters — per RFC-0021's "guides in this catalogue repo" scoping.)*
-- [ ] Each of the three guides **reads accurately** against the shipped skill
+- [x] Each of the three guides **reads accurately** against the shipped skill
   (manual-QA review recorded in the implementing PR).
 
 ## Assumptions
