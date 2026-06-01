@@ -484,8 +484,8 @@ Fixing is the same loop, scoped to a single finding:
 
 ## Termination — when to stop iterating
 
-The loop must terminate. Iteration without termination is how Ralph loops
-(see below) burn money. Stop when **any** of these is true:
+The loop must terminate. Iteration without termination is how unattended
+loops (see below) burn money. Stop when **any** of these is true:
 
 1. **Gates green AND review clean** — the normal exit. Ship.
 2. **`scripts/loop-cohort.py check` exits non-zero.** The script is the
@@ -532,37 +532,34 @@ This is the part of the loop that makes the *project* smarter, not just the
 current PR. Skipping it means the next agent (or you, next month) will
 re-derive the same insight.
 
-## Ralph loops — the AFK variant
+## Unattended (AFK) loops
 
-The work-loop above is an *in-session* loop: one Claude Code conversation,
-state in working memory plus the repo. **Ralph loops** are a different shape:
-each iteration is a *fresh* Claude Code instance, with state living entirely
-in files (PROMPT.md, progress notes, git history, AGENTS.md updates).
+The work-loop above is an *in-session* loop: one conversation, state in
+working memory plus the repo. Some agents also offer an **unattended
+mode** for long-running work — overnight, weekend, AFK: a fresh instance
+per iteration, with state living entirely in files (a stable task prompt,
+progress notes, git history, AGENTS.md updates) and no human in the seat.
+Use your agent's own facility for this; don't hand-roll a loop around the
+CLI.
 
-Ralph is the right tool when:
+Reach for it only when **all** of these hold:
 
-- You want unattended, long-running work — overnight, weekend, AFK.
 - The completion criterion is *fully mechanical* — tests pass, a spec
   checklist is fully ticked, a benchmark hits a threshold.
-- The task can be sliced into items each small enough for a single
-  context window.
-- You can afford the spend (set hard caps).
+- The task slices into items each small enough for a single context
+  window.
+- Verification is reliable — flaky tests turn an unattended loop into a
+  slot machine.
+- You've already run the in-session loop above on a similar task at
+  least once. An unattended loop amplifies whatever your conventions
+  are; if those aren't tight, it just produces more bad code faster.
 
-Ralph is the wrong tool when:
-
-- "Done" is fuzzy or aesthetic ("make it feel polished").
-- The task needs human judgment mid-flight (architectural choices,
-  ambiguous requirements, security-sensitive decisions).
-- Verification is flaky — flaky tests turn Ralph into a slot machine.
-- You haven't already done the work-loop above on a similar task at
-  least once. Ralph amplifies whatever your conventions are; if those
-  aren't tight, Ralph just produces more bad code faster.
-
-This repo includes a Ralph harness at `tools/ralph.sh` for when those
-conditions are met; the companion `tools/RALPH.md` documents
-operating instructions, hard limits, and the cost/safety rules. **Read
-it before running Ralph.** AFK doesn't mean *unconsidered* — it means
-*pre-considered*.
+It's the wrong tool when "done" is fuzzy or aesthetic, when the task
+needs human judgment mid-flight (architectural choices, ambiguous
+requirements), or when it touches a sensitive surface (auth, secrets,
+data deletion). Set hard caps (iteration, spend) before you start and
+review every commit after — unattended doesn't mean *unconsidered*, it
+means *pre-considered*.
 
 ## Anti-patterns to refuse
 
@@ -601,8 +598,8 @@ it before running Ralph.** AFK doesn't mean *unconsidered* — it means
   integrated journey. Before the final loop's DECIDE, run
   `quality-engineer` against the whole spec rather than just the last
   diff, so scenarios the parts test but the whole doesn't get caught.
-- **Running Ralph on a fresh task instead of work-loop.** Ralph compounds
-  bad foundations. Do at least one in-session pass first to validate the
-  approach.
+- **Running an unattended loop on a fresh task instead of the in-session
+  loop.** Unattended loops compound bad foundations. Do at least one
+  in-session pass first to validate the approach.
 - **Looping without capturing learnings.** Every loop that ends without
   updating *some* doc, skill, or note is a loop whose lessons are lost.

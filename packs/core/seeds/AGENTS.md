@@ -88,8 +88,9 @@ rules are in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits).
 Specs are validation gates, not write-once docs. If implementation diverges
 from the spec, update the spec in the same PR — drift is a bug.
 
-For unattended/AFK work, the [Ralph harness](tools/RALPH.md) runs the loop
-in fresh sessions. Read it first; Ralph fits *some* tasks, not most.
+For unattended/AFK work, some agents offer a fresh-session-per-iteration
+mode driven from files. Use your agent's native facility; it fits *some*
+tasks, not most — the work-loop skill covers when it's the right tool.
 
 ## Commands you'll need
 
