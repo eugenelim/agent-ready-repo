@@ -24,6 +24,9 @@
 | [0016](0016-doc-drift-mechanical-gate.md) | Doc-drift prevention — construction + judgment (template / reviewer / DECIDE / CONVENTIONS / in-repo backlog), with a catalogue-governance linter | Draft | 2026-05-29 | |
 | [0017](0017-pluggable-api-contract-standards.md) | Pluggable API-contract standards (base+delta, Zalando as starter) + a contract-type-agnostic `new-spec` seam | Accepted | 2026-05-30 | 2026-05-30 |
 | [0018](0018-event-asyncapi-authoring-engine.md) | Event/AsyncAPI authoring engine for `contracts` — `event-contract` skill (AsyncAPI 3.1.0 + CloudEvents 1.0.2 envelope, Zalando event rules as starter) | Accepted | 2026-05-31 | 2026-05-31 |
+| [0019](0019-product-brief-intake.md) | Product-brief intake + LLD-aware spec/plan — `brief` artifact + `receive-brief` skill (own-the-repo-slice) and a stack-neutral, stack-derived `## Design (LLD)` in spec/plan | Accepted | 2026-06-01 | 2026-06-01 |
+| [0020](0020-reference-architecture-foundation.md) | Reference-architecture foundation — normative `docs/architecture/reference.md` golden path (arc42), **template-instantiated on demand** (not core-seeded — avoids guaranteed stack-pack collisions); populated by stack pack / brownfield harvest / greenfield `init-project`; the LLD's steering | Accepted | 2026-06-01 | 2026-06-01 |
+| [0021](0021-greenfield-inception.md) | Greenfield inception — the idea→repo front-door (research + value gate → foundation → walking skeleton), the greenfield twin of `adapt-to-project`; composes brief/foundation/spec, declines autonomous generation | Accepted | 2026-06-01 | 2026-06-01 |
 
 ## Adding a new RFC
 
