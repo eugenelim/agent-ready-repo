@@ -49,7 +49,7 @@ allowed-scopes = ["repo"]
 def _write_pack(root: Path, name: str, toml_text: str) -> Path:
     pack = root / name
     pack.mkdir()
-    (pack / "pack.toml").write_text(toml_text)
+    (pack / "pack.toml").write_text(toml_text, encoding="utf-8")
     return pack
 
 
@@ -62,7 +62,7 @@ class RailASeedsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             (pack / "seeds").mkdir()
-            (pack / "seeds" / "AGENTS.md").write_text("hi")
+            (pack / "seeds" / "AGENTS.md").write_text("hi", encoding="utf-8")
 
             result = check_seeds(pack, ["user"])
             self.assertIsNotNone(result)
@@ -74,7 +74,7 @@ class RailASeedsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_REPO_ONLY)
             (pack / "seeds").mkdir()
-            (pack / "seeds" / "AGENTS.md").write_text("hi")
+            (pack / "seeds" / "AGENTS.md").write_text("hi", encoding="utf-8")
 
             self.assertIsNone(check_seeds(pack, ["repo"]))
 
@@ -96,7 +96,7 @@ class RailBHooksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\n")
+            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\n", encoding="utf-8")
 
             result = check_hooks(pack, ["user"])
             self.assertIsNotNone(result)
@@ -108,7 +108,7 @@ class RailBHooksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             (pack / ".apm" / "hook-wiring").mkdir(parents=True)
-            (pack / ".apm" / "hook-wiring" / "pre-pr.toml").write_text("[hooks]\n")
+            (pack / ".apm" / "hook-wiring" / "pre-pr.toml").write_text("[hooks]\n", encoding="utf-8")
 
             result = check_hooks(pack, ["user"])
             self.assertIsNotNone(result)
@@ -120,7 +120,7 @@ class RailBHooksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_REPO_ONLY)
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\n")
+            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\n", encoding="utf-8")
             self.assertIsNone(check_hooks(pack, ["repo"]))
 
     def test_rail_b_accepts_no_hooks(self) -> None:
@@ -139,7 +139,7 @@ class RailBHooksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\nexit 0\n")
+            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
             self.assertIsNone(
                 check_hooks(pack, ["user"], user_scope_hooks=True),
                 "Rail B did not lift on user_scope_hooks=True",
@@ -153,7 +153,7 @@ class RailBHooksTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\nexit 0\n")
+            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
             # Default (no flag passed) — must refuse.
             self.assertIsNotNone(check_hooks(pack, ["user"]))
             # Explicit False — same refusal.
@@ -172,7 +172,8 @@ class RailCMarkersTests(unittest.TestCase):
             skills_dir = pack / ".apm" / "skills" / "my-skill"
             skills_dir.mkdir(parents=True)
             (skills_dir / "SKILL.md").write_text(
-                "# My skill\n\nDoes <adapt:PROJECT_NAME> things.\n"
+                "# My skill\n\nDoes <adapt:PROJECT_NAME> things.\n",
+                encoding="utf-8",
             )
 
             result = check_markers(pack, ["user"])
@@ -193,7 +194,8 @@ class RailCMarkersTests(unittest.TestCase):
             skills_dir = pack / ".apm" / "skills" / "my-skill"
             skills_dir.mkdir(parents=True)
             (skills_dir / "SKILL.md").write_text(
-                "# My skill\n\nDoes <adapt:project-name> things.\n"
+                "# My skill\n\nDoes <adapt:project-name> things.\n",
+                encoding="utf-8",
             )
 
             result = check_markers(pack, ["user"])
@@ -208,7 +210,7 @@ class RailCMarkersTests(unittest.TestCase):
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             agents_dir = pack / ".apm" / "agents"
             agents_dir.mkdir(parents=True)
-            (agents_dir / "reviewer.md").write_text("Owner: <adapt:owner>\n")
+            (agents_dir / "reviewer.md").write_text("Owner: <adapt:owner>\n", encoding="utf-8")
 
             result = check_markers(pack, ["user"])
             self.assertIsNotNone(result)
@@ -228,11 +230,11 @@ class RailCMarkersTests(unittest.TestCase):
             skills_dir = pack / ".apm" / "skills" / "non-markers"
             skills_dir.mkdir(parents=True)
             # Wrong-cased prefix — must not match either grammar.
-            (skills_dir / "A.md").write_text("plays with <ADAPT:NAME>")
+            (skills_dir / "A.md").write_text("plays with <ADAPT:NAME>", encoding="utf-8")
             # Mixed-case name — matches neither UPPER_SNAKE nor lowercase-hyphen.
-            (skills_dir / "B.md").write_text("plays with <adapt:MixedCase>")
+            (skills_dir / "B.md").write_text("plays with <adapt:MixedCase>", encoding="utf-8")
             # Empty name — matches neither grammar.
-            (skills_dir / "C.md").write_text("plays with <adapt:>")
+            (skills_dir / "C.md").write_text("plays with <adapt:>", encoding="utf-8")
             self.assertIsNone(check_markers(pack, ["user"]))
 
     def test_rail_c_does_not_inspect_repo_only_pack(self) -> None:
@@ -243,7 +245,7 @@ class RailCMarkersTests(unittest.TestCase):
             pack = _write_pack(Path(td), "p", PACK_TOML_REPO_ONLY)
             skills_dir = pack / ".apm" / "skills" / "doc-marker"
             skills_dir.mkdir(parents=True)
-            (skills_dir / "SKILL.md").write_text("documents <adapt:NAME>")
+            (skills_dir / "SKILL.md").write_text("documents <adapt:NAME>", encoding="utf-8")
             self.assertIsNone(check_markers(pack, ["repo"]))
 
     def test_rail_c_skips_binary_files(self) -> None:
@@ -257,7 +259,7 @@ class RailCMarkersTests(unittest.TestCase):
             # Raw bytes that are not valid UTF-8 — should be skipped.
             (skills_dir / "icon.bin").write_bytes(b"\xff\xfe\x00<adapt:NAME>")
             # A clean text file in the same directory.
-            (skills_dir / "SKILL.md").write_text("# clean\n")
+            (skills_dir / "SKILL.md").write_text("# clean\n", encoding="utf-8")
             self.assertIsNone(check_markers(pack, ["user"]))
 
     def test_rail_c_refuses_symlink_under_skills(self) -> None:
@@ -311,7 +313,7 @@ class RailCMarkersTests(unittest.TestCase):
             for sub in ("z-late", "a-early"):
                 d = pack / ".apm" / "skills" / sub
                 d.mkdir(parents=True)
-                (d / "SKILL.md").write_text("hi <adapt:NAME>")
+                (d / "SKILL.md").write_text("hi <adapt:NAME>", encoding="utf-8")
             result = check_markers(pack, ["user"])
             self.assertIsNotNone(result)
             self.assertIn("a-early/SKILL.md", result)
@@ -371,7 +373,7 @@ class CliValidateWiringTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             pack = _write_pack(Path(td), "p", PACK_TOML_USER_OK)
             (pack / ".apm" / "hooks").mkdir(parents=True)
-            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\n")
+            (pack / ".apm" / "hooks" / "pre-pr.sh").write_text("#!/bin/sh\n", encoding="utf-8")
 
             args = argparse.Namespace(pack_path=str(pack), strict=False)
             buf = io.StringIO()

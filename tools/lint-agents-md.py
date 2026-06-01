@@ -96,7 +96,7 @@ def main() -> int:
 
     # 3. Root AGENTS.md size
     if agents_md.is_file():
-        lines = len(agents_md.read_text().splitlines())
+        lines = len(agents_md.read_text(encoding="utf-8").splitlines())
         if lines > MAX_ROOT_LINES:
             note(
                 f"AGENTS.md is {lines} lines (max {MAX_ROOT_LINES}). "
@@ -115,7 +115,7 @@ def main() -> int:
             continue
         if f == agents_md:
             continue
-        lines = len(f.read_text().splitlines())
+        lines = len(f.read_text(encoding="utf-8").splitlines())
         limit = MAX_SUB_LINES
         # The core pack's governance seed (AGENTS.md) is a root-class doc
         # (250-line cap), not a nested package AGENTS.md — wherever it lands.
@@ -139,7 +139,7 @@ def main() -> int:
         f = Path(f_str)
         if not f.is_file():
             continue
-        for match in link_re.findall(f.read_text()):
+        for match in link_re.findall(f.read_text(encoding="utf-8")):
             # Skip external schemes (http:, mailto:, etc.)
             if re.match(r"^[a-z]+:", match):
                 continue
@@ -206,7 +206,7 @@ def main() -> int:
         regex = re.compile(pattern)
         if canonical:
             cpath = Path(canonical)
-            if cpath.is_file() and not regex.search(cpath.read_text()):
+            if cpath.is_file() and not regex.search(cpath.read_text(encoding="utf-8")):
                 note(
                     f"drift-watch: '{pattern}' missing from canonical home {canonical}."
                 )
@@ -214,7 +214,7 @@ def main() -> int:
             fpath = Path(forb)
             if not fpath.is_file():
                 continue
-            if regex.search(fpath.read_text()):
+            if regex.search(fpath.read_text(encoding="utf-8")):
                 note(
                     f"drift-watch: '{pattern}' re-appeared in {forb} (canonical: {canonical})."
                 )
@@ -254,7 +254,7 @@ def main() -> int:
         f = Path(f_str)
         if not f.is_file():
             continue
-        if vendor_re.search(f.read_text()):
+        if vendor_re.search(f.read_text(encoding="utf-8")):
             note(
                 f"drift-watch: vendor token (ultrathink / 'Plan Mode (Shift+Tab') in {f_str}. "
                 f"Move it under .claude/."

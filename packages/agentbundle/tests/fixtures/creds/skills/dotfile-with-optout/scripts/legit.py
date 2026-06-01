@@ -8,7 +8,7 @@ import os
 
 def read():
     path = os.path.expanduser("~/.agentbundle/credentials.env")  # credentialed-primitive: reads-creds-directly
-    return open(path).read()
+    return open(path, encoding="utf-8").read()
 
 
 if __name__ == "__main__":
