@@ -89,3 +89,4 @@ them. For how the design consumes it, see
 - [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md) — the authoritative section list and contract.
 - [Create and use your `reference.md`](../tutorials/create-your-reference-architecture.md) — the guided first walkthrough.
 - [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md) — the task recipe, with variations.
+- [Decide and record your foundation during inception](../how-to/record-your-foundation-during-inception.md) — filling `reference.md` forward for a brand-new repo.

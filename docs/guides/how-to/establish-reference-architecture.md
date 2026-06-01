@@ -55,13 +55,20 @@ your repo. The delivery rules are specified in
 
 ## Route 3 — Greenfield, at project bootstrap
 
-A guided greenfield path — a bootstrap step that writes your first
-`reference.md` as you stand up a new project — is **planned but not yet
-available**. Until it ships, bootstrap a greenfield repo by copying the arc42
-template into `docs/architecture/reference.md` by hand (the template ships inside
-the `adapt-to-project` skill's `assets/` folder) and filling the sections you've
-decided on. Follow [Create and use your `reference.md`](../tutorials/create-your-reference-architecture.md)
-for the walkthrough.
+When you're standing up a brand-new repo from an idea, the `init-project` skill
+is the front door, and writing your first `reference.md` is its **foundation**
+step. It walks you through choosing the stack, recording the rationale as an
+ADR, and instantiating `reference.md` from the arc42 template — filled forward
+from your decision rather than harvested from existing code.
+
+1. Run the `init-project` skill in your new repo.
+2. At the foundation step, decide the load-bearing stack choices and let the
+   skill capture them as an ADR plus `docs/architecture/reference.md`. See
+   [Decide and record your foundation during inception](record-your-foundation-during-inception.md)
+   for that step on its own.
+
+For the whole greenfield flow end to end — idea through walking skeleton —
+follow [From idea to a walking skeleton](../tutorials/start-a-new-project.md).
 
 ## Verify
 

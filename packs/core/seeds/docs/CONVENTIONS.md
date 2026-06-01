@@ -629,6 +629,25 @@ doc, skill, or note has wasted what it learned. The next agent (or a
 human) will pay for it again. The work-loop skill enumerates where each
 kind of learning belongs.
 
+### Two front doors
+
+Work enters this loop through one of two front doors, depending on whether the
+repo already exists:
+
+- **Greenfield — a brand-new repo from an idea.** The `init-project` skill is
+  the front door. It runs a trigger gate (throwaways and one-off scripts skip
+  the flow), a value gate over fed-in discovery, records a foundation (an ADR
+  plus `docs/architecture/reference.md`), authors a walking-skeleton spec via
+  `new-spec`, and hands the build to `work-loop`.
+- **Brownfield — an existing repo.** The `adapt-to-project` skill is the front
+  door, run after installing a pack to fit the conventions to what's already
+  there — including harvesting a `reference.md` from the existing code.
+
+Both converge on the same downstream loop: `brief → reference.md → spec →
+low-level design → work-loop`. Neither is mandatory ceremony — the greenfield
+trigger gate sends a throwaway straight to scaffolding, and a small change in an
+existing repo just opens a PR.
+
 ### Work-loop state
 
 The work-loop's `state.json` schema, exit contract, lifecycle, and
