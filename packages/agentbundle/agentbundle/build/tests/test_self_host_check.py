@@ -958,6 +958,76 @@ class SeedProjectionTests(unittest.TestCase):
             self.assertIn("seed collision", str(ctx.exception))
             self.assertIn("AGENTS.md", str(ctx.exception))
 
+    def test_reference_md_two_producer_collision_raises(self) -> None:
+        """Living documentation of the stack-pack reference-architecture
+        contract: two packs that each ship a filled
+        `docs/architecture/reference.md` with differing content collide,
+        so no bundler override field is needed — the two-producer case is
+        caught by `_project_seeds` and routes through `.upstream` + merge.
+
+        The *generic* collision mechanism is already proven by
+        `test_collision_with_different_content_raises` (staged on
+        `AGENTS.md`); the collision branch is path-agnostic. This
+        path-named test is a contract-labelled regression guard: if a
+        future change ever special-cases `docs/architecture/reference.md`
+        in `_project_seeds` (e.g. the pack-override the contract forbids),
+        this test — not a generically-named one — goes red.
+        """
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            for name, content in [
+                ("core", "# golden path A\n"),
+                ("governance-extras", "# golden path B\n"),
+            ]:
+                pack = packs_dir / name
+                (pack / "seeds" / "docs" / "architecture").mkdir(parents=True)
+                (pack / "seeds" / "docs" / "architecture" / "reference.md").write_text(
+                    content, encoding="utf-8"
+                )
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            with self.assertRaises(ValueError) as ctx:
+                _project_seeds(packs_dir, output)
+            # Message shape captured from a real invocation:
+            # "seed collision at docs/architecture/reference.md: <a> and
+            #  <b> differ — rename or consolidate one of them."
+            self.assertIn(
+                "seed collision at docs/architecture/reference.md",
+                str(ctx.exception),
+            )
+
+    def test_no_pre_placed_reference_md_core_seed(self) -> None:
+        """Precondition that makes the *sole*-producer case collision-free:
+        `core` does NOT ship `docs/architecture/reference.md` as a seed.
+        The arc42 template is a skill asset instantiated on demand, never a
+        pre-placed seed — so a single stack pack shipping `reference.md`
+        has nothing in core to collide against.
+        """
+        core_seed = (
+            REPO_ROOT
+            / "packs"
+            / "core"
+            / "seeds"
+            / "docs"
+            / "architecture"
+            / "reference.md"
+        )
+        self.assertFalse(
+            core_seed.exists(),
+            f"{core_seed} must not exist — reference.md is a template-on-demand "
+            "skill asset, not a core seed (a core seed would collide with every "
+            "stack pack that ships its own).",
+        )
+
     def test_underscore_prefixed_files_are_composition_fragments_not_projected(
         self,
     ) -> None:
