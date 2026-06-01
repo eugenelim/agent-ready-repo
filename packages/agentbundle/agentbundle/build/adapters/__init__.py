@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-import logging
 import warnings
+from pathlib import Path
 from types import ModuleType
 from typing import Callable, Dict, Mapping
 
 from agentbundle.build.adapters import claude_code, codex, copilot, kiro, kiro_cli, kiro_ide
 
-_LOG = logging.getLogger(__name__)
 
-
-def _kiro_alias_project(pack_path, contract, output_root) -> None:
+def _kiro_alias_project(pack_path: Path, contract: dict, output_root: Path) -> None:
     """Deprecated alias: `kiro` → `kiro-ide`. Emits a build-time warning."""
     warnings.warn(
         "kiro: deprecated alias for kiro-ide; update allowed-adapters in pack.toml",

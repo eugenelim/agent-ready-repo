@@ -65,6 +65,8 @@ NO_WRITE_MODES = {"degraded-info-log", "dropped"}
 ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
 # All reference adapter names (RFC-0022: kiro-cli added; kiro retained as alias).
+# NOTE: add "kiro-ide" here when T1 lands (post-Q6 probe) and adds
+# [adapter.kiro-ide] to adapter.toml.
 ALL_ADAPTERS = {"claude-code", "kiro", "kiro-cli", "copilot", "codex"}
 
 # Extra primitives that are kiro-specific and OK to declare in kiro-family

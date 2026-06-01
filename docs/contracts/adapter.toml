@@ -249,6 +249,10 @@ frontmatter-mapping = "kiro-cli-agent-frontmatter-v1.0"
 on-conflict = "prompt-then-preserve"
 
 [[adapter.kiro-cli.projection]]
+# Legacy repo-scope entry — the pipeline-of-record for repo-scope hook-body
+# projection (mirrors the `kiro` adapter's RFC-0005 hybrid). The table form
+# below is the scope-conditional declaration for the user-scope pipeline;
+# both coexist intentionally. `_iter_primitives` deduplicates via set union.
 primitive = "hook-body"
 mode = "direct-file"
 target-path = "tools/hooks/"
