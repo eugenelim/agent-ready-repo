@@ -80,9 +80,9 @@ class KiroAdapterTests(unittest.TestCase):
                 "stale .md projection left behind",
             )
             data = json.loads(agent_json_path.read_text(encoding="utf-8"))
-            # `tools: Read` source normalises to a list per the mapping
-            # table's `normalize: to-list` rule.
-            self.assertEqual(data["tools"], ["Read"])
+            # `tools: Read` source normalises to a list (`to-list`) then
+            # maps onto the Kiro `read_file` tool id (`values`).
+            self.assertEqual(data["tools"], ["read_file"])
             # `name` from filename (or frontmatter); body becomes prompt.
             self.assertEqual(data["name"], "bar")
             self.assertEqual(data.get("prompt", "").strip(), "agent body")
@@ -183,10 +183,9 @@ class KiroAdapterTests(unittest.TestCase):
     def test_tools_comma_string_splits_to_list(self) -> None:
         """Pack authors write `tools: Read, Grep, Glob, Bash` —
         Claude Code's frontmatter convention, not YAML flow syntax —
-        and the kiro JSON projection must split on commas. Wrapping
-        the whole string in a single-element list (the prior bug)
-        produces `["Read, Grep, Glob, Bash"]`, which Kiro reads as
-        an unknown tool."""
+        and the kiro projection must split on commas, then map each
+        Claude Code name onto its Kiro tool id: Read→read_file,
+        Grep→grep_search, Glob→file_search, Bash→execute_bash."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -198,7 +197,9 @@ class KiroAdapterTests(unittest.TestCase):
             out = tmp_path / "out"
             project(pack, self.contract, out)
             data = json.loads((out / ".kiro" / "agents" / "multi.json").read_text())
-            self.assertEqual(data["tools"], ["Read", "Grep", "Glob", "Bash"])
+            self.assertEqual(
+                data["tools"], ["read_file", "grep_search", "file_search", "execute_bash"]
+            )
 
     def test_tools_single_token_one_element_list(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -212,12 +213,13 @@ class KiroAdapterTests(unittest.TestCase):
             out = tmp_path / "out"
             project(pack, self.contract, out)
             data = json.loads((out / ".kiro" / "agents" / "one.json").read_text())
-            self.assertEqual(data["tools"], ["Read"])
+            self.assertEqual(data["tools"], ["read_file"])
 
     def test_tools_bracketed_list_preserved(self) -> None:
         """A YAML flow-sequence `tools: [Read, Grep]` is parsed as a
         list by `_parse_frontmatter`; the to-list normalize must not
-        re-wrap or re-split it."""
+        re-wrap or re-split it, and each element still maps to its
+        Kiro tool id."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -229,7 +231,44 @@ class KiroAdapterTests(unittest.TestCase):
             out = tmp_path / "out"
             project(pack, self.contract, out)
             data = json.loads((out / ".kiro" / "agents" / "bracketed.json").read_text())
-            self.assertEqual(data["tools"], ["Read", "Grep"])
+            self.assertEqual(data["tools"], ["read_file", "grep_search"])
+
+    def test_tools_web_search_maps_to_web_tag(self) -> None:
+        """`WebSearch` has no granular Kiro tool id, so it maps to the
+        `web` tag; `WebFetch` maps to the granular `web_fetch` id. Order
+        is preserved."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "web.md").write_text(
+                "---\nname: web\ntools: Read, WebFetch, WebSearch\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "web.json").read_text())
+            self.assertEqual(data["tools"], ["read_file", "web_fetch", "web"])
+
+    def test_tools_unmapped_token_drops_with_warning(self) -> None:
+        """A Claude Code tool name absent from the values map (e.g.
+        `NotebookEdit`) drops from the output with a stderr warning,
+        rather than emitting a token Kiro can't resolve."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "nb.md").write_text(
+                "---\nname: nb\ntools: Read, NotebookEdit\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                project(pack, self.contract, out)
+            data = json.loads((out / ".kiro" / "agents" / "nb.json").read_text())
+            self.assertEqual(data["tools"], ["read_file"])
+            self.assertIn("NotebookEdit", stderr.getvalue())
 
     def test_hook_wiring_array_entry_removed(self) -> None:
         """AC2: the legacy `degraded-info-log` kiro hook-wiring entry is gone."""
