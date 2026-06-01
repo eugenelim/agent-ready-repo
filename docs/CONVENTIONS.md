@@ -50,6 +50,7 @@ below assigns every kind of doc to exactly one bucket.
    │  organized today.        │      │  doing today.              │
    │  Living. For contributors│      │  Living. For maintainers.  │
    │                          │      │  - roadmap.md              │
+   │                          │      │  - briefs/<slug>.md        │
    │                          │      │  - changelog.md            │
    │                          │      │  - personas.md (optional)  │
    └──────────────────────────┘      └────────────────────────────┘
@@ -66,6 +67,19 @@ below assigns every kind of doc to exactly one bucket.
 
 The bottom layers cite the upper layers; upper layers do not know about
 lower layers. That's the whole point of the hierarchy.
+
+**The brief altitude.** A *brief* (`product/briefs/<slug>.md`) sits between
+the roadmap and the specs — it is where an externally-authored, multi-feature
+product handoff (a PRD, a solution packet) lands when it's too big to be one
+spec. The altitude reads `roadmap → brief → spec → AC`: the roadmap names
+themes, a brief records one received outcome and the specs that deliver it, a
+spec is the engineering contract for one feature, and an acceptance criterion
+is the testable unit. A brief owns only **this repo's slice**; an optional
+`Epic:` field points up to an external coordinator when the work spans repos.
+A derived spec links back to its brief with a `Brief:` field (see § 4), and
+the brief's coverage map rolls up automatically from those specs' `Status:`
+fields. Use the `receive-brief` skill to receive, decompose, and execute a
+brief; it never mandates a schema.
 
 ---
 
@@ -270,6 +284,17 @@ mechanical rule.
   open work. Form: `- [ ] <outcome> (deferred: <backlog-anchor>)`. A deferral
   recorded only in a PR comment rots; the register is version-controlled and
   greppable.
+- **Brief back-link (optional).** A spec derived from a product brief carries a
+  `- **Brief:**` header naming that brief (`product/briefs/<slug>.md`). It
+  records *product provenance* and is distinct from `Constrained by:` (which
+  cites the ADRs/RFCs that govern the spec). The field is additive and optional
+  — a spec authored directly omits it and stays valid. The brief's coverage map
+  rolls up from these back-links automatically; never hand-write a spec's status
+  into the brief.
+- **Story trace (optional).** When the brief carries user stories (Shape B), an
+  acceptance criterion that satisfies a story appends a `Satisfies: US-n` marker
+  so coverage is story-granular. Optional — omit it for a no-stories brief or a
+  directly-authored spec.
 
 ### Contract vs. construction tests
 
@@ -387,6 +412,10 @@ right now?"
 - `changelog.md` — user-visible changes by release, in
   [Keep a Changelog](https://keepachangelog.com/) format. Updated in the
   same PR as any user-visible behavior change.
+- `briefs/<slug>.md` (optional) — a received, externally-authored
+  multi-feature product brief and its auto-rolled-up coverage map. Created by
+  the `receive-brief` skill; one file per brief. See the brief altitude under
+  *Document hierarchy*.
 - `personas.md` (optional) — who we're building for. Add only if it's
   actively used to make decisions; speculative personas rot.
 

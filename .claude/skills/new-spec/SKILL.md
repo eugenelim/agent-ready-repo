@@ -116,6 +116,13 @@ look like?" before any code.
      items that name an ADR or RFC the feature must cite. The header
      lands before any body section; Verified items don't gate the
      Unverified loop but they do gate `Constrained by:`.
+   - Stamp the optional `Brief:` header **only** when this spec is
+     derived from a product brief — i.e. you arrived here from
+     `receive-brief`, which decomposes a received brief into specs. Set
+     it to the brief's slug (`docs/product/briefs/<slug>.md`); leave it
+     blank or `none` for a spec authored directly. It records *product
+     provenance* and is distinct from `Constrained by:` (governance).
+     A spec without it stays valid — the field is additive.
 
 4. Fill in the spec — including the **Testing Strategy** section. Push
    back hard on these failure modes:
