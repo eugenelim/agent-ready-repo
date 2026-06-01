@@ -179,6 +179,35 @@ look like?" before any code.
    - **Point the plan at it.** The plan's construction tests reference the
      contract as the artifact the implementation is verified against.
 
+4c. **Derive the spec's `Shape:` and the implementation stack — this primes the
+   plan's `## Design (LLD)`.** Between the spec body and the plan, settle two
+   things so the design scaffolds at the right size and against the right stack:
+
+   - **Shape.** Pick the spec's `Shape:` — `ui | service | data | integration |
+     mixed` — from the feature itself: a screen or flow is `ui`, a backend
+     endpoint or worker is `service`, a schema/model change is `data`, a wiring
+     of external systems is `integration`, anything spanning several is `mixed`.
+     If you arrived here from `receive-brief`, the brief's framing usually
+     decides it; otherwise **ask the user**. The shape selects which
+     `## Design (LLD)` sub-sections the plan scaffolds — a narrower shape keeps
+     the plan thin. Stamp the resolved value on the spec's `Shape:` header.
+   - **Stack.** Determine the stack the `## Design (LLD)` sub-sections will name:
+     - **When `docs/architecture/reference.md` is present**, read it and
+       **conform** the design to it — reference its named components,
+       stereotypes, layers, and standards *by name* rather than inventing
+       parallel ones. The reference architecture is the source of truth for the
+       stack; the LLD is an instance of it.
+     - **When it is absent**, **degrade** to detecting the established stack from
+       the repo — lockfiles (`package.json`, `pyproject.toml`, `go.mod`,
+       `Cargo.toml`, …), build / orchestration files, and the imports in the
+       module the feature touches — plus any stack context a brief carried.
+     - **Elicit, don't invent.** When detection is ambiguous or the repo is
+       greenfield, **ask** which stack to target. Never guess a framework into
+       the design — an invented stack is worse than one asked question.
+
+   The headings in `## Design (LLD)` stay universal; the prose under them is the
+   stack-specific instance you resolved here.
+
 5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
    - Break the work into tasks small enough to be a single PR each.

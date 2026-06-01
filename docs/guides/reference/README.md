@@ -8,8 +8,12 @@
 
 - [`agentbundle.md`](agentbundle.md) — install the CLI, install a pack,
   configure the default adapter.
+- [`product-brief-fields.md`](product-brief-fields.md) — the product-brief
+  field list and the linkage fields it stamps on derived specs.
 - [`research-pack.md`](research-pack.md) — every primitive in the
   `research` pack (skills, retrieval subagents).
+- [`spec-shape-and-lld.md`](spec-shape-and-lld.md) — the spec `Shape:` field,
+  the plan's `## Design (LLD)` categories, and stack-derivation.
 
 ## Writing reference
 
