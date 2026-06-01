@@ -1,7 +1,7 @@
 # Plan: lld-aware-spec-plan
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -38,11 +38,12 @@ T3). Because the spec/plan templates are the widest blast radius in the repo,
 **additivity is load-bearing** — T5 and T7 prove all prior specs/plans stay
 valid and the projection re-renders cleanly.
 
-This spec can land **before or after** `product-brief-intake` (RFC-0019's
-either-order seam), with one exception: T4 (derivation inside `receive-brief`)
-depends on `receive-brief` existing, so it carries a cross-spec dependency on
-`product-brief-intake`. If `lld-aware-spec-plan` lands first, T4 is deferred to a
-follow-up that lands once `receive-brief` exists; the rest ships standalone.
+RFC-0019 designed this spec to land **before or after** `product-brief-intake`
+(the either-order seam), with T4 (derivation inside `receive-brief`) carrying a
+cross-spec dependency on `receive-brief` existing. **That seam is now resolved:**
+`product-brief-intake` shipped (PR #215) and `receive-brief` is present, so T4
+runs in this PR — no deferral. The cross-spec dependency is recorded for
+provenance, not as a live fork.
 
 ## Constraints
 
@@ -85,7 +86,8 @@ recorded in the implementing PR.
   *(verifies AC: no LLD body in spec)*
 - Goal-based: a grep of the shipped `spec.md` template confirms its `Testing
   Strategy` comment names integration / E2E and its `Contract:` comment names
-  events / BFF. *(verifies AC: Contract / Testing verification surfaces)*
+  events / BFF — assert the literal tokens `integration`, `E2E`, `event
+  interface`, and `BFF` all appear. *(verifies AC: Contract / Testing verification surfaces)*
 - Goal-based: `lint-spec-status.py` still passes on the existing specs.
 
 **Approach:**
@@ -142,6 +144,11 @@ adds no new tiers, and prior plans remain valid.
   the edit (matching the sibling spec's `lint-skill-spec` check on `receive-brief`).
 - Manual QA: walked against a reference-present and a reference-absent repo, the
   step produces a conforming LLD vs a detected/elicited one (recorded in PR).
+  The reference-present case is walked against a **throwaway/scratch
+  `docs/architecture/reference.md` fixture** (RFC-0020's `reference.md`
+  foundation has not shipped in this repo, so the conform branch has no live
+  source); the fixture is not committed. The reference-absent (degrade) branch
+  is the live path here.
 
 **Approach:**
 - Add the derivation step to `new-spec`'s procedure (between spec body and plan
@@ -162,12 +169,11 @@ recorded.
 
 **Approach:**
 - Add a one-line reference in `receive-brief`'s Execute stage pointing at
-  `new-spec`'s derivation step (reference, don't duplicate). If
-  `product-brief-intake` has not shipped, defer this task to a follow-up PR that
-  lands once `receive-brief` exists (per the cross-spec dependency).
+  `new-spec`'s derivation step (reference, don't duplicate). `receive-brief` is
+  present (PR #215), so this runs in this PR — the cross-spec defer branch is
+  resolved, not taken.
 
-**Done when:** `receive-brief` documents the derivation step, or the task is
-explicitly deferred pending `receive-brief`.
+**Done when:** `receive-brief` documents the derivation step.
 
 ### T5: Universality + additivity gates (grep + backward compat)
 
@@ -194,19 +200,29 @@ explicitly deferred pending `receive-brief`.
 **Tests:**
 - Goal-based: the `CONVENTIONS.md` seed §4 documents the `Shape:` field, the
   `## Design (LLD)` categories, and stack-derivation. *(verifies AC: CONVENTIONS amendment)*
+- Goal-based: `tools/lint-seeds.py` passes on the edited seed — the §4 text
+  carries **no** RFC/ADR number and no catalogue name. *(prevents the gate trap)*
 
 **Approach:**
 - Edit the pack-source seed `packs/core/seeds/docs/CONVENTIONS.md` §4. Coordinate
   with `product-brief-intake`'s CONVENTIONS edit if both land near each other
   (briefs altitude vs LLD enrichment are different parts of the file).
+- **Constraint:** the seed is gated by `tools/lint-seeds.py`, whose blocklist
+  forbids `RFC-00\d\d`, `K-00\d\d`, `agent-ready-repo`, and catalogue spec names
+  in any pack seed (no `ADR-NNNN` pattern — but avoid ADR numbers too as hygiene).
+  Describe the LLD enrichment purely as a capability (the `Shape:` field, the
+  `## Design (LLD)` categories, stack-derivation) — no governance numbers, no
+  catalogue name. The single-line `<!-- seed-content-lint-ignore: <reason> -->`
+  sentinel is the escape hatch, but it should not be needed here: the enrichment
+  is describable without any provenance pointer.
 
-**Done when:** §4 of the seed documents the LLD enrichment; projection re-renders
-in T7.
+**Done when:** §4 of the seed documents the LLD enrichment, `lint-seeds` passes,
+and projection re-renders in T7.
 
 ### T7: `make build-self` projection + `make build-check` green
 
 **Depends on:** T1, T2, T3, T4, T5, T6
-**Touches:** dist/**, .claude/**
+**Touches:** dist/**, .claude/**, docs/CONVENTIONS.md
 
 **Tests:**
 - Goal-based: `make build-self` projects the enriched templates + skills cleanly;
@@ -222,7 +238,7 @@ in T7.
 ### T8: Adopter reference/explanation guides for the LLD additions
 
 **Depends on:** T1, T2, T3
-**Touches:** docs/guides/**
+**Touches:** docs/guides/reference/spec-shape-and-lld.md, docs/guides/explanation/why-the-plan-owns-the-lld.md
 
 **Tests:**
 - Goal-based: a reference guide file and an explanation guide file exist under
@@ -234,14 +250,21 @@ in T7.
 **Approach:**
 - `new-guide` lives in the non-core `user-guide-diataxis` pack — this task runs
   **in this catalogue repo**, where that pack is installed; it is not a capability
-  `core` ships to adopters. Coordination with `product-brief-intake`'s guide work
-  (so the reference guide can carry both the `Brief:` and the LLD additions in one
-  place) is **advisory, not a hard sequencing dependency** — hence no
-  `spec:product-brief-intake/T10` (the sibling's guide task) in `Depends on:`;
-  whichever lands second appends
-  its section to the existing reference guide.
+  `core` ships to adopters.
+- Author **two new files** (the LLD additions are a distinct concern from the
+  sibling's brief *fields*, so they get their own pages rather than appending to
+  `product-brief-fields.md` / `why-a-brief-layer.md`):
+  - `docs/guides/reference/spec-shape-and-lld.md` — the `Shape:` vocabulary, the
+    nine `## Design (LLD)` categories + the Rollout-owned tenth, and the
+    stack-derivation present/absent branch.
+  - `docs/guides/explanation/why-the-plan-owns-the-lld.md` — why the design lives
+    in the plan (spec stays the contract) and why the stack is derived, not baked.
+- Cross-link the sibling's brief guides (`product-brief-fields.md`,
+  `why-a-brief-layer.md`) from the See-also sections; coordination is **advisory,
+  not a hard dependency** — hence no `spec:product-brief-intake/T10` in
+  `Depends on:`.
 
-**Done when:** the guide files exist and read accurately against the templates.
+**Done when:** the two named guide files exist and read accurately against the templates.
 
 ## Rollout
 
@@ -272,3 +295,9 @@ opens.
 ## Changelog
 
 - 2026-06-01: initial plan (drafted from RFC-0019 Decisions 8–9 + ADR-0009).
+- 2026-06-01: pre-EXECUTE review sharpening — T6 names the `lint-seeds`
+  RFC-NNNN constraint + a `lint-seeds` test; T3 manual-QA notes the
+  reference-present case uses a throwaway `reference.md` fixture (RFC-0020 not
+  shipped here); T7 `Touches:` adds the re-rendered `docs/CONVENTIONS.md`; T8
+  names its two new guide files (`spec-shape-and-lld.md`,
+  `why-the-plan-owns-the-lld.md`) rather than "append to existing".

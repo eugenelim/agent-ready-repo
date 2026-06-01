@@ -295,6 +295,40 @@ mechanical rule.
   acceptance criterion that satisfies a story appends a `Satisfies: US-n` marker
   so coverage is story-granular. Optional — omit it for a no-stories brief or a
   directly-authored spec.
+- **Shape (optional).** A spec may carry a `- **Shape:**` header — one of
+  `ui | service | data | integration | mixed` — naming the *kind* of work. It
+  selects which `## Design (LLD)` sub-sections the plan scaffolds, so a narrower
+  shape keeps the plan thin. Stack-neutral: it names the kind, never a framework.
+  Additive and optional — a spec omits it (or sets `mixed`) and stays valid.
+
+### Low-level design lives in the plan
+
+The plan — not the spec — is the home for low-level design. `spec.md` stays the
+contract (objective, boundaries, testing strategy, acceptance criteria); the
+*how* lives in the plan's optional, shape-pruned `## Design (LLD)` section, built
+from stack-neutral category headings:
+
+- **Nine design categories** scaffold as `## Design (LLD)` sub-headings — design
+  decisions; data & schema; interfaces & contracts; component / module
+  decomposition; state & control flow; behavior & rules; failure, edge cases &
+  resilience; quality attributes (NFRs); dependencies & integration. The plan
+  scaffolds only the ones the spec's `Shape:` selects; a one-file change keeps
+  the section thin or empty.
+- **The tenth category — rollout & deployment — is not a Design sub-heading.** It
+  is realized by the plan's expanded `## Rollout` (infrastructure, external-system
+  integration, deployment sequencing). Cross-link it; never duplicate it.
+- **Each sub-section traces to the acceptance criteria it satisfies and the
+  contracts it implements** — the design is always anchored to something
+  verifiable. No acceptance criterion lives in the design; the spec keeps the
+  contract. A user-visible UI state (phrased state / trigger / outcome) and an
+  NFR with a pass/fail bar each rise to the spec as acceptance criteria; the
+  per-screen and per-NFR design itself sits in the plan.
+- **The categories are stack-neutral; the stack is derived, never baked.** The
+  headings are universal; the prose under them names a concrete stack, derived
+  from a reference-architecture document (`docs/architecture/reference.md`) when
+  one is present — the design conforms to it, referencing its components and
+  standards by name — and degrading to detection from the established repo
+  (lockfiles, build files, imports) or elicitation when it is absent.
 
 ### Contract vs. construction tests
 
