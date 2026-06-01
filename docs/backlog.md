@@ -282,3 +282,17 @@ of their own yet.
   adopter-shipping — demote to catalogue-local / retire in favour of the how-to —
   against `credential-broker-contract` AC27/AC43 and RFC-0013 §7. Not touched by
   `adopter-clean-enforcement-gate` (that spec owns these primitives).
+
+---
+
+## `product-brief-intake`
+
+- **Follow-up (reviewer-flagged, not an unmet AC):** the adopter-facing
+  leak guard (no `agent-ready-repo` / `RFC-NNNN` / catalogue-spec-name) is
+  enforced by `tools/lint-seeds.py` for **seed** files only. The shipped
+  `receive-brief/SKILL.md` and `receive-brief/examples/*.md` live under
+  `packs/core/.apm/skills/` and are outside that lint's scope — clean today by
+  inspection, but unguarded against regression. Extend the seed-content
+  blocklist (or `tools/lint-agent-artifacts.py`) to cover shipped-skill bodies
+  and `examples/`. Pre-existing catalogue gap surfaced by this spec, not
+  introduced by it.

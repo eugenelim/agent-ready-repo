@@ -1,7 +1,7 @@
 # Plan: product-brief-intake
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -307,3 +307,15 @@ no-ops where no brief exists, so it cannot break a brief-free adopter's gate.
 ## Changelog
 
 - 2026-06-01: initial plan (drafted from RFC-0019 + ADR-0009).
+- 2026-06-01: T6 refined during EXECUTE — the lint's fail-closed condition is a
+  brief's Spec-map Status cell that *contradicts* the spec's actual `Status:`
+  (a hand-edited, now-stale cell); an unset cell (`<auto>`/`—`/empty) is
+  reported, not failed, and the `_template.md` placeholder is skipped. Added two
+  self-test cases (stale-cell drift → exit 1; unset cell → not drift) beyond the
+  six in the task. This is what gives "fail-closed in build-check" non-vacuous
+  meaning while keeping the no-brief / untracked / empty-map ACs intact.
+- 2026-06-01: shipped. All tasks T1–T10 complete; `make build-check` green;
+  spec marked Shipped with all ACs checked (spec + code land atomically).
+  Self-host projection: build-self does not project `docs/product/briefs/` into
+  this repo (consistent with `docs/product/` being adopter-owned), so this repo
+  ships no brief and the coverage lint no-ops — no `self_host.py` change needed.
