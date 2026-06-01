@@ -92,19 +92,32 @@ which paths skip.
 
 ### Outcome
 
-> **Not yet run.** This row is the surface-to-operator gate.
+> **Closed by RFC-0022 via static analysis (2026-06-01).** RFC-0022 closes Q11 via
+> static analysis of `extension.js` `IDEListenableEvent` enum rather than an
+> IDE-UI-authored fixture — a deliberate substitution of the fixture-probe
+> verification method described in RFC-0005 Q11. No fixture is required under
+> this closure. See RFC-0005 § Errata, E3 for the governance record.
 
-- **Captured fixture(s):** _<list filenames under `tests/fixtures/kiro_ide_hook/captured/`>_
-- **Canonical `when.type` strings observed:** _<comma-separated list>_
-- **Canonical `then.type` strings observed:** _<comma-separated list>_
-- **`ide-event-vocabulary` to declare in `adapter.toml`:**
-  _<probe-pinned list — superset of the captured `when.type` values plus any documented event names from Kiro's reference; see RFC § Pack-side source for the working list>_
-- **`ide-action-vocabulary` to declare in `adapter.toml`:**
-  _<at minimum `["askAgent", "runCommand"]` if both reachable; otherwise document the gap>_
-- **Date of observation:** _<YYYY-MM-DD>_
-- **Kiro version observed:** _<e.g. 0.2.13>_
+- **Closure method:** static analysis of `extension.js` `IDEListenableEvent` enum (2026-06-01)
+- **Captured fixture(s):** none required under RFC-0022 substitution
+- **Canonical `when.type` strings (E3 vocabulary):** `fileEdited`, `fileCreated`,
+  `fileDeleted`, `userTriggered`, `promptSubmit`, `agentStop`, `preToolUse`,
+  `postToolUse`, `preTaskExecution`, `postTaskExecution`, `sessionStart`
+- **Canonical `then.type` strings:** `askAgent`, `runCommand`
+- **`ide-event-vocabulary` declared in `adapter.toml`:** the E3 list above
+- **`ide-action-vocabulary` declared in `adapter.toml`:** `["askAgent", "runCommand"]`
+- **Date of closure:** 2026-06-01
+- **Kiro version verified against:** `extension.js` snapshot (2026-06-01)
+- **Governance reference:** RFC-0022 E3; `docs/rfc/0005-user-scope-hook-support.md` § Errata
 
 ## When both probes complete
+
+> **RFC-0022 supersedes these steps (2026-06-01).** Q11 is closed (see Outcome above).
+> Q6 is the remaining gate, now owned by T1 of the `kiro-adapter-split` spec
+> (`docs/specs/kiro-adapter-split/plan.md`). The contract version target is v0.9
+> (not v0.4 as below), and the adapter key is `kiro-ide` (not `kiro`).
+> Follow T1 in the `kiro-adapter-split` plan once the Q6 probe is run.
+> The steps below are preserved for historical reference only.
 
 1. Edit `packages/agentbundle/agentbundle/_data/adapter.toml`:
    bump `[contract] version` to `"0.4"`, add the
