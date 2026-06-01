@@ -1,10 +1,10 @@
 # RFC-0022: Split `kiro` adapter into `kiro-ide` and `kiro-cli`
 
-- **Status:** Open
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-01
-- **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Date closed:** 2026-06-01
 - **Related:**
   - [RFC-0001](0001-bundle-distribution-by-adapter-spec.md) — establishes the adapter spec + build pipeline
   - [RFC-0005](0005-user-scope-hook-support.md) — user-scope hook support; **this RFC amends it**
