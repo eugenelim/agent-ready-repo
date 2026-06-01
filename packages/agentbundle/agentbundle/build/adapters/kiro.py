@@ -464,11 +464,13 @@ def _apply_mapping(frontmatter: dict[str, Any], mapping: dict) -> dict[str, Any]
     build time so a pack-author typo (`opsus` for `opus`) doesn't
     silently ship a default-model agent.
 
-    `values` and `normalize = "to-list"` are not currently combined
-    on any rule and are not designed to compose — `to-list` runs
-    first and would convert a string scalar to a list, after which
-    the `values` lookup can only miss. Don't declare both on the
-    same field without revisiting the order."""
+    `values` composes with `normalize = "to-list"`: `to-list` runs
+    first, then `values` translates each element of the resulting list
+    (collapsing duplicates, preserving order, dropping unmapped tokens
+    with a warning). This is how the `tools` field maps Claude Code
+    tool names (`Read`, `Grep`, `Bash`, …) onto Kiro tool ids
+    (`read_file`, `grep_search`, `execute_bash`, …); the same `values`
+    map still applies to a scalar field like `model`."""
     rewritten: dict[str, Any] = {}
     for source_key, value in frontmatter.items():
         rule = mapping.get(source_key, {})
@@ -483,7 +485,31 @@ def _apply_mapping(frontmatter: dict[str, Any], mapping: dict) -> dict[str, Any]
                 value = [value]
         values_map = rule.get("values")
         if isinstance(values_map, dict):
-            if isinstance(value, str) and value in values_map:
+            if isinstance(value, list) and normalize == "to-list":
+                # Per-element translation for a declared list field (`tools`
+                # after `to-list`). Gated on `normalize == "to-list"` so a
+                # scalar field that merely *parsed* as a list (e.g. a
+                # malformed `model: [opus]`) still takes the scalar miss
+                # branch and drops. Each source token maps through the values
+                # map; an unmapped token drops with a stderr warning (it would
+                # match no Kiro tool id/tag downstream and silently yield an
+                # empty tool set). Order is preserved and duplicates collapse
+                # — e.g. `Read, Grep, Glob` all map to the `read` tag, so the
+                # output carries a single `read`.
+                mapped: list = []
+                for item in value:
+                    if item in values_map:
+                        translated = values_map[item]
+                        if translated not in mapped:
+                            mapped.append(translated)
+                    else:
+                        print(
+                            f"kiro: dropping {new_key} entry {item!r} — not in "
+                            f"contract values map for source key {source_key!r}",
+                            file=sys.stderr,
+                        )
+                value = mapped
+            elif isinstance(value, str) and value in values_map:
                 value = values_map[value]
             else:
                 print(

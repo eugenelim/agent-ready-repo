@@ -323,6 +323,16 @@ rename = "description"
 
 [frontmatter-mapping."kiro-agent-frontmatter-v0.9".tools]
 normalize = "to-list"
+# Translate Claude Code tool names to specific Kiro tool *ids*. Kiro matches
+# an agent's `tools` entries by id or tag (never by Claude Code names); we
+# prefer ids for a faithful, least-privilege 1:1 mapping rather than the
+# broad category tags (the `read` tag also grants diagnostics + read_code;
+# `write` also grants delete_file). `WebSearch` is the exception — the IDE
+# exposes no granular web-search tool id, so it maps to the `web` tag.
+# Applied per list element after `to-list`; duplicates collapse and an
+# unmapped token drops with a build-time warning. These are Kiro IDE ids;
+# the Kiro CLI's short names land in the kiro-cli adapter.
+values = { Read = "read_file", Grep = "grep_search", Glob = "file_search", Edit = "str_replace", Write = "fs_write", MultiEdit = "str_replace", Bash = "execute_bash", WebFetch = "web_fetch", WebSearch = "web" }
 
 [frontmatter-mapping."kiro-agent-frontmatter-v0.9".model]
 rename = "model"
