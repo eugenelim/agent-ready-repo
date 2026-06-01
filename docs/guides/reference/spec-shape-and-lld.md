@@ -102,6 +102,7 @@ stack**. That stack is **derived, never baked into the template**:
 
 ## See also
 
+- [`reference.md` sections and the stack-pack contract](reference-architecture.md) — the golden path this design conforms to when it's present.
 - [Why the plan owns the low-level design](../explanation/why-the-plan-owns-the-lld.md) — the reasoning behind this split.
 - [Product brief fields](product-brief-fields.md) — the sibling spec fields a brief stamps (`Brief:`, `Satisfies:`).
 - [Why a brief layer](../explanation/why-a-brief-layer.md) — where briefs sit relative to specs and plans.
