@@ -58,7 +58,7 @@ def _audit_imports(py_files: list[Path]) -> int:
     violations = 0
     for path in py_files:
         try:
-            source = path.read_text()
+            source = path.read_text(encoding="utf-8")
             tree = ast.parse(source, filename=str(path))
         except SyntaxError as exc:
             print(f"{path}:{exc.lineno}: syntax error: {exc.msg}", file=sys.stderr)

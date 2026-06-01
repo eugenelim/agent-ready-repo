@@ -269,3 +269,51 @@ companion Windows-CI work expects every new script to be `python3
 `.github/workflows/docs.yml` should match that. Bash is fine for
 *existing* gates we haven't ported yet; for anything new, default to
 Python first.
+
+## Windows / cross-OS compatibility rules
+
+These rules apply to all new code in this repo. Production code
+(`packages/agentbundle/agentbundle/`) is already clean; the rules
+exist to keep it that way and to guide test/tool code.
+
+**Encoding — always explicit:**
+
+- `Path.read_text()` and `Path.write_text()` must always pass
+  `encoding="utf-8"`. On Windows the default codepage is CP1252, not
+  UTF-8; omitting it silently corrupts or rejects markdown, JSON, and
+  TOML with non-ASCII content.
+- `open()` calls that process text content need `encoding="utf-8"` too.
+- Exception: `read_bytes()` / `write_bytes()` are inherently correct.
+
+**Symlinks — guard, don't assume:**
+
+- In test code, wrap `os.symlink()` in `try/except OSError:
+  pytest.skip("symlinks not available")`. Windows without Developer
+  Mode denies symlink creation even for admin users.
+- Production code uses the `_is_equivalent_claude_md_shape()` helper
+  (`self_host.py`) which handles three equivalent representations:
+  POSIX symlink, Windows content copy, and Git-for-Windows stub.
+
+**POSIX-only assertions — gate explicitly:**
+
+- Inode checks (`st_ino`), nanosecond mtimes (`st_mtime_ns`), and
+  permission-bit assertions are POSIX-only. Wrap them in
+  `if sys.platform != "win32":` inside the test body.
+- `os.chmod()` in test setup must be gated with `if os.name == "posix":`.
+
+**Paths — use pathlib, not string surgery:**
+
+- All path construction uses `pathlib.Path` or `os.path.join`. No
+  string concatenation with `/`. No `os.environ["HOME"]` (use
+  `Path.home()`). No hardcoded `/tmp` for real filesystem operations
+  (use `tempfile`).
+
+**Subprocess — no shell, no Unix-only tools:**
+
+- `subprocess` calls use list form, never `shell=True`.
+- Do not invoke `which`, `grep`, `find`, `sed`, `awk`, `make`, `sh`,
+  or `bash` via subprocess in portable code; use Python equivalents.
+
+The `.github/workflows/build-check-windows.yml` CI job validates the
+portable subset. A first systematic sweep (tools + test files) was
+done in 2026-06.
