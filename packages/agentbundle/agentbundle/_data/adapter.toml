@@ -19,9 +19,15 @@
 # frontmatter-v0.8` mapping. Dropped-primitives warning rail introduced
 # in `agentbundle install` for any (adapter, pack) pair where the
 # resolved adapter projects a primitive type the pack ships as `dropped`.
+# RFC-0022 / docs/specs/kiro-adapter-split (v0.9): kiro adapter split into
+# `kiro-ide` (IDE, .md agents, kiro-ide-hook active, flat path confirmed by
+# Q6 probe no×yes 2026-06-01) and `kiro-cli` (CLI binary, .json agents,
+# hook-wiring retained). `kiro` retained as deprecated alias for `kiro-ide`.
+# `kiro-ide-hook` primitive activated; `kiro-ide-agent-frontmatter-v0.9` renamed
+# to `kiro-ide-agent-frontmatter-v0.9`.
 
 [contract]
-version = "0.8"
+version = "0.9"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -47,6 +53,11 @@ source-path = ".apm/hook-wiring/"
 
 [primitive.command]
 source-path = ".apm/commands/"
+
+# RFC-0022 / kiro-ide-hook: standalone IDE event hook files (.kiro.hook JSON).
+# Activated at v0.9 for the kiro-ide adapter; dropped for kiro-cli and others.
+[primitive."kiro-ide-hook"]
+source-path = ".apm/kiro-ide-hooks/"
 
 # RFC-0013 § 4c — `shared-libs/` carries Python sibling files that the
 # build pipeline projects into every consumer skill declaring
@@ -175,7 +186,7 @@ on-conflict = "prompt-then-preserve"
 primitive = "agent"
 mode = "direct-file"
 target-path = ".kiro/agents/"
-frontmatter-mapping = "kiro-agent-frontmatter-v0.9"
+frontmatter-mapping = "kiro-ide-agent-frontmatter-v0.9"
 on-conflict = "prompt-then-preserve"
 
 [[adapter.kiro.projection]]
@@ -224,6 +235,79 @@ user = "~"
 # RFC-0012: Kiro projects skills/agents to `.kiro/`; hook bodies land in the
 # legacy `tools/hooks/` at repo scope (matching the contract's hook-body
 # array entry above).
+allowed-prefixes.repo = [".kiro/", ".agentbundle/", "tools/hooks/"]
+allowed-prefixes.user = [".kiro/", ".agentbundle/"]
+
+# ---------------------------------------------------------------------------
+# kiro-ide adapter — targets the Kiro VS Code-fork IDE (RFC-0022).
+#
+# Projects agents as `.md` (gray-matter YAML frontmatter + body); the IDE
+# reads `.kiro/agents/<name>.md` via its gray-matter loader. hook-wiring is
+# DROPPED — the IDE loader silently drops any agent carrying a `hooks` key
+# (RFC-0022 E2). kiro-ide-hook is ACTIVATED with the flat path confirmed by
+# Q6 probe (no-recursion, yes-extension-filter, 2026-06-01, Kiro 0.12.224):
+# `.kiro/hooks/<pack>--<name>.kiro.hook`. RFC-0022 assumed yes-recursion;
+# T1 carries the corrected no-recursion flat path (no T-E1b fires).
+# ---------------------------------------------------------------------------
+
+[[adapter.kiro-ide.projection]]
+primitive = "skill"
+mode = "direct-directory"
+target-path = ".kiro/skills/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.kiro-ide.projection]]
+primitive = "agent"
+mode = "direct-file"
+target-path = ".kiro/agents/"
+frontmatter-mapping = "kiro-ide-agent-frontmatter-v0.9"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.kiro-ide.projection]]
+primitive = "hook-body"
+mode = "direct-file"
+target-path = "tools/hooks/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.kiro-ide.projection]]
+primitive = "hook-wiring"
+mode = "dropped"
+
+[[adapter.kiro-ide.projection]]
+primitive = "command"
+mode = "dropped"
+
+# hook-body — scope-conditional target (RFC-0005 § hook-body at user scope).
+[adapter.kiro-ide.projections.hook-body]
+mode = "direct-file"
+target.repo = "tools/hooks/<name>.{sh,py}"
+target.user = ".kiro/hooks/<name>.{sh,py}"
+on-conflict = "prompt-then-preserve"
+
+# kiro-ide-hook — activated for the IDE target (Q6 probe: no-recursion,
+# yes-extension-filter). Flat path uses `<pack>--<name>` prefix separator
+# so pack hooks coexist in the single flat `.kiro/hooks/` directory.
+[adapter.kiro-ide.projections.kiro-ide-hook]
+mode = "direct-file"
+target.repo = ".kiro/hooks/<pack>--<name>.kiro.hook"
+ide-event-vocabulary = [
+  "fileEdited",
+  "fileCreated",
+  "fileDeleted",
+  "userTriggered",
+  "promptSubmit",
+  "agentStop",
+  "preToolUse",
+  "postToolUse",
+  "preTaskExecution",
+  "postTaskExecution",
+  "sessionStart",
+]
+ide-action-vocabulary = ["askAgent", "runCommand"]
+
+[adapter.kiro-ide.scope]
+repo = "."
+user = "~"
 allowed-prefixes.repo = [".kiro/", ".agentbundle/", "tools/hooks/"]
 allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 
@@ -388,12 +472,12 @@ allowed-prefixes.user = [".agents/skills/", ".codex/", ".agentbundle/"]
 
 # Kiro agent frontmatter v0.9: renames Claude Code agent fields to Kiro's schema.
 # Adapters consume this table generically; no field dictionary hardcoded in Python.
-[frontmatter-mapping."kiro-agent-frontmatter-v0.9"]
+[frontmatter-mapping."kiro-ide-agent-frontmatter-v0.9"]
 
-[frontmatter-mapping."kiro-agent-frontmatter-v0.9".description]
+[frontmatter-mapping."kiro-ide-agent-frontmatter-v0.9".description]
 rename = "description"
 
-[frontmatter-mapping."kiro-agent-frontmatter-v0.9".tools]
+[frontmatter-mapping."kiro-ide-agent-frontmatter-v0.9".tools]
 normalize = "to-list"
 # Translate Claude Code tool names to specific Kiro tool *ids*. Kiro matches
 # an agent's `tools` entries by id or tag (never by Claude Code names); we
@@ -406,7 +490,7 @@ normalize = "to-list"
 # the Kiro CLI's short names land in the kiro-cli adapter.
 values = { Read = "read_file", Grep = "grep_search", Glob = "file_search", Edit = "str_replace", Write = "fs_write", MultiEdit = "str_replace", Bash = "execute_bash", WebFetch = "web_fetch", WebSearch = "web" }
 
-[frontmatter-mapping."kiro-agent-frontmatter-v0.9".model]
+[frontmatter-mapping."kiro-ide-agent-frontmatter-v0.9".model]
 rename = "model"
 # Translate Claude Code's friendly aliases to Kiro's documented model IDs
 # (https://kiro.dev/docs/cli/custom-agents/configuration-reference/). A
@@ -418,7 +502,7 @@ values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "clau
 # kiro-cli agent frontmatter v1.0 (RFC-0022): rewrite rules from Claude Code
 # agent markdown to Kiro CLI JSON. Tools map to CLI short-names (not IDE ids).
 # The `kiro` CLI matches agents' `tools` entries by short name; the IDE uses
-# ids — hence the separate table rather than reusing kiro-agent-frontmatter-v0.9.
+# ids — hence the separate table rather than reusing kiro-ide-agent-frontmatter-v0.9.
 [frontmatter-mapping."kiro-cli-agent-frontmatter-v1.0"]
 
 [frontmatter-mapping."kiro-cli-agent-frontmatter-v1.0".description]

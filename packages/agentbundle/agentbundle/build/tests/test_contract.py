@@ -64,10 +64,8 @@ NO_WRITE_MODES = {"degraded-info-log", "dropped"}
 # All five primitive names.
 ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
-# All reference adapter names (RFC-0022: kiro-cli added; kiro retained as alias).
-# NOTE: add "kiro-ide" here when T1 lands (post-Q6 probe) and adds
-# [adapter.kiro-ide] to adapter.toml.
-ALL_ADAPTERS = {"claude-code", "kiro", "kiro-cli", "copilot", "codex"}
+# All reference adapter names (RFC-0022: kiro-ide and kiro-cli added; kiro retained as alias).
+ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "codex"}
 
 # Extra primitives that are kiro-specific and OK to declare in kiro-family
 # adapter blocks without failing the "no extra primitives" check.
@@ -142,16 +140,18 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         coexists with its v0.3 table) count once per adapter, matching the
         "primitive coverage" semantic.
 
-        RFC-0022: kiro-cli added (+5 standard + 1 kiro-ide-hook = +6).
-        Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-cli) + 5 (copilot)
-               + 5 (codex) = 26. Class name preserved to avoid churn.
+        RFC-0022 T1: kiro-ide added (+5 standard + 1 kiro-ide-hook = +6),
+        kiro-cli carries kiro-ide-hook dropped (+6). Plus kiro-ide adds
+        hook-wiring dropped to its array_form, which is already counted.
+        Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-ide) + 6 (kiro-cli)
+               + 5 (copilot) + 5 (codex) = 32. Class name preserved.
         """
         total = 0
         for adapter_block in self.contract["adapter"].values():
             array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
             table_form = set(adapter_block.get("projections", {}).keys())
             total += len(array_form | table_form)
-        self.assertEqual(total, 26, f"expected 26 pairs total, got {total}")
+        self.assertEqual(total, 32, f"expected 32 pairs total, got {total}")
 
 
 class ModeEnumTests(unittest.TestCase):
@@ -328,9 +328,9 @@ class FrontmatterTableTests(unittest.TestCase):
     def test_kiro_frontmatter_mapping_present(self) -> None:
         mapping = self.contract.get("frontmatter-mapping", {})
         self.assertIn(
-            "kiro-agent-frontmatter-v0.9",
+            "kiro-ide-agent-frontmatter-v0.9",
             mapping,
-            "frontmatter-mapping.kiro-agent-frontmatter-v0.9 not found in contract",
+            "frontmatter-mapping.kiro-ide-agent-frontmatter-v0.9 not found in contract",
         )
 
     def test_kiro_frontmatter_mapping_validates_against_schema(self) -> None:
@@ -413,14 +413,15 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.8"
-        (bumped from "0.7" by docs/specs/dropped-primitives-coverage —
-        codex `agent` + `hook-wiring` move from `dropped` to first-class).
+        """tomllib.loads of adapter.toml returns contract.version == "0.9"
+        (bumped from "0.8" by RFC-0022 kiro-adapter-split T1: kiro-ide adapter
+        declared, kiro-ide-hook primitive activated, frontmatter mapping renamed).
+        Class name preserved to avoid churn.
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.8",
-            "adapter.toml [contract] version must be '0.8' after dropped-primitives-coverage bump",
+            "0.9",
+            "adapter.toml [contract] version must be '0.9' after kiro-adapter-split T1",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:
@@ -437,7 +438,7 @@ class ContractV05Tests(unittest.TestCase):
         guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
         those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
         RFC-0022: kiro-ide and kiro-cli added to the checked set."""
-        for adapter_name in ("kiro", "kiro-cli", "copilot", "codex"):
+        for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "codex"):
             adapter_block = self.contract["adapter"].get(adapter_name, {})
             self.assertNotIn(
                 "install-routes",
