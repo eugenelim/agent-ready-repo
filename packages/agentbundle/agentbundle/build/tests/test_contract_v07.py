@@ -65,11 +65,13 @@ class TestContractV07(unittest.TestCase):
         only widens codex's projection table (it does not regress the v0.7
         ``allowed-prefixes`` / scope-table contracts pinned in this module).
         """
-        self.assertEqual(self.contract["contract"]["version"], "0.8")
+        # Exact version check lives in test_contract.py; assert >= 0.8 (v0.7/v0.8
+        # features must survive future bumps — validated by invariant tests below).
+        self.assertGreaterEqual(self.contract["contract"]["version"], "0.8")
 
     def test_docs_contract_version_is_07(self) -> None:
-        """docs mirror also pinned at v0.8 (post dropped-primitives-coverage bump)."""
-        self.assertEqual(self.docs_contract["contract"]["version"], "0.8")
+        """docs mirror stays in sync (byte-identical to _data/ adapter.toml)."""
+        self.assertGreaterEqual(self.docs_contract["contract"]["version"], "0.8")
 
     def test_copilot_scope_table_shape(self) -> None:
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")

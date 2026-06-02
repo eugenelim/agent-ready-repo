@@ -263,7 +263,7 @@ def run(args) -> int:
         ide_hook_refusal = check_kiro_ide_hook(
             pack_path=pack_path,
             pack_name=pack_name,
-            target_adapters=("kiro",),
+            target_adapters=("kiro", "kiro-ide"),  # "kiro" alias + canonical name
             ide_event_vocabulary=ide_event_vocab,
             ide_action_vocabulary=ide_action_vocab,
         )
@@ -434,7 +434,9 @@ def _kiro_ide_hook_vocabularies() -> tuple[list[str] | None, list[str] | None]:
         if not contract_path.exists():
             return None, None
     contract = load_contract(contract_path)
-    kiro = contract.get("adapter", {}).get("kiro", {})
+    adapters = contract.get("adapter", {})
+    # Prefer the kiro-ide block (v0.9+); fall back to kiro alias (pre-T1).
+    kiro = adapters.get("kiro-ide") or adapters.get("kiro") or {}
     projections = kiro.get("projections", {}) if isinstance(kiro, dict) else {}
     rule = projections.get("kiro-ide-hook", {}) if isinstance(projections, dict) else {}
 

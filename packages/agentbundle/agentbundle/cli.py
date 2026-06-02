@@ -195,7 +195,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- list-targets --- (--scope as read-only filter)
     sp = subparsers.add_parser(
         "list-targets",
-        help="List adapter targets the CLI supports (claude-code, kiro, copilot, codex).",
+        help="List adapter targets the CLI supports (claude-code, kiro-ide, kiro-cli, kiro (deprecated → kiro-ide), copilot, codex).",
     )
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.set_defaults(func=_lazy("list_targets"))
@@ -293,7 +293,8 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument(
         "--target",
         help=(
-            "Optional adapter target (claude-code, kiro, copilot, codex); "
+            "Optional adapter target (claude-code, kiro-ide, kiro-cli, "
+            "kiro (deprecated → kiro-ide), copilot, codex); "
             "underscore form also accepted (claude_code); default: all."
         ),
     )
