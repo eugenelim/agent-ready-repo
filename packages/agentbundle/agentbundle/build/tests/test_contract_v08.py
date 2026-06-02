@@ -63,10 +63,15 @@ class TestContractV08(unittest.TestCase):
         self.schema = json.loads(DATA_SCHEMA_PATH.read_text(encoding="utf-8"))
 
     def test_contract_version_is_08(self) -> None:
-        self.assertEqual(self.contract["contract"]["version"], "0.8")
+        # v0.8 features are present; exact version check lives in test_contract.py.
+        # The v0.8 features (codex-agent-toml, codex-agent-frontmatter-v0.8) must
+        # survive future bumps — verify via the codex-specific tests below.
+        version = self.contract["contract"]["version"]
+        self.assertGreaterEqual(version, "0.8", "contract version must be >= 0.8")
 
     def test_docs_contract_version_is_08(self) -> None:
-        self.assertEqual(self.docs_contract["contract"]["version"], "0.8")
+        version = self.docs_contract["contract"]["version"]
+        self.assertGreaterEqual(version, "0.8", "docs contract version must be >= 0.8")
 
     def test_codex_agent_projection(self) -> None:
         entry = _codex_projection(self.contract, "agent")

@@ -580,7 +580,8 @@ def check_kiro_ide_hook(
         vocabulary).
       ide_action_vocabulary: same shape, for ``then.type``.
     """
-    if "kiro" not in set(target_adapters or ()):
+    _kiro_family = {"kiro", "kiro-ide"}
+    if not _kiro_family.intersection(set(target_adapters or ())):
         return None
 
     import json

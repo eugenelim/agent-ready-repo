@@ -411,7 +411,8 @@ explicit recovery gesture.
 ## v0.4 kiro-ide-hook primitive (RFC-0005)
 
 The v0.4 contract bump (RFC-0005) extends the CLI surface with the
-new `kiro-ide-hook` primitive. The primitive carries Kiro's
+new `kiro-ide-hook` primitive. (Code shipped in PR #99; contract activation deferred to RFC-0022.)
+The primitive carries Kiro's
 standalone IDE-event hooks — `.kiro.hook` JSON files Kiro reads on
 file create / save / delete, prompt submit, agent stop, and tool /
 task events. The full design lives in

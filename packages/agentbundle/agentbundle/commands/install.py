@@ -2108,7 +2108,7 @@ def _render_for_user_scope(
     """
     import tempfile
 
-    from agentbundle.build.adapters import claude_code, codex, kiro
+    from agentbundle.build.adapters import claude_code, codex, kiro, kiro_cli, kiro_ide
     from agentbundle.build.main import _read_bundled
     from agentbundle.render import _collect_tree
 
@@ -2127,6 +2127,10 @@ def _render_for_user_scope(
         out = Path(raw)
         if target_adapter == "kiro":
             kiro.project(pack_dir, contract, out)
+        elif target_adapter == "kiro-ide":
+            kiro_ide.project(pack_dir, contract, out)
+        elif target_adapter == "kiro-cli":
+            kiro_cli.project(pack_dir, contract, out)
         elif target_adapter == "codex":
             codex.project(pack_dir, contract, out)
         elif target_adapter == "claude-code":
@@ -2171,7 +2175,7 @@ def _render_for_repo_scope(
     """
     import tempfile
 
-    from agentbundle.build.adapters import claude_code, codex, copilot, kiro
+    from agentbundle.build.adapters import claude_code, codex, copilot, kiro, kiro_cli, kiro_ide
     from agentbundle.build.main import _read_bundled
     from agentbundle.render import _collect_tree
 
@@ -2190,6 +2194,10 @@ def _render_for_repo_scope(
         out = Path(raw)
         if target_adapter == "kiro":
             kiro.project(pack_dir, contract, out)
+        elif target_adapter == "kiro-ide":
+            kiro_ide.project(pack_dir, contract, out)
+        elif target_adapter == "kiro-cli":
+            kiro_cli.project(pack_dir, contract, out)
         elif target_adapter == "codex":
             codex.project(pack_dir, contract, out)
         elif target_adapter == "claude-code":
@@ -2293,6 +2301,8 @@ def _user_scope_adapter_probes() -> dict[str, "Callable[[Path], bool]"]:
     return {
         "claude-code": lambda home: (home / ".claude").exists(),
         "kiro":        lambda home: (home / ".kiro").exists(),
+        "kiro-ide":    lambda home: (home / ".kiro").exists(),
+        "kiro-cli":    lambda home: (home / ".kiro").exists(),
         "codex":       lambda home: (
             (home / ".codex").exists()
             or (home / ".agents" / "skills").exists()
