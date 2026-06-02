@@ -44,8 +44,10 @@ class ContractVersionTests(unittest.TestCase):
     hook-wiring move from `dropped` to first-class projections)."""
 
     def test_contract_version_is_0_5(self) -> None:
+        # Class/method name preserved; exact version lives in test_contract.py.
+        # Assert >= 0.8 so v0.8 scope features survive future bumps.
         contract = _load_contract()
-        self.assertEqual(contract["contract"]["version"], "0.8")
+        self.assertGreaterEqual(contract["contract"]["version"], "0.8")
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):

@@ -2,8 +2,8 @@
 
 Verifies:
   - adapter.toml validates against adapter.schema.json (AC 1).
-  - Every (5 primitives × 4 adapters) = 20 pairs is present — no missing,
-    no extra (AC 1).
+  - Every (5 standard primitives × 6 adapters) = 30 standard pairs present;
+    kiro-ide and kiro-cli each add kiro-ide-hook = 32 total (RFC-0022).
   - The mode enum in adapter.schema.json contains exactly the seven RFC-0001 modes;
     unknown modes are rejected (AC 2).
   - Every projection entry carries an on-conflict value from the legal set,
@@ -11,10 +11,11 @@ Verifies:
     which are no-write/no-output and carry no on-conflict (AC 2).
   - hook-wiring primitive's source-path is .apm/hook-wiring/.
   - command primitive's source-path is .apm/commands/; Claude Code projects
-    direct-file; Copilot/Codex/Kiro are dropped.
-  - frontmatter-mapping table for kiro-agent-frontmatter-v0.9 validates
-    against schema; frontmatter-default table for copilot-instruction
-    validates and is structurally distinct.
+    direct-file; Copilot/Codex/Kiro-family are dropped.
+  - frontmatter-mapping table for kiro-ide-agent-frontmatter-v0.9 validates
+    against schema (renamed from kiro-agent-frontmatter-v0.9 in T1);
+    frontmatter-default table for copilot-instruction validates and is
+    structurally distinct.
 """
 
 from __future__ import annotations

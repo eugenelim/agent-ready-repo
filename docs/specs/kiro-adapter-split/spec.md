@@ -1,6 +1,6 @@
 # Spec: kiro-adapter-split
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -70,51 +70,51 @@ The contract bumps from v0.8 to v0.9. Errata E1–E3 are appended to RFC-0005 (T
 
 ### Prerequisite doc changes (T9, T10)
 
-- [ ] RFC-0005 `## Errata` table appended with E1, E2, E3, Approver-signed (eugenelim, date of merge) (T9)
-- [ ] `docs/specs/kiro-ide-hook/probes.md` Q11 Outcome updated: RFC-0022 closes Q11 via static analysis of `extension.js` `IDEListenableEvent` enum; no IDE-UI-authored fixture required; E3 vocabulary recorded (T10)
+- [x] RFC-0005 `## Errata` table appended with E1, E2, E3, Approver-signed (eugenelim, date of merge) (T9)
+- [x] `docs/specs/kiro-ide-hook/probes.md` Q11 Outcome updated: RFC-0022 closes Q11 via static analysis of `extension.js` `IDEListenableEvent` enum; no IDE-UI-authored fixture required; E3 vocabulary recorded (T10)
 
 ### Contract and `kiro-ide` adapter (T1) — depends on Q6 probe + T9
 
-- [ ] `[contract] version` is `"0.9"` in `adapter.toml` (T1)
-- [ ] `[adapter.kiro-ide]` block declared with `.md` projection, repo-scope `kiro-ide-hook` activation, no CLI-only fields (T1)
-- [ ] `kiro-ide-agent-frontmatter-v0.9` mapping table (renamed from `kiro-agent-frontmatter-v0.9`); all call sites in `kiro.py` updated to the new name (T1)
-- [ ] `ide-event-vocabulary` in `kiro-ide` block matches E3 list: `fileEdited`, `fileCreated`, `fileDeleted`, `userTriggered`, `promptSubmit`, `agentStop`, `preToolUse`, `postToolUse`, `preTaskExecution`, `postTaskExecution`, `sessionStart` (T1)
-- [ ] `ide-action-vocabulary` in `kiro-ide` block: `["askAgent", "runCommand"]` (T1)
-- [ ] Q6 probe outcome recorded in `probes.md` before T1 merges (T1 gate)
+- [x] `[contract] version` is `"0.9"` in `adapter.toml` (T1)
+- [x] `[adapter.kiro-ide]` block declared with `.md` projection, repo-scope `kiro-ide-hook` activation, no CLI-only fields (T1)
+- [x] `kiro-ide-agent-frontmatter-v0.9` mapping table (renamed from `kiro-agent-frontmatter-v0.9`); all call sites in `kiro.py` updated to the new name (T1)
+- [x] `ide-event-vocabulary` in `kiro-ide` block matches E3 list: `fileEdited`, `fileCreated`, `fileDeleted`, `userTriggered`, `promptSubmit`, `agentStop`, `preToolUse`, `postToolUse`, `preTaskExecution`, `postTaskExecution`, `sessionStart` (T1)
+- [x] `ide-action-vocabulary` in `kiro-ide` block: `["askAgent", "runCommand"]` (T1)
+- [x] Q6 probe outcome recorded in `probes.md` before T1 merges (T1 gate)
 
 ### Validate rail (T2) — depends on T9
 
-- [ ] `kiro_ide_hook.py` validate rail updated to E3 vocabulary (T2)
-- [ ] `scope_rails.py` `check_kiro_ide_hook` updated to E3 vocabulary (T2)
+- [x] `kiro_ide_hook.py` validate rail updated to E3 vocabulary (T2)
+- [x] `scope_rails.py` `check_kiro_ide_hook` updated to E3 vocabulary (T2)
 
 ### `kiro-cli` adapter (T3)
 
-- [ ] `[adapter.kiro-cli]` block declared with `.json` projection and `hook-wiring` retained (T3)
-- [ ] `kiro-cli-agent-frontmatter-v1.0` mapping table with CLI short-name `tools.values`: `Read→read`, `Grep→grep`, `Glob→glob`, `Edit→write`, `Write→write`, `MultiEdit→write`, `Bash→shell`, `WebFetch→web_fetch`, `WebSearch→web_search` (T3)
-- [ ] `kiro-ide-hook` is `mode = "dropped"` in `kiro-cli` block (T3)
+- [x] `[adapter.kiro-cli]` block declared with `.json` projection and `hook-wiring` retained (T3)
+- [x] `kiro-cli-agent-frontmatter-v1.0` mapping table with CLI short-name `tools.values`: `Read→read`, `Grep→grep`, `Glob→glob`, `Edit→write`, `Write→write`, `MultiEdit→write`, `Bash→shell`, `WebFetch→web_fetch`, `WebSearch→web_search` (T3)
+- [x] `kiro-ide-hook` is `mode = "dropped"` in `kiro-cli` block (T3)
 
 ### `kiro` deprecated alias (T4)
 
-- [ ] `[adapter.kiro]` stub block retained in `adapter.toml` with deprecation comment (T4)
-- [ ] Python adapter registry maps `"kiro"` → `kiro_ide.project` (T4)
-- [ ] Deprecation warning logged on alias resolution: `"kiro: deprecated alias for kiro-ide; update allowed-adapters in pack.toml"` (T4)
+- [x] `[adapter.kiro]` stub block retained in `adapter.toml` with deprecation comment (T4)
+- [x] Python adapter registry maps `"kiro"` → `kiro_ide.project` (T4)
+- [x] Deprecation warning logged on alias resolution: `"kiro: deprecated alias for kiro-ide; update allowed-adapters in pack.toml"` (T4)
 
 ### Spec corrections (T5, T6)
 
-- [ ] `distribution-adapters/spec.md` footnote (lines 214–218) corrected: `kiro-ide` projects `.md`, `kiro-cli` projects `.json`, IDE accepts both (T5)
-- [ ] `distribution-adapters/spec.md` primitive table agent row and hook-wiring row updated to reflect the split (T5)
-- [ ] `agent-spec-cli/spec.md` §v0.4 carries clarification: "Code shipped in PR #99; contract activation deferred to RFC-0022" (T6)
+- [x] `distribution-adapters/spec.md` footnote (lines 214–218) corrected: `kiro-ide` projects `.md`, `kiro-cli` projects `.json`, IDE accepts both (T5)
+- [x] `distribution-adapters/spec.md` primitive table agent row and hook-wiring row updated to reflect the split (T5)
+- [x] `agent-spec-cli/spec.md` §v0.4 carries clarification: "Code shipped in PR #99; contract activation deferred to RFC-0022" (T6)
 
 ### CLI help text (T7)
 
-- [ ] `cli.py` adapter help-text string names all five adapters with deprecation note for `kiro` (T7)
+- [x] `cli.py` adapter help-text string names all five adapters with deprecation note for `kiro` (T7)
 
 ### Test suite (T8) — depends on T1, T2, T3, T4
 
-- [ ] `test_adapter_kiro.py` (or equivalent) updated: covers `kiro` alias + `kiro-ide` canonical projection, asserts no CLI-only keys in `kiro-ide` output (T8)
-- [ ] `test_contract.py` asserts `"0.9"` (T8)
-- [ ] `kiro_ide_hook` tests updated to E3 vocabulary (T8)
-- [ ] Contract drift gate (`make build-check`) passes with all new adapter declarations (T8)
+- [x] `test_adapter_kiro.py` (or equivalent) updated: covers `kiro` alias + `kiro-ide` canonical projection, asserts no CLI-only keys in `kiro-ide` output (T8)
+- [x] `test_contract.py` asserts `"0.9"` (T8)
+- [x] `kiro_ide_hook` tests updated to E3 vocabulary (T8)
+- [x] Contract drift gate (`make build-check`) passes with all new adapter declarations (T8)
 
 ## Changelog
 

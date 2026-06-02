@@ -56,11 +56,9 @@ class KiroAliasTests(unittest.TestCase):
 
             kiro_ide.project(pack, self.contract, out_kiro_ide)
 
-            # NOTE: pre-T1 stub — both project to .json (current kiro.py
-            # behavior). When T1 lands, kiro_ide.project will emit .md instead;
-            # update these paths to foo.md and adjust the comparison accordingly.
-            alias_json = (out_kiro / ".kiro" / "agents" / "foo.json").read_bytes()
-            ide_json = (out_kiro_ide / ".kiro" / "agents" / "foo.json").read_bytes()
+            # T1 landed: kiro_ide.project emits .md (gray-matter format).
+            alias_json = (out_kiro / ".kiro" / "agents" / "foo.md").read_bytes()
+            ide_json = (out_kiro_ide / ".kiro" / "agents" / "foo.md").read_bytes()
             self.assertEqual(
                 alias_json,
                 ide_json,

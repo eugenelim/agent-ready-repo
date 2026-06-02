@@ -1,4 +1,11 @@
-"""Kiro adapter — projects primitives in the v0.3 phase order.
+"""Kiro adapter — underlying JSON projection shared by kiro-cli and the kiro alias.
+
+RFC-0022: the `kiro` contract adapter is a deprecated alias for `kiro-ide`.
+This module (`kiro.py`) now serves as the shared implementation layer used by:
+  - `kiro_cli.py` — CLI target, JSON agents with CLI short-name tool tokens.
+  - `kiro_ide.py` — imports `_split_frontmatter`, `_apply_mapping`, and the
+    direct-file helpers; overrides agent projection to emit `.md`.
+  - `kiro` alias — deprecated alias that calls `kiro_ide.project`.
 
 Per RFC-0005 § Build-pipeline ordering invariant, primitives project in
 the fixed order **`hook-body` → `agent` → `hook-wiring` → `command` →
@@ -6,13 +13,9 @@ the fixed order **`hook-body` → `agent` → `hook-wiring` → `command` →
 `merge-into-agent-json` projection reads the agent JSON the agent
 primitive's projection wrote — agents must land first.
 
-Agents project as `.kiro/agents/<name>.json` per Kiro's documented
-schema (https://kiro.dev/docs/cli/custom-agents/configuration-reference/),
-**not** as `.md` with frontmatter. The pack-side source format stays
-`.apm/agents/<name>.md` with frontmatter; this adapter parses the
-markdown body + frontmatter and emits JSON with the documented Kiro
-fields (`name`, `description`, `tools`, `model`, `prompt`). The
-`kiro-agent-frontmatter-v0.9` mapping table is reinterpreted as
+When used directly (for the kiro alias / kiro-cli path), agents project as
+`.kiro/agents/<name>.json`. The `kiro-ide-agent-frontmatter-v0.9` mapping
+table (renamed from `kiro-agent-frontmatter-v0.9` in T1) is reinterpreted as
 *frontmatter-key → JSON-field* rather than *frontmatter → frontmatter*.
 
 Hook-wiring projection delegates to
@@ -238,7 +241,7 @@ def _project_agent_as_json(
       - `name`: derived from the source filename (without `.md`),
         or overridden by a `name` frontmatter field if present.
       - `description`: frontmatter `description` (renamed per the
-        contract's `kiro-agent-frontmatter-v0.9` mapping).
+        contract's `kiro-ide-agent-frontmatter-v0.9` mapping).
       - `tools`: frontmatter `tools` normalized to a list.
       - `model`: frontmatter `model`, if declared.
       - `prompt`: the markdown body after the closing `---` fence.
@@ -454,7 +457,7 @@ def _parse_frontmatter(lines: list[str]) -> dict[str, Any]:
 
 
 def _apply_mapping(frontmatter: dict[str, Any], mapping: dict) -> dict[str, Any]:
-    """Apply the contract's `kiro-agent-frontmatter-v0.9` rename /
+    """Apply the contract's `kiro-ide-agent-frontmatter-v0.9` rename /
     normalize / values / default rules. Interpreted as
     *markdown-frontmatter → JSON-field*.
 
