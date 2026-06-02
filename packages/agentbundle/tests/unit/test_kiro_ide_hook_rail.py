@@ -19,31 +19,27 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 
-# Pre-probe synthetic vocabulary — pinned by these tests only to
-# exercise the rail's membership-check shape, NOT to assert which
-# spellings are canonical. RFC-0005 § Unresolved Q11 explicitly
-# defers the canonical list to a captured IDE-UI-authored fixture;
-# T-CONTRACT reconciles to whatever Q11 captures and updates the
-# vocabulary entries in `adapter.toml`. These tests stay correct
-# regardless — they assert "any string outside this list refuses"
-# and "any string inside this list passes".
+# E3 vocabulary — closed by RFC-0022 via static analysis of
+# extension.js IDEListenableEvent enum (2026-06-01). Supersedes the
+# RFC-0005 best-guess list (fileSave/fileEdit/manualTrigger).
+# See RFC-0005 § Errata, E3 and probes.md Q11 Outcome.
 KIRO_EVENT_VOCAB = [
+    "fileEdited",
     "fileCreated",
-    "fileEdit",
-    "fileSave",
     "fileDeleted",
+    "userTriggered",
     "promptSubmit",
     "agentStop",
     "preToolUse",
     "postToolUse",
     "preTaskExecution",
     "postTaskExecution",
-    "manualTrigger",
+    "sessionStart",
 ]
 KIRO_ACTION_VOCAB = ["askAgent", "runCommand"]
 
 
-def _ask_agent_hook(*, name="Lint on save", when_type="fileSave",
+def _ask_agent_hook(*, name="Lint on save", when_type="fileEdited",
                     then_type="askAgent", prompt="Run ruff.",
                     version="1", drop: str | None = None) -> dict:
     """Build a valid askAgent .kiro.hook body; ``drop`` removes a top-level key."""
@@ -64,7 +60,7 @@ def _run_command_hook(command: str = "${hook-body:lint}") -> dict:
         "name": "Lint on save (runCommand)",
         "description": "Synthetic runCommand hook.",
         "version": "1",
-        "when": {"type": "fileSave", "patterns": ["**/*.py"]},
+        "when": {"type": "fileEdited", "patterns": ["**/*.py"]},
         "then": {"type": "runCommand", "command": command},
     }
 
@@ -276,6 +272,65 @@ class PlaceholderScanFencedToCommand(unittest.TestCase):
             body = _ask_agent_hook(prompt="The marker ${hook-body:unknown} is just text.")
             pack = _make_pack(Path(raw), hooks={"hook.kiro.hook": body})
             self.assertIsNone(_run_rail(pack))
+
+
+class E3VocabularyTests(unittest.TestCase):
+    """T2 (RFC-0022): E3 vocabulary replaces the RFC-0005 best-guess list.
+
+    Old terms (fileSave, fileEdit, manualTrigger) must be rejected;
+    E3 terms (fileEdited, sessionStart, etc.) must be accepted.
+    """
+
+    def test_old_vocabulary_rejected(self) -> None:
+        """fileSave is not in the E3 vocabulary — must be refused."""
+        with TemporaryDirectory() as raw:
+            pack = _make_pack(
+                Path(raw),
+                hooks={"hook.kiro.hook": _ask_agent_hook(when_type="fileSave")},
+            )
+            refusal = _run_rail(pack)
+            self.assertIsNotNone(refusal, "fileSave must be refused with E3 vocabulary")
+            self.assertIn("fileSave", refusal)
+            self.assertIn("ide-event-vocabulary", refusal)
+
+    def test_old_vocabulary_rejected_file_edit(self) -> None:
+        """fileEdit and manualTrigger are not in the E3 vocabulary."""
+        with TemporaryDirectory() as raw:
+            pack = _make_pack(
+                Path(raw),
+                hooks={"hook.kiro.hook": _ask_agent_hook(when_type="fileEdit")},
+            )
+            refusal = _run_rail(pack)
+            self.assertIsNotNone(refusal, "fileEdit must be refused with E3 vocabulary")
+            self.assertIn("fileEdit", refusal)
+
+        with TemporaryDirectory() as raw:
+            pack = _make_pack(
+                Path(raw),
+                hooks={"hook.kiro.hook": _ask_agent_hook(when_type="manualTrigger")},
+            )
+            refusal = _run_rail(pack)
+            self.assertIsNotNone(refusal, "manualTrigger must be refused with E3 vocabulary")
+            self.assertIn("manualTrigger", refusal)
+
+    def test_e3_vocabulary_accepted(self) -> None:
+        """fileEdited is in the E3 vocabulary — must pass."""
+        with TemporaryDirectory() as raw:
+            pack = _make_pack(
+                Path(raw),
+                hooks={"hook.kiro.hook": _ask_agent_hook(when_type="fileEdited")},
+            )
+            self.assertIsNone(_run_rail(pack), "fileEdited must pass with E3 vocabulary")
+
+    def test_e3_session_start_accepted(self) -> None:
+        """sessionStart is the last term in the E3 list — most likely to be
+        truncated in a copy-paste error; pin it explicitly."""
+        with TemporaryDirectory() as raw:
+            pack = _make_pack(
+                Path(raw),
+                hooks={"hook.kiro.hook": _ask_agent_hook(when_type="sessionStart")},
+            )
+            self.assertIsNone(_run_rail(pack), "sessionStart must pass with E3 vocabulary")
 
 
 if __name__ == "__main__":

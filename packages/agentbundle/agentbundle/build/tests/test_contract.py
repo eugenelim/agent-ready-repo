@@ -2,8 +2,8 @@
 
 Verifies:
   - adapter.toml validates against adapter.schema.json (AC 1).
-  - Every (5 primitives × 4 adapters) = 20 pairs is present — no missing,
-    no extra (AC 1).
+  - Every (5 standard primitives × 6 adapters) = 30 standard pairs present;
+    kiro-ide and kiro-cli each add kiro-ide-hook = 32 total (RFC-0022).
   - The mode enum in adapter.schema.json contains exactly the seven RFC-0001 modes;
     unknown modes are rejected (AC 2).
   - Every projection entry carries an on-conflict value from the legal set,
@@ -11,10 +11,11 @@ Verifies:
     which are no-write/no-output and carry no on-conflict (AC 2).
   - hook-wiring primitive's source-path is .apm/hook-wiring/.
   - command primitive's source-path is .apm/commands/; Claude Code projects
-    direct-file; Copilot/Codex/Kiro are dropped.
-  - frontmatter-mapping table for kiro-agent-frontmatter-v0.9 validates
-    against schema; frontmatter-default table for copilot-instruction
-    validates and is structurally distinct.
+    direct-file; Copilot/Codex/Kiro-family are dropped.
+  - frontmatter-mapping table for kiro-ide-agent-frontmatter-v0.9 validates
+    against schema (renamed from kiro-agent-frontmatter-v0.9 in T1);
+    frontmatter-default table for copilot-instruction validates and is
+    structurally distinct.
 """
 
 from __future__ import annotations
@@ -64,8 +65,12 @@ NO_WRITE_MODES = {"degraded-info-log", "dropped"}
 # All five primitive names.
 ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
-# All four reference adapter names.
-ALL_ADAPTERS = {"claude-code", "kiro", "copilot", "codex"}
+# All reference adapter names (RFC-0022: kiro-ide and kiro-cli added; kiro retained as alias).
+ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "codex"}
+
+# Extra primitives that are kiro-specific and OK to declare in kiro-family
+# adapter blocks without failing the "no extra primitives" check.
+KIRO_EXTRA_PRIMITIVES = frozenset({"kiro-ide-hook"})
 
 
 def _load_contract() -> dict:
@@ -108,6 +113,10 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         Under v0.3 (RFC-0005), kiro's `hook-wiring` no longer appears in the
         legacy `projection` array — it lives in the new
         `projections.<primitive>` table. The coverage union walks both forms.
+
+        RFC-0022: kiro-family adapters (kiro, kiro-ide, kiro-cli) may
+        additionally declare `kiro-ide-hook` in their `projections` table;
+        this is a known extra and is not flagged.
         """
         missing: list[str] = []
         extra: list[str] = []
@@ -119,25 +128,31 @@ class AllPairsEnumeratedTests(unittest.TestCase):
                 if prim not in primitives_in_adapter:
                     missing.append(f"({prim}, {adapter_name})")
             for prim in primitives_in_adapter:
-                if prim not in ALL_PRIMITIVES:
+                if prim not in ALL_PRIMITIVES and prim not in KIRO_EXTRA_PRIMITIVES:
                     extra.append(f"({prim}, {adapter_name})")
         self.assertEqual(missing, [], f"missing pairs: {missing}")
         self.assertEqual(extra, [], f"extra unknown primitives: {extra}")
 
     def test_exactly_twenty_pairs_total(self) -> None:
-        """Twenty (primitive × adapter) pairs — counted across array + table forms.
+        """Count (primitive × adapter) pairs across array + table forms.
 
         Pairs that appear in BOTH forms (the transitional hook-body declarations
         on claude-code/kiro and the claude-code hook-wiring legacy entry that
         coexists with its v0.3 table) count once per adapter, matching the
         "primitive coverage" semantic.
+
+        RFC-0022 T1: kiro-ide added (+5 standard + 1 kiro-ide-hook = +6),
+        kiro-cli carries kiro-ide-hook dropped (+6). Plus kiro-ide adds
+        hook-wiring dropped to its array_form, which is already counted.
+        Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-ide) + 6 (kiro-cli)
+               + 5 (copilot) + 5 (codex) = 32. Class name preserved.
         """
         total = 0
         for adapter_block in self.contract["adapter"].values():
             array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
             table_form = set(adapter_block.get("projections", {}).keys())
             total += len(array_form | table_form)
-        self.assertEqual(total, 20, f"expected 20 pairs total, got {total}")
+        self.assertEqual(total, 32, f"expected 32 pairs total, got {total}")
 
 
 class ModeEnumTests(unittest.TestCase):
@@ -314,9 +329,9 @@ class FrontmatterTableTests(unittest.TestCase):
     def test_kiro_frontmatter_mapping_present(self) -> None:
         mapping = self.contract.get("frontmatter-mapping", {})
         self.assertIn(
-            "kiro-agent-frontmatter-v0.9",
+            "kiro-ide-agent-frontmatter-v0.9",
             mapping,
-            "frontmatter-mapping.kiro-agent-frontmatter-v0.9 not found in contract",
+            "frontmatter-mapping.kiro-ide-agent-frontmatter-v0.9 not found in contract",
         )
 
     def test_kiro_frontmatter_mapping_validates_against_schema(self) -> None:
@@ -399,14 +414,15 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.8"
-        (bumped from "0.7" by docs/specs/dropped-primitives-coverage —
-        codex `agent` + `hook-wiring` move from `dropped` to first-class).
+        """tomllib.loads of adapter.toml returns contract.version == "0.9"
+        (bumped from "0.8" by RFC-0022 kiro-adapter-split T1: kiro-ide adapter
+        declared, kiro-ide-hook primitive activated, frontmatter mapping renamed).
+        Class name preserved to avoid churn.
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.8",
-            "adapter.toml [contract] version must be '0.8' after dropped-primitives-coverage bump",
+            "0.9",
+            "adapter.toml [contract] version must be '0.9' after kiro-adapter-split T1",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:
@@ -419,10 +435,11 @@ class ContractV05Tests(unittest.TestCase):
         )
 
     def test_other_adapters_have_no_install_routes(self) -> None:
-        """Kiro, Copilot, and Codex do not declare install-routes (regression guard:
-        the v0.4 → v0.5 bump must not silently extend the field's surface to those
-        adapters; per-adapter optionality / default ['cli'] on read is unchanged)."""
-        for adapter_name in ("kiro", "copilot", "codex"):
+        """kiro-family, Copilot, and Codex do not declare install-routes (regression
+        guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
+        those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
+        RFC-0022: kiro-ide and kiro-cli added to the checked set."""
+        for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "codex"):
             adapter_block = self.contract["adapter"].get(adapter_name, {})
             self.assertNotIn(
                 "install-routes",

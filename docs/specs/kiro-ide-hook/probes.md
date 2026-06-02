@@ -45,19 +45,24 @@ operator can read off the result unambiguously.
 
 ### Outcome
 
-> **Not yet run.** This row is the surface-to-operator gate. The
-> operator opens the workspace in Kiro, drives a fileSave, and
-> records observations below.
+> **Closed (2026-06-01, Kiro 0.12.224).** Only `PROBE_FLAT_FIRED`;
+> `PROBE_NESTED_FIRED` and `PROBE_OTHER_EXTENSION_FIRED` did not fire.
+> Confirmed by `extension.js` source audit: `listHooks()` calls
+> `vscode.workspace.fs.readDirectory(.kiro/hooks/)` non-recursively
+> (immediate children only), then filters on `.kiro.hook` extension.
+> The `**/*.kiro.hook` file-system watcher is for change events only,
+> not initial hook discovery. Quadrant: **no × yes** (no recursion,
+> yes extension filter). RFC-0022 assumed yes-recursion; T1 of
+> `kiro-adapter-split` carries the corrected flat-with-prefix path.
 
-- **Recursion observed:** _<yes | no>_  ← fill in
-- **Extension filter observed:** _<yes | no>_  ← fill in
-- **2×2 quadrant:** _<yes-yes | yes-no | no-yes | no-no>_
+- **Recursion observed:** no
+- **Extension filter observed:** yes
+- **2×2 quadrant:** no-yes
 - **Canonical `target.repo` string for `adapter.toml`:**
-  _<filled in once the quadrant is known>_
-- **Cross-primitive `hook-body` retarget (T-E1b) fires?**
-  _<yes if `yes × no` quadrant, otherwise no>_
-- **Date of observation:** _<YYYY-MM-DD>_
-- **Kiro version observed:** _<e.g. 0.2.13 — `kiro --version`>_
+  `.kiro/hooks/<pack>--<name>.kiro.hook`
+- **Cross-primitive `hook-body` retarget (T-E1b) fires?** no
+- **Date of observation:** 2026-06-01
+- **Kiro version observed:** 0.12.224
 
 ## Q11 — vocabulary fixture
 

@@ -62,7 +62,7 @@ class KiroAdapterTests(unittest.TestCase):
         """RFC-0005 / T7: Kiro agents are JSON files per the documented
         Kiro schema (https://kiro.dev/docs/cli/custom-agents/configuration-reference/),
         not markdown-with-frontmatter as v0.2 used to project. The
-        `kiro-agent-frontmatter-v0.9` mapping table is reinterpreted as
+        `kiro-ide-agent-frontmatter-v0.9` mapping table is reinterpreted as
         *markdown-frontmatter → JSON-field* — the rename / to-list
         normalize semantics carry over to JSON emission."""
         import json
