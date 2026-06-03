@@ -14,9 +14,20 @@ A skill with two branches:
 
 ## Prerequisites
 
+The document branch needs Docling; both branches need Pillow:
+
 ```bash
 python -m pip install docling Pillow
 ```
+
+Before the document branch, confirm Docling is importable:
+
+```bash
+python -c "import docling"
+```
+
+Exit 0 → proceed. Non-zero → it's not installed; tell the user to run
+the `pip install` above and stop. Don't install it for them.
 
 First Docling run downloads ML models (~1–2 min). Subsequent runs are
 fast. Image-only flows need only Pillow.
