@@ -271,3 +271,4 @@ Both lints exit 0 against the worked example; aim for the same.
 - ADR: [`docs/adr/0003-credential-broker-contract.md`](../../adr/0003-credential-broker-contract.md)
 - Reference consumer (runnable, shipped): [`packs/atlassian/.apm/skills/jira/`](../../../packs/atlassian/.apm/skills/jira/) — a live `auth: creds` credentialed CLI
 - Explanation: [`docs/guides/explanation/credentialed-skills.md`](../explanation/credentialed-skills.md)
+- Related how-to: [How to author a skill](author-a-skill.md) — the general skill-authoring standards (structure, cross-platform scripts, the three-tier dependency policy); the `auth: cli` broker is where credential and tool-presence concerns meet.
