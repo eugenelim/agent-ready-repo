@@ -16,13 +16,26 @@ You are not the renderer. The script is. Invoke it and report the path.
 
 ### Step 1 — Verify dependencies
 
+The renderer needs Node.js and the `marked` + `highlight.js` packages
+(pinned in `package.json`). From the skill's own directory, check
+whether they're already installed:
+
 ```bash
-# From the skill's own directory — at the user-scope skills directory,
-# or the repo-scope skills directory.
-npm install   # installs marked + highlight.js per package.json
+node -e "require.resolve('marked'); require.resolve('highlight.js')"
 ```
 
-(One-time; subsequent runs are cached in `node_modules/`.)
+- Exit 0 → dependencies present; go to Step 2.
+- Non-zero → not installed yet. Confirm `npm` is available
+  (`npm --version`); if it isn't, tell the user to install Node.js and
+  stop. If it is, **ask the user before installing**, then run the
+  one-time install and re-verify — don't assume it succeeded:
+
+  ```bash
+  npm install   # installs the pinned marked + highlight.js
+  node -e "require.resolve('marked'); require.resolve('highlight.js')"
+  ```
+
+(The install is one-time; subsequent runs are cached in `node_modules/`.)
 
 > Note: if your installer drops this skill into a tracked directory, add the skill's `node_modules/` to your project's `.gitignore` to avoid committing the npm install artifacts.
 
@@ -82,7 +95,8 @@ relevant.
 ### Edge cases
 
 - **Missing dependencies**: `node scripts/render.js` exits 1 with an
-  install hint. Run `npm install` from the skill directory.
+  install hint. Follow Step 1 — install on consent, then re-verify;
+  don't install bare.
 - **No headings**: sidebar shows `(no sections)`. Output still works,
   the sidebar just stays empty.
 - **Custom theme requested by name not in the list**: the script exits
