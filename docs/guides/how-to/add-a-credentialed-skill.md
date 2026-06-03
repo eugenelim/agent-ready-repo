@@ -217,7 +217,63 @@ Every credentialed skill carries a `### Security rules (non-negotiable)` block i
   them.
 ```
 
-## Step 8 — Run `make build-self` (`auth: creds` only)
+## Step 8 — Write the operational body: bootstrap and failure handling
+
+Step 7 gives the agent the *prohibitions*. The agent also needs the *operations*: how to get the skill working on first run, and what to do when a call fails. Embed the two sections below in your `SKILL.md` body. Unlike the Security-rules block, these are **recommended, not lint-pinned** — keep the shape, adapt the wording to your service.
+
+The dividing line is the charter rule: **the agent may install its own non-secret prerequisites, but never enters the credential itself.** Self-bootstrap covers `pip install`; credential entry stays user-invoked (Step 7, Step 10).
+
+```markdown
+### Verify the environment
+
+Install dependencies (idempotent — safe to re-run), then check auth:
+
+    python -m pip install -r requirements.txt
+    python scripts/cli.py check
+
+- Exit 0 → authenticated; proceed.
+- Exit 2 → credential missing, unresolved, or rejected (401/403) → see
+  *When a request fails*.
+- Any other non-zero → read the stderr message. `ModuleNotFoundError:
+  credentials_shim` means the shim wasn't projected — install via your pack
+  route, or run `make build-self` from a clone. Surface it; don't patch
+  around it.
+
+### When a request fails
+
+The CLI exits non-zero and writes the cause to stderr. Read the message — it
+names the cause more reliably than the exit code, whose meaning varies
+between skills. Act on the cause:
+
+- **Credential missing, unresolved, or expired** (often surfaced as a 401).
+  Have the user run the setup action for this broker (below); it's
+  interactive — do not run it for them. Re-run `check`; proceed only when it
+  exits 0.
+- **403 — authenticated but forbidden.** A scope/permission gap, not a
+  missing token. `creds` / `env`: have the user regenerate the *same*
+  credential with the missing scope and re-run setup — don't create a second
+  credential. `cli`: the vendor's re-auth with scopes
+  (`gh auth login --scopes …`). `sso-cookie`: usually a missing entitlement
+  on the SSO account — surface it; re-running `get-cookies` won't fix it.
+  Don't retry blindly.
+- **Environment problem** — a keychain/Tier-2 hard-fail, or the shim not
+  projected (`ModuleNotFoundError`). Install via your pack route or run
+  `make build-self`; surface it.
+- **Upstream 5xx or rate limit.** Surface the message; don't loop.
+```
+
+"The setup action" resolves per broker — the same one you document in the credential step (Step 10):
+
+- `creds` → run the `credential-setup` skill (interactive; the user runs it).
+- `env` → export `<NAMESPACE>_<KEY>` in the shell rc and re-launch.
+- `cli` → run the vendor's auth flow (`gh auth login`, `aws configure`, …).
+- `sso-cookie` → the next `get-cookies` opens a browser; let the user complete it.
+
+> The agent installs deps unattended (no secret) but never types the token.
+> This is the credentialed-skill form of "self-bootstrapping": the non-secret
+> setup is automatic; the secret stays a user gesture.
+
+## Step 9 — Run `make build-self` (`auth: creds` only)
 
 ```bash
 make build-self
@@ -225,7 +281,7 @@ make build-self
 
 The build pipeline reads your `auth: creds` frontmatter and projects `credentials_shim.py`, `_keychain_macos.py`, and `_credman_windows.py` into your `scripts/` directory. Without this step the sibling import fails with `ModuleNotFoundError`. `make build-check` errors on three drift outcomes (modified / missing / orphaned projected copies); `make build-self` is the idempotent projector that resolves all three.
 
-## Step 9 — Set up the credential
+## Step 10 — Set up the credential
 
 Once everything is in place, populate the credential for your namespace:
 
@@ -241,7 +297,7 @@ Once everything is in place, populate the credential for your namespace:
 
   The first `get-cookies` invocation opens a headed Chromium window and saves the cookie jar to the OS keychain (or 0600 file on Linux).
 
-## Step 10 — Run the lint
+## Step 11 — Run the lint
 
 ```bash
 python3 tools/lint-agent-artifacts.py     # frontmatter schema
