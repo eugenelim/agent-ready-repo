@@ -7,23 +7,37 @@ description: Convert Outlook .msg email files to Markdown, preserving email head
 
 Convert Outlook `.msg` email files to clean, structured Markdown preserving headers, body, and attachment metadata.
 
+## Prerequisites
+
+The converter runs on Node.js and reads `.msg` files through an npm
+package — `@nicecode/msg-reader` (preferred) or `msgreader` as an
+alternative. `scripts/convert.js` uses whichever is installed. Install
+the preferred one once:
+
+```bash
+npm install @nicecode/msg-reader
+```
+
 ## Instructions
 
 You are a document conversion agent. When the user provides a `.msg` file path via `$ARGUMENTS`, convert it to Markdown that captures the full email structure.
 
 ### Step 1: Verify the environment
 
-Check if the required npm package is available. If not, install it:
+Confirm Node.js and a reader package are available. From the skill's own
+directory, check for either supported package (mirroring what
+`convert.js` resolves):
 
 ```bash
-npm list @nicecode/msg-reader || npm install @nicecode/msg-reader
+node -e "try{require.resolve('@nicecode/msg-reader')}catch{require.resolve('msgreader')}"
 ```
 
-If `@nicecode/msg-reader` fails to install, fall back to `msgreader`:
-
-```bash
-npm list msgreader || npm install msgreader
-```
+- Exit 0 → at least one reader is installed; proceed to Step 2.
+- Non-zero → neither is installed. Confirm `npm` is available
+  (`npm --version`); if npm is missing, tell the user to install
+  Node.js and stop. Otherwise tell the user to run the install command
+  from Prerequisites (or, **with their consent**, run it once and
+  re-verify). Don't install it silently.
 
 ### Step 2: Extract the email data
 
