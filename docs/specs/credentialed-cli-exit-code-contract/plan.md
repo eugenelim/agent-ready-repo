@@ -11,10 +11,11 @@
 Establish the canonical taxonomy + a top-level catch-all handler in the
 reference consumer (`jira`) first, then apply the identical pattern to the
 other four. The shape per skill: (1) define/normalize the `EXIT_*` constants to
-`0 OK · 1 USER_ERROR · 2 AUTH · 3 SERVER · 4 INTERNAL`; (2) wrap the CLI entry so the
-existing typed-exception handlers map to canonical codes **and** a final
-`except Exception` maps anything else — including `Tier2HardFailError` and the
-shim's `ModuleNotFoundError` — to `4 INTERNAL` with a clean one-line stderr (type +
+`0 OK · 1 ERROR (functional) · 2 AUTH` (with `3–9` reserved for the auth band);
+(2) wrap the CLI entry so the existing typed-exception handlers map to canonical
+codes **and** a final `except Exception` maps anything else — including
+`Tier2HardFailError` and the shim's `ModuleNotFoundError` — to `1` with a clean
+one-line stderr (type +
 safe message, never the token, never a traceback); (3) add the message-first
 "When a request fails" body to the `SKILL.md`. The riskiest parts are
 `confluence-publisher` (its `EXIT_USER_ACTION=2` / `EXIT_ERROR=1` need
@@ -40,7 +41,7 @@ untouched (Boundaries § Never do).
 ## Construction tests
 
 **Integration tests:** a cross-skill consistency check asserting all five define
-identical `EXIT_OK/USER_ERROR/AUTH/SERVER/INTERNAL` values (goal-based; lives wherever
+identical `EXIT_OK/ERROR/AUTH` values + the reserved `2–9` band (goal-based; lives wherever
 T1 establishes the skill test harness).
 **Manual verification:** none — every behavior here is mechanically checkable.
 
@@ -48,12 +49,13 @@ T1 establishes the skill test harness).
 
 ### Design decisions
 - **Top-level catch-all over per-exception patching.** A final `except Exception
-  → EXIT_INTERNAL` at the entry point fixes the uncaught-traceback class of bug once,
-  rather than chasing each new exception type (authsome `cli/main.py:491` pattern,
-  adapted). Traces to: AC2, AC3.
-- **Dedicated `4 INTERNAL` rather than overloading `1`.** Keeps `1` purely
-  USER_ERROR; authsome folds infra-unavailable into its generic `1`, we don't.
-  Traces to: AC1, AC3.
+  → EXIT_ERROR (1)` at the entry point fixes the uncaught-traceback class of bug
+  once, rather than chasing each new exception type (authsome `cli/main.py:491`
+  pattern, adapted). Traces to: AC2, AC3.
+- **Banded `0 / 1 ERROR / 2–9 AUTH`, coarse functional bucket.** Functional
+  errors all get the same agent response, so they fold into `1` (like authsome's
+  generic code + message); credential/auth errors get the reserved `2–9` band
+  for growth. Traces to: AC1, AC3.
 - **Per-skill identical constants, not a shared module.** Structural
   centralization is deferred to the A+B RFC (Boundaries § Never do). Traces to:
   AC1.
@@ -66,8 +68,8 @@ T1 establishes the skill test harness).
 ### Failure, edge cases & resilience
 - `Tier2HardFailError` (keychain hard-fail) and `ModuleNotFoundError`
   (unprojected shim) are the two failures currently escaping uncaught → both map
-  to `4 INTERNAL` via the catch-all, with the stderr message naming the cause and
-  the remediation (`make build-self` / install route). No retries added.
+  to `1` via the catch-all, with the stderr message naming the cause and the
+  remediation (`make build-self` / install route). No retries added.
 - **Catch-all boundary invariant:** the top-level handler is `except Exception`,
   **never** `except BaseException`. `SystemExit` (figma raises `SystemExit(str)`
   for input validation → exit 1) and `KeyboardInterrupt` (crawler → 130) derive
@@ -94,10 +96,11 @@ T1 establishes the skill test harness).
 - Establishes where these skills' tests live / the harness (note it for T2–T5).
 
 **Approach:**
-- Normalize `EXIT_*` in `jira.py` to the canonical set (already `0/1/2/3`; add
-  `EXIT_INTERNAL = 4`).
-- Wrap the `main`/`_run` dispatch so existing `AuthError`/`JiraError` handlers
-  keep mapping to 2/3, and a trailing `except Exception` maps to `EXIT_INTERNAL`;
+- Normalize `EXIT_*` in `jira.py` to the banded set: fold `EXIT_SERVER_ERROR=3`
+  into `EXIT_ERROR=1`, keep `EXIT_AUTH=2`, reserve `3–9`.
+- Wrap the `main`/`_run` dispatch so the `AuthError` handler maps to `2` and the
+  `JiraError`/server handler maps to `1`, and a trailing `except Exception` maps
+  to `EXIT_ERROR` (1);
   on the unexpected branch print `type(exc).__name__` + a fixed safe line (no
   `str(exc)`, no token, no traceback). Do **not** use `except BaseException`.
 - Add the message-first "When a request fails" body + canonical-code references
@@ -146,21 +149,21 @@ remains.
 **Depends on:** T1
 **Touches:** packs/atlassian/.apm/skills/confluence-crawler/**
 
-**Tests:** T1 matrix against `crawl_space.py`, plus per-call-site assertions for
-the two splits this skill needs: the usage-error sites (`crawl_space.py:287,294`
-— `--space`/`--root` missing) return `1`; the `AuthError` sites (`:256,274`)
-return `2`; the partial-completion site (`:351`, `return 0 if failed == 0 else 1`)
-returns `3` when pages failed; `KeyboardInterrupt` (`:359`) still returns `130`
-and is **not** caught by the `except Exception` catch-all (AC1, AC2).
+**Tests:** T1 matrix against `crawl_space.py`, plus per-call-site assertions: the
+usage-error sites (`crawl_space.py:287,294` — `--space`/`--root` missing) return
+`1`; the `AuthError` sites (`:256,274`) return `2`; the partial-completion site
+(`:351`, `return 0 if failed == 0 else 1`) **stays `1`**; `KeyboardInterrupt`
+(`:359`) still returns `130` and is **not** caught by the `except Exception`
+catch-all (AC1, AC2).
 **Approach:** `crawl_space.py` today uses bare literals and conflates two meanings
-on `2` (usage *and* auth). Introduce the `EXIT_*` table; **enumerate every
-`return 2`** and split usage→`1 USER_ERROR` vs auth→`2 AUTH`; remap the
-partial-completion `else 1`→`3 SERVER` (boundary ruling); keep `130` (128+SIGINT)
-outside the `0–4` table and outside the catch-all (it rides `KeyboardInterrupt`,
-a `BaseException`); add catch-all + SKILL.md body. Flag the `2→1` and `1→3`
-observable breaks in the PR.
+on `2` (usage *and* auth). Introduce the `EXIT_*` table (`0/1/2` + reserved
+`2–9`); **enumerate every `return 2`** and split usage→`1` vs auth→`2`; the
+partial-completion `else 1` stays `1` (functional); keep `130` (128+SIGINT)
+outside the table and outside the catch-all (it rides `KeyboardInterrupt`, a
+`BaseException`); add catch-all + SKILL.md body. Flag the usage `2→1` observable
+break in the PR.
 **Done when:** T5 test matrix green; no bare integer `return` in the entry path
-except the documented `130`; both observable breaks noted in the PR.
+except the documented `130`; the `2→1` break noted in the PR.
 
 ### T6: authoring guide — document the canonical table
 
@@ -168,14 +171,15 @@ except the documented `130`; both observable breaks noted in the PR.
 **Touches:** docs/guides/how-to/add-a-credentialed-skill.md
 
 **Tests:** goal-based — grep (anchored on section content, not step ordinals)
-asserts the broker-import example now maps `Tier2HardFailError → 4` (correcting
+asserts the broker-import example maps `Tier2HardFailError → 1` (correcting
 today's `→ 3` at `add-a-credentialed-skill.md:118-120`), shows the
-`except Exception` catch-all + `EXIT_INTERNAL`, and that the canonical `0–4`
-table is present near "When a request fails"; fences balanced; Step 7 lint-pinned
-blocks byte-unchanged (AC6).
+`except Exception` catch-all + `EXIT_ERROR`, and that the banded table
+(`0/1/2` + reserved `2–9`) is present near "When a request fails"; fences
+balanced; Step 7 lint-pinned blocks byte-unchanged (AC6).
 **Approach:** update the broker-import example handler to show the catch-all +
-`EXIT_INTERNAL` and the corrected `Tier2HardFailError → 4`; add the canonical
-`0–4` table near "When a request fails"; keep the body message-first.
+`EXIT_ERROR` and the corrected `Tier2HardFailError → 1` (keep
+`CredentialsMissingError → 2`); add the banded table near "When a request
+fails"; keep the body message-first.
 **Done when:** grep checks pass; `lint-credentialed-skills` + `lint-agent-artifacts`
 green.
 
@@ -183,8 +187,8 @@ green.
 
 Pure code + docs change to user-scope pack skills; no infra, no flag, no
 migration. Reversible by revert. Observable breaks (accepted, 0.1.0 packs, noted
-in the PR): `confluence-publisher` `EXIT_USER_ACTION`/`EXIT_ERROR` remap;
-`confluence-crawler` usage `2→1` and partial-completion `1→3`.
+in the PR): `jira`/`jira-align`/`figma` `SERVER 3→1`; `confluence-crawler` usage
+`2→1` (partial-completion stays `1`); `confluence-publisher` already `0/1/2`.
 
 ## Risks
 
@@ -200,3 +204,9 @@ in the PR): `confluence-publisher` `EXIT_USER_ACTION`/`EXIT_ERROR` remap;
 - 2026-06-03: initial plan. Taxonomy + top-level-catch-all settled from authsome
   research (`errors.py` + `utils.py:197`) and maintainer leans per user
   delegation; structural centralization deferred to the A+B RFC.
+- 2026-06-03: rebanded `0/1/2/3/4` → `0 OK · 1 ERROR · 2–9 AUTH` after the #226
+  merge surfaced the `author-a-skill.md` `check 0/2` standard + `mermaid-renderer`
+  `EXIT_PARTIAL=1`/`EXIT_USER_ACTION=2`. Folds functional subtypes (server,
+  partial, internal) into `1`; reserves `2–9` for credential/auth growth per
+  maintainer preference; partial-crawl stays `1` (was `3`); `Tier2HardFail → 1`
+  (was `4`). authsome *numbers* deferred to A+B; *philosophy* kept.
