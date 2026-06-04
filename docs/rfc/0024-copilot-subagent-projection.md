@@ -265,7 +265,7 @@ Run 3 (independent corroboration) — Copilot **CLI** 1.0.59, 2026-06-04, verifi
 ## Follow-on artifacts
 
 Filled in on acceptance:
-- ADR — record the Copilot full-parity / user-scope-capable decision and the `tools/hooks/`→`.github/hooks/` retirement.
+- ✅ [ADR-0013](../adr/0013-copilot-full-parity-user-scope-adapter.md) — records the Copilot full-parity / user-scope-capable decision and the `tools/hooks/`→`.github/hooks/` retirement (Accepted 2026-06-04).
 - Spec — `docs/specs/copilot-full-parity/` (contract v0.10 bump; `copilot-agent-md` + `copilot-hooks-json` modes; scope table; tool-alias + event-name maps; `research`/`core` two-pack v0.8→v0.10 bump — *not* all-pack, per § Decision 7; warning-rail regression for the surviving `command` drop; synthetic user-scope hook pack for the validation gap; CLI smoke-test acceptance step).
 - Erratum on `docs/rfc/0012-repo-scope-per-adapter-projection.md` linking forward to this RFC.
 - Follow-on RFC stub — `command`/prompt projection, gated on copilot-cli#618/#1113.
