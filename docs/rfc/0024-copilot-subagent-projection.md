@@ -77,7 +77,7 @@ Replace the copilot `agent` and `hook-wiring` `dropped` entries and add user tar
 - `model` → **drop on projection**. The CLI ignores the field (and errored on array syntax — copilot-cli#2133/#1195); our values (`opus`/`sonnet`) aren't Copilot model ids anyway. Each runtime falls back to its default.
 - `target` → **omit** (defaults to both `vscode` + `github-copilot`).
 
-**`copilot-hooks-json` mapping** (our `.apm/hook-wiring/<n>.toml` → Copilot `<n>.json`): each wiring file serialises to a self-contained `{"version":1,"hooks":{<event>:[{"type":"command","bash":…,"powershell":…}]}}` JSON file. Event names map to Copilot's vocabulary (`SessionStart`→`sessionStart`, `PreToolUse`→`preToolUse`, `PostToolUse`→`postToolUse`, `UserPromptSubmit`→`userPromptSubmitted`, `Stop`→`agentStop`, …).
+**`copilot-hooks-json` mapping** (our `.apm/hook-wiring/<n>.toml` → Copilot `<n>.json`): each wiring file serialises to a self-contained `{"version":1,"hooks":{<event>:[{"type":"command","bash":…,"powershell":…}]}}` JSON file. Event names map to Copilot's vocabulary (`SessionStart`→`sessionStart`, `PreToolUse`→`preToolUse`, `PostToolUse`→`postToolUse`, `UserPromptSubmit`→`userPromptSubmitted`, `Stop`→`agentStop`, …). **Verified (CLI 1.0.59):** only `sessionStart` actually fires today; the other event keys are accepted but inert (see § Acceptance verification T8). `core`'s sole shipped hook targets `sessionStart`, so the shipped packs are fully covered; the rest of the map is written forward-compatibly and lights up as the CLI implements each event. See Open Q1.
 
 Why a *new* mode rather than the existing `merge-json` (which is how codex's `hook-wiring` flip was implemented — a single `.codex/hooks.json` merged in place, per `dropped-primitives-coverage`)? Because Copilot's hooks dir holds **many** independent `<name>.json` files (it reads every `*.json`), not one mergeable file — so `merge-json`'s single-target model can't express it. The serialisation shape (one source file → one output file) is the same as codex's *agent* mode (`codex-agent-toml`); the per-file-vs-merged distinction is the new part. So `copilot-hooks-json` borrows the serialise-one-file shape from `codex-agent-toml` and is deliberately *not* the `merge-json` mode codex used for its own hooks.
 
@@ -222,24 +222,26 @@ When you start any reply, prefix it with the token RFC0024-INSTR-OK.
 
 > Not gated (do **not** block Accept): `command`/prompt projection is deliberately out of scope (CLI doesn't support custom slash commands — copilot-cli#618/#1113). If the verifier has cycles, the informational check in Open Q2 (drop a `.prompt.md` in `.github/prompts/` and confirm the CLI neither errors nor warns) would de-risk the *follow-on*, but its result does not affect this RFC.
 
-### Result log (verifier fills in)
+### Result log
 
-| ID | Result (pass/fail) | CLI version | Notes / observed behaviour |
+Run 1 — Copilot CLI **1.0.59**, 2026-06-04:
+
+| ID | Result | CLI version | Notes / observed behaviour |
 | --- | --- | --- | --- |
-| T1 | | | |
-| T2 | | | |
-| T3 | | | |
-| T4 | | | |
-| T5 | | | |
-| T6 | | | |
-| T7 | | | |
-| T8 | | | |
+| T1 | ✅ pass | 1.0.59 | Repo-scope agent (`.github/agents/`) discovered, loaded clean, no parse errors |
+| T2 | ✅ pass | 1.0.59 | User-scope agent (`~/.copilot/agents/`) discovered outside any repo |
+| T3 | ✅ pass | 1.0.59 | Reads work; edit + shell both refused; Claude tool names accepted without errors |
+| T4 | ✅ pass | 1.0.59 | Repo-scope `sessionStart` hook fired; marker file created |
+| T5 | ✅ pass | 1.0.59 | User-scope `sessionStart` hook fired globally |
+| T6 | ⏳ n/a | — | Copilot app (tech preview) not installed — **outstanding** (see Decision rule) |
+| T7 | ✅ pass | 1.0.59 | User-scope instructions loaded — `RFC0024-INSTR-OK` prefix confirmed |
+| T8 | ⚠️ partial | 1.0.59 | Only `sessionStart` fires. `sessionEnd`/`userPromptSubmitted`/`preToolUse`/`postToolUse`/`agentStop` do **not** trigger in 1.0.59 (JSON accepted, events inert — no error). Open Q1 narrowed to `sessionStart`. |
 
-**Decision rule.** T1–T7 must pass for `Accepted`. T8 informs Open Q1 (the event map) and may pass with caveats (record the unsupported events). Any T1–T7 failure either blocks Accept or forces the linked decision to be revised and the RFC re-circulated.
+**Decision rule.** T1–T7 must pass for `Accepted`. T8 informs Open Q1 (the event map) and may pass with caveats. **Status after Run 1:** T1–T5 + T7 **pass** — the load-bearing parity claims (user-scope agents/hooks/instructions, tool-alias mapping, read-only preservation) are confirmed on the CLI. **T6 (app parity) is the one outstanding gate**: either verify against the installed Copilot app, or formally narrow the Decision 6 guarantee to CLI-only (the app is built on the CLI and shares `~/.copilot/`, so parity is expected but unproven). T8 is handled by narrowing the event map (Open Q1, now resolved) — not a blocker, since `core`'s only shipped hook targets `sessionStart`.
 
 ## Open questions
 
-1. **Exact hook event-name map.** We map our wiring events to Copilot's documented events; any event we ship that Copilot lacks falls under event-vocabulary refusal (the `dropped-primitives-coverage` precedent), not this RFC. *Default:* map the events `core` actually ships (`SessionStart`→`sessionStart`), refuse-and-warn on unknowns. *Owner:* eugenelim. *Decide-by:* spec time.
+1. **Exact hook event-name map.** ~~We map our wiring events to Copilot's documented events…~~ **Resolved (Run 1, CLI 1.0.59):** only `sessionStart` fires; the other documented events (`sessionEnd`/`userPromptSubmitted`/`preToolUse`/`postToolUse`/`agentStop`) are accepted in the JSON but inert. Decision: project the full map **forward-compatibly** (the inert keys cause no error and activate when the CLI implements them), and treat `sessionStart` as the only *live* event in CLI ≤1.0.59. No refuse-and-warn is needed — unsupported events are dormant, not rejected — and `core`'s only hook (`sessionStart`) is fully covered. The spec re-runs T8 against the then-current CLI and widens the "live" set accordingly.
 2. **`command`/prompt graceful-no-op, for the eventual follow-on.** Whether stray `.prompt.md` files are inert to the CLI is inferred, not tested. *Default:* don't rely on it — `command` stays dropped until the CLI supports it and we can test. *Owner:* eugenelim. *Decide-by:* the follow-on RFC (gated on copilot-cli#618/#1113).
 3. **`tools/hooks/` retirement vs. back-compat.** No shipped pack writes copilot hook-body today, so the move is safe now. *Default:* move outright; no alias kept. *Owner:* eugenelim. *Decide-by:* spec time.
 
