@@ -239,6 +239,21 @@ Run 2 (authoritative) — Copilot CLI + app **1.0.59**, 2026-06-04:
 
 > Run 1 (same CLI 1.0.59) reported T6 `n/a` (app not yet installed) and T8 `partial` (only `sessionStart` firing); the T8 partial was a **test-harness bug**, not a tool limitation — Run 2 with a corrected harness fires every mapped event. Run 2 supersedes Run 1.
 
+Run 3 (independent corroboration) — Copilot **CLI** 1.0.59, 2026-06-04, verifier joey.musselman:
+
+| ID | Result | Notes |
+| --- | --- | --- |
+| T1 | ✅ pass | Repo-scope agent loaded via `--agent probe-retriever`; read-only mode active, no parse errors |
+| T2 | ✅ pass | User-scope agent discovered from `/tmp` (outside any repo) |
+| T3 | ✅ pass | Read worked; file creation + shell both refused; Claude tool names accepted |
+| T4 | ✅ pass | Repo-scope `sessionStart` hook fired; `rfc0024-probe.txt` = `PROBE_HOOK_FIRED` |
+| T5 | ✅ pass | User-scope `sessionStart` hook fired from outside any repo |
+| T6 | n/a | No app in this CLI-only environment (T6 already passed in Run 2) |
+| T7 | ✅ pass | `RFC0024-INSTR-OK` prefix on every reply |
+| T8 | ✅ pass | All 6 events fired (`preToolUse`/`postToolUse` ×2) |
+
+> Run 3 is a second verifier confirming the CLI-side gates (T1–T5, T7–T8); T6 was not re-tested (no app available) and stands on Run 2's pass.
+
 **Decision rule.** T1–T7 must pass for `Accepted`; T8 informs Open Q1. **Status after Run 2: T1–T8 all pass.** Every gate is met — user-scope agents/hooks/instructions, tool-alias mapping + read-only preservation, app parity (Decision 6 guarantee holds intact), and the full hook event map are all confirmed on the real CLI + app. The pre-Accept gate is cleared.
 
 ## Open questions
