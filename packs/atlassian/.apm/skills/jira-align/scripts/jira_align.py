@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
-import io
 import json
 import logging
 import sys
@@ -74,9 +73,12 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 
+# Superset of the CONVENTIONS § "The argv ban" canonical six
+# (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
+# short -t and Jira-Align-specific aliases.
 TOKEN_CLI_FLAGS = frozenset({
-    "--token", "--api-token", "--bearer", "-t",
-    "--jira-align-token", "--jiraalign-token",
+    "--token", "--api-token", "--api-key", "--bearer", "-t",
+    "--jira-align-token", "--jiraalign-token", "--pat", "--password",
 })
 
 

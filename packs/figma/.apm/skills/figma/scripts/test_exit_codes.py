@@ -24,11 +24,22 @@ SRC = CLI.read_text(encoding="utf-8")
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
+    # Force UTF-8 in the child and on decode: the CLI writes non-ASCII
+    # (em-dashes in its messages) to stderr, and on Windows the default
+    # console / pipe codec is cp1252 — without this the child raises
+    # UnicodeEncodeError emitting its own guard messages and the parent
+    # mis-decodes, defeating the exit-code assertions below.
     return subprocess.run(
         [sys.executable, "-B", str(CLI), *args],
         capture_output=True,
         text=True,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        encoding="utf-8",
+        env={
+            **os.environ,
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONIOENCODING": "utf-8",
+            "PYTHONUTF8": "1",
+        },
     )
 
 
@@ -67,6 +78,25 @@ def test_catch_all_is_except_exception_not_baseexception() -> None:
 def test_import_guard_present() -> None:
     assert "credentials_shim sibling not projected" in SRC, "missing shim guard"
     assert "missing dependency" in SRC, "missing dependency guard"
+
+
+def test_access_error_mapped_to_user_action() -> None:
+    # A 403/scope error (AccessError) must map to user-action (2) on every
+    # command, not just get-variables / list-dev-resources. Asserted by
+    # source: triggering a real 403 needs a live server.
+    #
+    # figma.py has two *inline* `except AccessError` handlers (get-variables,
+    # list-dev-resources) plus the top-level catch-all this test pins. A bare
+    # `SRC.index("except AccessError")` would match an inline handler —
+    # always before `except FigmaError` — and stay green even if the
+    # top-level clause were deleted. Anchor on the top-level handler's unique
+    # hint text instead; its presence proves the clause exists, and the
+    # ordering proves it precedes its parent `except FigmaError`.
+    hint = "the token lacks scope for this endpoint"
+    assert hint in SRC, "top-level except AccessError handler missing"
+    assert SRC.index(hint) < SRC.index("except FigmaError as exc:"), (
+        "top-level AccessError handler must precede its parent except FigmaError"
+    )
 
 
 _BEHAVIORAL = {"test_token_on_cli_rejected_exits_1_without_leak", "test_help_exits_0"}
