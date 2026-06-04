@@ -866,6 +866,20 @@ def main(argv: list[str] | None = None) -> int:
     except AuthError as exc:
         sys.stderr.write(f"{exc}\n")
         return EXIT_USER_ACTION
+    except AccessError as exc:
+        # Scope/plan access (403, or a 404 the token can't see). Per the
+        # banded taxonomy this is user-must-act (2), not a functional
+        # error (1). Without this clause it falls through to
+        # `except FigmaError` below and mis-reports as exit 1 for every
+        # command except get-variables / list-dev-resources (which catch
+        # AccessError inline with endpoint-specific hints and return first).
+        sys.stderr.write(f"{exc}\n")
+        sys.stderr.write(
+            "the token lacks scope for this endpoint, or the resource "
+            "requires Enterprise / Dev Mode. Regenerate the PAT with the "
+            "required scope, or run `credential-setup`.\n"
+        )
+        return EXIT_USER_ACTION
     except FigmaError as exc:
         sys.stderr.write(f"figma error: {exc}\n")
         return EXIT_ERROR

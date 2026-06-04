@@ -29,11 +29,22 @@ SRC = CLI.read_text(encoding="utf-8")
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
+    # Force UTF-8 in the child and on decode: the CLI writes non-ASCII
+    # (em-dashes in its messages) to stderr, and on Windows the default
+    # console / pipe codec is cp1252 — without this the child raises
+    # UnicodeEncodeError emitting its own guard messages and the parent
+    # mis-decodes, defeating the exit-code assertions below.
     return subprocess.run(
         [sys.executable, "-B", str(CLI), *args],
         capture_output=True,
         text=True,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        encoding="utf-8",
+        env={
+            **os.environ,
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONIOENCODING": "utf-8",
+            "PYTHONUTF8": "1",
+        },
     )
 
 
@@ -45,12 +56,33 @@ def _deps_installed() -> bool:
 
 # --- behavioral (real file-path invocation; need deps installed) -----------
 
+# CONVENTIONS § "The argv ban" canonical six — every credentialed CLI must
+# refuse these before argparse can echo the value.
+CANONICAL_BANNED_FLAGS = (
+    "--token", "--api-token", "--api-key", "--bearer", "--pat", "--password",
+)
+
+
 def test_token_on_cli_rejected_exits_1_without_leak() -> None:
     secret = "SECRET-tok-abc123"  # noqa: S105 — test literal, not a real cred
-    proc = _run("check", "--token", secret)
-    assert proc.returncode == 1, f"expected 1, got {proc.returncode}: {proc.stderr}"
-    assert secret not in proc.stdout and secret not in proc.stderr, "token leaked"
-    assert "command line" in proc.stderr, "expected the argv-ban message"
+    # Exercised per-flag so a deny-set regression on any canonical flag
+    # fails here, not just on --token.
+    for flag in CANONICAL_BANNED_FLAGS:
+        proc = _run("check", flag, secret)
+        assert proc.returncode == 1, f"{flag}: expected 1, got {proc.returncode}: {proc.stderr}"
+        assert secret not in proc.stdout and secret not in proc.stderr, f"{flag}: token leaked"
+        assert "must not be passed on the command line" in proc.stderr, \
+            f"{flag}: exit 1 did not come from the token-reject guard"
+
+
+def test_token_reject_wired_source() -> None:
+    # Unconditional source check: the behavioral test above is in _BEHAVIORAL
+    # and self-skips when deps aren't installed (the import guard exits before
+    # main()'s reject runs) — i.e. the deps-less CI lint env. Guards the reject
+    # wiring and the canonical-six deny-set against silent drift.
+    assert SRC.count("_reject_token_on_cli") >= 2, "reject helper not defined+called"
+    for flag in CANONICAL_BANNED_FLAGS:
+        assert f'"{flag}"' in SRC, f"canonical banned flag {flag} missing from deny-set"
 
 
 def test_help_exits_0() -> None:
