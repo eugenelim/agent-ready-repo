@@ -114,10 +114,10 @@ def main(argv: list[str] | None = None) -> int:
         sys.stderr.write(
             "run the `credential-setup` skill to set the missing keys\n"
         )
-        return 2
+        return 2  # EXIT_USER_ACTION — the user must act
     except Tier2HardFailError as exc:
         sys.stderr.write(f"keychain unavailable: {exc}\n")
-        return 3
+        return 1  # EXIT_ERROR — functional; the message carries the cause
 
     # `creds.API_TOKEN` and `creds.BASE_URL` are attribute-accessible
     # strings. Never print them, log them, or echo them.
@@ -125,6 +125,8 @@ def main(argv: list[str] | None = None) -> int:
 ```
 
 The shim is stdlib-only; no PyPI dependency. The architectural rule from RFC-0006 is preserved — cleartext stays inside your interpreter's process boundary.
+
+**Use the banded exit codes** (see [`docs/specs/credentialed-cli-exit-code-contract`](../../specs/credentialed-cli-exit-code-contract/spec.md)): `0` ok, `1` functional/operational error (the catch-all bucket; the message carries the cause), `2` the user must act (credentials, 401/403, a missing dependency), with `3–9` reserved for future credential/auth codes. Then wrap your entry point in a top-level `except Exception` so no failure escapes as a traceback — `Tier2HardFailError` and anything unexpected map to `1` (print the exception *type*, never `str(exc)`, on the unexpected path). Do **not** use `except BaseException`: `SystemExit` (your own input-validation exits) and `KeyboardInterrupt` (`130`) must pass through.
 
 For **`auth: env`** — just `os.environ["<NAMESPACE>_<KEY>"]`. The lint asserts at least one read per declared key.
 

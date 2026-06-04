@@ -73,9 +73,24 @@ python scripts/publish_page.py --check
 ```
 
 - Exit code 0 → authenticated, proceed.
-- Exit code 2 → credentials missing or invalid. Tell the user to run
-  `credential-setup` skill themselves (interactive — they
-  run it, not you). Stop here.
+- Exit code 2 → the user must act (credentials missing/invalid/expired). Tell
+  the user to run `credential-setup` skill themselves (interactive — they run
+  it, not you). Stop here.
+- Any other non-zero → see *When a request fails*.
+
+### When a request fails
+
+The CLI uses a banded exit-code contract; read the stderr message for the
+specific cause, then act on the band:
+
+| Exit | Band | What to do |
+|---|---|---|
+| 0 | success | proceed |
+| 1 | functional error — server 5xx, transport, keychain hard-fail, unexpected | surface the message to the user; don't loop or retry blindly |
+| 2 | user must act — credentials (401/403), a publish **conflict**, or a target/input the user must fix | follow the `NEED-INPUT:` message: re-auth via `credential-setup`, resolve the conflict, or fix the target — then retry |
+
+`Tier2HardFailError` (OS keyring unavailable) or an unprojected shim surface as
+exit 1 with a message naming the cause.
 
 ### Step 2: Decide how to identify the target page
 

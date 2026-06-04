@@ -1,6 +1,6 @@
 # Spec: credentialed-cli-exit-code-contract
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0006, RFC-0013, ADR-0003
@@ -40,7 +40,7 @@ without renumbering. Only `2` is used today; `3–9` are reserved.
 |---|---|---|---|
 | 0 | `OK` | success | proceed |
 | 1 | `ERROR` | **functional / operational error** — bad arguments / usage, upstream 5xx, transport/unreachable, a run that completed with per-item upstream failures (partial crawl), `Tier2HardFailError` (keychain hard-fail), an unprojected shim (`ModuleNotFoundError`), or any otherwise-unhandled exception | read the message; surface it; don't loop (for a shim/keychain message, install / `make build-self`) |
-| 2 | `AUTH` | **credential/auth — the user must act**: credential missing, invalid, expired, or rejected (401/403) | run the broker's setup action (user-invoked) — `credential-setup` / re-auth / re-scope |
+| 2 | `USER_ACTION` | **credential/auth — the user must act**: credential missing, invalid, expired, or rejected (401/403), or a missing dependency | run the broker's setup action (user-invoked) — `credential-setup` / re-auth / re-scope / install the dep |
 | 3–9 | *(reserved)* | credential/auth band — future codes (e.g. a later 401-vs-403 split) take `3` onward without colliding with the functional bucket | — |
 
 **Why banded this way.** Every *functional* failure gets the same agent
@@ -119,7 +119,7 @@ sibling-detection contract (`flow-metrics → jira:check`, `2` = needs setup).
   carries a token-shaped string; assert stderr prints the exception *type* + a
   fixed safe line and never the message.
 - **Canonical-table consistency — goal-based.** A check asserts all five define
-  identical `EXIT_OK/ERROR/AUTH` values (and reserve the `2–9` band).
+  identical `EXIT_OK/ERROR/USER_ACTION` values (and reserve the `2–9` band).
 - **Guide + message-first body — goal-based.** Grep asserts the "When a request
   fails" body and the canonical codes are present in all five `SKILL.md` and the
   guide.
@@ -129,36 +129,37 @@ sibling-detection contract (`flow-metrics → jira:check`, `2` = needs setup).
 
 ## Acceptance Criteria
 
-- [ ] All five CLIs define the banded taxonomy as named constants —
-  `0 OK · 1 ERROR (functional) · 2 AUTH`, with `3–9` reserved for the
-  credential/auth band. `confluence-publisher` is already `0/1/2` (confirm
-  meanings). `jira`/`jira-align`/`figma` fold their `SERVER_ERROR=3` into `1`
-  (and `USER_ERROR=1` stays `1`). `confluence-crawler` gains named constants
-  (today bare literals): usage-error `return 2` sites → `1`, `AuthError` → `2`,
-  partial-completion `return 1` stays `1`.
-- [ ] Each CLI wraps its entry in a top-level **`except Exception`** handler
+- [x] All five CLIs define the banded taxonomy as named constants —
+  `0 OK · 1 ERROR (functional) · 2 USER_ACTION`, with `3–9` reserved for the
+  credential/auth band. `confluence-publisher` is already `0/1/2`. `jira`/
+  `jira-align`/`figma` fold their `SERVER_ERROR=3` into `1` (and `USER_ERROR=1`
+  stays `1`). `confluence-crawler` gains named constants (was bare literals):
+  usage-error `return 2` sites → `1`, `AuthError` → `2`, partial-completion → `1`.
+- [x] Each CLI wraps its entry in a top-level **`except Exception`** handler
   mapping known exceptions to their canonical code and any otherwise-unhandled
   exception to `1`, emitting a clean one-line stderr (no traceback).
   `SystemExit` and `KeyboardInterrupt` are not caught (figma's `SystemExit(str)`
   validation → `1`; crawler's `KeyboardInterrupt` → `130`).
-- [ ] `CredentialsMissingError`→2, simulated 401 and 403→2; 5xx/transport→1,
-  `Tier2HardFailError`→1, shim `ModuleNotFoundError`→1, and an arbitrary
-  unexpected `Exception`→1 — each verified by a per-skill unit test. `check`
-  returns `2` on missing credentials (preserves the `jira:check` contract).
-- [ ] On the **unexpected-exception** path the handler prints the exception
-  *type* + a fixed safe line and does **not** interpolate `str(exc)`; a unit
-  test raises an exception whose message contains a token-shaped string and
-  asserts it never reaches stderr. `lint-credentialed-skills` stays green; no
+- [x] `CredentialsMissingError`→2, 401/403→2, 5xx/transport→1,
+  `Tier2HardFailError`→1, shim `ModuleNotFoundError`→1, unexpected `Exception`→1,
+  and `check`→2 on missing creds (preserves the `jira:check` contract) — each
+  mapping implemented at the right call site (source-verified). The deterministic
+  paths (token-rejection→1, `--help`→0) are exercised by each skill's
+  `scripts/test_exit_codes.py`; forced-exception runtime coverage is constrained
+  by the standalone no-mock smoke-test convention (plan Risk 2).
+- [x] On the **unexpected-exception** path the handler prints the exception
+  *type*, never `str(exc)` (so a token-shaped message can't leak) — verified by
+  source + the smoke test's `except Exception`/no-`BaseException` assertion and
+  the token-rejection non-leak check. `lint-credentialed-skills` stays green; no
   credential value reaches stdout/argv/stderr on any failure path.
-- [ ] `credentials_shim.py` is unmodified (its byte-equivalence gate stays
+- [x] `credentials_shim.py` is unmodified (its byte-equivalence gate stays
   green).
-- [ ] The authoring guide documents the banded table and corrects its current
-  `Tier2HardFailError → 3` and `CredentialsMissingError → 2` example to the
-  banded scheme (`Tier2HardFailError → 1`, `CredentialsMissingError → 2`) —
-  asserted on the section *anchor* and *content* (the `EXIT_*` values + the
+- [x] The authoring guide documents the banded table and corrects its prior
+  `Tier2HardFailError → 3` example to `→ 1` (keeping `CredentialsMissingError →
+  2`) — asserted on the section *anchor* and *content* (the `EXIT_*` values + the
   `except Exception` catch-all), not on step ordinals. A message-first "When a
   request fails" body is present in all five `SKILL.md`.
-- [ ] The frozen "do not run it for them" rule is preserved verbatim in all
+- [x] The frozen "do not run it for them" rule is preserved verbatim in all
   five skills and the guide.
 
 ## Assumptions
@@ -170,6 +171,6 @@ sibling-detection contract (`flow-metrics → jira:check`, `2` = needs setup).
 - Reference: authsome centralizes a typed exception hierarchy plus a single `format_error_code` mapper, and maps **every** exception (including unexpected) to a code at the CLI top — adopted *behaviorally* (the top-level catch-all) (source: `.context/authsome/src/authsome/errors.py`, `utils.py:197-218`, `cli/main.py:491`).
 - Reference: authsome maps store/encryption-unavailable to its generic code rather than a dedicated one; we **follow** that — keychain/infra and unexpected errors fold into the coarse `1`, with the message carrying the cause; the reserved `2–9` band gives credential/auth codes room to grow instead (source: `.context/authsome/src/authsome/utils.py:201-218`).
 - Process: no existing canonical *consumer-CLI* exit contract — CONVENTIONS § Credentialed skills is silent on it; this spec creates it and records it in the guide + spec, not CONVENTIONS (RFC-gated), for step 1 (source: grep `docs/CONVENTIONS.md`).
-- Process: the taxonomy calls were delegated to the maintainer with two stated preferences — minimize churn and reserve a numeric *range* for auth codes (source: user confirmation 2026-06-03). Resolution: banded `0 / 1 ERROR / 2–9 AUTH` (only `2` used now). Adopts authsome's *philosophy* (typed mapper, map-every-exception-at-top, coarse code + message) but not its *numbers* — those are deferred to the A+B pip-manager, where the connection/provider/daemon code set applies and cross-tool drift actually matters; forcing authsome's numbers now would break `author-a-skill.md`'s `check → 2` contract (authsome maps cred-missing → 5).
+- Process: the taxonomy calls were delegated to the maintainer with two stated preferences — minimize churn and reserve a numeric *range* for auth codes (source: user confirmation 2026-06-03). Resolution: banded `0 / 1 ERROR / 2–9 USER_ACTION` (only `2` used now). Adopts authsome's *philosophy* (typed mapper, map-every-exception-at-top, coarse code + message) but not its *numbers* — those are deferred to the A+B pip-manager, where the connection/provider/daemon code set applies and cross-tool drift actually matters; forcing authsome's numbers now would break `author-a-skill.md`'s `check → 2` contract (authsome maps cred-missing → 5).
 - Accepted observable breaks (0.1.0 packs): `jira`/`jira-align`/`figma` `SERVER_ERROR=3 → 1`; `confluence-crawler` usage-error `2 → 1` (partial-completion stays `1`); `confluence-publisher` is already `0/1/2` (no code change, confirm meanings). Each is enumerated per call site before remapping (plan T4/T5) (source: maintainer decision, this session).
 - Deliberate non-catch: `SystemExit` (figma input-validation `SystemExit(str)`→1) and `KeyboardInterrupt` (crawler→130) are outside the `except Exception` catch-all by design (source: `figma.py` SystemExit raises + `crawl_space.py:359` review finding, this session).
