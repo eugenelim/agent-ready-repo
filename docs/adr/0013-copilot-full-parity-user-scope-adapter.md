@@ -30,7 +30,7 @@ Concretely (contract **v0.9 → v0.10**):
 4. **`skill`** gains a user-scope home `~/.copilot/instructions/<n>.instructions.md`, mirroring the existing repo `.github/instructions/` projection (same `instruction-file` mode).
 5. **`hook-body`** moves from the legacy `tools/hooks/` to `.github/hooks/` + `~/.copilot/hooks/`, alongside the `<n>.json` wiring that references it.
 6. **`command` stays `dropped`** — the CLI does not load custom slash commands yet (copilot-cli#618/#1113); the contract-driven warning rail keeps the drop visible. A follow-on flips it when the CLI ships the feature.
-7. **Frontmatter mapping** (`.apm/agents/<n>.md` → `.agent.md`): pass `tools` through (Claude tool names are Copilot's case-insensitive compatible aliases — `Read`→`read`, `Grep`/`Glob`→`search`, `WebFetch`/`WebSearch`→`web`, `Edit`/`Write`→`edit`, `Bash`→`execute`), with an unmapped name **failing the build** rather than silently widening permissions; **drop `model`** (the CLI ignores it / errored on arrays); **omit `target`** (defaults to both runtimes).
+7. **Frontmatter mapping** (`.apm/agents/<n>.md` → `.agent.md`): map `tools` via an **explicit** Claude→Copilot alias table (an unmapped name **fails the build** rather than silently widening permissions); **drop `model`** (the CLI ignores it / errored on arrays); **omit `target`** (defaults to both runtimes). Verified `Read`/`Grep`/`Glob` resolve in CLI + app 1.0.59 and the read-only restriction holds; **`WebFetch`/`WebSearch` did not surface as app tools** (Run 4) — the spec pins web-tool coverage or documents the `research`-pack degradation (see RFC-0024 Open Q4).
 
 The guaranteed surface is the **Copilot app + CLI** (`~/.copilot/` + `.github/`). The cloud coding agent and the VS Code workspace also read the repo `.github/` files — compatible, but not the guaranteed target; the VS Code extension's user-profile location is documented inconsistently and is deliberately not targeted.
 
@@ -52,6 +52,7 @@ This decision was gated on a live smoke and verified: RFC-0024 § Acceptance ver
 **Neutral / to revisit:**
 - `command` remains dropped until copilot-cli#618/#1113 land; a follow-on RFC flips it.
 - Copilot's full hook event vocabulary fires today (verified), but the live set is CLI-version-sensitive (preview); the implementing spec re-checks against the then-current CLI.
+- **Tool-alias coverage:** `WebFetch`/`WebSearch` did not surface as Copilot tools in the 1.0.59 app (Run 4); the spec must map web retrieval explicitly or document that `research`'s retrieval subagents are degraded (read/search only) on Copilot. Tracked as RFC-0024 Open Q4.
 
 ## Alternatives considered
 

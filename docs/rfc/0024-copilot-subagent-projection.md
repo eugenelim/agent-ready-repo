@@ -73,7 +73,7 @@ Replace the copilot `agent` and `hook-wiring` `dropped` entries and add user tar
 
 **`copilot-agent-md` frontmatter mapping** (our `.apm/agents/<n>.md` → Copilot `.agent.md`):
 - `name`, `description`, and the markdown body → 1:1 (body becomes the agent's instructions).
-- `tools` → **pass through**. Copilot's tool field accepts the Claude tool names as **case-insensitive compatible aliases** (`Read`→`read`, `Grep`/`Glob`→`search`, `WebFetch`/`WebSearch`→`web`, `Edit`/`Write`→`edit`, `Bash`→`execute`). Normalise + dedupe to canonical aliases in the spec; the read-only restriction on `evidence-retriever`/`source-extractor` (no `edit`/`execute`) is preserved.
+- `tools` → **pass through**. Copilot accepts the Claude tool names and resolves them to its own tools (observed in app 1.0.59: `Read`→`view`, `Grep`→`grep`, `Glob`→`glob`; no unknown-tool errors), and the read-only restriction on `evidence-retriever`/`source-extractor` (no `edit`/`execute`) is preserved. **Caveat (Run 4):** `WebFetch`/`WebSearch` did **not** surface as app tools — the exact canonical alias targets and web-retrieval coverage are *not* a clean automatic pass-through and must be pinned by an explicit mapping table in the spec. See Open Q4.
 - `model` → **drop on projection**. The CLI ignores the field (and errored on array syntax — copilot-cli#2133/#1195); our values (`opus`/`sonnet`) aren't Copilot model ids anyway. Each runtime falls back to its default.
 - `target` → **omit** (defaults to both `vscode` + `github-copilot`).
 
@@ -254,6 +254,21 @@ Run 3 (independent corroboration) — Copilot **CLI** 1.0.59, 2026-06-04, verifi
 
 > Run 3 is a second verifier confirming the CLI-side gates (T1–T5, T7–T8); T6 was not re-tested (no app available) and stands on Run 2's pass.
 
+Run 4 (app-only corroboration) — Copilot **app** 1.0.59, 2026-06-04, verifier joey.musselman:
+
+| ID | Result | Notes |
+| --- | --- | --- |
+| T1 | ✅ pass | Repo-scope agent discovered; listed among available custom agents, no parse errors |
+| T2 | ✅ pass | User-scope agent discovered from an app session in a different worktree |
+| T3 | ✅ pass (with gap) | Read worked; edit + shell refused (read-only preserved). Claude names mapped (`Read`→`view`, `Grep`→`grep`, `Glob`→`glob`), no unknown-tool errors — **but `WebFetch`/`WebSearch` did not surface in the agent toolset**. See Open Q4. |
+| T4 | ✅ pass | `sessionStart` hook fired; `rfc0024-probe.txt` = `PROBE_HOOK_FIRED` |
+| T5 | ✅ pass | User-scope `sessionStart` hook fired; `rfc0024-probe-user.txt` = `PROBE_HOOK_FIRED_USER_SCOPE` |
+| T6 | ✅ pass | App-only run — app shares `~/.copilot/` with the CLI; agents, hooks, instructions all discovered (independently re-confirms Run 2's T6) |
+| T7 | ✅ pass | `RFC0024-INSTR-OK` present in the system prompt via `~/.copilot/instructions/` |
+| T8 | ✅ pass | All 6 events fired |
+
+> Run 4 deployed fixtures to `~/.copilot/{agents,hooks,instructions}/` and verified via a fresh **app** session (no CLI invocation). Hook markers wrote to `$TMPDIR` (macOS per-user temp), confirming `${TMPDIR:-/tmp}` resolves on both. **New finding (T3):** `WebFetch`/`WebSearch` declared in agent frontmatter did not map to available app tools; `Read`/`Grep`/`Glob` did. The read-only restriction held (no `edit`/`execute`), so T3 passes — but the web-tool coverage gap is now tracked in Open Q4, because `research`'s retrieval subagents depend on web tools.
+
 **Decision rule.** T1–T7 must pass for `Accepted`; T8 informs Open Q1. **Status after Run 2: T1–T8 all pass.** Every gate is met — user-scope agents/hooks/instructions, tool-alias mapping + read-only preservation, app parity (Decision 6 guarantee holds intact), and the full hook event map are all confirmed on the real CLI + app. The pre-Accept gate is cleared.
 
 ## Open questions
@@ -261,6 +276,7 @@ Run 3 (independent corroboration) — Copilot **CLI** 1.0.59, 2026-06-04, verifi
 1. **Exact hook event-name map.** **Resolved (Run 2, CLI + app 1.0.59):** all six mapped events fire (`sessionStart`/`sessionEnd`/`userPromptSubmitted`/`preToolUse`/`postToolUse`/`agentStop`). The spec freezes the full map; no refuse-and-warn is needed. *(Run 1 saw only `sessionStart` fire — a test-harness bug, corrected in Run 2.)*
 2. **`command`/prompt graceful-no-op, for the eventual follow-on.** Whether stray `.prompt.md` files are inert to the CLI is inferred, not tested. *Default:* don't rely on it — `command` stays dropped until the CLI supports it and we can test. *Owner:* eugenelim. *Decide-by:* the follow-on RFC (gated on copilot-cli#618/#1113).
 3. **`tools/hooks/` retirement vs. back-compat.** No shipped pack writes copilot hook-body today, so the move is safe now. *Default:* move outright; no alias kept. *Owner:* eugenelim. *Decide-by:* spec time.
+4. **Tool-alias mapping coverage — esp. `WebFetch`/`WebSearch`.** Run 4 found Claude `Read`/`Grep`/`Glob` resolve in the app (as `view`/`grep`/`glob`) but `WebFetch`/`WebSearch` did **not** surface as tools. `research`'s `evidence-retriever`/`source-extractor` depend on web retrieval, so on Copilot they would be degraded (read/search only). *Default:* the spec ships an **explicit** Claude→Copilot tool-alias table (not automatic pass-through), maps `WebFetch`/`WebSearch` to Copilot's web/fetch tool **if one is exposed to custom agents**, and — if none is — documents the degradation in the `research` pack's Copilot projection (retrieval agents lose live web access there) rather than silently dropping it. *Owner:* eugenelim. *Decide-by:* spec time.
 
 ## Follow-on artifacts
 
