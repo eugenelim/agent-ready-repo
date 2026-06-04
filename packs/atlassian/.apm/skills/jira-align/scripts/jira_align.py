@@ -23,6 +23,7 @@ import asyncio
 import csv
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -108,8 +109,52 @@ def _reject_token_on_cli(argv: list[str]) -> None:
             sys.exit(EXIT_ERROR)
 
 
+class _ScrubbingArgumentParser(argparse.ArgumentParser):
+    """ArgumentParser that scrubs token-shaped values from error messages.
+
+    argparse's stock ``error()`` echoes the offending argv tokens verbatim —
+    including the value half of an unrecognised ``--flag VALUE``. A token
+    passed under a flag the deny-list doesn't enumerate (``--credential
+    SECRET``, ``--apikey SECRET``) would otherwise leak ``SECRET`` to stderr
+    / the agent transcript. This subclass redacts any argv token of length
+    >= 20 on a likely-credential character set before chaining to the stock
+    error handler.
+    """
+
+    # Credential-shaped token: >= 20 chars on a base64 / base64url / JWT /
+    # percent-encoded charset. `.` and `~` are included so dotted bearer /
+    # JWT tokens (header.payload.signature) match — without `.` the anchored
+    # regex fails on the separators and the value would leak. The >= 20 floor
+    # is deliberate (modern PATs/tokens exceed it); a shorter value under an
+    # out-of-set flag is not redacted.
+    _CREDENTIAL_LOOKING_RE = re.compile(r"^[A-Za-z0-9_/+=%.~-]{20,}$")
+    _STRIP_CHARS = "'\"`(),;:."
+
+    def error(self, message: str) -> None:  # type: ignore[override]
+        def _check(value: str) -> bool:
+            core = value.strip(self._STRIP_CHARS)
+            return bool(self._CREDENTIAL_LOOKING_RE.match(core))
+
+        def _scrub(match: re.Match[str]) -> str:
+            tok = match.group(0)
+            if tok.startswith("-"):
+                # Glued ``--flag=VALUE`` — check the RHS of the first ``=``
+                # for credential shape and replace only that half.
+                if "=" in tok:
+                    flag, _, value = tok.partition("=")
+                    if _check(value):
+                        return f"{flag}=<scrubbed>"
+                return tok
+            if _check(tok):
+                return "<scrubbed>"
+            return tok
+
+        scrubbed = re.sub(r"\S+", _scrub, message)
+        super().error(scrubbed)
+
+
 def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
+    p = _ScrubbingArgumentParser(
         prog="jira_align.py",
         description="Query Jira Align REST API 2.0 (cloud or on-prem).",
     )
@@ -132,7 +177,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Write output to this file instead of stdout.",
     )
 
-    sub = p.add_subparsers(dest="command", required=True)
+    sub = p.add_subparsers(
+        dest="command", required=True, parser_class=_ScrubbingArgumentParser,
+    )
 
     sub.add_parser("check", help="Verify credentials and reachability.")
     sub.add_parser("whoami", help="Show the authenticated user record.")

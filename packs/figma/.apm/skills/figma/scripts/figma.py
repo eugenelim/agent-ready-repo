@@ -180,10 +180,13 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
     to the stock error handler.
     """
 
-    # `%` included to catch percent-encoded values (a deliberately
-    # encoded secret would otherwise survive the scrub) even though
-    # the realistic threat model is bare token values.
-    _CREDENTIAL_LOOKING_RE = re.compile(r"^[A-Za-z0-9_/+=%-]{20,}$")
+    # Credential-shaped token: >= 20 chars on a base64 / base64url / JWT /
+    # percent-encoded charset. `.` and `~` are included so dotted bearer /
+    # JWT tokens (header.payload.signature) match — without `.` the anchored
+    # regex fails on the separators and the value would leak. The >= 20 floor
+    # is deliberate (modern PATs/tokens exceed it); a shorter value under an
+    # out-of-set flag is not redacted.
+    _CREDENTIAL_LOOKING_RE = re.compile(r"^[A-Za-z0-9_/+=%.~-]{20,}$")
     # Quoting / punctuation argparse and the shell may wrap a value in
     # before it lands in an error message.
     _STRIP_CHARS = "'\"`(),;:."
