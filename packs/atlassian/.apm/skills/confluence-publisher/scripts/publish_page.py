@@ -35,6 +35,19 @@ from urllib.parse import urljoin
 # invocation; an importlib-based test harness is responsible for
 # its own package context.
 if __package__ in (None, "") and __spec__ is None:
+    # Windows console hardening: this CLI writes UTF-8 payloads to stdout,
+    # and sys.stdout defaults to errors="strict" — so on a legacy Windows
+    # console (cp1252) a non-ASCII write raises UnicodeEncodeError. Force
+    # UTF-8 on stdout here, before any write. stderr defaults to
+    # backslashreplace (it mojibakes rather than crashing), but reconfigure
+    # it too for clean bytes; doing both before the import guard means even
+    # its messages emit correctly. Guarded: a replaced stream (StringIO under
+    # a test harness) or pythonw's None has no reconfigure().
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
