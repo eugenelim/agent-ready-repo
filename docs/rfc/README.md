@@ -29,6 +29,7 @@
 | [0021](0021-greenfield-inception.md) | Greenfield inception — the idea→repo front-door (research + value gate → foundation → walking skeleton), the greenfield twin of `adapt-to-project`; composes brief/foundation/spec, declines autonomous generation | Accepted | 2026-06-01 | 2026-06-01 |
 | [0022](0022-kiro-adapter-split.md) | Split `kiro` adapter into `kiro-ide` (default, VS Code-fork IDE) and `kiro-cli` (terminal binary); `kiro` kept as deprecated alias; contract v0.8→v0.9; errata to RFC-0005 | Open | 2026-06-01 | |
 | [0023](0023-credential-manager-broker.md) | `credbroker` — replace RFC-0013's build-projected stdlib shim with a standalone pip-installable in-process credential library (stdlib core + optional `[crypto]` encrypted vault); phased repo-path→PyPI; env Tier-1 kept as the pip-free floor; daemon/proxy (authsome) out of scope; **reverses ADR-0003** | Accepted | 2026-06-03 | 2026-06-03 |
+| [0024](0024-copilot-subagent-projection.md) | Copilot full-parity projection — agents + hooks `dropped`→first-class, user-scope-capable (`~/.copilot/`), packs adapted (`research`/`core`); contract v0.9→v0.10; **supersedes RFC-0012 copilot-scope decision** | Open | 2026-06-04 | |
 
 ## Adding a new RFC
 
