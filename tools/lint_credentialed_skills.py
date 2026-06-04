@@ -669,6 +669,60 @@ def imports_playwright(py_path):
     return False
 
 
+def denyset_flag_groups(py_path):
+    """Yield, per set/list/tuple literal, the set of normalize_flag'd
+    flag-shaped string elements. A hand-maintained token deny-set
+    (``TOKEN_CLI_FLAGS = frozenset({...})`` / ``_ARGV_BAN = {...}`` / a list
+    or tuple) shows up as one such group, name-agnostically; the caller
+    identifies the deny-set as a group carrying >= 2 canonical banned flags
+    so an incidental set that merely mentions one token-shaped flag isn't
+    mistaken for one. ``ast.walk`` visits the inner ``Set``/``List`` of a
+    ``frozenset({...})`` / ``frozenset([...])`` directly, so no Call handling
+    is needed — which also avoids double-counting the same literal."""
+    tree = _ast_for(py_path)
+    if tree is None:
+        return
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Set, ast.List, ast.Tuple)):
+            continue
+        flags = set()
+        for el in node.elts:
+            s = _literal_string(el)
+            if s is not None and s.startswith("-"):
+                flags.add(normalize_flag(s))
+        if flags:
+            yield flags
+
+
+def has_scrubbing_parser(py_path):
+    """True iff the file defines an ``argparse.ArgumentParser`` subclass that
+    overrides ``error()`` — the value-scrubbing backstop that keeps a
+    token-shaped flag outside the deny-set from having its value echoed by
+    argparse's stock error message.
+
+    Structural check only: it confirms an ``error()`` override *exists*, not
+    that it actually scrubs. The scrubbing behavior itself is verified by the
+    CLIs' token smoke tests + manual A/B, not here; this is the source-level
+    drift sentinel that the backstop wasn't deleted."""
+    tree = _ast_for(py_path)
+    if tree is None:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        base_is_argparse = any(
+            (isinstance(b, ast.Attribute) and b.attr == "ArgumentParser")
+            or (isinstance(b, ast.Name) and b.id == "ArgumentParser")
+            for b in node.bases
+        )
+        if base_is_argparse and any(
+            isinstance(m, ast.FunctionDef) and m.name == "error"
+            for m in node.body
+        ):
+            return True
+    return False
+
+
 # --- Main scan -------------------------------------------------------
 
 skill_md_files = []
@@ -746,6 +800,43 @@ for skill_md in skill_md_files:
                         f"{raw!r} accepted by argparse (normalised "
                         f"{norm!r} ∈ {sorted(BANNED_FLAGS)})",
                     )
+
+        # --- D2b: deny-set completeness + scrubbing backstop --------
+        # A token deny-set is a set/list/tuple literal carrying >= 2 of the
+        # canonical banned flags. The >= 2 floor keeps an incidental literal
+        # that merely mentions one token-shaped flag (e.g. an MCP header set)
+        # from being mistaken for a deny-set. Conditional on such a deny-set
+        # being present, so D2b never fires on minimal/unrelated scripts —
+        # which means a credentialed-cli that ships NO deny-set at all is not
+        # covered here (D2a's add_argument ban is the floor for that case).
+        # When a deny-set is present it must (a) carry ALL the canonical six
+        # — catching the drift where a consumer silently drops one — and
+        # (b) be backed by a value-scrubbing ArgumentParser, so a token-shaped
+        # flag OUTSIDE the deny-set doesn't have its value echoed by error().
+        token_denysets = [
+            g
+            for py in py_files
+            for g in denyset_flag_groups(py)
+            if len(g & BANNED_FLAGS) >= 2
+        ]
+        if token_denysets:
+            present = set().union(*token_denysets)
+            missing = sorted(BANNED_FLAGS - present)
+            if missing:
+                report(
+                    skill_md,
+                    f"token deny-set is incomplete — missing canonical "
+                    f"banned flag(s) {missing}; the argv ban requires all of "
+                    f"{sorted(BANNED_FLAGS)}",
+                )
+            if not any(has_scrubbing_parser(py) for py in py_files):
+                report(
+                    skill_md,
+                    "ships a token deny-set but no value-scrubbing "
+                    "ArgumentParser subclass (one overriding error()); a "
+                    "token-shaped flag outside the deny-set would have its "
+                    "value echoed verbatim by argparse's error message",
+                )
 
     # --- Broker-agnostic D3: dotfile read ----------------------
     for py in py_files:
