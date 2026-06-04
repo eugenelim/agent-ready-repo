@@ -296,3 +296,22 @@ of their own yet.
   blocklist (or `tools/lint-agent-artifacts.py`) to cover shipped-skill bodies
   and `examples/`. Pre-existing catalogue gap surfaced by this spec, not
   introduced by it.
+
+## `credbroker`
+
+RFC-0023 follow-on, **Phase 1** in progress (`docs/specs/credbroker/`). The
+items below are deferred out of Phase 1 by spec decision.
+
+### credbroker-phase-2
+
+**Phase 2: PyPI publication + version pinning** (the spec's final, deferred AC). Publish `credbroker`
+to PyPI and switch the six consumers from the repo-path install
+(`pip install -e ./packages/credbroker`) to a pinned PyPI version. This is what
+unblocks the **APM / Claude-plugin adopter who has no repo** — until it ships,
+that profile stays on env Tier-1 or the projected shim. Gated on the package
+stabilising (not a date), per RFC-0023 § Delivery. **Unblocks when:** the
+`credbroker` public surface is stable and a maintainer is ready to own a PyPI
+release cadence. Separately, **defensive PyPI name registration** (an empty
+placeholder so `credbroker` can't be squatted before Phase 2) is an out-of-band
+**user action** — RFC-0023 asks for it as soon as the name is fixed; it is not
+performed by spec automation.
