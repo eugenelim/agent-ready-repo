@@ -34,7 +34,7 @@ deleting the source file — see Risks and T9.
 - **Reverses [ADR-0003](../../adr/0003-credential-broker-contract.md)** — the projected-shim decision; the superseding ADR is authored as a separate parallel governance artifact (cite it here when it lands).
 - **[RFC-0006](../../rfc/0006-skill-secrets-storage.md)** — storage tiers, Win32 error matrix, atomic-write discipline, and per-platform Tier-2 backends are preserved **verbatim**; this plan changes delivery + adds a vault tier, not the core tier semantics.
 - **[RFC-0013](../../rfc/0013-credential-broker-contract.md) / [`credential-broker-contract`](../credential-broker-contract/spec.md)** — the `credentials_shim` public surface and the `shared-libs/` projection mechanism this plan inherits and partially retires.
-- **[`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md)** — the reserved `3–9` band stays unclaimed; no consumer's exit constants change.
+- **[`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md)** — the reserved `3–9` band stays unclaimed; no consumer's exit *constants* change. But the migration **amends** its "unprojected shim `ModuleNotFoundError` → exit 1" clause: a missing `credbroker` (now a pip dependency) is a missing dependency → exit **2** via the import guard PR #230 standardized. T7 records the amendment on that spec; the clause's residual scope is the `sso-broker` companion path.
 - **CHARTER Principle 3** — no daemon, no resident process, no network injection (RFC-0023 Option D out of scope).
 
 ## Construction tests
@@ -166,17 +166,19 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 
 **Depends on:** T2
 
-**Touches:** packs/atlassian/.apm/skills/*/scripts/_client.py, packs/atlassian/.apm/skills/*/requirements.txt, packs/figma/.apm/skills/figma/scripts/_client.py, packs/figma/.apm/skills/figma/requirements.txt
+**Touches:** packs/atlassian/.apm/skills/*/scripts/_client.py, packs/atlassian/.apm/skills/*/requirements.txt, packs/figma/.apm/skills/figma/scripts/_client.py, packs/figma/.apm/skills/figma/requirements.txt, docs/specs/credentialed-cli-exit-code-contract/spec.md
 
 **Tests:**
-- Resolution parity proven by the ported `credbroker` suite (T2), not by the CLIs' own tests; each CLI's `test_exit_codes.py` additionally stays green after the swap (goal-based). Verifies the five-CLI parity AC + the exit-code-stable AC.
+- Resolution parity proven by the ported `credbroker` suite (T2), not by the CLIs' own tests; each CLI's `test_exit_codes.py` additionally stays green after the swap (goal-based). Verifies the five-CLI parity AC + the exit-code-stable AC. *(Note: PR #230 rewrote these five test files — canonical-six argv-ban loop + source guards + forced UTF-8; the swap must keep them green against the newer files.)*
+- A missing `credbroker` (uninstalled) yields **exit 2** + "run pip install", not a traceback or exit 1 — exercised per CLI by forcing the import to fail (goal-based). Verifies the missing-`credbroker`→2 AC.
 - Import-graph/grep assertion: each `_client.py` imports from `credbroker`, none imports `credentials_shim` (goal-based). Verifies AC8.
 
 **Approach:**
-- In each skill's `_client.py`, swap `from .credentials_shim import …` → `from credbroker import …`.
+- In each skill's `_client.py`, swap `from .credentials_shim import …` → `from credbroker import …`. The CLI entry-point already wraps `from ._client import (… load_credentials …)` in an import guard (PR #230); since `_client.py`'s failure propagates to that guard, a missing `credbroker` is caught there → exit 2 + "run pip install -r requirements.txt". Verify the guard still catches it (no path where the `credbroker` import escapes the guard as a raw `ModuleNotFoundError`/exit 1).
 - Append `credbroker` to each skill's **skill-root** `requirements.txt` (beside `httpx`) — `packs/atlassian/.apm/skills/{jira,jira-align,confluence-publisher,confluence-crawler}/requirements.txt` and `packs/figma/.apm/skills/figma/requirements.txt`. All five already exist; none lives under `scripts/`.
+- **Record the exit-code-contract amendment**: add a dated `## Changelog` (or `## Errata`) entry to `docs/specs/credentialed-cli-exit-code-contract/spec.md` noting that the "unprojected shim `ModuleNotFoundError` → exit 1" clause no longer applies to the five migrated CLIs (a missing `credbroker` → exit 2, the missing-dependency class); residual scope is the `sso-broker` companion path. Don't silently drift a shipped spec.
 
-**Done when:** the five `test_exit_codes.py` suites green; ported resolution suite green; grep shows zero `credentials_shim` imports in the five CLIs; `credbroker` present in all five skill-root requirements files.
+**Done when:** the five `test_exit_codes.py` suites green; ported resolution suite green; missing-`credbroker`→2 verified per CLI; grep shows zero `credentials_shim` imports in the five CLIs; `credbroker` in all five skill-root requirements files; the exit-code-contract amendment recorded.
 
 ### T8: `credential-setup` imports credbroker and writes through its vault API
 
@@ -247,3 +249,4 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 ## Changelog
 
 - 2026-06-04: initial plan. Phase-1 scope (per RFC-0023 + user confirmation); `[crypto]` sequenced after the stdlib core; sso-broker companion-shim coupling flagged as the T9 sharp edge.
+- 2026-06-04: post-rebase onto PR #230. Folded in the exit-code reclassification — a missing `credbroker` (now a pip dependency) resolves to exit 2 via the import guard #230 standardized, amending the exit-code-contract spec's "unprojected shim → 1" clause for the five migrated CLIs (residual scope: the sso-broker companion path). Refined T7 (import-guard placement + record the amendment); added the missing-`credbroker`→2 AC.
