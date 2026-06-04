@@ -73,9 +73,27 @@ python scripts/figma.py check
 ```
 
 - Exit code 0 → authenticated, proceed.
-- Exit code 2 → credentials missing or invalid. Tell the user to run
-  `credential-setup` skill themselves (interactive — they run it,
-  not you). Stop here.
+- Exit code 2 → the user must act (credentials missing/invalid/expired). Tell
+  the user to run `credential-setup` skill themselves (interactive — they run
+  it, not you). Stop here.
+- Any other non-zero → see *When a request fails*.
+
+### When a request fails
+
+The CLI uses a banded exit-code contract; read the stderr message for the
+specific cause, then act on the band:
+
+| Exit | Band | What to do |
+|---|---|---|
+| 0 | success | proceed |
+| 1 | functional error — server 5xx, transport, keychain hard-fail, unexpected | surface the message to the user; don't loop or retry blindly |
+| 2 | user must act — credentials missing/invalid/expired, 401, **or 403 scope/plan access** | tell the user to run `credential-setup` (or regenerate the PAT with the right scope) themselves — do not run it for them — then re-run `check` |
+
+A **401** (invalid/expired token) and a **403** (Variables need Enterprise, Dev
+Resources need Dev Mode / the `file_dev_resources:read` scope) both map to exit
+2 — the user re-auths or regenerates the PAT with the right scope; don't retry.
+`Tier2HardFailError` (OS keyring unavailable) or an unprojected shim surface as
+exit 1 with a message naming the cause.
 
 ### Step 2: Extract the FILE_KEY
 
@@ -283,14 +301,15 @@ python scripts/figma.py figjam-to-mermaid abc123XYZ 1:2 \
 
 ### Edge cases
 
-- **Unknown FILE_KEY**: API returns 404; CLI exits 3 and echoes the
-  server response. Confirm the URL or key with the user.
+- **Unknown FILE_KEY**: API returns 404; CLI exits 1 (functional) and echoes
+  the server response. Confirm the URL or key with the user.
 - **Token expired or revoked**: 401 → exit 2. PATs can be regenerated
   at Figma → Settings → Security → Personal access tokens. Tell the
   user to re-run `credential-setup` skill after generating a
   new one.
-- **Token lacks scope** (variables / dev resources): 403 → exit 3
-  with a hint about Enterprise / Dev Mode. Don't retry.
+- **Token lacks scope** (variables / dev resources): 403 → exit 2
+  (user regenerates the PAT with the right scope; a hint about Enterprise /
+  Dev Mode is printed). Don't retry.
 - **Rate limit** (429): client retries with `Retry-After`; you don't
   need to handle this in the skill body. For very large batches of
   `export-images` calls, batch the `--ids` instead of looping the CLI.

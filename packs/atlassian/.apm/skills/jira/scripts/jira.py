@@ -57,19 +57,40 @@ if __package__ in (None, "") and __spec__ is None:
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
 
-from ._client import (  # noqa: E402
-    AuthError,
-    JiraClient,
-    JiraError,
-    load_credentials,
-)
+try:
+    from ._client import (  # noqa: E402
+        AuthError,
+        JiraClient,
+        JiraError,
+        load_credentials,
+    )
+except ModuleNotFoundError as _import_exc:  # noqa: E402
+    # Constants are defined below; use the banded literals here.
+    # 1 = functional/internal (shim not projected); 2 = user must act (deps).
+    if _import_exc.name and "credentials_shim" in _import_exc.name:
+        sys.stderr.write(
+            "error: credentials_shim sibling not projected — run "
+            "`make build-self` or reinstall the credential-brokers pack.\n"
+        )
+        raise SystemExit(1)
+    sys.stderr.write(
+        f"error: missing dependency {_import_exc.name!r} — run: "
+        "python -m pip install -r requirements.txt\n"
+    )
+    raise SystemExit(2)
 
 log = logging.getLogger("jira.cli")
 
+# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+#   0     success
+#   1     functional / operational error — bad args, server 5xx, transport,
+#         keychain hard-fail, unexpected; the stderr message carries the cause
+#   2     user must act — credential missing/invalid/expired, 401/403, or a
+#         missing dependency; `check` returns this
+#   3-9   reserved for the credential/auth band (never reuse for functional)
 EXIT_OK = 0
-EXIT_USER_ERROR = 1
-EXIT_AUTH_ERROR = 2
-EXIT_SERVER_ERROR = 3
+EXIT_ERROR = 1
+EXIT_USER_ACTION = 2
 
 TOKEN_CLI_FLAGS = frozenset({
     "--token", "--api-token", "--bearer", "-t",
@@ -87,7 +108,7 @@ def _reject_token_on_cli(argv: list[str]) -> None:
                 "Run `credential-setup` skill to store JIRA_API_TOKEN "
                 "via env / keyring / dotfile.\n"
             )
-            sys.exit(EXIT_USER_ERROR)
+            sys.exit(EXIT_ERROR)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -312,10 +333,10 @@ async def _cmd_check(client: JiraClient) -> int:
         info = await client.whoami()
     except AuthError as exc:
         print(f"auth failed: {exc}", file=sys.stderr)
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
     except JiraError as exc:
         print(f"server error: {exc}", file=sys.stderr)
-        return EXIT_SERVER_ERROR
+        return EXIT_ERROR
     name = (
         info.get("displayName")
         or info.get("name")
@@ -351,7 +372,7 @@ async def _cmd_create_issue(
         body = _load_body(args)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     result = await client.create_issue(body)
     writer.emit_single(result if isinstance(result, dict) else {"value": result})
     return EXIT_OK
@@ -364,7 +385,7 @@ async def _cmd_update_issue(
         body = _load_body(args)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     await client.update_issue(
         args.issue_key, body, notify_users=not args.no_notify
     )
@@ -380,7 +401,7 @@ async def _cmd_delete_issue(
             "error: delete is destructive — pass --yes to confirm.",
             file=sys.stderr,
         )
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     await client.delete_issue(
         args.issue_key, delete_subtasks=args.delete_subtasks
     )
@@ -405,7 +426,7 @@ async def _cmd_transition(
         fields = _parse_field_pairs(args.field) if args.field else None
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     await client.transition_issue(
         args.issue_key,
         transition_id=args.transition_id,
@@ -430,7 +451,7 @@ async def _cmd_attach(
 ) -> int:
     if not args.file_path.is_file():
         print(f"error: file not found: {args.file_path}", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     results = await client.add_attachment(args.issue_key, args.file_path)
     for r in results:
         writer.emit_record(r)
@@ -443,7 +464,7 @@ async def _cmd_search(
 ) -> int:
     if args.page_size <= 0 or args.page_size > 100:
         print("error: --page-size must be 1..100", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     async for issue in client.iter_search(
         args.jql,
         fields=args.fields,
@@ -483,7 +504,7 @@ async def _cmd_get_user(
             "error: provide --account-id (cloud) or --username/--key (server).",
             file=sys.stderr,
         )
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     user = await client.get_user(
         account_id=args.account_id, username=args.username, key=args.key
     )
@@ -509,7 +530,7 @@ async def _cmd_raw(
     for pair in args.param:
         if "=" not in pair:
             print(f"error: --param {pair!r} must be KEY=VALUE", file=sys.stderr)
-            return EXIT_USER_ERROR
+            return EXIT_ERROR
         k, v = pair.split("=", 1)
         params[k] = v
     body: Any = None
@@ -624,7 +645,7 @@ async def _run(args: argparse.Namespace) -> int:
         credentials = load_credentials()
     except AuthError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
 
     writer = OutputWriter(args.format, args.output)
     try:
@@ -665,13 +686,13 @@ async def _run(args: argparse.Namespace) -> int:
             if cmd == "raw":
                 return await _cmd_raw(client, args, writer)
             print(f"error: unknown command {cmd!r}", file=sys.stderr)
-            return EXIT_USER_ERROR
+            return EXIT_ERROR
     except AuthError as exc:
         print(f"auth error: {exc}", file=sys.stderr)
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
     except JiraError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_SERVER_ERROR
+        return EXIT_ERROR
     finally:
         writer.close()
 
@@ -685,7 +706,23 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    return asyncio.run(_run(args))
+    # Top-level catch-all: no exception escapes as a traceback. `except
+    # Exception` deliberately does NOT catch SystemExit / KeyboardInterrupt
+    # (BaseException) — argparse usage exits and Ctrl-C (130) pass through.
+    try:
+        return asyncio.run(_run(args))
+    except Exception as exc:  # noqa: BLE001 — intentional functional catch-all
+        name = type(exc).__name__
+        if name == "Tier2HardFailError":
+            sys.stderr.write(
+                f"error: OS keyring unavailable ({name}); set JIRA_API_TOKEN "
+                "via env or the dotfile, or run `credential-setup`.\n"
+            )
+        else:
+            # Never echo str(exc) on the unexpected path — it may carry a
+            # token-shaped value. Print the type only.
+            sys.stderr.write(f"error: unexpected {name}; report this if it persists.\n")
+        return EXIT_ERROR
 
 
 if __name__ == "__main__":
