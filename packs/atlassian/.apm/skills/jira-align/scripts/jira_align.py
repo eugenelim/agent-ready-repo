@@ -40,19 +40,39 @@ if __package__ in (None, "") and __spec__ is None:
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
 
-from ._client import (  # noqa: E402
-    AuthError,
-    JiraAlignClient,
-    JiraAlignError,
-    load_credentials,
-)
+try:
+    from ._client import (  # noqa: E402
+        AuthError,
+        JiraAlignClient,
+        JiraAlignError,
+        load_credentials,
+    )
+except ModuleNotFoundError as _import_exc:  # noqa: E402
+    # 1 = functional/internal (shim not projected); 2 = user must act (deps).
+    if _import_exc.name and "credentials_shim" in _import_exc.name:
+        sys.stderr.write(
+            "error: credentials_shim sibling not projected — run "
+            "`make build-self` or reinstall the credential-brokers pack.\n"
+        )
+        raise SystemExit(1)
+    sys.stderr.write(
+        f"error: missing dependency {_import_exc.name!r} — run: "
+        "python -m pip install -r requirements.txt\n"
+    )
+    raise SystemExit(2)
 
 log = logging.getLogger("jira_align.cli")
 
+# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+#   0     success
+#   1     functional / operational error — bad args, server 5xx, transport,
+#         keychain hard-fail, unexpected; the stderr message carries the cause
+#   2     user must act — credential missing/invalid/expired, 401/403, or a
+#         missing dependency; `check` returns this
+#   3-9   reserved for the credential/auth band (never reuse for functional)
 EXIT_OK = 0
-EXIT_USER_ERROR = 1
-EXIT_AUTH_ERROR = 2
-EXIT_SERVER_ERROR = 3
+EXIT_ERROR = 1
+EXIT_USER_ACTION = 2
 
 TOKEN_CLI_FLAGS = frozenset({
     "--token", "--api-token", "--bearer", "-t",
@@ -70,7 +90,7 @@ def _reject_token_on_cli(argv: list[str]) -> None:
                 "Run `credential-setup` skill to store "
                 "JIRAALIGN_API_TOKEN via env / keyring / dotfile.\n"
             )
-            sys.exit(EXIT_USER_ERROR)
+            sys.exit(EXIT_ERROR)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -246,10 +266,10 @@ async def _cmd_check(client: JiraAlignClient) -> int:
         info = await client.whoami()
     except AuthError as exc:
         print(f"auth failed: {exc}", file=sys.stderr)
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
     except JiraAlignError as exc:
         print(f"server error: {exc}", file=sys.stderr)
-        return EXIT_SERVER_ERROR
+        return EXIT_ERROR
     user_id = info.get("id") or info.get("ID") or info.get("Id") or "?"
     email = info.get("email") or info.get("emailAddress") or ""
     print(
@@ -281,7 +301,7 @@ async def _cmd_list(
 ) -> int:
     if args.page_size <= 0 or args.page_size > 100:
         print("error: --page-size must be 1..100", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     async for item in client.iter_list(
         args.resource,
         filter_expr=filter_expr,
@@ -303,7 +323,7 @@ async def _cmd_create(
         body = _load_body(args)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     result = await client.create(args.resource, body)
     if result is None:
         print("(created, no content returned)", file=sys.stderr)
@@ -322,7 +342,7 @@ async def _cmd_update(
         body = _load_body(args)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     result = await client.update(
         args.resource, args.item_id, body, method=args.method
     )
@@ -344,7 +364,7 @@ async def _cmd_delete(
             "error: delete is destructive — pass --yes to confirm.",
             file=sys.stderr,
         )
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
     await client.delete(args.resource, args.item_id)
     print(
         f"ok: deleted {args.resource}/{args.item_id}",
@@ -360,7 +380,7 @@ async def _cmd_raw(
     for pair in args.param:
         if "=" not in pair:
             print(f"error: --param {pair!r} must be KEY=VALUE", file=sys.stderr)
-            return EXIT_USER_ERROR
+            return EXIT_ERROR
         k, v = pair.split("=", 1)
         params[k] = v
     body: Any = None
@@ -467,7 +487,7 @@ async def _run(args: argparse.Namespace) -> int:
         credentials = load_credentials()
     except AuthError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
 
     writer = OutputWriter(args.format, args.output)
     try:
@@ -497,13 +517,13 @@ async def _run(args: argparse.Namespace) -> int:
             if args.command == "raw":
                 return await _cmd_raw(client, args, writer)
             print(f"error: unknown command {args.command!r}", file=sys.stderr)
-            return EXIT_USER_ERROR
+            return EXIT_ERROR
     except AuthError as exc:
         print(f"auth error: {exc}", file=sys.stderr)
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
     except JiraAlignError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return EXIT_SERVER_ERROR
+        return EXIT_ERROR
     finally:
         writer.close()
 
@@ -517,7 +537,20 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    return asyncio.run(_run(args))
+    # Top-level catch-all: no exception escapes as a traceback. `except
+    # Exception` deliberately does NOT catch SystemExit / KeyboardInterrupt.
+    try:
+        return asyncio.run(_run(args))
+    except Exception as exc:  # noqa: BLE001 — intentional functional catch-all
+        name = type(exc).__name__
+        if name == "Tier2HardFailError":
+            sys.stderr.write(
+                f"error: OS keyring unavailable ({name}); set JIRAALIGN_API_TOKEN "
+                "via env or the dotfile, or run `credential-setup`.\n"
+            )
+        else:
+            sys.stderr.write(f"error: unexpected {name}; report this if it persists.\n")
+        return EXIT_ERROR
 
 
 if __name__ == "__main__":

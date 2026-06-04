@@ -39,14 +39,28 @@ if __package__ in (None, "") and __spec__ is None:
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
 
-from ._client import (  # noqa: E402
-    AuthError,
-    ConflictError,
-    ConfluenceClient,
-    ConfluenceError,
-    PageRef,
-    load_credentials,
-)
+try:
+    from ._client import (  # noqa: E402
+        AuthError,
+        ConflictError,
+        ConfluenceClient,
+        ConfluenceError,
+        PageRef,
+        load_credentials,
+    )
+except ModuleNotFoundError as _import_exc:  # noqa: E402
+    # 1 = functional/internal (shim not projected); 2 = user must act (deps).
+    if _import_exc.name and "credentials_shim" in _import_exc.name:
+        sys.stderr.write(
+            "error: credentials_shim sibling not projected — run "
+            "`make build-self` or reinstall the credential-brokers pack.\n"
+        )
+        raise SystemExit(1)
+    sys.stderr.write(
+        f"error: missing dependency {_import_exc.name!r} — run: "
+        "python -m pip install -r requirements.txt\n"
+    )
+    raise SystemExit(2)
 from ._render import (  # noqa: E402
     ALLOWED_INPUT_FORMATS,
     INPUT_MARKDOWN,
@@ -62,6 +76,11 @@ from ._target import (  # noqa: E402
 
 log = logging.getLogger("confluence_publisher")
 
+# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+#   0     success
+#   1     functional / operational error (message carries the cause)
+#   2     user must act — credentials, conflicts, target/input the user must fix
+#   3-9   reserved for the credential/auth band (never reuse for functional)
 EXIT_OK = 0
 EXIT_USER_ACTION = 2
 EXIT_ERROR = 1
@@ -354,7 +373,7 @@ def _publish(
     return EXIT_OK
 
 
-def main(argv: list[str] | None = None) -> int:
+def _run_publish(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _configure_logging(args.verbose)
 
@@ -420,6 +439,23 @@ def main(argv: list[str] | None = None) -> int:
         except ConfluenceError as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             return EXIT_ERROR
+
+
+def main(argv: list[str] | None = None) -> int:
+    # Top-level catch-all: no exception escapes as a traceback. `except
+    # Exception` deliberately does NOT catch SystemExit / KeyboardInterrupt.
+    try:
+        return _run_publish(argv)
+    except Exception as exc:  # noqa: BLE001 — intentional functional catch-all
+        name = type(exc).__name__
+        if name == "Tier2HardFailError":
+            sys.stderr.write(
+                f"error: OS keyring unavailable ({name}); set CONFLUENCE_API_TOKEN "
+                "via env or the dotfile, or run `credential-setup`.\n"
+            )
+        else:
+            sys.stderr.write(f"error: unexpected {name}; report this if it persists.\n")
+        return EXIT_ERROR
 
 
 if __name__ == "__main__":

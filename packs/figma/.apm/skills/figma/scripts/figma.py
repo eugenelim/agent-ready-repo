@@ -56,20 +56,40 @@ if __package__ in (None, "") and __spec__ is None:
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
 
-from ._client import (  # noqa: E402
-    AccessError,
-    AuthError,
-    FigmaClient,
-    FigmaError,
-    load_credentials,
-)
+try:
+    from ._client import (  # noqa: E402
+        AccessError,
+        AuthError,
+        FigmaClient,
+        FigmaError,
+        load_credentials,
+    )
+except ModuleNotFoundError as _import_exc:  # noqa: E402
+    # 1 = functional/internal (shim not projected); 2 = user must act (deps).
+    if _import_exc.name and "credentials_shim" in _import_exc.name:
+        sys.stderr.write(
+            "error: credentials_shim sibling not projected — run "
+            "`make build-self` or reinstall the credential-brokers pack.\n"
+        )
+        raise SystemExit(1)
+    sys.stderr.write(
+        f"error: missing dependency {_import_exc.name!r} — run: "
+        "python -m pip install -r requirements.txt\n"
+    )
+    raise SystemExit(2)
 
 log = logging.getLogger("figma.cli")
 
+# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+#   0     success
+#   1     functional / operational error — bad args, server 5xx, transport,
+#         keychain hard-fail, unexpected; the stderr message carries the cause
+#   2     user must act — credential missing/invalid/expired, 401/403 (incl.
+#         scope/plan access), or a missing dependency; `check` returns this
+#   3-9   reserved for the credential/auth band (never reuse for functional)
 EXIT_OK = 0
-EXIT_USER_ERROR = 1
-EXIT_AUTH_ERROR = 2
-EXIT_SERVER_ERROR = 3
+EXIT_ERROR = 1
+EXIT_USER_ACTION = 2
 
 # Normalised forms (lowercased, underscores → hyphens) of the banned
 # argv shapes. The check is case-insensitive so ``--Token`` /
@@ -131,7 +151,7 @@ def _reject_token_on_cli(argv: list[str]) -> None:
                 "Run `credential-setup` skill to store FIGMA_API_TOKEN "
                 "via env / keyring / dotfile.\n"
             )
-            sys.exit(EXIT_USER_ERROR)
+            sys.exit(EXIT_ERROR)
 
 
 class _ScrubbingArgumentParser(argparse.ArgumentParser):
@@ -578,7 +598,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
         sys.stderr.write(
             "run `credential-setup` skill to set FIGMA_API_TOKEN\n"
         )
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
 
     async with FigmaClient(creds) as client:
         cmd = args.command
@@ -588,7 +608,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
                 me = await client.whoami()
             except AuthError as exc:
                 sys.stderr.write(f"{exc}\n")
-                return EXIT_AUTH_ERROR
+                return EXIT_USER_ACTION
             handle = me.get("handle") or me.get("email") or "?"
             sys.stdout.write(f"figma: authenticated as {handle}\n")
             return EXIT_OK
@@ -683,7 +703,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
                     "If your account is Enterprise and you still see this, the PAT "
                     "may need to be regenerated with the right scope.\n"
                 )
-                return EXIT_SERVER_ERROR
+                return EXIT_USER_ACTION
             _write_output(args, data)
             return EXIT_OK
 
@@ -699,7 +719,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
                     "If you have Dev Mode and still see this, regenerate the PAT "
                     "with the file_dev_resources:read scope.\n"
                 )
-                return EXIT_SERVER_ERROR
+                return EXIT_USER_ACTION
             _write_output(args, data)
             return EXIT_OK
 
@@ -715,7 +735,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
                         "--param must be KEY=VALUE (value omitted from "
                         "this message)\n"
                     )
-                    return EXIT_USER_ERROR
+                    return EXIT_ERROR
                 k, v = kv.split("=", 1)
                 params[k] = v
             body = None
@@ -735,7 +755,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
                         "error: --data-file may not point at the "
                         "credential store\n"
                     )
-                    return EXIT_USER_ERROR
+                    return EXIT_ERROR
                 body = json.loads(args.data_file.read_text(encoding="utf-8"))
             data = await client.raw(
                 args.method, args.path, params=params or None, json_body=body,
@@ -744,7 +764,7 @@ async def _dispatch(args: argparse.Namespace) -> int:
             return EXIT_OK
 
     sys.stderr.write(f"unknown command: {args.command}\n")
-    return EXIT_USER_ERROR
+    return EXIT_ERROR
 
 
 async def _cmd_export_images(
@@ -765,7 +785,7 @@ async def _cmd_export_images(
     images: dict[str, str] = rendered.get("images") or {}
     if not images:
         sys.stderr.write("Figma returned no image URLs for the requested ids.\n")
-        return EXIT_SERVER_ERROR
+        return EXIT_ERROR
 
     output_dir = args.output or Path(f"figma-export-{file_key}")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -803,7 +823,7 @@ async def _cmd_figjam_to_mermaid(
         sys.stderr.write(
             f"error: node {node_id} not found in {file_key}\n"
         )
-        return EXIT_USER_ERROR
+        return EXIT_ERROR
 
     lines: list[str] = ["flowchart TB"]
     edges: list[str] = []
@@ -838,14 +858,27 @@ def main(argv: list[str] | None = None) -> int:
     for noisy in ("httpx", "httpcore", "hpack", "h11", "urllib3"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
+    # Top-level catch-all: no exception escapes as a traceback. `except
+    # Exception` deliberately does NOT catch SystemExit (input-validation
+    # raises) or KeyboardInterrupt (BaseException) — those pass through.
     try:
         return asyncio.run(_dispatch(args))
     except AuthError as exc:
         sys.stderr.write(f"{exc}\n")
-        return EXIT_AUTH_ERROR
+        return EXIT_USER_ACTION
     except FigmaError as exc:
         sys.stderr.write(f"figma error: {exc}\n")
-        return EXIT_SERVER_ERROR
+        return EXIT_ERROR
+    except Exception as exc:  # noqa: BLE001 — intentional functional catch-all
+        name = type(exc).__name__
+        if name == "Tier2HardFailError":
+            sys.stderr.write(
+                f"error: OS keyring unavailable ({name}); set FIGMA_API_TOKEN "
+                "via env or the dotfile, or run `credential-setup`.\n"
+            )
+        else:
+            sys.stderr.write(f"error: unexpected {name}; report this if it persists.\n")
+        return EXIT_ERROR
 
 
 if __name__ == "__main__":

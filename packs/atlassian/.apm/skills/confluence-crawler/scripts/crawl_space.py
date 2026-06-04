@@ -39,18 +39,43 @@ if __package__ in (None, "") and __spec__ is None:
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
 
-from ._client import (  # noqa: E402
-    AuthError,
-    ConfluenceClient,
-    ConfluenceError,
-    Credentials,
-    Page,
-    load_credentials,
-)
+try:
+    from ._client import (  # noqa: E402
+        AuthError,
+        ConfluenceClient,
+        ConfluenceError,
+        Credentials,
+        Page,
+        load_credentials,
+    )
+except ModuleNotFoundError as _import_exc:  # noqa: E402
+    # 1 = functional/internal (shim not projected); 2 = user must act (deps).
+    if _import_exc.name and "credentials_shim" in _import_exc.name:
+        sys.stderr.write(
+            "error: credentials_shim sibling not projected — run "
+            "`make build-self` or reinstall the credential-brokers pack.\n"
+        )
+        raise SystemExit(1)
+    sys.stderr.write(
+        f"error: missing dependency {_import_exc.name!r} — run: "
+        "python -m pip install -r requirements.txt\n"
+    )
+    raise SystemExit(2)
 from ._convert import to_markdown  # noqa: E402
 from ._links import LinkTargets  # noqa: E402
 
 log = logging.getLogger("confluence_crawler")
+
+# Banded exit-code taxonomy (docs/specs/credentialed-cli-exit-code-contract):
+#   0     success
+#   1     functional / operational error — usage, server 5xx, transport,
+#         partial crawl (some pages failed), keychain hard-fail, unexpected
+#   2     user must act — credential missing/invalid/expired, 401/403
+#   3-9   reserved for the credential/auth band (never reuse for functional)
+#   130   interrupted (128 + SIGINT); outside the 0-9 table by POSIX convention
+EXIT_OK = 0
+EXIT_ERROR = 1
+EXIT_USER_ACTION = 2
 SLUG_MAX_LEN = 80
 UNLIMITED_DEPTH = 9999
 
@@ -253,7 +278,7 @@ async def _run_check(client: ConfluenceClient, flavor: str) -> int:
         me = await client.whoami()
     except AuthError as exc:
         log.error("%s", exc)
-        return 2
+        return EXIT_USER_ACTION
     identity = (
         me.get("username")
         or me.get("displayName")
@@ -263,7 +288,7 @@ async def _run_check(client: ConfluenceClient, flavor: str) -> int:
         or "<unknown>"
     )
     log.info("authenticated as %s (%s)", identity, flavor)
-    return 0
+    return EXIT_OK
 
 
 async def main_async(args: argparse.Namespace) -> int:
@@ -271,7 +296,7 @@ async def main_async(args: argparse.Namespace) -> int:
         creds: Credentials = load_credentials()
     except AuthError as exc:
         log.error("%s", exc)
-        return 2
+        return EXIT_USER_ACTION
 
     async with ConfluenceClient(
         creds,
@@ -284,14 +309,14 @@ async def main_async(args: argparse.Namespace) -> int:
 
         if not args.space:
             log.error("--space is required unless --check is used")
-            return 2
+            return EXIT_ERROR
 
         root_id = args.root
         if not root_id:
             root_id = await client.get_space_homepage_id(args.space)
             if not root_id:
                 log.error("space %s has no homepage; pass --root <page_id>", args.space)
-                return 2
+                return EXIT_ERROR
 
         log.info("discovering hierarchy from page %s (depth=%s)", root_id, args.depth)
         discovered = await _discover(client, root_id, args.depth)
@@ -348,17 +373,32 @@ async def main_async(args: argparse.Namespace) -> int:
         failed = len(to_fetch) - success
 
         log.info("wrote %d pages (failed: %d, skipped: %d)", success, failed, len(discovered) - len(to_fetch))
-        return 0 if failed == 0 else 1
+        # Partial completion (some pages failed) is a functional outcome → 1,
+        # not a credential/user-action; per-page detail is in the log above.
+        return EXIT_OK if failed == 0 else EXIT_ERROR
 
 
 def main() -> int:
     args = parse_args()
     _setup_logging(args.verbose)
+    # Top-level catch-all: no exception escapes as a traceback. `except
+    # Exception` deliberately does NOT catch KeyboardInterrupt (130 below) or
+    # SystemExit (BaseException) — those pass through.
     try:
         return asyncio.run(main_async(args))
     except KeyboardInterrupt:
         log.warning("interrupted")
         return 130
+    except Exception as exc:  # noqa: BLE001 — intentional functional catch-all
+        name = type(exc).__name__
+        if name == "Tier2HardFailError":
+            sys.stderr.write(
+                f"error: OS keyring unavailable ({name}); set CONFLUENCE_API_TOKEN "
+                "via env or the dotfile, or run `credential-setup`.\n"
+            )
+        else:
+            sys.stderr.write(f"error: unexpected {name}; report this if it persists.\n")
+        return EXIT_ERROR
 
 
 if __name__ == "__main__":

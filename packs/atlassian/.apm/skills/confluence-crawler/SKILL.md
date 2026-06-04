@@ -70,7 +70,23 @@ python scripts/crawl_space.py --check
 ```
 
 - Exit code 0 → authenticated, proceed.
-- Exit code 2 → credentials missing or invalid. Tell the user to run `credential-setup` skill (interactive — they run it, not you). Stop here.
+- Exit code 2 → the user must act (credentials missing/invalid/expired). Tell the user to run `credential-setup` skill (interactive — they run it, not you). Stop here.
+- Any other non-zero → see *When a request fails*.
+
+### When a request fails
+
+The CLI uses a banded exit-code contract; read the stderr message for the
+specific cause, then act on the band:
+
+| Exit | Band | What to do |
+|---|---|---|
+| 0 | success | proceed |
+| 1 | functional error — bad/missing args, server 5xx, transport, **a partial crawl (some pages failed)**, keychain hard-fail, unexpected | surface the message; for a partial crawl the per-page failures are in the log — report them, don't loop |
+| 2 | user must act — credentials missing/invalid/expired, 401/403 | tell the user to run `credential-setup` themselves (do not run it for them), then re-run `--check` |
+| 130 | interrupted (Ctrl-C) | the run was cancelled; nothing to fix |
+
+`Tier2HardFailError` (OS keyring unavailable) or an unprojected shim surface as
+exit 1 with a message naming the cause.
 
 ### Step 2: Crawl the space
 
