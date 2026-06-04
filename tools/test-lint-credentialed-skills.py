@@ -179,6 +179,96 @@ def _(root: Path) -> None:
     )
 
 
+# ── credentialed-cli D2b: token deny-set completeness + scrubbing backstop
+
+_SHIM = "from .credentials_shim import load_credentials\n"
+_DENYSET_COMPLETE = (
+    'TOKEN_CLI_FLAGS = frozenset({"--token", "--api-token", "--api-key", '
+    '"--bearer", "--pat", "--password"})\n'
+)
+_DENYSET_MISSING_APIKEY = (
+    'TOKEN_CLI_FLAGS = frozenset({"--token", "--api-token", '
+    '"--bearer", "--pat", "--password"})\n'
+)
+_SCRUBBER = (
+    "import argparse\n"
+    "class _Scrubber(argparse.ArgumentParser):\n"
+    "    def error(self, message):\n"
+    "        super().error(message)\n"
+)
+
+
+def _write_creds_cli(root: Path, script: str) -> None:
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-creds"
+    write(sk / "SKILL.md", make_skill_md("creds", namespace="foo", keys=["API_TOKEN"]))
+    write(sk / "scripts" / "cli.py", script)
+
+
+@case(
+    "denyset-incomplete-missing-flag",
+    expect_exit=1,
+    expect_substrings=["token deny-set is incomplete", "api_key"],
+)
+def _(root: Path) -> None:
+    # Deny-set drops --api-key; shim import + scrubber present so only the
+    # incompleteness finding fires.
+    _write_creds_cli(root, _SHIM + _DENYSET_MISSING_APIKEY + _SCRUBBER)
+
+
+@case(
+    "denyset-complete-no-scrubber",
+    expect_exit=1,
+    expect_substrings=["no value-scrubbing"],
+    refuse_substrings=["token deny-set is incomplete"],
+)
+def _(root: Path) -> None:
+    # Complete deny-set but no ArgumentParser.error override.
+    _write_creds_cli(root, _SHIM + _DENYSET_COMPLETE)
+
+
+@case(
+    "denyset-complete-with-scrubber",
+    expect_exit=0,
+)
+def _(root: Path) -> None:
+    _write_creds_cli(root, _SHIM + _DENYSET_COMPLETE + _SCRUBBER)
+
+
+@case(
+    "no-denyset-not-checked",
+    expect_exit=0,
+)
+def _(root: Path) -> None:
+    # No deny-set literal → D2b is silent (conditional, not a positive
+    # mandate) — minimal scripts that test other rules stay clean.
+    _write_creds_cli(root, _SHIM + "print(load_credentials)\n")
+
+
+@case(
+    "denyset-split-across-scripts-clean",
+    expect_exit=0,
+)
+def _(root: Path) -> None:
+    # Deny-set in one script, scrubbing parser in another: D2b unions the
+    # deny-set groups across scripts and checks the scrubber per-skill, so
+    # this is compliant. Pins the multi-script union / any-script paths.
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-creds"
+    write(sk / "SKILL.md", make_skill_md("creds", namespace="foo", keys=["API_TOKEN"]))
+    write(sk / "scripts" / "cli.py", _SHIM + _DENYSET_COMPLETE)
+    write(sk / "scripts" / "_parser.py", _SCRUBBER)
+
+
+@case(
+    "single-incidental-flag-not-a-denyset",
+    expect_exit=0,
+)
+def _(root: Path) -> None:
+    # A literal that merely mentions ONE token-shaped flag (< 2 canonical)
+    # is not a deny-set — D2b must not demand completeness or a scrubber of
+    # it. Pins the >= 2-canonical-flag threshold against false positives.
+    _write_creds_cli(root, _SHIM + 'HEADER_FLAGS = {"--bearer-header", "--token"}\n')
+
+
 # ── auth: env — exact-string-equal key match (no substring)
 
 @case(

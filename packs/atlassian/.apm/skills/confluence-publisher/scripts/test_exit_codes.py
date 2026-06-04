@@ -96,6 +96,18 @@ def test_token_reject_wired_source() -> None:
         assert f'"{flag}"' in SRC, f"canonical banned flag {flag} missing from deny-set"
 
 
+def test_outofset_token_flag_value_scrubbed() -> None:
+    # A token under a flag OUTSIDE the deny-set must not have its value
+    # echoed by argparse's error(); the scrubbing parser redacts it. The
+    # dotted JWT-shaped value also guards the regex charset (must include
+    # `.`), per the security review.
+    secret = "eyJhbGciOi." + "A" * 30 + ".Sig1234567890ABCDEF"  # noqa: S105 — JWT-shaped test literal
+    proc = _run("--bogus-flag", secret)
+    assert secret not in proc.stdout and secret not in proc.stderr, \
+        "out-of-set token value leaked"
+    assert "<scrubbed>" in proc.stderr, "value not scrubbed by the parser"
+
+
 def test_help_exits_0() -> None:
     proc = _run("--help")
     assert proc.returncode == 0, f"--help should exit 0, got {proc.returncode}"
@@ -121,7 +133,11 @@ def test_import_guard_present() -> None:
     assert "missing dependency" in SRC, "missing dependency guard"
 
 
-_BEHAVIORAL = {"test_help_exits_0", "test_token_on_cli_rejected_exits_1_without_leak"}
+_BEHAVIORAL = {
+    "test_help_exits_0",
+    "test_token_on_cli_rejected_exits_1_without_leak",
+    "test_outofset_token_flag_value_scrubbed",
+}
 
 
 def main() -> int:

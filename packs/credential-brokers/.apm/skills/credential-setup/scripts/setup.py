@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import pathlib
+import re
 import sys
 
 # Bootstrap when invoked as ``python scripts/setup.py`` (Python sets
@@ -69,6 +70,50 @@ def _refuse_argv_ban(argv: list[str]) -> None:
         if head in _ARGV_BAN:
             sys.stderr.write(f"credential-setup: argv-refusal: {_ARGV_REFUSAL}\n")
             sys.exit(3)
+
+
+class _ScrubbingArgumentParser(argparse.ArgumentParser):
+    """ArgumentParser that scrubs token-shaped values from error messages.
+
+    ``_refuse_argv_ban`` above rejects the canonical banned flags before the
+    parse, but a token passed under a flag it doesn't enumerate
+    (``--credential SECRET``, ``--apikey SECRET``) would reach argparse,
+    whose stock ``error()`` echoes ``--credential SECRET`` verbatim to stderr
+    / the agent transcript. This subclass redacts any argv token of length
+    >= 20 on a likely-credential character set before chaining to the stock
+    error handler.
+    """
+
+    # Credential-shaped token: >= 20 chars on a base64 / base64url / JWT /
+    # percent-encoded charset. `.` and `~` are included so dotted bearer /
+    # JWT tokens (header.payload.signature) match — without `.` the anchored
+    # regex fails on the separators and the value would leak. The >= 20 floor
+    # is deliberate (modern PATs/tokens exceed it); a shorter value under an
+    # out-of-set flag is not redacted.
+    _CREDENTIAL_LOOKING_RE = re.compile(r"^[A-Za-z0-9_/+=%.~-]{20,}$")
+    _STRIP_CHARS = "'\"`(),;:."
+
+    def error(self, message: str) -> None:  # type: ignore[override]
+        def _check(value: str) -> bool:
+            core = value.strip(self._STRIP_CHARS)
+            return bool(self._CREDENTIAL_LOOKING_RE.match(core))
+
+        def _scrub(match: re.Match[str]) -> str:
+            tok = match.group(0)
+            if tok.startswith("-"):
+                # Glued ``--flag=VALUE`` — check the RHS of the first ``=``
+                # for credential shape and replace only that half.
+                if "=" in tok:
+                    flag, _, value = tok.partition("=")
+                    if _check(value):
+                        return f"{flag}=<scrubbed>"
+                return tok
+            if _check(tok):
+                return "<scrubbed>"
+            return tok
+
+        scrubbed = re.sub(r"\S+", _scrub, message)
+        super().error(scrubbed)
 
 
 def _find_schema(namespace: str) -> pathlib.Path | None:
@@ -132,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:]) if argv is None else list(argv)
     _refuse_argv_ban(argv)
 
-    parser = argparse.ArgumentParser(
+    parser = _ScrubbingArgumentParser(
         prog="credential-setup",
         description="Interactive credential setup. user-invoked.",
     )
