@@ -39,6 +39,11 @@ if __package__ in (None, "") and __spec__ is None:
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
 
+# Every sibling import that transitively pulls a third-party dependency goes
+# inside this guard so a missing dep yields the banded exit-2 "run pip
+# install" message instead of a raw traceback: ._render pulls markdown_it,
+# ._target pulls yaml. When they sat below the guard a missing one bypassed
+# the contract entirely.
 try:
     from ._client import (  # noqa: E402
         AuthError,
@@ -47,6 +52,18 @@ try:
         ConfluenceError,
         PageRef,
         load_credentials,
+    )
+    from ._render import (  # noqa: E402
+        ALLOWED_INPUT_FORMATS,
+        INPUT_MARKDOWN,
+        as_storage_xhtml,
+        extract_title_from_markdown,
+    )
+    from ._target import (  # noqa: E402
+        ResolvedTarget,
+        TargetResolutionError,
+        read_input,
+        resolve_target,
     )
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # 1 = functional/internal (shim not projected); 2 = user must act (deps).
@@ -61,18 +78,6 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
         "python -m pip install -r requirements.txt\n"
     )
     raise SystemExit(2)
-from ._render import (  # noqa: E402
-    ALLOWED_INPUT_FORMATS,
-    INPUT_MARKDOWN,
-    as_storage_xhtml,
-    extract_title_from_markdown,
-)
-from ._target import (  # noqa: E402
-    ResolvedTarget,
-    TargetResolutionError,
-    read_input,
-    resolve_target,
-)
 
 log = logging.getLogger("confluence_publisher")
 
@@ -86,6 +91,33 @@ EXIT_USER_ACTION = 2
 EXIT_ERROR = 1
 
 DEFAULT_VERSION_COMMENT = "Published by confluence-publisher"
+
+# Token-shaped CLI flags are rejected before argparse runs — argparse would
+# otherwise echo the offending ``--flag VALUE`` verbatim in its
+# "unrecognized arguments" error, leaking the secret to stderr / the agent
+# transcript. The Confluence PAT (or Cloud API token used as a Basic-auth
+# password) is resolved only via env / keyring / dotfile. Mirrors the
+# sibling jira / jira-align idiom (exact-set match).
+# Superset of the CONVENTIONS § "The argv ban" canonical six
+# (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
+# short -t and a Confluence-specific alias.
+TOKEN_CLI_FLAGS = frozenset({
+    "--token", "--api-token", "--api-key", "--bearer", "-t",
+    "--confluence-token", "--pat", "--password",
+})
+
+
+def _reject_token_on_cli(argv: list[str]) -> None:
+    """Confluence tokens / PATs are secret; refuse to accept them as CLI args."""
+    for arg in argv:
+        head = arg.split("=", 1)[0]
+        if head in TOKEN_CLI_FLAGS:
+            sys.stderr.write(
+                "error: API tokens must not be passed on the command line. "
+                "Run `credential-setup` skill to store CONFLUENCE_API_TOKEN "
+                "via env / keyring / dotfile.\n"
+            )
+            sys.exit(EXIT_ERROR)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -442,6 +474,10 @@ def _run_publish(argv: list[str] | None = None) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Guard runs before _run_publish's own parse, against the same argv
+    # source the parser will see (explicit argv, else sys.argv[1:]), so the
+    # reject and the parse can never diverge on what they inspect.
+    _reject_token_on_cli(sys.argv[1:] if argv is None else argv)
     # Top-level catch-all: no exception escapes as a traceback. `except
     # Exception` deliberately does NOT catch SystemExit / KeyboardInterrupt.
     try:
