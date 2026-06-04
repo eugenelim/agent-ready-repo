@@ -48,6 +48,24 @@ def _run(*args: str) -> subprocess.CompletedProcess:
     )
 
 
+def test_stdio_utf8_hardening_present() -> None:
+    # Windows console hardening: stdout/stderr are reconfigured to UTF-8 at
+    # the top of file-path invocation, so non-ASCII output (UTF-8 JSON / CSV
+    # payloads on stdout — which is errors="strict" by default and *does*
+    # crash on a cp1252 console — plus em-dash messages) is safe. Must sit
+    # before the import guard so the guard's own messages are covered too.
+    # Source-asserted: a real non-UTF-8 Windows console isn't reproducible in
+    # a portable test (proven by A/B in the PR: --help crashed on `→`
+    # without this).
+    assert 'reconfigure(encoding="utf-8")' in SRC, \
+        "stdout/stderr UTF-8 hardening missing"
+    assert SRC.index('if __package__ in (None, "") and __spec__ is None:') \
+        < SRC.index('reconfigure(encoding="utf-8")'), \
+        "UTF-8 hardening must sit inside the file-path-invocation gate"
+    assert SRC.index('reconfigure(encoding="utf-8")') < SRC.index("missing dependency"), \
+        "UTF-8 hardening must run before the import guard"
+
+
 def _deps_installed() -> bool:
     """False when the import guard fires (deps/shim absent) → skip behavioral."""
     proc = _run("--help")
