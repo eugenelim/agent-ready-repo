@@ -24,9 +24,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-import yaml
-from slugify import slugify
-
 # Bootstrap when invoked as ``python scripts/crawl_space.py`` so the
 # relative imports of sibling modules — including ``_client``'s
 # ``from .credentials_shim import …`` — resolve against the
@@ -39,7 +36,15 @@ if __package__ in (None, "") and __spec__ is None:
     sys.path.insert(0, str(_here.parent))
     __package__ = _here.name
 
+# Every third-party and sibling import goes inside this guard so a missing
+# dependency yields the banded exit-2 "run pip install" message instead of
+# a raw traceback. ``yaml`` / ``slugify`` (direct) and ``lxml`` /
+# ``markdownify`` (transitively, via ._convert) must be in here too — when
+# they sat above the guard a missing one bypassed the contract entirely.
 try:
+    import yaml  # noqa: E402
+    from slugify import slugify  # noqa: E402
+
     from ._client import (  # noqa: E402
         AuthError,
         ConfluenceClient,
@@ -48,6 +53,8 @@ try:
         Page,
         load_credentials,
     )
+    from ._convert import to_markdown  # noqa: E402
+    from ._links import LinkTargets  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # 1 = functional/internal (shim not projected); 2 = user must act (deps).
     if _import_exc.name and "credentials_shim" in _import_exc.name:
@@ -61,8 +68,6 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
         "python -m pip install -r requirements.txt\n"
     )
     raise SystemExit(2)
-from ._convert import to_markdown  # noqa: E402
-from ._links import LinkTargets  # noqa: E402
 
 log = logging.getLogger("confluence_crawler")
 
@@ -78,6 +83,33 @@ EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 SLUG_MAX_LEN = 80
 UNLIMITED_DEPTH = 9999
+
+# Token-shaped CLI flags are rejected before argparse runs — argparse would
+# otherwise echo the offending ``--flag VALUE`` verbatim in its
+# "unrecognized arguments" error, leaking the secret to stderr / the agent
+# transcript. The Confluence PAT (or Cloud API token used as a Basic-auth
+# password) is resolved only via env / keyring / dotfile. Mirrors the
+# sibling jira / jira-align idiom (exact-set match).
+# Superset of the CONVENTIONS § "The argv ban" canonical six
+# (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
+# short -t and a Confluence-specific alias.
+TOKEN_CLI_FLAGS = frozenset({
+    "--token", "--api-token", "--api-key", "--bearer", "-t",
+    "--confluence-token", "--pat", "--password",
+})
+
+
+def _reject_token_on_cli(argv: list[str]) -> None:
+    """Confluence tokens / PATs are secret; refuse to accept them as CLI args."""
+    for arg in argv:
+        head = arg.split("=", 1)[0]
+        if head in TOKEN_CLI_FLAGS:
+            sys.stderr.write(
+                "error: API tokens must not be passed on the command line. "
+                "Run `credential-setup` skill to store CONFLUENCE_API_TOKEN "
+                "via env / keyring / dotfile.\n"
+            )
+            sys.exit(EXIT_ERROR)
 
 
 @dataclass
@@ -379,6 +411,7 @@ async def main_async(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
+    _reject_token_on_cli(sys.argv[1:])
     args = parse_args()
     _setup_logging(args.verbose)
     # Top-level catch-all: no exception escapes as a traceback. `except

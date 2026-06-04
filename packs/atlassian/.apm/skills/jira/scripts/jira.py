@@ -92,9 +92,12 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 
+# Superset of the CONVENTIONS § "The argv ban" canonical six
+# (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
+# short -t and a Jira-specific alias.
 TOKEN_CLI_FLAGS = frozenset({
-    "--token", "--api-token", "--bearer", "-t",
-    "--jira-token", "--pat",
+    "--token", "--api-token", "--api-key", "--bearer", "-t",
+    "--jira-token", "--pat", "--password",
 })
 
 
