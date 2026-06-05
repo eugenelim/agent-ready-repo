@@ -335,6 +335,16 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
 - **Per-shell hook commands.** `copilot-hooks-json` carries the shell-agnostic source command
   into both `bash` and `powershell` handler keys. A wiring with per-shell commands would need a
   source-side shape extension — out of scope; no shipped wiring needs it.
+- **Repo-scope hook execution on Copilot CLI ≥ 1.0.60 (CLI-side).** The AC23 live smoke
+  (2026-06-05, CLI 1.0.60) found that repo-scope `.github/hooks/*.json` wiring **is not executed**
+  by the CLI — the artifact is byte-correct and correctly placed, the identical user-scope hook
+  (`~/.copilot/hooks/`) fires, and the CLI loads `.github/agents/` fine, but no repo-scope hook
+  entry appears in the debug log. This is **version-sensitive**: RFC-0024 § Acceptance Runs 2–4
+  verified repo-scope hooks firing on **1.0.59**, so execution regressed (or gained a trust gate
+  requiring repo approval) between 1.0.59 and 1.0.60. Our projection is forward-compatible and
+  needs no change. Follow-up: re-probe on the then-current CLI, determine whether it's a
+  regression or a new repo-hook trust/opt-in gate (file upstream if a regression), and record the
+  outcome. Subagent discovery + read-only + user-scope hooks/instructions all pass on 1.0.60.
 - **User-scope hook-command resolution.** `copilot-hooks-json` rewrites a carried command's
   `tools/hooks/` prefix to the repo-scope `.github/hooks/` so the wiring references the body
   where `direct-file` lands it. At **user** scope the body lands at `~/.copilot/hooks/` and the

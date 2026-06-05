@@ -376,10 +376,14 @@ The spec is closed when each observable outcome is verifiable in the merged PR.
 
 ### Gates
 
-- [ ] **AC23.** Live Copilot CLI smoke (the RFC-0024 T1–T8 fixtures) run against the then-current
+- [x] **AC23.** Live Copilot CLI smoke (the RFC-0024 T1–T8 fixtures) run against the then-current
   CLI before merge; CLI version + per-test results recorded in **this spec's changelog** (durable,
-  version-controlled — not only the PR description, which rots). (The authoring-environment CLI is
-  1.0.55; RFC verification was 1.0.59 — re-record the version actually used.)
+  version-controlled — not only the PR description, which rots). **Done:** run on **CLI 1.0.60**
+  (2026-06-05), 5 pass / 1 fail / 2 n/a — results in the Changelog. The single failure (T4,
+  repo-scope hook *execution*) is a CLI-version-sensitive limitation (repo-scope hooks fired on
+  1.0.59 per RFC-0024 Runs 2–4; not on 1.0.60), not a projection defect — our artifacts are
+  byte-correct, agents project at both scopes, and user-scope hooks fire. Tracked in
+  `docs/backlog.md`; no projection AC falsified.
 - [x] **AC24.** `make build-self FORCE=1` produces a clean working tree (`git status --short`
   empty after the run).
 - [x] **AC25.** `python3 tools/hooks/pre-pr.py` exits 0 on the merged tree.
@@ -471,6 +475,35 @@ The spec is closed when each observable outcome is verifiable in the merged PR.
     ordinary projection writes, not merge-owned rows). A hook-shipping copilot user-scope pack
     still declares `[pack.install] user-scope-hooks = true` (the adapter-agnostic Rail-B consent
     gesture). No change to claude-code / kiro behaviour. Recorded in `plan.md` Changelog too.
-- **AC23 — live Copilot CLI smoke.** _Pending: to be recorded here with the CLI version and
-  per-test (T1–T8) results before merge (RFC-0024 § Acceptance fixtures against the generated
-  `core`+`research` artifacts)._
+- **AC23 — live Copilot CLI smoke (recorded 2026-06-05).** RFC-0024 T1–T8 fixtures run against
+  the **generated** `core`+`research` copilot artifacts. **Copilot CLI 1.0.60** (T6 n/a — app
+  not tested), verifier JoeyMussAITech (run via Copilot). **5 pass · 1 fail (T4) · 2 n/a:**
+  - **T1 ✅** repo-scope agents (`.github/agents/`) — all 4 `core` reviewers load, no frontmatter
+    parse errors, selectable via `/agent`.
+  - **T2 ✅** user-scope agents (`$COPILOT_HOME/agents/`) — `evidence-retriever`,
+    `source-extractor` discovered globally from outside any repo.
+  - **T3 ✅** tool mapping + read-only — read works; edit + shell refused ("read-only tool
+    surface"); Claude tool names accepted. `WebFetch`/`WebSearch` absent from the agent tool
+    surface (the documented degradation — declared in frontmatter, not surfaced by the CLI).
+  - **T4 ❌** repo-scope hook (`.github/hooks/session-start.json`) — **the artifact is correct**
+    (JSON parses, `version:1` + `sessionStart` key, valid `bash`/`powershell`, command path
+    resolves) but **CLI 1.0.60 does not execute repo-scope `.github/hooks/`**: debug logs show
+    only the user-scope hook fires, no repo-scope entry, no marker written. This is a **CLI-side
+    behaviour**, not an artifact defect — and it is **version-sensitive**: RFC-0024 § Acceptance
+    Runs 2–4 verified repo-scope hooks **firing on 1.0.59**. So repo-scope hook *execution*
+    regressed (or gained a trust gate) between 1.0.59 and 1.0.60. The CLI loads `.github/agents/`
+    (T1) but not `.github/hooks/` on 1.0.60. Tracked as a follow-on in `docs/backlog.md`; our
+    projection is byte-correct and forward-compatible. No AC revised (AC9-repo is a *projection*
+    contract — files land correctly — not a CLI-execution claim).
+  - **T5 ✅** user-scope hook (`$COPILOT_HOME/hooks/`) fires globally — marker written, confirmed
+    in debug log. (Confirms the file-based hook model + the user-scope path work end-to-end.)
+  - **T6 n/a** — requires the Copilot app (tech preview).
+  - **T7 ✅** user-scope instructions — all 7 `research` instruction files present in context,
+    model lists them by name.
+  - **T8 n/a** — `core` ships only a `SessionStart` wiring; the full 6-event map stands on
+    RFC-0024 Runs 2–4 + the `copilot_hooks_json` unit test.
+
+  **Verdict:** the spec's primary objective — subagents project to Copilot at both scopes with
+  the read-only restriction preserved — is **verified on 1.0.60**. The one failure (T4) is a
+  CLI-version-sensitive limitation on repo-scope hook *execution*, outside our artifacts'
+  control; user-scope hooks (T5) work. See `docs/backlog.md` § copilot-full-parity.
