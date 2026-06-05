@@ -1,9 +1,16 @@
-"""Copilot adapter — projects skills as per-file instructions, hook
-bodies straight through, drops everything else.
+"""Copilot adapter — projects skills as per-file instructions, agents as
+`.agent.md`, hook-wiring as per-file JSON, hook bodies straight through;
+drops only `command` (copilot-cli#618/#1113).
 
 Skill instruction frontmatter (`applyTo: "**"` etc.) comes from the
 contract's `frontmatter-default["copilot-instruction"]` table — never
-hardcoded.
+hardcoded. Agent + hook-wiring serialisation live in the sibling
+`copilot_agent_md` / `copilot_hooks_json` projection modules (RFC-0024 /
+docs/specs/copilot-full-parity); this adapter only dispatches to them.
+
+The adapter is scope-agnostic: it emits repo-relpaths (`.github/…`) at every
+scope. The divergent user-scope home (`~/.copilot/…`) is produced by the
+install handler's post-render prefix rewrite, not here.
 """
 
 from __future__ import annotations
@@ -15,6 +22,12 @@ from typing import Any, Iterator
 
 # RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+from agentbundle.build.projections.copilot_agent_md import (
+    project_copilot_agent_md,
+)
+from agentbundle.build.projections.copilot_hooks_json import (
+    project_copilot_hooks_json,
+)
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -42,6 +55,12 @@ def project(pack_path: Path, contract: dict, output_root: Path) -> None:
             _project_instruction_file(source_dir, output_root, rule, contract)
         elif mode == "direct-file":
             _project_direct_file(source_dir, output_root, rule["target-path"])
+        elif mode == "copilot-agent-md":
+            mapping_name = rule["frontmatter-mapping"]
+            mapping = contract.get("frontmatter-mapping", {}).get(mapping_name, {})
+            project_copilot_agent_md(source_dir, output_root, rule, mapping)
+        elif mode == "copilot-hooks-json":
+            project_copilot_hooks_json(source_dir, output_root, rule)
         else:
             raise ValueError(f"copilot: unhandled mode {mode!r} for {primitive_name}")
 

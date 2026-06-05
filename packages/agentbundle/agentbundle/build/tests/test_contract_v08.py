@@ -54,6 +54,11 @@ def _codex_projection(contract: dict, primitive: str) -> dict:
     raise AssertionError(f"codex projection for primitive {primitive!r} not found")
 
 
+def _version_tuple(contract: dict) -> tuple[int, ...]:
+    """(major, minor) tuple — a string compare breaks at v0.10 ("0.10"<"0.8")."""
+    return tuple(int(part) for part in contract["contract"]["version"].split("."))
+
+
 class TestContractV08(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = tomllib.loads(DATA_CONTRACT_PATH.read_text(encoding="utf-8"))
@@ -66,12 +71,13 @@ class TestContractV08(unittest.TestCase):
         # v0.8 features are present; exact version check lives in test_contract.py.
         # The v0.8 features (codex-agent-toml, codex-agent-frontmatter-v0.8) must
         # survive future bumps — verify via the codex-specific tests below.
-        version = self.contract["contract"]["version"]
-        self.assertGreaterEqual(version, "0.8", "contract version must be >= 0.8")
+        # Compare as (major, minor) tuples — a string compare breaks at v0.10.
+        version = _version_tuple(self.contract)
+        self.assertGreaterEqual(version, (0, 8), "contract version must be >= 0.8")
 
     def test_docs_contract_version_is_08(self) -> None:
-        version = self.docs_contract["contract"]["version"]
-        self.assertGreaterEqual(version, "0.8", "docs contract version must be >= 0.8")
+        version = _version_tuple(self.docs_contract)
+        self.assertGreaterEqual(version, (0, 8), "docs contract version must be >= 0.8")
 
     def test_codex_agent_projection(self) -> None:
         entry = _codex_projection(self.contract, "agent")
@@ -199,22 +205,24 @@ class TestContractV08(unittest.TestCase):
             )
 
     def test_copilot_unchanged_post_v08(self) -> None:
-        """Property invariant — copilot has 3 dropped primitives unchanged."""
+        """Property invariant — at v0.10 (RFC-0024 / copilot-full-parity) copilot
+        projects 4 of 5 primitives; only `command` stays dropped (the v0.8
+        three-dropped state is superseded — agent + hook-wiring flipped to
+        native modes)."""
         primitives = {
             entry["primitive"]: entry
             for entry in self.contract["adapter"]["copilot"]["projection"]
         }
-        for primitive in ("agent", "hook-wiring", "command"):
-            self.assertEqual(
-                primitives[primitive]["mode"],
-                "dropped",
-                f"copilot {primitive} should still be dropped at v0.8",
-            )
-        for primitive in ("skill", "hook-body"):
+        self.assertEqual(
+            primitives["command"]["mode"],
+            "dropped",
+            "copilot command should still be dropped (copilot-cli#618/#1113)",
+        )
+        for primitive in ("skill", "agent", "hook-body", "hook-wiring"):
             self.assertNotEqual(
                 primitives[primitive]["mode"],
                 "dropped",
-                f"copilot {primitive} unexpectedly dropped at v0.8",
+                f"copilot {primitive} should project natively at v0.10",
             )
 
 

@@ -64,15 +64,22 @@ class TestRepoOnlyPacksV07(unittest.TestCase):
     def test_repo_only_packs_bump_to_v07(self) -> None:
         """Drawback #7 mitigation — without the bump the legacy
         heuristic at step 5 fires at repo scope for these packs. Test
-        name preserved; version assertion now pins v0.8 (post
-        docs/specs/dropped-primitives-coverage T7)."""
+        name preserved; version assertion pins v0.8, except `core` which
+        docs/specs/copilot-full-parity bumps to v0.10 (its 4 subagents +
+        hook-wiring now project to copilot)."""
+        expected = {
+            "core": "0.10",
+            "governance-extras": "0.8",
+            "user-guide-diataxis": "0.8",
+            "monorepo-extras": "0.8",
+        }
         for name in REPO_ONLY_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)
                 self.assertEqual(
                     pack["pack"]["adapter-contract"]["version"],
-                    "0.8",
-                    f"{name} must bump to v0.8 (from 0.2 → 0.7 → 0.8)",
+                    expected[name],
+                    f"{name} must declare contract v{expected[name]}",
                 )
 
     def test_repo_only_packs_remain_implicit_default(self) -> None:

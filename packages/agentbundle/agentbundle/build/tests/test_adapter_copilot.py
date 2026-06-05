@@ -53,29 +53,36 @@ class CopilotAdapterTests(unittest.TestCase):
             self.assertIn("applyTo", text)
             self.assertIn("**", text)
 
-    def test_agent_dropped(self) -> None:
+    def test_agent_projects_agent_md(self) -> None:
+        # v0.10 (copilot-full-parity): agent flips dropped → copilot-agent-md.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            self.assertFalse((out / ".github" / "agents").exists())
+            self.assertTrue((out / ".github" / "agents" / "bar.agent.md").exists())
 
-    def test_hook_body_extensions_preserved(self) -> None:
+    def test_hook_body_lands_in_github_hooks(self) -> None:
+        # v0.10: hook-body retargets tools/hooks/ → .github/hooks/ (repo-relpaths).
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            self.assertTrue((out / "tools" / "hooks" / "baz.sh").exists())
-            self.assertTrue((out / "tools" / "hooks" / "baz.py").exists())
+            self.assertTrue((out / ".github" / "hooks" / "baz.sh").exists())
+            self.assertTrue((out / ".github" / "hooks" / "baz.py").exists())
+            # No legacy tools/hooks/ output remains for copilot.
+            self.assertFalse((out / "tools" / "hooks").exists())
 
-    def test_hook_wiring_and_command_dropped(self) -> None:
+    def test_hook_wiring_projects_per_file_json_command_dropped(self) -> None:
+        # v0.10: hook-wiring flips dropped → copilot-hooks-json (one <name>.json
+        # per source file); command stays dropped.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)
             out = tmp_path / "out"
             project(pack, self.contract, out)
+            self.assertTrue((out / ".github" / "hooks" / "baz.json").exists())
             self.assertFalse(any(out.rglob("settings.local.json")))
             self.assertFalse(any(out.rglob("qux.md")))
 

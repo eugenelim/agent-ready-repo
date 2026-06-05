@@ -9,8 +9,11 @@ description = "Core agent-ready-repo: work-loop, new-spec, bug-fix skills; revie
 # repo-only by content — it ships hooks (Rail B would refuse user
 # scope) and AGENTS.md / CONVENTIONS seeds that reference this
 # project's vocabulary by name (the falsifiable user-scope test fails).
+# RFC-0024 / docs/specs/copilot-full-parity bumps the contract to 0.10:
+# copilot now projects core's 4 subagents (`.github/agents/`) + hook-wiring
+# (`.github/hooks/`); only `command` stays dropped (copilot-cli#618/#1113).
 [pack.adapter-contract]
-version = "0.8"
+version = "0.10"
 
 [pack.install]
 default-scope = "repo"

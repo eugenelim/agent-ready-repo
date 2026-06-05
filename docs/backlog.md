@@ -235,13 +235,13 @@ of their own yet.
 - **F-conformance fixtures (RFC-0003).** The per-adapter conformance suite
   `agentbundle validate --strict` would consume. Scoped out of v1; needs
   its own spec.
-- **Copilot `agent`-projection enablement (RFC-0016 open question 1).** The
-  sharpened `adversarial-reviewer` "Spec drift" check reaches 3/4 adapters;
-  copilot's `agent` primitive is `dropped` in `docs/contracts/adapter.toml`.
-  Flipping it to enabled is a contract change (with its own conformance work in
-  `distribution-adapters`) — needs its own spec. The other four doc-drift
-  mechanisms (template, work-loop, CONVENTIONS, backlog seed) already reach
-  copilot via skill/seed surfaces.
+- **Copilot `agent`-projection enablement (RFC-0016 open question 1) — RESOLVED
+  2026-06-05.** Shipped by [`docs/specs/copilot-full-parity/spec.md`](specs/copilot-full-parity/spec.md)
+  (RFC-0024 / ADR-0013): copilot's `agent` primitive flipped `dropped` → `copilot-agent-md`
+  (`.github/agents/<name>.agent.md`), `hook-wiring` → `copilot-hooks-json` (`.github/hooks/`),
+  and copilot became user-scope-capable (contract v0.9 → v0.10). The `adversarial-reviewer`
+  "Spec drift" check now reaches all four adapters. Open follow-ons under
+  *copilot-full-parity* below.
 - **Tier-1 lint invariant (iii) — promote to hard? (RFC-0016 open question 3).**
   Code-path references **shipped** in the `spec-code-ref-lint` spec (warn-only):
   `work-loop`'s `scripts/lint-spec-status.py` invariant (iii) now flags dangling repo-relative
@@ -315,3 +315,39 @@ release cadence. Separately, **defensive PyPI name registration** (an empty
 placeholder so `credbroker` can't be squatted before Phase 2) is an out-of-band
 **user action** — RFC-0023 asks for it as soon as the name is fixed; it is not
 performed by spec automation.
+
+## `copilot-full-parity`
+
+Shipped 2026-06-05 (RFC-0024 / ADR-0013 → [`docs/specs/copilot-full-parity/spec.md`](specs/copilot-full-parity/spec.md)):
+copilot became a full-parity, user-scope-capable adapter — `agent` →
+`copilot-agent-md` (`.github/agents/`), `hook-wiring` → `copilot-hooks-json`
+(`.github/hooks/`), `hook-body` retargeted to `.github/hooks/`, `skill` gained a
+`~/.copilot/instructions/` user target; contract v0.9 → v0.10; two-pack bump
+(`core`, `research`). Open follow-ons:
+
+- **Copilot `command` / prompt projection.** `command` stays `dropped` until the Copilot CLI
+  loads custom slash commands (copilot-cli#618/#1113). A follow-on RFC flips it to a tested
+  `.github/prompts/` target once the feature lands — not projected speculatively.
+- **`WebFetch` / `WebSearch` re-map.** Copilot exposes no web tool to custom agents (verified
+  CLI 1.0.59), so `research`'s retrieval subagents lose live web access on Copilot (documented
+  degradation — read/grep/glob only). When Copilot exposes a custom-agent web tool, a fresh
+  probe against the then-current CLI can add the mapping to `copilot-agent-frontmatter`.
+- **Per-shell hook commands.** `copilot-hooks-json` carries the shell-agnostic source command
+  into both `bash` and `powershell` handler keys. A wiring with per-shell commands would need a
+  source-side shape extension — out of scope; no shipped wiring needs it.
+- **Repo-scope hook execution on Copilot CLI ≥ 1.0.60 (CLI-side).** The AC23 live smoke
+  (2026-06-05, CLI 1.0.60) found that repo-scope `.github/hooks/*.json` wiring **is not executed**
+  by the CLI — the artifact is byte-correct and correctly placed, the identical user-scope hook
+  (`~/.copilot/hooks/`) fires, and the CLI loads `.github/agents/` fine, but no repo-scope hook
+  entry appears in the debug log. This is **version-sensitive**: RFC-0024 § Acceptance Runs 2–4
+  verified repo-scope hooks firing on **1.0.59**, so execution regressed (or gained a trust gate
+  requiring repo approval) between 1.0.59 and 1.0.60. Our projection is forward-compatible and
+  needs no change. Follow-up: re-probe on the then-current CLI, determine whether it's a
+  regression or a new repo-hook trust/opt-in gate (file upstream if a regression), and record the
+  outcome. Subagent discovery + read-only + user-scope hooks/instructions all pass on 1.0.60.
+- **User-scope hook-command resolution.** `copilot-hooks-json` rewrites a carried command's
+  `tools/hooks/` prefix to the repo-scope `.github/hooks/` so the wiring references the body
+  where `direct-file` lands it. At **user** scope the body lands at `~/.copilot/hooks/` and the
+  session CWD is arbitrary, so a relative command path won't resolve — an unsolved follow-on.
+  Not exercised today: `core` (the only hook-body pack) is repo-only; no shipped pack ships a
+  user-scope copilot hook. Needs a fresh probe of Copilot's user-scope hook CWD semantics.
