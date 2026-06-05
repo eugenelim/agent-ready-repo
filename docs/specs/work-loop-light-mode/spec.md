@@ -1,6 +1,6 @@
 # Spec: work-loop-light-mode
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0014, RFC-0025
@@ -89,14 +89,14 @@ with no TDD (nothing carries a compressible invariant).
 
 ## Acceptance Criteria
 
-- [ ] The `work-loop` source SKILL.md defines a **light mode** (lean inline spec
+- [x] The `work-loop` source SKILL.md defines a **light mode** (lean inline spec
   = Objective + Acceptance Criteria + short task list; single bounded
   adversarial pass — a fixed Blocker earns one re-review then escalates; no
   default `quality-engineer`; no `loop-cohort` state machine; scoped to a single
   logical task) and the unchanged **full mode**, selected by a risk-trigger
   selector that **replaces** the `>1 file` rule (the file-count rule no longer
   appears in the source).
-- [ ] After `make build-self`, the risk-trigger **block** is byte-identical
+- [x] After `make build-self`, the risk-trigger **block** is byte-identical
   across the projected `work-loop` SKILL.md, root `AGENTS.md`, the
   `packs/core/seeds/AGENTS.md` seed, and `docs/CONVENTIONS.md` (the SKILL.md
   source is the canonical wording, declared in plan T1); the seven triggers
@@ -105,29 +105,29 @@ with no TDD (nothing carries a compressible invariant).
   structural or public-interface change; destructive/irreversible operation; new
   dependency). "Verbatim" applies to the in-repo copies vs the T1 source;
   "matches ADR-0014" means semantic correspondence to the seven.
-- [ ] Root `AGENTS.md` **and** its seed `packs/core/seeds/AGENTS.md` no longer
+- [x] Root `AGENTS.md` **and** its seed `packs/core/seeds/AGENTS.md` no longer
   carry the "Small enough to not bother loading the work-loop" row verbatim; it
   and the `>1 file → new-spec` row are rewritten to the risk-based framing. The
   **edited escalation/trigger region** is byte-identical between the two —
   whole-file equality is *not* required (root `AGENTS.md` legitimately carries
   the trailing `AGENTS.local.md` footer line the seed lacks).
-- [ ] `docs/CONVENTIONS.md` § "How we do non-trivial work" describes the two
+- [x] `docs/CONVENTIONS.md` § "How we do non-trivial work" describes the two
   modes and the risk triggers (edited at the seed, projected via `build-self`).
-- [ ] The `new-spec` **spec** template (`assets/spec.md`) annotates its
+- [x] The `new-spec` **spec** template (`assets/spec.md`) annotates its
   light-mode-optional sections (Boundaries, Testing Strategy, Assumptions), and
   the **plan** template (`assets/plan.md`) annotates its light-mode-optional
   sections (Constraints, Risks, Changelog, `## Design (LLD)`), as optional in a
   light-mode lean fill.
-- [ ] The light-mode branch text positively includes the **persisted lean
+- [x] The light-mode branch text positively includes the **persisted lean
   spec** step (writes `docs/specs/<feature>/spec.md`, not in-chat only) **and**
   the `lint-spec-status.py` invocation, while **omitting** the `loop-cohort`
   state-machine calls; full mode is unchanged.
-- [ ] `loop-cohort.py` and `lint-spec-status.py` are byte-unchanged (empty
+- [x] `loop-cohort.py` and `lint-spec-status.py` are byte-unchanged (empty
   `git diff` for both).
-- [ ] `make build-self` regenerates projections cleanly; `make build-check`,
+- [x] `make build-self` regenerates projections cleanly; `make build-check`,
   `python tools/lint-agent-artifacts.py`, and `python tools/lint-agents-md.py`
   all pass (the latter two are not in `make build-check`; run by hand / in CI).
-- [ ] The diff adds no new executable code, no new skill directory, and no new
+- [x] The diff adds no new executable code, no new skill directory, and no new
   artifact/template format.
 
 ## Assumptions

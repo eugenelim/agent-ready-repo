@@ -629,6 +629,44 @@ doc, skill, or note has wasted what it learned. The next agent (or a
 human) will pay for it again. The work-loop skill enumerates where each
 kind of learning belongs.
 
+### Light and full modes
+
+**Rigor scales with risk, not file count.** `work-loop` has two modes. The
+default for low-risk work is **light mode** — a lean inline spec (Objective +
+Acceptance Criteria + a short task list, persisted under `docs/specs/`), a
+single bounded adversarial pass, no `loop-cohort` state machine, and no default
+`quality-engineer` pass — scoped to a single logical task. Work escalates to
+**full mode** — the loop with every gate, reviewer iteration, and the state
+machine — the moment it trips a risk trigger:
+
+<!-- risk-triggers:start — canonical wording lives here; copied verbatim
+     into AGENTS.md, packs/core/seeds/AGENTS.md, and docs/CONVENTIONS.md.
+     Keep all four byte-identical (grep-equality is an acceptance
+     criterion of the work-loop-light-mode spec). -->
+**Risk triggers — any one routes the work to full mode:**
+
+- **Unfamiliar** — territory you don't know well.
+- **Multi-person** — more than one person builds or reviews it.
+- **Multi-feature or dependent tasks** — it decomposes a multi-feature
+  brief, or its tasks depend on one another.
+- **Compliance, governance, or security boundary** — it touches a
+  compliance or governance surface, or a security boundary (auth,
+  secrets, user input, deserialization, file or network I/O).
+- **Structural or public-interface change** — it changes structure (a new
+  module, layer, or boundary) or a public or published interface.
+- **Destructive or irreversible operation** — it deletes data,
+  force-pushes, drops tables, or otherwise can't be cleanly undone.
+- **New dependency** — it adds a dependency.
+
+No trigger fires → **light mode**.
+<!-- risk-triggers:end -->
+
+**Why risk, not file count.** A familiar two-file change is cheap to get right
+and cheap to undo; a one-file change to an auth path or a published interface is
+neither. Each trigger maps to a gate the repo already maintains, so the set is
+the boundary's exhaustiveness argument. The mechanics of what light mode trims
+and how full mode runs live in the `work-loop` skill.
+
 ### Two front doors
 
 Work enters this loop through one of two front doors, depending on whether the

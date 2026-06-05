@@ -26,7 +26,7 @@
     {
       "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix skills; reviewer/implementer agents; pre-pr + session-start hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
       "name": "core",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "description": "User-scope credential brokering: credentials_shim (build-projected Python module for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",

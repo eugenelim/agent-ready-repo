@@ -29,7 +29,9 @@ verifiable termination criteria.
 - Any task where you'd otherwise be tempted to "just go".
 
 For genuine one-line edits (typo, config tweak), skip the loop — the overhead
-isn't worth it.
+isn't worth it. That triviality test decides *whether* to run the loop; once
+you're in it, **risk** (not file count) decides *which mode* runs — see
+[Modes: light and full](#modes-light-and-full) below.
 
 ## The loop
 
@@ -46,17 +48,83 @@ PLAN  ──►  EXECUTE  ──►  GATES  ──►  REVIEW  ──►  DECIDE
                                                               └── back to GATES
 ```
 
+## Modes: light and full
+
+`work-loop` has two modes, and which one runs is chosen by the **risk of
+the work, not its file count** — a familiar two-file change is light; a
+one-file change to an auth path is full.
+
+<!-- risk-triggers:start — canonical wording lives here; copied verbatim
+     into AGENTS.md, packs/core/seeds/AGENTS.md, and docs/CONVENTIONS.md.
+     Keep all four byte-identical (grep-equality is an acceptance
+     criterion of the work-loop-light-mode spec). -->
+**Risk triggers — any one routes the work to full mode:**
+
+- **Unfamiliar** — territory you don't know well.
+- **Multi-person** — more than one person builds or reviews it.
+- **Multi-feature or dependent tasks** — it decomposes a multi-feature
+  brief, or its tasks depend on one another.
+- **Compliance, governance, or security boundary** — it touches a
+  compliance or governance surface, or a security boundary (auth,
+  secrets, user input, deserialization, file or network I/O).
+- **Structural or public-interface change** — it changes structure (a new
+  module, layer, or boundary) or a public or published interface.
+- **Destructive or irreversible operation** — it deletes data,
+  force-pushes, drops tables, or otherwise can't be cleanly undone.
+- **New dependency** — it adds a dependency.
+
+No trigger fires → **light mode**.
+<!-- risk-triggers:end -->
+
+**Light mode (the default for low-risk work).** Scoped to a **single
+logical task** — it may touch a few files, but it carries no inter-task
+dependencies. Light mode keeps the loop's spine — EXECUTE, GATES, FIX,
+and the capture-learnings step are all unchanged — and trims the ceremony
+around it:
+
+- **A lean inline spec, persisted** to `docs/specs/<feature>/spec.md` (not
+  chat-only), opening with a one-line mode declaration —
+  `Mode: light (no risk trigger fired)` — so the judgment call leaves a
+  trace: Objective + Acceptance Criteria + a short task list. The
+  remaining `new-spec` sections (Boundaries, Testing Strategy, Assumptions
+  in the spec; Constraints, Risks, Changelog, and `## Design (LLD)` in the
+  plan) are optional in a lean fill — write them only when they earn their
+  place. Run `new-spec` to scaffold; its templates annotate which sections
+  are optional.
+- **A single bounded `adversarial-reviewer` pass** after GATES. A surfaced
+  Blocker earns **exactly one** re-review of the fix; if a Blocker
+  survives that, the work **escalates to full mode** rather than iterating
+  — repeated Blockers are themselves a risk signal.
+- **No default `quality-engineer` pass.** (A Blocker that escalates pulls
+  in the full lens with it.)
+- **No `loop-cohort` state machine** — light mode does not invoke
+  `loop-cohort` at all (no `init`, `approve-plan`, `check`, or
+  `review record`). The mechanical doc-drift check still runs:
+  `lint-spec-status.py` at the finish-time checklist, since it is a
+  no-subagent lint that costs ~nothing.
+
+**Full mode (unchanged).** Reached whenever any risk trigger fires. It is
+the loop exactly as the rest of this document describes — `new-spec` with
+all sections, the `loop-cohort` state machine, `adversarial-reviewer`
+iterated to `Clean`, the `quality-engineer` floor at the end-of-session
+checklist, and the iteration cap. **Everything below this section is full
+mode unless it says otherwise**; light mode reuses those steps verbatim
+except for the four trims named above.
+
 ### 1. PLAN — think before acting
 
 For anything beyond trivial, *think before you write code*. Concretely:
 
 - If the task has a spec, read `spec.md` and `plan.md` first. The plan's task
   list is your work-breakdown — don't invent your own.
-- If the task has no spec and is more than a one-file change, **stop and use
-  the `new-spec` skill first**. Implementation without a contract drifts.
+- **Pick the mode first** (see [Modes: light and full](#modes-light-and-full)).
+  If any risk trigger fires, you're in full mode: **stop and use the
+  `new-spec` skill first**. Implementation without a contract drifts.
   The contract is part of the spec — `Acceptance Criteria` and
   `Testing Strategy` are written *during* `new-spec`, not later. A spec with
-  either section left empty is not finished.
+  either section left empty is not finished. In light mode, write the lean
+  inline spec described above instead — Objective + Acceptance Criteria + a
+  short task list, persisted to `docs/specs/<feature>/spec.md`.
 - For architecturally significant work, use extended thinking. In an
   interactive Claude Code session: enter Plan Mode (Shift+Tab twice) and add
   "think hard" or "ultrathink" to your prompt for adaptive thinking depth.
@@ -441,7 +509,12 @@ mode below, then evaluate the terminal-state bullet last.
   (adopters). Mirroring an item to an issue tracker is an option where one
   exists, never assumed.
 - **Gates green and review clean** → ready to ship. Walk this end-of-session
-  checklist; refuse to declare done until every line is true:
+  checklist; refuse to declare done until every line is true. (**In light
+  mode**, two lines relax per the [Modes](#modes-light-and-full) section: the
+  `quality-engineer` floor below is dropped — a surviving Blocker escalates to
+  full mode instead — and "review clean" means the single bounded
+  `adversarial-reviewer` pass, with no `loop-cohort` involved. The doc-drift
+  invariants and `lint-spec-status.py` still apply.)
   - GATES were clean (lint, typecheck, tests).
   - For each reviewer the diff warranted (`adversarial-reviewer`
     always; `security-reviewer` on security-boundary diffs;

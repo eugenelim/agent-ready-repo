@@ -227,6 +227,20 @@ team decides to override the RFC's wait-and-see stance (then build a stdlib
 `tools/` lint — mind the Windows bash→py and two-lint-surface wiring traps — and
 wire it into `make build-check`).
 
+### risk-trigger-block-equality-lint
+
+The `work-loop-light-mode` spec ships the seven risk-trigger block verbatim in
+four files (`work-loop` SKILL.md — the canonical source — plus root `AGENTS.md`,
+`packs/core/seeds/AGENTS.md`, and `docs/CONVENTIONS.md`), bounded by
+`<!-- risk-triggers:start -->`/`:end` markers. AC2 verifies byte-equality once at
+review time via grep; nothing guards against a future edit silently diverging the
+copies. **Deferred** — the spec's Boundaries forbid new executable code in that
+PR (ADR-0014's no-new-code vehicle constraint), so the standing check could not
+land alongside the feature. **Unblocks when:** a follow-up PR is opened to add a
+block-equality check to `tools/lint-agents-md.py` (the marker-driven cross-file
+precedent already lives there at the legacy `agent-skills:start` check; it runs in
+CI via `.github/workflows/docs.yml`, not `make build-check`).
+
 ## Cross-spec / outside-the-spec-tree
 
 Open items called out by accepted RFCs or multiple specs, without a spec

@@ -8,6 +8,13 @@
 > (a different approach, not just a re-ordering), note why in the changelog
 > at the bottom.
 
+<!-- **Light-mode lean fill.** For low-risk work running the `work-loop`
+skill's light mode, only Approach + a short Tasks list are required.
+**Constraints**, **Risks**, **Changelog**, and the whole `## Design (LLD)`
+section are optional — keep them only if they earn their place. Any risk
+trigger (see the `work-loop` skill) escalates to full mode, where every
+section is filled. -->
+
 ## Approach
 
 <!--
