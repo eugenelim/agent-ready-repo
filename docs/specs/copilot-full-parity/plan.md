@@ -1,7 +1,7 @@
 # Plan: copilot-full-parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Executing | Done --> <!-- T1–T8 + T10 landed and gated; T9 (live Copilot CLI smoke, AC23) is the one open manual-QA task — flips to Done once recorded. -->
+- **Status:** Done <!-- Drafting | Executing | Done --> <!-- T1–T8 + T10 landed and gated; T9 (live Copilot CLI smoke, AC23) is the one open manual-QA task — flips to Done once recorded. -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
