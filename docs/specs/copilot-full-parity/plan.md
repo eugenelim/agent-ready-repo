@@ -1,7 +1,7 @@
 # Plan: copilot-full-parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Executing | Done --> <!-- T1–T8 + T10 landed and gated; T9 (live Copilot CLI smoke, AC23) is the one open manual-QA task — flips to Done once recorded. -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -455,3 +455,12 @@ the `git ls-files` check for new files under `build/`).
 ## Changelog
 
 - 2026-06-05: initial plan.
+- 2026-06-05: **T4a grew two seams during EXECUTE.** The scoped "dispatch branch + prefix
+  rewrite" was sufficient for copilot user-scope *skills + agents* (research, the real case),
+  but landing user-scope *hooks* (AC9-user, AC21's synthetic pack) also required teaching the
+  pre-existing user-scope-hook rails about copilot's file-based hook model:
+  `_adapter_supports_user_scope_hook_wiring` now recognises copilot's array-form
+  `copilot-hooks-json` mode, and `_merge_user_scope_hook_wiring` short-circuits to no rows for
+  copilot (its hooks are ordinary projection writes, not merge-owned). Also added `.agentbundle/`
+  to copilot's `allowed-prefixes.user` (state-file home; spec AC3 updated). All copilot-scoped;
+  no claude-code/kiro change. Surfaced by the T7 integration tests.

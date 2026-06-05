@@ -73,8 +73,12 @@ class ContractVersionTests(unittest.TestCase):
         # RFC-0011 / pack-allowed-adapters bumped it to v0.6;
         # RFC-0012 / repo-scope-per-adapter-projection and RFC-0013 /
         # credential-broker-contract co-bumped it to v0.7;
-        # docs/specs/dropped-primitives-coverage bumped it to v0.8.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.8")
+        # docs/specs/dropped-primitives-coverage bumped it to v0.8;
+        # RFC-0022 / kiro-adapter-split bumped it to v0.9 (this assertion was
+        # left stale at "0.8" then — this CI-only root isn't in `make
+        # build-check`, so the drift didn't surface); docs/specs/copilot-full-
+        # parity bumps it to v0.10.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.10")
 
 
 # ---------------------------------------------------------------------------

@@ -78,10 +78,13 @@ def test_all_packs_declare_install_table(pack_name):
     contract = data.get("pack", {}).get("adapter-contract", {})
     # docs/specs/dropped-primitives-coverage T7 bumped the four repo-only
     # packs from v0.7 → v0.8 (codex agent + hook-wiring move from
-    # `dropped` to first-class projections at v0.8).
-    assert contract.get("version") == "0.8", (
-        f"{pack_name}: [pack.adapter-contract] version must be \"0.8\"; "
-        f"got {contract!r}"
+    # `dropped` to first-class projections at v0.8). docs/specs/copilot-full-
+    # parity bumps `core` again to v0.10 (its subagents + hook-wiring now
+    # project to copilot); the other three stay at v0.8.
+    expected_version = "0.10" if pack_name == "core" else "0.8"
+    assert contract.get("version") == expected_version, (
+        f"{pack_name}: [pack.adapter-contract] version must be "
+        f"\"{expected_version}\"; got {contract!r}"
     )
     install = data.get("pack", {}).get("install")
     assert isinstance(install, dict), (

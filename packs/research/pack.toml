@@ -3,11 +3,25 @@ name = "research"
 version = "0.1.0"
 description = "Evidence-grounded research portable across every repo. Seven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
 
+# RFC-0024 / docs/specs/copilot-full-parity bumps the contract to 0.10:
+# copilot becomes a full-parity, user-scope-capable adapter, so research's
+# two retrieval subagents now project to `~/.copilot/agents/<name>.agent.md`.
 [pack.adapter-contract]
-version = "0.8"
+version = "0.10"
 
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters.
-allowed-adapters = ["claude-code", "kiro", "codex"]
+# RFC-0011 / pack-allowed-adapters; copilot added by RFC-0024 / copilot-full-parity.
+allowed-adapters = ["claude-code", "kiro", "codex", "copilot"]
+
+# Copilot projection caveat (RFC-0024 / docs/specs/copilot-full-parity §
+# Success for the read-only subagents): the `evidence-retriever` and
+# `source-extractor` subagents declare `tools: …, WebFetch, WebSearch`. On
+# Copilot those two tokens are emitted into the `.agent.md` but **inert** —
+# Copilot exposes no web tool to custom agents (verified, CLI 1.0.59, two
+# independent runs). So on Copilot these subagents degrade to read/grep/glob
+# only: they lose live web access but keep local retrieval and synthesis. The
+# read-only restriction is otherwise preserved (no edit/execute). This is a
+# documented degradation, not a silent drop; a future flip needs a fresh probe
+# against the then-current CLI once Copilot exposes a custom-agent web tool.
