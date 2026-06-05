@@ -106,4 +106,4 @@ by *not invoking* them.
 
 - RFC-0025 — `docs/rfc/0025-work-loop-light-mode-and-risk-based-escalation.md` (#237).
 - Field prior art: [GitHub Copilot plan mode](https://github.blog/changelog/2026-01-21-github-copilot-cli-plan-before-you-build-steer-as-you-go/); [AWS Kiro best practices / Quick Plan](https://kiro.dev/docs/specs/best-practices/); [OpenSpec vs Spec Kit weight](https://www.augmentcode.com/tools/best-spec-driven-development-tools).
-- Implementation lands in `packs/core` sources + `make build-self` (not the projected `.claude/`, `AGENTS.md`, `docs/CONVENTIONS.md` paths); tracked by the RFC's follow-on spec `docs/specs/work-loop-light-mode/`.
+- Implementation lands in `packs/core` sources + `make build-self` for the projected paths (`.claude/...`, `docs/CONVENTIONS.md` — the latter rescued by `PROJECTED_README_OVERRIDES`); root `AGENTS.md` is Manual (`EXCLUDED_PATTERNS`) and is edited **directly** with its seed `packs/core/seeds/AGENTS.md` kept in sync — `build-self` does not re-project it. Tracked by the follow-on spec `docs/specs/work-loop-light-mode/`.
