@@ -47,7 +47,9 @@
                     "managed-block-inline",
                     "degraded-info-log",
                     "dropped",
-                    "codex-agent-toml"
+                    "codex-agent-toml",
+                    "copilot-agent-md",
+                    "copilot-hooks-json"
                   ]
                 },
                 "target-path": {"type": "string"},
@@ -89,7 +91,9 @@
                       "managed-block-inline",
                       "degraded-info-log",
                       "dropped",
-                      "codex-agent-toml"
+                      "codex-agent-toml",
+                      "copilot-agent-md",
+                      "copilot-hooks-json"
                     ]
                   },
                   "else": {
@@ -107,7 +111,9 @@
                           "managed-block-inline",
                           "degraded-info-log",
                           "dropped",
-                          "codex-agent-toml"
+                          "codex-agent-toml",
+                          "copilot-agent-md",
+                          "copilot-hooks-json"
                         ]
                       },
                       "user": {
@@ -121,7 +127,9 @@
                           "managed-block-inline",
                           "degraded-info-log",
                           "dropped",
-                          "codex-agent-toml"
+                          "codex-agent-toml",
+                          "copilot-agent-md",
+                          "copilot-hooks-json"
                         ]
                       }
                     }

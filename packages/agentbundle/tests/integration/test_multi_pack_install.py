@@ -41,22 +41,22 @@ Three concerns:
 
 Known per-adapter quirk pinned below:
 
-  - Copilot's flat projection lands every primitive at
-    ``.github/instructions/<primitive>.instructions.md`` — a depth-1
-    file whose stem (``<primitive>.instructions``) matches neither the
-    primitive name nor the pack name, so the per-pack scanner at
-    ``safety.scan_for_pack_artifacts`` returns ``[]`` for the copilot
-    portion of the prefix list. The scanner DOES still fire at copilot
-    for packs that ship hook files under ``tools/hooks/`` (a non-
-    copilot-specific surface — copilot's
-    ``allowed-prefixes.repo`` includes both ``.github/instructions/``
-    AND ``tools/hooks/``). So at copilot the orphan branch fires for
-    *core* (which ships ``pre-pr.py`` + ``session-start.py``) but not
-    for *governance-extras* (skills-only). The cross-pack invariant
-    tests' Direction A (force install of governance-extras) skips
-    copilot for this reason — there's nothing for the scanner to find
-    so the positive-signal assertion would fire vacuously. Direction B
-    (force install of core) runs at all four adapters.
+  - Copilot's skill projection lands at
+    ``.github/instructions/<skill>.instructions.md`` — a depth-1 file whose
+    stem (``<skill>.instructions``) matches neither the primitive name nor the
+    pack name, so the per-pack scanner at ``safety.scan_for_pack_artifacts``
+    returns ``[]`` for the ``.github/instructions/`` portion of the prefix
+    list. The scanner DOES fire at copilot for packs that ship hook files —
+    post RFC-0024 / copilot-full-parity those land under ``.github/hooks/``
+    (copilot's ``allowed-prefixes.repo`` is now
+    ``[.github/instructions/, .github/agents/, .github/hooks/]``; the legacy
+    ``tools/hooks/`` prefix is gone). So at copilot the orphan branch fires for
+    *core* (which ships ``pre-pr.py`` + ``session-start.py``) but not for
+    *governance-extras* (skills-only). The cross-pack invariant tests'
+    Direction A (force install of governance-extras) skips copilot for this
+    reason — there's nothing for the scanner to find so the positive-signal
+    assertion would fire vacuously. Direction B (force install of core) runs at
+    all four adapters.
 
 Catalogue source: the live ``packs/`` tree in this repo. ``core`` and
 ``governance-extras`` are the canonical repo-only pair (governance
@@ -125,7 +125,9 @@ def _skill_path(adapter: str, skill_name: str) -> str:
     """
     if adapter == "claude-code":
         return f".claude/skills/{skill_name}/SKILL.md"
-    if adapter == "kiro":
+    # RFC-0022 kiro-adapter-split: `kiro-ide` / `kiro-cli` both project skills
+    # to `.kiro/skills/` like the retained `kiro` alias.
+    if adapter in ("kiro", "kiro-ide", "kiro-cli"):
         return f".kiro/skills/{skill_name}/SKILL.md"
     if adapter == "codex":
         return f".agents/skills/{skill_name}/SKILL.md"
@@ -478,16 +480,18 @@ def test_copilot_orphan_scan_finds_hooks_but_not_instructions(tmp_path):
 
     # Direct-call the scanner with core's primitive set + copilot's
     # repo-scope prefixes so we observe the gap straight rather than
-    # routing through the install handler.
+    # routing through the install handler. RFC-0024 / copilot-full-parity
+    # retargets copilot's hook bodies from `tools/hooks/` to `.github/hooks/`
+    # and adds `.github/agents/`.
     pack_dir = REPO_ROOT / "packs" / "core"
-    prefixes = [".github/instructions/", "tools/hooks/"]
+    prefixes = [".github/instructions/", ".github/agents/", ".github/hooks/"]
     orphans = safety.scan_for_pack_artifacts(
         adopter, prefixes, pack_dir=pack_dir, pack_name="core",
     )
     rels = sorted(p.relative_to(adopter).as_posix() for p in orphans)
 
-    # Positive: tools/hooks/* hits.
-    hook_hits = [r for r in rels if r.startswith("tools/hooks/")]
+    # Positive: .github/hooks/* hits (hook bodies, post-retarget).
+    hook_hits = [r for r in rels if r.startswith(".github/hooks/")]
     assert hook_hits, (
         f"expected scanner to find core's hook files at copilot; got: {rels!r}"
     )

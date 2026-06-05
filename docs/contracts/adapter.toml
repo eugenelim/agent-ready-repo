@@ -25,9 +25,18 @@
 # hook-wiring retained). `kiro` retained as deprecated alias for `kiro-ide`.
 # `kiro-ide-hook` primitive activated; `kiro-ide-agent-frontmatter-v0.9` renamed
 # to `kiro-ide-agent-frontmatter-v0.9`.
+# RFC-0024 / ADR-0013 / docs/specs/copilot-full-parity (v0.10): copilot becomes
+# a full-parity, user-scope-capable adapter. `agent` flips `dropped`→
+# `copilot-agent-md` (markdown → `.github/agents/<name>.agent.md`); `hook-wiring`
+# flips `dropped`→`copilot-hooks-json` (one self-contained `<name>.json` per
+# source file at `.github/hooks/`); `hook-body` retargets `tools/hooks/`→
+# `.github/hooks/`; `skill` gains a user target (`~/.copilot/instructions/`);
+# `[adapter.copilot.scope]` gains `user = "~"` + `allowed-prefixes.user`; new
+# `copilot-agent-frontmatter-v0.10` mapping. `command` stays `dropped`
+# (copilot-cli#618/#1113). Two-pack bump (research + core), not all-pack.
 
 [contract]
-version = "0.9"
+version = "0.10"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -392,33 +401,46 @@ on-conflict = "prompt-then-overwrite"
 
 [[adapter.copilot.projection]]
 primitive = "agent"
-mode = "dropped"
+mode = "copilot-agent-md"
+target-path = ".github/agents/"
+frontmatter-mapping = "copilot-agent-frontmatter-v0.10"
+on-conflict = "prompt-then-preserve"
 
 [[adapter.copilot.projection]]
 primitive = "hook-body"
 mode = "direct-file"
-target-path = "tools/hooks/"
+target-path = ".github/hooks/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter.copilot.projection]]
 primitive = "hook-wiring"
-mode = "dropped"
+mode = "copilot-hooks-json"
+target-path = ".github/hooks/"
+on-conflict = "prompt-then-preserve"
 
 [[adapter.copilot.projection]]
 primitive = "command"
 mode = "dropped"
 
-# Scope dimension for Copilot (RFC-0012 / repo-scope-per-adapter-projection).
-# Copilot is admissible at repo scope only — no user-scope analogue exists in
-# the Copilot ecosystem — so this table omits `user` and `allowed-prefixes.user`
-# deliberately. The repo-scope prefix matches Copilot's existing repo-scope
-# `instruction-file` projection target.
+# Scope dimension for Copilot (RFC-0024 / ADR-0013 / docs/specs/copilot-full-parity).
+# Copilot is now a full-parity, user-scope-capable adapter: the app + CLI
+# discover agents/instructions/hooks from `.github/` (repo) and `~/.copilot/`
+# (user). The repo-only restriction RFC-0012 recorded is superseded-in-part.
+# `skill` keeps its `instruction-file` mode; its user target
+# (`~/.copilot/instructions/<name>.instructions.md`) is produced by the install
+# handler's copilot user-scope prefix rewrite (`.github/X/`→`.copilot/X/`),
+# since the build adapter is scope-agnostic and emits repo-relpaths.
 [adapter.copilot.scope]
 repo = "."
-# RFC-0012: Copilot projects skills to `.github/instructions/`; hook bodies
-# land in the legacy `tools/hooks/` (matching copilot's hook-body array
-# entry). Copilot is admissible at repo scope only.
-allowed-prefixes.repo = [".github/instructions/", "tools/hooks/"]
+user = "~"
+# RFC-0024: repo-scope agents at `.github/agents/`, instructions at
+# `.github/instructions/`, hook wiring + bodies at `.github/hooks/`.
+allowed-prefixes.repo = [".github/instructions/", ".github/agents/", ".github/hooks/"]
+# User-scope home is `~/.copilot/` — the prefix the install rewrite produces
+# from the adapter's repo-relpaths. `.agentbundle/` carries the install
+# state file (`~/.agentbundle/state.toml`), same as every other user-scope-
+# capable adapter (claude-code, codex).
+allowed-prefixes.user = [".copilot/agents/", ".copilot/instructions/", ".copilot/hooks/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Codex adapter — 5 projections (one per primitive)
@@ -534,6 +556,23 @@ values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "clau
 rename = "name"
 
 [frontmatter-mapping."codex-agent-frontmatter-v0.8".description]
+rename = "description"
+
+# Copilot agent frontmatter v0.10 (RFC-0024 / docs/specs/copilot-full-parity):
+# rewrite rules from claude-code-style markdown agent (YAML frontmatter with
+# `name`, `description`, optionally `tools`, `model`) to Copilot's `.agent.md`
+# shape. `name` / `description` pass through (identity renames). `tools` is
+# NOT a rename rule — the `copilot-agent-md` mode emits it verbatim after an
+# allow-list validation (Copilot's parser self-resolves the Claude names), so
+# a `values` map here would be redundant. `model` is absent from this mapping
+# and so drops on projection (the CLI ignores it; our values aren't Copilot
+# model ids — copilot-cli#2133/#1195). `target` is never emitted.
+[frontmatter-mapping."copilot-agent-frontmatter-v0.10"]
+
+[frontmatter-mapping."copilot-agent-frontmatter-v0.10".name]
+rename = "name"
+
+[frontmatter-mapping."copilot-agent-frontmatter-v0.10".description]
 rename = "description"
 
 # ---------------------------------------------------------------------------

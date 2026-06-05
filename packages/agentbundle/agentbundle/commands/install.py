@@ -702,6 +702,14 @@ def run(args: "argparse.Namespace") -> int:
                     pack_name=pack_name,
                     target_adapter=user_target_adapter,
                 )
+            if user_target_adapter == "copilot":
+                # Copilot's whole prefix diverges at user scope
+                # (`.github/…`→`.copilot/…`) for every primitive — not just
+                # hooks — so this runs unconditionally for copilot, before
+                # the path-jail probe below (RFC-0024 / copilot-full-parity).
+                user_projection = _rewrite_copilot_user_scope_paths(
+                    user_projection
+                )
     except (FileNotFoundError, ValueError) as exc:
         print(f"install: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
         return 1
@@ -2108,7 +2116,14 @@ def _render_for_user_scope(
     """
     import tempfile
 
-    from agentbundle.build.adapters import claude_code, codex, kiro, kiro_cli, kiro_ide
+    from agentbundle.build.adapters import (
+        claude_code,
+        codex,
+        copilot,
+        kiro,
+        kiro_cli,
+        kiro_ide,
+    )
     from agentbundle.build.main import _read_bundled
     from agentbundle.render import _collect_tree
 
@@ -2135,6 +2150,13 @@ def _render_for_user_scope(
             codex.project(pack_dir, contract, out)
         elif target_adapter == "claude-code":
             claude_code.project(pack_dir, contract, out)
+        elif target_adapter == "copilot":
+            # The copilot build adapter is scope-agnostic and emits
+            # repo-relpaths (`.github/…`); the install handler rewrites
+            # them to the user-scope home (`.copilot/…`) via
+            # `_rewrite_copilot_user_scope_paths` before the path-jail
+            # (RFC-0024 / copilot-full-parity).
+            copilot.project(pack_dir, contract, out)
         else:
             # Defence-in-depth: every user-scope-capable adapter
             # should have an explicit branch above. A future contract
@@ -2249,11 +2271,20 @@ def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
     """Return True iff the adapter declares a hook-wiring projection
     mode that works at user scope (RFC-0005 AC25).
 
-    Two shapes count:
+    Three shapes count:
       - Claude Code: ``mode.user = "user-merge-json"``.
       - Kiro: ``mode = "merge-into-agent-json"`` (single mode, no
         scope qualifier — the agent-file target is scope-conditional
         via `<scope-root>` resolution).
+      - Copilot: ``mode = "copilot-hooks-json"`` in the **array-form**
+        ``[[adapter.copilot.projection]]`` table (RFC-0024 /
+        copilot-full-parity). Copilot's hooks are a *file-based* model
+        (one self-contained JSON per wiring file in a directory), not a
+        merge into a shared settings/agent file — so they work at user
+        scope via the build projection + the install handler's prefix
+        rewrite (`_rewrite_copilot_user_scope_paths`), with no
+        merge step. `_merge_user_scope_hook_wiring` returns no rows for
+        copilot accordingly.
 
     Anything else (``dropped``, ``degraded-info-log``, absent
     projection) is refused.
@@ -2265,19 +2296,29 @@ def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
     adapter_block = contract.get("adapter", {}).get(adapter_name, {})
     projections = adapter_block.get("projections", {}) if isinstance(adapter_block, dict) else {}
     hook_wiring = projections.get("hook-wiring") if isinstance(projections, dict) else None
-    if not isinstance(hook_wiring, dict):
-        return False
-    mode = hook_wiring.get("mode")
-    if isinstance(mode, dict):
-        # Claude-Code-shape scope-map: only `user-merge-json` is the
-        # documented user-scope mode. `merge-into-agent-json` would
-        # be a contract misconfiguration (it targets per-agent files,
-        # not a settings file) — refuse it under the scope-map branch.
-        return mode.get("user") == "user-merge-json"
-    # Bare-string mode: only `merge-into-agent-json` (Kiro shape)
-    # implies user-scope support. `merge-json` (the v0.2 repo-only
-    # form) does not.
-    return mode == "merge-into-agent-json"
+    if isinstance(hook_wiring, dict):
+        mode = hook_wiring.get("mode")
+        if isinstance(mode, dict):
+            # Claude-Code-shape scope-map: only `user-merge-json` is the
+            # documented user-scope mode. `merge-into-agent-json` would
+            # be a contract misconfiguration (it targets per-agent files,
+            # not a settings file) — refuse it under the scope-map branch.
+            return mode.get("user") == "user-merge-json"
+        # Bare-string mode: only `merge-into-agent-json` (Kiro shape)
+        # implies user-scope support. `merge-json` (the v0.2 repo-only
+        # form) does not.
+        return mode == "merge-into-agent-json"
+    # Array-form projection table (copilot): a hook-wiring entry with the
+    # file-based `copilot-hooks-json` mode is user-scope-capable.
+    array_form = adapter_block.get("projection", []) if isinstance(adapter_block, dict) else []
+    for entry in array_form:
+        if (
+            isinstance(entry, dict)
+            and entry.get("primitive") == "hook-wiring"
+            and entry.get("mode") == "copilot-hooks-json"
+        ):
+            return True
+    return False
 
 
 class _AdapterResolutionRefused(Exception):
@@ -2569,8 +2610,18 @@ def _rewrite_user_scope_hook_paths(
     here; install copies the body-only JSON, and
     ``_merge_user_scope_hook_wiring`` re-adds the hook entries with
     the same id-shape, producing a single set of writes.
+
+    Copilot is an explicit no-op here: its hooks are file-based and the
+    `.github/…`→`.copilot/…` rewrite is owned by
+    ``_rewrite_copilot_user_scope_paths`` (RFC-0024 / copilot-full-parity).
+    Returning early keeps copilot's no-op intentional rather than relying on
+    its `.github/hooks/` paths happening to miss the `tools/hooks/` branch
+    below.
     """
     import json
+
+    if target_adapter == "copilot":
+        return projection
 
     hook_subdir = ".claude/hooks" if target_adapter == "claude-code" else ".kiro/hooks"
     drop_keys = {".claude/settings.local.json"}
@@ -2611,6 +2662,36 @@ def _rewrite_user_scope_hook_paths(
     return rewritten
 
 
+def _rewrite_copilot_user_scope_paths(
+    projection: dict[str, bytes],
+) -> dict[str, bytes]:
+    """Rewrite copilot's repo-relpath projection to the user-scope home.
+
+    The copilot build adapter is scope-agnostic and emits ``.github/…``
+    relpaths at every scope (RFC-0024 / copilot-full-parity). At user scope
+    Copilot discovers content from ``~/.copilot/…`` instead, so the install
+    handler swaps the prefix for **all** copilot primitives — skill, agent,
+    hook-wiring, hook-body — before the path-jail check.
+
+    Unlike claude-code (whose skills share ``.claude/`` at both scopes, so
+    only its hooks diverge via ``_rewrite_user_scope_hook_paths``), copilot's
+    whole prefix changes, so this rewrite is **not** hook-gated.
+    """
+    prefix_map = {
+        ".github/instructions/": ".copilot/instructions/",
+        ".github/agents/": ".copilot/agents/",
+        ".github/hooks/": ".copilot/hooks/",
+    }
+    rewritten: dict[str, bytes] = {}
+    for relpath, content in projection.items():
+        for repo_prefix, user_prefix in prefix_map.items():
+            if relpath.startswith(repo_prefix):
+                relpath = user_prefix + relpath[len(repo_prefix) :]
+                break
+        rewritten[relpath] = content
+    return rewritten
+
+
 def _merge_user_scope_hook_wiring(
     pack_dir: Path,
     pack_name: str,
@@ -2638,6 +2719,15 @@ def _merge_user_scope_hook_wiring(
         if entry.is_file() and entry.suffix == ".toml":
             wiring_tomls[entry.stem] = tomllib.loads(entry.read_text(encoding="utf-8"))
     if not wiring_tomls:
+        return []
+
+    if target_adapter == "copilot":
+        # Copilot's hooks are file-based (RFC-0024 / copilot-full-parity): each
+        # wiring `.toml` is already projected to a self-contained
+        # `~/.copilot/hooks/<name>.json` by the build adapter + the user-scope
+        # prefix rewrite. There is no shared settings/agent file to merge into,
+        # so there are no merge-owned rows to record here — the files are
+        # tracked as ordinary projection writes (state.files), like skills.
         return []
 
     if target_adapter == "claude-code":

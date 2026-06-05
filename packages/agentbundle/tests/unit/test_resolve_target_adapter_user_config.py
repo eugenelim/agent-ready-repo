@@ -181,25 +181,20 @@ def test_probe_still_wins_when_user_config_none(
 def test_preflight_refuses_copilot_at_user_scope(
     tmp_path: Path, fake_home: Path
 ) -> None:
+    # RFC-0024 / copilot-full-parity: copilot is now user-scope-capable, so a
+    # configured `adapter = "copilot"` is **admitted** at user scope — the v0.7
+    # "not supported at user scope" refusal this test pinned is superseded. Name
+    # preserved to keep the diff small. (The AC13 refusal-message machinery is
+    # still covered by the pack-exclusion tests below.)
     pack = _pack(tmp_path)
-    with pytest.raises(_AdapterResolutionRefused) as excinfo:
-        _resolve_target_adapter(
-            pack,
-            scope="user",
-            allowed_adapters=None,
-            contract_version=None,
-            user_config=UserConfig(adapter="copilot"),
-        )
-    msg = str(excinfo.value)
-    # AC13 message contract:
-    assert "not supported at user scope" in msg
-    assert "copilot" in msg
-    assert "Adapters supported at user scope:" in msg
-    # All four escape hatches:
-    assert "--scope" in msg
-    assert "--adapter" in msg
-    assert "agentbundle config set adapter" in msg
-    assert "agentbundle config unset adapter" in msg
+    result = _resolve_target_adapter(
+        pack,
+        scope="user",
+        allowed_adapters=None,
+        contract_version=None,
+        user_config=UserConfig(adapter="copilot"),
+    )
+    assert result == "copilot"
 
 
 # ---------------------------------------------------------------------------

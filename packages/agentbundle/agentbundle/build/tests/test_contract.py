@@ -174,11 +174,15 @@ class ModeEnumTests(unittest.TestCase):
             "user-merge-json",
             "merge-into-agent-json",
             "codex-agent-toml",
+            # docs/specs/copilot-full-parity (v0.10): copilot agent + hook-wiring
+            # modes admitted at every `dropped`-enumerating site.
+            "copilot-agent-md",
+            "copilot-hooks-json",
         }
         self.assertEqual(
             mode_enum,
             expected,
-            f"schema mode enum differs from RFC-0001+RFC-0005+v0.8 set: {mode_enum}",
+            f"schema mode enum differs from RFC-0001+RFC-0005+v0.8+v0.10 set: {mode_enum}",
         )
 
     def test_schema_rejects_unknown_mode(self) -> None:
@@ -414,15 +418,15 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.9"
-        (bumped from "0.8" by RFC-0022 kiro-adapter-split T1: kiro-ide adapter
-        declared, kiro-ide-hook primitive activated, frontmatter mapping renamed).
-        Class name preserved to avoid churn.
+        """tomllib.loads of adapter.toml returns contract.version == "0.10"
+        (bumped from "0.9" by docs/specs/copilot-full-parity: copilot agent +
+        hook-wiring flip `dropped`→native modes, scope-table user capability,
+        skill user target, hook-body retarget). Class name preserved to avoid churn.
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.9",
-            "adapter.toml [contract] version must be '0.9' after kiro-adapter-split T1",
+            "0.10",
+            "adapter.toml [contract] version must be '0.10' after copilot-full-parity",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:
