@@ -100,7 +100,8 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         self.assertEqual(result, {"command": 3})
 
     def test_copilot_against_core_like_pack(self) -> None:
-        """Copilot drops agent + command + hook-wiring; all three counts."""
+        """RFC-0024 / copilot-full-parity: copilot now projects agent +
+        hook-wiring natively; only `command` still drops."""
         pack = _seed_pack(
             self.tmp_path / "pack",
             agents=["a", "b"],
@@ -108,7 +109,7 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
             hook_wirings=["w1"],
         )
         result = _enumerate_dropped_primitives(pack, "copilot")
-        self.assertEqual(result, {"agent": 2, "command": 3, "hook-wiring": 1})
+        self.assertEqual(result, {"command": 3})
 
     def test_kiro_against_core_like_pack(self) -> None:
         """Kiro drops only `command`."""
@@ -167,12 +168,16 @@ class TestEnumerateDroppedPrimitives(unittest.TestCase):
         self.assertEqual(result, {"command": 1})
 
     def test_hook_wiring_filter_by_toml_suffix(self) -> None:
+        # RFC-0024 / copilot-full-parity: copilot now projects hook-wiring
+        # (`copilot-hooks-json`), so it no longer appears in the dropped count.
+        # After this bump no shipped adapter drops hook-wiring at the type level,
+        # so the dropped-count is absent regardless of suffix. Name preserved.
         pack = self.tmp_path / "pack"
         (pack / ".apm" / "hook-wiring").mkdir(parents=True)
         (pack / ".apm" / "hook-wiring" / "real.toml").write_text("[hooks]\n", encoding="utf-8")
         (pack / ".apm" / "hook-wiring" / "stray.md").write_text("not a wiring", encoding="utf-8")
         result = _enumerate_dropped_primitives(pack, "copilot")
-        self.assertEqual(result.get("hook-wiring"), 1)
+        self.assertNotIn("hook-wiring", result)
 
 
 class TestEnumerateCompatiblePrimitives(unittest.TestCase):
@@ -199,14 +204,15 @@ class TestEnumerateCompatiblePrimitives(unittest.TestCase):
         self.assertEqual(set(result), {"skill", "agent", "hook-body", "hook-wiring"})
 
     def test_copilot_with_full_pack(self) -> None:
-        """Copilot projects skill + hook-body; the rest drop."""
+        """RFC-0024 / copilot-full-parity: copilot projects skill + agent +
+        hook-body + hook-wiring; only `command` drops."""
         pack = _seed_pack(
             self.tmp_path / "pack",
             skills=["s1"], agents=["a1"], hook_bodies=["h1"],
             hook_wirings=["w1"], commands=["c1"],
         )
         result = _enumerate_compatible_primitives(pack, "copilot")
-        self.assertEqual(set(result), {"skill", "hook-body"})
+        self.assertEqual(set(result), {"skill", "agent", "hook-body", "hook-wiring"})
 
     def test_skills_only_against_copilot(self) -> None:
         """Pack ships only skills; compatible list is `[skill]`."""

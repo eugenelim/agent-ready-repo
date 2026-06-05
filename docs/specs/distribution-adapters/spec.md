@@ -1338,6 +1338,34 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Changelog
 
+- 2026-06-05: contract bump v0.9 → v0.10 per
+  [`docs/specs/copilot-full-parity/spec.md`](../copilot-full-parity/spec.md) (RFC-0024 /
+  ADR-0013). (No v0.8 → v0.9 entry exists here — RFC-0022's kiro-adapter-split bump left
+  none — so this is authored against the v0.7 → v0.8 entry below.) Copilot becomes a
+  full-parity, user-scope-capable adapter: `agent` flips `dropped` → new `copilot-agent-md`
+  mode at `.github/agents/<name>.agent.md` (markdown → `.agent.md`; `name`/`description` via
+  the new `copilot-agent-frontmatter-v0.10` per-key mapping; `model` dropped; `target` omitted;
+  `tools` emitted verbatim after a fail-closed allow-list validation). `hook-wiring` flips
+  `dropped` → new `copilot-hooks-json` mode at `.github/hooks/` (one self-contained
+  `{"version":1,"hooks":{<event>:[{"type":"command","bash":…,"powershell":…}]}}` file per
+  source wiring; frozen event-name map `SessionStart`→`sessionStart`, etc.; unmapped event
+  fails the build). `hook-body` retargets `tools/hooks/` → `.github/hooks/`. `skill` keeps
+  `instruction-file` and gains the user target `~/.copilot/instructions/<name>.instructions.md`.
+  `command` stays `dropped` (copilot-cli#618/#1113). `[adapter.copilot.scope]` gains
+  `user = "~"`, `allowed-prefixes.user = [".copilot/agents/", ".copilot/instructions/",
+  ".copilot/hooks/", ".agentbundle/"]`, and `allowed-prefixes.repo = [".github/instructions/",
+  ".github/agents/", ".github/hooks/"]` (legacy `tools/hooks/` removed). The build adapter stays
+  scope-agnostic (repo-relpaths); user-scope install rewrites `.github/X/`→`.copilot/X/` for all
+  copilot primitives before the path-jail; copilot's file-based hooks are recognised by the
+  user-scope-hook rails (no merge step). Schema enum extended at every `dropped` site to also
+  admit `copilot-agent-md` + `copilot-hooks-json`. Two-pack bump (`core`, `research`) — not
+  all-pack (RFC-0022 precedent); `research` adds `copilot` to `allowed-adapters`. The
+  dropped-primitives warning rail now names only `command` for copilot (silent for packs with no
+  command). claude-code / kiro-ide / kiro-cli / codex projection tables byte-identical to v0.9.
+  Honest fidelity bound: `WebFetch`/`WebSearch` pass the allow-list but are inert on Copilot
+  (no custom-agent web tool) — documented degradation for `research`'s retrieval subagents, not
+  a silent drop.
+
 - 2026-05-26: contract bump v0.7 → v0.8 per
   [`docs/specs/dropped-primitives-coverage/spec.md`](../dropped-primitives-coverage/spec.md).
   Codex `agent` projection changes from `dropped` to new

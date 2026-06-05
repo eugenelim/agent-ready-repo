@@ -50,6 +50,11 @@ DATA_SCHEMA_PATH = (
 )
 
 
+def _version_tuple(contract: dict) -> tuple[int, ...]:
+    """(major, minor) tuple — a string compare breaks at v0.10 ("0.10"<"0.8")."""
+    return tuple(int(part) for part in contract["contract"]["version"].split("."))
+
+
 class TestContractV07(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = tomllib.loads(DATA_CONTRACT_PATH.read_text(encoding="utf-8"))
@@ -67,32 +72,33 @@ class TestContractV07(unittest.TestCase):
         """
         # Exact version check lives in test_contract.py; assert >= 0.8 (v0.7/v0.8
         # features must survive future bumps — validated by invariant tests below).
-        self.assertGreaterEqual(self.contract["contract"]["version"], "0.8")
+        # Compare as (major, minor) tuples — a string compare breaks at v0.10.
+        self.assertGreaterEqual(_version_tuple(self.contract), (0, 8))
 
     def test_docs_contract_version_is_07(self) -> None:
         """docs mirror stays in sync (byte-identical to _data/ adapter.toml)."""
-        self.assertGreaterEqual(self.docs_contract["contract"]["version"], "0.8")
+        self.assertGreaterEqual(_version_tuple(self.docs_contract), (0, 8))
 
     def test_copilot_scope_table_shape(self) -> None:
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(copilot_scope, "copilot scope table missing")
         self.assertEqual(copilot_scope["repo"], ".")
-        # `.github/instructions/` is the Copilot skill / instruction
-        # target; `tools/hooks/` is the legacy hook-body target
-        # (matching copilot's hook-body array entry).
+        # v0.10 (RFC-0024 / copilot-full-parity) supersedes-in-part the v0.7
+        # repo-only copilot scope: copilot is now user-scope-capable with three
+        # `.github/` repo prefixes (the legacy `tools/hooks/` prefix is gone).
         self.assertEqual(
             copilot_scope["allowed-prefixes"]["repo"],
-            [".github/instructions/", "tools/hooks/"],
+            [".github/instructions/", ".github/agents/", ".github/hooks/"],
         )
-        self.assertNotIn(
-            "user",
-            copilot_scope,
-            "copilot scope must not declare a user root at v0.7",
-        )
-        self.assertNotIn(
-            "user",
-            copilot_scope.get("allowed-prefixes", {}),
-            "copilot must not declare allowed-prefixes.user at v0.7",
+        self.assertEqual(copilot_scope["user"], "~")
+        self.assertEqual(
+            copilot_scope["allowed-prefixes"]["user"],
+            [
+                ".copilot/agents/",
+                ".copilot/instructions/",
+                ".copilot/hooks/",
+                ".agentbundle/",
+            ],
         )
 
     def test_every_adapter_has_allowed_prefixes_repo(self) -> None:

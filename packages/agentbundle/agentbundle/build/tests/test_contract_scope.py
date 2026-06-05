@@ -45,9 +45,12 @@ class ContractVersionTests(unittest.TestCase):
 
     def test_contract_version_is_0_5(self) -> None:
         # Class/method name preserved; exact version lives in test_contract.py.
-        # Assert >= 0.8 so v0.8 scope features survive future bumps.
+        # Assert >= 0.8 so v0.8 scope features survive future bumps. Compare as
+        # (major, minor) tuples — a string compare breaks at v0.10 ("0.10" < "0.8"
+        # lexically).
         contract = _load_contract()
-        self.assertGreaterEqual(contract["contract"]["version"], "0.8")
+        version = tuple(int(part) for part in contract["contract"]["version"].split("."))
+        self.assertGreaterEqual(version, (0, 8))
 
 
 class ClaudeCodeScopeBlockTests(unittest.TestCase):
@@ -84,20 +87,28 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
     def test_copilot_has_scope_per_rfc_0012(self) -> None:
         contract = _load_contract()
         scope = contract["adapter"]["copilot"].get("scope")
-        self.assertIsNotNone(scope, "copilot [scope] block missing at v0.7")
+        self.assertIsNotNone(scope, "copilot [scope] block missing")
         self.assertEqual(scope["repo"], ".")
-        # Two repo prefixes: `.github/instructions/` (skill /
-        # instruction target) and `tools/hooks/` (legacy hook-body
-        # target — copilot's hook-body array entry still projects
-        # there).
+        # v0.10 (RFC-0024 / copilot-full-parity): copilot is now a full-parity,
+        # user-scope-capable adapter. Repo prefixes cover the three projected
+        # primitive homes under `.github/`; the legacy `tools/hooks/` prefix is
+        # gone (hook-body retargeted to `.github/hooks/`).
         self.assertEqual(
             scope["allowed-prefixes"]["repo"],
-            [".github/instructions/", "tools/hooks/"],
+            [".github/instructions/", ".github/agents/", ".github/hooks/"],
         )
-        # Copilot is admissible at repo scope only — no user-scope analogue
-        # exists in the Copilot ecosystem (RFC-0012).
-        self.assertNotIn("user", scope)
-        self.assertNotIn("user", scope.get("allowed-prefixes", {}))
+        # User scope: `~/.copilot/{agents,instructions,hooks}/` + `.agentbundle/`
+        # (the install state-file home, same as every other user-capable adapter).
+        self.assertEqual(scope["user"], "~")
+        self.assertEqual(
+            scope["allowed-prefixes"]["user"],
+            [
+                ".copilot/agents/",
+                ".copilot/instructions/",
+                ".copilot/hooks/",
+                ".agentbundle/",
+            ],
+        )
 
     def test_codex_has_scope_per_rfc_0011(self) -> None:
         contract = _load_contract()

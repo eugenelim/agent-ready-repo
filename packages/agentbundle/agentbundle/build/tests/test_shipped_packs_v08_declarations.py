@@ -9,17 +9,19 @@ Per `dropped-primitives-coverage` AC12, eight packs bumped to v0.8:
     four scaffold packs).
 
 The `research` pack (shipped later by the `research-pack` spec) also
-declares v0.8 at birth, bringing the in-tree v0.8 set to nine. A future
-pack landing at v0.8 should add itself to ``V08_PACKS`` so this test
-surfaces the new declaration.
+declared v0.8 at birth. A future pack landing at v0.8 should add itself to
+``V08_PACKS`` so this test surfaces the new declaration.
 
-Two other packs in-tree are NOT at v0.8:
+Packs in-tree NOT at v0.8:
 
   - ``architect``: still at v0.6 (older, pre-RFC-0013).
   - ``credential-brokers``: still at v0.7 (RFC-0013 shipped on v0.7 and
     a v0.7 pack continues to work under v0.8 — the legacy resolver path
     for codex drops agents/hooks per the v0.7 contract, fine for
     backward compat).
+  - ``core`` and ``research``: bumped to v0.10 by RFC-0024 /
+    docs/specs/copilot-full-parity (copilot now projects their agents +
+    hook-wiring), so they leave ``V08_PACKS``.
 """
 
 from __future__ import annotations
@@ -35,11 +37,9 @@ V08_PACKS = (
     "atlassian",
     "contracts",
     "converters",
-    "core",
     "figma",
     "governance-extras",
     "monorepo-extras",
-    "research",
     "user-guide-diataxis",
 )
 

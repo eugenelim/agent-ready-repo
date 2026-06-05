@@ -216,20 +216,55 @@ def test_adapter_flag_refused_not_in_allowed_adapters(tmp_path, fake_home):
 
 
 def test_adapter_flag_refused_not_user_scope_capable(tmp_path, fake_home):
+    # RFC-0024 / copilot-full-parity makes copilot user-scope-capable, so the
+    # refusal this test originally pinned no longer fires for it — copilot is
+    # admitted at user scope. (After this bump every shipped adapter is
+    # user-scope-capable, so no shipped adapter triggers the refusal path; it
+    # survives as fail-closed defence for a future repo-only adapter.) Name
+    # preserved to keep the diff small.
     pack = _make_pack(tmp_path)
-    with pytest.raises(_AdapterResolutionRefused) as exc_info:
-        # Pack omits allowed-adapters; copilot is shipped but has no user-scope.
-        _resolve_user_scope_target_adapter(
+    result = _resolve_user_scope_target_adapter(
+        pack,
+        adapter="copilot",
+        allowed_adapters=None,
+        contract_version="0.10",
+    )
+    assert result == "copilot"
+
+
+def test_user_scope_capability_refusal_arms_still_fire(tmp_path, fake_home, monkeypatch):
+    """Negative-path guard. After copilot-full-parity every *shipped* adapter
+    is user-scope-capable, so the two refusal arms (Step-0 publisher-drift
+    subcheck and Step-1 ``--adapter`` subcheck) no longer fire for any real
+    adapter. This pins that the refusal LOGIC still works by monkeypatching the
+    capability set to exclude a shipped adapter (so it becomes
+    shipped-but-not-user-capable) — a refactor that drops the ``scope=="user"``
+    branch would fail here even though no shipped contract triggers it."""
+    monkeypatch.setattr(
+        "agentbundle.scope.user_scope_capable_adapters_from_contract",
+        lambda: ("claude-code", "codex", "copilot"),  # 'kiro' excluded
+    )
+    pack = _make_pack(tmp_path)
+    # Step 0: pack declares the now-incapable adapter in allowed-adapters.
+    with pytest.raises(_AdapterResolutionRefused) as exc0:
+        _resolve_target_adapter(
             pack,
-            adapter="copilot",
-            allowed_adapters=None,
-            contract_version="0.7",
+            scope="user",
+            adapter=None,
+            allowed_adapters=["kiro"],
+            contract_version="0.10",
         )
-    msg = str(exc_info.value)
-    assert "--adapter copilot not admitted as a user-scope-capable adapter" in msg
-    # Message references the bundled contract version; bumped to v0.8 by
-    # docs/specs/dropped-primitives-coverage.
-    assert "v0.8" in msg
+    assert "does not declare a user-scope root" in str(exc0.value)
+    # Step 1: --adapter override names the now-incapable adapter.
+    with pytest.raises(_AdapterResolutionRefused) as exc1:
+        _resolve_target_adapter(
+            pack,
+            scope="user",
+            adapter="kiro",
+            allowed_adapters=None,
+            contract_version="0.10",
+        )
+    assert "not admitted as a user-scope-capable adapter" in str(exc1.value)
 
 
 # ---------------------------------------------------------------------------
@@ -415,33 +450,21 @@ def test_repo_scope_adapter_flag_admits_all_shipped_adapters(
 
 
 def test_step1_copilot_admitted_at_repo_user_refused(tmp_path, fake_home):
-    """Spec AC9 / AC30 — scope-conditional subcheck at step 1.
-    Same pack at both scopes: copilot admits at repo, refuses at user
-    with pinned v0.7 wording."""
+    """RFC-0024 / copilot-full-parity supersedes the scope-conditional subcheck
+    for copilot: now user-scope-capable, copilot admits at **both** scopes via
+    `--adapter` (the v0.8 user-scope refusal wording no longer fires for it)."""
     pack = _make_pack_v07(tmp_path)
-    # Repo scope: admitted.
-    assert (
-        _resolve_target_adapter(
-            pack,
-            scope="repo",
-            adapter="copilot",
-            allowed_adapters=None,
-            contract_version="0.7",
-        )
-        == "copilot"
-    )
-    # User scope: refused with pinned wording.
-    with pytest.raises(_AdapterResolutionRefused) as exc_info:
-        _resolve_target_adapter(
-            pack,
-            scope="user",
-            adapter="copilot",
-            allowed_adapters=None,
-            contract_version="0.7",
-        )
-    msg = str(exc_info.value)
-    assert "--adapter copilot not admitted as a user-scope-capable adapter" in msg
-    assert "v0.8" in msg
+    for scope in ("repo", "user"):
+        assert (
+            _resolve_target_adapter(
+                pack,
+                scope=scope,
+                adapter="copilot",
+                allowed_adapters=None,
+                contract_version="0.10",
+            )
+            == "copilot"
+        ), f"copilot should be admitted at {scope} scope"
 
 
 def test_repo_scope_does_not_probe_dot_claude(tmp_path, fake_home):
@@ -485,30 +508,19 @@ def test_step0_publisher_drift_scope_uniform(tmp_path, fake_home, scope):
 
 
 def test_step0_copilot_admitted_at_repo_in_allowed_adapters(tmp_path, fake_home):
-    """RFC-0012: at repo scope, a pack declaring copilot in
-    allowed-adapters passes step 0's user-scope-capability subcheck
-    skip (the subcheck doesn't fire). At user scope the same input
-    refuses."""
+    """RFC-0024 / copilot-full-parity: copilot is now user-scope-capable, so a
+    pack declaring it in allowed-adapters has it admitted at **both** scopes
+    (the v0.7 repo-only refusal at user scope is superseded)."""
     pack = _make_pack_v07(tmp_path)
-    # Repo scope: declared copilot survives step 0; --adapter selects.
-    result = _resolve_target_adapter(
-        pack,
-        scope="repo",
-        adapter="copilot",
-        allowed_adapters=["claude-code", "copilot"],
-        contract_version="0.7",
-    )
-    assert result == "copilot"
-    # User scope: step 0's subcheck fires.
-    with pytest.raises(_AdapterResolutionRefused) as exc_info:
-        _resolve_target_adapter(
+    for scope in ("repo", "user"):
+        result = _resolve_target_adapter(
             pack,
-            scope="user",
+            scope=scope,
             adapter="copilot",
             allowed_adapters=["claude-code", "copilot"],
-            contract_version="0.7",
+            contract_version="0.10",
         )
-    assert "does not declare a user-scope root" in str(exc_info.value)
+        assert result == "copilot", f"copilot should be admitted at {scope} scope"
 
 
 def test_repo_scope_greenfield_returns_default_adapter(tmp_path, fake_home):

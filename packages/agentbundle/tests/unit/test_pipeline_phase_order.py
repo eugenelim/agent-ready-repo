@@ -124,7 +124,17 @@ class PhaseOrderExecutionTests(unittest.TestCase):
         from agentbundle.build.adapters import copilot
 
         with tempfile.TemporaryDirectory() as tmp:
+            # The shared `_multi_primitive_pack` ships kiro-shaped wiring
+            # (`agentSpawn` + `attach-to-agent`); copilot now projects
+            # hook-wiring via `copilot-hooks-json`, which fail-closes on that
+            # unmapped event. Give copilot a compatible SessionStart wiring so
+            # all four projected primitives iterate (only `command` drops).
             pack = _multi_primitive_pack(Path(tmp))
+            (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
+                "[[hooks.SessionStart]]\n"
+                'hooks = [ { type = "command", command = "echo hi" } ]\n',
+                encoding="utf-8",
+            )
             order = self._run_with_recorder(copilot, pack, Path(tmp) / "out")
             self._assert_phase_order(order, "copilot")
 

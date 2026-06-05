@@ -127,7 +127,12 @@ class TestValidateAllowedAdaptersCrossField(unittest.TestCase):
         )
         self.assertIsNone(_validate_allowed_adapters(pack))
 
-    def test_user_scope_pack_refuses_copilot(self) -> None:
+    def test_user_scope_pack_accepts_copilot(self) -> None:
+        # RFC-0024 / docs/specs/copilot-full-parity: copilot is now a
+        # user-scope-capable adapter (`[adapter.copilot.scope].user`), so a
+        # user-scope pack declaring it is **accepted** — the inverse of the
+        # repo-only refusal RFC-0012 recorded. (`research`, a user-scope-default
+        # pack, ships exactly this.)
         pack = _v06_pack(
             install={
                 "default-scope": "user",
@@ -136,12 +141,7 @@ class TestValidateAllowedAdaptersCrossField(unittest.TestCase):
             }
         )
         msg = _validate_allowed_adapters(pack)
-        self.assertIsNotNone(msg)
-        self.assertIn("'copilot'", msg)
-        self.assertIn("does not declare a user-scope root", msg)
-        # RFC-0012 bumped the message to track the current contract version;
-        # kiro-adapter-split (RFC-0022) bumped it to v0.9.
-        self.assertIn("v0.9 adapter contract", msg)
+        self.assertIsNone(msg, f"copilot should be accepted at user scope: {msg}")
 
     def test_unknown_adapter_refused(self) -> None:
         pack = _v06_pack(

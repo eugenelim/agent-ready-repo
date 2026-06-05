@@ -22,7 +22,18 @@ def test_shipped_adapters_choices_stable_alphabetic_tuple() -> None:
     from agentbundle.cli import _shipped_adapters_choices
 
     result = _shipped_adapters_choices()
-    assert result == ("claude-code", "codex", "copilot", "kiro")
+    # RFC-0022 (kiro-adapter-split) added `kiro-cli` + `kiro-ide` alongside the
+    # retained `kiro` alias; this assertion was left stale at the pre-split set
+    # (this CI-only root isn't gated by `make build-check`). Pinning the full
+    # shipped set, sorted.
+    assert result == (
+        "claude-code",
+        "codex",
+        "copilot",
+        "kiro",
+        "kiro-cli",
+        "kiro-ide",
+    )
 
 
 def test_adapter_claude_code_accepted() -> None:
