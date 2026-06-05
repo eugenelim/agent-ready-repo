@@ -60,9 +60,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Never do
 
-- **No new executable code, new skill, or new artifact type** — the vehicle is a
-  SKILL.md mode branch + optional template sections only (ADR-0014 structural
-  constraint).
+- **Light mode's vehicle adds no new executable code, new skill, or new artifact
+  type** — the feature mechanism is a SKILL.md mode branch + optional template
+  sections only (ADR-0014 structural constraint). A drift-guard lint protecting
+  the duplicated risk-trigger block is permitted *hygiene*, not vehicle (added
+  per Owner authorization, 2026-06-05; recorded in RFC-0025 § Errata).
 - Never edit the **projected** copies directly (`.claude/...`,
   `docs/CONVENTIONS.md`) — `make build-self` reverts them; the source is the fix
   point. (Root `AGENTS.md` is the deliberate exception: Manual, edited directly.)
@@ -127,8 +129,16 @@ with no TDD (nothing carries a compressible invariant).
 - [x] `make build-self` regenerates projections cleanly; `make build-check`,
   `python tools/lint-agent-artifacts.py`, and `python tools/lint-agents-md.py`
   all pass (the latter two are not in `make build-check`; run by hand / in CI).
-- [x] The diff adds no new executable code, no new skill directory, and no new
-  artifact/template format.
+- [x] Light mode's **vehicle** adds no new skill directory and no new
+  artifact/template format, and introduces no executable code as the feature
+  *mechanism* (ADR-0014's structural constraint, scoped to the vehicle).
+- [x] A standing block-equality guard exists: `tools/lint-agents-md.py` check
+  10g (runs in CI via `.github/workflows/docs.yml`) fails if the
+  `risk-triggers:start`..`:end` span diverges across the copies, with a
+  subprocess self-test at
+  `packages/agentbundle/agentbundle/build/tests/test_lint_agents_md_risk_block.py`.
+  Added in-PR on Owner authorization (2026-06-05) — see Assumptions; it is
+  drift-guard hygiene for the duplicated block, not part of the vehicle.
 
 ## Assumptions
 
@@ -140,3 +150,4 @@ with no TDD (nothing carries a compressible invariant).
 - Process: decision frozen in ADR-0014 (Accepted) + RFC-0025 (#237 merged); CONVENTIONS/AGENTS edits are RFC-gated by RFC-0025 (source: `docs/adr/0014-…`, `docs/rfc/0025-…`).
 - Product: light mode ships in `core` as the **adopter-wide default** (source: user confirmation 2026-06-05).
 - Process: scope is the artifacts above; `bug-fix` and other skills are excluded; light mode keeps `lint-spec-status.py` but drops the `loop-cohort` state machine (source: user confirmation 2026-06-05).
+- Process: the block-equality lint (AC10) was added in this PR on Owner authorization, narrowing AC9 / Boundaries' originally-absolute "no new executable code" to ADR-0014's vehicle-scoped intent (the lint is hygiene for the duplicated block, not the feature mechanism). Recorded as an erratum in RFC-0025 (source: user instruction 2026-06-05).

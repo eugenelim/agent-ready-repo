@@ -124,3 +124,16 @@ C and E are genuinely exclusive: C provides **no** lean landing for the work it 
 - ADR-NNNN: "Rigor scales with risk — `work-loop` light/full modes and risk-based escalation" (records the file-count→risk-trigger reversal and the accepted `quality-engineer`-lens loss in light mode).
 - Spec: `docs/specs/work-loop-light-mode/`.
 - Convention changes: `docs/CONVENTIONS.md` § "How we do non-trivial work"; `AGENTS.md` § "Excuses we don't accept" + the escalation text; `work-loop/SKILL.md` (mode branch + risk-trigger selector, replacing `:55-56`); `new-spec` template (sections annotated optional-in-light-mode).
+
+## Errata
+
+- **2026-06-05 — block-equality lint added; "no new executable code" narrowed to
+  vehicle-scope.** The implementation (`docs/specs/work-loop-light-mode/`, PR #239)
+  added a standing block-equality guard to `tools/lint-agents-md.py` (check 10g
+  + self-test) so the seven-trigger block, duplicated verbatim across four docs,
+  cannot silently diverge. The implementation spec had transcribed ADR-0014's
+  "no new executable code" as an **absolute** Boundary; this narrows it to its
+  ADR-context meaning — *light mode's vehicle* introduces no new code — and
+  records the drift-guard lint as permitted hygiene. The lint does not alter
+  light-mode behaviour, `loop-cohort.py`, or `lint-spec-status.py`. Authorized by
+  @eugenelim (Approver / ADR-0014 Decider), 2026-06-05.
