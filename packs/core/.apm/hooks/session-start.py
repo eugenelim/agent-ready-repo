@@ -107,7 +107,7 @@ def _emit_knowledge(path: Path, scope_filter: str) -> None:
     """
     entries = []
     malformed = 0
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         try:
