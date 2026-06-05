@@ -85,6 +85,35 @@ non-trivial work; that is the canonical source for *how* the loop runs.
 covers the *why*. Commits follow Conventional Commits — format and footer
 rules are in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits).
 
+`work-loop` runs in **light mode** by default — a lean inline spec, a
+single bounded adversarial pass, no state machine — and escalates to
+**full mode** when the work trips a risk trigger:
+
+<!-- risk-triggers:start — canonical wording lives here; copied verbatim
+     into AGENTS.md, packs/core/seeds/AGENTS.md, and docs/CONVENTIONS.md.
+     Keep all four byte-identical (grep-equality is an acceptance
+     criterion of the work-loop-light-mode spec). -->
+**Risk triggers — any one routes the work to full mode:**
+
+- **Unfamiliar** — territory you don't know well.
+- **Multi-person** — more than one person builds or reviews it.
+- **Multi-feature or dependent tasks** — it decomposes a multi-feature
+  brief, or its tasks depend on one another.
+- **Compliance, governance, or security boundary** — it touches a
+  compliance or governance surface, or a security boundary (auth,
+  secrets, user input, deserialization, file or network I/O).
+- **Structural or public-interface change** — it changes structure (a new
+  module, layer, or boundary) or a public or published interface.
+- **Destructive or irreversible operation** — it deletes data,
+  force-pushes, drops tables, or otherwise can't be cleanly undone.
+- **New dependency** — it adds a dependency.
+
+No trigger fires → **light mode**.
+<!-- risk-triggers:end -->
+
+What each mode trims (and what full mode runs) lives in the `work-loop`
+skill — the canonical source for *how* the loop runs.
+
 Specs are validation gates, not write-once docs. If implementation diverges
 from the spec, update the spec in the same PR — drift is a bug.
 
@@ -158,8 +187,8 @@ the `work-loop` skill's *Anti-patterns* section.
 
 | Excuse | What to do instead |
 | --- | --- |
-| "Small enough to not bother loading the work-loop." | Load `work-loop` and write its trio anyway — three sentences. The discipline is the point, not the length. |
-| "I don't need a spec, I understand the task." | If it touches more than one file, run `new-spec`. The spec exists to surface what you don't know you don't know. |
+| "Low-risk, so I'll skip the work-loop." | Load `work-loop` and write its trio anyway — light mode is lean, not absent. The discipline is the point, not the length. |
+| "I don't need a spec, I understand the task." | Light mode still writes a lean inline spec; if any risk trigger fires, run full `new-spec` first. The spec exists to surface what you don't know you don't know. |
 | "I'll grep the codebase as I go." | Verify APIs *before* you start writing, not while you're writing — same rigor as the *Grep to verify a function exists* bullet above. |
 | "I'll match the surrounding code's pattern." | Check [Source of truth](#source-of-truth) first; local style may already conflict with the canonical convention. |
 
