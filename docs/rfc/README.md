@@ -30,6 +30,7 @@
 | [0022](0022-kiro-adapter-split.md) | Split `kiro` adapter into `kiro-ide` (default, VS Code-fork IDE) and `kiro-cli` (terminal binary); `kiro` kept as deprecated alias; contract v0.8→v0.9; errata to RFC-0005 | Open | 2026-06-01 | |
 | [0023](0023-credential-manager-broker.md) | `credbroker` — replace RFC-0013's build-projected stdlib shim with a standalone pip-installable in-process credential library (stdlib core + optional `[crypto]` encrypted vault); phased repo-path→PyPI; env Tier-1 kept as the pip-free floor; daemon/proxy (authsome) out of scope; **reverses ADR-0003** | Accepted | 2026-06-03 | 2026-06-03 |
 | [0024](0024-copilot-subagent-projection.md) | Copilot full-parity projection — agents + hooks `dropped`→first-class, user-scope-capable (`~/.copilot/`), packs adapted (`research`/`core`); contract v0.9→v0.10; **supersedes RFC-0012 copilot-scope decision** | Accepted | 2026-06-04 | 2026-06-04 |
+| [0025](0025-work-loop-light-mode-and-risk-based-escalation.md) | `work-loop` light mode (lean inline spec + single adversarial pass + no state machine) as the default + risk-based escalation replacing the file-count trigger; subtraction-shaped, no new skill/script/artifact | Accepted | 2026-06-05 | 2026-06-05 |
 
 ## Adding a new RFC
 
