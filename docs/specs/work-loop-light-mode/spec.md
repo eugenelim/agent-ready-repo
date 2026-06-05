@@ -1,6 +1,6 @@
 # Spec: work-loop-light-mode
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0014, RFC-0025
@@ -60,9 +60,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Never do
 
-- **No new executable code, new skill, or new artifact type** — the vehicle is a
-  SKILL.md mode branch + optional template sections only (ADR-0014 structural
-  constraint).
+- **Light mode's vehicle adds no new executable code, new skill, or new artifact
+  type** — the feature mechanism is a SKILL.md mode branch + optional template
+  sections only (ADR-0014 structural constraint). A drift-guard lint protecting
+  the duplicated risk-trigger block is permitted *hygiene*, not vehicle (added
+  per Owner authorization, 2026-06-05; recorded in RFC-0025 § Errata).
 - Never edit the **projected** copies directly (`.claude/...`,
   `docs/CONVENTIONS.md`) — `make build-self` reverts them; the source is the fix
   point. (Root `AGENTS.md` is the deliberate exception: Manual, edited directly.)
@@ -89,14 +91,14 @@ with no TDD (nothing carries a compressible invariant).
 
 ## Acceptance Criteria
 
-- [ ] The `work-loop` source SKILL.md defines a **light mode** (lean inline spec
+- [x] The `work-loop` source SKILL.md defines a **light mode** (lean inline spec
   = Objective + Acceptance Criteria + short task list; single bounded
   adversarial pass — a fixed Blocker earns one re-review then escalates; no
   default `quality-engineer`; no `loop-cohort` state machine; scoped to a single
   logical task) and the unchanged **full mode**, selected by a risk-trigger
   selector that **replaces** the `>1 file` rule (the file-count rule no longer
   appears in the source).
-- [ ] After `make build-self`, the risk-trigger **block** is byte-identical
+- [x] After `make build-self`, the risk-trigger **block** is byte-identical
   across the projected `work-loop` SKILL.md, root `AGENTS.md`, the
   `packs/core/seeds/AGENTS.md` seed, and `docs/CONVENTIONS.md` (the SKILL.md
   source is the canonical wording, declared in plan T1); the seven triggers
@@ -105,30 +107,38 @@ with no TDD (nothing carries a compressible invariant).
   structural or public-interface change; destructive/irreversible operation; new
   dependency). "Verbatim" applies to the in-repo copies vs the T1 source;
   "matches ADR-0014" means semantic correspondence to the seven.
-- [ ] Root `AGENTS.md` **and** its seed `packs/core/seeds/AGENTS.md` no longer
+- [x] Root `AGENTS.md` **and** its seed `packs/core/seeds/AGENTS.md` no longer
   carry the "Small enough to not bother loading the work-loop" row verbatim; it
   and the `>1 file → new-spec` row are rewritten to the risk-based framing. The
   **edited escalation/trigger region** is byte-identical between the two —
   whole-file equality is *not* required (root `AGENTS.md` legitimately carries
   the trailing `AGENTS.local.md` footer line the seed lacks).
-- [ ] `docs/CONVENTIONS.md` § "How we do non-trivial work" describes the two
+- [x] `docs/CONVENTIONS.md` § "How we do non-trivial work" describes the two
   modes and the risk triggers (edited at the seed, projected via `build-self`).
-- [ ] The `new-spec` **spec** template (`assets/spec.md`) annotates its
+- [x] The `new-spec` **spec** template (`assets/spec.md`) annotates its
   light-mode-optional sections (Boundaries, Testing Strategy, Assumptions), and
   the **plan** template (`assets/plan.md`) annotates its light-mode-optional
   sections (Constraints, Risks, Changelog, `## Design (LLD)`), as optional in a
   light-mode lean fill.
-- [ ] The light-mode branch text positively includes the **persisted lean
+- [x] The light-mode branch text positively includes the **persisted lean
   spec** step (writes `docs/specs/<feature>/spec.md`, not in-chat only) **and**
   the `lint-spec-status.py` invocation, while **omitting** the `loop-cohort`
   state-machine calls; full mode is unchanged.
-- [ ] `loop-cohort.py` and `lint-spec-status.py` are byte-unchanged (empty
+- [x] `loop-cohort.py` and `lint-spec-status.py` are byte-unchanged (empty
   `git diff` for both).
-- [ ] `make build-self` regenerates projections cleanly; `make build-check`,
+- [x] `make build-self` regenerates projections cleanly; `make build-check`,
   `python tools/lint-agent-artifacts.py`, and `python tools/lint-agents-md.py`
   all pass (the latter two are not in `make build-check`; run by hand / in CI).
-- [ ] The diff adds no new executable code, no new skill directory, and no new
-  artifact/template format.
+- [x] Light mode's **vehicle** adds no new skill directory and no new
+  artifact/template format, and introduces no executable code as the feature
+  *mechanism* (ADR-0014's structural constraint, scoped to the vehicle).
+- [x] A standing block-equality guard exists: `tools/lint-agents-md.py` check
+  10g (runs in CI via `.github/workflows/docs.yml`) fails if the
+  `risk-triggers:start`..`:end` span diverges across the copies, with a
+  subprocess self-test at
+  `packages/agentbundle/agentbundle/build/tests/test_lint_agents_md_risk_block.py`.
+  Added in-PR on Owner authorization (2026-06-05) — see Assumptions; it is
+  drift-guard hygiene for the duplicated block, not part of the vehicle.
 
 ## Assumptions
 
@@ -140,3 +150,4 @@ with no TDD (nothing carries a compressible invariant).
 - Process: decision frozen in ADR-0014 (Accepted) + RFC-0025 (#237 merged); CONVENTIONS/AGENTS edits are RFC-gated by RFC-0025 (source: `docs/adr/0014-…`, `docs/rfc/0025-…`).
 - Product: light mode ships in `core` as the **adopter-wide default** (source: user confirmation 2026-06-05).
 - Process: scope is the artifacts above; `bug-fix` and other skills are excluded; light mode keeps `lint-spec-status.py` but drops the `loop-cohort` state machine (source: user confirmation 2026-06-05).
+- Process: the block-equality lint (AC10) was added in this PR on Owner authorization, narrowing AC9 / Boundaries' originally-absolute "no new executable code" to ADR-0014's vehicle-scoped intent (the lint is hygiene for the duplicated block, not the feature mechanism). Recorded as an erratum in RFC-0025 (source: user instruction 2026-06-05).

@@ -307,6 +307,60 @@ def main() -> int:
                 f"CONVENTIONS.md#supervisor-mode)."
             )
 
+    # 10g — risk-trigger block byte-identical across the four docs that
+    # carry it (work-loop-light-mode spec AC2): the projected work-loop
+    # SKILL.md (canonical wording), root AGENTS.md, the seed AGENTS.md, and
+    # projected docs/CONVENTIONS.md. Source↔projection equality for SKILL.md
+    # and CONVENTIONS.md is build-self's job (projection drift gate); this
+    # check guards the four doc homes against a hand-edit diverging one from
+    # the rest — the standing guard the spec's one-time grep could not
+    # provide. Marker-driven, mirroring 10f's precedent.
+    rt_start = "<!-- risk-triggers:start"
+    rt_end = "risk-triggers:end -->"
+    rt_canonical = ".claude/skills/work-loop/SKILL.md"
+    rt_files = (
+        rt_canonical,
+        "AGENTS.md",
+        "packs/core/seeds/AGENTS.md",
+        "docs/CONVENTIONS.md",
+    )
+    rt_blocks = {}
+    for f_str in rt_files:
+        f = Path(f_str)
+        if not f.is_file():
+            continue
+        text = f.read_text(encoding="utf-8")
+        i = text.find(rt_start)
+        if i == -1:
+            continue
+        j = text.find(rt_end, i)
+        if j == -1:
+            # Asymmetric markers (start without end) are themselves drift —
+            # fail closed rather than silently dropping the copy.
+            note(
+                f"risk-trigger-block drift: {f_str} has a `risk-triggers:start` "
+                f"marker with no matching `risk-triggers:end` (truncated block)."
+            )
+            continue
+        rt_blocks[f_str] = text[i : j + len(rt_end)]
+    if len(rt_blocks) >= 2 and len(set(rt_blocks.values())) > 1:
+        ref = rt_blocks.get(rt_canonical)
+        if ref is None:
+            note(
+                "risk-trigger-block drift: copies carrying the "
+                "`risk-triggers` markers are not byte-identical to each other."
+            )
+        else:
+            for f_str, block in rt_blocks.items():
+                if f_str != rt_canonical and block != ref:
+                    note(
+                        f"risk-trigger-block drift: {f_str} differs from the "
+                        f"canonical block in {rt_canonical}. The "
+                        f"`risk-triggers:start`..`:end` span must be "
+                        f"byte-identical across all copies "
+                        f"(work-loop-light-mode spec AC2)."
+                    )
+
     if fail:
         print()
         print("Docs lint: failed.")
