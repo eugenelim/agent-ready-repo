@@ -422,6 +422,28 @@ def has_credentials_shim_import(py_path):
     return False
 
 
+def has_credbroker_import(py_path):
+    """True iff *py_path* imports the `credbroker` resolver — `from credbroker
+    import …` (or a submodule) or `import credbroker`.
+
+    RFC-0023 replaces the build-projected `credentials_shim` sibling with the
+    pip-installable `credbroker` library; an `auth: creds` consumer satisfies
+    the resolver-import requirement with either form during (and after) the
+    migration.
+    """
+    tree = _ast_for(py_path)
+    if tree is None:
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "credbroker":
+            return True
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.split(".")[0] == "credbroker":
+                    return True
+    return False
+
+
 def env_reads(py_path):
     """Yield literal env-var names read via os.environ[...] /
     os.environ.get(...) / os.getenv(...). Only first-arg
@@ -863,15 +885,20 @@ for skill_md in skill_md_files:
     consumer_py_files = [p for p in py_files if not _is_canonical_shim(p)]
 
     if auth == "creds":
-        found_shim_import = any(
-            has_credentials_shim_import(p) for p in consumer_py_files
+        # RFC-0023: the `creds` resolver may be the pip-installable `credbroker`
+        # library or the legacy build-projected `credentials_shim` sibling.
+        # Accept either import form (consumers migrate skill-by-skill).
+        found_resolver_import = any(
+            has_credentials_shim_import(p) or has_credbroker_import(p)
+            for p in consumer_py_files
         )
-        if not found_shim_import:
+        if not found_resolver_import:
             target = "credentials" + "_shim"
             report(
                 skill_md,
-                f"auth=creds requires at least one `from .{target} "
-                f"import …` in scripts/ (none found)",
+                f"auth=creds requires at least one credential-resolver import "
+                f"in scripts/ — `from credbroker import …` (RFC-0023) or the "
+                f"legacy `from .{target} import …` — none found",
             )
 
     elif auth == "env":

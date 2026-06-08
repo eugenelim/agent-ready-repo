@@ -2,7 +2,7 @@
 
 Internal module — the skill agent dispatches to ``jira.py``; this file is
 an implementation detail. The API token is resolved via the
-build-projected ``credentials_shim`` (Tier 1 env → Tier 2 OS keyring →
+in-process ``credbroker`` (Tier 1 env → Tier 2 OS keyring →
 Tier 3 dotfile) and is never logged, echoed, or accepted on the command
 line.
 
@@ -633,7 +633,7 @@ def _adf_wrap_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Jira credentials through the build-projected ``credentials_shim``
+    """Resolve Jira credentials through the in-process ``credbroker``
     loader (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile).
 
     Namespace: ``jira``. Required keys: ``BASE_URL`` and ``API_TOKEN``.
@@ -649,13 +649,13 @@ def load_credentials() -> Credentials:
     Schema lives at ``references/creds-schema.toml`` — the
     ``credential-setup`` skill flow walks it interactively.
     """
-    from .credentials_shim import (
+    from credbroker import (
         CredentialsMissingError,
-        load_credentials as _shim_load,
+        load_credentials as _resolver_load,
     )
 
     try:
-        creds = _shim_load("jira", required_keys=["BASE_URL", "API_TOKEN"])
+        creds = _resolver_load("jira", required_keys=["BASE_URL", "API_TOKEN"])
     except CredentialsMissingError as exc:
         raise AuthError(str(exc)) from exc
 
@@ -669,12 +669,12 @@ def load_credentials() -> Credentials:
     email: str | None = None
     flavor_override: str | None = None
     try:
-        opt = _shim_load("jira", required_keys=["EMAIL"])
+        opt = _resolver_load("jira", required_keys=["EMAIL"])
         email = (opt.EMAIL or "").strip() or None
     except CredentialsMissingError:
         pass
     try:
-        opt = _shim_load("jira", required_keys=["FLAVOR"])
+        opt = _resolver_load("jira", required_keys=["FLAVOR"])
         flavor_override = (opt.FLAVOR or "").strip().lower() or None
     except CredentialsMissingError:
         pass

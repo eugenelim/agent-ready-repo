@@ -2,7 +2,7 @@
 
 Internal module — the skill agent dispatches to ``jira_align.py``; this file
 is an implementation detail. The API token is resolved via the
-build-projected ``credentials_shim`` (Tier 1 env → Tier 2 OS keyring →
+in-process ``credbroker`` (Tier 1 env → Tier 2 OS keyring →
 Tier 3 dotfile) and is never logged, echoed, or accepted on the command
 line.
 
@@ -332,7 +332,7 @@ def _extract_items(payload: Any) -> list[dict]:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Jira Align credentials via the build-projected ``credentials_shim``
+    """Resolve Jira Align credentials via the in-process ``credbroker``
     loader (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile).
 
     Namespace: ``jiraalign``. Required: ``BASE_URL``, ``API_TOKEN``.
@@ -344,13 +344,13 @@ def load_credentials() -> Credentials:
     ``references/creds-schema.toml``; populate any tier with
     ``credential-setup`` skill.
     """
-    from .credentials_shim import (
+    from credbroker import (
         CredentialsMissingError,
-        load_credentials as _shim_load,
+        load_credentials as _resolver_load,
     )
 
     try:
-        creds = _shim_load(
+        creds = _resolver_load(
             "jiraalign", required_keys=["BASE_URL", "API_TOKEN"]
         )
     except CredentialsMissingError as exc:
@@ -361,7 +361,7 @@ def load_credentials() -> Credentials:
 
     flavor_override: str | None = None
     try:
-        opt = _shim_load("jiraalign", required_keys=["FLAVOR"])
+        opt = _resolver_load("jiraalign", required_keys=["FLAVOR"])
         flavor_override = (opt.FLAVOR or "").strip().lower() or None
     except CredentialsMissingError:
         pass

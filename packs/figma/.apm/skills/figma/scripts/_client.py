@@ -2,7 +2,7 @@
 
 Internal module — the skill agent dispatches to ``figma.py``; this file is
 an implementation detail. The Personal Access Token is resolved via the
-build-projected ``credentials_shim`` (Tier 1 env → Tier 2 OS keyring →
+in-process ``credbroker`` (Tier 1 env → Tier 2 OS keyring →
 Tier 3 dotfile) and is never logged, echoed, or accepted on the command
 line.
 
@@ -472,8 +472,7 @@ class FigmaClient:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Figma credentials through the build-projected
-    ``credentials_shim`` (Tier 1 env → Tier 2 OS keyring → Tier 3
+    """Resolve Figma credentials through the in-process ``credbroker`` (Tier 1 env → Tier 2 OS keyring → Tier 3
     dotfile).
 
     Namespace: ``figma``. Required key: ``API_TOKEN``.
@@ -485,13 +484,13 @@ def load_credentials() -> Credentials:
     Schema lives at ``references/creds-schema.toml`` — the
     ``credential-setup`` skill walks it interactively.
     """
-    from .credentials_shim import (
+    from credbroker import (
         CredentialsMissingError,
-        load_credentials as _shim_load,
+        load_credentials as _resolver_load,
     )
 
     try:
-        creds = _shim_load("figma", required_keys=["API_TOKEN"])
+        creds = _resolver_load("figma", required_keys=["API_TOKEN"])
     except CredentialsMissingError as exc:
         raise AuthError(str(exc)) from exc
 

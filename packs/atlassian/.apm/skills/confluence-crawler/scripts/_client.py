@@ -1,7 +1,7 @@
 """Async Confluence REST client for both Cloud and Server/Data Center.
 
 Internal module — agent should not invoke directly. The API token is
-resolved via the build-projected ``credentials_shim`` (Tier 1 env →
+resolved via the in-process ``credbroker`` (Tier 1 env →
 Tier 2 OS keyring → Tier 3 dotfile) and is never logged, echoed, or
 placed on the command line.
 
@@ -294,7 +294,7 @@ class ConfluenceClient:
 
 
 def load_credentials() -> Credentials:
-    """Resolve Confluence credentials via the build-projected ``credentials_shim``
+    """Resolve Confluence credentials via the in-process ``credbroker``
     loader (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile).
 
     Namespace: ``confluence``. Required: ``BASE_URL``, ``API_TOKEN``.
@@ -306,13 +306,13 @@ def load_credentials() -> Credentials:
     ``references/creds-schema.toml``; populate any tier with
     ``credential-setup`` skill.
     """
-    from .credentials_shim import (
+    from credbroker import (
         CredentialsMissingError,
-        load_credentials as _shim_load,
+        load_credentials as _resolver_load,
     )
 
     try:
-        creds = _shim_load(
+        creds = _resolver_load(
             "confluence", required_keys=["BASE_URL", "API_TOKEN"]
         )
     except CredentialsMissingError as exc:
@@ -324,12 +324,12 @@ def load_credentials() -> Credentials:
     email: str | None = None
     flavor_override: str | None = None
     try:
-        opt = _shim_load("confluence", required_keys=["EMAIL"])
+        opt = _resolver_load("confluence", required_keys=["EMAIL"])
         email = (opt.EMAIL or "").strip() or None
     except CredentialsMissingError:
         pass
     try:
-        opt = _shim_load("confluence", required_keys=["FLAVOR"])
+        opt = _resolver_load("confluence", required_keys=["FLAVOR"])
         flavor_override = (opt.FLAVOR or "").strip().lower() or None
     except CredentialsMissingError:
         pass
