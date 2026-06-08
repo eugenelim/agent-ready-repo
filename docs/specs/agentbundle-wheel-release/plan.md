@@ -435,9 +435,9 @@ projected — no drift expected).
 
 ---
 
-### T7: README route 3 says `pip install agentbundle` directly
+### T7: README route 3 says `pip install agentbundle` directly — DONE (PR-B, 2026-06-07)
 
-**Depends on:** T1, T2, T3, T4, T6, **and first successful PyPI publish (out-of-band)**
+**Depends on:** T1, T2, T3, T4, T6, **and first successful PyPI publish (out-of-band)** — satisfied; `agentbundle-v0.2.0` published before PR-B.
 
 **Tests:**
 
@@ -449,11 +449,11 @@ projected — no drift expected).
   README.md` exits 1 (legacy phrase removed — distinct enough to
   current route 3 that this is the right anchor); `grep -F 'pip
   install agentbundle' README.md` exits 0 (replacement present).
-  Four-route shape preservation: the headline count is sharpened in
-  PR-B's prep (the count grep `grep -c '^\*\*' README.md` returns 7
-  today, not 4 — counts include non-route bold lines, so the gate
-  needs an anchored pattern resolved against README state at PR-B
-  open time, not a flat count baked into the plan now).
+  Four-route shape preservation (resolved at PR-B open time): the flat
+  `grep -c '^\*\*' README.md` returns 10 (route headers + non-route
+  bold lines), so the gate is an anchored pattern on the four route
+  headers — `grep -cE '^\*\*(Claude Code|Any IDE via APM|Reference
+  CLI|From a local clone)' README.md` returns 4. Verified after the edit.
 - Manual end-to-end test in PR-B's body: on a clean venv on a
   different machine, run `pip install agentbundle` → `agentbundle
   install --pack core git+https://github.com/eugenelim/agent-ready-repo`
