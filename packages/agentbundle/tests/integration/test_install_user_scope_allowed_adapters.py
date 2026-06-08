@@ -9,7 +9,8 @@ and (b) `~/.agentbundle/state.toml` records the resolved adapter.
 Reference idiom mirrors `test_install_converters_user_scope.py`:
 in-process `install.run`, `$HOME` patched via `patch.dict`. The four
 catalogue user-scope packs ship `allowed-adapters = ["claude-code",
-"kiro", "codex"]` post-T4, so this test covers the resolver's three
+"kiro-ide", "codex"]` (the bare `kiro` alias was de-staled to its
+current RFC-0022 name), so this test covers the resolver's three
 adapter-target paths without fabricating fixtures.
 """
 
@@ -54,10 +55,10 @@ def _install_args(*, catalogue: str, repo: str, scope: str, adapter: str | None 
 class AllowedAdaptersInstallTests(unittest.TestCase):
     """The four cases that exercise the resolver's distinct paths:
 
-      - kiro-only $HOME → install lands at ~/.kiro/skills/
+      - kiro-only $HOME → install lands at ~/.kiro/skills/ (via kiro-ide)
       - codex-only $HOME (via ~/.codex/) → install lands at ~/.agents/skills/
       - greenfield $HOME (no CLI home) → install lands at ~/.claude/skills/
-      - --adapter kiro override against claude-code-populated $HOME →
+      - --adapter kiro-ide override against claude-code-populated $HOME →
         install lands at ~/.kiro/skills/
     """
 
@@ -99,8 +100,8 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
             _install_args(catalogue=str(self.cat), repo=str(self.repo), scope="user")
         )
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
-        self._assert_pack_landed(".kiro/skills", "kiro")
-        self.assertIn("installed: converters @ user via kiro", stdout)
+        self._assert_pack_landed(".kiro/skills", "kiro-ide")
+        self.assertIn("installed: converters @ user via kiro-ide", stdout)
 
     def test_codex_only_home_lands_at_agents_skills(self) -> None:
         (self.home / ".codex").mkdir()
@@ -125,11 +126,11 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
                 catalogue=str(self.cat),
                 repo=str(self.repo),
                 scope="user",
-                adapter="kiro",
+                adapter="kiro-ide",
             )
         )
         self.assertEqual(rc, 0, f"install failed: stdout={stdout!r} stderr={stderr!r}")
-        self._assert_pack_landed(".kiro/skills", "kiro")
+        self._assert_pack_landed(".kiro/skills", "kiro-ide")
 
     def test_upgrade_state_hint_preserves_adapter(self) -> None:
         """AC10b / AC25: install under claude-code; populate ~/.kiro/

@@ -9,5 +9,6 @@ version = "0.8"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters.
-allowed-adapters = ["claude-code", "kiro", "codex"]
+# RFC-0011 / pack-allowed-adapters. `kiro-ide` is the current name for
+# the Kiro harness (RFC-0022 split; bare `kiro` deprecated).
+allowed-adapters = ["claude-code", "kiro-ide", "codex"]
