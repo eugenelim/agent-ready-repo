@@ -44,6 +44,18 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
 
+      - name: Install credbroker (editable, with crypto extra)
+        # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
+        # AND runs the stdlib-purity gate under the *stronger* condition — with
+        # cryptography/argon2 present, the subprocess still proves the base
+        # import never reaches them (credbroker AC4). The vault tests that need
+        # the extra arrive with task T4.
+        run: pip install -e './packages/credbroker[crypto]'
+
+      - name: pytest credbroker (RFC-0023 Phase 1)
+        working-directory: packages/credbroker
+        run: python -m pytest
+
       - name: converters source-attribution scrub (AC2)
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "credbroker"
+version = "0.1.0"
+description = "Standalone, pip-installable credential resolver for credentialed agent skills (env -> OS keyring -> dotfile, with an optional encrypted-at-rest vault)."
+requires-python = ">=3.11"
+dependencies = []
+authors = [{ name = "eugenelim", email = "eugenelim@users.noreply.github.com" }]
+license = { text = "Apache-2.0 OR MIT" }
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
+
+# The stdlib core has no third-party dependency. The encrypted-at-rest vault
+# (RFC-0023) lives behind this extra; absent it, resolution degrades to the
+# keyring/dotfile floor. See docs/specs/credbroker/spec.md AC4/AC5/AC7.
+[project.optional-dependencies]
+crypto = ["cryptography>=42", "argon2-cffi>=23"]
+
+[project.urls]
+Homepage = "https://github.com/eugenelim/agent-ready-repo"
+Source = "https://github.com/eugenelim/agent-ready-repo"
+
+# No [project.scripts]: credbroker is a pure library in v1 (RFC-0023). The
+# interactive write surface stays credential-setup; each consumer CLI verifies
+# via its own `check`. This leaves the reserved 3-9 exit band unclaimed.
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["credbroker*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
