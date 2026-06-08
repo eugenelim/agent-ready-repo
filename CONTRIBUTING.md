@@ -72,6 +72,31 @@ Three gates, all of which run locally:
 
 Commit format is Conventional Commits — full rules in [`CONVENTIONS.md § Commits`](docs/CONVENTIONS.md#commits). If your commit implements a spec, RFC, or ADR, cite it in the footer (`Spec:`, `RFC:`, `ADR:`).
 
+## Cutting an `agentbundle` release
+
+Publishing a new `agentbundle` version to PyPI is a maintainer task, not a contributor lane. The release pipeline is `.github/workflows/release-agentbundle.yml` (jobs: `build-and-smoke` → `publish-pypi` via Trusted Publisher OIDC → `publish-artifactory`, the last green-skipped unless the corp Artifactory secrets are set). A tag push is the only trigger that *publishes* — PRs touching `packages/agentbundle/**` run `build-and-smoke` as a pre-merge gate, and there's no manual `twine upload`.
+
+Per release:
+
+1. **Bump the version** in [`packages/agentbundle/pyproject.toml`](packages/agentbundle/pyproject.toml) and add a matching entry to [`packages/agentbundle/CHANGELOG.md`](packages/agentbundle/CHANGELOG.md), in the same PR. Merge it to `main` through the normal gates.
+2. **Tag the tip of `main`** — never a feature branch:
+   ```bash
+   git checkout main && git pull origin main
+   git tag agentbundle-vX.Y.Z          # X.Y.Z must equal the pyproject version
+   git push origin agentbundle-vX.Y.Z
+   ```
+3. **Watch the run** (Actions → `release-agentbundle`). `build-and-smoke` and `publish-pypi` must go green; `publish-artifactory` shows green-skipped when the corp secrets are unset.
+4. **Verify** from a clean venv, ideally on another machine: `pip install agentbundle` resolves to the new version and `agentbundle --help` exits 0.
+
+Caveats the workflow enforces — know them before you tag:
+
+- **The tag format is exact: `agentbundle-vX.Y.Z`.** Pre-release / build-metadata suffixes (`-rc1`, `+build`) are refused by the version-assertion step.
+- **The tag's `X.Y.Z` must equal the pyproject `version`**, and the tagged commit **must be an ancestor of `origin/main`** — both are fail-closed assertions in `build-and-smoke`, so a wrong tag never publishes.
+- **A successful publish burns the version number permanently** — PyPI does not allow re-uploading the same version. A publish that *never reached PyPI* leaves the number claimable (delete the tag with `git push origin :refs/tags/agentbundle-vX.Y.Z`, fix, re-tag) — but a *partial* publish that did reach PyPI also burns it, so treat any run where `publish-pypi` started as a burn.
+- **`1.0.0` or higher is [§Ask first](docs/specs/agentbundle-wheel-release/spec.md#boundaries)** — the pre-1.0 stability contract changes at 1.0; record explicit sign-off in the release PR before pushing such a tag.
+
+The **one-time** PyPI account + Pending Publisher setup is not repeated per release; it lives in the plan's [Rollout § Phase B](docs/specs/agentbundle-wheel-release/plan.md#rollout).
+
 ## Where to find authoritative information
 
 | You want to know… | Look here |
