@@ -302,6 +302,23 @@ of their own yet.
 RFC-0023 follow-on, **Phase 1** in progress (`docs/specs/credbroker/`). The
 items below are deferred out of Phase 1 by spec decision.
 
+**T5 review follow-ups (non-blocking, surfaced by the T5 review):**
+- **Per-key vault KDF re-derivation.** `load_credentials` resolves `required_keys`
+  one at a time; for a vault-backed namespace each key that reaches Tier 3 opens
+  the vault afresh, re-running the deliberately-slow Argon2id (Profile A). For
+  *N* vault-resolved keys that's *N* derivations (~150 ms each). Accepted for
+  Phase 1 (resolution is once-per-command and *N* is small — often 1–2 secret
+  keys, the rest at env/dotfile tiers). **Unblocks/­revisit when:** a
+  high-key-count vault-backed namespace appears — then hoist `Vault.open` to once
+  per `load_credentials` call.
+- **Windows ACL parity for the vault master file.** The `0600` master-file branch
+  enforces a POSIX mode check (refuse group/other-readable); the Windows side has
+  no `_verify_icacls` check on the master-file *read* (consistent with the dotfile
+  *read*, which also skips it — only writes run `icacls`). Consider running
+  `_verify_icacls(master_file)` in the file branch on Windows for symmetry with
+  the POSIX refuse. **Unblocks when:** Windows master-file hardening is prioritised
+  (the helper already exists, import-free).
+
 ### credbroker-phase-2
 
 **Phase 2: PyPI publication + version pinning** (the spec's final, deferred AC). Publish `credbroker`
