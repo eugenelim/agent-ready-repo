@@ -184,21 +184,21 @@ Sibling of `user-scope-hooks` for RFC-0005's third surface (standalone
 ## `agentbundle-wheel-release`
 
 Implementation shipped (`.github/workflows/release-agentbundle.yml`, three
-jobs: build-and-smoke / publish-pypi / publish-artifactory). Three ACs remain
-open, all gated on the out-of-band first release.
+jobs: build-and-smoke / publish-pypi / publish-artifactory). One AC remains
+open (AC14, Artifactory first-firing); the PyPI-side deferrals below resolved
+with the first publish (`agentbundle-v0.2.0`, 2026-06-07) + PR-B.
 
 ### readme-route3-after-first-publish
 
-AC11 — the README install-route-3 headline edit (replacing the legacy
-"once you've pip-installed `agentbundle`" phrasing in `README.md`) lands only
-**after** `pip install agentbundle` is true at PyPI. **Unblocks when:** the
-first PyPI publish succeeds.
+**Resolved by PR-B (2026-06-07).** AC11 — README install-route-3 headline now
+names `pip install agentbundle` directly; landed after the first PyPI publish
+made the claim true.
 
 ### pypi-first-publish-gesture
 
-AC13 — end-to-end PyPI publish: push an `agentbundle-v*` tag, Trusted-Publisher
-OIDC first-firing, then a clean-venv `pip install agentbundle` plus a
-credentialed-skill smoke. **Unblocks when:** the first release tag is pushed.
+**Resolved 2026-06-07.** AC13 — first PyPI publish (`agentbundle-v0.2.0`) via
+Trusted-Publisher OIDC succeeded; clean-venv `pip install agentbundle` +
+`agentbundle --help` smoke confirmed.
 
 ### artifactory-first-publish-gesture
 
