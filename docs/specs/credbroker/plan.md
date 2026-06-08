@@ -88,7 +88,7 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 - `python -c "import credbroker"` succeeds; `pip install -e './packages/credbroker[crypto]'` resolves `cryptography` + `argon2-cffi` (goal-based). Verifies AC1.
 
 **Approach:**
-- Create `packages/credbroker/` mirroring `packages/agentbundle/` layout: `pyproject.toml` (`name = "credbroker"`, `requires-python = ">=3.11"`, base `dependencies = []`, `[project.optional-dependencies] crypto = ["cryptography", "argon2-cffi"]`), `credbroker/__init__.py`, `tests/unit/`, `tests/integration/`, `conftest.py`.
+- Create `packages/credbroker/` mirroring `packages/agentbundle/` layout: `pyproject.toml` (`name = "credbroker"`, `requires-python = ">=3.11"`, base `dependencies = []`, `[project.optional-dependencies] crypto = ["cryptography", "argon2-cffi"]`), `credbroker/__init__.py`, `tests/unit/`. (The `tests/integration/` tree + any `conftest.py` arrive with the integration tests they hold — the degrade matrix, T6 — not pre-created as empty scaffolding.)
 - No logic yet — just the importable shell + the extra wired.
 
 **Done when:** both installs succeed and `import credbroker` works in CI's matrix; AC1 checkbox justified.
