@@ -3,12 +3,20 @@ name = "architect"
 version = "0.1.0"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review). Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
 
-# RFC-0011 contract level — pure-markdown skills, multi-adapter.
+# RFC-0024 contract level (v0.10) — pure-markdown skills, multi-adapter.
+# Bumped from v0.6 so listing `copilot` is honest: copilot's skill
+# primitive gained its user-scope target (`~/.copilot/instructions/`) at
+# v0.10, and architect is user-scope-default. Mirrors `research`/`core`.
 [pack.adapter-contract]
-version = "0.6"
+version = "0.10"
 
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# Pure-markdown SKILL.md surface — no adapter-specific primitives.
-allowed-adapters = ["claude-code", "kiro", "codex"]
+# Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
+# travels with every shipped adapter that projects the skill primitive.
+# Current adapter names: RFC-0022 split `kiro` into `kiro-ide`/`kiro-cli`
+# (the bare `kiro` alias is deprecated); RFC-0024 made `copilot`
+# user-scope-capable. `kiro-ide` precedes `kiro-cli` so a Kiro user's
+# `~/.kiro/` auto-probe resolves to the IDE.
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli"]
