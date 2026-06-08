@@ -179,6 +179,20 @@ def _(root: Path) -> None:
     )
 
 
+@case(
+    # RFC-0023: a `from credbroker import …` resolver import satisfies auth=creds.
+    "creds-credbroker-import-present",
+    expect_exit=0,
+)
+def _(root: Path) -> None:
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-creds"
+    write(sk / "SKILL.md", make_skill_md("creds", namespace="foo", keys=["API_TOKEN"]))
+    write(
+        sk / "scripts" / "cli.py",
+        "from credbroker import load_credentials\nprint(load_credentials)\n",
+    )
+
+
 # ── credentialed-cli D2b: token deny-set completeness + scrubbing backstop
 
 _SHIM = "from .credentials_shim import load_credentials\n"
