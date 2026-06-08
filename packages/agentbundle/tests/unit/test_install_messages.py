@@ -77,7 +77,7 @@ class InstallMessageRailTests(unittest.TestCase):
         (self.home / ".kiro").mkdir()
         rc, stdout, _ = self._install(scope="user")
         self.assertEqual(rc, 0)
-        self.assertIn("installed: converters @ user via kiro", stdout)
+        self.assertIn("installed: converters @ user via kiro-ide", stdout)
 
     def test_user_scope_install_no_suffix_when_single_home_populated(self) -> None:
         """AC14: no suffix when only one CLI home matches."""
@@ -94,10 +94,10 @@ class InstallMessageRailTests(unittest.TestCase):
         (self.home / ".kiro").mkdir()
         rc, stdout, _ = self._install(scope="user")
         self.assertEqual(rc, 0)
-        # claude-code wins (declared first); the suffix should list kiro.
+        # claude-code wins (declared first); the suffix should list kiro-ide.
         self.assertIn("installed: converters @ user via claude-code", stdout)
         self.assertIn(
-            "(other declared adapters: kiro; use --adapter to override)",
+            "(other declared adapters: kiro-ide; use --adapter to override)",
             stdout,
         )
 
@@ -106,9 +106,9 @@ class InstallMessageRailTests(unittest.TestCase):
         already chose)."""
         (self.home / ".claude").mkdir()
         (self.home / ".kiro").mkdir()
-        rc, stdout, _ = self._install(scope="user", adapter="kiro")
+        rc, stdout, _ = self._install(scope="user", adapter="kiro-ide")
         self.assertEqual(rc, 0)
-        self.assertIn("installed: converters @ user via kiro", stdout)
+        self.assertIn("installed: converters @ user via kiro-ide", stdout)
         self.assertNotIn("other declared adapters", stdout)
 
     def test_greenfield_user_scope_install_no_suffix(self) -> None:

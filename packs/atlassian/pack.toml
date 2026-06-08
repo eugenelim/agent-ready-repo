@@ -11,4 +11,6 @@ default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # RFC-0011 / pack-allowed-adapters. Declared order also drives the
 # greenfield fallback (claude-code matches DEFAULT_USER_SCOPE_ADAPTER).
-allowed-adapters = ["claude-code", "kiro", "codex"]
+# `kiro-ide` is the current name for the Kiro harness (RFC-0022 split;
+# bare `kiro` deprecated).
+allowed-adapters = ["claude-code", "kiro-ide", "codex"]
