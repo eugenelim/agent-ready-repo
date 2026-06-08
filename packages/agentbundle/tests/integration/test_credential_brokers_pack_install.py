@@ -71,7 +71,7 @@ class PackManifestShapeTests(unittest.TestCase):
         self.assertEqual(install_block["allowed-scopes"], ["user", "repo"])
         self.assertEqual(
             install_block["allowed-adapters"],
-            ["claude-code", "kiro", "codex"],
+            ["claude-code", "kiro-ide", "codex"],
         )
 
 
