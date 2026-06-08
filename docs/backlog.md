@@ -311,10 +311,18 @@ unblocks the **APM / Claude-plugin adopter who has no repo** — until it ships,
 that profile stays on env Tier-1 or the projected shim. Gated on the package
 stabilising (not a date), per RFC-0023 § Delivery. **Unblocks when:** the
 `credbroker` public surface is stable and a maintainer is ready to own a PyPI
-release cadence. Separately, **defensive PyPI name registration** (an empty
-placeholder so `credbroker` can't be squatted before Phase 2) is an out-of-band
-**user action** — RFC-0023 asks for it as soon as the name is fixed; it is not
-performed by spec automation.
+release cadence.
+
+**Name-registration decision (2026-06-07):** RFC-0023 recommended a *defensive*
+placeholder upload to reserve the `credbroker` name as soon as it was fixed. The
+maintainer **declined the interim placeholder** and will instead claim the name
+with the **real Phase-2 publish when the package is ready** — accepting a small
+interim squat risk on the name. (A PyPI *pending* Trusted Publisher does **not**
+reserve the name — per the PyPI docs, only an actual upload does — so reservation
+and the first real release are the same event here.) Publication is **token-free
+via Trusted Publishing (OIDC)**, modelled on `release-agentbundle.yml`; the
+`release-credbroker.yml` workflow + the PyPI pending-publisher config are Phase-2
+artifacts, created when the publish is ready, not now.
 
 ## `copilot-full-parity`
 
