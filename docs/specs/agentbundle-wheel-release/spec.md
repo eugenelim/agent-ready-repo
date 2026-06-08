@@ -169,8 +169,12 @@ against a real workflow run than by an isolated unit test.
   workflow file itself.
 - [x] AC6. `build-and-smoke` builds the wheel + sdist, runs `twine
   check dist/*`, installs the built wheel into a fresh venv, and runs
-  `python -c "from agentbundle.credentials import load_credentials"`.
-  Any step failing fails the job.
+  an import smoke against the CLI entrypoint (`python -c "from
+  agentbundle.cli import main"`) plus `agentbundle --help` on PATH.
+  Any step failing fails the job. *(Originally `from
+  agentbundle.credentials import load_credentials`; that module was
+  removed in `agentbundle 0.2.0` — owned by another spec, see §Out of
+  scope — and the workflow was updated to the CLI-entrypoint smoke.)*
 - [x] AC7. `build-and-smoke` includes a tag/version-assertion step
   gated on `github.ref_type == 'tag'` that fails the workflow with a
   GitHub error annotation when the tag's `X.Y.Z` does not match the
@@ -206,7 +210,7 @@ against a real workflow run than by an isolated unit test.
   the release-artifact pipeline isn't built; #3 because Homebrew doesn't
   satisfy the corporate-network constraint in RFC-0001 §Corporate-network
   discipline.
-- [ ] AC11. (deferred: readme-route3-after-first-publish) After first successful PyPI publish, README §Install
+- [x] AC11. After first successful PyPI publish, README §Install
   route 3 replaces the current headline phrase ``once you've
   pip-installed `agentbundle` (see route 4)`` with a headline that
   names `pip install agentbundle` directly, and the trailing
@@ -226,14 +230,19 @@ against a real workflow run than by an isolated unit test.
 
 **End-to-end (manual QA, one pass per registry).**
 
-- [ ] AC13. (deferred: pypi-first-publish-gesture) **PyPI first-publish gesture.** Push tag
-  `agentbundle-v<X.Y.Z>` (matching pyproject `version`) on `main`. The
-  workflow run shows `build-and-smoke` and `publish-pypi` succeeded
-  (the Artifactory job is skipped if the corp secret isn't set, or
-  succeeds if it is). From a clean venv on a different machine: `pip
-  install agentbundle` resolves to the just-published version; `python
-  -c "from agentbundle.credentials import load_credentials"` exits 0;
-  a credentialed-skill smoke (e.g., `jira --help`) exits 0.
+- [x] AC13. **PyPI first-publish gesture** (recorded 2026-06-07,
+  `agentbundle-v0.2.0`). Pushed tag `agentbundle-v0.2.0` (matching
+  pyproject `version`) on `main`. The workflow run showed
+  `build-and-smoke` and `publish-pypi` succeeded (Artifactory job
+  green-skipped — corp syncs from GitHub, secrets intentionally
+  unset). From a clean venv on a different machine: `pip install
+  agentbundle` resolved to the just-published version and `agentbundle
+  --help` exited 0. **Smoke updated:** the original `python -c "from
+  agentbundle.credentials import load_credentials"` no longer applies —
+  `agentbundle 0.2.0` removed that module (owned by the
+  credential-broker-contract spec; see §Out of scope), and the
+  in-CI smoke (AC6) was already updated to `from agentbundle.cli
+  import main`.
 - [ ] AC14. (deferred: artifactory-first-publish-gesture) **Artifactory first-publish gesture (deferred, gated on
   out-of-band).** When the corp issues an Artifactory token and
   configures `ARTIFACTORY_URL`/`ARTIFACTORY_USER`/`ARTIFACTORY_TOKEN`
@@ -291,3 +300,14 @@ against a real workflow run than by an isolated unit test.
   (`ARTIFACTORY_URL`/`USER`/`TOKEN`) — partial config emits
   `::warning::` and skips, closing a credential-misrouting trap where
   a token-only setup would have shipped to twine's default endpoint.
+- 2026-06-07: PR-B (T7) lands — README route 3 names `pip install
+  agentbundle` directly now that `agentbundle-v0.2.0` published to
+  PyPI. AC11 + AC13 checked. First publish was `0.2.0`, not the
+  plan's `0.1.0` — the version moved while PR-A → PR-B sat (the
+  credential-broker-contract release bumped it and removed the
+  `agentbundle.credentials` module). AC13's verification smoke updated
+  from the removed `load_credentials` import to `agentbundle --help`;
+  the credentials module's removal is owned by another spec (see §Out
+  of scope), so this spec only corrects the cross-reference it checks,
+  it does not re-own the rename. AC14 (Artifactory) stays deferred —
+  corp syncs the wheel from GitHub/PyPI, secrets intentionally unset.

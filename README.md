@@ -73,13 +73,14 @@ apm install eugenelim/agent-ready-repo/core
 
 `apm install` lands the same pack content but not the `agentbundle` module credentialed skills import — same pip-install step the clone route documents, see [installing `agentbundle` from a clone](docs/guides/how-to/install-agentbundle-from-clone.md).
 
-**Reference CLI** ([RFC-0003](docs/rfc/0003-spec-and-cli.md)) — once you've pip-installed `agentbundle` (see route 4):
+**Reference CLI** ([RFC-0003](docs/rfc/0003-spec-and-cli.md)) — `pip install agentbundle`, then fetch the catalogue from a remote URL:
 
 ```bash
+pip install agentbundle
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
 ```
 
-Route 3 still requires route 4's pip install today — RFC-0003 § F-cli-dist's release artifact (zipapp / wheel / Homebrew) isn't shipped yet, so "on your PATH" resolves to the editable install from the clone. The route's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
+This route's distinction from route 4 is the catalogue source: it fetches packs from a remote `git+https://` URL, so you never clone the catalogue — route 4 builds the CLI inside a local clone instead. RFC-0003 § F-cli-dist's other distribution artifacts (zipapp via GitHub Releases, Homebrew) remain deferred; the published PyPI wheel is the shipped path.
 
 **From a local clone** — clone the catalogue, install the runtime library, and project straight into your target repo:
 
