@@ -45,7 +45,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 # vault and the plaintext dotfile agree on names and write semantics. Importing
 # _core from _vault is fine — _core stays third-party-free; only the reverse
 # (importing _vault from _core) would break the base-import purity gate.
-from ._core import _dotfile_env_name, _ensure_parent, _verify_icacls
+from ._core import _dotfile_env_name, _ensure_parent, _vault_path, _verify_icacls
 
 VAULT_VERSION = 1
 
@@ -105,16 +105,6 @@ class VaultError(Exception):
     raises this rather than returning partial or garbage plaintext. The message
     never embeds a credential value, the master, or raw ciphertext/key bytes.
     """
-
-
-def _vault_path() -> pathlib.Path:
-    """Canonical vault path — sibling of the Tier-3 dotfile.
-
-    ``~/.agentbundle/credentials.vault`` on every platform. Tests redirect
-    ``HOME`` (and ``USERPROFILE`` on Windows) so the developer's real vault is
-    never touched.
-    """
-    return pathlib.Path.home() / ".agentbundle" / "credentials.vault"
 
 
 def _b64e(raw: bytes) -> str:

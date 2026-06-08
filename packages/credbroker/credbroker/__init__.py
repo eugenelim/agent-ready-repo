@@ -30,6 +30,7 @@ from ._core import (
     PermissiveAclError,
     SchemaError,
     Tier2HardFailError,
+    VaultUnavailableError,
     load_credentials,
     parse_env_file,
 )
@@ -54,6 +55,7 @@ __all__ = [
     "PermissiveAclError",
     "SchemaError",
     "EnvParseError",
+    "VaultUnavailableError",
     # Parsers / schema types / constants.
     "parse_env_file",
     "parse_schema",
