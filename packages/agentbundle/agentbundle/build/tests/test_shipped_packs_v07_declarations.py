@@ -5,8 +5,9 @@ Two cohorts:
 
   - Four user-scope-capable packs (`atlassian`, `figma`, `converters`,
     `contracts`) bump `[pack.adapter-contract] version` from 0.6 to
-    0.7. `allowed-adapters` is unchanged from RFC-0011 (`["claude-code",
-    "kiro", "codex"]`).
+    0.7. `allowed-adapters` carries the RFC-0011 three-harness set,
+    de-staled to current adapter names (`["claude-code", "kiro-ide",
+    "codex"]`) — the bare `kiro` alias was renamed by RFC-0022.
   - Four repo-only packs (`core`, `governance-extras`,
     `user-guide-diataxis`, `monorepo-extras`) bump from 0.2 to 0.7 —
     load-bearing per Drawback #7: without this bump the legacy
@@ -48,14 +49,16 @@ class TestUserScopePacksV07(unittest.TestCase):
                     f"{name} must bump to v0.8",
                 )
 
-    def test_user_scope_packs_allowed_adapters_unchanged(self) -> None:
-        """allowed-adapters is unchanged from RFC-0011."""
+    def test_user_scope_packs_allowed_adapters(self) -> None:
+        """allowed-adapters is the RFC-0011 three-harness set, de-staled
+        to current adapter names (RFC-0022 renamed bare `kiro` →
+        `kiro-ide`). The harness set is unchanged; only the spelling is."""
         for name in USER_SCOPE_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)
                 self.assertEqual(
                     pack["pack"]["install"]["allowed-adapters"],
-                    ["claude-code", "kiro", "codex"],
+                    ["claude-code", "kiro-ide", "codex"],
                     f"{name} declared adapter set wrong",
                 )
 

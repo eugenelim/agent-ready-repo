@@ -13,7 +13,8 @@ version = "0.10"
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # RFC-0011 / pack-allowed-adapters; copilot added by RFC-0024 / copilot-full-parity.
-allowed-adapters = ["claude-code", "kiro", "codex", "copilot"]
+# `kiro-ide` is the current name for the Kiro harness (RFC-0022 split; bare `kiro` deprecated).
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot"]
 
 # Copilot projection caveat (RFC-0024 / docs/specs/copilot-full-parity §
 # Success for the read-only subagents): the `evidence-retriever` and
