@@ -49,6 +49,7 @@ directly to Tier 3.
 from __future__ import annotations
 
 import dataclasses
+import importlib.util
 import os
 import pathlib
 import re
@@ -892,6 +893,103 @@ def _relative_schema_path(
     )
 
 
+# ── Public write API (RFC-0023 T8) ─────────────────────────────────────
+#
+# credential-setup (the interactive write skill) consumed the shim's private
+# write surface; these public functions replace it. All are non-interactive —
+# the library never prompts; the caller owns any prompting/policy. The write
+# verb is per-tier (`store_in_<tier>`) by design; the read side stays the single
+# `load_credentials` resolver (intentional verb asymmetry, not drift).
+
+
+def keyring_available() -> bool:
+    """True iff an OS-keyring Tier-2 backend is loaded on this platform."""
+    return _tier2_backend is not None
+
+
+def store_in_keyring(namespace: str, key: str, value: str) -> None:
+    """Write ``(namespace, key) -> value`` to the OS keyring (Tier 2).
+
+    Raises ``Tier2HardFailError`` / ``PermissiveAclError`` on backend failure,
+    and ``Tier2HardFailError`` if no keyring backend is available (call
+    ``keyring_available()`` first to choose a tier).
+    """
+    if _tier2_backend is None:
+        raise Tier2HardFailError(
+            "no OS keyring backend on this platform — cannot write to Tier 2"
+        )
+    _tier2_backend.write_credential(namespace, key, value)
+
+
+def store_in_dotfile(
+    namespace: str, key: str, value: str, *, allow_permissive_acl: bool = False
+) -> None:
+    """Write ``(namespace, key) -> value`` to the plaintext Tier-3 dotfile."""
+    _dotfile_write(namespace, key, value, allow_permissive_acl=allow_permissive_acl)
+
+
+def crypto_available() -> bool:
+    """True iff the ``[crypto]`` extra is importable (does **not** import it)."""
+    return (
+        importlib.util.find_spec("cryptography") is not None
+        and importlib.util.find_spec("argon2") is not None
+    )
+
+
+def source_vault_master() -> str | None:
+    """Source the vault master: OS keyring -> env -> ``0600`` file (T5)."""
+    return _source_vault_master()
+
+
+def store_vault_master(master: str) -> None:
+    """Persist the vault master so a later Tier-3 read can re-source it.
+
+    **Keyring-first**: write to the OS keyring where a backend exists (the
+    master never touches disk), else to the ``0600`` ``vault.master`` file
+    (``fchmod 0o600`` before ``os.replace``, so it round-trips with
+    ``_source_vault_master``'s reject-on-permissive check). Never writes the
+    master to disk when a keyring is available — mirrors the keyring->env->file
+    precedence ``_source_vault_master`` reads.
+    """
+    if _tier2_backend is not None:
+        _tier2_backend.write_credential(_VAULT_MASTER_NAMESPACE, _VAULT_MASTER_KEY, master)
+        return
+    path = _vault_master_file()
+    _ensure_parent(path.parent)
+    fd, tmp_path_str = tempfile.mkstemp(dir=str(path.parent), prefix=".vaultmaster.")
+    tmp_path = pathlib.Path(tmp_path_str)
+    try:
+        data = (master + "\n").encode("utf-8")  # trailing \n; source rstrips it
+        mv = memoryview(data)
+        while mv:
+            mv = mv[os.write(fd, mv):]
+        if os.name == "posix":
+            os.fchmod(fd, 0o600)
+        os.fsync(fd)
+        os.close(fd)
+        if os.name == "nt":
+            _verify_icacls(tmp_path)
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
+def store_in_vault(namespace: str, key: str, value: str, *, master: str) -> None:
+    """Write ``(namespace, key) -> value`` to the encrypted ``[crypto]`` vault.
+
+    Lazily imports ``_vault`` (crypto-gated) so the base import graph stays
+    third-party-free (AC4). The **sole** public vault-write entry point;
+    ``_vault.set_credential`` stays private-by-convention.
+    """
+    from . import _vault  # lazy: cryptography only loaded when the vault is written
+
+    _vault.set_credential(namespace, key, value, master=master)
+
+
 __all__ = [
     "CredsSchema",
     "Credentials",
@@ -902,6 +1000,14 @@ __all__ = [
     "PermissiveAclError",
     "SchemaError",
     "Tier2HardFailError",
+    "VaultUnavailableError",
+    "crypto_available",
+    "keyring_available",
     "load_credentials",
     "parse_env_file",
+    "source_vault_master",
+    "store_in_dotfile",
+    "store_in_keyring",
+    "store_in_vault",
+    "store_vault_master",
 ]
