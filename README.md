@@ -32,21 +32,32 @@ Pick `core` plus whichever add-ons fit your repo. The detailed breakdown of `cor
 
 The reference CLI `agentbundle` is the catalogue's foundation — install it once, then every pack install is one line at either scope.
 
-**One-time setup** (until [RFC-0003](docs/rfc/0003-spec-and-cli.md) § F-cli-dist ships a release artifact, install from a clone):
+**One-time setup** — install the CLI from PyPI:
 
 ```bash
-git clone https://github.com/eugenelim/agent-ready-repo
-pip install -e agent-ready-repo/packages/agentbundle/
+pip install agentbundle
 ```
+
+(For a pinned or offline checkout, `pip install -e` from a clone instead — see [route 4](#all-four-install-routes).)
+
+**Pick your harness** — optional; defaults to Claude Code. `config set adapter` persists the choice so every new install targets that harness's layout (upgrades keep the adapter the original install used):
+
+```bash
+agentbundle config set adapter codex      # Codex      → .agents/skills/
+agentbundle config set adapter copilot    # Copilot    → .github/instructions/
+agentbundle config set adapter kiro-ide   # Kiro (IDE) → .kiro/skills/
+```
+
+`agentbundle config get adapter` shows the current value and `config unset adapter` reverts to the `claude-code` default (`kiro-cli` targets Kiro's CLI binary). Prefer a single line? Chain the two: `pip install agentbundle && agentbundle config set adapter codex`. To override just one install without changing the saved default, pass `--adapter <name>` to `agentbundle install`. Not every pack travels with every harness — a pack installs only for the adapters it lists in `allowed-adapters` and refuses others with a clear message; `core` carries no such restriction and installs under any adapter.
 
 **Then one line per pack, either scope:**
 
 ```bash
-agentbundle install --pack core      git+https://github.com/eugenelim/agent-ready-repo   # repo-scope: into the current repo
-agentbundle install --pack architect git+https://github.com/eugenelim/agent-ready-repo   # user-scope: into ~/.claude/
+agentbundle install --pack core      git+https://github.com/eugenelim/agent-ready-repo   # repo scope: into the current repo
+agentbundle install --pack architect git+https://github.com/eugenelim/agent-ready-repo   # user scope: into your home dir, shared across projects
 ```
 
-`core` lands under the current repo's `.claude/`; `architect` lands under `~/.claude/` so it follows you across every project on the machine. Scope is read from each pack's `default-scope` — swap either pack name for any row in the [Packs](#packs) table.
+`core` lands in the current repo and `architect` in your home directory — under `.claude/` for the default Claude Code adapter, or the matching `.agents/` / `.kiro/` / `.github/` root for whichever harness you set — so `architect` follows you across every project. Scope is read from each pack's `default-scope` — swap either pack name for any row in the [Packs](#packs) table (each pack's supported adapters are its `allowed-adapters`).
 
 APM and Claude-plugin routes will land the same markdown content without the `pip install` step, but `adapt-to-project` substitution, credentialed skills (`jira`, `figma`, `confluence-publisher`, ...), and upgrade-time safety (`agentbundle init-state`) all require the `agentbundle` CLI on PATH — so the one-time pip step is effectively part of the setup either way.
 
