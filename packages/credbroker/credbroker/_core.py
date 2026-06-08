@@ -304,15 +304,120 @@ def _tier2(namespace: str, key: str) -> str | None:
     return _tier2_backend.read_credential(namespace, key)
 
 
-def _tier3(namespace: str, key: str) -> str | None:
-    """Resolve from the Tier-3 dotfile.
+# ── Tier 3 — encrypted vault (credbroker[crypto]) ──────────────────────
+#
+# When an encrypted vault file exists it is authoritative for Tier 3; absent
+# one, the plaintext dotfile is the floor. Sourcing the vault's master secret
+# (keyring -> env -> file) is stdlib — only decrypting the vault needs the
+# [crypto] extra, which is imported lazily so the base import graph stays
+# third-party-free (AC4).
 
-    Reads ``~/.agentbundle/credentials.env`` via the stdlib parser and
-    looks up ``<NAMESPACE>_<KEY>``. Returns ``None`` on miss; a malformed
-    dotfile also returns ``None`` (the upstream resolver raises
-    ``CredentialsMissingError`` if the key was required, naming the
-    namespace and the missing key list).
+#: Env var carrying the vault master where no OS keyring is available
+#: (headless Linux / locked-down corporate). Ephemeral, wrapper-injected.
+VAULT_MASTER_ENV = "CREDBROKER_VAULT_MASTER"
+
+#: Keyring coordinates for the vault master (credbroker's own Tier-2 backend).
+_VAULT_MASTER_NAMESPACE = "credbroker"
+_VAULT_MASTER_KEY = "vault-master"
+
+
+class VaultUnavailableError(Exception):
+    """Raised when an encrypted vault exists but cannot be opened.
+
+    Distinct from the crypto-layer ``VaultError`` (wrong master / tamper): this
+    is the stdlib-side fail-loud signal that a vault file is present but either
+    no master secret could be sourced (keyring / env / ``0600`` file all empty)
+    or the ``[crypto]`` extra is not installed. The resolver raises this rather
+    than silently dropping to the plaintext dotfile — silent fall-through could
+    mask the vault or resolve a stale plaintext value.
     """
+
+
+def _vault_path() -> pathlib.Path:
+    """Canonical encrypted-vault path — sibling of the Tier-3 dotfile."""
+    return pathlib.Path.home() / ".agentbundle" / "credentials.vault"
+
+
+def _vault_master_file() -> pathlib.Path:
+    """``0600`` fallback file holding the vault master (no keyring, no env)."""
+    return pathlib.Path.home() / ".agentbundle" / "vault.master"
+
+
+def _source_vault_master() -> str | None:
+    """Source the vault master secret: OS keyring -> env var -> ``0600`` file.
+
+    Precedence (signed off 2026-06-08): the OS keyring wins where a backend
+    holds the entry (the strong case — the master never touches disk or env).
+    Absent that, the env var ``CREDBROKER_VAULT_MASTER`` (ephemeral,
+    wrapper-injected) is tried *before* the persistent ``0600`` file, so a
+    deliberate per-invocation master overrides a stale on-disk one. Returns
+    ``None`` when none is set.
+
+    credbroker only *reads* here — it never writes the master to the process
+    environment and never exports the derived KEK (AC6).
+    """
+    # 1. OS keyring (where a backend exists and holds the entry).
+    if _tier2_backend is not None:
+        master = _tier2_backend.read_credential(_VAULT_MASTER_NAMESPACE, _VAULT_MASTER_KEY)
+        if master:
+            return master
+    # 2. Env var (no-keyring case; ephemeral, wrapper-injected).
+    master = os.environ.get(VAULT_MASTER_ENV)
+    if master:
+        return master
+    # 3. 0600 file (no-keyring, no-env durable fallback). The master file
+    # unlocks the *entire* vault and is created out-of-band — credbroker never
+    # writes it, so it can't rely on the write-time fchmod the dotfile gets.
+    # Refuse a group/other-accessible master on POSIX rather than silently
+    # trusting a world-readable key-to-everything.
+    path = _vault_master_file()
+    if path.is_file():
+        if os.name == "posix":
+            mode = path.stat().st_mode & 0o777
+            if mode & 0o077:
+                raise VaultUnavailableError(
+                    f"vault master file {path} is mode {oct(mode)} — too "
+                    f"permissive (group/other access); run `chmod 600` on it. "
+                    f"Refusing to read a world/group-readable master."
+                )
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            return None
+        text = text.rstrip("\n")
+        if text:
+            return text
+    return None
+
+
+def _tier3(namespace: str, key: str) -> str | None:
+    """Resolve from the Tier-3 store — the encrypted vault if one exists, else
+    the plaintext dotfile.
+
+    A present vault is authoritative: its master is sourced (keyring -> env ->
+    file) and the value decrypted via the ``[crypto]`` extra. A present but
+    unopenable vault (no master, or ``[crypto]`` not installed) raises
+    ``VaultUnavailableError`` rather than silently falling through to the
+    plaintext dotfile. Absent a vault, the dotfile is the floor (``None`` on
+    miss; a malformed dotfile also yields ``None``, and the upstream resolver
+    raises ``CredentialsMissingError`` if the key was required).
+    """
+    if _vault_path().is_file():
+        master = _source_vault_master()
+        if master is None:
+            raise VaultUnavailableError(
+                f"encrypted vault present at {_vault_path()} but no master "
+                f"secret available — checked the OS keyring, "
+                f"${VAULT_MASTER_ENV}, and {_vault_master_file()}"
+            )
+        try:
+            from . import _vault
+        except ImportError as exc:
+            raise VaultUnavailableError(
+                "encrypted vault present but the [crypto] extra is not "
+                "installed — run: pip install 'credbroker[crypto]'"
+            ) from exc
+        return _vault.read_credential(namespace, key, master=master)
     return _dotfile_read(namespace, key)
 
 
