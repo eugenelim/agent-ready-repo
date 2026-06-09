@@ -83,7 +83,7 @@ The script:
 To verify resolution after setup, invoke the consumer skill's own
 `check` verb (e.g. `python3 scripts/cli.py check` for a credentialed-
 CLI primitive). The consumer's `check` walks Tier 1 → Tier 2 → Tier 3
-through the build-projected `credentials_shim` and exits 0 when every
-declared key resolves. This skill writes; the consumer's `check`
+through the `credbroker` library (imported in-process) and exits 0 when
+every declared key resolves. This skill writes; the consumer's `check`
 reads. Do not write a `get` verb in this skill — the
 wrap-and-leak shape is explicitly refused.

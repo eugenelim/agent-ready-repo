@@ -128,7 +128,10 @@ def test_catch_all_is_except_exception_not_baseexception() -> None:
 
 
 def test_import_guard_present() -> None:
-    assert "credentials_shim sibling not projected" in SRC, "missing shim guard"
+    # RFC-0023: the import guard now handles a missing non-secret dependency
+    # (e.g. httpx); the credbroker resolver is imported lazily inside
+    # load_credentials(), so its absence surfaces at runtime, not here.
+    assert "except ModuleNotFoundError" in SRC, "missing import guard"
     assert "missing dependency" in SRC, "missing dependency guard"
 
 

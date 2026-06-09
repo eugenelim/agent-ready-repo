@@ -44,6 +44,15 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
 
+      # credbroker T9: RFC-0023 retired the shared-libs → consumer-scripts
+      # projection (and its build-check drift gate). The standing net that
+      # no shim copy reappears under a consumer scripts/ — and that the
+      # companion-rail source is retained — is this test; wire it into CI
+      # explicitly (make build-check runs no pytest).
+      - name: pytest shared-libs projection retirement (credbroker T9)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
+
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with
