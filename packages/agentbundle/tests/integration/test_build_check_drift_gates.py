@@ -408,3 +408,116 @@ def test_make_build_check_passes_on_clean_apm_tree(tmp_path):
 
     rc = run_build_check_drift_gates(workspace, packs_shadow)
     assert rc == 0, f"clean tree should pass, got rc={rc}"
+
+
+# ---------------------------------------------------------------------------
+# Gate: user-libs projection drift (credbroker-user-scope T3)
+# ---------------------------------------------------------------------------
+
+
+def _shadow_real_tree_for_user_libs(tmp_path):
+    """Shadow the real ``packs/`` + ``packages/credbroker`` so the user-libs
+    gate's package source resolves via ``packs_shadow.parent``.
+
+    Returns ``(packs_shadow, workspace)`` with ``dist/`` populated and both
+    the adapter-root-bins and user-libs floors applied — a clean tree.
+    """
+    from agentbundle.build.adapter_root_bins import (
+        apply_projection as _adapter_root_bins_apply,
+    )
+    from agentbundle.build.user_libs import apply_projection as _user_libs_apply
+
+    packs_shadow = tmp_path / "packs"
+    shutil.copytree(REPO_ROOT / "packs", packs_shadow, symlinks=True)
+    # user_libs locates its source at <packs_shadow.parent>/packages/credbroker/...
+    shutil.copytree(
+        REPO_ROOT / "packages" / "credbroker",
+        tmp_path / "packages" / "credbroker",
+        symlinks=True,
+    )
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    _run_build_into_dist(packs_shadow, workspace)
+    _adapter_root_bins_apply(workspace, packs_shadow)
+    _user_libs_apply(workspace, packs_shadow)
+    return packs_shadow, workspace
+
+
+def test_make_build_check_passes_on_clean_user_libs_tree(tmp_path):
+    """T3: the gate exits zero when both vendored credbroker targets are
+    byte-faithful to ``packages/credbroker/credbroker/``."""
+    from agentbundle.build.self_host import run_build_check_drift_gates
+
+    packs_shadow, workspace = _shadow_real_tree_for_user_libs(tmp_path)
+    rc = run_build_check_drift_gates(workspace, packs_shadow)
+    assert rc == 0, f"clean user-libs tree should pass, got rc={rc}"
+
+
+def test_make_build_check_fails_on_user_libs_floor_drift(tmp_path):
+    """T3: tampering a vendored floor file makes the gate exit non-zero and
+    name the user-libs drift on stderr."""
+    import io
+    import sys as _sys
+
+    from agentbundle.build.self_host import run_build_check_drift_gates
+
+    packs_shadow, workspace = _shadow_real_tree_for_user_libs(tmp_path)
+
+    floor_file = workspace / ".agentbundle" / "lib" / "credbroker" / "__init__.py"
+    assert floor_file.is_file(), f"floor not applied at {floor_file}"
+    data = bytearray(floor_file.read_bytes())
+    data[-1] ^= 0x01
+    floor_file.write_bytes(bytes(data))
+
+    captured = io.StringIO()
+    old_stderr = _sys.stderr
+    _sys.stderr = captured
+    try:
+        rc = run_build_check_drift_gates(workspace, packs_shadow)
+    finally:
+        _sys.stderr = old_stderr
+
+    stderr_output = captured.getvalue()
+    assert rc != 0, f"gate should fail on floor drift.\nstderr: {stderr_output}"
+    assert "user-libs" in stderr_output and "modified" in stderr_output, (
+        f"stderr does not name the user-libs drift.\nstderr: {stderr_output}"
+    )
+
+
+def test_make_build_check_fails_on_user_libs_pack_copy_drift(tmp_path):
+    """T3: tampering the pack-vendored copy (the catalogue-visible primitive)
+    is also caught by the gate, and the message names the pack-copy target —
+    not just the floor, so a regression that stops the pack-copy half of the
+    two-target gate from contributing a message is caught."""
+    import io
+    import sys as _sys
+
+    from agentbundle.build.self_host import run_build_check_drift_gates
+
+    packs_shadow, workspace = _shadow_real_tree_for_user_libs(tmp_path)
+
+    pack_file = (
+        packs_shadow / "credential-brokers" / ".apm" / "user-libs"
+        / "credbroker" / "__init__.py"
+    )
+    assert pack_file.is_file(), f"pack copy not applied at {pack_file}"
+    data = bytearray(pack_file.read_bytes())
+    data[-1] ^= 0x01
+    pack_file.write_bytes(bytes(data))
+
+    captured = io.StringIO()
+    old_stderr = _sys.stderr
+    _sys.stderr = captured
+    try:
+        rc = run_build_check_drift_gates(workspace, packs_shadow)
+    finally:
+        _sys.stderr = old_stderr
+
+    stderr_output = captured.getvalue()
+    assert rc != 0, f"gate should fail on pack-copy drift.\nstderr: {stderr_output}"
+    assert (
+        "user-libs" in stderr_output
+        and "modified" in stderr_output
+        and ".apm/user-libs/credbroker" in stderr_output
+    ), f"stderr does not name the pack-copy drift target.\nstderr: {stderr_output}"
