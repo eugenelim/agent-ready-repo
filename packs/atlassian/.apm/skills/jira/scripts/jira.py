@@ -30,9 +30,8 @@ Subcommands:
     raw METHOD PATH              Arbitrary request when nothing above fits.
 
 The Jira API token / PAT is never accepted on the command line. It is
-resolved via the build-projected ``credentials_shim`` sibling (Tier 1 env →
-Tier 2 OS keyring → Tier 3 dotfile); run ``credential-setup`` skill to
-populate the namespace.
+resolved via the ``credbroker`` library (Tier 1 env → Tier 2 OS keyring →
+Tier 3 dotfile); run ``credential-setup`` skill to populate the namespace.
 """
 from __future__ import annotations
 
@@ -47,9 +46,8 @@ from pathlib import Path
 from typing import Any
 
 # Bootstrap when invoked as ``python scripts/jira.py`` so the
-# relative imports of sibling modules — including ``_client``'s
-# ``from .credentials_shim import …`` — resolve against the
-# build-projected siblings in this directory. Gated on
+# relative imports of sibling modules (e.g. ``_client``) resolve
+# against the siblings in this directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
 # invocation; an importlib-based test harness is responsible for
 # its own package context.
@@ -79,14 +77,10 @@ try:
         load_credentials,
     )
 except ModuleNotFoundError as _import_exc:  # noqa: E402
-    # Constants are defined below; use the banded literals here.
-    # 1 = functional/internal (shim not projected); 2 = user must act (deps).
-    if _import_exc.name and "credentials_shim" in _import_exc.name:
-        sys.stderr.write(
-            "error: credentials_shim sibling not projected — run "
-            "`make build-self` or reinstall the credential-brokers pack.\n"
-        )
-        raise SystemExit(1)
+    # A missing module here is a non-secret dependency (e.g. httpx);
+    # `credbroker` is imported lazily inside load_credentials(), so its
+    # absence surfaces at runtime (exit 1 via the top-level handler), not
+    # at this import guard.
     sys.stderr.write(
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"

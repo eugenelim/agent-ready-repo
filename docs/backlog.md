@@ -299,8 +299,19 @@ of their own yet.
 
 ## `credbroker`
 
-RFC-0023 follow-on, **Phase 1** in progress (`docs/specs/credbroker/`). The
-items below are deferred out of Phase 1 by spec decision.
+RFC-0023 follow-on, **Phase 1 shipped 2026-06-09** (`docs/specs/credbroker/`,
+Status: Shipped). The items below are deferred out of Phase 1 by spec decision.
+
+**Doc follow-ups (deferred from T10 — stale shim/projection prose outside T10's named scope):**
+- `docs/architecture/credentials.md` still documents the build-projected
+  `credentials_shim` model as the `creds` delivery; after RFC-0023 the
+  `creds` resolver is the `credbroker` library (the projected shim survives
+  only as the adapter-root-bins companion for `sso-broker`). Rewrite the
+  architecture map for the credbroker delivery. The `docs/architecture/overview.md`
+  one-liner pointing at `credentials.md` moves with it.
+- `docs/guides/how-to/install-agentbundle-from-clone.md` references the
+  projected shim; reconcile with the `pip install credbroker` model.
+  **Unblocks when:** picked up as a docs pass (no code dependency).
 
 **T5 review follow-ups (non-blocking, surfaced by the T5 review):**
 - **Per-key vault KDF re-derivation.** `load_credentials` resolves `required_keys`

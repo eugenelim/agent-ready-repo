@@ -50,10 +50,6 @@ from agentbundle.build.main import (
     discover_packs,
     validate_pack_uniqueness,
 )
-from agentbundle.build.shared_libs import (
-    apply_projection as _shared_libs_apply,
-    check_drift as _shared_libs_check_drift,
-)
 from agentbundle.build.adapter_root_bins import (
     apply_projection as _adapter_root_bins_apply,
     check_drift as _adapter_root_bins_check_drift,
@@ -1050,15 +1046,10 @@ def run_self_host(
 
     # Real write: project directly into the working tree so adapter
     # merge/splice logic sees existing content.
-    # T4: project shared-libs/ into consumer-skill scripts/ FIRST so the
-    # adapter projection that follows picks up the freshest shim files.
-    # Inter-pack basename collision raises ValueError; surface as
-    # self-host: <msg> and exit 5.
-    try:
-        _shared_libs_apply(packs_dir)
-    except ValueError as exc:
-        print(f"self-host: {exc}", file=sys.stderr)
-        return 5
+    # RFC-0023 retired the shared-libs/ → consumer-skill scripts/
+    # projection: credentialed consumers resolve via the `credbroker`
+    # pip library, not a vendored shim. The shim source survives only as
+    # the adapter-root-bins companion-shim projection source (below).
     # T6: project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
     # with 0o755 on POSIX. Inter-pack basename collision raises
     # ValueError; surface as self-host: <msg> and exit 5.
@@ -1411,16 +1402,6 @@ def run_build_check_drift_gates(
                             f"{test_input!r}: source={source_out!r}, "
                             f"vendored={template_out!r}"
                         )
-
-    # ------------------------------------------------------------------
-    # Gate: shared-libs projection drift (RFC-0013 § 4c).
-    #
-    # Three outcomes — modified / missing / orphaned — surfaced as one
-    # line per drift. Inter-pack basename collision short-circuits to
-    # a single description (the projection cannot proceed).
-    # ------------------------------------------------------------------
-    for msg in _shared_libs_check_drift(packs_dir):
-        failures.append(msg)
 
     # ------------------------------------------------------------------
     # Gate: adapter-root-bins projection drift (RFC-0013 § 4d).

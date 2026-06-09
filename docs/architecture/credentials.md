@@ -1,5 +1,12 @@
 # Credentials
 
+> **Partially superseded (RFC-0023, 2026-06-09).** For `auth: creds`, the
+> resolver is now the pip-installable [`credbroker`](../rfc/0023-credential-manager-broker.md)
+> library imported in-process — the build-projected `credentials_shim`
+> described below was retired for consumer skills (it survives only as the
+> `adapter-root-bins` companion shim for `sso-broker`). A full rewrite of
+> this page is tracked in [`docs/backlog.md`](../backlog.md#credbroker).
+
 The secret-handling subsystem for credentialed primitives in this
 catalogue. Defines how a credentialed primitive — a `jira`, `figma`,
 or `confluence-publisher` CLI — acquires a token at runtime without

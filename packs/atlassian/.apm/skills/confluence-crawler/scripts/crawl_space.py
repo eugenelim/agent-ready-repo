@@ -8,7 +8,7 @@ Invocation examples:
     python scripts/crawl_space.py --space ENG --root 12345 --force
     python scripts/crawl_space.py --space ENG --no-attachments
 
-Credentials are resolved via the build-projected ``credentials_shim`` sibling
+Credentials are resolved via the ``credbroker`` library
 (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile); run
 ``credential-setup`` skill to populate the namespace. The
 PAT is never accepted on the command line.
@@ -26,9 +26,8 @@ from pathlib import Path
 from typing import Iterable
 
 # Bootstrap when invoked as ``python scripts/crawl_space.py`` so the
-# relative imports of sibling modules — including ``_client``'s
-# ``from .credentials_shim import …`` — resolve against the
-# build-projected siblings in this directory. Gated on
+# relative imports of sibling modules (e.g. ``_client``) resolve
+# against the siblings in this directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
 # invocation; an importlib-based test harness is responsible for
 # its own package context.
@@ -70,13 +69,10 @@ try:
     from ._convert import to_markdown  # noqa: E402
     from ._links import LinkTargets  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
-    # 1 = functional/internal (shim not projected); 2 = user must act (deps).
-    if _import_exc.name and "credentials_shim" in _import_exc.name:
-        sys.stderr.write(
-            "error: credentials_shim sibling not projected — run "
-            "`make build-self` or reinstall the credential-brokers pack.\n"
-        )
-        raise SystemExit(1)
+    # A missing module here is a non-secret dependency (e.g. httpx);
+    # `credbroker` is imported lazily inside load_credentials(), so its
+    # absence surfaces at runtime (exit 1 via the top-level handler), not
+    # at this import guard.
     sys.stderr.write(
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"

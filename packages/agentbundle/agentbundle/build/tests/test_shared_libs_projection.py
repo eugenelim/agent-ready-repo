@@ -1,13 +1,25 @@
-"""T4: shared-libs/ build-pipeline primitive projection tests.
+"""shared-libs/ source-enumeration + projection-retirement tests.
 
-Covers AC20 (project per skill declaring metadata.auth: creds),
-AC20 trailing clause (scripts/ created if absent), AC21 (inter-pack
-collision), AC23 (drift gate: modified/missing/orphaned), AC25
-(no projection into skills NOT declaring auth: creds).
+RFC-0023 retired the original projection contract: ``shared-libs/*.py``
+is no longer byte-copied into every ``auth: creds`` skill's ``scripts/``
+(those consumers resolve credentials via the ``credbroker`` pip
+library). What survives is source enumeration for the
+``adapter-root-bins`` companion-shim rail.
+
+Coverage:
+- ``collect_sources`` enumerates ``.apm/shared-libs/*.py`` and hard-errors
+  on inter-pack basename collision (the surviving surface; consumed by
+  ``adapter_root_bins``).
+- The projection/drift/orphan API is **retired** — a guard test fails
+  loudly if it is reintroduced.
+- Standing real-tree invariants (spec AC): no shim copy remains under any
+  consumer ``scripts/``, and the shim *source* is retained for the
+  ``sso-broker`` companion rail.
 """
 
 from __future__ import annotations
 
+import re
 import shutil
 import tempfile
 import unittest
@@ -15,18 +27,33 @@ from pathlib import Path
 
 from agentbundle.build import shared_libs
 
+SHIM_BASENAMES = ("credentials_shim.py", "_keychain_macos.py", "_credman_windows.py")
+# `credentials_shim` import forms, assembled from parts so this test's own
+# source isn't mistaken for a consumer importing the retired shim. Matches
+# any import shape — relative (`from .` / `from ..`), dotted-package, or bare
+# — so a future re-introduction in any form is caught.
+_SHIM_IMPORT_RE = re.compile(
+    r"(?:from\s+\.{0,2}(?:[\w.]+\.)?" + "credentials_shim" + r"\s+import"
+    r"|import\s+(?:[\w.]+\.)?" + "credentials_shim" + r"\b)"
+)
+
+
+def _repo_root() -> Path:
+    """Walk up from this file until a tree carrying the
+    ``credential-brokers`` pack is found — robust to test CWD."""
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "packs" / "credential-brokers").is_dir():
+            return parent
+    raise RuntimeError("could not locate repo root (packs/credential-brokers)")
+
 
 def _write_pack(
     packs_dir: Path,
     name: str,
     *,
     shared_libs_files: dict[str, str] | None = None,
-    skills: dict[str, dict] | None = None,
 ) -> Path:
-    """Build a fixture pack tree.
-
-    skills entries: {skill_name: {"auth": "creds"|"env", "scripts": {basename: text}}}
-    """
+    """Build a minimal fixture pack carrying ``.apm/shared-libs/*.py``."""
     pack = packs_dir / name
     pack.mkdir()
     (pack / "pack.toml").write_text(
@@ -38,30 +65,6 @@ def _write_pack(
         sl.mkdir(parents=True)
         for fname, text in shared_libs_files.items():
             (sl / fname).write_text(text, encoding="utf-8")
-    if skills:
-        skills_dir = pack / ".apm" / "skills"
-        skills_dir.mkdir(parents=True)
-        for skill_name, opts in skills.items():
-            sd = skills_dir / skill_name
-            sd.mkdir()
-            auth = opts.get("auth")
-            if auth is None:
-                fm = f"---\nname: {skill_name}\ndescription: x\n---\nBody.\n"
-            else:
-                fm = (
-                    f"---\nname: {skill_name}\n"
-                    f"description: x\n"
-                    f"metadata:\n"
-                    f"  credentialed: true\n"
-                    f"  auth: {auth}\n"
-                    f"---\nBody.\n"
-                )
-            (sd / "SKILL.md").write_text(fm, encoding="utf-8")
-            if "scripts" in opts:
-                scripts = sd / "scripts"
-                scripts.mkdir()
-                for basename, text in opts["scripts"].items():
-                    (scripts / basename).write_text(text, encoding="utf-8")
     return pack
 
 
@@ -73,77 +76,32 @@ class _FixtureBase(unittest.TestCase):
         self.packs_dir.mkdir()
 
 
-class ProjectionMechanicsTests(_FixtureBase):
-    """AC20 / AC25: project into auth: creds skills; skip auth: env skills."""
+class CollectSourcesTests(_FixtureBase):
+    """The surviving surface: enumerate shared-libs sources for the
+    adapter-root-bins companion rail."""
 
-    def test_projects_into_creds_skills_only(self) -> None:
+    def test_enumerates_shared_libs_sources(self) -> None:
         _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={"credentials_shim.py": "shim-body\n"},
-        )
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={
-                "secret-skill": {"auth": "creds"},
-                "env-skill": {"auth": "env"},
-            },
-        )
-        shared_libs.apply_projection(self.packs_dir)
-        creds_scripts = (
-            self.packs_dir / "consumer" / ".apm" / "skills"
-            / "secret-skill" / "scripts" / "credentials_shim.py"
-        )
-        env_scripts = (
-            self.packs_dir / "consumer" / ".apm" / "skills"
-            / "env-skill" / "scripts" / "credentials_shim.py"
-        )
-        self.assertTrue(creds_scripts.is_file())
-        self.assertEqual(creds_scripts.read_text(encoding="utf-8"), "shim-body\n")
-        self.assertFalse(env_scripts.exists())
-
-    def test_creates_scripts_dir_if_absent(self) -> None:
-        """AC20 trailing: receiving skill without scripts/ — the
-        projection creates the directory."""
-        _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={"credentials_shim.py": "x"},
-        )
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={"s": {"auth": "creds"}},
-        )
-        consumer_scripts = (
-            self.packs_dir / "consumer" / ".apm" / "skills" / "s" / "scripts"
-        )
-        self.assertFalse(consumer_scripts.exists())
-        shared_libs.apply_projection(self.packs_dir)
-        self.assertTrue(consumer_scripts.is_dir())
-        self.assertTrue((consumer_scripts / "credentials_shim.py").is_file())
-
-    def test_projects_multiple_files(self) -> None:
-        _write_pack(
-            self.packs_dir, "broker",
+            self.packs_dir,
+            "broker",
             shared_libs_files={
                 "credentials_shim.py": "shim",
                 "_keychain_macos.py": "kc",
                 "_credman_windows.py": "cw",
             },
         )
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={"s": {"auth": "creds"}},
-        )
-        shared_libs.apply_projection(self.packs_dir)
-        scripts = (
-            self.packs_dir / "consumer" / ".apm" / "skills" / "s" / "scripts"
-        )
-        for name in ("credentials_shim.py", "_keychain_macos.py", "_credman_windows.py"):
-            self.assertTrue((scripts / name).is_file(), name)
+        sources = shared_libs.collect_sources(self.packs_dir)
+        self.assertEqual(set(sources), set(SHIM_BASENAMES))
+        self.assertTrue(sources["credentials_shim.py"].is_file())
+
+    def test_no_sources_returns_empty(self) -> None:
+        _write_pack(self.packs_dir, "plain")  # no shared-libs/
+        self.assertEqual(shared_libs.collect_sources(self.packs_dir), {})
 
 
 class InterPackCollisionTests(_FixtureBase):
-    """AC21: two packs shipping the same shared-libs basename is a
-    hard error at projection time."""
+    """Two packs shipping the same shared-libs basename is a hard error
+    at enumeration time (refused before a silent overwrite)."""
 
     def test_collision_raises_with_both_paths(self) -> None:
         _write_pack(
@@ -161,254 +119,98 @@ class InterPackCollisionTests(_FixtureBase):
         self.assertIn("broker-a", msg)
         self.assertIn("broker-b", msg)
 
-    def test_check_drift_surfaces_collision(self) -> None:
-        _write_pack(
-            self.packs_dir, "broker-a",
-            shared_libs_files={"credentials_shim.py": "a"},
-        )
-        _write_pack(
-            self.packs_dir, "broker-b",
-            shared_libs_files={"credentials_shim.py": "b"},
-        )
-        drifts = shared_libs.check_drift(self.packs_dir)
-        self.assertEqual(len(drifts), 1)
-        self.assertIn("collision", drifts[0])
-        self.assertIn("credentials_shim.py", drifts[0])
 
+class ProjectionRetirementGuardTests(unittest.TestCase):
+    """RFC-0023 retired the skill-scripts projection. These names must
+    stay gone — reintroducing the projection mechanism here turns this
+    red (the projection model is replaced by the credbroker pip dep)."""
 
-class DriftGateTests(_FixtureBase):
-    """AC23: build-check detects three drift outcomes; build-self resolves."""
-
-    def _setup_baseline(self) -> None:
-        _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={"credentials_shim.py": "source-body\n"},
-        )
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={"s": {"auth": "creds"}},
-        )
-
-    def test_clean_tree_no_drift(self) -> None:
-        self._setup_baseline()
-        shared_libs.apply_projection(self.packs_dir)
-        self.assertEqual(shared_libs.check_drift(self.packs_dir), [])
-
-    def test_modified_drift_detected(self) -> None:
-        self._setup_baseline()
-        shared_libs.apply_projection(self.packs_dir)
-        # Tamper with the projected copy.
-        target = (
-            self.packs_dir / "consumer" / ".apm" / "skills" / "s"
-            / "scripts" / "credentials_shim.py"
-        )
-        target.write_text("tampered-body\n", encoding="utf-8")
-        drifts = shared_libs.check_drift(self.packs_dir)
-        self.assertEqual(len(drifts), 1)
-        self.assertIn("modified", drifts[0])
-        self.assertIn("credentials_shim.py", drifts[0])
-        self.assertIn("make build-self", drifts[0])
-
-    def test_missing_drift_detected(self) -> None:
-        self._setup_baseline()
-        # No projection applied yet.
-        drifts = shared_libs.check_drift(self.packs_dir)
-        self.assertEqual(len(drifts), 1)
-        self.assertIn("missing", drifts[0])
-        self.assertIn("credentials_shim.py", drifts[0])
-
-    def test_orphan_drift_detected(self) -> None:
-        self._setup_baseline()
-        shared_libs.apply_projection(self.packs_dir)
-        # Strip the consumer's auth: creds declaration so the projected
-        # file is now orphaned.
-        skill_md = (
-            self.packs_dir / "consumer" / ".apm" / "skills" / "s" / "SKILL.md"
-        )
-        skill_md.write_text(
-            "---\nname: s\ndescription: x\n---\nBody.\n",
-            encoding="utf-8",
-        )
-        drifts = shared_libs.check_drift(self.packs_dir)
-        self.assertEqual(len(drifts), 1)
-        self.assertIn("orphan", drifts[0])
-        self.assertIn("credentials_shim.py", drifts[0])
-
-    def test_build_self_resolves_drift(self) -> None:
-        """After any drift outcome, apply_projection produces a clean tree."""
-        self._setup_baseline()
-        # Mix of outcomes — modified-and-missing across two files.
-        _write_pack(
-            self.packs_dir, "broker-2",
-            shared_libs_files={},  # extend broker tree below
-        )
-        # broker already has credentials_shim.py; add a second helper.
-        (self.packs_dir / "broker" / ".apm" / "shared-libs" / "_helper.py").write_text(
-            "helper-source", encoding="utf-8",
-        )
-        shutil.rmtree(self.packs_dir / "broker-2")  # cleanup the unused pack
-        # Pre-state: modified + missing across the two basenames.
-        scripts = (
-            self.packs_dir / "consumer" / ".apm" / "skills" / "s" / "scripts"
-        )
-        scripts.mkdir()
-        (scripts / "credentials_shim.py").write_text("stale", encoding="utf-8")
-        # _helper.py is missing entirely.
-        pre_drift = shared_libs.check_drift(self.packs_dir)
-        self.assertGreaterEqual(len(pre_drift), 2)
-        shared_libs.apply_projection(self.packs_dir)
-        self.assertEqual(shared_libs.check_drift(self.packs_dir), [])
-
-
-class OrphanRemovalTests(_FixtureBase):
-    """AC23 build-self resolves orphan drift by removing the file."""
-
-    def test_apply_projection_removes_orphan(self) -> None:
-        _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={"credentials_shim.py": "src\n"},
-        )
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={"s": {"auth": "creds"}},
-        )
-        shared_libs.apply_projection(self.packs_dir)
-        target = (
-            self.packs_dir / "consumer" / ".apm" / "skills" / "s"
-            / "scripts" / "credentials_shim.py"
-        )
-        self.assertTrue(target.is_file())
-        # Strip the consumer's auth: creds declaration.
-        skill_md = target.parent.parent / "SKILL.md"
-        skill_md.write_text(
-            "---\nname: s\ndescription: x\n---\nBody.\n",
-            encoding="utf-8",
-        )
-        shared_libs.apply_projection(self.packs_dir)
-        self.assertFalse(
-            target.exists(),
-            "apply_projection should remove orphans after auth: creds is stripped",
-        )
-        self.assertEqual(shared_libs.check_drift(self.packs_dir), [])
-
-    def test_orphan_surfaces_when_sources_dropped(self) -> None:
-        """If a future PR drops the shared-libs source pack entirely,
-        stale projected copies under consumer skills must still surface
-        as drift (not silent)."""
-        _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={"credentials_shim.py": "src\n"},
-        )
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={"s": {"auth": "creds"}},
-        )
-        shared_libs.apply_projection(self.packs_dir)
-        # Drop the broker's shared-libs source entirely.
-        import shutil as _sh
-        _sh.rmtree(self.packs_dir / "broker" / ".apm" / "shared-libs")
-        drifts = shared_libs.check_drift(self.packs_dir)
-        self.assertTrue(
-            any("orphan" in d for d in drifts),
-            f"orphan rail silent when sources dropped; got {drifts!r}",
-        )
-
-
-class IdempotenceTests(_FixtureBase):
-    """apply_projection is idempotent: running twice produces identical
-    filesystem state."""
-
-    def test_apply_projection_byte_identical_on_second_run(self) -> None:
-        _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={
-                "credentials_shim.py": "shim-source\n",
-                "_keychain_macos.py": "kc-source\n",
-                "_credman_windows.py": "cw-source\n",
-            },
-        )
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={
-                "s1": {"auth": "creds"},
-                "s2": {"auth": "creds"},
-            },
-        )
-        shared_libs.apply_projection(self.packs_dir)
-        # Capture every projected file's bytes after the first run.
-        first_pass: dict[Path, bytes] = {}
-        for proj in shared_libs.compute_projections(self.packs_dir):
-            first_pass[proj.target] = proj.target.read_bytes()
-        # Re-run; assert byte-identical output.
-        shared_libs.apply_projection(self.packs_dir)
-        for target, expected_bytes in first_pass.items():
-            self.assertTrue(target.is_file(), f"target lost on second run: {target}")
-            self.assertEqual(
-                target.read_bytes(), expected_bytes,
-                f"apply_projection produced different bytes on second run for {target}",
+    def test_projection_api_is_retired(self) -> None:
+        for name in (
+            "apply_projection",
+            "check_drift",
+            "compute_projections",
+            "find_creds_consumers",
+            "SharedLibProjection",
+            "KNOWN_SHIM_BASENAMES",
+        ):
+            self.assertFalse(
+                hasattr(shared_libs, name),
+                f"shared_libs.{name} was retired in RFC-0023 — the "
+                f"shared-libs → consumer scripts/ projection is gone; "
+                f"consumers resolve via the credbroker pip library",
             )
-        # Drift gate stays clean.
-        self.assertEqual(shared_libs.check_drift(self.packs_dir), [])
+
+    def test_collect_sources_survives(self) -> None:
+        self.assertTrue(hasattr(shared_libs, "collect_sources"))
+        self.assertTrue(hasattr(shared_libs, "SOURCE_SUBDIR"))
 
 
-class EmptyTreeTests(_FixtureBase):
-    """No source pack carrying shared-libs → no projection, no drift."""
+class RealTreeInvariantTests(unittest.TestCase):
+    """Standing regression against the real repo tree (spec AC for T9)."""
 
-    def test_no_sources_no_drift(self) -> None:
-        _write_pack(
-            self.packs_dir, "consumer",
-            skills={"s": {"auth": "creds"}},
-        )
-        self.assertEqual(shared_libs.check_drift(self.packs_dir), [])
-        shared_libs.apply_projection(self.packs_dir)  # no-op
-        scripts = (
-            self.packs_dir / "consumer" / ".apm" / "skills" / "s" / "scripts"
-        )
-        # No scripts dir created, no files written.
-        self.assertFalse(scripts.exists())
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.repo_root = _repo_root()
 
+    def test_no_shim_copies_in_any_consumer_scripts(self) -> None:
+        """No projected shim copy remains in any pack skill's scripts/
+        (the projection was retired; the credbroker pip dep replaces it)."""
+        offenders: list[str] = []
+        for scripts_dir in self.repo_root.glob("packs/*/.apm/skills/*/scripts"):
+            for basename in SHIM_BASENAMES:
+                if (scripts_dir / basename).exists():
+                    offenders.append(
+                        str((scripts_dir / basename).relative_to(self.repo_root))
+                    )
+        self.assertEqual(
+            offenders, [],
+            f"retired shim projection reappeared under consumer scripts/: "
+            f"{offenders}",
+        )
 
-class AuthDetectionTests(_FixtureBase):
-    """Frontmatter regex correctly admits / refuses the auth value."""
+    def test_no_consumer_scripts_imports_the_shim(self) -> None:
+        """No `.py` under any consumer `scripts/` imports `credentials_shim`
+        — the resolver moved to the `credbroker` pip library (spec AC: the
+        six consumers import credbroker and **none** imports the shim). The
+        shim files are gone, so a surviving import would also be a dangling
+        reference; assert against the import line directly."""
+        offenders: list[str] = []
+        for py in self.repo_root.glob("packs/*/.apm/skills/*/scripts/*.py"):
+            try:
+                text = py.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if _SHIM_IMPORT_RE.search(text):
+                offenders.append(str(py.relative_to(self.repo_root)))
+        self.assertEqual(
+            offenders, [],
+            f"consumer scripts/ still import the retired shim "
+            f"(resolve via `from credbroker import …` instead): {offenders}",
+        )
 
-    def test_auth_creds_with_comment(self) -> None:
-        _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={"credentials_shim.py": "x"},
+    def test_shim_source_retained_for_companion_rail(self) -> None:
+        """The shim source (`credentials_shim.py` + per-platform backends)
+        under credential-brokers/shared-libs/ is KEPT — the adapter-root-bins
+        rail projects it into `.agentbundle/bin/` so the sso-broker's
+        per-platform Tier-2 backends can `from .credentials_shim import
+        Tier2HardFailError` (adapter_root_bins._assert_shim_companion_present
+        hard-fails build-check if it's gone)."""
+        shared = (
+            self.repo_root
+            / "packs" / "credential-brokers" / ".apm" / "shared-libs"
         )
-        pack = _write_pack(
-            self.packs_dir, "consumer",
-            skills={"s": {"auth": "creds"}},
-        )
-        # Inject a trailing comment after auth: creds.
-        skill_md = pack / ".apm" / "skills" / "s" / "SKILL.md"
-        text = skill_md.read_text(encoding="utf-8")
-        skill_md.write_text(
-            text.replace("auth: creds", "auth: creds  # broker shape"),
-            encoding="utf-8",
-        )
-        consumers = shared_libs.find_creds_consumers(self.packs_dir)
-        self.assertEqual(len(consumers), 1)
+        for basename in SHIM_BASENAMES:
+            self.assertTrue(
+                (shared / basename).is_file(),
+                f"companion-rail source {basename} must be retained",
+            )
 
-    def test_body_only_match_does_not_count(self) -> None:
-        """A body mention (not frontmatter) does not declare auth."""
-        _write_pack(
-            self.packs_dir, "broker",
-            shared_libs_files={"credentials_shim.py": "x"},
-        )
-        skill_dir = self.packs_dir / "p" / ".apm" / "skills" / "s"
-        skill_dir.mkdir(parents=True)
-        (self.packs_dir / "p" / "pack.toml").write_text(
-            '[pack]\nname = "p"\nversion = "0.1.0"\n',
-            encoding="utf-8",
-        )
-        (skill_dir / "SKILL.md").write_text(
-            "---\nname: s\ndescription: x\n---\n"
-            "The skill body mentions `  auth: creds` in prose.\n",
-            encoding="utf-8",
-        )
-        consumers = shared_libs.find_creds_consumers(self.packs_dir)
-        self.assertEqual(consumers, [])
+    def test_collect_sources_finds_the_companion_source(self) -> None:
+        """collect_sources still locates the shim source on the real tree
+        — the input the adapter-root-bins companion rail depends on."""
+        sources = shared_libs.collect_sources(self.repo_root / "packs")
+        self.assertIn("credentials_shim.py", sources)
 
 
 if __name__ == "__main__":
