@@ -185,18 +185,31 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 
 **Depends on:** T2, T4
 
-**Touches:** packs/credential-brokers/.apm/skills/credential-setup/scripts/setup.py, packs/credential-brokers/.apm/skills/credential-setup/scripts/test_setup.py, packs/credential-brokers/.apm/skills/credential-setup/requirements.txt
+**Touches:** packages/credbroker/credbroker/{__init__.py, _core.py, _vault.py}, packages/credbroker/tests/unit/test_write_api.py (new), packs/credential-brokers/.apm/skills/credential-setup/scripts/setup.py, packs/credential-brokers/.apm/skills/credential-setup/scripts/test_setup.py (new), packs/credential-brokers/.apm/skills/credential-setup/requirements.txt (new)
 
-**Tests (new — credential-setup ships none today):**
-- A new `test_setup.py`: credbroker write API set → read-back; public schema-parse path (`CredsSchema`/`KeyDef`); Tier-2-backend introspection returns the expected label per platform (TDD/unit). Verifies the credential-setup-test AC, AC9, the credential-setup-public-surface AC.
-- Grep/import-graph: `setup.py` imports `credbroker`, imports **no** `credentials_shim` and **no** underscore-prefixed `credbroker` name (goal-based). Verifies AC8.
+**Public write API added to credbroker** (the surface credential-setup's private imports map onto; `parse_schema`/`tier2_backend_label`/exceptions already public since T2). All non-interactive — the library never prompts; credential-setup owns the interactive policy:
+- `keyring_available() -> bool` — a Tier-2 backend is loaded (replaces `_tier2_backend is None`). _core (stdlib).
+- `store_in_keyring(namespace, key, value) -> None` — write via the Tier-2 backend; raises `Tier2HardFailError`/`PermissiveAclError`; raises if no backend (replaces `_tier2_backend.write_credential`). _core (stdlib).
+- `store_in_dotfile(namespace, key, value, *, allow_permissive_acl=False) -> None` — public Tier-3 plaintext write (public name for `_dotfile_write`). _core (stdlib).
+- `crypto_available() -> bool` — the `[crypto]` extra is importable (`importlib.util.find_spec`; stdlib, doesn't import cryptography). _core.
+- `source_vault_master() -> str | None` — public wrapper of the keyring→env→file sourcing (T5). _core (stdlib).
+- `store_vault_master(master) -> None` — persist the vault master so a later `load_credentials` Tier-3 read can re-source it. **Keyring-first** (pre-EXECUTE review Concern 2): write to the OS keyring when `keyring_available()`, else the `0600` `vault.master` file (atomic, `fchmod 0o600` *before* `os.replace`, so it round-trips with `_source_vault_master`'s reject-on-group/other-readable check). Never writes the master to disk when a keyring exists — matches the keyring→env→file precedence. The master only lands on disk on a genuinely no-keyring box, the same posture AC6 already blessed for the file tier. _core (stdlib).
+- `store_in_vault(namespace, key, value, *, master) -> None` — encrypted Tier-3 write; **lazily** imports `_vault` (crypto-gated) so base purity (AC4) holds. It is the *sole* public write entry point for the vault; `_vault.set_credential` stays private-by-convention (not re-exported — Concern 4).
 
-**Approach:**
-- `setup.py` today imports the shim's **private** surface: `_dotfile_write`, `_parse_schema`, `_tier2_backend`, `_tier2_backend_label` (plus `PermissiveAclError`, `SchemaError`, `Tier2HardFailError`). Swap each onto credbroker's **public** equivalents: writes → the write API (T4); `_parse_schema` → the public schema-parse API (T2); `_tier2_backend`/`_tier2_backend_label` → the public Tier-2 introspection API (T2); exceptions → the re-exported public classes.
-- This is the only consumer whose migration is more than an import swap — it's a private→public surface rebind plus a new write path.
-- Add `requirements.txt` at the **skill root** (`packs/credential-brokers/.apm/skills/credential-setup/requirements.txt`) naming `credbroker` — its first pip dependency.
+**Naming (Concern 5, settled):** the write surface is `store_in_<tier>` (names the tier); the read side stays the inherited `load_credentials` (one resolver-read). The verb asymmetry (one `load_credentials`, per-tier `store_in_*`) is **intentional**, not drift.
 
-**Done when:** new `test_setup.py` green; grep shows the write path through `credbroker` and zero private/`credentials_shim` imports; skill-root `requirements.txt` present.
+**credential-setup orchestration — decision (a), full encrypted-setup UX** (signed off 2026-06-08):
+- `keyring_available()` and not `--allow-insecure-fallback` → `store_in_keyring` (Tier-2 default). *(unchanged)*
+- else (no keyring, or `--allow-insecure-fallback`) → Tier-3 fallback:
+  - if `crypto_available()`: `master = source_vault_master()`; if `None` → **prompt** (getpass, no echo) for a new master and `store_vault_master(master)`; then `store_in_vault(...)`; report "wrote to encrypted vault".
+  - else → `store_in_dotfile(...)`; report "wrote to dotfile (plaintext — install `credbroker[crypto]` for an encrypted floor)".
+- `_parse_schema`→`parse_schema`, `_tier2_backend_label`→`tier2_backend_label`, exceptions → re-exported public classes.
+
+**Tests:**
+- `test_write_api.py` (credbroker unit): `keyring_available`/`store_in_keyring` (fake backend + hard-fail path), `store_in_dotfile` round-trip, `crypto_available`, `source_vault_master`/`store_vault_master` round-trip (asserts `0600`), `store_in_vault` round-trip ([crypto]-gated). Purity gate still green (additions are stdlib; `store_in_vault` lazy).
+- `test_setup.py` (new): the three orchestration paths — keyring write (fake backend); no-keyring+`[crypto]` → vault write with a mocked master prompt establishing `vault.master`; no-keyring+no-`[crypto]` → dotfile. Plus a grep/import assertion: `setup.py` imports `credbroker`, **no** `credentials_shim`, **no** underscore-prefixed `credbroker` name. Verifies the credential-setup-test AC, the public-surface AC, AC8, AC9.
+
+**Done when:** the public write API is exported + unit-tested (purity gate still green); `setup.py` rebinds onto it (zero private/`credentials_shim` imports); the no-keyring+`[crypto]` path prompts→establishes→uses the vault master; `test_setup.py` green; skill-root `requirements.txt` (naming `credbroker`) present; `make build-check` green.
 
 ### T9: retire the `auth: creds` shared-libs projection + its drift gate
 
