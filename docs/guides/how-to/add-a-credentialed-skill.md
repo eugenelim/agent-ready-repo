@@ -287,7 +287,29 @@ credbroker
 python -m pip install -r requirements.txt
 ```
 
-[RFC-0023](../../rfc/0023-credential-manager-broker.md) replaced the build-projected `credentials_shim` sibling with the pip-installable `credbroker` library, imported in-process — so there is no `make build-self` projection step for the resolver, and no `scripts/`-vendored shim to keep in sync. Without the dependency installed, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. (Phase 1 installs from the repo path, `pip install -e ./packages/credbroker`; a future Phase 2 publishes `credbroker` to PyPI.)
+[RFC-0023](../../rfc/0023-credential-manager-broker.md) replaced the build-projected `credentials_shim` sibling with the pip-installable `credbroker` library, imported in-process — so there is no `make build-self` projection step for the resolver, and no `scripts/`-vendored shim to keep in sync. Without the dependency installed, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. For local development, install from the repo path: `pip install -e ./packages/credbroker`. For locked-down sites, see *Installing without PyPI (corporate)* just below.
+
+### Installing without PyPI (corporate)
+
+`credbroker` does **not** require PyPI. The [`release-credbroker`](../../../.github/workflows/release-credbroker.yml) workflow builds a platform-independent wheel (`credbroker-<version>-py3-none-any.whl`) and an sdist on every change to the package and validates them with `twine check`, so a locked-down or air-gapped site can install from a wheel it hosts or copies in:
+
+- **From an internal package index** (Artifactory, Nexus, a private mirror):
+
+  ```bash
+  pip install credbroker --index-url https://pypi.example.corp/simple
+  pip install "credbroker[crypto]" --index-url https://pypi.example.corp/simple   # + encrypted-at-rest vault
+  ```
+
+- **From a local `.whl`**:
+
+  ```bash
+  pip install ./credbroker-<version>-py3-none-any.whl
+  pip install "./credbroker-<version>-py3-none-any.whl[crypto]"                    # + encrypted-at-rest vault
+  ```
+
+The base wheel has no third-party dependency, so its local-`.whl` install is the only truly network-free path. The `[crypto]` extra additionally needs `cryptography` and `argon2-cffi` to be resolvable — from the same internal index, or pre-staged alongside the wheel — so on a fully air-gapped host stage those two first.
+
+Either way pip lands the package in site-packages, so the resolver imports exactly as the worked example above — no code change. Publishing to public PyPI is wired into the same workflow behind a **gated, tag-triggered** job, so `pip install credbroker` from public PyPI is a maintainer action that has not happened yet; the internal-index and local-wheel paths above need no PyPI.
 
 ## Step 10 — Set up the credential
 
