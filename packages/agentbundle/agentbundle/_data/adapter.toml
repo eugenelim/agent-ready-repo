@@ -68,12 +68,16 @@ source-path = ".apm/commands/"
 [primitive."kiro-ide-hook"]
 source-path = ".apm/kiro-ide-hooks/"
 
-# RFC-0013 § 4c — `shared-libs/` carries Python sibling files that the
-# build pipeline projects into every consumer skill declaring
-# `metadata.auth: creds`. The projection is cross-cutting (not adapter-
-# keyed) and lives in `agentbundle.build.shared_libs`; the declaration
-# here documents the source path so future readers see the full
-# primitive surface in one place.
+# RFC-0013 § 4c / RFC-0023 — `shared-libs/` carries Python sibling
+# files. The original projection into every `metadata.auth: creds`
+# skill's `scripts/` was RETIRED in RFC-0023 (those consumers resolve
+# via the `credbroker` pip library, imported in-process). What survives
+# in `agentbundle.build.shared_libs` is source enumeration
+# (`collect_sources`): the `adapter-root-bins` companion-shim rail reads
+# this path to locate `credentials_shim.py` for projection into
+# `<scope-root>/.agentbundle/bin/`. The declaration here documents the
+# source path so future readers see the full primitive surface in one
+# place.
 [primitive."shared-libs"]
 source-path = ".apm/shared-libs/"
 

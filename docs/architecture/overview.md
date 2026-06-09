@@ -83,8 +83,9 @@ One file per non-trivial subsystem:
   build pipeline (recipes → adapters → projections), the adapter contract
   at v0.6 (RFC-0011 added `[adapter.codex.scope]` and the user-scope
   adapter resolver), self-host overlay.
-- [`credentials.md`](credentials.md) — the build-projected
-  `credentials_shim` model (RFC-0013), three-tier storage
+- [`credentials.md`](credentials.md) — the credentialed-resolver model
+  (the `credbroker` library since RFC-0023, formerly the build-projected
+  `credentials_shim`, RFC-0013), three-tier storage
   (env / OS keyring / `~/.agentbundle/credentials.env`), the four
   brokers (`creds` / `env` / `cli` / `sso-cookie`), the
   credentialed-primitive contract, and the substring trap.
