@@ -99,6 +99,14 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
 
+      # credbroker T9: standing net for the retired shared-libs projection
+      # (no shim copy reappears under a consumer scripts/; companion source
+      # retained). Run on Windows too — the test globs the real pack tree
+      # and walks for the repo root, both path-sensitive.
+      - name: pytest shared-libs projection retirement (credbroker T9)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
+
       - name: pytest hook parity-net suite (windows-hooks-phase3)
         working-directory: packages/agentbundle
         run: python -m pytest tests/hooks/

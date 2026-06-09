@@ -1049,9 +1049,10 @@ four ids are pinned by
   binary (`gh`, `aws`, `kubectl`, `gcloud`). Vendor CLI owns the
   credential.
 - **`creds`** — static token via the three-tier model (env → OS
-  keychain → 0600 dotfile floor). The `credential-brokers` pack
-  projects `credentials_shim.py` plus per-platform Tier-2 backends
-  into the skill's `scripts/` directory on `make build-self`.
+  keychain → 0600 dotfile floor). Resolved via the `credbroker`
+  library (`pip install credbroker`), imported in-process; the
+  build-projected `credentials_shim` it replaced is retired for
+  `creds` consumers (the four-broker taxonomy above is unchanged).
 - **`sso-cookie`** — session cookie acquired via a headed-browser SSO
   flow. The skill subprocess-invokes
   `~/.agentbundle/bin/sso-broker.py` (projected by the
@@ -1059,8 +1060,9 @@ four ids are pinned by
 
 The broker-agnostic invariants below apply to every credentialed
 primitive regardless of broker. Broker-specific lint extensions layer
-on top (`auth: creds` requires `from .credentials_shim import …` in
-`scripts/`; `auth: env` requires each declared `<NAMESPACE>_<KEY>` to
+on top (`auth: creds` requires a credential-resolver import in
+`scripts/` — `from credbroker import …`, or the legacy
+`from .credentials_shim …`; `auth: env` requires each declared `<NAMESPACE>_<KEY>` to
 be read at least once; `auth: sso-cookie` requires
 subprocess-invocation of the canonical
 `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` path; `auth:

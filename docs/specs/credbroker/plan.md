@@ -1,7 +1,7 @@
 # Plan: credbroker
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -215,7 +215,7 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 
 **Depends on:** T7, T8
 
-**Touches:** packages/agentbundle/agentbundle/build/shared_libs.py, packages/agentbundle/agentbundle/build/tests/test_shared_libs_projection.py, packs/atlassian/.apm/skills/*/scripts/credentials_shim.py, packs/figma/.apm/skills/figma/scripts/credentials_shim.py, packs/credential-brokers/.apm/skills/credential-setup/scripts/
+**Touches:** packages/agentbundle/agentbundle/build/shared_libs.py, packages/agentbundle/agentbundle/build/self_host.py, packages/agentbundle/agentbundle/build/tests/test_shared_libs_projection.py, packages/agentbundle/agentbundle/_data/adapter.toml, packs/atlassian/.apm/skills/*/scripts/credentials_shim.py, packs/figma/.apm/skills/figma/scripts/credentials_shim.py, packs/credential-brokers/.apm/skills/credential-setup/scripts/, packs/credential-brokers/.apm/skills/credential-setup/SKILL.md
 
 **Tests:**
 - No `credentials_shim.py` (or `_keychain_macos.py`/`_credman_windows.py`) remains in any of the six consumer `scripts/` dirs (goal-based). Verifies AC11.
@@ -224,9 +224,14 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 - `test_credentials_wheel.py` still passes (goal-based). Verifies AC12.
 
 **Approach:**
-- Since the six consumers no longer declare `auth: creds` (their resolution moved to the `credbroker` pip dep), the `shared-libs/` projector stops targeting them. Remove the projected shim copies from the six `scripts/` dirs; if the `auth: creds` SKILL.md frontmatter is what drives projection, drop/adjust it per the migration so the projector and drift gate no longer fan the shim into `scripts/`.
+- **Premise correction (EXECUTE-time, 2026-06-09 — see Changelog).** The six consumers **still declare `auth: creds`** after T7/T8, and that is correct: they are still `creds`-broker skills (the credentialed-skill lint, extended in T7, now accepts the `credbroker` import for an `auth: creds` skill, and the CONVENTIONS broker taxonomy still defines `creds`). So T9 does **not** drop the `auth: creds` frontmatter. Instead it **retires the skill-scripts projection mechanism itself**: the projection is no longer driven, the consumers resolve via the `credbroker` pip dep.
+- Retire the *skill-scripts projection half* of `shared_libs.py` — `find_creds_consumers`, `compute_projections`, `apply_projection`, `check_drift`, `_enumerate_existing_projections`, `_skill_declares_auth_creds`, `_AUTH_CREDS_RE`, `KNOWN_SHIM_BASENAMES`, `SharedLibProjection`. **Keep `collect_sources` + `SOURCE_SUBDIR`** — they are the *only* surviving role of the module: `adapter_root_bins.py` calls `shared_libs.collect_sources` and reads `shared_libs.SOURCE_SUBDIR` for the AC22b companion-shim projection + the inter-pack collision rail.
+- Remove the two `self_host.py` call sites: `_shared_libs_apply(packs_dir)` (build-self projection step) and `_shared_libs_check_drift(packs_dir)` (build-check drift gate). After removal `make build-self` no longer fans the shim into skill `scripts/`, and `make build-check` reports no `auth: creds` drift.
+- `git rm` the 18 projected copies (6 consumer `scripts/` × `credentials_shim.py` + `_keychain_macos.py` + `_credman_windows.py`). Build-self will no longer re-create them.
+- Reword the now-stale `[primitive."shared-libs"]` comment in `_data/adapter.toml` (it asserts the projection-into-`auth: creds`-skills behaviour that is being retired) to describe its surviving role: the source for the adapter-root-bins companion shim.
+- Reword the stale "build-projected `credentials_shim`" sentence in `credential-setup/SKILL.md` § "Inverse — verifying resolution" (the consumer's `check` now resolves through `import credbroker`, not the projected sibling).
 - **Sharp edge (confirmed, see Risks): KEEP `packs/credential-brokers/.apm/shared-libs/credentials_shim.py` (+ `_keychain_macos.py`/`_credman_windows.py`).** It is the projection source for the `sso-broker` companion shim — `_sso_keychain_macos.py` / `_sso_credman_windows.py` do `from .credentials_shim import Tier2HardFailError`, and `adapter_root_bins.py::_assert_shim_companion_present` hard-fails `make build-check` if the source is gone. SSO migration is out of scope (spec Boundaries → Ask first). This task retires the **creds-consumer projection**, not the source file.
-- Update `shared_libs.py` orphan/known-basenames logic + `test_shared_libs_projection.py` so retiring the creds projection while keeping the source (for the companion rail) is the expected, tested state — not a drift error.
+- Rewrite `test_shared_libs_projection.py` for the retired state: keep the `collect_sources` enumeration + inter-pack-collision tests (the surviving surface), drop every test of the retired projection/drift/orphan machinery, and add a **standing real-tree absence test** — no `credentials_shim.py`/`_keychain_macos.py`/`_credman_windows.py` in any `packs/*/.apm/skills/*/scripts/` (the AC's "a test asserts the absence"), plus an assertion the `shared-libs/` **source** is retained for the companion rail. This absence test replaces the retired orphan-drift gate as the standing net.
 
 **Done when:** no shim copy in the six consumer `scripts/`; `make build-check` green; bin-load + wheel tests green; the source file is retained and the companion rail still passes.
 
@@ -241,11 +246,13 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 - Doc-drift / link lints pass (goal-based).
 
 **Approach:**
-- `docs/guides/how-to/add-a-credentialed-skill.md`: Step 6 → `import credbroker`; Step 8 → `pip install credbroker[crypto]` (per RFC-0023 follow-on).
-- `docs/CONVENTIONS.md` § Credentialed skills: `auth: creds` resolves via `import credbroker`, not the vendored shim. **This implements the change RFC-0023 already authorized as a named follow-on** — not a fresh convention; trace the edit to RFC-0023 in the PR body.
-- `docs/backlog.md`: add a `## credbroker` section with a `### credbroker-phase-2` sub-heading (PyPI publication, version pinning, plugin-adopter cutover) and the defensive-PyPI-registration user action.
+- `docs/guides/how-to/add-a-credentialed-skill.md` (repo-owned, edit directly): rewrite **every** stale shim/projection site, not only Step 6/8 (pre-EXECUTE review Blocker 2). Known sites: line 5 (intro "projected `credentials_shim`"), Step 1 `creds` bullet (~line 23), Step 6 (~90–99, 127 → `pip install credbroker` + `from credbroker import …`, drop "build pipeline projects … into your scripts/"), Step 8 `ModuleNotFoundError: credentials_shim` failure guidance (~239–242, 261–263 → `ModuleNotFoundError: credbroker` → `pip install`), **Step 9 retired** (~278–284 — "run `make build-self` projects credentials_shim" is obsolete for `auth: creds`; the resolver now arrives via `pip install credbroker` from `requirements.txt`), Step 11 lint description (~311) and Common-pitfalls (~321–322). Add the `[crypto]` extra note per RFC-0023.
+- `packs/core/seeds/docs/CONVENTIONS.md` § Credentialed skills (**edit the seed, not the projected `docs/CONVENTIONS.md`** — it is the one seed-projected doc; then `make build-self`): (a) the `creds` bullet (~1051–1054) → "Resolved via the `credbroker` library (`pip install credbroker`), imported in-process (RFC-0023)" with a one-line forward-pointer so a reader doesn't take ADR-0003's projected-shim mechanism as current (Concern 5); (b) the broker-agnostic lint parenthetical (~1062) → "`auth: creds` requires a credential-resolver import (`from credbroker import …` (RFC-0023) or the legacy projected `credentials_shim`)" to match the T7-extended lint (Blocker 3). Leave the ADR-0003 four-broker *taxonomy* attribution (~1041) untouched — RFC-0023 reverses the delivery, not the taxonomy. **This implements the change RFC-0023 already authorized as a named follow-on** — trace the edit to RFC-0023 in the PR body; note the superseding ADR is pending.
+- `docs/backlog.md`: **verify** (not add — Concern 4) the existing `## credbroker` section + `### credbroker-phase-2` heading (landed in #242) still resolves the spec's `(deferred: credbroker-phase-2)` marker; confirm the listed items remain accurate.
+- **Closing step — ship the spec atomically (Blocker 1).** In this same PR flip `spec.md` Status `Implementing` → `Shipped` and resolve every remaining `- [ ]` AC: check the import/projection-retired/wheel-test/3–9-band ACs as `- [x]`, and leave the Phase-2 AC carrying its `(deferred: credbroker-phase-2)` marker. T9/T10 are the terminal Phase-1 tasks, so spec + code ship together — not a forward-claim.
+- **Deferred docs (record in PR body, Concern 6):** `docs/architecture/credentials.md` and `docs/guides/how-to/install-agentbundle-from-clone.md` carry stale shim/projection prose but are out of this plan's named T10 scope and not same-directory ride-alongs; defer with a one-line reason. Check `docs/architecture/overview.md:86` — if T9 makes its one-liner about `credentials.md` factually wrong, fix that single line as a same-area ride-along.
 
-**Done when:** backlog anchor resolves; guide + CONVENTIONS read `import credbroker`; doc lints green.
+**Done when:** backlog anchor resolves (`lint-spec-status` green); guide + CONVENTIONS seed read `import credbroker` with no stale projection text; `docs/CONVENTIONS.md` regenerated via `make build-self`; spec Status `Shipped` with all ACs checked/deferred; doc lints green.
 
 ## Rollout
 
@@ -264,4 +271,5 @@ The public Python surface (the spec's `Contract: none` — specified here, not u
 ## Changelog
 
 - 2026-06-04: initial plan. Phase-1 scope (per RFC-0023 + user confirmation); `[crypto]` sequenced after the stdlib core; sso-broker companion-shim coupling flagged as the T9 sharp edge.
+- 2026-06-09: T9/T10 EXECUTE-time premise correction. The original T9 approach assumed the migration would leave the six consumers no longer declaring `auth: creds`; the as-built T7/T8 (correctly) kept the `auth: creds` frontmatter (they remain `creds`-broker skills; the T7-extended credentialed-skill lint accepts the `credbroker` import). T9's mechanism is therefore *retire the skill-scripts projection in `shared_libs.py` + remove the two `self_host.py` call sites + `git rm` the 18 copies*, **not** drop the frontmatter; `collect_sources`/`SOURCE_SUBDIR` survive for the `adapter_root_bins` companion rail. Added `self_host.py`, `_data/adapter.toml`, and `credential-setup/SKILL.md` to Touches. Governance note: the superseding ADR (reversing ADR-0003) has **not** landed; the T10 `CONVENTIONS.md` delivery-prose edit traces to the Accepted RFC-0023 and is surfaced as a flagged decision, with the ADR-0003 *taxonomy* attribution left untouched.
 - 2026-06-04: post-rebase onto PR #230. Initially folded in an exit-code "reclassification" (missing `credbroker` → exit 2 via #230's import guard). **Reverted same day** — adversarial re-review showed the premise was false: each `_client.py` imports the resolver *lazily inside `load_credentials()`*, so a missing `credbroker` surfaces at runtime → exit 1 (top-level handler), never reaching the entry-script guard. Corrected to: import-line-only, exit-1 preserved, **no** exit-code-contract amendment. The exit-2 "pip install" UX would need a deliberate import hoist (Risks → decision item), not part of this migration.
