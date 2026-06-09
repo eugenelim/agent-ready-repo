@@ -54,6 +54,10 @@ from agentbundle.build.adapter_root_bins import (
     apply_projection as _adapter_root_bins_apply,
     check_drift as _adapter_root_bins_check_drift,
 )
+from agentbundle.build.user_libs import (
+    apply_projection as _user_libs_apply,
+    check_drift as _user_libs_check_drift,
+)
 
 # AC14: canonical lowercase-hyphen marker grammar. The self-host
 # regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
@@ -1058,6 +1062,11 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 5
+    # credbroker-user-scope T3: vendor the stdlib-base `credbroker` source
+    # to the per-scope lib floor (`<working_tree>/.agentbundle/lib/credbroker/`)
+    # and the catalogue-visible pack copy (`.apm/user-libs/credbroker/`). No-op
+    # outside the monorepo (package source absent — see user_libs docstring).
+    _user_libs_apply(working_tree, packs_dir)
     _project_all_adapters(working_tree, packs_dir, contract)
     # Compose AGENTS.md BEFORE seed projection — see dry-run branch for
     # rationale (the body-only seed at packs/core/seeds/AGENTS.md must
@@ -1411,6 +1420,17 @@ def run_build_check_drift_gates(
     # shape is simpler.
     # ------------------------------------------------------------------
     for msg in _adapter_root_bins_check_drift(output_dir, packs_dir):
+        failures.append(msg)
+
+    # ------------------------------------------------------------------
+    # Gate: user-libs projection drift (credbroker-user-scope T3).
+    #
+    # Same three outcomes — modified / missing / orphaned — across the
+    # pack-vendored copy and the self-host floor staging, each compared
+    # byte-wise to packages/credbroker/credbroker/. No-op outside the
+    # monorepo (package source absent).
+    # ------------------------------------------------------------------
+    for msg in _user_libs_check_drift(output_dir, packs_dir):
         failures.append(msg)
 
     if failures:

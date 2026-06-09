@@ -76,11 +76,14 @@ class PackManifestShapeTests(unittest.TestCase):
 
 
 class PackDirectoryInvariantTests(unittest.TestCase):
-    """AC5: .apm/ tree contains exactly the three declared primitive
-    directories (shared-libs/, adapter-root-bins/, skills/credential-setup/),
+    """AC5: .apm/ tree contains exactly the declared primitive directories
+    (shared-libs/, adapter-root-bins/, user-libs/, skills/credential-setup/),
     plus pack.toml at the pack root. No seeds/, no hooks/, no
     hook-wiring/, no second .apm/skills/<other>/. No <adapt:NAME>
     markers anywhere under .apm/.
+
+    ``user-libs/`` was added by credbroker-user-scope T3 — the vendored
+    `credbroker` floor source projected from `packages/credbroker/credbroker/`.
     """
 
     def test_pack_root_carries_pack_toml(self) -> None:
@@ -92,7 +95,7 @@ class PackDirectoryInvariantTests(unittest.TestCase):
         subdirs = {p.name for p in apm.iterdir() if p.is_dir()}
         self.assertEqual(
             subdirs,
-            {"shared-libs", "adapter-root-bins", "skills"},
+            {"shared-libs", "adapter-root-bins", "user-libs", "skills"},
             f".apm/ subdirs deviate from the declared set: {subdirs}",
         )
 

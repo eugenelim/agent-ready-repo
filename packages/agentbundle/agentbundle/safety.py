@@ -385,19 +385,20 @@ def write_jailed(
 
 _PACK_PRIMITIVE_TYPES: tuple[str, ...] = (
     "skills", "agents", "hooks", "hook-wiring", "commands",
-    "shared-libs", "adapter-root-bins",
+    "shared-libs", "adapter-root-bins", "user-libs",
 )
 """The primitive-type directories under ``<pack>/.apm/`` that the build
 pipeline projects. Used by :func:`_collect_pack_owned_names` to walk a
 pack's source and build the per-pack scan filter.
 
 Source of truth is ``_data/adapter.toml``'s ``[primitive.*]`` tables
-(seven entries today: five originals + ``shared-libs`` and
-``adapter-root-bins`` introduced by RFC-0013). A contract bump that
-adds a new primitive type must extend this tuple, or the per-pack
-scan will silently miss the new type's orphans at install start —
-catalogue-broker packs (e.g. ``credential-brokers``) project
-load-bearing artifacts under ``adapter-root-bins/``."""
+(eight entries today: five originals + ``shared-libs`` and
+``adapter-root-bins`` introduced by RFC-0013, + ``user-libs`` introduced
+by credbroker-user-scope T3). A contract bump that adds a new primitive
+type must extend this tuple, or the per-pack scan will silently miss the
+new type's orphans at install start — catalogue-broker packs (e.g.
+``credential-brokers``) project load-bearing artifacts under
+``adapter-root-bins/`` and ``user-libs/``."""
 
 
 def _collect_pack_owned_names(
