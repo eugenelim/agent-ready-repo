@@ -19,26 +19,23 @@ import pathlib
 import re
 import sys
 
-# Bootstrap when invoked as ``python scripts/setup.py`` (Python sets
-# ``__package__`` to None for file-path invocation, which breaks the
-# ``from .credentials_shim import …`` line below). Gated on
-# ``__spec__ is None`` so the block only fires for true file-path
-# invocation; an importlib-based test harness (which sets ``__spec__``
-# but may leave ``__package__`` empty) is not disturbed — the harness
-# is responsible for its own package context.
-if __package__ in (None, "") and __spec__ is None:
-    _here = pathlib.Path(__file__).resolve().parent
-    sys.path.insert(0, str(_here.parent))
-    __package__ = _here.name
-
-from .credentials_shim import (
+# credbroker is a pip-installed package (RFC-0023), so this is an absolute
+# import — no ``__package__`` bootstrap is needed (the former relative
+# sibling-resolver import did require one for file-path invocation).
+from credbroker import (
     PermissiveAclError,
     SchemaError,
     Tier2HardFailError,
-    _dotfile_write,
-    _parse_schema,
-    _tier2_backend,
-    _tier2_backend_label,
+    VaultUnavailableError,
+    crypto_available,
+    keyring_available,
+    parse_schema,
+    source_vault_master,
+    store_in_dotfile,
+    store_in_keyring,
+    store_in_vault,
+    store_vault_master,
+    tier2_backend_label,
 )
 
 
@@ -124,7 +121,7 @@ def _find_schema(namespace: str) -> pathlib.Path | None:
             continue
         for schema in root.glob("*/references/creds-schema.toml"):
             try:
-                parsed = _parse_schema(schema)
+                parsed = parse_schema(schema)
             except SchemaError:
                 continue
             if parsed.namespace == namespace:
@@ -154,12 +151,61 @@ def _write_tier3(
     namespace: str,
     values: dict[str, str],
     *,
-    label: str,
+    context: str,
     allow_permissive_acl: bool = False,
 ) -> int:
+    """Write the Tier-3 floor: the encrypted vault when the ``[crypto]`` extra
+    is available, else the plaintext ``0600`` dotfile. ``context`` names why
+    Tier 3 was chosen (no keyring / insecure fallback)."""
+    if crypto_available():
+        # VaultError (wrong master / tampered existing vault) is crypto-gated, so
+        # import it lazily here — setup.py must import cleanly without [crypto].
+        from credbroker._vault import VaultError
+
+        try:
+            master = source_vault_master()
+        except VaultUnavailableError as exc:
+            sys.stderr.write(f"credential-setup: {exc}\n")
+            return 3
+        if master is None:
+            # Establish a vault master interactively (no echo). store_vault_master
+            # is keyring-first; on a no-keyring box it writes the 0600 vault.master
+            # so a later `load_credentials` can re-source it.
+            master = getpass.getpass(
+                "Set a vault master passphrase (encrypts the credential floor): "
+            )
+            if not master:
+                sys.stderr.write("credential-setup: empty vault master\n")
+                return 3
+            try:
+                store_vault_master(master)
+            except (Tier2HardFailError, PermissiveAclError) as exc:
+                sys.stderr.write(
+                    f"credential-setup: could not store the vault master — {exc}\n"
+                )
+                return 3
+        try:
+            for key, value in values.items():
+                store_in_vault(namespace, key, value, master=master)
+        except VaultError as exc:
+            # Wrong master against an already-existing vault (or a tampered one).
+            sys.stderr.write(
+                f"credential-setup: could not write the encrypted vault — {exc} "
+                "(wrong vault master?)\n"
+            )
+            return 3
+        except PermissiveAclError as exc:
+            sys.stderr.write(
+                f"credential-setup: DACL too permissive — {exc}; "
+                "pass --allow-permissive-acl to override\n"
+            )
+            return 3
+        sys.stderr.write(f"wrote to encrypted vault ({context})\n")
+        return 0
+
     try:
         for key, value in values.items():
-            _dotfile_write(
+            store_in_dotfile(
                 namespace, key, value,
                 allow_permissive_acl=allow_permissive_acl,
             )
@@ -169,7 +215,10 @@ def _write_tier3(
             "pass --allow-permissive-acl to override\n"
         )
         return 3
-    sys.stderr.write(f"{label}\n")
+    sys.stderr.write(
+        f"wrote to plaintext dotfile ({context}; install credbroker[crypto] "
+        "for an encrypted floor)\n"
+    )
     return 0
 
 
@@ -216,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.schema_path is not None:
         try:
-            schema = _parse_schema(args.schema_path)
+            schema = parse_schema(args.schema_path)
         except SchemaError as exc:
             sys.stderr.write(f"credential-setup: {exc}\n")
             return 3
@@ -236,7 +285,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"pass --schema-path to point at one explicitly\n"
             )
             return 3
-        schema = _parse_schema(schema_path)
+        schema = parse_schema(schema_path)
 
     if not sys.stdin.isatty():
         sys.stderr.write(
@@ -247,24 +296,24 @@ def main(argv: list[str] | None = None) -> int:
 
     values = _prompt(schema)
 
-    if _tier2_backend is None:
+    if not keyring_available():
         return _write_tier3(
             namespace, values,
-            label="wrote to dotfile (Linux — Tier 2 deferred to v2 RFC)",
+            context="no OS keyring on this platform",
             allow_permissive_acl=args.allow_permissive_acl,
         )
 
     if args.allow_insecure_fallback:
         return _write_tier3(
             namespace, values,
-            label="wrote to dotfile (insecure fallback)",
+            context="insecure fallback",
             allow_permissive_acl=args.allow_permissive_acl,
         )
 
     # Default Tier-2 path on Darwin/Windows.
     try:
         for key, value in values.items():
-            _tier2_backend.write_credential(namespace, key, value)
+            store_in_keyring(namespace, key, value)
     except Tier2HardFailError as exc:
         sys.stderr.write(
             f"credential-setup: Tier 2 hard fail — {exc}; "
@@ -274,7 +323,7 @@ def main(argv: list[str] | None = None) -> int:
     except PermissiveAclError as exc:
         sys.stderr.write(f"credential-setup: {exc}\n")
         return 3
-    sys.stderr.write(f"wrote to keyring ({_tier2_backend_label()})\n")
+    sys.stderr.write(f"wrote to keyring ({tier2_backend_label()})\n")
     return 0
 
 

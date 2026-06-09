@@ -31,15 +31,20 @@ from ._core import (
     SchemaError,
     Tier2HardFailError,
     VaultUnavailableError,
+    crypto_available,
+    keyring_available,
     load_credentials,
     parse_env_file,
+    source_vault_master,
+    store_in_dotfile,
+    store_in_keyring,
+    store_in_vault,
+    store_vault_master,
 )
 
 # Public replacements for the private shim symbols ``credential-setup`` consumed
 # (``_parse_schema`` / ``_tier2_backend_label``) so it imports no
-# underscore-prefixed name (spec: credential-setup-public-surface AC). The
-# credential *write* API that replaces ``_dotfile_write`` arrives with the vault
-# (spec task T4); the deeper credential-setup wiring lands in T8.
+# underscore-prefixed name (spec: credential-setup-public-surface AC).
 from ._core import _parse_schema as parse_schema
 from ._core import _tier2_backend_label as tier2_backend_label
 
@@ -64,5 +69,13 @@ __all__ = [
     "DOTFILE_MAX_BYTES",
     # Tier-2 introspection.
     "tier2_backend_label",
+    # Write API (T8) — per-tier writes for the interactive credential-setup skill.
+    "keyring_available",
+    "store_in_keyring",
+    "store_in_dotfile",
+    "crypto_available",
+    "source_vault_master",
+    "store_vault_master",
+    "store_in_vault",
     "__version__",
 ]
