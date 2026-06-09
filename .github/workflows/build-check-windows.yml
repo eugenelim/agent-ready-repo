@@ -107,6 +107,16 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
 
+      # credbroker-user-scope T3: prove the vendored credbroker floor projects
+      # and is importable on Windows too — the projection's path handling +
+      # file modes are platform-sensitive, and the floor must import
+      # cross-platform. The [crypto] extra is not installed on the Windows job,
+      # so the floor-purity subprocess proves the base import is stdlib-only
+      # with the third-party deps simply absent.
+      - name: pytest user-libs vendored floor (credbroker-user-scope T3)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_user_libs_projection.py
+
       - name: pytest hook parity-net suite (windows-hooks-phase3)
         working-directory: packages/agentbundle
         run: python -m pytest tests/hooks/

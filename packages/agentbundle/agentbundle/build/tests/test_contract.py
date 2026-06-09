@@ -292,6 +292,26 @@ class SourcePathTests(unittest.TestCase):
             ".apm/commands/",
         )
 
+    def test_user_libs_source_path(self) -> None:
+        """credbroker-user-scope T3: the user-libs primitive is declared."""
+        self.assertEqual(
+            self.contract["primitive"]["user-libs"]["source-path"],
+            ".apm/user-libs/",
+        )
+
+    def test_user_libs_is_build_pipeline_only(self) -> None:
+        """T3 / #139 precedent: user-libs (like adapter-root-bins / shared-libs)
+        carries no per-adapter projection rule — its target is fenced by
+        ``allowed-prefixes``, not a per-adapter path — so adding it does not
+        change the (primitive × adapter) pair count or the contract version."""
+        for adapter_name, adapter_block in self.contract["adapter"].items():
+            array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
+            table_form = set(adapter_block.get("projections", {}).keys())
+            self.assertNotIn(
+                "user-libs", array_form | table_form,
+                f"user-libs must not have a projection rule for {adapter_name}",
+            )
+
 
 class CommandProjectionTests(unittest.TestCase):
     """command primitive: Claude Code = direct-file; Kiro/Copilot/Codex = dropped."""
