@@ -487,7 +487,12 @@ def test_make_build_check_fails_on_user_libs_floor_drift(tmp_path):
 
 def test_make_build_check_fails_on_user_libs_pack_copy_drift(tmp_path):
     """T3: tampering the pack-vendored copy (the catalogue-visible primitive)
-    is also caught by the gate."""
+    is also caught by the gate, and the message names the pack-copy target —
+    not just the floor, so a regression that stops the pack-copy half of the
+    two-target gate from contributing a message is caught."""
+    import io
+    import sys as _sys
+
     from agentbundle.build.self_host import run_build_check_drift_gates
 
     packs_shadow, workspace = _shadow_real_tree_for_user_libs(tmp_path)
@@ -501,5 +506,18 @@ def test_make_build_check_fails_on_user_libs_pack_copy_drift(tmp_path):
     data[-1] ^= 0x01
     pack_file.write_bytes(bytes(data))
 
-    rc = run_build_check_drift_gates(workspace, packs_shadow)
-    assert rc != 0, "gate should fail on pack-copy drift"
+    captured = io.StringIO()
+    old_stderr = _sys.stderr
+    _sys.stderr = captured
+    try:
+        rc = run_build_check_drift_gates(workspace, packs_shadow)
+    finally:
+        _sys.stderr = old_stderr
+
+    stderr_output = captured.getvalue()
+    assert rc != 0, f"gate should fail on pack-copy drift.\nstderr: {stderr_output}"
+    assert (
+        "user-libs" in stderr_output
+        and "modified" in stderr_output
+        and ".apm/user-libs/credbroker" in stderr_output
+    ), f"stderr does not name the pack-copy drift target.\nstderr: {stderr_output}"

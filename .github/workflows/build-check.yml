@@ -76,6 +76,23 @@ jobs:
         working-directory: packages/credbroker
         run: python -m pytest
 
+      # credbroker-user-scope T3: the build pipeline vendors credbroker to the
+      # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
+      # drift-gated. `make build-check` exercises the live drift gate, but the
+      # projection / purity / no-op-absent / two-target-topology / contract /
+      # pack-invariant tests run only here (make build-check runs no pytest).
+      # Placed AFTER the [crypto] install so the floor-purity subprocess proves
+      # the base import stays third-party-free under the STRONGER condition —
+      # cryptography/argon2 importable but unreached (mirrors credbroker AC4).
+      - name: pytest user-libs vendored floor (credbroker-user-scope T3)
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          agentbundle/build/tests/test_user_libs_projection.py
+          agentbundle/build/tests/test_contract.py
+          tests/integration/test_build_check_drift_gates.py
+          tests/integration/test_credential_brokers_pack_install.py
+
       - name: converters source-attribution scrub (AC2)
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error

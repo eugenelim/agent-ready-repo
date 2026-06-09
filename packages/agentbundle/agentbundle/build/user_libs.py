@@ -74,9 +74,11 @@ PACK_TARGET_SUBDIR = Path(".apm") / "user-libs"
 # ``~/.agentbundle/lib/`` path at user scope (install-time surface, T4).
 TARGET_SUBDIR = Path(".agentbundle") / "lib"
 
-# Directory names never vendored: bytecode caches and any test tree. The
-# orphan scan skips them too — importing the floor (e.g. the purity test)
-# writes ``__pycache__/`` that must not register as drift.
+# Directory names never vendored: bytecode caches and any test tree
+# (``tests`` is forward-looking — the package ships none today; it guards a
+# future in-package test tree). The orphan scan skips them too — importing the
+# floor (e.g. the purity test) writes ``__pycache__/`` that must not register
+# as drift.
 EXCLUDED_DIR_NAMES = frozenset({"__pycache__", "tests"})
 
 
@@ -140,6 +142,10 @@ def compute_projections(
     source is absent (non-monorepo invocation; see the module docstring).
     """
     sources = collect_sources(_package_source_dir(packs_dir))
+    # No sources → no projections. This covers the non-monorepo case (the
+    # documented no-op) AND whole-package retirement: if the package source
+    # were ever deleted, the gate goes silent, so retiring credbroker must
+    # hand-remove both committed targets (the floor + the pack copy).
     if not sources:
         return []
     pack_dir, floor_dir = _target_roots(working_tree, packs_dir)

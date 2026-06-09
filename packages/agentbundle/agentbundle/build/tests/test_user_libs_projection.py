@@ -246,9 +246,31 @@ class UserLibsRealRepoTests(unittest.TestCase):
             Path(result["file"]).resolve().is_relative_to(floor.resolve()),
             f"imported credbroker from {result['file']!r}, not the floor {floor!r}",
         )
+        delta = set(result["delta"])
+        # Explicit deny-list (mirrors credbroker's AC4 test_stdlib_purity): the
+        # known crypto-extra roots a credentialed resolver must never reach at
+        # base. This runs *independent* of the underscore skip below — `_cffi_backend`
+        # (argon2's transitive C backend) starts with `_`, so the general
+        # stdlib-only filter would otherwise mask it.
+        forbidden_roots = {
+            "cryptography", "argon2", "argon2_cffi", "cffi", "_cffi_backend",
+            "keyring", "dotenv", "agentbundle",
+        }
+        leaked_forbidden = {
+            m for m in delta if m.split(".", 1)[0] in forbidden_roots
+        }
+        self.assertEqual(
+            leaked_forbidden, set(),
+            f"vendored floor base import reached forbidden module(s): "
+            f"{leaked_forbidden} — the vault import must stay lazy",
+        )
+        # General guard: nothing outside stdlib + credbroker's own tree. The
+        # underscore skip covers stdlib C-extension internals (e.g. `_json`);
+        # the explicit deny-list above is what keeps an underscore-named
+        # third-party from hiding here.
         stdlib = set(result["stdlib"])
         leaked: set[str] = set()
-        for mod in result["delta"]:
+        for mod in delta:
             root = mod.split(".", 1)[0]
             if root in stdlib or root.startswith("_") or root == "credbroker":
                 continue
