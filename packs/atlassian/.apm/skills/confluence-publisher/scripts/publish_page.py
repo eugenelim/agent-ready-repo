@@ -50,6 +50,15 @@ if __package__ in (None, "") and __spec__ is None:
             pass
     _here = Path(__file__).resolve().parent
     sys.path.insert(0, str(_here.parent))
+    # Vendored credbroker floor (~/.agentbundle/lib) at LOWEST precedence:
+    # a no-repo user-scope install resolves ``import credbroker`` from the
+    # floor, while a pip-installed credbroker in site-packages still wins
+    # (it precedes the appended floor). Append, never insert(0) — a stale
+    # floor must never shadow a real install. Guarded on the dir existing,
+    # so its absence degrades to today's behavior. (credbroker-user-scope T1.)
+    _floor = Path("~/.agentbundle/lib").expanduser()
+    if _floor.is_dir() and str(_floor) not in sys.path:
+        sys.path.append(str(_floor))
     __package__ = _here.name
 
 # Every sibling import that transitively pulls a third-party dependency goes

@@ -22,6 +22,18 @@ import sys
 # credbroker is a pip-installed package (RFC-0023), so this is an absolute
 # import — no ``__package__`` bootstrap is needed (the former relative
 # sibling-resolver import did require one for file-path invocation).
+#
+# Unlike the five API CLIs, setup.py has no ``__package__`` bootstrap and
+# imports credbroker at module top, so the vendored-floor append must run
+# *before* this import (or it runs too late). Append ~/.agentbundle/lib at
+# LOWEST precedence: a no-repo user-scope install resolves credbroker from
+# the floor, while a pip-installed credbroker (already on sys.path) still
+# wins. Append, never insert(0); guarded on the dir existing.
+# (credbroker-user-scope T1.)
+_floor = pathlib.Path("~/.agentbundle/lib").expanduser()
+if _floor.is_dir() and str(_floor) not in sys.path:
+    sys.path.append(str(_floor))
+
 from credbroker import (
     PermissiveAclError,
     SchemaError,
