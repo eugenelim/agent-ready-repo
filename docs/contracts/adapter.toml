@@ -92,6 +92,16 @@ source-path = ".apm/shared-libs/"
 [primitive."adapter-root-bins"]
 source-path = ".apm/adapter-root-bins/"
 
+# credbroker-user-scope T3 — `user-libs/` carries vendored Python package
+# source projected to the per-scope lib floor (`~/.agentbundle/lib/` at user
+# scope, `<repo>/.agentbundle/lib/` self-host staging) as the lowest-precedence
+# `sys.path` import target. Build-pipeline-only like `adapter-root-bins`: no
+# per-adapter projection rules (the target is `<scope-root>/.agentbundle/lib/`,
+# fenced by `allowed-prefixes.<scope>`, not by per-adapter target paths), so the
+# declaration carries the source path only.
+[primitive."user-libs"]
+source-path = ".apm/user-libs/"
+
 # ---------------------------------------------------------------------------
 # Claude Code adapter — 5 projections (one per primitive) + v0.3 forks
 #
