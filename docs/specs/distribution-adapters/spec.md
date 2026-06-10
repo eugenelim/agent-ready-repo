@@ -204,9 +204,9 @@ declares it so explicitly — no implicit defaults.
 | Primitive | Source path (in `packs/<pack>/`) | Claude Code | Kiro | Copilot | Codex |
 | --- | --- | --- | --- | --- | --- |
 | `skill` | `.apm/skills/<name>/` | `direct-directory` → `.claude/skills/<name>/` | `direct-directory` → `.kiro/skills/<name>/` | `instruction-file` → `.github/instructions/<name>.instructions.md` | `direct-directory` → `.agents/skills/<name>/` |
-| `agent` | `.apm/agents/<name>.md` | `direct-file` → `.claude/agents/<name>.md` | `kiro-ide`: `direct-file` → `.kiro/agents/<name>.md` (gray-matter); `kiro-cli`: `direct-file` → `.kiro/agents/<name>.json` (CLI short-names)\* | `dropped` | `dropped` |
+| `agent` | `.apm/agents/<name>.md` | `direct-file` → `.claude/agents/<name>.md` | `kiro-ide`: `direct-file` → `.kiro/agents/<name>.md` (gray-matter); `kiro-cli`: `direct-file` → `.kiro/agents/<name>.json` (CLI short-names)\* | `dropped` | `codex-agent-toml` → `.codex/agents/<name>.toml` |
 | `hook-body` | `.apm/hooks/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.claude/hooks/<pack>/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.kiro/hooks/<pack>/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` |
-| `hook-wiring` | `.apm/hook-wiring/<name>.toml` | repo: `merge-json` (under `hooks` key of `.claude/settings.local.json`); user: `user-merge-json` (under `hooks` key of `.claude/settings.json`) | `kiro-ide`: `dropped` (uses `kiro-ide-hook` instead); `kiro-cli`: `merge-into-agent-json` (RFC-0005 — under `hooks` key of `.kiro/agents/<attach-to-agent>.json`) | `dropped` | `dropped` |
+| `hook-wiring` | `.apm/hook-wiring/<name>.toml` | repo: `merge-json` (under `hooks` key of `.claude/settings.local.json`); user: `user-merge-json` (under `hooks` key of `.claude/settings.json`) | `kiro-ide`: `dropped` (uses `kiro-ide-hook` instead); `kiro-cli`: `merge-into-agent-json` (RFC-0005 — under `hooks` key of `.kiro/agents/<attach-to-agent>.json`) | `dropped` | `merge-json` → `.codex/hooks.json` |
 | `command` | `.apm/commands/<name>.md` | `direct-file` → `.claude/commands/<name>.md` | `dropped` | `dropped` | `dropped` |
 
 \* kiro-ide projects `.md`; kiro-cli projects `.json`; the IDE accepts both
@@ -1337,6 +1337,11 @@ No manual QA: there is no UI surface, no human gesture under test.
   gesture documented per uncovered target.
 
 ## Changelog
+
+- 2026-06-10: Correct the primitive matrix's Codex column to match the
+  shipped v0.8 Codex entries already documented below: `agent` projects via
+  `codex-agent-toml` to `.codex/agents/<name>.toml`, and `hook-wiring`
+  projects via `merge-json` to `.codex/hooks.json`.
 
 - 2026-06-05: contract bump v0.9 → v0.10 per
   [`docs/specs/copilot-full-parity/spec.md`](../copilot-full-parity/spec.md) (RFC-0024 /

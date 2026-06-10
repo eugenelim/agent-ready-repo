@@ -34,6 +34,9 @@
 # `[adapter.copilot.scope]` gains `user = "~"` + `allowed-prefixes.user`; new
 # `copilot-agent-frontmatter-v0.10` mapping. `command` stays `dropped`
 # (copilot-cli#618/#1113). Two-pack bump (research + core), not all-pack.
+# docs/specs/codex-agent-config-projection: corrects the existing codex
+# `codex-agent-frontmatter-v0.8` mapping to preserve `model` and `tools`
+# intent as documented Codex agent config instead of dropping those fields.
 
 [contract]
 version = "0.10"
@@ -555,15 +558,19 @@ values = { Read = "read", Grep = "grep", Glob = "glob", Edit = "write", Write = 
 rename = "model"
 values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "claude-haiku-4.5" }
 
-# Codex agent frontmatter v0.8 (docs/specs/dropped-primitives-coverage):
+# Codex agent frontmatter v0.8 (docs/specs/dropped-primitives-coverage,
+# amended by docs/specs/codex-agent-config-projection):
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with
 # `name`, `description`, optionally `tools`, `model`) to codex's TOML agent
-# shape (`name`, `description`, `developer_instructions`). The markdown body
-# lands in TOML `developer_instructions` via a mode-level convention in the
-# `codex-agent-toml` projection mode, NOT via a rename rule (frontmatter
-# mapping is keyed on frontmatter fields; the body is not one). Fields not
-# in this mapping (e.g., `tools`, `model`) drop silently — codex TOML agent
-# format has no equivalent slots; a future RFC can add MCP-server mapping.
+# shape. `model` maps Claude-style aliases to OpenAI model IDs. `tools`
+# maps Claude-style tool names to Codex capability intents; the
+# `codex-agent-toml` projection reduces duplicate intents to documented
+# config keys (`sandbox_mode`, `[features].shell_tool`, `web_search`,
+# `[tools].web_search`) and never emits a generic `tools = [...]` array.
+# The markdown body lands in TOML `developer_instructions` via a
+# mode-level convention in the `codex-agent-toml` projection mode, NOT
+# via a rename rule (frontmatter mapping is keyed on frontmatter fields;
+# the body is not one).
 [frontmatter-mapping."codex-agent-frontmatter-v0.8"]
 
 [frontmatter-mapping."codex-agent-frontmatter-v0.8".name]
@@ -571,6 +578,15 @@ rename = "name"
 
 [frontmatter-mapping."codex-agent-frontmatter-v0.8".description]
 rename = "description"
+
+[frontmatter-mapping."codex-agent-frontmatter-v0.8".tools]
+normalize = "to-list"
+values = { Read = "read", Grep = "read", Glob = "read", Edit = "write", Write = "write", MultiEdit = "write", Bash = "shell", WebFetch = "web_search", WebSearch = "web_search" }
+
+[frontmatter-mapping."codex-agent-frontmatter-v0.8".model]
+rename = "model"
+values = { opus = "gpt-5.5", sonnet = "gpt-5.5", haiku = "gpt-5.4-mini" }
+related-values = { model_reasoning_effort = { opus = "xhigh", sonnet = "medium", haiku = "medium" } }
 
 # Copilot agent frontmatter v0.10 (RFC-0024 / docs/specs/copilot-full-parity):
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with
