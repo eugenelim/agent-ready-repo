@@ -68,6 +68,23 @@ def _seed_pack_with_skill(root: Path, name: str, skill: str, description: str) -
     return pack
 
 
+def _add_agent(pack: Path, name: str, body: str = "Do the work.\n") -> Path:
+    agents_dir = pack / ".apm" / "agents"
+    agents_dir.mkdir(parents=True, exist_ok=True)
+    agent_path = agents_dir / f"{name}.md"
+    agent_path.write_text(
+        "---\n"
+        f"name: {name}\n"
+        f"description: {name} description\n"
+        "model: sonnet\n"
+        "tools: [Read, Bash]\n"
+        "---\n"
+        f"{body}",
+        encoding="utf-8",
+    )
+    return agent_path
+
+
 def _seed_discovery(tree: Path) -> Path:
     """Drop a minimal `.adapt-discovery.toml` into a test working tree so
     `run_self_host`'s fail-fast (spec AC14) doesn't reject the call.
@@ -475,12 +492,62 @@ class SelfHostAdapterAllowListTests(unittest.TestCase):
             self.assertEqual(sentinel_module.project_packs.call_count, 1)
 
 
+class SelfHostCodexProjectionTests(unittest.TestCase):
+    """Self-host must mirror both Claude Code and Codex projections."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_self_host_projects_codex_repo_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            core = _seed_pack_with_skill(
+                packs_dir, "core", "core-skill", "core skill description"
+            )
+            _add_agent(core, "reviewer", body="Review the current diff.\n")
+            (core / ".apm" / "hook-wiring").mkdir(parents=True)
+            (core / ".apm" / "hook-wiring" / "reviewer.toml").write_text(
+                '[hooks]\nreviewer = "tools/hooks/reviewer.sh"\n',
+                encoding="utf-8",
+            )
+
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            exit_code = run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(
+                (working_tree / ".claude" / "skills" / "core-skill" / "SKILL.md").is_file()
+            )
+            self.assertTrue(
+                (working_tree / ".agents" / "skills" / "core-skill" / "SKILL.md").is_file()
+            )
+            codex_agent = working_tree / ".codex" / "agents" / "reviewer.toml"
+            self.assertTrue(codex_agent.is_file())
+            codex_agent_text = codex_agent.read_text(encoding="utf-8")
+            self.assertIn('model = "gpt-5.5"', codex_agent_text)
+            self.assertIn('model_reasoning_effort = "medium"', codex_agent_text)
+            self.assertTrue((working_tree / ".codex" / "hooks.json").is_file())
+
+
 class AgentsMdCompositionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_self_host_composes_agents_body_codex_block_and_footer(self) -> None:
+    def test_self_host_composes_agents_body_and_projects_skill_trees(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
@@ -519,18 +586,21 @@ class AgentsMdCompositionTests(unittest.TestCase):
             text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertTrue(text.startswith("# Body\n\nBody source.\n"))
             # Post-RFC-0009: skill descriptions no longer inline into
-            # AGENTS.md; Codex is not in `SELF_HOST_ADAPTERS` so the
-            # `.agents/skills/` tree is not produced in self-host output.
-            # Codex projection is tested against tempdir paths (AC29);
-            # Claude Code's `.claude/skills/` is the self-host surface.
+            # AGENTS.md. Claude Code and Codex both project full skill
+            # bodies under their repo-native skill trees.
             self.assertNotIn("core skill description", text)
             self.assertNotIn("governance skill description", text)
-            self.assertFalse((working_tree / ".agents").exists())
             self.assertTrue(
                 (working_tree / ".claude" / "skills" / "core-skill" / "SKILL.md").is_file()
             )
             self.assertTrue(
                 (working_tree / ".claude" / "skills" / "governance-skill" / "SKILL.md").is_file()
+            )
+            self.assertTrue(
+                (working_tree / ".agents" / "skills" / "core-skill" / "SKILL.md").is_file()
+            )
+            self.assertTrue(
+                (working_tree / ".agents" / "skills" / "governance-skill" / "SKILL.md").is_file()
             )
             self.assertTrue(text.endswith("> Footer source.\n"))
 
@@ -2048,7 +2118,7 @@ class SelfHostAdapterRoutingTests(unittest.TestCase):
     behaviour.
     """
 
-    def test_claude_code_routes_through_project_packs(self) -> None:
+    def test_claude_code_and_codex_route_through_project_packs(self) -> None:
         from unittest import mock
 
         from agentbundle.build import self_host as self_host_module
@@ -2078,17 +2148,15 @@ class SelfHostAdapterRoutingTests(unittest.TestCase):
                  mock.patch.object(codex, "project_packs") as cx_pp:
                 self_host_module._project_all_adapters(out, packs_dir, contract)
 
-            # Post-RFC-0009: `SELF_HOST_ADAPTERS = ("claude-code",)` —
-            # codex is NOT routed from self-host. Codex correctness is
-            # gated by adapter unit tests + the AC29 tempdir test, not
-            # by self-host's working-tree drift gate. Keeping codex out
-            # avoids carrying a duplicate `.agents/skills/` tree in the
-            # working tree (the maintainer-overload concern that RFC-0009
-            # exposed once skills became full bodies rather than
-            # one-line teasers).
             self.assertEqual(cc_pp.call_count, 1)
-            self.assertEqual(cx_pp.call_count, 0)
+            self.assertEqual(cx_pp.call_count, 1)
             args, _kwargs = cc_pp.call_args
+            pack_paths_arg = args[0]
+            self.assertEqual(
+                pack_paths_arg,
+                [packs_dir / "core"],
+            )
+            args, _kwargs = cx_pp.call_args
             pack_paths_arg = args[0]
             self.assertEqual(
                 pack_paths_arg,

@@ -33,19 +33,22 @@
 │   ├── product/          # roadmap + changelog
 │   └── guides/           # Diátaxis: tutorials, how-to, reference, explanation
 ├── tools/                # build/lint/test scripts (.py preferred; .sh grandfathered)
-└── .claude/              # self-host projection — for THIS repo's own use; not shipped
+├── .claude/              # Claude Code self-host projection — local only
+├── .codex/               # Codex self-host agents + hook wiring — local only
+└── .agents/              # Codex self-host skills — local only
 ```
 
-`.claude/` is generated from each pack's `.apm/` sources by `make build-self`
-**solely so the catalogue eats its own dog food** — every primitive the
-packs ship is also active when you open this repo in Claude Code.
-It is **not** part of any pack's deployment surface; adopters never see
-this directory shape. The adopter-facing equivalents are produced by
-`make build` into `dist/` (gitignored build output, regenerated on
-every CI run) under `dist/claude-plugins/<pack>/.claude-plugin/` and
+`.claude/`, `.codex/`, and `.agents/` are generated from each pack's
+`.apm/` sources by `make build-self` **solely so the catalogue eats its
+own dog food** — the Claude Code and Codex projections are active when
+you open this repo in those tools. They are **not** part of any pack's
+deployment surface; adopters never see this exact self-host directory
+set. The adopter-facing equivalents are produced by `make build` into
+`dist/` (gitignored build output, regenerated on every CI run) under
+`dist/claude-plugins/<pack>/.claude-plugin/` and
 `dist/apm/<pack>/`; the install routes project equivalent content
 straight into the adopter's own repo without needing to expose `dist/`.
-Edit seeds under `packs/<pack>/.apm/...`, not this projection. See
+Edit seeds under `packs/<pack>/.apm/...`, not these projections. See
 [`AGENTS.local.md`](../../AGENTS.local.md) for the full drift workflow.
 
 ## The catalogue

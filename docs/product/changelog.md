@@ -39,17 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`_strip_legacy_skill_block` + the retained `_splice_managed_block`
   helper) is kept for one minor release as the migration window
   (released N) and then removed in the release after (N+1).
-  **Self-host narrowed to Claude Code only.** Before this release,
-  `SELF_HOST_ADAPTERS = ("claude-code", "codex")` so the Codex
-  adapter ran against this repo's working tree alongside Claude
-  Code. With Codex's `skill` projection growing from a tiny
-  AGENTS.md managed block to a full body tree, self-host's working
-  tree would carry a duplicate `.agents/skills/` of every skill —
-  pure maintainer overload. `SELF_HOST_ADAPTERS = ("claude-code",)`
-  now; Codex adopters continue to receive `.agents/skills/` via
-  `agentbundle install`. Codex regressions are gated by the
-  adapter's unit tests and a tempdir projection test that walks
-  every shipped skill.
+  **Self-host mirrors Codex repo projection.** The self-host allow-list
+  includes both `claude-code` and `codex`, so this repo now carries
+  Codex's repo-scope projection alongside Claude Code: `.agents/skills/`
+  for full skill bodies, `.codex/agents/` for subagent TOML, and
+  `.codex/hooks.json` for hook wiring. `make build-check` enforces those
+  paths the same way it enforces `.claude/`.
 
 - **Uniform multi-pack entry point across `direct-directory` adapters**
   — `codex`, `claude-code`, and `kiro` all expose

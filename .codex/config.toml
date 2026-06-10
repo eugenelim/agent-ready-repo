@@ -1,0 +1,14 @@
+approval_policy = "on-request"
+default_permissions = "repo-codex-authoring"
+
+[permissions.repo-codex-authoring]
+description = "Workspace writes plus repo-local Codex skills/agents authoring."
+extends = ":workspace"
+
+[permissions.repo-codex-authoring.filesystem.":workspace_roots"]
+".codex" = "read"
+".codex/skills" = "write"
+".codex/agents" = "write"
+".codex/hooks.json" = "write"
+".agents" = "read"
+".agents/skills" = "write"
