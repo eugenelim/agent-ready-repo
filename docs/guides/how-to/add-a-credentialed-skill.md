@@ -287,7 +287,17 @@ credbroker
 python -m pip install -r requirements.txt
 ```
 
-[RFC-0023](../../rfc/0023-credential-manager-broker.md) replaced the build-projected `credentials_shim` sibling with the pip-installable `credbroker` library, imported in-process — so there is no `make build-self` projection step for the resolver, and no `scripts/`-vendored shim to keep in sync. Without the dependency installed, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. For local development, install from the repo path: `pip install -e ./packages/credbroker`. For locked-down sites, see *Installing without PyPI (corporate)* just below.
+[RFC-0023](../../rfc/0023-credential-manager-broker.md) replaced the build-projected `credentials_shim` sibling with the pip-installable `credbroker` library, imported in-process — so there is no `make build-self` projection step for the resolver, and no `scripts/`-vendored shim to keep in sync. In a fresh repo checkout, before either the floor or a pip install is in place, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. For local development, install from the repo path: `pip install -e ./packages/credbroker`. For locked-down sites, see *Installing without PyPI (corporate)* just below.
+
+### How `credbroker` reaches `sys.path` — the layered model
+
+`import credbroker` resolves through a **`sys.path` precedence stack** fed by three delivery layers, built in cost/value order. You don't choose between them — they stack, and the highest-precedence one present wins:
+
+1. **Vendored floor (zero-pip, always present at user scope).** When a user installs the `credential-brokers` pack at user scope (`agentbundle install --pack credential-brokers --scope user`), install delivers a byte-faithful, stdlib-base copy of the package source to `~/.agentbundle/lib/credbroker/`, and every credentialed skill **appends** `~/.agentbundle/lib` to `sys.path` at **lowest** precedence (the five API CLIs inside their `__package__` bootstrap; `credential-setup`'s `setup.py` ahead of its top-level import). So a no-repo user-scope install resolves `import credbroker` — and full env→keyring→dotfile (Tier-1/2/3) resolution — with **no pip at all**. The floor is stdlib-only, so its Tier-3 dotfile is plaintext; the encrypted `[crypto]` vault is not available from the floor alone (layer 2/3 below adds it).
+2. **Offline / local pip (corporate, no PyPI).** A `pip install` of the wheel (from an internal index or a local `.whl`) lands `credbroker` in site-packages, which sits **earlier** on `sys.path` than the floor — so it **wins** over the floor and unlocks the `[crypto]` vault. No PyPI dependency. Detailed just below.
+3. **PyPI (open adopters).** `pip install credbroker[crypto]` from public PyPI; same site-packages precedence as layer 2. The publish is a **gated, manual maintainer action** (see *Installing without PyPI* below) — not yet performed.
+
+Because the bootstrap **appends** (never prepends) the floor, a pip-installed `credbroker` of any vintage always shadows it: pip is the primary contract, the floor is the fallback that guarantees resolution where pip hasn't run. Declaring `credbroker` in your `requirements.txt` (above) stays the right thing to do — it covers the local dev loop and non-user-scope installs, and it's what makes `[crypto]` reachable.
 
 ### Installing without PyPI (corporate)
 

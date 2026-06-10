@@ -112,3 +112,50 @@ Filled in upon acceptance:
 - **Convention change: `docs/CONVENTIONS.md` § Credentialed skills** — `auth: creds` now resolves via `import credbroker`, not the vendored shim.
 - **Exit-code alignment (partial).** `credbroker` ships no CLI in v1 (pure library), so the reserved `3–9` band stays **unclaimed** for now; a future convenience-CLI follow-on may claim the **credential-resolution subset** (e.g. keyring-hard-fail, vault-locked). authsome's **connection/provider/daemon** exit numbers — which the exit-code spec's deferral also named — stay **deferred to a future daemon RFC** (the daemon is out of scope here), so the band does not silently strand.
 - **Guide update** — `docs/guides/how-to/add-a-credentialed-skill.md` Step 6 (`import credbroker`) + Step 8 (`pip install credbroker[crypto]`).
+
+## Amendments
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Post-acceptance changes are appended here, Approver-signed.
+
+- **2026-06-09 (Approver: eugenelim) — layered delivery resolves the deferred
+  no-repo-adopter problem (vendored floor → offline/local pip → PyPI).** The
+  Proposal's § Delivery deferred the **APM/Claude-plugin adopter who has no
+  repo** to Phase 2 (PyPI): "until Phase 2 they remain on the projected shim
+  or env Tier-1." The Pre-mortem named the same gap first ("the pip dependency
+  strands a real adopter"). That deferral is now resolved by a **layered
+  delivery model**, specified and shipped in
+  [`docs/specs/credbroker-user-scope/spec.md`](../specs/credbroker-user-scope/spec.md)
+  (Shipped 2026-06-09):
+
+  1. **Vendored floor (zero-pip, always present).** User-scope install vendors
+     the stdlib-base `credbroker` package source to `~/.agentbundle/lib/credbroker/`,
+     which the consumer bootstrap appends to `sys.path` at **lowest** precedence.
+     This restores Tier-1/2/3 resolution (plaintext Tier-3) for the no-repo
+     adopter with **no pip at all** — the profile this RFC's Pre-mortem flagged
+     as stranded until Phase 2.
+  2. **Offline / local pip (corporate, no PyPI).** The `release-credbroker.yml`
+     workflow builds a `py3-none-any` wheel + sdist, so a locked-down site can
+     `pip install` from an internal index (`--index-url`) or a local `.whl` —
+     no PyPI dependency. Because pip lands the package in site-packages, it
+     **wins** over the floor and unlocks the `[crypto]` vault.
+  3. **PyPI (open adopters).** Unchanged from the original Phase-2 plan: a
+     gated, manual-publish job in the same workflow; the first publish + name
+     claim stays a maintainer action (see `docs/backlog.md#credbroker-phase-2`).
+
+  **The floor is *additive*, not a return to the projected shim.** The primary,
+  highest-precedence contract is still `import credbroker` from **site-packages**
+  (pip — PyPI / internal mirror / local wheel / editable), exactly as this RFC
+  and ADR-0003's posture intend. The floor is a *fallback* for that **same
+  import**, appended at lowest `sys.path` precedence so a pip-installed copy
+  always shadows it (and a stale floor can never downgrade a newer, vault-capable
+  install). It is therefore **one shared copy** at `~/.agentbundle/lib/`, not the
+  N-per-skill byte-projected shim ADR-0003 reversed — the projection/drift
+  machinery this RFC retired does not return. ADR-0003's reversal (projected
+  shim → pip `credbroker`) is **not itself reversed**, so **no new or annotating
+  ADR is required**; this amendment is the governance record of the fallback.
+
+  The same delivery rail also closes the long-missing user-scope half of
+  [RFC-0013](0013-credential-broker-contract.md)'s `adapter-root-bins` →
+  `~/.agentbundle/bin/` projection (the `sso-broker` companion), which had only
+  ever shipped its self-host half.
