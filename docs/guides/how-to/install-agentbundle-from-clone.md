@@ -6,15 +6,20 @@ validation, adapt, and build. All four
 — skills, agents, hooks — but not the CLI, so every route converges
 here for the pip install.
 
-> **As of 0.2.0 (per RFC-0013), credentialed skills no longer import
-> from `agentbundle.credentials`.** The shim model projects
-> `credentials_shim.py` (and per-platform Tier-2 backends) into each
-> `auth: creds` consumer's `scripts/` directory at build time; the
-> consumer imports `from .credentials_shim import …` against the
-> projected sibling, with no runtime `agentbundle` dependency. The
-> CLI itself remains pip-installed from this clone; what changed is
-> that the *Python skill bodies* no longer reach back into the
-> agentbundle wheel for credential resolution.
+> **Credentialed skills don't resolve credentials through the
+> `agentbundle` wheel.** Since 0.2.0 (RFC-0013) they no longer import
+> from `agentbundle.credentials`, and since
+> [RFC-0023](../../rfc/0023-credential-manager-broker.md) the `auth: creds`
+> resolver is the standalone, pip-installable
+> [`credbroker`](../../../packages/credbroker/) library, imported
+> in-process (`from credbroker import …`) — it replaced the
+> build-projected `credentials_shim` sibling. From a clone, install it
+> alongside the CLI: `pip install -e ./packages/credbroker`. (The
+> no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of
+> the [credentialed-skill how-to](add-a-credentialed-skill.md).) The CLI
+> itself remains pip-installed from this clone; what changed is that the
+> *Python skill bodies* resolve credentials through `credbroker`, not the
+> agentbundle wheel.
 
 Smoke test for the install:
 
