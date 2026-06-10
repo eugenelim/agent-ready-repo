@@ -1,4 +1,4 @@
 httpx>=0.27
 markdown-it-py>=3.0
 pyyaml>=6.0
-credbroker
+credbroker>=0.1.0

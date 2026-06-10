@@ -295,7 +295,7 @@ python -m pip install -r requirements.txt
 
 1. **Vendored floor (zero-pip, always present at user scope).** When a user installs the `credential-brokers` pack at user scope (`agentbundle install --pack credential-brokers --scope user`), install delivers a byte-faithful, stdlib-base copy of the package source to `~/.agentbundle/lib/credbroker/`, and every credentialed skill **appends** `~/.agentbundle/lib` to `sys.path` at **lowest** precedence (the five API CLIs inside their `__package__` bootstrap; `credential-setup`'s `setup.py` ahead of its top-level import). So a no-repo user-scope install resolves `import credbroker` — and full env→keyring→dotfile (Tier-1/2/3) resolution — with **no pip at all**. The floor is stdlib-only, so its Tier-3 dotfile is plaintext; the encrypted `[crypto]` vault is not available from the floor alone (layer 2/3 below adds it).
 2. **Offline / local pip (corporate, no PyPI).** A `pip install` of the wheel (from an internal index or a local `.whl`) lands `credbroker` in site-packages, which sits **earlier** on `sys.path` than the floor — so it **wins** over the floor and unlocks the `[crypto]` vault. No PyPI dependency. Detailed just below.
-3. **PyPI (open adopters).** `pip install credbroker[crypto]` from public PyPI; same site-packages precedence as layer 2. The publish is a **gated, manual maintainer action** (see *Installing without PyPI* below) — not yet performed.
+3. **PyPI (open adopters).** `pip install credbroker[crypto]` from public PyPI; same site-packages precedence as layer 2. Published as **`credbroker 0.1.0`** (2026-06-10) via the gated OIDC job described under *Installing without PyPI* below.
 
 Because the bootstrap **appends** (never prepends) the floor, a pip-installed `credbroker` of any vintage always shadows it: pip is the primary contract, the floor is the fallback that guarantees resolution where pip hasn't run. Declaring `credbroker` in your `requirements.txt` (above) stays the right thing to do — it covers the local dev loop and non-user-scope installs, and it's what makes `[crypto]` reachable.
 
@@ -319,7 +319,7 @@ Because the bootstrap **appends** (never prepends) the floor, a pip-installed `c
 
 The base wheel has no third-party dependency, so its local-`.whl` install is the only truly network-free path. The `[crypto]` extra additionally needs `cryptography` and `argon2-cffi` to be resolvable — from the same internal index, or pre-staged alongside the wheel — so on a fully air-gapped host stage those two first.
 
-Either way pip lands the package in site-packages, so the resolver imports exactly as the worked example above — no code change. Publishing to public PyPI is wired into the same workflow behind a **gated, tag-triggered** job, so `pip install credbroker` from public PyPI is a maintainer action that has not happened yet; the internal-index and local-wheel paths above need no PyPI.
+Either way pip lands the package in site-packages, so the resolver imports exactly as the worked example above — no code change. Public PyPI is wired into the same workflow behind a **gated, tag-triggered** OIDC job; **`credbroker 0.1.0` was published to PyPI on 2026-06-10**, so `pip install credbroker` now resolves from public PyPI as well. The internal-index and local-wheel paths above remain available and need no PyPI.
 
 ## Step 10 — Set up the credential
 
