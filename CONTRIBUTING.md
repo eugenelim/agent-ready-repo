@@ -97,6 +97,30 @@ Caveats the workflow enforces — know them before you tag:
 
 The **one-time** PyPI account + Pending Publisher setup is not repeated per release; it lives in the plan's [Rollout § Phase B](docs/specs/agentbundle-wheel-release/plan.md#rollout).
 
+## Cutting a `credbroker` release
+
+Publishing a new [`credbroker`](packages/credbroker/) version to PyPI mirrors the `agentbundle` flow above — same shape, separate package. The pipeline is `.github/workflows/release-credbroker.yml` (jobs: `build-and-smoke` → `publish-pypi` via Trusted Publisher OIDC → `publish-artifactory`, the last green-skipped unless the corp Artifactory secrets are set). A tag push is the only trigger that *publishes*; PRs touching `packages/credbroker/**` run `build-and-smoke` as a pre-merge gate, and there's no manual `twine upload`.
+
+Per release:
+
+1. **Bump the version in *both* places, in the same PR.** `credbroker` carries the version twice: [`packages/credbroker/pyproject.toml`](packages/credbroker/pyproject.toml) (`version`) **and** [`packages/credbroker/credbroker/__init__.py`](packages/credbroker/credbroker/__init__.py) (`__version__`, which the wheel-smoke step reads). Keep them equal — a mismatch ships a wheel whose `credbroker.__version__` disagrees with its distribution version. (credbroker has no `CHANGELOG.md` today; add one if the cadence warrants it.) Merge to `main` through the normal gates.
+2. **Tag the tip of `main`** — never a feature branch:
+   ```bash
+   git checkout main && git pull origin main
+   git tag credbroker-vX.Y.Z          # X.Y.Z must equal the pyproject version
+   git push origin credbroker-vX.Y.Z
+   ```
+3. **Watch the run** (Actions → `release-credbroker`). `build-and-smoke` and `publish-pypi` must go green; `publish-artifactory` shows green-skipped when the corp secrets are unset.
+4. **Verify** from a clean venv, ideally on another machine: `pip install credbroker` resolves to the new version and `python -c "import credbroker; print(credbroker.__version__)"` prints it.
+
+Caveats the workflow enforces — the same fail-closed assertions as `agentbundle`:
+
+- **The tag format is exact: `credbroker-vX.Y.Z`.** Pre-release / build-metadata suffixes (`-rc1`, `+build`) are refused by the version-assertion step.
+- **The tag's `X.Y.Z` must equal the pyproject `version`**, and the tagged commit **must be an ancestor of `origin/main`** — both fail-closed in `build-and-smoke`, so a wrong tag never publishes.
+- **A successful publish burns the version number permanently** — PyPI does not allow re-uploading the same version. A tag whose run *never reached* `publish-pypi` leaves the number claimable (delete the tag with `git push origin :refs/tags/credbroker-vX.Y.Z`, fix, re-tag); treat any run where `publish-pypi` *started* as a burn — even a partial upload that reached PyPI claims the version.
+
+The **one-time** PyPI Trusted Publisher — a Pending Publisher matching `release-credbroker.yml`'s `publish-pypi` job (project `credbroker`, owner `eugenelim`, repo `agent-ready-repo`, workflow `release-credbroker.yml`, environment `pypi`) — was configured at the `0.1.0` publish and is not repeated per release. The *name-registration decision* it implements (claim the name on the first real publish, no interim placeholder) is recorded in [`docs/backlog.md`](docs/backlog.md#credbroker-phase-2).
+
 ## Where to find authoritative information
 
 | You want to know… | Look here |
