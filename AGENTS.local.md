@@ -162,6 +162,9 @@ adopters receive on first install via brownfield rules):
 | `.claude/agents/<name>.md`           | `packs/<pack>/.apm/agents/<name>.md`                         |
 | `.claude/commands/<name>.md`         | `packs/<pack>/.apm/commands/<name>.md`                       |
 | `.claude/hooks/...`                  | `packs/<pack>/.apm/hooks/...`                                |
+| `.agents/skills/<name>/**`           | `packs/<pack>/.apm/skills/<name>/**`                         |
+| `.codex/agents/<name>.toml`          | `packs/<pack>/.apm/agents/<name>.md`                         |
+| `.codex/hooks.json`                  | `packs/<pack>/.apm/hook-wiring/*.toml`                       |
 
 **The workflow when you touch any of the above:**
 
@@ -200,9 +203,10 @@ If you edit any README, table, or doc under the projected paths above,
 ## Authoring or editing a skill
 
 Skills live under `packs/<pack>/.apm/skills/<name>/SKILL.md` (the seed)
-and project to `.claude/skills/<name>/SKILL.md`. Edit the seed, not the
-projection. After any edit, run `make build-self` to regenerate the
-projection, then `python3 tools/lint-skill-spec.py` to confirm the
+and project to `.claude/skills/<name>/SKILL.md` and
+`.agents/skills/<name>/SKILL.md`. Edit the seed, not the projection.
+After any edit, run `make build-self` to regenerate the
+projections, then `python3 tools/lint-skill-spec.py` to confirm the
 [agentskills.io spec](https://agentskills.io/specification) checks pass.
 
 The linter walks both roots, so a seed/projection drift surfaces as

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "python tools/hooks/session-start.py",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

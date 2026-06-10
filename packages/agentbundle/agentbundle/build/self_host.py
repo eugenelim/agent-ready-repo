@@ -8,11 +8,11 @@ what makes `merge-managed-key-only` (Claude Code) and
 files.
 
 Dry-run (`make build-self DRY_RUN=1`, and `make build-check`) clones
-the adapter target subtree (`.claude/`, `tools/hooks/`, `.github/`,
-`AGENTS.md`) into a fresh temp dir first, projects into the clone,
-then diffs the clone against the working tree. The clone-then-project
-pattern keeps the existing-content merge semantics intact under
-dry-run too.
+the adapter target subtree (`.claude/`, `.codex/`, `.agents/`,
+`tools/hooks/`, `.github/`, `AGENTS.md`) into a fresh temp dir first,
+projects into the clone, then diffs the clone against the working tree.
+The clone-then-project pattern keeps the existing-content merge semantics
+intact under dry-run too.
 
 Marker resolution (`<adapt:NAME>` → discovery value) is the ONE place
 install-time substitution happens — every other build mode copies
@@ -22,7 +22,7 @@ markers through unchanged (spec § Boundaries — Never do). The
 consumer.
 
 Self-host scope (see docs/specs/self-hosting/spec.md § Phased rollout):
-the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` only.
+the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` and `codex`.
 Kiro and Copilot stay distribution-only so self-host does not project
 `.kiro/` or `.github/instructions/`.
 """
@@ -70,6 +70,8 @@ _LEGACY_UPPER_RE = re.compile(r"<adapt:([A-Z_][A-Z0-9_]*)>")
 # to clone working-tree state into a dry-run shadow.
 TARGET_PATHS = (
     Path(".claude"),
+    Path(".codex"),
+    Path(".agents"),
     Path("tools") / "hooks",
     Path(".github") / "instructions",
     Path("AGENTS.md"),
@@ -78,7 +80,7 @@ TARGET_PATHS = (
 # Self-host allow-list (see self-hosting spec § Phased rollout).
 # Kiro and Copilot remain in the contract for distribution builds but
 # are excluded from the self-host runner.
-SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code",)
+SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
 
 # Self-host *pack* allow-list. This repo is the catalogue's home, not
 # an adopter — `make build-self` should only project the in-house
@@ -242,12 +244,10 @@ def _compose_agents_md(
     core footer fragment.
 
     Post-RFC-0009: Codex projects full skill bodies to `.agents/skills/`
-    rather than splicing a managed block into AGENTS.md. The Codex
-    adapter is not invoked from self-host — Codex correctness is gated
-    by unit tests + the AC29 tempdir projection test, not by
-    self-host's working-tree drift gate. Keeping Codex out of
-    `SELF_HOST_ADAPTERS` avoids carrying a duplicate
-    `.agents/skills/` tree in the working tree.
+    rather than splicing a managed block into AGENTS.md. Root AGENTS.md
+    self-host composition is therefore only the core seed body plus the
+    optional footer; Codex's in-repo projection is handled by the Codex
+    adapter through `.agents/` and `.codex/`.
     """
     body_path = packs_dir / "core" / "seeds" / "AGENTS.md"
     if not body_path.exists():
@@ -633,6 +633,10 @@ def _build_projected_to_source_map(
                     for entry in source_dir.iterdir():
                         if entry.is_file():
                             mapping[target_prefix / entry.name] = entry
+                elif mode == "codex-agent-toml":
+                    for entry in source_dir.iterdir():
+                        if entry.is_file() and entry.suffix == ".md":
+                            mapping[target_prefix / f"{entry.stem}.toml"] = entry
                 elif mode in ("merge-json", "managed-block-inline"):
                     mapping.setdefault(
                         Path(rule["target-path"].lstrip("/")),

@@ -285,7 +285,7 @@ Multi-pack adapter entry point:
       post-projection orphan sweep (AC15-AC17).
 - [x] **AC8.** `packages/agentbundle/agentbundle/build/self_host.py`
       routes the adapters in its `SELF_HOST_ADAPTERS` allow-list —
-      narrowed by this spec to `("claude-code",)` — through
+      narrowed by this spec at ship time to `("claude-code",)` — through
       `project_packs([pack.path for pack in packs], contract,
       output_root)`. The legacy per-pack loop is removed. **Both
       Codex and Kiro are out of scope for self-host's working-tree
@@ -302,6 +302,11 @@ Multi-pack adapter entry point:
       exist per AC7 and are verified at the unit level (AC6, AC17,
       AC19, AC20). `.agents/` and `.kiro/` are gitignored. Expanding
       `SELF_HOST_ADAPTERS` is a separate decision.
+      **Correction 2026-06-10:** that separate decision landed in the
+      self-hosting follow-up. Current self-host again includes Codex,
+      and `.agents/skills/`, `.codex/agents/`, and `.codex/hooks.json`
+      are drift-gated repo projections rather than ignored tempdir-only
+      checks. Kiro remains out of scope for self-host.
 - [x] **AC9.** `claude_code.project(pack_path, ...)` and
       `kiro.project(pack_path, ...)` are retained as single-pack
       convenience wrappers that delegate to `project_packs([pack_path], ...)`.
