@@ -1,7 +1,7 @@
 # Plan: credbroker-user-scope
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -266,3 +266,19 @@ The on-disk + import contract (spec's `Contract: none` — specified here):
   graceful floor-skip if a future adapter omits `.agentbundle/` from its
   user prefixes, and reference-counted floor removal on uninstall.
 - 2026-06-09: T3 implemented. `agentbundle/build/user_libs.py` projects `packages/credbroker/credbroker/` byte-faithfully to **two** committed targets from one source: the catalogue-visible pack copy (`packs/credential-brokers/.apm/user-libs/credbroker/`, which `build/main.py` copytrees into each dist pack for T4) and the self-host floor staging (`<repo>/.agentbundle/lib/credbroker/`, mirroring the committed `.agentbundle/bin/`). `lib/` is written default-mode (no exec bit, unlike `bin/`'s `0o755`); the orphan scan skips `__pycache__`/`tests` so importing the floor (the purity test) can't masquerade as drift. Wired into `self_host.py` apply + `run_build_check_drift_gates`. **Version decision: no bump.** The `adapter-root-bins`/`shared-libs` precedent (#139, `de790fe`) added build-pipeline-only primitives — no per-adapter projection rules — *within* v0.7, not as a dedicated bump; `user-libs` is the same shape, so `[contract] version` stays `0.10`, the `test_contract.py` pin and marketplace aggregation are untouched, and the (primitive × adapter) pair count stays 20 (locked by a new `test_user_libs_is_build_pipeline_only`). `[primitive."user-libs"]` declared in both byte-identical `adapter.toml` copies; `"user-libs"` added to `safety.py:_PACK_PRIMITIVE_TYPES`. **Source-location call:** `user_libs` derives its source from `packs_dir.parent` and **no-ops when the package source is absent** (non-monorepo / fixture-packs invocations), so the existing install-marker drift-gate tests stay green; real `make build-check` (where `packs_dir.parent` is the repo root) gates fully. Full `packages/agentbundle` pytest run by hand per the contract-bump trap — no version-pin or stale-assertion breakage.
+- 2026-06-09: T5 implemented — spec close-out. RFC-0023 gains an Approver-signed
+  `## Amendments` entry (Approver: eugenelim) recording the layered delivery model
+  (vendored floor → offline/local pip → PyPI) as the resolution of its deferred
+  no-repo-adopter problem, and linking this spec; stated explicitly that the floor
+  is **additive** (primary contract is still `import credbroker` from site-packages,
+  appended-not-prepended, so ADR-0003's reversal is unchanged — **no new ADR**). The
+  how-to (`add-a-credentialed-skill.md`) Step 9 gains a *layered model* subsection
+  documenting the floor (layer 1) and how the three layers stack on `sys.path`;
+  CONVENTIONS untouched (the consumer convention `import credbroker` is unchanged —
+  the floor is delivery plumbing, not a convention change). Spec flipped to
+  **Shipped** with all 8 ACs checked (each verified against merged T1–T4 deliverables
+  in-tree), and the `credbroker-user-scope` row in `docs/specs/README.md` flipped
+  Draft → Shipped. The deferred **active `--with-credbroker` pip** convenience
+  (spec Boundaries → *Ask first*) recorded in `docs/backlog.md#active-with-credbroker-pip`;
+  it is not an unmet AC (the floor already gives zero-pip Tier-1/2/3). No deferred
+  ACs — all eight met.
