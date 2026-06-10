@@ -605,6 +605,11 @@ and the Codex multi-pack aggregation fix land.
 
 ## Changelog
 
+- 2026-06-10: restored Codex repo projection under self-host after the
+  native-skills migration temporarily narrowed the allow-list. `make
+  build-self` and `make build-check` again run both `claude-code` and
+  `codex`, with Codex output enforced under `.agents/skills/`,
+  `.codex/agents/`, and `.codex/hooks.json`.
 - 2026-05-25: AC22 rescoped from "per pack per install route" to
   single-route (chronologically follows the same-day scaffold-leak
   closure entry below). The original 2026-05-25
