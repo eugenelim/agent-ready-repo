@@ -509,6 +509,11 @@ T6's PR diff.
 
 ## Changelog
 
+- 2026-06-10: restored the Codex side of self-host projection as a
+  follow-up to the native-skills migration. `SELF_HOST_ADAPTERS` again
+  contains `claude-code` and `codex`; the dry-run clone surface now
+  includes `.codex/` and `.agents/`; tests pin `.agents/skills/`,
+  `.codex/agents/`, and `.codex/hooks.json` as drift-gated outputs.
 - 2026-05-23: Phase 2 closed. Comparison-rule strengthening landed:
   CRLF→LF normalisation for text-like files, file-mode permission-bit
   comparison for regular files, and symlink-target comparison via

@@ -897,6 +897,11 @@ restate them.
 
 ## Changelog
 
+- 2026-06-10: follow-up correction after the self-hosting change restored
+  Codex to `SELF_HOST_ADAPTERS`. The 2026-05-25 course-correction entry
+  below records what shipped with this spec at the time; the current
+  contract is that self-host drift-gates Codex `.agents/skills/`,
+  `.codex/agents/`, and `.codex/hooks.json` alongside Claude Code.
 - 2026-05-25: initial plan, drafted from RFC-0009 (Draft status).
   Pinned the author's leans on Unresolved Q2 (deterministic
   last-wins, all three adapters), Q3 (shared cleanup across
@@ -969,10 +974,9 @@ restate them.
   narrower self-host surface. Codex correctness is gated by unit
   tests + AC29 tempdir projection (already in place). Test
   `test_self_host_composes_agents_body_codex_block_and_footer`
-  updated to assert `.agents/` is absent and `.claude/skills/`
-  carries the projected bodies; `SelfHostAdapterRoutingTests`'
-  codex-mock assertion is kept (asserts call_count == 0) to pin
-  the narrowed routing.
+  was changed for that now-superseded narrowing; the 2026-06-10
+  follow-up entry above restores `.agents/skills/` to self-host and
+  replaces the old codex-mock call_count == 0 pin.
 - 2026-05-25: round-5 review revision. Reviewer surfaced two
   concerns + one nit; addressed all. (1) AC9 extended to
   enumerate the three test callers at

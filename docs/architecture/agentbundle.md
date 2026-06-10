@@ -73,7 +73,8 @@ packs/                                dist/
     pack.toml                           claude-plugins/<pack>/       ← per-pack plugin
     .claude-plugin/plugin.json          claude-plugins/marketplace.json
     .apm/{skills,agents,hooks,commands}
-    seeds/                            <repo>/.claude/                ← self-host overlay
+    seeds/                            <repo>/.claude/                ← Claude self-host
+                                      <repo>/.codex/ + .agents/      ← Codex self-host
 ```
 
 1. **Recipe load.** [`build/recipes/`](../../packages/agentbundle/agentbundle/build/recipes/)
@@ -92,10 +93,11 @@ packs/                                dist/
    [`build/projections/`](../../packages/agentbundle/agentbundle/build/projections/).
 4. **Aggregation.** `marketplace.json` lists every per-pack plugin entry.
 5. **Self-host overlay.** `make build-self` runs `self-host.toml` against
-   this repo's root. `make build-check` runs the same dry-run as a CI gate
-   that fails on any byte-divergence between source and projection — the
-   single biggest source of CI noise, so the error message names the seed
-   path you should have edited.
+   this repo's root for the Claude Code and Codex repo projections.
+   `make build-check` runs the same dry-run as a CI gate that fails on
+   any byte-divergence between source and projection — the single biggest
+   source of CI noise, so the error message names the seed path you
+   should have edited.
 
 ### The adapter contract
 
