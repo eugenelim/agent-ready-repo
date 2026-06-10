@@ -28,6 +28,7 @@ both scope roots use :func:`_classify_for_install`. Writes go through
 from __future__ import annotations
 
 import functools
+import os
 import re
 import sys
 import tomllib
@@ -831,6 +832,33 @@ def run(args: "argparse.Namespace") -> int:
                 "from-pack-version": pack_version,
             }
 
+        # ── User-scope `.agentbundle/{lib,bin}/` delivery rail ────────────
+        # (credbroker-user-scope T4) The vendored `credbroker` floor
+        # (`.apm/user-libs/**` → `~/.agentbundle/lib/`) and the
+        # `adapter-root-bins/*.py` + AC22b companion shim
+        # (`~/.agentbundle/bin/`) are build-pipeline-only primitives with no
+        # per-adapter projection rule, so the Step-7 render never emits them;
+        # this is the install-time half of the same `.agentbundle/` rail the
+        # build pipeline projects at self-host scope. Fenced by the user
+        # adapter's `allowed-prefixes.user` (every one includes
+        # `.agentbundle/`), so `write_jailed` admits the writes without a jail
+        # change. Pure file projection — no pip, no credential value touched
+        # (RFC-0006 no-leak). Skipped at repo scope (the floor is a user-scope
+        # `sys.path` fallback; repo consumers run from the monorepo).
+        if plan.scope == "user":
+            try:
+                floor_refusal = _deliver_user_scope_floor(
+                    pack_dir=pack_dir,
+                    root=plan.root,
+                    allowed_prefixes=plan.allowed_prefixes,
+                )
+            except (OSError, safety.PathJailError) as exc:
+                print(f"install: {exc}", file=sys.stderr)
+                return 1
+            if floor_refusal is not None:
+                print(f"install: {floor_refusal}", file=sys.stderr)
+                return 1
+
         # Deliver the pack's seeds (governance docs: AGENTS.md, docs/CHARTER.md,
         # …) into the repo at repo scope. Seeds land at the repo root / docs/,
         # outside the adapter projection prefixes, so they never interact with
@@ -1086,6 +1114,181 @@ def run(args: "argparse.Namespace") -> int:
             print(f"installed: {pack_name} @ {plan.scope}")
 
     return 0
+
+
+# ---------------------------------------------------------------------------
+# User-scope `.agentbundle/{lib,bin}/` delivery rail (credbroker-user-scope T4)
+# ---------------------------------------------------------------------------
+
+# Subtrees never delivered into the floor: bytecode caches and any in-package
+# test tree. Mirrors ``build.user_libs.EXCLUDED_DIR_NAMES`` so importing the
+# pack copy (which writes ``__pycache__/``) can't smuggle stale bytecode into
+# ``~/.agentbundle/lib/``.
+_USER_LIBS_EXCLUDED_DIR_NAMES = frozenset({"__pycache__", "tests"})
+
+
+def _assert_user_floor_dirs_safe(root: Path) -> str | None:
+    """POSIX guard: refuse delivery into a group/world-writable floor.
+
+    The vendored floor under ``~/.agentbundle/lib`` is appended to
+    ``sys.path`` at lowest precedence by every credentialed consumer
+    bootstrap (credbroker-user-scope T1), and ``~/.agentbundle/bin`` carries
+    executable broker scripts. A group/other-writable artifact dir is
+    therefore a local code-execution vector — another account could drop a
+    malicious ``credbroker/__init__.py`` or ``sso-broker.py`` that a consumer
+    then imports/runs. Delivery owns the floor's integrity (T1's bootstrap
+    relies on it), so refuse *before* writing if any existing artifact dir —
+    ``.agentbundle`` itself, ``lib/``/``bin/``, **and every leaf already under
+    them** (e.g. a pre-existing ``lib/credbroker/``) — carries a loose mode.
+    Walking the whole tree, not three fixed dirs, closes the
+    loose-leaf-passes-the-check gap; :func:`_harden_floor_dir_modes` only
+    repairs modes *after* a successful write.
+
+    Returns a refusal string, or ``None`` when safe. No-op on Windows: the
+    POSIX mode bits don't model the DACL the floor inherits from
+    ``%USERPROFILE%`` there.
+
+    TOCTOU: this is a check-then-write guard, so it assumes a single-user
+    ``$HOME`` (the floor's trust boundary). A world-loose ``$HOME`` shared
+    with a hostile local account can still race the window between this check
+    and the write — out of scope for the file-projection threat model.
+    """
+    if os.name != "posix":
+        return None
+    base = root / ".agentbundle"
+    candidates: list[Path] = [base]
+    for sub in (base / "lib", base / "bin"):
+        if sub.is_dir():
+            for dirpath, _dirnames, _filenames in os.walk(sub):
+                candidates.append(Path(dirpath))
+    for d in candidates:
+        if d.is_dir():
+            mode = os.stat(d).st_mode & 0o777
+            if mode & 0o022:
+                return (
+                    f"refusing user-scope delivery: {d} is group/world-writable "
+                    f"(mode {mode:#o}); a writable floor is a local "
+                    f"code-execution vector — run 'chmod go-w' on it and retry"
+                )
+    return None
+
+
+def _harden_floor_dir_modes(root: Path) -> None:
+    """Strip group/world *write* bits from the delivered floor dirs (POSIX).
+
+    ``write_jailed`` creates parent directories under the process umask; a
+    permissive umask (``002``/``000``) would otherwise leave
+    ``~/.agentbundle/{lib,bin}`` and their subdirs group/world-writable —
+    re-opening the code-execution vector :func:`_assert_user_floor_dirs_safe`
+    refuses on entry. Delivered *files* are already restrictive (``mkstemp``
+    creates ``0o600``; ``bin/`` is explicitly ``0o755``), so only directory
+    modes need hardening. No-op on Windows (DACL model).
+    """
+    if os.name != "posix":
+        return
+    base = root / ".agentbundle"
+    for d in (base, base / "lib", base / "bin"):
+        if not d.is_dir():
+            continue
+        for dirpath, _dirnames, _filenames in os.walk(d):
+            cur = os.stat(dirpath).st_mode & 0o777
+            if cur & 0o022:
+                os.chmod(dirpath, cur & ~0o022)
+
+
+def _deliver_user_scope_floor(
+    *,
+    pack_dir: Path,
+    root: Path,
+    allowed_prefixes: list[str] | None,
+) -> str | None:
+    """Deliver the user-scope ``.agentbundle/{lib,bin}/`` rail for one pack.
+
+    Two halves, both written through ``safety.write_jailed`` under the
+    user-scope path-jail (the target stays under ``.agentbundle/``, which
+    every user-scope adapter's ``allowed-prefixes.user`` already permits):
+
+    - **lib/** — the pack's ``.apm/user-libs/**`` vendored floor (e.g.
+      ``credbroker/``) → ``~/.agentbundle/lib/**``. Importable Python, written
+      with **default** mode (no exec bit). The consumer bootstraps append
+      ``~/.agentbundle/lib`` to ``sys.path`` at lowest precedence (T1), so a
+      no-repo user-scope install regains Tier-2/3 credential resolution.
+    - **bin/** — the pack's ``.apm/adapter-root-bins/*.py`` plus the AC22b
+      companion ``credentials_shim.py`` (ship-both) → ``~/.agentbundle/bin/``
+      with POSIX ``0o755`` (Windows inherits the parent DACL). Closes the
+      long-missing user-scope half of the RFC-0013 ``sso-broker`` delivery.
+
+    These are *shared, idempotent* floor artifacts — one copy serving every
+    credentialed consumer — not pack-private projected files, so they are
+    delivered on every fresh user-scope install and deliberately **not**
+    recorded in the pack's ``state.files``: uninstalling one pack must not
+    strip a co-installed pack's floor.
+
+    Returns a refusal string when the floor-safety guard fails (the caller
+    aborts the install), or ``None`` on success / when the pack ships no
+    floor content (then this is a no-op — a pack that writes nothing to the
+    floor never triggers the group/world-writable refusal).
+    """
+    from agentbundle import safety
+    from agentbundle.build import adapter_root_bins
+
+    bin_sources = adapter_root_bins.collect_pack_root_bins(pack_dir)
+    lib_src_root = pack_dir / ".apm" / "user-libs"
+    # Reject a symlinked primitive dir itself (os.walk(top=symlink) enumerates
+    # the link target's real files, which the per-entry is_symlink() skip below
+    # would not catch) — see collect_pack_root_bins for the bin/ twin.
+    has_lib = lib_src_root.is_dir() and not lib_src_root.is_symlink()
+    if not bin_sources and not has_lib:
+        # No floor content in this pack — nothing to deliver, and no reason to
+        # gate the install on the floor dirs' modes.
+        return None
+
+    floor_refusal = _assert_user_floor_dirs_safe(root)
+    if floor_refusal is not None:
+        return floor_refusal
+
+    # bin/ half — companion-aware, single-pack enumeration. 0o755 on POSIX.
+    bin_mode = adapter_root_bins.EXECUTABLE_MODE if os.name == "posix" else None
+    for basename, src in sorted(bin_sources.items()):
+        relpath = (adapter_root_bins.TARGET_SUBDIR / basename).as_posix()
+        safety.write_jailed(
+            root,
+            relpath,
+            src.read_bytes(),
+            mode=bin_mode,
+            scope="user",
+            allowed_prefixes=allowed_prefixes,
+        )
+
+    # lib/ half — the vendored floor, written default-mode (importable Python,
+    # no exec bit). Walk the pack's whole .apm/user-libs/** tree with
+    # followlinks=False and skip file symlinks: a crafted pack must not read an
+    # out-of-tree file (e.g. /etc/passwd) into the floor via a symlink (the
+    # write target can't escape the jail, but the *content* would). Matches the
+    # repo's os.walk(followlinks=False) convention for pack-content walks.
+    if has_lib:
+        for dirpath, dirnames, filenames in os.walk(lib_src_root, followlinks=False):
+            # Prune excluded subtrees in place (don't recurse into caches) and
+            # keep the walk deterministic.
+            dirnames[:] = sorted(
+                d for d in dirnames if d not in _USER_LIBS_EXCLUDED_DIR_NAMES
+            )
+            for fname in sorted(filenames):
+                src = Path(dirpath) / fname
+                if src.is_symlink():
+                    continue
+                rel = src.relative_to(lib_src_root)
+                relpath = (Path(".agentbundle") / "lib" / rel).as_posix()
+                safety.write_jailed(
+                    root,
+                    relpath,
+                    src.read_bytes(),
+                    scope="user",
+                    allowed_prefixes=allowed_prefixes,
+                )
+
+    _harden_floor_dir_modes(root)
+    return None
 
 
 _INBAND_DETECTION_SEEN: set[tuple[str, str]] = set()

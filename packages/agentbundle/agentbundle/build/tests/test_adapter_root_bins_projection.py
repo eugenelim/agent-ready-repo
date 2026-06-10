@@ -425,5 +425,66 @@ class AdapterRootBinsShimCompanionTests(unittest.TestCase):
         self.assertEqual(target.read_bytes(), source.read_bytes())
 
 
+class CollectPackRootBinsTests(unittest.TestCase):
+    """credbroker-user-scope T4: the single-pack, companion-aware
+    enumeration `agentbundle install` uses (it owns its own scope jail and
+    can't call the multi-pack, working-tree-folding `compute_projections`)."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp_path = Path(self._tmp.name)
+
+    def test_empty_when_pack_ships_no_adapter_root_bins(self) -> None:
+        pack = _make_fixture_pack(self.tmp_path / "packs", "no-bins", bins={})
+        self.assertEqual(arb.collect_pack_root_bins(pack), {})
+
+    def test_bins_without_companion_when_no_shim_shipped(self) -> None:
+        pack = _make_fixture_pack(
+            self.tmp_path / "packs", "bins-only", bins={"sso-broker.py": b"x\n"}
+        )
+        got = arb.collect_pack_root_bins(pack)
+        self.assertEqual(set(got), {"sso-broker.py"})
+
+    def test_includes_companion_shim_on_ship_both(self) -> None:
+        # Ship both adapter-root-bins/ AND shared-libs/credentials_shim.py →
+        # the companion rides along (a bare glob would miss it, landing the
+        # _sso_* backends' `from .credentials_shim import` broken).
+        pack = _make_fixture_pack(
+            self.tmp_path / "packs",
+            "both",
+            bins={
+                "sso-broker.py": b"a\n",
+                "_sso_keychain_macos.py": b"from .credentials_shim import X\n",
+            },
+            shared_libs={"credentials_shim.py": b"shim\n"},
+        )
+        got = arb.collect_pack_root_bins(pack)
+        self.assertEqual(
+            set(got),
+            {"sso-broker.py", "_sso_keychain_macos.py", "credentials_shim.py"},
+        )
+        self.assertEqual(
+            got["credentials_shim.py"],
+            pack / ".apm" / "shared-libs" / "credentials_shim.py",
+        )
+
+    def test_skips_symlinked_bin_source(self) -> None:
+        # install resolves pack_dir from an untrusted catalogue and lands these
+        # bytes executable — a symlinked *.py pointing out of tree must not be
+        # read into the floor.
+        if os.name != "posix":
+            self.skipTest("symlink creation needs privilege on Windows")
+        secret = self.tmp_path / "secret.txt"
+        secret.write_bytes(b"SECRET\n")
+        pack = _make_fixture_pack(
+            self.tmp_path / "packs", "sneaky", bins={"sso-broker.py": b"ok\n"}
+        )
+        link = pack / ".apm" / "adapter-root-bins" / "evil.py"
+        link.symlink_to(secret)
+        got = arb.collect_pack_root_bins(pack)
+        self.assertEqual(set(got), {"sso-broker.py"}, "symlinked bin must be skipped")
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
