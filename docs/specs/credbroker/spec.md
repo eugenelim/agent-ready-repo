@@ -18,8 +18,9 @@
 > end-to-end: build the package (stdlib core + optional `[crypto]` vault),
 > migrate the **six** in-tree consumers off the byte-projected shim, and retire
 > the `shared-libs/` projection + drift gate once no consumer imports the
-> vendored shim. **Phase 2 is deferred** (see Acceptance Criteria and
-> [`docs/backlog.md`](../../backlog.md#credbroker)). All Phase-1 tasks live in
+> vendored shim. **Phase 2 was out of this spec's scope** (it shipped
+> out-of-band on 2026-06-10 — `credbroker 0.1.0` on PyPI; see Acceptance
+> Criteria and [`docs/backlog.md`](../../backlog.md#credbroker)). All Phase-1 tasks live in
 > one spec so the migration cannot drift between the package and its consumers —
 > the same single-spec discipline the `credential-broker-contract` spec used for
 > the reverse migration.
@@ -105,7 +106,7 @@ Each user-visible outcome from the Objective, paired with a mode and why:
 - [x] No credential value appears in stdout, stderr, argv, logs, or any exception message on any failure path (the RFC-0006 no-leak invariant), proven by the ported redaction/`__repr__` tests and the degrade-matrix integration tests. *(Wave B — `Credentials.__repr__` redaction (T2); vault fail-closed (T4); master never exported (T5); degrade-matrix success-path + a wrong-master failure cell asserting no secret in the exception or captured stderr (T6). `argv` is structurally out of credbroker's surface — it ships no CLI in v1 — so that clause is the consumer CLIs' own pre-existing argv-ban, not credbroker's to leak.)*
 - [x] The reserved `3–9` exit band stays unclaimed: credbroker ships no `setup`/`check` CLI in v1, and no consumer's exit-code constants change. *(Wave C — credbroker remains a pure library; T9/T10 touch no exit-code constant in any consumer.)*
 - [x] The five-CLI migration is import-line-only and exit-code-behaviour-preserving: each `_client.py` imports the resolver lazily inside `load_credentials()`, so with `credbroker` uninstalled a command exits 1 (the top-level `except Exception`) with a clean message and no traceback — identical to a missing projected shim today. The `credentialed-cli-exit-code-contract` spec is **not** amended by this migration. (Making a missing `credbroker` exit 2 for parity with the top-level `httpx` guard is a deliberate import-hoist, out of Phase-1 scope — see plan Risks.) *(Wave C / T7 — consumer change is the import line only; the `auth: creds` resolver-import lint was extended to accept credbroker, see plan T7.)*
-- [ ] **Phase 2 — PyPI publication + version pinning — is deferred** (deferred: credbroker-phase-2). Defensive PyPI name registration is recorded as a user action, not performed by this spec.
+- [x] **Phase 2 — PyPI publication + version pinning — shipped 2026-06-10** (out-of-band of this Phase-1 spec): `credbroker 0.1.0` was published to PyPI by `release-credbroker.yml`'s OIDC Trusted-Publishing job (tag `credbroker-v0.1.0`), which claimed the name with the first real upload — the user action this spec recorded but did not perform. The six consumers now carry a `credbroker>=0.1.0` floor. See `docs/backlog.md#credbroker-phase-2`.
 
 ## Assumptions
 

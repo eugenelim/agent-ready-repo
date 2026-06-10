@@ -5,9 +5,10 @@ skills. Resolves secrets **in-process** through three tiers —
 environment variable → OS keyring → a `0600` dotfile floor — and never lets a
 cleartext value cross a process boundary to the LLM.
 
-> Status: **Phase 1** (RFC-0023). Developed in-tree at `packages/credbroker/`,
-> installed via repo path (`pip install -e ./packages/credbroker`). PyPI
-> publication is Phase 2 (deferred — see `docs/backlog.md#credbroker-phase-2`).
+> Status: **published on PyPI** — `credbroker 0.1.0` (2026-06-10, RFC-0023).
+> Install from PyPI (`pip install credbroker`, or `credbroker[crypto]` for the
+> encrypted vault), or from the repo path for local development
+> (`pip install -e ./packages/credbroker`).
 
 ## Install
 
