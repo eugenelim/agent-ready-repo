@@ -389,6 +389,20 @@ floor behind indefinitely (owner-owned, mode-correct — no exploit on its own, 
 latent stale broker). Follow-on: a reference-counted `uninstall` that removes the floor
 only when no credentialed pack remains. Deferred: out of T4's delivery scope.
 
+### active-with-credbroker-pip
+The "active B" convenience — an `agentbundle install … --with-credbroker` flag that
+**auto-runs `pip install credbroker[crypto]`** during install, instead of leaving pip
+a separate user step — is deferred (spec Boundaries → *Ask first*). It is not an unmet
+acceptance criterion: the shipped vendored floor (layer 1) already gives a no-repo
+user-scope install full Tier-1/2/3 resolution with zero pip, so auto-pip is a
+*convenience* (it would auto-enable the encrypted `[crypto]` vault, layer 2), not a
+correctness gap. **Deferred because** the open risk is interpreter/venv targeting —
+which Python `install` would pip *into* (the consumer skill runs under whichever
+interpreter invokes it, not necessarily the one `agentbundle` runs under), and a wrong
+target silently lands the package where the skill can't import it. **Unblocks when:** a
+concrete adopter need surfaces **and** the interpreter/venv-resolution question is
+settled (then surface it before wiring, per the spec's *Ask first* boundary).
+
 ## `copilot-full-parity`
 
 Shipped 2026-06-05 (RFC-0024 / ADR-0013 → [`docs/specs/copilot-full-parity/spec.md`](specs/copilot-full-parity/spec.md)):
