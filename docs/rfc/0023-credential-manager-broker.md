@@ -159,3 +159,21 @@ record. Post-acceptance changes are appended here, Approver-signed.
   [RFC-0013](0013-credential-broker-contract.md)'s `adapter-root-bins` →
   `~/.agentbundle/bin/` projection (the `sso-broker` companion), which had only
   ever shipped its self-host half.
+
+- **2026-06-10 (Approver: eugenelim) — Phase 2 / layer 3 (PyPI) shipped:
+  `credbroker 0.1.0` published, name claimed.** The PyPI publish that the
+  Proposal's § Delivery (Phase 2) and the 2026-06-09 amendment (layer 3) both
+  left as a *gated, manual maintainer action* has now happened: **`credbroker
+  0.1.0` is on PyPI** — `pip install credbroker` / `credbroker[crypto]` resolve
+  from public PyPI. It was uploaded by `release-credbroker.yml`'s OIDC
+  Trusted-Publishing job on tag `credbroker-v0.1.0` (token-free, modelled on
+  `release-agentbundle.yml`); the first real upload **claimed the `credbroker`
+  name**, which resolves Open Question #1's defensive-registration point — a PyPI
+  *pending* publisher reserves nothing, so reservation and first release were the
+  same event (the name-registration decision in
+  [`docs/backlog.md#credbroker-phase-2`](../backlog.md#credbroker-phase-2)). The
+  **no-repo APM/Claude-plugin adopter** — the profile this RFC's Problem statement
+  and pre-mortem flagged as stranded until Phase 2 — now has a working
+  `pip install`. The six in-tree consumers carry a `credbroker>=0.1.0` floor.
+  Nothing in the decision changes; this records that its final delivery phase
+  shipped.

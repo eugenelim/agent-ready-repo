@@ -3,4 +3,4 @@ lxml>=5.2
 markdownify>=0.12
 python-slugify>=8.0
 pyyaml>=6.0
-credbroker
+credbroker>=0.1.0
