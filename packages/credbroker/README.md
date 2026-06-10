@@ -13,8 +13,13 @@ cleartext value cross a process boundary to the LLM.
 ## Install
 
 ```bash
-pip install -e ./packages/credbroker            # stdlib-only core
-pip install -e './packages/credbroker[crypto]'  # + encrypted-at-rest vault
+pip install credbroker                          # stdlib-only core, from PyPI
+pip install 'credbroker[crypto]'                # + encrypted-at-rest vault
+
+# Or work against a repo clone — an editable install for local development
+# (no PyPI needed; same import, the repo copy wins on sys.path):
+pip install -e ./packages/credbroker
+pip install -e './packages/credbroker[crypto]'
 ```
 
 The core has **no third-party dependency**. The `[crypto]` extra adds
