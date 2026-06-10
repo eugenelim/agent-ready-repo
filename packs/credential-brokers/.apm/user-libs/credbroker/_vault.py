@@ -1,11 +1,12 @@
 """Encrypted-at-rest credential vault for the `credbroker[crypto]` extra.
 
 RFC-0023's Tier-3 floor upgrade: instead of a plaintext `0600` dotfile, the
-optional `[crypto]` extra stores values in an AEAD-encrypted file. This module
-imports `cryptography` and `argon2` at top level, so it is imported **lazily**
-(never from `credbroker/__init__.py` or `credbroker/_core.py`) — the base import
-graph stays third-party-free (spec AC4). A consumer reaches it only through the
-Tier-3 dispatch path (T5) or the credential-setup write path (T8).
+optional `[crypto]` extra stores values in an AEAD-encrypted file. This module's
+own top level pulls in `cryptography` and `argon2`, so the resolution core imports
+the vault **module lazily** — only inside the functions that need it, never at the
+top level of `credbroker/__init__.py` or `credbroker/_core.py`. The base import
+graph therefore stays third-party-free (spec AC4). A consumer reaches the vault
+only through the Tier-3 dispatch path (T5) or the credential-setup write path (T8).
 
 Key hierarchy (authsome's scheme):
 

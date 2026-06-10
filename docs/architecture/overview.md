@@ -96,8 +96,8 @@ One file per non-trivial subsystem:
   CLI and build pipeline. Stdlib-only, distributed as a zipapp and as
   an editable pip install. As of 0.2.0 it no longer ships a credential-
   resolution module; credentialed primitives in the `atlassian` and
-  `figma` packs import a build-projected `credentials_shim` sibling
-  shipped by the `credential-brokers` pack. See
+  `figma` packs resolve credentials through the pip-installable
+  `credbroker` library (RFC-0023), not the agentbundle wheel. See
   [`agentbundle.md`](agentbundle.md) and [`credentials.md`](credentials.md).
 - [`packages/_example/`](../../packages/_example/) — a minimal package
   template the `new-package` skill (in `monorepo-extras`) copies when an
