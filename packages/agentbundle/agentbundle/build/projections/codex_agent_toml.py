@@ -12,11 +12,16 @@ sub-tables):
 
   - YAML ``name`` → TOML ``name``
   - YAML ``description`` → TOML ``description``
+  - YAML ``model`` aliases → TOML ``model`` with OpenAI model IDs
+  - YAML ``tools`` → documented Codex config fields. Multiple Claude
+    tools can imply the same Codex capability; duplicates collapse
+    before emission. The projection never emits a generic top-level
+    ``tools = [...]`` array.
   - markdown body → TOML ``developer_instructions`` (mode-level
     convention; **not** a frontmatter rename, because the body isn't a
     frontmatter field). Empty body → empty string.
-  - Unmapped YAML fields (``tools``, ``model``, …) drop silently —
-    codex TOML agents have no equivalent slot.
+  - Unmapped YAML fields drop silently; unmapped values for mapped
+    fields drop with a build-time warning.
 
 TOML emission shape: each output field is emitted as ``<key> = <value>``.
 ``name`` / ``description`` use TOML basic strings (``"..."``);
@@ -30,6 +35,7 @@ so the parsed value starts with the body's first character, byte-for-byte).
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -152,6 +158,45 @@ def _emit_multiline_basic_string(value: str) -> str:
     return "".join(chunks)
 
 
+def _emit_toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return _emit_basic_string(str(value))
+
+
+def _emit_fields(fields: dict[str, Any], developer_instructions: str) -> list[str]:
+    """Emit top-level fields first, then nested tables.
+
+    TOML table headers are sticky; `developer_instructions` must be emitted
+    before `[features]` / `[tools]` or it would become a member of the last
+    table.
+    """
+    top_level: dict[str, Any] = {}
+    tables: dict[str, dict[str, Any]] = {}
+    for key, value in fields.items():
+        if "." in key:
+            table, _, child_key = key.partition(".")
+            tables.setdefault(table, {})[child_key] = value
+        else:
+            top_level[key] = value
+
+    lines: list[str] = []
+    for key in sorted(top_level):
+        lines.append(f"{key} = {_emit_toml_value(top_level[key])}")
+    if developer_instructions:
+        lines.append(
+            f"developer_instructions = "
+            f"{_emit_multiline_basic_string(developer_instructions)}"
+        )
+    else:
+        lines.append('developer_instructions = ""')
+    for table in sorted(tables):
+        lines.append(f"[{table}]")
+        for key in sorted(tables[table]):
+            lines.append(f"{key} = {_emit_toml_value(tables[table][key])}")
+    return lines
+
+
 # ---------------------------------------------------------------------------
 # Mapping application
 # ---------------------------------------------------------------------------
@@ -159,31 +204,94 @@ def _emit_multiline_basic_string(value: str) -> str:
 
 def _apply_mapping(
     frontmatter: dict[str, Any], mapping: dict[str, Any]
-) -> dict[str, str]:
-    """Apply the frontmatter-mapping rename rules; drop unmapped keys.
+) -> dict[str, Any]:
+    """Apply the frontmatter-mapping rename / normalize / values rules.
 
     The codex contract maps ``name``/``description`` straight through
     (no rename). Pack authors writing claude-code-style frontmatter
     (``name``, ``description``, optional ``tools``, ``model``, …) get
-    their first two fields propagated; the rest drop silently — codex
-    TOML agents have no equivalent slot.
+    the fields Codex can represent propagated. ``values`` maps source
+    aliases to Codex identifiers or intermediate capability intents.
+    Unknown values drop with stderr warnings so pack-author typos are
+    visible at build time.
 
-    Returned values are coerced to ``str`` so the TOML emitter doesn't
-    have to handle lists or dicts at this surface (the codex agent
-    schema is flat: ``name``, ``description``, ``developer_instructions``).
     Lists collapse to a comma-joined string for backward compatibility
-    with packs that ship ``description: [foo, bar]``; that's a degenerate
-    case rather than a supported shape.
+    unless the rule declares ``normalize = "to-list"``; that rule splits
+    comma strings, maps each token, and deduplicates translated values.
     """
-    rewritten: dict[str, str] = {}
+    rewritten: dict[str, Any] = {}
     for source_key, rule in mapping.items():
         if source_key not in frontmatter:
             continue
         new_key = rule.get("rename", source_key)
         value = frontmatter[source_key]
-        if isinstance(value, list):
+        original_value = value
+        normalize = rule.get("normalize")
+        if normalize == "to-list":
+            if isinstance(value, list):
+                pass
+            elif isinstance(value, str):
+                value = [item.strip() for item in value.split(",") if item.strip()]
+            else:
+                value = [value]
+        values_map = rule.get("values")
+        if isinstance(values_map, dict):
+            if isinstance(value, list) and normalize == "to-list":
+                mapped: list[str] = []
+                for item in value:
+                    if item in values_map:
+                        translated = values_map[item]
+                        if translated not in mapped:
+                            mapped.append(translated)
+                    else:
+                        print(
+                            f"codex: dropping {new_key} entry {item!r} - not in "
+                            f"contract values map for source key {source_key!r}",
+                            file=sys.stderr,
+                        )
+                value = mapped
+            elif isinstance(value, str) and value in values_map:
+                value = values_map[value]
+                related_values = rule.get("related-values")
+                if isinstance(related_values, dict):
+                    for related_key, related_map in related_values.items():
+                        if (
+                            isinstance(related_key, str)
+                            and isinstance(related_map, dict)
+                            and original_value in related_map
+                        ):
+                            rewritten[related_key] = related_map[original_value]
+            else:
+                print(
+                    f"codex: dropping {new_key}={value!r} - not in contract "
+                    f"values map for source key {source_key!r}",
+                    file=sys.stderr,
+                )
+                continue
+        elif isinstance(value, list):
             value = ", ".join(str(item) for item in value)
-        rewritten[new_key] = str(value)
+        rewritten[new_key] = value
+    return rewritten
+
+
+def _apply_codex_tool_intents(fields: dict[str, Any]) -> dict[str, Any]:
+    """Reduce mapped tool intents to documented Codex config keys."""
+    rewritten = dict(fields)
+    missing = object()
+    intents = rewritten.pop("tools", missing)
+    if intents is missing or not isinstance(intents, list):
+        return rewritten
+
+    intent_set = set(str(intent) for intent in intents)
+    has_write = "write" in intent_set
+    has_shell = "shell" in intent_set
+    has_web_search = "web_search" in intent_set
+
+    rewritten["sandbox_mode"] = "workspace-write" if has_write else "read-only"
+    rewritten["features.shell_tool"] = has_shell
+    rewritten["web_search"] = "live" if has_web_search else "disabled"
+    if has_web_search:
+        rewritten["tools.web_search"] = True
     return rewritten
 
 
@@ -218,15 +326,9 @@ def project_codex_agent_toml(
         frontmatter, body = _split_frontmatter(
             entry.read_text(encoding="utf-8")
         )
-        rewritten = _apply_mapping(frontmatter, frontmatter_mapping)
-        toml_lines: list[str] = []
-        for key in sorted(rewritten.keys()):
-            toml_lines.append(f"{key} = {_emit_basic_string(rewritten[key])}")
-        if body:
-            toml_lines.append(
-                f"developer_instructions = {_emit_multiline_basic_string(body)}"
-            )
-        else:
-            toml_lines.append('developer_instructions = ""')
+        rewritten = _apply_codex_tool_intents(
+            _apply_mapping(frontmatter, frontmatter_mapping)
+        )
+        toml_lines = _emit_fields(rewritten, body)
         destination = target_dir / (entry.stem + ".toml")
         destination.write_text("\n".join(toml_lines) + "\n", encoding="utf-8")

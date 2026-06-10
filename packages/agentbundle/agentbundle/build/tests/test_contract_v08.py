@@ -132,6 +132,42 @@ class TestContractV08(unittest.TestCase):
         self.assertEqual(mapping["name"]["rename"], "name")
         self.assertIn("description", mapping)
         self.assertEqual(mapping["description"]["rename"], "description")
+        self.assertIn("model", mapping)
+        self.assertEqual(mapping["model"]["rename"], "model")
+        self.assertEqual(
+            mapping["model"]["values"],
+            {
+                "opus": "gpt-5.5",
+                "sonnet": "gpt-5.5",
+                "haiku": "gpt-5.4-mini",
+            },
+        )
+        self.assertEqual(
+            mapping["model"]["related-values"],
+            {
+                "model_reasoning_effort": {
+                    "opus": "xhigh",
+                    "sonnet": "medium",
+                    "haiku": "medium",
+                }
+            },
+        )
+        self.assertIn("tools", mapping)
+        self.assertEqual(mapping["tools"]["normalize"], "to-list")
+        self.assertEqual(
+            mapping["tools"]["values"],
+            {
+                "Read": "read",
+                "Grep": "read",
+                "Glob": "read",
+                "Edit": "write",
+                "Write": "write",
+                "MultiEdit": "write",
+                "Bash": "shell",
+                "WebFetch": "web_search",
+                "WebSearch": "web_search",
+            },
+        )
         # No `body` sub-table — body-to-`developer_instructions` is a
         # mode-level convention per spec AC4, not a frontmatter rename.
         self.assertNotIn("body", mapping)

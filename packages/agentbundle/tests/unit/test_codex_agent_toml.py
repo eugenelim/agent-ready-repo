@@ -13,6 +13,8 @@ from __future__ import annotations
 import tempfile
 import tomllib
 import unittest
+from contextlib import redirect_stderr
+import io
 from pathlib import Path
 
 from agentbundle.build.projections.codex_agent_toml import (
@@ -25,6 +27,35 @@ from agentbundle.build.projections.codex_agent_toml import (
 CODEX_AGENT_FRONTMATTER_V08 = {
     "name": {"rename": "name"},
     "description": {"rename": "description"},
+    "tools": {
+        "normalize": "to-list",
+        "values": {
+            "Read": "read",
+            "Grep": "read",
+            "Glob": "read",
+            "Edit": "write",
+            "Write": "write",
+            "MultiEdit": "write",
+            "Bash": "shell",
+            "WebFetch": "web_search",
+            "WebSearch": "web_search",
+        },
+    },
+    "model": {
+        "rename": "model",
+        "values": {
+            "opus": "gpt-5.5",
+            "sonnet": "gpt-5.5",
+            "haiku": "gpt-5.4-mini",
+        },
+        "related-values": {
+            "model_reasoning_effort": {
+                "opus": "xhigh",
+                "sonnet": "medium",
+                "haiku": "medium",
+            }
+        },
+    },
 }
 
 RULE = {
@@ -51,6 +82,14 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
         target = self.output / ".codex" / "agents" / "agent.toml"
         self.assertTrue(target.exists(), f"missing {target}")
         return tomllib.loads(target.read_text(encoding="utf-8"))
+
+    def _run_text(self) -> str:
+        project_codex_agent_toml(
+            self.source, self.output, RULE, CODEX_AGENT_FRONTMATTER_V08
+        )
+        target = self.output / ".codex" / "agents" / "agent.toml"
+        self.assertTrue(target.exists(), f"missing {target}")
+        return target.read_text(encoding="utf-8")
 
     def _write(self, body: str) -> None:
         (self.source / "agent.md").write_text(body, encoding="utf-8")
@@ -80,11 +119,118 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
 
     def test_unmapped_fields_dropped(self) -> None:
         self._write(
-            "---\nname: foo\ndescription: bar\ntools: [a, b]\nmodel: opus\n---\n"
+            "---\nname: foo\ndescription: bar\ntarget: vscode\n---\n"
             "Body.\n"
         )
         data = self._run()
         self.assertEqual(set(data.keys()), {"name", "description", "developer_instructions"})
+
+    def test_model_alias_maps_to_openai_model_id(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\nmodel: opus\n---\nBody.\n"
+        )
+        data = self._run()
+        self.assertEqual(data["model"], "gpt-5.5")
+        self.assertEqual(data["model_reasoning_effort"], "xhigh")
+
+    def test_unknown_model_drops_with_warning(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\nmodel: claude-opus-4.6\n---\nBody.\n"
+        )
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            data = self._run()
+        self.assertNotIn("model", data)
+        self.assertIn("codex: dropping model=", stderr.getvalue())
+        self.assertIn("claude-opus-4.6", stderr.getvalue())
+
+    def test_non_scalar_model_drops_with_warning(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\nmodel: [opus]\n---\nBody.\n"
+        )
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            data = self._run()
+        self.assertNotIn("model", data)
+        self.assertNotIn("model_reasoning_effort", data)
+        self.assertIn("codex: dropping model=", stderr.getvalue())
+
+    def test_read_tools_collapse_to_read_only_config(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\ntools: Read, Grep, Glob\n---\nBody.\n"
+        )
+        data = self._run()
+        self.assertNotIn("tools", data)
+        self.assertEqual(data["sandbox_mode"], "read-only")
+        self.assertEqual(data["features"]["shell_tool"], False)
+        self.assertEqual(data["web_search"], "disabled")
+
+    def test_write_tools_collapse_to_workspace_write_config(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\n"
+            "tools: Read, Edit, Write, MultiEdit\n---\nBody.\n"
+        )
+        data = self._run()
+        self.assertNotIn("tools", data)
+        self.assertEqual(data["sandbox_mode"], "workspace-write")
+
+    def test_bash_enables_shell_tool_once(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\ntools: Read, Bash, Bash\n---\nBody.\n"
+        )
+        data = self._run()
+        self.assertNotIn("tools", data)
+        self.assertEqual(data["sandbox_mode"], "read-only")
+        self.assertEqual(data["features"]["shell_tool"], True)
+
+    def test_web_tools_collapse_to_web_search_config(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\n"
+            "tools: Read, WebFetch, WebSearch\n---\nBody.\n"
+        )
+        text = self._run_text()
+        self.assertNotIn("tools = [", text)
+        self.assertIn("[tools]", text)
+        data = tomllib.loads(text)
+        self.assertEqual(data["sandbox_mode"], "read-only")
+        self.assertEqual(data["web_search"], "live")
+        self.assertEqual(data["tools"]["web_search"], True)
+
+    def test_unknown_tool_drops_with_warning(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\ntools: Read, NotebookEdit\n---\nBody.\n"
+        )
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            data = self._run()
+        self.assertEqual(data["sandbox_mode"], "read-only")
+        self.assertNotIn("NotebookEdit", str(data))
+        self.assertIn("codex: dropping tools entry", stderr.getvalue())
+        self.assertIn("NotebookEdit", stderr.getvalue())
+
+    def test_unknown_only_tools_emit_least_privilege_config(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\ntools: NotebookEdit\n---\nBody.\n"
+        )
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            data = self._run()
+        self.assertEqual(data["sandbox_mode"], "read-only")
+        self.assertEqual(data["features"]["shell_tool"], False)
+        self.assertEqual(data["web_search"], "disabled")
+        self.assertIn("NotebookEdit", stderr.getvalue())
+
+    def test_absent_tools_inherits_codex_defaults(self) -> None:
+        self._write(
+            "---\nname: foo\ndescription: bar\nmodel: haiku\n---\nBody.\n"
+        )
+        data = self._run()
+        self.assertEqual(data["model"], "gpt-5.4-mini")
+        self.assertEqual(data["model_reasoning_effort"], "medium")
+        self.assertNotIn("sandbox_mode", data)
+        self.assertNotIn("features", data)
+        self.assertNotIn("web_search", data)
+        self.assertNotIn("tools", data)
 
     def test_frontmatter_rename_applied(self) -> None:
         """A mapping that renames ``summary`` → ``description`` is honoured."""
@@ -170,6 +316,24 @@ class TestApplyMapping(unittest.TestCase):
             {"name": {"rename": "name"}},
         )
         self.assertEqual(result, {"name": "foo"})
+
+    def test_to_list_values_collapse_duplicates(self) -> None:
+        result = _apply_mapping(
+            {"tools": "Read, Grep, Glob, WebFetch, WebSearch"},
+            {
+                "tools": {
+                    "normalize": "to-list",
+                    "values": {
+                        "Read": "read",
+                        "Grep": "read",
+                        "Glob": "read",
+                        "WebFetch": "web_search",
+                        "WebSearch": "web_search",
+                    },
+                }
+            },
+        )
+        self.assertEqual(result, {"tools": ["read", "web_search"]})
 
     def test_list_collapsed_to_comma_joined(self) -> None:
         """Degenerate case — packs that ship ``description: [a, b]``

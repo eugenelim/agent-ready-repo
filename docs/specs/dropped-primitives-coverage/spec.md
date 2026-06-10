@@ -9,6 +9,15 @@
 
 > **Scope: one PR, one contract bump.** The contract bump, the new frontmatter mapping, the codex projection logic, the eight packs' v0.8 bump, and the warning rail all land in a single PR per RFC-0004 atomicity (inherited from `pack-allowed-adapters/` and `repo-scope-per-adapter-projection/`). Splitting risks (a) the contract claims `.codex/agents/` / `.codex/hooks.json` projection but no implementation writes there, or (b) packs declare v0.8 but the resolver can't dispatch codex agents.
 
+> **Erratum 2026-06-10:** This shipped spec originally scoped
+> `codex-agent-frontmatter-v0.8` to `name` / `description` only and stated
+> that source `tools` / `model` fields had no Codex TOML slots. Current Codex
+> custom-agent docs support config keys such as `model`, `sandbox_mode`,
+> `features.shell_tool`, and web-search config. The
+> [`codex-agent-config-projection`](../codex-agent-config-projection/spec.md)
+> spec supersedes that narrow field-mapping claim while preserving this spec's
+> `developer_instructions` body convention and `codex-agent-toml` mode.
+
 ## Objective
 
 Close the silent-degradation footgun adopters hit when they install a pack via an adapter that projects some primitive types as `dropped` — and update the contract for adapters where the upstream tool has gained the missing primitive support since our last bump.
