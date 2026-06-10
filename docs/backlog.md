@@ -23,6 +23,11 @@ marker — see RFC-0016).
 - When an AC closes or a spec ships, update the spec first, then **remove**
   the now-closed item here in the same PR (closed work lives in the spec
   Changelog / `product/changelog.md`, not here).
+- **Resolved-tombstone exception.** Retain a closed item (marked
+  `**Resolved <date>.**`, kept terse) instead of removing it when a durable
+  artifact still links its `#anchor` — a frozen RFC amendment, or a spec's
+  checked AC — so the inbound link doesn't dangle. The full record still lives in
+  the spec/changelog; the tombstone is just the anchor's landing page.
 - When a new spec lands with open ACs, add a section here.
 - If an item here is no longer accurate against the underlying spec,
   trust the spec and fix this file.
@@ -321,25 +326,24 @@ Status: Shipped). The items below are deferred out of Phase 1 by spec decision.
 
 ### credbroker-phase-2
 
-**Phase 2: PyPI publication + version pinning** (the spec's final, deferred AC). Publish `credbroker`
-to PyPI and switch the six consumers from the repo-path install
-(`pip install -e ./packages/credbroker`) to a pinned PyPI version. This is what
-unblocks the **APM / Claude-plugin adopter who has no repo** — until it ships,
-that profile stays on env Tier-1 or the projected shim. Gated on the package
-stabilising (not a date), per RFC-0023 § Delivery. **Unblocks when:** the
-`credbroker` public surface is stable and a maintainer is ready to own a PyPI
-release cadence.
+**Resolved 2026-06-10.** `credbroker 0.1.0` was published to PyPI by
+`release-credbroker.yml`'s OIDC Trusted-Publishing job on tag `credbroker-v0.1.0`
+(token-free, modelled on `release-agentbundle.yml`). The first real upload claimed
+the `credbroker` name, so the **no-repo APM / Claude-plugin adopter** can now
+`pip install credbroker` (or `credbroker[crypto]`) — the profile RFC-0023's
+pre-mortem flagged as stranded. The six consumers carry a `credbroker>=0.1.0`
+floor. The `credbroker` spec's final AC is checked. This tombstone is **retained**
+(not deleted) because the spec AC, the credbroker plan, and the RFC-0023 amendment
+still reference the `#credbroker-phase-2` anchor — same pattern as the resolved
+`agentbundle-wheel-release` items above.
 
-**Name-registration decision (2026-06-07):** RFC-0023 recommended a *defensive*
-placeholder upload to reserve the `credbroker` name as soon as it was fixed. The
-maintainer **declined the interim placeholder** and will instead claim the name
-with the **real Phase-2 publish when the package is ready** — accepting a small
-interim squat risk on the name. (A PyPI *pending* Trusted Publisher does **not**
-reserve the name — per the PyPI docs, only an actual upload does — so reservation
-and the first real release are the same event here.) Publication is **token-free
-via Trusted Publishing (OIDC)**, modelled on `release-agentbundle.yml`; the
-`release-credbroker.yml` workflow + the PyPI pending-publisher config are Phase-2
-artifacts, created when the publish is ready, not now.
+**Name-registration decision (2026-06-07, as executed):** RFC-0023 recommended a
+*defensive* placeholder upload to reserve the `credbroker` name as soon as it was
+fixed. The maintainer **declined the interim placeholder** and claimed the name
+with the **first real publish** instead — accepting a small interim squat risk. (A
+PyPI *pending* Trusted Publisher does **not** reserve the name — per the PyPI docs,
+only an actual upload does — so reservation and the first release were the same
+event, which is how it played out on 2026-06-10.)
 
 ## `credbroker-user-scope`
 
