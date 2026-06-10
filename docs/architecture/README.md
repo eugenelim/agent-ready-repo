@@ -13,7 +13,8 @@ How the code is *currently* organized. Not why (that's in
   CLI verbs, bundler internals (recipes → adapters → projections), the
   adapter contract, and the install→adapt chain.
 - [`credentials.md`](credentials.md) — the credential-loading subsystem:
-  three-tier storage, the build-projected `credentials_shim` (RFC-0013),
+  three-tier storage, the `credbroker` library resolver (RFC-0023, which
+  replaced the build-projected `credentials_shim` of RFC-0013),
   the four-broker contract (`creds` / `env` / `cli` / `sso-cookie`),
   the credentialed-primitive model, and the substring trap.
 

@@ -104,7 +104,7 @@ The first time you install `atlassian` or `figma`, the
 prompts you to invoke the `credential-setup` skill. After that,
 nothing changes: you ask the agent to fetch a Jira issue, the agent
 calls the skill, the skill shells out to the primitive, the primitive
-loads the token via the build-projected `credentials_shim` and makes
+loads the token via the `credbroker` library and makes
 the call. You never see the token; the agent never sees the token; it
 lives in your keyring until you remove it (open Keychain Access /
 Credential Manager — there is no CLI verb).

@@ -5,8 +5,8 @@ The reference CLI and build pipeline at
 zipapp-distributable. One surface in one install: a CLI on PATH
 (`agentbundle <verb>`) that drives pack install, validation, adapt,
 and build. As of 0.2.0 the package no longer exposes a credential-
-resolution module — credentialed primitives import a build-projected
-`credentials_shim` sibling shipped by the `credential-brokers` pack
+resolution module — credentialed primitives resolve credentials through
+the pip-installable `credbroker` library (RFC-0023)
 (see [`credentials.md`](credentials.md)). This page describes the
 package as code; the spec lives in
 [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md),
@@ -30,10 +30,11 @@ packages/agentbundle/agentbundle/
 ├── _data/                # bundled schemas + install-marker copy
 └── templates/            # canonical install-marker.py (sync source)
 
-(Credential resolution moved to the build-projected `credentials_shim`
-sibling per RFC-0013; see [`credentials.md`](credentials.md). The
-`credentials.py`, `creds/`, and `commands/creds.py` surfaces shipped
-in 0.1.x were removed in 0.2.0.)
+(Credential resolution moved out of the wheel: first to the
+build-projected `credentials_shim` per RFC-0013, then to the
+pip-installable `credbroker` library per RFC-0023; see
+[`credentials.md`](credentials.md). The `credentials.py`, `creds/`, and
+`commands/creds.py` surfaces shipped in 0.1.x were removed in 0.2.0.)
 ```
 
 ## The CLI surface
