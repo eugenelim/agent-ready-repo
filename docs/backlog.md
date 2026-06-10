@@ -363,6 +363,32 @@ via Trusted Publishing (OIDC)**, modelled on `release-agentbundle.yml`; the
 `release-credbroker.yml` workflow + the PyPI pending-publisher config are Phase-2
 artifacts, created when the publish is ready, not now.
 
+## `credbroker-user-scope`
+
+Open follow-ons surfaced during T4 (install-time user-scope delivery rail) review:
+
+### floor-delivery-graceful-skip-on-missing-prefix
+The T4 floor delivery writes under `.agentbundle/` via `safety.write_jailed`, which
+relies on the resolved user adapter's `allowed-prefixes.user` containing `.agentbundle/`.
+Every shipped adapter declares it, so this is unreachable today; but a future adapter
+added without `.agentbundle/` in its user prefixes would make the floor `write_jailed`
+raise `PathJailError` and **hard-abort the whole install** rather than skip the floor
+rail. Follow-on: have `_deliver_user_scope_floor` detect a prefix list lacking
+`.agentbundle/` and skip the rail with a stderr note (graceful degrade), or add
+`.agentbundle/` to `_adapter_allowed_prefixes_user`'s defensive fallback. Deferred:
+no second caller exists, and adding speculative degradation now is scaffolding for a
+hypothetical adapter.
+
+### floor-reference-counting-on-uninstall
+The vendored floor (`~/.agentbundle/lib/credbroker/`) and the `sso-broker` bin scripts
+are shared, idempotent infrastructure, so T4 deliberately does **not** record them in
+any pack's `state.files` — uninstalling one credentialed pack must not strip a
+co-installed pack's floor. The consequence: uninstalling the *last* credentialed pack
+leaves the executable `~/.agentbundle/bin/sso-broker.py` (0o755) and the importable
+floor behind indefinitely (owner-owned, mode-correct — no exploit on its own, but a
+latent stale broker). Follow-on: a reference-counted `uninstall` that removes the floor
+only when no credentialed pack remains. Deferred: out of T4's delivery scope.
+
 ## `copilot-full-parity`
 
 Shipped 2026-06-05 (RFC-0024 / ADR-0013 → [`docs/specs/copilot-full-parity/spec.md`](specs/copilot-full-parity/spec.md)):

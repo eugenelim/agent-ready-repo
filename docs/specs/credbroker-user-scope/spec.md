@@ -1,6 +1,6 @@
 # Spec: credbroker-user-scope
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0023](../../rfc/0023-credential-manager-broker.md) — **amends** it (an Approver-signed amendment recorded in the RFC): RFC-0023 chose pip over the vendored shim and deferred no-repo adopters to Phase-2 PyPI; this spec adds a **layered delivery model** (vendored floor → offline/local pip → PyPI) so user-scope/air-gapped corporate installs resolve credentials without PyPI. Completes the user-scope half of [RFC-0013](../../rfc/0013-credential-broker-contract.md)'s `~/.agentbundle/bin/` delivery (the `sso-broker` companion), which only ever shipped its self-host half. Builds on [`credbroker`](../credbroker/spec.md) (Shipped) and the projection retirement (T9/T10).

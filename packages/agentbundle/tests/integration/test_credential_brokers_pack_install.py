@@ -15,6 +15,7 @@ import io
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import tomllib
@@ -24,6 +25,11 @@ from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 PACK_SRC = REPO_ROOT / "packs" / "credential-brokers"
+# credbroker-user-scope T4: a real API CLI (eager importer is setup.py, below)
+# whose floor resolution closes the lazy-import gap T1 could only prove
+# structurally. The atlassian pack ships it; skip if the checkout lacks it.
+JIRA_SCRIPTS = REPO_ROOT / "packs" / "atlassian" / ".apm" / "skills" / "jira" / "scripts"
+SETUP_SCRIPTS = PACK_SRC / ".apm" / "skills" / "credential-setup" / "scripts"
 
 
 def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
@@ -211,6 +217,199 @@ class SeedsRefusalRailTests(_BaseInstall):
         self.assertIn("seeds/", stderr)
         self.assertIn("user", stderr)
         self.assertIn("allowed-scopes", stderr)
+
+
+class UserScopeFloorDeliveryTests(_BaseInstall):
+    """credbroker-user-scope T4: a ``$HOME``-redirected user-scope install
+    delivers the vendored ``credbroker`` floor (``lib/``) **and** the
+    ``sso-broker`` rail (``bin/`` + the AC22b companion shim), and a real
+    consumer entry script resolves ``import credbroker`` from the floor.
+    """
+
+    def _install(self) -> tuple[str, str]:
+        args = argparse.Namespace(
+            pack="credential-brokers",
+            catalogue=str(self.cat),
+            output=str(self.repo),
+            scope="user",
+            force=False,
+            force_merge=False,
+        )
+        rc, stdout, stderr = _run_install(args)
+        self.assertEqual(
+            rc, 0, f"install --scope user failed: stdout={stdout!r} stderr={stderr!r}"
+        )
+        return stdout, stderr
+
+    def _clean_env(self, **extra: str) -> dict[str, str]:
+        """A minimal subprocess env: drop site-packages-leaking vars and any
+        ambient JIRA_* so the floor is the only ``credbroker`` and credentials
+        genuinely miss. ``HOME``/``USERPROFILE`` point at the install."""
+        keep = {"PATH", "SystemRoot", "TMPDIR", "TEMP", "TMP"}
+        env = {k: v for k, v in os.environ.items() if k in keep}
+        env["HOME"] = str(self.home)
+        env["USERPROFILE"] = str(self.home)
+        env.update(extra)
+        return env
+
+    def test_floor_lib_bin_and_companion_land(self) -> None:
+        # AC: floor-delivery + sso-broker half.
+        self._install()
+        lib = self.home / ".agentbundle" / "lib" / "credbroker"
+        for name in ("__init__.py", "_core.py", "_vault.py"):
+            self.assertTrue(
+                (lib / name).is_file(),
+                f"~/.agentbundle/lib/credbroker/{name} absent after install",
+            )
+        binp = self.home / ".agentbundle" / "bin"
+        # sso-broker.py + the AC22b companion shim + both _sso_* backends.
+        for name in (
+            "sso-broker.py",
+            "credentials_shim.py",
+            "_sso_keychain_macos.py",
+            "_sso_credman_windows.py",
+        ):
+            self.assertTrue(
+                (binp / name).is_file(),
+                f"~/.agentbundle/bin/{name} absent after install",
+            )
+
+    def test_lib_no_exec_bit_and_bin_is_0755(self) -> None:
+        # File-mode contract: lib/ default-mode (no exec bit), bin/ 0o755.
+        if os.name != "posix":
+            self.skipTest("POSIX mode bits; Windows inherits the parent DACL")
+        self._install()
+        init = self.home / ".agentbundle" / "lib" / "credbroker" / "__init__.py"
+        self.assertFalse(
+            init.stat().st_mode & 0o111,
+            "lib/ floor must carry no exec bit (importable Python, not a script)",
+        )
+        sso = self.home / ".agentbundle" / "bin" / "sso-broker.py"
+        self.assertEqual(
+            sso.stat().st_mode & 0o777, 0o755, "bin/*.py must be 0o755 on POSIX"
+        )
+
+    def test_delivery_stays_under_agentbundle_jail(self) -> None:
+        # Jail + no-leak: the floor/bin artifacts land ONLY under
+        # ~/.agentbundle/ — never leaked into the adapter projection dir or
+        # anywhere else under $HOME. write_jailed enforces the prefix; this
+        # asserts the delivery composed paths under it.
+        self._install()
+        artifact_root = self.home / ".agentbundle"
+        for needle in ("credbroker", "sso-broker", "credentials_shim"):
+            for hit in self.home.rglob(f"*{needle}*"):
+                self.assertTrue(
+                    artifact_root in hit.parents or hit == artifact_root,
+                    f"delivery leaked outside the .agentbundle/ jail: {hit}",
+                )
+
+    def test_refuses_group_world_writable_floor(self) -> None:
+        # Security: a pre-existing world/group-writable floor is a local
+        # code-execution vector (the floor is appended to sys.path); refuse.
+        if os.name != "posix":
+            self.skipTest("POSIX mode bits; the DACL model differs on Windows")
+        floor = self.home / ".agentbundle" / "lib"
+        floor.mkdir(parents=True)
+        os.chmod(floor, 0o777)
+        args = argparse.Namespace(
+            pack="credential-brokers",
+            catalogue=str(self.cat),
+            output=str(self.repo),
+            scope="user",
+            force=False,
+            force_merge=False,
+        )
+        rc, _stdout, stderr = _run_install(args)
+        self.assertNotEqual(rc, 0, "install must refuse a group/world-writable floor")
+        self.assertIn("group/world-writable", stderr)
+
+    def test_symlinked_pack_content_is_not_delivered(self) -> None:
+        # Security: pack_dir comes from an untrusted catalogue. A symlinked
+        # source under adapter-root-bins/ (executable bin) or user-libs/
+        # (importable floor) pointing out of tree must not have its target's
+        # bytes read into ~/.agentbundle/.
+        if os.name != "posix":
+            self.skipTest("symlink creation needs privilege on Windows")
+        secret = self.tmp / "secret.txt"
+        secret.write_bytes(b"SECRET-OUT-OF-TREE\n")
+        cat_pack = self.cat / "packs" / "credential-brokers"
+        (cat_pack / ".apm" / "adapter-root-bins" / "evil.py").symlink_to(secret)
+        (cat_pack / ".apm" / "user-libs" / "credbroker" / "evil_lib.py").symlink_to(secret)
+        self._install()
+        evil_bin = self.home / ".agentbundle" / "bin" / "evil.py"
+        evil_lib = self.home / ".agentbundle" / "lib" / "credbroker" / "evil_lib.py"
+        self.assertFalse(evil_bin.exists(), "symlinked bin source was delivered")
+        self.assertFalse(evil_lib.exists(), "symlinked lib source was delivered")
+
+    def test_setup_py_resolves_credbroker_from_floor(self) -> None:
+        # End-to-end (eager importer): setup.py does `from credbroker import …`
+        # at module top. Under `-S` (no site-packages) the floor is the ONLY
+        # credbroker, so `--help` (exit 0, after the import) proves the floor
+        # resolved. Real subprocess invocation — no runpy/importlib synthesis.
+        self._install()
+        entry = SETUP_SCRIPTS / "setup.py"
+        if not entry.is_file():
+            self.skipTest(f"{entry} not present in this checkout")
+        proc = subprocess.run(
+            [sys.executable, "-S", "scripts/setup.py", "--help"],
+            cwd=str(SETUP_SCRIPTS.parent),
+            capture_output=True,
+            text=True,
+            env=self._clean_env(),
+            timeout=60,
+        )
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "setup.py --help failed under -S — `from credbroker import` did not "
+            f"resolve from the floor; stderr:\n{proc.stderr}",
+        )
+
+    def test_api_cli_resolves_credbroker_from_floor(self) -> None:
+        # End-to-end (the LOAD-BEARING CLI case, plan T4 coverage note): the
+        # five API CLIs import credbroker lazily inside an httpx-gated verb, so
+        # T1 could only prove their precedence structurally. Here a real
+        # `jira.py check` — under `-S` (no site-packages credbroker) with a stub
+        # httpx so its `_client` import succeeds — reaches load_credentials,
+        # which imports credbroker from the floor and runs Tier-1→2→3
+        # resolution. No creds anywhere → CredentialsMissingError → AuthError →
+        # EXIT_USER_ACTION (2). Reaching exit 2 *requires* the floor import.
+        self._install()
+        entry = JIRA_SCRIPTS / "jira.py"
+        if not entry.is_file():
+            self.skipTest(f"{entry} not present in this checkout")
+        stub = self.tmp / "httpxstub"
+        stub.mkdir()
+        (stub / "httpx.py").write_text("# stub: import-only\n", encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, "-S", "scripts/jira.py", "check"],
+            cwd=str(JIRA_SCRIPTS.parent),
+            capture_output=True,
+            text=True,
+            env=self._clean_env(PYTHONPATH=str(stub)),
+            timeout=60,
+        )
+        self.assertNotIn(
+            "No module named 'credbroker'",
+            proc.stderr,
+            "the floor failed to resolve `import credbroker` for the API CLI",
+        )
+        self.assertEqual(
+            proc.returncode,
+            2,
+            "jira.py check must exit EXIT_USER_ACTION(2) via credbroker's "
+            f"CredentialsMissingError resolved from the floor; stderr:\n{proc.stderr}",
+        )
+        # Positive proof it reached credbroker's env→keyring→dotfile ladder
+        # (platform-agnostic: the Tier labels are emitted on every OS; the
+        # Tier-2 backend *name* is not, so we don't pin it).
+        for tier in ("Tier 1", "Tier 2", "Tier 3"):
+            self.assertIn(
+                tier,
+                proc.stderr,
+                f"{tier} resolution not reached — credbroker did not run from "
+                f"the floor; stderr:\n{proc.stderr}",
+            )
 
 
 if __name__ == "__main__":
