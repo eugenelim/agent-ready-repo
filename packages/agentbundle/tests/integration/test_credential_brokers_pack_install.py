@@ -243,11 +243,23 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
         return stdout, stderr
 
     def _clean_env(self, **extra: str) -> dict[str, str]:
-        """A minimal subprocess env: drop site-packages-leaking vars and any
-        ambient JIRA_* so the floor is the only ``credbroker`` and credentials
-        genuinely miss. ``HOME``/``USERPROFILE`` point at the install."""
-        keep = {"PATH", "SystemRoot", "TMPDIR", "TEMP", "TMP"}
-        env = {k: v for k, v in os.environ.items() if k in keep}
+        """Subprocess env with ``HOME``/``USERPROFILE`` pointed at the install
+        and the isolation knobs cleared: drop ``PYTHONPATH``/``PYTHONHOME`` (so
+        the only library source is site-packages — itself hidden by ``-S`` when
+        a real ``credbroker`` is installed — plus any caller-supplied
+        ``PYTHONPATH``) and any ambient ``JIRA_*``/``FIGMA_*`` credential vars
+        so credentials genuinely miss.
+
+        Inherits the *rest* of ``os.environ`` rather than allow-listing a
+        handful — on Windows, asyncio's Winsock init (``import _overlapped``)
+        needs ``SystemRoot``/``SystemDrive``/``WINDIR`` etc., and a minimal env
+        raises ``OSError: [WinError 10106]`` before the CLI can run."""
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in {"PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP"}
+            and not k.startswith(("JIRA_", "FIGMA_"))
+        }
         env["HOME"] = str(self.home)
         env["USERPROFILE"] = str(self.home)
         env.update(extra)
