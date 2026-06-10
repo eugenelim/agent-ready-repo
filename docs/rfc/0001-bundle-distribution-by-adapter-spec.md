@@ -17,6 +17,16 @@
   standard with a reference CLI." See [From design to spec — the
   trajectory](#from-design-to-spec--the-trajectory) for the sequence.
 
+**Errata 2026-06-10 — Codex capability claims superseded.** This RFC's
+concrete Codex adapter paragraphs say Codex drops subagents and has no
+hook-wiring target. That was the initial contract state, but later Codex
+support changed the adapter surface: RFC-0009 moved skills to
+`.agents/skills/`, `dropped-primitives-coverage` moved agents to
+`.codex/agents/<name>.toml` and hook-wiring to `.codex/hooks.json`, and
+`codex-agent-config-projection` corrects Codex agent TOML model/tool
+projection. Treat the concrete adapter table below as historical context;
+the live source of truth is `docs/contracts/adapter.toml`.
+
 ## Contents
 
 - [Summary](#summary)

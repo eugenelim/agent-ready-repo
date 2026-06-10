@@ -254,6 +254,13 @@
             "values": {
               "type": "object",
               "additionalProperties": {"type": "string"}
+            },
+            "related-values": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {"type": "string"}
+              }
             }
           }
         }
