@@ -1,7 +1,7 @@
 # Plan: credbroker-user-scope
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -228,4 +228,41 @@ The on-disk + import contract (spec's `Contract: none` — specified here):
 - 2026-06-09: initial plan. Layered delivery (foundation+wheel → vendored floor → PyPI) in cost/value order; install-time `.agentbundle/` delivery rail is the net-new machinery and also closes the latent `sso-broker` user-scope gap. Premise correction vs. the original framing: the `~/.agentbundle/bin/` user-scope rail does **not** exist today (probe-confirmed) — it is built here, not mirrored.
 - 2026-06-09: spec-mode adversarial review fixes. T1 split into two shapes (5 CLIs append in their bootstrap; `setup.py` has no bootstrap + a top-level `from credbroker import`, so the floor-append is prepended before it) + parametric precedence test + no-insert-0 guard. T3 made the contract-primitive registration explicit (the `[primitive."user-libs"]` declaration + `_PACK_PRIMITIVE_TYPES`/validator ripple + the contract-bump-trap full-pytest, anchored on the `adapter-root-bins`/`shared-libs` build-only precedent). T4 reuses `adapter_root_bins.compute_projections` so the AC22b companion shim rides the `bin/` delivery (a bare glob would miss it), `lib/` written default-mode vs `bin/` `0o755`, + Windows importability. Catalogue risk downgraded (`build/main.py` copytrees the whole `.apm/`). Recorded the floor as *additive* (ADR-0003 posture unchanged — no new ADR).
 - 2026-06-09: T1 implemented. The precedence construction test is split by import shape: a deps-free **source/AST guard parametric across all 6** scripts (append-not-insert-0 + placement — the precedence mechanism + no-insert-0 Never-do) plus a **behavioral `credbroker.__file__`** check on the one eager, deps-free importer (`setup.py`); the five API CLIs import `credbroker` lazily (inside an `httpx`-gated verb), so their end-to-end floor resolution through a real consumer is deferred to T4's integration test. Implemented with `Path(...).expanduser()` (no new `import os`; `Path`/`pathlib` already imported in every file). Test lives at `packages/agentbundle/tests/integration/test_credbroker_floor_precedence.py` and is wired into `build-check.yml` (the no-insert-0 guard is platform-agnostic, so the Linux job gates it).
+- 2026-06-09: T4 implemented. The install-time user-scope delivery rail lands in
+  `install.py` Step 9, gated `plan.scope == "user"`: it delivers the pack's
+  `.apm/user-libs/**` → `~/.agentbundle/lib/**` (default mode, no exec bit) and
+  the `.apm/adapter-root-bins/*.py` + AC22b companion `credentials_shim.py` →
+  `~/.agentbundle/bin/**` (`0o755` on POSIX, DACL-inherited on Windows), all via
+  `safety.write_jailed(scope="user", …)` under the existing `.agentbundle/`
+  prefix (no jail change). Per the pass-2 concern, the companion-aware
+  enumeration is a **new single-`pack_dir`-scoped helper**
+  `adapter_root_bins.collect_pack_root_bins(pack_dir)` (reuses the ship-both
+  opt-in against one resolved catalogue pack) rather than the multi-pack,
+  working-tree-folding `compute_projections`. The floor is **shared, idempotent
+  infrastructure** (one copy per consumer), so the delivered files are
+  deliberately **not** recorded in `state.files` — uninstalling one pack must not
+  strip a co-installed pack's floor. Security mitigation (carried from T1's
+  review): `_assert_user_floor_dirs_safe` refuses on entry if `~/.agentbundle`,
+  `…/lib`, or `…/bin` already exists group/world-writable (a writable floor is a
+  local code-exec vector), and `_harden_floor_dir_modes` strips group/world
+  write bits from the delivered dirs after write (defends a permissive umask);
+  both no-op on Windows. The load-bearing end-to-end CLI test (`jira.py check`
+  under `-S` + a stub `httpx`) proves a real API CLI resolves `import credbroker`
+  from the floor and reaches the env→keyring→dotfile ladder (exit 2,
+  `CredentialsMissingError`); `setup.py --help` under `-S` covers the eager
+  importer; both run in `build-check-windows.yml` for cross-platform
+  importability. No state-recording, no contract bump (delivery only).
+  Post-implementation review (adversarial + security) hardened three things:
+  the floor-safety refusal is gated to packs that actually ship floor content
+  (a floor-less user install is never refused) and walks the full existing
+  `.agentbundle` tree (catches a pre-existing loose *leaf*); and — since
+  `install` resolves `pack_dir` from an *untrusted* catalogue — both delivery
+  halves reject symlinked sources (per-file `is_symlink()` skip +
+  `os.walk(followlinks=False)`) **and** a symlinked primitive *directory*
+  itself, so a crafted pack can't read an out-of-tree file
+  (`/etc/passwd`, `~/.ssh/id_rsa`) into the floor (the build-pipeline twin
+  on the trusted in-repo `packs/` intentionally doesn't filter). Two
+  follow-ons deferred to `docs/backlog.md` § `credbroker-user-scope`:
+  graceful floor-skip if a future adapter omits `.agentbundle/` from its
+  user prefixes, and reference-counted floor removal on uninstall.
 - 2026-06-09: T3 implemented. `agentbundle/build/user_libs.py` projects `packages/credbroker/credbroker/` byte-faithfully to **two** committed targets from one source: the catalogue-visible pack copy (`packs/credential-brokers/.apm/user-libs/credbroker/`, which `build/main.py` copytrees into each dist pack for T4) and the self-host floor staging (`<repo>/.agentbundle/lib/credbroker/`, mirroring the committed `.agentbundle/bin/`). `lib/` is written default-mode (no exec bit, unlike `bin/`'s `0o755`); the orphan scan skips `__pycache__`/`tests` so importing the floor (the purity test) can't masquerade as drift. Wired into `self_host.py` apply + `run_build_check_drift_gates`. **Version decision: no bump.** The `adapter-root-bins`/`shared-libs` precedent (#139, `de790fe`) added build-pipeline-only primitives — no per-adapter projection rules — *within* v0.7, not as a dedicated bump; `user-libs` is the same shape, so `[contract] version` stays `0.10`, the `test_contract.py` pin and marketplace aggregation are untouched, and the (primitive × adapter) pair count stays 20 (locked by a new `test_user_libs_is_build_pipeline_only`). `[primitive."user-libs"]` declared in both byte-identical `adapter.toml` copies; `"user-libs"` added to `safety.py:_PACK_PRIMITIVE_TYPES`. **Source-location call:** `user_libs` derives its source from `packs_dir.parent` and **no-ops when the package source is absent** (non-monorepo / fixture-packs invocations), so the existing install-marker drift-gate tests stay green; real `make build-check` (where `packs_dir.parent` is the repo root) gates fully. Full `packages/agentbundle` pytest run by hand per the contract-bump trap — no version-pin or stale-assertion breakage.

@@ -117,6 +117,15 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_user_libs_projection.py
 
+      # credbroker-user-scope T4: prove the user-scope install delivers the
+      # floor + sso-broker rail and a real consumer resolves `import credbroker`
+      # from `~/.agentbundle/lib` on Windows too. The lib floor must be
+      # importable cross-platform (the layer-1 resolution AC asserts on Windows
+      # CI); the POSIX-only mode-bit + chmod-refusal tests self-skip here.
+      - name: pytest user-scope floor delivery (credbroker-user-scope T4)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/integration/test_credential_brokers_pack_install.py
+
       - name: pytest hook parity-net suite (windows-hooks-phase3)
         working-directory: packages/agentbundle
         run: python -m pytest tests/hooks/

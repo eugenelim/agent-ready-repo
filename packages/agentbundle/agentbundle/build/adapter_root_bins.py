@@ -189,6 +189,60 @@ def collect_companion_shim(packs_dir: Path) -> dict[str, Path]:
     return {}
 
 
+def collect_pack_root_bins(pack_dir: Path) -> dict[str, Path]:
+    """Single-pack, companion-aware enumeration for install-time delivery.
+
+    Returns ``{basename → source_path}`` for one already-resolved
+    catalogue ``pack_dir``'s ``.apm/adapter-root-bins/*.py`` plus the AC22b
+    companion ``credentials_shim.py`` when the pack ships BOTH that
+    directory (at least one ``*.py``) AND
+    ``.apm/shared-libs/credentials_shim.py`` — the same ship-both opt-in as
+    :func:`collect_companion_shim`, scoped to one pack.
+
+    Why not :func:`compute_projections` / :func:`collect_sources`? Those
+    walk a multi-pack build-time ``packs/`` root and fold a ``working_tree``
+    target into each pair. ``agentbundle install`` operates on a single
+    resolved catalogue ``pack_dir`` and owns its own per-scope path-jail, so
+    it needs basenames + sources for one pack, not absolute targets under a
+    build tree (credbroker-user-scope plan T4 — the install-side seam). The
+    install caller composes ``.agentbundle/bin/<basename>`` relpaths from
+    :data:`TARGET_SUBDIR` and writes via ``safety.write_jailed`` with POSIX
+    :data:`EXECUTABLE_MODE`.
+
+    A bare ``adapter-root-bins/*.py`` glob would miss the companion and land
+    the per-platform Tier-2 backends (``_sso_keychain_macos.py`` etc.)
+    broken on macOS/Windows — they import ``Tier2HardFailError`` from the
+    shim. This helper carries it for exactly the ship-both case.
+
+    The ship-both opt-in here is the single-pack twin of
+    :func:`collect_companion_shim` (the multi-pack, ``packs/``-walking
+    enumeration). The two predicates are intentionally parallel — a change to
+    the opt-in rule must update both.
+    """
+    # Skip symlinks: install resolves ``pack_dir`` from an untrusted catalogue
+    # (a downloaded archive / git checkout), and these bytes land executable
+    # (``0o755``) under ``~/.agentbundle/bin/``. A symlinked ``*.py`` pointing
+    # out of tree (e.g. ``~/.ssh/id_rsa``) would otherwise read that content
+    # into the floor. The build-pipeline ``collect_sources`` twin operates on
+    # the trusted in-repo ``packs/`` and intentionally does not filter.
+    bins_dir = pack_dir / SOURCE_SUBDIR
+    # A symlinked primitive *directory* would let glob enumerate the link
+    # target's real (non-symlink) files, smuggling out-of-tree content in.
+    if not bins_dir.is_dir() or bins_dir.is_symlink():
+        return {}
+    sources: dict[str, Path] = {
+        src.name: src
+        for src in sorted(bins_dir.glob("*.py"))
+        if src.is_file() and not src.is_symlink()
+    }
+    if not sources:
+        return {}
+    shim_source = pack_dir / shared_libs.SOURCE_SUBDIR / SHIM_COMPANION_BASENAME
+    if shim_source.is_file() and not shim_source.is_symlink():
+        sources[SHIM_COMPANION_BASENAME] = shim_source
+    return sources
+
+
 def compute_projections(
     working_tree: Path, packs_dir: Path
 ) -> list[AdapterRootBinProjection]:
