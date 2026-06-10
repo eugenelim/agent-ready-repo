@@ -1,11 +1,12 @@
 # Credentials
 
-> **Partially superseded (RFC-0023, 2026-06-09).** For `auth: creds`, the
-> resolver is now the pip-installable [`credbroker`](../rfc/0023-credential-manager-broker.md)
-> library imported in-process — the build-projected `credentials_shim`
-> described below was retired for consumer skills (it survives only as the
-> `adapter-root-bins` companion shim for `sso-broker`). A full rewrite of
-> this page is tracked in [`docs/backlog.md`](../backlog.md#credbroker).
+> **Updated for [RFC-0023](../rfc/0023-credential-manager-broker.md) (2026-06-09).**
+> For `auth: creds`, the resolver is the standalone, pip-installable
+> [`credbroker`](../rfc/0023-credential-manager-broker.md) library imported
+> in-process. It replaced the build-projected `credentials_shim`, which now
+> survives only as the `adapter-root-bins` companion shim for `sso-broker`.
+> This page describes the current (credbroker) model; the three-tier storage
+> contract below is unchanged from the shim.
 
 The secret-handling subsystem for credentialed primitives in this
 catalogue. Defines how a credentialed primitive — a `jira`, `figma`,
@@ -53,20 +54,24 @@ SSO flows respectively. See the spec for the per-broker contracts.
 
 `tools/lint-credentialed-skills.sh` enforces every rule: argv-ban,
 Don't-block presence, dotfile-read refusal, and per-broker AST walks
-(e.g. `auth: creds` requires `from .credentials_shim import …`).
+(e.g. `auth: creds` requires a `credbroker` resolver import —
+`from credbroker import …`; the legacy `from .credentials_shim import …`
+is still recognized).
 
 ## The `creds` broker
 
 The `creds` broker resolves credentials through the three-tier model
-below. The implementation is the build-projected `credentials_shim`
-module — the `credential-brokers` pack drops
-`credentials_shim.py` + per-platform Tier-2 backends
-(`_keychain_macos.py`, `_credman_windows.py`) into every `auth: creds`
-consumer skill's `scripts/` directory at install / `make build-self`
-time. Consumers import via the sibling relative form:
+below. Since [RFC-0023](../rfc/0023-credential-manager-broker.md) the
+implementation is the standalone, pip-installable **`credbroker`**
+library ([`packages/credbroker/`](../../packages/credbroker/)), imported
+**in-process** — it replaced the build-projected `credentials_shim` that
+earlier dropped a byte-identical copy (plus the Tier-2 backends
+`_keychain_macos.py` / `_credman_windows.py`, now `credbroker`'s own
+modules) into every consumer's `scripts/`. Consumers import the absolute
+package form:
 
 ```python
-from .credentials_shim import (
+from credbroker import (
     CredentialsMissingError,
     Tier2HardFailError,
     load_credentials,
@@ -86,10 +91,28 @@ job, not the loader's. The loader walks **first-hit-wins per key**
 (a key resolved at Tier 1 is not re-checked at lower tiers; mixing
 tiers across keys within one namespace is permitted).
 
-The canonical source for the shim lives under
-[`packs/credential-brokers/.apm/shared-libs/credentials_shim.py`](../../packs/credential-brokers/.apm/shared-libs/credentials_shim.py);
-build-self projects byte-identical copies into each consumer's
-`scripts/`.
+### How `credbroker` reaches the interpreter — the layered delivery
+
+`import credbroker` resolves through a `sys.path` precedence stack fed by
+two delivery layers (full author-facing detail in the
+[how-to](../guides/how-to/add-a-credentialed-skill.md#how-credbroker-reaches-syspath--the-layered-model)):
+
+- **Vendored floor (zero-pip, user scope).** A user-scope install of the
+  `credential-brokers` pack delivers a byte-faithful, stdlib-base copy of
+  the package source to `~/.agentbundle/lib/credbroker/`, which every
+  credentialed skill appends to `sys.path` at **lowest** precedence — so a
+  no-repo install resolves Tier-1/2/3 with no pip. The floor is drift-gated
+  byte-for-byte against `packages/credbroker/credbroker/` — **one shared
+  copy**, not the N-per-skill projection the shim used.
+- **pip (corporate / PyPI).** A `pip install credbroker` (internal index,
+  local wheel, or PyPI) lands in site-packages, which precedes the floor on
+  `sys.path` — so it wins and unlocks the encrypted `[crypto]` vault.
+
+The `credentials_shim` source is **kept** at
+[`packs/credential-brokers/.apm/shared-libs/credentials_shim.py`](../../packs/credential-brokers/.apm/shared-libs/credentials_shim.py),
+but only as the companion shim that rides the `adapter-root-bins` →
+`~/.agentbundle/bin/` projection for `sso-broker.py`; no consumer skill
+imports it for `creds` resolution any more.
 
 ## The three tiers
 
@@ -104,11 +127,11 @@ Tier 3 on Linux today.
 
 ### Tier 2 backends — stdlib only
 
-- **macOS** (the shim's `_keychain_macos.py` sibling) —
+- **macOS** (`credbroker`'s `_keychain_macos.py`) —
   `subprocess.run(["/usr/bin/security", ...])`. The write path passes
   the token via **child stdin**, never argv. Service =
   `"agentbundle"`, account = `"<namespace>:<key>"`.
-- **Windows** (the shim's `_credman_windows.py` sibling) —
+- **Windows** (`credbroker`'s `_credman_windows.py`) —
   `ctypes` against `advapi32.{CredReadW, CredWriteW, CredDeleteW,
   CredFree}`. In-process, no subprocess. `CRED_TYPE_GENERIC`,
   `CRED_PERSIST_LOCAL_MACHINE`, target-name
@@ -121,12 +144,18 @@ security smell, not the dotfile.
 
 ### Tier 3 — the dotfile
 
-A stdlib `.env` parser (`parse_env_file` in `credentials_shim.py`)
+A stdlib `.env` parser (`parse_env_file` in `credbroker`'s `_core`)
 handles `KEY=value`, quoted values, and `#` comments. It rejects
 `export ` prefix, variable expansion, and multi-line values — `.env`
 is not bash. POSIX: enforces mode `0600` on the file and `0700` on
 `~/.agentbundle/`. Windows: DACL-verified via `icacls`.
 `PermissiveAclError` on either failure.
+
+Where `credbroker[crypto]` is installed (a pip layer, never the stdlib
+floor), Tier 3 upgrades from the plaintext dotfile to an AEAD-encrypted
+**vault** (Argon2id → KEK → AES-256-GCM, `credbroker`'s `_vault`); the
+vendored floor stays stdlib-only and plaintext. See
+[RFC-0023](../rfc/0023-credential-manager-broker.md).
 
 ## Setting up credentials
 
@@ -199,15 +228,20 @@ if str(suspect) == ".agentbundle/credentials.env":
     refuse(...)
 ```
 
-This rule applies to `credentials_shim.py` itself and to any
-primitive script that mentions the dotfile defensively.
+This rule applies to any primitive script (`cli.py`) that mentions the
+dotfile defensively.
 
 ## Where to read next
 
 - [`docs/specs/credential-broker-contract/spec.md`](../specs/credential-broker-contract/spec.md) —
-  the current authoritative spec (four brokers; the shim model).
+  the four-broker contract.
+- [`docs/rfc/0023-credential-manager-broker.md`](../rfc/0023-credential-manager-broker.md) —
+  the `credbroker` library that replaced the projected shim for `auth: creds`
+  (and its layered-delivery amendment); [`docs/specs/credbroker/spec.md`](../specs/credbroker/spec.md)
+  + [`docs/specs/credbroker-user-scope/spec.md`](../specs/credbroker-user-scope/spec.md)
+  are the implementing specs.
 - [`docs/rfc/0013-credential-broker-contract.md`](../rfc/0013-credential-broker-contract.md) —
-  the current design rationale.
+  the four-broker design rationale (the predecessor shim model).
 - [`docs/specs/skill-secrets/spec.md`](../specs/skill-secrets/spec.md) —
   the predecessor spec (kept for historical context).
 - [`docs/guides/explanation/credentialed-skills.md`](../guides/explanation/credentialed-skills.md) —

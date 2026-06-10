@@ -302,28 +302,6 @@ of their own yet.
 RFC-0023 follow-on, **Phase 1 shipped 2026-06-09** (`docs/specs/credbroker/`,
 Status: Shipped). The items below are deferred out of Phase 1 by spec decision.
 
-**Doc follow-ups (deferred from T10 — stale shim/projection prose outside T10's named scope):**
-- `docs/architecture/credentials.md` still documents the build-projected
-  `credentials_shim` model as the `creds` delivery; after RFC-0023 the
-  `creds` resolver is the `credbroker` library (the projected shim survives
-  only as the adapter-root-bins companion for `sso-broker`). Rewrite the
-  architecture map for the credbroker delivery. The `docs/architecture/overview.md`
-  one-liner pointing at `credentials.md` moves with it.
-- `docs/guides/how-to/install-agentbundle-from-clone.md` references the
-  projected shim; reconcile with the `pip install credbroker` model.
-  **Unblocks when:** picked up as a docs pass (no code dependency).
-
-**credbroker-user-scope T3 review follow-ups (non-blocking):**
-- **`_vault.py` module-docstring imprecision.** `packages/credbroker/credbroker/_vault.py:5`
-  reads as if `_vault` itself defers the crypto import, but the lazy boundary is at the
-  *package* level — `_core`/`__init__` import `_vault` lazily, so the base graph stays
-  third-party-free even though `_vault`'s own top level pulls `cryptography`/`argon2`.
-  Reword to "the vault *module* is imported lazily by the resolution core." Must fix the
-  **source** package, not the vendored floor copies (`.agentbundle/lib/credbroker/_vault.py`
-  + `packs/credential-brokers/.apm/user-libs/credbroker/_vault.py`), which are byte-faithful
-  projections — re-run `make build-self` after to re-sync them. **Unblocks when:** picked up
-  as a `packages/credbroker` docs pass (no code dependency).
-
 **T5 review follow-ups (non-blocking, surfaced by the T5 review):**
 - **Per-key vault KDF re-derivation.** `load_credentials` resolves `required_keys`
   one at a time; for a vault-backed namespace each key that reaches Tier 3 opens
