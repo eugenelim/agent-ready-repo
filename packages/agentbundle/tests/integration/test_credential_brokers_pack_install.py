@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib.util
 import io
 import os
 import re
@@ -369,11 +370,12 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
         # End-to-end (the LOAD-BEARING CLI case, plan T4 coverage note): the
         # five API CLIs import credbroker lazily inside an httpx-gated verb, so
         # T1 could only prove their precedence structurally. Here a real
-        # `jira.py check` — under `-S` (no site-packages credbroker) with a stub
-        # httpx so its `_client` import succeeds — reaches load_credentials,
-        # which imports credbroker from the floor and runs Tier-1→2→3
-        # resolution. No creds anywhere → CredentialsMissingError → AuthError →
-        # EXIT_USER_ACTION (2). Reaching exit 2 *requires* the floor import.
+        # `jira.py check` — with a stub httpx so its `_client` import succeeds —
+        # reaches load_credentials, which imports credbroker from the floor and
+        # runs Tier-1→2→3 resolution. No creds anywhere → CredentialsMissingError
+        # → AuthError → EXIT_USER_ACTION (2). Reaching exit 2 *and* emitting the
+        # Tier ladder *requires* the floor import (a vacuous exit-2 from a
+        # missing dependency would carry neither).
         self._install()
         entry = JIRA_SCRIPTS / "jira.py"
         if not entry.is_file():
@@ -381,8 +383,27 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
         stub = self.tmp / "httpxstub"
         stub.mkdir()
         (stub / "httpx.py").write_text("# stub: import-only\n", encoding="utf-8")
+
+        # Make the floor the *only* credbroker. `-S` (no site-packages) does
+        # that — but only apply it when a credbroker is actually installed in
+        # this interpreter's site-packages: on Windows `-S` also breaks
+        # asyncio's `_overlapped` C-extension load (jira.py imports asyncio at
+        # module top), so the CLI can't run under `-S` there. CI never hits the
+        # bad combination — Linux build-check pip-installs credbroker (needs
+        # `-S`; asyncio is fine under `-S` on POSIX); Windows build-check does
+        # not (the floor is already the only credbroker, so no `-S` needed).
+        credbroker_in_site = importlib.util.find_spec("credbroker") is not None
+        if credbroker_in_site and os.name == "nt":
+            self.skipTest(
+                "credbroker installed on Windows: cannot hide it without -S, "
+                "which breaks asyncio import on Windows"
+            )
+        argv = [sys.executable]
+        if credbroker_in_site:
+            argv.append("-S")
+        argv += ["scripts/jira.py", "check"]
         proc = subprocess.run(
-            [sys.executable, "-S", "scripts/jira.py", "check"],
+            argv,
             cwd=str(JIRA_SCRIPTS.parent),
             capture_output=True,
             text=True,
