@@ -443,3 +443,159 @@ def test_filter_for_primitive_refuses_ambiguous_name():
     import pytest
     with pytest.raises(ValueError, match="ambiguous"):
         _filter_for_primitive(projection, "foo", "skills")
+
+
+# ---------------------------------------------------------------------------
+# 8. Tier-2 companion-drop visibility (upgrade-companion-visibility spec)
+#    A file edited since install is detected Tier-2 on upgrade: the adopter's
+#    edit is preserved, the upstream goes to a `.upstream.<ext>` companion, and
+#    the operator is TOLD (count + companion path) on stderr — closing the
+#    silent-companion diagnosability gap. Regression-paired with the
+#    test_tier_invariants.py harness (never-clobber + companion-exists).
+# ---------------------------------------------------------------------------
+
+# Anchor on the production-unique header phrase so the positive and negative
+# tests bind to the same load-bearing string (they drift together if reworded).
+_COMPANION_NOTICE = "were modified since install and kept as *.upstream.<ext> companions"
+
+
+def _first_projected_on_disk(root: Path, pack_dir: Path) -> str:
+    """Pick a relpath the pack projects that exists on disk after install."""
+    from agentbundle.render import render_pack
+
+    for relpath in sorted(render_pack(pack_dir)):
+        if (root / relpath).exists():
+            return relpath
+    raise AssertionError("no projected file found on disk after install")
+
+
+def test_upgrade_tier2_collision_surfaces_companion_path(tmp_path, capsys):
+    """A file edited since install must, on upgrade: stay byte-for-byte the
+    adopter's (never clobbered), gain a `.upstream.<ext>` companion holding the
+    upstream content, AND have its companion path named on stderr with the
+    'kept as *.upstream.<ext> companions' notice. [AC1, AC2]"""
+    from agentbundle import safety
+    from agentbundle.render import render_pack
+
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()  # drop install output
+
+    target_rel = _first_projected_on_disk(tmp_path, PACK_V2)
+    adopter_bytes = b"# adopter edits -- do not clobber\n"
+    (tmp_path / target_rel).write_bytes(adopter_bytes)  # forces Tier-2
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path)
+    )
+    assert rc == 0, "upgrade over a Tier-2 collision must still succeed"
+
+    # Never clobbered: the adopter's edit survives at the original path.
+    assert (tmp_path / target_rel).read_bytes() == adopter_bytes, (
+        "Tier-2 file must not be clobbered on upgrade"
+    )
+
+    # Upstream content went to the `.upstream.<ext>` companion.
+    companion_rel = safety.companion_path(Path(target_rel))
+    companion_on_disk = tmp_path / companion_rel
+    assert companion_on_disk.exists(), f"expected companion {companion_rel}"
+    assert companion_on_disk.read_bytes() == render_pack(PACK_V2)[target_rel], (
+        "companion must hold the upstream (v2) content"
+    )
+
+    # The operator is TOLD: notice + count + the companion path on stderr.
+    err = capsys.readouterr().err
+    assert _COMPANION_NOTICE in err, (
+        f"upgrade must announce the companion-drop on stderr; got: {err!r}"
+    )
+    assert "1 file(s)" in err, f"notice must name the count; got: {err!r}"
+    assert companion_rel.as_posix() in err, (
+        f"upgrade must name the companion path on stderr; got: {err!r}"
+    )
+
+
+def test_upgrade_without_collision_emits_no_companion_notice(tmp_path, capsys):
+    """A clean install→upgrade (no adopter edits) is all Tier-1: no companion
+    is dropped and no companion notice is printed. [AC3]"""
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()  # drop install output
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path)
+    )
+    assert rc == 0
+
+    err = capsys.readouterr().err
+    assert _COMPANION_NOTICE not in err, (
+        f"a collision-free upgrade must not print a companion notice; got: {err!r}"
+    )
+
+
+def test_upgrade_multiple_tier2_collisions_counts_and_lists_all(tmp_path, capsys):
+    """Two files edited since install must both be preserved + companioned, and
+    the notice must report the count (`2 file(s)`) and enumerate both companion
+    paths — pins the count rendering and the plural-path branch. [AC2]"""
+    from agentbundle import safety
+    from agentbundle.render import render_pack
+
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()
+
+    on_disk = [rp for rp in sorted(render_pack(PACK_V2)) if (tmp_path / rp).exists()]
+    assert len(on_disk) >= 2, "fixture must project at least two files"
+    targets = on_disk[:2]
+    for rp in targets:
+        (tmp_path / rp).write_bytes(f"# adopter edit of {rp}\n".encode())
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path)
+    )
+    assert rc == 0
+
+    err = capsys.readouterr().err
+    assert "2 file(s)" in err, f"notice must report count 2; got: {err!r}"
+    for rp in targets:
+        companion_rel = safety.companion_path(Path(rp)).as_posix()
+        assert companion_rel in err, (
+            f"notice must list every companion path; missing {companion_rel}\n{err!r}"
+        )
+        # And every original is preserved (never clobbered).
+        assert (tmp_path / rp).read_bytes() == f"# adopter edit of {rp}\n".encode()
+
+
+def test_per_primitive_upgrade_surfaces_tier2_companion(tmp_path, capsys):
+    """The companion notice also fires on a per-primitive (`--skill`) upgrade —
+    the same shared walk handles both shapes. Edit a projected work-loop skill
+    file, upgrade just that skill, and assert the companion + notice. [AC2]"""
+    from agentbundle.commands.upgrade import _filter_for_primitive
+    from agentbundle import safety
+    from agentbundle.render import render_pack
+
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()
+
+    skill_paths = [
+        rp
+        for rp in sorted(_filter_for_primitive(render_pack(PACK_V2), "work-loop", "skills"))
+        if (tmp_path / rp).exists()
+    ]
+    assert skill_paths, "work-loop skill must project at least one file on disk"
+    target_rel = skill_paths[0]
+    (tmp_path / target_rel).write_bytes(b"# adopter-edited skill body\n")
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        root=str(tmp_path), skill="work-loop",
+    )
+    assert rc == 0
+
+    companion_rel = safety.companion_path(Path(target_rel))
+    assert (tmp_path / companion_rel).exists(), "per-primitive upgrade must drop a companion"
+    err = capsys.readouterr().err
+    assert _COMPANION_NOTICE in err, f"per-primitive upgrade must announce it; got: {err!r}"
+    assert companion_rel.as_posix() in err, f"must name the companion path; got: {err!r}"
+    # Adopter edit preserved.
+    assert (tmp_path / target_rel).read_bytes() == b"# adopter-edited skill body\n"

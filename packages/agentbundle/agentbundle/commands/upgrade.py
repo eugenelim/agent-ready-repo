@@ -353,6 +353,13 @@ def run(args: "argparse.Namespace") -> int:
         work_projection = projection
 
     # ── Walk projection; apply Tier contract ──────────────────────────────────
+    # Collect `.upstream.<ext>` companions dropped this run so we can surface
+    # them after the walk. Without this notice the upgrade is silent on a
+    # Tier-2 collision — the adopter never learns their edit was kept (and the
+    # upstream parked in a companion) or where to find it. Parity with
+    # install's seed-companion notice (install.py:891-904), extended to name
+    # the path since upgrade has no install-state marker to record it in.
+    companions: list[str] = []
     for relpath, content in sorted(work_projection.items()):
         tier = safety.classify(relpath, root, state)
 
@@ -368,6 +375,7 @@ def run(args: "argparse.Namespace") -> int:
             except safety.PathJailError as exc:
                 print(f"upgrade: {exc}", file=sys.stderr)
                 return 1
+            companions.append(safety.companion_path(Path(relpath)).as_posix())
             pack_state.files[relpath] = {
                 "sha": safety.sha256_bytes(content),
                 "from-pack-version": to_version,
@@ -497,6 +505,21 @@ def run(args: "argparse.Namespace") -> int:
     except safety.PathJailError as exc:
         print(f"upgrade: {exc}", file=sys.stderr)
         return 1
+
+    # ── Surface Tier-2 companion-drops ────────────────────────────────────────
+    # Printed here, after every `return 1` gate above (companion writes, hook-
+    # wiring reconciliation, state write) has passed, so an announced companion
+    # always implies a committed upgrade — never "kept your edits" followed by an
+    # abort. The companion itself was written eagerly during the walk; this only
+    # reports it. stderr (not stdout) so the `upgraded:` recap rail stays parseable.
+    if companions:
+        print(
+            f"upgrade: {len(companions)} file(s) were modified since install and "
+            f"kept as *.upstream.<ext> companions (your edits preserved):",
+            file=sys.stderr,
+        )
+        for comp in companions:
+            print(f"  {comp}", file=sys.stderr)
 
     if is_per_primitive:
         ptype, _src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]
