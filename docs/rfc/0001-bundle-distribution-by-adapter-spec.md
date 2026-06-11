@@ -1511,3 +1511,43 @@ absorbed into the build pipeline.
   disposition, not the architecture. The frozen body above is unchanged; this
   annotation is the correction of record. See
   `docs/specs/core-install-seed-delivery/` for the implementing spec.
+
+- **2026-06-11 — Tier-2 conflict resolution is deterministic companion-drop; the
+  in-CLI prompt is superseded.** Short version: **the CLI never prompts and never
+  clobbers on a Tier-2 collision — it drops a `.upstream.<ext>` companion and now
+  tells you it did; the keep/merge/overwrite choice lives in `adapt-to-project`,
+  not the CLI.** The § *Adopter file safety contract* clause **"Tier-2 behaviour
+  on detection"** (which offered "three options: keep … overwrite … (preserving a
+  backup at `<path>.pre-update.bak`) … or invoke the `adapt-to-project` skill")
+  described an in-CLI interactive prompt that was never built and is superseded by
+  the as-shipped design:
+
+  1. **The CLI is deterministic, not interactive.** On every write-capable verb
+     (`install`, `upgrade`, `adapt`, `init-state`, …), a Tier-2 path is preserved
+     byte-for-byte and the upstream version is dropped at `<path>.upstream.<ext>`.
+     The CLI does **not** prompt, read stdin, overwrite, or write a
+     `.pre-update.bak`. This is the contract the `agent-spec-cli` and
+     `distribution-adapters` specs (both Shipped) codified — *"never clobber a
+     Tier-2 file; always emit a `.upstream.<ext>` companion"* — and that
+     `tests/integration/test_tier_invariants.py` pins across all write verbs.
+
+  2. **Interactivity moved to `adapt-to-project`.** The keep / merge / overwrite
+     negotiation the RFC body located in the CLI prompt is owned by the
+     `adapt-to-project` skill, which picks up the `.upstream.<ext>` companions and
+     resolves them with adopter approval (per § *Post-install adaptation* and the
+     `distribution-adapters` spec's companion semantics). A deterministic CLI plus
+     an LLM-driven merge skill is a cleaner split than an in-CLI prompt.
+
+  3. **The CLI surfaces the companion-drop.** Closing the diagnosability gap that
+     made (1) safe to live with: `install` surfaces Tier-2 companions today (its
+     seed-delivery rail prints a stderr notice; its projection-walk companions are
+     recorded in the install-state marker), whereas `upgrade` surfaced nothing.
+     `upgrade` now emits a stderr notice naming the count and the companion
+     path(s), so an adopter can find and merge what was kept. See
+     `docs/specs/upgrade-companion-visibility/` for the implementing spec.
+
+  Approver-signed (@eugenelim, 2026-06-11) as an erratum rather than a superseding
+  RFC: it records an as-built divergence in one clause's *mechanism* (deterministic
+  companion-drop in place of an unbuilt in-CLI prompt), not a change to the Tier-2
+  trust model or the architecture. The frozen body above is unchanged; this
+  annotation is the correction of record.
