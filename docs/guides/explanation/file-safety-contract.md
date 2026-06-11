@@ -48,11 +48,15 @@ The CLI records a SHA-256 of every projected file in
 `agentbundle upgrade --pack <name> --to <version> <catalogue>`, any
 file whose content diverged since install (Tier-2) gets a
 `*.upstream.<ext>` companion dropped next to it; your edited file is
-left alone and the CLI continues without prompting. The merge UI lives
-in the `adapt-to-project` skill, which you re-invoke after the upgrade
-to walk the new companions one at a time. RFC-0001 specifies a richer
-in-CLI prompt with a `<path>.pre-update.bak` overwrite path; v0.1
-ships the companion-drop only.
+left alone and the CLI continues without prompting. The upgrade then
+reports on stderr how many files were kept and the companion path of
+each, so you can find them. The merge UI lives in the `adapt-to-project`
+skill, which you re-invoke after the upgrade to walk the new companions
+one at a time. RFC-0001's original draft specified a richer in-CLI
+prompt with a `<path>.pre-update.bak` overwrite path; that prompt was
+superseded by this deterministic companion-drop design (RFC-0001
+§ Errata, 2026-06-11) — the CLI never clobbers or prompts, and the
+keep/merge/overwrite choice lives in `adapt-to-project`.
 
 ### Tier-3 (everything else)
 

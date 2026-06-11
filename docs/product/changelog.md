@@ -23,6 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`agentbundle upgrade` tells you when it keeps your edits** — when a
+  projected file you edited since install collides with the new version
+  (Tier-2), the upgrade preserves your file and drops the upstream version
+  as a `<path>.upstream.<ext>` companion, exactly as before. It now also
+  prints, on stderr after the upgrade commits, how many files were kept
+  and the companion path of each — so you can find them and run
+  `adapt-to-project` to merge. Parity with what `install` already reports;
+  no change to the file-safety contract (the CLI still never clobbers or
+  prompts). Per
+  [RFC-0001 § Errata (2026-06-11)](../rfc/0001-bundle-distribution-by-adapter-spec.md#errata),
+  which reconciles the original draft's unbuilt in-CLI Tier-2 prompt with
+  this deterministic companion-drop design.
+
 - **Codex receives full skill bodies** — the `skill` projection for the
   Codex adapter flips from `managed-block-inline` (one-line teasers
   in `AGENTS.md` between `<!-- agent-skills:start -->` /

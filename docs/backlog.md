@@ -45,14 +45,6 @@ marker — see RFC-0016).
   (`git+ssh://…` exits non-zero with a "deferred to v1.1" message);
   full `--strict` `validate` against the v0.1 conformance fixtures
   (owned by RFC-0003's deferred F-conformance task).
-- **Tier-2 upgrade prompt — v0.1 ships companion-drop only.** RFC-0001
-  specifies a three-option in-CLI prompt on `agentbundle upgrade` Tier-2
-  collisions (keep / overwrite with `.pre-update.bak` / invoke
-  `adapt-to-project`). The shipped `upgrade.py` is non-interactive
-  (writes a `*.upstream.<ext>` companion and continues); the
-  `.pre-update.bak` overwrite path is unimplemented. **Unblocks when:**
-  the interactive prompt + backup path are implemented, or RFC-0001's
-  Tier-2 contract is amended to match the companion-drop-only shape.
 
 ## `adapt-to-project`
 
