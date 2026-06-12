@@ -19,16 +19,20 @@ the verified runtime findings recorded in the specs linked per row.
 | **Claude Code** | ✅ native | ✅ native | ✅ native | ✅ native + `settings.json` merge | **Full** |
 | **Codex** | ✅ native | ✅ native (`.codex/agents/*.toml`) | ❌ tool-side | ✅ native + `.codex/hooks.json` merge | **Full**¹ |
 | **Copilot** | ✅ instruction file | ⚠️ native, no web tool | ❌ tool-side | ⚠️ user-scope fires; repo-scope trust-gated | **Partial** |
+| **Cursor** | ✅ native | ⚠️ native, no tool allowlist | ✅ native | ✅ native + `.cursor/hooks.json` merge | **Full**² |
 | **Kiro CLI** | ✅ native | ✅ native | ❌ tool-side | ✅ body + wiring | **Near-full** |
 | **Kiro IDE** | ✅ native | ✅ native | ❌ tool-side | ⚠️ bodies + `.kiro.hook` events; embedded wiring dropped | **Partial** |
-| **Any `AGENTS.md` reader** (Cursor, Gemini CLI, …) | ➖ via `AGENTS.md` | ❌ | ❌ | ❌ | **Universal layer** |
+| **Any `AGENTS.md` reader** (Gemini CLI, …) | ➖ via `AGENTS.md` | ❌ | ❌ | ❌ | **Universal layer** |
 
 **Legend.** ✅ native — projected to a tool-native file. ➖ — delivered through
 the shared `AGENTS.md` universal layer, not a per-tool file. ⚠️ — projected but
 with a runtime caveat (see the note). ❌ — not projected.
 
-¹ "Full" bar slash commands, which no listed tool below Claude Code supports — see
-the note on commands.
+¹ "Full" bar slash commands — a tool-side limit for Codex and Kiro. Claude Code and
+**Cursor** are the two tools that project commands natively (see the note on commands).
+
+² Cursor projects all five primitives, including native slash commands and hooks.
+The one fidelity caveat is the subagent **tool allowlist** — see the note below.
 
 ## What "Universal layer" means
 
@@ -37,23 +41,33 @@ the **universal layer**: the `AGENTS.md` conventions, the source-of-truth map, a
 the work-loop discipline, inlined as text the agent reads on every session. That
 is the floor, and it is the same everywhere. The columns above are what each tool
 gets *on top of* that floor as tool-native primitives. A tool with no native
-primitives (Cursor, Gemini CLI) still runs the loop through `AGENTS.md`; it just
+primitives (Gemini CLI) still runs the loop through `AGENTS.md`; it just
 doesn't get per-tool subagent/command/hook files.
 
 ## Per-tool caveats
 
-- **Slash commands are dropped on every tool except Claude Code — and that's a
-  tool limit, not a catalogue gap.** Codex deprecated custom prompts in favour of
-  skills (which the catalogue *does* project to Codex, at `.agents/skills/`); the
-  Copilot CLI won't load custom slash-command files by design — prompt files were
-  superseded by skills there too (copilot-cli#618/#1113), and the catalogue
-  projects Copilot skills as instruction files (`.github/instructions/`); and Kiro
-  ships no standalone command-file primitive for the catalogue to project (Kiro IDE
-  still surfaces slash commands via manual-trigger hooks and `inclusion: manual`
-  steering). So what drops is the *slash-invocation surface*, not reusable prompt
-  content — that lives on as skills. The contract marks `command` as `dropped` for
-  each rather than inventing one. When a tool ships a command-file surface, the
-  mapping is added and tested — not projected speculatively.
+- **Slash commands project to Claude Code and Cursor; they're dropped on the
+  others — and that's a tool limit, not a catalogue gap.** Codex deprecated custom
+  prompts in favour of skills (which the catalogue *does* project to Codex, at
+  `.agents/skills/`); the Copilot CLI won't load custom slash-command files by
+  design — prompt files were superseded by skills there too (copilot-cli#618/#1113),
+  and the catalogue projects Copilot skills as instruction files
+  (`.github/instructions/`); and Kiro ships no standalone command-file primitive for
+  the catalogue to project (Kiro IDE still surfaces slash commands via manual-trigger
+  hooks and `inclusion: manual` steering). So on those tools what drops is the
+  *slash-invocation surface*, not reusable prompt content — that lives on as skills.
+  **Cursor**, by contrast, reads `.cursor/commands/<name>.md`, so the catalogue
+  projects commands there natively — the second adapter after Claude Code to honour
+  them. The contract marks `command` as `dropped` for the rest rather than inventing
+  one; when a tool ships a command-file surface, the mapping is added and tested —
+  not projected speculatively.
+- **Cursor — subagents have no per-agent tool allowlist.** Cursor subagents inherit
+  all parent tools, so the source `tools:` allowlist is dropped on projection; for
+  a non-mutating agent (one declaring none of `Edit`/`Write`/`MultiEdit`/`NotebookEdit`)
+  the catalogue derives `readonly: true` so reviewer/retrieval subagents stay
+  least-privilege, and a mutating agent inherits all tools (no `readonly` emitted).
+  Documented degradation, the same shape Copilot's tool handling takes. See
+  [`cursor-full-parity`](../../specs/cursor-full-parity/spec.md).
 - **Copilot — subagents have no web tool.** Custom Copilot agents expose
   read/grep/glob but no web fetch/search (verified against CLI 1.0.59), so the
   `research` pack's retrieval subagents lose live web access on Copilot
@@ -82,7 +96,9 @@ doesn't get per-tool subagent/command/hook files.
 
 ## Choosing a tool
 
-- Want the whole loop with every primitive? **Claude Code.**
+- Want the whole loop with every primitive? **Claude Code** or **Cursor** (Cursor
+  projects skills, subagents, slash commands, and hooks natively; the only fidelity
+  loss is the per-agent tool allowlist, replaced by a derived `readonly` flag).
 - Terminal-native with near-full parity? **Codex** or **Kiro CLI** (you lose only
   slash commands, which those tools don't have).
 - On **Copilot**, expect skills + subagents + user-scope hooks to work, and plan

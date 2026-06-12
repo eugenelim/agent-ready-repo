@@ -110,7 +110,7 @@ _SHIPPED_ADAPTERS: tuple[str, ...] = _shipped_adapters()
 # at all four adapters, so tests that --force install core can
 # parametrize over `_SHIPPED_ADAPTERS` directly.
 _ADAPTERS_WHERE_GOV_ORPHAN_SCAN_FIRES: tuple[str, ...] = (
-    "claude-code", "kiro", "codex",
+    "claude-code", "kiro", "codex", "cursor",
 )
 
 
@@ -133,6 +133,9 @@ def _skill_path(adapter: str, skill_name: str) -> str:
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "copilot":
         return f".github/instructions/{skill_name}.instructions.md"
+    # RFC-0026 cursor-full-parity: cursor projects skills to `.cursor/skills/`.
+    if adapter == "cursor":
+        return f".cursor/skills/{skill_name}/SKILL.md"
     raise ValueError(f"unknown adapter: {adapter!r}")
 
 

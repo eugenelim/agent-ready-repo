@@ -77,8 +77,8 @@ class ContractVersionTests(unittest.TestCase):
         # RFC-0022 / kiro-adapter-split bumped it to v0.9 (this assertion was
         # left stale at "0.8" then — this CI-only root isn't in `make
         # build-check`, so the drift didn't surface); docs/specs/copilot-full-
-        # parity bumps it to v0.10.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.10")
+        # parity bumped it to v0.10; RFC-0026 / cursor-full-parity bumps it to v0.11.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.11")
 
 
 # ---------------------------------------------------------------------------

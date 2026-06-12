@@ -37,9 +37,19 @@
 # docs/specs/codex-agent-config-projection: corrects the existing codex
 # `codex-agent-frontmatter-v0.8` mapping to preserve `model` and `tools`
 # intent as documented Codex agent config instead of dropping those fields.
+# RFC-0026 / ADR-0015 / docs/specs/cursor-full-parity (v0.11): new native
+# `cursor` full-parity adapter projecting all five primitives to `.cursor/*`
+# at both scopes. NO new projection mode and NO adapter.schema.json change —
+# skill→direct-directory, agent→direct-file (+ `cursor-agent-frontmatter-v0.11`;
+# `tools` dropped + `readonly` derived inline by cursor.py), hook-body→
+# direct-file, hook-wiring→merge-json (aggregated `.cursor/hooks.json`,
+# event-remapped + `version` key via cursor.py's merge helper), command→
+# direct-file (Cursor honours commands). kiro-ide-hook dropped. Same `.cursor/`
+# prefix at both scopes (claude-code/codex pattern; no prefix rewrite).
+# Distribution-only (not in SELF_HOST_ADAPTERS).
 
 [contract]
-version = "0.10"
+version = "0.11"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -506,6 +516,89 @@ allowed-prefixes.repo = [".agents/skills/", ".codex/", ".agentbundle/", "tools/h
 allowed-prefixes.user = [".agents/skills/", ".codex/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
+# Cursor adapter — full-parity native adapter (RFC-0026 / ADR-0015 /
+# docs/specs/cursor-full-parity, v0.11).
+#
+# Projects all five catalogue primitives to Cursor's native `.cursor/*`
+# discovery paths at both repo and user scope. Cursor's CLI and IDE share one
+# `.cursor/` layout (no RFC-0022-style split). No new projection mode and no
+# adapter.schema.json change: every primitive reuses an already-enumerated
+# mode. The agent uses `direct-file` + a frontmatter mapping (the kiro-ide
+# `.md` shape); because Cursor subagents have no per-agent tool allowlist,
+# cursor.py drops the source `tools` and derives a `readonly` flag for
+# non-mutating agents (documented degradation, the ADR-0013 Copilot shape).
+# hook-wiring is `merge-json` to an aggregated `.cursor/hooks.json`; cursor.py's
+# merge helper remaps source events via `hook-event-map` and adds a `version`
+# key. `command` is first-class (Cursor is the second adapter after claude-code
+# to honour commands). `kiro-ide-hook` is dropped (Kiro-only), declared in the
+# table form since the schema's array `primitive` enum admits only the five
+# standard primitives. Scope prefix is identical at both scopes (the
+# claude-code/codex pattern), so the user-scope home is the generic
+# user-rooting of the repo-relpath — NO Cursor-specific prefix rewrite.
+# Distribution-only: cursor is NOT in SELF_HOST_ADAPTERS.
+# ---------------------------------------------------------------------------
+
+[[adapter.cursor.projection]]
+primitive = "skill"
+mode = "direct-directory"
+target-path = ".cursor/skills/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.cursor.projection]]
+primitive = "agent"
+mode = "direct-file"
+target-path = ".cursor/agents/"
+frontmatter-mapping = "cursor-agent-frontmatter-v0.11"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.cursor.projection]]
+primitive = "hook-body"
+mode = "direct-file"
+target-path = ".cursor/hooks/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.cursor.projection]]
+primitive = "hook-wiring"
+mode = "merge-json"
+target-path = ".cursor/hooks.json"
+managed-key = "hooks"
+on-conflict = "merge-managed-key-only"
+# Hook-event map (RFC-0026 decision 4). Our hook-wiring source uses Claude-
+# native PascalCase event names (e.g. `[[hooks.SessionStart]]`); Cursor's
+# hooks.json uses camelCase event keys. cursor.py's merge helper reads this
+# table to translate each source event; a source event with no entry here is
+# dropped with a build-time log line (fail-open, the no-silent-caps rule —
+# deliberately unlike copilot-hooks-json's fail-closed map). The map lives in
+# the contract, not the adapter code. (Erratum vs RFC-0026: the RFC spelled the
+# source vocabulary `agentSpawn`/…; the shipped source is Claude PascalCase, so
+# the map keys on PascalCase — target events unchanged. See the spec Changelog.)
+hook-event-map = { SessionStart = "sessionStart", UserPromptSubmit = "beforeSubmitPrompt", PreToolUse = "preToolUse", PostToolUse = "postToolUse", Stop = "stop" }
+
+[[adapter.cursor.projection]]
+primitive = "command"
+mode = "direct-file"
+target-path = ".cursor/commands/"
+on-conflict = "prompt-then-preserve"
+
+# kiro-ide-hook — dropped (Kiro-only primitive). Declared in the table form,
+# not the projection array, because the schema's array `primitive` enum admits
+# only skill/agent/hook-body/hook-wiring/command (kiro-ide / kiro-cli set the
+# table-form precedent).
+[adapter.cursor.projections.kiro-ide-hook]
+mode = "dropped"
+
+# Scope dimension for Cursor (RFC-0026 / ADR-0015). Cursor's `.cursor/` prefix
+# is identical at repo and user scope (the claude-code/codex shape), so the
+# divergent user-scope home is produced by the generic user-root resolution,
+# not a Cursor-specific prefix rewrite. `.agentbundle/` carries the install
+# state file at both scopes (as every scope-capable adapter lists it).
+[adapter.cursor.scope]
+repo = "."
+user = "~"
+allowed-prefixes.repo = [".cursor/", ".agentbundle/"]
+allowed-prefixes.user = [".cursor/", ".agentbundle/"]
+
+# ---------------------------------------------------------------------------
 # Frontmatter mappings — rewrite rules applied when projecting a primitive
 # ---------------------------------------------------------------------------
 
@@ -604,6 +697,28 @@ rename = "name"
 
 [frontmatter-mapping."copilot-agent-frontmatter-v0.10".description]
 rename = "description"
+
+# Cursor agent frontmatter v0.11 (RFC-0026 / docs/specs/cursor-full-parity):
+# rewrite rules from claude-code-style markdown agent (YAML frontmatter with
+# `name`, `description`, optionally `tools`, `model`) to Cursor's subagent `.md`
+# shape. `name` / `description` / `model` pass through (identity renames; `model`
+# is emitted verbatim — Cursor resolves a known id or falls back to inherit, no
+# alias translation). `tools` is **absent** from this mapping: Cursor subagents
+# have no per-agent tool allowlist, so `cursor.py` drops the source `tools` and
+# derives a `readonly` flag for non-mutating agents (an agent whose declared
+# tool set contains none of Edit/Write/MultiEdit/NotebookEdit). `is_background`
+# is not emitted. This is the documented-degradation shape ADR-0013 accepted for
+# Copilot's tool handling.
+[frontmatter-mapping."cursor-agent-frontmatter-v0.11"]
+
+[frontmatter-mapping."cursor-agent-frontmatter-v0.11".name]
+rename = "name"
+
+[frontmatter-mapping."cursor-agent-frontmatter-v0.11".description]
+rename = "description"
+
+[frontmatter-mapping."cursor-agent-frontmatter-v0.11".model]
+rename = "model"
 
 # ---------------------------------------------------------------------------
 # Frontmatter defaults — fields injected when a primitive has no frontmatter

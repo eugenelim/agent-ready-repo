@@ -93,6 +93,13 @@ jobs:
           tests/integration/test_build_check_drift_gates.py
           tests/integration/test_credential_brokers_pack_install.py
 
+      # cursor-full-parity (RFC-0026): the cursor adapter's unit suite lives in
+      # the build/tests root, which `make build-check` does not run. Wire it in
+      # explicitly or it never gates (CI does not auto-discover package pytest).
+      - name: pytest cursor adapter (cursor-full-parity)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_adapter_cursor.py
+
       - name: converters source-attribution scrub (AC2)
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error
