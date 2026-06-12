@@ -67,3 +67,36 @@ This decision was gated on a live smoke and verified: RFC-0024 § Acceptance ver
 - [RFC-0024](../rfc/0024-copilot-subagent-projection.md) — full analysis, options, and the T1–T8 acceptance verification (Runs 1–3).
 - [ADR-0004](0004-repo-scope-per-adapter-projection.md), [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md) — the per-adapter projection model + the copilot repo-only scope decision this extends/supersedes-in-part.
 - [`dropped-primitives-coverage` spec](../specs/dropped-primitives-coverage/spec.md) — the codex `dropped`→first-class precedent and the contract-driven warning rail.
+
+## Errata
+
+> Append-only corrections to this Accepted ADR. Implemented by
+> [`docs/specs/copilot-skills-and-web/`](../specs/copilot-skills-and-web/spec.md)
+> (contract v0.11 → v0.12, atop RFC-0026 cursor's v0.11); mirrors [RFC-0024 § Errata](../rfc/0024-copilot-subagent-projection.md#errata).
+
+### E1 — `WebFetch`/`WebSearch` are supported on Copilot CLI + app — 2026-06-11
+
+Decision 7 + the "Tool-alias coverage" consequence (line 55) recorded, from
+RFC-0024 Run 4, that `WebFetch`/`WebSearch` "did not surface as Copilot tools"
+and that the spec would document a `research` degradation. **Corrected:** the
+official custom-agents reference documents a `web` tool aliasing `WebSearch`/`WebFetch`,
+applicable to the CLI + app (only the cloud agent is excluded). The Run-4 finding
+was confounded; pass-through is correct and unchanged, so no `research` web
+degradation exists on this repo's CLI/app target — only the cloud agent lacks `web`.
+Source: https://docs.github.com/en/copilot/reference/custom-agents-configuration (2026-06-11).
+
+*Signed-off: eugenelim (Decider/Approver), 2026-06-11.*
+
+### E2 — `skill` projects as first-class Agent Skills (`SKILL.md`), not `instruction-file` — 2026-06-11
+
+Decision 4 gave `skill` the `instruction-file` mode (repo `.github/instructions/`,
+user `~/.copilot/instructions/`), and "Alternatives considered" rejected the
+agent-as-instruction collapse. Copilot has since shipped first-class Agent Skills
+(`.github/skills/<name>/SKILL.md` repo, `~/.copilot/skills/<name>/SKILL.md` user),
+distinct from custom instructions, so the adapter flips `skill` to the existing
+`direct-directory` `SKILL.md` shape and retires copilot's `instruction-file`
+usage + the `copilot-instruction` frontmatter-default. Same flip-on-upstream-support
+move this ADR already made for codex agents/hooks. Source:
+https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills (2026-06-11).
+
+*Signed-off: eugenelim (Decider/Approver), 2026-06-11.*

@@ -41,17 +41,46 @@ class CopilotAdapterTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_skill_projects_with_applyTo_default(self) -> None:
+    def test_skill_projects_as_first_class_skill_md(self) -> None:
+        # v0.11 (docs/specs/copilot-skills-and-web): `skill` flips
+        # `instruction-file` → `direct-directory`. Copilot reads
+        # `.github/skills/<name>/SKILL.md` and accepts our canonical Claude
+        # SKILL.md verbatim, so the source tree is copied byte-for-byte (no
+        # `.instructions.md` wrapper, no injected `applyTo` frontmatter).
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_pack(tmp_path)
             out = tmp_path / "out"
             project(pack, self.contract, out)
-            output_path = out / ".github" / "instructions" / "foo.instructions.md"
+            source_body = (pack / ".apm" / "skills" / "foo" / "SKILL.md").read_text(
+                encoding="utf-8"
+            )
+            output_path = out / ".github" / "skills" / "foo" / "SKILL.md"
             self.assertTrue(output_path.exists())
-            text = output_path.read_text(encoding="utf-8")
-            self.assertIn("applyTo", text)
-            self.assertIn("**", text)
+            self.assertEqual(output_path.read_text(encoding="utf-8"), source_body)
+            # No legacy instruction-file output.
+            self.assertFalse((out / ".github" / "instructions").exists())
+
+    def test_skill_orphan_sweep_bounded_to_skills_dir(self) -> None:
+        # AC4: re-projection sweeps a stale skill dir, and the sweep is bounded
+        # to the skill target — it never touches sibling `.github/agents/` or
+        # `.github/hooks/` content.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_pack(tmp_path)
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            self.assertTrue((out / ".github" / "skills" / "foo").exists())
+            agents_before = sorted((out / ".github" / "agents").iterdir())
+            hooks_before = sorted((out / ".github" / "hooks").iterdir())
+            # Rename the source skill; re-project. The old name is now orphaned.
+            (pack / ".apm" / "skills" / "foo").rename(pack / ".apm" / "skills" / "renamed")
+            project(pack, self.contract, out)
+            self.assertFalse((out / ".github" / "skills" / "foo").exists())
+            self.assertTrue((out / ".github" / "skills" / "renamed").exists())
+            # Sibling agent/hook trees are untouched by the skill sweep.
+            self.assertEqual(sorted((out / ".github" / "agents").iterdir()), agents_before)
+            self.assertEqual(sorted((out / ".github" / "hooks").iterdir()), hooks_before)
 
     def test_agent_projects_agent_md(self) -> None:
         # v0.10 (copilot-full-parity): agent flips dropped → copilot-agent-md.

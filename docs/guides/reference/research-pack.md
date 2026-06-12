@@ -128,9 +128,10 @@ rationale chain; `comprehensively`, `exhaustively`, `in depth`,
 
 ## Retrieval subagents
 
-Two read-only retrieval subagents. Available only on hosts that
-support subagent dispatch (Claude Code); on hosts without subagent
-support, skills run their retrieval inline.
+Two read-only retrieval subagents. Available on hosts that support
+subagent dispatch (Claude Code, Codex, Kiro, and the Copilot CLI + app —
+on Copilot they keep live web access via Copilot's `web` tool); on hosts
+without subagent support, skills run their retrieval inline.
 
 ### evidence-retriever
 

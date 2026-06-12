@@ -226,7 +226,7 @@ scanner (`safety.scan_for_pack_artifacts`), or the install handler's
 adapter-resolution path **must parametrize over every shipped
 adapter** — today `claude-code`, `kiro`, `codex`, `copilot` — not just
 the default. Each adapter projects to a different directory layout
-(`.claude/`, `.kiro/`, `.agents/skills/`, `.github/instructions/`) and
+(`.claude/`, `.kiro/`, `.agents/skills/`, `.github/skills/`) and
 the per-pack scanner's primitive-name heuristic interacts differently
 with each shape; coverage at one adapter does not prove coverage at
 the others.
@@ -249,18 +249,17 @@ their own tests rather than silently elided. The
 `[[adapter.<name>.projection]]` table — when a new adapter ships,
 both the contract entry and `_skill_path` must change in the same PR.
 
-A known coverage asymmetry pinned by `test_copilot_orphan_scan_finds_hooks_but_not_instructions`:
-copilot's flat `.github/instructions/<primitive>.instructions.md`
-projection has a stem (`<primitive>.instructions`) that matches none
-of the scanner's heuristic conditions, so the per-pack scanner
-returns `[]` for copilot's instructions directory. The scanner still
-fires at copilot for packs that ship `tools/hooks/` files (copilot's
-`allowed-prefixes.repo` includes both surfaces), so cross-pack tests
-parametrize Direction A (force-installing a skills-only pack) over a
-narrower adapter set and Direction B (force-installing a pack with
-hooks) over the full set. When new adapter-specific orphan-scan gaps
-are discovered, follow this pattern — pin the gap explicitly so it
-can't drift unnoticed.
+No more copilot orphan-scan asymmetry (docs/specs/copilot-skills-and-web):
+copilot's `skill` projection flipped from a flat
+`.github/instructions/<primitive>.instructions.md` (whose stem evaded the
+per-pack scanner) to a first-class `.github/skills/<name>/SKILL.md` directory
+tree, which the scanner's directory heuristic matches by name exactly like
+every other adapter. So the cross-pack orphan tests now parametrize **both**
+Direction A (skills-only pack) and Direction B (hooks pack) over the full
+shipped-adapter set including copilot (`_ADAPTERS_WHERE_GOV_ORPHAN_SCAN_FIRES`
+now includes `copilot`). The copilot-specific scanner pin is
+`test_copilot_orphan_scan_finds_skills_and_hooks`. When new adapter-specific
+orphan-scan gaps are discovered, pin the gap explicitly so it can't drift unnoticed.
 
 ## New tool scripts: Python, not bash
 

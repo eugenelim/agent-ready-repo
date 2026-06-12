@@ -32,31 +32,25 @@ Three concerns:
      touches an on-disk projection runs once per shipped adapter
      (``claude-code``, ``kiro``, ``codex``, ``copilot``) — projection
      layout differs per adapter (``.claude/`` vs ``.kiro/`` vs
-     ``.agents/skills/`` vs ``.github/instructions/``) and the
+     ``.agents/skills/`` vs ``.github/skills/``) and the
      orphan-recovery scanner's per-pack heuristic interacts
      differently with each shape. Per AGENTS.local.md § "Install-test
      coverage rule", install-handler tests must fan out across all
      four shipped adapters; adapter-specific gaps are pinned
      explicitly as their own tests rather than silently elided.
 
-Known per-adapter quirk pinned below:
+Per-adapter projection geometry:
 
-  - Copilot's skill projection lands at
-    ``.github/instructions/<skill>.instructions.md`` — a depth-1 file whose
-    stem (``<skill>.instructions``) matches neither the primitive name nor the
-    pack name, so the per-pack scanner at ``safety.scan_for_pack_artifacts``
-    returns ``[]`` for the ``.github/instructions/`` portion of the prefix
-    list. The scanner DOES fire at copilot for packs that ship hook files —
-    post RFC-0024 / copilot-full-parity those land under ``.github/hooks/``
-    (copilot's ``allowed-prefixes.repo`` is now
-    ``[.github/instructions/, .github/agents/, .github/hooks/]``; the legacy
-    ``tools/hooks/`` prefix is gone). So at copilot the orphan branch fires for
-    *core* (which ships ``pre-pr.py`` + ``session-start.py``) but not for
-    *governance-extras* (skills-only). The cross-pack invariant tests'
-    Direction A (force install of governance-extras) skips copilot for this
-    reason — there's nothing for the scanner to find so the positive-signal
-    assertion would fire vacuously. Direction B (force install of core) runs at
-    all four adapters.
+  - Copilot's skill projection lands at ``.github/skills/<skill>/SKILL.md``
+    (docs/specs/copilot-skills-and-web — first-class Agent Skills, was a flat
+    ``.github/instructions/<skill>.instructions.md``). The per-pack scanner at
+    ``safety.scan_for_pack_artifacts`` matches these by directory name, exactly
+    like ``.claude/skills/<name>/`` etc., so copilot is no longer the odd one
+    out: the orphan branch fires at copilot for both *core* (skills + hooks at
+    ``.github/hooks/``) and *governance-extras* (skills-only). Copilot's
+    ``allowed-prefixes.repo`` is now ``[.github/skills/, .github/agents/,
+    .github/hooks/]``. Both Direction A (force install governance-extras) and
+    Direction B (force install core) therefore run at all shipped adapters.
 
 Catalogue source: the live ``packs/`` tree in this repo. ``core`` and
 ``governance-extras`` are the canonical repo-only pair (governance
@@ -103,14 +97,14 @@ _SHIPPED_ADAPTERS: tuple[str, ...] = _shipped_adapters()
 
 # Adapters at which an orphan-scan over governance-extras's primitives
 # (skills only — new-rfc, new-adr, update-conventions) finds something.
-# Excludes copilot because governance-extras ships no hook files and
-# copilot's flat ``<primitive>.instructions.md`` shape fails the per-
-# pack scanner's stem-equality match — see module docstring.
-# For *core* (which ships hooks at ``tools/hooks/``) the scanner fires
-# at all four adapters, so tests that --force install core can
-# parametrize over `_SHIPPED_ADAPTERS` directly.
+# Includes copilot since docs/specs/copilot-skills-and-web: its `skill`
+# projection is now a first-class `.github/skills/<name>/` directory tree,
+# which the per-pack scanner's directory heuristic matches by name exactly
+# like every other adapter (was a flat `<primitive>.instructions.md` whose
+# stem evaded the scanner — that asymmetry is retired). For *core* (which
+# also ships hooks) the scanner fires at all adapters too.
 _ADAPTERS_WHERE_GOV_ORPHAN_SCAN_FIRES: tuple[str, ...] = (
-    "claude-code", "kiro", "codex", "cursor",
+    "claude-code", "kiro", "codex", "cursor", "copilot",
 )
 
 
@@ -132,7 +126,9 @@ def _skill_path(adapter: str, skill_name: str) -> str:
     if adapter == "codex":
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "copilot":
-        return f".github/instructions/{skill_name}.instructions.md"
+        # docs/specs/copilot-skills-and-web: first-class Agent Skills —
+        # `.github/skills/<name>/SKILL.md` (was a flat `.instructions.md`).
+        return f".github/skills/{skill_name}/SKILL.md"
     # RFC-0026 cursor-full-parity: cursor projects skills to `.cursor/skills/`.
     if adapter == "cursor":
         return f".cursor/skills/{skill_name}/SKILL.md"
@@ -405,7 +401,7 @@ def test_lost_state_reinstall_over_projection_files_is_clean(tmp_path, adapter):
 
     The orphan-recovery feature still fires for *genuine* non-projection crumbs
     — see `test_install_orphan_reshape.py` (install-level) and
-    `test_copilot_orphan_scan_finds_hooks_but_not_instructions` (scanner-level).
+    `test_copilot_orphan_scan_finds_skills_and_hooks` (scanner-level).
     Before issue #190 this scenario refused with a "prior install interrupted"
     message and `--force` would `unlink()` the adopter's files; that hostile
     behaviour is exactly what the fix removes.
@@ -449,20 +445,18 @@ def test_lost_state_reinstall_over_projection_files_is_clean(tmp_path, adapter):
     assert state_path.exists(), "the clean reinstall must rewrite state.toml"
 
 
-def test_copilot_orphan_scan_finds_hooks_but_not_instructions(tmp_path):
-    """Copilot-specific pin: the per-pack scanner finds orphans under
-    ``tools/hooks/`` (matching by stem against hook primitive names)
-    but does NOT find orphans under ``.github/instructions/`` — the
-    flat ``<primitive>.instructions.md`` shape's stem
-    (``<primitive>.instructions``) matches none of the scanner's
-    primitive_names heuristic conditions.
+def test_copilot_orphan_scan_finds_skills_and_hooks(tmp_path):
+    """Copilot-specific pin: the per-pack scanner finds orphans under both
+    ``.github/skills/`` (skill directory trees, matched by directory name)
+    and ``.github/hooks/`` (hook bodies, matched by stem).
 
-    This pins the current partial-coverage shape. If the scanner is
-    ever taught about the ``.instructions.md`` suffix (or copilot's
-    projection is reshaped) the file count assertion below shifts and
-    this test fails loudly so the parametrization at
-    ``test_force_orphan_cleanup_*`` can be widened (governance-extras
-    Direction A could then include copilot too).
+    docs/specs/copilot-skills-and-web flipped copilot's ``skill`` projection
+    from a flat ``<primitive>.instructions.md`` (whose stem evaded the
+    scanner) to a first-class ``.github/skills/<name>/SKILL.md`` directory
+    tree — so the scanner now matches copilot skills by directory name, the
+    same as every other adapter. This pin asserts that parity; if it ever
+    regresses, ``_ADAPTERS_WHERE_GOV_ORPHAN_SCAN_FIRES`` (which now includes
+    copilot) would also break.
     """
     from agentbundle import safety
     from agentbundle.commands import install as _install_mod
@@ -473,39 +467,30 @@ def test_copilot_orphan_scan_finds_hooks_but_not_instructions(tmp_path):
     rc1, _, err1 = _install_pack_at_adapter("core", adopter, "copilot")
     assert rc1 == 0, f"first install failed: {err1}"
 
-    # Plant files for both packs but kill state; core's hooks under
-    # tools/hooks/ should be found by the scanner; the
-    # .github/instructions/ files should NOT be.
     state_path = adopter / ".agentbundle-state.toml"
     state_path.unlink()
 
     _install_mod._clear_inband_detection_seen()
 
-    # Direct-call the scanner with core's primitive set + copilot's
-    # repo-scope prefixes so we observe the gap straight rather than
-    # routing through the install handler. RFC-0024 / copilot-full-parity
-    # retargets copilot's hook bodies from `tools/hooks/` to `.github/hooks/`
-    # and adds `.github/agents/`.
+    # Direct-call the scanner with core's primitive set + copilot's current
+    # repo-scope prefixes (v0.11: skills at `.github/skills/`, hook bodies at
+    # `.github/hooks/`, agents at `.github/agents/`).
     pack_dir = REPO_ROOT / "packs" / "core"
-    prefixes = [".github/instructions/", ".github/agents/", ".github/hooks/"]
+    prefixes = [".github/skills/", ".github/agents/", ".github/hooks/"]
     orphans = safety.scan_for_pack_artifacts(
         adopter, prefixes, pack_dir=pack_dir, pack_name="core",
     )
     rels = sorted(p.relative_to(adopter).as_posix() for p in orphans)
 
-    # Positive: .github/hooks/* hits (hook bodies, post-retarget).
+    # Skills are now found (directory-name match), unlike the retired flat shape.
+    skill_hits = [r for r in rels if r.startswith(".github/skills/")]
+    assert skill_hits, (
+        f"expected scanner to find core's skill dirs at copilot; got: {rels!r}"
+    )
+    # Hook bodies are found too.
     hook_hits = [r for r in rels if r.startswith(".github/hooks/")]
     assert hook_hits, (
         f"expected scanner to find core's hook files at copilot; got: {rels!r}"
-    )
-
-    # Negative: nothing under .github/instructions/ is matched.
-    instructions_hits = [r for r in rels if r.startswith(".github/instructions/")]
-    assert not instructions_hits, (
-        "copilot scanner now matches .github/instructions/ — the "
-        "stem-equality heuristic appears to have been fixed. Widen "
-        "`_ADAPTERS_WHERE_GOV_ORPHAN_SCAN_FIRES` to include 'copilot' "
-        "and delete this test. Hits: " + repr(instructions_hits)
     )
 
 
@@ -727,12 +712,13 @@ def test_force_orphan_cleanup_does_not_clobber_other_packs_files(
     tmp_path, monkeypatch, adapter_name,
 ):
     """Direction A, per adapter: governance-extras ``--force`` must
-    not unlink any of core's state-tracked files. Skipped for copilot
-    — the scanner returns ``[]`` for governance-extras at copilot's
-    flat projection (governance ships no hook files; the
-    ``.instructions.md`` stem rule doesn't match) so the spy assertion
-    would fire vacuously. The copilot scanner gap is pinned
-    separately in ``test_copilot_orphan_scan_finds_hooks_but_not_instructions``."""
+    not unlink any of core's state-tracked files. Runs at **every** shipped
+    adapter including copilot (docs/specs/copilot-skills-and-web): copilot's
+    skills now project as a `.github/skills/<name>/` directory tree that the
+    scanner matches by name, so governance-extras (skills-only) is scannable at
+    copilot — no longer the vacuous case the old flat `.instructions.md`
+    projection created. The copilot scanner behaviour is pinned separately in
+    ``test_copilot_orphan_scan_finds_skills_and_hooks``."""
     adopter = tmp_path / "adopter"
     adopter.mkdir()
     _run_cross_pack_force_clobber_scenario(

@@ -68,10 +68,11 @@ class TestRepoOnlyPacksV07(unittest.TestCase):
         """Drawback #7 mitigation — without the bump the legacy
         heuristic at step 5 fires at repo scope for these packs. Test
         name preserved; version assertion pins v0.8, except `core` which
-        docs/specs/copilot-full-parity bumps to v0.10 (its 4 subagents +
-        hook-wiring now project to copilot)."""
+        docs/specs/copilot-full-parity bumped to v0.10 and
+        docs/specs/copilot-skills-and-web bumps to v0.12 (its skills now project
+        as first-class Copilot Agent Skills)."""
         expected = {
-            "core": "0.10",
+            "core": "0.12",
             "governance-extras": "0.8",
             "user-guide-diataxis": "0.8",
             "monorepo-extras": "0.8",

@@ -11,9 +11,12 @@ This module covers the tightening: when callers pass ``pack_dir`` and
 ``pack_name``, the scan narrows to files whose path under an adapter
 prefix either (a) shares a segment with a primitive name walked from
 ``<pack_dir>/.apm/<type>/``, or (b) has a file-stem equal to
-``pack_name`` (for the Copilot single-file projection at
-``.github/instructions/<pack>.md``). When the kwargs are omitted the
-helper preserves the legacy behaviour for back-compat with any
+``pack_name`` (a flat single-file-per-pack projection shape,
+illustrated below as ``.github/instructions/<pack>.md``; note copilot
+no longer emits instruction files post docs/specs/copilot-skills-and-web —
+its skills are directory trees matched by branch (a) — so branch (b) is
+a general flat-file heuristic, not copilot-specific). When the kwargs are
+omitted the helper preserves the legacy behaviour for back-compat with any
 external caller.
 """
 

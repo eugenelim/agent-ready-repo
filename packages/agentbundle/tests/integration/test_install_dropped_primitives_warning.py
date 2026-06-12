@@ -143,9 +143,10 @@ class CopilotWarningEndToEnd(unittest.TestCase):
                 f"install failed:\nstdout={stdout}\nstderr={stderr}",
             )
 
-            # Install completed — skills landed at copilot's target.
+            # Install completed — skills landed at copilot's target
+            # (v0.11 copilot-skills-and-web: first-class `.github/skills/`).
             self.assertTrue(
-                (adopter / ".github" / "instructions").exists(),
+                (adopter / ".github" / "skills").exists(),
                 "copilot skill projection missing",
             )
 

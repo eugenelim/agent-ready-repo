@@ -18,7 +18,7 @@ the verified runtime findings recorded in the specs linked per row.
 | --- | --- | --- | --- | --- | --- |
 | **Claude Code** | ✅ native | ✅ native | ✅ native | ✅ native + `settings.json` merge | **Full** |
 | **Codex** | ✅ native | ✅ native (`.codex/agents/*.toml`) | ❌ tool-side | ✅ native + `.codex/hooks.json` merge | **Full**¹ |
-| **Copilot** | ✅ instruction file | ⚠️ native, no web tool | ❌ tool-side | ⚠️ user-scope fires; repo-scope trust-gated | **Partial** |
+| **Copilot** | ✅ native (`SKILL.md`) | ✅ native (web on CLI/app) | ❌ tool-side | ⚠️ user-scope fires; repo-scope trust-gated | **Partial** |
 | **Cursor** | ✅ native | ⚠️ native, no tool allowlist | ✅ native | ✅ native + `.cursor/hooks.json` merge | **Full**² |
 | **Kiro CLI** | ✅ native | ✅ native | ❌ tool-side | ✅ body + wiring | **Near-full** |
 | **Kiro IDE** | ✅ native | ✅ native | ❌ tool-side | ⚠️ bodies + `.kiro.hook` events; embedded wiring dropped | **Partial** |
@@ -66,13 +66,17 @@ doesn't get per-tool subagent/command/hook files.
   a non-mutating agent (one declaring none of `Edit`/`Write`/`MultiEdit`/`NotebookEdit`)
   the catalogue derives `readonly: true` so reviewer/retrieval subagents stay
   least-privilege, and a mutating agent inherits all tools (no `readonly` emitted).
-  Documented degradation, the same shape Copilot's tool handling takes. See
+  Documented degradation. See
   [`cursor-full-parity`](../../specs/cursor-full-parity/spec.md).
-- **Copilot — subagents have no web tool.** Custom Copilot agents expose
-  read/grep/glob but no web fetch/search (verified against CLI 1.0.59), so the
-  `research` pack's retrieval subagents lose live web access on Copilot
-  (read-only degradation). See
-  [`copilot-full-parity`](../../specs/copilot-full-parity/spec.md).
+- **Copilot — subagents get the `web` tool on the CLI + app.** Custom Copilot
+  agents resolve `WebFetch`/`WebSearch` to Copilot's `web` tool (the
+  custom-agents reference documents `web` aliasing both), so the `research`
+  pack's retrieval subagents keep live web access — they are **not** degraded.
+  The only non-coverage is the Copilot **cloud agent** (served via repo
+  `.github/` only), which has no `web` tool. (An earlier "no web tool" finding
+  from a confounded CLI 1.0.59 probe is corrected in
+  [`copilot-skills-and-web`](../../specs/copilot-skills-and-web/spec.md) /
+  RFC-0024 § Errata E1.)
 - **Copilot — repo-scope hooks load only when the folder is trusted.** Repo-scope
   `.github/hooks/*.json` wiring is byte-correct and correctly placed, and
   `.github/hooks/` *is* a loaded hook source in the current CLI — but loading is
@@ -101,7 +105,7 @@ doesn't get per-tool subagent/command/hook files.
   loss is the per-agent tool allowlist, replaced by a derived `readonly` flag).
 - Terminal-native with near-full parity? **Codex** or **Kiro CLI** (you lose only
   slash commands, which those tools don't have).
-- On **Copilot**, expect skills + subagents + user-scope hooks to work, and plan
-  around the no-web-tool and repo-hook caveats above.
+- On **Copilot**, expect skills (native `SKILL.md`) + subagents (with web on the
+  CLI + app) + user-scope hooks to work, and plan around the repo-hook caveat above.
 - On any other `AGENTS.md`-aware tool, you still get the loop and the
   conventions through the universal layer — just no tool-native extras.
