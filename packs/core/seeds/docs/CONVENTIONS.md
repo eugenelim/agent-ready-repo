@@ -642,13 +642,12 @@ kind of learning belongs.
 
 ### Light and full modes
 
-**Rigor scales with risk, not file count.** `work-loop` has two modes. The
-default for low-risk work is **light mode** — a lean inline spec (Objective +
-Acceptance Criteria + a short task list, persisted under `docs/specs/`), a
-single bounded adversarial pass, no `loop-cohort` state machine, and no default
-`quality-engineer` pass — scoped to a single logical task. Work escalates to
-**full mode** — the loop with every gate, reviewer iteration, and the state
-machine — the moment it trips a risk trigger:
+**Rigor scales with risk, not file count.** `work-loop` has two modes —
+**light mode**, the default for low-risk work, and **full mode**, with every
+gate, reviewer iteration, and the state machine. The `work-loop` skill is the
+single owner of what each mode trims and how it runs; this section keeps only
+the principle and the risk triggers, so the mechanics live in one place rather
+than two. Work escalates to full mode the moment it trips a risk trigger:
 
 <!-- risk-triggers:start — canonical wording lives here; copied verbatim
      into AGENTS.md, packs/core/seeds/AGENTS.md, and docs/CONVENTIONS.md.
