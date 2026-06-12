@@ -104,7 +104,7 @@ _SHIPPED_ADAPTERS: tuple[str, ...] = _shipped_adapters()
 # stem evaded the scanner — that asymmetry is retired). For *core* (which
 # also ships hooks) the scanner fires at all adapters too.
 _ADAPTERS_WHERE_GOV_ORPHAN_SCAN_FIRES: tuple[str, ...] = (
-    "claude-code", "kiro", "codex", "cursor", "copilot",
+    "claude-code", "kiro", "codex", "cursor", "copilot", "gemini",
 )
 
 
@@ -132,6 +132,9 @@ def _skill_path(adapter: str, skill_name: str) -> str:
     # RFC-0026 cursor-full-parity: cursor projects skills to `.cursor/skills/`.
     if adapter == "cursor":
         return f".cursor/skills/{skill_name}/SKILL.md"
+    # RFC-0027 gemini-full-parity: gemini projects skills to `.gemini/skills/`.
+    if adapter == "gemini":
+        return f".gemini/skills/{skill_name}/SKILL.md"
     raise ValueError(f"unknown adapter: {adapter!r}")
 
 

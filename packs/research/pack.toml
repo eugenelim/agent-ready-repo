@@ -19,7 +19,7 @@ allowed-scopes = ["user", "repo"]
 # validation surface — it ships the 2 retrieval subagents + skills the full-parity
 # adapters are checked against). Declared order is load-bearing (RFC-0011): append-only.
 # `kiro-ide` is the current name for the Kiro harness (RFC-0022 split; bare `kiro` deprecated).
-allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor"]
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
 # Copilot projection note (docs/specs/copilot-skills-and-web / RFC-0024 § Errata
 # E1): the `evidence-retriever` and `source-extractor` subagents declare
