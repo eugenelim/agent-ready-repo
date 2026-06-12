@@ -8,6 +8,9 @@
 
 - [`agentbundle.md`](agentbundle.md) — install the CLI, install a pack,
   configure the default adapter.
+- [`adapter-support.md`](adapter-support.md) — the per-tool support matrix:
+  which primitives each agent tool receives (skill / subagent / command / hook)
+  and the runtime caveats, sourced from the adapter contract.
 - [`product-brief-fields.md`](product-brief-fields.md) — the product-brief
   field list and the linkage fields it stamps on derived specs.
 - [`research-pack.md`](research-pack.md) — every primitive in the
