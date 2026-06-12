@@ -255,6 +255,24 @@ For anything beyond trivial, *think before you write code*. Concretely:
   clean; `loop-cohort check <spec-dir> --phase plan` unlocks EXECUTE.
   No new state fields. **Both triggers respect the Profile-A opt-out:**
   skip if the project doesn't use the reviewer at all.
+- **Pre-EXECUTE secure-design review (net-new — security-boundary trigger).**
+  **Doctrine: security review shifts left — it runs at spec stage on
+  security-boundary work, not only as a late gate.** When the
+  **security-boundary risk trigger** is present (the change touches auth,
+  secrets, user input, deserialization, or file/network I/O), additionally
+  select a subagent matching `security-reviewer` and dispatch it in
+  **spec-stage secure-design mode** against the spec — asking, per trust
+  boundary the feature crosses, whether the control is specified as an
+  acceptance criterion at the right depth (confinement, not just traversal;
+  scheme allowlist, not "validate the URL"; broker-mediated secrets, not
+  ad-hoc reads). Inline the boundary-matching `security-checklists` modules
+  into its brief in their proactive-control framing, per the
+  [boundary→module routing table](#boundarymodule-routing-table) below. This
+  is **net-new wiring** — distinct from the adversarial-only firing above and
+  from RFC-0025's separate light→full escalation use of the same trigger; it
+  is not a re-use of either. Same Profile-A opt-out and the same
+  `approve-plan` gate apply. Fallback if no `security-reviewer` subagent is
+  installed: proceed and note the missing review in the final summary.
 - **Initialize the loop's state file.** Run this skill's bundled
   `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
   the bundled `assets/state.json` template into place, sets `feature`
@@ -497,12 +515,40 @@ note in the summary, not a blocker.
 
 - Match `security-reviewer` — for diffs that cross a security boundary
   (auth, secrets, user input, deserialization, file/network I/O,
-  dependencies, LLM/agent code). OWASP + STRIDE lens. Complements
-  SAST/SCA scanners; does not replace them.
-- Match `quality-engineer` — testability, observability, reliability,
-  and maintainability lens. Also drafts contract or construction tests
-  on request. Different lens from adversarial-reviewer — don't skip it
-  because the spec already shipped.
+  dependencies, LLM/agent code). Current multi-framework lens (OWASP Top
+  10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25)
+  plus a STRIDE + LINDDUN open pass. Complements SAST/SCA scanners; does not
+  replace them. **Inline its depth, don't make it self-discover:** detect
+  which trust boundaries the diff crosses, load **only** the matching
+  `security-checklists` modules, and inline their content into the
+  subagent's brief (reusing the on-demand `references/*.md` loading the loop
+  already does) — the subagent's `tools:` has no Skill tool, so loading is
+  orchestrator-driven, not model-relevance-judged. Route deterministically:
+
+  <a id="boundarymodule-routing-table"></a>
+
+  | Trust boundary the change crosses | Inline module(s) |
+  | --- | --- |
+  | Authz / access-control; a new or changed endpoint, handler, RPC | `access-control` |
+  | Authentication, session, login, password, MFA, tokens (JWT/API key) | `authn-session` |
+  | Untrusted input → SQL / shell / template / LDAP / HTML; deserialization | `injection` |
+  | Filesystem path from input, file upload, archive extraction | `path-and-file` |
+  | Secrets, keys, hashing, signing, crypto, randomness | `secrets-and-crypto` |
+  | Outbound HTTP / DNS / URL fetch, webhooks | `outbound-ssrf` |
+  | Dependency / lockfile / manifest change, build-artifact fetch | `supply-chain` |
+  | CORS, IAM, IaC, server / framework / deploy config | `config-misconfig` |
+  | Error handling, retries, fallbacks, fail-open paths | `exceptional-conditions` |
+  | Prompts, model / tool exposure, MCP, model-output handling | `llm-agent` |
+
+  Load 1–3 modules for a typical change, never a flat march of all ten; an
+  auth-touching endpoint pulls `access-control` and often `authn-session`.
+  This same table backs the pre-EXECUTE spec-stage dispatch above.
+- Match `quality-engineer` — testability, observability, reliability, and
+  maintainability lens, applying a raised default quality floor (universal
+  maintainability smells + a mutation-testing mindset) even where no static
+  gate is wired. Also drafts contract or construction tests on request.
+  Different lens from adversarial-reviewer — don't skip it because the spec
+  already shipped.
 
 **Dispatch reviewers in parallel when you invoke more than one** per
 the [Parallel dispatch discipline](#parallel-dispatch-discipline)
