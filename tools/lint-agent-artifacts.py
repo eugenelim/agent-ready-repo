@@ -186,7 +186,8 @@ def main() -> int:
         body_start_line = end + 2
         body = "\n".join(lines[end + 1:])
         try:
-            fields = yaml.load(fm_text, Loader=_FrontmatterLoader)
+            # B506: Loader is a yaml.SafeLoader subclass (class def above).
+            fields = yaml.load(fm_text, Loader=_FrontmatterLoader)  # nosec B506
         except _DuplicateKeyError as exc:
             # exc.line is 0-indexed within fm_text (mark.line + 1); the
             # frontmatter starts at file line 2 (line 1 is the opening

@@ -1,0 +1,12 @@
+# SAST/SCA gate tooling (ADR-0017).
+#
+# CI-only dev dependencies — NEVER runtime dependencies of a shipped package.
+# `agentbundle` and `credbroker` stay `dependencies = []`; these tools are
+# installed only to run the gate (`make sast`, chained into `make build-check`
+# and the build-check.yml CI job).
+#
+# Contributors: `pip install -r tools/requirements-sast.txt` once, then
+# `make sast`.
+bandit>=1.9,<2
+pip-audit>=2.10,<3
+semgrep>=1.166,<2

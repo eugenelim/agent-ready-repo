@@ -1,0 +1,51 @@
+name: codeql
+
+# Deep dataflow/taint SAST (ADR-0017). CodeQL is the open-source analogue of
+# Snyk Code's interprocedural taint engine — the lens Bandit structurally
+# cannot provide (no dataflow) and that OSS Semgrep covers only
+# intraprocedurally. The `security-extended` suite includes `py/path-injection`
+# (CWE-22/73), the query class that flagged the session-start env→Path flow.
+#
+# Free for this public repository. Alerts surface in the repo's Security tab
+# and as PR annotations; making them block merges is a branch-protection
+# setting ("require CodeQL"), not a workflow change.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Weekly re-scan catches newly-published queries against unchanged code.
+    - cron: "27 4 * * 1"
+
+# A newer push to the same ref supersedes an in-flight scan.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: CodeQL analyze (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          # security-extended adds the taint queries (incl. py/path-injection)
+          # beyond the default suite.
+          queries: security-extended
+
+      # Python is interpreted — no build step; CodeQL extracts the source.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"

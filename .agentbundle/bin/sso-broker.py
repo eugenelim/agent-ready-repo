@@ -26,6 +26,7 @@ import sys
 import time
 import tomllib
 import urllib.error
+import urllib.parse
 import urllib.request
 
 # Bootstrap when invoked as ``python ~/.agentbundle/bin/sso-broker.py``
@@ -503,12 +504,21 @@ def _do_test(profile: str) -> int:
     cookie_header = "; ".join(f"{c['name']}={c['value']}" for c in cookies)
 
     url = base.rstrip("/") + endpoint
+    # Reject non-web schemes before the request. B310's real danger is urllib
+    # honouring file:// / ftp:// / gopher:// — a corrupt or hand-edited profile
+    # whose login-url points elsewhere is treated as corrupt config (exit 3).
+    # http and https both stay valid, so this breaks no legitimate endpoint.
+    if urllib.parse.urlparse(url).scheme not in ("https", "http"):
+        sys.stderr.write(f"sso-broker test: refusing non-http(s) URL scheme for {profile!r}\n")
+        return 3
     req = urllib.request.Request(url, headers={"Cookie": cookie_header})
     try:
         # Corporate-network env passthrough is the parent's responsibility;
         # urllib honours HTTPS_PROXY / NO_PROXY / SSL_CERT_FILE / SSL_CERT_DIR
         # from the environment automatically.
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        # B310: scheme asserted http(s) above; base is the operator-configured
+        # SSO endpoint (not attacker input).
+        with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310
             status = resp.status
     except urllib.error.HTTPError as exc:
         status = exc.code

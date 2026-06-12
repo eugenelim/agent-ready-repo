@@ -38,6 +38,13 @@ cat > "$PATTERNS" <<'EOF'
 {"id":"k1","kind":"pattern","scope":"*","title":"test entry","body":"x","source":"-"}
 EOF
 
+# The hook confines KNOWLEDGE_FILE / ADAPT_REPO_MARKER to the repo root
+# (resolved from cwd when cwd is not a git repo) and ADAPT_USER_MARKER to HOME.
+# Run every invocation from inside the sandbox so the $TMP fixtures resolve
+# within the allowed base (CWE-22/73 confinement, see session-start.py).
+export HOME="$TMP"
+cd "$TMP"
+
 PASS=0
 FAIL=0
 

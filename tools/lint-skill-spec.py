@@ -357,7 +357,8 @@ def main() -> int:
             file_line = fm_line_idx + 2
             return None, 0, text, f"line {file_line}: {desc_msg}", fm_text
         try:
-            fields = yaml.load(fm_text, Loader=_FrontmatterLoader)
+            # B506: Loader is a yaml.SafeLoader subclass (class def above).
+            fields = yaml.load(fm_text, Loader=_FrontmatterLoader)  # nosec B506
         except _DuplicateKeyError as exc:
             return None, 0, text, (
                 f"duplicate frontmatter key {exc.key!r} (line {exc.line + 1})"

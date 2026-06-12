@@ -12,7 +12,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr validate clean zipapp release-preflight
+.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr sast validate clean zipapp release-preflight
 
 # Windows-portability gate. Refuses packs that ship symlinks or
 # Windows-poisonous names under seeds/ or .apm/. Runs before every
@@ -83,6 +83,50 @@ build-check: lint-packs build
 	# No-ops on this repo (it ships no brief); fail-closed on a stale Spec map.
 	$(PYTHON) .claude/skills/receive-brief/scripts/test-lint-brief-coverage.py
 	$(PYTHON) .claude/skills/receive-brief/scripts/lint-brief-coverage.py
+	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
+	# checks above fail quickly before the slower, network-bound scanners.
+	$(MAKE) sast
+
+# SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
+# tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
+# deps. Chained into build-check above so the repo's single native gate runs it
+# locally and in build-check.yml CI. Not added to tools/hooks/pre-pr.py or
+# tools/pre-pr-catalogue.py (the Windows CI path runs the former; Semgrep has no
+# Windows support). Linux/macOS only (Semgrep).
+#
+# These four Semgrep rules are excluded as duplicates of findings already
+# dispositioned for Bandit, with no coverage loss (Bandit still flags new
+# instances of each class):
+#   - sha1   → the two sites are documented non-security digests annotated
+#              `usedforsecurity=False`; Bandit B324 is satisfied, Semgrep's rule
+#              can't read the kwarg. Bandit B324 still flags any new sha1.
+#   - urllib → constant/operator-configured bases, line-precise `# nosec B310`.
+#   - xml    → stdlib ElementTree (no external entities/DTDs), `# nosec B314`.
+#   - chmod  → the one hit is a restrictive 0o700 (secure); Bandit B103 is
+#              correctly silent on it and still flags genuinely-permissive modes.
+# Excluding the duplicates avoids a second inline pragma system in shipped pack
+# scripts.
+SAST_DIRS := tools packs packages
+SEMGREP_EXCLUDE := \
+	--exclude-rule python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 \
+	--exclude-rule python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected \
+	--exclude-rule python.lang.security.use-defused-xml.use-defused-xml \
+	--exclude-rule python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
+
+sast:
+	@command -v bandit   >/dev/null 2>&1 || { echo "make sast: bandit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
+	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
+	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
+	bandit -r $(SAST_DIRS) -c bandit.yaml --severity-level medium --confidence-level medium -q
+	@for f in tools/requirements.txt tools/requirements-sast.txt $$(find packs -name requirements.txt | sort); do \
+		echo "pip-audit -r $$f"; \
+		pip-audit -r "$$f" || exit 1; \
+	done
+	# Both shipped packages declare dependencies=[]; credbroker's optional
+	# [crypto] extra is the only third-party code either can pull, so audit it
+	# explicitly. Mirror packages/credbroker/pyproject.toml [crypto].
+	@printf 'cryptography>=42\nargon2-cffi>=23\n' | pip-audit -r /dev/stdin
+	semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet --metrics off $(SEMGREP_EXCLUDE) $(SAST_DIRS)
 
 build-scaffold:
 	@test -n "$(OUTPUT)" || (echo "make build-scaffold OUTPUT=<dir> required" >&2; exit 1)
