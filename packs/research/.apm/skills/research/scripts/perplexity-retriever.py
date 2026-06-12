@@ -67,7 +67,8 @@ def retrieve(query: str) -> dict:
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    # B310: constant https Perplexity API base.
+    with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
         body = json.loads(resp.read().decode("utf-8"))
 
     choice = (body.get("choices") or [{}])[0]

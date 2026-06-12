@@ -1,0 +1,23 @@
+# Bandit configuration — the repo's Python SAST gate (ADR-0017).
+#
+# Invoked by `make sast` as:
+#   bandit -r tools packs packages -c bandit.yaml \
+#          --severity-level medium --confidence-level medium
+#
+# The medium+ severity / medium+ confidence floor is set on the CLI (above),
+# not here: it filters out the large low-severity tail (subprocess imports,
+# partial-path process starts) that is noise for an attack-surface gate while
+# keeping the findings an org-grade scan would block on.
+
+skips:
+  # B101 assert_used — test suites (pytest and the standalone tools/test-*.py
+  # harnesses) rely on `assert`; it is not an attack-surface signal. Skipped
+  # globally so test asserts never reach the gate regardless of file location.
+  - B101
+
+exclude_dirs:
+  # Test trees only. Test code legitimately uses permissive chmod (B103) and
+  # hardcoded /tmp fixtures (B108); those are not shipped attack surface.
+  # Globs are matched against each scanned file's path.
+  - '*/tests/*'        # packages/*/tests/, integration + unit suites
+  - '*/build/tests/*'  # packages/agentbundle/agentbundle/build/tests/ (adapter/contract)

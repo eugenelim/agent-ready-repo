@@ -1,0 +1,54 @@
+# Custom Semgrep taint rules for the SAST gate (ADR-0017).
+#
+# These close the gap Bandit cannot cover: Bandit is an AST pattern-matcher
+# with no dataflow/taint engine, so it never sees that an environment-variable
+# value *flows into* a filesystem path. Snyk Code (taint-based) does, and
+# flagged exactly this on the session-start hook. Semgrep's `mode: taint`
+# (intraprocedural, OSS) reproduces it; CodeQL (.github/workflows/codeql.yml)
+# adds the deep interprocedural lens. Loaded by `make sast` via
+# `--config tools/semgrep/`.
+
+rules:
+  - id: env-var-into-pathlib-path
+    mode: taint
+    languages: [python]
+    severity: WARNING
+    message: >-
+      Environment-variable input flows into pathlib.Path without validation
+      (CWE-22 path traversal / CWE-73 external control of file name). Route the
+      value through a validator that rejects traversal (see session-start.py's
+      _safe_override_path) before using it as a filesystem target.
+    metadata:
+      cwe:
+        - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory"
+        - "CWE-73: External Control of File Name or Path"
+      category: security
+      confidence: MEDIUM
+      references:
+        - https://docs.snyk.io/scan-with-snyk/snyk-code
+    # Scoped to packs/ — the shipped agent primitives (hooks, skills,
+    # adapter-root-bins) that run *automatically* inside an agent session or
+    # adapter, where the inherited environment is the genuine injection
+    # surface. Dev-only CLIs under tools/ (a maintainer's own path arg) and
+    # install-time code (installer-set HOME/plugin paths in install-marker)
+    # read operator/CI-controlled env by design; CodeQL (which scans the whole
+    # repo, advisory) is the broad net for those. This keeps the *blocking*
+    # rule on the surface where the threat is real, not on trusted-context
+    # flows it would only have to suppress.
+    paths:
+      include:
+        - "packs/**"
+    pattern-sources:
+      - pattern-either:
+          - pattern: os.environ.get(...)
+          - pattern: os.environ[...]
+          - pattern: os.getenv(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: pathlib.Path(...)
+          - pattern: Path(...)
+    # A value confined by the hook's validator is no longer tainted — so a
+    # future `Path(_safe_override_path(os.environ[...], base))` is recognised as
+    # clean, while a raw `Path(os.environ[...])` still fires.
+    pattern-sanitizers:
+      - pattern: _safe_override_path(...)

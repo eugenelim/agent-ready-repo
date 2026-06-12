@@ -14,6 +14,12 @@ trap 'rm -rf "$TMP"' EXIT
 
 HOOK="$REPO_ROOT/tools/hooks/session-start.py"
 
+# The hook confines KNOWLEDGE_FILE to the repo root (resolved from cwd when cwd
+# is not a git repo). Run from inside the sandbox so the $TMP fixtures resolve
+# within the allowed base (CWE-22/73 confinement, see session-start.py).
+export HOME="$TMP"
+cd "$TMP"
+
 failures=0
 ran=0
 

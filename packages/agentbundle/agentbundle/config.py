@@ -479,7 +479,7 @@ def finding_id_for(
     contain ``/``.
     """
     raw = f"{pack}:{kind}:{':'.join(sorted(source_paths))}:{':'.join(sorted(dest_paths))}"
-    digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:8]
+    digest = hashlib.sha1(raw.encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
     return f"{pack}/{kind}:{digest}"
 
 
