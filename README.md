@@ -28,13 +28,15 @@ Most agent workflows are `prompt → code → ship`. `core` replaces that one-sh
 3. **Adversarial review in a fresh session.** Once gates pass, a specialist reviewer reads the diff *cold* — no investment in the design, no sunk cost in the code. The loop iterates (fix → re-review) until the reviewer reports `Clean — ready to commit.`
 4. **Capture-learnings, because the model forgets and the repo doesn't.** When a run trips over an undocumented convention, the gap lands as a candidate edit to `CONVENTIONS.md`. The agent's mistakes become the project's memory instead of evaporating at the end of the session.
 
-The reviewer isn't one generic critic — three sharp lenses, dispatched by what the diff actually touches:
+The reviewer isn't one generic critic — three sharp lenses, dispatched by what the change actually touches:
 
 | Reviewer | Lens | When it runs |
 | --- | --- | --- |
 | `adversarial-reviewer` | spec/plan/impl drift, scope creep, missing edge cases | every diff |
-| `security-reviewer` | OWASP Top 10 (web + LLM Apps) and STRIDE | auth, secrets, user input, I/O, deps, agent code |
-| `quality-engineer` | testability, observability, reliability, "cost to live with this code" | logic and interfaces worth maintaining |
+| `security-reviewer` | OWASP 2025 + ASVS, STRIDE + LINDDUN — depth pulled per boundary | security-boundary work, at spec stage *and* on the diff |
+| `quality-engineer` | testability, observability, reliability — the "cost to live with this code", held to a raised default quality floor | logic and interfaces worth maintaining |
+
+The security lens **shifts left**: on security-boundary work it runs at spec stage as design guidance — catching a missing control as a one-sentence acceptance criterion instead of a post-implementation round-trip — and pulls its depth from a progressive-disclosure checklist library scoped to the boundaries a change actually crosses, so the review stays current (OWASP 2025, ASVS, CWE Top 25) without bloating the prompt. The quality lens holds every diff to a default quality floor — the universal maintainability smells and the mutation-testing mindset a strict static-analysis gate would enforce — applied by doctrine, whether or not such a gate is wired in.
 
 A fourth subagent, `implementer`, is the loop's own executor for running independent tasks in parallel.
 
