@@ -522,3 +522,16 @@ distribution-only. Open follow-ons:
   helper + a regression test pinning `"0.11" >= "0.7"`. It was latent (both branches returned
   `DEFAULT_ADAPTER`); the v0.11 bump pushed it into live two-digit territory, so the inline
   comment's "two-digit minor bumps → move into a helper" was honored now.
+- **Pack opt-in for credentialed CLIs — RFC-0013-gated, catalogue-wide.** PR #273 added `cursor`
+  to no pack's `allowed-adapters`; a follow-on PR opted the two non-credentialed full-parity
+  packs (`research`, `architect`) in. The **5 credentialed packs** (atlassian, contracts,
+  converters, figma, credential-brokers) stay on `["claude-code", "kiro-ide", "codex"]`:
+  `credential-brokers` is frozen by RFC-0013 § 4 (§4d ties the `adapter-root-bins/` +
+  `~/.agentbundle/` broker projection to *exactly* the listed adapters), and the four consumer
+  packs functionally depend on the broker admitting `cursor` (a cursor-only user otherwise can
+  install the consumer pack but cannot install the broker → cannot authenticate). Follow-up: an
+  **RFC-0013 erratum** (Approver-signed) admitting `cursor` **and** `copilot` (catalogue-wide
+  uniformity) across all 5, gated on verifying the SSO broker installs/projects/runs on cursor +
+  copilot adapter roots, plus the implementation. Updates the two exact-list test pins —
+  `test_shipped_packs_v07_declarations.py::test_user_scope_packs_allowed_adapters` and
+  `test_credential_brokers_pack_install.py`.

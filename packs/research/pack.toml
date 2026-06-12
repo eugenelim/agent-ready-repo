@@ -14,9 +14,12 @@ version = "0.12"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters; copilot added by RFC-0024 / copilot-full-parity.
+# RFC-0011 / pack-allowed-adapters; copilot added by RFC-0024 / copilot-full-parity;
+# cursor added by RFC-0026 / cursor-full-parity (research is the catalogue's parity
+# validation surface — it ships the 2 retrieval subagents + skills the full-parity
+# adapters are checked against). Declared order is load-bearing (RFC-0011): append-only.
 # `kiro-ide` is the current name for the Kiro harness (RFC-0022 split; bare `kiro` deprecated).
-allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot"]
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor"]
 
 # Copilot projection note (docs/specs/copilot-skills-and-web / RFC-0024 § Errata
 # E1): the `evidence-retriever` and `source-extractor` subagents declare
