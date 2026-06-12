@@ -230,6 +230,28 @@ The spec is closed when each of the following observable outcomes is verifiable 
 
 ## Changelog
 
+- 2026-06-12 (adapter set widened to five) — The `credential-brokers` pack
+  and its four consumer packs (`atlassian`, `contracts`, `converters`,
+  `figma`) now declare `allowed-adapters = ["claude-code", "kiro-ide",
+  "codex", "copilot", "cursor"]`, adding `copilot` + `cursor` to the RFC-0013
+  § 4 three-harness set. The widening is recorded as **RFC-0013 § Errata
+  (2026-06-12, Approver: eugenelim)**: § 4d scoped the set to three because
+  only those adapters declared `.agentbundle/` in `allowed-prefixes.user`
+  (the precondition for writing the broker to `~/.agentbundle/bin/`);
+  `copilot` (copilot-full-parity, v0.10) and `cursor` (cursor-full-parity,
+  v0.11) have since added that prefix, and the `.agentbundle/{lib,bin}/`
+  delivery rail (`install.py` `_deliver_user_scope_floor`) is
+  adapter-agnostic (fenced only by the prefix, no per-adapter allow-list).
+  **No contract change** — the precondition is satisfied by the shipped
+  contract (v0.12); no `allowed-prefixes` amendment, no version bump.
+  Verified by a real user-scope install of `credential-brokers` + `atlassian`
+  via both `cursor` and `copilot` (broker bin/lib land under
+  `~/.agentbundle/`; `credential-setup` + consumer skills project to the
+  adapter's skills dir). Test pins updated:
+  `test_shipped_packs_v07_declarations.py::test_user_scope_packs_allowed_adapters`
+  and `test_credential_brokers_pack_install.py::test_install_block_shape`.
+  The broker architecture, transports, shim, and no-leak guarantees are
+  unchanged.
 - 2026-05-31 — Status reconciled to Shipped (retroactive). The implementation is fully merged: the `credential-brokers` pack (`packs/credential-brokers/`), the `credentials_shim.py` projected into every consumer's `scripts/` + `.agentbundle/bin/`, the `sso-broker.py` adapter-root-bin, the `metadata.auth` broker-id frontmatter + lint, the six in-tree consumer migrations, and the `agentbundle.credentials`/`creds/` removal at 0.2.0. Per the 2026-05-29 erratum below, AC42's closure rule is reconciled to the open-items-only `backlog.md` convention (track-by-presence, no heading suffix). **Implementation-complete, acceptance-pending:** the manual-QA matrix transcripts (six broker × OS rows, gated on real corporate-SSO endpoint access) and the deferred security-hardening items (D3 AST dotfile-read walk; runtime shim-integrity guard; projection-path test coverage) remain open in `docs/backlog.md` § credential-broker-contract. This follows the same Shipped-with-deferred-manual-QA shape as `apm-install-route-parity` (AC17) and `adapt-to-project` (AC4b). This supersedes the 2026-05-27 "flipping to Shipped is gated on transcripts" note, which predated the open-items-only recuration.
 - 2026-05-31 (retire teaching skills) — The two RFC-0013 §9 *teaching*
   skills in `core` — `add-credentialed-skill` (author procedure) and
