@@ -386,9 +386,11 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
 `~/.copilot/instructions/` user target; contract v0.9 → v0.10; two-pack bump
 (`core`, `research`). Open follow-ons:
 
-- **Copilot `command` / prompt projection.** `command` stays `dropped` until the Copilot CLI
-  loads custom slash commands (copilot-cli#618/#1113). A follow-on RFC flips it to a tested
-  `.github/prompts/` target once the feature lands — not projected speculatively.
+- **Copilot `command` / prompt projection.** `command` stays `dropped` — the Copilot CLI won't
+  load custom slash-command files by design (copilot-cli#618/#1113 closed; prompt files
+  superseded by skills, which the catalogue already projects to Copilot as `.github/instructions/`).
+  A follow-on RFC would only flip it to a tested `.github/prompts/` target if Copilot ships such a
+  surface — not projected speculatively.
 - **`WebFetch` / `WebSearch` re-map.** Copilot exposes no web tool to custom agents (verified
   CLI 1.0.59), so `research`'s retrieval subagents lose live web access on Copilot (documented
   degradation — read/grep/glob only). When Copilot exposes a custom-agent web tool, a fresh
@@ -396,16 +398,24 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
 - **Per-shell hook commands.** `copilot-hooks-json` carries the shell-agnostic source command
   into both `bash` and `powershell` handler keys. A wiring with per-shell commands would need a
   source-side shape extension — out of scope; no shipped wiring needs it.
-- **Repo-scope hook execution on Copilot CLI ≥ 1.0.60 (CLI-side).** The AC23 live smoke
-  (2026-06-05, CLI 1.0.60) found that repo-scope `.github/hooks/*.json` wiring **is not executed**
-  by the CLI — the artifact is byte-correct and correctly placed, the identical user-scope hook
+- **Repo-scope hook execution on Copilot CLI — trust/opt-in gated (CLI-side).** The AC23 live
+  smoke (2026-06-05, CLI 1.0.60) found that repo-scope `.github/hooks/*.json` wiring **was not
+  executed** — the artifact is byte-correct and correctly placed, the identical user-scope hook
   (`~/.copilot/hooks/`) fires, and the CLI loads `.github/agents/` fine, but no repo-scope hook
-  entry appears in the debug log. This is **version-sensitive**: RFC-0024 § Acceptance Runs 2–4
-  verified repo-scope hooks firing on **1.0.59**, so execution regressed (or gained a trust gate
-  requiring repo approval) between 1.0.59 and 1.0.60. Our projection is forward-compatible and
-  needs no change. Follow-up: re-probe on the then-current CLI, determine whether it's a
-  regression or a new repo-hook trust/opt-in gate (file upstream if a regression), and record the
-  outcome. Subagent discovery + read-only + user-scope hooks/instructions all pass on 1.0.60.
+  entry appeared in the debug log. **Re-verified 2026-06-11 against the live copilot-cli changelog
+  + issues (latest CLI 1.0.61, 2026-06-09):** repo `.github/hooks/` is a supported, loaded source,
+  but loading is **conditional** — the CLI loads repo hooks only after folder-trust is confirmed
+  (changelog 1.0.8) and, in prompt mode (`-p`), behind an opt-in (changelog 1.0.41 / 1.0.51). So
+  the 1.0.60 non-execution is most plausibly the trust/opt-in gate, **not** a scope-wide regression
+  (the 1.0.59 firing in RFC-0024 Runs 2–4 presumably ran in a trust-approved folder — the runs
+  did not record the trust state, so this is inference, not a logged fact). Known **open** conditional bugs
+  to watch, not a blanket failure: repo hooks are skipped on `--resume`
+  ([copilot-cli#1503](https://github.com/github/copilot-cli/issues/1503), open); and plugin-defined
+  `preToolUse` hooks (distinct from repo `.github/hooks/`) don't fire
+  ([copilot-cli#2540](https://github.com/github/copilot-cli/issues/2540), open). Our projection is
+  forward-compatible and needs no change. Follow-up: a live smoke on 1.0.61 with the folder trusted
+  to confirm repo-hook firing, then close or re-scope this item. Subagent discovery + read-only +
+  user-scope hooks/instructions all pass.
 - **User-scope hook-command resolution.** `copilot-hooks-json` rewrites a carried command's
   `tools/hooks/` prefix to the repo-scope `.github/hooks/` so the wiring references the body
   where `direct-file` lands it. At **user** scope the body lands at `~/.copilot/hooks/` and the
