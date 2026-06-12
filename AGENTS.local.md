@@ -171,6 +171,11 @@ adopters receive on first install via brownfield rules):
 1. Edit the seed file (under `packs/<pack>/seeds/...`), *not* the
    projected output.
 2. Run `make build-self` to regenerate every projected path from its seed.
+   **Gotcha:** `build-self` refuses on a dirty working tree (`is_dirty_tree`
+   is true for *any* non-empty `git status --porcelain`), so editing a seed in
+   step 1 always trips it. Either commit the seed edits first, or run
+   `FORCE=1 make build-self` — `FORCE=1` overrides the dirty-tree check only,
+   and is the right call when the tree is dirty *because* you just edited seeds.
 3. Run `make build-check` to confirm zero drift before committing.
 
 **How to discover the seed for a path you're unsure about:**

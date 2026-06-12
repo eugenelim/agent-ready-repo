@@ -362,6 +362,17 @@ drive implementation, not the other way around. Red-green-refactor: write
 the failing test, make it pass, refactor — separate commits for each when
 the change is non-trivial.
 
+**Stub → EXECUTE handoff.** For TDD-mode tasks, the construction test is
+materialised *at PLAN* as a compilable, validated red **stub** — as much of the
+real failing test as the AC and contract honestly determine, never less than a
+compiling assertion on the contract surface, never a bare `TODO`. The stub
+carries a `# STUB: AC<n>` (or `// STUB: AC<n>`) comment in the test and a
+`stub: true` field in the task's `Tests:` subsection, so EXECUTE's red step
+starts from the pre-written stub rather than re-deriving it. A stub that won't
+compile is the mechanical signal an AC is under-specified, caught at PLAN
+instead of mid-implementation. The full procedure lives in the `work-loop`
+skill's `references/tdd-stubs.md`.
+
 This is the forcing function that keeps specs honest (every Acceptance
 Criterion must be testable in its declared mode) and keeps implementations
 honest (you can't drift from the spec if the criteria's verification artifacts are red).

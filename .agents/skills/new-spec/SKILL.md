@@ -142,6 +142,14 @@ look like?" before any code.
      hypothetical futures.
    - **No Acceptance Criteria.** Without a checklist, "done" is opinion.
 
+   While writing Testing Strategy, sanity-check that each TDD-mode AC is
+   concrete enough to *stub* — see `work-loop`'s
+   [`references/tdd-stubs.md`](../work-loop/references/tdd-stubs.md). This
+   is a **self-check only**: do **not** commit stubs at spec-authoring time —
+   the stack and `Contract:` may not be settled yet, so committed stubs are
+   generated later, in `work-loop` PLAN. An AC you can't imagine typing a test
+   against is the signal to sharpen it now.
+
 4b. **Author the interface contract — only if this feature exposes an interface
    surface.** This conditional step sits between the spec body and the plan, and
    is **contract-type-agnostic** — it handles any interface, not just REST APIs.
