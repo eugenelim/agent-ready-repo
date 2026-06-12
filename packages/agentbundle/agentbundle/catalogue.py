@@ -134,13 +134,14 @@ def _github_archive_url(owner: str, repo: str, ref: str) -> str:
 
 def _fetch_and_extract(url: str, dest: Path) -> None:
     try:
-        with urllib.request.urlopen(url) as resp:  # noqa: S310 — url is assembled from parsed owner/repo/ref
+        # B310: constant github.com archive base assembled from parsed owner/repo/ref.
+        with urllib.request.urlopen(url) as resp:  # nosec B310
             with tarfile.open(fileobj=resp, mode="r|gz") as tf:
                 # filter="data" rejects unsafe members (absolute paths, ..
                 # links, devices, setuid bits) — Python 3.12+ default but
                 # explicit for 3.11 compatibility and to silence the 3.14
                 # DeprecationWarning. Path-jail is belt; this is braces.
-                tf.extractall(path=dest, filter="data")  # noqa: S202
+                tf.extractall(path=dest, filter="data")
     except urllib.error.URLError as exc:
         raise CatalogueError(
             f"Failed to fetch catalogue archive: {url} — {exc.reason}"

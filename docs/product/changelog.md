@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The repo now has a SAST/SCA gate** — `make sast` runs **Bandit** (Python pattern SAST),
+  **pip-audit** (dependency/SCA), **Semgrep** (cross-cutting SAST, including custom `mode: taint`
+  rules under `tools/semgrep/`), and a **CodeQL** code-scanning workflow (deep interprocedural
+  taint — the open-source analogue of Snyk Code). The first three are chained into
+  `make build-check` so every PR is scanned by the repo's own single native gate (locally and in
+  `build-check.yml` CI); CodeQL runs as its own workflow. Bandit fails on medium-or-higher findings
+  (tuning in `bandit.yaml`). The genuine findings surfaced were fixed in the same change: weak SHA-1
+  digests marked `usedforsecurity=False`; the arXiv retriever upgraded to HTTPS; the `session-start`
+  hook's env-var path overrides sanitized against directory traversal (a fix every adopter inherits);
+  and the SSO broker's `test` verb now rejects non-`http(s)` URL schemes. A committed `.snyk` policy
+  file is the Snyk-native suppression vehicle for the organisational scan. All four scanners are
+  CI-only dev tools (`tools/requirements-sast.txt`) and are **never** added to a shipped package's
+  runtime dependencies. See ADR-0017.
+
 - **Gemini CLI is now a full-parity adapter** — `agentbundle install --adapter gemini` (repo or
   user scope) projects every catalogue primitive to Gemini CLI's native `.gemini/*` layout:
   skills → `.gemini/skills/`, subagents → `.gemini/agents/<name>.md` (the `tools:` allowlist is

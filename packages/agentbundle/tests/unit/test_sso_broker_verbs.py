@@ -462,3 +462,58 @@ def test_ac17_broker_lives_at_canonical_path():
     assert BROKER_PY.is_file()
     assert BROKER_PY.name == "sso-broker.py"
     assert BROKER_PY.parent.name == "adapter-root-bins"
+
+
+# ----------------------------------------------------------------------
+# URL scheme allowlist on `test` (B310 / SSRF-adjacent hardening).
+# ----------------------------------------------------------------------
+
+
+def test_do_test_rejects_non_http_url_scheme(broker):
+    """`_do_test` refuses a profile whose resolved URL scheme is not
+    http(s): a file:// login_url (e.g. a corrupt or hand-edited profile)
+    returns exit 3 *before* urllib.urlopen, closing the file:// local-read
+    vector rather than suppressing the Bandit B310 finding blindly."""
+    mod, _ = broker
+    mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    mod._profile_path("evil").write_text(
+        '[profile]\nlogin_url = "file:///etc/passwd"\nvalidation_endpoint = "/x"\n',
+        encoding="utf-8",
+    )
+    # A cookie jar must exist so _do_test reaches the scheme check.
+    mod._store_cookie_jar("evil", b'[{"name":"sid","value":"v"}]')
+    assert mod._do_test("evil") == 3
+
+
+def test_do_test_accepts_https_url_scheme(broker, monkeypatch):
+    """The guard does not reject legitimate https endpoints: with the
+    network call stubbed to a 2xx, a normal https profile returns 0."""
+    mod, _ = broker
+    mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    mod._profile_path("acme").write_text(
+        '[profile]\nlogin_url = "https://acme.example.com"\nvalidation_endpoint = "/whoami"\n',
+        encoding="utf-8",
+    )
+    mod._store_cookie_jar("acme", b'[{"name":"sid","value":"v"}]')
+
+    class _Resp:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", lambda *a, **k: _Resp())
+    assert mod._do_test("acme") == 0
+
+
+def test_do_test_rejects_schemeless_url(broker):
+    """A schemeless login_url (degenerate / hand-edited profile) resolves to an
+    empty url scheme, which the allowlist also rejects (exit 3) — the guard
+    fails closed rather than letting a protocol-relative value through."""
+    mod, _ = broker
+    mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    mod._profile_path("bare").write_text(
+        '[profile]\nlogin_url = "acme.example.com"\nvalidation_endpoint = "//evil.example/x"\n',
+        encoding="utf-8",
+    )
+    mod._store_cookie_jar("bare", b'[{"name":"sid","value":"v"}]')
+    assert mod._do_test("bare") == 3

@@ -26,7 +26,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
-ARXIV_API = "http://export.arxiv.org/api/query"
+ARXIV_API = "https://export.arxiv.org/api/query"
 ATOM_NS = "{http://www.w3.org/2005/Atom}"
 
 
@@ -40,10 +40,13 @@ def retrieve(query: str) -> dict:
         "sortOrder": "descending",
     }
     url = f"{ARXIV_API}?{urllib.parse.urlencode(params)}"
-    with urllib.request.urlopen(url, timeout=30) as resp:
+    # B310: constant https arXiv API base.
+    with urllib.request.urlopen(url, timeout=30) as resp:  # nosec B310
         body = resp.read().decode("utf-8")
 
-    root = ET.fromstring(body)
+    # B314: stdlib ElementTree resolves no external entities/DTDs (3.11+);
+    # arXiv is a constant first-party endpoint over TLS.
+    root = ET.fromstring(body)  # nosec B314
     entries = []
     for entry in root.findall(f"{ATOM_NS}entry"):
         title = (entry.findtext(f"{ATOM_NS}title") or "").strip()
