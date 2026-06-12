@@ -65,8 +65,9 @@ NO_WRITE_MODES = {"degraded-info-log", "dropped"}
 # All five primitive names.
 ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
-# All reference adapter names (RFC-0022: kiro-ide and kiro-cli added; kiro retained as alias).
-ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "codex"}
+# All reference adapter names (RFC-0022: kiro-ide and kiro-cli added; kiro retained as alias;
+# RFC-0026: cursor added).
+ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex"}
 
 # Extra primitives that are kiro-specific and OK to declare in kiro-family
 # adapter blocks without failing the "no extra primitives" check.
@@ -144,15 +145,16 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         RFC-0022 T1: kiro-ide added (+5 standard + 1 kiro-ide-hook = +6),
         kiro-cli carries kiro-ide-hook dropped (+6). Plus kiro-ide adds
         hook-wiring dropped to its array_form, which is already counted.
+        RFC-0026: cursor added (+5 standard + 1 kiro-ide-hook dropped = +6).
         Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-ide) + 6 (kiro-cli)
-               + 5 (copilot) + 5 (codex) = 32. Class name preserved.
+               + 5 (copilot) + 6 (cursor) + 5 (codex) = 38. Class name preserved.
         """
         total = 0
         for adapter_block in self.contract["adapter"].values():
             array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
             table_form = set(adapter_block.get("projections", {}).keys())
             total += len(array_form | table_form)
-        self.assertEqual(total, 32, f"expected 32 pairs total, got {total}")
+        self.assertEqual(total, 38, f"expected 38 pairs total, got {total}")
 
 
 class ModeEnumTests(unittest.TestCase):
@@ -438,15 +440,15 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.10"
-        (bumped from "0.9" by docs/specs/copilot-full-parity: copilot agent +
-        hook-wiring flip `dropped`→native modes, scope-table user capability,
-        skill user target, hook-body retarget). Class name preserved to avoid churn.
+        """tomllib.loads of adapter.toml returns contract.version == "0.11"
+        (bumped from "0.10" by docs/specs/cursor-full-parity / RFC-0026: new
+        native `cursor` full-parity adapter, no projection-mode-enum change).
+        Class name preserved to avoid churn.
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.10",
-            "adapter.toml [contract] version must be '0.10' after copilot-full-parity",
+            "0.11",
+            "adapter.toml [contract] version must be '0.11' after cursor-full-parity",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:
@@ -462,8 +464,8 @@ class ContractV05Tests(unittest.TestCase):
         """kiro-family, Copilot, and Codex do not declare install-routes (regression
         guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
         those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
-        RFC-0022: kiro-ide and kiro-cli added to the checked set."""
-        for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "codex"):
+        RFC-0022: kiro-ide and kiro-cli added to the checked set; RFC-0026: cursor added."""
+        for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex"):
             adapter_block = self.contract["adapter"].get(adapter_name, {})
             self.assertNotIn(
                 "install-routes",

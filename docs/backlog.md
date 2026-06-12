@@ -456,3 +456,44 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
   scope for the dry-run spec (*Never do: change non-`--dry-run` behavior*).
   **Unblock:** a focused refactor PR that introduces the helper and migrates all
   three call sites under its own regression coverage.
+
+## `cursor-full-parity`
+
+Shipped 2026-06-11 (RFC-0026 / ADR-0015 → [`docs/specs/cursor-full-parity/spec.md`](specs/cursor-full-parity/spec.md)):
+new native `cursor` full-parity adapter projecting all five primitives to `.cursor/*` at both
+scopes (skill → `.cursor/skills/`, agent → `.cursor/agents/<name>.md` with `tools` dropped +
+`readonly` derived, hook-body → `.cursor/hooks/`, hook-wiring → `.cursor/hooks.json`, command →
+`.cursor/commands/`); contract v0.10 → v0.11, no new projection mode, no schema change;
+distribution-only. Open follow-ons:
+
+- **Live Cursor smoke.** RFC-0026 § Evidence verified the `.cursor/*` paths and the agent /
+  hook / command vocabularies against current Cursor docs, but no test loads the generated
+  artifacts on the real tool (mirrors the copilot AC23 smoke, not gated here). Follow-up: drop a
+  generated `core` `.cursor/` tree into a Cursor workspace + `~/.cursor/`, confirm skills /
+  subagents / commands load and the `readonly` reviewers are restricted, and record the Cursor
+  version + per-primitive results.
+- **Agent `model` alias map.** The `cursor-agent-frontmatter-v0.11` mapping passes `model`
+  through verbatim (our aliases `opus`/`sonnet`/`haiku`). Cursor resolves a known id or falls
+  back to inherit; if a shipped alias proves unresolvable on the live tool, add a
+  Cursor-model-id `values` map (the kiro precedent) after a probe.
+- **Nested-symlink read at install time — cursor hardened; siblings remain (cross-adapter).**
+  `cursor.py`'s `_project_direct_directory` now copies with `ignore=_ignore_symlinks`, so a
+  **nested** symlink inside a skill dir is dropped (not reproduced), closing the install-time
+  read-through for cursor (RFC-0026 ride-along, with a regression test). **`kiro.py`, `codex`,
+  `copilot`, and `claude-code` still copy nested symlinks via `copytree(..., symlinks=True)`** —
+  the same install-time exposure (flagged by the cursor security review as shared, not
+  cursor-introduced). Follow-up: lift cursor's symlink-skipping copy into a **shared** helper
+  (e.g. `projections/direct_directory.py`, which already hosts `sweep_orphans`) and adopt it in
+  the other four adapters so they stop reproducing nested symlinks.
+- **Block-style YAML `tools:` over-privileges on parse miss (cross-adapter, shared).** The
+  line-oriented `_parse_frontmatter` (duplicated from `kiro.py`) reads inline `[...]` and
+  comma-string `tools:` but not a multi-line YAML block list; an agent using block syntax would
+  parse to no `tools`, so `_derive_readonly` omits `readonly` (writable). Shipped packs use the
+  inline/comma form, so this is latent. If block-list frontmatter ever ships, the shared parser
+  needs a multi-line list branch (fix once, across kiro + cursor).
+- **Lexical contract-version compare (`install.py` Step 4b) — RESOLVED (RFC-0026 ride-along).**
+  `_resolve_target_adapter`'s Step-4b gate was `contract_version >= "0.7"`, a lexical compare
+  (`"0.11" < "0.7"` lexically). Replaced with the numeric `scope.contract_version_at_least`
+  helper + a regression test pinning `"0.11" >= "0.7"`. It was latent (both branches returned
+  `DEFAULT_ADAPTER`); the v0.11 bump pushed it into live two-digit territory, so the inline
+  comment's "two-digit minor bumps → move into a helper" was honored now.

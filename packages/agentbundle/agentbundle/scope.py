@@ -317,3 +317,28 @@ def contract_supports_hook_wiring(version: str | None) -> bool:
     if not isinstance(version, str):
         return False
     return version not in _PRE_HOOK_WIRING_CONTRACT_VERSIONS
+
+
+def contract_version_at_least(version: str | None, floor: str) -> bool:
+    """True iff dotted contract `version` is >= `floor`, compared numerically.
+
+    Replaces the lexical `version >= "0.7"` string compare that the install
+    resolver's Step 4b used: lexically ``"0.11" < "0.7"`` (and even
+    ``"0.10" < "0.7"``), which the inline comment flagged would break "once
+    major or two-digit minor bumps land." Compares tuple-of-ints per component
+    so ``"0.11" >= "0.7"`` is True. A None or unparseable `version` returns
+    False (conservative — same shape as `contract_supports_hook_wiring`).
+    """
+    def _parse(value: str) -> tuple[int, ...] | None:
+        try:
+            return tuple(int(part) for part in value.split("."))
+        except (AttributeError, ValueError):
+            return None
+
+    if not isinstance(version, str):
+        return False
+    parsed_version = _parse(version)
+    parsed_floor = _parse(floor)
+    if parsed_version is None or parsed_floor is None:
+        return False
+    return parsed_version >= parsed_floor
