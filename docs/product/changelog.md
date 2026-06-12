@@ -48,6 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which reconciles the original draft's unbuilt in-CLI Tier-2 prompt with
   this deterministic companion-drop design.
 
+- **Leaner work-loop context use, same rigor** — the review reviewers
+  (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`) now return
+  only their distilled findings block (or `Clean — ready to commit.`), with no
+  pre-findings methodology recap or process narration. The `work-loop` skill
+  drops the full reviewer report from resident context once findings are
+  recorded — the on-disk report plus `state.json` fingerprints are the durable
+  record — and gains a `## Context hygiene` section with three context-saving
+  levers (reference-read reduction, task-boundary compaction, narrowest-gate
+  during FIX), each with a portable no-subagent floor, plus a "reduce, never
+  lossily transform" guardrail. No verification surface changes: gates, the
+  iterate-to-Clean loop, fingerprint stasis detection, the quality-engineer
+  floor, and the iteration cap all behave exactly as before. See
+  [`docs/specs/work-loop-context-hygiene/`](../specs/work-loop-context-hygiene/spec.md).
+
 - **Codex receives full skill bodies** — the `skill` projection for the
   Codex adapter flips from `managed-block-inline` (one-line teasers
   in `AGENTS.md` between `<!-- agent-skills:start -->` /

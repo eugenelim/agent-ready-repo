@@ -151,6 +151,12 @@ attack scenario in one sentence, and end with `Fix: <one-sentence fix>`.
 Omit empty sections. If everything's clean, output `Clean — ready to
 commit.` with no findings list and no praise padding.
 
+Return **only** the findings block above (or that one clean line) — no
+pre-findings methodology recap, scope summary, or process narration. The
+orchestrator records this report to disk and re-reads it across iterations, so
+a distilled, findings-only shape is the contract, not a courtesy. Do the full
+reading; print only the findings.
+
 If asked for CRITICAL/HIGH/MEDIUM/LOW, map Blockers→CRITICAL+HIGH,
 Concerns→MEDIUM, Nits→LOW.
 
