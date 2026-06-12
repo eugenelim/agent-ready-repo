@@ -56,30 +56,38 @@ a stubbability failure.
 from sut import _candidate_code_path, code_references
 
 # --- AC1: code references are detected and resolved (FULL assertions) -------
+# STUB: AC1 — full repo-relative path resolves
 def test_ac1_full_repo_relative_path_resolves():
     assert _candidate_code_path("tools/lint_seeds.py") == "tools/lint_seeds.py"
 
+# STUB: AC1 — :line / :line:col / #anchor suffix is stripped
 def test_ac1_line_and_anchor_suffix_is_stripped():
     base = "packs/core/scripts/lint.py"
     assert _candidate_code_path(base + ":42") == base
     assert _candidate_code_path(base + ":42:10") == base
     assert _candidate_code_path(base + "#L42") == base
 
+# STUB: AC1 — dangling reference is yielded with its lineno
 def test_ac1_dangling_reference_is_reported_with_lineno():
     refs = code_references("intro line\nsee `tools/missing_module.py` for detail")
     assert (2, "tools/missing_module.py") in refs
 
 # --- AC2: false-positive shapes excluded (FULL assertions) ------------------
+# STUB: AC2 — bare basename excluded
 def test_ac2_bare_basename_excluded():
     assert _candidate_code_path("install.py") is None
+# STUB: AC2 — placeholder path excluded
 def test_ac2_placeholder_path_excluded():
     assert _candidate_code_path("adapters/<name>.py") is None
+# STUB: AC2 — glob excluded
 def test_ac2_glob_excluded():
     assert _candidate_code_path("packs/**/seed.py") is None
+# STUB: AC2 — brace-expansion excluded
 def test_ac2_brace_expansion_excluded():
     assert _candidate_code_path("adapters/{claude_code,kiro}.py") is None
 
 # --- AC3: warn-only (SHAPE assertion + placeholder, paired with detection) --
+# STUB: AC3 — dangling code reference is warn-only (paired with detection)
 def test_ac3_dangling_code_reference_is_warn_only():
     PLACEHOLDER_DANGLING = "packs/core/definitely_absent.py"
     refs = code_references("ref `%s`" % PLACEHOLDER_DANGLING)

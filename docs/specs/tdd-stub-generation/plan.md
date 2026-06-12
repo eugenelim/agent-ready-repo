@@ -1,7 +1,7 @@
 # Plan: tdd-stub-generation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -169,3 +169,4 @@ Docs-only, no infrastructure, no deployment sequencing, fully reversible (revert
 ## Changelog
 
 - 2026-06-12: initial plan (authored via `new-spec` from RFC-0028; decisions on Shape=service, per-task stub grouping, comment+`stub:true` marker, Python-worked-example+generic-detection, and `spec-code-ref-lint` spike target confirmed by the user).
+- 2026-06-12: implemented T1–T7. Spike (T1) confirmed RFC-0028's structural claim — stubs derived from a Shipped spec's ACs compile against the AC surface and go red against an absent impl; finding (positive-contract ACs earn a red, pure-exclusion ACs need a paired positive) folded into the reference's stub-fullness rule. All gates green (build-check zero-drift, lint-skill-spec 0 errors). One adversarial-review round: 3 Blockers were the pending status flips (resolved here), 1 Nit (spike marker form) applied. Status → Shipped/Done.

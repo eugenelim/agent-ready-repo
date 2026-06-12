@@ -1,6 +1,6 @@
 # Spec: tdd-stub-generation
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** mubeen-acn
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0028
@@ -51,16 +51,16 @@ The deliverable is **documentation / skill content**, not runtime code, so every
 
 ## Acceptance Criteria
 
-- [ ] `packs/core/.apm/skills/work-loop/references/tdd-stubs.md` exists and documents the five phases — **parse, resolve-stack, generate, validate, record** — and defines a stub as "as much of the real failing test as the AC + contract determine; never less than a compiling assertion on the contract surface; never a bare `TODO`."
-- [ ] The reference ships **one fully-worked Python (pytest) stub example** plus a **stack-agnostic detection recipe** for other frameworks, and contains **no** catalogue-internal path reference — `tools/lint-*`, `make build-self`, `.github/workflows/`, or a *named* internal spec path (e.g. `docs/specs/spec-code-ref-lint/`). The generic `docs/specs/<feature>/plan.md` workflow placeholder is allowed and expected.
-- [ ] The reference specifies stubs are grouped **one stub file per plan task**, and that each stubbed task carries a `// STUB:`/`# STUB:` + AC-number comment in the test **and** a `stub: true` field in the task's `plan.md` `Tests:` subsection.
-- [ ] `work-loop` SKILL.md PLAN *Design tests up front* contains a load-on-demand pointer to `references/tdd-stubs.md`, and the EXECUTE TDD red step notes a pre-written stub may already satisfy the red step.
-- [ ] `new-spec` SKILL.md Testing Strategy step points at the same reference for a testability self-check, explicitly *without* committing stubs at spec-authoring time.
-- [ ] `CONVENTIONS.md` § 4 (seed) documents the stub→EXECUTE handoff convention, and `quality-engineer` test-author mode notes the in-PLAN-generation vs. post-impl-review timing distinction.
-- [ ] Every edit is made to a **seed**; `make build-self` regenerates the projections and `make build-check` reports **zero drift**.
-- [ ] `python3 tools/lint-skill-spec.py` passes for the edited skills.
-- [ ] A spike note in `notes/` records that stubs derived from a Shipped spec's TDD ACs (target: `spec-code-ref-lint`) **compile against the contract/AC surface** — proving the AC is concrete enough to type a test against (RFC-0028's structural claim) — and are shown **red against an absent/emptied implementation** simulating the pre-implementation state; the note records the Shipped-target caveat and flags any AC that could not be stubbed as the "spec under-specified" signal.
-- [ ] No new skill, no `coverage-matrix.md`, no new top-level directory, no new runtime dependency, and no change to `loop-cohort.py` / `lint-spec-status.py` / `state.json`.
+- [x] `packs/core/.apm/skills/work-loop/references/tdd-stubs.md` exists and documents the five phases — **parse, resolve-stack, generate, validate, record** — and defines a stub as "as much of the real failing test as the AC + contract determine; never less than a compiling assertion on the contract surface; never a bare `TODO`."
+- [x] The reference ships **one fully-worked Python (pytest) stub example** plus a **stack-agnostic detection recipe** for other frameworks, and contains **no** catalogue-internal path reference — `tools/lint-*`, `make build-self`, `.github/workflows/`, or a *named* internal spec path (e.g. `docs/specs/spec-code-ref-lint/`). The generic `docs/specs/<feature>/plan.md` workflow placeholder is allowed and expected.
+- [x] The reference specifies stubs are grouped **one stub file per plan task**, and that each stubbed task carries a `// STUB:`/`# STUB:` + AC-number comment in the test **and** a `stub: true` field in the task's `plan.md` `Tests:` subsection.
+- [x] `work-loop` SKILL.md PLAN *Design tests up front* contains a load-on-demand pointer to `references/tdd-stubs.md`, and the EXECUTE TDD red step notes a pre-written stub may already satisfy the red step.
+- [x] `new-spec` SKILL.md Testing Strategy step points at the same reference for a testability self-check, explicitly *without* committing stubs at spec-authoring time.
+- [x] `CONVENTIONS.md` § 4 (seed) documents the stub→EXECUTE handoff convention, and `quality-engineer` test-author mode notes the in-PLAN-generation vs. post-impl-review timing distinction.
+- [x] Every edit is made to a **seed**; `make build-self` regenerates the projections and `make build-check` reports **zero drift**.
+- [x] `python3 tools/lint-skill-spec.py` passes for the edited skills.
+- [x] A spike note in `notes/` records that stubs derived from a Shipped spec's TDD ACs (target: `spec-code-ref-lint`) **compile against the contract/AC surface** — proving the AC is concrete enough to type a test against (RFC-0028's structural claim) — and are shown **red against an absent/emptied implementation** simulating the pre-implementation state; the note records the Shipped-target caveat and flags any AC that could not be stubbed as the "spec under-specified" signal.
+- [x] No new skill, no `coverage-matrix.md`, no new top-level directory, no new runtime dependency, and no change to `loop-cohort.py` / `lint-spec-status.py` / `state.json`.
 
 ## Assumptions
 
