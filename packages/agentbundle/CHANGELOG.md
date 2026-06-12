@@ -6,6 +6,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.3.0] — 2026-06-12
+
+### Added
+
+- **Cursor full-parity distribution adapter** (RFC-0026) — projects all
+  primitives for both install scopes via the single-writer
+  `.cursor/` model.
+- **Gemini CLI full-parity distribution adapter** (RFC-0027) — keeps and
+  maps tools, projects a tier model map, supports the
+  `gemini-command-toml` mode, and bridges `AGENTS.md` through the
+  single-writer `.gemini/settings.json`.
+- **`--dry-run` for `install` and `upgrade`** — preview the projection
+  without writing any files.
+- **Upgrade surfaces Tier-2 companion-drops** — `upgrade` now reports the
+  `.upstream` companion files that an adopter must reconcile by hand.
+- **credbroker install-time user-scope delivery rail** — the build
+  pipeline vendors `credbroker` to `.agentbundle/lib` (drift-gated) and
+  consumer bootstraps append the `~/.agentbundle/lib` floor at lowest
+  precedence (new `user_libs` module).
+
+### Changed
+
+- **Copilot adapter projects skills as first-class `SKILL.md`** and
+  corrects the web-tool documentation (adapter contract v0.12).
+- **Codex adapter projects agent model and tool config** into the
+  generated agent TOML.
+- **Pack admittance** — credentialed packs admit the `copilot` and
+  `cursor` adapters (RFC-0013 erratum); `research` and `architect` opt
+  into the `cursor` adapter.
+
+### Removed
+
+- **Retired the shared-libs shim projection.** Credentialed skills now
+  `import credbroker` from the user-scope lib floor instead of a
+  build-projected shim.
+
 ## [0.2.0] — 2026-05-26
 
 ### Removed (breaking)
