@@ -491,10 +491,14 @@ The spec is closed when each observable outcome is verifiable in the merged PR.
     only the user-scope hook fires, no repo-scope entry, no marker written. This is a **CLI-side
     behaviour**, not an artifact defect — and it is **version-sensitive**: RFC-0024 § Acceptance
     Runs 2–4 verified repo-scope hooks **firing on 1.0.59**. So repo-scope hook *execution*
-    regressed (or gained a trust gate) between 1.0.59 and 1.0.60. The CLI loads `.github/agents/`
-    (T1) but not `.github/hooks/` on 1.0.60. Tracked as a follow-on in `docs/backlog.md`; our
-    projection is byte-correct and forward-compatible. No AC revised (AC9-repo is a *projection*
-    contract — files land correctly — not a CLI-execution claim).
+    changed between 1.0.59 and 1.0.60 — re-verification against the copilot-cli changelog
+    (1.0.8 / 1.0.41 / 1.0.51, re-checked on **1.0.61**) points to the documented folder-trust /
+    prompt-mode opt-in gate on repo `.github/hooks/`, not a scope-wide regression (open
+    conditional bug copilot-cli#1503 also skips repo hooks on `--resume`). The CLI loads
+    `.github/agents/` (T1) but not `.github/hooks/` on 1.0.60 without that gate cleared. Tracked
+    as a follow-on in `docs/backlog.md`; our projection is byte-correct and forward-compatible.
+    No AC revised (AC9-repo is a *projection* contract — files land correctly — not a
+    CLI-execution claim).
   - **T5 ✅** user-scope hook (`$COPILOT_HOME/hooks/`) fires globally — marker written, confirmed
     in debug log. (Confirms the file-based hook model + the user-scope path work end-to-end.)
   - **T6 n/a** — requires the Copilot app (tech preview).
