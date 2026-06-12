@@ -1,12 +1,15 @@
-"""Copilot adapter — projects skills as per-file instructions, agents as
-`.agent.md`, hook-wiring as per-file JSON, hook bodies straight through;
-drops only `command` (copilot-cli#618/#1113).
+"""Copilot adapter — projects skills as first-class Agent Skills
+(`.github/skills/<name>/SKILL.md`), agents as `.agent.md`, hook-wiring as
+per-file JSON, hook bodies straight through; drops only `command`
+(copilot-cli#618/#1113).
 
-Skill instruction frontmatter (`applyTo: "**"` etc.) comes from the
-contract's `frontmatter-default["copilot-instruction"]` table — never
-hardcoded. Agent + hook-wiring serialisation live in the sibling
-`copilot_agent_md` / `copilot_hooks_json` projection modules (RFC-0024 /
-docs/specs/copilot-full-parity); this adapter only dispatches to them.
+Skills use the shared `direct-directory` passthrough (docs/specs/copilot-skills-and-web
+/ RFC-0024 § Errata E2): Copilot reads `.github/skills/<name>/SKILL.md` and
+accepts our canonical Claude `SKILL.md` verbatim, so the source tree is copied
+byte-for-byte — the same mode claude-code/codex/kiro use. Agent + hook-wiring
+serialisation live in the sibling `copilot_agent_md` / `copilot_hooks_json`
+projection modules (RFC-0024 / docs/specs/copilot-full-parity); this adapter
+only dispatches to them.
 
 The adapter is scope-agnostic: it emits repo-relpaths (`.github/…`) at every
 scope. The divergent user-scope home (`~/.copilot/…`) is produced by the
@@ -17,11 +20,12 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Iterator
 
 
 # RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.copilot_agent_md import (
     project_copilot_agent_md,
 )
@@ -51,8 +55,8 @@ def project(pack_path: Path, contract: dict, output_root: Path) -> None:
         if not source_dir.exists():
             continue
 
-        if mode == "instruction-file":
-            _project_instruction_file(source_dir, output_root, rule, contract)
+        if mode == "direct-directory":
+            _project_direct_directory(source_dir, output_root, rule, primitive_name)
         elif mode == "direct-file":
             _project_direct_file(source_dir, output_root, rule["target-path"])
         elif mode == "copilot-agent-md":
@@ -73,77 +77,36 @@ def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str
             shutil.copy2(entry, target_dir / entry.name, follow_symlinks=False)
 
 
-def _project_instruction_file(
+def _project_direct_directory(
     source_dir: Path,
     output_root: Path,
     rule: dict,
-    contract: dict,
+    primitive_name: str,
 ) -> None:
+    """Copy each `<name>/` source tree to the target directory verbatim, then
+    sweep orphaned target dirs no longer backed by a source.
+
+    Mirrors codex's `direct-directory` branch: `symlinks=True` keeps source
+    symlinks as symlinks (never dereferenced), a symlink at the entry root is
+    skipped (defense-in-depth — `lint-packs` already refuses symlinked packs,
+    but a direct `project()` caller bypasses that gate), and a destination
+    symlink is `unlink`ed (never `rmtree`d) before the copy. The orphan sweep is
+    **bounded to the `skill` primitive's** expected source names, so it can
+    never delete sibling `.github/agents/` or `.github/hooks/` content.
+    """
     target_dir = output_root / rule["target-path"].rstrip("/")
     target_dir.mkdir(parents=True, exist_ok=True)
-    default_name = rule.get("frontmatter-default")
-    defaults = (
-        contract.get("frontmatter-default", {}).get(default_name, {})
-        if default_name
-        else {}
-    )
-
-    for skill_dir in sorted(source_dir.iterdir()):
-        if not skill_dir.is_dir():
+    expected_names: set[str] = set()
+    for entry in sorted(source_dir.iterdir()):
+        if entry.is_symlink():
             continue
-        skill_md = skill_dir / "SKILL.md"
-        if not skill_md.exists():
-            md_candidates = sorted(skill_dir.glob("*.md"))
-            if not md_candidates:
-                continue
-            skill_md = md_candidates[0]
-        frontmatter, body = _split_frontmatter(skill_md.read_text(encoding="utf-8"))
-        for key, value in defaults.items():
-            frontmatter.setdefault(key, value)
-        destination = target_dir / f"{skill_dir.name}.instructions.md"
-        destination.write_text(_emit_frontmatter(frontmatter) + body, encoding="utf-8")
-
-
-def _split_frontmatter(text: str) -> tuple[dict, str]:
-    lines = text.splitlines(keepends=True)
-    if not lines or not lines[0].startswith("---"):
-        return {}, text
-    end_index = None
-    for index in range(1, len(lines)):
-        if lines[index].startswith("---"):
-            end_index = index
-            break
-    if end_index is None:
-        return {}, text
-    frontmatter_lines = lines[1:end_index]
-    body = "".join(lines[end_index + 1 :])
-    return _parse_frontmatter(frontmatter_lines), body
-
-
-def _parse_frontmatter(lines: list[str]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for line in lines:
-        stripped = line.rstrip("\n")
-        if not stripped.strip() or stripped.lstrip().startswith("#"):
-            continue
-        if ":" not in stripped:
-            continue
-        key, _, value = stripped.partition(":")
-        value = value.strip()
-        if (value.startswith('"') and value.endswith('"')) or (
-            value.startswith("'") and value.endswith("'")
-        ):
-            value = value[1:-1]
-        result[key.strip()] = value
-    return result
-
-
-def _emit_frontmatter(frontmatter: dict[str, Any]) -> str:
-    if not frontmatter:
-        return ""
-    lines = ["---"]
-    for key in sorted(frontmatter.keys()):
-        value = frontmatter[key]
-        lines.append(f'{key}: "{value}"')
-    lines.append("---\n")
-    return "\n".join(lines)
+        if entry.is_dir():
+            expected_names.add(entry.name)
+            destination = target_dir / entry.name
+            if destination.is_symlink():
+                destination.unlink()
+            elif destination.exists():
+                shutil.rmtree(destination)
+            shutil.copytree(entry, destination, symlinks=True)
+    if primitive_name == "skill":
+        sweep_orphans(target_dir, expected_names)

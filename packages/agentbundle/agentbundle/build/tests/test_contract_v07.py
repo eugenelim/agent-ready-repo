@@ -83,19 +83,19 @@ class TestContractV07(unittest.TestCase):
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(copilot_scope, "copilot scope table missing")
         self.assertEqual(copilot_scope["repo"], ".")
-        # v0.10 (RFC-0024 / copilot-full-parity) supersedes-in-part the v0.7
-        # repo-only copilot scope: copilot is now user-scope-capable with three
-        # `.github/` repo prefixes (the legacy `tools/hooks/` prefix is gone).
+        # v0.10 (copilot-full-parity) made copilot user-scope-capable; v0.11
+        # (copilot-skills-and-web) flips `skill` to `.github/skills/` SKILL.md, so
+        # the repo skill prefix is `.github/skills/` (was `.github/instructions/`).
         self.assertEqual(
             copilot_scope["allowed-prefixes"]["repo"],
-            [".github/instructions/", ".github/agents/", ".github/hooks/"],
+            [".github/skills/", ".github/agents/", ".github/hooks/"],
         )
         self.assertEqual(copilot_scope["user"], "~")
         self.assertEqual(
             copilot_scope["allowed-prefixes"]["user"],
             [
+                ".copilot/skills/",
                 ".copilot/agents/",
-                ".copilot/instructions/",
                 ".copilot/hooks/",
                 ".agentbundle/",
             ],

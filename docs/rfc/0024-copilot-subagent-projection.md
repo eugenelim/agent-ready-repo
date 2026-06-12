@@ -285,3 +285,55 @@ Filled in on acceptance:
 - Spec — `docs/specs/copilot-full-parity/` (contract v0.10 bump; `copilot-agent-md` + `copilot-hooks-json` modes; scope table; tool-alias + event-name maps; `research`/`core` two-pack v0.8→v0.10 bump — *not* all-pack, per § Decision 7; warning-rail regression for the surviving `command` drop; synthetic user-scope hook pack for the validation gap; CLI smoke-test acceptance step).
 - Erratum on `docs/rfc/0012-repo-scope-per-adapter-projection.md` linking forward to this RFC.
 - Follow-on RFC stub — `command`/prompt projection, gated on copilot-cli#618/#1113.
+
+## Errata
+
+> Append-only corrections to this Accepted RFC. The body above is preserved as
+> the historical record; these entries record where subsequent facts diverged
+> from decisions or open questions frozen at acceptance. Implemented by
+> [`docs/specs/copilot-skills-and-web/`](../specs/copilot-skills-and-web/spec.md)
+> (contract v0.11 → v0.12, atop RFC-0026 cursor's v0.11). Vehicle: Approver-signed erratum (not a follow-on
+> RFC) — both corrections are *flip-on-upstream-support* with RFC-0009
+> precedent, recorded append-only and shipped atomically with the contract bump
+> so the reversal is revertible. The spec-mode adversarial reviewer judged the
+> skill-surface flip decision-worthy but the erratum the correct vehicle.
+
+### E1 — Open Q4 closed: Copilot custom agents *do* get the `web` tool (CLI + app) — 2026-06-11
+
+Open Q4 recorded that `WebFetch`/`WebSearch` "did not surface as app tools"
+(Run 4, 1.0.59) and defaulted to documenting a `research`-pack web degradation.
+**This is now closed: web is supported.** The official custom-agents reference
+([custom-agents-configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration),
+fetched 2026-06-11) documents a `web` tool with aliases **`WebSearch`,
+`WebFetch`**; the *only* caveat is `web` is "Currently not applicable for cloud
+agent." The Run-4 probe was confounded (empty `COPILOT_HOME` / no `allowed_urls`
+/ org policy). On this repo's target surface — the Copilot **CLI + app** —
+custom agents resolve `WebFetch`/`WebSearch` to `web`; `research`'s retrieval
+subagents are **not** degraded there. The lone true caveat is narrow: the
+Copilot **cloud agent** (served only via repo `.github/`) lacks `web`. No code
+change results — the existing `copilot-agent-md` pass-through was already
+correct; only the false "no web tool / research degradation" wording is removed.
+
+*Signed-off: eugenelim (Approver), 2026-06-11.*
+
+### E2 — Skill-surface flip: `instruction-file` → first-class Agent Skills (`SKILL.md`) — 2026-06-11
+
+Decision 3 + the projection table gave the `skill` primitive the
+`instruction-file` mode (`.github/instructions/<n>.instructions.md` repo,
+`~/.copilot/instructions/` user) — correct when Copilot had no first-class skill
+surface. **Copilot has since shipped Agent Skills, explicitly distinct from
+custom instructions** ([add-skills how-to](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills),
+fetched 2026-06-11): repo `.github/skills/<name>/SKILL.md`, user
+`~/.copilot/skills/<name>/SKILL.md`, filename must be `SKILL.md` in a per-skill
+subdir, required `name` (lowercase-hyphen) + `description`, optional `license`;
+Copilot also accepts `.claude/skills`/`.agents/skills`. The adapter therefore
+flips copilot `skill` to the existing `direct-directory` `SKILL.md` shape (the
+passthrough four other adapters already use; our sources are canonical Claude
+`SKILL.md`), drops the orphaned `copilot-instruction` frontmatter-default and
+the `.github/instructions/` / `.copilot/instructions/` scope prefixes, and adds
+`.github/skills/` / `.copilot/skills/`. This reverses Decision 3's mode (and the
+Options-table rejection of `instruction-file`-for-subagents reasoning as it
+applied to skills); the `agent`/`hook-wiring`/`hook-body`/`command` decisions
+are unchanged.
+
+*Signed-off: eugenelim (Approver), 2026-06-11.*

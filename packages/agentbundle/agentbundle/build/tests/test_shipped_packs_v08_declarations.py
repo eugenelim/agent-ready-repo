@@ -18,12 +18,12 @@ Packs in-tree NOT at v0.8:
     a v0.7 pack continues to work under v0.8 — the legacy resolver path
     for codex drops agents/hooks per the v0.7 contract, fine for
     backward compat).
-  - ``core``, ``research``, and ``architect``: at v0.10. core/research
-    bumped by RFC-0024 / docs/specs/copilot-full-parity (copilot now
-    projects their agents + hook-wiring); architect followed when it
-    added copilot to ``allowed-adapters`` (copilot's skill primitive
-    gained its user-scope target at v0.10, and architect is
-    user-scope-default). All leave ``V08_PACKS``.
+  - ``core`` and ``research``: at v0.12 — bumped by RFC-0024 /
+    docs/specs/copilot-full-parity (copilot projects their agents +
+    hook-wiring) then by docs/specs/copilot-skills-and-web (copilot `skill`
+    flips to first-class Agent Skills). ``architect``: at v0.10 (it added
+    copilot to ``allowed-adapters`` when copilot's skill gained its user-scope
+    target). All leave ``V08_PACKS``.
 """
 
 from __future__ import annotations
