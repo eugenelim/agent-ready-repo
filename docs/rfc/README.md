@@ -32,6 +32,7 @@
 | [0024](0024-copilot-subagent-projection.md) | Copilot full-parity projection — agents + hooks `dropped`→first-class, user-scope-capable (`~/.copilot/`), packs adapted (`research`/`core`); contract v0.9→v0.10; **supersedes RFC-0012 copilot-scope decision** | Accepted | 2026-06-04 | 2026-06-04 |
 | [0025](0025-work-loop-light-mode-and-risk-based-escalation.md) | `work-loop` light mode (lean inline spec + single adversarial pass + no state machine) as the default + risk-based escalation replacing the file-count trigger; subtraction-shaped, no new skill/script/artifact | Accepted | 2026-06-05 | 2026-06-05 |
 | [0026](0026-cursor-full-parity-adapter.md) | Cursor full-parity distribution adapter — project all primitives to `.cursor/*` (+ `~/.cursor/*`); first-class commands (`.cursor/commands/`), single-file `hooks.json` merge, agent tool-allowlist degraded to `readonly`; contract v0.10→v0.11; distribution-only | Accepted | 2026-06-11 | 2026-06-11 |
+| [0027](0027-gemini-cli-full-parity-adapter.md) | Gemini CLI full-parity distribution adapter — project all primitives to `.gemini/*` (+ `~/.gemini/*`); keep+map agent `tools:` allowlist, tier-preserving model map (`opus→gemini-2.5-pro`/`sonnet→gemini-2.5-flash`/`haiku→gemini-2.5-flash-lite`), new `gemini-command-toml` mode (TOML commands), `AGENTS.md` `context.fileName` bridge, zero-drop hook-event mapping; distribution-only | Accepted | 2026-06-11 | 2026-06-11 |
 
 ## Adding a new RFC
 
