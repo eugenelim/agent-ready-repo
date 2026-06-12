@@ -19,6 +19,8 @@ Coverage:
 
 from __future__ import annotations
 
+import argparse
+import contextlib
 import io
 import os
 import tarfile
@@ -451,4 +453,162 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "also recorded under pack 'other'" in captured.err, (
         f"expected collision warning in stderr: {captured.err!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Dry-run preview (projection-dry-run spec): read-only, writes nothing
+# ---------------------------------------------------------------------------
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+WORK_LOOP_SKILL = ".claude/skills/work-loop/SKILL.md"
+
+
+def _args_core(target: Path, *, force: bool = False, dry_run: bool = False):
+    """Args for installing the real `core` pack at repo scope (per-IDE shape)."""
+    return argparse.Namespace(
+        pack="core",
+        catalogue=str(REPO_ROOT),
+        output=str(target),
+        scope="repo",
+        emit_install_routes=False,
+        force=force,
+        dry_run=dry_run,
+    )
+
+
+def _run_core(args) -> tuple[int, str, str]:
+    from agentbundle.commands.install import run as install_run
+
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = install_run(args)
+    return rc, out.getvalue(), err.getvalue()
+
+
+def _reset_inband_cache() -> None:
+    from agentbundle.commands import install as install_mod
+
+    install_mod._clear_inband_detection_seen()
+
+
+def _snapshot_tree(root: Path) -> dict:
+    return {
+        p.relative_to(root).as_posix(): p.read_bytes()
+        for p in sorted(root.rglob("*"))
+        if p.is_file()
+    }
+
+
+def test_dry_run_install_fresh_previews_create_writes_nothing(tmp_path):
+    """AC2/AC6: a dry-run fresh install lists every projected file with
+    `create`/tier-1 + target path, exits 0, and writes nothing — no projected
+    file, no `.agentbundle-state.toml`, no install marker."""
+    target = tmp_path / "repo"
+    target.mkdir()
+    before = _snapshot_tree(target)
+
+    _reset_inband_cache()
+    rc, out, err = _run_core(_args_core(target, dry_run=True))
+    assert rc == 0, f"dry-run fresh install must exit 0: {err}"
+
+    assert "create" in out, f"fresh install must preview create lines; got:\n{out}"
+    assert "tier-1" in out, f"plan must use the greppable tier-1 label; got:\n{out}"
+    assert ".claude/" in out, f"plan must show the projected target paths; got:\n{out}"
+    assert "Nothing written." in out
+
+    # No-write invariant: tree byte-identical, no state, no marker.
+    assert _snapshot_tree(target) == before, "dry-run install must write nothing"
+    assert not (target / ".agentbundle-state.toml").exists(), "no state file"
+    assert not (target / ".adapt-install-marker.toml").exists(), "no install marker"
+    assert not (target / ".claude").exists(), "no projected files"
+
+
+def test_dry_run_install_over_edited_previews_companion(tmp_path):
+    """AC2/AC4: a dry-run install over an adopter-edited file at a projection
+    path previews the `companion`/tier-2 line, exits 0, writes no companion."""
+    from agentbundle import safety
+
+    target = tmp_path / "repo"
+    (target / ".claude" / "skills" / "work-loop").mkdir(parents=True)
+    edited = b"# my hand-authored work-loop, do not delete\n"
+    (target / WORK_LOOP_SKILL).write_bytes(edited)
+
+    before = _snapshot_tree(target)
+
+    _reset_inband_cache()
+    rc, out, err = _run_core(_args_core(target, dry_run=True))
+    assert rc == 0, f"dry-run install over an edited primitive must exit 0: {err}"
+
+    companion_rel = safety.companion_path(Path(WORK_LOOP_SKILL)).as_posix()
+    assert "companion" in out and "tier-2" in out, f"got:\n{out}"
+    assert f"{WORK_LOOP_SKILL} -> {companion_rel}" in out, (
+        f"Tier-2 line must show the companion target; got:\n{out}"
+    )
+
+    assert _snapshot_tree(target) == before, "dry-run install must write nothing"
+    assert not (target / companion_rel).exists(), "dry-run must not drop a companion"
+    assert (target / WORK_LOOP_SKILL).read_bytes() == edited, "edit left untouched"
+
+
+def test_dry_run_force_refused_leaves_orphan_intact(tmp_path):
+    """AC8/AC6: `--dry-run --force` is refused up front (non-zero + stderr), and
+    over a fixture where `--force` WOULD rmtree/unlink, the orphan crumb is left
+    intact — the destructive Step 3c cleanup never runs. (Its sibling
+    `test_dry_run_step3c_refusal_passthrough` confirms this crumb is a genuine
+    orphan — i.e. the cleanup this test bypasses would really have removed it.)"""
+    target = tmp_path / "repo"
+    (target / ".claude" / "skills" / "work-loop").mkdir(parents=True)
+    crumb = target / ".claude" / "skills" / "work-loop" / "STALE-EXTRA.md"
+    crumb.write_bytes(b"leftover\n")
+    before = _snapshot_tree(target)
+
+    _reset_inband_cache()
+    rc, out, err = _run_core(_args_core(target, force=True, dry_run=True))
+    assert rc != 0, "--dry-run --force must be refused"
+    assert "--force" in err and "--dry-run" in err, (
+        f"stderr must explain the contradiction; got:\n{err}"
+    )
+    assert out == "", "a refused preview prints no plan to stdout"
+
+    # The destructive cleanup that --force alone would do must NOT have run.
+    assert crumb.exists(), "--dry-run --force must not unlink the orphan crumb"
+    assert _snapshot_tree(target) == before, "nothing may change"
+
+
+def test_dry_run_step3c_refusal_passthrough(tmp_path):
+    """AC5: `--dry-run` (no --force) over a non-projection orphan crumb exits
+    non-zero with the same refusal a real run gives, writing nothing."""
+    target = tmp_path / "repo"
+    (target / ".claude" / "skills" / "work-loop").mkdir(parents=True)
+    crumb = target / ".claude" / "skills" / "work-loop" / "STALE-EXTRA.md"
+    crumb.write_bytes(b"leftover\n")
+    before = _snapshot_tree(target)
+
+    _reset_inband_cache()
+    rc, _out, err = _run_core(_args_core(target, dry_run=True))
+    assert rc != 0, "a non-projection crumb must still be refused under --dry-run"
+    assert "your own files" in err, f"the real-run refusal must pass through; got:\n{err}"
+    assert crumb.exists(), "refusal must not delete anything"
+    assert _snapshot_tree(target) == before, "nothing may change"
+
+
+def test_dry_run_preflight_path_jail_passthrough(tmp_path):
+    """AC5: a path-jail-violating projection under `--dry-run` is refused at the
+    Step 8 probe (non-zero), and nothing is written outside the root."""
+    from agentbundle.commands.install import run
+
+    malicious_relpath = "../../malicious_dry_run.txt"
+    fake_projection = {malicious_relpath: b"malicious content"}
+
+    args = types.SimpleNamespace(
+        pack="alpha", catalogue=str(FIXTURE_CATALOGUE), output=str(tmp_path),
+        emit_install_routes=True, dry_run=True,
+    )
+    with mock.patch("agentbundle.render.render_pack", return_value=fake_projection):
+        rc = run(args)
+
+    assert rc != 0, "dry-run must surface the path-jail pre-flight failure"
+    assert not (tmp_path / malicious_relpath).resolve().exists(), (
+        "malicious file must not be written even under dry-run"
     )

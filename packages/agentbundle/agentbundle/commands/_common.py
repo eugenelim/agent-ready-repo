@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from agentbundle.version import SPEC_VERSION
+
+if TYPE_CHECKING:
+    from agentbundle.safety import Tier
 
 
 class SeedDelivery(NamedTuple):
@@ -172,3 +175,71 @@ def _major(version: str) -> str:
     """Return the major component of a version string like '0.1' or 'v2.0'."""
     v = version.lstrip("v")
     return v.split(".")[0]
+
+
+# ---------------------------------------------------------------------------
+# Dry-run plan formatting (shared by `install --dry-run` and `upgrade --dry-run`)
+# ---------------------------------------------------------------------------
+
+# The complete set of action verbs `plan_action` can emit, in display order.
+# `summarize_plan` counts against exactly this tuple, so the two must stay in
+# sync: a new verb returned by `plan_action` must be added here or the summary
+# would silently drop it from the per-action breakdown.
+_PLAN_ACTIONS: tuple[str, ...] = ("create", "overwrite", "companion")
+
+
+def plan_action(tier: "Tier", *, on_disk: bool) -> str:
+    """Map a classified ``Tier`` + on-disk presence to a dry-run plan verb.
+
+    The verb mirrors what a real run would do at that file:
+
+      - ``Tier.TIER_2`` → ``"companion"`` — the adopter edited the file, so a
+        real run drops a ``.upstream.<ext>`` companion and leaves the original.
+      - ``Tier.TIER_1`` already on disk → ``"overwrite"``.
+      - ``Tier.TIER_1`` absent → ``"create"``.
+
+    Shared so a file is labelled identically whether the real run would
+    ``install`` or ``upgrade`` it; the ``Tier`` itself comes from each command's
+    own classifier (`commands.install._classify_for_install` / `safety.classify`)
+    — this helper never reclassifies, it only names the action.
+    """
+    from agentbundle.safety import Tier
+
+    if tier is Tier.TIER_2:
+        return "companion"
+    return "overwrite" if on_disk else "create"
+
+
+def format_plan_line(
+    action: str, tier: str, target: str, companion: str | None = None
+) -> str:
+    """Render one ``--dry-run`` plan line: ``<action> <tier> <target>``.
+
+    For a Tier-2 ``companion`` action the line also names the companion the
+    real run would drop: ``<target> -> <companion>``. ``tier`` is the stable,
+    greppable tier label (``tier-1`` / ``tier-2`` / ``tier-3``). Columns are
+    left-aligned so a multi-line plan reads as a table.
+    """
+    line = f"{action:<9} {tier:<6} {target}"
+    if companion is not None:
+        line += f" -> {companion}"
+    return line
+
+
+def summarize_plan(actions: list[str]) -> str:
+    """One-line count summary closing a ``--dry-run`` plan.
+
+    Counts each action verb (in the fixed order create / overwrite / companion)
+    and restates the no-write guarantee, e.g.
+    ``dry-run: 5 file(s) — 3 create, 2 companion. Nothing written.``
+    """
+    from collections import Counter
+
+    counts = Counter(actions)
+    parts = [
+        f"{counts[verb]} {verb}"
+        for verb in _PLAN_ACTIONS
+        if counts.get(verb)
+    ]
+    body = ", ".join(parts) if parts else "no files"
+    return f"dry-run: {len(actions)} file(s) — {body}. Nothing written."

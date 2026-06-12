@@ -35,8 +35,27 @@ Common flags:
 | `--scope {repo,user}`      | Target install scope; default `repo`.                                                   |
 | `--adapter <name>`         | Override the resolved adapter per-invocation (e.g. `claude-code`, `codex`, `kiro`).     |
 | `--output <dir>`           | Output root; default depends on scope.                                                  |
+| `--dry-run`                | Preview the per-file plan (action + tier + target path) to stdout and exit 0 without writing anything. Refused with `--force`. See [Preview before applying](#preview-before-applying). |
 
 Run `agentbundle install --help` for the complete set.
+
+## Preview before applying
+
+Both `agentbundle install` and `agentbundle upgrade` accept `--dry-run`: it
+runs the full read-only pre-flight, prints a per-file plan to stdout (one
+`<action> <tier> <target>` line each — `create` / `overwrite` / `companion`,
+with Tier-2 lines naming the `.upstream.<ext>` companion), and exits 0
+without writing anything. Diagnostics and pre-flight failures go to stderr.
+
+```bash
+agentbundle install <catalogue-uri> --pack core --dry-run
+agentbundle upgrade <catalogue-uri> --pack core --to 0.2.0 --dry-run
+```
+
+`install --dry-run --force` is refused — `--force`'s destructive cleanup is
+incompatible with a read-only preview. See the
+[preview how-to](../how-to/preview-install-or-upgrade.md) for how to read the
+plan.
 
 ## Configure the default adapter
 

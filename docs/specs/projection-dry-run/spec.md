@@ -1,6 +1,6 @@
 # Spec: projection dry-run (`--dry-run` for `install` / `upgrade`)
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none <!-- additive, read-only CLI flag; spec-level per CONVENTIONS §3 -->
@@ -95,38 +95,38 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] `agentbundle upgrade --dry-run <pack> --to <v> <catalogue>` prints a
+- [x] `agentbundle upgrade --dry-run <pack> --to <v> <catalogue>` prints a
   per-file plan to stdout — each line naming an action (`create` / `overwrite` /
   `companion`), the tier, and the target relpath; Tier-2 lines also show
   `<path> -> <path>.upstream.<ext>` — and exits 0. **Nothing is written:** no
   projected file, no companion, no state, no hook-wiring change. A per-primitive
   preview (`--dry-run --skill <name>`, etc.) previews only that primitive's files;
   a primitive-not-found still exits non-zero (the pre-render refusal passes through).
-- [ ] `agentbundle install --dry-run <pack> <catalogue>` prints the same shape of
+- [x] `agentbundle install --dry-run <pack> <catalogue>` prints the same shape of
   per-file plan to stdout and exits 0, **writing nothing** — no projected file,
   no companion, no `.agentbundle-state.toml`, no install marker — and running no
   chained `adapt` and emitting no `installed:` recap.
-- [ ] The per-file plan uses stable, greppable tier labels and shows the resolved
+- [x] The per-file plan uses stable, greppable tier labels and shows the resolved
   target path (the "where") for each file, for the scope/adapter the real run
   would target. (Dual-scope writes arise only under `--force`, which `--dry-run`
   refuses — see the `--dry-run --force` criterion below — so a preview targets a
   single scope.)
-- [ ] A present Tier-2 collision does **not** change the exit code (still 0); the
+- [x] A present Tier-2 collision does **not** change the exit code (still 0); the
   preview is informational. (`diff` remains the drift-gating verb.)
-- [ ] When the read-only pre-flight itself would fail — catalogue resolve,
+- [x] When the read-only pre-flight itself would fail — catalogue resolve,
   spec-version gate, adapter-resolution refusal, path-jail violation, pack not
   installed (`upgrade`), or the pre-RFC-0012 / orphan refusal that install's
   Step 3c raises *without* `--force` — `--dry-run` reports it on stderr and exits
   non-zero, matching the real run at that stage, and still writes nothing.
-- [ ] `agentbundle install --dry-run --force …` is refused up front with a
+- [x] `agentbundle install --dry-run --force …` is refused up front with a
   non-zero exit and a stderr message explaining that `--force`'s destructive
   cleanup is incompatible with a read-only preview; **nothing is written** (no
   `rmtree`, no orphan `unlink`, no state rewrite). Previewing *what `--force`
   would clean* is explicitly deferred to a future feature.
-- [ ] The no-write invariant is regression-guarded: an integration test asserts
+- [x] The no-write invariant is regression-guarded: an integration test asserts
   the target tree, state file, and install marker are byte-identical before and
   after a `--dry-run` of both `install` and `upgrade`.
-- [ ] A Diátaxis **how-to** under `docs/guides/how-to/` documents previewing an
+- [x] A Diátaxis **how-to** under `docs/guides/how-to/` documents previewing an
   install/upgrade with `--dry-run` (when to reach for it, how to read the plan
   output, the no-write guarantee), and the CLI **reference** page lists the
   `--dry-run` flag for both commands.

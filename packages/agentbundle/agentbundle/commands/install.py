@@ -79,7 +79,12 @@ def run(args: "argparse.Namespace") -> int:
     for the dual-scope contract.
     """
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
-    from agentbundle.commands._common import check_spec_version_gate
+    from agentbundle.commands._common import (
+        check_spec_version_gate,
+        format_plan_line,
+        plan_action,
+        summarize_plan,
+    )
     from agentbundle.config import (
         ConfigError,
         PackState,
@@ -96,6 +101,7 @@ def run(args: "argparse.Namespace") -> int:
     cli_scope: str | None = getattr(args, "scope", None)
     force: bool = bool(getattr(args, "force", False))
     force_merge: bool = bool(getattr(args, "force_merge", False))
+    dry_run: bool = bool(getattr(args, "dry_run", False))
     cli_adapter: str | None = getattr(args, "adapter", None)
     # User-config attached by `cli.py:main()` via args._user_config.
     # Default to None for callers that construct an args namespace by
@@ -113,6 +119,21 @@ def run(args: "argparse.Namespace") -> int:
         print(
             "install: --force-merge is bound to user scope; pass --scope user "
             "or omit --force-merge",
+            file=sys.stderr,
+        )
+        return 1
+
+    # `--dry-run` is a read-only preview; `--force` performs destructive
+    # cleanup (Step 3c's rmtree / orphan unlink / state rewrite). The two are
+    # contradictory — refuse up front, before Step 3c can touch anything, so a
+    # preview never runs that cleanup. Previewing *what --force would clean* is
+    # a separate future feature.
+    if dry_run and force:
+        print(
+            "install: --dry-run is incompatible with --force: --force performs "
+            "destructive cleanup (removing leftover files, rewriting state) that "
+            "a read-only preview must not do. Run --dry-run without --force to "
+            "preview, or --force without --dry-run to apply.",
             file=sys.stderr,
         )
         return 1
@@ -777,6 +798,38 @@ def run(args: "argparse.Namespace") -> int:
                         file=sys.stderr,
                     )
                     return 1
+
+    # ── Dry-run: all read-only pre-flight passed — preview and stop ───────────
+    # At the top of Step 9 (after Step 8's path-jail probe) so every pre-flight
+    # refusal in Steps 1–8 has already returned the real run's exit code (AC5).
+    # Classify each plan's projection with the SAME `_classify_for_install` the
+    # write loop below uses, print the per-file plan to stdout, and return
+    # before any write — skipping the rest of Step 9 and Steps 10–13 (file
+    # writes, seed delivery, state, install marker, chained adapt, `installed:`
+    # recap). `--force` is refused up front, so there is exactly one writing
+    # plan here (dual-scope writes arise only under --force).
+    if dry_run:
+        actions: list[str] = []
+        for plan in plans:
+            if plan.already_installed:
+                continue
+            projection = repo_projection if plan.scope == "repo" else user_projection
+            if projection is None:
+                continue
+            for relpath, content in sorted(projection.items()):
+                tier = _classify_for_install(
+                    relpath, plan.root, content, plan.state, pack_name=pack_name,
+                )
+                action = plan_action(tier, on_disk=(plan.root / relpath).exists())
+                companion = (
+                    safety.companion_path(Path(relpath)).as_posix()
+                    if tier is safety.Tier.TIER_2
+                    else None
+                )
+                print(format_plan_line(action, tier.value, relpath, companion))
+                actions.append(action)
+        print(summarize_plan(actions))
+        return 0
 
     # ── Step 9: All pre-flight passed — perform writes ────────────────────────
     for plan in plans:
