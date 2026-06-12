@@ -182,6 +182,12 @@ For anything beyond trivial, *think before you write code*. Concretely:
   test, the task is too vague to implement — sharpen the plan first. Discovering a missing or wrong construction test
   during EXECUTE is fine, but the fix is "update plan.md, then resume
   EXECUTE", not "skip ahead".
+  **For TDD-mode tasks, materialize each `Tests:` subsection as a
+  compilable, validated red stub** rather than prose — see
+  [`references/tdd-stubs.md`](references/tdd-stubs.md) (load it on demand).
+  A stub that won't compile is the mechanical signal an AC is too vague,
+  caught here instead of mid-EXECUTE. Goal-based and manual-QA tasks record
+  `no stub (mode)`; light mode skips this entirely.
 - **Pre-EXECUTE adversarial review.** Select a subagent matching
   `adversarial-reviewer` and ask it to review the spec + plan in
   spec/plan-review mode. Iterate to clean before EXECUTE begins when
@@ -263,7 +269,11 @@ Don't keep it in your head — your context will turn over and you'll lose it.
 Match the discipline to the verification mode you picked during PLAN:
 
 - **TDD-mode tasks** — red-green-refactor:
-  1. Write the failing test first (red). Commit it if non-trivial.
+  1. Write the failing test first (red). Commit it if non-trivial. If PLAN
+     already produced a stub for this task
+     ([`references/tdd-stubs.md`](references/tdd-stubs.md)), the red test is
+     usually already written — verify it's red and fill out its deferred
+     assertions, don't rewrite it from scratch.
   2. Write the minimum code to make it pass (green). Commit.
   3. Refactor with the test as your safety net. Commit.
 - **Goal-based check** — write the code, then run the one-liner from
