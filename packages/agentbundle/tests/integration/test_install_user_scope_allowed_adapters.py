@@ -8,10 +8,12 @@ and (b) `~/.agentbundle/state.toml` records the resolved adapter.
 
 Reference idiom mirrors `test_install_converters_user_scope.py`:
 in-process `install.run`, `$HOME` patched via `patch.dict`. The four
-catalogue user-scope packs ship `allowed-adapters = ["claude-code",
-"kiro-ide", "codex"]` (the bare `kiro` alias was de-staled to its
-current RFC-0022 name), so this test covers the resolver's three
-adapter-target paths without fabricating fixtures.
+credentialed user-scope packs ship `allowed-adapters = ["claude-code",
+"kiro-ide", "codex", "copilot", "cursor"]` — the bare `kiro` alias was
+de-staled to its current RFC-0022 name, and `copilot` + `cursor` were
+added by RFC-0013 § Errata (2026-06-12). This test covers the
+claude-code / kiro-ide / codex resolver paths without fabricating
+fixtures; it asserts install behaviour, not list equality.
 """
 
 from __future__ import annotations
