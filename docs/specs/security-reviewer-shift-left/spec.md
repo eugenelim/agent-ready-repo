@@ -1,6 +1,6 @@
 # Spec: security-reviewer-shift-left
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0029](../../rfc/0029-strengthen-security-reviewer.md), [ADR-0018](../../adr/0018-shift-security-review-left-progressive-disclosure.md), [ADR-0017](../../adr/0017-adopt-bandit-pip-audit-semgrep-sast-gate.md), [ADR-0014](../../adr/0014-rigor-scales-with-risk-work-loop-modes.md) / [RFC-0025](../../rfc/0025-work-loop-light-mode-and-risk-based-escalation.md)
@@ -80,12 +80,14 @@ inspectable, and **manual / visual QA** for the one behavior that is agent
 reasoning rather than a file fact:
 
 ACs are numbered top-to-bottom in the **Acceptance Criteria** list below (AC1 =
-the first checkbox … AC13 = the last); the references here resolve against that
+the first checkbox … AC14 = the last); the references here resolve against that
 order.
 
 - **Skill + module presence and shape** (AC1): goal-based — `ls`/`grep` that the
-  10 module files exist, each header names a standard+version, and each carries
-  the `tool`/`hybrid`/`reason` tags.
+  10 module files exist, each header names a standard+version, each carries
+  the `tool`/`hybrid`/`reason` tags, and the **concrete version strings** (`2025`,
+  `5.0`, `2023`, `2024`, `CWE Top 25`) appear across the module set so a placeholder
+  version can't pass.
 - **Agent-body edits** (AC2, AC3): goal-based — `grep` that `security-reviewer.md`
   carries the spec-stage secure-design mode heading (AC2), cites OWASP Top
   10:**2025** (and no longer **2021** as its awareness anchor), keeps the universal
@@ -102,21 +104,26 @@ order.
   step names `security-reviewer` on the security-boundary trigger as net-new (AC4),
   that the security-review step loads matching modules and inlines their content
   (AC5), and that a deterministic boundary→module routing table is present (AC6).
-- **Repo-convention awareness** (AC8): goal-based — `grep` that `AGENTS.md` carries
-  a light "blessed security tools/helpers" point and that the agent's existing
-  `docs/architecture/security.md` / `docs/guides/reference/security.md` reads are
-  retained; assert no new mandatory `security.md` standard file was added.
+- **Repo-convention awareness** (AC8, three clauses): goal-based — (8a) `grep` that
+  `AGENTS.md` carries a light "blessed security tools/helpers" point and that root +
+  seed stay in sync with growth ≤ ~4 lines; (8b) `grep` that `security-reviewer.md`
+  still names both conditional read paths `docs/architecture/security.md` and
+  `docs/guides/reference/security.md` (agent-prose grep, not a file-presence check —
+  the files need not exist); (8c) assert no new mandatory `security.md` standard file
+  was added.
 - **Adopter-clean + no-contract-change + projection** (AC9, AC10, AC11): goal-based —
   a grep that the shipped skill names no repo-specific helper (AC9); an assertion
   that the adapter contract `version` is unchanged and `skill` stays
   `direct-directory` (AC10); and `make build-self` produces no drift with the core
   pack version bumped (AC11).
-- **CONVENTIONS touch** (AC12): goal-based — `grep` the landed note (in its decided
-  home) and confirm it ships in the same PR as the AC4 wiring, so it is not a
-  forward-claim.
+- **CONVENTIONS touch** (AC12): goal-based — `grep` the landed note in the
+  `work-loop` skill (its decided home); since it lives in the same file as the AC4
+  wiring it ships atomically and cannot be a forward-claim.
 - **No new top-level dir / no new dependency** (AC13): goal-based — assert against
   `origin/main` that no new top-level directory and no new runtime dependency were
   introduced.
+- **Changelog entry** (AC14): goal-based — `grep` a `[Unreleased]` entry in
+  `docs/product/changelog.md` describing the strengthened security reviewer.
 - **Orchestrator loads the right depth into the brief** (AC5 behavior): manual /
   visual QA — on a sample security-boundary diff (e.g. an outbound-HTTP change),
   walk the work-loop security-review step and confirm only the matching module(s)
@@ -131,7 +138,10 @@ order.
   `injection`, `path-and-file`, `secrets-and-crypto`, `outbound-ssrf`,
   `supply-chain`, `config-misconfig`, `exceptional-conditions`, `llm-agent` — each
   module naming its standard+version in its header and tagging every check
-  `tool` / `hybrid` / `reason`.
+  `tool` / `hybrid` / `reason`. The module set **collectively pins the concrete
+  versions** the Always-do boundary names (`2025` OWASP Top 10, `5.0` ASVS, `2023`
+  API Security Top 10, `2024` Proactive Controls, CWE Top 25, LLM Top 10:2025), so
+  a placeholder version fails the grep.
 - [ ] `security-reviewer.md` carries a **spec-stage secure-design mode** distinct
   from its implementation mode (mirroring `adversarial-reviewer`'s spec-stage
   structure): in this mode it reads the *spec* and asks, per trust boundary the
@@ -160,11 +170,18 @@ order.
   Semgrep / CodeQL — not Python-assumed) and **defined tool-absence behavior**
   (Tier-1 declare/detect/fail-clean: reason best-effort with a `degraded: no
   scanner` flag, or state the gap explicitly — never silently skip).
-- [ ] **Repo-convention awareness without a new file**: `AGENTS.md` gains a light
-  "blessed security tools/helpers" customization point (a short list + inference
-  fallback), and the agent's existing read of
-  `docs/architecture/security.md` / `docs/guides/reference/security.md` is retained;
-  no new mandatory `security.md` standard file is introduced.
+- [ ] **Repo-convention awareness without a new file** — three separately-verifiable
+  clauses, all required: **(8a)** `AGENTS.md` gains a light "blessed security
+  tools/helpers" customization point (a short list + inference fallback), added as a
+  minimal sub-bullet on the existing `security-reviewer` entry (not a new section) so
+  the file grows by ≤ ~4 lines and root `AGENTS.md` + `packs/core/seeds/AGENTS.md`
+  stay in sync; **(8b)** `security-reviewer.md` still names both conditional read
+  paths `docs/architecture/security.md` and `docs/guides/reference/security.md`
+  (an agent-prose grep — the files need not exist; the read is `if either exists`);
+  **(8c)** no new mandatory `security.md` standard file is introduced. *Note: root
+  `AGENTS.md` is already ~202 lines, so the "~200-line budget" is treated as
+  approximate; the sub-bullet keeps growth minimal rather than triggering an RFC to
+  raise a soft budget.*
 - [ ] **Adopter-clean**: the shipped `security-checklists` skill names no
   repo-specific helper (`write_jailed`, `credbroker`, …) — it carries the
   established-helper-bypass *mechanism* only (grep-gated).
@@ -175,11 +192,16 @@ order.
   with no drift**, and the **core pack version is bumped** (non-cosmetic pack update
   per the `AGENTS.local.md` rule).
 - [ ] The RFC-0029 **CONVENTIONS touch lands in this implementing PR**, in its
-  decided home (`docs/CONVENTIONS.md` how-we-work *or* the `work-loop` skill as the
-  canonical "how"), describing that security review runs at spec stage on
-  security-boundary work — landing **atomically with the AC4 wiring** so it is not a
+  **decided home: the `work-loop` skill** (the canonical "how" — chosen over
+  `docs/CONVENTIONS.md` consistent with the ongoing migration of mode mechanics out
+  of `CONVENTIONS.md`; ADR-0018 § Consequences left this to the spec), describing
+  that security review runs at spec stage on security-boundary work — landing
+  **atomically with the AC4 wiring** (same file, same PR) so it is not a
   forward-claim.
 - [ ] **No new top-level directory and no new dependency** are introduced.
+- [ ] A `docs/product/changelog.md` **`[Unreleased]` entry** lands in this PR for the
+  strengthened security reviewer (user-visible skill/agent prose change per
+  `docs/CONVENTIONS.md` — verified by grep).
 
 ## Assumptions
 
@@ -206,7 +228,7 @@ item was verified by direct repo read or against RFC-0029, which is Accepted. --
   `packs/core/seeds/docs/CONVENTIONS.md` (byte-identical today), so a CONVENTIONS
   edit means editing the seed + `make build-self`, and is a core-pack content change
   (source: repo read + memory `self-host projection`; core `pack.toml` version
-  `0.2.0`, read 2026-06-12).
+  `0.3.0`, read 2026-06-12 — AC11 bumps from this base).
 - Process: this is a follow-on to an **Accepted** RFC (RFC-0029) and is recorded by
   **ADR-0018** (Accepted), so the decision is made; this spec is the implementation
   contract (source: `docs/rfc/0029-strengthen-security-reviewer.md` § Follow-on

@@ -155,10 +155,14 @@ warrants; don't run all three by default.
 - `adversarial-reviewer` — spec /
   plan / implementation drift; missing edge cases; scope creep. Default
   reviewer; runs after gates pass.
-- `security-reviewer` — OWASP Top
-  10 (web + LLM Apps) and STRIDE lens. Use when the diff touches auth,
-  secrets, user input, deserialization, file/network I/O, dependencies,
-  or LLM/agent code. Complements SAST/SCA scanners; does not replace them.
+- `security-reviewer` — multi-framework (OWASP 2025, ASVS, STRIDE +
+  LINDDUN) lens, run at spec stage and on the diff. Use when the change
+  touches auth, secrets, user input, deserialization, file/network I/O,
+  dependencies, or LLM/agent code. Complements SAST/SCA scanners; does not
+  replace them. **Blessed security helpers** (customize per repo): list your
+  sanctioned helpers per boundary — secrets broker, path-confinement,
+  SSRF-guarded fetch client — so it flags rolled-its-own bypass; absent a
+  list it infers from the codebase.
 - `quality-engineer` — testability,
   observability, reliability, and maintainability lens. Also drafts
   contract or construction tests on request.

@@ -148,6 +148,10 @@ N/A. Only the two that carry real decisions are kept; the rest are pruned.
   list (`npm audit` / `pip-audit` / `govulncheck` / `cargo audit` / Snyk / Semgrep /
   CodeQL) **and** the tool-absence behavior tokens (`degraded: no scanner` / an
   explicit-gap statement) — not just that the three-bucket rule is *named*.
+- Goal-based (AC8b regression): `grep` confirms the trimmed `security-reviewer.md`
+  **still names both** conditional read paths `docs/architecture/security.md` and
+  `docs/guides/reference/security.md` — the body trim must not drop the existing
+  `load context` reads (agent-prose grep; the files need not exist).
 
 **Approach:**
 - Add a spec-stage secure-design mode section mirroring `adversarial-reviewer`'s
@@ -159,7 +163,12 @@ N/A. Only the two that carry real decisions are kept; the rest are pruned.
 - Add the three-bucket delegation rule (detect ecosystem scanner; Tier-1
   declare/detect/fail-clean tool-absence behavior).
 
-**Done when:** the greps pass; the agent body is leaner, not longer.
+**Done when:** the greps pass — the deep per-domain checklists are **gone** from
+the body (moved to the skill) and the universal method remains. Note: the file is
+not strictly shorter overall, because AC2's spec-stage mode, AC7's three-bucket
+rule, the established-helper meta-check, and the LINDDUN pass are **net-new required
+capability** the old body didn't carry; the *per-domain depth* is what was trimmed,
+not the total line count.
 
 ### T3: Wire the work-loop — spec-stage dispatch + module-inlining + routing table
 
@@ -192,35 +201,42 @@ N/A. Only the two that carry real decisions are kept; the rest are pruned.
 
 **Tests:**
 - Goal-based: `grep` confirms a light "blessed security tools/helpers" point exists
-  in `AGENTS.md`; the file stays under its ~200-line budget; root `AGENTS.md` and its
-  seed are in sync.
+  in `AGENTS.md`; growth is ≤ ~4 lines (a sub-bullet on the existing
+  `security-reviewer` entry, not a new section — root is already ~202 lines, so the
+  "~200" budget is treated as approximate); root `AGENTS.md` and its seed in sync.
 
 **Approach:**
-- Add a short list + inference-fallback note (RFC Open Q2 default), keeping it
-  minimal; do not introduce a `security.md` standard file.
-- Edit root `AGENTS.md` directly (Manual / `EXCLUDED_PATTERNS`) and sync the seed.
+- Add a short list + inference-fallback note (RFC Open Q2 default) as a minimal
+  sub-bullet under the existing `security-reviewer` line in **Specialist subagents**;
+  do not introduce a `security.md` standard file, do not add a new section.
+- Edit root `AGENTS.md` directly (Manual / `EXCLUDED_PATTERNS`) and sync the seed
+  byte-for-byte (the two files differ only by the trailing `AGENTS.local.md` line).
 
-**Done when:** the grep passes, the line budget holds, and root/seed match.
+**Done when:** the grep passes, growth is ≤ ~4 lines, and root/seed match.
 
 ### T5: CONVENTIONS touch — spec-stage security review (lands with the wiring)
 
 **Depends on:** T3
-**Touches:** packs/core/seeds/docs/CONVENTIONS.md (or packs/core/.apm/skills/work-loop/SKILL.md — home decided here)
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md
+
+**Home decided (pre-EXECUTE):** the **`work-loop` skill**, not `docs/CONVENTIONS.md`.
+ADR-0018 § Consequences left the choice to this spec; the work-loop skill is the
+canonical "how" and this is consistent with the ongoing migration of mode mechanics
+out of `CONVENTIONS.md`. Because the note lives in the same file T3 edits, it ships
+atomically with the wiring by construction — the forward-claim risk is structurally
+eliminated, not just sequenced.
 
 **Tests:**
-- Goal-based: `grep` the landed note (in its decided home) describing that security
-  review runs at spec stage on security-boundary work; confirm it ships in the same
-  PR as T3 (no forward-claim).
+- Goal-based: `grep` the landed note in `work-loop/SKILL.md` describing that security
+  review runs at spec stage on security-boundary work; it is in the same file as T3,
+  so no separate atomicity check is needed.
 
 **Approach:**
-- Decide the home: `CONVENTIONS.md` how-we-work (RFC's literal ask) **or** the
-  `work-loop` skill as the canonical "how" — consistent with the ongoing move of
-  mode mechanics out of `CONVENTIONS.md` (surface the choice; default to the
-  work-loop skill if the migration direction holds).
-- Write the light note mirroring the existing adversarial spec-stage entry; if it
-  edits the CONVENTIONS seed, that change rides T6's projection.
+- Write the light note mirroring the existing adversarial spec-stage entry, folded
+  into the T3 pre-EXECUTE-review edit (one coherent paragraph, not a duplicate
+  section).
 
-**Done when:** the note exists in its decided home and lands atomically with T3.
+**Done when:** the note exists in `work-loop/SKILL.md` alongside the T3 wiring.
 
 ### T6: Projection + governance gate (version bump, drift, no-contract-change)
 
@@ -240,11 +256,14 @@ N/A. Only the two that carry real decisions are kept; the rest are pruned.
 
 **Approach:**
 - Bump the core pack version (non-cosmetic content change).
+- Add a `docs/product/changelog.md` `[Unreleased]` entry for the strengthened
+  security reviewer (AC14 — user-visible skill/agent prose change per `CONVENTIONS.md`).
 - Run `make build-self`; resolve any drift; verify projections landed across adapter
   trees.
 
 **Done when:** contract version unchanged, `make build-self` drift-clean, pack
-version bumped, projected adopter-clean grep empty.
+version bumped, changelog `[Unreleased]` entry present, projected adopter-clean grep
+empty.
 
 ## Rollout
 
@@ -272,3 +291,9 @@ default the moment the skill + wiring project.
 ## Changelog
 
 - 2026-06-12: initial plan (RFC-0029 follow-on; D1–D6 → T1–T6).
+- 2026-06-12: pre-EXECUTE adversarial review — resolved the T5 CONVENTIONS-home fork
+  to the `work-loop` skill (folds into T3); sharpened AC1 (pin concrete versions) and
+  AC8 (three explicit clauses; agent-prose grep for the conditional `security.md`
+  reads); added AC14 (changelog `[Unreleased]` entry); made the AGENTS.md budget
+  assertion concrete (≤ ~4 lines, ~200 treated as approximate); corrected the stale
+  `0.2.0`→`0.3.0` pack-version assumption.

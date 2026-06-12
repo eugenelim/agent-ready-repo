@@ -19,6 +19,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The `security-reviewer` is stronger, current, and shifts left (core pack 0.4.0).**
+  Security review is no longer only a late gate: on security-boundary work the
+  `work-loop` now dispatches the reviewer in a **spec-stage secure-design mode**
+  at the pre-EXECUTE step, asking whether each control is specified as an
+  acceptance criterion *at the right depth* (confinement, not just traversal;
+  a scheme/host allowlist, not "validate the URL"; broker-mediated secrets, not
+  ad-hoc reads) — collapsing post-implementation round-trips into one design-time
+  pass. The awareness stack is current — **OWASP Top 10:2025** (replacing the
+  2021 list), ASVS 5.0, API Security Top 10:2023, OWASP LLM Top 10:2025, CWE
+  Top 25 — and a **STRIDE + LINDDUN** open pass adds the privacy lens STRIDE
+  blind-spots. Depth ships through a new **`security-checklists` skill**: ten
+  boundary-keyed modules the orchestrator loads *per boundary the change
+  crosses* and inlines into the reviewer's brief, so the lens is deep without
+  bloating the prompt and travels to every adapter with **no contract change**.
+  Tool-delegation is now language-agnostic (`npm audit` / `pip-audit` /
+  `govulncheck` / `cargo audit` / Snyk / Semgrep / CodeQL) and fails honestly
+  (`degraded: no scanner`) rather than silently skipping. A new **established-helper
+  bypass** meta-check flags code that rolled its own where the repo has a blessed
+  helper — customize the list via a light "blessed security tools/helpers" point
+  in `AGENTS.md`. Complements, does not replace, the SAST/SCA scanners (ADR-0017).
+  See RFC-0029 / ADR-0018.
+
 - **The default quality floor is now higher by doctrine (core pack 0.3.0).**
   Agent output tends to clear a strict external static-analysis gate (a
   SonarQube quality profile, a CI-only coverage threshold) regardless of tech
