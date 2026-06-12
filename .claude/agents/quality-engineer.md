@@ -272,7 +272,13 @@ and line range**, state what's wrong in one sentence, end with
 ```
 
 Omit empty sections. If everything's clean, output `Clean — ready to
-commit.`
+commit.` with no findings list and no praise padding.
+
+Return **only** the findings block above (or that one clean line) — no
+pre-findings methodology recap, scope summary, or process narration. The
+orchestrator records this report to disk and re-reads it across iterations, so
+a distilled, findings-only shape is the contract, not a courtesy. Do the full
+reading; print only the findings.
 
 ## Severity guidance
 

@@ -444,6 +444,18 @@ to override. `check --phase review` then enforces stasis detection: exit
 1 with `no progress` means the same findings landed two iterations in a
 row; stop and surface to a human rather than spinning a third.
 
+**Once recorded, drop the full report text from resident context.** The
+on-disk report plus the `state.json` fingerprints are the durable record —
+nothing load-bearing lives only in the window. When a FIX needs a finding's
+detail, re-read that finding from the on-disk report rather than holding the
+whole prose resident; and the *next* REVIEW pass regenerates the current
+findings from scratch, so a stale full report has no reason to ride along
+across iterations. (There is no pre-filtered "open findings" file — which
+findings are still open is your DECIDE-phase routing call, not a stored
+artifact.) This keeps a multi-loop spec's window clear without touching the
+stasis/iteration guarantees above, which read from `state.json`, not from
+resident prose.
+
 **Specialist reviewers — use after adversarial-reviewer is clean.** Pick
 the ones the diff actually warrants; don't run all three by default.
 Select each via the same "subagent matching `<role>`" pattern as
@@ -467,7 +479,9 @@ orchestrator reads, not a structured contract: you read N reports,
 group findings by severity yourself, deduplicate where two reviewers
 caught the same thing, then iterate on the merged list. Fingerprint
 computation (state.json) happens once per fan-out round, not once per
-reviewer.
+reviewer. Record the round, then evict the merged prose the same way —
+fingerprints and the on-disk reports are the record; the merged list does not
+stay resident across FIX iterations.
 
 If reviewing a spec-less change (a refactor, say), self-review against this
 checklist instead:
@@ -604,6 +618,32 @@ Where the answer goes depends on the *shape* of the learning:
 This is the part of the loop that makes the *project* smarter, not just the
 current PR. Skipping it means the next agent (or you, next month) will
 re-derive the same insight.
+
+## Context hygiene
+
+The loop's power — gates, iterate-to-Clean review, fingerprint stasis, the
+iteration cap — is orthogonal to the resident tokens that fill the window.
+Three levers shed that noise (ordered by savings), each with a no-subagent floor:
+
+- **Reference-reads are the biggest lever** — reading an existing implementation
+  just to mirror it is the largest single window draw. Where your agent supports
+  delegated subagents, hand that read to a read-only one that returns a distilled
+  summary (the "select a subagent matching …" facility REVIEW uses). *Floor:*
+  read targeted line ranges, not whole files; never re-read a resident file.
+- **Compact at task boundaries** in a multi-loop spec, with a "preserve plan,
+  open findings, decisions" hint — safe because `spec.md`, `plan.md`,
+  `state.json`, and `docs/backlog.md` are the externalized memory. `/compact` in
+  Claude Code; elsewhere your agent's own facility or the fresh-session mode in
+  [Unattended loops](#unattended-afk-loops). *Floor:* re-read plan + open findings
+  from disk and let the old transcript age out.
+- **Narrowest gate during FIX** — the full GATES suite still runs before
+  REVIEW/finish, so the floor is re-asserted.
+
+**Reduce, never lossily transform.** Reduce *what you load* — never
+summarize-on-read, strip comments, or treat RAG chunks as the truth for an edit:
+`Edit` needs exact-byte `old_string` and line numbers anchor findings, so lossy
+read-compaction fails *silent*. Skeleton repo-maps are fine for orientation,
+never the bytes you edit against.
 
 ## Unattended (AFK) loops
 
