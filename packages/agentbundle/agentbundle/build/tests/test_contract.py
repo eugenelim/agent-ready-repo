@@ -2,8 +2,9 @@
 
 Verifies:
   - adapter.toml validates against adapter.schema.json (AC 1).
-  - Every (5 standard primitives × 6 adapters) = 30 standard pairs present;
-    kiro-ide and kiro-cli each add kiro-ide-hook = 32 total (RFC-0022).
+  - Every (5 standard primitives × 8 adapters) = 40 standard pairs present;
+    kiro-ide, kiro-cli, cursor, and gemini each add a kiro-ide-hook table
+    entry = 44 total (RFC-0022 / RFC-0026 / RFC-0027).
   - The mode enum in adapter.schema.json contains exactly the seven RFC-0001 modes;
     unknown modes are rejected (AC 2).
   - Every projection entry carries an on-conflict value from the legal set,
@@ -67,7 +68,7 @@ ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
 # All reference adapter names (RFC-0022: kiro-ide and kiro-cli added; kiro retained as alias;
 # RFC-0026: cursor added).
-ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex"}
+ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex", "gemini"}
 
 # Extra primitives that are kiro-specific and OK to declare in kiro-family
 # adapter blocks without failing the "no extra primitives" check.
@@ -146,15 +147,17 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         kiro-cli carries kiro-ide-hook dropped (+6). Plus kiro-ide adds
         hook-wiring dropped to its array_form, which is already counted.
         RFC-0026: cursor added (+5 standard + 1 kiro-ide-hook dropped = +6).
+        RFC-0027: gemini added (+5 standard + 1 kiro-ide-hook dropped = +6).
         Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-ide) + 6 (kiro-cli)
-               + 5 (copilot) + 6 (cursor) + 5 (codex) = 38. Class name preserved.
+               + 5 (copilot) + 6 (cursor) + 5 (codex) + 6 (gemini) = 44.
+        Class name preserved.
         """
         total = 0
         for adapter_block in self.contract["adapter"].values():
             array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
             table_form = set(adapter_block.get("projections", {}).keys())
             total += len(array_form | table_form)
-        self.assertEqual(total, 38, f"expected 38 pairs total, got {total}")
+        self.assertEqual(total, 44, f"expected 44 pairs total, got {total}")
 
 
 class ModeEnumTests(unittest.TestCase):
@@ -180,11 +183,13 @@ class ModeEnumTests(unittest.TestCase):
             # modes admitted at every `dropped`-enumerating site.
             "copilot-agent-md",
             "copilot-hooks-json",
+            # docs/specs/gemini-full-parity (v0.13): gemini command projection.
+            "gemini-command-toml",
         }
         self.assertEqual(
             mode_enum,
             expected,
-            f"schema mode enum differs from RFC-0001+RFC-0005+v0.8+v0.10 set: {mode_enum}",
+            f"schema mode enum differs from RFC-0001+RFC-0005+v0.8+v0.10+v0.13 set: {mode_enum}",
         )
 
     def test_schema_rejects_unknown_mode(self) -> None:
@@ -380,7 +385,7 @@ class FrontmatterTableTests(unittest.TestCase):
         self.assertNotIn(
             "copilot-instruction",
             defaults,
-            "copilot-instruction frontmatter-default should be retired after copilot-skills-and-web",
+            "copilot-instruction frontmatter-default should be retired after gemini-full-parity",
         )
         skill = next(
             p
@@ -447,7 +452,7 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.12"
+        """tomllib.loads of adapter.toml returns contract.version == "0.13"
         (bumped from RFC-0026 / cursor-full-parity's "0.11" by
         docs/specs/copilot-skills-and-web: copilot `skill` flips
         `instruction-file`→`direct-directory` first-class SKILL.md, the
@@ -456,8 +461,8 @@ class ContractV05Tests(unittest.TestCase):
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.12",
-            "adapter.toml [contract] version must be '0.12' after copilot-skills-and-web",
+            "0.13",
+            "adapter.toml [contract] version must be '0.13' after gemini-full-parity",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:

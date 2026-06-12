@@ -2377,6 +2377,7 @@ def _render_for_user_scope(
         codex,
         copilot,
         cursor,
+        gemini,
         kiro,
         kiro_cli,
         kiro_ide,
@@ -2421,6 +2422,12 @@ def _render_for_user_scope(
             # the scope-agnostic `.cursor/…` relpaths under `~` (RFC-0026 /
             # cursor-full-parity).
             cursor.project(pack_dir, contract, out)
+        elif target_adapter == "gemini":
+            # Gemini's `.gemini/` prefix is identical at both scopes (the
+            # cursor pattern), so there is no post-render prefix rewrite; the
+            # generic user-root rooting lands the scope-agnostic `.gemini/…`
+            # relpaths under `~` (RFC-0027 / gemini-full-parity).
+            gemini.project(pack_dir, contract, out)
         else:
             # Defence-in-depth: every user-scope-capable adapter
             # should have an explicit branch above. A future contract
@@ -2466,6 +2473,7 @@ def _render_for_repo_scope(
         codex,
         copilot,
         cursor,
+        gemini,
         kiro,
         kiro_cli,
         kiro_ide,
@@ -2500,6 +2508,8 @@ def _render_for_repo_scope(
             copilot.project(pack_dir, contract, out)
         elif target_adapter == "cursor":
             cursor.project(pack_dir, contract, out)
+        elif target_adapter == "gemini":
+            gemini.project(pack_dir, contract, out)
         else:
             raise _AdapterResolutionRefused(
                 f"{command_name}: no repo-scope projection wired for "

@@ -55,7 +55,15 @@
 # `.github/skills/<name>/SKILL.md`); the `copilot-instruction` frontmatter-default
 # is retired. Web correction (RFC-0024 § Errata E1) is docs/comments-only.
 # (Lands atop RFC-0026's cursor v0.11; the two co-bumped — copilot takes v0.12.)
-version = "0.12"
+# RFC-0027 / ADR-0016 / docs/specs/gemini-full-parity (v0.13): new native
+# `gemini` full-parity adapter projecting all five primitives to `.gemini/*` at
+# both scopes. One new projection mode (`gemini-command-toml`); a bespoke
+# `.gemini/settings.json` merge carrying `hooks` (event-remapped, fail-closed) +
+# a static `context.fileName` bridge (from `context-filenames`). agent `tools:`
+# kept and name-mapped; tier-preserving model map. hook-body lands under
+# `.gemini/hooks/` (the cursor model — single prefix at both scopes). kiro-ide-hook
+# dropped. Distribution-only (not in SELF_HOST_ADAPTERS).
+version = "0.13"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -610,6 +618,100 @@ allowed-prefixes.repo = [".cursor/", ".agentbundle/"]
 allowed-prefixes.user = [".cursor/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
+# Gemini adapter — full-parity native adapter (RFC-0027 / ADR-0016 /
+# docs/specs/gemini-full-parity, v0.13).
+#
+# Projects all five catalogue primitives to Gemini CLI's native `.gemini/*`
+# discovery paths at both repo and user scope. Unlike Cursor, gemini KEEPS and
+# name-maps the agent `tools:` allowlist (Gemini has a real per-agent tool
+# allowlist) and applies a tier-preserving `model` map (`gemini-agent-frontmatter`).
+# `command` uses the new `gemini-command-toml` mode (markdown body → TOML `prompt`;
+# fail-closed on multi-injection). `hook-body` lands under `.gemini/hooks/` (the
+# cursor model — a single `.gemini/` prefix at both scopes, no `tools/hooks/`), and
+# the carried hook command is path-rewritten `tools/hooks/`→`.gemini/hooks/` by
+# gemini.py's settings-merge helper. `hook-wiring` is `merge-json` into a shared
+# `.gemini/settings.json`: gemini.py's bespoke `_project_settings_json` helper (the
+# cursor `_project_hooks_json` shape, NOT the generic merge_json module) writes the
+# `hooks` map (event-remapped via `hook-event-map`, FAIL-CLOSED on an unmapped event
+# — the copilot precedent, unlike cursor's fail-open) AND a static `context.fileName`
+# bridge sourced from `context-filenames`, in one managed-merge that preserves
+# adopter keys. SINGLE-WRITER (cursor model): the file is written only when the pack
+# ships hook-wiring — repo-scope install writes merge-json targets whole-file, so a
+# settings.json emitted for every pack would clobber another pack's hooks. The
+# `context` bridge rides in that same write; the base `core` pack ships both the
+# session-start wiring and `AGENTS.md`, so the bridge lands with it. `kiro-ide-hook` is dropped
+# (Kiro-only), declared in the table form. Scope prefix is identical at both scopes
+# (the claude-code/cursor pattern), so the user-scope home is the generic
+# user-rooting of the repo-relpath — NO gemini-specific prefix rewrite.
+# Distribution-only: gemini is NOT in SELF_HOST_ADAPTERS.
+# ---------------------------------------------------------------------------
+
+[[adapter.gemini.projection]]
+primitive = "skill"
+mode = "direct-directory"
+target-path = ".gemini/skills/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.gemini.projection]]
+primitive = "agent"
+mode = "direct-file"
+target-path = ".gemini/agents/"
+frontmatter-mapping = "gemini-agent-frontmatter"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.gemini.projection]]
+primitive = "hook-body"
+mode = "direct-file"
+target-path = ".gemini/hooks/"
+on-conflict = "prompt-then-preserve"
+
+[[adapter.gemini.projection]]
+primitive = "hook-wiring"
+mode = "merge-json"
+target-path = ".gemini/settings.json"
+managed-key = "hooks"
+on-conflict = "merge-managed-key-only"
+# Hook-event map (RFC-0027 decision 6). Our hook-wiring source uses Claude-native
+# PascalCase event names (e.g. `[[hooks.SessionStart]]`); Gemini's settings.json
+# uses its own event vocabulary. gemini.py's settings-merge helper reads this table
+# to translate each source event; a source event with no entry here **fails the
+# build** (fail-closed — the copilot-hooks-json precedent, deliberately unlike
+# cursor's fail-open drop-with-log). The map lives in the contract, not the adapter
+# code.
+hook-event-map = { SessionStart = "SessionStart", SessionEnd = "SessionEnd", UserPromptSubmit = "BeforeAgent", PreToolUse = "BeforeTool", PostToolUse = "AfterTool", Stop = "AfterAgent" }
+# Static `context.fileName` bridge (RFC-0027 decision 5). gemini.py's settings-merge
+# helper emits `context = { fileName = <this list> }` into the same `.gemini/settings.json`
+# so Gemini CLI reads the canonical `AGENTS.md` (and `GEMINI.md` if present). Data
+# lives in the contract, not a literal in code; written in the single hook-wiring
+# settings.json write (core ships both the wiring and AGENTS.md).
+context-filenames = ["AGENTS.md", "GEMINI.md"]
+
+[[adapter.gemini.projection]]
+primitive = "command"
+mode = "gemini-command-toml"
+target-path = ".gemini/commands/"
+on-conflict = "prompt-then-preserve"
+
+# kiro-ide-hook — dropped (Kiro-only primitive). Declared in the table form, not the
+# projection array, because the schema's array `primitive` enum admits only the five
+# standard primitives (the kiro-ide / kiro-cli / cursor precedent).
+[adapter.gemini.projections.kiro-ide-hook]
+mode = "dropped"
+
+# Scope dimension for Gemini (RFC-0027 / ADR-0016). Gemini's `.gemini/` prefix is
+# identical at repo and user scope (the claude-code/cursor shape), so the divergent
+# user-scope home is produced by the generic user-root resolution, not a
+# gemini-specific prefix rewrite. Every projected target (skills, agents, commands,
+# settings.json, AND hook bodies at `.gemini/hooks/`) is under `.gemini/`, so the
+# two allowed-prefix lists are identical. `.agentbundle/` carries the install state
+# file at both scopes.
+[adapter.gemini.scope]
+repo = "."
+user = "~"
+allowed-prefixes.repo = [".gemini/", ".agentbundle/"]
+allowed-prefixes.user = [".gemini/", ".agentbundle/"]
+
+# ---------------------------------------------------------------------------
 # Frontmatter mappings — rewrite rules applied when projecting a primitive
 # ---------------------------------------------------------------------------
 
@@ -730,3 +832,34 @@ rename = "description"
 
 [frontmatter-mapping."cursor-agent-frontmatter-v0.11".model]
 rename = "model"
+
+# Gemini agent frontmatter (RFC-0027 / docs/specs/gemini-full-parity, v0.13):
+# rewrite rules from claude-code-style markdown agent (YAML frontmatter with
+# `name`, `description`, optionally `tools`, `model`) to Gemini CLI's subagent `.md`
+# shape. `name` / `description` pass through (identity renames). Unlike Cursor,
+# Gemini has a real per-agent tool allowlist, so `tools` is KEPT and name-mapped to
+# Gemini's built-in tool identifiers (`normalize = "to-list"`, applied per element;
+# duplicates collapse — `Edit`+`MultiEdit`→single `replace` — and an unmapped token
+# drops with a build-time log line). `model` aliases map to Gemini model IDs; a
+# source value not in the map drops, leaving Gemini's default.
+[frontmatter-mapping."gemini-agent-frontmatter"]
+
+[frontmatter-mapping."gemini-agent-frontmatter".name]
+rename = "name"
+
+[frontmatter-mapping."gemini-agent-frontmatter".description]
+rename = "description"
+
+[frontmatter-mapping."gemini-agent-frontmatter".tools]
+normalize = "to-list"
+# Claude Code tool names → Gemini CLI built-in tool identifiers
+# (https://google-gemini.github.io/gemini-cli/docs/tools/). `MultiEdit` maps to
+# `replace` for parity with the codex/claude/kiro maps (collapses onto `Edit`).
+values = { Read = "read_file", Grep = "grep_search", Glob = "glob", Edit = "replace", MultiEdit = "replace", Write = "write_file", Bash = "run_shell_command", WebFetch = "web_fetch", WebSearch = "google_web_search", LS = "list_directory" }
+
+[frontmatter-mapping."gemini-agent-frontmatter".model]
+rename = "model"
+# Tier-preserving map to Gemini's stable 2.5 line. opus→pro (most capable),
+# sonnet→flash (balanced), haiku→flash-lite (fastest). A source value not in the
+# map is dropped, leaving Gemini's CLI default.
+values = { opus = "gemini-2.5-pro", sonnet = "gemini-2.5-flash", haiku = "gemini-2.5-flash-lite" }

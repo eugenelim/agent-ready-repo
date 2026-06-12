@@ -78,8 +78,8 @@ class ContractVersionTests(unittest.TestCase):
         # left stale at "0.8" then — this CI-only root isn't in `make
         # build-check`, so the drift didn't surface); docs/specs/copilot-full-
         # parity bumped it to v0.10; RFC-0026 / cursor-full-parity bumped it to
-        # v0.11; docs/specs/copilot-skills-and-web bumps it to v0.12.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.12")
+        # v0.11; docs/specs/gemini-full-parity bumps it to v0.13.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.13")
 
 
 # ---------------------------------------------------------------------------

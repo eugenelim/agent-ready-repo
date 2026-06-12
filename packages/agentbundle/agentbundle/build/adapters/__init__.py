@@ -7,7 +7,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Callable, Dict, Mapping
 
-from agentbundle.build.adapters import claude_code, codex, copilot, cursor, kiro, kiro_cli, kiro_ide
+from agentbundle.build.adapters import claude_code, codex, copilot, cursor, gemini, kiro, kiro_cli, kiro_ide
 
 
 def _kiro_alias_project(pack_path: Path, contract: dict, output_root: Path) -> None:
@@ -30,6 +30,7 @@ ADAPTERS: Dict[str, Callable] = {
     "copilot": copilot.project,
     "cursor": cursor.project,
     "codex": codex.project,
+    "gemini": gemini.project,
 }
 
 # Module-keyed registry — the surface RFC-0003 F-cli AC requires.
@@ -45,4 +46,5 @@ registry: Mapping[str, ModuleType] = {
     "copilot": copilot,
     "cursor": cursor,
     "codex": codex,
+    "gemini": gemini,
 }

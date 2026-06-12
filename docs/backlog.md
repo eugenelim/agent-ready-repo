@@ -532,3 +532,47 @@ distribution-only. Open follow-ons:
   adapter-agnostic; verified by real cursor/copilot installs of the broker + a consumer pack. No
   contract change. Full record: RFC-0013 § Errata + `docs/specs/credential-broker-contract/spec.md`
   § Changelog (2026-06-12).
+
+## `gemini-full-parity`
+
+Follow-ons deferred from the gemini-full-parity implementation (RFC-0027 / ADR-0016).
+None blocks the shipped adapter; each is a bounded enhancement.
+
+### context-bridge-without-core
+
+The `context.fileName = ["AGENTS.md", "GEMINI.md"]` bridge is written in the single
+hook-wiring `.gemini/settings.json` write (the single-writer / cursor model — repo-scope
+install writes merge-json targets whole-file, so a per-pack settings.json would clobber
+another pack's hooks). Consequence: an adopter who installs *only* a non-`core` pack with
+`--adapter gemini` (no shipped hook-wiring) gets no `settings.json`, so an `AGENTS.md` of
+their own is not bridged. Every catalogue adopter installs `core` (which ships both the
+session-start wiring and `AGENTS.md`), so the bridge lands in practice. The clean fix —
+emit `context` whenever an `AGENTS.md`/`GEMINI.md` exists at the install root regardless of
+wiring — needs install-time merge-json (the adapter renders to an isolated tempdir and
+cannot see the install root, and the install writer overwrites merge targets whole-file).
+Out of scope for the adapter PR.
+
+### command-positional-arg-context-aware-guard
+
+`gemini_command_toml`'s fail-closed positional-argument guard matches `$<digit>` body-wide,
+so a literal dollar-amount in prose (`$10/month`) or a `$1` inside a fenced code block also
+refuses the build. Fail-closed (a loud, actionable error — never a silent bad emit), and no
+shipped command contains a `$<digit>`. A context-aware parser (skip fenced/inline code,
+require an injection-shaped token) would remove the false positives.
+
+### hook-body-path-rewrite-anchor-cross-adapter
+
+`_rewrite_hook_body_path` does an unanchored `command.replace("tools/hooks/", ".gemini/hooks/")`,
+so a command carrying `tools/hooks/` in a second position (an argument, a comment) is also
+rewritten. Source commands are catalogue-controlled (not adopter input) and this is
+byte-identical to the merged `cursor.py` / `copilot_hooks_json.py` precedents — no live
+exploit. When the rewrite is consolidated into a shared cross-adapter helper, anchor it to the
+command-leading token.
+
+### frontmatter-quote-unescape-cross-adapter
+
+`_parse_frontmatter` strips outer quotes but leaves inner `\"` literal; `_serialize_frontmatter_md`
+then escapes the backslash, so a frontmatter `description` carrying escaped quotes round-trips
+double-escaped (`\\\"…\\\"`). This is **byte-identical to the merged `cursor.py`** (an inherited
+cross-adapter behavior, not a gemini regression). Fix both adapters together: unescape `\"`→`"`
+in the quote-stripping branch.
