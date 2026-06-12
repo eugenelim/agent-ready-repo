@@ -10,5 +10,8 @@ version = "0.8"
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # RFC-0011 / pack-allowed-adapters. `kiro-ide` is the current name for
-# the Kiro harness (RFC-0022 split; bare `kiro` deprecated).
-allowed-adapters = ["claude-code", "kiro-ide", "codex"]
+# the Kiro harness (RFC-0022 split; bare `kiro` deprecated). copilot +
+# cursor added by RFC-0013 § Errata (2026-06-12): the full-parity adapters
+# are admitted for credentialed CLIs now that both declare `.agentbundle/`
+# in `allowed-prefixes.user` (the § 4d precondition). Append-only.
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]

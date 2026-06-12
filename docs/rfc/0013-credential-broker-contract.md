@@ -1950,3 +1950,62 @@ record. Corrections are appended here, Approver-signed.
   `docs/specs/credential-broker-contract/spec.md` § Changelog (2026-05-31):
   AC27/AC28/AC34 superseded, AC30 takes the canonical-reference designation,
   consumer count six → five.
+
+- **2026-06-12 (Approver: eugenelim) — the five credentialed packs admit
+  `copilot` and `cursor`; § 4's three-harness `allowed-adapters` set widens
+  to five.** § 4 / § 4d scoped the broker pack's `allowed-adapters` to
+  `["claude-code", "kiro-ide", "codex"]` because the `adapter-root-bins/`
+  projection writes the SSO broker to `~/.agentbundle/bin/`, and at RFC time
+  only those three adapters declared `.agentbundle/` in
+  `allowed-prefixes.user` (the RFC itself amended claude-code and kiro to
+  add it). The set was a function of that precondition — not of any
+  credential-handling property of the adapters.
+
+  **Why the set widens now.** Two adapters shipped since have added
+  `.agentbundle/` to their own `allowed-prefixes.user` (for their install
+  state): `copilot` (`copilot-full-parity`, contract v0.10) and `cursor`
+  (`cursor-full-parity`, contract v0.11). The § 4d precondition therefore
+  now holds for both. The user-scope `.agentbundle/{lib,bin}/` delivery rail
+  (`install.py` `_deliver_user_scope_floor`) is **adapter-agnostic** — it
+  fires for any user-scope install and is fenced only by the target
+  adapter's `.agentbundle/` prefix, with no per-adapter allow-list. Verified
+  by a real user-scope install of `credential-brokers` via both `cursor` and
+  `copilot`: `~/.agentbundle/bin/sso-broker.py` and
+  `~/.agentbundle/lib/credbroker/` land, and the `credential-setup` skill
+  projects to `.cursor/skills/` / `~/.copilot/skills/`. The four consumer
+  packs (`atlassian`, `contracts`, `converters`, `figma`) ship skills only
+  (the `creds` shim is build-baked into their `scripts/`) and resolve the
+  broker from the canonical `~/.agentbundle/bin/`; they widen in lockstep so
+  a `cursor`/`copilot`-only adopter can install both the broker and its
+  consumers rather than a half-working consumer with no broker. All five now
+  declare `["claude-code", "kiro-ide", "codex", "copilot", "cursor"]`.
+
+  **No contract change.** The prefix precondition is already satisfied by the
+  shipped contract (v0.12) — no `allowed-prefixes` amendment, no version
+  bump. This erratum records a widening *permitted by* the current contract,
+  not a contract change.
+
+  **What is unchanged.** The four-broker contract, the two transports, the
+  in-process `creds` shim, the subprocess `sso-cookie` broker at the
+  canonical adapter-independent `~/.agentbundle/bin/`, the no-leak guarantees
+  (RFC-0006 § 1), and the brokers-not-skills architecture are untouched. Only
+  `allowed-adapters` membership widens.
+
+  **Where this is recorded.** Implementation (the five pack.toml edits + the
+  two exact-list test-pin updates) lands in
+  `docs/specs/credential-broker-contract/spec.md` § Changelog (2026-06-12);
+  the cursor opt-in follow-on in `docs/backlog.md` § `cursor-full-parity`
+  closes.
+
+- **2026-06-12 (Approver: eugenelim) — `gemini` admitted alongside `copilot`
+  and `cursor`; the credentialed set widens to six.** By the same § 4d
+  reasoning as the copilot + cursor erratum above, the `gemini` adapter
+  (RFC-0027 / ADR-0016 / docs/specs/gemini-full-parity, contract v0.13)
+  declares `allowed-prefixes.user = [".gemini/", ".agentbundle/"]`, so the
+  adapter-agnostic `~/.agentbundle/{lib,bin}/` broker delivery rail reaches a
+  Gemini consumer identically. `credential-brokers` and the four consumer
+  packs (`atlassian`, `contracts`, `converters`, `figma`) all now declare
+  `["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]`. No
+  contract change beyond the v0.13 bump the gemini adapter already carries; the
+  prefix precondition is satisfied by the shipped contract. Recorded in
+  `docs/specs/gemini-full-parity/` (AC11) + `packs/credential-brokers/pack.toml`.

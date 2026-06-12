@@ -19,14 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gemini CLI is now a full-parity adapter** — `agentbundle install --adapter gemini` (repo or
+  user scope) projects every catalogue primitive to Gemini CLI's native `.gemini/*` layout:
+  skills → `.gemini/skills/`, subagents → `.gemini/agents/<name>.md` (the `tools:` allowlist is
+  **kept** and name-mapped to Gemini's tool ids — `Read`→`read_file`, `Bash`→`run_shell_command`,
+  … — and `model` maps tier-preserving to the Gemini 2.5 line), commands →
+  `.gemini/commands/<name>.toml`, and hook bodies → `.gemini/hooks/` with the wiring + a managed
+  `context.fileName = ["AGENTS.md", "GEMINI.md"]` bridge merged into `.gemini/settings.json` so the
+  canonical `AGENTS.md` is read. Every pack admits `gemini` at both scopes. Previously Gemini CLI
+  got nothing (it doesn't read `AGENTS.md` by default). Contract v0.12 → v0.13 (RFC-0027 /
+  ADR-0016). Distribution-only.
 - **Cursor can now install the `research` and `architect` packs** — both packs added `cursor`
   to their `allowed-adapters`, so `agentbundle install --pack research --adapter cursor` (and
   `--pack architect`) now projects their skills to `.cursor/skills/` — and, for `research`, the
   two retrieval subagents to `.cursor/agents/` with `readonly: true` — instead of refusing the
   install up front. The Cursor adapter shipped in the previous release, but no pack had opted
-  in. The credentialed packs (atlassian, contracts, converters, figma, credential-brokers) are
-  not yet Cursor-installable — that expansion is gated on an RFC-0013 erratum (the credential
-  broker's adapter set is frozen by RFC-0013).
+  in. (The credentialed packs are covered by the next entry.)
+- **Credentialed packs can now install via Cursor and Copilot** — `atlassian`, `contracts`,
+  `converters`, `figma`, and `credential-brokers` added `copilot` + `cursor` to their
+  `allowed-adapters`, so a Cursor- or Copilot-based adopter can install them (and the SSO/token
+  broker lands at `~/.agentbundle/bin/` as before — the broker delivery is adapter-independent).
+  Previously these packs admitted only `claude-code`, `kiro-ide`, and `codex`. Recorded as an
+  RFC-0013 § Errata decision; no contract change (both adapters already declare the
+  `.agentbundle/` install prefix the broker needs).
 - **`--dry-run` previews an install or upgrade without writing anything** —
   `agentbundle install --dry-run` and `agentbundle upgrade --dry-run` run the
   full read-only pre-flight, print a per-file plan to stdout (one

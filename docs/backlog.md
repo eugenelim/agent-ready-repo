@@ -522,16 +522,57 @@ distribution-only. Open follow-ons:
   helper + a regression test pinning `"0.11" >= "0.7"`. It was latent (both branches returned
   `DEFAULT_ADAPTER`); the v0.11 bump pushed it into live two-digit territory, so the inline
   comment's "two-digit minor bumps → move into a helper" was honored now.
-- **Pack opt-in for credentialed CLIs — RFC-0013-gated, catalogue-wide.** PR #273 added `cursor`
-  to no pack's `allowed-adapters`; a follow-on PR opted the two non-credentialed full-parity
-  packs (`research`, `architect`) in. The **5 credentialed packs** (atlassian, contracts,
-  converters, figma, credential-brokers) stay on `["claude-code", "kiro-ide", "codex"]`:
-  `credential-brokers` is frozen by RFC-0013 § 4 (§4d ties the `adapter-root-bins/` +
-  `~/.agentbundle/` broker projection to *exactly* the listed adapters), and the four consumer
-  packs functionally depend on the broker admitting `cursor` (a cursor-only user otherwise can
-  install the consumer pack but cannot install the broker → cannot authenticate). Follow-up: an
-  **RFC-0013 erratum** (Approver-signed) admitting `cursor` **and** `copilot` (catalogue-wide
-  uniformity) across all 5, gated on verifying the SSO broker installs/projects/runs on cursor +
-  copilot adapter roots, plus the implementation. Updates the two exact-list test pins —
-  `test_shipped_packs_v07_declarations.py::test_user_scope_packs_allowed_adapters` and
-  `test_credential_brokers_pack_install.py`.
+- **Pack opt-in for credentialed CLIs — RFC-0013-gated, catalogue-wide. Resolved 2026-06-12.**
+  PR #273 added `cursor` to no pack's `allowed-adapters`; #276 opted the two non-credentialed
+  full-parity packs (`research`, `architect`) in. The 5 credentialed packs (atlassian, contracts,
+  converters, figma, credential-brokers) now declare
+  `["claude-code", "kiro-ide", "codex", "copilot", "cursor"]` via **RFC-0013 § Errata
+  (2026-06-12)** — both full-parity adapters already declare `.agentbundle/` in
+  `allowed-prefixes.user` (the § 4d precondition), and the broker delivery rail is
+  adapter-agnostic; verified by real cursor/copilot installs of the broker + a consumer pack. No
+  contract change. Full record: RFC-0013 § Errata + `docs/specs/credential-broker-contract/spec.md`
+  § Changelog (2026-06-12).
+
+## `gemini-full-parity`
+
+Follow-ons deferred from the gemini-full-parity implementation (RFC-0027 / ADR-0016).
+None blocks the shipped adapter; each is a bounded enhancement.
+
+### context-bridge-without-core
+
+The `context.fileName = ["AGENTS.md", "GEMINI.md"]` bridge is written in the single
+hook-wiring `.gemini/settings.json` write (the single-writer / cursor model — repo-scope
+install writes merge-json targets whole-file, so a per-pack settings.json would clobber
+another pack's hooks). Consequence: an adopter who installs *only* a non-`core` pack with
+`--adapter gemini` (no shipped hook-wiring) gets no `settings.json`, so an `AGENTS.md` of
+their own is not bridged. Every catalogue adopter installs `core` (which ships both the
+session-start wiring and `AGENTS.md`), so the bridge lands in practice. The clean fix —
+emit `context` whenever an `AGENTS.md`/`GEMINI.md` exists at the install root regardless of
+wiring — needs install-time merge-json (the adapter renders to an isolated tempdir and
+cannot see the install root, and the install writer overwrites merge targets whole-file).
+Out of scope for the adapter PR.
+
+### command-positional-arg-context-aware-guard
+
+`gemini_command_toml`'s fail-closed positional-argument guard matches `$<digit>` body-wide,
+so a literal dollar-amount in prose (`$10/month`) or a `$1` inside a fenced code block also
+refuses the build. Fail-closed (a loud, actionable error — never a silent bad emit), and no
+shipped command contains a `$<digit>`. A context-aware parser (skip fenced/inline code,
+require an injection-shaped token) would remove the false positives.
+
+### hook-body-path-rewrite-anchor-cross-adapter
+
+`_rewrite_hook_body_path` does an unanchored `command.replace("tools/hooks/", ".gemini/hooks/")`,
+so a command carrying `tools/hooks/` in a second position (an argument, a comment) is also
+rewritten. Source commands are catalogue-controlled (not adopter input) and this is
+byte-identical to the merged `cursor.py` / `copilot_hooks_json.py` precedents — no live
+exploit. When the rewrite is consolidated into a shared cross-adapter helper, anchor it to the
+command-leading token.
+
+### frontmatter-quote-unescape-cross-adapter
+
+`_parse_frontmatter` strips outer quotes but leaves inner `\"` literal; `_serialize_frontmatter_md`
+then escapes the backslash, so a frontmatter `description` carrying escaped quotes round-trips
+double-escaped (`\\\"…\\\"`). This is **byte-identical to the merged `cursor.py`** (an inherited
+cross-adapter behavior, not a gemini regression). Fix both adapters together: unescape `\"`→`"`
+in the quote-stripping branch.

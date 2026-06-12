@@ -9,8 +9,14 @@ version = "0.7"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# RFC-0011 / pack-allowed-adapters. RFC-0013 § 4 commits to these three
-# harnesses; `kiro-ide` is the current name for the Kiro harness
-# (RFC-0022 split; bare `kiro` deprecated). Stays three — adding copilot
-# would need an RFC-0013 erratum, out of scope for this rename.
-allowed-adapters = ["claude-code", "kiro-ide", "codex"]
+# RFC-0011 / pack-allowed-adapters. RFC-0013 § 4 originally committed to
+# three harnesses because only they declared `.agentbundle/` in
+# `allowed-prefixes.user` (the § 4d precondition for writing the broker to
+# `~/.agentbundle/bin/`). `copilot` (copilot-full-parity), `cursor`
+# (cursor-full-parity), and `gemini` (gemini-full-parity / RFC-0027) have
+# since added `.agentbundle/` to their user prefixes, so RFC-0013 § Errata
+# (2026-06-12, Approver: eugenelim) admits all three — the broker delivery rail is adapter-agnostic, fenced only by that
+# prefix. `kiro-ide` is the current name for the Kiro harness (RFC-0022
+# split; bare `kiro` deprecated). Declared order is load-bearing
+# (RFC-0011): append-only.
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]

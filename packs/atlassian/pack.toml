@@ -12,5 +12,9 @@ allowed-scopes = ["user", "repo"]
 # RFC-0011 / pack-allowed-adapters. Declared order also drives the
 # greenfield fallback (claude-code matches DEFAULT_USER_SCOPE_ADAPTER).
 # `kiro-ide` is the current name for the Kiro harness (RFC-0022 split;
-# bare `kiro` deprecated).
-allowed-adapters = ["claude-code", "kiro-ide", "codex"]
+# bare `kiro` deprecated). copilot + cursor + gemini added by RFC-0013 § Errata
+# (2026-06-12): the full-parity adapters are admitted for credentialed CLIs
+# now that both declare `.agentbundle/` in `allowed-prefixes.user` (the
+# § 4d precondition); the consumer skills resolve the broker from
+# `~/.agentbundle/bin/`. Append-only (RFC-0011 declared-order).
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
