@@ -43,6 +43,15 @@ jobs:
           # security-extended adds the taint queries (incl. py/path-injection)
           # beyond the default suite.
           queries: security-extended
+          # Exclude test trees from analysis — consistent with bandit.yaml's
+          # exclude_dirs and the packs/-scoped Semgrep taint rule. Test fixtures
+          # (permissive chmod, fixture URLs/credentials) are not shipped attack
+          # surface; this is the durable form of dismissing those alerts.
+          config: |
+            paths-ignore:
+              - '**/tests/**'
+              - '**/test_*.py'
+              - '**/test-*.py'
 
       # Python is interpreted — no build step; CodeQL extracts the source.
       - name: Perform CodeQL analysis
