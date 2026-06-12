@@ -48,7 +48,7 @@ from ._core import (
 from ._core import _parse_schema as parse_schema
 from ._core import _tier2_backend_label as tier2_backend_label
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     # Resolver + container.
