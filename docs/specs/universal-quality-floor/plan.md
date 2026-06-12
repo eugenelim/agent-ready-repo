@@ -1,7 +1,7 @@
 # Plan: universal-quality-floor
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -239,3 +239,10 @@ install/update — no irreversible step.
 ## Changelog
 
 - 2026-06-12: initial plan.
+- 2026-06-12: implemented. **T4 divergence:** the AC11 governance note did
+  **not** land in the CONVENTIONS seed (as T4's `Touches:` line implied) — an
+  owner-directed-edit provenance note in the adopter-facing seed would violate
+  the "Shipped pack content carries no internal-governance citations" rule
+  (`AGENTS.local.md`). The note was placed in `AGENTS.local.md` instead
+  (repo-internal, never projected), folded into T5's edit to that file. AC11 is
+  satisfied there; the seed carries only the thinned principle + pointer.
