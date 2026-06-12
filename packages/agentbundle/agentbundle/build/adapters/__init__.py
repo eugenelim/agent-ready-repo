@@ -7,7 +7,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Callable, Dict, Mapping
 
-from agentbundle.build.adapters import claude_code, codex, copilot, kiro, kiro_cli, kiro_ide
+from agentbundle.build.adapters import claude_code, codex, copilot, cursor, kiro, kiro_cli, kiro_ide
 
 
 def _kiro_alias_project(pack_path: Path, contract: dict, output_root: Path) -> None:
@@ -28,6 +28,7 @@ ADAPTERS: Dict[str, Callable] = {
     "kiro-cli": kiro_cli.project,
     "kiro": _kiro_alias_project,  # deprecated alias → kiro-ide (RFC-0022 D1)
     "copilot": copilot.project,
+    "cursor": cursor.project,
     "codex": codex.project,
 }
 
@@ -42,5 +43,6 @@ registry: Mapping[str, ModuleType] = {
     "kiro_cli": kiro_cli,
     "kiro": kiro,  # legacy module; use kiro_ide for new code
     "copilot": copilot,
+    "cursor": cursor,
     "codex": codex,
 }

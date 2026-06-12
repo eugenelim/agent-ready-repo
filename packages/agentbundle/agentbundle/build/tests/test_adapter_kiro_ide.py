@@ -134,12 +134,12 @@ class KiroIdeAdapterTests(unittest.TestCase):
         self.assertIn(".kiro.hook", target_repo)
 
     def test_contract_version_is_0_9(self) -> None:
-        """Contract version is 0.10 (RFC-0024 / copilot-full-parity, atop the
-        0.9 kiro-adapter-split bump). Name preserved to keep the diff small."""
+        """Contract version is 0.11 (RFC-0026 / cursor-full-parity, atop the
+        0.10 copilot-full-parity bump). Name preserved to keep the diff small."""
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.10",
-            "adapter.toml [contract] version must be '0.10' after copilot-full-parity",
+            "0.11",
+            "adapter.toml [contract] version must be '0.11' after cursor-full-parity",
         )
 
     def test_kiro_ide_hook_projects_with_flat_prefix_path(self) -> None:
