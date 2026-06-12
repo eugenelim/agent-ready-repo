@@ -23,14 +23,16 @@ def test_shipped_adapters_choices_stable_alphabetic_tuple() -> None:
 
     result = _shipped_adapters_choices()
     # RFC-0022 (kiro-adapter-split) added `kiro-cli` + `kiro-ide` alongside the
-    # retained `kiro` alias; RFC-0026 (cursor-full-parity) added `cursor`. This
-    # CI-only root isn't gated by `make build-check`. Pinning the full shipped
-    # set, sorted.
+    # retained `kiro` alias; RFC-0026 (cursor-full-parity) added `cursor`;
+    # RFC-0027 (gemini-full-parity) added `gemini` (sorts after `cursor`, before
+    # `kiro`). This CI-only root isn't gated by `make build-check`. Pinning the
+    # full shipped set, sorted.
     assert result == (
         "claude-code",
         "codex",
         "copilot",
         "cursor",
+        "gemini",
         "kiro",
         "kiro-cli",
         "kiro-ide",

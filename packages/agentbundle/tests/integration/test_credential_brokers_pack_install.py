@@ -77,12 +77,12 @@ class PackManifestShapeTests(unittest.TestCase):
         self.assertEqual(install_block["default-scope"], "user")
         self.assertEqual(install_block["allowed-scopes"], ["user", "repo"])
         # RFC-0013 § 4 shipped the three-harness set; § Errata (2026-06-12)
-        # widened it to add `copilot` + `cursor` — both since declared
-        # `.agentbundle/` in `allowed-prefixes.user`, the § 4d precondition,
-        # so the adapter-agnostic broker delivery rail reaches them.
+        # widened it to add `copilot` + `cursor` and `gemini` — all three since
+        # declared `.agentbundle/` in `allowed-prefixes.user`, the § 4d
+        # precondition, so the adapter-agnostic broker delivery rail reaches them.
         self.assertEqual(
             install_block["allowed-adapters"],
-            ["claude-code", "kiro-ide", "codex", "copilot", "cursor"],
+            ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"],
         )
 
 

@@ -53,16 +53,17 @@ class TestUserScopePacksV07(unittest.TestCase):
         """allowed-adapters started as the RFC-0011 three-harness set,
         de-staled to current adapter names (RFC-0022 renamed bare `kiro` →
         `kiro-ide`), then widened to add `copilot` + `cursor` by RFC-0013
-        § Errata (2026-06-12): both full-parity adapters now declare
-        `.agentbundle/` in `allowed-prefixes.user` (the broker's § 4d
-        precondition), so these credentialed consumer packs admit them in
-        lockstep with `credential-brokers`. Order is append-only (RFC-0011)."""
+        § Errata (2026-06-12) and `gemini` by RFC-0027 / gemini-full-parity:
+        all three full-parity adapters declare `.agentbundle/` in
+        `allowed-prefixes.user` (the broker's § 4d precondition), so these
+        credentialed consumer packs admit them in lockstep with
+        `credential-brokers`. Order is append-only (RFC-0011)."""
         for name in USER_SCOPE_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)
                 self.assertEqual(
                     pack["pack"]["install"]["allowed-adapters"],
-                    ["claude-code", "kiro-ide", "codex", "copilot", "cursor"],
+                    ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"],
                     f"{name} declared adapter set wrong",
                 )
 

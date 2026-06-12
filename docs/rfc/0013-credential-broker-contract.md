@@ -1996,3 +1996,16 @@ record. Corrections are appended here, Approver-signed.
   `docs/specs/credential-broker-contract/spec.md` § Changelog (2026-06-12);
   the cursor opt-in follow-on in `docs/backlog.md` § `cursor-full-parity`
   closes.
+
+- **2026-06-12 (Approver: eugenelim) — `gemini` admitted alongside `copilot`
+  and `cursor`; the credentialed set widens to six.** By the same § 4d
+  reasoning as the copilot + cursor erratum above, the `gemini` adapter
+  (RFC-0027 / ADR-0016 / docs/specs/gemini-full-parity, contract v0.13)
+  declares `allowed-prefixes.user = [".gemini/", ".agentbundle/"]`, so the
+  adapter-agnostic `~/.agentbundle/{lib,bin}/` broker delivery rail reaches a
+  Gemini consumer identically. `credential-brokers` and the four consumer
+  packs (`atlassian`, `contracts`, `converters`, `figma`) all now declare
+  `["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]`. No
+  contract change beyond the v0.13 bump the gemini adapter already carries; the
+  prefix precondition is satisfied by the shipped contract. Recorded in
+  `docs/specs/gemini-full-parity/` (AC11) + `packs/credential-brokers/pack.toml`.
