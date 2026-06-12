@@ -457,4 +457,26 @@ The spec is closed when each observable outcome is verifiable in the merged PR.
     command so the emitted `hooks.json` references the script where it lands — the same rewrite
     `copilot_hooks_json` does for `.github/hooks/`. AC10 updated to pin the rewritten command.
     Repo-scope only; no shipped pack ships a user-scope cursor hook (core is repo-only).
-</content>
+
+- **2026-06-11 — pack opt-in completed for the non-credentialed packs (follow-on PR).** The
+  implementing PR (#273) shipped the adapter but added `cursor` to **no** pack's
+  `allowed-adapters`, leaving it inert except where a line-less pack admits any shipped adapter
+  at repo scope — the opt-in mechanism RFC-0026 § Migration path and [`plan.md`](plan.md)'s Rollout
+  describe ("a new adapter is inert until a pack declares `allowed-adapters = [… "cursor"]`"),
+  never exercised on the explicit allow-list packs. This follow-on opts the two
+  **non-credentialed** full-parity packs in:
+  `research` (the catalogue's parity validation surface — it ships the 2 retrieval subagents +
+  skills the full-parity adapters are checked against; mirrors how `copilot-full-parity` added
+  `copilot` to `research`) and `architect` (workspace-agnostic, pure-markdown skills). **No
+  contract bump** — cursor reuses existing projection modes (no new mode), and both packs
+  already declare a contract version under which cursor's skill/agent projection is valid
+  (`research` v0.12, `architect` v0.10). Parity was verified by rendering `research` through the
+  cursor adapter: 7 skills → `.cursor/skills/<name>/`, both retrieval subagents →
+  `.cursor/agents/<name>.md` with `readonly: true` and `tools` dropped. The **5 credentialed
+  packs** (atlassian, contracts, converters, figma, credential-brokers) are deferred to a
+  follow-on **RFC-0013 erratum**: `credential-brokers`' 3-adapter set is frozen by RFC-0013 § 4
+  (§4d ties the `adapter-root-bins/` + `~/.agentbundle/` broker projection to *exactly* the
+  listed adapters), and the four consumer packs functionally depend on the broker admitting
+  cursor too (a cursor-only user otherwise cannot install the broker and cannot authenticate).
+  That erratum will also backfill `copilot` for catalogue-wide uniformity. See `docs/backlog.md`
+  § `cursor-full-parity`.
