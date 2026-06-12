@@ -73,7 +73,7 @@ Loop engineering relocates judgment rather than removing it. Plain-text primitiv
 | Topic | Link |
 | --- | --- |
 | All four install routes (CLI, APM, Claude plugins, local clone) | [install routes](docs/guides/how-to/install-agentbundle-from-clone.md) |
-| Pick a harness (Codex / Copilot / Kiro) and where primitives land | [`docs/contracts/`](docs/contracts/) |
+| What each agent tool supports — skill / subagent / command / hook — and where it degrades | [adapter support matrix](docs/guides/reference/adapter-support.md) |
 | Your edits are never silently overwritten — the file-safety contract | [file-safety contract](docs/guides/explanation/file-safety-contract.md) |
 | Tailor freshly-installed primitives to your repo | [`adapt-to-project`](docs/guides/how-to/adapt-to-project.md) |
 | Upgrading an installed pack | [upgrade packs](docs/guides/how-to/upgrade-packs.md) |
