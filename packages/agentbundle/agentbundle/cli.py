@@ -272,6 +272,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "mutually exclusive with `--adapter` at that scope."
         ),
     )
+    sp.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Preview the per-file plan (action + tier + target path) without "
+            "writing anything — no projected file, companion, state, or install "
+            "marker, and no chained adapt. Refused with --force (its destructive "
+            "cleanup is incompatible with a read-only preview). Exits 0 on a "
+            "successful preview, even with Tier-2 collisions present."
+        ),
+    )
     sp.set_defaults(func=_lazy("install"))
 
     # --- validate --- (no --scope; schema + rails A/B/C)
@@ -346,6 +357,15 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("catalogue", help="Catalogue URI to fetch the new version from.")
     sp.add_argument("--root", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
+    sp.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Preview the per-file plan (action + tier + target path) without "
+            "writing anything — no projected file, companion, or state change. "
+            "Exits 0 on a successful preview, even with Tier-2 collisions present."
+        ),
+    )
     sp.set_defaults(func=_lazy("upgrade"))
 
     # --- uninstall --- (--scope disambiguator)

@@ -40,6 +40,7 @@ def _args_upgrade(
     hook: str | None = None,
     seed: str | None = None,
     command: str | None = None,
+    dry_run: bool = False,
 ) -> types.SimpleNamespace:
     return types.SimpleNamespace(
         pack=pack,
@@ -51,6 +52,7 @@ def _args_upgrade(
         hook=hook,
         seed=seed,
         command=command,
+        dry_run=dry_run,
     )
 
 
@@ -599,3 +601,185 @@ def test_per_primitive_upgrade_surfaces_tier2_companion(tmp_path, capsys):
     assert companion_rel.as_posix() in err, f"must name the companion path; got: {err!r}"
     # Adopter edit preserved.
     assert (tmp_path / target_rel).read_bytes() == b"# adopter-edited skill body\n"
+
+
+# ---------------------------------------------------------------------------
+# Dry-run preview (projection-dry-run spec): read-only, writes nothing
+# ---------------------------------------------------------------------------
+
+
+def _snapshot_tree(root: Path) -> dict[str, bytes]:
+    """Map every file under ``root`` to its bytes, for byte-identical asserts."""
+    return {
+        p.relative_to(root).as_posix(): p.read_bytes()
+        for p in sorted(root.rglob("*"))
+        if p.is_file()
+    }
+
+
+def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(
+    tmp_path, capsys
+):
+    """AC1/AC4/AC6: a dry-run upgrade over an adopter-edited file previews the
+    `companion`/tier-2 line (with the `-> *.upstream` target), exits 0, and
+    leaves the tree + state byte-identical with no companion on disk."""
+    from agentbundle import safety
+    from agentbundle.commands.upgrade import _filter_for_primitive
+    from agentbundle.render import render_pack
+
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()  # drain install output
+
+    skill_paths = [
+        rp
+        for rp in sorted(_filter_for_primitive(render_pack(PACK_V1), "work-loop", "skills"))
+        if (tmp_path / rp).exists()
+    ]
+    assert skill_paths, "work-loop skill must project at least one file on disk"
+    target_rel = skill_paths[0]
+    (tmp_path / target_rel).write_bytes(b"# adopter-edited skill body\n")
+
+    before = _snapshot_tree(tmp_path)
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        root=str(tmp_path), dry_run=True,
+    )
+    assert rc == 0, "dry-run upgrade must exit 0 even with a Tier-2 collision"
+
+    out = capsys.readouterr().out
+    companion_rel = safety.companion_path(Path(target_rel)).as_posix()
+    assert "tier-2" in out, f"plan must use the greppable tier-2 label; got:\n{out}"
+    assert "companion" in out, f"plan must name the companion action; got:\n{out}"
+    assert f"{target_rel} -> {companion_rel}" in out, (
+        f"Tier-2 line must show the companion target; got:\n{out}"
+    )
+    assert "Nothing written." in out, "summary must restate the no-write guarantee"
+
+    # No-write invariant: tree + state byte-identical, no companion on disk.
+    assert _snapshot_tree(tmp_path) == before, "dry-run upgrade must write nothing"
+    assert not (tmp_path / companion_rel).exists(), (
+        "dry-run must not drop the .upstream companion"
+    )
+
+
+def test_dry_run_upgrade_no_edits_previews_overwrite_writes_nothing(tmp_path, capsys):
+    """AC1/AC3: a dry-run upgrade with no adopter edits lists the projected files
+    with `overwrite`/tier-1 labels and target paths, exits 0, writes nothing."""
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()
+
+    before = _snapshot_tree(tmp_path)
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        root=str(tmp_path), dry_run=True,
+    )
+    assert rc == 0
+
+    out = capsys.readouterr().out
+    assert "overwrite" in out, f"unedited files must preview as overwrite; got:\n{out}"
+    assert "tier-1" in out, f"plan must use the greppable tier-1 label; got:\n{out}"
+    # A real projected path appears in the plan (the "where").
+    state = __import__("agentbundle.config", fromlist=["load_state"]).load_state(
+        tmp_path / ".agentbundle-state.toml"
+    )
+    a_path = sorted(state.packs["core"].files)[0]
+    assert a_path in out, f"plan must show the target path {a_path!r}; got:\n{out}"
+
+    assert _snapshot_tree(tmp_path) == before, "dry-run upgrade must write nothing"
+
+
+def test_dry_run_upgrade_per_primitive_scopes_to_that_primitive(tmp_path, capsys):
+    """AC1: `--dry-run --skill work-loop` previews only that skill's files;
+    `--dry-run --skill bogus` still exits non-zero (primitive-not-found)."""
+    from agentbundle.commands.upgrade import _filter_for_primitive
+    from agentbundle.render import render_pack
+
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+    capsys.readouterr()
+
+    before = _snapshot_tree(tmp_path)
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        root=str(tmp_path), skill="work-loop", dry_run=True,
+    )
+    assert rc == 0
+    out = capsys.readouterr().out
+
+    skill_files = set(_filter_for_primitive(render_pack(PACK_V2), "work-loop", "skills"))
+    assert skill_files, "fixture must project a work-loop skill"
+    for rp in skill_files:
+        assert rp in out, f"per-primitive plan must list {rp!r}; got:\n{out}"
+    # A non-skill file (the reviewer agent) must NOT appear.
+    agent_files = set(_filter_for_primitive(render_pack(PACK_V2), "reviewer", "agents"))
+    for rp in agent_files:
+        assert rp not in out, f"per-primitive plan must exclude {rp!r}; got:\n{out}"
+
+    assert _snapshot_tree(tmp_path) == before, "dry-run must write nothing"
+
+    # Primitive-not-found passes through as a non-zero pre-render refusal.
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        root=str(tmp_path), skill="bogus", dry_run=True,
+    )
+    assert rc != 0, "a --dry-run for a missing primitive must still exit non-zero"
+    assert _snapshot_tree(tmp_path) == before
+
+
+def test_format_plan_line_shape():
+    """AC3: the shared formatter renders the documented action/tier/path shape,
+    and appends the `-> companion` suffix only for a Tier-2 line."""
+    from agentbundle.commands._common import (
+        format_plan_line,
+        plan_action,
+        summarize_plan,
+    )
+    from agentbundle.safety import Tier
+
+    create = format_plan_line("create", "tier-1", ".claude/agents/foo.md")
+    assert create.split() == ["create", "tier-1", ".claude/agents/foo.md"]
+    assert "->" not in create
+
+    comp = format_plan_line("companion", "tier-2", "AGENTS.md", "AGENTS.upstream.md")
+    assert comp.startswith("companion")
+    assert "tier-2" in comp
+    assert comp.endswith("AGENTS.md -> AGENTS.upstream.md")
+
+    # Action mapping is shared and mirrors a real run's write decision.
+    assert plan_action(Tier.TIER_2, on_disk=True) == "companion"
+    assert plan_action(Tier.TIER_1, on_disk=True) == "overwrite"
+    assert plan_action(Tier.TIER_1, on_disk=False) == "create"
+
+    summary = summarize_plan(["create", "create", "companion"])
+    assert "2 create" in summary and "1 companion" in summary
+    assert summary.endswith("Nothing written.")
+
+
+def test_dry_run_upgrade_preflight_path_jail_passthrough(tmp_path):
+    """AC5: a path-jail-violating projection under `upgrade --dry-run` is refused
+    (non-zero), matching the real run's `write_jailed` refusal, and nothing is
+    written outside the root."""
+    from unittest import mock
+
+    rc = _install_v1(tmp_path)
+    assert rc == 0
+
+    before = _snapshot_tree(tmp_path)
+    # The v1 install used the dist-tree shape, so upgrade renders via
+    # `render_pack`; patch it to return a projection that escapes the root.
+    malicious = {"../../evil_dry_run.txt": b"evil"}
+    with mock.patch("agentbundle.render.render_pack", return_value=malicious):
+        rc = _run_upgrade(
+            pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+            root=str(tmp_path), dry_run=True,
+        )
+    assert rc != 0, "dry-run must surface the path-jail pre-flight failure"
+    assert not (tmp_path / ".." / ".." / "evil_dry_run.txt").resolve().exists(), (
+        "the escaping file must not be written even under dry-run"
+    )
+    assert _snapshot_tree(tmp_path) == before, "nothing may change"
