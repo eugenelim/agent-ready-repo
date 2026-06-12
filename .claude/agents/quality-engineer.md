@@ -238,6 +238,13 @@ When asked to draft tests, follow the repo's split:
   the language, each preceded by a header naming the Acceptance
   Criterion or plan task it covers. The orchestrator decides what
   lands.
+- **Timing distinction from in-PLAN stub generation.** This mode runs at
+  **review time, post-implementation**, drafting from code + spec. It is
+  distinct from `work-loop` PLAN's TDD-stub generation, which runs
+  **pre-implementation** from spec + contract and *does* land committed red
+  stubs in `plan.md`. Same split (contract vs. construction), different
+  timing and persona — the two complement each other; neither replaces the
+  other.
 
 ## Testability audit mode
 
