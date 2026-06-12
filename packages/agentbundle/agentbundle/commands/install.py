@@ -2952,7 +2952,7 @@ def _rewrite_copilot_user_scope_paths(
     whole prefix changes, so this rewrite is **not** hook-gated.
     """
     prefix_map = {
-        ".github/instructions/": ".copilot/instructions/",
+        ".github/skills/": ".copilot/skills/",
         ".github/agents/": ".copilot/agents/",
         ".github/hooks/": ".copilot/hooks/",
     }
@@ -3128,7 +3128,7 @@ def _adapter_allowed_prefixes_repo(adapter_name: str) -> list[str]:
             "claude-code": [".claude/", ".agentbundle/"],
             "kiro": [".kiro/", ".agentbundle/"],
             "codex": [".agents/skills/", ".agentbundle/"],
-            "copilot": [".github/instructions/"],
+            "copilot": [".github/skills/"],
         }
         return defaults.get(adapter_name, [".agentbundle/"])
 

@@ -30,7 +30,8 @@
 # `copilot-agent-md` (markdown → `.github/agents/<name>.agent.md`); `hook-wiring`
 # flips `dropped`→`copilot-hooks-json` (one self-contained `<name>.json` per
 # source file at `.github/hooks/`); `hook-body` retargets `tools/hooks/`→
-# `.github/hooks/`; `skill` gains a user target (`~/.copilot/instructions/`);
+# `.github/hooks/`; `skill` gained a user target (later flipped to
+# `.github/skills/` SKILL.md in v0.11 — see the [contract] note below);
 # `[adapter.copilot.scope]` gains `user = "~"` + `allowed-prefixes.user`; new
 # `copilot-agent-frontmatter-v0.10` mapping. `command` stays `dropped`
 # (copilot-cli#618/#1113). Two-pack bump (research + core), not all-pack.
@@ -49,7 +50,12 @@
 # Distribution-only (not in SELF_HOST_ADAPTERS).
 
 [contract]
-version = "0.11"
+# v0.12 (docs/specs/copilot-skills-and-web, 2026-06-11): copilot `skill` flips
+# `instruction-file`→`direct-directory` (first-class Agent Skills at
+# `.github/skills/<name>/SKILL.md`); the `copilot-instruction` frontmatter-default
+# is retired. Web correction (RFC-0024 § Errata E1) is docs/comments-only.
+# (Lands atop RFC-0026's cursor v0.11; the two co-bumped — copilot takes v0.12.)
+version = "0.12"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -419,12 +425,16 @@ allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 # Copilot adapter — 5 projections (one per primitive)
 # ---------------------------------------------------------------------------
 
+# `skill` projects as first-class Copilot Agent Skills (docs/specs/copilot-skills-and-web,
+# RFC-0024 § Errata E2): `direct-directory` passthrough of our canonical
+# `.apm/skills/<name>/SKILL.md` to `.github/skills/<name>/SKILL.md` (repo) and
+# `~/.copilot/skills/<name>/SKILL.md` (user, via the install rewrite). Copilot
+# accepts our Claude SKILL.md verbatim. Was `instruction-file`→`.github/instructions/`.
 [[adapter.copilot.projection]]
 primitive = "skill"
-mode = "instruction-file"
-target-path = ".github/instructions/"
-frontmatter-default = "copilot-instruction"
-on-conflict = "prompt-then-overwrite"
+mode = "direct-directory"
+target-path = ".github/skills/"
+on-conflict = "prompt-then-preserve"
 
 [[adapter.copilot.projection]]
 primitive = "agent"
@@ -449,25 +459,26 @@ on-conflict = "prompt-then-preserve"
 primitive = "command"
 mode = "dropped"
 
-# Scope dimension for Copilot (RFC-0024 / ADR-0013 / docs/specs/copilot-full-parity).
-# Copilot is now a full-parity, user-scope-capable adapter: the app + CLI
-# discover agents/instructions/hooks from `.github/` (repo) and `~/.copilot/`
-# (user). The repo-only restriction RFC-0012 recorded is superseded-in-part.
-# `skill` keeps its `instruction-file` mode; its user target
-# (`~/.copilot/instructions/<name>.instructions.md`) is produced by the install
-# handler's copilot user-scope prefix rewrite (`.github/X/`→`.copilot/X/`),
-# since the build adapter is scope-agnostic and emits repo-relpaths.
+# Scope dimension for Copilot (RFC-0024 / ADR-0013 / docs/specs/copilot-full-parity,
+# skill surface per docs/specs/copilot-skills-and-web). Copilot is a full-parity,
+# user-scope-capable adapter: the app + CLI discover skills/agents/hooks from
+# `.github/` (repo) and `~/.copilot/` (user). The repo-only restriction RFC-0012
+# recorded is superseded-in-part. `skill` projects as a `direct-directory`
+# `SKILL.md` tree; its user target (`~/.copilot/skills/<name>/SKILL.md`) is
+# produced by the install handler's copilot user-scope prefix rewrite
+# (`.github/X/`→`.copilot/X/`), since the build adapter is scope-agnostic and
+# emits repo-relpaths.
 [adapter.copilot.scope]
 repo = "."
 user = "~"
-# RFC-0024: repo-scope agents at `.github/agents/`, instructions at
-# `.github/instructions/`, hook wiring + bodies at `.github/hooks/`.
-allowed-prefixes.repo = [".github/instructions/", ".github/agents/", ".github/hooks/"]
+# RFC-0024 + copilot-skills-and-web: repo-scope skills at `.github/skills/`,
+# agents at `.github/agents/`, hook wiring + bodies at `.github/hooks/`.
+allowed-prefixes.repo = [".github/skills/", ".github/agents/", ".github/hooks/"]
 # User-scope home is `~/.copilot/` — the prefix the install rewrite produces
 # from the adapter's repo-relpaths. `.agentbundle/` carries the install
 # state file (`~/.agentbundle/state.toml`), same as every other user-scope-
 # capable adapter (claude-code, codex).
-allowed-prefixes.user = [".copilot/agents/", ".copilot/instructions/", ".copilot/hooks/", ".agentbundle/"]
+allowed-prefixes.user = [".copilot/skills/", ".copilot/agents/", ".copilot/hooks/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Codex adapter — 5 projections (one per primitive)
@@ -719,11 +730,3 @@ rename = "description"
 
 [frontmatter-mapping."cursor-agent-frontmatter-v0.11".model]
 rename = "model"
-
-# ---------------------------------------------------------------------------
-# Frontmatter defaults — fields injected when a primitive has no frontmatter
-# ---------------------------------------------------------------------------
-
-# Copilot instruction file default: applyTo covers the whole repo.
-[frontmatter-default."copilot-instruction"]
-applyTo = "**"

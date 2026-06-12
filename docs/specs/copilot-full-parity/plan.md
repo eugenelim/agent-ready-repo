@@ -8,6 +8,12 @@
 > (a different approach, not just a re-ordering), note why in the changelog
 > at the bottom.
 
+> **Superseded in part (2026-06-11):** the `skill`-as-`instruction-file` and
+> `research` web-degradation steps below are reversed by
+> [`docs/specs/copilot-skills-and-web/`](../copilot-skills-and-web/plan.md)
+> (contract v0.11) — see the spec's banner. Tasks below are the historical v0.10
+> record.
+
 ## Approach
 
 This is the codex `dropped`→first-class move (RFC-0009 / `dropped-primitives-coverage`)

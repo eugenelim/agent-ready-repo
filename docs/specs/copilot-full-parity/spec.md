@@ -10,6 +10,18 @@
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 
+> **Superseded in part (2026-06-11) by
+> [`docs/specs/copilot-skills-and-web/`](../copilot-skills-and-web/spec.md)
+> (contract v0.11 → v0.12).** Two decisions recorded below are reversed there,
+> against RFC-0024 § Errata: **(1)** the `skill` primitive no longer projects as
+> an `instruction-file` to `.github/instructions/` (Decision 3 below) — it is now
+> a first-class `direct-directory` Copilot Agent Skill at
+> `.github/skills/<name>/SKILL.md` / `~/.copilot/skills/<name>/SKILL.md`; and
+> **(2)** the `research` web degradation recorded below (Open Q4 / "no web tool")
+> does not hold on the Copilot CLI + app — `WebFetch`/`WebSearch` resolve to
+> Copilot's `web` tool there; only the cloud agent lacks it. The body below is
+> preserved as the historical v0.10 record; read it through this banner.
+
 > **Scope: one PR, one contract bump.** The contract bump, the two new projection
 > modes, the new frontmatter mapping, the scope-table edit, the two-pack v0.8→v0.10
 > bump, the `research` `allowed-adapters` edit, and the surviving-`command` warning-rail

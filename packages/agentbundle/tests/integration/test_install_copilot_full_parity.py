@@ -83,15 +83,19 @@ class CopilotRepoScopeCoreTests(unittest.TestCase):
 
         # All four projected primitive homes are populated.
         agents = self.adopter / ".github" / "agents"
-        instructions = self.adopter / ".github" / "instructions"
+        skills = self.adopter / ".github" / "skills"
         hooks = self.adopter / ".github" / "hooks"
         self.assertTrue(
             list(agents.glob("*.agent.md")), f"no agents projected: {agents}"
         )
+        # v0.12 (copilot-skills-and-web): skills project as first-class Agent
+        # Skills — `.github/skills/<name>/SKILL.md` (was instruction files).
         self.assertTrue(
-            list(instructions.glob("*.instructions.md")),
-            f"no instructions projected: {instructions}",
+            list(skills.glob("*/SKILL.md")),
+            f"no skills projected: {skills}",
         )
+        # No legacy instruction-file output.
+        self.assertFalse((self.adopter / ".github" / "instructions").exists())
         # hook bodies (.py) + hook-wiring (.json) both land at .github/hooks/.
         self.assertTrue(list(hooks.glob("*.py")), f"no hook bodies: {hooks}")
         self.assertTrue(
@@ -157,11 +161,11 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
         self.assertEqual(
             rc, 0, f"research via copilot at user scope refused/failed: {err!r}"
         )
-        instructions = self.home / ".copilot" / "instructions"
+        skills = self.home / ".copilot" / "skills"
         agents = self.home / ".copilot" / "agents"
         self.assertTrue(
-            list(instructions.glob("*.instructions.md")),
-            f"no user-scope instructions: {instructions}",
+            list(skills.glob("*/SKILL.md")),
+            f"no user-scope skills: {skills}",
         )
         self.assertTrue(
             list(agents.glob("*.agent.md")),
@@ -220,7 +224,7 @@ class CopilotUserScopeSyntheticHookPackTests(unittest.TestCase):
             'description = "Synthetic user-scope copilot hook pack for the '
             'copilot-full-parity user-scope-hook validation gap."\n\n'
             "[pack.adapter-contract]\n"
-            'version = "0.10"\n\n'
+            'version = "0.12"\n\n'
             "[pack.install]\n"
             'default-scope = "user"\n'
             'allowed-scopes = ["user"]\n'

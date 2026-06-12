@@ -51,8 +51,10 @@ class CursorContractTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_contract_version_is_0_11(self) -> None:
-        """AC1 — contract bumped to 0.11."""
-        self.assertEqual(self.contract["contract"]["version"], "0.11")
+        """AC1 — contract bumped to 0.11 by cursor-full-parity; subsequently
+        bumped to 0.12 by docs/specs/copilot-skills-and-web (co-bump). Name
+        preserved to keep the diff small."""
+        self.assertEqual(self.contract["contract"]["version"], "0.12")
 
     def test_cursor_block_projects_five_primitives(self) -> None:
         """AC2 — the five standard primitives are in the projection array."""
