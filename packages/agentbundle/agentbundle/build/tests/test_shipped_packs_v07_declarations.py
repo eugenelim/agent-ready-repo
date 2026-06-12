@@ -50,15 +50,19 @@ class TestUserScopePacksV07(unittest.TestCase):
                 )
 
     def test_user_scope_packs_allowed_adapters(self) -> None:
-        """allowed-adapters is the RFC-0011 three-harness set, de-staled
-        to current adapter names (RFC-0022 renamed bare `kiro` →
-        `kiro-ide`). The harness set is unchanged; only the spelling is."""
+        """allowed-adapters started as the RFC-0011 three-harness set,
+        de-staled to current adapter names (RFC-0022 renamed bare `kiro` →
+        `kiro-ide`), then widened to add `copilot` + `cursor` by RFC-0013
+        § Errata (2026-06-12): both full-parity adapters now declare
+        `.agentbundle/` in `allowed-prefixes.user` (the broker's § 4d
+        precondition), so these credentialed consumer packs admit them in
+        lockstep with `credential-brokers`. Order is append-only (RFC-0011)."""
         for name in USER_SCOPE_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)
                 self.assertEqual(
                     pack["pack"]["install"]["allowed-adapters"],
-                    ["claude-code", "kiro-ide", "codex"],
+                    ["claude-code", "kiro-ide", "codex", "copilot", "cursor"],
                     f"{name} declared adapter set wrong",
                 )
 
