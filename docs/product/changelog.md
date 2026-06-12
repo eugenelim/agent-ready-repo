@@ -19,6 +19,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The default quality floor is now higher by doctrine (core pack 0.3.0).**
+  Agent output tends to clear a strict external static-analysis gate (a
+  SonarQube quality profile, a CI-only coverage threshold) regardless of tech
+  stack, without bundling any linter, shipping any threshold, or detecting the
+  repo's shape. Three coordinated, stack-agnostic changes: (1) the
+  `quality-engineer` reviewer gains four universal code-smell findings —
+  bounded complexity (split what's *reducible*, complementing the existing
+  comment-the-irreducible finding), nesting depth (idiom-appropriate
+  flattening, not a mandated early `return`), duplicated production blocks past
+  the rule-of-three (tests stay DAMP), and magic-literals/parameter-bloat
+  (judgment-based, threshold-free) — plus a mutation-testing-mindset Test
+  Design headline ("a test must be able to fail") as the Goodhart-safe stand-in
+  for chasing a coverage number; (2) `work-loop` gains a **simplify pass** in
+  EXECUTE/REVIEW that shrinks the diff before review — harness-agnostic
+  doctrine, with Claude Code's `/simplify` an optional accelerant, never a
+  dependency; and (3) light mode now **retains** the `quality-engineer` pass
+  when the adopter declares in their `AGENTS.md` that the repo is judged by a
+  strict external gate the local loop can't run (adopter-declared policy, not
+  repo detection). Mode *mechanics* begin migrating out of `CONVENTIONS.md`
+  into the `work-loop` skill as their single owner.
+
 - **The repo now has a SAST/SCA gate** — `make sast` runs **Bandit** (Python pattern SAST),
   **pip-audit** (dependency/SCA), **Semgrep** (cross-cutting SAST, including custom `mode: taint`
   rules under `tools/semgrep/`), and a **CodeQL** code-scanning workflow (deep interprocedural
