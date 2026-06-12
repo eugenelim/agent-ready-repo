@@ -1,6 +1,6 @@
 # Spec: security-reviewer-shift-left
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0029](../../rfc/0029-strengthen-security-reviewer.md), [ADR-0018](../../adr/0018-shift-security-review-left-progressive-disclosure.md), [ADR-0017](../../adr/0017-adopt-bandit-pip-audit-semgrep-sast-gate.md), [ADR-0014](../../adr/0014-rigor-scales-with-risk-work-loop-modes.md) / [RFC-0025](../../rfc/0025-work-loop-light-mode-and-risk-based-escalation.md)
@@ -133,7 +133,7 @@ order.
 
 ## Acceptance Criteria
 
-- [ ] A new core-pack skill `security-checklists` exists with a `SKILL.md` and ten
+- [x] A new core-pack skill `security-checklists` exists with a `SKILL.md` and ten
   `references/<module>.md` modules — `access-control`, `authn-session`,
   `injection`, `path-and-file`, `secrets-and-crypto`, `outbound-ssrf`,
   `supply-chain`, `config-misconfig`, `exceptional-conditions`, `llm-agent` — each
@@ -142,35 +142,35 @@ order.
   versions** the Always-do boundary names (`2025` OWASP Top 10, `5.0` ASVS, `2023`
   API Security Top 10, `2024` Proactive Controls, CWE Top 25, LLM Top 10:2025), so
   a placeholder version fails the grep.
-- [ ] `security-reviewer.md` carries a **spec-stage secure-design mode** distinct
+- [x] `security-reviewer.md` carries a **spec-stage secure-design mode** distinct
   from its implementation mode (mirroring `adversarial-reviewer`'s spec-stage
   structure): in this mode it reads the *spec* and asks, per trust boundary the
   feature crosses, whether the control is specified as an acceptance criterion at
   the right depth (confinement not just traversal; scheme allowlist not "validate
   the URL"; broker-mediated secrets not ad-hoc reads).
-- [ ] `security-reviewer.md`'s awareness checklist cites **OWASP Top 10:2025**
+- [x] `security-reviewer.md`'s awareness checklist cites **OWASP Top 10:2025**
   (replacing the 2021 list), and its **deep per-domain checklists are trimmed** to
   the universal method (delegation rule, load-context-first, always-on
   STRIDE + LINDDUN open pass, established-helper-bypass meta-check, severity rubric,
   honest-limits footer, output format) — the shape-specific depth now lives in the
   skill modules, not the agent body.
-- [ ] The `work-loop` SKILL.md **pre-EXECUTE review step dispatches
+- [x] The `work-loop` SKILL.md **pre-EXECUTE review step dispatches
   `security-reviewer` (spec-stage mode) when the security-boundary trigger is
   present** — net-new wiring alongside the existing adversarial-only firing, named
   as net-new (not a re-use) per RFC D3.
-- [ ] The `work-loop` SKILL.md **security-review step loads only the
+- [x] The `work-loop` SKILL.md **security-review step loads only the
   boundary-matching `security-checklists` modules and inlines their content into the
   `security-reviewer` subagent's brief**, reusing the existing on-demand
   `references/*.md` loading pattern.
-- [ ] A **deterministic boundary→module routing table** is documented (which trust
+- [x] A **deterministic boundary→module routing table** is documented (which trust
   boundaries load which module(s)), so loading is orchestrator-driven and not
   model-relevance-judged.
-- [ ] The **three-bucket delegation** is specified with **language-agnostic scanner
+- [x] The **three-bucket delegation** is specified with **language-agnostic scanner
   detection** (`npm audit` / `pip-audit` / `govulncheck` / `cargo audit` / Snyk /
   Semgrep / CodeQL — not Python-assumed) and **defined tool-absence behavior**
   (Tier-1 declare/detect/fail-clean: reason best-effort with a `degraded: no
   scanner` flag, or state the gap explicitly — never silently skip).
-- [ ] **Repo-convention awareness without a new file** — three separately-verifiable
+- [x] **Repo-convention awareness without a new file** — three separately-verifiable
   clauses, all required: **(8a)** `AGENTS.md` gains a light "blessed security
   tools/helpers" customization point (a short list + inference fallback), added as a
   minimal sub-bullet on the existing `security-reviewer` entry (not a new section) so
@@ -182,24 +182,24 @@ order.
   `AGENTS.md` is already ~202 lines, so the "~200-line budget" is treated as
   approximate; the sub-bullet keeps growth minimal rather than triggering an RFC to
   raise a soft budget.*
-- [ ] **Adopter-clean**: the shipped `security-checklists` skill names no
+- [x] **Adopter-clean**: the shipped `security-checklists` skill names no
   repo-specific helper (`write_jailed`, `credbroker`, …) — it carries the
   established-helper-bypass *mechanism* only (grep-gated).
-- [ ] **No adapter-contract change**: `docs/contracts/adapter.toml` (and its
+- [x] **No adapter-contract change**: `docs/contracts/adapter.toml` (and its
   `_data/` twin) `version` is unchanged, and `skill` stays `direct-directory` for
   every adapter.
-- [ ] The new skill + agent edits + work-loop edits **project via `make build-self`
+- [x] The new skill + agent edits + work-loop edits **project via `make build-self`
   with no drift**, and the **core pack version is bumped** (non-cosmetic pack update
   per the `AGENTS.local.md` rule).
-- [ ] The RFC-0029 **CONVENTIONS touch lands in this implementing PR**, in its
+- [x] The RFC-0029 **CONVENTIONS touch lands in this implementing PR**, in its
   **decided home: the `work-loop` skill** (the canonical "how" — chosen over
   `docs/CONVENTIONS.md` consistent with the ongoing migration of mode mechanics out
   of `CONVENTIONS.md`; ADR-0018 § Consequences left this to the spec), describing
   that security review runs at spec stage on security-boundary work — landing
   **atomically with the AC4 wiring** (same file, same PR) so it is not a
   forward-claim.
-- [ ] **No new top-level directory and no new dependency** are introduced.
-- [ ] A `docs/product/changelog.md` **`[Unreleased]` entry** lands in this PR for the
+- [x] **No new top-level directory and no new dependency** are introduced.
+- [x] A `docs/product/changelog.md` **`[Unreleased]` entry** lands in this PR for the
   strengthened security reviewer (user-visible skill/agent prose change per
   `docs/CONVENTIONS.md` — verified by grep).
 

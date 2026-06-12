@@ -1,7 +1,7 @@
 # Plan: security-reviewer-shift-left
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -291,6 +291,12 @@ default the moment the skill + wiring project.
 ## Changelog
 
 - 2026-06-12: initial plan (RFC-0029 follow-on; D1–D6 → T1–T6).
+- 2026-06-12: shipped — T1–T6 landed, `make build-check` green (incl. SAST gate),
+  adversarial-reviewer and quality-engineer (whole-spec coverage) both returned
+  `Clean`; security-reviewer not run (the diff changes no security-boundary code,
+  only skill/agent prose, docs, and version bumps). Spec Status→Shipped, all 14 ACs
+  checked. README + AGENTS.md lens refresh + quality-engineer README line rode along
+  per the user's explicit request (the latter documents already-shipped #285).
 - 2026-06-12: pre-EXECUTE adversarial review — resolved the T5 CONVENTIONS-home fork
   to the `work-loop` skill (folds into T3); sharpened AC1 (pin concrete versions) and
   AC8 (three explicit clauses; agent-prose grep for the conditional `security.md`
