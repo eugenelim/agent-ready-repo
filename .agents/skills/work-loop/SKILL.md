@@ -96,7 +96,15 @@ around it:
   survives that, the work **escalates to full mode** rather than iterating
   — repeated Blockers are themselves a risk signal.
 - **No default `quality-engineer` pass.** (A Blocker that escalates pulls
-  in the full lens with it.)
+  in the full lens with it.) **Carve-out:** if the adopter has declared, in
+  their `AGENTS.md`, that this repo is judged by a strict external quality
+  gate the local loop can't run (a SonarQube quality profile, a CI-only
+  coverage threshold), retain the `quality-engineer` pass even in light mode
+  — it is the one lens that approximates that gate. This is *adopter-declared
+  policy, not repo detection*: act on the declaration, don't scan for
+  `sonar-project.properties` or a coverage config. Absent the declaration,
+  light mode is unchanged (the pass stays dropped by default); the EXECUTE
+  simplify pass still runs either way.
 - **No `loop-cohort` state machine** — light mode does not invoke
   `loop-cohort` at all (no `init`, `approve-plan`, `check`, or
   `review record`). The mechanical doc-drift check still runs:
@@ -321,6 +329,20 @@ under the carve-out above. Append it as a standalone section below
 the standard template content; do not modify the template itself.
 (See step 5 for the companion `Deferred:` section.)
 
+**Simplify pass — reduce the diff before review.** Once this task's
+GATES (step 3) are green, take one deliberate pass to shrink the diff
+before it reaches REVIEW: inline a single-use helper, delete code the
+change orphaned, collapse needless indirection, drop a parameter no
+caller varies. Scope it to the **new code only** — leave adjacent
+untouched code alone (refactoring it is the bundled-fixes carve-out's
+job, under its own gates) and leave tests DAMP, since duplicated-but-
+readable test setup is not "indirection to collapse". Less code is less
+to smell and less to review, which is the cheapest way to clear a strict
+quality floor. This is **harness-agnostic doctrine** — do the pass by
+hand on any agent; in Claude Code the native `/simplify` command
+performs it, an optional accelerant and never a dependency, so adapters
+without it lose only the shortcut, not the step.
+
 #### Parallel dispatch discipline
 
 When this skill fans out — multiple implementers in supervisor mode, or
@@ -423,9 +445,10 @@ go to FIX. Don't move past a failing gate by editing the gate.
 
 ### 4. REVIEW — adversarial self-review
 
-After gates pass, run adversarial review against the spec. Select a
-subagent matching `adversarial-reviewer` and pass it the diff plus the
-spec path (e.g. `docs/specs/<feature>/spec.md`). Fallback if no such
+After gates pass — and after the EXECUTE **simplify pass** has shrunk the
+diff (run it now if you skipped it) — run adversarial review against the
+spec. Select a subagent matching `adversarial-reviewer` and pass it the diff
+plus the spec path (e.g. `docs/specs/<feature>/spec.md`). Fallback if no such
 subagent is installed: proceed but note the missing review in the final
 summary — the gates step is the mechanical termination criterion; this
 step is judgmental and the loop degrades to gates-only without it.

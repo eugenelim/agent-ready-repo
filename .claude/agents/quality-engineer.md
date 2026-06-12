@@ -91,6 +91,13 @@ gap at spec close is the kind of thing that ships an invisible bug.
 
 ### Test design (highest leverage)
 
+**A test must be able to fail: if you can break the behaviour and nothing
+goes red, the test is theatre.** This mutation-testing mindset — not a
+coverage percentage — is the Goodhart-safe stand-in for "is this tested
+enough"; chase assertions that would catch a real regression, not a
+line-coverage number (the "do not demand 100% coverage" stance below still
+holds).
+
 1. **Wrong test level.** End-to-end tests covering what a unit test
    should — slow, brittle, doesn't pin the invariant. Unit tests
    covering what only an integration test can — green and useless.
@@ -181,6 +188,13 @@ gap at spec close is the kind of thing that ships an invisible bug.
 
 ### Maintainability
 
+This section approximates the maintainability/reliability rating a strict
+static-analysis gate (a SonarQube quality profile, say) enforces — applied
+by default, whether or not such a gate is wired into this repo. The findings
+below are stack-agnostic smell *shapes*, not thresholds: when a linter is
+wired the project owns the numbers; your job is the judgment the number
+stands in for.
+
 20. **Naming that lies.** Function names that promise more or less
     than the body delivers. Variables named after their type rather
     than their role.
@@ -193,14 +207,44 @@ gap at spec close is the kind of thing that ships an invisible bug.
     coupling to another module, or a workaround for a specific bug
     deserve a one-line *why* comment. The bar is "would a reader
     misread this", not "would it look more documented".
+24. **Bounded complexity — split what's reducible.** A function whose
+    cognitive or cyclomatic load comes from *reducible structural*
+    complexity — a long branch chain, an arm that is really its own
+    operation — should be split into named pieces that each do one
+    thing. This is the complement of #23, not a rival: #23 *comments*
+    the irreducible, non-obvious complexity that must stay; this
+    *splits* the accidental complexity that needn't. Decide which
+    you're looking at before recommending either.
+25. **Nesting depth.** Deeply nested conditionals and loops are hard to
+    read and hard to test. Recommend the *idiom-appropriate* flattening
+    — guard clauses, pattern matching, an early return, a small
+    extracted predicate — whatever the language reaches for. Don't
+    mandate early `return` specifically; some languages and teams
+    prefer a single exit. The smell is the depth, not the keyword.
+26. **Duplicated production blocks past the rule-of-three.** The same
+    non-trivial block appearing a third time in production code is the
+    point to extract a shared helper — #21's rule-of-three read the
+    other way. **Test code is exempt**: tests stay DAMP (#4), and
+    duplicated setup that lets a test read as a self-contained
+    specification is the right kind of repetition, not a finding.
+27. **Magic literals of non-obvious origin, and function/parameter
+    bloat.** A literal whose value is spec-derived, regulatory,
+    calibrated, or otherwise non-obvious should become a named constant
+    so the *why* travels with it; a function that has accreted too many
+    parameters or responsibilities should be narrowed or split.
+    Judgment-based and threshold-free, aligned with
+    `adversarial-reviewer`'s threshold-suppression carve-out and never
+    its opposite: a self-evident tunable like `MAX_RETRIES = 3` is
+    **not** a finding, whereas a hard-coded tax rate or a regulatory cap
+    inline in the logic is.
 
 ### Performance ergonomics
 
-24. **Obvious O(n²) where O(n).** Nested loops over the same
+28. **Obvious O(n²) where O(n).** Nested loops over the same
     collection, repeated linear lookups in a hot path. Flag with the
     data structure that fixes it.
-25. **N+1 queries.** Iterating a result set and querying per row.
-26. **Unbounded growth.** Collections, caches, log buffers, or
+29. **N+1 queries.** Iterating a result set and querying per row.
+30. **Unbounded growth.** Collections, caches, log buffers, or
     queues with no eviction or backpressure.
 
 ## Test-author mode
