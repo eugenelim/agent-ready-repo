@@ -745,7 +745,7 @@ def parse_findings(report_text: str) -> list[str]:
             continue
         line_num = line_match.group(0)
         key = f"{file_part}|{line_num}|{title}"
-        fingerprints.append(hashlib.sha1(key.encode("utf-8")).hexdigest())
+        fingerprints.append(hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest())
     return fingerprints
 
 

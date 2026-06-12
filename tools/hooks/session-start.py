@@ -72,6 +72,40 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
+def _safe_override_path(raw: str, base: Path) -> Path | None:
+    """Resolve an operator-supplied path override and confine it to ``base``.
+
+    Returns the resolved ``Path`` when it stays inside ``base`` — the natural
+    scope for that override (the repo root for repo-scoped files, the home
+    directory for the user-scoped marker) — and ``None`` otherwise, so the
+    caller falls back to its trusted default.
+
+    Env vars are operator config, but an auto-running session hook must not let
+    a stray or hostile value steer it at an arbitrary file: not just directory
+    traversal (``../../etc/passwd``, CWE-22) but any *absolute* path to a
+    secret (``/etc/passwd``, ``~/.ssh/id_rsa``) or a symlink that escapes after
+    resolution — all of which are CWE-73 "external control of file name". The
+    containment check runs *after* ``resolve()``, so symlink targets are
+    validated at their real location, not their lexical form. Shipping the
+    barrier here means no adopter repo inherits the unsanitised env → path flow.
+    """
+    raw = raw.strip()
+    if not raw:
+        return None
+    try:
+        resolved = Path(raw).expanduser().resolve()
+        base_resolved = base.resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if not resolved.is_relative_to(base_resolved):
+        sys.stderr.write(
+            f"session-start: ignoring out-of-bounds path override {raw!r} "
+            f"(must resolve within {base_resolved})\n"
+        )
+        return None
+    return resolved
+
+
 def _parse_args(argv: list[str]) -> str:
     """Return the scope filter (empty string if absent). Mirrors the
     bash arg loop: --scope requires a value, --help/-h prints USAGE
@@ -198,27 +232,19 @@ def main(argv: list[str]) -> int:
     scope_filter = _parse_args(argv[1:])
     repo_root = _repo_root()
 
-    knowledge_file = Path(
-        os.environ.get(
-            "KNOWLEDGE_FILE",
-            str(repo_root / "docs" / "knowledge" / "patterns.jsonl"),
-        )
-    )
+    home = Path.home()
+    knowledge_file = _safe_override_path(
+        os.environ.get("KNOWLEDGE_FILE", ""), repo_root
+    ) or (repo_root / "docs" / "knowledge" / "patterns.jsonl")
     if knowledge_file.is_file() and knowledge_file.stat().st_size > 0:
         _emit_knowledge(knowledge_file, scope_filter)
 
-    repo_marker = Path(
-        os.environ.get(
-            "ADAPT_REPO_MARKER",
-            str(repo_root / ".adapt-install-marker.toml"),
-        )
-    )
-    user_marker = Path(
-        os.environ.get(
-            "ADAPT_USER_MARKER",
-            str(Path.home() / ".agentbundle" / ".adapt-install-marker.toml"),
-        )
-    )
+    repo_marker = _safe_override_path(
+        os.environ.get("ADAPT_REPO_MARKER", ""), repo_root
+    ) or (repo_root / ".adapt-install-marker.toml")
+    user_marker = _safe_override_path(
+        os.environ.get("ADAPT_USER_MARKER", ""), home
+    ) or (home / ".agentbundle" / ".adapt-install-marker.toml")
     _emit_adapt_nudge(repo_marker, user_marker)
     return 0
 

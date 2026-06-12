@@ -34,22 +34,34 @@ def _load_hook_module():
     return mod
 
 
-def _run(env_overrides: dict, *args: str) -> subprocess.CompletedProcess:
+def _run(
+    env_overrides: dict, *args: str, cwd: Path | None = None
+) -> subprocess.CompletedProcess:
     env = {**os.environ, **env_overrides}
+    if cwd is not None:
+        # The hook confines KNOWLEDGE_FILE / ADAPT_REPO_MARKER to the repo root
+        # (resolved from cwd when cwd is not a git repo) and ADAPT_USER_MARKER
+        # to HOME. Point both at the per-test sandbox so legitimate tmp-path
+        # overrides resolve inside the allowed base.
+        env["HOME"] = str(cwd)
+        env["USERPROFILE"] = str(cwd)
     return subprocess.run(
         [sys.executable, str(HOOK), *args],
-        env=env, capture_output=True, text=True,
+        env=env, cwd=str(cwd) if cwd is not None else None,
+        capture_output=True, text=True,
     )
 
 
 def _isolated_env(**overrides: str) -> dict:
-    """Build an env dict that points the hook at empty/missing markers
-    so the adapt-nudge block stays silent for tests that only care
-    about the knowledge block (or vice versa)."""
+    """Build an env dict that leaves the markers/knowledge unset (empty
+    string → the hook falls back to its trusted default, which under a
+    sandbox cwd does not exist) so unrelated blocks stay silent. Empty
+    values are skipped by the hook's `_safe_override_path` without a
+    warning — distinct from an out-of-bounds path, which warns."""
     base = {
-        "KNOWLEDGE_FILE": "/dev/null",
-        "ADAPT_REPO_MARKER": "/dev/null",
-        "ADAPT_USER_MARKER": "/dev/null",
+        "KNOWLEDGE_FILE": "",
+        "ADAPT_REPO_MARKER": "",
+        "ADAPT_USER_MARKER": "",
     }
     base.update(overrides)
     return base
@@ -61,7 +73,7 @@ def test_session_start_emits_knowledge_block(tmp_path: Path) -> None:
         '{"id":"K-0001","kind":"pattern","scope":"*","title":"T","body":"B","source":"S"}\n',
         encoding="utf-8",
     )
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)))
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
     assert result.returncode == 0, result.stderr
     assert "=== knowledge ===" in result.stdout
     assert "[K-0001]" in result.stdout
@@ -72,7 +84,7 @@ def test_session_start_emits_knowledge_block(tmp_path: Path) -> None:
 def test_session_start_malformed_warns_to_stderr(tmp_path: Path) -> None:
     kb = tmp_path / "knowledge.jsonl"
     kb.write_text("{not json\n", encoding="utf-8")
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)))
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
     assert result.returncode == 0
     assert "skipped 1 malformed line(s)" in result.stderr
     # Adopter-clean: the hint must not point at a repo-native catalogue linter.
@@ -87,7 +99,7 @@ def test_session_start_mixed_valid_and_malformed(tmp_path: Path) -> None:
         '{"id":"K-0001","kind":"pattern","scope":"*","title":"T","body":"B","source":"S"}\n',
         encoding="utf-8",
     )
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)))
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
     assert result.returncode == 0
     assert "[K-0001]" in result.stdout
     assert "skipped 1 malformed" in result.stderr
@@ -96,23 +108,52 @@ def test_session_start_mixed_valid_and_malformed(tmp_path: Path) -> None:
 def test_session_start_empty_file_silent(tmp_path: Path) -> None:
     kb = tmp_path / "knowledge.jsonl"
     kb.write_text("", encoding="utf-8")
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)))
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
     assert result.returncode == 0
     assert result.stdout == ""
     assert result.stderr == ""
 
 
 def test_session_start_missing_file_silent(tmp_path: Path) -> None:
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(tmp_path / "absent.jsonl")))
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(tmp_path / "absent.jsonl")), cwd=tmp_path)
     assert result.returncode == 0
     assert result.stdout == ""
     assert result.stderr == ""
 
 
+def test_session_start_refuses_out_of_bounds_override(tmp_path: Path) -> None:
+    """CWE-73 / CWE-22: a KNOWLEDGE_FILE override resolving outside the
+    confinement base (repo root) is refused — warned + fallback — so the hook
+    never reads an arbitrary file. Covers both an *absolute* out-of-bounds path
+    (no `..`, the external-control case) and a `..` traversal."""
+    # A knowledge-shaped "secret" OUTSIDE the sandbox repo root (cwd=tmp_path).
+    outside = tmp_path.parent / "outside-secret.jsonl"
+    outside.write_text(
+        '{"id":"SECRET","kind":"pattern","scope":"*","title":"S","body":"B","source":"X"}\n',
+        encoding="utf-8",
+    )
+    try:
+        # Absolute out-of-bounds path — no "..", the CWE-73 case.
+        result = _run(_isolated_env(KNOWLEDGE_FILE=str(outside)), cwd=tmp_path)
+        assert result.returncode == 0
+        assert "SECRET" not in result.stdout, "out-of-bounds file was read"
+        assert "out-of-bounds path override" in result.stderr
+
+        # Traversal variant (CWE-22) resolving to the same outside file.
+        result2 = _run(
+            _isolated_env(KNOWLEDGE_FILE="../outside-secret.jsonl"), cwd=tmp_path
+        )
+        assert result2.returncode == 0
+        assert "SECRET" not in result2.stdout
+        assert "out-of-bounds path override" in result2.stderr
+    finally:
+        outside.unlink(missing_ok=True)
+
+
 def test_session_start_adapt_nudge_repo_marker(tmp_path: Path) -> None:
     marker = tmp_path / "repo-marker.toml"
     marker.write_text('[[packs-installed]]\nname = "core"\n', encoding="utf-8")
-    result = _run(_isolated_env(ADAPT_REPO_MARKER=str(marker)))
+    result = _run(_isolated_env(ADAPT_REPO_MARKER=str(marker)), cwd=tmp_path)
     assert result.returncode == 0
     assert "=== adapt-to-project:" in result.stdout
     assert "core" in result.stdout
@@ -132,7 +173,7 @@ def test_session_start_adapt_nudge_both_scopes(tmp_path: Path) -> None:
     result = _run(_isolated_env(
         ADAPT_REPO_MARKER=str(repo_marker),
         ADAPT_USER_MARKER=str(user_marker),
-    ))
+    ), cwd=tmp_path)
     assert result.returncode == 0
     assert "2 pack(s) pending" in result.stdout
     assert "2 scope(s)" in result.stdout
@@ -162,6 +203,7 @@ def test_session_start_scope_coverage_glob(tmp_path: Path) -> None:
     result = _run(
         _isolated_env(KNOWLEDGE_FILE=str(kb)),
         "--scope", "packages/auth/server.ts",
+        cwd=tmp_path,
     )
     assert result.returncode == 0
     assert "K-0001" in result.stdout
@@ -252,8 +294,8 @@ def test_session_start_nudge_byte_identical_v03_vs_v04(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result_v03 = _run(_isolated_env(ADAPT_REPO_MARKER=str(v03_marker)))
-    result_v04 = _run(_isolated_env(ADAPT_REPO_MARKER=str(v04_marker)))
+    result_v03 = _run(_isolated_env(ADAPT_REPO_MARKER=str(v03_marker)), cwd=tmp_path)
+    result_v04 = _run(_isolated_env(ADAPT_REPO_MARKER=str(v04_marker)), cwd=tmp_path)
 
     assert result_v03.returncode == 0, result_v03.stderr
     assert result_v04.returncode == 0, result_v04.stderr

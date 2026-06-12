@@ -15,7 +15,9 @@ jobs:
   build-check:
     name: make build-check
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Bumped 5 → 15 (ADR-0017): `make build-check` now chains `make sast`, whose
+    # Semgrep leg fetches registry rulesets and scans ~76k LOC.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +32,13 @@ jobs:
         # PyYAML from tools/requirements.txt. Install before invoking make
         # so the projected-artifact lint surface is reachable in CI.
         run: pip install -r tools/requirements.txt
+
+      - name: Install SAST/SCA tools
+        # `make build-check` chains `make sast` (ADR-0017), which needs Bandit,
+        # pip-audit, and Semgrep on PATH. Install before invoking make so the
+        # dogfooded SAST gate is reachable. The shipped packages stay
+        # dependency-free; these are CI-only dev tools.
+        run: pip install -r tools/requirements-sast.txt
 
       - name: Run make build-check
         run: make build-check PACKS_DIR=packs

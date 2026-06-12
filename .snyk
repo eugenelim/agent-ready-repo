@@ -1,0 +1,44 @@
+# Snyk policy file — the Snyk-native suppression vehicle (ADR-0017).
+#
+# Our own gate (Bandit + pip-audit + Semgrep, via `make sast`) is the primary
+# pre-merge SAST/SCA check. This file exists for the *organisational* Snyk scan,
+# which our gate cannot configure and whose output we cannot see directly.
+#
+# Suppression policy (ADR-0017), in order of preference:
+#   1. Fix the code. A real fix satisfies Bandit, Semgrep, AND Snyk — a comment
+#      does not. Prefer this for every genuine finding.
+#   2. `# nosec <ID>` for Bandit-only false positives; Semgrep rule exclusions in
+#      `make sast` for its duplicates. Neither reaches Snyk.
+#   3. This file — the only suppression that reaches Snyk. Use it to *accept* a
+#      finding Snyk reports that we have judged acceptable.
+#
+# Snyk Open Source (SCA): `ignore` blocks below are honoured directly.
+# Snyk Code (SAST): `ignore` blocks here apply only when the org has enabled
+#   "Consistent Ignores"; otherwise Code ignores are managed in the Snyk
+#   platform/API. Either path needs the issue ID from an actual Snyk run.
+#
+# DO NOT invent issue IDs. Populate `ignore` only with IDs copied from a real
+# Snyk scan, each carrying a `reason` and an `expires`. Add entries with:
+#   snyk ignore --id=<ISSUE_ID> --reason="<why>" --expiry=<YYYY-MM-DD>
+#
+# Likely first candidates (ADR-0017): Snyk Code keys its weak-hash rule on the
+# `hashlib.sha1(...)` call, not on the `usedforsecurity=False` kwarg, so it may
+# still flag the two NON-security SHA-1 digests our gate already cleared:
+#   - packages/agentbundle/agentbundle/config.py  (8-char derivation cache key)
+#   - packs/core/.apm/skills/work-loop/scripts/loop-cohort.py  (review fingerprint)
+# Both are documented non-security digests (see their docstrings); changing the
+# algorithm would diverge from documented spec/skill contracts. If the org scan
+# flags them, accept here with the Snyk-assigned ID — do not change the code.
+#
+# Worked example (commented — not active; replace with a real ID before use):
+#
+# ignore:
+#   SNYK-PYTHON-EXAMPLE-1234567:
+#     - '*':
+#         reason: >-
+#           Accepted: <one-line justification>. Tracked in <link/ticket>.
+#         expires: 2026-12-31T00:00:00.000Z
+
+version: v1.25.0
+ignore: {}
+patch: {}
