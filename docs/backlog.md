@@ -412,3 +412,37 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
   session CWD is arbitrary, so a relative command path won't resolve — an unsolved follow-on.
   Not exercised today: `core` (the only hook-body pack) is repo-only; no shipped pack ships a
   user-scope copilot hook. Needs a fresh probe of Copilot's user-scope hook CWD semantics.
+
+## `projection-dry-run`
+
+### install dry-run preview governance seeds
+
+- **`install --dry-run` previews the rendered adapter projection only.** The
+  preview walks the per-adapter projection (`.claude/…`, `tools/…`) and labels
+  each file via `_classify_for_install`. It does **not** enumerate the
+  governance **seeds** a real repo-scope install also delivers (`AGENTS.md`,
+  `docs/CHARTER.md`, `docs/CONVENTIONS.md`) — those go through
+  `_common.deliver_seeds`, a content-equality delivery path distinct from the
+  tier classifier. **Blocking:** previewing seeds without writing needs
+  `deliver_seeds` split into a read-only classify half + a write half (today
+  it writes as it walks); the spec forbids forking the classifier or writing
+  under `--dry-run`, so the no-cost path is a refactor, not a copy. **Unblock:**
+  extract `deliver_seeds`' classification into a pure function both the dry-run
+  preview and the real delivery call. Disclosed in the
+  [preview how-to](guides/how-to/preview-install-or-upgrade.md) so the
+  preview's silence on seeds is stated, not implied-complete.
+
+### unify the path-jail projection probe
+
+- **The prefix-jail rule has three near-verbatim copies.** install's standalone
+  Step 8 probe (`install.py`), the new `upgrade --dry-run` probe (`upgrade.py`),
+  and `safety.write_jailed`'s inline prefix block each re-implement "resolve the
+  target, assert it's under the root, assert it starts with an allowed prefix
+  (directory-boundary match)." A change to the matching semantics must touch all
+  three or they drift. **Blocking:** the clean fix extracts a read-only
+  `safety.assert_projection_jailed(root, relpaths, allowed_prefixes, *, command)`
+  and routes install Step 8, the upgrade dry-run probe, **and** the real upgrade
+  write loop through it — but rewiring the non-`--dry-run` write loop was out of
+  scope for the dry-run spec (*Never do: change non-`--dry-run` behavior*).
+  **Unblock:** a focused refactor PR that introduces the helper and migrates all
+  three call sites under its own regression coverage.

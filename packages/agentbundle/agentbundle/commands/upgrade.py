@@ -68,7 +68,12 @@ def run(args: "argparse.Namespace") -> int:
     Returns 0 on success, non-zero on any failure.
     """
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
-    from agentbundle.commands._common import check_spec_version_gate
+    from agentbundle.commands._common import (
+        check_spec_version_gate,
+        format_plan_line,
+        plan_action,
+        summarize_plan,
+    )
     from agentbundle.config import (
         ConfigError,
         dump_state,
@@ -351,6 +356,61 @@ def run(args: "argparse.Namespace") -> int:
         work_projection = filtered
     else:
         work_projection = projection
+
+    # ── Dry-run: preview the plan and stop before any write ───────────────────
+    # Inserted after `work_projection` is built so it covers both the whole-pack
+    # and the per-primitive (`--skill <name>`, …) shapes — and after every
+    # pre-flight refusal above (catalogue resolve, version gate, adapter
+    # resolution, render, pack-not-installed, primitive-not-found) has already
+    # passed through with the real run's exit code. Classify each file with the
+    # SAME `safety.classify` the write loop below uses — mirroring its
+    # Tier-3→Tier-1 coercion for new paths — print the per-file plan to stdout,
+    # and return before the walk: no companion, no state write, no hook-wiring
+    # reconciliation, no `upgraded:` recap.
+    if getattr(args, "dry_run", False):
+        # Path-jail pre-flight (AC5). Unlike install (which probes every file in
+        # its standalone Step 8 before any write), upgrade enforces the jail
+        # *inside* its write loop via `write_jailed`, so a real upgrade over a
+        # projection that escapes the root would fail non-zero there. Mirror
+        # install's Step 8 probe here — read-only — so the dry-run surfaces the
+        # same refusal before printing any plan, rather than reporting a clean
+        # preview the real run would reject. Deliberately a separate pass before
+        # the print loop (probe-all-then-print): a jail violation on a late file
+        # aborts with a clean stderr refusal instead of a partial plan already
+        # on stdout.
+        for relpath in sorted(work_projection):
+            target = root / relpath
+            try:
+                safety.assert_under(root, target)
+            except safety.PathJailError as exc:
+                print(f"upgrade: {exc}", file=sys.stderr)
+                return 1
+            if allowed_prefixes is not None:
+                target_relpath = (
+                    target.resolve().relative_to(root.resolve()).as_posix()
+                )
+                if not any(target_relpath.startswith(p) for p in allowed_prefixes):
+                    print(
+                        f"upgrade: refusing to write outside allowed prefixes "
+                        f"for scope {effective_scope!r}: {target.resolve()}",
+                        file=sys.stderr,
+                    )
+                    return 1
+        actions: list[str] = []
+        for relpath in sorted(work_projection):
+            tier = safety.classify(relpath, root, state)
+            if tier is safety.Tier.TIER_3:
+                tier = safety.Tier.TIER_1
+            action = plan_action(tier, on_disk=(root / relpath).exists())
+            companion = (
+                safety.companion_path(Path(relpath)).as_posix()
+                if tier is safety.Tier.TIER_2
+                else None
+            )
+            print(format_plan_line(action, tier.value, relpath, companion))
+            actions.append(action)
+        print(summarize_plan(actions))
+        return 0
 
     # ── Walk projection; apply Tier contract ──────────────────────────────────
     # Collect `.upstream.<ext>` companions dropped this run so we can surface

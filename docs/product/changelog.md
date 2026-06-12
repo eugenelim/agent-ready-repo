@@ -19,7 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- (nothing yet)
+- **`--dry-run` previews an install or upgrade without writing anything** —
+  `agentbundle install --dry-run` and `agentbundle upgrade --dry-run` run the
+  full read-only pre-flight, print a per-file plan to stdout (one
+  `<action> <tier> <target>` line each — `create` / `overwrite` /
+  `companion`, with Tier-2 lines naming the `.upstream.<ext>` companion the
+  real run would drop), and exit 0 without touching the tree, state, or
+  install marker. A present Tier-2 collision does not change the exit code;
+  the preview is informational. `install --dry-run --force` is refused
+  (`--force`'s destructive cleanup is incompatible with a read-only preview).
+  The install preview covers the rendered adapter projection; it does not yet
+  enumerate the governance seeds (`AGENTS.md`, `docs/CHARTER.md`,
+  `docs/CONVENTIONS.md`) a real install also delivers. See the
+  [preview how-to](../guides/how-to/preview-install-or-upgrade.md).
 
 ### Changed
 
