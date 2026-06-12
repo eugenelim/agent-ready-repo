@@ -371,18 +371,25 @@ class FrontmatterTableTests(unittest.TestCase):
             + "\n".join(errors),
         )
 
-    def test_copilot_frontmatter_default_present(self) -> None:
+    def test_copilot_instruction_frontmatter_default_retired(self) -> None:
+        """docs/specs/copilot-skills-and-web: the copilot `skill` flip to
+        first-class `direct-directory` SKILL.md orphaned the `copilot-instruction`
+        frontmatter-default (it was its only consumer), so it is removed from the
+        contract entirely."""
         defaults = self.contract.get("frontmatter-default", {})
-        self.assertIn(
+        self.assertNotIn(
             "copilot-instruction",
             defaults,
-            "frontmatter-default.copilot-instruction not found in contract",
+            "copilot-instruction frontmatter-default should be retired after copilot-skills-and-web",
         )
-
-    def test_copilot_frontmatter_default_has_apply_to(self) -> None:
-        default = self.contract["frontmatter-default"]["copilot-instruction"]
-        self.assertIn("applyTo", default)
-        self.assertEqual(default["applyTo"], "**")
+        skill = next(
+            p
+            for p in self.contract["adapter"]["copilot"]["projection"]
+            if p["primitive"] == "skill"
+        )
+        self.assertEqual(skill["mode"], "direct-directory")
+        self.assertEqual(skill["target-path"], ".github/skills/")
+        self.assertNotIn("frontmatter-default", skill)
 
     def test_frontmatter_mapping_and_default_are_structurally_distinct(self) -> None:
         # mapping = rewrite rules (nested objects with rename/normalize/default fields)
@@ -440,15 +447,17 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.11"
-        (bumped from "0.10" by docs/specs/cursor-full-parity / RFC-0026: new
-        native `cursor` full-parity adapter, no projection-mode-enum change).
-        Class name preserved to avoid churn.
+        """tomllib.loads of adapter.toml returns contract.version == "0.12"
+        (bumped from RFC-0026 / cursor-full-parity's "0.11" by
+        docs/specs/copilot-skills-and-web: copilot `skill` flips
+        `instruction-file`→`direct-directory` first-class SKILL.md, the
+        `copilot-instruction` frontmatter-default is retired). Class/method names
+        preserved to avoid churn.
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.11",
-            "adapter.toml [contract] version must be '0.11' after cursor-full-parity",
+            "0.12",
+            "adapter.toml [contract] version must be '0.12' after copilot-skills-and-web",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:

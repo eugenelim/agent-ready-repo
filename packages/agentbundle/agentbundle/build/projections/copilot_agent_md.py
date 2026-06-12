@@ -25,12 +25,16 @@ sub-tables for ``name`` / ``description``):
 
 Tool allow-list (fail-closed): ``tools`` tokens are validated against the set
 of names known to be accepted by Copilot custom agents. ``WebFetch`` /
-``WebSearch`` are *known-and-recorded* — they pass through, but Copilot
-exposes no web tool to custom agents, so they are inert there (the
-``research`` degradation, documented, not silently dropped). A token in no
-set raises ``ValueError`` rather than passing through to be silently ignored
-by Copilot — which would drop a needed capability invisibly. This is a
-deliberately stricter policy than codex's drop-on-unmapped.
+``WebSearch`` pass through and Copilot resolves both to its ``web`` tool — the
+official custom-agents reference documents ``web`` with aliases ``WebSearch`` /
+``WebFetch`` on the CLI + app (the only non-coverage is the Copilot *cloud
+agent*, which we serve only via repo ``.github/``). So ``research``'s retrieval
+subagents keep live web access on Copilot CLI/app; they are **not** degraded
+there. (RFC-0024 § Errata E1 / docs/specs/copilot-skills-and-web corrected the
+earlier "no web tool" finding, which a confounded 1.0.59 probe produced.) A
+token in no set raises ``ValueError`` rather than passing through to be
+silently ignored by Copilot — which would drop a needed capability invisibly.
+This is a deliberately stricter policy than codex's drop-on-unmapped.
 """
 
 from __future__ import annotations
@@ -39,9 +43,10 @@ from pathlib import Path
 from typing import Any
 
 
-# Tool names Copilot custom agents are known to accept (verified 1.0.59) plus
-# the known-and-explicitly-recorded web tools (inert on Copilot, see module
-# docstring). A `tools` token outside this set fails the build.
+# Tool names Copilot custom agents are known to accept (verified 1.0.59),
+# including the web tools `WebFetch`/`WebSearch` which Copilot resolves to its
+# `web` tool on the CLI + app (see module docstring). A `tools` token outside
+# this set fails the build.
 _KNOWN_TOOLS: frozenset[str] = frozenset(
     {
         "Read",

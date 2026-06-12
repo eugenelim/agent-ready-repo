@@ -28,9 +28,11 @@ class TestCopilotUserScopeCapability(unittest.TestCase):
         from agentbundle.commands.install import _adapter_allowed_prefixes_repo
 
         prefixes = _adapter_allowed_prefixes_repo("copilot")
+        # v0.11 (copilot-skills-and-web): skills project as first-class
+        # `.github/skills/` SKILL.md (was `.github/instructions/`).
         self.assertEqual(
             prefixes,
-            [".github/instructions/", ".github/agents/", ".github/hooks/"],
+            [".github/skills/", ".github/agents/", ".github/hooks/"],
         )
         # Legacy tools/hooks/ prefix is gone (hook-body retargeted).
         self.assertNotIn("tools/hooks/", prefixes)
@@ -42,8 +44,8 @@ class TestCopilotUserScopeCapability(unittest.TestCase):
         self.assertEqual(
             prefixes,
             [
+                ".copilot/skills/",
                 ".copilot/agents/",
-                ".copilot/instructions/",
                 ".copilot/hooks/",
                 ".agentbundle/",
             ],
@@ -60,7 +62,7 @@ class TestCopilotUserScopePathJail(unittest.TestCase):
             root = Path(tmp)
             for relpath in (
                 ".copilot/agents/x.agent.md",
-                ".copilot/instructions/y.instructions.md",
+                ".copilot/skills/y/SKILL.md",
                 ".copilot/hooks/z.json",
             ):
                 safety.write_jailed(
@@ -91,7 +93,7 @@ class TestRewriteCopilotUserScopePaths(unittest.TestCase):
         from agentbundle.commands.install import _rewrite_copilot_user_scope_paths
 
         projection = {
-            ".github/instructions/work-loop.instructions.md": b"i",
+            ".github/skills/work-loop/SKILL.md": b"i",
             ".github/agents/reviewer.agent.md": b"a",
             ".github/hooks/session-start.json": b"w",
             ".github/hooks/session-start.py": b"b",
@@ -100,7 +102,7 @@ class TestRewriteCopilotUserScopePaths(unittest.TestCase):
         self.assertEqual(
             set(rewritten),
             {
-                ".copilot/instructions/work-loop.instructions.md",
+                ".copilot/skills/work-loop/SKILL.md",
                 ".copilot/agents/reviewer.agent.md",
                 ".copilot/hooks/session-start.json",
                 ".copilot/hooks/session-start.py",

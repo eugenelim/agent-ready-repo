@@ -69,7 +69,7 @@ description-max-length = 1024
 # ---------------------------------------------------------------------------
 
 [target.copilot]
-# name-pattern — copilot's `.github/instructions/<name>.md` projection
+# name-pattern — copilot's `.github/skills/<name>/SKILL.md` projection
 # uses the same kebab convention as every other target the adapter
 # contract enumerates.
 # Source: agentskills.io spec (kebab convention), checked 2026-05-25.

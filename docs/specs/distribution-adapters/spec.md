@@ -72,8 +72,11 @@ to this list.
   key of a target JSON file. Other keys are untouched. Default
   `on-conflict`: `merge-managed-key-only`.
 - **`instruction-file`** — wrap source content as a per-file instruction
-  document with adapter-declared frontmatter (e.g. Copilot's `applyTo`).
-  Default `on-conflict`: `prompt-then-overwrite`.
+  document with adapter-declared frontmatter (the `applyTo`-style shape). No
+  shipped adapter uses this mode as of v0.12 — copilot's `skill` flipped to
+  `direct-directory` (docs/specs/copilot-skills-and-web); the mode remains
+  defined for a future adapter that needs it. Default `on-conflict`:
+  `prompt-then-overwrite`.
 - **`managed-block-inline`** — write the source content between
   delimiter strings inside a target text file; content outside the
   delimiters is preserved. Default `on-conflict`: `preserve-outside-block`.
@@ -203,7 +206,7 @@ declares it so explicitly — no implicit defaults.
 
 | Primitive | Source path (in `packs/<pack>/`) | Claude Code | Kiro | Copilot | Codex |
 | --- | --- | --- | --- | --- | --- |
-| `skill` | `.apm/skills/<name>/` | `direct-directory` → `.claude/skills/<name>/` | `direct-directory` → `.kiro/skills/<name>/` | `instruction-file` → `.github/instructions/<name>.instructions.md` | `direct-directory` → `.agents/skills/<name>/` |
+| `skill` | `.apm/skills/<name>/` | `direct-directory` → `.claude/skills/<name>/` | `direct-directory` → `.kiro/skills/<name>/` | `direct-directory` → `.github/skills/<name>/` | `direct-directory` → `.agents/skills/<name>/` |
 | `agent` | `.apm/agents/<name>.md` | `direct-file` → `.claude/agents/<name>.md` | `kiro-ide`: `direct-file` → `.kiro/agents/<name>.md` (gray-matter); `kiro-cli`: `direct-file` → `.kiro/agents/<name>.json` (CLI short-names)\* | `dropped` | `codex-agent-toml` → `.codex/agents/<name>.toml` |
 | `hook-body` | `.apm/hooks/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.claude/hooks/<pack>/<name>.{sh,py}` | `direct-file` — repo: `tools/hooks/<name>.{sh,py}`; user: `.kiro/hooks/<pack>/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` | `direct-file` → `tools/hooks/<name>.{sh,py}` |
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | repo: `merge-json` (under `hooks` key of `.claude/settings.local.json`); user: `user-merge-json` (under `hooks` key of `.claude/settings.json`) | `kiro-ide`: `dropped` (uses `kiro-ide-hook` instead); `kiro-cli`: `merge-into-agent-json` (RFC-0005 — under `hooks` key of `.kiro/agents/<attach-to-agent>.json`) | `dropped` | `merge-json` → `.codex/hooks.json` |
@@ -1338,6 +1341,20 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Changelog
 
+- 2026-06-11: contract bump v0.11 → v0.12 per
+  [`docs/specs/copilot-skills-and-web/spec.md`](../copilot-skills-and-web/spec.md)
+  (RFC-0024 § Errata). Copilot `skill` flips `instruction-file` →
+  `direct-directory` at `.github/skills/<name>/SKILL.md` (repo) /
+  `~/.copilot/skills/<name>/SKILL.md` (user) — first-class Copilot Agent Skills,
+  passthrough of our canonical `SKILL.md`. The `copilot-instruction`
+  frontmatter-default is retired and `[adapter.copilot.scope]` prefixes retarget
+  `instructions/`→`skills/`. No shipped adapter uses `instruction-file` after
+  this. The web half is docs/comments-only (RFC-0024 § Errata E1: `WebFetch`/
+  `WebSearch` resolve to Copilot's `web` tool on CLI/app — no behaviour change,
+  no mapping added). `research` + `core` bump pack contract v0.10 → v0.12
+  (not all-pack). Lands atop RFC-0026's cursor v0.11 (the two co-bumped — copilot
+  takes v0.12).
+
 - 2026-06-11: contract bump v0.10 → v0.11 per
   [`docs/specs/cursor-full-parity/spec.md`](../cursor-full-parity/spec.md) (RFC-0026 /
   ADR-0015). New native `cursor` full-parity adapter projecting all five catalogue primitives
@@ -1391,7 +1408,9 @@ No manual QA: there is no UI surface, no human gesture under test.
   command). claude-code / kiro-ide / kiro-cli / codex projection tables byte-identical to v0.9.
   Honest fidelity bound: `WebFetch`/`WebSearch` pass the allow-list but are inert on Copilot
   (no custom-agent web tool) — documented degradation for `research`'s retrieval subagents, not
-  a silent drop.
+  a silent drop. **[Corrected — see the 2026-06-11 v0.11 → v0.12 entry above /
+  RFC-0024 § Errata E1: `WebFetch`/`WebSearch` *do* resolve to Copilot's `web` tool on the
+  CLI + app; the 1.0.59 "no web tool" finding was confounded. Only the cloud agent lacks it.]**
 
 - 2026-05-26: contract bump v0.7 → v0.8 per
   [`docs/specs/dropped-primitives-coverage/spec.md`](../dropped-primitives-coverage/spec.md).

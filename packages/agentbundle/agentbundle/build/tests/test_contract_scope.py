@@ -89,22 +89,22 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
         scope = contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(scope, "copilot [scope] block missing")
         self.assertEqual(scope["repo"], ".")
-        # v0.10 (RFC-0024 / copilot-full-parity): copilot is now a full-parity,
-        # user-scope-capable adapter. Repo prefixes cover the three projected
-        # primitive homes under `.github/`; the legacy `tools/hooks/` prefix is
-        # gone (hook-body retargeted to `.github/hooks/`).
+        # v0.11 (docs/specs/copilot-skills-and-web): copilot `skill` projects as
+        # first-class `direct-directory` SKILL.md under `.github/skills/`, so the
+        # repo skill prefix is `.github/skills/` (was `.github/instructions/`).
+        # Agent + hook homes under `.github/` are unchanged.
         self.assertEqual(
             scope["allowed-prefixes"]["repo"],
-            [".github/instructions/", ".github/agents/", ".github/hooks/"],
+            [".github/skills/", ".github/agents/", ".github/hooks/"],
         )
-        # User scope: `~/.copilot/{agents,instructions,hooks}/` + `.agentbundle/`
+        # User scope: `~/.copilot/{skills,agents,hooks}/` + `.agentbundle/`
         # (the install state-file home, same as every other user-capable adapter).
         self.assertEqual(scope["user"], "~")
         self.assertEqual(
             scope["allowed-prefixes"]["user"],
             [
+                ".copilot/skills/",
                 ".copilot/agents/",
-                ".copilot/instructions/",
                 ".copilot/hooks/",
                 ".agentbundle/",
             ],

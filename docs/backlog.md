@@ -388,13 +388,17 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
 
 - **Copilot `command` / prompt projection.** `command` stays `dropped` — the Copilot CLI won't
   load custom slash-command files by design (copilot-cli#618/#1113 closed; prompt files
-  superseded by skills, which the catalogue already projects to Copilot as `.github/instructions/`).
+  superseded by skills, which the catalogue projects to Copilot as `.github/skills/<name>/SKILL.md`).
   A follow-on RFC would only flip it to a tested `.github/prompts/` target if Copilot ships such a
   surface — not projected speculatively.
-- **`WebFetch` / `WebSearch` re-map.** Copilot exposes no web tool to custom agents (verified
-  CLI 1.0.59), so `research`'s retrieval subagents lose live web access on Copilot (documented
-  degradation — read/grep/glob only). When Copilot exposes a custom-agent web tool, a fresh
-  probe against the then-current CLI can add the mapping to `copilot-agent-frontmatter`.
+- **`WebFetch` / `WebSearch` re-map. — RESOLVED 2026-06-11** by
+  [`docs/specs/copilot-skills-and-web/spec.md`](specs/copilot-skills-and-web/spec.md)
+  (RFC-0024 § Errata E1). Copilot custom agents *do* get the `web` tool on the
+  CLI + app — the official custom-agents reference documents `web` aliasing
+  `WebSearch`/`WebFetch`; `WebFetch`/`WebSearch` already pass through verbatim
+  and resolve to it, so `research`'s retrieval subagents keep live web access
+  (no mapping needed). The earlier "no web tool" finding was a confounded CLI
+  1.0.59 probe. The only residual non-coverage is the Copilot **cloud agent**.
 - **Per-shell hook commands.** `copilot-hooks-json` carries the shell-agnostic source command
   into both `bash` and `powershell` handler keys. A wiring with per-shell commands would need a
   source-side shape extension — out of scope; no shipped wiring needs it.
@@ -422,6 +426,27 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
   session CWD is arbitrary, so a relative command path won't resolve — an unsolved follow-on.
   Not exercised today: `core` (the only hook-body pack) is repo-only; no shipped pack ships a
   user-scope copilot hook. Needs a fresh probe of Copilot's user-scope hook CWD semantics.
+
+### Untrusted-catalogue inside-tree symlink exfiltration at install time (cross-adapter)
+
+- **Surfaced by the `copilot-skills-and-web` security review (2026-06-11); pre-existing,
+  not introduced by that PR.** `agentbundle install` resolves an arbitrary catalogue pack and
+  calls `render_pack(pack_dir)` with **no `lint_pack` gate**; `render.py::_collect_tree` does
+  `path.read_bytes()`, which **dereferences inside-tree symlinks** in the pack. A malicious pack
+  shipping `.apm/skills/x/leak -> /etc/passwd` lands the target's bytes under an in-jail relpath
+  (`.github/skills/x/leak` repo, `.copilot/skills/x/leak` user) — the path-jail passes (the
+  relpath is in-jail) and the secret is written to the adopter's disk. This is a property of
+  **all four `direct-directory` adapters** (claude-code/kiro/codex/copilot all funnel through
+  `_collect_tree`); the skill flip brought copilot to parity with the others, it did not create
+  the hole. The adapter-level top-of-tree symlink skip + `symlinks=True` copytree does **not**
+  close it. **Amplified on the Python 3.11/3.12 floor** (`requires-python >= 3.11`): `Path.rglob`
+  follows directory symlinks before 3.13, so a `dirlink -> /etc` would recurse and slurp the whole
+  target tree. *Fix options* (cross-adapter, one of): gate the install-path `render_pack` with
+  `lint_pack` (already flags inside-tree symlinks at `build/lint_packs.py`), or make `_collect_tree`
+  skip/refuse symlinked entries (prefer `os.walk(followlinks=False)` over `rglob` so the 3.11 floor
+  and 3.13 behave identically). Warrants its own spec — spans `render.py` + `install.py` + every
+  adapter, out of scope for the copilot skill flip. This is the install-time delivery facet of
+  the standing untrusted-catalogue symlink-guard concern.
 
 ## `projection-dry-run`
 

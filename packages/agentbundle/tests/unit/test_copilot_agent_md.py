@@ -24,8 +24,10 @@ def test_known_tools_matches_spec_allow_list() -> None:
     # Pin the module's allow-list against the spec-documented set
     # (docs/specs/copilot-full-parity/spec.md § Always do / AC7) so the two
     # can't drift silently — mirrors the `_EVENT_MAP` pin in the hooks-json
-    # test. The web tools are known-and-recorded (inert on Copilot), not
-    # unknown.
+    # test. The web tools `WebFetch`/`WebSearch` pass through and resolve to
+    # Copilot's `web` tool on the CLI + app (docs/specs/copilot-skills-and-web /
+    # RFC-0024 § Errata E1; only the cloud agent lacks it), so they are
+    # known-and-recorded, not unknown.
     assert _KNOWN_TOOLS == frozenset(
         {
             "Read",
