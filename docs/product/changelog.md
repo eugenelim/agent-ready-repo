@@ -24,9 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--pack architect`) now projects their skills to `.cursor/skills/` — and, for `research`, the
   two retrieval subagents to `.cursor/agents/` with `readonly: true` — instead of refusing the
   install up front. The Cursor adapter shipped in the previous release, but no pack had opted
-  in. The credentialed packs (atlassian, contracts, converters, figma, credential-brokers) are
-  not yet Cursor-installable — that expansion is gated on an RFC-0013 erratum (the credential
-  broker's adapter set is frozen by RFC-0013).
+  in. (The credentialed packs are covered by the next entry.)
+- **Credentialed packs can now install via Cursor and Copilot** — `atlassian`, `contracts`,
+  `converters`, `figma`, and `credential-brokers` added `copilot` + `cursor` to their
+  `allowed-adapters`, so a Cursor- or Copilot-based adopter can install them (and the SSO/token
+  broker lands at `~/.agentbundle/bin/` as before — the broker delivery is adapter-independent).
+  Previously these packs admitted only `claude-code`, `kiro-ide`, and `codex`. Recorded as an
+  RFC-0013 § Errata decision; no contract change (both adapters already declare the
+  `.agentbundle/` install prefix the broker needs).
 - **`--dry-run` previews an install or upgrade without writing anything** —
   `agentbundle install --dry-run` and `agentbundle upgrade --dry-run` run the
   full read-only pre-flight, print a per-file plan to stdout (one
