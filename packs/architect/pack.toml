@@ -17,6 +17,10 @@ allowed-scopes = ["user", "repo"]
 # travels with every shipped adapter that projects the skill primitive.
 # Current adapter names: RFC-0022 split `kiro` into `kiro-ide`/`kiro-cli`
 # (the bare `kiro` alias is deprecated); RFC-0024 made `copilot`
-# user-scope-capable. `kiro-ide` precedes `kiro-cli` so a Kiro user's
-# `~/.kiro/` auto-probe resolves to the IDE.
-allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli"]
+# user-scope-capable; RFC-0026 / cursor-full-parity added `cursor` (it
+# projects skills to `.cursor/skills/` via the existing direct-directory
+# mode — no new projection mode, so no `[pack.adapter-contract]` bump).
+# Declared order is load-bearing (RFC-0011): `kiro-ide` precedes `kiro-cli`
+# so a Kiro user's `~/.kiro/` auto-probe resolves to the IDE; `cursor`
+# appended last (append-only).
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor"]
