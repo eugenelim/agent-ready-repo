@@ -205,6 +205,32 @@ seed it names, re-run `make build-self`, re-commit).
 If you edit any README, table, or doc under the projected paths above,
 **check the seed first**.
 
+## Pack versioning — non-cosmetic pack changes bump the pack version
+
+A **non-cosmetic** update to any `packs/<pack>/` content must bump that
+pack's version in **both** `packs/<pack>/pack.toml` (`[pack]` `version`, not
+the separate `[pack.adapter-contract]` `version`) and
+`packs/<pack>/.claude-plugin/plugin.json` (`version`), so adopters pulling
+the catalogue see the change reflected. After bumping, `make build-self`
+re-aggregates `marketplace.json`. *Non-cosmetic* = any change to behavior,
+doctrine, or shipped prose an adopter reads (a sharpened reviewer, a new
+skill step, a reworded convention). **Cosmetic-only** changes — typos,
+whitespace/formatting, comment reflow with no semantic change — need no bump.
+When in doubt, bump: a spurious patch bump is cheaper than a silently-stale
+version.
+
+> **Governance note (2026-06-12).** The `work-loop` light/full-mode
+> *mechanics summary* was thinned out of the CONVENTIONS seed
+> (`packs/core/seeds/docs/CONVENTIONS.md` § Light and full modes), leaving
+> the principle plus a pointer to the `work-loop` skill as the sole owner of
+> mode mechanics. This was an **owner-directed edit made in lieu of a
+> separate `update-conventions` RFC** — recorded here per the repo's
+> convention that substantive CONVENTIONS edits leave a governance trace.
+> Full retirement of mode mechanics from CONVENTIONS is deferred to its own
+> future RFC. (Provenance lives here, repo-internal, rather than in the seed
+> itself, which ships to adopters who receive none of the governance it was
+> written under.)
+
 ## Authoring or editing a skill
 
 Skills live under `packs/<pack>/.apm/skills/<name>/SKILL.md` (the seed)
