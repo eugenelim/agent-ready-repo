@@ -2376,6 +2376,7 @@ def _render_for_user_scope(
         claude_code,
         codex,
         copilot,
+        cursor,
         kiro,
         kiro_cli,
         kiro_ide,
@@ -2413,6 +2414,13 @@ def _render_for_user_scope(
             # `_rewrite_copilot_user_scope_paths` before the path-jail
             # (RFC-0024 / copilot-full-parity).
             copilot.project(pack_dir, contract, out)
+        elif target_adapter == "cursor":
+            # Cursor's `.cursor/` prefix is identical at both scopes (the
+            # claude-code/codex pattern), so — unlike copilot — there is no
+            # post-render prefix rewrite; the generic user-root rooting lands
+            # the scope-agnostic `.cursor/…` relpaths under `~` (RFC-0026 /
+            # cursor-full-parity).
+            cursor.project(pack_dir, contract, out)
         else:
             # Defence-in-depth: every user-scope-capable adapter
             # should have an explicit branch above. A future contract
@@ -2453,7 +2461,15 @@ def _render_for_repo_scope(
     """
     import tempfile
 
-    from agentbundle.build.adapters import claude_code, codex, copilot, kiro, kiro_cli, kiro_ide
+    from agentbundle.build.adapters import (
+        claude_code,
+        codex,
+        copilot,
+        cursor,
+        kiro,
+        kiro_cli,
+        kiro_ide,
+    )
     from agentbundle.build.main import _read_bundled
     from agentbundle.render import _collect_tree
 
@@ -2482,6 +2498,8 @@ def _render_for_repo_scope(
             claude_code.project(pack_dir, contract, out)
         elif target_adapter == "copilot":
             copilot.project(pack_dir, contract, out)
+        elif target_adapter == "cursor":
+            cursor.project(pack_dir, contract, out)
         else:
             raise _AdapterResolutionRefused(
                 f"{command_name}: no repo-scope projection wired for "
@@ -2675,6 +2693,7 @@ def _resolve_target_adapter(
         DEFAULT_ADAPTER,
         configured_adapter,
         contract_supports_hook_wiring,
+        contract_version_at_least,
         shipped_adapters_from_contract,
         user_scope_capable_adapters_from_contract,
     )
@@ -2822,15 +2841,14 @@ def _resolve_target_adapter(
     # at repo scope must NOT fall through to step 5; return the
     # configured default instead. Drawback #7 in RFC-0012 names the
     # repo-only-pack v0.2 → v0.7 bump as load-bearing precisely for
-    # this branch. The version check is a literal `>= "0.7"` (string
-    # comparison is correct for single-digit minor versions; once
-    # major or two-digit minor bumps land the predicate moves into
-    # a helper).
-    if (
-        scope == "repo"
-        and isinstance(contract_version, str)
-        and contract_version >= "0.7"
-    ):
+    # this branch. The version gate is numeric (`contract_version_at_least`)
+    # — the prior lexical `>= "0.7"` string compare mis-ordered two-digit
+    # minors (`"0.11" < "0.7"` lexically), which the inline comment flagged
+    # would break "once major or two-digit minor bumps land." It was latent
+    # (Step 4b and the Step-5 fallback both return DEFAULT_ADAPTER), but the
+    # v0.11 cursor bump made it live two-digit territory, so it moves to the
+    # numeric helper now (RFC-0026 / cursor-full-parity ride-along).
+    if scope == "repo" and contract_version_at_least(contract_version, "0.7"):
         return DEFAULT_ADAPTER
 
     # Step 5: legacy heuristic — preserved for `< v0.7` packs that

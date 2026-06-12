@@ -1338,6 +1338,28 @@ No manual QA: there is no UI surface, no human gesture under test.
 
 ## Changelog
 
+- 2026-06-11: contract bump v0.10 → v0.11 per
+  [`docs/specs/cursor-full-parity/spec.md`](../cursor-full-parity/spec.md) (RFC-0026 /
+  ADR-0015). New native `cursor` full-parity adapter projecting all five catalogue primitives
+  to Cursor's `.cursor/*` discovery paths at both repo and user scope:
+  `skill`→`.cursor/skills/<name>/` (`direct-directory`), `agent`→`.cursor/agents/<name>.md`
+  (`direct-file` + the new `cursor-agent-frontmatter-v0.11` mapping; the source `tools` allowlist
+  is dropped and a `readonly` flag is derived inline for non-mutating agents — agents whose tool
+  set contains none of Edit/Write/MultiEdit/NotebookEdit — since Cursor subagents have no per-agent
+  tool allowlist), `hook-body`→`.cursor/hooks/<name>.{sh,py}` (`direct-file`),
+  `hook-wiring`→`.cursor/hooks.json` (`merge-json`; cursor's merge helper remaps source events via
+  the contract `hook-event-map`, rewrites the hook-body command path `tools/hooks/`→`.cursor/hooks/`,
+  and adds a `version` key — an unmapped event is dropped with a build-time log), and
+  `command`→`.cursor/commands/<name>.md` (`direct-file` — Cursor is the second adapter after
+  claude-code to honour commands). `kiro-ide-hook` is `dropped` (declared in the table form).
+  **No new projection mode and no `adapter.schema.json` change** — every primitive reuses an
+  already-enumerated mode. Cursor's `.cursor/` prefix is identical at both scopes
+  (`allowed-prefixes.{repo,user} = [".cursor/", ".agentbundle/"]`), the claude-code/codex pattern,
+  so the user-scope home is the generic user-rooting of the repo-relpath — no Cursor-specific
+  prefix rewrite (unlike Copilot's `.github/`→`.copilot/`). Distribution-only: `cursor` is not in
+  `SELF_HOST_ADAPTERS`. claude-code / kiro / kiro-ide / kiro-cli / copilot / codex projection
+  tables byte-identical to v0.10.
+
 - 2026-06-10: Correct the primitive matrix's Codex column to match the
   shipped v0.8 Codex entries already documented below: `agent` projects via
   `codex-agent-toml` to `.codex/agents/<name>.toml`, and `hook-wiring`
