@@ -215,19 +215,25 @@ stands in for.
     thing. This is the complement of #23, not a rival: #23 *comments*
     the irreducible, non-obvious complexity that must stay; this
     *splits* the accidental complexity that needn't. Decide which
-    you're looking at before recommending either.
+    you're looking at before recommending either. *Usually a Concern —
+    it blocks testing the arms in isolation; a Nit when the function is
+    short and the load is incidental.*
 25. **Nesting depth.** Deeply nested conditionals and loops are hard to
     read and hard to test. Recommend the *idiom-appropriate* flattening
     — guard clauses, pattern matching, an early return, a small
     extracted predicate — whatever the language reaches for. Don't
     mandate early `return` specifically; some languages and teams
     prefer a single exit. The smell is the depth, not the keyword.
+    *Usually a Concern when the depth hides an untested branch; a Nit
+    when it is merely dense but readable.*
 26. **Duplicated production blocks past the rule-of-three.** The same
     non-trivial block appearing a third time in production code is the
     point to extract a shared helper — #21's rule-of-three read the
     other way. **Test code is exempt**: tests stay DAMP (#4), and
     duplicated setup that lets a test read as a self-contained
     specification is the right kind of repetition, not a finding.
+    *Usually a Concern — the third copy is where the divergence bug
+    lands when one is changed and the others aren't.*
 27. **Magic literals of non-obvious origin, and function/parameter
     bloat.** A literal whose value is spec-derived, regulatory,
     calibrated, or otherwise non-obvious should become a named constant
@@ -237,7 +243,9 @@ stands in for.
     `adversarial-reviewer`'s threshold-suppression carve-out and never
     its opposite: a self-evident tunable like `MAX_RETRIES = 3` is
     **not** a finding, whereas a hard-coded tax rate or a regulatory cap
-    inline in the logic is.
+    inline in the logic is. *Usually a Nit — but a Concern when the
+    literal is load-bearing and a wrong copy would ship a silent bug
+    (a miscopied rate, an off-by-one cap).*
 
 ### Performance ergonomics
 
