@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cursor can now install the `research` and `architect` packs** — both packs added `cursor`
+  to their `allowed-adapters`, so `agentbundle install --pack research --adapter cursor` (and
+  `--pack architect`) now projects their skills to `.cursor/skills/` — and, for `research`, the
+  two retrieval subagents to `.cursor/agents/` with `readonly: true` — instead of refusing the
+  install up front. The Cursor adapter shipped in the previous release, but no pack had opted
+  in. The credentialed packs (atlassian, contracts, converters, figma, credential-brokers) are
+  not yet Cursor-installable — that expansion is gated on an RFC-0013 erratum (the credential
+  broker's adapter set is frozen by RFC-0013).
 - **`--dry-run` previews an install or upgrade without writing anything** —
   `agentbundle install --dry-run` and `agentbundle upgrade --dry-run` run the
   full read-only pre-flight, print a per-file plan to stdout (one

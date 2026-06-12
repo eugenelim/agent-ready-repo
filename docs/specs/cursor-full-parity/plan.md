@@ -321,4 +321,3 @@ Changelog.
 - 2026-06-11: initial plan. Tasks T1–T7, single PR. Both RFC open questions resolved in the spec
   spike (no-rewrite same-prefix scope; conservative readonly predicate); hook-event-map keyed on
   PascalCase source names (erratum vs RFC-0026, recorded in spec).
-</content>
