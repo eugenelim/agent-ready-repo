@@ -1,7 +1,8 @@
 # AGENTS.md
 
 > **This is the canonical agent context file.** `CLAUDE.md` is a symlink to this file.
-> Cursor, Codex, Gemini CLI, and Copilot also read it (via their own discovery rules).
+> Cursor, Codex, and Copilot also read it (via their own discovery rules); Gemini CLI
+> reads it via the `context.fileName` bridge the `gemini` adapter writes to `.gemini/settings.json`.
 >
 > Keep this file under ~200 lines. If you're tempted to add to it, ask first whether
 > the content belongs in `docs/`, a skill, or a subdirectory `AGENTS.md`.
