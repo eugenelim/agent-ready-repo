@@ -1,0 +1,19 @@
+[pack]
+name = "product-engineering"
+version = "0.1.0"
+description = "Shape product intent into shippable specs. Three habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (a capability intent and a feature intent are the same artifact at different levels). Outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds. Pure-markdown, user-scope; v1 is app/solo + single-component."
+
+# Pure-markdown SKILL.md surface — no adapter-specific primitives (no agents,
+# hooks, or commands), so it travels with every shipped adapter that projects
+# the skill primitive. Declares the current contract level; listing every
+# skill-supporting adapter is honest at v0.13 (copilot's first-class Agent
+# Skills landed at v0.12; cursor/gemini at v0.11/v0.12). Mirrors `research`.
+[pack.adapter-contract]
+version = "0.13"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# RFC-0011 / pack-allowed-adapters. Declared order is load-bearing (append-only);
+# `kiro-ide` precedes the others so a Kiro user's auto-probe resolves to the IDE.
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]

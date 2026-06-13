@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A new opt-in `product-engineering` pack shapes product intent into the specs
+  your delivery loop already builds (pack 0.1.0).** Three pure-markdown skills —
+  `frame-intent`, `de-risk-intent`, `decompose-intent` — work a recursive,
+  level-tagged `intent` (a capability intent and a feature intent are the same
+  artifact at different levels; a PRD is a feature intent written as a document).
+  Name an outcome and the opportunity behind it, de-risk the riskiest assumption
+  against a **predeclared kill condition** under a choosable **prototype-approach**
+  (`prototype-led` ↔ `validate-first`), then decompose to a shippable spec — at app
+  scale the leaf *is* a `core` brief, so `receive-brief` → `new-spec` → `work-loop`
+  take it from there with **no change to `core`**. One global **Scale** axis (app ↔
+  business-unit) plus per-intent maturity / reversibility / prototype-approach flags;
+  one-way tracker projection (Linear / Jira Align / none); habits, not infrastructure.
+  v1 is app/solo + single-component; the business-unit cross-component value-stream
+  layer is a later phase (RFC-0030, ADR-0019).
+
 - **The `architect` pack designs *and* reviews cloud architecture to the
   well-architected standard, and the design skill now converges (architect pack
   0.2.0).** `architect-design` shapes a one-page **concept first**, makes the
