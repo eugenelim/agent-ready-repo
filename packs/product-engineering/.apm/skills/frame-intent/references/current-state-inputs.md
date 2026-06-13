@@ -11,7 +11,12 @@ to the intent's *requirements* directly.
   replace paves cow paths. Frame the job forward with a JTBD job map.
 - **brownfield** (an existing system / process / experience): **offer** the two
   inputs below — they earn their place when there's a real current state to
-  account for.
+  account for. This is also the gate for the **current-landscape** area (area 2)
+  of `knowledge-surfaces.md`: when a knowledge-retrieval surface is present,
+  consult it for what systems / data / ownership *exist* today rather than
+  relying on recall; when none is present, ask the user and degrade (lower
+  confidence into `Assumptions`) exactly as that reference describes. Greenfield
+  skips both — there's no current landscape to query.
 
 ## The two inputs
 
