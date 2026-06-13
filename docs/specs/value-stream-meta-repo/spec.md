@@ -166,12 +166,17 @@ is goal-based for structure and manual-QA for judgment.
   `Epic:`** (external coordinator) — plus a one-line `receive-brief` note that the
   field is an optional upward pointer it carries but never interprets. **No other
   `core` change**; `core` imports nothing from the pack (grep-verified).
-- [x] A **cross-component rollup** seed ships at
-  `packs/product-engineering/seeds/docs/product/rollups/_template.md` — a
-  **markdown** table (one row per component slice → its brief → status snapshot +
-  pointer), placeholder-shaped and registered in
-  `tools/lint-seeds.py:REQUIRED_PLACEHOLDERS`. (The capability intent at the
-  meta-repo's top reuses the v1 `intents/_template.md` seed — no new seed. The
+- [x] A **cross-component rollup** template ships **with the `align-value-stream`
+  skill** at
+  `packs/product-engineering/.apm/skills/align-value-stream/assets/rollup-template.md`
+  — a **markdown** table (one row per component slice → its brief → status snapshot
+  + pointer). The skill copies it to `docs/product/rollups/<slug>.md` at runtime.
+  <!-- enriched-pack-manifest (2026-06-13): relocated from a repo `seeds/docs/product/rollups/`
+  seed to a skill asset (and de-registered from `tools/lint-seeds.py`). A pack shipping
+  `seeds/` cannot declare user scope (RFC-0004 Rail A), which contradicted product-engineering's
+  user-scope skills; carrying the template as a skill asset realizes RFC-0030's "skills travel"
+  intent. --> (The capability intent at the
+  meta-repo's top reuses the `frame-intent` skill's `intent-template.md` asset — no separate template. The
   federated **`catalog-info.yaml`** is Backstage-native and lives at each component
   repo's root, outside the "seeds land in `docs/product/`" convention, so it ships
   as a **sample in `align-value-stream/references/`**, not a projected seed.) The

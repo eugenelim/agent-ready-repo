@@ -1,7 +1,12 @@
 [pack]
 name = "credential-brokers"
-version = "0.1.0"
+version = "0.1.1"
 description = "User-scope credential brokering: credentials_shim (build-projected Python module for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill."
+readme = "README.md"
+display_name = "Credential Brokers"
+license = "Apache-2.0 OR MIT"
+categories = ["credentials", "security"]
+keywords = ["sso", "secrets", "broker", "auth"]
 
 [pack.adapter-contract]
 version = "0.7"
@@ -20,3 +25,14 @@ allowed-scopes = ["user", "repo"]
 # split; bare `kiro` deprecated). Declared order is load-bearing
 # (RFC-0011): append-only.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer. The `documentation` link to the per-pack guide home is a
+# follow-on (ADR-0020 guide migration).
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

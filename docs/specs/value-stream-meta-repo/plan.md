@@ -76,7 +76,9 @@ across rows, no hub), `catalog-currency.md` (the RFC-0016 drift discipline; the
 `monorepo-extras` seam referenced, not restated).
 
 ### Data & schema
-*Traces to: AC4.* The rollup template (`seeds/docs/product/rollups/_template.md`)
+*Traces to: AC4.* The rollup template (the `align-value-stream` skill's
+`assets/rollup-template.md`; relocated from a `seeds/` seed by
+enriched-pack-manifest so the pack stays user-scope)
 is a markdown table: columns `Component | Brief (repo + slug) | Contract@version |
 Status (snapshot) | Last synced`, placeholder-shaped. `core`'s brief gains one
 optional comment-guided field `**Parent intent:**` mirroring the `**Epic:**`
@@ -105,6 +107,12 @@ line's shape. No required field anywhere; never a gate.
 the shipped layer.
 
 ### T2: Cross-component rollup seed + lint-seeds registration
+
+> **Superseded 2026-06-13 (enriched-pack-manifest):** the rollup template was
+> relocated from this `seeds/` seed into the `align-value-stream` skill's
+> `assets/rollup-template.md` and de-registered from `tools/lint-seeds.py`, so
+> `product-engineering` ships no `seeds/` and stays user-scope (RFC-0004 Rail A).
+> The task below records the original (seed-based) implementation.
 
 **Depends on:** none
 **Touches:** packs/product-engineering/seeds/docs/product/rollups/_template.md, tools/lint-seeds.py

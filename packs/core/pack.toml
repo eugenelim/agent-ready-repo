@@ -1,7 +1,12 @@
 [pack]
 name = "core"
-version = "0.4.0"
+version = "0.4.1"
 description = "Core agent-ready-repo: work-loop, new-spec, bug-fix skills; reviewer/implementer agents; pre-pr + session-start hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
+readme = "README.md"
+display_name = "Core"
+license = "Apache-2.0 OR MIT"
+categories = ["governance", "code-review", "testing"]
+keywords = ["work-loop", "spec-driven", "reviewers", "agents"]
 
 # RFC-0004 ships the v0.2 contract bump alongside this pack's metadata.
 # The four shipped packs all declare the same shape so the catalogue's
@@ -20,3 +25,14 @@ version = "0.12"
 [pack.install]
 default-scope = "repo"
 allowed-scopes = ["repo"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer. The `documentation` link to the per-pack guide home is a
+# follow-on (ADR-0020 guide migration).
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
