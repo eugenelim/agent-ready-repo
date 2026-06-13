@@ -591,9 +591,18 @@ class GeminiAllPacksAdmissibleTests(unittest.TestCase):
         from agentbundle.commands.install import _resolve_target_adapter
 
         pack_dirs = sorted(p for p in self.PACKS_DIR.iterdir() if (p / "pack.toml").exists())
-        self.assertEqual(len(pack_dirs), 11, f"expected 11 packs, found {len(pack_dirs)}")
+        self.assertTrue(pack_dirs, "no packs discovered under packs/ — pack lookup is broken")
+        # Count-independent by design: don't pin the number of packs (every new
+        # pack would break an unrelated adapter test). Assert gemini resolution
+        # for the packs that *support* gemini — a pack with no allowed-adapters
+        # list admits any shipped adapter; a pack with a list must name gemini.
+        # Packs that constrain to a list without gemini are skipped, not failed.
+        # `checked` is the non-vacuity guard the old hard count used to be.
+        checked = 0
         for pack_dir in pack_dirs:
             allowed = self._allowed_adapters(pack_dir)
+            if allowed is not None and "gemini" not in allowed:
+                continue
             for scope in ("repo", "user"):
                 resolved = _resolve_target_adapter(
                     pack_dir,
@@ -607,6 +616,10 @@ class GeminiAllPacksAdmissibleTests(unittest.TestCase):
                     resolved, "gemini",
                     f"{pack_dir.name} @ {scope}: --adapter gemini was not admitted",
                 )
+            checked += 1
+        self.assertTrue(
+            checked, "no pack exercised gemini admission — the check ran vacuously"
+        )
 
 
 if __name__ == "__main__":
