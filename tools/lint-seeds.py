@@ -103,6 +103,7 @@ REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/product/changelog.md": ("Unreleased",),
     "docs/product/briefs/_template.md": ("<slug>", "<one-line outcome>"),
     "docs/product/intents/_template.md": ("<slug>", "<one-line outcome>"),
+    "docs/product/rollups/_template.md": ("<slug>", "<one-line outcome>"),
     "docs/CONVENTIONS.md": (),
     "AGENTS.md": ("<project-name>",),
     "docs/guides/README.md": (),

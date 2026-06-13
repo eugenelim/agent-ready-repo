@@ -32,6 +32,23 @@ One **global** axis, resolved once; the rest are **per-intent** flags.
 | **Reversibility** | per-intent (in `de-risk-intent`) | one-way ↔ two-way door | recommends the prototype-approach |
 | **Prototype-approach** | per-intent (in `de-risk-intent`) | `validate-first` ↔ `prototype-led` | how the bet is tested; defaulted by reversibility, overridable |
 
+## Business-unit scale — cross-component fields
+
+At `business-unit` Scale the feature intent is sliced per component into one
+`core` brief per repo, coordinated from a value-stream meta-repo (the
+`align-value-stream` skill). The fields and artifacts that appear at this scale:
+
+| Field / artifact | Where it lives | Meaning |
+| --- | --- | --- |
+| `parent-intent` | each per-component **brief** | optional upward pointer to the product `intent` the slice was projected from; provenance only, never interpreted by `receive-brief`. The brief-level analogue of the intent-level `Parent intent` back-link in *Intent fields* above — same upstream-pointer idea, one artifact down. Distinct from `Epic` (an external coordinator). |
+| federated catalog | meta-repo | Backstage Domain→System→Component→API; **references** each component repo's own `catalog-info.yaml`, never re-authored. |
+| `contract@version` + courier snapshot | each slice | the shared contract referenced by version (never forked) + a read-only snapshot for provenance; provider/consumer roles mirror `providesApi` / `consumesApi` with a compatibility direction. |
+| cross-component rollup | meta-repo | a markdown table, one row per slice → brief → status snapshot + coverage pointer; the **AND across rows** answers "delivered across all components?"; absent-source rows show `unknown / not-yet-catalogued` (never silently delivered). |
+
+The hard limits are stated honestly: **no atomic cross-repo commit**, **no shared
+release train**, and the rollup is a **snapshot, not a live feed**. See the
+how-to *Run a capability across a value stream*.
+
 ## Contract maturity by stage
 
 The detailed wire contract is pinned at the **spec** stage, not at intent.
