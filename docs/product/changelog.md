@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`architect-design` now consults the enterprise's own knowledge when the
+  environment exposes a retrieval surface (architect pack 0.3.0).** A new
+  progressive-disclosure reference (`knowledge-surfaces.md`) carries an 8-area
+  MECE knowledge taxonomy — business domain, current landscape, interfaces,
+  operational reality, constraints & standards, patterns, decisions, in-flight —
+  plus a **harness-agnostic detection** mechanism that discovers a retrieval
+  surface (an MCP knowledge tool, an internal CLI, an in-repo doc set) from the
+  session itself, hardcoding no tool name. A single conditional procedure step
+  loads the reference **only when a surface is detected**, and otherwise
+  **degrades gracefully** — asks for the missing context, lowers confidence, and
+  never fabricates landscape/standards/in-flight facts — reusing the existing
+  compose-with-`research` framing. No knowledge server or RAG engine ships (out
+  of charter); no registry, shared config, or cross-pack dependency.
+  `architect-review`/`architect-diagram` and a `product-engineering` sibling are
+  deferred follow-ups.
+
 - **A new opt-in `product-engineering` pack shapes product intent into the specs
   your delivery loop already builds (pack 0.1.0).** Three pure-markdown skills —
   `frame-intent`, `de-risk-intent`, `decompose-intent` — work a recursive,
