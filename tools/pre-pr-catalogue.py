@@ -60,7 +60,8 @@ def main() -> int:
 
     py = sys.executable  # parent interpreter for child scripts
 
-    # The 8 catalogue-internal checks, in the order the old pre-pr.py ran them.
+    # The catalogue-internal checks, in the order the old pre-pr.py ran them
+    # (later additions — self-tests, the knowledge-surface parity gate — append).
     _run("agents-md hygiene",   [py, "tools/lint-agents-md.py"])
     _run("agent-artifact lint", [py, "tools/lint-agent-artifacts.py"])
     _run("skill-spec lint",     [py, "tools/lint-skill-spec.py"])
@@ -70,6 +71,9 @@ def main() -> int:
     _run("credentialed-skill lint", [py, "tools/lint_credentialed_skills.py"])
     _run("credentialed-skill lint self-test",
          [py, "tools/test-lint-credentialed-skills.py"])
+    _run("knowledge-surface parity", [py, "tools/lint-knowledge-surface-parity.py"])
+    _run("knowledge-surface parity self-test",
+         [py, "tools/test-lint-knowledge-surface-parity.py"])
 
     # Delegate to the shipped adopter-facing hook for the work-loop caps gate.
     result = subprocess.run(
