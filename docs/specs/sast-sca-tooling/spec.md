@@ -72,9 +72,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   ships as a documented scaffold until real IDs are available.
 - Never add scanner config or CI surface beyond the sanctioned set —
   `bandit.yaml`, `.snyk`, `tools/requirements-sast.txt`, `tools/semgrep/`
-  (custom taint rules), and `.github/workflows/codeql.yml`, plus wiring edits to
-  `Makefile` (the `sast` target + the `build-check` chain) and
-  `.github/workflows/build-check.yml` (install the SAST tools) — without amending
+  (custom taint rules), and `.github/workflows/codeql.yml` (including its
+  `paths-ignore`), plus wiring edits to `Makefile` (the `sast` target; the
+  `build-check` chain, including its `SKIP_SAST` short-circuit; and the
+  `print-sast-dirs` / `print-sast-config` scope targets backed by `SAST_DIRS` /
+  `SAST_CONFIG`) and `.github/workflows/build-check.yml` (install the SAST tools;
+  the path-scoping detection step that sets `SKIP_SAST`) — without amending
   this spec. The finding-driven source fixes (`session-start.py` sanitizer,
   `sso-broker.py` scheme guard, the SHA-1 / arXiv / `# nosec` dispositions) are
   the only shipped-code edits.
@@ -109,9 +112,25 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   on a clean working tree it exits 0.
 - [x] **The SAST gate is dogfooded into this repo's own development per the
   repo's gate convention:** `make build-check` (the single native gate, run
-  locally per CONTRIBUTING and in the `build-check.yml` CI on every PR to `main`)
-  chains `make sast`, so a new medium+ finding fails this repo's own gate — it is
-  not a separate, skippable workflow. No standalone `sast.yml` is added.
+  locally per CONTRIBUTING and in the `build-check.yml` CI) chains `make sast`,
+  so a new medium+ finding fails this repo's own gate. SAST stays **inside** the
+  required `build-check` job — never a separate workflow, and no standalone
+  `sast.yml` is added. It runs on every push to `main` and on every PR that
+  changes a SAST-relevant file (see the path-scoping AC below); a PR that changes
+  no SAST-relevant file skips **only** the SAST leg — the required job still runs
+  and reports its drift + lint gates — so the gate as a whole is never skippable.
+- [x] **The SAST/SCA leg is path-scoped to avoid no-op runs, and fails
+  closed.** `build-check.yml`'s detection step skips `make sast` (via `make
+  build-check SKIP_SAST=1`) **only** when a PR's diff touches neither `SAST_DIRS`
+  (`make -s print-sast-dirs`) nor the gate's config/CI surface `SAST_CONFIG`
+  (`make -s print-sast-config`: `bandit.yaml`, `.snyk`, `Makefile`,
+  `build-check.yml`, `codeql.yml`) — so a PR that *loosens* the gate is scanned by
+  the gate it changes. Both lists are read from the `Makefile` (single source of
+  truth — no hard-coded list to drift), detection runs for `pull_request` only
+  (push-to-`main` always runs SAST), and any error reading the scope or the
+  changed-file set routes to running SAST (fail-closed). `codeql.yml` carries
+  `paths-ignore: docs/**`; it is a non-required check, so a skipped docs-only run
+  cannot block merge, and its weekly cron still rescans in full.
 - [x] A repo-root `bandit.yaml` configures Bandit to fail on **medium-or-higher
   severity at medium-or-higher confidence**, excludes test trees, and skips
   `B101`; every exclusion/skip carries a justifying comment.
