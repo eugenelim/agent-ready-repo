@@ -22,7 +22,8 @@ Before decomposing, confirm:
    assumption should reshape the parent, not spawn doomed specs.
 2. You know the intent's **Scale** (set by `frame-intent`). It decides whether
    the leaf is a same-repo brief (`app`) or a per-component slice crossing repos
-   (`business-unit` — phase 2, out of scope for v1).
+   (`business-unit`, coordinated from a value-stream meta-repo via
+   `align-value-stream`).
 
 ## Procedure
 
@@ -35,13 +36,23 @@ Before decomposing, confirm:
      shippable, agent-buildable unit (one coherent scope, vertical, ships and
      tests on its own). Cut by **shippability**, never by component or layer.
 
-2. **Project the leaf to a brief (`app` Scale).** A feature-level intent *is* a
-   `core` brief — the same outcome, success metrics (from the input/lagging/
-   guardrail), scope/non-goals, and an appetite. Write it to
-   `docs/product/briefs/<slug>.md` and hand to `receive-brief`. No new fields, no
-   slicing — `receive-brief` is level-agnostic and receives a brief for its own
-   repo. (At `business-unit` Scale the leaf is sliced per component into one brief
-   per repo — phase 2.)
+2. **Project the leaf — by Scale.** A feature-level intent is the leaf; how it
+   projects depends on Scale (`references/recursive-decomposition.md`):
+   - **`app` Scale** — it *is* a single `core` brief (same outcome, success
+     metrics from the input/lagging/guardrail, scope/non-goals, appetite). Write
+     it to `docs/product/briefs/<slug>.md` and hand to `receive-brief`. No new
+     fields, no slicing — `receive-brief` is level-agnostic and receives a brief
+     for its own repo.
+   - **`business-unit` Scale** — **slice it per component** into one `core` brief
+     per affected repo. Read the affected components and their
+     `providesApi`/`consumesApi` edges + the contract references from the
+     meta-repo's catalog (`align-value-stream`), and stamp each brief with
+     `parent-intent:` (the intent it was projected from), a `contract@version`
+     reference + read-only courier snapshot, and a provider/consumer role. Seed
+     one rollup row per slice in the meta-repo. Each brief then crosses into its
+     component repo, where `receive-brief` → `new-spec` → `work-loop` take over.
+     Coordinating across repos this way has hard limits (no atomic cross-repo
+     commit, no shared release train) — `align-value-stream` states them honestly.
 
 3. **Keep the contract behavioral here.** Carry only the *interaction* shape (who
    talks to whom, the consumer's expectations) into the brief; the **detailed

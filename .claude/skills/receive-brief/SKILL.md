@@ -65,7 +65,9 @@ sketch. Then fill the brief template by **conversation**, not by rejection.
 Record the result in `docs/product/briefs/<slug>.md`. Carry the optional
 `Epic:` pointer if this repo's work is one slice of a larger cross-repo effort
 — that pointer is the *only* nod to the wider epic; you own this repo's slice
-and nothing above it.
+and nothing above it. Likewise carry the optional `parent-intent:` pointer if
+the brief arrived as a per-component slice of a larger product intent — an
+upward provenance pointer you carry but never interpret, exactly like `Epic:`.
 
 ### 2. Decompose — cut by shippability, then surface the cut
 

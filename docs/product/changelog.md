@@ -35,6 +35,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `architect-review`/`architect-diagram` and a `product-engineering` sibling are
   deferred follow-ups.
 
+- **The `product-engineering` pack gains its business-unit cross-component layer
+  (pack 0.2.0).** A product org whose work fans out across **many component
+  repos** can now stand up a **value-stream meta-repo** — a coordinating repo with
+  no app code — via a new pure-markdown skill, **`align-value-stream`**. It holds
+  the cross-cutting artifacts a polyrepo has nowhere else to put: a **federated
+  Backstage catalog** (Domain→System→Component→API, referencing each repo's own
+  `catalog-info.yaml`, never re-authored), the **shared-contract authority**
+  (referenced by `contract@version` with a read-only courier snapshot, never
+  forked), the **C4/bounded-context architecture**, and a **cross-component
+  delivery rollup**. At business-unit scale `decompose-intent` now **slices a
+  feature intent per component** into one `core` brief per repo, each carrying an
+  optional **`parent-intent:`** provenance pointer (the one additive, never-
+  interpreted `core` brief field, distinct from `Epic:`), a versioned contract
+  reference, and a `providesApi`/`consumesApi` role; each brief crosses into its
+  component repo where `receive-brief` → `new-spec` → `work-loop` take over, and
+  the meta-repo rolls up "delivered across **all** components?" The rollup is a
+  **markdown snapshot** (absent-source rows show `unknown / not-yet-catalogued`,
+  never silently delivered) — **no runtime hub, no live API, no validator, no new
+  subagent**. The hard limits are stated honestly: **no atomic cross-repo commit,
+  no shared release train, snapshot-not-live**. Habits, not infrastructure
+  (RFC-0030 phase 2, ADR-0022).
+
 - **A new opt-in `product-engineering` pack shapes product intent into the specs
   your delivery loop already builds (pack 0.1.0).** Three pure-markdown skills —
   `frame-intent`, `de-risk-intent`, `decompose-intent` — work a recursive,
