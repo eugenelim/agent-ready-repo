@@ -27,6 +27,7 @@
 | 0019 | [Product shaping is a recursive level-tagged `intent` tree; a brief is a feature-intent projected onto one repo; contracts mature by stage](0019-product-intent-ontology-and-brief-projection.md) | Accepted |
 | 0020 | [Per-pack Diátaxis hierarchy for `docs/guides/` (`docs/guides/<pack>/{quadrant}/`) — amends ADR-0001's guides sub-decision; adopter seed scaffold stays type-at-top](0020-per-pack-diataxis-hierarchy-for-guides.md) | Accepted |
 | 0021 | [`pack.toml` is the metadata source of truth, projected lossily per tool; pack identity is `@catalogue/pack` (RFC-0031 D2 + D7)](0021-pack-manifest-source-of-truth-and-scoped-identity.md) | Accepted |
+| 0022 | [The business-unit cross-component layer — a value-stream meta-repo, per-component brief slicing with `parent-intent` provenance, and a referenced (never forked) shared contract](0022-value-stream-meta-repo-cross-component-layer.md) | Accepted |
 
 ## Adding a new ADR
 

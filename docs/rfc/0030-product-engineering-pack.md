@@ -279,6 +279,14 @@ Filled in on acceptance:
 
 ---
 
+## Errata
+
+Post-acceptance corrections to this frozen RFC. Each is approver-signed and dated.
+
+- **2026-06-13 (eugenelim):** Open question #2 ("Phase-2 contract-authority home") was stamped *Decide-by: **phase-2 RFC***. Phase 2 is being delivered by a spec (`docs/specs/value-stream-meta-repo/`) + **ADR-0022**, **not** a new RFC — because the cross-component layer was already *accepted* in this RFC (decision #9 + Appendix A), so no cross-cutting proposal remained to circulate (per the project rule: open a new RFC only if phase-2 scope exceeds what this RFC accepted; it does not). ADR-0022 resolves the open question exactly to this RFC's stated default: the authority **location** stays org-specific (elicited per value stream; default the meta-repo), and only the **reference-by-version + courier-snapshot shape** is fixed. The "phase-2 RFC" decide-by vehicle is therefore satisfied by **ADR-0022**.
+
+---
+
 ## Appendix A — Phase-2 cross-component research (straight-to-spec)
 
 This appendix preserves the phase-2 research in enough depth to author
