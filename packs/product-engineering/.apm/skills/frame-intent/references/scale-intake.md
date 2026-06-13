@@ -7,7 +7,7 @@ else — altitude, where the work lives, how it decomposes — follows from it.
 | Scale | What it means | Typical top level | Leaf lands as |
 | --- | --- | --- | --- |
 | `app` | a solo dev / small team in **one repo** | `feature` | a `core` brief in this repo |
-| `business-unit` | a product org whose work fans out to **many component repos** | `capability` | per-component briefs (phase 2) |
+| `business-unit` | a product org whose work fans out to **many component repos** | `capability` | per-component briefs, coordinated from a value-stream meta-repo |
 
 ## The routine
 
@@ -28,9 +28,11 @@ the artifact records the mode.
 
 Scale sets the **default level** (`app` → feature; `business-unit` → capability)
 and tells `decompose-intent` whether the leaf is a same-repo brief (`app`) or a
-per-component slice that crosses repos (`business-unit`, phase 2). v1 of the pack
-serves the **`app` + single-component** path end to end; the `business-unit`
-cross-component layer is specified but deferred.
+per-component slice that crosses repos (`business-unit`). At `business-unit` Scale
+the cross-component artifacts — catalog, shared contracts, architecture, and the
+delivery rollup — live in a coordinating **value-stream meta-repo** (the
+`align-value-stream` skill); `decompose-intent` slices each feature intent into
+one brief per component and seeds that rollup.
 
 > Scale is the *only* global mode. **Maturity** (greenfield/brownfield) and, in
 > `de-risk-intent`, **reversibility** + the **prototype-approach** are per-intent
