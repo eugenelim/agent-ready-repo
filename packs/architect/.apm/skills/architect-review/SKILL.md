@@ -1,6 +1,6 @@
 ---
 name: architect-review
-description: Use when the user pastes an architecture artifact (design doc, diagram, RFC, ADR) and asks for critique. Triggers on "review this", "what's wrong with", "is this any good", or any artifact-shaped paste with a question attached. Produces a verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), executive summary, severity-tagged findings, and a closing "what's working" section. Inline only. Do NOT use to produce an artifact (use `architect-design` or `architect-diagram`).
+description: Use when the user pastes an architecture artifact (design doc, diagram, RFC, ADR) and asks for critique. Triggers on "review this", "what's wrong with", "is this any good", or any artifact-shaped paste with a question attached. Produces a verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), executive summary, severity-tagged findings, and a closing "what's working" section. Also runs a well-architected / lens review mode (concern + workload-class lenses incl. GenAI/agentic) emitting a risk register with mechanical/judgment-tagged findings. Inline only. Do NOT use to produce an artifact (use `architect-design` or `architect-diagram`).
 ---
 
 # Skill: architect-review
@@ -40,11 +40,18 @@ If any check fails, push back rather than reviewing.
    a design doc — flag it with the **WRONG ARTIFACT** verdict and
    route to the right skill.
 
-2. **Walk the rubric.** Read every check; note the failures. Do not
+2. **Or — well-architected lens mode** (orthogonal to artifact type): when the
+   ask is whether a *design* is well-architected (provider / pillar / a named
+   concern- or workload-class lens, incl. GenAI/agentic), walk
+   `references/rubric-well-architected.md` and write `assets/risk-register.md` —
+   it tags each finding **🔧 mechanical / 🧭 judgment** + scenario, reuses the
+   verdict/severity below, and does **not** auto-fix (a critique, not the loop).
+
+3. **Walk the rubric.** Read every check; note the failures. Do not
    start writing findings yet — finish the rubric pass first so the
    findings can be ordered by severity, not by discovery order.
 
-3. **Decide the verdict** before writing the findings:
+4. **Decide the verdict** before writing the findings:
    - **SHIP IT.** Zero blockers, ≤2 minors. Rare and worth saying so.
    - **SHIP WITH CHANGES.** Blockers absent or trivially fixable;
      majors exist but the artifact's shape is right.
@@ -53,7 +60,7 @@ If any check fails, push back rather than reviewing.
    - **WRONG ARTIFACT.** The artifact answers a question the user
      didn't ask. Name the right artifact and route.
 
-4. **Write the review** using the shape in `assets/critique.md`:
+5. **Write the review** using `assets/critique.md` (or `assets/risk-register.md` in WA mode):
    - Verdict (one line).
    - Executive summary (≤3 sentences).
    - Findings, ordered by severity, each with: **where** (5–10 words
@@ -63,7 +70,7 @@ If any check fails, push back rather than reviewing.
    - **What's working** (2–4 specific reusable strengths). Not
      flattery. Things the author should *keep* during a rewrite.
 
-5. **No file write.** Render inline. If the user explicitly asks to
+6. **No file write.** Render inline. If the user explicitly asks to
    save the review, write to a path they choose with a kebab-case
    slug — but the default is throwaway.
 
