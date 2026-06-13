@@ -1012,9 +1012,9 @@ Skills do not hold credentials. A *credentialed primitive* — a Python
 module, an MCP server, or a CLI wrapper packaged as a primitive —
 owns the secret on disk and constructs the API call inside its own
 process. The skill body invokes the primitive without ever touching
-the token. The how-to `docs/guides/how-to/add-a-credentialed-skill.md`
-walks authors through broker selection and the verbatim security-rules
-blocks; the shipped `jira` / `figma` skills are runnable references.
+the token. A how-to on adding a credentialed skill walks authors
+through broker selection and the verbatim security-rules blocks; the
+shipped `jira` / `figma` skills are runnable references.
 
 ### Frontmatter declarations
 

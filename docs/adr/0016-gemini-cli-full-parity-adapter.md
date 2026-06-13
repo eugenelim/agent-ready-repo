@@ -10,7 +10,7 @@
 
 ## Context
 
-The adapter catalogue projects one canonical set of pack primitives (`.apm/skills`, `.apm/agents`, `.apm/hooks`, `.apm/hook-wiring`, `.apm/commands`) into each tool's native discovery layout. Gemini CLI was classified in `docs/guides/reference/adapter-support.md` as a **"Universal layer" / `AGENTS.md` reader only** — no skills, subagents, commands, or hooks.
+The adapter catalogue projects one canonical set of pack primitives (`.apm/skills`, `.apm/agents`, `.apm/hooks`, `.apm/hook-wiring`, `.apm/commands`) into each tool's native discovery layout. Gemini CLI was classified in `docs/guides/_shared/reference/adapter-support.md` as a **"Universal layer" / `AGENTS.md` reader only** — no skills, subagents, commands, or hooks.
 
 That classification is stale in **both** directions, confirmed against current official Gemini CLI documentation (RFC-0027 § Evidence):
 

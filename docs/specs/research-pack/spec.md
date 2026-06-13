@@ -187,82 +187,82 @@ Manual QA: one observable archaeology-shaped run produces `archaeology.md` and p
 - `rg '^## (Depth cues|Depth selection|Adopter cues)\s*$' packs/research/.apm/skills/<skill>/SKILL.md` returns exactly one section heading (end-anchored so `## Cues for X` and similar leakages cannot pass; the bare `Cues` alternative is dropped from the closed set as too generic).
 - Within the section body (extracted via flag-based awk that avoids the range-degeneracy defect on overlapping start/end patterns: `awk '/^## (Depth cues|Depth selection|Adopter cues)\s*$/{f=1;next} f && /^## /{f=0} f' SKILL.md`), at least two distinct tokens from the closed vocabulary appear.
 
-- [x] **AC22 — Diátaxis tutorial guide.** `docs/guides/tutorials/research-first-session.md` exists. The guide walks an adopter from `agentbundle install research --scope user` through invoking `/research` in `quick`, `standard`, `applied`, and `deep` modes, with one transcript excerpt per mode demonstrating the artifact-presence signature (no artifact for quick; `research.md` for standard; `research.md` with the applied discipline marker for applied; `research.md` + `counterpoints.md` for deep). Target completion time ≤20 minutes for an adopter following along (four modes ≤5 min each; extended from the original three-mode ≤15-minute target by the applied-mode amendment) — verified by a manual-QA timing note appended to the implementing PR's description (per the visual/manual-QA discipline; a soft aspiration alone is not the contract). Diátaxis discipline per `docs/guides/README.md` (and the canonical framework): the tutorial *leads*, doesn't *enumerate*; explanations link out to AC25's explanation guide, reference details link out to AC24's reference guide. Verification — each `rg -F` invocation separate, each required to return ≥1 hit:
+- [x] **AC22 — Diátaxis tutorial guide.** `docs/guides/research/tutorials/research-first-session.md` exists. The guide walks an adopter from `agentbundle install research --scope user` through invoking `/research` in `quick`, `standard`, `applied`, and `deep` modes, with one transcript excerpt per mode demonstrating the artifact-presence signature (no artifact for quick; `research.md` for standard; `research.md` with the applied discipline marker for applied; `research.md` + `counterpoints.md` for deep). Target completion time ≤20 minutes for an adopter following along (four modes ≤5 min each; extended from the original three-mode ≤15-minute target by the applied-mode amendment) — verified by a manual-QA timing note appended to the implementing PR's description (per the visual/manual-QA discipline; a soft aspiration alone is not the contract). Diátaxis discipline per `docs/guides/README.md` (and the canonical framework): the tutorial *leads*, doesn't *enumerate*; explanations link out to AC25's explanation guide, reference details link out to AC24's reference guide. Verification — each `rg -F` invocation separate, each required to return ≥1 hit:
   - File exists.
-  - `rg -F 'agentbundle install research' docs/guides/tutorials/research-first-session.md`.
+  - `rg -F 'agentbundle install research' docs/guides/research/tutorials/research-first-session.md`.
   - Each mode walked (substring match intentional — `quick` also catches `quickly` / `quick check`, both of which AC11 lists as casual phrasings; the mode is the subject, not a literal word boundary):
-    - `rg -F 'quick' docs/guides/tutorials/research-first-session.md`
-    - `rg -F 'standard' docs/guides/tutorials/research-first-session.md`
-    - `rg -F 'applied' docs/guides/tutorials/research-first-session.md`
-    - `rg -F 'deep' docs/guides/tutorials/research-first-session.md`
+    - `rg -F 'quick' docs/guides/research/tutorials/research-first-session.md`
+    - `rg -F 'standard' docs/guides/research/tutorials/research-first-session.md`
+    - `rg -F 'applied' docs/guides/research/tutorials/research-first-session.md`
+    - `rg -F 'deep' docs/guides/research/tutorials/research-first-session.md`
   - Transcript excerpts name the artifacts they demonstrate (closes the trivially-satisfiable-by-mode-name-alone risk):
-    - `rg -F 'research.md' docs/guides/tutorials/research-first-session.md`
-    - `rg -F 'counterpoints.md' docs/guides/tutorials/research-first-session.md`
-  - Code-fence floor (four transcript excerpts × two fence lines each = ≥8 fence lines): `grep -c '^```' docs/guides/tutorials/research-first-session.md` returns ≥8.
-  - `wc -l docs/guides/tutorials/research-first-session.md` returns ≥50 lines (sanity floor; a one-paragraph stub fails).
+    - `rg -F 'research.md' docs/guides/research/tutorials/research-first-session.md`
+    - `rg -F 'counterpoints.md' docs/guides/research/tutorials/research-first-session.md`
+  - Code-fence floor (four transcript excerpts × two fence lines each = ≥8 fence lines): `grep -c '^```' docs/guides/research/tutorials/research-first-session.md` returns ≥8.
+  - `wc -l docs/guides/research/tutorials/research-first-session.md` returns ≥50 lines (sanity floor; a one-paragraph stub fails).
 
-- [x] **AC23 — Diátaxis how-to guide.** `docs/guides/how-to/research-pipelines.md` exists. The how-to documents three recipes — the survey pipeline (`/build-outline → /source-map → /research`), the decision pipeline (`/identify-perspectives → /source-map → /compare-hypotheses → /devils-advocate`), and the archaeology pipeline (`/decision-archaeology`). Each recipe names the invocation sequence, the expected artifacts produced, and one degraded-mode example (e.g., what happens if `/source-map` is skipped in the decision pipeline). Diátaxis discipline: task-shaped, not learning-shaped; assumes the adopter knows the pack exists and wants to *do* something specific. Verification:
+- [x] **AC23 — Diátaxis how-to guide.** `docs/guides/research/how-to/research-pipelines.md` exists. The how-to documents three recipes — the survey pipeline (`/build-outline → /source-map → /research`), the decision pipeline (`/identify-perspectives → /source-map → /compare-hypotheses → /devils-advocate`), and the archaeology pipeline (`/decision-archaeology`). Each recipe names the invocation sequence, the expected artifacts produced, and one degraded-mode example (e.g., what happens if `/source-map` is skipped in the decision pipeline). Diátaxis discipline: task-shaped, not learning-shaped; assumes the adopter knows the pack exists and wants to *do* something specific. Verification:
   - File exists.
-  - Three pipeline names appear (each separately enforced): `rg -F 'survey' docs/guides/how-to/research-pipelines.md` AND `rg -F 'decision' docs/guides/how-to/research-pipelines.md` AND `rg -F 'archaeology' docs/guides/how-to/research-pipelines.md` each return ≥1 hit.
+  - Three pipeline names appear (each separately enforced): `rg -F 'survey' docs/guides/research/how-to/research-pipelines.md` AND `rg -F 'decision' docs/guides/research/how-to/research-pipelines.md` AND `rg -F 'archaeology' docs/guides/research/how-to/research-pipelines.md` each return ≥1 hit.
   - All seven artifact filenames appear (each separately enforced): `rg -F 'perspectives.md'`, `rg -F 'outline.md'`, `rg -F 'sources.md'`, `rg -F 'research.md'`, `rg -F 'counterpoints.md'`, `rg -F 'hypotheses.md'`, `rg -F 'archaeology.md'` — each against the file, each returning ≥1 hit.
 
-- [x] **AC24 — Diátaxis reference guide.** `docs/guides/reference/research-pack.md` exists. The reference is the authoritative dry catalog: enumerates the seven skills with their SKILL.md `name` + `description` reproduced verbatim, the two retrieval subagents with their tool surface and model, the `/research` mode parameter with the closed set `quick | standard | applied | deep` and default `quick`, the GRADE-style confidence schema with all four levels and downgrade factors (plus the applied-mode overlay per AC27), the retriever interface contract (`content` / `citations` / `shape` keys; `raw | synthesized | meta` values), and the closed depth-cues vocabulary from AC21. Diátaxis discipline: information-oriented, complete, dry; no narrative; sectioned by primitive type. Verification — each `rg -F` invocation separate, each required to return ≥1 hit (`rg -F` accepts one pattern per call; chaining `-F` flags treats subsequent values as filenames):
+- [x] **AC24 — Diátaxis reference guide.** `docs/guides/research/reference/research-pack.md` exists. The reference is the authoritative dry catalog: enumerates the seven skills with their SKILL.md `name` + `description` reproduced verbatim, the two retrieval subagents with their tool surface and model, the `/research` mode parameter with the closed set `quick | standard | applied | deep` and default `quick`, the GRADE-style confidence schema with all four levels and downgrade factors (plus the applied-mode overlay per AC27), the retriever interface contract (`content` / `citations` / `shape` keys; `raw | synthesized | meta` values), and the closed depth-cues vocabulary from AC21. Diátaxis discipline: information-oriented, complete, dry; no narrative; sectioned by primitive type. Verification — each `rg -F` invocation separate, each required to return ≥1 hit (`rg -F` accepts one pattern per call; chaining `-F` flags treats subsequent values as filenames):
   - File exists.
   - All seven skill names (each separate):
-    - `rg -F 'identify-perspectives' docs/guides/reference/research-pack.md`
-    - `rg -F 'build-outline' docs/guides/reference/research-pack.md`
-    - `rg -F 'source-map' docs/guides/reference/research-pack.md`
-    - `rg -F 'research' docs/guides/reference/research-pack.md`
-    - `rg -F 'devils-advocate' docs/guides/reference/research-pack.md`
-    - `rg -F 'compare-hypotheses' docs/guides/reference/research-pack.md`
-    - `rg -F 'decision-archaeology' docs/guides/reference/research-pack.md`
+    - `rg -F 'identify-perspectives' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'build-outline' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'source-map' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'research' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'devils-advocate' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'compare-hypotheses' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'decision-archaeology' docs/guides/research/reference/research-pack.md`
   - All four modes (each separate — mirrors AC11's mode-list discipline):
-    - `rg -F 'quick' docs/guides/reference/research-pack.md`
-    - `rg -F 'standard' docs/guides/reference/research-pack.md`
-    - `rg -F 'applied' docs/guides/reference/research-pack.md`
-    - `rg -F 'deep' docs/guides/reference/research-pack.md`
+    - `rg -F 'quick' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'standard' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'applied' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'deep' docs/guides/research/reference/research-pack.md`
   - All four confidence levels (each separate):
-    - `rg -F 'high' docs/guides/reference/research-pack.md`
-    - `rg -F 'moderate' docs/guides/reference/research-pack.md`
-    - `rg -F 'low' docs/guides/reference/research-pack.md`
-    - `rg -F 'uncertain' docs/guides/reference/research-pack.md`
+    - `rg -F 'high' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'moderate' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'low' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'uncertain' docs/guides/research/reference/research-pack.md`
   - All three retriever interface keys as quoted strings (each separate — mirroring AC7's pass-3 form):
-    - `rg -F '"content"' docs/guides/reference/research-pack.md`
-    - `rg -F '"citations"' docs/guides/reference/research-pack.md`
-    - `rg -F '"shape"' docs/guides/reference/research-pack.md`
+    - `rg -F '"content"' docs/guides/research/reference/research-pack.md`
+    - `rg -F '"citations"' docs/guides/research/reference/research-pack.md`
+    - `rg -F '"shape"' docs/guides/research/reference/research-pack.md`
   - All three retriever shape values as quoted strings (each separate):
-    - `rg -F '"raw"' docs/guides/reference/research-pack.md`
-    - `rg -F '"synthesized"' docs/guides/reference/research-pack.md`
-    - `rg -F '"meta"' docs/guides/reference/research-pack.md`
+    - `rg -F '"raw"' docs/guides/research/reference/research-pack.md`
+    - `rg -F '"synthesized"' docs/guides/research/reference/research-pack.md`
+    - `rg -F '"meta"' docs/guides/research/reference/research-pack.md`
   - All eight cue vocabulary tokens from AC21 (each separate):
-    - `rg -F 'quickly' docs/guides/reference/research-pack.md`
-    - `rg -F 'comprehensively' docs/guides/reference/research-pack.md`
-    - `rg -F 'top three' docs/guides/reference/research-pack.md`
-    - `rg -F 'exhaustively' docs/guides/reference/research-pack.md`
-    - `rg -F 'in depth' docs/guides/reference/research-pack.md`
-    - `rg -F 'briefly' docs/guides/reference/research-pack.md`
-    - `rg -F 'summary only' docs/guides/reference/research-pack.md`
-    - `rg -F 'extensive' docs/guides/reference/research-pack.md`
+    - `rg -F 'quickly' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'comprehensively' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'top three' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'exhaustively' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'in depth' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'briefly' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'summary only' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'extensive' docs/guides/research/reference/research-pack.md`
   - Both subagent names (each separate):
-    - `rg -F 'evidence-retriever' docs/guides/reference/research-pack.md`
-    - `rg -F 'source-extractor' docs/guides/reference/research-pack.md`
+    - `rg -F 'evidence-retriever' docs/guides/research/reference/research-pack.md`
+    - `rg -F 'source-extractor' docs/guides/research/reference/research-pack.md`
 
-- [x] **AC25 — Diátaxis explanation guide.** `docs/guides/explanation/research-methodology.md` exists. The explanation describes the *why* — the seven convergent disciplines and what each contributes to the pack's skill bodies, plus the architectural choices that fell out of the design conversation: mode-on-`/research` (description-collision avoidance); retrieval-only subagents (multi-agent failure-mode evidence); flat directory layout (agentskills.io spec recommendation); citation-forcing per claim; the moderator unused-snippet pass. Diátaxis discipline: understanding-oriented, narrative, links to the canonical references rather than restating them. Verification — each `rg` invocation separate, each required to return ≥1 hit:
+- [x] **AC25 — Diátaxis explanation guide.** `docs/guides/research/explanation/research-methodology.md` exists. The explanation describes the *why* — the seven convergent disciplines and what each contributes to the pack's skill bodies, plus the architectural choices that fell out of the design conversation: mode-on-`/research` (description-collision avoidance); retrieval-only subagents (multi-agent failure-mode evidence); flat directory layout (agentskills.io spec recommendation); citation-forcing per claim; the moderator unused-snippet pass. Diátaxis discipline: understanding-oriented, narrative, links to the canonical references rather than restating them. Verification — each `rg` invocation separate, each required to return ≥1 hit:
   - File exists.
   - All seven methodologies named (each separate `rg -F` invocation):
-    - `rg -F 'STORM' docs/guides/explanation/research-methodology.md`
-    - `rg -F 'PRISMA' docs/guides/explanation/research-methodology.md`
-    - `rg -F 'ACH' docs/guides/explanation/research-methodology.md`
-    - `rg -F 'Wikipedia' docs/guides/explanation/research-methodology.md`
-    - `rg -F 'OSINT' docs/guides/explanation/research-methodology.md`
-    - `rg -F 'GIJN' docs/guides/explanation/research-methodology.md`
-    - `rg -F 'GRADE' docs/guides/explanation/research-methodology.md`
+    - `rg -F 'STORM' docs/guides/research/explanation/research-methodology.md`
+    - `rg -F 'PRISMA' docs/guides/research/explanation/research-methodology.md`
+    - `rg -F 'ACH' docs/guides/research/explanation/research-methodology.md`
+    - `rg -F 'Wikipedia' docs/guides/research/explanation/research-methodology.md`
+    - `rg -F 'OSINT' docs/guides/research/explanation/research-methodology.md`
+    - `rg -F 'GIJN' docs/guides/research/explanation/research-methodology.md`
+    - `rg -F 'GRADE' docs/guides/research/explanation/research-methodology.md`
   - Each named architectural choice appears at least once (each verified by a separate `rg -E` invocation with alternation — `rg -E` accepts a regex with `|` alternation; success on either alternative satisfies the check; the alternatives are substring-disjoint so the OR is meaningful):
-    - `rg -E 'mode-on-research|mode parameter' docs/guides/explanation/research-methodology.md`
-    - `rg -E 'retrieval-only subagents|retrieval subagents' docs/guides/explanation/research-methodology.md`
-    - `rg -E 'citation-forcing|citation forcing' docs/guides/explanation/research-methodology.md`
-    - `rg -E 'moderator pass|unused snippet' docs/guides/explanation/research-methodology.md`
-    - `rg -E 'flat directory layout|flat layout' docs/guides/explanation/research-methodology.md`
+    - `rg -E 'mode-on-research|mode parameter' docs/guides/research/explanation/research-methodology.md`
+    - `rg -E 'retrieval-only subagents|retrieval subagents' docs/guides/research/explanation/research-methodology.md`
+    - `rg -E 'citation-forcing|citation forcing' docs/guides/research/explanation/research-methodology.md`
+    - `rg -E 'moderator pass|unused snippet' docs/guides/research/explanation/research-methodology.md`
+    - `rg -E 'flat directory layout|flat layout' docs/guides/research/explanation/research-methodology.md`
 
 - [x] **AC26 — `applied` mode artifact + discipline marker (canonical-form literal, byte-for-byte).** Applied-mode invocation produces `research.md` (same filename as standard mode — downstream skills like `/devils-advocate` compose without change). The artifact's first non-heading line is the **canonical discipline marker, byte-for-byte literal**: `> Discipline: applied (practitioner-pattern survey)` — no markdown bold (`**Discipline:**`), no em-dash variant (`— practitioner-pattern survey`), no synonym substitution (`Mode:` instead of `Discipline:`). The marker is an audit signal recording that applied mode fired; it is NOT the rule-set selector (the `mode` parameter is — see AC27). SKILL.md sets the canonical form as the verbatim copy-paste example in the body. Verification:
   - SKILL.md grep: `rg -F 'mode: quick | standard | applied | deep' packs/research/.apm/skills/research/SKILL.md` returns ≥1 hit (literal mode parameter).
@@ -280,9 +280,9 @@ Manual QA: one observable archaeology-shaped run produces `archaeology.md` and p
     - `rg -iE 'audit signal|post.condition' packs/research/.apm/skills/research/references/confidence-schema.md` (claim 2: the marker is the post-condition audit signal — `post.condition` regex matches both `post-condition` and `post condition`).
     - `rg -iE 'not.*re.?rate|does not retroactively|cannot.*retroactively' packs/research/.apm/skills/research/references/confidence-schema.md` (claim 3: manually-added marker does not retroactively re-rate findings).
 
-- [x] **AC28 — Applied cue vocabulary documented; closed set is four phrase-shaped cues; `/research`-only.** `packs/research/.apm/skills/research/SKILL.md` documents the closed applied-cue set inline. The reference guide at `docs/guides/reference/research-pack.md` enumerates the same set. The closed set, fully enumerated and fully grep-enforced (positive + negative), is exactly four phrase-shaped cues: `applied patterns for`, `best practice for`, `prior art on`, `grey literature`. Each is a phrase rather than a bare word so the dispatcher carries intent disambiguation built into the token shape — refusing the failure mode where a bare word like `applied` would trigger on incidental mentions (`"how GRADE has been applied to clinical reviewing"` — academic intent, accidental applied dispatch). **Scope rail:** applied cues are `/research`-only — they do NOT extend the depth-cue vocabulary of the six other skills, which stay mode-flat with the existing AC21 depth-cue set (`comprehensively` is a depth cue to `/source-map`, not a re-dispatch into applied mode). Verification — each `rg -F` invocation separate, each required to return the noted result:
+- [x] **AC28 — Applied cue vocabulary documented; closed set is four phrase-shaped cues; `/research`-only.** `packs/research/.apm/skills/research/SKILL.md` documents the closed applied-cue set inline. The reference guide at `docs/guides/research/reference/research-pack.md` enumerates the same set. The closed set, fully enumerated and fully grep-enforced (positive + negative), is exactly four phrase-shaped cues: `applied patterns for`, `best practice for`, `prior art on`, `grey literature`. Each is a phrase rather than a bare word so the dispatcher carries intent disambiguation built into the token shape — refusing the failure mode where a bare word like `applied` would trigger on incidental mentions (`"how GRADE has been applied to clinical reviewing"` — academic intent, accidental applied dispatch). **Scope rail:** applied cues are `/research`-only — they do NOT extend the depth-cue vocabulary of the six other skills, which stay mode-flat with the existing AC21 depth-cue set (`comprehensively` is a depth cue to `/source-map`, not a re-dispatch into applied mode). Verification — each `rg -F` invocation separate, each required to return the noted result:
   - Positive (≥1 hit each in `/research`): `rg -F 'applied patterns for'`, `rg -F 'best practice for'`, `rg -F 'prior art on'`, `rg -F 'grey literature'` each against `packs/research/.apm/skills/research/SKILL.md`.
-  - Positive (≥1 hit each in the reference guide): `rg -F 'applied patterns for'`, `rg -F 'best practice for'`, `rg -F 'prior art on'`, `rg -F 'grey literature'` each against `docs/guides/reference/research-pack.md`.
+  - Positive (≥1 hit each in the reference guide): `rg -F 'applied patterns for'`, `rg -F 'best practice for'`, `rg -F 'prior art on'`, `rg -F 'grey literature'` each against `docs/guides/research/reference/research-pack.md`.
   - Negative (zero hits each in every non-`/research` skill, for every cue): `rg -F 'applied patterns for'`, `rg -F 'best practice for'`, `rg -F 'prior art on'`, `rg -F 'grey literature'` each against `packs/research/.apm/skills/identify-perspectives/SKILL.md`, `build-outline/SKILL.md`, `source-map/SKILL.md`, `devils-advocate/SKILL.md`, `compare-hypotheses/SKILL.md`, `decision-archaeology/SKILL.md`. Closed against leakage — applied cues are `/research`-only.
 
 - [x] **AC29 — Discipline frames (four) named within the body's Applied-mode section; practitioner-independence + recency rules documented.** `packs/research/.apm/skills/research/SKILL.md`'s applied-mode body section (heading `### Applied mode` under the `## Modes` parent) names four discipline frames applied mode serves — `prior art`, `best practice`, `case studies`, `anti-patterns` — covering both the positive shapes (what's been done; what the community considers right) and the failure-mode shapes (specific worked examples; what to avoid). The four-frame set is closed at the spec level but not enforced as a precedence rule — they overlap and compose in practice. The body documents the practitioner-independence rule (three sources from the same vendor or in the same employer cohort count as one) and the recency rule (>5-year-old patterns in fast-moving domains are suspect under the `stale prior art` downgrade factor). Verification — **section-scoped** via flag-based awk extraction of the `### Applied mode` body (avoiding the AC21 range-pattern degeneracy), then separate `rg -F` invocations against the extracted section, each required to return ≥1 hit. The section-scope closes the failure mode where `prior art` and `best practice` would automatically pass the grep by virtue of being in AC28's cue-list documentation elsewhere in the file:

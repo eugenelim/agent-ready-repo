@@ -34,3 +34,7 @@ Once credentials are set up, ask your agent, for example:
 - "List the variables defined in this Figma file: <file-url>."
 - "Render frame 3 of this Figma file as a PNG."
 - "Convert the FigJam connector graph in <file-url> to a Mermaid diagram."
+
+---
+
+→ **Go deeper:** the [`figma` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/figma/).
