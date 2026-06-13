@@ -213,6 +213,9 @@ forward-looking, not retroactively.
   `core` and the install→adapt chain that closes on first session.
 - [`docs/CONVENTIONS.md` § How we do non-trivial work](../../CONVENTIONS.md#how-we-do-non-trivial-work) —
   the contributor-side rationale, deeper than this page.
+- [The token economy of the loop](token-economy.md) — what the loop
+  wastes, what it spends on purpose, and why the cold reviewer is worth
+  its cost.
 - [The `work-loop` skill itself](../../../packs/core/.apm/skills/work-loop/SKILL.md) —
   the authoritative procedure. Loaded by the agent when a non-trivial
   task starts.
