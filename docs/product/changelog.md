@@ -35,6 +35,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `architect-review`/`architect-diagram` and a `product-engineering` sibling are
   deferred follow-ups.
 
+- **`architect-review` now checks that a design was grounded in the enterprise's
+  own knowledge (architect pack 0.4.0).** The review-side counterpart of the
+  `architect-design` awareness above: a duplicated, **verification-lens**
+  `knowledge-surfaces.md` reuses the same 8-area MECE taxonomy as a checklist —
+  *is this area's claim grounded?* — and one conditional procedure step flags any
+  landscape / standards / in-flight / interface claim asserted as fact without
+  grounding (no cited surface and no "unverified — confirm" marker), plus any
+  available knowledge surface the design ignored. It **does not redesign** and
+  **does not consult surfaces to author a better answer** — if an internal
+  surface is reachable it may spot-check the claims (naming what it checked
+  against, or "none"); if not, it flags them for the author to confirm rather
+  than guessing, and never fabricates a "ground truth" to judge against.
+  Harness-agnostic detection (no hardcoded tools, public web excluded); no
+  registry, shared config, or cross-pack/cross-skill dependency. `architect-design`
+  and `architect-diagram` are unchanged; `architect-diagram` awareness and the
+  `product-engineering` sibling remain deferred.
+
 - **The `product-engineering` pack gains its business-unit cross-component layer
   (pack 0.2.0).** A product org whose work fans out across **many component
   repos** can now stand up a **value-stream meta-repo** — a coordinating repo with

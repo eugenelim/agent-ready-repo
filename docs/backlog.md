@@ -228,15 +228,20 @@ wire it into `make build-check`).
 
 ### architect-review-diagram-knowledge-surfaces
 
-The knowledge-surface awareness landed in `architect-design` only (the skill
-where the consult genuinely happens). Extending it to the two sibling skills is
-deferred as a fast-follow: `architect-review` would *check* that a design
-reconciled against the available surfaces (flagging unsupported landscape/
-standards claims), and `architect-diagram` would consult the **current
-landscape** area to draw accurate as-is diagrams. A separate sibling for the
-`product-engineering` pack (problem-space lens: domain, landscape, operational,
-in-flight) is also a fast-follow. **Unblocks when:** the architect-design shape
-proves out and the owner opts in (spec `Ask first` Boundary).
+The knowledge-surface awareness first landed in `architect-design` (the skill
+where the consult genuinely happens). **The `architect-review` half has now
+shipped** (`docs/specs/architect-review-knowledge-surfaces`, architect pack
+`0.4.0`): `architect-review` gained a verification-lens
+`references/knowledge-surfaces.md` + one conditional procedure step that
+*checks* a design reconciled against the available surfaces — flagging any
+landscape / standards / in-flight / interface claim asserted as fact without
+grounding, plus any available surface the design ignored, without redesigning.
+
+**Only `architect-diagram` remains** of the two sibling skills: it would consult
+the **current landscape** area to draw accurate as-is diagrams. A separate
+sibling for the `product-engineering` pack (problem-space lens: domain,
+landscape, operational, in-flight) is also still a fast-follow. **Unblocks
+when:** the owner opts in (spec `Ask first` Boundary).
 
 ### live-mock-mcp-detection-qa
 
