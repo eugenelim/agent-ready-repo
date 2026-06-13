@@ -47,6 +47,30 @@ A feature-level leaf intent **is** a `core` brief — the projection is identity
 
 Write it to `docs/product/briefs/<slug>.md` and hand to `receive-brief`. No new
 brief fields are needed — `receive-brief` is level-agnostic and always receives a
-brief *for its own repo*. (At `business-unit` Scale the feature intent is sliced
-per component into one brief per repo, each carrying a `parent-intent:` provenance
-pointer — **phase 2**, out of scope for v1.)
+brief *for its own repo*.
+
+## The per-component slice projection (`business-unit` Scale)
+
+At `business-unit` Scale a feature intent fans out across many component repos,
+and a polyrepo has no shared tree to spec it in. So instead of one brief, the
+feature leaf is **sliced per component** into **one `core` brief per affected
+repo** — cut by component here because each component repo is its own
+spec-context boundary, not because component is a valid *shippability* cut (the
+feature is still the shippable unit; the slices are how it crosses repo
+boundaries). Read the affected components and their `providesApi`/`consumesApi`
+edges and contract references from the meta-repo's catalog (the
+`align-value-stream` skill owns that catalog), then stamp each slice's brief with:
+
+- **`parent-intent:`** — an optional upward pointer to the capability/feature
+  intent the slice was projected from (additive on `core`'s brief template,
+  distinct from `Epic:`; `receive-brief` carries it but never interprets it).
+- **A `contract@version` reference + a read-only courier snapshot** — never the
+  contract copied in as authority (that forks it). See `align-value-stream`'s
+  `shared-contract-handoff` reference.
+- **A provider/consumer role** — which side of each `providesApi`/`consumesApi`
+  edge this component is on, plus the compatibility direction.
+
+Then seed **one rollup row per slice** in the meta-repo's cross-component rollup
+so `align-value-stream` can answer "delivered across all components?" Each brief
+crosses into its component repo, where `receive-brief` → `new-spec` → `work-loop`
+take it the rest of the way — exactly the app-scale handoff, once per repo.

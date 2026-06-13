@@ -3,8 +3,9 @@
 > **Diátaxis: how-to.** A goal-oriented walk through the `product-engineering`
 > loop at **app scale** (one repo, one feature). For the why, see the explanation
 > *The intent tree*; for fields, the reference *Intent fields and modes*. For
-> business-unit / cross-component shaping, see the forward note at the end — that
-> path is phase 2.
+> business-unit / cross-component shaping (a capability across many component
+> repos), see the how-to [*Run a capability across a value
+> stream*](run-a-capability-across-a-value-stream.md).
 
 You have an idea or a request and you want to turn it into a spec your delivery
 loop can build, without skipping the thinking. Install the `product-engineering`
@@ -55,7 +56,8 @@ end-to-end example ships with the pack at
 
 ---
 
-**Business-unit / cross-component (phase 2).** When a capability spans many
-component repos, `decompose-intent` slices the feature intent **per component**
-into one brief per repo, coordinated from a value-stream meta-repo. That path is
-specified but not yet shipped — see RFC-0030 Appendix A.
+**Business-unit / cross-component.** When a capability spans many component
+repos, `decompose-intent` slices the feature intent **per component** into one
+brief per repo, coordinated from a value-stream meta-repo via
+`align-value-stream`. See the how-to [*Run a capability across a value
+stream*](run-a-capability-across-a-value-stream.md).

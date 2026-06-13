@@ -1,6 +1,6 @@
 # Spec: value-stream-meta-repo (product-engineering phase 2)
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0030 (decision #9 + Appendix A), ADR-0022, ADR-0019, ADR-0008 (contract seam reused, not changed), RFC-0016 (currency/doc-drift discipline), RFC-0020 (`reference.md` architect seam)
@@ -137,7 +137,7 @@ is goal-based for structure and manual-QA for judgment.
 
 ## Acceptance Criteria
 
-- [ ] A new skill **`align-value-stream`** ships at
+- [x] A new skill **`align-value-stream`** ships at
   `packs/product-engineering/.apm/skills/align-value-stream/SKILL.md` (<100 lines,
   valid frontmatter passing `tools/lint-skill-spec.py`) and documents: the
   **value-stream meta-repo** as a coordinating repo with no app code; the
@@ -149,7 +149,7 @@ is goal-based for structure and manual-QA for judgment.
   **C4/bounded-context architecture** living here (the `architect` seam); and the
   **cross-component rollup**. Its anti-patterns refuse a **runtime hub / live API**,
   **re-authoring** federated data, and **attach-as-authority** contracts.
-- [ ] **`decompose-intent` gains the business-unit slicing branch** (still <100
+- [x] **`decompose-intent` gains the business-unit slicing branch** (still <100
   lines): at `business-unit` Scale a de-risked feature intent is sliced into **one
   `core` brief per affected component**, each carrying an optional **`parent-intent:`**
   pointer, a **version-pinned contract reference + courier snapshot**, and a
@@ -160,13 +160,13 @@ is goal-based for structure and manual-QA for judgment.
   `recursive-decomposition.md` and `frame-intent`'s `scale-intake.md` — is a
   construction check in plan T4, not a contract clause. `tracker-projection.md`'s
   *live-API* deferral is **not** a BU stub and stays.)
-- [ ] **`core`'s brief template gains an optional `parent-intent:` field** at
+- [x] **`core`'s brief template gains an optional `parent-intent:` field** at
   `packs/core/seeds/docs/product/briefs/_template.md` — additive, placeholder-shaped,
   documented as the product-pack intent the slice was projected from, **distinct from
   `Epic:`** (external coordinator) — plus a one-line `receive-brief` note that the
   field is an optional upward pointer it carries but never interprets. **No other
   `core` change**; `core` imports nothing from the pack (grep-verified).
-- [ ] A **cross-component rollup** seed ships at
+- [x] A **cross-component rollup** seed ships at
   `packs/product-engineering/seeds/docs/product/rollups/_template.md` — a
   **markdown** table (one row per component slice → its brief → status snapshot +
   pointer), placeholder-shaped and registered in
@@ -180,7 +180,7 @@ is goal-based for structure and manual-QA for judgment.
   represented: an explicit **`unknown / not-yet-catalogued`** status, **never**
   silently counted as delivered (so the "AND across rows" answer is never falsely
   green).
-- [ ] **`align-value-stream` references** ship under its skill dir documenting, at
+- [x] **`align-value-stream` references** ship under its skill dir documenting, at
   depth: the **Backstage ontology** + federation (including a worked
   `catalog-info.yaml` **sample** in `references/backstage-ontology.md` — the
   federated entity shape, since it is not a projected seed); the **shared-contract
@@ -190,13 +190,13 @@ is goal-based for structure and manual-QA for judgment.
   direction); the **cross-component rollup** mechanics (snapshot + pointer, AND
   across rows, no runtime hub); and **catalog currency** (the RFC-0016 doc-drift
   discipline). The `monorepo-extras` seam is **referenced, not restated**.
-- [ ] **The two new skills cross-reference each other** (grep-verified):
+- [x] **The two new skills cross-reference each other** (grep-verified):
   `decompose-intent`'s BU branch names `align-value-stream`; `align-value-stream`
   names `decompose-intent` as the source of the slices it rolls up.
-- [ ] **The hard limits are stated honestly** in the skills and the guide: **no
+- [x] **The hard limits are stated honestly** in the skills and the guide: **no
   atomic cross-repo commit**, **no shared release train**, and the rollup is a
   **snapshot, not a live feed**.
-- [ ] **The Diátaxis guides are updated**: a new phase-2 **how-to** page ships at
+- [x] **The Diátaxis guides are updated**: a new phase-2 **how-to** page ships at
   `docs/guides/how-to/<problem-named>.md` ("run a capability across a value stream /
   many component repos") reading accurately against the shipped skills; the v1
   **forward references** in `docs/guides/how-to/shape-a-feature-intent.md` — **both**
@@ -206,14 +206,14 @@ is goal-based for structure and manual-QA for judgment.
   **reference** guide (`docs/guides/reference/intent-fields-and-modes.md`) gains the
   BU-scale fields (`parent-intent:`, the rollup, the catalog). Manual-QA recorded in
   the PR.
-- [ ] **The pack version bumps** to `0.2.0` (`pack.toml` + `.claude-plugin/plugin.json`),
+- [x] **The pack version bumps** to `0.2.0` (`pack.toml` + `.claude-plugin/plugin.json`),
   the README's "what's NOT in this pack" moves the BU cross-component layer **out of
   "phase 2"** (and into what ships), and `make build-self FORCE=1` re-aggregates
   `.claude-plugin/marketplace.json` to the new version.
-- [ ] **No hook / engine / validator / poller / live API / subagent / new top-level
+- [x] **No hook / engine / validator / poller / live API / subagent / new top-level
   directory** is introduced; the pack stays pure markdown (grep-verified).
-- [ ] A **`docs/product/changelog.md` `[Unreleased]`** entry records the phase-2 layer.
-- [ ] `make lint-packs`, `make validate`, `make build`, `tools/lint-seeds.py`,
+- [x] A **`docs/product/changelog.md` `[Unreleased]`** entry records the phase-2 layer.
+- [x] `make lint-packs`, `make validate`, `make build`, `tools/lint-seeds.py`,
   `tools/lint-skill-spec.py`, the package `pytest` suite (incl. the inner
   `packages/agentbundle/agentbundle/build/tests/` root), and `make build-self FORCE=1`
   are **green**; every shipped `SKILL.md` is <100 lines; the spec is added to

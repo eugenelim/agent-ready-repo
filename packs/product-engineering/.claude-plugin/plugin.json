@@ -1,5 +1,5 @@
 {
   "name": "product-engineering",
-  "version": "0.1.0",
-  "description": "Shape product intent into shippable specs. Three habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (a capability intent and a feature intent are the same artifact at different levels). Outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds. Pure-markdown, user-scope; v1 is app/solo + single-component."
+  "version": "0.2.0",
+  "description": "Shape product intent into shippable specs. Habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (a capability intent and a feature intent are the same artifact at different levels). Outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds — at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. Pure-markdown, user-scope."
 }
