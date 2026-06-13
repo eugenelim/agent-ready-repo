@@ -19,6 +19,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The `architect` pack designs *and* reviews cloud architecture to the
+  well-architected standard, and the design skill now converges (architect pack
+  0.2.0).** `architect-design` shapes a one-page **concept first**, makes the
+  design **well-architected by construction** for the chosen provider — AWS /
+  Azure / GCP, **primitives providers like Hetzner** (it names the capability
+  gaps you must build yourself), or **local-first** (the local→production delta +
+  graduation path) — and then runs a **convergence loop**: it obtains a review
+  pass, **auto-resolves the mechanical findings** without asking, re-reviews, and
+  **surfaces only the judgment calls** (tradeoffs, risk acceptances,
+  low-confidence assumptions) to you as decisions. `architect-review` gains a
+  **well-architected / lens mode** (security · FinOps · SRE · DR · data ·
+  compliance · green concern-lenses, plus ML / **GenAI-agentic** / SaaS /
+  serverless workload-class lenses) that emits a risk register with every finding
+  tagged **mechanical / judgment** — the signal the design loop consumes. The
+  loop is an enhancement when both skills are present and degrades to an embedded
+  rubric self-check when it isn't; for genuinely novel domains the design takes a
+  **leading-edge path** that composes with the `research` skill when available and
+  degrades to flagged-novelty + lowered-confidence when absent. Pure-markdown, no
+  subagents, no new pack; the loop is an in-conversation procedure with no script
+  or state file. `architect-diagram` gains a `cloud-primitives` diagram vocab for
+  parity with its AWS/Azure/GCP references.
 - **The `security-reviewer` is stronger, current, and shifts left (core pack 0.4.0).**
   Security review is no longer only a late gate: on security-boundary work the
   `work-loop` now dispatches the reviewer in a **spec-stage secure-design mode**

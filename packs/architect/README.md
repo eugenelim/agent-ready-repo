@@ -6,9 +6,9 @@ one repo.
 
 | Skill | What it does |
 | --- | --- |
-| `architect-design` | Drafts Google-style design docs (TL;DR → context → goals → proposal → alternatives → risks → rollout → open questions) with Mermaid diagrams inline where structure needs a picture. |
-| `architect-diagram` | Produces Mermaid diagrams routed by intent (C4, flowchart, sequence, state, ER). Cloud-aware (AWS / Azure / GCP) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). |
-| `architect-review` | Critiques an existing design doc or diagram with severity-tagged findings, genre-aware rubric routing, and a one-line verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT). |
+| `architect-design` | Shapes a one-page concept first, then drafts a Google-style design doc (TL;DR → context → goals → proposal → alternatives → risks → rollout → open questions) with Mermaid inline — **well-architected by construction** for the chosen provider (AWS / Azure / GCP, primitives providers like Hetzner, or local-first) and **converged against review** (auto-resolve mechanical findings, surface the judgment calls). |
+| `architect-diagram` | Produces Mermaid diagrams routed by intent (C4, flowchart, sequence, state, ER). Cloud-aware (AWS / Azure / GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). |
+| `architect-review` | Critiques an existing design doc or diagram with severity-tagged findings, genre-aware rubric routing, and a one-line verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT). Adds a **well-architected / lens mode** (concern + workload-class lenses, incl. GenAI/agentic) that emits a risk register with each finding tagged **mechanical / judgment**. |
 
 ## Install
 
@@ -100,9 +100,19 @@ packs/architect/
     │   ├── references/
     │   │   ├── design-doc-rubric.md
     │   │   ├── alternatives.md
-    │   │   └── nfr-checklist.md
+    │   │   ├── nfr-checklist.md
+    │   │   ├── well-architected-pillars.md
+    │   │   ├── quality-attribute-scenarios.md
+    │   │   ├── tradeoffs-and-sensitivity.md
+    │   │   ├── cloud-primitives.md
+    │   │   ├── local-dev.md
+    │   │   ├── cross-cutting-questions.md
+    │   │   ├── lens-genai-agentic.md
+    │   │   ├── convergence-loop.md          # design-only: the loop procedure
+    │   │   └── leading-edge-domains.md      # design-only: novel-domain method
     │   └── assets/
-    │       └── design-doc.md
+    │       ├── design-doc.md
+    │       └── concept.md                   # the one-page Stage-0 concept
     ├── architect-diagram/
     │   ├── SKILL.md
     │   ├── references/
@@ -110,24 +120,28 @@ packs/architect/
     │   │   ├── diagram-rubric.md
     │   │   ├── cloud-patterns.md
     │   │   ├── mermaid-{flowchart,sequence,c4,state,er,architecture-beta}.md
-    │   │   ├── cloud-{aws,azure,gcp}.md
+    │   │   ├── cloud-{aws,azure,gcp,primitives}.md
     │   │   └── agentic-{bedrock-agentcore,ai-foundry,vertex-agent-engine}.md
     │   └── assets/
     │       └── c4-container.mmd
     └── architect-review/
         ├── SKILL.md
         ├── references/
-        │   ├── rubric-design-doc.md
-        │   ├── rubric-c4-diagram.md
-        │   ├── rubric-sequence-diagram.md
-        │   ├── rubric-state-diagram.md
-        │   ├── rubric-er-diagram.md
-        │   └── rubric-generic.md
+        │   ├── rubric-{design-doc,c4-diagram,sequence-diagram,state-diagram,er-diagram,generic}.md
+        │   ├── rubric-well-architected.md   # WA-mode rubric + mechanical/judgment test
+        │   ├── well-architected-pillars.md  # ┐
+        │   ├── quality-attribute-scenarios.md #  │ duplicated from architect-design
+        │   ├── tradeoffs-and-sensitivity.md #  │ (skill autonomy beats DRY),
+        │   ├── cloud-primitives.md          #  │ each with a one-line note
+        │   ├── local-dev.md                 #  │
+        │   ├── cross-cutting-questions.md   #  │
+        │   └── lens-genai-agentic.md        # ┘
         └── assets/
-            └── critique.md
+            ├── critique.md
+            └── risk-register.md             # WA-mode output shape
 ```
 
-Rubrics are deliberately duplicated between `architect-design`'s
-self-check rubric and `architect-review`'s critique rubrics. Each
-duplicated rubric carries a one-line note. The duplication is the
-principle, not the bug.
+Rubrics and well-architected references are deliberately duplicated
+between `architect-design` and `architect-review` rather than shared via
+inter-skill references. Each duplicated file carries a one-line note. The
+duplication is the principle, not the bug — each skill stands alone.
