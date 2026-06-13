@@ -20,6 +20,59 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the SAST-relevance diff below can reach the PR's
+          # merge-base. (check-adr-immutability in docs.yml also uses
+          # fetch-depth: 0, though it diffs 2-dot rather than the 3-dot
+          # merge-base form used here.)
+          fetch-depth: 0
+
+      # SAST is relevant to a PR when it touches either the scanned dirs
+      # (SAST_DIRS) or the gate's own config/CI surface (SAST_CONFIG — e.g.
+      # bandit.yaml, this workflow). A PR that touches neither has nothing to
+      # scan, so skip that leg — the job still runs (it is the required check)
+      # and its drift + lint gates still execute. Push-to-main always runs SAST
+      # (this step is PR-only; github.event.pull_request.base.sha is absent on
+      # push), so post-merge keeps a full pass as belt-and-braces.
+      #
+      # Two safety properties:
+      #   - Single source of truth: both lists are read from the Makefile, so
+      #     the predicate can't drift from SAST_DIRS / SAST_CONFIG.
+      #   - Fail CLOSED: any error reading the scope or the changed-file set
+      #     routes to skip_sast=false, so uncertain detection runs SAST. And
+      #     because SAST_CONFIG includes this workflow + bandit.yaml, a PR that
+      #     loosens the gate is itself scanned by the gate it changes.
+      - name: Detect whether SAST-relevant files changed
+        id: changes
+        if: github.event_name == 'pull_request'
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          dirs=$(make -s print-sast-dirs) || {
+            echo "::warning::Could not read SAST_DIRS from Makefile — running SAST (fail-closed)."
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          cfg=$(make -s print-sast-config) || {
+            echo "::warning::Could not read SAST_CONFIG from Makefile — running SAST (fail-closed)."
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          changed=$(git diff --name-only "$base"..."$head") || {
+            echo "::warning::Could not compute changed files — running SAST (fail-closed)."
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          dir_pat="^($(echo "$dirs" | tr ' ' '|'))/"
+          run=false
+          # Any file under a scanned dir → SAST is relevant.
+          if printf '%s\n' "$changed" | grep -qE "$dir_pat"; then run=true; fi
+          # Any edit to the gate's config/CI surface → SAST must run so the
+          # change is validated by the gate it changes. Whole-line fixed-string
+          # match (paths contain regex metachars like '.').
+          for c in $cfg; do
+            if printf '%s\n' "$changed" | grep -qxF "$c"; then run=true; fi
+          done
+          if [ "$run" = true ]; then
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_sast=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::No SAST-relevant files changed (dirs: [$dirs]; config: [$cfg]) — skipping SAST/SCA gate."
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,11 +90,18 @@ jobs:
         # `make build-check` chains `make sast` (ADR-0017), which needs Bandit,
         # pip-audit, and Semgrep on PATH. Install before invoking make so the
         # dogfooded SAST gate is reachable. The shipped packages stay
-        # dependency-free; these are CI-only dev tools.
+        # dependency-free; these are CI-only dev tools. Skipped when the diff
+        # touches no SAST-relevant file (see the detection step above) — the
+        # SKIP_SAST flag below bypasses the scan, so the tools needn't be
+        # installed.
+        if: steps.changes.outputs.skip_sast != 'true'
         run: pip install -r tools/requirements-sast.txt
 
       - name: Run make build-check
-        run: make build-check PACKS_DIR=packs
+        # Pass SKIP_SAST=1 only when the diff touches no SAST-relevant file; the
+        # Makefile then skips the SAST/SCA leg while still running every drift
+        # and lint gate. Empty string (the default / push-to-main) runs SAST.
+        run: make build-check PACKS_DIR=packs ${{ steps.changes.outputs.skip_sast == 'true' && 'SKIP_SAST=1' || '' }}
 
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep

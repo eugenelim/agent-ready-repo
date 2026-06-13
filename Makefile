@@ -12,7 +12,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr sast validate clean zipapp release-preflight
+.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr sast print-sast-dirs print-sast-config validate clean zipapp release-preflight
 
 # Windows-portability gate. Refuses packs that ship symlinks or
 # Windows-poisonous names under seeds/ or .apm/. Runs before every
@@ -85,7 +85,18 @@ build-check: lint-packs build
 	$(PYTHON) .claude/skills/receive-brief/scripts/lint-brief-coverage.py
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
-	$(MAKE) sast
+	# SKIP_SAST short-circuits the SAST/SCA leg only (the drift + lint gates
+	# above always run). build-check.yml sets it for PRs that touch no
+	# SAST-relevant file (neither SAST_DIRS nor SAST_CONFIG) — the scanners
+	# have nothing to scan, so the ~76k-LOC pass is pure waste there. Intent of
+	# ADR-0017 is preserved: SAST stays chained into the required build-check
+	# job (not a separate skippable workflow) and runs on every PR that changes
+	# a SAST-relevant file.
+	@if [ -n "$(SKIP_SAST)" ]; then \
+		echo "build-check: SKIP_SAST set — skipping SAST/SCA gate (no SAST-relevant changes to scan)"; \
+	else \
+		$(MAKE) sast; \
+	fi
 
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
@@ -107,6 +118,25 @@ build-check: lint-packs build
 # Excluding the duplicates avoids a second inline pragma system in shipped pack
 # scripts.
 SAST_DIRS := tools packs packages
+
+# The SAST config / CI surface that *governs* the gate but lives outside
+# SAST_DIRS. A diff touching any of these must run SAST so a change that
+# loosens the gate (e.g. a wider bandit.yaml exclusion or SEMGREP_EXCLUDE) is
+# validated by the gate it changes — build-check.yml's detection treats these
+# as SAST-relevant. (tools/requirements-sast.txt and tools/semgrep/ are already
+# covered by SAST_DIRS, so they need not be repeated here.)
+SAST_CONFIG := bandit.yaml .snyk Makefile .github/workflows/build-check.yml .github/workflows/codeql.yml
+
+# Single source of truth for the SAST scan scope + config surface.
+# build-check.yml's SAST-relevance detection reads these (`make -s
+# print-sast-dirs` / `print-sast-config`) instead of hard-coding the lists, so
+# the workflow predicate can't drift from them and silently skip the scan on a
+# newly-added scannable dir or an edit to the gate's own config.
+print-sast-dirs:
+	@echo $(SAST_DIRS)
+
+print-sast-config:
+	@echo $(SAST_CONFIG)
 SEMGREP_EXCLUDE := \
 	--exclude-rule python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 \
 	--exclude-rule python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected \
