@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentbundle"
-version = "0.3.0"
-description = "Reference CLI and distribution pipeline for the agent-ready-repo adapter contract."
+version = "0.3.1"
+description = "npm for your coding agent. Install packs of skills, subagents, and hooks into any repo, for every major agent."
 requires-python = ">=3.11"
 dependencies = []
 authors = [{ name = "eugenelim", email = "eugenelim@users.noreply.github.com" }]

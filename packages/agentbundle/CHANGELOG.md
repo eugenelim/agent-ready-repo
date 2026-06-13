@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.3.1] — 2026-06-12
+
+### Changed
+
+- **README rewritten for adoption** — quick start, a common-commands
+  reference, and the "npm for your coding agent" framing; the PyPI summary
+  now matches.
+- **Static-analysis annotations** carried in from the repo's SAST gate
+  (ADR-0017): `# nosec B310` on the constant-base GitHub-archive fetch and
+  `usedforsecurity=False` on the non-security finding-ID digest. No runtime
+  behaviour change.
+
 ## [0.3.0] — 2026-06-12
 
 ### Added
