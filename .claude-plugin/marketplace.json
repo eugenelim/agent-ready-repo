@@ -18,7 +18,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "architect",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -169,7 +169,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "product-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.2.1"
+      "version": "0.3.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
