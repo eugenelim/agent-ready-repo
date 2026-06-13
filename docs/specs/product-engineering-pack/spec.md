@@ -57,7 +57,9 @@ The three-tier guard that keeps an implementing agent inside the lines.
 - **Never** ship a hook, an engine, a validator/linter script, or a new subagent in
   this pack (habits, not infrastructure; the 3-reviewer ceiling stands).
 - **Never** add a new top-level directory; the pack lives at `packs/product-engineering/`,
-  seeds under its `seeds/docs/product/`, guides under the existing `docs/guides/`.
+  with its skill templates under each skill's `assets/`, guides under the existing
+  `docs/guides/`. <!-- enriched-pack-manifest: templates moved from `seeds/docs/product/`
+  to skill `assets/` so the pack ships no seeds and stays user-scope (Rail A). -->
 - **Never** make `core` import from or depend on this pack — `core` stands alone.
 - **Never** build the cross-component / value-stream / meta-repo layer, live tracker
   API sync, or wire-contract authoring here (phase 2 / existing seams own those).
@@ -107,10 +109,16 @@ structure and manual-QA for judgment.
   decomposition (next level down — child intents, or specs/slices at the leaf);
   **the brief as a feature-intent projected onto a repo**; and **one-way** tracker
   projection profiles (`none` / Linear-lean / Jira-Align-deep) with no live API.
-- [x] An **`intent` artifact template** ships as a seed at
-  `packs/product-engineering/seeds/docs/product/intents/_template.md` with the documented
-  fields (level, outcome incl. input/lagging/guardrail, opportunity, assumptions,
-  decomposition/children, optional parent-intent), placeholder-shaped (`lint-seeds` passes).
+- [x] An **`intent` artifact template** ships **with the `frame-intent` skill** at
+  `packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md`
+  with the documented fields (level, outcome incl. input/lagging/guardrail,
+  opportunity, assumptions, decomposition/children, optional parent-intent).
+  <!-- enriched-pack-manifest (2026-06-13): relocated from a repo `seeds/docs/product/intents/`
+  seed to a skill asset. A pack shipping `seeds/` cannot declare `"user" ∈ allowed-scopes`
+  (RFC-0004 Rail A), which contradicted this pack's user-scope skills; carrying the template
+  as a skill asset that the skill copies into `docs/product/intents/<slug>.md` at runtime
+  realizes RFC-0030's "skills travel; the doc lands repo-scope" intent without the conflict.
+  No longer `lint-seeds`-registered. -->
 - [x] An **example** worked intent ships under a skill dir at
   `packs/product-engineering/.apm/skills/frame-intent/examples/` (app-scale feature
   intent → `core`-shaped brief), clearly labelled an example demonstrating the shape,

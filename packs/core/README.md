@@ -34,3 +34,12 @@ opt out of hooks for safety. See
 for the contract surface and
 [`docs/rfc/0010-apm-install-route-parity.md`](../../docs/rfc/0010-apm-install-route-parity.md)
 for the design rationale.
+
+## Usage
+
+`core` is the loop itself. Ask your agent, for example:
+
+- "Start a new spec for a rate-limiting feature." (`new-spec`)
+- "Implement this spec with the work-loop." (`work-loop`)
+- "Fix this bug: the importer drops the last row." (`bug-fix`)
+- "Adapt this repo to the installed packs." (`/adapt-to-project`)

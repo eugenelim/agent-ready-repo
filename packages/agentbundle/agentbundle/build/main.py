@@ -137,6 +137,23 @@ def _read_install_marker_template() -> bytes:
     return (REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py").read_bytes()
 
 
+def _project_pack_readme(pack_path: Path, per_pack_output: Path) -> None:
+    """Copy a pack's ``README.md`` into its per-pack dist route, if present.
+
+    enriched-pack-manifest T5: the README is the sole portable per-pack doc,
+    and the manifest's ``readme = "README.md"`` pointer resolves relative to
+    the route directory. A pack without a README projects none and does not
+    error (the ``readme`` field is then simply absent / unresolved — never a
+    build failure). ``follow_symlinks=False`` mirrors the pack.toml copy so a
+    symlinked README is not dereferenced into ``dist/`` at build time.
+    """
+    readme_src = pack_path / "README.md"
+    if readme_src.is_file():
+        shutil.copy2(
+            readme_src, per_pack_output / "README.md", follow_symlinks=False
+        )
+
+
 def validate_derived_plugin_manifest_dict(manifest: dict, label: str = "<derived>") -> None:
     """Validate an in-memory derived plugin manifest dict against the derived schema.
 
@@ -160,6 +177,78 @@ def validate_derived_plugin_manifest(plugin_json_path: Path) -> None:
     """
     manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
     validate_derived_plugin_manifest_dict(manifest, label=str(plugin_json_path))
+
+
+def derive_projectable_subset(pack_toml: dict) -> dict:
+    """Map a parsed ``pack.toml`` to the projectable plugin-manifest subset.
+
+    enriched-pack-manifest (RFC-0031 / ADR-0021): ``pack.toml`` is the rich
+    metadata source of truth; the build projects a *lossy*, schema-compliant
+    subset into the claude-plugins + apm routes (the ``plugin.json`` /
+    ``marketplace.json`` entry). Fixed mapping:
+
+      - ``author``      ← first ``[[pack.maintainers]]``, rendered
+        ``"Name <email>"`` (name alone when no email).
+      - ``license``     ← ``[pack].license`` (verbatim).
+      - ``homepage``    ← ``[pack.links].homepage`` (verbatim).
+      - ``repository``  ← ``[pack.links].repository`` (verbatim).
+      - ``keywords``    ← ``[pack].keywords`` (string entries, verbatim).
+      - ``category``    ← ``categories[0]``.
+      - ``displayName`` ← ``[pack].display_name``.
+
+    **Emit-only-when-present** is the load-bearing invariant: a key appears in
+    the output only when its source field is present and non-empty, so a
+    legacy ``pack.toml`` declaring none of the enriched fields yields ``{}``
+    and the projected manifest is byte-identical to the pre-enrichment output
+    (legacy-invariance AC). This is a pure function — no I/O, no schema read.
+    """
+    pack = pack_toml.get("pack", {})
+    if not isinstance(pack, dict):
+        return {}
+    out: dict = {}
+
+    maintainers = pack.get("maintainers")
+    if isinstance(maintainers, list) and maintainers:
+        first = maintainers[0]
+        if isinstance(first, dict):
+            name = first.get("name")
+            email = first.get("email")
+            if isinstance(name, str) and name:
+                if isinstance(email, str) and email:
+                    out["author"] = f"{name} <{email}>"
+                else:
+                    out["author"] = name
+
+    license_ = pack.get("license")
+    if isinstance(license_, str) and license_:
+        out["license"] = license_
+
+    links = pack.get("links")
+    if isinstance(links, dict):
+        homepage = links.get("homepage")
+        if isinstance(homepage, str) and homepage:
+            out["homepage"] = homepage
+        repository = links.get("repository")
+        if isinstance(repository, str) and repository:
+            out["repository"] = repository
+
+    keywords = pack.get("keywords")
+    if isinstance(keywords, list):
+        kws = [k for k in keywords if isinstance(k, str) and k]
+        if kws:
+            out["keywords"] = kws
+
+    categories = pack.get("categories")
+    if isinstance(categories, list) and categories:
+        first_cat = categories[0]
+        if isinstance(first_cat, str) and first_cat:
+            out["category"] = first_cat
+
+    display_name = pack.get("display_name")
+    if isinstance(display_name, str) and display_name:
+        out["displayName"] = display_name
+
+    return out
 
 # The three RFC-0001 recipes that plain `make build` invokes.
 # RFC-0002 recipes (per-pack-overlay, composite-agents-md,
@@ -392,6 +481,15 @@ def _run_per_pack_single(
         derived["hooks"] = {
             "SessionStart": [{"command": _SESSION_START_COMMAND}]
         }
+        # enriched-pack-manifest: merge the projectable metadata subset derived
+        # from this pack's pack.toml (emit-only-when-present, so a legacy pack
+        # adds no keys and the output stays byte-identical).
+        pack_toml_for_subset = pack.path / "pack.toml"
+        if pack_toml_for_subset.exists():
+            pack_meta = tomllib.loads(
+                pack_toml_for_subset.read_text(encoding="utf-8")
+            )
+            derived.update(derive_projectable_subset(pack_meta))
         # Validate the derived manifest IN MEMORY before writing to disk
         # (Blocker-3: pre-write validation so a synthesis bug never lands
         # a malformed plugin.json in dist/).
@@ -410,6 +508,12 @@ def _run_per_pack_single(
     pack_toml_src = pack.path / "pack.toml"
     if pack_toml_src.exists():
         shutil.copy2(pack_toml_src, per_pack_output / "pack.toml", follow_symlinks=False)
+
+    # enriched-pack-manifest T5: project the pack's README.md into the route so
+    # the manifest's `readme = "README.md"` pointer resolves. The README is the
+    # sole portable per-pack doc. follow_symlinks=False mirrors the pack.toml
+    # copy's posture (a symlinked README is not dereferenced into dist/).
+    _project_pack_readme(pack.path, per_pack_output)
 
     # Project the canonical install-marker.py writer into scripts/.
     scripts_dir = per_pack_output / ".claude-plugin" / "scripts"
@@ -477,6 +581,10 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
                 per_pack_output / "pack.toml",
                 follow_symlinks=False,
             )
+
+        # enriched-pack-manifest T5: project the pack's README into the APM
+        # route too (the sole portable per-pack doc; same posture as above).
+        _project_pack_readme(pack.path, per_pack_output)
 
         # Issue #190 / RFC-0001 §595: ship the pack's seeds/ inside the APM
         # package so the governance content travels with the pack on the APM

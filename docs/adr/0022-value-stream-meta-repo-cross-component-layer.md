@@ -73,3 +73,15 @@ Six parts:
 - RFC-0016 — the doc-drift discipline the meta-repo's currency relies on.
 - RFC-0019, ADR-0009 — `receive-brief` and its per-repo coverage rollup, aggregated above by the cross-component rollup.
 - External anchors (per RFC-0030, author-verified): Backstage Domain→System→Component→API and `providesApi`/`consumesApi`; design-first / contract-first; Team Topologies (one coordinating repo per value stream).
+
+## Errata
+
+- **2026-06-13 (enriched-pack-manifest; Approver: eugenelim).** The Decision's
+  shape line read "Pure-markdown skills + references + **seeds**." The
+  cross-component rollup template shipped as a repo `seeds/` seed, but a pack
+  with a non-empty `seeds/` cannot be user-scope (RFC-0004 Rail A), which broke
+  `product-engineering`'s `agentbundle validate`. The rollup template now ships
+  as the `align-value-stream` skill's `assets/rollup-template.md` (copied into
+  `docs/product/rollups/<slug>.md` at runtime) and is no longer a seed; read
+  "skills + references + skill-asset templates." No infrastructure is added —
+  the no-engine/no-hooks/no-validator caps are unchanged. See RFC-0030 Errata.

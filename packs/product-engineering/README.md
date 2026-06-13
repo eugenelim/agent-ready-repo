@@ -87,12 +87,23 @@ packs/product-engineering/
 ├── README.md
 ├── pack.toml
 ├── .claude-plugin/plugin.json
-├── .apm/skills/
-│   ├── frame-intent/        (SKILL.md + references/ + examples/)
-│   ├── de-risk-intent/      (SKILL.md + references/)
-│   ├── decompose-intent/    (SKILL.md + references/)
-│   └── align-value-stream/  (SKILL.md + references/)   ← business-unit scale
-└── seeds/docs/product/
-    ├── intents/   (_template.md)
-    └── rollups/   (_template.md)                        ← cross-component rollup
+└── .apm/skills/
+    ├── frame-intent/        (SKILL.md + references/ + examples/ + assets/intent-template.md)
+    ├── de-risk-intent/      (SKILL.md + references/)
+    ├── decompose-intent/    (SKILL.md + references/)
+    └── align-value-stream/  (SKILL.md + references/ + assets/rollup-template.md)  ← business-unit scale
 ```
+
+The intent and rollup **templates travel with their skills** (in each skill's
+`assets/`), not as repo `seeds/` — so the pack ships no `seeds/` and stays
+user-scope. The skills copy their template into the project's
+`docs/product/{intents,rollups}/<slug>.md` at runtime.
+
+## Usage
+
+Ask your agent, for example:
+
+- "Frame the intent for a self-serve onboarding flow." (`frame-intent`)
+- "De-risk the riskiest assumption in this intent with a prototype." (`de-risk-intent`)
+- "Decompose this intent into shippable specs." (`decompose-intent`)
+- "Stand up a value-stream meta-repo to coordinate these components." (`align-value-stream`)

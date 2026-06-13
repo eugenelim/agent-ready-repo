@@ -63,7 +63,15 @@
 # kept and name-mapped; tier-preserving model map. hook-body lands under
 # `.gemini/hooks/` (the cursor model — single prefix at both scopes). kiro-ide-hook
 # dropped. Distribution-only (not in SELF_HOST_ADAPTERS).
-version = "0.13"
+# RFC-0031 / ADR-0021 / docs/specs/enriched-pack-manifest (v0.14): pack.toml
+# becomes the rich metadata source of truth (optional readme / display_name /
+# license / maintainers / links / categories / keywords / [pack.metadata.<tool>]
+# / [pack].catalogue). The build projects the cleanly-projectable subset into
+# the claude-plugins + apm routes (plugin.json / marketplace.json entry) plus
+# each pack's README. All new fields are optional — packs pinned below v0.14
+# build and validate unchanged. Declaration + projection only (no @catalogue/pack
+# resolution, no search, no persisted index).
+version = "0.14"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
