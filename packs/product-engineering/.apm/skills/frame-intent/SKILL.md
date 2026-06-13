@@ -33,31 +33,48 @@ Before framing, confirm:
    `business-unit`), **confirm** it with the user, and **ask** only when it's
    genuinely ambiguous. Stamp `Scale:` on the intent (and the `docs/product/`
    root on first run). Then ask **greenfield or brownfield** for *this* intent —
-   it gates one thing only (step 4).
+   it gates one thing only (step 5).
 
-2. **Pick the level.** `capability` (spans several features / components) or
+2. **Consult the enterprise's knowledge — only if a surface is present.** If you
+   detect a knowledge-retrieval surface in this session (an MCP knowledge tool,
+   an internal CLI, an in-repo doc set — reason about *capabilities*, name no
+   specific tool; a public web search/fetch tool is **not** an internal surface,
+   so don't count it), load `references/knowledge-surfaces.md` and consult the
+   problem-framing areas this intent turns on — **business domain & meaning** (so
+   the outcome and opportunity use the org's real terms and rules) and
+   **in-flight & roadmap** (so you don't frame a bet already being delivered); in
+   brownfield, the **current-landscape** area is consulted at step 5, where the
+   maturity gate offers current-state inputs. **Name the surface you used (or
+   "none detected") in the intent's `Assumptions`**, so detection stays
+   auditable. If no surface is present, *compose-if-present, degrade-if-absent*:
+   ask the user for the missing domain / in-flight context and lower the
+   confidence of any outcome or opportunity that leaned on it (carry the marker
+   into `Assumptions`); never fabricate; treat sensitive or read-only sources as
+   ask-before-quoting.
+
+3. **Pick the level.** `capability` (spans several features / components) or
    `feature` (one shippable capability). At `app` Scale most intents are
    `feature`-level; at `business-unit` Scale you usually start at `capability`
    and let `decompose-intent` produce feature intents beneath it.
 
-3. **Write the outcome — three parts.** A *steerable input metric* you can move,
+4. **Write the outcome — three parts.** A *steerable input metric* you can move,
    the *lagging outcome* it should drive, and a *guardrail* that must not get
    worse. A quantified target is not the same as outcome-thinking; in 0-to-1 a
    **qualitative-but-falsifiable** outcome is first-class — name the signal
    you'd accept as proof. Never bolt a metric onto a feature already decided.
 
-4. **Write the opportunity — solution-independent.** Frame what the user is
+5. **Write the opportunity — solution-independent.** Frame what the user is
    trying to get done (a job / opportunity), not a solution. The default
    outside-in lens is a JTBD job map. **Only in brownfield**, offer the
    current-state inputs in `references/current-state-inputs.md` (a journey map,
    or an L3 process map as a *constraint*) — in greenfield, skip them so you
    don't pave cow paths.
 
-5. **Seed the assumptions.** List what must be true for the bet to pay off — one
+6. **Seed the assumptions.** List what must be true for the bet to pay off — one
    line each. Don't test them here; `de-risk-intent` picks the riskiest and
    predeclares a kill condition. Leave `Decomposition` empty.
 
-6. **Hand off.** Record the intent at `docs/product/intents/<slug>.md` and point
+7. **Hand off.** Record the intent at `docs/product/intents/<slug>.md` and point
    the user at `de-risk-intent` (to test the riskiest assumption) or, once it
    survives, `decompose-intent` (to break it down). See
    `examples/feature-intent-to-brief.md` for a worked app-scale walk-through.

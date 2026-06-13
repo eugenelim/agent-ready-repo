@@ -32,8 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never fabricates landscape/standards/in-flight facts — reusing the existing
   compose-with-`research` framing. No knowledge server or RAG engine ships (out
   of charter); no registry, shared config, or cross-pack dependency.
-  `architect-review`/`architect-diagram` and a `product-engineering` sibling are
-  deferred follow-ups.
+  `architect-diagram` remains a deferred follow-up; the `architect-review` and
+  `product-engineering` siblings shipped (see below).
 
 - **`architect-review` now checks that a design was grounded in the enterprise's
   own knowledge (architect pack 0.4.0).** The review-side counterpart of the
@@ -49,8 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   than guessing, and never fabricates a "ground truth" to judge against.
   Harness-agnostic detection (no hardcoded tools, public web excluded); no
   registry, shared config, or cross-pack/cross-skill dependency. `architect-design`
-  and `architect-diagram` are unchanged; `architect-diagram` awareness and the
-  `product-engineering` sibling remain deferred.
+  and `architect-diagram` are unchanged; `architect-diagram` awareness remains
+  deferred (the `product-engineering` sibling shipped — see below).
 
 - **The `product-engineering` pack gains its business-unit cross-component layer
   (pack 0.2.0).** A product org whose work fans out across **many component
@@ -73,6 +73,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subagent**. The hard limits are stated honestly: **no atomic cross-repo commit,
   no shared release train, snapshot-not-live**. Habits, not infrastructure
   (RFC-0030 phase 2, ADR-0022).
+
+- **`frame-intent` now consults the enterprise's own knowledge through a
+  problem-framing lens when the environment exposes a retrieval surface
+  (product-engineering pack 0.3.0).** The product-engineering counterpart of the
+  `architect-design` awareness above — same mechanism, different lens. A new
+  progressive-disclosure reference (`frame-intent/references/knowledge-surfaces.md`)
+  carries a **strict four-area subset** of architect's taxonomy — business domain
+  & meaning and in-flight & roadmap (both primary), current landscape
+  (brownfield-only), and operational reality (light) — and **deliberately omits**
+  the four solution-design areas (interfaces, standards, patterns, decisions) so
+  framing stays in problem space. The same **harness-agnostic detection** (no
+  hardcoded tool name) and three honesty rails apply; a single conditional step
+  loads the reference **only when a surface is detected** and otherwise
+  **degrades gracefully** — asks for the missing domain/in-flight context, lowers
+  confidence into the intent's `Assumptions`, and never fabricates. The
+  current-landscape area wires into `frame-intent`'s existing brownfield maturity
+  gate. A shared-canonical-core anchor names the architect reference as canonical
+  so the copies don't diverge. The detection audit home ("name what you detected,
+  or 'none detected'") is pinned to a fixed slot in the intent template's
+  `## Assumptions` and — symmetrically — in `architect-design`'s Stage-0
+  `concept.md` (bumping the architect pack `0.4.1 → 0.4.2`). A new stdlib
+  `tools/lint-knowledge-surface-parity.py` CI gate guards **every copy** of the
+  shared taxonomy core — `architect-design` (canonical), `architect-review`, and
+  `frame-intent` — against silent drift. No knowledge server or RAG engine, no
+  registry, shared config, or cross-pack dependency.
 
 - **`pack.toml` is now the rich source of truth for pack metadata, projected
   into every catalogue listing (adapter contract → 0.14).** Packs can declare
