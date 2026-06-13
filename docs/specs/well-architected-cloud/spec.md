@@ -1,6 +1,6 @@
 # Spec: well-architected-cloud
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -154,11 +154,11 @@ No compressible code invariant, so no TDD.
 
 **`architect-design` — concept-first, by-construction, convergence loop**
 
-- [ ] Invoking `architect-design` on a design brief produces a **Stage-0 concept** first
+- [x] Invoking `architect-design` on a design brief produces a **Stage-0 concept** first
   (≤ ~½ page: problem + constraints, 1–2 candidate shapes, provider / provider-class, top
   2–3 prioritized quality attributes) and expands to the full design doc only after the
   concept is acknowledged.
-- [ ] `architect-design` ships a **light concept template asset** (`assets/concept.md`),
+- [x] `architect-design` ships a **light concept template asset** (`assets/concept.md`),
   distinct from the existing heavy `assets/design-doc.md`, that the Stage-0 concept is drafted
   from. It is a **one-page** artifact in the spirit of the arc42 *Architecture Communication
   Canvas* ("elevator-pitch / zip-version", travel-light) — fields: **problem & context**,
@@ -167,45 +167,45 @@ No compressible code invariant, so no TDD.
   attributes** (the utility-tree-lite pass, with *why*), **key tradeoff / open decision(s)**,
   and optional **open questions**. It carries **none** of the design doc's heavy sections
   (no full proposal, alternatives-with-rejection, risks table, or rollout).
-- [ ] The concept stage does **not** trip the existing *"just write the proposal section"*
+- [x] The concept stage does **not** trip the existing *"just write the proposal section"*
   anti-pattern: the skill text distinguishes pre-full-doc *shaping* (carries context +
   constraints + the choice) from partial advocacy (a proposal stripped of those).
-- [ ] When a provider is named or inferred, the design names **how each relevant pillar**
+- [x] When a provider is named or inferred, the design names **how each relevant pillar**
   (Operational Excellence, Security, Reliability, Performance, Cost, + Sustainability) is
   *achieved on that provider*; for the **primitives class** it enumerates the
   **capability-gap categories the provider does not supply** (managed data tier, edge/CDN,
   managed identity, serverless, …) with **at least one concrete gap**, so the design names
   what it must build itself. (Specific named gaps are illustrative, not a pinned contract.)
-- [ ] The design surfaces at least one explicit **tradeoff point**, and a **sensitivity
+- [x] The design surfaces at least one explicit **tradeoff point**, and a **sensitivity
   point** where one exists — not only a flat per-pillar list.
-- [ ] The by-construction pass supports a **local-first** provider-class (the founder on-ramp)
+- [x] The by-construction pass supports a **local-first** provider-class (the founder on-ramp)
   alongside hyperscaler and primitives: it names the **local→production delta** (what local fakes
   that production must supply — TLS, real secrets, DB HA, object storage, CDN, observability) and
   the **graduation path** to a chosen provider class. It stays at architecture altitude and does
   **not** prescribe a local toolchain.
-- [ ] The concept stage **degrades gracefully for non-cloud design questions**: with no
+- [x] The concept stage **degrades gracefully for non-cloud design questions**: with no
   provider in play it still produces the Stage-0 concept (problem / constraints / shapes /
   quality attributes) without forcing provider selection or pillar-by-construction scaffolding.
-- [ ] The concept stage takes the **leading-edge path** (per `leading-edge-domains.md`) when no
+- [x] The concept stage takes the **leading-edge path** (per `leading-edge-domains.md`) when no
   shipped pillar/lens/provider reference covers the domain: it flags the novelty, composes with
   the `research` skill (`applied`/`deep`) when available to survey current grey literature and
   synthesize an ad-hoc domain lens, and **degrades** (first-principles + flagged novelty + lowered
   confidence) when `research` is absent — never erroring or requiring it.
-- [ ] Leading-edge claims in the concept/design carry **source + confidence**, and any assumption
+- [x] Leading-edge claims in the concept/design carry **source + confidence**, and any assumption
   resting on low-confidence / grey-lit evidence is classed as a **judgment** finding the loop
   surfaces, never auto-resolves.
-- [ ] After drafting the full doc, `architect-design` runs a **convergence loop**: it
+- [x] After drafting the full doc, `architect-design` runs a **convergence loop**: it
   obtains review findings (from `architect-review` when installed, else from its embedded
   rubric self-check), **auto-resolves the mechanical findings** by revising the doc
   *without asking*, re-reviews, and repeats until no mechanical findings remain or the
   bounded pass cap is reached.
-- [ ] The loop **never auto-resolves a judgment finding**; it surfaces the judgment
+- [x] The loop **never auto-resolves a judgment finding**; it surfaces the judgment
   findings (tradeoff / sensitivity / business calls) to the user as an explicit decision list.
-- [ ] The loop **terminates**: a fixed pass cap, and a stasis escape that escalates a
+- [x] The loop **terminates**: a fixed pass cap, and a stasis escape that escalates a
   mechanical finding which survives a pass to the human rather than looping forever.
-- [ ] With `architect-review` **not installed**, `architect-design` still loops using its
+- [x] With `architect-review` **not installed**, `architect-design` still loops using its
   embedded rubric self-check — it does not error or require the second skill.
-- [ ] The loop's **reviewer-independence** handling is *documented* in `convergence-loop.md`
+- [x] The loop's **reviewer-independence** handling is *documented* in `convergence-loop.md`
   (the checkable surface — the disposition itself is unobservable): it states the
   fresh-context-preferred → cold-re-read-floor ladder, the seed set (artifact + agreed concept +
   constraints, **not** the authoring narrative), and that the cold-read floor is **explicitly
@@ -213,99 +213,99 @@ No compressible code invariant, so no TDD.
 
 **`architect-review` — well-architected / lens mode, finding tags, review-only mode**
 
-- [ ] `architect-review` detects a well-architected / lens review intent **orthogonally
+- [x] `architect-review` detects a well-architected / lens review intent **orthogonally
   to** artifact-type routing and enters the WA mode.
-- [ ] The WA mode lets a **concern-lens** (security / FinOps / SRE / DR / data /
+- [x] The WA mode lets a **concern-lens** (security / FinOps / SRE / DR / data /
   compliance / green) and/or **workload-class lens** (incl. **GenAI/agentic**) be
   applied, inspecting against the pillar spine.
-- [ ] Every WA-mode finding carries a **mechanical** (determinate fix) vs **judgment**
+- [x] Every WA-mode finding carries a **mechanical** (determinate fix) vs **judgment**
   (human/business decision) tag, in addition to the existing severity tag — this is the
   signal `architect-design`'s loop consumes.
-- [ ] The mechanical-vs-judgment split is **operationally defined**, not just exemplified:
+- [x] The mechanical-vs-judgment split is **operationally defined**, not just exemplified:
   `rubric-well-architected.md` states a decidable test — a finding is **mechanical** when its
   fix is fully determined by the pillar spine or a stated constraint with **no** business-value
   or risk-acceptance choice; **judgment** when resolving it requires choosing between defensible
   options (a tradeoff, a risk acceptance, **or a low-confidence / leading-edge assumption**). A
   reviewer can apply the test to a *novel* finding, not only the planted examples.
-- [ ] WA-mode output is a **risk register** of severity-tagged findings + a **prioritized
+- [x] WA-mode output is a **risk register** of severity-tagged findings + a **prioritized
   improvement plan** + **documented risk-acceptance** + **documented non-risks**, reusing
   the skill's existing verdict + severity vocabulary.
-- [ ] Findings carry a **quality-attribute scenario** (source / stimulus / artifact /
+- [x] Findings carry a **quality-attribute scenario** (source / stimulus / artifact /
   environment / response / response-measure) wherever a measurable claim is in play.
-- [ ] The existing **review-only mode** (critiquing an artifact authored elsewhere) is
+- [x] The existing **review-only mode** (critiquing an artifact authored elsewhere) is
   preserved: it emits findings + verdict and **does not auto-fix** — it is a critique, not
   a loop.
 
 **Shared reference content (duplicated per skill, never shared)**
 
-- [ ] A generic **`cloud-primitives`** reference exists (Hetzner as named exemplar)
+- [x] A generic **`cloud-primitives`** reference exists (Hetzner as named exemplar)
   carrying the **"capability gaps you must fill"** checklist, duplicated into each
   consuming skill with a duplication note.
-- [ ] A **`local-dev`** reference exists (the local-first provider-class) carrying the
+- [x] A **`local-dev`** reference exists (the local-first provider-class) carrying the
   **local→production delta** + **graduation path**, architecture-altitude only (no toolchain
   prescription), duplicated into each consuming skill with a duplication note.
-- [ ] A **quality-attribute-scenario template**, a **tradeoff & sensitivity-point guide**, and
+- [x] A **quality-attribute-scenario template**, a **tradeoff & sensitivity-point guide**, and
   the **pillar spine + cloud-agnostic distillation** exist as references in each consuming skill.
-- [ ] A **cross-cutting question bank** reference exists (strategic alignment, build-vs-buy/reuse,
+- [x] A **cross-cutting question bank** reference exists (strategic alignment, build-vs-buy/reuse,
   lock-in/exit, supportability-in-2-years, data ownership & integration contract, and
   **third-party security attestation / restricted-scope-data assessability** — names CASA/ASVS as
   a *downstream verification gate*, referenced not reproduced, control-level verification routed to
   `security-reviewer`/`security-checklists`).
-- [ ] A **GenAI/agentic lens** reference exists (prompt-injection, tool-use authz,
+- [x] A **GenAI/agentic lens** reference exists (prompt-injection, tool-use authz,
   data-egress-to-LLM, evals/observability, token cost), **distinct** from the existing
   managed-platform agentic *diagram* references (Bedrock AgentCore / AI Foundry / Vertex), and
   applying even when the agent runtime is self-hosted on primitives.
-- [ ] A **`leading-edge-domains`** reference exists describing the **method** for designing in a
+- [x] A **`leading-edge-domains`** reference exists describing the **method** for designing in a
   domain with no established pillar/lens/provider reference: detect novelty → (optionally) compose
   with the `research` skill in `applied`/`deep` mode to survey current grey literature with GRADE
   confidence → synthesize an *ad-hoc domain lens for this engagement* → carry source + confidence
   into the concept/design → degrade (design from first principles, flag novelty, lower confidence)
   when `research` is absent. It ships the **method only**, never domain-specific content.
-- [ ] A **`convergence-loop`** reference exists under `architect-design` describing the
+- [x] A **`convergence-loop`** reference exists under `architect-design` describing the
   loop as a **pure-prose, in-conversation procedure (no script, no state file)**: review →
   auto-resolve mechanical → re-review → surface judgment, with the **reviewer-independence**
   handling (fresh-context-preferred / cold-re-read floor; reviewer seeded with
   artifact + concept + constraints), the pass cap, the stasis escape, and the
   no-`architect-review` degradation path.
-- [ ] `architect-diagram` gains a generic **cloud-primitives** diagram reference for
+- [x] `architect-diagram` gains a generic **cloud-primitives** diagram reference for
   parity with its existing `cloud-{aws,azure,gcp}.md` vocab.
 
 **Process / gates**
 
-- [ ] Every `architect-*` `SKILL.md` remains under the pack's <100-line principle.
-- [ ] No inter-skill reference *sharing* is introduced: no load-bearing cross-skill link
+- [x] Every `architect-*` `SKILL.md` remains under the pack's <100-line principle.
+- [x] No inter-skill reference *sharing* is introduced: no load-bearing cross-skill link
   (a load/include directive pointing into another skill's `references/`). The prose
   duplication note that names a sibling file is the sanctioned exception and does not count.
-- [ ] `pack.toml` + `.claude-plugin/plugin.json` are bumped to **0.2.0** and consistent;
+- [x] `pack.toml` + `.claude-plugin/plugin.json` are bumped to **0.2.0** and consistent;
   `.claude-plugin/marketplace.json` is regenerated; `lint-skill-spec` + `lint-packs` are
   green; a `docs/product/changelog.md` `[Unreleased]` entry is added.
 
 **Dogfood (manual QA — committed fixtures under `docs/specs/well-architected-cloud/fixtures/`)**
 
-- [ ] `fixtures/brief-agentic-hetzner.md`: enhanced `architect-design` yields a concept
+- [x] `fixtures/brief-agentic-hetzner.md`: enhanced `architect-design` yields a concept
   naming the primitives class + at least the data-tier and edge/CDN gaps, prioritizing
   Security (agentic) + Performance, and surfacing the self-host-inference-vs-external-LLM-API
   decision as a tradeoff / sensitivity point.
-- [ ] `fixtures/brief-agentic-hetzner.md` plants **two** findings that exercise the failure
+- [x] `fixtures/brief-agentic-hetzner.md` plants **two** findings that exercise the failure
   modes the Boundaries exist to prevent: (a) a cleanly-fixable mechanical finding (e.g. an
   unlabeled trust boundary) that the loop **auto-resolves** across iterations; (b) a mechanical
   finding the rubric **cannot determinately fix**, so the loop's **stasis escape** escalates it
   to the human rather than looping forever. The loop **surfaces** the self-host-vs-external
   decision as a judgment finding and does **not** auto-resolve it.
-- [ ] `fixtures/brief-agentic-hetzner.md`: `architect-review` WA mode under GenAI/agentic +
+- [x] `fixtures/brief-agentic-hetzner.md`: `architect-review` WA mode under GenAI/agentic +
   security lenses produces a risk register naming the internal-data→external-LLM egress
   boundary and the A2UI surface-authority risk, with each finding mechanical/judgment-tagged.
-- [ ] `fixtures/brief-enterprise-brain.md` (a leading-edge domain with no shipped reference):
+- [x] `fixtures/brief-enterprise-brain.md` (a leading-edge domain with no shipped reference):
   `architect-design` takes the leading-edge path — flags novelty, composes with `research`
   (`applied`/`deep`) when available (else degrades + flags), synthesizes an ad-hoc enterprise-brain
   lens (memory types / knowledge stratums / provenance / governance), and surfaces the
   centralized-vs-federated-ontology decision as a judgment finding carrying source + confidence.
-- [ ] `fixtures/brief-local-first.md`: `architect-design` concept treats local-first as a
+- [x] `fixtures/brief-local-first.md`: `architect-design` concept treats local-first as a
   legitimate starting topology, names the **local→production delta** (what local fakes) and a
   **graduation path** to a provider class, and prescribes **no** local toolchain.
-- [ ] `fixtures/brief-hyperscaler.md`: `architect-design` concept names provider-managed-service
+- [x] `fixtures/brief-hyperscaler.md`: `architect-design` concept names provider-managed-service
   pillar achievement and does **not** apply the primitives "gaps" framing.
-- [ ] `fixtures/brief-non-cloud.md`: `architect-design`'s Stage-0 concept degrades gracefully —
+- [x] `fixtures/brief-non-cloud.md`: `architect-design`'s Stage-0 concept degrades gracefully —
   it shapes problem / constraints / choice / quality-attributes without forcing provider or
   pillar-by-construction scaffolding.
 
