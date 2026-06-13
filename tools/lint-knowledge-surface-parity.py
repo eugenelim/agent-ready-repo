@@ -11,6 +11,8 @@ changes. This lint is the mechanical guard the `architect-pe-knowledge-surface-d
 backlog item called for, generalized to every copy that exists today:
 
   - `architect-review` reuses the full taxonomy as a verification lens ({1..8});
+  - `architect-diagram` reuses the full taxonomy as an as-is-drawing lens ({1..8};
+    the lens itself consults only the 2/3/4 facets, but the table carries all 8);
   - `frame-intent` reuses the problem-framing subset ({1, 2, 4, 8}); areas
     3/5/6/7 are deliberately omitted there as solution-design.
 
@@ -29,7 +31,7 @@ deliberately).
 Exit 0 when every copy is in parity; exit 1 on any drift.
 
 Fixture mode (used by the paired self-test): set KS_CANONICAL_FILE,
-KS_REVIEW_FILE, KS_PE_FILE to lint different files.
+KS_REVIEW_FILE, KS_DIAGRAM_FILE, KS_PE_FILE to lint different files.
 """
 
 from __future__ import annotations
@@ -58,6 +60,12 @@ LAYOUT: tuple[tuple[str, str, str, frozenset[int]], ...] = (
         "architect-review",
         "KS_REVIEW_FILE",
         "packs/architect/.apm/skills/architect-review/references/knowledge-surfaces.md",
+        CANONICAL_AREAS,
+    ),
+    (
+        "architect-diagram",
+        "KS_DIAGRAM_FILE",
+        "packs/architect/.apm/skills/architect-diagram/references/knowledge-surfaces.md",
         CANONICAL_AREAS,
     ),
     (

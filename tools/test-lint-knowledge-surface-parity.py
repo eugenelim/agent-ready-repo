@@ -2,14 +2,17 @@
 """Self-test for tools/lint-knowledge-surface-parity.py.
 
 Pure-stdlib Python so the suite runs on Windows without an MSYS shell.
-Pattern: build a fixture trio of knowledge-surface references in a tempdir,
-point KS_CANONICAL_FILE / KS_REVIEW_FILE / KS_PE_FILE at them, run the linter,
-and assert the exit code (and a diagnostic substring on the failure cases).
+Pattern: build a fixture set of knowledge-surface references in a tempdir, point
+KS_CANONICAL_FILE / KS_REVIEW_FILE / KS_DIAGRAM_FILE / KS_PE_FILE at them, run the
+linter, and assert the exit code (and a diagnostic substring on the failure
+cases). Every LAYOUT copy must be overridden here — an un-overridden copy falls
+through to its real repo file and breaks the fixture cases.
 
 Cases pin each invariant to a failure mode the linter must catch:
 
-  A — parity: canonical {1..8}, architect-review full {1..8}, frame-intent subset
-      {1,2,4,8}, all byte-identical name+question. Must exit 0.
+  A — parity: canonical {1..8}, architect-review full {1..8}, architect-diagram
+      full {1..8}, frame-intent subset {1,2,4,8}, all byte-identical name+question.
+      Must exit 0.
   B — reworded question in the frame-intent copy for a shared area. Must fail.
   C — renamed area in the canonical copy. Must fail (the copies still name the
       old label).
@@ -18,6 +21,8 @@ Cases pin each invariant to a failure mode the linter must catch:
   F — a missing file must surface as an error, not a traceback.
   G — the architect-review copy drifts (reworded question). Must fail (the third
       copy is guarded too).
+  I — the architect-diagram copy drifts (reworded question). Must fail (the
+      fourth copy is guarded too).
 """
 
 from __future__ import annotations
@@ -64,12 +69,27 @@ def _render(areas: dict[int, tuple[str, str]], *, weight_col: bool) -> str:
     return "# Knowledge surfaces (fixture)\n\n" + head + rows + "\nprose tail.\n"
 
 
-def _run(canon_text: str | None, review_text: str | None, pe_text: str | None) -> subprocess.CompletedProcess:
+# Sentinel so an un-passed diagram copy defaults to the full canonical fixture
+# (architect-diagram carries the full {1..8} table, like architect-review). It
+# *must* be overridden — its LAYOUT row otherwise resolves to the real repo file
+# and breaks the fixtures. None still means "don't write the file" (case F).
+_DEFAULT_DIAGRAM = object()
+
+
+def _run(
+    canon_text: str | None,
+    review_text: str | None,
+    pe_text: str | None,
+    diagram_text: str | None | object = _DEFAULT_DIAGRAM,
+) -> subprocess.CompletedProcess:
+    if diagram_text is _DEFAULT_DIAGRAM:
+        diagram_text = _render(dict(CANON), weight_col=False)
     with tempfile.TemporaryDirectory() as d:
         env = dict(os.environ)
         for key, name, text in (
             ("KS_CANONICAL_FILE", "canonical.md", canon_text),
             ("KS_REVIEW_FILE", "review.md", review_text),
+            ("KS_DIAGRAM_FILE", "architect-diagram.md", diagram_text),
             ("KS_PE_FILE", "frame-intent.md", pe_text),
         ):
             p = pathlib.Path(d) / name
@@ -109,7 +129,7 @@ def main() -> int:
     def pe_md(areas=None) -> str:
         return _render(areas if areas is not None else subset, weight_col=True)
 
-    # A — parity holds across all three copies.
+    # A — parity holds across the review, diagram, and frame-intent copies.
     _expect("A parity", _run(canon_md(), review_md(), pe_md()), code=0)
 
     # B — reworded question in the frame-intent copy for shared area 1.
@@ -149,6 +169,12 @@ def main() -> int:
     out_of_canon = dict(review); out_of_canon[9] = ("Phantom area", "Does this exist?")
     _expect("H out-of-canon area", _run(canon_md(), review_md(out_of_canon), pe_md()),
             code=1, needle="architect-review reference areas")
+
+    # I — the architect-diagram copy drifts (reworded question for shared area 5).
+    # Mirrors G: pins that the fourth copy is guarded too.
+    drifted_diagram = _render({**CANON, 5: (CANON[5][0], "What rules constrain me?")}, weight_col=False)
+    _expect("I diagram drift", _run(canon_md(), review_md(), pe_md(), diagram_text=drifted_diagram),
+            code=1, needle="area #5 diverged")
 
     if _FAILURES:
         for f in _FAILURES:

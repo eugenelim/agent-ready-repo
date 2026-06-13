@@ -32,8 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never fabricates landscape/standards/in-flight facts — reusing the existing
   compose-with-`research` framing. No knowledge server or RAG engine ships (out
   of charter); no registry, shared config, or cross-pack dependency.
-  `architect-diagram` remains a deferred follow-up; the `architect-review` and
-  `product-engineering` siblings shipped (see below).
+  The `architect-review`, `architect-diagram`, and `product-engineering`
+  siblings have all since shipped (see below) — the line is complete.
 
 - **`architect-review` now checks that a design was grounded in the enterprise's
   own knowledge (architect pack 0.4.0).** The review-side counterpart of the
@@ -48,9 +48,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against, or "none"); if not, it flags them for the author to confirm rather
   than guessing, and never fabricates a "ground truth" to judge against.
   Harness-agnostic detection (no hardcoded tools, public web excluded); no
+  registry, shared config, or cross-pack/cross-skill dependency. The
+  `architect-diagram` and `product-engineering` siblings have since shipped (see
+  below).
+
+- **`architect-diagram` now consults the enterprise's own knowledge to draw an
+  accurate as-is diagram (architect pack 0.5.0).** The third and final
+  architect-skill sibling of the awareness above, with a deliberately different
+  lens: in **document** and **update** mode only, when the as-is system
+  integrates beyond the repo boundary and a retrieval surface is reachable, a
+  duplicated **as-is-drawing-lens**
+  `knowledge-surfaces.md` extends "read the repo" to "read the landscape" — so the
+  boxes, arrows, and edge labels beyond the repo boundary are grounded from the
+  **descriptive current-system facets** (current landscape, interfaces,
+  operational reality — areas 2/3/4) instead of guessed. It reuses the same 8-area
+  MECE canonical core (kept byte-identical across all three copies; only the
+  trigger column, lens paragraph, and detection/degrade framing change) and one
+  conditional procedure step. **Mode-scoped:** it does **not** fire in design mode
+  (the user's hypothetical — fabrication is allowed-but-flagged) or review mode
+  (routes to `architect-review`). Harness-agnostic detection (no hardcoded tools,
+  public web excluded); three honesty rails recast for drawing — name what you
+  drew from, leave an ungroundable node `<unnamed>` or ask rather than guess, flag
+  a surface-derived edge the repo contradicts rather than drawing over it —
+  strengthening the skill's standing never-fabricate-names discipline. No
   registry, shared config, or cross-pack/cross-skill dependency. `architect-design`
-  and `architect-diagram` are unchanged; `architect-diagram` awareness remains
-  deferred (the `product-engineering` sibling shipped — see below).
+  and `architect-review` are unchanged. The new copy is **registered in
+  `tools/lint-knowledge-surface-parity.py`** (the drift guard shipped alongside
+  the `product-engineering` sibling, extended here + its self-test) so the
+  canonical core is mechanically guarded. This **completes the
+  knowledge-surface line** — all three architect skills plus the
+  `product-engineering` sibling now ship it.
 
 - **The `product-engineering` pack gains its business-unit cross-component layer
   (pack 0.2.0).** A product org whose work fans out across **many component

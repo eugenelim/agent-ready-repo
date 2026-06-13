@@ -36,17 +36,33 @@ If two modes plausibly fit, ask once which the user wants.
 
 1. **Route by mode** (above). For *document* mode, read before drawing.
 
-2. **Pick the notation from intent.** Always load
+2. **In document or update mode — extend "read the repo" to "read the
+   landscape."** *Only* in these two modes, and *only* when the as-is system
+   integrates **beyond the repo boundary** and an *internal* knowledge-retrieval
+   surface is reachable this session (an enterprise-knowledge MCP tool, an
+   internal CLI, an in-repo doc set — public web does **not** count), load
+   `references/knowledge-surfaces.md` and consult the descriptive current-system
+   facets (current landscape, interfaces, operational reality) to ground the
+   beyond-repo boxes, arrows, and edge labels. **Name what you drew from** (the
+   surface, or "repo only / none"). A node or edge you can't ground stays
+   `<unnamed>` or becomes a question — never a guess (this strengthens the
+   never-fabricate-names rule below); a surface-derived edge the repo
+   contradicts is **flagged**, not silently drawn over. This step does **not**
+   apply in **design** mode (you're drawing the user's hypothetical —
+   fabrication is allowed-but-flagged) or **review** mode (route to
+   `architect-review`).
+
+3. **Pick the notation from intent.** Always load
    `references/notation-routing.md` — it carries the intent → notation
    decision table, the split-when-too-big rule, and the *don't draw*
    cases (comparison, checklist, two-component flow).
 
-3. **Load the syntax reference for the chosen notation** —
+4. **Load the syntax reference for the chosen notation** —
    `references/mermaid-{flowchart,sequence,c4,state,er}.md`, one file
    per notation, on demand. For C4 Container drafts, the starter
    shape is in `assets/c4-container.mmd`.
 
-4. **Load cross-cloud patterns for any cloud-aware diagram.** Load
+5. **Load cross-cloud patterns for any cloud-aware diagram.** Load
    `references/cloud-patterns.md` whenever the diagram crosses cloud
    boundaries — boundary stack, public-vs-private subnets, async vs.
    sync edges, trust-boundary labeling, storage shapes. Then layer
@@ -61,7 +77,7 @@ If two modes plausibly fit, ask once which the user wants.
      `ai-foundry`, `vertex-agent-engine`). A diagram of AgentCore is
      *not* "AWS with a Lambda in it".
 
-5. **Draft the diagram inline.** Default to `flowchart TB` with
+6. **Draft the diagram inline.** Default to `flowchart TB` with
    subgraph nesting and emoji or text markers — renders cleanly in
    GitHub, Confluence, Azure DevOps Wiki, and GitLab. Only if the
    user's target renderer is known to support it, mention Mermaid's
@@ -70,14 +86,14 @@ If two modes plausibly fit, ask once which the user wants.
    skeleton before offering. Do not default to it; rendering is
    inconsistent across enterprise wikis.
 
-6. **Self-check against `references/diagram-rubric.md`.** Fix
+7. **Self-check against `references/diagram-rubric.md`.** Fix
    violations before showing the user. The non-negotiables: every
    Container has a technology label; no bare relation labels; fits
    one screen (≤15 nodes); document mode never fabricates names;
    trust boundaries are visible (dashed subgraph border or explicit
    comment).
 
-7. **Offer to save.** Scan for an obvious home (`docs/architecture/`,
+8. **Offer to save.** Scan for an obvious home (`docs/architecture/`,
    `diagrams/`, `docs/`). Suggest a kebab-case `.mmd` filename.
    Saving is an offer, never automatic.
 

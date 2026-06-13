@@ -1,7 +1,7 @@
 # Plan: architect-diagram-knowledge-surfaces
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -215,9 +215,12 @@ names no tool; the two sibling SKILL.md files are byte-unchanged.
 - `docs/product/changelog.md` `[Unreleased]` contains the new entry (AC10).
 
 **Approach:**
-- Bump `version` `0.4.0 → 0.5.0` in `packs/architect/pack.toml` (the `[pack]`
+- Bump `version` `0.4.2 → 0.5.0` in `packs/architect/pack.toml` (the `[pack]`
   version, not `[pack.adapter-contract] version = "0.10"`) and in
-  `packs/architect/.claude-plugin/plugin.json`.
+  `packs/architect/.claude-plugin/plugin.json`. (Base was `0.4.0` at authoring;
+  #300's enriched-manifest patch bump moved it to `0.4.1`, then #302's
+  concept.md pin to `0.4.2` — minor bump for a feature, target `0.5.0` unchanged
+  and still higher.)
 - Add an `[Unreleased]` changelog entry: architect-diagram now consults a
   reachable internal knowledge surface in document/update mode to draw an
   accurate as-is topology beyond the repo boundary, harness-agnostically,
@@ -248,6 +251,12 @@ changelog entry is present.
   non-projected user-scope pack bump pass by explicit path —
   `pytest packages/agentbundle/agentbundle/build/tests/test_self_host_check.py
   packages/agentbundle/agentbundle/build/tests/test_pipeline.py` (AC12).
+- **Knowledge-surface parity** (PR #302's `build-check` gate, post-rebase): the
+  new `architect-diagram` copy is registered in
+  `tools/lint-knowledge-surface-parity.py`'s `LAYOUT`, and both
+  `python tools/lint-knowledge-surface-parity.py` and its paired self-test
+  `python tools/test-lint-knowledge-surface-parity.py` pass (the self-test gained
+  a fourth fixture + a diagram-drift case) (AC8).
 
 **Approach:**
 - Clear any stray `__pycache__` under `packs/` and `.claude/` first (known
@@ -304,6 +313,34 @@ walkthrough shows document+surface draws the grounded neighbour, document+no-
 surface marks it `<unnamed>`/asks, and design+surface does not trigger the
 consult; observations recorded against AC13.
 
+**Results (recorded 2026-06-13).**
+- *Structural (real):* `make build` projected the change to **both** routes
+  (`dist/apm/architect/.apm/...` and `dist/claude-plugins/architect/.claude/...`);
+  the projected `architect-diagram/SKILL.md` **and** `references/knowledge-surfaces.md`
+  are **byte-identical to source** on both routes, the reference carries exactly 8
+  area rows and no hardcoded tool name, and the new mode-scoped step is present.
+  **PASS.**
+- *Behavioural (independent agent executing the procedure against the fixed
+  driver; the harness can't inject a live mock MCP tool, so surface presence is a
+  described precondition — a simulation of the branch logic, not a live
+  detection):*
+  - **(i) document + surface present** — routes to document mode; the consult
+    fires (all three conjuncts met) and the beyond-repo neighbour is drawn
+    **named** (`invoice-svc`, team Billing) with the edge label
+    `billing.export.requested` and a provenance note, not fabricated or omitted.
+    **PASS.**
+  - **(ii) document + no internal surface (public web only)** — routes to document
+    mode; detection runs but the internal-surface conjunct fails (public web
+    explicitly excluded), so the neighbour is drawn **`<unnamed>`** with provenance
+    "repo only / no surface"; no name invented. **PASS.**
+  - **(iii) design + same surface present** — routes to design mode; the consult
+    **does not fire** — the agent confirmed the mode gate is checked **before**
+    surface reachability, so the present-and-reachable catalogue is correctly
+    ignored (fabrication is allowed-but-flagged in design mode). **PASS.**
+  - **Mode-scoping (the load-bearing constraint):** validated end-to-end —
+    document/update consults, design does not, and surface-presence never
+    overrides the mode gate. Overall: **PASS (3/3)**, no mismatches.
+
 ### T6: Update the backlog item
 
 **Depends on:** T5
@@ -339,9 +376,12 @@ version advertised to adopters; nothing must ship in sequence.
 
 ## Risks
 
-- **Canonical-core drift** — the now-three `knowledge-surfaces.md` copies diverge
-  in the area rows/axis they share. Mitigated by the T1 byte-identity diff
-  against **both** sibling copies.
+- **Canonical-core drift** — the `knowledge-surfaces.md` copies diverge in the
+  area rows/axis they share. Mitigated by the T1 byte-identity diff against
+  **both** full-taxonomy sibling copies and, post-rebase, **mechanically** by
+  registering the `architect-diagram` copy in PR #302's
+  `tools/lint-knowledge-surface-parity.py` (a `build-check` gate that fails
+  closed on any area name/question drift).
 - **Wording drifts toward review or to-be design**, blurring the as-is-drawing
   lens. Mitigated by the explicit lens contrast (T1) and the T5 walkthrough.
 - **Mode-scoping leaks** — the consult fires in design or review mode. Mitigated
@@ -355,3 +395,33 @@ version advertised to adopters; nothing must ship in sequence.
 ## Changelog
 
 - 2026-06-13: initial plan.
+- 2026-06-13: spec/plan landed first as a spec-only PR (#301); spec-mode
+  adversarial review converged Clean before that merge.
+- 2026-06-13: executed T1–T6 as the implementing PR on the post-#301 main.
+  Mid-flight, PR #300 (enriched-pack-manifest) moved architect's base version
+  `0.4.0 → 0.4.1`, so the bump landed as `0.4.1 → 0.5.0` (minor, target
+  unchanged); spec/plan/README reconciled. All gates green (lint-skill-spec,
+  lint-packs, lint-agent-artifacts, validate, build, marketplace suites 83
+  passed; build-self marketplace diff version-only; lint-spec-status clean). T5
+  structural byte-identity (both routes) + three-scenario decision-logic
+  walkthrough recorded above — all PASS (3/3), mode-scoping validated.
+  Adversarial review converged Clean over 2 passes (1 blocker README-status
+  drift + 1 nit → fixed → clean). Quality-engineer pass: 2 concerns + 1 nit —
+  the untracked review-scratch `notes/` was deleted (applied); the
+  canonical-core drift-guard and the contradicted-edge walkthrough-coverage gap
+  were **deferred** to `docs/backlog.md`, consistent with the repo's deferred
+  cross-file-drift-gate precedent.
+- 2026-06-13: rebased onto post-#302 main (PR #302 shipped the
+  `product-engineering` `frame-intent` sibling **and**
+  `tools/lint-knowledge-surface-parity.py`, the canonical-core drift guard I had
+  just deferred). Reconciliation: (1) version base moved `0.4.1 → 0.4.2`
+  (#302's concept.md pin), so the bump lands `0.4.2 → 0.5.0` (still minor,
+  target unchanged); (2) the deferred `#canonical-core-drift-guard` backlog item
+  is **dropped** — the guard now exists, so instead I **registered the
+  `architect-diagram` copy** in the lint's `LAYOUT` and extended its self-test
+  (fourth fixture + diagram-drift case), turning AC8's byte-identity into a
+  mechanical `build-check` gate; (3) backlog/README/changelog "product-engineering
+  remains" framing corrected — the whole knowledge-surface line is now shipped.
+  Conflicts resolved in marketplace.json / pack.toml / plugin.json / README /
+  backlog; build-self re-run (marketplace shows architect `0.5.0` +
+  product-engineering `0.3.0`).
