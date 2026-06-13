@@ -1,6 +1,6 @@
 ---
 name: architect-diagram
-description: Use when the user asks for a diagram of a system, integration, flow, state, data model, or deployment topology. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram) routed by intent. Cloud-aware (AWS, Azure, GCP) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
+description: Use when the user asks for a diagram of a system, integration, flow, state, data model, or deployment topology. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
 ---
 
 # Skill: architect-diagram
@@ -52,9 +52,9 @@ If two modes plausibly fit, ask once which the user wants.
    sync edges, trust-boundary labeling, storage shapes. Then layer
    the vendor-specific reference:
 
-   - **Any AWS / Azure / GCP service mentioned** (even if not in the
-     reference's short service table) → load
-     `references/cloud-<cloud>.md` for boundary vocabulary, subgraph
+   - **Any AWS / Azure / GCP service — or a primitives provider
+     (Hetzner and its class)** → load `references/cloud-<cloud>.md`
+     (incl. `cloud-primitives.md`) for boundary vocabulary, subgraph
      nesting, and gotchas. Multi-cloud → load multiple references.
    - **Agentic platform named** → load
      `references/agentic-<platform>.md` (`bedrock-agentcore`,
