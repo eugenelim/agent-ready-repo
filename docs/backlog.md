@@ -224,6 +224,30 @@ team decides to override the RFC's wait-and-see stance (then build a stdlib
 `tools/` lint — mind the Windows bash→py and two-lint-surface wiring traps — and
 wire it into `make build-check`).
 
+## `architect-knowledge-surfaces`
+
+### architect-review-diagram-knowledge-surfaces
+
+The knowledge-surface awareness landed in `architect-design` only (the skill
+where the consult genuinely happens). Extending it to the two sibling skills is
+deferred as a fast-follow: `architect-review` would *check* that a design
+reconciled against the available surfaces (flagging unsupported landscape/
+standards claims), and `architect-diagram` would consult the **current
+landscape** area to draw accurate as-is diagrams. A separate sibling for the
+`product-engineering` pack (problem-space lens: domain, landscape, operational,
+in-flight) is also a fast-follow. **Unblocks when:** the architect-design shape
+proves out and the owner opts in (spec `Ask first` Boundary).
+
+### live-mock-mcp-detection-qa
+
+AC12's detection QA was verified in two halves: a real structural projection
+check (`make build` → projected artifacts byte-identical to source) and a
+decision-logic walkthrough by an independent agent. The walkthrough *described*
+per-scenario tool presence rather than exercising a **live mock MCP knowledge
+tool**, because the authoring harness can't inject one. **Unblocks when:** a
+harness/test fixture can register a stub MCP retrieval tool, at which point the
+present/absent/sensitive scenarios can run end-to-end against real detection.
+
 ## Cross-spec / outside-the-spec-tree
 
 Open items called out by accepted RFCs or multiple specs, without a spec
