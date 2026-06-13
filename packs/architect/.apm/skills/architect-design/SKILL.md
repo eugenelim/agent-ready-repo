@@ -31,7 +31,18 @@ If any check fails, push back rather than proceeding.
    anything the user already said. Three to five questions max; if the
    user can't answer one, flag it as an open question rather than blocking.
 
-2. **Shape the concept first (Stage 0).** Before the full doc, draft a
+2. **Consult available knowledge surfaces.** Before shaping the concept,
+   establish what enterprise context you can reach, and **state which surface
+   you detected (or "none")** in the concept. **If** you detect an *internal*
+   knowledge-retrieval surface this session (an enterprise-knowledge MCP tool,
+   an internal CLI, an in-repo doc set — public web search does **not** count),
+   load `references/knowledge-surfaces.md`, consult the design-relevant areas,
+   and treat a single unconfirmed source as lower-confidence. **If not**, ask
+   the user for the missing context and lower the confidence of any proposal
+   that leaned on it — as you degrade when `research` is absent. **Either way,
+   never fabricate** landscape/standards/in-flight facts.
+
+3. **Shape the concept first (Stage 0).** Before the full doc, draft a
    ≤½-page concept from `assets/concept.md` — problem + constraints, 1–2
    candidate shapes, provider / provider-class, top 2–3 prioritized quality
    attributes (rank by business-importance × architectural-risk) — and
@@ -48,13 +59,13 @@ If any check fails, push back rather than proceeding.
    (`references/leading-edge-domains.md`): flag novelty, compose with `research`
    if present (degrade + lower confidence if absent), carry source + confidence.
 
-3. **Draft inline.** Use the skeleton in `assets/design-doc.md` (load it
+4. **Draft inline.** Use the skeleton in `assets/design-doc.md` (load it
    when you start the draft). Sections in order: TL;DR (≤3 sentences),
    Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks,
    Rollout, Open Questions. Embed Mermaid diagrams where structural
    reasoning genuinely needs a picture — not as decoration.
 
-4. **Self-check against the rubric** in `references/design-doc-rubric.md`.
+5. **Self-check against the rubric** in `references/design-doc-rubric.md`.
    Walk it line by line; fix what fails before showing the draft.
    Common failures:
    - Non-goals empty or unconvincing → load `references/alternatives.md`.
@@ -62,19 +73,19 @@ If any check fails, push back rather than proceeding.
      redraft until each could have been chosen by a reasonable engineer.
    - No cross-cutting concerns named → load `references/nfr-checklist.md`.
 
-5. **Converge against review.** After the full draft, run
+6. **Converge against review.** After the full draft, run
    `references/convergence-loop.md`: obtain a review pass (from
    `architect-review` if installed, else your embedded rubric self-check),
    **auto-resolve mechanical findings without asking**, re-review, repeat to
    the pass cap / stasis escape. **Never auto-resolve a judgment finding** —
    surface the tradeoff / risk / low-confidence calls as explicit decisions.
 
-6. **Offer to save.** Scan the working directory for an obvious home —
+7. **Offer to save.** Scan the working directory for an obvious home —
    `docs/design/`, `design/`, `architecture/`, or `docs/`. Suggest a
    kebab-case filename based on the doc's title. If nothing fits, ask
    the user where it should go. Saving is an offer, never automatic.
 
-7. **Decision-moment prompt.** If the doc captures one or more discrete
+8. **Decision-moment prompt.** If the doc captures one or more discrete
    decisions (technology choice, structural commitment, interface
    contract), end with one sentence: *"<N> decision(s) here look
    ADR-worthy — capture them with your ADR skill?"* Don't couple to a

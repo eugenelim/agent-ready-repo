@@ -61,6 +61,7 @@ A fourth subagent, `implementer`, is the loop's own executor. It runs independen
 | [`atlassian`](packs/atlassian/) | user / repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed) plus `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`. |
 | [`figma`](packs/figma/) | user / repo | Figma REST primitive (credentialed) — reads files/nodes/comments/variables, renders frames, FigJam → Mermaid. |
 | [`architect`](packs/architect/) | user / repo | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`. |
+| [`product-engineering`](packs/product-engineering/) | user / repo | Shape product intent into shippable specs — `frame-intent`, `de-risk-intent`, `decompose-intent` over a recursive, level-tagged `intent`, feeding the briefs/specs your delivery loop already builds. |
 
 Repo-scope packs install into the current repo and build on `core`. User-scope packs install into `~/.claude/` (or your harness's home root) and follow you across every project. Swap `core` for any pack name in the command above.
 
