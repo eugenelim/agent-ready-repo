@@ -1,5 +1,5 @@
 {
   "name": "atlassian",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, and jira-defect-flow workflows that compose them."
 }

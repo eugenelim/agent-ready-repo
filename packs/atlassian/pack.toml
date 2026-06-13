@@ -1,7 +1,12 @@
 [pack]
 name = "atlassian"
-version = "0.1.0"
+version = "0.1.1"
 description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, and jira-defect-flow workflows that compose them."
+readme = "README.md"
+display_name = "Atlassian"
+license = "Apache-2.0 OR MIT"
+categories = ["integrations", "project-management"]
+keywords = ["jira", "confluence", "flow-metrics", "jira-align"]
 
 [pack.adapter-contract]
 version = "0.8"
@@ -18,3 +23,14 @@ allowed-scopes = ["user", "repo"]
 # § 4d precondition); the consumer skills resolve the broker from
 # `~/.agentbundle/bin/`. Append-only (RFC-0011 declared-order).
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer. The `documentation` link to the per-pack guide home is a
+# follow-on (ADR-0020 guide migration).
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

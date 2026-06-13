@@ -103,10 +103,26 @@ def _discover_pack_dirs(catalogue_dir: Path) -> list[Path]:
     return []
 
 
+def _render_identity(pack: dict) -> str:
+    """Render a pack's canonical identity for display (enriched-pack-manifest).
+
+    `@<catalogue>/<name>` when the optional `[pack].catalogue` is declared,
+    the bare `<name>` otherwise. **Declare-only**: this is a presentation
+    helper — it performs no catalogue resolution and does not touch
+    ``catalogue.py``. Single-catalogue resolution in ``list-packs`` /
+    ``install`` is unchanged (RFC-0031 D7).
+    """
+    name = pack.get("name", "")
+    catalogue = pack.get("catalogue")
+    if isinstance(catalogue, str) and catalogue:
+        return f"@{catalogue}/{name}"
+    return name
+
+
 def _extract_row(toml: dict) -> dict:
     """Pull display fields out of a parsed pack.toml dict."""
     pack = toml.get("pack", {})
-    name = pack.get("name", "")
+    name = _render_identity(pack)
     version = pack.get("version", "")
     description = pack.get("description", "")
 

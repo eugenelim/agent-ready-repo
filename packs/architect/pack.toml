@@ -1,7 +1,12 @@
 [pack]
 name = "architect"
-version = "0.4.0"
+version = "0.4.1"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review). Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
+readme = "README.md"
+display_name = "Architect"
+license = "Apache-2.0 OR MIT"
+categories = ["architecture", "documentation"]
+keywords = ["design-docs", "diagrams", "mermaid", "critique"]
 
 # RFC-0024 contract level (v0.10) — pure-markdown skills, multi-adapter.
 # Bumped from v0.6 so listing `copilot` is honest: copilot's skill
@@ -23,3 +28,14 @@ allowed-scopes = ["user", "repo"]
 # `kiro-ide` precedes `kiro-cli` so a Kiro user's `~/.kiro/` auto-probe resolves
 # to the IDE; `cursor` then `gemini` appended last (append-only).
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer. The `documentation` link to the per-pack guide home is a
+# follow-on (ADR-0020 guide migration).
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

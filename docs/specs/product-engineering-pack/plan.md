@@ -48,7 +48,11 @@ the file layout and the `intent` template schema.
 ### Component / module decomposition
 *Traces to: AC1–AC6.* `packs/product-engineering/` mirrors `architect`/`research`:
 `pack.toml`, `.claude-plugin/plugin.json`, `README.md`, `.apm/skills/<skill>/SKILL.md`
-(+ `references/`), `seeds/docs/product/intents/`. Three peer skills, each standalone
+(+ `references/`), and the `intent` template under `frame-intent/assets/`
+<!-- enriched-pack-manifest (2026-06-13): the template was relocated from a
+`seeds/docs/product/intents/` seed to the skill's `assets/` so the pack ships no
+seeds and stays user-scope (RFC-0004 Rail A); see T2's Superseded note. -->.
+Three peer skills, each standalone
 (rubrics/cross-refs duplicated over shared, per the architect-pack autonomy principle).
 
 ### Data & schema
@@ -76,6 +80,14 @@ optional `parent_intent`. No required field beyond outcome + opportunity (never 
 **Done when:** `lint-packs`, `validate`, `build` green; `marketplace.json` lists the pack.
 
 ### T2: The `intent` seed template + a worked example ship
+
+> **Superseded 2026-06-13 (enriched-pack-manifest):** the `intent` template was
+> relocated from this `seeds/docs/product/intents/_template.md` seed into the
+> `frame-intent` skill's `assets/intent-template.md` and de-registered from
+> `tools/lint-seeds.py`, so `product-engineering` ships no `seeds/` and stays
+> user-scope (RFC-0004 Rail A). `frame-intent` copies the asset into
+> `docs/product/intents/<slug>.md` at runtime. The task below records the
+> original (seed-based) implementation.
 
 **Depends on:** T1
 **Touches:** packs/product-engineering/seeds/docs/product/intents/_template.md, tools/lint-seeds.py, packs/product-engineering/.apm/skills/frame-intent/examples/*

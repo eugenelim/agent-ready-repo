@@ -1,7 +1,12 @@
 [pack]
 name = "research"
-version = "0.1.0"
+version = "0.1.1"
 description = "Evidence-grounded research portable across every repo. Seven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
+readme = "README.md"
+display_name = "Research"
+license = "Apache-2.0 OR MIT"
+categories = ["research", "documentation"]
+keywords = ["osint", "synthesis", "citations", "evidence"]
 
 # RFC-0024 / docs/specs/copilot-full-parity made copilot a full-parity,
 # user-scope-capable adapter, so research's two retrieval subagents project to
@@ -29,3 +34,14 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # **not** degraded there. The read-only restriction is preserved (no
 # edit/execute). The one narrow non-coverage is the Copilot **cloud agent**
 # (served only via repo `.github/`), which has no `web` tool.
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer. The `documentation` link to the per-pack guide home is a
+# follow-on (ADR-0020 guide migration).
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

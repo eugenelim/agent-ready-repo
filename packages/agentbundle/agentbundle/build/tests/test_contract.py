@@ -452,17 +452,17 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.13"
-        (bumped from RFC-0026 / cursor-full-parity's "0.11" by
-        docs/specs/copilot-skills-and-web: copilot `skill` flips
-        `instruction-file`→`direct-directory` first-class SKILL.md, the
-        `copilot-instruction` frontmatter-default is retired). Class/method names
-        preserved to avoid churn.
+        """tomllib.loads of adapter.toml returns contract.version == "0.14"
+        (bumped from gemini-full-parity's "0.13" by
+        docs/specs/enriched-pack-manifest: pack.toml becomes the rich metadata
+        source of truth and the build projects the projectable subset + READMEs
+        into the claude-plugins + apm routes). Class/method names preserved to
+        avoid churn.
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.13",
-            "adapter.toml [contract] version must be '0.13' after gemini-full-parity",
+            "0.14",
+            "adapter.toml [contract] version must be '0.14' after enriched-pack-manifest",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:

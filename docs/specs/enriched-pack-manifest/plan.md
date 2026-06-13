@@ -1,7 +1,10 @@
 # Plan: enriched-pack-manifest
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Executing | Done -->
+  <!-- Manifest layer done: T1–T8, T11, and the manifest portion of T9.
+  Guide-migration layer (T12, T13, T10) is the planned follow-on PR per the
+  PR-sizing note in T12. -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -26,8 +29,8 @@ Three layers, in order: **schema** (declare the fields), **projection** (carry t
 
 Per-task `Tests:` below carry the unit/edge coverage. Cross-cutting:
 
-**Integration tests:**
-- **Legacy invariance** — a fixture pack omitting all new fields, pinned `< 0.14`, lives at `packages/agentbundle/agentbundle/build/tests/fixtures/legacy_pack/`. The test runs the projector **twice in-process** — once with the enriched mapping path and once on the bare fixture — and asserts the bare run's projected `plugin.json` / `marketplace.json` entry is byte-identical to the pre-enrichment output (captured as a committed golden in the same fixtures dir). This proves the change is purely additive without needing an `origin/main` diff at test time.
+**Integration / invariant tests:**
+- **Legacy invariance** — verified at the projector/merge-site level rather than via a committed fixture-golden (as implemented in `build/tests/test_projectable_subset.py`): `derive_projectable_subset` on a manifest with none of the new fields returns `{}`, and `derived.update({})` is asserted byte-identical (`json.dumps(sort_keys=True)` before vs after). Because the projector emits keys *only when present*, an empty subset cannot perturb the projected `plugin.json` / `marketplace.json` entry — which is the additive guarantee, proven without an `origin/main` diff at test time. (Earlier draft proposed a `fixtures/legacy_pack/` golden run twice in-process; the unit-level invariant covers the same property more directly and is what shipped.)
 - **Full build-check** — `make build-check` green after projection + population (covers drift gates + self-host projection of `core`/`governance-extras`).
 
 **Manual verification:** none beyond the goal-based gates.
@@ -271,3 +274,4 @@ Pure catalogue/build change — no infra, no external systems, no runtime flag. 
 
 - 2026-06-13: initial plan (follows RFC-0031 Decision 6 "first spec").
 - 2026-06-13: doc-surface added (README link-out, PyPI READMEs, `docs/architecture/pack-manifest.md`); per-pack `docs/guides/` layout decided in ADR-0020 and **migrated in-plan** (T12 migrate + T13 convention/`new-guide` adaptation), consumed by T10; `product-engineering` (RFC-0030, landed) folded into the 12-pack population sweep.
+- 2026-06-13: **manifest layer implemented** (T1–T8, T11, manifest portion of T9) and split from the guide-migration layer (T12/T13/T10) per the PR-sizing note — guide migration is a follow-on PR stacked on this one (backlog `per-pack-guide-home-documentation-links`). Build learnings: (1) the in-house JSON-Schema validator lacked `maxItems` — added it (the ≤5 cap on categories/keywords needed it). (2) `_aggregate_marketplace` reads the *source* `plugin.json`, so the subset is merged at aggregation time from `pack.toml` (not stored in source `plugin.json`, which stays minimal). (3) `make build-self` regenerates the committed `.claude-plugin/marketplace.json`; it refused a dirty tree, so the `self --force` form regenerated it mid-work. (4) `agentbundle validate product-engineering` had a pre-existing user-scope-seeds rail failure (it shipped `seeds/` while declaring `user` scope, RFC-0004 Rail A); **resolved in this PR** by relocating its intent/rollup templates from `seeds/` into the owning skills' `assets/` (per the AGENTS.local.md skill-template convention) so the pack ships no `seeds/` and validates clean — all 12 packs now pass. The `product-engineering-pack` / `value-stream-meta-repo` specs + plans were updated and RFC-0030 / ADR-0022 carry errata. (5) overview.md ships **no** hardcoded pack count (maintainer direction — brittle), diverging from the AC13 count clause. (6) AGENTS.local.md is the canonical source for this repo's skill-template-in-`assets/` convention — read it up front.

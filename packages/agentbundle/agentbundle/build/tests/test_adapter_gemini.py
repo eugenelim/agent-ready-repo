@@ -150,9 +150,10 @@ class GeminiContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_contract_version_is_0_13(self) -> None:
-        """AC13 — contract bumped to 0.13."""
-        self.assertEqual(self.contract["contract"]["version"], "0.13")
+    def test_contract_version_is_0_14(self) -> None:
+        """Contract version is 0.14 (docs/specs/enriched-pack-manifest bumped it
+        from gemini-full-parity's 0.13). Renamed from the 0_13 method."""
+        self.assertEqual(self.contract["contract"]["version"], "0.14")
 
     def test_gemini_block_projects_five_primitives(self) -> None:
         """AC2 — five standard primitives with their gemini targets."""

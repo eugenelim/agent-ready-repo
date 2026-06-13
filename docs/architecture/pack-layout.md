@@ -64,17 +64,28 @@ contents:
 Pack metadata, declared scope shape, and the adapter-contract version
 the pack targets. Three required tables:
 
-- **`[pack]`** — `name`, `version`, `description`. The build pipeline
-  reads these and emits derived per-tool metadata into
+- **`[pack]`** — required `name`, `version`, `description`. The build
+  pipeline reads these and emits derived per-tool metadata into
   `dist/apm/<pack>/apm.yml` and
-  `dist/claude-plugins/<pack>/.claude-plugin/plugin.json`.
+  `dist/claude-plugins/<pack>/.claude-plugin/plugin.json`. Since
+  **enriched-pack-manifest** (RFC-0031 / ADR-0021, contract v0.14),
+  `[pack]` also accepts optional rich metadata — `readme`, `display_name`,
+  `license`, `categories` (≤5, soft vocabulary), `keywords` (≤5),
+  `catalogue`, an opaque `[pack.metadata.<tool>]` table, plus the
+  `[[pack.maintainers]]` array and the `[pack.links]` table
+  (homepage/repository/documentation/changelog/issues/icon). The build
+  projects the cleanly-mappable subset (author ← first maintainer,
+  `category` ← `categories[0]`, `displayName`, plus
+  license/keywords/homepage/repository) into the `plugin.json` /
+  `marketplace.json` entry, and copies the pack's `README.md` into each
+  route — see [`pack-manifest.md`](pack-manifest.md). Every enriched field
+  is optional; a pack that omits them projects exactly as before.
 - **`[pack.adapter-contract]`** — `version`, must reference a
-  published contract version. The contract itself is at **v0.6**
-  today (RFC-0011); the four user-scope-capable packs (`atlassian`,
-  `figma`, `converters`, `contracts`) target v0.6 to opt into the
-  `allowed-adapters` resolver; the four repo-only packs still target
-  v0.2. When authoring a new pack, copy the value from a sibling
-  with the same scope shape rather than the contract.
+  published contract version. The contract is at **v0.14** today
+  (enriched-pack-manifest); a pack pins the *minimum* version whose
+  behaviour it needs, not necessarily the latest. When authoring a new
+  pack, copy the value from a sibling with the same scope shape rather
+  than the contract.
 - **`[pack.install]`** — `default-scope` ∈ `{repo, user}`,
   `allowed-scopes`, optional `user-scope-hooks` (v0.3+, RFC-0005),
   and optional `allowed-adapters` (v0.6+, RFC-0011 — array of

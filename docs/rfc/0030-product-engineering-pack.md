@@ -398,3 +398,19 @@ trade tooling complexity for low coordination cost; polyrepos the reverse ◦.
   repos without becoming a runtime hub.
 - The precise `architect` seam: does `reference.md` live in the meta-repo, and
   how do component repos reference it.
+
+## Errata
+
+- **2026-06-13 (enriched-pack-manifest; Approver: eugenelim).** The proposal
+  described the intent/rollup artifacts as repo-scope **seeds** ("skills travel;
+  seeds land repo-scope in `docs/product/`", § Proposal). In implementation a
+  pack shipping a non-empty `seeds/` cannot declare `"user" ∈ allowed-scopes`
+  (RFC-0004 Rail A), which contradicted this pack's user-scope skills (the pack
+  failed `agentbundle validate`). Resolved by carrying the templates **as skill
+  assets** (`frame-intent/assets/intent-template.md`,
+  `align-value-stream/assets/rollup-template.md`) that the skills copy into
+  `docs/product/{intents,rollups}/<slug>.md` at runtime — so the templates
+  *travel with the skills* (realizing this RFC's "skills travel" intent) and the
+  filled doc still lands repo-scope, with no `seeds/` and no scope conflict.
+  Specs `product-engineering-pack` / `value-stream-meta-repo` and
+  `tools/lint-seeds.py` updated to match.

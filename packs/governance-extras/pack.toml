@@ -1,7 +1,12 @@
 [pack]
 name = "governance-extras"
-version = "0.1.0"
+version = "0.1.1"
 description = "Governance skills (new-rfc, new-adr, update-conventions) and RFC/ADR templates + seed READMEs."
+readme = "README.md"
+display_name = "Governance Extras"
+license = "Apache-2.0 OR MIT"
+categories = ["governance", "documentation"]
+keywords = ["rfc", "adr", "conventions"]
 
 # RFC-0004 v0.2 contract metadata. RFC/ADR ceremony is per-project, so
 # the pack is declared repo-only.
@@ -19,3 +24,14 @@ allowed-scopes = ["repo"]
 catalogue = "agent-ready-repo"
 pack = "core"
 version = "^0.1"
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer. The `documentation` link to the per-pack guide home is a
+# follow-on (ADR-0020 guide migration).
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

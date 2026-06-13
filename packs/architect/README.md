@@ -145,3 +145,11 @@ Rubrics and well-architected references are deliberately duplicated
 between `architect-design` and `architect-review` rather than shared via
 inter-skill references. Each duplicated file carries a one-line note. The
 duplication is the principle, not the bug — each skill stands alone.
+
+## Usage
+
+Ask your agent, for example:
+
+- "Design the architecture for a multi-tenant billing service on AWS." (`architect-design`)
+- "Draw a Mermaid component diagram for this design." (`architect-diagram`)
+- "Review this architecture against the well-architected rubric." (`architect-review`)

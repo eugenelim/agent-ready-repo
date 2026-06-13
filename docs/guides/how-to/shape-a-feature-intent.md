@@ -15,7 +15,8 @@ pack, then:
 
 Invoke **`frame-intent`**. It runs intake first: it infers **Scale** (one repo
 with app code → `app`), confirms it, and asks whether this work is **greenfield**
-or **brownfield**. Then you fill an intent (copy `docs/product/intents/_template.md`):
+or **brownfield**. Then you fill an intent (the skill ships the template at
+`frame-intent/assets/intent-template.md`; copy it to `docs/product/intents/<slug>.md`):
 
 - **Outcome** — a steerable *input* metric, the *lagging* outcome it should drive,
   and a *guardrail* that must not get worse. In 0-to-1, a qualitative-but-

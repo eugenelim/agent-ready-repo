@@ -23,6 +23,7 @@ import sys
 import tomllib
 from pathlib import Path
 
+from agentbundle.categories import DEFAULT_CATEGORIES, unknown_categories
 from agentbundle.commands import _drop_warning
 from agentbundle.commands._common import check_spec_version_gate
 
@@ -270,6 +271,25 @@ def run(args) -> int:
         if ide_hook_refusal is not None:
             print(f"validate: {ide_hook_refusal}", file=sys.stderr)
             return 1
+
+    # ── 4f. Soft categories vocabulary (enriched-pack-manifest / RFC-0031 D3) ─
+    # `categories` is a *soft* vocabulary: a slug outside the default set is a
+    # warning, never a refusal. The schema already enforces shape (array of
+    # strings, ≤5) and the ≤5 cap; this rail only nudges taxonomy consistency.
+    declared_categories = (
+        pack_data.get("pack", {}).get("categories")
+        if isinstance(pack_data.get("pack"), dict)
+        else None
+    )
+    unknown = unknown_categories(declared_categories)
+    if unknown:
+        pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
+        print(
+            f"validate: warning: pack {pack_name} declares "
+            f"category slug(s) {unknown} not in the default vocabulary "
+            f"{sorted(DEFAULT_CATEGORIES)} — soft vocabulary, not an error",
+            file=sys.stderr,
+        )
 
     # ── 5. Strict / conformance mode ─────────────────────────────────────
     if strict:

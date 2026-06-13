@@ -42,13 +42,24 @@ A catalogue is a git URL or a local path. Installs auto-detect your agent; pass 
 
 ```text
 my-pack/
-  pack.toml                  # name, version, adapter-contract, install scope
+  pack.toml                  # name, version, adapter-contract, install scope,
+                             # plus rich metadata (license, maintainers, links,
+                             # categories, keywords) and a README pointer
+  README.md                  # the pack's portable doc — projected with the pack
   .apm/
     skills/<name>/SKILL.md    # one folder per skill
     agents/<name>.md          # subagents
     hooks/<name>.py           # lifecycle hooks
   seeds/                      # files scaffolded into the adopter repo
 ```
+
+`pack.toml` is the **single source of truth** for a pack's metadata. Declare
+`license`, `[[pack.maintainers]]`, `[pack.links]`, `categories`, and
+`keywords` once; the build projects the cleanly-mappable subset — plus the
+pack's `README.md` — into each distribution route's manifest (the `plugin.json`
+/ `marketplace.json` entry), so the catalogue describes each pack richly rather
+than with a single sentence. Extra fields stay in `pack.toml`; the projection
+is deliberately lossy per tool.
 
 Point a catalogue URI (a git URL or a local path) at the repo that holds your packs. Then `validate` a pack against the adapter contract, `render` it to preview the projection, and `install` it into a target repo. `scaffold` drops a pack's seeds into a fresh directory to start from. The build pipeline (`agentbundle.build`) is the same engine `make build` runs.
 

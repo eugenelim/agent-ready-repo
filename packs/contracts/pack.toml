@@ -1,7 +1,12 @@
 [pack]
 name = "contracts"
-version = "0.3.0"
+version = "0.3.1"
 description = "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract). User-scope default — contract style is portable across projects."
+readme = "README.md"
+display_name = "Contracts"
+license = "Apache-2.0 OR MIT"
+categories = ["api-design", "documentation"]
+keywords = ["openapi", "asyncapi", "contracts", "api"]
 
 [pack.adapter-contract]
 version = "0.8"
@@ -15,3 +20,14 @@ allowed-scopes = ["user", "repo"]
 # are admitted for credentialed CLIs now that both declare `.agentbundle/`
 # in `allowed-prefixes.user` (the § 4d precondition). Append-only.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer. The `documentation` link to the per-pack guide home is a
+# follow-on (ADR-0020 guide migration).
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

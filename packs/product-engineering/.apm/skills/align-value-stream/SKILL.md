@@ -50,8 +50,9 @@ Before aligning, confirm:
    lives **here**; each component repo's own `reference.md` links to and conforms
    to it rather than re-deriving the system view. This is the `architect` seam.
 
-5. **Keep the rollup current.** Maintain the cross-component rollup (copy the
-   `docs/product/rollups/_template.md` seed): one row per slice `decompose-intent`
+5. **Keep the rollup current.** Maintain the cross-component rollup (copy this
+   skill's `assets/rollup-template.md` to `docs/product/rollups/<slug>.md`): one
+   row per slice `decompose-intent`
    produced → its brief → a **status snapshot + a pointer** to that repo's own
    auto-derived coverage. The **AND across rows** is the answer; an absent-source
    row is `unknown / not-yet-catalogued`, never silently delivered. See

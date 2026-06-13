@@ -14,6 +14,16 @@
       "type": "array",
       "items": {"type": "string"}
     },
+    "author": {"type": "string"},
+    "license": {"type": "string"},
+    "homepage": {"type": "string"},
+    "repository": {"type": "string"},
+    "keywords": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "category": {"type": "string"},
+    "displayName": {"type": "string"},
     "hooks": {
       "type": "object",
       "properties": {

@@ -176,6 +176,24 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_adapter_gemini.py
 
+      # enriched-pack-manifest (RFC-0031): the manifest layer's contract +
+      # construction tests live in the build/tests + tests/{unit,integration}
+      # roots, which `make build-check` does not run. Wire them in explicitly or
+      # they never gate (CI does not auto-discover package pytest) — the
+      # projector mapping, the ≤5 cap, the soft-categories rail, the all-packs
+      # enriched floor, and the @catalogue/pack identity invariant would
+      # otherwise rot silently.
+      - name: pytest enriched-pack-manifest (RFC-0031)
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          agentbundle/build/tests/test_projectable_subset.py
+          agentbundle/build/tests/test_pack_schema.py
+          agentbundle/build/tests/test_plugin_manifest_schema.py
+          tests/unit/test_validate_categories.py
+          tests/unit/test_enriched_pack_metadata.py
+          tests/integration/test_list_packs_cmd.py
+
       - name: converters source-attribution scrub (AC2)
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error
