@@ -9,6 +9,44 @@
         "name": {"type": "string"},
         "version": {"type": "string"},
         "description": {"type": "string"},
+        "readme": {"type": "string"},
+        "display_name": {"type": "string"},
+        "license": {"type": "string"},
+        "catalogue": {"type": "string"},
+        "categories": {
+          "type": "array",
+          "items": {"type": "string"},
+          "maxItems": 5
+        },
+        "keywords": {
+          "type": "array",
+          "items": {"type": "string"},
+          "maxItems": 5
+        },
+        "maintainers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {"type": "string"},
+              "email": {"type": "string"},
+              "url": {"type": "string"}
+            }
+          }
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "homepage": {"type": "string"},
+            "repository": {"type": "string"},
+            "documentation": {"type": "string"},
+            "changelog": {"type": "string"},
+            "issues": {"type": "string"},
+            "icon": {"type": "string"}
+          }
+        },
+        "metadata": {"type": "object"},
         "adapter-contract": {
           "type": "object",
           "properties": {

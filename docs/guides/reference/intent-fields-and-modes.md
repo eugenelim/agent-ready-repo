@@ -6,7 +6,8 @@
 
 ## Intent fields
 
-The `intent` template (`docs/product/intents/_template.md`). Only Outcome and
+The `intent` template (shipped with the `frame-intent` skill at
+`frame-intent/assets/intent-template.md`). Only Outcome and
 Opportunity are load-bearing; the rest are offered, never required.
 
 | Field | Meaning |

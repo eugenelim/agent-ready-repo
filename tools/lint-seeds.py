@@ -102,8 +102,11 @@ REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/product/roadmap.md": ("YYYY-MM-DD",),
     "docs/product/changelog.md": ("Unreleased",),
     "docs/product/briefs/_template.md": ("<slug>", "<one-line outcome>"),
-    "docs/product/intents/_template.md": ("<slug>", "<one-line outcome>"),
-    "docs/product/rollups/_template.md": ("<slug>", "<one-line outcome>"),
+    # product-engineering's intent + rollup templates moved from repo-scaffolding
+    # seeds/ into the owning skills' assets/ (frame-intent, align-value-stream) so
+    # the pack ships no seeds/ and stays user-scope (enriched-pack-manifest;
+    # AGENTS.local.md skill-template convention). They are skill reference content
+    # now, not adopter seeds, so they leave the seed registry.
     "docs/CONVENTIONS.md": (),
     "AGENTS.md": ("<project-name>",),
     "docs/guides/README.md": (),

@@ -13,6 +13,7 @@ Supported keywords:
   - `items`: schema applied element-wise (only meaningful when type=array)
   - `additionalProperties`: bool or schema (only meaningful when type=object)
   - `minItems`: integer; array must have at least this many items
+  - `maxItems`: integer; array must have at most this many items
   - `contains`: subschema; array must have at least one item matching it
   - `if` / `then` / `else`: conditional subschemas (all three applied to
     the same instance as the parent). RFC-0004's pack.schema.json uses
@@ -20,7 +21,9 @@ Supported keywords:
     "default-scope ∈ allowed-scopes."
 
 Unsupported by design: `$ref`, `$defs`, `oneOf`, `anyOf`, `allOf`,
-`not`, `format`, `minimum`/`maximum`, `minLength`/`maxLength`. If the
+`not`, `format`, `minimum`/`maximum`, `minLength`/`maxLength`. (`maxItems`
+joined the supported set with enriched-pack-manifest's ≤5 category/keyword
+caps.) If the
 contract grows a need, an RFC amends this subset; the validator does
 not silently expand.
 
@@ -115,6 +118,12 @@ def validate(instance: Any, schema: dict, path: str = "$") -> list[str]:
             if len(instance) < min_items:
                 errors.append(
                     f"{path}: array has {len(instance)} item(s), minItems={min_items}"
+                )
+        max_items = schema.get("maxItems")
+        if isinstance(max_items, int) and not isinstance(max_items, bool):
+            if len(instance) > max_items:
+                errors.append(
+                    f"{path}: array has {len(instance)} item(s), maxItems={max_items}"
                 )
         contains_schema = schema.get("contains")
         if isinstance(contains_schema, dict):
