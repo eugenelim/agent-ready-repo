@@ -39,6 +39,7 @@ riskiest one, predeclares a kill condition in the test's own currency, and tests
 it under the chosen prototype-approach. -->
 
 - <assumption>
+- **Knowledge surface:** <name of the retrieval surface frame-intent consulted, or "none detected"> <!-- the audit home for frame-intent's knowledge-surface consult (see references/knowledge-surfaces.md); "none detected" is the trigger for the ask-and-lower-confidence path. Drop this line if no surface was relevant. -->
 
 ## Decomposition
 

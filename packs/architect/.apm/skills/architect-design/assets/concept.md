@@ -47,3 +47,11 @@ full doc and the convergence loop will turn on.>
 
 <Only real unknowns, each with who/what could answer it. Drop the section if
 there are none — don't pad.>
+
+## Knowledge surface (optional)
+
+<If you consulted an enterprise knowledge-retrieval surface to ground this
+concept, name it here (or "none detected") — the audit home for the
+architect-design knowledge-surface consult (see references/knowledge-surfaces.md).
+"none detected" is the trigger for the ask-and-lower-confidence path. Drop the
+section if no surface was relevant.>

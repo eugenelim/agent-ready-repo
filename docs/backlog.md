@@ -237,21 +237,29 @@ shipped** (`docs/specs/architect-review-knowledge-surfaces`, architect pack
 landscape / standards / in-flight / interface claim asserted as fact without
 grounding, plus any available surface the design ignored, without redesigning.
 
-**Only `architect-diagram` remains** of the two sibling skills: it would consult
-the **current landscape** area to draw accurate as-is diagrams. A separate
-sibling for the `product-engineering` pack (problem-space lens: domain,
-landscape, operational, in-flight) is also still a fast-follow. **Unblocks
-when:** the owner opts in (spec `Ask first` Boundary).
+**The `product-engineering` sibling has also shipped**
+(`docs/specs/product-engineering-knowledge-surfaces`, product-engineering pack
+`0.3.0`): `frame-intent` gained the problem-framing-lens projection (domain,
+in-flight, brownfield-landscape, operational), guarded against drift from the
+architect canonical core by `tools/lint-knowledge-surface-parity.py`.
+
+**Only `architect-diagram` remains** of the two architect sibling skills: it
+would consult the **current landscape** area to draw accurate as-is diagrams.
+**Unblocks when:** the owner opts in (spec `Ask first` Boundary).
 
 ### live-mock-mcp-detection-qa
 
-AC12's detection QA was verified in two halves: a real structural projection
-check (`make build` → projected artifacts byte-identical to source) and a
-decision-logic walkthrough by an independent agent. The walkthrough *described*
-per-scenario tool presence rather than exercising a **live mock MCP knowledge
-tool**, because the authoring harness can't inject one. **Unblocks when:** a
-harness/test fixture can register a stub MCP retrieval tool, at which point the
-present/absent/sensitive scenarios can run end-to-end against real detection.
+The detection QA (both `architect-design`/`architect-review` per their specs and
+`frame-intent` per `product-engineering-knowledge-surfaces` AC13) was verified in
+two halves: a real structural projection check (`make build` → projected
+artifacts byte-identical to source) and a decision-logic walkthrough by an
+independent agent. The walkthrough *described* per-scenario tool presence rather
+than exercising a **live mock MCP knowledge tool**, because the authoring harness
+can't inject one. **Each skill's live-mock run is pending under this one
+anchor** — landing a live run for one does not satisfy the others. **Unblocks
+when:** a harness/test fixture can register a stub MCP retrieval tool, at which
+point the present/absent/sensitive (and, for `frame-intent`, brownfield)
+scenarios can run end-to-end against real detection for each skill.
 
 ## Cross-spec / outside-the-spec-tree
 
