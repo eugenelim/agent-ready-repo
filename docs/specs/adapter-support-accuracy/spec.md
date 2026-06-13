@@ -21,7 +21,7 @@ ownership boundary and the FIX-6 empirical re-verification). -->
 ## Objective
 
 A reader of the adapter support matrix
-([`docs/guides/reference/adapter-support.md`](../../guides/reference/adapter-support.md))
+([`docs/guides/_shared/reference/adapter-support.md`](../../guides/_shared/reference/adapter-support.md))
 should get an honest, contract-faithful picture of what each agent tool receives —
 with no claim that contradicts the adapter contract or a tool's current behaviour.
 This spec corrects six documentation-accuracy defects in that page (and the same

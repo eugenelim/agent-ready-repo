@@ -1,5 +1,5 @@
 {
   "name": "architect",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Solution-architecture skills (architect-design, architect-diagram, architect-review). Workspace-agnostic, user-scope by default, no required configuration."
 }

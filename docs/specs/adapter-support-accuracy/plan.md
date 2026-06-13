@@ -38,7 +38,7 @@ changelog versions and issue states are recorded in `spec.md` Assumptions and
 ### T1: Kiro IDE hook claim reflects the contract's three-way split
 
 **Depends on:** none
-**Touches:** docs/guides/reference/adapter-support.md
+**Touches:** docs/guides/_shared/reference/adapter-support.md
 
 **Tests:**
 - Goal-based (AC1): the Kiro IDE Hook cell + caveat name all three — bodies project,
@@ -56,7 +56,7 @@ changelog versions and issue states are recorded in `spec.md` Assumptions and
 ### T2: Kiro slash-command wording + universal-layer note
 
 **Depends on:** none
-**Touches:** docs/guides/reference/adapter-support.md
+**Touches:** docs/guides/_shared/reference/adapter-support.md
 
 **Tests:**
 - Goal-based (AC3): the slash caveat says "no standalone command-file primitive the
@@ -73,7 +73,7 @@ changelog versions and issue states are recorded in `spec.md` Assumptions and
 ### T3: Codex + Copilot slash-command clauses point at skills
 
 **Depends on:** none
-**Touches:** docs/guides/reference/adapter-support.md
+**Touches:** docs/guides/_shared/reference/adapter-support.md
 
 **Tests:**
 - Goal-based (AC5): Codex clause names skills (`.agents/skills/`) as the replacement;

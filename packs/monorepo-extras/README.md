@@ -24,3 +24,7 @@ Ask your agent, for example:
 
 - "Scaffold a new package called `billing`."
 - "Add a new package `notifications` from the example template."
+
+---
+
+→ **Go deeper:** the [`monorepo-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/monorepo-extras/).

@@ -52,3 +52,20 @@ Boundaries on the decision:
 
 - [Diátaxis — complex hierarchies](https://diataxis.fr/complex-hierarchies/)
 - ADR-0001 (the guides sub-decision this amends); RFC-0031 (package-manager posture); `scope_rails.py:87` (the seeds-rail constraint).
+
+## Erratum (2026-06-13)
+
+The Decision's implementation note says to amend `CONVENTIONS.md §5c`. In
+practice `docs/CONVENTIONS.md` is **projected** from the adopter seed
+`packs/core/seeds/docs/CONVENTIONS.md` (it sits in `self_host.py`'s
+`PROJECTED_README_OVERRIDES`), so `make build-self` overwrites any direct
+edit, and whatever §5c says **ships to adopters** — whose scaffold this ADR
+keeps by-quadrant. Amending §5c to the per-pack hierarchy would contradict
+this ADR's own "seed scaffold unchanged" boundary.
+
+**Resolution (carried by the guide-migration PR):** §5c stays by-quadrant
+(adopter-correct); this repo's per-pack guides convention is recorded in
+`AGENTS.local.md` instead. The other half of the instruction *was* done — the
+`new-guide` skill is now **layout-aware** (writes per-pack when the repo is
+organized that way, by-quadrant otherwise), so it serves both the catalogue
+and single-product adopters. Ratified on merge by the ADR's decider.

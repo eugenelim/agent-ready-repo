@@ -205,6 +205,33 @@ seed it names, re-run `make build-self`, re-commit).
 If you edit any README, table, or doc under the projected paths above,
 **check the seed first**.
 
+## `docs/guides/` is organized by pack in this repo (not by quadrant)
+
+This catalogue organizes its own user docs **by pack** —
+`docs/guides/<pack>/{tutorials,how-to,reference,explanation}/` for
+pack-specific guides and `docs/guides/_shared/{quadrant}/` for cross-cutting
+ones (install routes, adapter support, the catalogue model, `author-a-skill`).
+Per [ADR-0020](docs/adr/0020-per-pack-diataxis-hierarchy-for-guides.md), the
+four-type Diátaxis discipline still holds — it just applies *within* each
+pack's subtree. When you author a guide here (via `new-guide` or by hand),
+write it under the owning pack, or `_shared/` if it isn't specific to one pack.
+
+**Two adopter-facing surfaces deliberately stay organized by quadrant**, and
+ADR-0020's "amend `CONVENTIONS.md §5c`" instruction is an **erratum** because
+of it:
+
+- The **`user-guide-diataxis` seed scaffold** ships an adopter a
+  by-quadrant `docs/guides/{quadrant}/` tree — an adopter is one product, not
+  a catalogue of packs. Unchanged on purpose.
+- **`docs/CONVENTIONS.md` §5c is projected** from
+  `packs/core/seeds/docs/CONVENTIONS.md` (it's in `PROJECTED_README_OVERRIDES`),
+  so `make build-self` overwrites any direct edit, and whatever it said would
+  **ship to adopters**. §5c therefore stays by-quadrant (adopter-correct), and
+  this repo's per-pack convention lives here in `AGENTS.local.md` instead. The
+  `new-guide` skill is layout-aware (it writes per-pack when the repo is
+  organized that way, by-quadrant otherwise), which is the part of ADR-0020's
+  §5c/skill instruction that *was* carried out.
+
 ## Pack versioning — non-cosmetic pack changes bump the pack version
 
 A **non-cosmetic** update to any `packs/<pack>/` content must bump that

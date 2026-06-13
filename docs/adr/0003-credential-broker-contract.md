@@ -76,4 +76,4 @@ The numbering follows RFC-0013 § *Alternatives considered* for traceability. Th
 - [RFC-0013 — Credential broker contract](../rfc/0013-credential-broker-contract.md)
 - [RFC-0006 — Skill secrets storage](../rfc/0006-skill-secrets-storage.md) (the architectural rule and the Win32 error matrix this contract inherits verbatim)
 - [`credential-broker-contract` spec](../specs/credential-broker-contract/spec.md) (the construction; 48 ACs across 15 tasks)
-- [Add a credentialed skill — broker-first walkthrough](../guides/how-to/add-a-credentialed-skill.md)
+- [Add a credentialed skill — broker-first walkthrough](../guides/credential-brokers/how-to/add-a-credentialed-skill.md)

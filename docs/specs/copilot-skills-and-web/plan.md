@@ -316,17 +316,17 @@ projection reverts.
   Copilot-web item is closed) resolves or is removed cleanly (AC8, AC11).
 
 **Approach:**
-- `docs/guides/reference/adapter-support.md` — correct **all** copilot
+- `docs/guides/_shared/reference/adapter-support.md` — correct **all** copilot
   skill/web assertions: the Copilot table row (Skill cell instruction-file →
   SKILL.md, Subagent cell + its status word), the dedicated no-web-tool caveat
   block (~lines 51-55), **and** the summary guidance line (~lines 71-72) that
   tells readers to plan around the no-web caveat. Custom agents get `web` on
   CLI/app; only the cloud agent lacks it.
-- `docs/guides/reference/research-pack.md` — besides any web-degradation note,
+- `docs/guides/research/reference/research-pack.md` — besides any web-degradation note,
   correct lines ~131-133 ("Available only on hosts that support subagent
   dispatch (Claude Code)"): Copilot CLI/app custom agents now support both
   subagent dispatch and web, so the host-support phrasing must include Copilot.
-- `docs/guides/tutorials/research-first-session.md` — remove the Copilot
+- `docs/guides/research/tutorials/research-first-session.md` — remove the Copilot
   web-degradation note.
 - `docs/architecture/agentbundle.md` — instruction-file-for-skills mentions → SKILL.md.
 - `AGENTS.local.md` — (a) the coverage-asymmetry block (~lines 252-258) is keyed
@@ -353,7 +353,7 @@ projection reverts.
   copilot-full-parity entry's "no web tool / documented-degradation" phrasing so
   the README index no longer asserts the now-false degradation. Both edits, same
   file.
-- `README.md` / `docs/guides/reference/README.md` — only if they assert these
+- `README.md` / `docs/guides/_shared/reference/README.md` — only if they assert these
   specifics.
 - Name any blast-radius file deliberately left untouched in the PR description.
 

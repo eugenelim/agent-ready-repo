@@ -238,7 +238,7 @@ and projection re-renders in T7.
 ### T8: Adopter reference/explanation guides for the LLD additions
 
 **Depends on:** T1, T2, T3
-**Touches:** docs/guides/reference/spec-shape-and-lld.md, docs/guides/explanation/why-the-plan-owns-the-lld.md
+**Touches:** docs/guides/core/reference/spec-shape-and-lld.md, docs/guides/core/explanation/why-the-plan-owns-the-lld.md
 
 **Tests:**
 - Goal-based: a reference guide file and an explanation guide file exist under
@@ -254,10 +254,10 @@ and projection re-renders in T7.
 - Author **two new files** (the LLD additions are a distinct concern from the
   sibling's brief *fields*, so they get their own pages rather than appending to
   `product-brief-fields.md` / `why-a-brief-layer.md`):
-  - `docs/guides/reference/spec-shape-and-lld.md` — the `Shape:` vocabulary, the
+  - `docs/guides/core/reference/spec-shape-and-lld.md` — the `Shape:` vocabulary, the
     nine `## Design (LLD)` categories + the Rollout-owned tenth, and the
     stack-derivation present/absent branch.
-  - `docs/guides/explanation/why-the-plan-owns-the-lld.md` — why the design lives
+  - `docs/guides/core/explanation/why-the-plan-owns-the-lld.md` — why the design lives
     in the plan (spec stays the contract) and why the stack is derived, not baked.
 - Cross-link the sibling's brief guides (`product-brief-fields.md`,
   `why-a-brief-layer.md`) from the See-also sections; coordination is **advisory,

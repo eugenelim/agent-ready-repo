@@ -31,8 +31,8 @@ docs once the real output text is settled.
   to both subparsers); `commands/_common.py` (shared plan formatter);
   `commands/upgrade.py` + `commands/install.py` (dry-run branch before writes);
   `tests/integration/test_upgrade_cmd.py` + a new/existing install test module;
-  `docs/guides/how-to/preview-install-or-upgrade.md` (new) +
-  `docs/guides/reference/agentbundle.md` (flag listing); `docs/product/changelog.md`.
+  `docs/guides/_shared/how-to/preview-install-or-upgrade.md` (new) +
+  `docs/guides/_shared/reference/agentbundle.md` (flag listing); `docs/product/changelog.md`.
 - **Tests that show "done":** integration tests asserting (a) target tree +
   state file + marker are byte-identical before/after a dry-run, (b) the stdout
   plan names action/tier/path including a Tier-2 companion line, (c) a pre-flight
@@ -141,15 +141,15 @@ plan and leaves tree + state + marker byte-identical.
 
 **Depends on:** T1, T2
 
-**Touches:** docs/guides/how-to/preview-install-or-upgrade.md, docs/guides/reference/agentbundle.md, docs/guides/how-to/README.md, docs/product/changelog.md
+**Touches:** docs/guides/_shared/how-to/preview-install-or-upgrade.md, docs/guides/_shared/reference/agentbundle.md, docs/guides/_shared/how-to/README.md, docs/product/changelog.md
 
 **Tests:** goal-based — one-liner checks (file exists, `grep` the flag name), not
 a pytest module:
-- `docs/guides/how-to/preview-install-or-upgrade.md` exists, is listed in
+- `docs/guides/_shared/how-to/preview-install-or-upgrade.md` exists, is listed in
   `how-to/README.md`, and covers: when to use `--dry-run`, a real
   `agentbundle upgrade --dry-run …` invocation with paste-of-actual-output, how to
   read the action/tier/path lines, and the no-write guarantee. [AC7]
-- `docs/guides/reference/agentbundle.md` lists `--dry-run` under both `install`
+- `docs/guides/_shared/reference/agentbundle.md` lists `--dry-run` under both `install`
   and `upgrade`. [AC7]
 - `docs/product/changelog.md` carries an Unreleased entry for the new flag.
 

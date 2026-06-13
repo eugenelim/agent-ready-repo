@@ -54,9 +54,9 @@ class PackManifestShapeTests(unittest.TestCase):
     def test_pack_name_and_version(self) -> None:
         pack = self.pack_toml["pack"]
         self.assertEqual(pack["name"], "credential-brokers")
-        # Bumped 0.1.0 → 0.1.1 by docs/specs/enriched-pack-manifest (metadata-only
-        # enrichment; the adapter-contract version is unchanged).
-        self.assertEqual(pack["version"], "0.1.1")
+        # Bumped 0.1.0 → 0.1.1 (metadata enrichment) then → 0.1.2 (per-pack
+        # guide-home `documentation` link); the adapter-contract version is unchanged.
+        self.assertEqual(pack["version"], "0.1.2")
 
     def test_description_names_the_three_artefacts(self) -> None:
         # The verbatim description from RFC-0013 § 4 names the three

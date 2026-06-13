@@ -1,12 +1,12 @@
 """Doc-shape audit for the new reference page (AC18).
 
 Confirms:
-  - `docs/guides/reference/agentbundle.md` exists.
+  - `docs/guides/_shared/reference/agentbundle.md` exists.
   - It carries the three sections promised by the spec
     (install agentbundle, install a pack, configure the default adapter).
   - The forward-link to the existing install-from-clone how-to is
     present and points at a file that exists.
-  - `docs/guides/reference/README.md` links to the new page.
+  - `docs/guides/_shared/reference/README.md` links to the new page.
 """
 
 from __future__ import annotations
@@ -15,11 +15,11 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-REF_DIR = REPO_ROOT / "docs" / "guides" / "reference"
+REF_DIR = REPO_ROOT / "docs" / "guides" / "_shared" / "reference"
 REF_PAGE = REF_DIR / "agentbundle.md"
 README = REF_DIR / "README.md"
 HOWTO_INSTALL_FROM_CLONE = (
-    REPO_ROOT / "docs" / "guides" / "how-to" / "install-agentbundle-from-clone.md"
+    REPO_ROOT / "docs" / "guides" / "_shared" / "how-to" / "install-agentbundle-from-clone.md"
 )
 
 
@@ -47,6 +47,6 @@ def test_reference_page_forward_links_to_install_from_clone() -> None:
 def test_reference_readme_links_to_agentbundle_page() -> None:
     body = README.read_text()
     assert "agentbundle.md" in body, (
-        "docs/guides/reference/README.md should link to the new "
+        "docs/guides/_shared/reference/README.md should link to the new "
         "agentbundle.md page."
     )

@@ -1,16 +1,16 @@
 ---
 name: new-guide
-description: Use this skill to draft a new user-facing guide under `docs/guides/<quadrant>/<slug>.md` following the Diátaxis framework. Triggers on "write a guide for X", "new tutorial", "new how-to", "new reference page", "new explanation". Settles the audience contract before any body is written, then scaffolds from the matching per-quadrant template. Do NOT use for feature contracts (use `new-spec`), cross-cutting proposals (use `new-rfc`), or recording decisions (use `new-adr`).
+description: Use this skill to draft a new user-facing guide under `docs/guides/<quadrant>/<slug>.md` (or `docs/guides/<pack>/<quadrant>/<slug>.md` when guides are organized by pack) following the Diátaxis framework. Triggers on "write a guide for X", "new tutorial", "new how-to", "new reference page", "new explanation". Settles the audience contract before any body is written, then scaffolds from the matching per-quadrant template. Do NOT use for feature contracts (use `new-spec`), cross-cutting proposals (use `new-rfc`), or recording decisions (use `new-adr`).
 ---
 
 # Skill: new-guide
 
-Create a new user-facing guide under `docs/guides/<quadrant>/<slug>.md`,
-following the [Diátaxis framework](https://diataxis.fr/). The framework
-itself is documented in this repo at `docs/guides/README.md` and the
-per-quadrant README in each subdirectory — read those for the *what*;
-this skill is the *procedure* for landing a new piece on the right
-side of the line.
+Create a new user-facing guide under `docs/guides/<quadrant>/<slug>.md`
+— or `docs/guides/<pack>/<quadrant>/<slug>.md` in a repo that organizes
+its guides by pack — following the [Diátaxis framework](https://diataxis.fr/).
+The framework itself is documented in this repo at `docs/guides/README.md`
+and the per-quadrant README — read those for the *what*; this skill is the
+*procedure* for landing a new piece on the right side of the line.
 
 The load-bearing rule is **link out, don't blend**. When mid-draft you
 find yourself wanting to add theory inside a tutorial, or steps inside an
@@ -104,10 +104,17 @@ If any check fails, push back rather than proceeding.
    templates carry the minimal section structure for each quadrant; they
    are starting scaffolds, not strict forms.
 
+   **If the repo organizes guides by pack** — a `docs/guides/<pack>/<quadrant>/`
+   layout — prefix the destination with the owning pack, or `_shared/` for a
+   cross-cutting guide that isn't specific to one pack: e.g.
+   `docs/guides/core/how-to/<slug>.md`. Write where the repo's existing
+   guides already live; match the surrounding structure rather than imposing
+   one.
+
 4. **Draft, applying the per-quadrant rules.** The source of truth for
-   *what goes in* each quadrant is the seed README under
-   `docs/guides/<quadrant>/README.md`. Read the relevant one before
-   drafting. The condensed write-time rules, with the named anti-patterns
+   *what goes in* each quadrant is the per-quadrant README under
+   `docs/guides/<quadrant>/README.md` (or `docs/guides/_shared/<quadrant>/README.md`
+   in a per-pack repo). Read the relevant one before drafting. The condensed write-time rules, with the named anti-patterns
    the canonical framework warns about:
 
    - **Tutorials.** Concrete, complete, one path, no digression. Each
@@ -197,8 +204,9 @@ If any check fails, push back rather than proceeding.
    sibling, add a reverse link to the new piece. Cross-links are a
    maintenance pact: when one rots, the others surface the drift.
 
-   Don't touch `docs/guides/<quadrant>/README.md` — those seed READMEs
-   are the framework's per-quadrant explainer, not a piece index.
+   Don't touch the per-quadrant `README.md` (`docs/guides/<quadrant>/README.md`,
+   or `docs/guides/_shared/<quadrant>/README.md` in a per-pack repo) — those
+   READMEs are the framework's per-quadrant explainer, not a piece index.
    Adopters who want an index of pieces add one separately; the skill
    doesn't invent one.
 
