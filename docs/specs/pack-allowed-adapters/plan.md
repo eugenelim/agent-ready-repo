@@ -287,8 +287,8 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
 
 **Tests:**
 - Goal-based grep: assert `README.md` contains the substrings `~/.kiro/skills/`, `~/.agents/skills/`, and `--adapter` (per the Packs-table and Install-section commitments).
-- Goal-based grep: assert `docs/guides/how-to/install-user-scope-pack-into-kiro.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.kiro/skills/`.
-- Goal-based grep: assert `docs/guides/how-to/install-user-scope-pack-into-codex.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.agents/skills/`.
+- Goal-based grep: assert `docs/guides/_shared/how-to/install-user-scope-pack-into-kiro.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.kiro/skills/`.
+- Goal-based grep: assert `docs/guides/_shared/how-to/install-user-scope-pack-into-codex.md` exists and contains the substring `agentbundle install --pack`, `--scope user`, `~/.agents/skills/`.
 - Manual: read each new file end-to-end against the spec's AC16-AC17 commitments. Render the README locally and confirm the Packs table renders.
 
 **Approach:**
@@ -296,8 +296,8 @@ Add `packages/agentbundle/tests/integration/test_install_user_scope_allowed_adap
   - Update the `Where primitives land` table's Codex row to show `.agents/skills/<name>/SKILL.md` (matching RFC-0009's live projection); add user-scope landing paths for the three user-scope-capable adapters. This table is the **single canonical location** for the landing paths.
   - Each of the four user-scope-capable pack rows in the `Packs` table links into the `Where primitives land` table (no inline path enumeration — single canonical per memory rule `feedback_writing_style`).
   - Add a one-line note in the `Install` section's `Where to run these` paragraph about user-scope adapter resolution; link to the relevant how-to.
-- Write `docs/guides/how-to/install-user-scope-pack-into-kiro.md` per spec AC17 first bullet.
-- Write `docs/guides/how-to/install-user-scope-pack-into-codex.md` per spec AC17 second bullet.
+- Write `docs/guides/_shared/how-to/install-user-scope-pack-into-kiro.md` per spec AC17 first bullet.
+- Write `docs/guides/_shared/how-to/install-user-scope-pack-into-codex.md` per spec AC17 second bullet.
 - Add cross-links from the README install section.
 
 **Done when:** the three grep cases pass; manual read confirms each commitment landed.

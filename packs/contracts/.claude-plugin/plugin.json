@@ -1,5 +1,5 @@
 {
   "name": "contracts",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract)."
 }

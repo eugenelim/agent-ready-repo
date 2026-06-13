@@ -168,7 +168,7 @@ except the documented `130`; the `2→1` break noted in the PR.
 ### T6: authoring guide — document the canonical table
 
 **Depends on:** T1
-**Touches:** docs/guides/how-to/add-a-credentialed-skill.md
+**Touches:** docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md
 
 **Tests:** goal-based — grep (anchored on section content, not step ordinals)
 asserts the broker-import example maps `Tier2HardFailError → 1` (correcting

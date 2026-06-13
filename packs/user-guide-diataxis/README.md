@@ -25,3 +25,7 @@ Ask your agent, for example:
 - "Write a how-to guide for resetting a password."
 - "Draft a tutorial that walks a new user through their first import."
 - "Add a reference page documenting the CLI flags."
+
+---
+
+→ **Go deeper:** the [`user-guide-diataxis` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/user-guide-diataxis/).
