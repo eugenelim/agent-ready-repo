@@ -116,3 +116,36 @@ def test_beta_dependency_shown(capsys):
     beta_lines = [l for l in out.splitlines() if l.strip().startswith("beta")]
     assert beta_lines, "beta row must be present"
     assert "alpha" in beta_lines[0], "beta's dep on alpha must appear in the row"
+
+
+# ---------------------------------------------------------------------------
+# 6. enriched-pack-manifest T7: @catalogue/pack canonical identity rendering
+# ---------------------------------------------------------------------------
+
+def test_render_identity_scoped_when_catalogue_set():
+    """`[pack].catalogue = "acme"` renders identity as `@acme/<name>`."""
+    from agentbundle.commands.list_packs import _render_identity
+
+    assert _render_identity({"name": "core", "catalogue": "acme"}) == "@acme/core"
+
+
+def test_render_identity_bare_when_no_catalogue():
+    """Without `[pack].catalogue`, identity is the bare `<name>`."""
+    from agentbundle.commands.list_packs import _render_identity
+
+    assert _render_identity({"name": "core"}) == "core"
+    # Empty / non-string catalogue falls back to bare.
+    assert _render_identity({"name": "core", "catalogue": ""}) == "core"
+
+
+def test_render_identity_does_not_resolve_catalogue(monkeypatch):
+    """Identity rendering is display-only — it must never call into the
+    catalogue resolver. We trip a sentinel if `resolve_catalogue` is touched."""
+    import agentbundle.catalogue as catalogue_mod
+    from agentbundle.commands.list_packs import _render_identity
+
+    def _boom(*_a, **_k):  # pragma: no cover - must not be called
+        raise AssertionError("_render_identity must not resolve a catalogue")
+
+    monkeypatch.setattr(catalogue_mod, "resolve_catalogue", _boom)
+    assert _render_identity({"name": "core", "catalogue": "acme"}) == "@acme/core"

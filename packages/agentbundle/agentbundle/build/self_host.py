@@ -39,6 +39,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tomllib
 import tempfile
 from pathlib import Path
 
@@ -47,6 +48,7 @@ from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import (
     CONTRACT_PATH,
     REPO_ROOT,
+    derive_projectable_subset,
     discover_packs,
     validate_pack_uniqueness,
 )
@@ -507,7 +509,16 @@ def _aggregate_marketplace(
             continue
         manifest = pack_path / ".claude-plugin" / "plugin.json"
         if manifest.exists():
-            entries.append(json.loads(manifest.read_text(encoding="utf-8")))
+            entry = json.loads(manifest.read_text(encoding="utf-8"))
+            # enriched-pack-manifest: surface the projectable metadata subset
+            # (author / license / links / keywords / category / displayName)
+            # derived from pack.toml, so the catalogue entry is described
+            # richly. Emit-only-when-present keeps legacy entries byte-identical.
+            pack_meta = tomllib.loads(
+                (pack_path / "pack.toml").read_text(encoding="utf-8")
+            )
+            entry.update(derive_projectable_subset(pack_meta))
+            entries.append(entry)
     target = output_root / ".claude-plugin" / "marketplace.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = {

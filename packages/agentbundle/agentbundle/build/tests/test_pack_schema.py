@@ -249,6 +249,156 @@ seeds = ["/etc/foo"]
         )
 
 
+class PackSchemaEnrichedMetadataTests(unittest.TestCase):
+    """enriched-pack-manifest T1: optional first-class metadata fields.
+
+    pack.schema.json gains optional `readme`, `display_name`, `license`,
+    `[[pack.maintainers]]`, `[pack.links]`, `categories` (≤5),
+    `keywords` (≤5), `[pack].catalogue`, and an opaque `[pack.metadata.*]`
+    table. Every field is optional — a manifest omitting all of them must
+    still validate (legacy invariance).
+    """
+
+    def test_accepts_all_enriched_fields(self) -> None:
+        """A manifest carrying every new field validates."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        toml_text = """
+[pack]
+name = "research"
+version = "0.1.0"
+description = "Evidence-grounded research."
+readme = "README.md"
+display_name = "Research"
+license = "Apache-2.0"
+catalogue = "agent-ready-repo"
+categories = ["research", "documentation"]
+keywords = ["osint", "synthesis", "citations"]
+
+[[pack.maintainers]]
+name = "Eugene Lim"
+email = "eugenelim@users.noreply.github.com"
+url = "https://github.com/eugenelim"
+
+[pack.links]
+homepage = "https://example.com"
+repository = "https://github.com/example/repo"
+documentation = "https://example.com/docs"
+changelog = "https://example.com/changelog"
+issues = "https://example.com/issues"
+icon = "https://example.com/icon.png"
+
+[pack.metadata.cursor]
+some-cursor-only-key = "anything"
+nested = { a = 1, b = [1, 2, 3] }
+"""
+        instance = _parse_toml(toml_text)
+        errors = validate(instance, schema)
+        self.assertEqual(
+            errors,
+            [],
+            "schema rejected a manifest with all enriched fields:\n"
+            + "\n".join(errors),
+        )
+
+    def test_accepts_manifest_omitting_all_enriched_fields(self) -> None:
+        """Optionality: a manifest with none of the new fields validates."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        toml_text = """
+[pack]
+name = "core"
+version = "0.4.0"
+description = "Core skills."
+"""
+        instance = _parse_toml(toml_text)
+        errors = validate(instance, schema)
+        self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_rejects_more_than_five_categories(self) -> None:
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        instance = {
+            "pack": {
+                "name": "core",
+                "version": "0.1.0",
+                "categories": ["a", "b", "c", "d", "e", "f"],
+            }
+        }
+        errors = validate(instance, schema)
+        self.assertTrue(errors, "schema accepted >5 categories")
+
+    def test_accepts_exactly_five_categories(self) -> None:
+        """Boundary: maxItems=5 admits exactly five (the new validator keyword)."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        instance = {
+            "pack": {
+                "name": "core",
+                "version": "0.1.0",
+                "categories": ["a", "b", "c", "d", "e"],
+            }
+        }
+        self.assertEqual(validate(instance, schema), [])
+
+    def test_rejects_more_than_five_keywords(self) -> None:
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        instance = {
+            "pack": {
+                "name": "core",
+                "version": "0.1.0",
+                "keywords": ["a", "b", "c", "d", "e", "f"],
+            }
+        }
+        errors = validate(instance, schema)
+        self.assertTrue(errors, "schema accepted >5 keywords")
+
+    def test_rejects_maintainer_missing_name(self) -> None:
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        instance = {
+            "pack": {
+                "name": "core",
+                "version": "0.1.0",
+                "maintainers": [{"email": "nobody@example.com"}],
+            }
+        }
+        errors = validate(instance, schema)
+        self.assertTrue(errors, "schema accepted a maintainer with no name")
+
+    def test_rejects_non_string_license(self) -> None:
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        instance = {
+            "pack": {"name": "core", "version": "0.1.0", "license": 42}
+        }
+        errors = validate(instance, schema)
+        self.assertTrue(errors, "schema accepted a non-string license")
+
+    def test_metadata_table_is_opaque_object(self) -> None:
+        """`[pack.metadata.<tool>]` is an arbitrary object — accepted as-is."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        instance = {
+            "pack": {
+                "name": "core",
+                "version": "0.1.0",
+                "metadata": {"anything": {"deeply": {"nested": [1, 2]}}},
+            }
+        }
+        errors = validate(instance, schema)
+        self.assertEqual(errors, [], "\n".join(errors))
+
+
 class PackSchemaLoadsTests(unittest.TestCase):
     """Smoke test: the schema file loads and has the expected top-level shape."""
 

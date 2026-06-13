@@ -9,7 +9,7 @@ was sliced into?" That whole-feature answer is the meta-repo's rollup, and it
 
 ## Shape: a markdown table, one row per slice
 
-Copy the `docs/product/rollups/_template.md` seed. One row per component slice
+Copy this skill's `assets/rollup-template.md`. One row per component slice
 `decompose-intent` produced, with a pointer back to the slice's brief and to the
 component repo's **own** auto-derived coverage:
 

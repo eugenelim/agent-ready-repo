@@ -74,6 +74,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no shared release train, snapshot-not-live**. Habits, not infrastructure
   (RFC-0030 phase 2, ADR-0022).
 
+- **`pack.toml` is now the rich source of truth for pack metadata, projected
+  into every catalogue listing (adapter contract → 0.14).** Packs can declare
+  `license`, `display_name`, `[[pack.maintainers]]`, `[pack.links]`
+  (homepage/repository/documentation/changelog/issues/icon), `categories` and
+  `keywords` (each capped at 5), an opaque `[pack.metadata.<tool>]` table, and a
+  `readme` pointer — all optional, so packs that omit them build and validate
+  exactly as before. The build projects the cleanly-mappable subset (author ←
+  first maintainer, `category` ← first category, `displayName`, plus
+  license/keywords/homepage/repository) — and each pack's `README.md` — into the
+  claude-plugins and APM routes' `plugin.json` / aggregated `marketplace.json`
+  entry, so a pack is described richly rather than with a single sentence.
+  `categories` is a **soft vocabulary**: an unknown slug warns (exit 0), never
+  fails. `agentbundle list-packs` renders a pack's canonical identity as
+  `@<catalogue>/<pack>` when `[pack].catalogue` is set (declare-only — no
+  resolution change). **All 12 shipped packs** now declare the enriched metadata
+  and bump a patch version. (RFC-0031, ADR-0021; the per-pack guide-home
+  `documentation` links and the `docs/guides/` per-pack reorg land in a
+  follow-on, ADR-0020.) As part of the same sweep, `product-engineering`'s
+  intent/rollup templates moved from repo-scaffolding `seeds/` into the owning
+  skills' `assets/` (so the pack carries no `seeds/` and stays user-scope).
+
 - **A new opt-in `product-engineering` pack shapes product intent into the specs
   your delivery loop already builds (pack 0.1.0).** Three pure-markdown skills —
   `frame-intent`, `de-risk-intent`, `decompose-intent` — work a recursive,

@@ -605,3 +605,17 @@ then escapes the backslash, so a frontmatter `description` carrying escaped quot
 double-escaped (`\\\"…\\\"`). This is **byte-identical to the merged `cursor.py`** (an inherited
 cross-adapter behavior, not a gemini regression). Fix both adapters together: unescape `\"`→`"`
 in the quote-stripping branch.
+
+## `enriched-pack-manifest`
+
+### per-pack-guide-home-documentation-links
+
+The enriched-manifest spec (AC9, AC10) calls for migrating `docs/guides/` to a
+per-pack Diátaxis hierarchy (`docs/guides/<pack>/{quadrant}/`, ADR-0020),
+adapting `CONVENTIONS.md §5c` + the `new-guide` skill write-path, and then
+wiring each pack's `[pack.links].documentation` to its per-pack guide home
+plus a "go deeper →" README link-out. Per the plan's PR-sizing note (T12 + T13
++ T10 are separable, ADR-0020 vs ADR-0021), this is deferred to a **follow-on
+PR stacked on the manifest work**. The manifest PR ships every pack's
+`[pack.links]` with `homepage`/`repository` set; only the `documentation` link
+target and the guide reorg wait. Unblocked by: the guide-migration PR.

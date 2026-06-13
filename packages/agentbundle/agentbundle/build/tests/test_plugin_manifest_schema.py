@@ -156,6 +156,75 @@ class PluginManifestSchemaLoadsTests(unittest.TestCase):
         self.assertIn("description", required)
 
 
+class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
+    """enriched-pack-manifest T3: both schemas admit the projectable subset.
+
+    The build derives `author`, `license`, `homepage`, `repository`,
+    `keywords`, `category`, and `displayName` from each pack's `pack.toml`
+    into the plugin.json / marketplace.json entry. Both schemas widen their
+    allow-list to admit this named subset while keeping
+    `additionalProperties: false` (a genuinely unknown key still fails).
+    """
+
+    _SUBSET = {
+        "author": "Eugene Lim <eugenelim@users.noreply.github.com>",
+        "license": "Apache-2.0",
+        "homepage": "https://example.com",
+        "repository": "https://github.com/example/repo",
+        "keywords": ["osint", "synthesis"],
+        "category": "research",
+        "displayName": "Research",
+    }
+
+    def test_source_schema_admits_projectable_subset(self) -> None:
+        from agentbundle.build.validate import validate
+
+        manifest = {
+            "name": "agent-ready-research",
+            "version": "0.1.0",
+            "description": "Research.",
+            **self._SUBSET,
+        }
+        errors = validate(manifest, _load_schema())
+        self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_derived_schema_admits_projectable_subset(self) -> None:
+        from agentbundle.build.validate import validate
+
+        manifest = {
+            "name": "agent-ready-research",
+            "version": "0.1.0",
+            "description": "Research.",
+            **self._SUBSET,
+            "hooks": {
+                "SessionStart": [
+                    {"command": 'python3 "${CLAUDE_PLUGIN_ROOT}/x.py"'}
+                ]
+            },
+        }
+        errors = validate(manifest, _load_derived_schema())
+        self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_both_schemas_still_reject_genuinely_unknown_key(self) -> None:
+        """additionalProperties:false holds — a non-subset key is rejected."""
+        from agentbundle.build.validate import validate
+
+        manifest = {
+            "name": "agent-ready-research",
+            "version": "0.1.0",
+            "description": "Research.",
+            "totally-unknown-key": "nope",
+        }
+        self.assertTrue(
+            validate(manifest, _load_schema()),
+            "source schema accepted an unknown key",
+        )
+        self.assertTrue(
+            validate(manifest, _load_derived_schema()),
+            "derived schema accepted an unknown key",
+        )
+
+
 class PluginManifestSchemaSplitTests(unittest.TestCase):
     """T2: Source schema forbids hooks; derived schema accepts synthesised hooks (AC10 gate 1).
 

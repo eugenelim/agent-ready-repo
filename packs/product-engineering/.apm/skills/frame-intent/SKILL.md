@@ -22,8 +22,8 @@ Before framing, confirm:
 2. There is an outcome worth naming — something that changes for a user or the
    business. If the work is a pure refactor or chore with no user-facing
    outcome, it doesn't need an intent; say so.
-3. The `intent` template seed exists (your installer places it at
-   `docs/product/intents/_template.md`). Copy it; fill what you have.
+3. This skill ships the `intent` template at `assets/intent-template.md`.
+   Copy it to `docs/product/intents/<slug>.md`; fill what you have.
 
 ## Procedure
 
