@@ -18,7 +18,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "architect",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.5.0"
+      "version": "0.5.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -35,7 +35,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "atlassian",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -52,7 +52,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "contracts",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.3.1"
+      "version": "0.3.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -69,7 +69,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "converters",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -86,7 +86,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "core",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.4.1"
+      "version": "0.4.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -103,7 +103,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "credential-brokers",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -120,7 +120,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "figma",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -136,7 +136,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "governance-extras",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -152,7 +152,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "monorepo-extras",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -169,7 +169,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "product-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.3.0"
+      "version": "0.3.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -186,7 +186,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "research",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -203,7 +203,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "user-guide-diataxis",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.1.2"
     }
   ]
 }

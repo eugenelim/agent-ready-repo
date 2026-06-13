@@ -783,7 +783,7 @@ warnings.
 
 **Tests:** (verification mode: goal-based check)
 
-- *File exists* at `docs/guides/how-to/add-a-credentialed-skill.md`
+- *File exists* at `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`
   with frontmatter conforming to the Diátaxis how-to shape (per
   the `new-guide` skill's `assets/howto.md` template). [AC31]
 - *References worked example* by path

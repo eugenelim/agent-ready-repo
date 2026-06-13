@@ -18,7 +18,7 @@ neither is structurally necessary:
   loses **zero** lint coverage (verified: 8 skills scanned, 0 findings,
   example excluded).
 - The authoring procedure duplicates the Diátaxis how-to
-  (`docs/guides/how-to/add-a-credentialed-skill.md`) almost verbatim.
+  (`docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`) almost verbatim.
 - The example only runs because `make build-self` commits a copy of the
   broker shim into `core`, coupling `core` to `credential-brokers`.
 
@@ -34,7 +34,7 @@ neither is structurally necessary:
   Inline the four verbatim `### Security rules (non-negotiable)` blocks
   (creds / env / cli / sso-cookie) into the how-to's Step 7, replacing the
   "copy from `assets/`" indirection. Retarget **all six** dangling refs in
-  `docs/guides/how-to/add-a-credentialed-skill.md` (review-confirmed):
+  `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md` (review-confirmed):
   line 5 (runnable-reference link → a real consumer, `jira`), line 26
   (`assets/` link → the inline blocks), line 50 (frontmatter pointer →
   inline), line 151 (Step 7 "copy from `assets/`" → inline), lines 205-206
@@ -96,7 +96,7 @@ neither is structurally necessary:
 
 - **T5 — Sweep active user-facing docs (instructions that point at deleted skills).** *(Depends on: T1 — active docs retarget to the consolidated how-to / real consumers)*
   In scope: `CONTRIBUTING.md`, `docs/architecture/credentials.md`,
-  `docs/guides/explanation/credentialed-skills.md`, **`README.md:169`**
+  `docs/guides/credential-brokers/explanation/credentialed-skills.md`, **`README.md:169`**
   (skill-roster line for `add-credentialed-skill` — a now-false inventory
   entry, not seed-projected, needs a direct edit: remove the bullet),
   `packs/core/seeds/docs/CONVENTIONS.md` (seed → projects to

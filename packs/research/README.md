@@ -32,3 +32,7 @@ Ask your agent, for example:
 - "Research how teams measure deployment frequency, and map the sources."
 - "Synthesise these five papers into a one-page briefing with citations."
 - "Run a devil's-advocate pass on the claim that X causes Y."
+
+---
+
+→ **Go deeper:** the [`research` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/research/).

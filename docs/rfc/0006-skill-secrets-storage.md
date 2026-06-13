@@ -517,7 +517,7 @@ All of these land in **`core`**. No new top-level pack.
 | `conventions-check` rule | `packs/core/.apm/commands/conventions-check` (extended) | Detects argv-flag violations, missing "Don't" block, skill reading the dotfile path directly |
 | `CONVENTIONS.md` section | `docs/CONVENTIONS.md` | New top-level "Credentialed skills" section pointing at the template, the loader, and this RFC |
 | Worked example | `packs/core/.apm/skills/example-credentialed-skill/` | A real (no-op) credentialed skill that imports `agentbundle.credentials`, ships a `creds-schema.toml`, and includes the "Don't" block. Lives under `.apm/skills/` because it's a primitive (it ships to adopters' skill set), not under `seeds/` which carries adopter-installed README / template / governance content per `docs/CONVENTIONS.md` § Pack source-of-truth split. Adopters copy this as a starting point or remove it via `agentbundle uninstall` if not needed |
-| Documentation | `docs/guides/how-to/add-a-credentialed-skill.md` | Diátaxis how-to walking through the contract |
+| Documentation | `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md` | Diátaxis how-to walking through the contract |
 
 **Why this lands in `core`, not a new pack.** `core` ships
 `agentbundle` (the CLI + adapter-contract code) into the adopter's
@@ -940,7 +940,7 @@ Filled in upon acceptance.
 - **Pack-side: `packs/core`** — extends `core` with the
   `agentbundle.credentials` loader, the `agentbundle creds` verb,
   and the `conventions-check` rule extensions. No new pack.
-- **Guide: `docs/guides/how-to/add-a-credentialed-skill.md`** — the
+- **Guide: `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`** — the
   Diátaxis how-to walking an adopter through the convention.
 - **Roadmap entry**: `docs/backlog.md` gains a new section for
   `skill-secrets` once the spec lands, plus a v2-libsecret roadmap

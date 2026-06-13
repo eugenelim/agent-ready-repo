@@ -154,7 +154,7 @@ The on-disk + import contract (spec's `Contract: none` — specified here):
 
 **Approach:**
 - Author `.github/workflows/release-credbroker.yml` mirroring `release-agentbundle.yml`: build-and-smoke job (build wheel+sdist, install into fresh venv, import-smoke), then an OIDC Trusted-Publishing job gated behind a manual/tag trigger.
-- Document the **corporate** path in `docs/guides/how-to/add-a-credentialed-skill.md`: `pip install credbroker` from an internal index (`--index-url`) or a local `.whl` — no PyPI required.
+- Document the **corporate** path in `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`: `pip install credbroker` from an internal index (`--index-url`) or a local `.whl` — no PyPI required.
 
 **Done when:** the build-and-smoke job is green in CI; the publish job exists but does not run on merge; the guide documents the no-PyPI corporate install.
 

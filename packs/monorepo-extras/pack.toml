@@ -1,6 +1,6 @@
 [pack]
 name = "monorepo-extras"
-version = "0.1.1"
+version = "0.1.2"
 description = "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template."
 readme = "README.md"
 display_name = "Monorepo Extras"
@@ -24,11 +24,11 @@ pack = "core"
 version = "^0.1"
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
-# + maintainer. The `documentation` link to the per-pack guide home is a
-# follow-on (ADR-0020 guide migration).
+# + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/monorepo-extras/"
 
 [[pack.maintainers]]
 name = "eugenelim"
