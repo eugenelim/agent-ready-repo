@@ -49,6 +49,11 @@
       "version": "0.1.0"
     },
     {
+      "description": "Shape product intent into shippable specs. Three habits \u2014 frame-intent, de-risk-intent, decompose-intent \u2014 over a recursive, level-tagged `intent` (a capability intent and a feature intent are the same artifact at different levels). Outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds. Pure-markdown, user-scope; v1 is app/solo + single-component.",
+      "name": "product-engineering",
+      "version": "0.1.0"
+    },
+    {
       "description": "Evidence-grounded research portable across every repo. Seven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
       "name": "research",
       "version": "0.1.0"
