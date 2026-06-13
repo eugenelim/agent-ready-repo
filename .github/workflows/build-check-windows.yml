@@ -19,15 +19,26 @@ name: build-check-windows
 # unfiltered and authoritative, so any projected-doc drift is still
 # caught there.
 
+# This job's sole purpose is Python-script / bundler portability on Windows,
+# so it skips surfaces that cannot affect that: docs, the Makefile (the job
+# invokes `python` directly, never `make`), and root-level markdown. Nested
+# pack content (e.g. packs/**/*.md) is deliberately NOT ignored — it feeds the
+# bundler the job exercises. `.github/**` is also NOT ignored, so an edit to a
+# workflow (including this one) still triggers the job that validates it. The
+# Linux required check stays unfiltered (windows-ci-bundler spec § Never do).
 on:
   pull_request:
     branches: [main]
     paths-ignore:
       - "docs/**"
+      - "Makefile"
+      - "*.md"
   push:
     branches: [main]
     paths-ignore:
       - "docs/**"
+      - "Makefile"
+      - "*.md"
 
 jobs:
   # Runs the Python-portable subset of the Linux job: the bundler build
