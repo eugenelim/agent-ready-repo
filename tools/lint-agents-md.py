@@ -184,7 +184,11 @@ def main() -> int:
             f"See docs/guides/README.md."
         )
     else:
-        ok("docs/guides/ has all four Diátaxis subdirectories (top-level or _shared/).")
+        # Coarse scaffold check only: it confirms each quadrant name resolves to
+        # a directory (top-level, or under _shared/ in the per-pack layout). It
+        # does not validate that every per-pack guide home is well-formed —
+        # cross-link resolution and the per-pack READMEs cover that.
+        ok("docs/guides/ exposes the four Diátaxis quadrants (top-level or _shared/ scaffold).")
 
     # 9. Stale living-doc check (warn-only)
     living_docs = (
