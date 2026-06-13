@@ -63,9 +63,13 @@ validation is the Windows CI run itself (authoring happened on macOS).
 - [x] AC3. The Windows coverage ships as a **separate workflow file**, not an OS
   matrix folded into `build-check.yml`, so the Linux `make build-check` job (the
   required status check on `main`) is untouched.
-- [x] AC4. `build-check-windows.yml` carries `paths-ignore: docs/**` so a
-  docs-only PR skips the Windows parity job, while the Linux required check still
-  runs on the same PR.
+- [x] AC4. `build-check-windows.yml` carries `paths-ignore` for surfaces that
+  cannot affect Python-script / bundler portability — `docs/**`, `Makefile` (the
+  job invokes `python` directly, never `make`), and root-level `*.md` — so a PR
+  touching only those skips the Windows parity job, while the Linux required
+  check still runs on the same PR. Nested pack content (`packs/**/*.md`) is **not**
+  ignored (it feeds the bundler), and `.github/**` is **not** ignored (so a
+  workflow edit still triggers the job that validates it).
 - [x] AC5. `.github/workflows/build-check.yml` (the Linux gate) remains present
   and is the required status check.
 

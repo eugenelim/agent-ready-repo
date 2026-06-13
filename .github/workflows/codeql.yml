@@ -13,8 +13,17 @@ name: codeql
 on:
   pull_request:
     branches: [main]
+    # CodeQL analyzes Python source only (tests excluded, see config below).
+    # A docs-only change has no Python to analyze, so skip it. This is a
+    # non-required check (branch protection requires only "make build-check"),
+    # so a skipped run can't block a docs-only PR's merge. Mixed PRs (docs +
+    # code) still run — paths-ignore only skips when ALL changed files match.
+    paths-ignore:
+      - "docs/**"
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
   schedule:
     # Weekly re-scan catches newly-published queries against unchanged code.
     - cron: "27 4 * * 1"
