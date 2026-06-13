@@ -129,7 +129,7 @@ once it lands.
 
 Governance content the pack drops at the repo root on install. Every
 file under `seeds/` is **Tier-1** under the
-[file-safety contract](../guides/explanation/file-safety-contract.md) —
+[file-safety contract](../guides/_shared/explanation/file-safety-contract.md) —
 collisions land as `*.upstream.<ext>` companions, never silent
 overwrites. Typical contents: `AGENTS.md`, `docs/CHARTER.md`,
 `docs/CONVENTIONS.md`, quadrant READMEs.
@@ -174,5 +174,5 @@ that contribute to the AGENTS.md managed block.
   authoring inside each.
 - [`agentbundle.md`](agentbundle.md) — how the bundler reads this
   shape into `dist/<route>/<pack>/`.
-- [`pack-catalogue.md`](../guides/explanation/pack-catalogue.md) —
+- [`pack-catalogue.md`](../guides/_shared/explanation/pack-catalogue.md) —
   the adopter-facing companion to this page.

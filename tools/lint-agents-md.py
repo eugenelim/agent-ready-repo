@@ -166,16 +166,29 @@ def main() -> int:
     else:
         ok("No legacy docs/constitution/ directory.")
 
-    # 8. Diátaxis structure under docs/guides/
+    # 8. Diátaxis structure under docs/guides/ — accepted either at the top
+    #    level (the by-quadrant scaffold an adopter installs) or under
+    #    docs/guides/_shared/ (the per-pack layout this catalogue uses, ADR-0020:
+    #    quadrants live within each pack, with the cross-cutting writing-rule
+    #    READMEs in _shared/).
     diataxis_dirs = ("tutorials", "how-to", "reference", "explanation")
-    missing = [d for d in diataxis_dirs if not Path(f"docs/guides/{d}").is_dir()]
+    missing = [
+        d
+        for d in diataxis_dirs
+        if not Path(f"docs/guides/{d}").is_dir()
+        and not Path(f"docs/guides/_shared/{d}").is_dir()
+    ]
     if missing:
         note(
             f"docs/guides/ is missing Diátaxis subdirectories: {' '.join(missing)}. "
             f"See docs/guides/README.md."
         )
     else:
-        ok("docs/guides/ has all four Diátaxis subdirectories.")
+        # Coarse scaffold check only: it confirms each quadrant name resolves to
+        # a directory (top-level, or under _shared/ in the per-pack layout). It
+        # does not validate that every per-pack guide home is well-formed —
+        # cross-link resolution and the per-pack READMEs cover that.
+        ok("docs/guides/ exposes the four Diátaxis quadrants (top-level or _shared/ scaffold).")
 
     # 9. Stale living-doc check (warn-only)
     living_docs = (

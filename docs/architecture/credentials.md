@@ -95,7 +95,7 @@ tiers across keys within one namespace is permitted).
 
 `import credbroker` resolves through a `sys.path` precedence stack fed by
 two delivery layers (full author-facing detail in the
-[how-to](../guides/how-to/add-a-credentialed-skill.md#how-credbroker-reaches-syspath--the-layered-model)):
+[how-to](../guides/credential-brokers/how-to/add-a-credentialed-skill.md#how-credbroker-reaches-syspath--the-layered-model)):
 
 - **Vendored floor (zero-pip, user scope).** A user-scope install of the
   `credential-brokers` pack delivers a byte-faithful, stdlib-base copy of
@@ -244,7 +244,7 @@ dotfile defensively.
   the four-broker design rationale (the predecessor shim model).
 - [`docs/specs/skill-secrets/spec.md`](../specs/skill-secrets/spec.md) —
   the predecessor spec (kept for historical context).
-- [`docs/guides/explanation/credentialed-skills.md`](../guides/explanation/credentialed-skills.md) —
+- [`docs/guides/credential-brokers/explanation/credentialed-skills.md`](../guides/credential-brokers/explanation/credentialed-skills.md) —
   the adopter-facing companion.
-- [`docs/guides/how-to/add-a-credentialed-skill.md`](../guides/how-to/add-a-credentialed-skill.md) —
+- [`docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`](../guides/credential-brokers/how-to/add-a-credentialed-skill.md) —
   the step-by-step procedure for authoring a new credentialed primitive.

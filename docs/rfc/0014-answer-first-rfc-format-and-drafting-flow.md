@@ -84,7 +84,7 @@ Anti-patterns the skill refuses (kept lean): writing the body before the checkpo
 
 ### Migration
 
-No data migration. Edit point is the **pack source** `packs/governance-extras/.apm/skills/new-rfc/{SKILL.md,assets/rfc.md}` then `make build-self` (the `.claude/skills/new-rfc/` copy is generated). Update `docs/guides/how-to/new-rfc.md` to match. This RFC is itself written in the proposed template as the dogfood.
+No data migration. Edit point is the **pack source** `packs/governance-extras/.apm/skills/new-rfc/{SKILL.md,assets/rfc.md}` then `make build-self` (the `.claude/skills/new-rfc/` copy is generated). Update `docs/guides/governance-extras/how-to/new-rfc.md` to match. This RFC is itself written in the proposed template as the dogfood.
 
 ## Options considered
 
@@ -156,6 +156,6 @@ Sources: [Rust RFC template](https://raw.githubusercontent.com/rust-lang/rfcs/ma
 
 On acceptance:
 - Edit `packs/governance-extras/.apm/skills/new-rfc/SKILL.md` (flow) and `assets/rfc.md` (template); `make build-self`; verify both lint surfaces (`lint-packs` source + `tools/lint-agent-artifacts.py` projection).
-- Rewrite `docs/guides/how-to/new-rfc.md` against the new spine — its Step 2/Step 3 walk-through is written against the *old* section names (Motivation / Alternatives / Prior art / Unresolved questions) and needs substantive rewriting, not a section-name swap. It is a Living doc, so this drift must close in the same change.
+- Rewrite `docs/guides/governance-extras/how-to/new-rfc.md` against the new spine — its Step 2/Step 3 walk-through is written against the *old* section names (Motivation / Alternatives / Prior art / Unresolved questions) and needs substantive rewriting, not a section-name swap. It is a Living doc, so this drift must close in the same change.
 - No ADR (decided at acceptance — see *Open questions*).
 - Working research notes were kept in the workspace scratch dir (`.context/rfc-format-research/`: `research.md`, `research-better-proposals.md`, `pressure-test-and-proposal.md`) during drafting; that dir is gitignored and **not** durable. The durable evidence is the inline citations in *Evidence & prior art* above, which stand alone.

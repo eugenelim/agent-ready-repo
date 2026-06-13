@@ -842,10 +842,10 @@ class ExcludedGlobTests(unittest.TestCase):
             "docs/product/changelog.md",
             # Covered by `docs/guides/**/*.md`:
             "docs/guides/README.md",
-            "docs/guides/tutorials/README.md",
-            "docs/guides/how-to/README.md",
-            "docs/guides/reference/README.md",
-            "docs/guides/explanation/README.md",
+            "docs/guides/_shared/tutorials/README.md",
+            "docs/guides/_shared/how-to/README.md",
+            "docs/guides/_shared/reference/README.md",
+            "docs/guides/_shared/explanation/README.md",
             # Explicit literal additions:
             "docs/CHARTER.md",
             "docs/knowledge/patterns.jsonl",

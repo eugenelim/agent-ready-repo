@@ -1,6 +1,6 @@
 [pack]
 name = "product-engineering"
-version = "0.3.0"
+version = "0.3.1"
 description = "Shape product intent into shippable specs. Habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (a capability intent and a feature intent are the same artifact at different levels). Outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds — at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. Pure-markdown, user-scope."
 readme = "README.md"
 display_name = "Product Engineering"
@@ -24,11 +24,11 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
-# + maintainer. The `documentation` link to the per-pack guide home is a
-# follow-on (ADR-0020 guide migration).
+# + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-engineering/"
 
 [[pack.maintainers]]
 name = "eugenelim"

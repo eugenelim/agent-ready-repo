@@ -25,3 +25,7 @@ Ask your agent, for example:
 - "Convert this PDF to Markdown: <path>."
 - "Render this Markdown file as styled HTML."
 - "Convert this Outlook .msg export to Markdown."
+
+---
+
+→ **Go deeper:** the [`converters` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/converters/).

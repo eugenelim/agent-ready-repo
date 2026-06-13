@@ -47,3 +47,7 @@ You don't invoke the broker directly — credentialed skills (e.g. `jira`,
 `figma`) resolve their token through it automatically once `credential-setup`
 has stored it. Re-run **"set up credentials"** any time you need to add or
 rotate a key.
+
+---
+
+→ **Go deeper:** the [`credential-brokers` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/credential-brokers/).

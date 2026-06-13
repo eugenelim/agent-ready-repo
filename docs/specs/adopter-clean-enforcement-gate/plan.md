@@ -221,7 +221,7 @@ aggregator all run the full 8-check set.
     (enforce AC7) or retire it (redundant with the per-spec `loop-cohort schedule`).
   - RFC-0013 / `credential-broker-contract`: from first principles the adopter
     artifact for authoring a credentialed skill is the **how-to** (already exists:
-    `docs/guides/how-to/add-a-credentialed-skill.md` + the explanation guide); the
+    `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md` + the explanation guide); the
     `add-credentialed-skill` **skill** is redundant for adopters and bound to the
     catalogue build pipeline — reconcile its + `example-credentialed-skill`'s
     adopter-shipping (demote to catalogue-local / retire) against AC27/AC43/§7.

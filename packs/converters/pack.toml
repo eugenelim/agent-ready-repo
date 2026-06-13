@@ -1,6 +1,6 @@
 [pack]
 name = "converters"
-version = "0.1.1"
+version = "0.1.2"
 description = "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML; Outlook .msg → Markdown."
 readme = "README.md"
 display_name = "Converters"
@@ -22,11 +22,11 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
-# + maintainer. The `documentation` link to the per-pack guide home is a
-# follow-on (ADR-0020 guide migration).
+# + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/converters/"
 
 [[pack.maintainers]]
 name = "eugenelim"

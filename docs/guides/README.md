@@ -1,66 +1,46 @@
-# User-facing documentation
+# Guides
 
-> The product's user-facing docs, organized by the
-> [Diátaxis framework](https://diataxis.fr/). Four kinds of documentation,
-> each serving a different user need. Each piece of content belongs in
-> **exactly one** bucket — mixing kinds is the most common cause of
-> documentation that frustrates everyone.
+The user-facing documentation for the catalogue, organized **by pack**. You install `core`, maybe `research`, maybe `atlassian` — each pack has its own guide home with the four [Diátaxis](https://diataxis.fr/) kinds inside it. Find your pack, start at its home page.
+
+> The adopter-facing `user-guide-diataxis` seed scaffold stays organized by quadrant, not by pack — see [ADR-0020](../adr/0020-per-pack-diataxis-hierarchy-for-guides.md).
+
+## Find your pack
+
+| Pack | Start here | What it ships |
+| --- | --- | --- |
+| [`core`](core/) | **The flagship.** | The loop — `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the reviewers, the hooks. Install this even if you install nothing else. |
+| [`architect`](architect/) | [home](architect/) | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, and the `reference.md` golden path. |
+| [`research`](research/) | [home](research/) | Evidence-grounded research — `research` with selectable depth, plus the pipeline skills (`source-map`, `compare-hypotheses`, `devils-advocate`, …). |
+| [`product-engineering`](product-engineering/) | [home](product-engineering/) | Shape product intent into shippable specs — the recursive `intent` tree (`frame`, `de-risk`, `decompose`, `align-value-stream`). |
+| [`credential-brokers`](credential-brokers/) | [home](credential-brokers/) | The broker behind credentialed skills — secrets resolve in-process and never reach the model. |
+| [`atlassian`](atlassian/) | [home](atlassian/) | Jira, Confluence, and flow metrics over the REST APIs — `jira`, `confluence-crawler`/`-publisher`, `flow-metrics`, `jira-defect-flow`, and more. |
+| [`contracts`](contracts/) | [home](contracts/) | Contract-first design — `api-contract` (OpenAPI 3.1) and `event-contract` (AsyncAPI), with a pluggable house standard. |
+| [`converters`](converters/) | [home](converters/) | Get documents into Markdown and back out — `file-to-markdown`, `markdown-to-html`, `mermaid-renderer`, `msg-to-markdown`. |
+| [`figma`](figma/) | [home](figma/) | The Figma REST primitive — read files, nodes, and comments; render frames; turn FigJam into Mermaid. |
+| [`governance-extras`](governance-extras/) | [home](governance-extras/) | A written trail for decisions — `new-rfc`, `new-adr`, `update-conventions`. |
+| [`monorepo-extras`](monorepo-extras/) | [home](monorepo-extras/) | Monorepo scaffolding — `new-package` and a package template that ships its own conventions. |
+| [`user-guide-diataxis`](user-guide-diataxis/) | [home](user-guide-diataxis/) | The docs skeleton you're reading right now — Diátaxis quadrants plus `new-guide`. |
+
+## Not tied to one pack
+
+Some guides are about the catalogue itself — installing it, upgrading it, seeing what each agent tool supports — rather than any single pack. They live in [`_shared/`](_shared/):
+
+- **Install & upgrade** — [from a clone](_shared/how-to/install-agentbundle-from-clone.md), into [Codex](_shared/how-to/install-user-scope-pack-into-codex.md) or [Kiro](_shared/how-to/install-user-scope-pack-into-kiro.md), [preview first with `--dry-run`](_shared/how-to/preview-install-or-upgrade.md), [upgrade an installed pack](_shared/how-to/upgrade-packs.md).
+- **Reference** — the [`agentbundle` CLI](_shared/reference/agentbundle.md) and the [adapter support matrix](_shared/reference/adapter-support.md).
+- **Understand** — [install routes](_shared/explanation/install-routes.md), [the pack catalogue](_shared/explanation/pack-catalogue.md), and [the file-safety contract](_shared/explanation/file-safety-contract.md) (your edits are never silently overwritten).
+- **Contribute** — [how to author a skill](_shared/how-to/author-a-skill.md) for any pack.
 
 ## The four kinds
 
-|  | Practical (the user does something) | Theoretical (the user understands something) |
+Within every pack (and within `_shared/`), guides are sorted into the four Diátaxis kinds. Each piece of content belongs in **exactly one** — mixing kinds is the most common cause of docs that frustrate everyone.
+
+|  | Practical (you *do* something) | Theoretical (you *understand* something) |
 | --- | --- | --- |
-| **Learning-oriented** (skill acquisition) | [`tutorials/`](tutorials/) — *Lessons.* "Take me through it from the start." | [`explanation/`](explanation/) — *Discussions.* "Help me understand why." |
-| **Task-oriented** (goal accomplishment) | [`how-to/`](how-to/) — *Recipes.* "Help me solve this specific problem." | [`reference/`](reference/) — *Information.* "Tell me exactly what this thing does." |
+| **Learning** (acquiring a skill) | **tutorials/** — *lessons.* "Take me through it from the start." | **explanation/** — *discussions.* "Help me understand why." |
+| **Task** (getting something done) | **how-to/** — *recipes.* "Help me solve this specific problem." | **reference/** — *information.* "Tell me exactly what this does." |
 
-## Quick decision guide
-
-Before you write something, decide **which one** it is:
-
-- **Tutorial** — if a beginner could follow your text from start to finish
-  and end up having learned something. The reader is on rails. Has a
-  guaranteed outcome ("at the end you'll have a running X"). Don't
-  digress to explain — link out.
-- **How-to guide** — if it solves a specific real-world problem the
-  reader brought with them. Assumes baseline competence. Doesn't teach;
-  helps. Don't include backstory — link out.
-- **Reference** — if it's the authoritative description of an interface,
-  config option, command, or API. Dry, complete, accurate. Don't
-  editorialize — link out.
-- **Explanation** — if it answers "why" or "how does this work, deeply".
-  Theoretical, contextual, opinionated. Doesn't teach a skill, doesn't
-  solve a task — illuminates. Don't include step-by-step instructions —
-  link out.
-
-The "link out" principle is the whole framework. When you find yourself
-wanting to add explanation in the middle of a tutorial, that's the signal
-to write a separate explanation page and link to it.
+The discipline that makes it work is **link out**: when a tutorial wants to explain *why*, it links to an explanation instead of digressing; when a how-to wants to list every option, it links to the reference. Each quadrant's writing rules live in the per-quadrant READMEs under [`_shared/`](_shared/) — read the matching one before you write a guide (or just run `new-guide`, which walks you there).
 
 ## How this fits with the rest of the repo
 
-User-facing docs are *living* — they must match current product behavior.
-This is different from:
-
-- [`../specs/`](../specs/) — feature contracts, frozen once shipped.
-  Specs are written for *contributors*; user docs are written for *users*.
-  Once a feature ships, the spec is reference material for the team and
-  the user-facing reference page is the source of truth for users.
-- [`../adr/`](../adr/) — architecture history. Internal.
-- [`../CHARTER.md`](../CHARTER.md) — project mission. Internal-leaning.
-
-When a feature ships:
-
-1. Its spec becomes part of the team's permanent record.
-2. A reference page goes (or is updated) in [`reference/`](reference/).
-3. If the feature changes how users do things, a how-to goes in [`how-to/`](how-to/).
-4. If the feature is a new core concept, an explanation goes in
-   [`explanation/`](explanation/) and the quickstart tutorial may need updating.
-
-That last bullet is the part teams skip. Skipping it is how docs rot.
-
-## Maintenance rules
-
-See [`../CONVENTIONS.md`](../CONVENTIONS.md#document-lifecycle) for the
-full lifecycle treatment. The short version: every PR that changes
-user-visible behavior touches user docs in the same PR, or explains in
-the description why it doesn't need to.
+These guides are *living* — they must match current behavior, and a PR that changes what users see updates them in the same PR. That's different from [`../specs/`](../specs/) (feature contracts, frozen once shipped), [`../adr/`](../adr/) (architecture decisions), and [`../CHARTER.md`](../CHARTER.md) (the mission). See [`../CONVENTIONS.md`](../CONVENTIONS.md#5c-docsguides--for-users) §5c for the full lifecycle.

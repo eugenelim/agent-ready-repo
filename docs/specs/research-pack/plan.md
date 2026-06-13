@@ -290,7 +290,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 **Depends on:** T2
 
 **Tests:**
-- `docs/guides/tutorials/research-first-session.md` exists.
+- `docs/guides/research/tutorials/research-first-session.md` exists.
 - AC22 goal-based verifications pass: `rg -F 'agentbundle install research'`, three per-mode greps (`quick`, `standard`, `deep`), two artifact-name greps (`research.md`, `counterpoints.md`), code-fence count ≥6, `wc -l ≥ 50` — each as a separate invocation per AC22.
 - AC22 manual-QA verification: recorded walkthrough timing note appended to the implementing PR's description, confirming the ≤15-minute target landed (mode declared explicitly here to match the spec's Testing Strategy "Goal-based + manual QA" row).
 
@@ -307,7 +307,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 **Depends on:** T2, T3, T4, T5, T6, T7, T8
 
 **Tests:**
-- `docs/guides/how-to/research-pipelines.md` exists.
+- `docs/guides/research/how-to/research-pipelines.md` exists.
 - AC23 verifications pass: three pipeline-name greps + seven artifact-filename greps.
 
 **Approach:**
@@ -323,7 +323,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11
 
 **Tests:**
-- `docs/guides/reference/research-pack.md` exists.
+- `docs/guides/research/reference/research-pack.md` exists.
 - AC24 verifications pass: seven skill names + two subagent names + four confidence levels + three retriever shapes + eight cue tokens, all enforced as separate `rg -F` invocations.
 
 **Approach:**
@@ -339,7 +339,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 **Depends on:** T11
 
 **Tests:**
-- `docs/guides/explanation/research-methodology.md` exists.
+- `docs/guides/research/explanation/research-methodology.md` exists.
 - AC25 verifications pass: seven methodology-name greps + five named architectural-choice greps.
 
 **Approach:**

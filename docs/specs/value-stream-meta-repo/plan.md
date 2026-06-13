@@ -231,7 +231,7 @@ de-stub greps clean, manual-QA walk recorded.
 ### T6: Diátaxis guides
 
 **Depends on:** T3, T4, T5
-**Touches:** docs/guides/how-to/ (new BU how-to page), docs/guides/how-to/shape-a-feature-intent.md, docs/guides/reference/intent-fields-and-modes.md
+**Touches:** docs/guides/how-to/ (new BU how-to page), docs/guides/product-engineering/how-to/shape-a-feature-intent.md, docs/guides/product-engineering/reference/intent-fields-and-modes.md
 
 **Tests:**
 - Goal-based: the new phase-2 how-to page exists at its quadrant path; the reference
@@ -250,11 +250,11 @@ de-stub greps clean, manual-QA walk recorded.
   the sibling product-engineering guides — the per-pack `docs/guides/<pack>/<quadrant>/`
   migration (ADR-0020-on-main) is **deferred to the `enriched-pack-manifest` spec**
   (its T12 sweeps all ~30 guides, including this one); not this spec's job.
-- **Update both v1 forward references** in `docs/guides/how-to/shape-a-feature-intent.md`
+- **Update both v1 forward references** in `docs/guides/product-engineering/how-to/shape-a-feature-intent.md`
   — the header blurb ("that path is phase 2") and the footer "Business-unit /
   cross-component (phase 2)" paragraph ("specified but not yet shipped") — to point at
   the new page; remove the stale "phase 2" / "not yet shipped" wording from both.
-- Update `docs/guides/reference/intent-fields-and-modes.md` with the BU-scale fields
+- Update `docs/guides/product-engineering/reference/intent-fields-and-modes.md` with the BU-scale fields
   (`parent-intent:`, the rollup, the catalog, the contract reference).
 
 **Done when:** the new how-to + the updated forward note + the reference are at their

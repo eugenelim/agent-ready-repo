@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.5.0"
+version = "0.5.1"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review). Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
 readme = "README.md"
 display_name = "Architect"
@@ -30,11 +30,11 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
-# + maintainer. The `documentation` link to the per-pack guide home is a
-# follow-on (ADR-0020 guide migration).
+# + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/architect/"
 
 [[pack.maintainers]]
 name = "eugenelim"

@@ -66,7 +66,7 @@ def test_ac42_roadmap_entry_carries_manual_qa_matrix():
 def test_ac43_guide_walks_broker_first():
     """AC43: the how-to guide replaces 'pick a primitive class' with
     'pick a broker' as the first step."""
-    guide = (REPO_ROOT / "docs" / "guides" / "how-to" / "add-a-credentialed-skill.md").read_text(encoding="utf-8")
+    guide = (REPO_ROOT / "docs" / "guides" / "credential-brokers" / "how-to" / "add-a-credentialed-skill.md").read_text(encoding="utf-8")
     pick_broker_idx = guide.find("## Step 1 — Pick a broker")
     assert pick_broker_idx > 0, "guide does not start with 'Pick a broker'"
     # Primitive-class step still exists but comes later (as orthogonal).

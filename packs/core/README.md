@@ -43,3 +43,7 @@ for the design rationale.
 - "Implement this spec with the work-loop." (`work-loop`)
 - "Fix this bug: the importer drops the last row." (`bug-fix`)
 - "Adapt this repo to the installed packs." (`/adapt-to-project`)
+
+---
+
+→ **Go deeper:** the [`core` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/core/).

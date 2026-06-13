@@ -153,3 +153,7 @@ Ask your agent, for example:
 - "Design the architecture for a multi-tenant billing service on AWS." (`architect-design`)
 - "Draw a Mermaid component diagram for this design." (`architect-diagram`)
 - "Review this architecture against the well-architected rubric." (`architect-review`)
+
+---
+
+→ **Go deeper:** the [`architect` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/architect/).

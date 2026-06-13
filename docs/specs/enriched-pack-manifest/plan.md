@@ -1,10 +1,11 @@
 # Plan: enriched-pack-manifest
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Executing | Done -->
-  <!-- Manifest layer done: T1–T8, T11, and the manifest portion of T9.
-  Guide-migration layer (T12, T13, T10) is the planned follow-on PR per the
-  PR-sizing note in T12. -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
+  <!-- All tasks shipped: manifest layer (T1–T8, T11, manifest part of T9) in
+  #300; guide-migration layer (T12, T13, T10) plus net-new per-pack guides in
+  the per-pack-guide-migration PR. T13's §5c amendment landed as an ADR-0020
+  erratum (the projected seed forces §5c to stay by-quadrant). -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -274,4 +275,5 @@ Pure catalogue/build change — no infra, no external systems, no runtime flag. 
 
 - 2026-06-13: initial plan (follows RFC-0031 Decision 6 "first spec").
 - 2026-06-13: doc-surface added (README link-out, PyPI READMEs, `docs/architecture/pack-manifest.md`); per-pack `docs/guides/` layout decided in ADR-0020 and **migrated in-plan** (T12 migrate + T13 convention/`new-guide` adaptation), consumed by T10; `product-engineering` (RFC-0030, landed) folded into the 12-pack population sweep.
+- 2026-06-13: **guide-migration layer scope expanded by user direction.** The earlier "Ask first → don't author substantial net-new guide content per pack" boundary is **lifted for this layer**: T12 now (a) migrates the ~38 existing guides, (b) authors net-new good-enough Diátaxis guides for the 7 previously-undocumented packs and fills clear gaps in `architect`, (c) gives every pack a `README.md` home, and (d) sweeps every repo-wide cross-link to a moved guide. Voice = adopter-facing developer-evangelist (matches the repo `README.md`). **Classification correction:** `new-rfc`/`new-adr` (+ a new `update-conventions` how-to) land under `governance-extras/` — the pack that *ships* those skills — not `_shared/` (an earlier illustrative example); `_shared/` holds only guides that document no single pack (install routes, adapter-support, `agentbundle` CLI, pack-catalogue, upgrade, file-safety, `author-a-skill`). The four per-quadrant writing-rule READMEs move to `_shared/<quadrant>/README.md` and the `new-guide` skill is repointed there.
 - 2026-06-13: **manifest layer implemented** (T1–T8, T11, manifest portion of T9) and split from the guide-migration layer (T12/T13/T10) per the PR-sizing note — guide migration is a follow-on PR stacked on this one (backlog `per-pack-guide-home-documentation-links`). Build learnings: (1) the in-house JSON-Schema validator lacked `maxItems` — added it (the ≤5 cap on categories/keywords needed it). (2) `_aggregate_marketplace` reads the *source* `plugin.json`, so the subset is merged at aggregation time from `pack.toml` (not stored in source `plugin.json`, which stays minimal). (3) `make build-self` regenerates the committed `.claude-plugin/marketplace.json`; it refused a dirty tree, so the `self --force` form regenerated it mid-work. (4) `agentbundle validate product-engineering` had a pre-existing user-scope-seeds rail failure (it shipped `seeds/` while declaring `user` scope, RFC-0004 Rail A); **resolved in this PR** by relocating its intent/rollup templates from `seeds/` into the owning skills' `assets/` (per the AGENTS.local.md skill-template convention) so the pack ships no `seeds/` and validates clean — all 12 packs now pass. The `product-engineering-pack` / `value-stream-meta-repo` specs + plans were updated and RFC-0030 / ADR-0022 carry errata. (5) overview.md ships **no** hardcoded pack count (maintainer direction — brittle), diverging from the AC13 count clause. (6) AGENTS.local.md is the canonical source for this repo's skill-template-in-`assets/` convention — read it up front.

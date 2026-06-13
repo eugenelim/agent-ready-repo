@@ -312,11 +312,11 @@ Manual QA is not needed; every behavior above is mechanically verifiable.
     calling the path resolver with defaults and asserting the result
     lies inside the per-test tmp_path.
 18. **AC18.** A new reference page lands at
-    `docs/guides/reference/agentbundle.md` covering, in this order:
+    `docs/guides/_shared/reference/agentbundle.md` covering, in this order:
     `pip install agentbundle` (with a working forward-link to the
-    existing `docs/guides/how-to/install-agentbundle-from-clone.md`),
+    existing `docs/guides/_shared/how-to/install-agentbundle-from-clone.md`),
     installing a pack, and configuring the default adapter via the new
-    subcommand. Cross-linked from `docs/guides/reference/README.md`.
+    subcommand. Cross-linked from `docs/guides/_shared/reference/README.md`.
 19. **AC19.** Zero new runtime dependencies in
     `packages/agentbundle/pyproject.toml`. The diff to that file is
     empty (or limited to comments / formatting).
@@ -391,7 +391,7 @@ Manual QA is not needed; every behavior above is mechanically verifiable.
 
 ## Changelog
 
-- 2026-05-31: Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `agentbundle config {get,set,unset,path}` subcommand (`commands/config.py`, wired in `cli.py`), the `scope.configured_adapter` reporter, the `_resolve_target_adapter` pre-flight block, the fail-soft TOML loader, the autouse HOME/XDG/APPDATA conftest fixture, and the `docs/guides/reference/agentbundle.md` page. ACs use a non-checkbox format; verified against the merged tree. No deferrals.
+- 2026-05-31: Status reconciled to Shipped (retroactive). Implementation landed in a prior PR: the `agentbundle config {get,set,unset,path}` subcommand (`commands/config.py`, wired in `cli.py`), the `scope.configured_adapter` reporter, the `_resolve_target_adapter` pre-flight block, the fail-soft TOML loader, the autouse HOME/XDG/APPDATA conftest fixture, and the `docs/guides/_shared/reference/agentbundle.md` page. ACs use a non-checkbox format; verified against the merged tree. No deferrals.
 - 2026-05-28: Initial draft.
 - 2026-05-28: Pre-EXECUTE adversarial review pass 5 (user-directed
   fail-loud redesign). Behavioural change: when user-config sets an

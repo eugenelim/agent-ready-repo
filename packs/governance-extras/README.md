@@ -24,3 +24,7 @@ Ask your agent, for example:
 - "Draft an RFC proposing we adopt trunk-based development."
 - "Record an ADR for the decision to use Postgres over DynamoDB."
 - "Update our conventions to require conventional-commit messages."
+
+---
+
+→ **Go deeper:** the [`governance-extras` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/governance-extras/).

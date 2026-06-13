@@ -1,5 +1,5 @@
 {
   "name": "monorepo-extras",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template."
 }

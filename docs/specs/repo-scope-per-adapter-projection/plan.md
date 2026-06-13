@@ -336,7 +336,7 @@ New module `packages/agentbundle/tests/integration/test_install_repo_scope_per_a
 **Tests:**
 
 - Goal-based grep: `README.md` `Where primitives land` table contains a `repo-scope` column for each of the four shipped adapters; per-adapter substrings `<repo>/.claude/skills/`, `<repo>/.kiro/skills/`, `<repo>/.agents/skills/`, `<repo>/.github/instructions/`.
-- Goal-based grep: `docs/guides/explanation/install-routes.md` mentions `--emit-install-routes` and the default per-IDE projection at repo scope.
+- Goal-based grep: `docs/guides/_shared/explanation/install-routes.md` mentions `--emit-install-routes` and the default per-IDE projection at repo scope.
 - Goal-based grep: `docs/rfc/0011-pack-allowed-adapters.md` ends with an erratum block recording the three RFC-0012 reconciliations (step-count, resolver rename, deprecation alias).
 - Goal-based grep: `docs/backlog.md` contains the line `repo-scope-per-adapter-projection` with the spec's open ACs.
 - Manual: read each new file end-to-end against AC26-AC29 commitments.
@@ -345,7 +345,7 @@ New module `packages/agentbundle/tests/integration/test_install_repo_scope_per_a
 
 - Edit `README.md` (per AC26):
   - Extend `Where primitives land` table with per-adapter repo-scope landing paths. Pack rows continue to link into the table (single canonical location per memory rule `feedback_writing_style`).
-- Edit `docs/guides/explanation/install-routes.md` (per AC27) to note the default per-IDE projection at repo scope and the `--emit-install-routes` opt-in.
+- Edit `docs/guides/_shared/explanation/install-routes.md` (per AC27) to note the default per-IDE projection at repo scope and the `--emit-install-routes` opt-in.
 - Append erratum block to `docs/rfc/0011-pack-allowed-adapters.md` (per AC28) — recording all three step-count drifts plus the renames: (i) RFC-0011's body literal "four-step" at `:59` and `:74`; (ii) the function docstring's pre-fix "six-step" claim that enumerated only 0–4 (five-step body); (iii) RFC-0012's reconciliation to "six-step (0–5)"; (iv) the resolver rename to `_resolve_target_adapter` plus the `DEFAULT_USER_SCOPE_ADAPTER` → `DEFAULT_ADAPTER` rename and deprecation alias. The erratum names RFC-0012 as the closing reference. RFC-0011 is Accepted/frozen, so this is an appended block, not an in-body edit.
 - Add `docs/backlog.md` section for `repo-scope-per-adapter-projection` (per AC29) listing the open ACs.
 

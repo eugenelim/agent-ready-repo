@@ -284,15 +284,15 @@ CI-only-root test red-fails):
 **Depends on:** T3
 
 **Tests (goal-based):**
-- `docs/guides/reference/adapter-support.md` Gemini row corrected from "Universal layer" to its true tier (skill/subagent/command/hook native). [AC15]
+- `docs/guides/_shared/reference/adapter-support.md` Gemini row corrected from "Universal layer" to its true tier (skill/subagent/command/hook native). [AC15]
 - `gemini` **absent** from `SELF_HOST_ADAPTERS`; `make build-self` produces **no** `.gemini/` tree in this repo. [AC12]
 
 **Approach:**
-- Edit `docs/guides/reference/adapter-support.md` (repo-owned / `EXCLUDED_PATTERNS` — direct edit).
+- Edit `docs/guides/_shared/reference/adapter-support.md` (repo-owned / `EXCLUDED_PATTERNS` — direct edit).
 - Refine the Gemini CLI reader line in **root `AGENTS.md` directly** (line 4 already names Gemini CLI; reword to reflect native projection) **and** keep `packs/core/seeds/AGENTS.md:4` in sync. `AGENTS.md` is in `EXCLUDED_PATTERNS` and `_compose_agents_md` returns `None` when the on-disk file exists, so it is **not** projected — editing the root directly is correct and is *not* reverted by `build-self` (the `work-loop-light-mode` precedent: "root `AGENTS.md` is Manual — edited directly with its seed synced").
 - Assert distribution-only: grep `SELF_HOST_ADAPTERS` excludes `gemini`; `make build-self` then `git status` shows no `.gemini/`.
 
-**Touches:** docs/guides/reference/adapter-support.md, AGENTS.md, packs/core/seeds/AGENTS.md
+**Touches:** docs/guides/_shared/reference/adapter-support.md, AGENTS.md, packs/core/seeds/AGENTS.md
 
 **Done when:** the matrix reads correctly, the reader line is updated in both root and seed, and `make build-self` writes no `.gemini/` tree.
 

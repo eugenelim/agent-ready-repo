@@ -32,10 +32,10 @@ CONVENTIONS_SEED = REPO_ROOT / "packs" / "core" / "seeds" / "docs" / "CONVENTION
 
 GUIDES_DIR = REPO_ROOT / "docs" / "guides"
 GUIDES = {
-    "tutorial": GUIDES_DIR / "tutorials" / "create-your-reference-architecture.md",
-    "how-to": GUIDES_DIR / "how-to" / "establish-reference-architecture.md",
-    "explanation": GUIDES_DIR / "explanation" / "foundation-vs-map.md",
-    "reference": GUIDES_DIR / "reference" / "reference-architecture.md",
+    "tutorial": GUIDES_DIR / "architect" / "tutorials" / "create-your-reference-architecture.md",
+    "how-to": GUIDES_DIR / "architect" / "how-to" / "establish-reference-architecture.md",
+    "explanation": GUIDES_DIR / "core" / "explanation" / "foundation-vs-map.md",
+    "reference": GUIDES_DIR / "architect" / "reference" / "reference-architecture.md",
 }
 
 # No RFC-NNNN / ADR-NNNN token, no docs/(specs|rfc|adr)/ path string.
@@ -261,12 +261,19 @@ def test_ride_along_links_to_reference_page_resolve() -> None:
     pre-existing sibling both point at the new reference guide; guard them so a
     future rename of the page doesn't silently break these two inbound links.
     """
-    ref_dir = GUIDES_DIR / "reference"
-    for src in (ref_dir / "README.md", ref_dir / "spec-shape-and-lld.md"):
+    # Post per-pack migration (ADR-0020), the reference page and its two
+    # inbound links live in three different homes: the page under
+    # `architect/`, the quadrant index under `_shared/`, the sibling
+    # cross-link under `core/`.
+    ref_page = GUIDES_DIR / "architect" / "reference" / "reference-architecture.md"
+    for src in (
+        GUIDES_DIR / "_shared" / "reference" / "README.md",
+        GUIDES_DIR / "core" / "reference" / "spec-shape-and-lld.md",
+    ):
         body = src.read_text(encoding="utf-8")
         assert "reference-architecture.md" in body, (
             f"{src.name} should link to reference-architecture.md"
         )
-        assert (ref_dir / "reference-architecture.md").is_file(), (
+        assert ref_page.is_file(), (
             "reference-architecture.md link target does not resolve"
         )

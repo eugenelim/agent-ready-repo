@@ -1902,7 +1902,7 @@ On acceptance:
   six in-tree migrations, and a manual-QA matrix line for each
   broker × OS combination — parallel to RFC-0006's matrix.
 
-- **Guide update:** `docs/guides/how-to/add-a-credentialed-skill.md`
+- **Guide update:** `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`
   rewrites the "pick a primitive class" section as "pick a
   broker." Updates land in the same PR as the
   `add-credentialed-skill` template variants.
@@ -1934,7 +1934,7 @@ record. Corrections are appended here, Approver-signed.
   `confluence-crawler` (`atlassian`), and `figma`. Deleting the fictional
   no-op `example-credentialed-skill` removes **zero** lint coverage. The
   `add-credentialed-skill` SKILL.md was instructional prose that duplicated
-  the Diátaxis how-to (`docs/guides/how-to/add-a-credentialed-skill.md`)
+  the Diátaxis how-to (`docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`)
   almost verbatim; the four verbatim per-broker `### Security rules
   (non-negotiable)` blocks (§ 5) are consolidated into the how-to's Step 7,
   and the `auth: creds` → `make build-self` step (§ 7) is stated there. The

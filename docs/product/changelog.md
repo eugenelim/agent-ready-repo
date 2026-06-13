@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A guide home for every pack, and real guides for the packs that lacked
+  them (ADR-0020).** `docs/guides/` is reorganized from flat Diátaxis quadrants
+  to a per-pack hierarchy — `docs/guides/<pack>/{tutorials,how-to,reference,explanation}/`
+  for each pack, `docs/guides/_shared/` for cross-cutting topics (install routes,
+  the adapter support matrix, the catalogue model, authoring a skill). All 12
+  packs now have a guide home reachable from `[pack.links].documentation` and a
+  "go deeper →" link from the pack README, and the README catalogue points each
+  pack at its guides. The seven previously-undocumented packs (`atlassian`,
+  `contracts`, `converters`, `figma`, `governance-extras`, `monorepo-extras`,
+  `user-guide-diataxis`) gained full Diátaxis guides; `architect` gained diagram
+  and review how-tos; flow-heavy guides carry ASCII diagrams; and `core`'s
+  explanation now leads with *why loop engineering*. The adopter-facing
+  `user-guide-diataxis` seed scaffold stays organized by quadrant; the
+  `new-guide` skill is layout-aware (user-guide-diataxis 0.1.2). Every pack's
+  version is bumped for the new `documentation` link.
+
 - **`architect-design` now consults the enterprise's own knowledge when the
   environment exposes a retrieval surface (architect pack 0.3.0).** A new
   progressive-disclosure reference (`knowledge-surfaces.md`) carries an 8-area
@@ -275,7 +291,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The install preview covers the rendered adapter projection; it does not yet
   enumerate the governance seeds (`AGENTS.md`, `docs/CHARTER.md`,
   `docs/CONVENTIONS.md`) a real install also delivers. See the
-  [preview how-to](../guides/how-to/preview-install-or-upgrade.md).
+  [preview how-to](../guides/_shared/how-to/preview-install-or-upgrade.md).
 
 ### Changed
 

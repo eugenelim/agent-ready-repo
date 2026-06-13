@@ -135,7 +135,7 @@ subsections). Cross-cutting tests:
     coin-flip.
   - `urls = { Homepage = "https://github.com/eugenelim/agent-ready-repo",
     Source = "https://github.com/eugenelim/agent-ready-repo",
-    Documentation = "https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/how-to/install-agentbundle-from-clone.md" }`
+    Documentation = "https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/how-to/install-agentbundle-from-clone.md" }`
   - `classifiers = ["Development Status :: 4 - Beta", "License :: OSI
     Approved :: Apache Software License", "License :: OSI Approved ::
     MIT License", "Operating System :: OS Independent", "Programming

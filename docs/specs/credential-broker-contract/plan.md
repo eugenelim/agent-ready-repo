@@ -272,7 +272,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 - File-presence checks: `docs/adr/NNNN-credential-broker-contract.md` exists and parses as an ADR (verifies AC40).
 - `docs/CONVENTIONS.md` contains a § Credentialed skills section naming the four brokers and `metadata.auth` (verifies AC41).
 - `docs/backlog.md` contains a `credential-broker-contract` entry with the manual-QA matrix lines (verifies AC42).
-- `docs/guides/how-to/add-a-credentialed-skill.md` "pick a broker" section replaces the old "pick a primitive class" section (verifies AC43).
+- `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md` "pick a broker" section replaces the old "pick a primitive class" section (verifies AC43).
 - `docs/specs/skill-secrets/spec.md` carries the footer note pointing AC34/AC35 invariants to the new shim (verifies AC44).
 - `docs/specs/distribution-adapters/spec.md` carries a single new dated bullet under `## Changelog` matching the verbatim text from `notes/distribution-adapters-amendment.md` — no conformance-suite addition (per AC45 round-2 revision: distribution-adapters defers conformance to RFC-0003; the two primitive classes are pinned by *this* spec's ACs).
 - Manual review reads the diff end-to-end and verifies internal consistency.
@@ -281,7 +281,7 @@ The work-breakdown. Tasks are sized so each one is a coherent commit or PR.
 - Write the new ADR per existing format under `docs/adr/`. Record the binding architectural choices and one-line rejections of alternatives B / D / E / F / G / H / I / J.
 - Amend `docs/CONVENTIONS.md` with the new § Credentialed skills section (or extend an existing one).
 - Add the `credential-broker-contract` entry to `docs/backlog.md`.
-- Rewrite the relevant section of `docs/guides/how-to/add-a-credentialed-skill.md`.
+- Rewrite the relevant section of `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md`.
 - Amend `docs/specs/skill-secrets/spec.md` (footer note).
 - Amend `docs/specs/distribution-adapters/spec.md` with a single Changelog bullet (verbatim from `notes/distribution-adapters-amendment.md`); no conformance-suite addition.
 

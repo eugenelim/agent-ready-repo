@@ -107,3 +107,7 @@ Ask your agent, for example:
 - "De-risk the riskiest assumption in this intent with a prototype." (`de-risk-intent`)
 - "Decompose this intent into shippable specs." (`decompose-intent`)
 - "Stand up a value-stream meta-repo to coordinate these components." (`align-value-stream`)
+
+---
+
+→ **Go deeper:** the [`product-engineering` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-engineering/).

@@ -43,7 +43,7 @@ The security lens **shifts left**: on security-boundary work it runs at spec sta
 
 A fourth subagent, `implementer`, is the loop's own executor. It runs independent tasks in parallel.
 
-→ Want the whole picture? [The core pack as a system](docs/guides/explanation/core-pack.md) walks through how the parts compose, and how it compares to vibe-coding, GitHub's Spec Kit, and Kiro's spec mode.
+→ Want the whole picture? [The core pack as a system](docs/guides/core/explanation/core-pack.md) walks through how the parts compose, and how it compares to vibe-coding, GitHub's Spec Kit, and Kiro's spec mode.
 
 ## The catalogue
 
@@ -51,17 +51,17 @@ A fourth subagent, `implementer`, is the loop's own executor. It runs independen
 
 | Pack | Scope | What it ships |
 | --- | --- | --- |
-| [`core`](packs/core/) | **repo** | **The flagship pack.** The loop: `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project` skills, the four reviewer/executor subagents, `pre-pr` + `session-start` hooks, and governance seeds. **Install this even if you install nothing else.** |
-| [`governance-extras`](packs/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos that need a written trail for decisions — `new-rfc`, `new-adr`, `update-conventions` plus the `docs/rfc/` and `docs/adr/` shapes. |
-| [`user-guide-diataxis`](packs/user-guide-diataxis/) | repo | Diátaxis docs skeleton — `docs/guides/{tutorials,how-to,reference,explanation}` plus `new-guide`. |
-| [`monorepo-extras`](packs/monorepo-extras/) | repo | Monorepo scaffolding — `new-package` and a `packages/_example/` template. |
-| [`research`](packs/research/) | user / repo | Evidence-grounded research — `research`, `source-map`, `compare-hypotheses`, `devils-advocate`, and more, plus two retrieval subagents. |
-| [`contracts`](packs/contracts/) | user / repo | Contract authoring — `api-contract` for OpenAPI 3.1. |
-| [`converters`](packs/converters/) | user / repo | `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `msg-to-markdown`, `mermaid-renderer`. |
-| [`atlassian`](packs/atlassian/) | user / repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed) plus `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`. |
-| [`figma`](packs/figma/) | user / repo | Figma REST primitive (credentialed) — reads files/nodes/comments/variables, renders frames, FigJam → Mermaid. |
-| [`architect`](packs/architect/) | user / repo | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`. |
-| [`product-engineering`](packs/product-engineering/) | user / repo | Shape product intent into shippable specs — `frame-intent`, `de-risk-intent`, `decompose-intent` over a recursive, level-tagged `intent`, feeding the briefs/specs your delivery loop already builds. |
+| [`core`](docs/guides/core/) | **repo** | **The flagship pack.** The loop: `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project` skills, the four reviewer/executor subagents, `pre-pr` + `session-start` hooks, and governance seeds. **Install this even if you install nothing else.** |
+| [`governance-extras`](docs/guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos that need a written trail for decisions — `new-rfc`, `new-adr`, `update-conventions` plus the `docs/rfc/` and `docs/adr/` shapes. |
+| [`user-guide-diataxis`](docs/guides/user-guide-diataxis/) | repo | Diátaxis docs skeleton — `docs/guides/{tutorials,how-to,reference,explanation}` plus `new-guide`. |
+| [`monorepo-extras`](docs/guides/monorepo-extras/) | repo | Monorepo scaffolding — `new-package` and a `packages/_example/` template. |
+| [`research`](docs/guides/research/) | user / repo | Evidence-grounded research — `research`, `source-map`, `compare-hypotheses`, `devils-advocate`, and more, plus two retrieval subagents. |
+| [`contracts`](docs/guides/contracts/) | user / repo | Contract authoring — `api-contract` for OpenAPI 3.1. |
+| [`converters`](docs/guides/converters/) | user / repo | `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `msg-to-markdown`, `mermaid-renderer`. |
+| [`atlassian`](docs/guides/atlassian/) | user / repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed) plus `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`. |
+| [`figma`](docs/guides/figma/) | user / repo | Figma REST primitive (credentialed) — reads files/nodes/comments/variables, renders frames, FigJam → Mermaid. |
+| [`architect`](docs/guides/architect/) | user / repo | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`. |
+| [`product-engineering`](docs/guides/product-engineering/) | user / repo | Shape product intent into shippable specs — `frame-intent`, `de-risk-intent`, `decompose-intent` over a recursive, level-tagged `intent`, feeding the briefs/specs your delivery loop already builds. |
 
 Repo-scope packs install into the current repo and build on `core`. User-scope packs install into `~/.claude/` (or your harness's home root) and follow you across every project. Swap `core` for any pack name in the command above.
 
@@ -92,11 +92,11 @@ That makes this a foundation for an organization's AI dev kit, not just a set of
 
 | Topic | Link |
 | --- | --- |
-| All four install routes (CLI, APM, Claude plugins, local clone) | [install routes](docs/guides/how-to/install-agentbundle-from-clone.md) |
-| What each agent tool supports — skill / subagent / command / hook — and where it degrades | [adapter support matrix](docs/guides/reference/adapter-support.md) |
-| Your edits are never silently overwritten — the file-safety contract | [file-safety contract](docs/guides/explanation/file-safety-contract.md) |
-| Tailor freshly-installed primitives to your repo | [`adapt-to-project`](docs/guides/how-to/adapt-to-project.md) |
-| Upgrading an installed pack | [upgrade packs](docs/guides/how-to/upgrade-packs.md) |
+| All four install routes (CLI, APM, Claude plugins, local clone) | [install routes](docs/guides/_shared/how-to/install-agentbundle-from-clone.md) |
+| What each agent tool supports — skill / subagent / command / hook — and where it degrades | [adapter support matrix](docs/guides/_shared/reference/adapter-support.md) |
+| Your edits are never silently overwritten — the file-safety contract | [file-safety contract](docs/guides/_shared/explanation/file-safety-contract.md) |
+| Tailor freshly-installed primitives to your repo | [`adapt-to-project`](docs/guides/core/how-to/adapt-to-project.md) |
+| Upgrading an installed pack | [upgrade packs](docs/guides/_shared/how-to/upgrade-packs.md) |
 | Mission, scope, and the four principles | [`docs/CHARTER.md`](docs/CHARTER.md) |
 | The catalogue distribution model | [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) |
 

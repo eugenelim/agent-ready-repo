@@ -263,8 +263,8 @@ On acceptance — **single PR per RFC-0004's spec-amendment-atomicity precedent*
   - The `Install` section's `Where to run these` paragraph picks up a one-line note about user-scope adapter resolution and links to the relevant how-to.
 
 - **How-to guides** (one per non-Claude-Code adapter at user scope):
-  - `docs/guides/how-to/install-user-scope-pack-into-kiro.md` — Kiro adopter's install path: prerequisites (`~/.kiro/` exists), the `agentbundle install --pack <name> --scope user .` invocation, the `installed: ... via kiro` confirmation line, upgrade/uninstall verbs.
-  - `docs/guides/how-to/install-user-scope-pack-into-codex.md` — Codex adopter's install path: prerequisites (Codex CLI with skills support, which requires RFC-0009's landing), the same invocation, the `installed: ... via codex` confirmation line, the `~/.agents/skills/` discovery model, the interaction with `~/.agents/plugins/marketplace.json` (skills and plugins share the `.agents/` parent dir but live in disjoint subtrees), upgrade/uninstall verbs.
+  - `docs/guides/_shared/how-to/install-user-scope-pack-into-kiro.md` — Kiro adopter's install path: prerequisites (`~/.kiro/` exists), the `agentbundle install --pack <name> --scope user .` invocation, the `installed: ... via kiro` confirmation line, upgrade/uninstall verbs.
+  - `docs/guides/_shared/how-to/install-user-scope-pack-into-codex.md` — Codex adopter's install path: prerequisites (Codex CLI with skills support, which requires RFC-0009's landing), the same invocation, the `installed: ... via codex` confirmation line, the `~/.agents/skills/` discovery model, the interaction with `~/.agents/plugins/marketplace.json` (skills and plugins share the `.agents/` parent dir but live in disjoint subtrees), upgrade/uninstall verbs.
 
   Both cross-linked from the README install section.
 

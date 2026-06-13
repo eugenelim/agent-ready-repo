@@ -679,22 +679,22 @@ Per-task tests live under each Task below. Cross-cutting:
 
 **Tests (write before code):**
 - `tests/unit/test_docs_agentbundle_reference.py`:
-  - File `docs/guides/reference/agentbundle.md` exists.
+  - File `docs/guides/_shared/reference/agentbundle.md` exists.
   - Contains the three section headings for "Install agentbundle",
     "Install a pack", "Configure the default adapter" (or the chosen
     H2 wording — pin in the test).
-  - `docs/guides/reference/README.md` links to it (relative
+  - `docs/guides/_shared/reference/README.md` links to it (relative
     `./agentbundle.md`).
   - Forward-link from "Install agentbundle" section points to
-    `docs/guides/how-to/install-agentbundle-from-clone.md` (verified
+    `docs/guides/_shared/how-to/install-agentbundle-from-clone.md` (verified
     to exist).
 
 **Approach:**
-- Author `docs/guides/reference/agentbundle.md`:
+- Author `docs/guides/_shared/reference/agentbundle.md`:
   - **§ 1 — Install agentbundle.** `pip install agentbundle` once
     on PyPI; until then, `pip install -e .` from a clone with a
     forward-link to the existing
-    `docs/guides/how-to/install-agentbundle-from-clone.md`.
+    `docs/guides/_shared/how-to/install-agentbundle-from-clone.md`.
   - **§ 2 — Install a pack.** Two-line example using
     `agentbundle install <catalogue-uri>`.
   - **§ 3 — Configure the default adapter.** All four sub-actions
@@ -703,7 +703,7 @@ Per-task tests live under each Task below. Cross-cutting:
     user-config > `scope.DEFAULT_ADAPTER` (and a note that
     downstream catalogues may monkey-patch the constant for
     enterprise rebrands; user-config wins over that).
-- Append the new page under `docs/guides/reference/README.md`'s
+- Append the new page under `docs/guides/_shared/reference/README.md`'s
   index.
 
 **Done when:**

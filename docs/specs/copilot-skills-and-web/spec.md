@@ -160,11 +160,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   prior content is rewritten.
 - [x] The doc blast radius is reconciled to reflect SKILL.md skills +
   web-on-CLI/app, with **every** copilot-skill/web assertion corrected (not just
-  the headline cell): `docs/guides/reference/adapter-support.md` — the Copilot
+  the headline cell): `docs/guides/_shared/reference/adapter-support.md` — the Copilot
   table row (Skill cell, Subagent cell + its status word), the dedicated
   no-web-tool caveat block, **and** the summary guidance line that tells readers
-  to "plan around the no-web-tool caveat"; `docs/guides/reference/research-pack.md`;
-  `docs/guides/tutorials/research-first-session.md`; `docs/architecture/agentbundle.md`;
+  to "plan around the no-web-tool caveat"; `docs/guides/research/reference/research-pack.md`;
+  `docs/guides/research/tutorials/research-first-session.md`; `docs/architecture/agentbundle.md`;
   `AGENTS.local.md`; `docs/backlog.md` (the deferred Copilot-web item);
   `docs/specs/distribution-adapters/spec.md` (projection table); and
   `docs/specs/README.md` (the copilot-full-parity entry's "no web" phrasing **and**
