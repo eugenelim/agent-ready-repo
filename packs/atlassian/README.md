@@ -36,3 +36,7 @@ Once credentials are set up, ask your agent, for example:
 - "Crawl the ENG Confluence space and summarise the onboarding pages."
 - "Build the AI-adoption report for last quarter."
 - "Show the defect flow for project ORD over the last 30 days."
+
+---
+
+→ **Go deeper:** the [`atlassian` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/atlassian/).

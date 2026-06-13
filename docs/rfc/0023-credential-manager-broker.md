@@ -111,7 +111,7 @@ Filled in upon acceptance:
 - **Spec: `docs/specs/credbroker/`** — the package's API, the stdlib core, the `[crypto]` vault + master-secret unlock model, the graceful-degrade matrix, the env-Tier-1 floor, and the migration of the **six** in-tree consumers (five CLIs + `credential-setup`) off the projected shim (retiring the `shared-libs` projection + drift gate).
 - **Convention change: `docs/CONVENTIONS.md` § Credentialed skills** — `auth: creds` now resolves via `import credbroker`, not the vendored shim.
 - **Exit-code alignment (partial).** `credbroker` ships no CLI in v1 (pure library), so the reserved `3–9` band stays **unclaimed** for now; a future convenience-CLI follow-on may claim the **credential-resolution subset** (e.g. keyring-hard-fail, vault-locked). authsome's **connection/provider/daemon** exit numbers — which the exit-code spec's deferral also named — stay **deferred to a future daemon RFC** (the daemon is out of scope here), so the band does not silently strand.
-- **Guide update** — `docs/guides/how-to/add-a-credentialed-skill.md` Step 6 (`import credbroker`) + Step 8 (`pip install credbroker[crypto]`).
+- **Guide update** — `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md` Step 6 (`import credbroker`) + Step 8 (`pip install credbroker[crypto]`).
 
 ## Amendments
 

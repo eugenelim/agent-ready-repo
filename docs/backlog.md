@@ -82,7 +82,7 @@ marker — see RFC-0016).
   `allowed-adapters` author-guidance paragraph has no host skill any more —
   when this Draft spec is implemented, add that `allowed-adapters`
   author-guidance paragraph to the how-to
-  `docs/guides/how-to/add-a-credentialed-skill.md` instead (the deleted
+  `docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md` instead (the deleted
   skill's "Adapter portability" section was not carried over — it's
   pack-authoring guidance this spec owns). Left unfixed here to avoid
   editing another spec's open ACs out of scope; the references are
@@ -326,7 +326,7 @@ of their own yet.
 - **Credentialed-authoring skills don't belong in adopter-facing `core` (RFC-0013 /
   `credential-broker-contract`).** From first principles the adopter artifact for
   *authoring* a credentialed skill is the **how-to** — which already exists
-  (`docs/guides/how-to/add-a-credentialed-skill.md` + `docs/guides/explanation/credentialed-skills.md`).
+  (`docs/guides/credential-brokers/how-to/add-a-credentialed-skill.md` + `docs/guides/credential-brokers/explanation/credentialed-skills.md`).
   The `add-credentialed-skill` **skill** is redundant for adopters and bound to the
   catalogue build pipeline (`make build-self`, `assets/` templates), and
   `example-credentialed-skill` is `auth: creds` (same coupling). Reconcile their
@@ -518,7 +518,7 @@ copilot became a full-parity, user-scope-capable adapter — `agent` →
   under `--dry-run`, so the no-cost path is a refactor, not a copy. **Unblock:**
   extract `deliver_seeds`' classification into a pure function both the dry-run
   preview and the real delivery call. Disclosed in the
-  [preview how-to](guides/how-to/preview-install-or-upgrade.md) so the
+  [preview how-to](guides/_shared/how-to/preview-install-or-upgrade.md) so the
   preview's silence on seeds is stated, not implied-complete.
 
 ### unify the path-jail projection probe
@@ -630,17 +630,3 @@ then escapes the backslash, so a frontmatter `description` carrying escaped quot
 double-escaped (`\\\"…\\\"`). This is **byte-identical to the merged `cursor.py`** (an inherited
 cross-adapter behavior, not a gemini regression). Fix both adapters together: unescape `\"`→`"`
 in the quote-stripping branch.
-
-## `enriched-pack-manifest`
-
-### per-pack-guide-home-documentation-links
-
-The enriched-manifest spec (AC9, AC10) calls for migrating `docs/guides/` to a
-per-pack Diátaxis hierarchy (`docs/guides/<pack>/{quadrant}/`, ADR-0020),
-adapting `CONVENTIONS.md §5c` + the `new-guide` skill write-path, and then
-wiring each pack's `[pack.links].documentation` to its per-pack guide home
-plus a "go deeper →" README link-out. Per the plan's PR-sizing note (T12 + T13
-+ T10 are separable, ADR-0020 vs ADR-0021), this is deferred to a **follow-on
-PR stacked on the manifest work**. The manifest PR ships every pack's
-`[pack.links]` with `homepage`/`repository` set; only the `documentation` link
-target and the guide reorg wait. Unblocked by: the guide-migration PR.

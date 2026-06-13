@@ -212,7 +212,7 @@ with the runtime orphan message.
 **Tests:**
 - Goal-based: `make build-check` doc-drift gate (`tools/lint-spec-status.py`) green.
 - Manual QA: reviewer confirms README "Where primitives land"/install sections and
-  `docs/guides/explanation/file-safety-contract.md` describe per-route seed delivery
+  `docs/guides/_shared/explanation/file-safety-contract.md` describe per-route seed delivery
   faithfully (artifact carries seeds on every route; working-tree landing is
   automatic on CLI, via `scaffold`/`adapt` on plugin/APM). (AC11)
 - Manual QA: RFC-0001 `## Errata` entry present, easy to read, Approver-signed. (AC12)

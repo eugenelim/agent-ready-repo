@@ -24,3 +24,7 @@ Ask your agent, for example:
 - "Draft an OpenAPI 3.1 contract for the orders service: create, get, cancel."
 - "Review this OpenAPI spec for breaking changes against the previous version."
 - "Design an AsyncAPI contract for the `order.placed` event stream."
+
+---
+
+→ **Go deeper:** the [`contracts` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/contracts/).

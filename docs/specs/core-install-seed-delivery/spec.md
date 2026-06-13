@@ -142,7 +142,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       `adapt-to-project` SKILL.md, a **projected primitive** (independent of seed
       delivery), so the fix lives in the marker scanner (T4), not T1.
 - [x] **AC11** README "Where primitives land" / install sections and
-      `docs/guides/explanation/file-safety-contract.md` accurately state that the
+      `docs/guides/_shared/explanation/file-safety-contract.md` accurately state that the
       artifact carries seeds on every route while the working-tree landing is
       automatic on the CLI route and via `scaffold`/`adapt` on plugin/APM.
 - [x] **AC12** RFC-0001 carries an Approver-signed `## Errata` entry recording
