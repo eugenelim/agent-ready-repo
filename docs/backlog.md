@@ -228,28 +228,35 @@ wire it into `make build-check`).
 
 ### architect-review-diagram-knowledge-surfaces
 
-The knowledge-surface awareness first landed in `architect-design` (the skill
-where the consult genuinely happens). **The `architect-review` half has now
-shipped** (`docs/specs/architect-review-knowledge-surfaces`, architect pack
-`0.4.0`): `architect-review` gained a verification-lens
-`references/knowledge-surfaces.md` + one conditional procedure step that
-*checks* a design reconciled against the available surfaces — flagging any
-landscape / standards / in-flight / interface claim asserted as fact without
-grounding, plus any available surface the design ignored, without redesigning.
+**Resolved 2026-06-13.** All three sibling skills now carry knowledge-surface
+awareness: `architect-design` (consult-to-build, all eight areas; pack `0.3.0`),
+`architect-review` (verification lens that *checks* a design was grounded; pack
+`0.4.0`), and now **`architect-diagram`**
+(`docs/specs/architect-diagram-knowledge-surfaces`, pack `0.5.0`) — an
+**as-is-drawing consult lens** scoped to the **descriptive current-system facets
+(the 2/3/4 seam: current landscape, interfaces & contracts, operational
+reality)**, *not* the current-landscape area alone, and gated to **document and
+update mode** (design mode draws the hypothetical and review mode routes to
+`architect-review`, so neither triggers it). This tombstone is **retained** (not
+removed) because the Shipped `architect-review-knowledge-surfaces` spec links
+this `#anchor` (its `Ask first` Boundary + AC16).
 
 **The `product-engineering` sibling has also shipped**
 (`docs/specs/product-engineering-knowledge-surfaces`, product-engineering pack
 `0.3.0`): `frame-intent` gained the problem-framing-lens projection (domain,
 in-flight, brownfield-landscape, operational), guarded against drift from the
-architect canonical core by `tools/lint-knowledge-surface-parity.py`.
+architect canonical core by `tools/lint-knowledge-surface-parity.py` (which the
+`architect-diagram` PR extends to register the fourth copy + its self-test).
 
-**Only `architect-diagram` remains** of the two architect sibling skills: it
-would consult the **current landscape** area to draw accurate as-is diagrams.
-**Unblocks when:** the owner opts in (spec `Ask first` Boundary).
+**The whole knowledge-surface line is now shipped** — `architect-design`,
+`architect-review`, `architect-diagram`, and the `product-engineering`
+`frame-intent` sibling. Nothing remains open under this anchor; the tombstone is
+retained only because the Shipped sibling specs link it.
 
 ### live-mock-mcp-detection-qa
 
-The detection QA (both `architect-design`/`architect-review` per their specs and
+The detection QA (`architect-design`/`architect-review` per their specs,
+`architect-diagram` per `architect-diagram-knowledge-surfaces` AC13, and
 `frame-intent` per `product-engineering-knowledge-surfaces` AC13) was verified in
 two halves: a real structural projection check (`make build` → projected
 artifacts byte-identical to source) and a decision-logic walkthrough by an
@@ -260,6 +267,16 @@ anchor** — landing a live run for one does not satisfy the others. **Unblocks
 when:** a harness/test fixture can register a stub MCP retrieval tool, at which
 point the present/absent/sensitive (and, for `frame-intent`, brownfield)
 scenarios can run end-to-end against real detection for each skill.
+
+- **`architect-diagram` contradicted-edge rail — walkthrough coverage gap
+  (quality-engineer, 2026-06-13).** The `architect-diagram-knowledge-surfaces`
+  T5 walkthrough exercised honesty rails (a) name-what-drew-from and (b)
+  `<unnamed>`-or-ask, but rail (c) — *a surface-derived edge the repo contradicts
+  is flagged, not drawn over* — is **read-verified only**, because the fixed
+  single-edge driver carries no contradiction. This needs no MCP injection (a
+  two-fact driver: surface says edge X→Y, repo shows X→Z). **Fold into the fixture
+  work above:** when the stub-surface fixture lands, extend the driver with a
+  contradicting fact so rail (c) gets scenario-level proof like (a)/(b).
 
 ## Cross-spec / outside-the-spec-tree
 
