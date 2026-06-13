@@ -12,8 +12,9 @@ This is the **design lens**: the eight areas below are the questions a designer
 asks of the organisation. (A problem-framing lens — business domain first —
 belongs to the product-engineering skills, not here.) **When this taxonomy is
 reused under another lens, the eight areas and the modality×space axis are the
-shared canonical core — only the consult triggers and this lens paragraph
-change.**
+shared canonical core — only the per-area triggers, this lens paragraph, and the
+detection/degrade framing change (as the `architect-review` verification-lens
+reuse does).**
 
 ## The eight knowledge areas (MECE)
 

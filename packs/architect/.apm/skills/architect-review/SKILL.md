@@ -51,7 +51,21 @@ If any check fails, push back rather than reviewing.
    start writing findings yet — finish the rubric pass first so the
    findings can be ordered by severity, not by discovery order.
 
-4. **Decide the verdict** before writing the findings:
+4. **Check that load-bearing claims are grounded** (orthogonal to artifact type
+   and to the WA-lens mode above). When the artifact asserts facts about the
+   current landscape, mandated standards, external interfaces, or in-flight work
+   — claims a reviewer can't take on faith — load
+   `references/knowledge-surfaces.md` and flag, as severity-tagged findings, (a)
+   any such claim asserted as fact with neither a cited surface nor an
+   "unverified — confirm" marker, and (b) any available knowledge surface the
+   design ignored. If an internal retrieval surface is reachable this session
+   (public web does not count), you may spot-check the claims against it — to
+   confirm or refute, never to redesign — and name what you checked against (or
+   "none"); otherwise flag the unverified claims for the author to confirm rather
+   than guessing. **Flag; never rewrite the design.** When the artifact asserts
+   no such facts, skip this step.
+
+5. **Decide the verdict** before writing the findings:
    - **SHIP IT.** Zero blockers, ≤2 minors. Rare and worth saying so.
    - **SHIP WITH CHANGES.** Blockers absent or trivially fixable;
      majors exist but the artifact's shape is right.
@@ -60,7 +74,7 @@ If any check fails, push back rather than reviewing.
    - **WRONG ARTIFACT.** The artifact answers a question the user
      didn't ask. Name the right artifact and route.
 
-5. **Write the review** using `assets/critique.md` (or `assets/risk-register.md` in WA mode):
+6. **Write the review** using `assets/critique.md` (or `assets/risk-register.md` in WA mode):
    - Verdict (one line).
    - Executive summary (≤3 sentences).
    - Findings, ordered by severity, each with: **where** (5–10 words
@@ -70,7 +84,7 @@ If any check fails, push back rather than reviewing.
    - **What's working** (2–4 specific reusable strengths). Not
      flattery. Things the author should *keep* during a rewrite.
 
-6. **No file write.** Render inline. If the user explicitly asks to
+7. **No file write.** Render inline. If the user explicitly asks to
    save the review, write to a path they choose with a kebab-case
    slug — but the default is throwaway.
 
