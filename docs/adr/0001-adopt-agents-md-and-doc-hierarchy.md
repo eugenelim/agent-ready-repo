@@ -1,10 +1,10 @@
 # ADR-0001: Adopt AGENTS.md + spec/ADR/RFC governance
 
-- **Status:** Accepted
+- **Status:** Accepted — **partially amended:** the `docs/guides/` organization sub-decision (Diátaxis types at the top level) is **superseded by [ADR-0020](0020-per-pack-diataxis-hierarchy-for-guides.md)** (per-pack hierarchy, 2026-06-13); every other decision in this ADR stands.
 - **Date:** YYYY-MM-DD <!-- replace with the date you adopt this template -->
 - **Deciders:** <maintainers>
 - **Supersedes:** none
-- **Related:** [`docs/CONVENTIONS.md`](../CONVENTIONS.md)
+- **Related:** [`docs/CONVENTIONS.md`](../CONVENTIONS.md), [ADR-0020](0020-per-pack-diataxis-hierarchy-for-guides.md) (amends the guides sub-decision)
 
 ## Context
 
