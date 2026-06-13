@@ -1,6 +1,6 @@
 # Spec: architect-diagram-knowledge-surfaces
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -78,8 +78,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Ask first
 
 - Extending the awareness to the `product-engineering` pack (a problem-space
-  lens: domain, landscape, operational, in-flight) — still a deferred sibling
-  after this PR.
+  lens: domain, landscape, operational, in-flight) was a deferred sibling at spec
+  authoring; it **shipped separately in PR #302** (`frame-intent`), so this
+  awareness line is now complete and no sibling remains out of scope.
 - Introducing any declared registry, shared-config file, or `~/.agentbundle`
   lookup for knowledge surfaces.
 - Any edit to `docs/CONVENTIONS.md` or `docs/CHARTER.md` (would require an RFC).
@@ -110,12 +111,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `lint-packs`, `lint-agent-artifacts`, `validate`, `build`, the marketplace
   `pytest` suites) plus a `grep` proving no concrete tool/CLI name was
   hardcoded.
-- **Canonical-core byte-identity across all three copies** — *goal-based check*.
-  A `diff` scoped to the shared canonical core (the 8 area rows; the `#` /
-  `Area` / `The question it answers` columns; the modality×space subsection; the
-  2/3/4 adjacency seam) shows the new `architect-diagram` copy byte-identical to
-  **both** the `architect-design` and `architect-review` copies. (Only the lens
-  paragraph, the trigger column, and the detection/degrade framing differ.)
+- **Canonical-core byte-identity across all three copies** — *goal-based check*,
+  now also **mechanically gated**. A `diff` scoped to the shared canonical core
+  (the 8 area rows; the `#` / `Area` / `The question it answers` columns; the
+  modality×space subsection; the 2/3/4 adjacency seam) shows the new
+  `architect-diagram` copy byte-identical to **both** the `architect-design` and
+  `architect-review` copies. (Only the lens paragraph, the trigger column, and
+  the detection/degrade framing differ.) Beyond the manual diff, the
+  `architect-diagram` copy is registered in PR #302's
+  `tools/lint-knowledge-surface-parity.py` (run by `build-check`), which fails
+  closed if any copy's area names/questions drift from the canonical core.
 - **Sibling-skill non-change** — *goal-based check*. `git diff origin/main...`
   shows `architect-design/SKILL.md` and `architect-review/SKILL.md` byte-for-
   byte unchanged.
@@ -141,7 +146,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] A new reference
+- [x] A new reference
   `packs/architect/.apm/skills/architect-diagram/references/knowledge-surfaces.md`
   exists and carries the **same 8-area MECE taxonomy** as the canonical core —
   (1) business domain & meaning, (2) current landscape, (3) interfaces &
@@ -151,7 +156,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   verbatim** (only the trigger column changes) and the modality×space MECE axis
   + the 2/3/4 adjacency seam preserved (the canonical core that does not change
   across lenses).
-- [ ] The reference is framed as an **as-is-drawing consult lens scoped to the
+- [x] The reference is framed as an **as-is-drawing consult lens scoped to the
   descriptive current-system facets**: an opening lens paragraph states the
   skill **consults surfaces to draw an accurate as-is diagram** and contrasts it
   explicitly with `architect-design` (consults all eight areas to build a to-be
@@ -162,16 +167,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   trigger column and the Detection/degrade sections — so the verbatim canonical
   core is scoped to exactly the area rows + the three columns named above + the
   modality×space subsection + the 2/3/4 adjacency seam.
-- [ ] The reference makes the **mode-scoping** explicit: the consult applies
+- [x] The reference makes the **mode-scoping** explicit: the consult applies
   **only in document and update mode**; it does **not** apply in design mode
   (the hypothetical — fabrication allowed-but-flagged, no as-is to ground
   against) and does **not** apply in review mode (routes to `architect-review`).
-- [ ] **Harness-agnostic detection** (grep- + read-verified): the reference
+- [x] **Harness-agnostic detection** (grep- + read-verified): the reference
   describes discovering retrieval surfaces from the session's available
   tools/CLIs (tool search where the harness defers tools; the loaded tool list
   otherwise), contains **no hardcoded tool/CLI names**, and **excludes public
   web search** as an internal surface.
-- [ ] **Three honesty rails, recast for drawing** (read-verified): (a)
+- [x] **Three honesty rails, recast for drawing** (read-verified): (a)
   **name-what-you-drew-from** — the diagram states which surface it drew the
   beyond-repo topology from (or "repo only / none"); (b) **never fabricate** — a
   node or edge that can't be grounded stays `<unnamed>` or prompts a question
@@ -180,32 +185,40 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   discipline); (c) **a contradicted edge is flagged, not drawn over** — a
   surface-derived edge the repo contradicts is surfaced as a question/note, since
   one source is weak corroboration.
-- [ ] `architect-diagram/SKILL.md` gains a single **conditional** procedure step
+- [x] `architect-diagram/SKILL.md` gains a single **conditional** procedure step
   that loads the reference **only when** the mode is document or update **and** a
   knowledge surface is reachable (progressive disclosure), and is skipped in
   design mode, review mode, and the no-surface case; the step names no concrete
   tool and reuses the skill's existing vocabulary (document-mode read-before-draw,
   the `<unnamed>`/never-fabricate discipline) rather than inventing a parallel
   mechanism.
-- [ ] No registry, no shared-config file, no `~/.agentbundle` read, no new
+- [x] No registry, no shared-config file, no `~/.agentbundle` read, no new
   dependency, and no cross-pack/cross-skill shared artifact are introduced
   (verified by diff inspection). The reference lives wholly inside the
   `architect-diagram` skill.
-- [ ] `architect-design/SKILL.md` and `architect-review/SKILL.md` are
+- [x] `architect-design/SKILL.md` and `architect-review/SKILL.md` are
   **byte-for-byte unchanged** (verified by `git diff origin/main...`), and the
-  canonical core of all **three** `knowledge-surfaces.md` copies is byte-identical
-  (re-verified, including the design-file marker widened in #299).
-- [ ] The architect pack's `[pack]` version specifically (not the
-  `[contract] version`, which stays `0.10`) is bumped `0.4.0 → 0.5.0` in both
-  `packs/architect/pack.toml` and `packs/architect/.claude-plugin/plugin.json`.
-- [ ] `docs/product/changelog.md` `[Unreleased]` has an entry describing the
+  canonical core of all **three** full-taxonomy `knowledge-surfaces.md` copies is
+  byte-identical (re-verified, including the design-file marker widened in #299).
+  The new `architect-diagram` copy is **registered in PR #302's
+  `tools/lint-knowledge-surface-parity.py`** (LAYOUT + paired self-test), so the
+  byte-identity is now mechanically guarded in `build-check`, not only manually
+  diffed.
+- [x] The architect pack's `[pack]` version specifically (not the
+  `[contract] version`, which stays `0.10`) is bumped to `0.5.0` in both
+  `packs/architect/pack.toml` and `packs/architect/.claude-plugin/plugin.json`
+  (base was `0.4.0` at spec authoring; PR #300's enriched-pack-manifest patch
+  bump moved it to `0.4.1` and PR #302's product-engineering sibling then to
+  `0.4.2`, so the bump lands as `0.4.2 → 0.5.0` — a minor bump for a feature,
+  target unchanged).
+- [x] `docs/product/changelog.md` `[Unreleased]` has an entry describing the
   new diagram-side awareness behaviour.
-- [ ] `make build-self` has been run; `marketplace.json` reflects architect
+- [x] `make build-self` has been run; `marketplace.json` reflects architect
   `0.5.0`; `git status` shows no stray/untracked artifacts.
-- [ ] All gates green: `lint-skill-spec`, `lint-packs`, `lint-agent-artifacts`,
+- [x] All gates green: `lint-skill-spec`, `lint-packs`, `lint-agent-artifacts`,
   `validate`, `build`, and the marketplace `pytest` suites
   (`test_self_host_check.py`, `test_pipeline.py`).
-- [ ] Mode-scoped consult QA recorded against a **fixed driver** in two halves:
+- [x] Mode-scoped consult QA recorded against a **fixed driver** in two halves:
   (1) **structural (real)** — projected `architect-diagram/SKILL.md` + reference
   byte-identical to source on both routes; (2) **decision-logic walkthrough** by
   an independent agent — three scenarios: document+surface draws the grounded
@@ -213,16 +226,26 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   marks the neighbour `<unnamed>`/asks; design+surface does **not** trigger the
   consult. Live mock-MCP detection is *simulated* (harness limitation), already
   logged as `live-mock-mcp-detection-qa`.
-- [ ] `docs/backlog.md`'s `architect-review-diagram-knowledge-surfaces` item is
+- [x] `docs/backlog.md`'s `architect-review-diagram-knowledge-surfaces` item is
   updated to record that all of `architect-design` / `architect-review` /
-  `architect-diagram` have shipped, leaving only the `product-engineering`
-  sibling (heading renamed/rescoped if that reads cleaner).
+  `architect-diagram` have shipped, **and that the `product-engineering` sibling
+  also shipped in #302 — the whole knowledge-surface line is complete** (the
+  `#anchor` is retained as a tombstone since the Shipped sibling specs link it).
 
 ## Assumptions
 
-- Technical: architect is currently `0.4.0`; bump target is `0.5.0`, with
-  `[contract] version` left at `0.10` (source: `packs/architect/pack.toml:3,11`;
-  `packs/architect/.claude-plugin/plugin.json:3`).
+- Technical: architect was `0.4.0` at spec authoring; PR #300 (enriched-pack-
+  manifest) moved it to `0.4.1` and PR #302 (product-engineering sibling) to
+  `0.4.2` mid-flight, so the implementing bump is `0.4.2 → 0.5.0`, with
+  `[contract] version` left at `0.10` (source: `packs/architect/pack.toml:3,16`;
+  `packs/architect/.claude-plugin/plugin.json:3`; `#300`/`#302` merged before
+  this PR).
+- Technical: PR #302 shipped `tools/lint-knowledge-surface-parity.py` (a
+  build-check-gated drift guard over the canonical-core copies); this PR
+  registers the new `architect-diagram` copy in its `LAYOUT` table and extends
+  the paired self-test with a fourth fixture + drift case, so the byte-identity
+  in AC8 is now mechanically enforced, not only manually diffed (source:
+  `tools/lint-knowledge-surface-parity.py`; `#302`).
 - Technical: architect is a user-scope-default pack, not projected into this
   repo's `.claude/` tree; a version bump drifts top-level `marketplace.json` (the
   aggregation at `_aggregate_marketplace` ignores the self-host filter) and
@@ -251,5 +274,6 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Product: the lens is **consult-to-draw-accurate-as-is**, scoped to the
   descriptive current-system facets (areas 2/3/4) and to **document + update mode
   only**; design mode (hypothetical) and review mode (routes to architect-review)
-  never trigger it; the `product-engineering` sibling is deferred to a separate
-  PR (source: user direction 2026-06-13).
+  never trigger it; the `product-engineering` sibling was a separate-PR
+  follow-up at authoring and **shipped in #302** (`frame-intent`) before this
+  landed (source: user direction 2026-06-13; `#302`).
