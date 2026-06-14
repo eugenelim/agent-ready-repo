@@ -6,6 +6,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.4.0] — 2026-06-14
+
+### Added
+
+- **`pack.toml` is the rich source of truth for pack metadata** (RFC-0031,
+  adapter contract v0.14). A pack may now declare `license`,
+  `[[pack.maintainers]]`, `[pack.links]`, `categories`, `keywords`, a `readme`
+  pointer, and a `[pack.metadata.<tool>]` escape hatch. The build projects the
+  cleanly-mappable subset — plus the pack's `README.md` — into each
+  distribution route's manifest (`plugin.json` / `marketplace.json` entry), so
+  a catalogue describes each pack richly instead of with one sentence. **All new
+  fields are optional**; packs pinned below contract v0.14 are unaffected.
+- **Soft `categories` vocabulary** — `agentbundle validate` recognizes a
+  default set of category slugs and emits a **warning (exit 0)**, never an
+  error, on an unknown slug. The vocabulary is extensible by design (RFC-0031
+  D8); `design` is included for the `design-craft` pack.
+- **`list-packs` surfaces the enriched metadata** so a catalogue is browsable
+  by more than name and a one-line description.
+
+### Changed
+
+- **Pack and plugin-manifest JSON schemas accept the optional enriched fields**
+  (the `additionalProperties: false` gate on both manifest schemas was relaxed
+  for the projectable metadata subset).
+
+### Fixed
+
+- **`build-self` no longer emits untracked per-quadrant guide READMEs.** The
+  self-host projection skips `docs/guides/**` (adopters still receive guide
+  scaffolds via seed delivery).
+
 ## [0.3.1] — 2026-06-12
 
 ### Changed

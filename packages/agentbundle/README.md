@@ -45,12 +45,17 @@ my-pack/
   pack.toml                  # name, version, adapter-contract, install scope,
                              # plus rich metadata (license, maintainers, links,
                              # categories, keywords) and a README pointer
+  .claude-plugin/
+    plugin.json              # Claude Code plugin manifest (hand-authored)
   README.md                  # the pack's portable doc — projected with the pack
-  .apm/
-    skills/<name>/SKILL.md    # one folder per skill
-    agents/<name>.md          # subagents
-    hooks/<name>.py           # lifecycle hooks
-  seeds/                      # files scaffolded into the adopter repo
+  .apm/                      # primitives — projected by the build pipeline
+    skills/<name>/
+      SKILL.md               # the skill body; one folder per skill
+      references/            # progressive-disclosure docs, loaded on demand
+      assets/                # templates the skill copies into the repo
+    agents/<name>.md         # subagents
+    hooks/<name>.py          # lifecycle hooks
+  seeds/                     # files scaffolded into the adopter repo
 ```
 
 `pack.toml` is the **single source of truth** for a pack's metadata. Declare
