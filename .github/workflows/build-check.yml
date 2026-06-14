@@ -176,14 +176,19 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_adapter_gemini.py
 
-      # architect-design-reviewer (RFC-0032): the durable cross-adapter
-      # projection check for the design-reviewer subagent lives in the
-      # build/tests root, which `make build-check` does not run. Wire it in
-      # explicitly or it never gates (CI does not auto-discover package pytest)
-      # — AC10's "fails if a future adapter change drops it" depends on this.
-      - name: pytest architect design-reviewer projection (RFC-0032)
+      # architect-design-reviewer (RFC-0032): the design-reviewer subagent's
+      # cross-adapter projection check (AC10's "fails if a future adapter change
+      # drops it") and its rubric-parity guard (the verdict / severity /
+      # mechanical-judgment vocabulary must stay identical across the agent and
+      # architect-review) live in the build/tests root, which `make build-check`
+      # does not run. Wire them in explicitly or they never gate (CI does not
+      # auto-discover package pytest).
+      - name: pytest architect design-reviewer guards (RFC-0032)
         working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_architect_design_reviewer_projection.py
+        run: >-
+          python -m pytest
+          agentbundle/build/tests/test_architect_design_reviewer_projection.py
+          agentbundle/build/tests/test_architect_design_reviewer_rubric_parity.py
 
       # enriched-pack-manifest (RFC-0031): the manifest layer's contract +
       # construction tests live in the build/tests + tests/{unit,integration}
