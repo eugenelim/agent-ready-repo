@@ -1,6 +1,6 @@
 ---
 name: identify-perspectives
-description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `perspectives.md` listing each camp's name, its core claim, and representative voices. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
+description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
 ---
 
 # /identify-perspectives
@@ -50,7 +50,19 @@ Evaluation is `/compare-hypotheses`'s job downstream.
 4. **Look for missing camps** — quiet positions, dissenting minorities,
    contrarian-but-credentialed. The biggest NPOV failure is
    *omission*, not bias.
-5. **Write `perspectives.md`**.
+5. **Map the tensions** — for each pair of camps that genuinely
+   disagree, decide whether the disagreement *resolves* (one camp is
+   right, the other is wrong, and evidence settles it) or is
+   **irreducible** (both camps are right under different conditions, and
+   the disagreement is in the world, not in a gap in the evidence). For
+   every irreducible disagreement, record the conditions under which
+   each side holds, and what a forced resolution would destroy. This is
+   the step that *marks* an irreducible tension so it is not silently
+   flattened downstream — `/compare-hypotheses` is built to pick a
+   winner, so a disagreement that *shouldn't* have a winner needs to
+   carry that marking before it reaches that skill, so a reader (or a
+   future `/compare-hypotheses` pass) can refuse to collapse it.
+6. **Write `perspectives.md`**.
 
 ## `perspectives.md` output schema
 
@@ -70,7 +82,31 @@ Evaluation is `/compare-hypotheses`'s job downstream.
 ## Possibly-missing camps
 
 - <one-line description of a position that might be under-represented>.
+
+## Tension map
+
+- **<camp A> vs. <camp B>** — irreducible.
+  - **<camp A> holds when:** <the conditions / regime / scope under which A is right>.
+  - **<camp B> holds when:** <the conditions under which B is right>.
+  - **Forced resolution would destroy:** <what picking one side erases — a
+    real distinction, a context where the loser is correct, a constraint
+    that only the loser respects>.
+- **<camp C> vs. <camp D>** — resolves (defer to `/compare-hypotheses`).
 ```
+
+The tension map is **not** a relabelling of the camp list above it. The
+camp list answers *"what are the positions?"*; the tension map answers
+*"which disagreements between them have no single right answer, and
+why?"* A camp can appear in the list and never reach the tension map
+(it doesn't conflict with another camp); a disagreement reaches the
+tension map only when it is **irreducible** — both sides survive
+because they are right under different conditions, not because the
+evidence is too thin to choose (that latter case is a confidence
+question for `/research`, not a tension). Marking the irreducible ones
+here is what lets a reader — or a future `/compare-hypotheses` pass —
+refuse to collapse them to a verdict; today `/compare-hypotheses` ranks
+unconditionally, so the marking is the record that a ranking would be
+the wrong move, not yet a mechanism that prevents one.
 
 ## Citation discipline
 
@@ -82,8 +118,8 @@ the model has seen across cited material).
 ## Depth cues
 
 - `quickly`, `top three`, `briefly` — return the dominant two or three
-  camps only; skip the missing-camps survey.
+  camps only; skip the missing-camps survey and the tension map.
 - `summary only` — same; one-line per camp.
 - `comprehensively`, `exhaustively`, `in depth`, `extensive` —
   enumerate every named camp, including fringe and dissenting ones;
-  spend real effort on the missing-camps survey.
+  spend real effort on the missing-camps survey and the tension map.
