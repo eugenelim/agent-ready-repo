@@ -49,6 +49,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   itself stays cross-linked to the existing quality-attribute-scenarios
   guidance rather than restated.
 
+- **The `product-engineering` pack gains a content layer — `voice-and-microcopy`
+  (product-engineering 0.4.0).** A fifth pure-markdown skill that turns shaped
+  product intent into the **words a user reads** in the UI — the angle the pack's
+  intent-shaping habits (`frame-intent`, `de-risk-intent`, `decompose-intent`)
+  deliberately left open. The adopter characterizes their product's **voice**
+  along a few axes (humor / formality / respect / enthusiasm) and records it in a
+  travelling voice-chart template, writes the recurring UI states — **error,
+  empty, button, label** — from blame-free, actionable formulas (each with a
+  before/after), and runs a **content checklist** before copy ships. Voice is
+  constant, tone flexes by context (calm in errors, warm in success). Fully
+  framework-agnostic and habits-shaped — no engine, no schema, `SKILL.md` under
+  100 lines with depth in `references/`. Distinct from the
+  `house-voice-writing-craft` clear-prose rules, which shape *documentation*
+  prose, not product UI copy.
 - **The `bug-fix` skill gains two debugging-discipline moves (core 0.4.6).**
   A new "list candidate causes, then falsify each" step sits between
   reproduction and the root-cause assertion — name 2-3 rival causes and rule
