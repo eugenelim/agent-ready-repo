@@ -143,6 +143,14 @@ jobs:
         # The bash test_session_start.sh sibling is intentionally skipped
         # on Windows — pytest discovery only picks up test_*.py.
 
+      - name: design-craft framework-agnosticism lint + self-test (design-craft-pack AC8)
+        # RFC-0033: proves the design-craft agnosticism linter behaves on
+        # Windows. `python` (not `python3`) is the safe cross-platform
+        # invocation — Windows has no `python3` on PATH.
+        run: |
+          python tools/test-lint-design-craft-agnostic.py
+          python tools/lint-design-craft-agnostic.py
+
       - name: pre-pr aggregator (linters + spec termination check)
         # Same script adopters run locally; the canonical parity oracle.
         # Chains the artifact linters pre-pr.py invokes in order, then
