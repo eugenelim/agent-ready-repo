@@ -64,8 +64,10 @@ def test_no_categories_is_silent_exit_0(tmp_path):
     assert "warning" not in stderr.lower()
 
 
-def test_default_vocabulary_has_the_sixteen_rfc_0031_slugs():
-    expected = {
+def test_default_vocabulary_is_the_rfc_0031_baseline_plus_design():
+    # The RFC-0031 D3 baseline. The vocabulary is soft and extensible (D8),
+    # so it grows without an RFC — `design` was added for the design-craft pack.
+    rfc_0031_baseline = {
         "code-review",
         "testing",
         "documentation",
@@ -83,5 +85,7 @@ def test_default_vocabulary_has_the_sixteen_rfc_0031_slugs():
         "data",
         "ai-agent",
     }
-    assert set(DEFAULT_CATEGORIES) == expected
-    assert len(DEFAULT_CATEGORIES) == 16
+    assert rfc_0031_baseline <= set(DEFAULT_CATEGORIES)
+    assert "design" in DEFAULT_CATEGORIES
+    assert set(DEFAULT_CATEGORIES) == rfc_0031_baseline | {"design"}
+    assert len(DEFAULT_CATEGORIES) == 17
