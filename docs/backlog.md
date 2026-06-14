@@ -655,3 +655,17 @@ across four files) is exactly the systematic job the lint should drive, not a
 hand-sweep. Land the lint under the RFC, then do the sweep under it.
 (`RFC-1918` in `security-checklists/references/outbound-ssrf.md` is a real IETF
 standard, not an internal citation — leave it.)
+
+## `apm-internal-ref-sweep`
+
+### credbroker-frozen-pack-ref-sweep
+
+The `credential-brokers` pack's shipped `.apm/**` carries `RFC-0023` / `RFC-0006`
+citations in `skills/credential-setup/scripts/setup.py` and the
+`user-libs/credbroker/` library docstrings/comments (`__init__.py`, `_core.py`,
+`_vault.py`). These are the same dangling-on-arrival class the `apm-internal-ref-sweep`
+cleaned from core + figma, but the pack is **frozen by RFC-0013 (§4/§4d)** and
+the citations sit in library-provenance docstrings rather than agent-facing
+prose, so they were left for a separate, deliberate pass that respects the
+freeze. Fold this into the `apm-leak-lint-rfc` work, or do it as a focused
+comment-only PR against the frozen pack with explicit sign-off.

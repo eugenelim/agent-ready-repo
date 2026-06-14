@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The rest of the catalogue-internal references are swept from shipped
+  content (core 0.4.4, figma 0.1.3).** Following the first pass, the remaining
+  `make build-*` build-target mentions, an internal RFC citation, and the "this
+  catalogue" identity asides are removed from the work-loop and receive-brief
+  skill scripts, the session-start hook, the `pre-pr` hook, and the
+  adapt-to-project reference; figma's exit-code test drops a dangling internal-RFC
+  comment. Comment, docstring, and prose only — no behavior change.
+  (`credential-brokers`, which is frozen, is left for a separate pass.)
+
 - **Shipped pack content sheds catalogue-internal references (core 0.4.3,
   atlassian 0.1.3).** The `conventions-check` command no longer instructs
   running this repo's own `tools/lint-*` scripts — which never install into an

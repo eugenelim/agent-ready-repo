@@ -5,8 +5,8 @@ This is a `receive-brief` **skill script**: it lives at
 `packs/core/.apm/skills/receive-brief/scripts/lint-brief-coverage.py` and
 projects to every adapter's `.../skills/receive-brief/scripts/`, the same way
 the work-loop's `lint-spec-status.py` does. The agent runs it after a slice's
-status changes; the catalogue additionally runs it as a **fail-closed CI gate**
-via `make build-check`. It no-ops gracefully where Python is absent.
+status changes; it can also run as a **fail-closed CI gate** where a PR event
+and Python both exist. It no-ops gracefully where Python is absent.
 
 What it does: reads every `docs/specs/*/spec.md` `Status:` field, follows the
 `Brief:` back-links, and rolls each brief's Spec map up from its child specs —
@@ -230,7 +230,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
 
 
 def _repo_root() -> Path:
-    # Best-effort discovery for a bare manual run. The gate (`make build-check`)
+    # Best-effort discovery for a bare manual run. The CI gate
     # and every self-test pass `--root` explicitly, so this only fires for a
     # hand-run with no `--root`; prefer git's toplevel when available.
     try:

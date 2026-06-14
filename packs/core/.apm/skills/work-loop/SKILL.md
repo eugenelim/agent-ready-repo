@@ -269,7 +269,7 @@ For anything beyond trivial, *think before you write code*. Concretely:
   into its brief in their proactive-control framing, per the
   [boundary→module routing table](#boundarymodule-routing-table) below. This
   is **net-new wiring** — distinct from the adversarial-only firing above and
-  from RFC-0025's separate light→full escalation use of the same trigger; it
+  from the separate light→full escalation use of the same trigger; it
   is not a re-use of either. Same Profile-A opt-out and the same
   `approve-plan` gate apply. Fallback if no `security-reviewer` subagent is
   installed: proceed and note the missing review in the final summary.
@@ -455,8 +455,8 @@ go to FIX. Don't move past a failing gate by editing the gate.
 > the four drift invariants the `adversarial-reviewer` checks by judgment; it
 > no-ops where Python is absent. It is *available and agent-invoked, not
 > fail-closed* (there is no PR-open hook event to bind it to). **Do not** wire it
-> into `pre-pr.py` (a projected hook body that would mis-fire). The catalogue
-> additionally runs it as a fail-closed CI gate via `make build-check`. (Why a
+> into `pre-pr.py` (a projected hook body that would mis-fire). It can also
+> run as a fail-closed CI gate. (Why a
 > skill script and not a `tools/` linter: skill `scripts/` project to every
 > adapter — a later correction to the original "linters don't
 > project" premise.)

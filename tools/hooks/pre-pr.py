@@ -16,8 +16,8 @@ What it runs:
     into (``.claude/``, ``.agents/``, ``.kiro/`` …). Skipped cleanly when
     there are no active specs (or the work-loop isn't installed).
 
-It deliberately runs **none** of this catalogue's own artifact linters —
-those enforce the catalogue's conventions on the catalogue's own tree and
+It deliberately runs **none** of the source project's own artifact linters —
+those enforce that project's conventions on its own tree and
 don't apply to your repo. Wire your project's lint/typecheck/test commands
 into the stub below instead (or let the ``adapt-to-project`` skill do it).
 
