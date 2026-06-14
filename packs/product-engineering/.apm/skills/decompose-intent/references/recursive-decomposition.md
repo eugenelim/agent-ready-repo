@@ -29,9 +29,11 @@ isn't a slice yet — keep decomposing or regroup.
 
 Decomposition and de-risking interleave. A child intent whose riskiest assumption
 is **killed** bubbles up: it forces the parent to re-decompose (drop or replace
-that branch) or, if it invalidates the parent's bet, to reframe. That upward edge
-is the coupling that keeps the tree honest — a parent is only as sound as its
-surviving children.
+that branch) or, if it invalidates the parent's bet, to reframe. Record that
+re-cut on the parent's `Decomposition` (the decomposition decision, `SKILL.md`
+step 2), with a pointer to the killed child's verdict — so the dropped branch
+leaves a trace and isn't re-proposed later. That upward edge is the coupling that
+keeps the tree honest — a parent is only as sound as its surviving children.
 
 ## The brief projection (`app` Scale)
 

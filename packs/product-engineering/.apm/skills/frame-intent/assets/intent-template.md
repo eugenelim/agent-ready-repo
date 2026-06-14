@@ -49,3 +49,13 @@ brief — `receive-brief` takes it from there. Leave empty until decompose-inten
 runs. -->
 
 -
+
+### Decomposition decisions
+
+<!-- Optional log: why the cut went this way, plus any branch you considered and
+dropped or replaced — with a pointer to the killed child's de-risk verdict when
+an upward kill forced the re-cut. A line or two per decision; omit if the cut was
+obvious. Keeps the parent from reading as if the tree were always this shape. See
+decompose-intent step 2. -->
+
+-

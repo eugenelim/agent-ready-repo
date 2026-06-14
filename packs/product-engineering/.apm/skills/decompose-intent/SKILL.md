@@ -36,7 +36,17 @@ Before decomposing, confirm:
      shippable, agent-buildable unit (one coherent scope, vertical, ships and
      tests on its own). Cut by **shippability**, never by component or layer.
 
-2. **Project the leaf — by Scale.** A feature-level intent is the leaf; how it
+2. **Record the decomposition decision.** Note *why* the cut went the way it did
+   on the parent's `Decomposition` — the grouping rationale, and any branch you
+   considered and dropped or replaced (with a pointer to the killed child's
+   `de-risk-intent` verdict when an upward kill forced the re-cut). This mirrors
+   the de-risk trail, which already records why a bet was tested the way it was
+   (`de-risk-intent`'s `references/reversibility-triage.md`). Without it the
+   parent reads as if the tree were always this shape, and a later reader
+   re-litigates a branch you already ruled out. A line or two per decision — a
+   log, not a memo.
+
+3. **Project the leaf — by Scale.** A feature-level intent is the leaf; how it
    projects depends on Scale (`references/recursive-decomposition.md`):
    - **`app` Scale** — it *is* a single `core` brief (same outcome, success
      metrics from the input/lagging/guardrail, scope/non-goals, appetite). Write
@@ -54,12 +64,12 @@ Before decomposing, confirm:
      Coordinating across repos this way has hard limits (no atomic cross-repo
      commit, no shared release train) — `align-value-stream` states them honestly.
 
-3. **Keep the contract behavioral here.** Carry only the *interaction* shape (who
+4. **Keep the contract behavioral here.** Carry only the *interaction* shape (who
    talks to whom, the consumer's expectations) into the brief; the **detailed
    wire contract is pinned at the spec stage** via the existing `Contract:` seam,
    where the component's full context lives. Don't author OpenAPI/AsyncAPI here.
 
-4. **Project onto a tracker (optional, one-way).** If the team uses a tracker,
+5. **Project onto a tracker (optional, one-way).** If the team uses a tracker,
    render the tree onto it per `references/tracker-projection.md` — `none`
    (markdown only), Linear (lean; collapse), or Jira Align (deep; expand). The
    canonical tree is the source; the tracker is a render. **One-way only** —
@@ -74,6 +84,10 @@ Before decomposing, confirm:
   feature-level seams and the per-feature bets. Produce child intents first.
 - **Decomposing a killed bet.** If `de-risk-intent` killed the riskiest
   assumption, reshape the parent — don't fan out specs that inherit the dead bet.
+- **Silently re-shaping the tree.** Dropping or replacing a branch after a kill
+  without recording why leaves the parent reading as if it were always cut this
+  way — and invites a later reader to re-propose the dead branch. Log the
+  decision (step 2).
 - **Letting the tracker dictate the model.** Linear's flatness and Jira Align's
   depth are *projection targets*, not the product model. Model in intents; render
   to the tracker. Same canonical spec lands at an Issue (Linear) and a Story

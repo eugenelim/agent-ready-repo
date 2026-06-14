@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`decompose-intent` records the decomposition decision (product-engineering
+  0.4.1).** When a cut drops or replaces a branch — most often after an upward
+  `de-risk-intent` kill bubbles up — there was no instruction to record *why* on
+  the parent, so a parent intent read as if its tree were always this shape and a
+  later reader re-litigated branches already ruled out. A new procedure step (and
+  an optional "Decomposition decisions" log in the intent template) asks for the
+  grouping rationale plus any dropped/replaced branch, pointing to the killed
+  child's verdict. This mirrors the de-risk trail, which already records why a bet
+  was tested the way it was; a line or two per decision, omit if the cut was
+  obvious. No new fields are required and the artifact stays a template, not a
+  schema. (Pure-markdown; dependency-contract paths between siblings and
+  confidence in a bet were audited and already covered by the business-unit
+  provider/consumer projection and the survive/kill verdict respectively — no
+  change there.)
+
 - **`architect-diagram` learns deliberate visual encoding (architect 0.5.3).**
   A new `references/visual-encoding.md` turns scattered correctness rules into
   one design heuristic: when a diagram distinguishes more than one category of
