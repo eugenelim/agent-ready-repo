@@ -669,3 +669,24 @@ the citations sit in library-provenance docstrings rather than agent-facing
 prose, so they were left for a separate, deliberate pass that respects the
 freeze. Fold this into the `apm-leak-lint-rfc` work, or do it as a focused
 comment-only PR against the frozen pack with explicit sign-off.
+
+### upgrade-orphan-removal-on-projection-shape-change
+
+**Spec:** [kiro-install-alias-parity](specs/kiro-install-alias-parity/spec.md)
+AC8 (upgrade path). `agentbundle upgrade` re-renders the new projection and
+writes it, but has **no orphan-removal step**: a file present in the old
+`state.files` but absent from the new projection is left on disk (and in
+state). This surfaces when an agent's projected file *shape* changes across an
+upgrade — e.g. a legacy `kiro` install recorded `.kiro/agents/<n>.json`, and
+after this migration the `kiro` alias (= kiro-ide) re-renders `.kiro/agents/<n>.md`,
+leaving the stale `.json` orphaned. For kiro-ide this is harmful: the IDE loads
+**both** `.md` and `.json` agents, so the adopter ends up with a duplicate
+(and the stale `.json` still carries a `hooks` key). This is a **pre-existing,
+general** upgrade limitation, not specific to the alias migration; it is
+exposed by it. **Clean path today:** `uninstall` + reinstall (the uninstall
+migration is clean — see `LegacyKiroJsonUninstallMigrationTests`). **Unblocks
+when:** `upgrade` grows a Tier-1 orphan-removal pass (old `state.files` ∖ new
+projection), ordered correctly against the hook-wiring unproject (the orphaned
+agent JSON is also the old merge target) and gated to whole-pack (not
+`--<primitive>`) upgrades. Pinned by an `@unittest.expectedFailure` in
+`test_upgrade_user_hooks.py::LegacyKiroJsonUpgradeMigrationTests`.

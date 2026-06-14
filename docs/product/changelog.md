@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`agentbundle install --adapter kiro` now behaves exactly like `kiro-ide`.**
+  The deprecated `kiro` alias (RFC-0022) was honored by `make build` but not by
+  the install path, which still emitted `.json` agents and merged hook-wiring —
+  the legacy behavior. Installing, upgrading, or uninstalling via `kiro` now
+  projects `.md` agents and **drops** hook-wiring (the IDE shape), consistent
+  with the build registry. The legacy `.json`-agents + hook-wiring-merge
+  behavior is unchanged — it lives under the `kiro-cli` adapter. The dropped-
+  primitives warning for `kiro` now names what is actually dropped (hook-wiring
+  and commands). `state.adapter` still records the name you chose (`kiro` stays
+  `kiro`), so the alias remains a working, named adapter. The `attach-to-agent`
+  validation and path-confinement rails now also fire for `kiro-cli`, so a
+  malformed or path-traversing wiring declaration is refused for the adapter
+  that performs the merge.
+
 ### Added
 
 - **`design` joins the soft `categories` vocabulary.** `agentbundle validate`

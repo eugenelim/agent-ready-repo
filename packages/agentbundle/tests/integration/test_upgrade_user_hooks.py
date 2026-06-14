@@ -209,5 +209,86 @@ class UpgradeRemovesHookEntryTests(_UpgradeBase):
         self.assertEqual(ids, {"cc-user-hooks:on-prompt"})
 
 
+class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
+    """RFC-0022 / kiro-install-alias-parity AC8: an adopter who installed via
+    the legacy `kiro` JSON path (agent `.json` on disk, `state.adapter ==
+    "kiro"`, `hook_wiring_owned` rows) must UPGRADE cleanly under the new
+    code — the `kiro` alias now resolves to kiro-ide, so the upgrade re-renders
+    `.md`, drops hook-wiring, reconciles the stale `.json` (no orphan), and
+    clears the merge-owned rows. Simulated by installing via `kiro-cli` (real
+    JSON + merge + correct SHA) and doctoring the recording to legacy `kiro`."""
+
+    def test_legacy_kiro_recorded_state_upgrades_to_md_cleanly(self):
+        from agentbundle.config import dump_state, load_state
+
+        pack_dst = self.cat / "packs" / "kiro-user-hooks"
+        _copy_fixture(FIXTURES / "kiro-user-hooks", pack_dst)
+        self.assertEqual(_run_install(_install_args(
+            "kiro-user-hooks", str(self.cat), str(self.repo))), 0)
+        agent_json = self.home / ".kiro" / "agents" / "reviewer.json"
+        self.assertTrue(agent_json.exists(), "setup: legacy JSON agent should exist")
+
+        # Doctor to the legacy recording: pre-split, the only kiro adapter was
+        # `kiro`. Flip the catalogue pack to `["kiro"]` so the upgrade resolves
+        # the alias (matching the recorded state hint).
+        state_path = self.home / ".agentbundle" / "state.toml"
+        state = load_state(state_path)
+        state.packs["kiro-user-hooks"].adapter = "kiro"
+        state_path.write_text(dump_state(state), encoding="utf-8")
+        pt = (pack_dst / "pack.toml").read_text(encoding="utf-8")
+        (pack_dst / "pack.toml").write_text(
+            pt.replace('["kiro-cli"]', '["kiro"]'), encoding="utf-8"
+        )
+
+        rc, err = _run_upgrade(_upgrade_args(
+            "kiro-user-hooks", str(self.cat), "0.2.0", str(self.repo)))
+        self.assertEqual(rc, 0, f"legacy kiro upgrade failed: {err}")
+
+        # The kiro alias re-renders the `.md` agent (kiro-ide shape) and the
+        # hook-wiring reconciliation clears the merge-owned rows.
+        self.assertTrue(
+            (self.home / ".kiro" / "agents" / "reviewer.md").exists(),
+            "upgrade should project the .md agent (kiro-ide shape)",
+        )
+        state2 = load_state(state_path)
+        ps = state2.packs["kiro-user-hooks"]
+        self.assertEqual(ps.adapter, "kiro")
+        self.assertEqual(ps.hook_wiring_owned, [])
+
+    @unittest.expectedFailure
+    def test_legacy_kiro_upgrade_orphans_stale_json_known_limitation(self):
+        """KNOWN LIMITATION (docs/backlog.md#upgrade-orphan-removal-on-projection-shape-change):
+        `upgrade` has no orphan-removal step, so when an agent's projected file
+        SHAPE changes across the upgrade (legacy kiro `.json` → kiro-ide `.md`),
+        the new file is written but the stale `.json` is left on disk. For
+        kiro-ide this is harmful — the IDE loads BOTH `.md` and `.json` agents.
+        This is a pre-existing general upgrade limitation (independent of the
+        alias migration); the clean path today is uninstall + reinstall (see
+        LegacyKiroJsonUninstallMigrationTests, which IS clean). Marked
+        expectedFailure until upgrade grows orphan-removal."""
+        from agentbundle.config import dump_state, load_state
+
+        pack_dst = self.cat / "packs" / "kiro-user-hooks"
+        _copy_fixture(FIXTURES / "kiro-user-hooks", pack_dst)
+        self.assertEqual(_run_install(_install_args(
+            "kiro-user-hooks", str(self.cat), str(self.repo))), 0)
+        agent_json = self.home / ".kiro" / "agents" / "reviewer.json"
+
+        state_path = self.home / ".agentbundle" / "state.toml"
+        state = load_state(state_path)
+        state.packs["kiro-user-hooks"].adapter = "kiro"
+        state_path.write_text(dump_state(state), encoding="utf-8")
+        pt = (pack_dst / "pack.toml").read_text(encoding="utf-8")
+        (pack_dst / "pack.toml").write_text(
+            pt.replace('["kiro-cli"]', '["kiro"]'), encoding="utf-8"
+        )
+
+        rc, err = _run_upgrade(_upgrade_args(
+            "kiro-user-hooks", str(self.cat), "0.2.0", str(self.repo)))
+        self.assertEqual(rc, 0, f"legacy kiro upgrade failed: {err}")
+        # This is the assertion that currently fails (orphan left behind):
+        self.assertFalse(agent_json.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

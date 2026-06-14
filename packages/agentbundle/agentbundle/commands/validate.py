@@ -188,12 +188,20 @@ def run(args) -> int:
     # unknown-agent) violations.
     #
     # Spec: docs/specs/incompatible-hook-event-drop AC1–AC5, AC6b.
-    from agentbundle.build.scope_rails import _load_pack_hook_wiring_safely
+    from agentbundle.build.scope_rails import (
+        _MERGE_INTO_AGENT_JSON_ADAPTERS,
+        _load_pack_hook_wiring_safely,
+    )
 
     target_adapters = _kiro_target_adapters(pack_data, pack_path)
     pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
 
-    if "kiro" in target_adapters:
+    # Representative merge-family adapter for the enumeration calls below
+    # (`kiro-cli` if declared, else the legacy `kiro`). The attach-to-agent
+    # rail fires for the whole family; `kiro-ide` is excluded (drops wiring).
+    merge_adapters = target_adapters & _MERGE_INTO_AGENT_JSON_ADAPTERS
+    enum_adapter = "kiro-cli" if "kiro-cli" in merge_adapters else "kiro"
+    if merge_adapters:
         # 1. Safe-load: security + correctness refusals (AC3, AC3b, AC4).
         loaded = _load_pack_hook_wiring_safely(pack_path, pack_name)
         if isinstance(loaded, str):
@@ -236,13 +244,13 @@ def run(args) -> int:
         #    of truth with the install side (AC6b).
         contract = _load_adapter_contract()
         info_drops = _drop_warning.enumerate_event_dropped_wirings(
-            pack_path, "kiro", contract,
+            pack_path, enum_adapter, contract,
         )
         if info_drops:
             info = _drop_warning.format_drop_message(
                 mode="validate_info",
                 pack_name=pack_name,
-                adapter="kiro",
+                adapter=enum_adapter,
                 dropped_counts={},
                 compatible_types=[],
                 event_drops=info_drops,
@@ -390,7 +398,10 @@ def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
         allowed = install.get("allowed-adapters")
         if isinstance(allowed, list):
             allowed_strs = [s for s in allowed if isinstance(s, str)]
-            return {"kiro"} if "kiro" in allowed_strs else set()
+            # The merge-into-agent-json family (`kiro` legacy block + `kiro-cli`)
+            # both validate `attach-to-agent`. `kiro-ide` is absent — it drops
+            # hook-wiring (RFC-0022). Mirrors scope_rails._MERGE_INTO_AGENT_JSON_ADAPTERS.
+            return {a for a in ("kiro", "kiro-cli") if a in allowed_strs}
 
     # Heuristic: kiro projection requires a same-pack agent. A pack
     # with wiring but no agents has nothing to attach to.

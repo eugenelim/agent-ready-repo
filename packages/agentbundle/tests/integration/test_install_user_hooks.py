@@ -152,7 +152,7 @@ class KiroUserHooksInstallTests(_UserScopeInstallBase):
 
         state = load_state(self.home / ".agentbundle" / "state.toml")
         ps = state.packs["kiro-user-hooks"]
-        self.assertEqual(ps.adapter, "kiro")
+        self.assertEqual(ps.adapter, "kiro-cli")
         self.assertEqual(len(ps.hook_wiring_owned), 1)
         self.assertEqual(ps.hook_wiring_owned[0]["event"], "agentSpawn")
         self.assertEqual(ps.hook_wiring_owned[0]["id"], "kiro-user-hooks:on-spawn")
@@ -247,9 +247,11 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
     def test_dot_dot_in_attach_to_agent_refuses(self) -> None:
         pack = self.cat / "packs" / "evil-pack"
         (pack / ".apm" / "agents").mkdir(parents=True)
-        # Declare kiro explicitly — the legacy agents-presence
-        # heuristic that previously inferred this now defers to
-        # ``DEFAULT_ADAPTER``.
+        # Declare kiro-cli explicitly — the merging adapter (RFC-0022).
+        # `kiro` (the deprecated alias) routes to kiro-ide, which DROPS
+        # hook-wiring, so a path-traversal `attach-to-agent` never reaches
+        # a merge target there; the refusal lives on the merge path
+        # (kiro-cli), guarded by the pre-flight rail + in-merge grammar.
         (pack / ".apm" / "agents" / "evil.md").write_text(
             "---\nname: evil\n---\nbody\n", encoding="utf-8"
         )
@@ -269,7 +271,7 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
             '[pack.adapter-contract]\nversion = "0.3"\n\n'
             '[pack.install]\ndefault-scope = "user"\n'
             'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
-            'allowed-adapters = ["kiro"]\n',
+            'allowed-adapters = ["kiro-cli"]\n',
             encoding="utf-8",
         )
         for entry in pack.rglob("*.sh"):
@@ -283,6 +285,78 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
         rc, _stdout, stderr = _run_install(args)
         self.assertEqual(rc, 1, "evil pack was accepted")
         self.assertIn("attach-to-agent", stderr)
+        # Confinement (CWE-73): the path-traversal payload must never have
+        # produced a file — the refusal fires before any merge write, so no
+        # `escape` artifact lands anywhere under the sandbox (in particular
+        # outside the user-scope home jail).
+        self.assertEqual(
+            list(self.tmp.rglob("*escape*")), [],
+            "path-traversal attach-to-agent created a file outside the jail",
+        )
+
+
+class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
+    """RFC-0022 / kiro-install-alias-parity AC2: the deprecated ``kiro`` alias
+    must make the SAME user-scope decision as ``kiro-ide``. kiro-ide has no
+    user-scope hook-wiring mode, so a ``user-scope-hooks = true`` pack is
+    REFUSED (RFC-0005 AC25) — not silently accepted-and-dropped. The legacy
+    ``[adapter.kiro]`` block still declares ``merge-into-agent-json``, so this
+    pins that the install gate canonicalizes the alias before deciding."""
+
+    def _make_hooks_pack(self, name: str, adapter: str) -> None:
+        pack = self.cat / "packs" / name
+        (pack / ".apm" / "agents").mkdir(parents=True)
+        (pack / ".apm" / "agents" / "reviewer.md").write_text(
+            "---\nname: reviewer\n---\nbody\n", encoding="utf-8"
+        )
+        (pack / ".apm" / "hooks").mkdir(parents=True)
+        (pack / ".apm" / "hooks" / "on-spawn.sh").write_text(
+            "#!/bin/sh\nexit 0\n", encoding="utf-8"
+        )
+        (pack / ".apm" / "hook-wiring").mkdir(parents=True)
+        (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
+            'attach-to-agent = "reviewer"\n\n'
+            '[[hooks.agentSpawn]]\ncommand = "x"\n',
+            encoding="utf-8",
+        )
+        (pack / "pack.toml").write_text(
+            f'[pack]\nname = "{name}"\nversion = "0.1.0"\n\n'
+            '[pack.adapter-contract]\nversion = "0.3"\n\n'
+            '[pack.install]\ndefault-scope = "user"\n'
+            'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
+            f'allowed-adapters = ["{adapter}"]\n',
+            encoding="utf-8",
+        )
+        for entry in pack.rglob("*.sh"):
+            entry.chmod(0o755)
+
+    def test_kiro_alias_refuses_identically_to_kiro_ide(self) -> None:
+        self._make_hooks_pack("kiro-alias-hooks", "kiro")
+        self._make_hooks_pack("kiro-ide-hooks", "kiro-ide")
+
+        rc_alias, _out, err_alias = _run_install(_install_args(
+            pack="kiro-alias-hooks",
+            catalogue=str(self.cat),
+            output=str(self.repo),
+            scope="user",
+        ))
+        rc_ide, _out2, err_ide = _run_install(_install_args(
+            pack="kiro-ide-hooks",
+            catalogue=str(self.cat),
+            output=str(self.repo),
+            scope="user",
+        ))
+
+        # Both refuse — the alias is a true alias for kiro-ide.
+        self.assertEqual(rc_alias, 1, f"kiro alias should refuse like kiro-ide: {err_alias}")
+        self.assertEqual(rc_ide, 1, f"kiro-ide should refuse user-scope hooks: {err_ide}")
+        self.assertIn("does not declare a hook-wiring mode that supports user scope", err_alias)
+        self.assertIn("does not declare a hook-wiring mode that supports user scope", err_ide)
+        # The refusal is a pre-flight gate — it fires before any render, so
+        # neither the `.json` (kiro-cli shape) nor the `.md` (kiro-ide shape)
+        # agent is written for either arm.
+        self.assertFalse((self.home / ".kiro" / "agents" / "reviewer.json").exists())
+        self.assertFalse((self.home / ".kiro" / "agents" / "reviewer.md").exists())
 
 
 class RailBStillRefusesPacksWithoutOptInTests(_UserScopeInstallBase):

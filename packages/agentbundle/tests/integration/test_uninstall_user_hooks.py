@@ -264,5 +264,48 @@ class KiroUserHooksUninstallTests(_UninstallBase):
         self.assertEqual(after.get("notes"), "adopter-added")
 
 
+class LegacyKiroJsonUninstallMigrationTests(_UninstallBase):
+    """RFC-0022 / kiro-install-alias-parity AC8: an adopter who installed via
+    the legacy `kiro` JSON path (agent JSON on disk, `state.adapter == "kiro"`,
+    `hook_wiring_owned` rows pointing at the agent JSON) must uninstall cleanly
+    under the new code — the agent JSON is removed (not orphaned) and the
+    merge-family unproject routes to the agent-JSON engine, not Claude Code's
+    settings engine. Simulated by installing via `kiro-cli` (which produces the
+    JSON + merge), then doctoring `state.adapter` to the legacy `"kiro"`."""
+
+    def test_legacy_kiro_recorded_state_uninstalls_agent_json_cleanly(self) -> None:
+        from agentbundle.config import dump_state, load_state
+
+        _copy_fixture(FIXTURES / "kiro-user-hooks", self.cat / "packs" / "kiro-user-hooks")
+        rc = _run_install(_install_args(
+            pack="kiro-user-hooks",
+            catalogue=str(self.cat),
+            output=str(self.repo),
+            scope="user",
+        ))
+        self.assertEqual(rc, 0, "setup install failed")
+
+        agent_json = self.home / ".kiro" / "agents" / "reviewer.json"
+        self.assertTrue(agent_json.exists(), "setup: agent JSON should exist")
+
+        # Doctor state to the legacy recording: pre-split, the only kiro
+        # adapter was `kiro`, so an old install recorded `kiro` (not `kiro-cli`).
+        state_path = self.home / ".agentbundle" / "state.toml"
+        state = load_state(state_path)
+        state.packs["kiro-user-hooks"].adapter = "kiro"
+        state_path.write_text(dump_state(state), encoding="utf-8")
+
+        rc, err = _run_uninstall(_uninstall_args(
+            pack="kiro-user-hooks",
+            output=str(self.repo),
+            scope="user",
+        ))
+        self.assertEqual(rc, 0, f"uninstall of legacy kiro state failed: {err}")
+        self.assertFalse(
+            agent_json.exists(),
+            "legacy kiro agent JSON orphaned by uninstall (adapter mis-routed)",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

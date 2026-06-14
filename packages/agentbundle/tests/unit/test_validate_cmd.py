@@ -259,3 +259,68 @@ def test_allowed_scopes_v0_1_stays_repo_only():
         }
     }
     assert _allowed_scopes(pack_data) == ["repo"]
+
+
+# ---------------------------------------------------------------------------
+# kiro-cli attach-to-agent rail (RFC-0022 / kiro-install-alias-parity)
+# ---------------------------------------------------------------------------
+
+
+def test_kiro_cli_pack_with_unknown_attach_to_agent_exits_1(tmp_path):
+    """End-to-end: the validate command runs the attach-to-agent rail for a
+    `kiro-cli` pack — pins the caller gate at validate.py, not just
+    `_kiro_target_adapters`'s return value. A wiring TOML whose
+    `attach-to-agent` names no shipped agent is refused."""
+    pack = tmp_path / "cli-hooks"
+    (pack / ".apm" / "agents").mkdir(parents=True)
+    (pack / ".apm" / "agents" / "reviewer.md").write_text(
+        "---\nname: reviewer\n---\nbody\n", encoding="utf-8"
+    )
+    (pack / ".apm" / "hook-wiring").mkdir(parents=True)
+    (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
+        'attach-to-agent = "no-such-agent"\n\n[[hooks.agentSpawn]]\ncommand = "x"\n',
+        encoding="utf-8",
+    )
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "cli-hooks"\nversion = "0.1.0"\n\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n\n'
+        '[pack.install]\ndefault-scope = "user"\n'
+        'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
+        'allowed-adapters = ["kiro-cli"]\n',
+        encoding="utf-8",
+    )
+
+    rc, stderr = _run(pack)
+    assert rc == 1, f"expected validate to refuse, got rc={rc}; stderr={stderr!r}"
+    assert "attach-to-agent" in stderr, stderr
+
+
+def test_kiro_legacy_alias_pack_validate_stays_strict(tmp_path):
+    """`validate` runs the attach-to-agent well-formedness rail for the whole
+    merge family — including the legacy `kiro` block — by design. This is a
+    pack-authoring well-formedness check and is INTENTIONALLY stricter than the
+    install path, where the `kiro` alias (= kiro-ide) drops hook-wiring without
+    validating `attach-to-agent`. Pinning this asymmetry so a future change
+    doesn't silently flip it (RFC-0022 / kiro-install-alias-parity AC7)."""
+    pack = tmp_path / "legacy-kiro-hooks"
+    (pack / ".apm" / "agents").mkdir(parents=True)
+    (pack / ".apm" / "agents" / "reviewer.md").write_text(
+        "---\nname: reviewer\n---\nbody\n", encoding="utf-8"
+    )
+    (pack / ".apm" / "hook-wiring").mkdir(parents=True)
+    (pack / ".apm" / "hook-wiring" / "on-spawn.toml").write_text(
+        'attach-to-agent = "no-such-agent"\n\n[[hooks.agentSpawn]]\ncommand = "x"\n',
+        encoding="utf-8",
+    )
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "legacy-kiro-hooks"\nversion = "0.1.0"\n\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n\n'
+        '[pack.install]\ndefault-scope = "user"\n'
+        'allowed-scopes = ["user"]\nuser-scope-hooks = true\n'
+        'allowed-adapters = ["kiro"]\n',
+        encoding="utf-8",
+    )
+
+    rc, stderr = _run(pack)
+    assert rc == 1, f"expected validate to stay strict for ['kiro'], got rc={rc}; {stderr!r}"
+    assert "attach-to-agent" in stderr, stderr

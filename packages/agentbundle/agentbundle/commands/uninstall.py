@@ -210,7 +210,10 @@ def run(args: "argparse.Namespace") -> int:
 
         for target_file_rel, owned in owned_by_target.items():
             target_path = root / target_file_rel.lstrip("/")
-            if adapter == "kiro":
+            # The merge family (`kiro-cli`, plus the legacy `kiro` block that
+            # pre-migration state may still record) merges into a pack-owned
+            # agent JSON; claude-code merges into the shared settings file.
+            if adapter in ("kiro", "kiro-cli"):
                 from agentbundle.build.projections.merge_into_agent_json import (
                     unproject as _unproject,
                 )

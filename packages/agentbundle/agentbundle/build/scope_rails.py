@@ -299,6 +299,16 @@ def run_all(
 # ---------------------------------------------------------------------------
 
 
+# Adapters whose hook-wiring projects via `merge-into-agent-json` (a
+# pack-owned `.kiro/agents/<attach-to-agent>.json`): the legacy `kiro`
+# block and the `kiro-cli` adapter. The `attach-to-agent` rails below
+# validate that merge target, so they fire for this family. `kiro-ide`
+# (and the `kiro` *install alias*, which routes to kiro-ide) DROPS
+# hook-wiring and is intentionally absent — there is no merge target to
+# validate. Mirrors install.py's merge dispatch.
+_MERGE_INTO_AGENT_JSON_ADAPTERS = frozenset({"kiro", "kiro-cli"})
+
+
 def check_kiro_attach_to_agent(
     pack_name: str,
     wiring_tomls: dict[str, dict],
@@ -325,7 +335,7 @@ def check_kiro_attach_to_agent(
       target_adapters: iterable of adapter names the pack is being
         validated against. No-op when ``kiro`` is absent.
     """
-    if "kiro" not in set(target_adapters or ()):
+    if not (set(target_adapters or ()) & _MERGE_INTO_AGENT_JSON_ADAPTERS):
         return None
     for wiring_name, body in wiring_tomls.items():
         attach = body.get("attach-to-agent") if isinstance(body, dict) else None
@@ -485,7 +495,7 @@ def check_kiro_wiring(
     would let a pack reach outside its source tree. A wiring TOML that
     fails to parse counts as a refusal on its own.
     """
-    if "kiro" not in set(target_adapters or ()):
+    if not (set(target_adapters or ()) & _MERGE_INTO_AGENT_JSON_ADAPTERS):
         return None
 
     loaded = _load_pack_hook_wiring_safely(pack_path, pack_name)
