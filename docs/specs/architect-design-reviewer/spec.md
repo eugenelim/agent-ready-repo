@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0032
+- **Constrained by:** RFC-0032, ADR-0023
 - **Brief:** none
 - **Contract:** none
 - **Shape:** integration
