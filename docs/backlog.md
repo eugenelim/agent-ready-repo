@@ -630,3 +630,28 @@ then escapes the backslash, so a frontmatter `description` carrying escaped quot
 double-escaped (`\\\"…\\\"`). This is **byte-identical to the merged `cursor.py`** (an inherited
 cross-adapter behavior, not a gemini regression). Fix both adapters together: unescape `\"`→`"`
 in the quote-stripping branch.
+
+## `house-voice-writing-craft`
+
+### apm-leak-lint-rfc
+
+A `lint-seeds`-analogue for `packs/*/.apm/**` that mechanically catches
+internal-governance citations (RFC/ADR numbers, `docs/specs|rfc|adr` paths,
+`make`/`tools/lint` references, "this catalogue" identity asides) in shipped
+skills, agents, commands, and hooks. Today the rule is hand-checked
+(`AGENTS.local.md` § "Shipped pack content carries no internal-governance
+citations"). Adding the lint is a new convention and therefore RFC-gated;
+open an RFC before building it.
+
+A 2026-06-13 sweep found the `core` pack still carries ~10 such references in
+shipped `.apm/**` that a hand-pass left in place — `work-loop/SKILL.md` (an
+`RFC-0025` reference; a `make build-check` mention), `hooks/pre-pr.py` ("this
+catalogue's own"), the work-loop and receive-brief `scripts/` (`make
+build-check` in comments), `hook-wiring/session-start.toml` (`make
+build-self`), and `adapt-to-project/assets/reference.md` ("this catalogue").
+These were left untouched deliberately: sweeping the most sensitive pack
+(work-loop's `SKILL.md` carries a byte-identical risk-trigger block mirrored
+across four files) is exactly the systematic job the lint should drive, not a
+hand-sweep. Land the lint under the RFC, then do the sweep under it.
+(`RFC-1918` in `security-checklists/references/outbound-ssrf.md` is a real IETF
+standard, not an internal citation — leave it.)
