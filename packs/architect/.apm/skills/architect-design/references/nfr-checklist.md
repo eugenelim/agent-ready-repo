@@ -15,6 +15,26 @@ not.
 - What's the failure-budget shape? (SLO if one exists; otherwise
   what counts as "down" to a user.)
 - What changes at 10× volume? At 100×?
+- Is there a performance budget committed up front — a latency,
+  throughput, or resource target the design must meet? "Fast enough"
+  left undefined can be neither met nor missed. State it as a testable
+  claim (`quality-attribute-scenarios.md`).
+
+### Optimizing — earn each optimization against the budget
+
+When the proposal trades simplicity for speed, the reasoning is owed,
+not just the mechanism:
+
+- **Measure before optimizing.** Name the evidence the bottleneck is
+  real and where it sits — not a guess. Optimizing an unmeasured hotspot
+  ships complexity for no proven gain.
+- **Spend on the hotspot.** Most of the cost usually sits in a small
+  fraction of the system. Optimize that fraction; leave the rest simple.
+  Effort off the bottleneck buys nothing.
+- **Weigh complexity against gain.** Every optimization carries an
+  ongoing cost — harder to read, change, and operate. Name the gain, and
+  whether it clears that cost against the budget. One that doesn't move
+  the budget isn't worth its complexity.
 
 ## Availability and reliability
 
