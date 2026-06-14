@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Shipped pack content sheds catalogue-internal references (core 0.4.3,
+  atlassian 0.1.3).** The `conventions-check` command no longer instructs
+  running this repo's own `tools/lint-*` scripts — which never install into an
+  adopter tree — and is reframed as checks you (or your own linters) perform
+  directly. The `jira` skill's error-handling guidance drops a `make
+  build-self` remediation hint in favour of "reinstall the pack", and four
+  shipped atlassian test scripts drop dangling internal-RFC comment citations.
+
+- **`make build-self` no longer litters the tree with by-quadrant guide
+  scaffolds.** Self-host projection skips `docs/guides/**`: guides are
+  repo-owned and reach adopters through install-time seed delivery, so a repo
+  that organizes its guides by pack no longer gets untracked
+  `docs/guides/{tutorials,how-to,reference,explanation}/README.md` re-created
+  on every build.
+
 - **`new-guide` now coaches prose, not just structure (user-guide-diataxis
   0.1.3).** The skill ships a `clear-prose` checklist. It names the tells that
   make docs read machine-made (hedges, uniform sentence rhythm, em-dash

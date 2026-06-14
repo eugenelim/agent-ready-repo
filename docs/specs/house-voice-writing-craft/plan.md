@@ -70,3 +70,10 @@ to build the `.apm/**` leak lint; declining — RFC-gated new convention.
 ## Changelog
 
 - 2026-06-13: initial plan.
+- 2026-06-13: scope expanded by owner direction to ride along the two items
+  originally surfaced as follow-ups — the build-self by-quadrant guide-scaffold
+  fix (`_project_seeds` skips `docs/guides/**`, TDD) and the flagged other-pack
+  leaks (atlassian 0.1.3, core 0.4.3 `conventions-check`). `research` naming
+  `credential-brokers` was reviewed and left (functional cross-pack reference).
+  The systemic remaining `core` `.apm/**` references stay deferred to the
+  `.apm/**` leak-lint RFC.
