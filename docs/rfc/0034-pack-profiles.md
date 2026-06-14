@@ -1,13 +1,15 @@
 # RFC-0034: Pack profiles — one-command install of a curated, single-scope pack set
 
-- **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental (optional: trial running, results pending — see the Experiment / validation section) -->
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental (optional: trial running, results pending — see the Experiment / validation section) -->
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-14
-- **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Date closed:** 2026-06-14
 - **Related:** [RFC-0001](0001-bundle-distribution-by-adapter-spec.md) (catalogue model, "Common adoption patterns"), [RFC-0002](0002-self-hosting.md) (source-vs-projected split), [RFC-0003](0003-spec-and-cli.md) (CLI surface), [RFC-0004](0004-install-scope-per-pack.md) (install scope), [RFC-0011](0011-pack-allowed-adapters.md) (`allowed-adapters`), [RFC-0031](0031-catalogue-package-manager-posture.md) (catalogue posture: hygiene not infrastructure); distinguishes [ADR-0003](../adr/0003-credential-broker-contract.md) / [RFC-0013](0013-credential-broker-contract.md) option F (meta-pack, rejected). Charter Principle 3 (`docs/CHARTER.md`).
 
 ## The ask
+
+> **Accepted 2026-06-14.** All six decisions are adopted as recommended (including Decision 1's Principle-4 charter call). The three open questions resolve to their defaults: defer OQ1 (adopter-authored profiles) and OQ2 (plugin/APM-route parity); adopt OQ3 (`install_route="profile"` provenance). Follow-on artifacts are listed at the end.
 
 **Recommendation (BLUF):** Add **pack profiles** — a first-party-curated, named, **single-scope** set of packs an adopter installs in one command. A profile is either a **user-scope role toolkit** (`install --profile solution-architect` → `architect` + `research` + `contracts` into user scope) or a **repo-scope setup bundle** (`install --profile full-ceremony` → `core` + `governance-extras` + `user-guide-diataxis` + `monorepo-extras` into a repo). **A profile never mixes scopes:** handling a repo is a separate concern from handling user space. A profile is a hand-authored `profiles/<name>.toml` file at the catalogue root, read **only** by the `agentbundle` CLI; it adds zero primitives, zero runtime, and zero adapter-contract surface — distribution hygiene in the [RFC-0031](0031-catalogue-package-manager-posture.md) lineage, not package-manager infrastructure.
 
@@ -220,7 +222,7 @@ Takeaway: "a named set of units installed in one command" is well-established ac
 
 ## Open questions
 
-> **The Approver's provisional lean is the recommended default for all three (2026-06-14).** They are retained here with their rationale; absent further reviewer objection they resolve as stated — defer OQ1, defer OQ2, adopt OQ3 provenance — at acceptance.
+> **Resolved at acceptance (2026-06-14):** defer OQ1, defer OQ2, adopt OQ3 provenance. Retained here with their rationale as the record of what was decided and why.
 
 1. **Adopter-authored profiles — when, and where do they live?** *Recommended default:* defer to a follow-on RFC; v1 is first-party only. The hard part is file location (repo-local vs. `~/.agentbundle/`) and name-collision/precedence with curated profiles, none of which is needed to prove the value. · owner: eugenelim · decide-by: after v1 ships and a concrete adopter demand exists.
 2. **Surface profiles on the Claude-plugin / APM routes?** *Recommended default:* no for v1. Neither route has a profile primitive; the only native path is a **meta-plugin** (a plugin whose `dependencies` pull the set), which is the meta-pack shape this catalogue rejected (RFC-0013 F) *and* cannot honor the user/repo scope-homogeneity rule (plugin dependencies install at the same scope, with no notion of our user/repo pack scope). Revisit only if route parity is demanded and the coupling/scope cost is judged acceptable. · owner: eugenelim · decide-by: post-v1, demand-driven.
