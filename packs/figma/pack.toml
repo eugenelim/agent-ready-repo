@@ -1,6 +1,6 @@
 [pack]
 name = "figma"
-version = "0.1.2"
+version = "0.1.3"
 description = "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid."
 readme = "README.md"
 display_name = "Figma"
