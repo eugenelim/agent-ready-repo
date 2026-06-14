@@ -134,6 +134,67 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
             expected_dir=".kiro",
         )
 
+    def test_kiro_alias_projects_md_agents_not_json(self) -> None:
+        """`kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1), so it
+        must project `.md` agents — never the `.json` shape the legacy
+        `kiro.project` (kiro-cli) emits."""
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw) / "adopter"
+            adopter.mkdir()
+            rc, stdout, stderr = _run_install(
+                [
+                    "--pack",
+                    "core",
+                    "--adapter",
+                    "kiro",
+                    "--scope",
+                    "repo",
+                    "--output",
+                    str(adopter),
+                    str(REPO_ROOT),
+                ]
+            )
+            self.assertEqual(
+                rc, 0, f"install failed:\nstdout={stdout}\nstderr={stderr}"
+            )
+
+            agents_dir = adopter / ".kiro" / "agents"
+            self.assertTrue(
+                agents_dir.exists(),
+                f"expected projected agents at {agents_dir}",
+            )
+            md_agents = sorted(agents_dir.glob("*.md"))
+            json_agents = sorted(agents_dir.glob("*.json"))
+            self.assertTrue(
+                md_agents,
+                f"expected `.md` agents (kiro-ide shape); found "
+                f"{[p.name for p in sorted(agents_dir.iterdir())]}",
+            )
+            self.assertEqual(
+                json_agents,
+                [],
+                f"kiro alias must not emit `.json` agents; found "
+                f"{[p.name for p in json_agents]}",
+            )
+
+            # Identity preserved: the adopter chose `kiro`, so state and the
+            # summary record `kiro` (not the canonical `kiro-ide`).
+            self.assertIn("installed: core @ repo via kiro", stdout)
+            state = _load_state(adopter)
+            self.assertEqual(
+                state.get("pack", {}).get("core", {}).get("adapter"),
+                "kiro",
+                "kiro alias must record the chosen name in state.adapter",
+            )
+
+            # AC3: core ships hook-wiring + a command, both dropped by kiro-ide.
+            # The warning enumerates kiro-ide's drops (names hook-wiring) but
+            # displays the adopter's chosen name `kiro` — never `kiro-ide`.
+            self.assertIn("hook-wiring", stderr, f"drop warning missing: {stderr}")
+            self.assertIn("kiro", stderr)
+            self.assertNotIn("kiro-ide", stderr)
+            # No agent JSON / no merge crash on a hook-wiring-bearing pack (AC2).
+
     def test_codex_explicit_adapter(self) -> None:
         self._install_and_assert(
             adapter_flag="codex",

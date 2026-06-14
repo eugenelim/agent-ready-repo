@@ -522,9 +522,13 @@ def run(args: "argparse.Namespace") -> int:
                 force_merge=False,
             )
             pack_state.hook_wiring_owned = new_rows
-            pack_state.adapter = (
-                new_target_adapter if new_target_adapter == "kiro" else "claude-code"
-            )
+            # Record the resolved adapter faithfully (mirrors install's
+            # `new_pack_state.adapter = user_target_adapter`). The old
+            # `kiro`-or-`claude-code` collapse mis-recorded `kiro-cli`
+            # (the merging adapter) as `claude-code`, which then routed
+            # uninstall's unproject to the wrong engine and orphaned the
+            # agent JSON.
+            pack_state.adapter = new_target_adapter
             # Blocker #1: refresh state.files SHA for the agent JSON the
             # merge phase rewrote. Without this, post-upgrade uninstall
             # would misclassify it as Tier-2 and refuse to remove it.
@@ -625,8 +629,15 @@ def _compute_new_wiring_rows(
     # against the old target file).
     _AGENT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
+    from agentbundle.commands.install import _canonical_install_adapter
+
     wiring_dir = pack_dir / ".apm" / "hook-wiring"
     if not wiring_dir.exists():
+        return []
+    if _canonical_install_adapter(target_adapter) == "kiro-ide":
+        # `kiro` (deprecated alias) and `kiro-ide` DROP hook-wiring
+        # (RFC-0022): the install-time merge returns no rows, so the
+        # symmetric-diff computation must agree and yield none.
         return []
     rows: list[dict[str, str]] = []
     for entry in sorted(wiring_dir.iterdir()):
@@ -649,7 +660,7 @@ def _compute_new_wiring_rows(
         attach = body.get("attach-to-agent") if isinstance(body, dict) else None
         # Grammar guard for Kiro: refuse anything that would corrupt
         # `target_file_rel` (path-traversal, special chars, …).
-        if target_adapter == "kiro" and isinstance(attach, str):
+        if target_adapter == "kiro-cli" and isinstance(attach, str):
             if not _AGENT_NAME_RE.fullmatch(attach):
                 raise RuntimeError(
                     f"upgrade: pack {pack_name}'s hook-wiring {entry.stem}.toml "
@@ -660,7 +671,7 @@ def _compute_new_wiring_rows(
             if not isinstance(incoming, list):
                 continue
             row: dict[str, str] = {"event": event, "id": entry_id}
-            if target_adapter == "kiro" and isinstance(attach, str):
+            if target_adapter == "kiro-cli" and isinstance(attach, str):
                 row["target-file"] = f".kiro/agents/{attach}.json"
             rows.append(row)
     return rows
@@ -702,7 +713,11 @@ def _unproject_removed_rows(
 
     for target_rel, pairs in removed_by_target.items():
         target_path = root / target_rel.lstrip("/")
-        if old_adapter == "kiro":
+        # The merge family (`kiro-cli`, plus the legacy `kiro` block that
+        # pre-migration state may still record) merges into a pack-owned
+        # agent JSON; everything else (claude-code) merges into a shared
+        # settings file.
+        if old_adapter in ("kiro", "kiro-cli"):
             from agentbundle.build.projections.merge_into_agent_json import unproject
         else:
             from agentbundle.build.projections.user_merge_json import unproject
