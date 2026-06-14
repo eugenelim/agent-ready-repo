@@ -25,6 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the edge-case enumeration adds `permission-denied` and
   `resource-exhausted` to the cases the reviewer checks for.
 
+- **The `architect-design` NFR lens gains a performance-budget optimization
+  discipline (architect 0.5.2).** The "Performance and scale" checklist now
+  asks for a performance budget committed up front (a latency, throughput, or
+  resource target stated as a testable claim), and adds an "earn each
+  optimization against the budget" prompt: measure before optimizing (no
+  optimizing an unmeasured hotspot), spend effort on the hotspot where most of
+  the cost sits, and weigh each optimization's ongoing complexity cost against
+  the gain it actually buys. Framework- and stack-agnostic — no profiler or
+  tool names. The optimization discipline was previously absent; budget-setting
+  itself stays cross-linked to the existing quality-attribute-scenarios
+  guidance rather than restated.
+
 - **The `bug-fix` skill gains two debugging-discipline moves (core 0.4.6).**
   A new "list candidate causes, then falsify each" step sits between
   reproduction and the root-cause assertion — name 2-3 rival causes and rule
