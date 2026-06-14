@@ -60,7 +60,7 @@ reason it won. This is the section a new contributor reads first to understand
 
 *The reusable internal building blocks and the component stereotypes new code
 is expected to reuse rather than reinvent.* This is the heart of the golden
-path: when a design needs a thing this catalogue already names, it uses that
+path: when a design needs a thing this project already names, it uses that
 thing. Reach for something new only with a recorded reason.
 
 - **Component stereotypes.** <The recurring *kinds* of component in this repo
