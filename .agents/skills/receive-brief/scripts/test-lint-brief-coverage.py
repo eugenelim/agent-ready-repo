@@ -3,7 +3,7 @@
 
 Builds fixture brief + spec trees in a tempdir and runs the linter as a
 subprocess against the documented `python <skill>/scripts/lint-brief-coverage.py
---root <dir>` invocation — the same shape `make build-check` uses (not a
+--root <dir>` invocation — the same shape the CI gate uses (not a
 synthesised import, so the real `from .X import Y`-free entry point is
 exercised). Covers each acceptance case red-and-green: rollup of a mixed map,
 all-Shipped → delivered, empty map → not delivered, no-brief no-op, untracked
