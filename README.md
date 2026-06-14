@@ -62,6 +62,7 @@ A fourth subagent, `implementer`, is the loop's own executor. It runs independen
 | [`figma`](docs/guides/figma/) | user / repo | Figma REST primitive (credentialed) — reads files/nodes/comments/variables, renders frames, FigJam → Mermaid. |
 | [`architect`](docs/guides/architect/) | user / repo | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, plus a read-only, forked-context `design-reviewer` subagent for independent design critique. |
 | [`product-engineering`](docs/guides/product-engineering/) | user / repo | Shape product intent into shippable specs — `frame-intent`, `de-risk-intent`, `decompose-intent` over a recursive, level-tagged `intent`; `voice-and-microcopy` for UI copy (error/empty/button/label) against a voice chart; and `align-value-stream` for the business-unit cross-component value-stream layer. Feeds the briefs/specs your delivery loop already builds. |
+| [`design-craft`](docs/guides/design-craft/) | user / repo | Framework-agnostic design discipline — `aesthetic-direction`, `design-system-foundations`, `layout-and-information-architecture`, `design-critique`, plus a shared `quality-floor` checklist. Authors the upstream design intent the build consumes; points to WCAG / W3C Design Tokens, never a stack or a values table. |
 
 Repo-scope packs install into the current repo and build on `core`. User-scope packs install into `~/.claude/` (or your harness's home root) and follow you across every project. Swap `core` for any pack name in the command above.
 
