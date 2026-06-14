@@ -17,7 +17,7 @@
       {
         "name": "bug-fix",
         "source": "host repo — .claude/skills/bug-fix/",
-        "purpose": "Reproduction-first, failing test, root vs symptom, minimum diff, regression test, commit-body explains why, tracker loopback (step 8). Defect-flow stages 6–7 are the Jira-specific implementation of step 8."
+        "purpose": "Reproduction-first, failing test, root vs symptom, minimum diff, regression test, commit-body explains why, tracker loopback (step 9). Defect-flow stages 6–7 are the Jira-specific implementation of step 9."
       }
     ],
     "agents": [

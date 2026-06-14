@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The `bug-fix` skill gains two debugging-discipline moves (core 0.4.6).**
+  A new "list candidate causes, then falsify each" step sits between
+  reproduction and the root-cause assertion — name 2-3 rival causes and rule
+  each in or out with Expected / Actual / Verdict, so you don't fixate on the
+  first plausible cause. And a "Why wasn't it caught?" question joins the
+  root-cause set, so the regression test closes a *named* coverage gap rather
+  than only pinning the observed input. Both are language- and
+  framework-agnostic. The renumbering shifts `bug-fix`'s tracker-loopback
+  step from 8 to 9; the atlassian `jira-defect-flow` skill's references to it
+  are updated to match (atlassian 0.1.4).
+
 - **`work-loop` gains a "Scale with a tool, not turns" technique for large,
   repetitive tasks (core 0.4.5).** When a task spans many similar items —
   applying one change across N files, transforming a large set, auditing every
