@@ -58,6 +58,12 @@ It closes with **what's working** — two to four specific strengths to *keep* t
 
 There's a second mode, orthogonal to artifact type: ask whether a *design* is well-architected — by provider, by pillar, or against a named concern or workload-class lens, including GenAI and agentic workloads. The skill walks a well-architected rubric and produces a risk register instead of a flat critique. Each finding is tagged **🔧 mechanical** or **🧭 judgment** and paired with a scenario. It reuses the same verdict and severity scale, and it does not auto-fix — it's a critique, not a build loop.
 
+## An independent review — the `design-reviewer` subagent
+
+`architect-review` runs **inline**, in the thread you're already in. That's the right tool when you're reviewing someone else's artifact. But when you just *authored* the design — especially through [`architect-design`](../../../../packs/architect/.apm/skills/architect-design)'s convergence loop — reviewing it in the same thread marks your own homework: the context that wrote the draft is biased toward agreeing with it.
+
+For that case the pack ships a sibling **subagent**, `design-reviewer`. It runs the exact same rubric, verdict, and severity / mechanical-judgment tagging, but in a **forked context that hasn't seen the authoring** — seeded only with the artifact, the agreed concept, and the constraints. It's **read-only** (`Read, Grep, Glob`): it flags, it never rewrites your design, and it returns the findings block with no narration. Reach for it when independence matters more than staying in-thread; it's the *fresh-context (preferred)* rung of the convergence loop, with the inline skill and a disciplined cold re-read as the weaker fallbacks. The subagent is self-contained — installing it doesn't require the skill, though where both are present they share one rubric.
+
 ## Grounded claims get checked
 
 When an artifact asserts facts about the current landscape, a mandated standard, an external interface, or in-flight work, the skill treats those as claims a reviewer can't take on faith. It flags any such claim that's stated as fact with neither a cited source nor an "unverified — confirm" marker, and it flags any knowledge surface the design ignored. If an internal retrieval surface is reachable in the session it may spot-check the claims and tell you what it checked against. It flags; it never rewrites your design.
@@ -73,7 +79,7 @@ The skill pushes back rather than reviewing when:
 - **Nothing concrete is attached.** "Review our architecture" with no artifact is a design conversation, not a review. Route to [`architect-design`](../../../../packs/architect/.apm/skills/architect-design).
 - **The artifact is too thin to critique.** A two-bullet outline is a discussion; the skill won't critique tumbleweeds.
 - **You want a conversation, not findings.** If you're still shaping the idea, switch to a design surface.
-- **You wrote it this session.** Reviewing your own fresh draft is marking your own homework. The skill asks you (or another agent) to drive the critique.
+- **You wrote it this session.** Reviewing your own fresh draft is marking your own homework. The skill asks you (or another agent) to drive the critique — reach for the [`design-reviewer` subagent](#an-independent-review--the-design-reviewer-subagent) to get that independent pass.
 
 ## See also
 
