@@ -8,13 +8,12 @@ does. The agent runs it at the work-loop's finish-time checklist — *available
 and agent-invoked, not fail-closed* (there is no PR-open hook event in an
 adopter repo). It no-ops gracefully where Python is absent.
 
-The catalogue additionally runs it as a **fail-closed CI gate** via
-`make build-check` (where a PR event and Python both exist). Do NOT wire it into
-`tools/hooks/pre-pr.py`: that hook is a *body* that projects to adopter trees
-and would mis-fire — the finish-time skill checklist and the Makefile gate are
-the two invocation surfaces. (An earlier design shipped this as a
-catalogue-only `tools/` linter; it now ships as a skill script so it projects
-to adopters too.)
+It can also run as a **fail-closed CI gate** where a PR event and Python both
+exist. Do NOT wire it into the projected `pre-pr` hook body: that body projects
+to adopter trees and would mis-fire — the finish-time skill checklist and a CI
+gate are the two invocation surfaces. (An earlier design shipped this as a
+standalone linter; it now ships as a skill script so it projects to adopters
+too.)
 
 It checks five invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in `CONVENTIONS.md` § 4 (Spec metadata contract). Only the
