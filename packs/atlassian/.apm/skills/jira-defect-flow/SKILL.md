@@ -18,7 +18,7 @@ exist:
   regression test, commit-body-explains-why, and tracker loopback. This
   skill does **not** re-explain that discipline; invoke `bug-fix` and
   follow it. **Stages 6–7 below are the Jira-specific mechanism for
-  `bug-fix` step 8** ("loop back to the tracker") — not a separate
+  `bug-fix` step 9** ("loop back to the tracker") — not a separate
   obligation.
 - **Reviewer subagents** (`adversarial-reviewer`, plus `security-reviewer`
   / `quality-engineer` when the diff warrants) — already wired into the
@@ -130,7 +130,7 @@ context. Everything from here through "regression test stays" is owned by
 - Verify the fix addresses the root, not the symptom.
 - Regression test stays in the suite.
 - Commit body explains *what was wrong, why, and why this shape of fix*.
-- Loop back to the tracker (PR URL + next transition) — `bug-fix` step 8.
+- Loop back to the tracker (PR URL + next transition) — `bug-fix` step 9.
   Stages 6–7 below are the Jira-specific mechanism for this; do not
   treat it as separate work.
 
@@ -161,7 +161,7 @@ surface or new logic. Iterate until each returns `Clean — ready to commit.`
 This step is not optional and not in this skill — it's in the consumer
 repo's `work-loop`. Defer to it.
 
-### Stage 6 — PR (bug-fix step 8, part 1)
+### Stage 6 — PR (bug-fix step 9, part 1)
 
 Open the PR with `gh`. The PR body uses the consumer repo's template
 (four questions: *what / why / how to verify / what you did not change*).
@@ -180,9 +180,9 @@ Generate `$KEY-pr-body.md` from the template — do not paste a freeform
 description. The "What did you not change" section is the most useful
 field; fill it honestly.
 
-### Stage 7 — Jira loopback (bug-fix step 8, part 2)
+### Stage 7 — Jira loopback (bug-fix step 9, part 2)
 
-`bug-fix` step 8 mandates that the tracker gets the PR URL and the
+`bug-fix` step 9 mandates that the tracker gets the PR URL and the
 next transition. This is the Jira-specific implementation. Via the
 `jira` skill, discover the next transition the same way as stage 2:
 
@@ -200,7 +200,7 @@ the verbs are equivalent — name that skill and use the same contract.
 
 ### Stage 8 — Deploy to dev (optional, consumer-repo specific)
 
-This stage is *beyond* `bug-fix` step 8 — the upstream skill stops at
+This stage is *beyond* `bug-fix` step 9 — the upstream skill stops at
 "PR + transition". Dev-deploy is environment-specific and only runs
 when the consumer repo provides a hook.
 
