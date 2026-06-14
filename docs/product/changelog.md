@@ -30,6 +30,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   step from 8 to 9; the atlassian `jira-defect-flow` skill's references to it
   are updated to match (atlassian 0.1.4).
 
+- **Spec and guide authoring skills teach two doc-writing disciplines: retcon
+  writing and context poisoning (core 0.4.7, user-guide-diataxis 0.1.4).**
+  *Retcon writing* — `new-spec` and `new-guide` now instruct authors to write
+  spec/guide bodies in the present tense, as if the feature already exists and
+  always worked this way: no "will be implemented", no "previously X, now Y", no
+  deprecation timelines, no version-stamped history in the body (decision history
+  stays in ADRs and the changelog). The rule lands as a failure-mode bullet in
+  `new-spec` step 4, a guide-voice anti-pattern in `new-guide` step 4, a reminder
+  in the `new-spec` `spec.md` template, and a `clear-prose.md` checklist item;
+  `plan.md` is exempt, since it keeps its own changelog. *Context poisoning* —
+  `new-spec` now names the failure mode its single-source-of-truth / drift-is-a-bug
+  discipline prevents (an agent loading a stale, duplicated, or self-contradicting
+  doc and deciding wrong from it) in one canonical place, tying the
+  one-canonical-home rule and the retcon body together as the two halves of the
+  defense.
+
 - **`work-loop` gains a "Scale with a tool, not turns" technique for large,
   repetitive tasks (core 0.4.5).** When a task spans many similar items —
   applying one change across N files, transforming a large set, auditing every
