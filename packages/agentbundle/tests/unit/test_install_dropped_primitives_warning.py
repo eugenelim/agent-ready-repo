@@ -576,12 +576,14 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
 
         # Pack with no command/agent/hook-wiring primitive drops BUT has
         # an out-of-vocab hook-wiring that enumerate_event_dropped_wirings
-        # will detect. Kiro drops only 'command'; pack ships no commands.
+        # will detect. kiro-cli (the merge adapter — the deprecated `kiro`
+        # alias now routes to kiro-ide, which drops hook-wiring wholesale)
+        # drops only 'command'; pack ships no commands.
         pack = self.tmp_path / "event-only-pack"
         pack.mkdir(parents=True)
         hw_dir = pack / ".apm" / "hook-wiring"
         hw_dir.mkdir(parents=True)
-        # SessionStart is NOT in kiro's event vocabulary.
+        # SessionStart is NOT in kiro-cli's event vocabulary.
         (hw_dir / "session-start.toml").write_text(
             '[[hooks.SessionStart]]\nhooks = [{type = "command", command = "x"}]\n',
             encoding="utf-8",
@@ -595,7 +597,7 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
                 root=self.tmp_path,
                 pack_dir=pack,
                 pack_name="event-only-pack",
-                adapter="kiro",
+                adapter="kiro-cli",
                 scope="repo",
             )
             first_output = captured.getvalue()
@@ -607,7 +609,7 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
                 root=self.tmp_path,
                 pack_dir=pack,
                 pack_name="event-only-pack",
-                adapter="kiro",
+                adapter="kiro-cli",
                 scope="repo",
             )
             second_output = captured.getvalue()
@@ -655,8 +657,11 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
         self.assertIn(("no-drop-pack", "claude-code", "repo"), keys)
 
     def test_maybe_emit_full_three_clause_for_kiro_core(self) -> None:
-        """Fixture install of core via kiro: stderr contains the exact
+        """Fixture install of core via kiro-cli: stderr contains the exact
         AC10 three-clause warning text naming hook-wiring/session-start.toml.
+        (The deprecated `kiro` alias routes to kiro-ide, which drops
+        hook-wiring wholesale — the per-event three-clause warning is the
+        kiro-cli merge adapter's behavior.)
 
         Integration-shape but lives in the unit module per plan T5 for
         inputs-stable assertion.
@@ -675,23 +680,26 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
 
         # Build the expected message via the formatter (single source of truth).
         contract = _tomllib.loads(_read_bundled("adapter.toml"))
-        dropped = _enumerate_dropped_primitives(pack_dir, "kiro", contract)
-        event_drops = enumerate_event_dropped_wirings(pack_dir, "kiro", contract)
-        compatible = _enumerate_compatible_primitives(pack_dir, "kiro", contract)
+        dropped = _enumerate_dropped_primitives(pack_dir, "kiro-cli", contract)
+        event_drops = enumerate_event_dropped_wirings(pack_dir, "kiro-cli", contract)
+        compatible = _enumerate_compatible_primitives(pack_dir, "kiro-cli", contract)
         expected = format_drop_message(
             pack_name="core",
-            adapter="kiro",
+            adapter="kiro-cli",
             dropped_counts=dropped,
             compatible_types=compatible,
             event_drops=event_drops,
             mode="install_warning",
         )
 
-        # Sanity: the expected string must mention the file and contain both
-        # reason categories.
+        # Sanity: the expected string must name the dropped command, the
+        # skipped wiring file, and the event-vocabulary reason. (kiro-cli
+        # keeps hook-wiring, so an out-of-vocab event is *skipped*; the
+        # `kiro` alias instead drops hook-wiring wholesale — covered by
+        # KiroAliasDropsHookWiringTests.)
+        self.assertIn("command that kiro-cli projects as 'dropped'", expected)
         self.assertIn("hook-wiring/session-start.toml", expected)
         self.assertIn("event not in adapter vocabulary", expected)
-        self.assertIn("kiro requires 'attach-to-agent'", expected)
         self.assertIn("Additionally,", expected)
 
         # Now exercise _maybe_emit_dropped_warning and assert the same text.
@@ -703,7 +711,7 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
                 root=self.tmp_path,
                 pack_dir=pack_dir,
                 pack_name="core",
-                adapter="kiro",
+                adapter="kiro-cli",
                 scope="repo",
             )
         finally:

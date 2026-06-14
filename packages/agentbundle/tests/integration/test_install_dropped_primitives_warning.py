@@ -161,13 +161,15 @@ class CopilotWarningEndToEnd(unittest.TestCase):
 
 
 class KiroWarningEndToEnd(unittest.TestCase):
-    """Kiro drops only `command`."""
+    """kiro-cli drops only `command` (hook-wiring merges; the deprecated
+    `kiro` alias now routes to kiro-ide and drops both — covered by the
+    alias test in test_install_repo_scope_per_adapter.py)."""
 
     def test_kiro_warning_names_command_only(self) -> None:
         with TemporaryDirectory() as raw:
             adopter = Path(raw) / "adopter"
             adopter.mkdir()
-            rc, stdout, stderr = _install_core_via("kiro", adopter)
+            rc, stdout, stderr = _install_core_via("kiro-cli", adopter)
             self.assertEqual(
                 rc, 0,
                 f"install failed:\nstdout={stdout}\nstderr={stderr}",
@@ -175,8 +177,8 @@ class KiroWarningEndToEnd(unittest.TestCase):
 
             # Warning fires for command only.
             self.assertIn(
-                "kiro projects as 'dropped'", stderr,
-                f"expected kiro dropped-warning in stderr:\n{stderr}",
+                "kiro-cli projects as 'dropped'", stderr,
+                f"expected kiro-cli dropped-warning in stderr:\n{stderr}",
             )
             # Agent and hook-wiring NOT in the drop clause (kiro
             # projects both natively).
@@ -385,7 +387,7 @@ allowed-adapters = ["claude-code", "kiro", "codex"]
 class KiroPerFileDropEndToEnd(unittest.TestCase):
     """T6 of docs/specs/incompatible-hook-event-drop.
 
-    Installs core via kiro at repo scope and asserts:
+    Installs core via kiro-cli at repo scope and asserts:
       - rc 0
       - stderr contains the exact three-clause warning (built via
         _drop_warning.format_drop_message so the test stays in sync
@@ -421,17 +423,17 @@ class KiroPerFileDropEndToEnd(unittest.TestCase):
         # pin (spec AC10).
         expected_warning = format_drop_message(
             pack_name="core",
-            adapter="kiro",
-            dropped_counts=_enumerate_dropped_primitives(pack_dir, "kiro", contract),
-            compatible_types=_enumerate_compatible_primitives(pack_dir, "kiro", contract),
-            event_drops=enumerate_event_dropped_wirings(pack_dir, "kiro", contract),
+            adapter="kiro-cli",
+            dropped_counts=_enumerate_dropped_primitives(pack_dir, "kiro-cli", contract),
+            compatible_types=_enumerate_compatible_primitives(pack_dir, "kiro-cli", contract),
+            event_drops=enumerate_event_dropped_wirings(pack_dir, "kiro-cli", contract),
             mode="install_warning",
         )
 
         with TemporaryDirectory() as raw:
             adopter = Path(raw) / "adopter"
             adopter.mkdir()
-            rc, stdout, stderr = _install_core_via("kiro", adopter)
+            rc, stdout, stderr = _install_core_via("kiro-cli", adopter)
 
             self.assertEqual(
                 rc, 0, f"install returned non-zero:\nstdout={stdout}\nstderr={stderr}"
