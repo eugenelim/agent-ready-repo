@@ -1,6 +1,6 @@
 ---
 name: decision-archaeology
-description: Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `archaeology.md` with chronology, the rationale chain, and the alternatives that were considered and rejected. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
+description: Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `archaeology.md` with chronology, the rationale chain, the alternatives that were considered and rejected, and a revival check flagging rejected alternatives whose original rejection rationale no longer holds. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
 ---
 
 # /decision-archaeology
@@ -62,7 +62,17 @@ Rationale reconstruction has three converging disciplines:
    rejected, who signed.
 5. **Surface alternatives-considered** — the rejected branches deserve
    their own section.
-6. **Write `archaeology.md`**. No `sources.md` is produced.
+6. **Run the revival check** — for each rejected alternative, ask
+   whether *the rationale that rejected it still holds today*. A
+   rejection is never an unconditional verdict: it was conditional on
+   the constraints at decision time (the library didn't exist, the team
+   was too small, the latency budget was tighter, the cost was
+   prohibitive). When a constraint that drove the rejection has since
+   changed, the rejection is **stale** and the alternative is a
+   **revival candidate**. See *The revival check* below. This is the
+   payoff of recording *why* each alternative was rejected: a rationale
+   you can name is a rationale you can later audit against the present.
+7. **Write `archaeology.md`**. No `sources.md` is produced.
 
 ## `archaeology.md` output schema
 
@@ -91,10 +101,27 @@ Rationale reconstruction has three converging disciplines:
 - **<alternative name>** — rejected at step <N>. Reason: <citation>.
 - **<alternative name>** — rejected at step <N>. Reason: <citation>.
 
+## Revival candidates
+
+- **<alternative name>** — rejected because <original rationale>. That
+  constraint has changed: <what changed, with a citation or dated
+  signal>. The original reason no longer holds, so this is a candidate
+  to reconsider. (Not a recommendation to adopt it — only a flag that
+  its rejection is stale.)
+
 ## Open questions
 
 - <a rationale link the artifact trail does not actually establish>.
 ```
+
+The revival check is **distinct from** the alternatives-considered
+record above it. Alternatives-considered is the *historical* record —
+what was rejected and why, as of the decision. The revival check is a
+*forward-looking* audit of that record against today's constraints: it
+reads each historical rejection rationale and asks whether it survived.
+An alternative that was rejected for a reason still true today does
+*not* become a revival candidate; only one whose rejection rationale has
+been overtaken by a changed constraint does.
 
 ## Citation discipline
 
@@ -106,7 +133,9 @@ syntheses are marked `[synthesis]`.
 ## Depth cues
 
 - `quickly`, `top three`, `briefly`, `summary only` — return the main
-  rationale chain only; skip alternatives-considered.
+  rationale chain only; skip alternatives-considered and the revival
+  check.
 - `comprehensively`, `exhaustively`, `in depth`, `extensive` — walk
   branch alternatives and dead ends; surface artifacts that
-  influenced the decision indirectly; include rejected drafts.
+  influenced the decision indirectly; include rejected drafts; run the
+  revival check over every rejected alternative.
