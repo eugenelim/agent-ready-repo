@@ -48,6 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is the ceiling" scopes the core code-review lenses, not opt-in design-side
   review.
 
+- **`work-loop` makes "run it as a real user" first-class for non-UI tools (core 0.4.9).**
+  The manual-QA verification mode was framed almost entirely around UI rendering
+  and UX flows; it now explicitly covers any artifact a user invokes — a CLI, a
+  library's public API, an agent or skill, a service endpoint. The doctrine:
+  when a change ships something a user invokes, verification includes exercising
+  the real built artifact end-to-end through its documented happy path and
+  recording what you observed (real stdout/exit code, returned value, file
+  written, on-screen result), not internal state or a unit gate standing in for
+  the real invocation. Framed harness-agnostic like the EXECUTE simplify pass —
+  done by hand on any agent, with Claude Code's native `/verify` and `/run` as
+  an optional accelerant. The DECIDE end-of-session checklist gains a line that
+  refuses "done" until that end-to-end exercise has happened. Existing
+  UI-specific guidance is preserved as the UI instantiation of the general rule.
+
 - **`architect-diagram` learns deliberate visual encoding (architect 0.5.3).**
   A new `references/visual-encoding.md` turns scattered correctness rules into
   one design heuristic: when a diagram distinguishes more than one category of
