@@ -51,6 +51,11 @@ search for once you know its shape.
   earns space, give it its own sentence or link to an explanation page.
 - **Don't narrate your intent.** "Here we want to show you…", "the goal of this
   section is…". Drop the meta-commentary and show the reader directly.
+- **Don't narrate the product's history.** Describe how it works now, not how it
+  used to — the *retcon* discipline. "Previously X, now Y", "will be added next
+  release", "deprecated in 2.0" belong in release notes or the changelog, not the
+  body. The reader wants what's true today; mixed tenses make them guess which
+  part still holds.
 
 ## A fast self-check
 

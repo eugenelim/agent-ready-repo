@@ -86,7 +86,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "core",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.4.6"
+      "version": "0.4.7"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -203,7 +203,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "user-guide-diataxis",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.3"
+      "version": "0.1.4"
     }
   ]
 }
