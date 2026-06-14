@@ -107,8 +107,9 @@ specific cause, then act on the band:
   `credential-setup`.
 - A **403** means authenticated but forbidden (missing scope/permission) →
   exit 2 → the user regenerates the token with the right scope; don't retry.
-- `Tier2HardFailError` (OS keyring locked/unavailable) or an unprojected shim
-  surface as exit 1 with a message naming the cause (e.g. run `make build-self`).
+- `Tier2HardFailError` (OS keyring locked/unavailable) or a missing credential
+  shim surface as exit 1 with a message naming the cause (e.g. reinstall the
+  pack to restore the shim).
 
 ### Step 2: Dispatch to the right subcommand
 

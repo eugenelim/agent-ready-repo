@@ -980,6 +980,41 @@ class SeedProjectionTests(unittest.TestCase):
             )
             self.assertIn("<!-- no specs yet -->", on_disk)
 
+    def test_guide_seeds_not_scaffolded_in_self_host(self) -> None:
+        """Guides are repo-owned and reach adopters via `deliver_seeds`
+        at install, not via self-host projection. `_project_seeds`
+        (self-host only) must NOT scaffold the by-quadrant guide tree:
+        doing so litters a repo that owns its guides (e.g. organized by
+        pack) with untracked `docs/guides/<quadrant>/README.md` on every
+        build-self run. Regression for the per-pack-migration drift —
+        the seed scaffold stays by-quadrant for adopters, but self-host
+        must leave the repo's own `docs/guides/` alone.
+        """
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = packs_dir / "user-guide-diataxis"
+            (pack / "seeds" / "docs" / "guides" / "tutorials").mkdir(parents=True)
+            (pack / "seeds" / "docs" / "guides" / "tutorials" / "README.md").write_text(
+                "# Tutorials\n", encoding="utf-8"
+            )
+            (pack / "pack.toml").write_text(
+                '[pack]\nname = "user-guide-diataxis"\nversion = "0.1.0"\n',
+                encoding="utf-8",
+            )
+            output = tmp_path / "out"
+            output.mkdir()  # No pre-existing docs/guides tree
+
+            _project_seeds(packs_dir, output)
+
+            self.assertFalse(
+                (output / "docs" / "guides" / "tutorials" / "README.md").exists(),
+                "self-host projection must not scaffold by-quadrant guides",
+            )
+
     def test_two_packs_contribute_to_same_dir_without_collision(self) -> None:
         from agentbundle.build.self_host import _project_seeds
 

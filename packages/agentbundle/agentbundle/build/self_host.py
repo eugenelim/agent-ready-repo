@@ -482,6 +482,14 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
     # For re-install / self-host against this repo, Manual targets
     # exist and are preserved.
     for relative, src in seen.items():
+        # Guides are repo-owned and reach adopters via `deliver_seeds` at
+        # install, not via self-host projection. Never scaffold the
+        # by-quadrant guide tree here: the seed stays by-quadrant for
+        # adopters, but writing it during self-host litters a repo that
+        # owns its guides (e.g. organized by pack) with untracked
+        # `docs/guides/<quadrant>/README.md` on every build-self run.
+        if relative.as_posix().startswith("docs/guides/"):
+            continue
         if _is_excluded(relative) and (output_root / relative).exists():
             # Manual file on disk — leave it alone. The seed is
             # placeholder; the on-disk file is the adopter's

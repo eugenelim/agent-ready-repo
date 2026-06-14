@@ -30,8 +30,8 @@ Before invoking, confirm:
    docs that must match current product behavior. If you're proposing a
    change, you want an RFC or a spec, not a guide.
 3. You can name a real reader. "Someone might want to know X" isn't a
-   reader; "an adopter who has installed the credential-brokers pack and
-   needs to rotate their token" is.
+   reader; "an operator whose API token expires tomorrow and needs to
+   rotate it before the next deploy" is.
 
 If any check fails, push back rather than proceeding.
 
@@ -161,6 +161,16 @@ If any check fails, push back rather than proceeding.
 
    Efficiency is a form of respect — the reader is in a hurry.
 
+   Beyond word choice, the draft should read like a person wrote it, not a
+   machine. Cut the tells that make prose feel generated: hedges ("it's
+   worth noting"), uniform sentence rhythm, em-dash overuse, throat-clearing
+   openers ("In this guide we will explore…"), inflated verbs ("leverage",
+   "utilize", "delve"), and sentences that restate the heading. Vary sentence
+   length, keep one claim per sentence, and prefer a concrete number or
+   example over an adjective. Read the full checklist in
+   [`references/clear-prose.md`](references/clear-prose.md) while you draft and
+   edit, not before.
+
 5. **Apply the link-out rule as you draft.** When you find yourself
    reaching for content from the adjacent quadrant, stop and write a
    link instead:
@@ -192,6 +202,14 @@ If any check fails, push back rather than proceeding.
    - Explanation: is there a step-by-step block that belongs in a
      how-to? Did I drift past the *"About <topic>"* scope? Did I avoid
      opinion — explanation is *allowed* a voice?
+
+   Then run a prose pass against
+   [`references/clear-prose.md`](references/clear-prose.md). When your
+   environment provides subagents, hand the draft plus that checklist to a
+   read-only subagent and ask it to flag machine-shaped prose; that keeps the
+   style read off your main context. Without subagents, read the draft cold
+   yourself against the checklist. The quadrant self-check above is the floor;
+   the prose pass is the polish.
 
 7. **Cross-link the siblings — only the ones that exist.** A new guide
    rarely stands alone. From the new file, add a `See also` section.

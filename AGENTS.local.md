@@ -96,8 +96,34 @@ the parser consumes, not a citation).
 
 Precedent: `lint-seeds` already enforces this for `seeds/**`. There is **no
 automated lint for `.apm/**` skills/agents yet** — a `lint-seeds`-analogue is a
-possible follow-on, but adding one is a new convention and therefore RFC-gated.
-Until then this is a hand-checked authoring rule.
+possible follow-on, but adding one is a new convention and therefore RFC-gated
+(tracked at `docs/backlog.md` § `apm-leak-lint-rfc`). Until then this is a
+hand-checked authoring rule.
+
+## House style for our own internal docs
+
+This covers prose that stays in this repo and never ships to adopters: this
+file, `docs/architecture/`, `docs/specs/`, RFCs and ADRs, internal READMEs.
+The adopter-facing version of this craft ships in the `user-guide-diataxis`
+pack's `new-guide` skill (`references/clear-prose.md`); keep each in its own
+home rather than duplicating.
+
+- **Write prose that reads like a person wrote it.** Cut the tells that make
+  text feel machine-made: hedges ("it's worth noting"), uniform sentence
+  rhythm, em-dash overuse, the rule of three on a loop, throat-clearing
+  openers, inflated verbs ("leverage", "utilize", "delve"). Vary sentence
+  length, keep one claim per sentence, and prefer a concrete number or example
+  over an adjective.
+- **State what is — don't leak rationale or identity.** An aside that
+  justifies a choice mid-sentence ("organized this way because…") reads as
+  internal thinking spilling onto the page; cut it, or give the *why* its own
+  sentence. Drop self-narration too ("internally we…", "our goal here is…").
+- **Soft-wrap guides — one logical line per paragraph.** Under `docs/guides/`,
+  don't hard-wrap mid-paragraph: one line per paragraph, a blank line between
+  paragraphs, list items one line each. It renders identically on GitHub (a
+  wrapped newline reads as a space) and stays clean in preview panes that treat
+  a single newline as a break. The older docs (README, CONVENTIONS) are still
+  hard-wrapped near 72 columns; match the file you're editing.
 
 ## Agents PROJECT — they are not "Claude Code only" (stop getting this wrong)
 
