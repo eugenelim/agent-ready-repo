@@ -1,6 +1,6 @@
 # Spec: design-craft-pack (v1)
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> <!-- Shipped 2026-06-14 (build PR) -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0033, RFC-0007 (the user-scope refusal-rails + grep-enforcement pattern), RFC-0004 (install-scope-per-pack, reused not changed), RFC-0032 (skill-vs-agent ceiling reading, reused not changed)
@@ -124,61 +124,61 @@ existence), and the build PR (satisfies every AC below). The plan's Rollout
 records the split. The spec stays Draft → Approved here and flips to Shipped in
 the build PR (memory: set-final-status-in-the-implementing-PR). -->
 
-- [ ] A new pack ships at **`packs/design-craft/`** with `pack.toml`,
+- [x] A new pack ships at **`packs/design-craft/`** with `pack.toml`,
   `.claude-plugin/plugin.json`, and a `README.md`, **registered in
   `.claude-plugin/marketplace.json`** (name `design-craft`, with a description +
   version), **user-scope-default** (`default-scope = "user"`,
   `allowed-scopes = ["user","repo"]`, `[pack.adapter-contract] version = "0.12"`
   matching `research`, `allowed-adapters` = all seven shipped adapters), like
   `architect`/`research`.
-- [ ] **`aesthetic-direction`** ships at
+- [x] **`aesthetic-direction`** ships at
   `packs/design-craft/.apm/skills/aesthetic-direction/SKILL.md` (`<100` lines,
   valid frontmatter passing `tools/lint-skill-spec.py`) and documents: the
   interrogation sequence that turns a vague "vibe" into **named emotional/brand
   goals**, the **aesthetic-direction doc** shape downstream work references, and
   **coherence arbitration** (which goal wins when choices conflict, and why) —
   method only, no palette/font.
-- [ ] **`design-system-foundations`** ships (same constraints) and documents the
+- [x] **`design-system-foundations`** ships (same constraints) and documents the
   **derivation method** for a token/scale taxonomy from intent: semantic-over-
   literal naming, ratio-as-*concept* scales, accessibility-as-floor, contrast
   budgets, "purpose before token," and the **atomic-composition** model ("build
   systems, not pages"); it **points to** WCAG (contrast floor) and the W3C Design
   Tokens interchange shape and **never reprints a values table** (Guardrail A).
-- [ ] **`layout-and-information-architecture`** ships (same constraints) and
+- [x] **`layout-and-information-architecture`** ships (same constraints) and
   documents hierarchy, depth-vs-breadth, **reading patterns** (F/Z scanning),
   **progressive disclosure**, and platform-neutral **wayfinding/orientation** as
   *concepts* — never ARIA roles or CSS grid (Guardrail B); no layout code.
-- [ ] **`design-critique`** ships (same constraints) and documents structured
+- [x] **`design-critique`** ships (same constraints) and documents structured
   **heuristic evaluation**: review against recognized usability principles, map
   each issue to the violated principle, assign a **severity rating**, and produce
   a prioritized findings list with recommendations; it **applies the shared
   `quality-floor` checklist** as part of the pass. It is a **skill** (interactive,
   authoring-time), **not** a `work-loop` reviewer subagent.
-- [ ] A shared **`quality-floor` checklist** ships as a `references/` file
+- [x] A shared **`quality-floor` checklist** ships as a `references/` file
   (referenced by the authoring skills, applied by `design-critique`) covering:
   **handle all states** (empty/loading/error/success/partial/disabled), the
   **accessibility floor** (points to the recognized standard, does not reprint
   ratios), and **"motion communicates state, honor reduced-motion"** (the
   principle, not a CSS media query).
-- [ ] Any **template the pack ships** (e.g. the aesthetic-direction doc) rides as
+- [x] Any **template the pack ships** (e.g. the aesthetic-direction doc) rides as
   a **skill `assets/`** file the skill copies into the repo at runtime — the pack
   ships **no `seeds/`** (RFC-0004 Rail A; grep-verified).
-- [ ] A **pack-scoped agnosticism lint** (`tools/lint-design-craft-agnostic.py`)
+- [x] A **pack-scoped agnosticism lint** (`tools/lint-design-craft-agnostic.py`)
   greps `packs/design-craft/**` for stack tokens and a values-table shape, exits
   non-zero on any hit, has its own self-test, and is **wired into CI**
   (`build-check.yml` + `build-check-windows.yml`) — the RFC-0007 enforcement
   pattern, Python for Windows portability. It is **not** promoted to a repo-wide
   `CONVENTIONS` lint (that would be a separate RFC).
-- [ ] **Diátaxis guides** exist under `docs/guides/design-craft/` at their quadrant
+- [x] **Diátaxis guides** exist under `docs/guides/design-craft/` at their quadrant
   paths — an **explanation** (the design-craft loop and why portable discipline),
   **how-to(s)** (per skill or grouped), and a **reference** (the four skills + the
   `quality-floor` checklist) — each reading accurately against the shipped skills
   (manual-QA recorded in the build PR).
-- [ ] An **ADR** records the "design-craft serves designers as upstream
+- [x] An **ADR** records the "design-craft serves designers as upstream
   design-intent authors" scope decision + the strict-agnosticism guardrails
   (lands with the build PR, per the RFC-0030 / RFC-0032 precedent where the ADR
   ships with the build).
-- [ ] **No hook / engine / in-pack validator / reviewer subagent / new top-level
+- [x] **No hook / engine / in-pack validator / reviewer subagent / new top-level
   dir** is introduced; the pack is pure markdown; no pack depends on `core` and
   `core` does not depend on this pack (grep-verified); a
   **`docs/product/changelog.md` `[Unreleased]`** entry records the new pack; and
