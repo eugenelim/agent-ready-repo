@@ -630,3 +630,15 @@ then escapes the backslash, so a frontmatter `description` carrying escaped quot
 double-escaped (`\\\"…\\\"`). This is **byte-identical to the merged `cursor.py`** (an inherited
 cross-adapter behavior, not a gemini regression). Fix both adapters together: unescape `\"`→`"`
 in the quote-stripping branch.
+
+## `house-voice-writing-craft`
+
+### apm-leak-lint-rfc
+
+A `lint-seeds`-analogue for `packs/*/.apm/**` that mechanically catches
+internal-governance citations (RFC/ADR numbers, `docs/specs|rfc|adr` paths,
+`make`/`tools/lint` references, "this catalogue" identity asides) in shipped
+skills, agents, commands, and hooks. Today the rule is hand-checked
+(`AGENTS.local.md` § "Shipped pack content carries no internal-governance
+citations"). Adding the lint is a new convention and therefore RFC-gated;
+open an RFC before building it.

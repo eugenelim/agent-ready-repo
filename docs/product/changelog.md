@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`new-guide` now coaches prose, not just structure (user-guide-diataxis
+  0.1.3).** The skill ships a `clear-prose` checklist. It names the tells that
+  make docs read machine-made (hedges, uniform sentence rhythm, em-dash
+  overuse, throat-clearing openers, inflated verbs) and the habits that keep
+  them human (one claim per sentence, concrete over abstract, strong verbs,
+  omit needless words). The voice section points to it. An optional copyedit
+  pass hands the draft to a read-only subagent when one is available.
+
 - **A guide home for every pack, and real guides for the packs that lacked
   them (ADR-0020).** `docs/guides/` is reorganized from flat Diátaxis quadrants
   to a per-pack hierarchy — `docs/guides/<pack>/{tutorials,how-to,reference,explanation}/`

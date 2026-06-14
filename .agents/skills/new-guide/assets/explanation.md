@@ -37,8 +37,8 @@ here, not in how-tos.>
 - [<how-to title>](../how-to/<slug>.md) — to apply it.
 - [<reference title>](../reference/<slug>.md) — for the precise
   parameter list.
-- [ADR-NNNN](../../adr/NNNN-<slug>.md) — the team's record of *why we
-  chose* this approach.
+- [the relevant decision record](../../adr/<slug>.md) — the team's record
+  of *why we chose* this approach.
 
 <!--
 Reminders from the skill — delete before committing:
