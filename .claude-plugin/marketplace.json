@@ -107,6 +107,23 @@
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
+      "category": "design",
+      "description": "Framework-agnostic design-craft discipline for interaction/visual designers \u2014 authors of the upstream design intent the build consumes. Four skills (aesthetic-direction, design-system-foundations, layout-and-information-architecture, design-critique) plus a shared quality-floor checklist (handle-all-states, accessibility floor, reduced-motion principle). Pure method: no stack, no values tables \u2014 points to WCAG / W3C Design Tokens, never reprints them.",
+      "displayName": "Design Craft",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "design-systems",
+        "aesthetic-direction",
+        "information-architecture",
+        "heuristic-evaluation"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "design-craft",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "version": "0.1.0"
+    },
+    {
+      "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "integrations",
       "description": "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid.",
       "displayName": "Figma",
