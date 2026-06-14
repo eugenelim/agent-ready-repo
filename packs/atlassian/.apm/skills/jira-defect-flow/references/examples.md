@@ -59,7 +59,7 @@ gh pr create --base main \
   --body-file .context/defects/PROJ-123-pr-body.md
 # PR body's Why? section contains: Closes: PROJ-123
 
-# Stage 7 — Jira loopback (bug-fix step 8 mechanism)
+# Stage 7 — Jira loopback (bug-fix step 9 mechanism)
 jira: comment PROJ-123 --body "PR: https://github.com/acme/web/pull/4321. Repro test: tests/checkout/coupon_expiry_test.py::test_expired_coupon_does_not_crash"
 jira: transition PROJ-123 --to "In Review"
 
