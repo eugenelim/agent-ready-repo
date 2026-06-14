@@ -1,6 +1,6 @@
 [pack]
 name = "atlassian"
-version = "0.1.2"
+version = "0.1.3"
 description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, and jira-defect-flow workflows that compose them."
 readme = "README.md"
 display_name = "Atlassian"

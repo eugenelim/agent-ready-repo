@@ -1,53 +1,48 @@
 ---
-description: Lint AGENTS.md, CLAUDE.md, and projected agent artifacts against the conventions in this repo
+description: Check AGENTS.md, CLAUDE.md, and the projected agent artifacts (skills, subagents, commands) against the repo's conventions
 ---
 
-Run these repo linters and report findings.
+Verify the conventions below and report findings. If your project ships
+linters that cover any of these, run them; otherwise inspect the files
+directly and report each check by hand. Don't auto-fix — report findings and
+let the user decide.
 
-> These linters are *this catalogue's own* (they enforce its conventions on its
-> `.apm/` and seed artifacts) and aren't shipped into an adopter tree — if
-> they're absent, substitute your project's equivalent checks, or fall back to
-> inspecting the files directly (see the closing note).
-
-**`python tools/lint-agents-md.py`** — AGENTS.md hygiene:
+## AGENTS.md hygiene
 
 1. Root `AGENTS.md` is under 250 lines.
-2. `CLAUDE.md` is either a symlink to `AGENTS.md` or a byte-identical
-   copy of it. (Native Windows checkouts can't materialise symlinks
-   without elevation, so an identical regular file is accepted; a
-   diverged regular file is not.)
+2. `CLAUDE.md` is a symlink to `AGENTS.md`, or a byte-identical copy of it.
+   (Native Windows checkouts can't materialise symlinks without elevation, so
+   an identical regular file is accepted; a diverged regular file is not.)
 3. No subdirectory `AGENTS.md` exceeds 150 lines.
 4. Internal links resolve.
-5. `docs/CHARTER.md` and the Diátaxis subdirectories exist.
+5. `docs/CHARTER.md` and the Diátaxis guide subdirectories exist.
 
-**`python tools/lint-agent-artifacts.py`** — projected agent-artifact hygiene:
+## Agent-artifact hygiene (skills, subagents, commands)
 
-1. Every skill / subagent / command has well-formed YAML frontmatter with
+1. Every skill, subagent, and command has well-formed YAML frontmatter with
    the required keys (`name`, `description`).
-2. Skill directory names match the frontmatter `name`; subagent filenames
-   match the frontmatter `name`; kebab-case enforced.
-3. Frontmatter has no unknown keys.
-4. Skill dirs contain a `SKILL.md` (and no stray `.md` siblings).
+2. Skill directory names match the frontmatter `name`; subagent and command
+   filenames match their `name`; all kebab-case.
+3. Frontmatter carries no unknown keys.
+4. Each skill dir contains a `SKILL.md` and no stray `.md` siblings.
 5. Internal markdown links inside each artifact resolve.
 
-**`bash tools/lint-credentialed-skills.sh`** — credentialed-skill rules,
-scoped to skills whose `SKILL.md` declares `metadata.credentialed: true`
-(per agentskills.io spec, project-specific fields live under
-`metadata:`):
+## Credentialed-skill rules
 
-1. The body contains an `### Security rules (non-negotiable)` heading
-   and the three required security substrings inside that section (the
-   verbatim "Don't" block).
-2. For `metadata.primitive-class: credentialed-cli`: no script under
-   the skill's `scripts/` directory accepts an `argparse` flag whose
-   normalised name (strip leading `-`, casefold, `-` → `_`) is one of
-   `{token, api_token, api_key, bearer, pat, password}`. Detection
-   handles literal strings AND `"--" + "name"`-style concatenation.
-3. No script under a credentialed skill's `scripts/` directory contains
-   the substring `.agentbundle/credentials.env` unless the opt-out
-   comment `# credentialed-primitive: reads-creds-directly` appears
-   on the same line.
+Scoped to skills whose `SKILL.md` declares `metadata.credentialed: true`
+(project-specific fields live under `metadata:` per the agentskills.io spec):
 
-If any linter is missing or fails to run, fall back to inspecting the
-files directly and report the same checks manually. Don't auto-fix
-anything — report findings and let the user decide what to do.
+1. The body contains a `### Security rules (non-negotiable)` heading and the
+   three required security substrings inside that section (the verbatim
+   "Don't" block).
+2. For `metadata.primitive-class: credentialed-cli`: no script under the
+   skill's `scripts/` directory accepts an `argparse` flag whose normalised
+   name (strip leading `-`, casefold, `-` → `_`) is one of `{token, api_token,
+   api_key, bearer, pat, password}`. This covers literal strings and
+   `"--" + "name"`-style concatenation.
+3. No script under a credentialed skill's `scripts/` directory contains the
+   substring `.agentbundle/credentials.env` unless the opt-out comment
+   `# credentialed-primitive: reads-creds-directly` appears on the same line.
+
+If you inspect by hand because no linter covers a check, report the same
+findings manually. Don't auto-fix anything — report and let the user decide.
