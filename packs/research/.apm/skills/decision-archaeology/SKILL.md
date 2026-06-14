@@ -1,6 +1,6 @@
 ---
 name: decision-archaeology
-description: Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `archaeology.md` with chronology, the rationale chain, and the alternatives that were considered and rejected. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
+description: Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `archaeology.md` with chronology, the rationale chain, the alternatives that were considered and rejected, and a revival check flagging any rejected alternative whose original rejection rationale no longer holds. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
 ---
 
 # /decision-archaeology
@@ -62,7 +62,11 @@ Rationale reconstruction has three converging disciplines:
    rejected, who signed.
 5. **Surface alternatives-considered** — the rejected branches deserve
    their own section.
-6. **Write `archaeology.md`**. No `sources.md` is produced.
+6. **Run the revival check** — for each rejected alternative, test
+   whether its original rejection rationale still holds today. Where the
+   constraint that forced rejection has changed, flag the alternative as
+   a **revival candidate**. See *Revival check* below.
+7. **Write `archaeology.md`**. No `sources.md` is produced.
 
 ## `archaeology.md` output schema
 
@@ -91,10 +95,40 @@ Rationale reconstruction has three converging disciplines:
 - **<alternative name>** — rejected at step <N>. Reason: <citation>.
 - **<alternative name>** — rejected at step <N>. Reason: <citation>.
 
+## Revival candidates
+
+- **<alternative name>** — rejected at step <N> because <original
+  rationale, cited>. That constraint has since changed: <what changed,
+  cited>. Revival candidate.
+
 ## Open questions
 
 - <a rationale link the artifact trail does not actually establish>.
 ```
+
+## Revival check
+
+`Alternatives considered` records what was rejected and why. The revival
+check asks the next question: *does the rejection still hold?* A rejection
+rationale that pointed at an external constraint — cost, a missing
+dependency, immature tooling, team size, scale not yet reached — is only
+as live as that constraint. An archaeology that stops at "X was rejected
+because Y" leaves a live opportunity buried once Y stops being true.
+
+For each rejected alternative, classify its rejection rationale:
+
+- **Still binding** — the constraint that forced rejection holds today.
+  Leave it rejected; say so, so the next reader doesn't re-litigate it.
+- **Lapsed** — the constraint has since changed (the dependency now
+  exists, the cost dropped, the scale arrived, the tooling matured).
+  Flag the alternative as a **revival candidate**, citing both the
+  original rationale and the changed constraint.
+
+A revival candidate is a *finding*, not a recommendation: it says "this
+deserves reconsideration" and hands the actual forward decision to
+`/compare-hypotheses`. Rationales that rest on a value choice rather than
+a changed constraint are not revival candidates — they did not lapse,
+the priorities shifted, which is a different conversation.
 
 ## Citation discipline
 

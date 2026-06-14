@@ -1,6 +1,6 @@
 ---
 name: identify-perspectives
-description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `perspectives.md` listing each camp's name, its core claim, and representative voices. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
+description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map of the irreducible disagreements — the conditions under which each position holds and what forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
 ---
 
 # /identify-perspectives
@@ -50,7 +50,32 @@ Evaluation is `/compare-hypotheses`'s job downstream.
 4. **Look for missing camps** — quiet positions, dissenting minorities,
    contrarian-but-credentialed. The biggest NPOV failure is
    *omission*, not bias.
-5. **Write `perspectives.md`**.
+5. **Map the irreducible tensions.** Camps that genuinely conflict are
+   the point of the artifact, not a defect to adjudicate here. For each
+   *preserved* disagreement — one where both camps hold real ground —
+   record the **conditions under which each position holds** (the
+   boundary that makes each camp right *somewhere*) and **what forced
+   resolution would destroy** (the distinction that collapsing to one
+   camp would erase). A disagreement that dissolves once its conditions
+   are named was never a real tension — fold it back into the camps. One
+   that *sharpens* under that test is irreducible — preserve it. See
+   *Tension map* below.
+6. **Write `perspectives.md`**.
+
+## Tension map
+
+Naming the camps says *what* the positions are; the tension map says
+*why the disagreement persists*. It is the difference between a list and
+an explanation, and it is the habit that keeps this skill from quietly
+collapsing a live controversy into the camp the model finds most
+credible.
+
+A tension belongs on the map when both positions are defensible and each
+is right under different conditions — not when one is simply better
+supported (that is `/compare-hypotheses`'s call, downstream). The map
+extends NPOV's *representation* discipline one step: from "every
+significant camp gets named" to "the boundary between camps gets named,
+so the disagreement survives the trip downstream intact."
 
 ## `perspectives.md` output schema
 
@@ -70,6 +95,15 @@ Evaluation is `/compare-hypotheses`'s job downstream.
 ## Possibly-missing camps
 
 - <one-line description of a position that might be under-represented>.
+
+## Tension map
+
+### Tension: <camp A> vs <camp B>
+
+- **Holds for A when:** <the regime / conditions under which A is right>.
+- **Holds for B when:** <the regime / conditions under which B is right>.
+- **Forced resolution would destroy:** <the distinction lost if the
+  pipeline collapsed this to one answer>.
 ```
 
 ## Citation discipline

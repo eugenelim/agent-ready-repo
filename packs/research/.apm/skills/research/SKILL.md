@@ -1,6 +1,6 @@
 ---
 name: research
-description: "Evidence-grounded research with selectable depth and discipline. Use for any look-up, find-out, fact-check, or comprehensive investigation, including prior art and best practice surveys. Carries a mode parameter (quick / standard / applied / deep) with `quick` as default — casual phrasings (`look up`, `find out`, `quick check`) stay quick; academic phrasings (`research with citations`, `evidence-grounded`, `go deep`, `comprehensively`) bias standard or deep; practitioner phrasings (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) bias applied. Quick mode is inline, ≤5 fetches, no artifact. Standard mode produces `research.md` with GRADE-style confidence per finding from peer-reviewed and primary sources. Applied mode produces `research.md` calibrated for practitioner grey literature with a discipline-aware confidence overlay. Deep mode additionally auto-runs `/devils-advocate`, producing `counterpoints.md`."
+description: "Evidence-grounded research with selectable depth and discipline. Use for any look-up, find-out, fact-check, or comprehensive investigation, including prior art and best practice surveys. Carries a mode parameter (quick / standard / applied / deep) with `quick` as default — casual phrasings (`look up`, `find out`, `quick check`) stay quick; academic phrasings (`research with citations`, `evidence-grounded`, `go deep`, `comprehensively`) bias standard or deep; practitioner phrasings (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) bias applied. Quick mode is inline, ≤5 fetches, no artifact. Standard mode produces `research.md` with GRADE-style confidence per finding from peer-reviewed and primary sources. Applied mode produces `research.md` calibrated for practitioner grey literature with a discipline-aware confidence overlay. Deep mode additionally auto-runs `/devils-advocate`, producing `counterpoints.md`. Plus a known-unknowns/unknowables gap section."
 ---
 
 # /research
@@ -151,10 +151,13 @@ to chain.
    `[inference]` per Wikipedia V/RS and GRADE convergence.
 5. **Rate** — apply the confidence schema in
    `references/confidence-schema.md` to every finding.
-6. **Moderator pass** — before declaring done, scan retrieved-but-
+6. **Name the gaps** — record what the research could *not* establish
+   as a first-class section, not as low-rated findings. See *Gaps*
+   below. Skip in quick mode (no artifact).
+7. **Moderator pass** — before declaring done, scan retrieved-but-
    uncited material and consider one more query from the highest-signal
    unused snippet (Co-STORM contribution). Skip in quick mode.
-7. **Adversarial review (deep mode only)** — auto-invoke
+8. **Adversarial review (deep mode only)** — auto-invoke
    `/devils-advocate` on `research.md`; emit `counterpoints.md`.
 
 ## Retrievers
@@ -220,6 +223,39 @@ Before declaring the artifact done, scan retrieved-but-uncited
 material. If the highest-signal unused snippet would change a rating
 or fill a gap, issue one more targeted query. This is the Co-STORM
 contribution — it catches the trail you almost left on the table.
+
+## Gaps — known-unknowns and unknowables
+
+A confidence tag rates a finding that *exists*. It has no slot for a
+question the research raised but could not answer, and that absence
+silently disappears unless the artifact names it. Standard, applied, and
+deep mode therefore close with a first-class gap section — distinct from
+any `[low]` or `[uncertain]` finding, which still asserts *something*:
+
+- **Known-unknowns** — questions the research surfaced and could not
+  answer within its bounds: no source exists yet, the source exists but
+  was out of reach, or the search was scoped out. These are *answerable
+  in principle* — they mark where more research would pay off.
+- **Unknowables** — questions research cannot settle at all: genuinely
+  open at the frontier, contested by definition, dependent on a future
+  that hasn't happened, or resting on a value choice rather than a fact.
+  Tagging these `[uncertain]` would misrepresent them as weak findings
+  rather than as questions outside evidence's reach.
+
+A gap is not a failure of the research; an *unnamed* gap is. The section
+lives in `research.md`:
+
+```markdown
+## Gaps
+
+### Known-unknowns
+
+- <question raised but unanswerable within bounds; what would resolve it>.
+
+### Unknowables
+
+- <question outside evidence's reach; why it is unknowable, not just weak>.
+```
 
 ## What this skill is not
 

@@ -31,6 +31,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keep-vs-delete the tool — is a new on-demand reference,
   `references/scale-with-a-tool.md`.
 
+- **The research pack learns to preserve irreducible ambiguity instead of
+  always collapsing to one rated answer (research 0.2.0).** Four skills gain a
+  habit each, under a single theme: `/identify-perspectives` now builds a
+  **tension map** recording, per preserved disagreement, the conditions under
+  which each camp holds and what forced resolution would destroy;
+  `/devils-advocate` gains a **do-not-resolve** verdict for productive,
+  irreducible tensions, distinct from its confidence-downgrade; `/research`
+  standard/applied/deep artifacts close with a first-class **gaps** section
+  naming known-unknowns and unknowables, distinct from rating a weak finding
+  `[uncertain]`; and `/decision-archaeology` runs a **revival check** that flags
+  a rejected alternative whose original rejection rationale no longer holds
+  (the constraint changed) as a revival candidate. Skill prose only.
+
 - **The rest of the catalogue-internal references are swept from shipped
   content (core 0.4.4, figma 0.1.3).** Following the first pass, the remaining
   `make build-*` build-target mentions, an internal RFC citation, and the "this

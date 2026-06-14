@@ -1,6 +1,6 @@
 ---
 name: devils-advocate
-description: Adversarially review a research artifact (`research.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and proposes confidence-rating downgrades. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `research.md`; runs standalone against any user-supplied claim. Produces `counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
+description: Adversarially review a research artifact (`research.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and proposes confidence-rating downgrades — or, for a productive/irreducible tension, a do-not-resolve verdict that preserves the disagreement instead of collapsing it. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `research.md`; runs standalone against any user-supplied claim. Produces `counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
 ---
 
 # /devils-advocate
@@ -51,14 +51,43 @@ Two convergent disciplines:
 3. **Retrieve counter-evidence** — dispatch `evidence-retriever`
    subagent against each counter-position. The main session does the
    reasoning; the subagent supplies the material.
-4. **Propose rating downgrades** — for each finding whose evidence-
-   against is substantive, propose the new confidence rating
-   (`[high]` → `[moderate]`, or `[moderate]` → `[low]`, etc., per
-   `references/confidence-schema.md`). Name the downgrade factor.
+4. **Fork the verdict** — for each finding whose evidence-against is
+   substantive, decide between two outcomes (see *Two verdicts* below):
+   - **Downgrade** — propose the new confidence rating (`[high]` →
+     `[moderate]`, or `[moderate]` → `[low]`, etc., per
+     `references/confidence-schema.md`) and name the downgrade factor.
+   - **Do-not-resolve** — when the finding and its counter-position are
+     *both* well-supported and hold under different conditions, return a
+     do-not-resolve verdict instead of a downgrade. Name the regime
+     split; do not pick a winner.
 5. **Moderator pass** — before declaring done, scan retrieved-but-
    uncited counter-material and consider one more query from the
    highest-signal unused snippet (Co-STORM contribution).
 6. **Write `counterpoints.md`**, linking back to the source artifact.
+
+## Two verdicts: downgrade vs do-not-resolve
+
+A confidence downgrade and a do-not-resolve verdict are different
+outcomes, and conflating them is the failure this section exists to
+prevent.
+
+- **Downgrade** says the finding is *weaker* than rated — the
+  counter-evidence erodes it, one answer still stands, just less
+  confidently. The artifact still collapses to a single rated answer.
+- **Do-not-resolve** says the finding and its counter-position are
+  *both* well-supported and each holds under different conditions. The
+  tension is productive: collapsing it to one rated answer would be
+  false precision, not added confidence, and forcing a winner would
+  destroy real information about *when* each holds.
+
+Reach for do-not-resolve when the evidence-against is roughly as strong
+as the evidence-for **and** the two hold in different regimes (different
+scale, context, time horizon, or value frame). This is ACH's discipline
+taken to its conclusion: ACH refuses *premature* closure, and the
+do-not-resolve verdict refuses closure where closure itself is the
+error. Where `/identify-perspectives` produced a tension map, a
+do-not-resolve verdict is its downstream echo — cite the matching
+tension if one exists.
 
 ## `counterpoints.md` output schema
 
@@ -75,6 +104,14 @@ Two convergent disciplines:
 ## Finding: <next>
 
 (same shape)
+
+## Finding: <quoted from target> — do-not-resolve
+
+- **Verdict:** do-not-resolve (productive tension).
+- **Counter-position:** <the equally-supported opposing finding>.
+- **Holds when:** original finding under <regime A>; counter-position
+  under <regime B>.
+- **Why not collapse:** <what a forced single answer would destroy>.
 ```
 
 ## Citation discipline
