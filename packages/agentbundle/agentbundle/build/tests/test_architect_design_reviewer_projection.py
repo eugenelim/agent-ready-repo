@@ -69,6 +69,19 @@ class ArchitectDesignReviewerProjectionTests(unittest.TestCase):
                         any("agents" in h.parts for h in hits),
                         f"{adapter}: design-reviewer projected but not under an agents/ route: {hits}",
                     )
+                    if adapter == "cursor":
+                        # cursor encodes the read-only contract as a `readonly`
+                        # frontmatter flag (it drops the source `tools:` allowlist
+                        # and derives the flag for a non-mutating agent). Assert it
+                        # survives projection so AC5's read-only guarantee holds at
+                        # the one target that represents it as a flag rather than a
+                        # tools list — the design-reviewer flags, never rewrites.
+                        agent_hit = next(h for h in hits if "agents" in h.parts)
+                        self.assertIn(
+                            "readonly",
+                            agent_hit.read_text(encoding="utf-8"),
+                            "cursor: design-reviewer must project with the readonly flag",
+                        )
 
 
 if __name__ == "__main__":
