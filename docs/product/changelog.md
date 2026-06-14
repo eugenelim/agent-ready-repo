@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`work-loop` gains a "Scale with a tool, not turns" technique for large,
+  repetitive tasks (core 0.4.5).** When a task spans many similar items —
+  applying one change across N files, transforming a large set, auditing every
+  module — the skill now points you at writing a small enumeration script backed
+  by a resumable tracking file (`progress.jsonl` or a checklist with per-item
+  `pending`/`done`/`failed` state), so an idempotent re-run skips finished items
+  and the loop reliably reaches 100% completion instead of stalling when context
+  turns over. A short headline lands in the EXECUTE phase; the full playbook —
+  tracking-file schema, idempotency, when to shell out to the agent per item, and
+  keep-vs-delete the tool — is a new on-demand reference,
+  `references/scale-with-a-tool.md`.
+
 - **The rest of the catalogue-internal references are swept from shipped
   content (core 0.4.4, figma 0.1.3).** Following the first pass, the remaining
   `make build-*` build-target mentions, an internal RFC citation, and the "this
