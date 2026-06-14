@@ -246,8 +246,9 @@ Filled in on acceptance:
 
 - Spec: `docs/specs/architect-design-reviewer/` — agent file, convergence-loop
   rung wiring, README revision, pack version bump, contract/adapter test updates.
-- ADR: record the charter-ceiling interpretation (decision 2) as a decision, so
-  future "can we add a reviewer?" questions resolve against it.
+- ADR-0023: records the charter-ceiling interpretation (decision 2) as a
+  decision, so future "can we add a reviewer?" questions resolve against it —
+  `docs/adr/0023-reviewer-ceiling-scopes-core-code-review-lenses.md` (Accepted).
 - Edits (each an explicit acceptance criterion in the spec, not a migration
   footnote): `packs/architect/README.md` — revise the verbatim exclusion
   *"**Subagents.** Code-side reviewers cover code; design-side review is a skill,

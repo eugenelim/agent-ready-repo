@@ -669,3 +669,37 @@ the citations sit in library-provenance docstrings rather than agent-facing
 prose, so they were left for a separate, deliberate pass that respects the
 freeze. Fold this into the `apm-leak-lint-rfc` work, or do it as a focused
 comment-only PR against the frozen pack with explicit sign-off.
+
+## architect-rubric-parity-guard
+
+### design-reviewer-rubric-drift
+
+`packs/architect/.apm/agents/design-reviewer.md` (RFC-0032) inlines a condensed
+copy of `architect-review`'s verdict scheme, severity glossary, and 🔧/🧭
+mechanical-judgment taxonomy — guarded only by a one-time authoring
+byte-faithfulness diff plus a prose note, per the pack's standing
+duplication-over-DRY convention. There is no mechanical guard forcing the agent
+copy to reconcile when `architect-review/SKILL.md` or `rubric-well-architected.md`
+next changes those labels/definitions. Note this is **not** a new gap unique to
+the agent: the same verdict/severity rubric is already duplicated
+`architect-design`↔`architect-review` without a parity guard (the existing
+`tools/lint-knowledge-surface-parity.py` covers only the *knowledge-surface*
+taxonomy, not these rubrics). A guard here would therefore also imply guarding
+that pre-existing duplication — a deliberate design call beyond RFC-0032's scope.
+
+Deferred from the `architect-design-reviewer` quality-engineer pass (Concern 1).
+If pursued: extend `lint-knowledge-surface-parity.py` (or add a sibling lint) to
+assert the verdict labels / severity glyphs / mechanical-judgment definitions are
+byte-identical across `architect-design`, `architect-review`, and the
+`design-reviewer` agent, wired into CI alongside that lint. Weigh against the
+pack's duplication-over-DRY principle first — it may be a deliberate non-goal.
+
+### design-reviewer-cursor-readonly-projection-assertion
+
+The `architect-design-reviewer` projection test asserts the agent lands under
+each adapter's `agents/` route but not that the `cursor` adapter emits
+`readonly: true` for it (cursor's documented degradation that makes "flag, never
+rewrite" hold for that target). The generic readonly-derivation mechanism is
+already covered by `test_adapter_cursor.py`, so this is a coverage-tightening
+nit, not a gap. Deferred from the quality-engineer pass (Nit 2); if pursued, add
+a one-line `assertIn("readonly", …)` to the cursor subTest.

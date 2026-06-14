@@ -34,6 +34,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   provider/consumer projection and the survive/kill verdict respectively — no
   change there.)
 
+- **`architect` ships a forked-context `design-reviewer` subagent (architect
+  0.6.0, RFC-0032).** A read-only sibling of the `architect-review` skill: the
+  same genre-routed verdict critique and well-architected risk register, with
+  the same severity and mechanical/judgment tags — but run in an isolated
+  context that hasn't seen the authoring, so it can't mark its own homework. It
+  is the *fresh-context (preferred)* rung of `architect-design`'s convergence
+  loop (which previously had only an in-thread skill and a weaker cold-re-read
+  floor); its tools are `Read, Grep, Glob`, so it flags and never rewrites the
+  design. The `architect-review` skill is unchanged and the two coexist. The
+  convergence loop stays a soft dependency — it degrades gracefully when the
+  subagent isn't installed. ADR-0023 records that the charter's "three reviewers
+  is the ceiling" scopes the core code-review lenses, not opt-in design-side
+  review.
+
 - **`architect-diagram` learns deliberate visual encoding (architect 0.5.3).**
   A new `references/visual-encoding.md` turns scattered correctness rules into
   one design heuristic: when a diagram distinguishes more than one category of

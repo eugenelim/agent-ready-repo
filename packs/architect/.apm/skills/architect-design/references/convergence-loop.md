@@ -64,8 +64,9 @@ A review of your own fresh draft, in the same context that authored it, marks it
 own homework — `architect-review`'s standing anti-pattern. Honor it with an
 isolation ladder, strongest first:
 
-1. **Fresh context (preferred).** A new session, or the harness's review
-   subagent where it has one. The reviewer has not seen the authoring.
+1. **Fresh context (preferred).** The architect pack's `design-reviewer`
+   subagent where installed, a new session, or the harness's review subagent
+   where it has one. The reviewer has not seen the authoring.
 2. **Cold re-read (floor).** Where fresh context is unavailable, do a disciplined
    cold re-read that **sets aside the authoring rationale** and reads the
    artifact as if encountering it for the first time. This is **explicitly weaker
@@ -79,9 +80,16 @@ biases it toward agreeing).
 
 ## Where the review comes from — degrade gracefully
 
+- **`design-reviewer` subagent installed (preferred)** → dispatch it as a
+  forked-context review — rung 1 of *Reviewer independence* above — seeded with
+  the artifact + concept + constraints (never the authoring chain-of-thought).
+  It returns the verdict + severity- *and* mechanical/judgment-tagged findings
+  this loop consumes, in genuine isolation from the context that authored the
+  draft. This is the strongest source; prefer it when available.
 - **`architect-review` installed** → obtain the review from its well-architected
   / lens mode (it returns severity- *and* mechanical/judgment-tagged findings —
-  the signal this loop consumes).
+  the signal this loop consumes). Same rubric as the subagent, but in-thread —
+  use the strongest isolation available per the ladder above.
 - **`architect-review` not installed** → loop against `architect-design`'s own
   **embedded rubric self-check**: walk `design-doc-rubric.md` and
   `nfr-checklist.md`, plus the WA references (`well-architected-pillars.md`,

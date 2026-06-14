@@ -1,9 +1,9 @@
 # Spec: architect-design-reviewer
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0032
+- **Constrained by:** RFC-0032, ADR-0023
 - **Brief:** none
 - **Contract:** none
 - **Shape:** integration
@@ -103,11 +103,11 @@ integration surface. No TDD-mode tasks.
 
 ## Acceptance Criteria
 
-- [ ] `packs/architect/.apm/agents/design-reviewer.md` exists; frontmatter
+- [x] `packs/architect/.apm/agents/design-reviewer.md` exists; frontmatter
   declares `name: design-reviewer`, `tools: Read, Grep, Glob`, `model: opus`,
   and a `description` within the lint length cap that triggers on an
   independent critique of a design artifact.
-- [ ] The agent body is **self-contained**: it inlines the verdict scheme
+- [x] The agent body is **self-contained**: it inlines the verdict scheme
   (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), the severity
   glossary (🟥 blocker / 🟧 major / 🟨 minor / ⚪ nit), the mechanical/judgment
   taxonomy, and genre routing for the artifact types (design doc, C4, sequence,
@@ -118,32 +118,32 @@ integration surface. No TDD-mode tasks.
   `architect-review/SKILL.md` and `references/rubric-well-architected.md` (a
   one-time diff recorded in T1) — anchor-presence alone does not prove the
   inlined semantics match the skill.
-- [ ] The agent body covers **both** `architect-review` modes — the verdict
+- [x] The agent body covers **both** `architect-review` modes — the verdict
   critique and the well-architected risk-register (each finding tagged
   🔧 mechanical / 🧭 judgment).
-- [ ] The agent body codifies **reviewer-independence**: it states it must be
+- [x] The agent body codifies **reviewer-independence**: it states it must be
   seeded with the artifact + concept + constraints and **never the authoring
   chain-of-thought**, that it flags but never rewrites the design, and that it
   returns the **findings block only** (no methodology recap or narration),
   matching the core reviewers' output contract.
-- [ ] The agent's `tools:` is exactly `Read, Grep, Glob` — no `Edit`, `Write`,
+- [x] The agent's `tools:` is exactly `Read, Grep, Glob` — no `Edit`, `Write`,
   or `Bash`.
-- [ ] `packs/architect/.apm/skills/architect-design/references/convergence-loop.md`
+- [x] `packs/architect/.apm/skills/architect-design/references/convergence-loop.md`
   § *Where the review comes from* gains a rung naming the `design-reviewer`
   agent as the rung-1 (fresh-context) source when installed, degrading to the
   existing `architect-review`-installed / embedded-self-check ladder otherwise;
   the loop's soft-dependency wording is preserved.
-- [ ] `packs/architect/README.md` revises the exclusion that currently reads
+- [x] `packs/architect/README.md` revises the exclusion that currently reads
   (substring match, the sentence wraps two lines) *"Code-side reviewers cover
   code; design-side review is a skill, not a subagent."* and documents the
   shipped `design-reviewer` subagent.
-- [ ] `docs/guides/architect/how-to/review-an-architecture-artifact.md` and
+- [x] `docs/guides/architect/how-to/review-an-architecture-artifact.md` and
   `docs/guides/architect/README.md` mention the `design-reviewer` subagent as
   the independent (fresh-context) review option alongside the in-thread skill.
-- [ ] Pack version bumped `0.5.3` → `0.6.0` in `packs/architect/pack.toml`
+- [x] Pack version bumped `0.5.3` → `0.6.0` in `packs/architect/pack.toml`
   **and** `packs/architect/.claude-plugin/plugin.json`; `marketplace.json`
   refreshed via `make build-self`; working tree clean.
-- [ ] The agent projects across all seven of architect's `allowed-adapters`.
+- [x] The agent projects across all seven of architect's `allowed-adapters`.
   Verification of record is **durable and re-runnable**: a contract/adapter-test
   assertion (or an explicit committed goal-based one-liner run against a freshly
   built `dist/`) that names architect + `design-reviewer` across all seven
@@ -151,13 +151,13 @@ integration surface. No TDD-mode tasks.
   inspection is allowed only as a supplement, never as the sole evidence
   (`dist/` is gitignored). This is where RFC-0032's deferred `kiro-cli`
   install-confirmation lands.
-- [ ] `docs/adr/<NNNN>-*.md` records the charter-ceiling interpretation
+- [x] `docs/adr/<NNNN>-*.md` records the charter-ceiling interpretation
   (RFC-0032 decision 2 — "three reviewers is the ceiling" scopes the core
   code-review lenses, not opt-in design-side review), status Accepted, linked
   from RFC-0032's follow-on artifacts and this spec's `Constrained by`.
-- [ ] `docs/product/changelog.md` `[Unreleased] → Added` carries an entry for
+- [x] `docs/product/changelog.md` `[Unreleased] → Added` carries an entry for
   the `design-reviewer` subagent.
-- [ ] Full `packages/agentbundle` pytest, `lint-packs`, `lint-agent-artifacts`,
+- [x] Full `packages/agentbundle` pytest, `lint-packs`, `lint-agent-artifacts`,
   `validate`, and `build` are green. The candidate assertions that could see
   architect's first agent — pre-identified by grep — are checked and updated if
   red: `test_plugin_manifest_schema.py`, `test_contract.py`,

@@ -1,7 +1,7 @@
 # Plan: architect-design-reviewer
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -214,10 +214,13 @@ follow-on + spec `Constrained by`) resolve.
   scenarios — and update any that go red.
 
 **Approach:**
-- Add/extend the durable projection assertion, then build and confirm the agent
-  appears in each adapter's native form (`.claude/agents/…`, `codex-agent-toml`,
-  `.github/agents/…`, `.kiro/agents/…`, kiro-cli, `.cursor/agents/…`,
-  `.gemini/agents/…`).
+- Add the durable projection assertion as a `build/tests` test, then build and
+  confirm the agent appears in each adapter's native form (`.claude/agents/…`,
+  `codex-agent-toml`, `.github/agents/…`, `.kiro/agents/…`, kiro-cli,
+  `.cursor/agents/…`, `.gemini/agents/…`).
+- **Wire the test into `.github/workflows/build-check.yml`** by explicit path —
+  the `build/tests` root is not auto-discovered, so without this the test never
+  gates and AC10's "fails if dropped" guarantee is hollow.
 - Run the full suite; fix any of the named candidate assertions that hard-code
   architect as agent-free.
 
