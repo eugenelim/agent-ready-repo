@@ -165,21 +165,32 @@ For anything beyond trivial, *think before you write code*. Concretely:
     contract; verify with a one-liner (build command, `grep`, typecheck)
     instead of a test file. Don't write a test that just asserts what
     the compiler already proves.
-  - **Visual / manual QA** — UI rendering, end-to-end UX flows. The task
-    records the manual check explicitly. For user-facing flows that are
-    part of the spec's contract, the verification artifact — automated or
-    manual — should simulate the user's gesture and assert *what the user
-    actually sees* (rendered text, visible elements, navigation), not
-    internal state (store contents, mock-call counts, context-provider
-    values). A test that passes when the on-screen result is wrong is
-    mode-mismatched, regardless of which framework wrote it. Add
-    automation when the regression cost (UI bugs ship invisibly) outweighs
-    the cost (flakiness, framework brittleness); the choice of tool is the
-    adopter's. A third flavor — *exploratory / visual fuzz* — drives the
-    UI with varied or random input and asserts **invariants** ("didn't
-    crash, didn't render garbage, layout holds, no overflow") rather than
-    specific outputs. Reach for it when the failure mode is open-ended and
-    you can't enumerate the gestures up front.
+  - **Visual / manual QA** — UI rendering and end-to-end UX flows, **and any
+    other artifact a user invokes directly**: a CLI, a library's public API, an
+    agent or skill, a service endpoint. The task records the manual check
+    explicitly. **When a change ships something a user invokes, verification
+    includes exercising the real built artifact end-to-end the way a user
+    would — through the documented happy path — and recording what you
+    observed**: the actual stdout and exit code, the returned value, the file
+    written, the on-screen result. Assert on that observed result, not on
+    internal state (store contents, mock-call counts, context-provider values),
+    and don't let a passing unit gate stand in for the real invocation. A test
+    or check that passes while the artifact, run as documented, produces the
+    wrong result is mode-mismatched, regardless of which framework wrote it.
+    For UI flows "what you observed" is *what the user actually sees* (rendered
+    text, visible elements, navigation); for a CLI it's the command's real
+    output and exit status; for a library it's the public call's result and
+    effects through its documented entry point, not a private internal. This is
+    **harness-agnostic doctrine** — exercise the artifact by hand on any agent;
+    in Claude Code the native `/verify` and `/run` commands perform it, an
+    optional accelerant and never a dependency, so adapters without them lose
+    only the shortcut, not the step. Add automation when the regression cost (a
+    broken invocation ships invisibly) outweighs the cost (flakiness,
+    brittleness); the choice of tool is the adopter's. A third flavor —
+    *exploratory / visual fuzz* — drives the UI with varied or random input and
+    asserts **invariants** ("didn't crash, didn't render garbage, layout holds,
+    no overflow") rather than specific outputs. Reach for it when the failure
+    mode is open-ended and you can't enumerate the gestures up front.
 
   Spikes and throwaway exploration are out of scope.
 - **Design tests up front, before any code.** The contract lives in
@@ -304,8 +315,9 @@ Match the discipline to the verification mode you picked during PLAN:
   3. Refactor with the test as your safety net. Commit.
 - **Goal-based check** — write the code, then run the one-liner from
   `Done when:`. No production test file.
-- **Visual / manual QA** — implement, then run the manual check recorded
-  in the task. Record the result.
+- **Visual / manual QA** — implement, then exercise the built artifact
+  end-to-end through the documented workflow recorded in the task, and
+  record what you observed (real output, not internal state).
 
 For each task, implement the smallest coherent unit of work toward the
 goal. Resist the urge to fix unrelated things you notice along the way;
@@ -630,6 +642,10 @@ mode below, then evaluate the terminal-state bullet last.
   `adversarial-reviewer` pass, with no `loop-cohort` involved. The doc-drift
   invariants and `lint-spec-status.py` still apply.)
   - GATES were clean (lint, typecheck, tests).
+  - **If the change ships something a user invokes** (a CLI, a library's
+    public API, an agent, a UI), the real built artifact was exercised
+    end-to-end through its documented happy path and the observed result
+    recorded — a passing unit gate alone does not satisfy this.
   - For each reviewer the diff warranted (`adversarial-reviewer`
     always; `security-reviewer` on security-boundary diffs;
     `quality-engineer` on every loop, plus a whole-spec pass on the
