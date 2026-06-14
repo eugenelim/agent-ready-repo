@@ -361,6 +361,27 @@ hand on any agent; in Claude Code the native `/simplify` command
 performs it, an optional accelerant and never a dependency, so adapters
 without it lose only the shortcut, not the step.
 
+#### Scale with a tool, not turns
+
+When a task spans many similar items — apply one change across N files,
+extract or transform a large set, audit every module against a rule —
+grinding through them item-by-item across turns exhausts context and
+reliably stalls before the last item, leaving the work *looking* done
+while the tail was never touched. **Reach for this whenever the work is
+repetitive and larger than a single window holds.** The move: write a
+small script that enumerates the items, drive them through a resumable
+tracking file (per-item `pending`/`done`/`failed`), and iterate
+idempotently so a re-run skips what's already done — that resumability,
+not your stamina, is what guarantees 100% completion. Where a per-item
+step needs judgment the script can't make, the script can shell out to
+the agent once per item; the tracking file still governs completion. It
+converts *"too big for my context"* into *"mechanical and resumable."*
+Throwaway tools are fine; occasionally one earns a place in `tools/`.
+Full playbook — tracking-file schema, idempotency and resumability, when
+to shell to the agent, keep-vs-delete the tool — in
+[`references/scale-with-a-tool.md`](references/scale-with-a-tool.md)
+(load it on demand).
+
 #### Parallel dispatch discipline
 
 When this skill fans out — multiple implementers in supervisor mode, or
