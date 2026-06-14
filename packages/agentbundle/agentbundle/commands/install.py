@@ -507,7 +507,15 @@ def run(args: "argparse.Namespace") -> int:
     if (
         user_scope_hooks_opt_in
         and requested_scope == "user"
-        and not _adapter_supports_user_scope_hook_wiring(user_target_adapter)
+        # Canonicalize the deprecated `kiro` alias to `kiro-ide` so it makes
+        # the SAME refuse decision as its canonical target (RFC-0022): the
+        # IDE has no user-scope hook-wiring mode, so a `user-scope-hooks`
+        # pack is refused — not silently accepted-and-dropped. The legacy
+        # `[adapter.kiro]` block still declares `merge-into-agent-json`, so
+        # without canonicalizing here the alias would diverge from kiro-ide.
+        and not _adapter_supports_user_scope_hook_wiring(
+            _canonical_install_adapter(user_target_adapter)
+        )
     ):
         print(
             f"install: adapter {user_target_adapter!r} does not declare a "
@@ -630,14 +638,17 @@ def run(args: "argparse.Namespace") -> int:
         )
 
     # ── Step 6: Pre-flight — rails A/B/C for any user-scope write ────────────
-    # Also run the kiro attach-to-agent rail (T2's `check_kiro_wiring`)
-    # for user-scope kiro-targeted packs. Catches malformed wiring TOMLs
-    # (missing/typo'd `attach-to-agent`, path-traversal payloads) before
-    # any render — the build-pipeline error message ("internal: <path>
-    # missing") isn't actionable for adopters; this rail surfaces the
-    # actual contract violation.
-    if any(p.scope == "user" for p in plans) and user_target_adapter == "kiro":
-        target_adapters = {"kiro"}
+    # Also run the kiro attach-to-agent rail (`scope_rails.check_kiro_wiring`)
+    # for user-scope packs targeting the MERGING adapter (`kiro-cli`).
+    # Catches malformed wiring TOMLs (missing/typo'd `attach-to-agent`,
+    # path-traversal payloads) before any render — the build-pipeline error
+    # message ("internal: <path> missing") isn't actionable for adopters;
+    # this rail surfaces the actual contract violation. The `kiro` alias
+    # (= kiro-ide) DROPS hook-wiring, so it has no merge target to validate
+    # and is intentionally NOT gated here (matches kiro-ide: drop + warn,
+    # don't refuse) — RFC-0022.
+    if any(p.scope == "user" for p in plans) and user_target_adapter == "kiro-cli":
+        target_adapters = {"kiro-cli"}
         kiro_refusal = scope_rails.check_kiro_wiring(
             pack_dir, pack_name, target_adapters
         )
@@ -1593,8 +1604,14 @@ def _maybe_emit_dropped_warning(
     from agentbundle.build.main import _read_bundled
     contract = _tomllib.loads(_read_bundled("adapter.toml"))
 
-    dropped = _enumerate_dropped_primitives(pack_dir, adapter, contract)
-    event_drops = enumerate_event_dropped_wirings(pack_dir, adapter, contract)
+    # Enumerate against the *canonical* adapter so the deprecated `kiro`
+    # alias reports kiro-ide's drops (hook-wiring + command), matching what
+    # is actually projected — but keep the adopter's chosen name (`kiro`) in
+    # the warning *text*, since the recorded adapter identity is preserved
+    # (RFC-0022 keeps `kiro` a named alias).
+    canonical_adapter = _canonical_install_adapter(adapter)
+    dropped = _enumerate_dropped_primitives(pack_dir, canonical_adapter, contract)
+    event_drops = enumerate_event_dropped_wirings(pack_dir, canonical_adapter, contract)
 
     if not dropped and not event_drops:
         # Adapter has no dropped modes OR pack ships nothing droppable.
@@ -1603,7 +1620,7 @@ def _maybe_emit_dropped_warning(
         # a sudden warning mid-process.
         _DROPPED_WARNING_SEEN.add(key)
         return
-    compatible = _enumerate_compatible_primitives(pack_dir, adapter, contract)
+    compatible = _enumerate_compatible_primitives(pack_dir, canonical_adapter, contract)
     msg = format_drop_message(
         pack_name=pack_name,
         adapter=adapter,
@@ -2328,6 +2345,22 @@ def _emit_recommends_warning(
 # ---------------------------------------------------------------------------
 
 
+# Deprecated adapter aliases → their canonical adapter, for *behavior* only.
+# `kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1): same projection
+# (`.md` agents, hook-wiring dropped). This mirrors the build registry's
+# `_kiro_alias_project`. The adopter's *chosen* name is still recorded in
+# `state.adapter` and printed in the install summary — only projection,
+# the hook-wiring merge gate, and the dropped-primitives enumeration
+# canonicalize through here.
+_INSTALL_ADAPTER_ALIASES = {"kiro": "kiro-ide"}
+
+
+def _canonical_install_adapter(adapter: str) -> str:
+    """Resolve a deprecated adapter alias to its canonical adapter for
+    behavioral dispatch. Identity for every non-alias adapter."""
+    return _INSTALL_ADAPTER_ALIASES.get(adapter, adapter)
+
+
 def _render_for_user_scope(
     pack_dir: Path,
     *,
@@ -2378,7 +2411,6 @@ def _render_for_user_scope(
         copilot,
         cursor,
         gemini,
-        kiro,
         kiro_cli,
         kiro_ide,
     )
@@ -2398,9 +2430,13 @@ def _render_for_user_scope(
     )
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
-        if target_adapter == "kiro":
-            kiro.project(pack_dir, contract, out)
-        elif target_adapter == "kiro-ide":
+        if _canonical_install_adapter(target_adapter) == "kiro-ide":
+            # `kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1):
+            # it projects `.md` agents, identical to `kiro-ide`. Route it
+            # through `kiro_ide.project` so the alias and the registry
+            # (`ADAPTERS["kiro"]` → `_kiro_alias_project`) stay in lockstep;
+            # the legacy `kiro.project` emits `.json` agents (the kiro-cli
+            # shape) and must not be reached for the alias.
             kiro_ide.project(pack_dir, contract, out)
         elif target_adapter == "kiro-cli":
             kiro_cli.project(pack_dir, contract, out)
@@ -2474,7 +2510,6 @@ def _render_for_repo_scope(
         copilot,
         cursor,
         gemini,
-        kiro,
         kiro_cli,
         kiro_ide,
     )
@@ -2494,9 +2529,13 @@ def _render_for_repo_scope(
     )
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
-        if target_adapter == "kiro":
-            kiro.project(pack_dir, contract, out)
-        elif target_adapter == "kiro-ide":
+        if _canonical_install_adapter(target_adapter) == "kiro-ide":
+            # `kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1):
+            # it projects `.md` agents, identical to `kiro-ide`. Route it
+            # through `kiro_ide.project` so the alias and the registry
+            # (`ADAPTERS["kiro"]` → `_kiro_alias_project`) stay in lockstep;
+            # the legacy `kiro.project` emits `.json` agents (the kiro-cli
+            # shape) and must not be reached for the alias.
             kiro_ide.project(pack_dir, contract, out)
         elif target_adapter == "kiro-cli":
             kiro_cli.project(pack_dir, contract, out)
@@ -2923,10 +2962,13 @@ def _rewrite_user_scope_hook_paths(
             basename = Path(relpath).name
             rewritten[f"{hook_subdir}/{pack_name}/{basename}"] = content
         elif (
-            target_adapter == "kiro"
+            target_adapter == "kiro-cli"
             and relpath.startswith(".kiro/agents/")
             and relpath.endswith(".json")
         ):
+            # `kiro-cli` is the adapter that emits agent JSON with a build-
+            # merged `hooks` key (the `kiro` alias routes to kiro-ide and
+            # emits `.md`, so there is no JSON to strip).
             # Strip the `hooks` key — the install-time merge step
             # re-adds it. Single-writer discipline; double-merge
             # would be idempotent today but fragile under any
@@ -2991,7 +3033,8 @@ def _merge_user_scope_hook_wiring(
     ``target-file`` field is omitted for Claude Code rows (the
     adapter's user-scope default target — ``~/.claude/settings.json``
     — is the implicit target on read; RFC-0005 § State-file impact)
-    and explicit for Kiro rows.
+    and explicit for ``kiro-cli`` rows. The deprecated ``kiro`` alias and
+    ``kiro-ide`` drop hook-wiring (RFC-0022) and return no rows.
     """
     import tomllib
 
@@ -3021,7 +3064,25 @@ def _merge_user_scope_hook_wiring(
         owned = _project(target, pack_name, wiring_tomls, force_merge=force_merge)
         return [{"event": event, "id": entry_id} for event, entry_id in owned]
 
-    # Kiro: group wiring by attach-to-agent; one merge call per agent.
+    if _canonical_install_adapter(target_adapter) == "kiro-ide":
+        # `kiro` (deprecated alias) and `kiro-ide` both DROP hook-wiring
+        # (RFC-0022): the IDE silently drops any agent carrying a `hooks`
+        # key, and the agent is projected as `.md` (no agent JSON to merge
+        # into). Return before parsing any wiring TOML or touching the
+        # filesystem — the wiring is dropped, surfaced by the
+        # dropped-primitives warning rail, not merged.
+        return []
+
+    if target_adapter != "kiro-cli":
+        # Only `kiro-cli` merges hook-wiring into a pack-owned agent JSON.
+        # claude-code / copilot / kiro-ide are handled above; every other
+        # adapter has no agent-JSON merge owner, so return empty rather
+        # than fall through to the Kiro merge (which would write a spurious
+        # `.kiro/agents/*.json`). A future adapter that ships user-scope
+        # hooks must add its own branch here, not ride this fall-through.
+        return []
+
+    # Kiro CLI: group wiring by attach-to-agent; one merge call per agent.
     from agentbundle import safety
     from agentbundle.build.projections.merge_into_agent_json import project as _project
 
