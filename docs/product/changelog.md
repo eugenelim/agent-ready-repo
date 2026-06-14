@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`design` joins the soft `categories` vocabulary.** `agentbundle validate`
+  now recognizes `design` as a known pack category, so the `design-craft` pack
+  (and any future design pack) declares it without a soft warning. The
+  vocabulary is extensible by design (RFC-0031 D8) — this grows it by one slug,
+  no RFC required, no behavior change for any other pack.
+
 - **New `design-craft` pack for interaction/visual designers (design-craft
   0.1.0).** An opt-in, user-scope pack of four pure-markdown skills —
   `aesthetic-direction` (turn a vague vibe into named, ranked goals),
