@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`quality-engineer` catches two more test/edge-case shapes (core 0.4.8).**
+  The tautological-tests finding now also flags a test that asserts on the
+  mock's own configured return value (it can never fail, so it pins nothing),
+  and the edge-case enumeration adds `permission-denied` and
+  `resource-exhausted` to the cases the reviewer checks for.
+
 - **The `bug-fix` skill gains two debugging-discipline moves (core 0.4.6).**
   A new "list candidate causes, then falsify each" step sits between
   reproduction and the root-cause assertion — name 2-3 rival causes and rule
