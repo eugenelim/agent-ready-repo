@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`architect-diagram` learns deliberate visual encoding (architect 0.5.3).**
+  A new `references/visual-encoding.md` turns scattered correctness rules into
+  one design heuristic: when a diagram distinguishes more than one category of
+  thing or relationship, map each visual channel (shape, grouping, position,
+  edge style, marker) to meaning *by the data type it carries*, rather than
+  decorating arbitrarily. It names which channels are robust across enterprise
+  wiki renderers versus fragile (colour, opacity) — colour is reinforcement,
+  never the sole carrier — and notes honestly that Mermaid can't size nodes, so
+  magnitude goes in a label. Mermaid-only; no rendering-library code. The draft
+  step in the skill now loads it when a diagram carries more than one
+  dimension.
+
 - **`quality-engineer` catches two more test/edge-case shapes (core 0.4.8).**
   The tautological-tests finding now also flags a test that asserts on the
   mock's own configured return value (it can never fail, so it pins nothing),

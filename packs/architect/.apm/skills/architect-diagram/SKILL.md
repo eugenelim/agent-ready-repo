@@ -84,7 +84,11 @@ If two modes plausibly fit, ask once which the user wants.
    newer `architecture-beta` syntax as an alternative — load
    `references/mermaid-architecture-beta.md` for the trade-offs and
    skeleton before offering. Do not default to it; rendering is
-   inconsistent across enterprise wikis.
+   inconsistent across enterprise wikis. **When the diagram
+   distinguishes more than one category of thing or relationship, load
+   `references/visual-encoding.md`** — map each visual channel (shape,
+   grouping, position, edge style, marker) to meaning by data type, and
+   keep colour as reinforcement only, never the sole carrier.
 
 7. **Self-check against `references/diagram-rubric.md`.** Fix
    violations before showing the user. The non-negotiables: every
