@@ -1,14 +1,18 @@
 # architect
 
-Solution-architecture skills — three peer skills installed to user
-scope so they travel across every workspace and engagement, not just
-one repo.
+Solution-architecture skills — three peer skills plus one review
+subagent, installed to user scope so they travel across every workspace
+and engagement, not just one repo.
 
 | Skill | What it does |
 | --- | --- |
 | `architect-design` | Shapes a one-page concept first, then drafts a Google-style design doc (TL;DR → context → goals → proposal → alternatives → risks → rollout → open questions) with Mermaid inline — **well-architected by construction** for the chosen provider (AWS / Azure / GCP, primitives providers like Hetzner, or local-first) and **converged against review** (auto-resolve mechanical findings, surface the judgment calls). |
 | `architect-diagram` | Produces Mermaid diagrams routed by intent (C4, flowchart, sequence, state, ER). Cloud-aware (AWS / Azure / GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). |
-| `architect-review` | Critiques an existing design doc or diagram with severity-tagged findings, genre-aware rubric routing, and a one-line verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT). Adds a **well-architected / lens mode** (concern + workload-class lenses, incl. GenAI/agentic) that emits a risk register with each finding tagged **mechanical / judgment**. |
+| `architect-review` | Critiques an existing design doc or diagram with severity-tagged findings, genre-aware rubric routing, and a one-line verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT). Adds a **well-architected / lens mode** (concern + workload-class lenses, incl. GenAI/agentic) that emits a risk register with each finding tagged **mechanical / judgment**. Runs **inline**, in the current thread. |
+
+| Subagent | What it does |
+| --- | --- |
+| `design-reviewer` | A **read-only, forked-context** sibling of `architect-review`: the same verdict + severity- and mechanical/judgment-tagged critique, but run in an isolated context that has not seen the authoring — so it cannot mark its own homework. This is the **fresh-context (preferred) rung** of `architect-design`'s convergence loop; it flags, never rewrites (tools are `Read, Grep, Glob`). Use it when an independent review matters more than an in-thread one. |
 
 ## Install
 
@@ -69,8 +73,11 @@ These principles are load-bearing — the skills assume them.
 
 By design — these belong elsewhere or in a later pack:
 
-- **Subagents.** Code-side reviewers cover code; design-side review
-  is a skill, not a subagent.
+- **More subagents.** The pack ships exactly one — `design-reviewer`,
+  the forked-context review lens above (RFC-0032). Design *authoring*
+  and *diagramming* stay skills; only the review lens earns an isolated
+  context, mirroring the code side's authoring-skill + reviewer-agent
+  split. No further agents without an RFC.
 - **Workspace-type profiles or `.architectrc` config files.**
 - **Integration / publishing skills** (Confluence, Figma,
   Structurizr) — a separate later pack.
@@ -94,6 +101,8 @@ packs/architect/
 ├── README.md
 ├── pack.toml
 ├── .claude-plugin/plugin.json
+├── .apm/agents/
+│   └── design-reviewer.md              # forked-context review lens (RFC-0032)
 └── .apm/skills/
     ├── architect-design/
     │   ├── SKILL.md
