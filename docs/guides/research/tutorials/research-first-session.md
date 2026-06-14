@@ -144,7 +144,7 @@ research.md
 counterpoints.md
 ```
 
-`counterpoints.md` walks each finding in `research.md`, names the strongest counter-position, cites counter-evidence, and proposes confidence-rating downgrades. Open it:
+`counterpoints.md` walks each finding in `research.md`, names the strongest counter-position, cites counter-evidence, and routes each to a verdict — either a confidence-rating downgrade, or a *do-not-resolve* verdict when both sides are well-evidenced under different conditions and more evidence would not collapse the disagreement to one answer. Open it:
 
 ```markdown
 # Counterpoints — research.md
@@ -156,8 +156,18 @@ similarity search at scale.
   cited workload class; "at scale" is contested.
 - **Counter-evidence:** [peer-reviewed benchmark paper], [SIGMOD
   discussion].
-- **Proposed rating change:** `[high]` → `[moderate]`. Reason:
+- **Verdict:** rating downgrade — `[high]` → `[moderate]`. Reason:
   `contested-in-field`.
+
+## Finding: a monorepo is the right default for multi-team codebases.
+
+- **Counter-position:** polyrepo wins for independently-deployed teams
+  with strong service boundaries; both are well-evidenced.
+- **Counter-evidence:** [large-scale monorepo case study], [polyrepo
+  migration retrospective].
+- **Verdict:** do-not-resolve. Monorepo holds when tooling and release
+  cadence are shared; polyrepo holds when teams deploy independently.
+  More evidence would not collapse this to one answer.
 ```
 
 That's the deep-mode signature: two artifacts, the second arguing against the first.

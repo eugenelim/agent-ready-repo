@@ -126,8 +126,10 @@ art` to the closed downgrade-factor set.
 Fires on `go deep`, `exhaustively`, `extensive research` (when no
 applied cue is also present — see Cue precedence above). Same artifact
 shape as standard, plus auto-invocation of `/devils-advocate` on the
-produced `research.md`, producing `counterpoints.md` with proposed
-rating downgrades.
+produced `research.md`, producing `counterpoints.md` with a per-finding
+verdict — a confidence downgrade, or a do-not-resolve verdict for an
+irreducible tension where both sides are well-evidenced under different
+conditions.
 
 Note: applied mode can be chained with `/devils-advocate` as a
 follow-up invocation when the user wants adversarial review of a
@@ -151,10 +153,15 @@ to chain.
    `[inference]` per Wikipedia V/RS and GRADE convergence.
 5. **Rate** — apply the confidence schema in
    `references/confidence-schema.md` to every finding.
-6. **Moderator pass** — before declaring done, scan retrieved-but-
+6. **Name the gaps** — before the moderator pass, write the
+   known-unknowns / unknowables section (see *Known unknowns and
+   unknowables* below). Skip in quick mode. This is a standing step, not
+   an optional flourish: a synthesis with no gap section is asserting it
+   answered everything the question raised, which is almost never true.
+7. **Moderator pass** — before declaring done, scan retrieved-but-
    uncited material and consider one more query from the highest-signal
    unused snippet (Co-STORM contribution). Skip in quick mode.
-7. **Adversarial review (deep mode only)** — auto-invoke
+8. **Adversarial review (deep mode only)** — auto-invoke
    `/devils-advocate` on `research.md`; emit `counterpoints.md`.
 
 ## Retrievers
@@ -213,6 +220,58 @@ Every factual claim in `research.md` carries a citation, or is marked
 defensible deduction that no single source states). Confidence per
 finding follows the four-level schema in
 `references/confidence-schema.md`; downgrade factors are named explicitly.
+
+## Known unknowns and unknowables (standard / applied / deep)
+
+A confidence rating answers *"how much should you trust this finding?"*
+It is a tag on a claim the research **did** make. It says nothing about
+the questions the research **could not answer at all** — and quietly
+omitting those, or dressing one up as a thin `[uncertain]` finding, is
+the most common way a synthesis overstates how complete it is.
+
+So every non-quick artifact carries a first-class gap section. It is
+**not** a rating — there is no finding to rate, because the evidence to
+support one does not exist. Rating a non-finding `[uncertain]` is a
+category error: `[uncertain]` means *"we have a claim, but weak grounds
+for it"*; a gap means *"we have no claim, because the evidence isn't
+there."* Keep the two apart — a weak finding stays in **Findings** with
+an `[uncertain]` tag; a gap goes here.
+
+Split each gap into one of two kinds:
+
+- **Known-unknown** — answerable *in principle*; the evidence exists or
+  could be produced, you just don't have it in hand. (The benchmark
+  hasn't been run on this workload; the vendor hasn't published the
+  number; the primary source is paywalled.) A known-unknown names what
+  evidence *would* close it — it is a research lead, not a dead end.
+- **Unknowable** — not answerable from available evidence *even in
+  principle*, at least as the question is posed. The data was never
+  recorded; the counterfactual can't be run; the outcome is in the
+  future; the question is contested in a way no evidence settles (in
+  which case it belongs in a tension, not a finding — see
+  `/identify-perspectives` and `/devils-advocate`'s do-not-resolve
+  verdict). An unknowable names *why* the evidence can't exist, so a
+  reader stops hunting for it.
+
+The discipline is the same one GRADE encodes for ratings: make the
+limit explicit and named, rather than letting silence imply completeness.
+
+### `## Known unknowns` artifact section
+
+```markdown
+## Known unknowns
+
+- **Known-unknown:** <question a complete answer needs>. Would be closed
+  by: <the evidence that would answer it — a benchmark, a primary
+  source, a disclosure>.
+- **Unknowable:** <question that can't be answered from available
+  evidence>. Why not: <the data was never recorded / the outcome hasn't
+  happened / no evidence settles it>.
+```
+
+Depth cues scale this section the same way they scale findings: a
+`briefly` artifact names only the load-bearing gaps; a `comprehensively`
+one chases the second-order ones too.
 
 ## Moderator pass (standard / deep)
 

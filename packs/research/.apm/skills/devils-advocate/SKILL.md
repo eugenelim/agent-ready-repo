@@ -1,6 +1,6 @@
 ---
 name: devils-advocate
-description: Adversarially review a research artifact (`research.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and proposes confidence-rating downgrades. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `research.md`; runs standalone against any user-supplied claim. Produces `counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
+description: Adversarially review a research artifact (`research.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `research.md`; runs standalone against any user-supplied claim. Produces `counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
 ---
 
 # /devils-advocate
@@ -51,14 +51,55 @@ Two convergent disciplines:
 3. **Retrieve counter-evidence** — dispatch `evidence-retriever`
    subagent against each counter-position. The main session does the
    reasoning; the subagent supplies the material.
-4. **Propose rating downgrades** — for each finding whose evidence-
-   against is substantive, propose the new confidence rating
-   (`[high]` → `[moderate]`, or `[moderate]` → `[low]`, etc., per
-   `references/confidence-schema.md`). Name the downgrade factor.
+4. **Route each substantive evidence-against to a verdict** — for each
+   finding whose evidence-against is substantive, pick one of two
+   verdicts:
+   - **Rating downgrade** — the evidence-against weakens the finding:
+     propose the new confidence rating (`[high]` → `[moderate]`, or
+     `[moderate]` → `[low]`, etc., per `references/confidence-schema.md`)
+     and name the downgrade factor. This is the default verdict.
+   - **Do-not-resolve** — the evidence-against does *not* weaken the
+     finding; it establishes a credible *opposing* position that is
+     itself well-evidenced, so the finding and its counter are both
+     right under different conditions. See *The do-not-resolve verdict*
+     below. Reach for this only when a downgrade would misrepresent the
+     situation.
 5. **Moderator pass** — before declaring done, scan retrieved-but-
    uncited counter-material and consider one more query from the
    highest-signal unused snippet (Co-STORM contribution).
 6. **Write `counterpoints.md`**, linking back to the source artifact.
+
+## The do-not-resolve verdict
+
+A rating downgrade says *"trust this finding less — the evidence is
+weaker than it was rated."* It is the right verdict when the
+counter-evidence undercuts the finding: a single source where three
+were claimed, an unaccounted contested-in-field factor, a benchmark
+that doesn't replicate.
+
+But sometimes the counter-evidence is not a weakness in the finding —
+it is a credible, well-evidenced position that *opposes* it, and both
+survive scrutiny because they are right under **different conditions**.
+The disagreement is in the world, not in a gap in the evidence.
+Downgrading the finding here is wrong twice over: it implies the
+finding is shaky (it isn't), and it implies that more evidence would
+settle the question (it won't). The honest verdict is **do-not-resolve**:
+name the productive tension, state the conditions under which each side
+holds, and leave both standing.
+
+Use the test: *would more or better evidence collapse this to one
+answer?* If yes, it is a confidence question — downgrade. If no — if
+the two positions are answers to subtly different questions, or hold in
+different regimes — it is an irreducible tension, and you record it
+rather than adjudicate it. Do-not-resolve is the `/devils-advocate`
+counterpart to the tension map `/identify-perspectives` builds upstream:
+the same irreducibility, surfaced adversarially against a finding rather
+than enumerated across camps.
+
+Do-not-resolve is **not** an escape hatch for "the evidence is thin so I
+won't commit." Thin evidence is `[uncertain]` (a `/research` rating) or
+a known-unknown (a `/research` gap entry) — not a tension. A
+do-not-resolve verdict requires *substantive evidence on both sides*.
 
 ## `counterpoints.md` output schema
 
@@ -69,13 +110,20 @@ Two convergent disciplines:
 
 - **Counter-position:** <strongest objection, one paragraph>.
 - **Counter-evidence:** <citations>.
-- **Proposed rating change:** `[high]` → `[moderate]`. Reason:
+- **Verdict:** rating downgrade — `[high]` → `[moderate]`. Reason:
   contested-in-field.
 
 ## Finding: <next>
 
-(same shape)
+- **Counter-position:** <a credible, well-evidenced opposing position>.
+- **Counter-evidence:** <citations — substantive, on both sides>.
+- **Verdict:** do-not-resolve. Both hold under different conditions:
+  <finding> holds when <conditions>; <counter-position> holds when
+  <conditions>. More evidence would not collapse this to one answer.
 ```
+
+The `Verdict` line carries exactly one of the two outcomes from step 4 —
+a rating downgrade *or* do-not-resolve, never both for the same finding.
 
 ## Citation discipline
 

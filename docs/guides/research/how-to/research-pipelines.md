@@ -51,7 +51,7 @@ This guide is task-shaped. It assumes you already know what the pack does — if
 1. `perspectives.md` — named camps with core claims and representative voices.
 2. `sources.md` — candidates grouped by primacy *and* by camp (camp- grouping is the decision-pipeline-specific shape).
 3. `hypotheses.md` — ACH-style matrix (hypotheses × evidence-for / against), with a ranking.
-4. `counterpoints.md` — `/devils-advocate` against `hypotheses.md`; proposed rating downgrades.
+4. `counterpoints.md` — `/devils-advocate` against `hypotheses.md`; a per-finding verdict (rating downgrade, or do-not-resolve for an irreducible tension).
 
 **Degraded-mode example:** if you skip `/source-map`, then `/compare-hypotheses` falls back to enumerating hypotheses with the sources it can find inline — it still produces `hypotheses.md`, but the matrix is thinner and `[high]` ratings will be rare because the triangulation discipline can't be satisfied. The downstream `/devils-advocate` pass then proposes more downgrades. The pipeline *degrades* gracefully — it doesn't break.
 

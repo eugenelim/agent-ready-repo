@@ -1,5 +1,5 @@
 {
   "name": "research",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Evidence-grounded research portable across every repo. Seven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
 }
