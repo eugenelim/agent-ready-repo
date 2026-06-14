@@ -18,6 +18,13 @@ skill's light mode, only Objective + Acceptance Criteria + a short task list
 risk trigger (see the `work-loop` skill) escalates to full mode, where every
 section is filled. -->
 
+<!-- **Present tense, as-built.** Write every body section below as if the
+feature already exists and always worked this way — no "will be", no
+"previously X, now Y", no deprecation timelines, no version-stamped history.
+The body describes the current contract; decision history lives in ADRs and the
+changelog. This applies to the spec body only — `plan.md` keeps its own
+changelog of how the approach evolved. -->
+
 ## Objective
 
 <!--

@@ -158,6 +158,13 @@ If any check fails, push back rather than proceeding.
    - **Don't soften imperatives.** Drop *please* in instructions ("please
      click", "please run") — it makes commands sound optional. Just
      write the imperative.
+   - **Don't narrate the product's history.** Write as if the product
+     always worked this way — the *retcon* discipline. Drop "will be
+     added", "previously X, now Y", "deprecated in 2.0", and
+     version-stamped history from the guide body. A guide is a living doc
+     describing current behavior; the reader wants what is true now, not a
+     changelog. Evolution belongs in release notes, the changelog, or an
+     ADR — link to it instead of narrating it inline.
 
    Efficiency is a form of respect — the reader is in a hurry.
 

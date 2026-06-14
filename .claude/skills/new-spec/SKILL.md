@@ -141,6 +141,16 @@ look like?" before any code.
      dependency, no new module boundary) so the diff can't sprawl into
      hypothetical futures.
    - **No Acceptance Criteria.** Without a checklist, "done" is opinion.
+   - **Body narrates history or the future.** Write the spec in the
+     present tense, as if the feature already exists and always worked
+     this way — the *retcon* discipline. No "will be implemented", no
+     "previously X, now Y", no deprecation timelines, no version-stamped
+     history in the body. Mixed tenses make an agent reading the spec
+     guess wrong about what is current; a present-tense body reads as a
+     clean description of the contract as it stands. Decision history
+     lives in ADRs and the changelog, not the spec body — the plan
+     (`plan.md`) is the one exception, since it carries its own changelog
+     of how the approach evolved.
 
    While writing Testing Strategy, sanity-check that each TDD-mode AC is
    concrete enough to *stub* — see `work-loop`'s
@@ -256,8 +266,17 @@ look like?" before any code.
 
 7. Update `docs/specs/README.md` to add the feature to the active list.
 
-8. Remind the user: when implementation diverges from the spec, the spec is
-   wrong. Update the spec in the same PR.
+8. **Keep the spec the single source of truth — drift is a bug.** When
+   implementation diverges from the spec, the spec is wrong: update it in
+   the same PR. The failure mode this discipline prevents has a name —
+   **context poisoning**: an agent loads a stale, duplicated, or
+   self-contradicting doc and makes a confident, wrong decision from it,
+   because nothing in the document tells it which part is current. Two
+   habits are the defense, one for each way a doc poisons: **one canonical
+   home per fact** (the *Source of truth* map in `AGENTS.md`) stops a fact
+   from living in two places that can drift apart, and the **present-tense
+   retcon body** (the failure mode in step 4) stops a single document from
+   contradicting itself across tenses. Remind the user of both.
 
 ## Anti-patterns to refuse
 
