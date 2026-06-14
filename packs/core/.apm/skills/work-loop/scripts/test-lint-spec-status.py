@@ -3,7 +3,7 @@
 
 Builds fixture spec trees in a tempdir and runs the linter as a
 subprocess against the documented `python <skill>/scripts/lint-spec-status.py
---root <dir>` invocation — the same shape `make build-check` uses.
+--root <dir>` invocation — the same shape the CI gate uses.
 Exercises each of the four invariants red-and-green, including the
 lenient leading-token parse, the diff-triggered ship transition (with
 real git base fixtures), the grandfather and no-base branches, and the

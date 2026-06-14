@@ -6,7 +6,7 @@
 # that under the recipe pipeline's `claude-plugins/<pack>/`
 # output-subdir (so adopters see the file at
 # `<output>/claude-plugins/core/.claude/settings.local.json`); at
-# self-host time, `make build-self` writes the flat workspace path
+# self-host time, the upstream build writes the flat workspace path
 # (`<workspace>/.claude/settings.local.json`, gitignored).
 #
 # Shape: Claude Code's documented nested SessionStart schema
