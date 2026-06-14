@@ -16,6 +16,7 @@ Intents form a recursive tree whose leaf is a shippable spec.
 | `de-risk-intent` | Name the riskiest assumption, predeclare the **kill condition** in the test's own currency, and run it under a **choosable prototype-approach** — `validate-first` (predeclare, then test) or `prototype-led` (build to learn; the build *is* the test) — to a survive/kill verdict. |
 | `decompose-intent` | Break an intent into the next level down — child intents, or a spec/slice at the leaf — and project the tree **one-way** onto your tracker (`none` / Linear / Jira Align). At app scale the leaf *is* an ordinary `core` brief; at business-unit scale it **slices the feature intent per component** into one brief per repo (each carrying `parent-intent:` + a version-pinned contract reference). |
 | `align-value-stream` | Stand up and keep current a **value-stream meta-repo** — a coordinating repo with no app code that holds the cross-component artifacts a polyrepo has nowhere else to put: the Backstage **federated catalog**, the shared-contract authority (referenced by version, never forked), the C4/bounded-context architecture, and the **cross-component delivery rollup**. Business-unit scale only. |
+| `voice-and-microcopy` | Shape the **words a user reads** in the UI. Characterize the product's **voice** along a few axes (humor / formality / respect / enthusiasm), write the recurring UI states — **error, empty, button, label** — from blame-free, actionable formulas, and run a **content checklist** before copy ships. The content layer of the pack; a method, not a word bank. |
 
 ## Install
 
@@ -51,8 +52,8 @@ The detailed wire contract is pinned later, at the spec stage, via the existing
 
 ## Design principles
 
-- **Habits, not infrastructure.** Skills + `references/` + seeds. No engine, no
-  hooks, no validators, no subagents, no runtime hub.
+- **Habits, not infrastructure.** Skills + `references/` + `assets/` templates. No
+  engine, no hooks, no validators, no subagents, no runtime hub.
 - **One artifact, every level.** The recursive `intent` spans solo→business-unit;
   decomposition is recursive and assumptions are de-risked per intent at its level.
 - **Modes are lightweight.** One global axis — **Scale** — resolved at intake;
@@ -91,13 +92,14 @@ packs/product-engineering/
     ├── frame-intent/        (SKILL.md + references/ + examples/ + assets/intent-template.md)
     ├── de-risk-intent/      (SKILL.md + references/)
     ├── decompose-intent/    (SKILL.md + references/)
-    └── align-value-stream/  (SKILL.md + references/ + assets/rollup-template.md)  ← business-unit scale
+    ├── align-value-stream/  (SKILL.md + references/ + assets/rollup-template.md)  ← business-unit scale
+    └── voice-and-microcopy/ (SKILL.md + references/ + assets/voice-chart-template.md)  ← content layer
 ```
 
-The intent and rollup **templates travel with their skills** (in each skill's
-`assets/`), not as repo `seeds/` — so the pack ships no `seeds/` and stays
-user-scope. The skills copy their template into the project's
-`docs/product/{intents,rollups}/<slug>.md` at runtime.
+The intent, rollup, and voice-chart **templates travel with their skills** (in
+each skill's `assets/`), not as repo `seeds/` — so the pack ships no `seeds/` and
+stays user-scope. The skills copy their template into the project's
+`docs/product/{intents,rollups,voice}/<slug>.md` at runtime.
 
 ## Usage
 
@@ -107,6 +109,7 @@ Ask your agent, for example:
 - "De-risk the riskiest assumption in this intent with a prototype." (`de-risk-intent`)
 - "Decompose this intent into shippable specs." (`decompose-intent`)
 - "Stand up a value-stream meta-repo to coordinate these components." (`align-value-stream`)
+- "Characterize our product voice, then write the empty-state and error copy." (`voice-and-microcopy`)
 
 ---
 
