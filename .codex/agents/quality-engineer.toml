@@ -109,8 +109,14 @@ holds).
    change in lockstep with production code; they are mirrors, not
    contracts. Replace with assertions on observable post-conditions.
 3. **Tautological tests.** Where the test math equals the production
-   math (`expect(add(2,3)).toBe(2+3)`). Flag and propose a fixture
-   table instead.
+   math (`expect(add(2,3)).toBe(2+3)`), or where the code under test
+   returns a collaborator's value unchanged and the test asserts on the
+   mock's own configured return value (`mock.fetch.return_value = X` then
+   `assert result == X`) — the assertion mirrors the mock setup and can
+   never fail, so it pins nothing. (A test asserting on a *transform* of
+   the mocked value is not this — there the assertion can still fail.)
+   Flag and propose a fixture table, or an assertion on a real
+   post-condition, instead.
 4. **DAMP over DRY in tests.** Tests should read like a specification,
    even at the cost of some duplication — a clever helper that hides
    setup is the wrong kind of reuse when it obscures what the test is
@@ -129,7 +135,8 @@ holds).
    Recommend deleting and pointing at the one-liner instead.
 7. **Edge-case coverage.** Empty input, max input, malformed input,
    zero / negative / NaN where numeric, concurrent access, partial
-   failure. Cite the specific cases tested and the specific cases
+   failure, permission-denied, resource-exhausted. Cite the specific cases
+   tested and the specific cases
    that aren't. When the surface is invariant-shaped — parser,
    deserializer, schema/protocol boundary, prompt template, or
    tool-input handler with a \"parses-or-rejects, no crash, no
