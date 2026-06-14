@@ -1,7 +1,7 @@
 # Plan: design-craft-pack (v1)
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. When it changes
 > substantially, note why in the changelog at the bottom.
