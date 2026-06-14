@@ -93,6 +93,35 @@ class InMemoryRailKiroTargetedTests(unittest.TestCase):
         self.assertNotIn("c.toml", refusal)
 
 
+class InMemoryRailKiroCliTargetedTests(unittest.TestCase):
+    """The rail fires for the whole merge-into-agent-json family — `kiro-cli`
+    as well as the legacy `kiro` (RFC-0022 / kiro-install-alias-parity). The
+    `attach-to-agent` merge target exists for both, so both validate it."""
+
+    def test_fires_for_kiro_cli_unknown_agent(self) -> None:
+        from agentbundle.build.scope_rails import check_kiro_attach_to_agent
+
+        refusal = check_kiro_attach_to_agent(
+            pack_name="cli-pack",
+            wiring_tomls={"on-prompt": {"attach-to-agent": "non-existent"}},
+            agent_basenames={"reviewer"},
+            target_adapters={"kiro-cli"},
+        )
+        self.assertIsNotNone(refusal)
+        self.assertIn("or names an unknown agent", refusal)
+
+    def test_accepts_well_formed_kiro_cli(self) -> None:
+        from agentbundle.build.scope_rails import check_kiro_attach_to_agent
+
+        refusal = check_kiro_attach_to_agent(
+            pack_name="cli-pack",
+            wiring_tomls={"on-prompt": {"attach-to-agent": "reviewer"}},
+            agent_basenames={"reviewer"},
+            target_adapters={"kiro-cli"},
+        )
+        self.assertIsNone(refusal)
+
+
 class InMemoryRailNonKiroTargetTests(unittest.TestCase):
     """Rail is a no-op when kiro isn't in target_adapters — Claude-Code-only packs."""
 
@@ -205,6 +234,25 @@ class FilesystemWrapperTests(unittest.TestCase):
                 agents=["reviewer"],
             )
             self.assertIsNone(check_kiro_wiring(pack, "demo-pack", {"kiro"}))
+
+    def test_filesystem_wrapper_refuses_missing_attach_to_agent_for_kiro_cli(self) -> None:
+        """The wrapper fires for the merging adapter `kiro-cli` too — symlink /
+        parse / missing-attach refusals are preserved for the adapter that now
+        owns the legacy JSON+merge behavior (RFC-0022 / kiro-install-alias-parity)."""
+        import tempfile
+
+        from agentbundle.build.scope_rails import check_kiro_wiring
+
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            pack = self._make_pack(
+                tmp,
+                wiring={"on-prompt": '[[hooks.userPromptSubmit]]\ncommand = "x"\n'},
+                agents=["reviewer"],
+            )
+            refusal = check_kiro_wiring(pack, "demo-pack", {"kiro-cli"})
+            self.assertIsNotNone(refusal)
+            self.assertIn("does not declare 'attach-to-agent'", refusal)
 
     def test_filesystem_wrapper_skips_when_no_kiro_in_targets(self) -> None:
         import tempfile
