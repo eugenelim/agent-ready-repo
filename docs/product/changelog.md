@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **New `design-craft` pack for interaction/visual designers (design-craft
+  0.1.0).** An opt-in, user-scope pack of four pure-markdown skills —
+  `aesthetic-direction` (turn a vague vibe into named, ranked goals),
+  `design-system-foundations` (derive a token/scale taxonomy from intent),
+  `layout-and-information-architecture` (hierarchy, reading flow, wayfinding as
+  concepts), and `design-critique` (severity-rated heuristic evaluation) —
+  plus a shared `quality-floor` checklist (handle all states, accessibility
+  floor, "motion communicates state, honor reduced-motion"). Designers author
+  the upstream **design intent** the build consumes, the design-side twin of
+  `product-engineering`'s product-intent seam. Every skill is strictly
+  framework-agnostic: it points to the recognized standards (WCAG, the W3C
+  Design Tokens interchange shape) and ships the method to *derive* values,
+  never a stack or a values table — enforced by a pack-scoped agnosticism lint
+  wired into CI. No hooks, no engine, no in-pack validator, no reviewer
+  subagent. Installs across all seven adapters; user-scope by default.
+
 - **`decompose-intent` records the decomposition decision (product-engineering
   0.4.1).** When a cut drops or replaces a branch — most often after an upward
   `de-risk-intent` kill bubbles up — there was no instruction to record *why* on

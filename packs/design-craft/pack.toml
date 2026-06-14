@@ -1,0 +1,37 @@
+[pack]
+name = "design-craft"
+version = "0.1.0"
+description = "Framework-agnostic design-craft discipline for interaction/visual designers — authors of the upstream design intent the build consumes. Four skills (aesthetic-direction, design-system-foundations, layout-and-information-architecture, design-critique) plus a shared quality-floor checklist (handle-all-states, accessibility floor, reduced-motion principle). Pure method: no stack, no values tables — points to WCAG / W3C Design Tokens, never reprints them."
+readme = "README.md"
+display_name = "Design Craft"
+license = "Apache-2.0 OR MIT"
+categories = ["design", "documentation"]
+keywords = ["design-systems", "aesthetic-direction", "information-architecture", "heuristic-evaluation"]
+
+# Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
+# travels with every shipped adapter that projects the skill primitive.
+# Contract v0.12 matches `research` (RFC-0033 OQ#1 default): the level at
+# which Copilot's skill primitive projects as a first-class Agent Skill.
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# Design-craft method is portable, not project-specific — user-scope by
+# default, like `architect`/`research`. Pure-markdown skills + skill
+# assets/, no `seeds/` (RFC-0004 Rail A), so it projects to every shipped
+# adapter that supports the skill primitive. Declared order is load-bearing
+# (RFC-0011): append-only; `kiro-ide` precedes `kiro-cli`.
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/design-craft/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
