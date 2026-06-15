@@ -17,7 +17,7 @@ agentbundle install --pack atlassian --scope user agent-ready-repo
 
 The CLI's six-step resolver picks Kiro automatically when:
 
-1. The pack declares `kiro` in `[pack.install] allowed-adapters` (the four catalogue user-scope packs all do).
+1. The pack's `[pack.install] allowed-adapters` includes `kiro` (the install refuses if the pack you chose doesn't).
 2. Only `~/.kiro/` is present among the user-scope-capable adapters' CLI homes (`~/.claude/`, `~/.kiro/`, `~/.codex/`).
 
 If multiple adapter homes are populated (a multi-IDE machine), the resolver picks the first match in the pack's `allowed-adapters` declared order. To override, pass `--adapter kiro` explicitly.
