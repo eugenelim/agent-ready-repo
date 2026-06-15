@@ -1,9 +1,11 @@
 """`agentbundle` CLI dispatcher — argparse over the eleven F-cli subcommands.
 
 Subcommand order on the parser matches the canonical install-workflow order
-from the spec (discovery-first): `list-packs`, `list-targets`, `scaffold`,
-`install`, `validate`, `render`, `adapt`, `diff`, `upgrade`, `uninstall`,
-`init-state`.
+from the spec (discovery-first): `list-packs`, `list-profiles`, `list-targets`,
+`scaffold`, `install`, `validate`, `render`, `adapt`, `diff`, `upgrade`,
+`uninstall`, `init-state`, `config`, `reconcile`. `list-profiles` (RFC-0034)
+lists the catalogue's curated single-scope install profiles; `install
+--profile <name>` installs one.
 
 Each subcommand's `run(args) -> int` lives under `agentbundle.commands.*`;
 this module wires `argparse` and prints `--version`. No business logic here.
@@ -192,6 +194,14 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
     sp.set_defaults(func=_lazy("list_packs"))
 
+    # --- list-profiles --- (catalogue query; profiles declare their own scope)
+    sp = subparsers.add_parser(
+        "list-profiles",
+        help="List curated install profiles available in a catalogue URI.",
+    )
+    sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
+    sp.set_defaults(func=_lazy("list_profiles"))
+
     # --- list-targets --- (--scope as read-only filter)
     sp = subparsers.add_parser(
         "list-targets",
@@ -215,7 +225,23 @@ def _build_parser() -> argparse.ArgumentParser:
         "install",
         help="Install a pack from a catalogue URI into the adopter repo.",
     )
-    sp.add_argument("--pack", required=True)
+    # pack-profiles: `--pack` and `--profile` are a required mutually-exclusive
+    # group. `--pack` was a bare `required=True` arg; making it a member of a
+    # required mutex group keeps "exactly one of pack/profile" without losing
+    # the requiredness. `--scope` with `--profile` is rejected at the handler
+    # (a profile declares its own scope); argparse can't express that mutex
+    # because `--scope` is valid alongside `--pack`.
+    _pack_or_profile = sp.add_mutually_exclusive_group(required=True)
+    _pack_or_profile.add_argument("--pack")
+    _pack_or_profile.add_argument(
+        "--profile",
+        help=(
+            "Install a curated single-scope set of packs from "
+            "<catalogue>/profiles/<name>.toml in one command (RFC-0034). "
+            "Mutually exclusive with --pack; --scope is not allowed (the "
+            "profile declares its own scope)."
+        ),
+    )
     sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
     sp.add_argument("--output", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))

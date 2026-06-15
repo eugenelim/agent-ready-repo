@@ -35,6 +35,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Pack profiles — install a curated set of packs in one command (RFC-0034).**
+  `agentbundle install --profile <name> <catalogue>` reads a first-party
+  `profiles/<name>.toml` from the catalogue and installs its packs at the
+  profile's single declared scope, in deps-first order, on one pinned adapter,
+  with all preconditions checked before any write. `agentbundle list-profiles
+  <catalogue>` lists the available profiles (id, scope, description). Two
+  profiles ship: `solution-architect` (user scope → `architect` + `research` +
+  `contracts`) and `full-ceremony` (repo scope → `core` + `governance-extras`
+  + `user-guide-diataxis` + `monorepo-extras`). `--profile` is mutually
+  exclusive with `--pack`, and `--scope` is rejected with it (a profile
+  declares its own scope). Already-installed packs are skipped, not reinstalled;
+  per-pack state rows record `install_route = "profile"`. No new state schema,
+  no adapter-contract bump, no new install route — distribution hygiene over
+  the existing single-pack install path.
+
 - **`design` joins the soft `categories` vocabulary.** `agentbundle validate`
   now recognizes `design` as a known pack category, so the `design-craft` pack
   (and any future design pack) declares it without a soft warning. The
