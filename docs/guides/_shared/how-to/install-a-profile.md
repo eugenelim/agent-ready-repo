@@ -13,7 +13,7 @@ Install a role's whole toolkit, or a repo's full governance setup, in one comman
 agentbundle list-profiles <catalogue>
 ```
 
-It prints each profile's id, scope, and description. The two shipped profiles:
+It prints each profile's id, scope, and description. The profiles the catalogue ships today:
 
 | Profile | Scope | Installs |
 | --- | --- | --- |
