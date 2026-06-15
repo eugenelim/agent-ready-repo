@@ -34,6 +34,17 @@ The catalogue's eight packs split by where they land on disk.
 
 The two scopes never share files. A user-scope pack installed with `--scope repo` projects into that repo's working tree the way a repo-scope pack would; otherwise it stays in your user directory.
 
+## Profiles: a curated set in one command
+
+Some pack combinations are blessed — a solution architect's toolkit is `architect` + `research` + `contracts`; a repo's full governance setup is `core` + `governance-extras` + `user-guide-diataxis` + `monorepo-extras`. (Each name is a pack from [the README's catalogue table](../../../../README.md#the-catalogue), the authoritative menu.) A **profile** promotes that curated knowledge from prose into one executable unit: `agentbundle install --profile <name> <catalogue>` installs the whole set in one command, and `agentbundle list-profiles <catalogue>` shows what's on offer.
+
+A profile is a thin pointer list, not a pack — a hand-authored `profiles/<name>.toml` at the catalogue root that names packs in dependency-first order. It adds no primitives, no new dependency edges, and no state entity: the packs install exactly as they would one at a time, just sequenced and gated as a batch. Two properties make it safe rather than a mega-bundle:
+
+- **Single-scope.** A profile is repo-only or user-only — it never mixes scopes, so there's no half-applied cross-scope install to reason about. The scope is declared in the manifest; you don't pass `--scope`.
+- **All-or-nothing pre-flight.** Every pack's preconditions run before the first write, on one pinned adapter, so the batch is no less safe than installing each pack by hand.
+
+Profiles cover *installing* a set; there is no `upgrade --profile` or `uninstall --profile` — you act on the individual packs afterward. See [how to install a profile](../how-to/install-a-profile.md) for the walkthrough.
+
 ## The composition rule
 
 Packs compose by convention, not by import — no pack ever imports code from another pack. The rule is one-directional: repo-scope packs depend on `core`; user-scope packs don't.
