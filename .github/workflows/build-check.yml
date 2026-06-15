@@ -113,6 +113,19 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
 
+      # pack-profiles (RFC-0034): the profile reader/schema, batch-aware dep
+      # gate, CLI surface (mutex + list-profiles), and the install orchestrator.
+      # make build-check runs no pytest, so wire these paths explicitly.
+      - name: pytest pack-profiles (RFC-0034)
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          tests/unit/test_profile_reader.py
+          tests/unit/test_dependencies_batch.py
+          tests/unit/test_cli_profile_surface.py
+          tests/integration/test_install_profile.py
+          tests/integration/test_install_profile_live.py
+
       # credbroker-user-scope T1: consumer bootstraps append the vendored
       # ~/.agentbundle/lib floor at LOWEST sys.path precedence. The
       # no-insert-0 source guard enforces the spec's "never prepend"
@@ -264,6 +277,16 @@ jobs:
             echo "::error::AC4: msg-to-markdown/evals/ exists; spec forbids synthesised evals for this skill"
             exit 1
           fi
+
+      - name: profiles lint + self-test (pack-profiles AC9)
+        # RFC-0034: profiles must be scope-homogeneous, dependency-complete
+        # (incl. version), and deps-first ordered. The self-test proves the
+        # linter catches each crafted bad fixture; the lint then scans the
+        # shipped profiles/ and fails the build on any real violation. Python,
+        # invoked directly (not via bash), so the same step works on Windows.
+        run: |
+          python3 tools/test-lint-profiles.py
+          python3 tools/lint-profiles.py --root .
 
       - name: design-craft framework-agnosticism lint + self-test (design-craft-pack AC8)
         # RFC-0033: the design-craft pack ships portable design method, never a
