@@ -15,7 +15,7 @@ agentbundle install --pack figma --scope user agent-ready-repo
 
 The resolver picks Codex automatically when:
 
-1. The pack declares `codex` in `[pack.install] allowed-adapters` (the four catalogue user-scope packs do).
+1. The pack's `[pack.install] allowed-adapters` includes `codex` (the install refuses if the pack you chose doesn't).
 2. Only `~/.codex/` or `~/.agents/skills/` is present (multi-IDE machines tie-break on declared order; pass `--adapter codex` to override).
 
 On success:
