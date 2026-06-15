@@ -68,7 +68,7 @@ A fourth subagent, `implementer`, is the loop's own executor. It runs independen
 
 Repo-scope packs install into the current repo and build on `core`. User-scope packs install into `~/.claude/` (or your harness's home root) and follow you across every project. Swap `core` for any pack name in the command above.
 
-**Or install a curated set in one command.** Profiles bundle the blessed combinations: `agentbundle install --profile full-ceremony <catalogue>` lands the four repo governance packs (deps-first), and `--profile solution-architect <catalogue>` lands the `architect` + `research` + `contracts` user-scope toolkit. `agentbundle list-profiles <catalogue>` shows what's available; see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
+**Or install a curated set in one command.** Profiles bundle the blessed combinations: `agentbundle install --profile full-ceremony <catalogue>` lands `core` plus the repo governance packs (deps-first), and `--profile solution-architect <catalogue>` lands the `architect` + `research` + `contracts` user-scope toolkit. `agentbundle list-profiles <catalogue>` shows what's available; see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
 
 ## Ecosystem building blocks
 
