@@ -22,6 +22,8 @@ agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-rep
 
 One line lands the loop in your repo. Any agent that reads a skill file inherits it: Claude Code, Codex, Cursor, Copilot, Gemini, Kiro.
 
+Want a whole set at once? A **profile** installs a curated bundle in one command — `agentbundle install --profile full-ceremony git+https://github.com/eugenelim/agent-ready-repo` lands `core` plus the governance packs; `--profile solution-architect` lands an architect's portable toolkit. See [The catalogue](#the-catalogue).
+
 ## The loop
 
 Most agent workflows are `prompt → code → ship`. `core` replaces that one-shot path. It splits the maker from the verifier, and it won't skip a step.
@@ -65,6 +67,8 @@ A fourth subagent, `implementer`, is the loop's own executor. It runs independen
 | [`design-craft`](docs/guides/design-craft/) | user / repo | Framework-agnostic design discipline — `aesthetic-direction`, `design-system-foundations`, `layout-and-information-architecture`, `design-critique`, plus a shared `quality-floor` checklist. Authors the upstream design intent the build consumes; points to WCAG / W3C Design Tokens, never a stack or a values table. |
 
 Repo-scope packs install into the current repo and build on `core`. User-scope packs install into `~/.claude/` (or your harness's home root) and follow you across every project. Swap `core` for any pack name in the command above.
+
+**Or install a curated set in one command.** Profiles bundle the blessed combinations: `agentbundle install --profile full-ceremony <catalogue>` lands the four repo governance packs (deps-first), and `--profile solution-architect <catalogue>` lands the `architect` + `research` + `contracts` user-scope toolkit. `agentbundle list-profiles <catalogue>` shows what's available; see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
 
 ## Ecosystem building blocks
 
