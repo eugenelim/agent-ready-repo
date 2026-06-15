@@ -74,6 +74,8 @@ def main() -> int:
     _run("knowledge-surface parity", [py, "tools/lint-knowledge-surface-parity.py"])
     _run("knowledge-surface parity self-test",
          [py, "tools/test-lint-knowledge-surface-parity.py"])
+    _run("profiles lint", [py, "tools/lint-profiles.py", "--root", "."])
+    _run("profiles lint self-test", [py, "tools/test-lint-profiles.py"])
 
     # Delegate to the shipped adopter-facing hook for the work-loop caps gate.
     result = subprocess.run(

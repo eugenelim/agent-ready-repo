@@ -1,0 +1,20 @@
+# Pack profile: solution-architect (RFC-0034)
+#
+# A solution architect's portable, user-scope toolkit — installed once and
+# carried across every repo. Single-scope (user); installs in one command:
+#   agentbundle install --profile solution-architect <catalogue>
+#
+# Lint invariants (tools/lint-profiles.py): scope-homogeneous (every pack
+# allows user scope), dependency-complete, deps-first ordered.
+
+scope = "user"
+description = "Solution architect's portable user-scope toolkit: architecture design, research, and contract-driven specs."
+
+[[packs]]
+pack = "architect"
+
+[[packs]]
+pack = "research"
+
+[[packs]]
+pack = "contracts"

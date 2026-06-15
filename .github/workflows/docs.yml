@@ -21,6 +21,9 @@ on:
       - 'tools/lint-knowledge.py'
       - 'tools/test-lint-knowledge.sh'
       - 'tools/lint-seeds.py'
+      - 'profiles/**'
+      - 'tools/lint-profiles.py'
+      - 'tools/test-lint-profiles.py'
       - 'packs/**'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
@@ -83,6 +86,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run seed-content linter (RFC-0002 scaffold contract)
         run: python tools/lint-seeds.py
+
+  lint-profiles:
+    name: Install profiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test the linter (every failure mode + happy path)
+        run: python tools/test-lint-profiles.py
+      - name: Run profiles linter (scope/dep/order against the live packs/)
+        run: python tools/lint-profiles.py --root .
 
   loop-cohort:
     name: Caps enforcer self-test

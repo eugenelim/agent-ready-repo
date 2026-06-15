@@ -96,6 +96,21 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle import safety, scope as scope_mod
     from agentbundle.build import scope_rails
 
+    # pack-profiles (RFC-0034): `install --profile <name>` dispatches to the
+    # batch orchestrator. The CLI mutex guarantees exactly one of --pack /
+    # --profile; `--scope` is rejected here because a profile declares its own
+    # scope (argparse can't express that mutex — --scope is valid with --pack).
+    # Guarded before `args.pack` is read, which is None under --profile.
+    if getattr(args, "profile", None):
+        if getattr(args, "scope", None) is not None:
+            print(
+                "install: --scope is not allowed with --profile; a profile "
+                "declares its own scope in its manifest",
+                file=sys.stderr,
+            )
+            return 1
+        return _run_profile(args)
+
     pack_name: str = args.pack
     catalogue_uri: str = args.catalogue
     cli_scope: str | None = getattr(args, "scope", None)
@@ -333,7 +348,12 @@ def run(args: "argparse.Namespace") -> int:
     _effective_user_state: "State" = user_state if user_state is not None else _State()
     try:
         validate_dependencies_required(
-            pack_toml, repo_state=repo_state, user_state=_effective_user_state
+            pack_toml,
+            repo_state=repo_state,
+            user_state=_effective_user_state,
+            # pack-profiles AC7: under a profile install, a required dep may be
+            # satisfied by another pack in the same batch. None for single-pack.
+            also_installing=getattr(args, "_batch_packs", None),
         )
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
@@ -859,7 +879,10 @@ def run(args: "argparse.Namespace") -> int:
         new_pack_state = PackState(
             installed_version=pack_version,
             source="agent-ready-repo",
-            install_route="cli",
+            # pack-profiles AC13: a profile install records "profile"; the
+            # orchestrator sets `args._install_route`. Default "cli" keeps
+            # single-pack callers unchanged.
+            install_route=getattr(args, "_install_route", "cli"),
             scope=plan.scope,
             primitives=_collect_primitives(pack_dir),
             files={},
@@ -3266,6 +3289,7 @@ def validate_dependencies_required(
     *,
     repo_state: "State",
     user_state: "State",
+    also_installing: "set[str] | None" = None,
 ) -> None:
     """Enforce [pack.dependencies.required] before any file write.
 
@@ -3278,10 +3302,23 @@ def validate_dependencies_required(
     version ``A.B.C`` satisfies ``^X.Y`` when ``A == X AND (B > Y OR (B
     == Y AND C >= 0))``, i.e. ``>= X.Y.0 AND < (X+1).0.0``.
 
+    ``also_installing`` (pack-profiles AC7) — names of packs being installed in
+    the *same batch* as this one (a profile install). A required dep whose name
+    is in this set is treated as satisfied **by name**: at pre-flight nothing is
+    written yet, so the dep carries no on-disk version to range-check. The
+    version range is enforced for real at write time — the profile orchestrator
+    writes deps-first, so each dependent's per-pack gate re-runs against actual
+    state with the dep's real version — and the profile lint
+    (``tools/lint-profiles.py``) independently checks in-batch version
+    satisfiability at author-time. The version-range *grammar* is still
+    validated even for an in-batch dep (a malformed range is a manifest bug).
+    Default ``None`` → existing single-pack behavior, byte-for-byte.
+
     Raises:
         RuntimeError: on unsupported range grammar or missing/out-of-range dep.
             Caller is expected to print str(exc) to stderr and exit 1.
     """
+    batch = also_installing or set()
     import re
 
     _CARET_RE = re.compile(r"^\^([0-9]+)\.([0-9]+)$")
@@ -3321,10 +3358,22 @@ def validate_dependencies_required(
 
         dep_version = installed.get(dep_name)
         if dep_version is None:
+            # Not on disk. Batch-aware (pack-profiles AC7): a dep being
+            # installed *later in this same batch* satisfies the gate by name —
+            # at pre-flight nothing is written yet, so there is no version to
+            # range-check. Deps-first write order means it will be on disk
+            # before its dependent's write gate re-runs, where the real version
+            # check below fires. The grammar above is already validated.
+            if dep_name in batch:
+                continue
             raise RuntimeError(
                 f"install: pack {pack_name!r} requires {dep_name!r} "
                 f"(version {dep_range}); install {dep_name} first"
             )
+        # On disk — always range-check the *actual* installed version, even
+        # when the dep is also in the batch. This is what makes the write-time
+        # gate real: a dep pre-installed (or written earlier in the batch) at a
+        # version that does not satisfy the range is refused, not name-bypassed.
 
         # Parse installed version X.Y.Z (allow fewer components).
         parts = dep_version.split(".")
@@ -3351,6 +3400,281 @@ def validate_dependencies_required(
                 f"install: pack {pack_name!r} requires {dep_name!r} "
                 f"(version {dep_range}); install {dep_name} first"
             )
+
+
+def _profile_pack_allowed_adapters(pack_toml: dict) -> list[str] | None:
+    """Extract a pack's declared ``allowed-adapters`` (None ⇒ unconstrained).
+
+    Mirrors the gated extraction in ``run()``: the ``[pack.install]`` table is
+    only honoured for contract version >= 0.2 (a stray table on a v0.1 pack is
+    ignored).
+    """
+    from agentbundle.config import pack_spec_version
+
+    version = pack_spec_version(pack_toml)
+    if version is None or version == "0.1":
+        return None
+    install = pack_toml.get("pack", {}).get("install")
+    if not isinstance(install, dict):
+        return None
+    raw = install.get("allowed-adapters")
+    if isinstance(raw, list):
+        return [s for s in raw if isinstance(s, str)]
+    return None
+
+
+def _run_profile(args: "argparse.Namespace") -> int:
+    """Install a curated, single-scope set of packs in one command (RFC-0034).
+
+    A thin orchestrator over single-pack ``run()``: it pins one scope and one
+    adapter for the whole batch, runs the full read-only pre-flight (each pack's
+    ``run(dry_run=True)``, Steps 1–8 incl. the path-jail probe) for **every**
+    pack before writing **any**, then writes each pack by calling ``run()`` in
+    deps-first authored order. It reimplements none of ``run()``'s write logic;
+    it only sequences and gates. See ``docs/specs/pack-profiles/``.
+
+    Returns 0 on success, non-zero on any pre-flight refusal or write failure.
+    """
+    import argparse
+    import contextlib
+    import io
+
+    from agentbundle.catalogue import CatalogueError, resolve_catalogue
+    from agentbundle.commands.profile import ProfileError, load_profile
+    from agentbundle.config import ConfigError, load_pack_toml, load_state
+    from agentbundle import safety
+    from agentbundle import scope as scope_mod
+
+    profile_id: str = args.profile
+    catalogue_uri: str = args.catalogue
+    cli_adapter: str | None = getattr(args, "adapter", None)
+    user_config = getattr(args, "_user_config", None)
+    output_root = Path(args.output).resolve()
+
+    # ── Resolve catalogue + load the profile manifest ─────────────────────────
+    try:
+        catalogue_dir = resolve_catalogue(catalogue_uri)
+    except CatalogueError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
+    try:
+        profile = load_profile(catalogue_dir, profile_id)
+    except ProfileError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
+
+    scope_value = profile.scope
+    pack_names = list(profile.packs)
+    batch = set(pack_names)
+
+    # ── Locate every pack + load its manifest (existence pre-check, AC4) ───────
+    pack_dirs: dict[str, Path] = {}
+    pack_tomls: dict[str, dict] = {}
+    for name in pack_names:
+        pack_dir = _locate_pack(catalogue_dir, name)
+        if pack_dir is None:
+            print(
+                f"install: profile {profile_id!r}: pack {name!r} not found in "
+                f"catalogue at {catalogue_dir}",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            pack_tomls[name] = load_pack_toml(pack_dir / "pack.toml")
+        except ConfigError as exc:
+            print(f"install: profile {profile_id!r}: {exc}", file=sys.stderr)
+            return 1
+        pack_dirs[name] = pack_dir
+
+    # ── Resolve ONE adapter for the whole batch, assert each pack allows it ───
+    # Explicit --adapter, else the scope's normal resolution run once (via the
+    # first pack). Then assert membership per pack; refuse-and-suggest on a
+    # mismatch before any write (AC5, RFC-0034 D5 step 2).
+    from agentbundle.config import pack_spec_version
+
+    def _contract_version(name: str) -> str | None:
+        return pack_spec_version(pack_tomls[name])
+
+    first = pack_names[0]
+    try:
+        batch_adapter = _resolve_target_adapter(
+            pack_dirs[first],
+            scope=scope_value,
+            adapter=cli_adapter,
+            allowed_adapters=_profile_pack_allowed_adapters(pack_tomls[first]),
+            contract_version=_contract_version(first),
+            state_adapter=None,
+            command_name="install",
+            user_config=user_config,
+        )
+    except _AdapterResolutionRefused as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    # Suggestion set: intersection of declared allowed-adapters across the batch
+    # (packs that declare none impose no constraint). Used only for the refusal
+    # message — never for resolution.
+    suggestion: set[str] = set(scope_mod.shipped_adapters_from_contract())
+    for name in pack_names:
+        declared = _profile_pack_allowed_adapters(pack_tomls[name])
+        if declared is not None:
+            suggestion &= set(declared)
+
+    for name in pack_names:
+        try:
+            _resolve_target_adapter(
+                pack_dirs[name],
+                scope=scope_value,
+                adapter=batch_adapter,
+                allowed_adapters=_profile_pack_allowed_adapters(pack_tomls[name]),
+                contract_version=_contract_version(name),
+                state_adapter=None,
+                command_name="install",
+                user_config=user_config,
+            )
+        except _AdapterResolutionRefused:
+            compat = (
+                f" compatible adapters for this profile: "
+                f"{sorted(suggestion)}" if suggestion else ""
+            )
+            print(
+                f"install: profile {profile_id!r}: pack {name!r} does not allow "
+                f"adapter {batch_adapter!r}; refusing before any write."
+                f"{compat}",
+                file=sys.stderr,
+            )
+            return 1
+
+    # ── Determine already-installed packs at the declared scope (AC6) ─────────
+    if scope_value == "repo":
+        state_path = output_root / ".agentbundle-state.toml"
+    else:
+        try:
+            user_root = scope_mod.resolve_user_root()
+        except scope_mod.UserScopeUnresolvable:
+            print(
+                "install: cannot resolve user scope: $HOME unset or invalid",
+                file=sys.stderr,
+            )
+            return 1
+        state_path = user_root / ".agentbundle" / "state.toml"
+    try:
+        state = load_state(state_path)
+    except ConfigError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
+    already = {name for name in pack_names if name in state.packs}
+    remaining = [name for name in pack_names if name not in already]
+
+    # ── Refuse cross-scope: a pack present at the *opposite* scope ────────────
+    # A profile is single-scope (Boundary: never mix scopes). A pack already
+    # installed at the other scope cannot be cleanly handled — the single-pack
+    # path would need --force to dual-install, which the profile surface does
+    # not expose. Refuse with a profile-aware message instead of letting the
+    # per-pack dry-run surface the misleading single-pack "pass --force" line.
+    opposite = "user" if scope_value == "repo" else "repo"
+    opp_state = None
+    try:
+        if opposite == "repo":
+            opp_state = load_state(output_root / ".agentbundle-state.toml")
+        else:
+            opp_root = scope_mod.resolve_user_root()
+            opp_state = load_state(opp_root / ".agentbundle" / "state.toml")
+    except (scope_mod.UserScopeUnresolvable, ConfigError):
+        opp_state = None  # opposite scope unreadable → nothing to conflict with
+    if opp_state is not None:
+        cross = [name for name in remaining if name in opp_state.packs]
+        if cross:
+            print(
+                f"install: profile {profile_id!r}: pack(s) {cross} already "
+                f"installed at {opposite} scope; a profile installs only at its "
+                f"declared {scope_value} scope and will not install the same "
+                f"pack across scopes. Uninstall them from {opposite} scope "
+                f"first, or install them individually.",
+                file=sys.stderr,
+            )
+            return 1
+
+    # ── Per-pack args factory (catalogue pre-resolved to avoid re-cloning) ────
+    def _pack_args(name: str, *, dry_run: bool) -> "argparse.Namespace":
+        ns = argparse.Namespace()
+        ns.pack = name
+        ns.profile = None  # so run()'s dispatch does not recurse
+        ns.catalogue = str(catalogue_dir)
+        ns.output = args.output
+        ns.scope = scope_value  # pin the declared scope for every pack
+        ns.adapter = batch_adapter  # pin the one resolved adapter
+        ns.force = False
+        ns.force_merge = False
+        ns.emit_install_routes = False  # modern per-IDE projection at repo scope
+        ns.dry_run = dry_run
+        ns._user_config = user_config
+        ns._install_route = "profile"  # AC13
+        ns._batch_packs = batch  # AC7 — in-batch deps satisfy the gate
+        return ns
+
+    # ── Pre-flight: dry-run EVERY remaining pack before ANY write (AC4) ───────
+    # run(dry_run=True) exercises Steps 1–8 — scope, batch dep gate, adapter,
+    # render, and the read-only path-jail probe — and returns non-zero without
+    # writing. Suppress its stdout (the per-file plan); let stderr (the real
+    # error) flow so the adopter sees why.
+    for name in remaining:
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = run(_pack_args(name, dry_run=True))
+        if rc != 0:
+            print(
+                f"install: profile {profile_id!r}: pre-flight failed for pack "
+                f"{name!r}; aborting before any write",
+                file=sys.stderr,
+            )
+            return rc or 1
+
+    # ── Write: install each remaining pack in deps-first authored order ───────
+    summary: list[tuple[str, str]] = []
+    for idx, name in enumerate(pack_names):
+        if name in already:
+            summary.append((name, "already present, skipped"))
+            continue
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = run(_pack_args(name, dry_run=False))
+        except (safety.WriteError, OSError) as exc:
+            # single-pack run()'s projection write loop catches only
+            # PathJailError; a genuine I/O failure (disk full) propagates here.
+            print(
+                f"install: profile {profile_id!r}: pack {name!r} failed to "
+                f"write: {exc}",
+                file=sys.stderr,
+            )
+            rc = 1
+        if rc != 0:
+            summary.append((name, "failed"))
+            # Packs after the failure were never attempted (no rollback of the
+            # consistent prefix already written). Report them so the summary
+            # reflects the whole batch's state, not just up to the failure.
+            for later in pack_names[idx + 1:]:
+                summary.append(
+                    (later, "already present, skipped"
+                     if later in already else "not attempted")
+                )
+            _emit_profile_summary(profile_id, scope_value, batch_adapter, summary)
+            return 1
+        summary.append((name, "installed"))
+
+    _emit_profile_summary(profile_id, scope_value, batch_adapter, summary)
+    return 0
+
+
+def _emit_profile_summary(
+    profile_id: str,
+    scope_value: str,
+    adapter: str,
+    summary: list[tuple[str, str]],
+) -> None:
+    """Print the per-pack profile-install summary to stdout (AC8)."""
+    print(f"profile {profile_id} ({scope_value} scope, adapter {adapter}):")
+    for name, status in summary:
+        print(f"  {name}: {status}")
 
 
 def _collect_primitives(pack_dir: Path) -> list[str]:

@@ -7,7 +7,7 @@ Three integration tests cover AC15:
     up the configured value.
   - **(c)** AST static check walking every `_resolve_target_adapter`
     call in install.py + upgrade.py — every call passes
-    `user_config=` keyword; the total count equals 7.
+    `user_config=` keyword; the total count equals 9.
 
 The conftest fixture sandboxes HOME/XDG_CONFIG_HOME/APPDATA per test,
 so each test's subprocess and in-process IO land under tmp_path.
@@ -146,7 +146,7 @@ def test_in_process_resolver_honors_user_config(tmp_path: Path) -> None:
 
 def test_resolve_target_adapter_callers_thread_user_config() -> None:
     AGENTBUNDLE_DIR = Path(agentbundle.__file__).parent
-    EXPECTED = 7  # 5 in install.py, 2 in upgrade.py
+    EXPECTED = 9  # 7 in install.py (2 added by pack-profiles _run_profile), 2 in upgrade.py
     found = 0
     for src in [
         AGENTBUNDLE_DIR / "commands" / "install.py",

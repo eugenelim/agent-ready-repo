@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "required": ["scope", "description", "packs"],
+  "additionalProperties": false,
+  "properties": {
+    "scope": {"enum": ["repo", "user"]},
+    "description": {"type": "string"},
+    "packs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["pack"],
+        "additionalProperties": false,
+        "properties": {
+          "pack": {"type": "string"}
+        }
+      }
+    }
+  }
+}
