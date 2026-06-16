@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **SSO web-session cookie auth for `jira` reads + `confluence-crawler` (atlassian
+  pack, RFC-0035).** On an Atlassian Data Center instance behind corporate SSO
+  where API tokens are blocked, both skills can now authenticate by a captured web
+  session instead of a token: pre-bake `references/sso-config.toml`
+  (`auth_default = "sso-cookie"`), run `python scripts/setup_sso.py` once to
+  register the session, and reads work with no token. The session is resolved
+  through the `credbroker` SSO resolver (new `load_sso_cookies`, credbroker 0.2.0)
+  and the captured jar is confined to the declared `cookie_domains`; no
+  `Authorization` header is sent and redirects are not followed (the session
+  cookie never crosses to another host). Both skills keep a `creds` (token)
+  fallback — token users with no SSO config see no change. Data Center reads only;
+  writes are refused pending XSRF design; Cloud is unchanged. See
+  [Authenticate Jira / Confluence with an SSO web session](../guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md).
 - **`jira-brief-intake` skill (atlassian pack).** Turns a Jira epic — or a
   board / sprint / JQL selection of issues — into shippable specs for teams who
   plan kanban-style in Jira. It pulls the epic and its children via the `jira`

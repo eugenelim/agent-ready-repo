@@ -1,6 +1,6 @@
 # Spec: atlassian-sso-cookie
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0035, RFC-0013, RFC-0023, ADR-0026
@@ -92,10 +92,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   control surface, so each rejection path — and the over-broad-jar → filtered-jar
   reduction — is a test. Unit level.
 - **Cookie-path HTTP wiring (no `Authorization` header; cookie jar attached;
-  GET/HEAD allowlist refuses writes incl. `raw("POST", …)`; proxy/trust-store
-  env honored): TDD via a mock transport.** Assert on the *outbound request*
-  (headers, cookies, refusal) through httpx's `MockTransport`, not on internal
-  client attributes. Unit/integration level.
+  GET/HEAD allowlist refuses writes incl. `raw("POST", …)`; `follow_redirects=False`
+  with an off-`cookie_domains` `302` attaching zero cookies; non-`https` base URL
+  refused at construction; proxy/trust-store env honored): TDD via a mock
+  transport.** Assert on the *outbound request* (headers, cookies, refusal) across
+  **every** request the transport observes, through httpx's `MockTransport`, not on
+  internal client attributes. Unit/integration level.
 - **`auth_default` selector + `creds` fallback (absent/`creds` → token path
   byte-identical; `sso-cookie` + registered → cookie path; `sso-cookie` +
   unavailable → fail closed): TDD.** Unit level.
@@ -112,25 +114,25 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 Numbered for plan traceability; each maps to one or more `plan.md` tasks.
 
-- [ ] **AC1.** `credbroker` exposes a public SSO consumer resolver (e.g.
+- [x] **AC1.** `credbroker` exposes a public SSO consumer resolver (e.g.
   `load_sso_cookies(profile)`) that resolves `sso-broker.py` at
   `Path.home()/.agentbundle/bin/sso-broker.py`, runs `get-cookies <profile>` via
   `subprocess.run`, and returns the on-disk jar path; a broker-absent resolution
   raises with the install-the-pack remediation. `credbroker` base import graph
   stays stdlib-only and its version is bumped (0.1.1 → 0.2.0).
-- [ ] **AC2.** The resolver proceeds on the cookie path **only** when
+- [x] **AC2.** The resolver proceeds on the cookie path **only** when
   `get-cookies` exits `0` with a readable jar path; any non-zero exit (the broker
   returns `2` for both "not registered" and "no jar"), a broker-absent failure, or
   an uncaught broker exception fails closed with the verbatim remediation
   `"SSO session unavailable for profile <profile>; run 'sso-broker register
   <profile>'"` — it never falls through to `creds` when `auth_default =
   "sso-cookie"`.
-- [ ] **AC3.** `credbroker` exposes reusable validation primitives that reject: a
+- [x] **AC3.** `credbroker` exposes reusable validation primitives that reject: a
   non-`https` `login_url`, `success_url_pattern`, **or `base_url`**; a
   `validation_endpoint` that is not a root-relative path (must lead with `/`, no
   scheme, host, or protocol-relative `//`); and any cookie whose domain is outside
   the declared `cookie_domains`.
-- [ ] **AC4.** Because the unchanged broker captures an over-broad jar (every
+- [x] **AC4.** Because the unchanged broker captures an over-broad jar (every
   cookie observed across the SSO redirect chain — `--cookie-domain` only writes
   profile metadata, and `get-cookies` re-materialises the *full* jar to the `0600`
   floor on every call), the **consumer** filters the loaded jar to the declared
@@ -142,58 +144,65 @@ Numbered for plan traceability; each maps to one or more `plan.md` tasks.
   against `corp.example.com`, and `jira.corp.example.com` is admitted). The filter
   is applied on **every** resolution and its result is never written back to the
   broker path (the on-disk jar stays over-broad; see AC10).
-- [ ] **AC5.** On the cookie path the cookie set that actually leaves the process
-  is a subset of the declared `cookie_domains`, asserted on the **outbound request**
-  via a mock transport (not merely on a base-host check). The test matrix includes
-  the `evil-corp.example.com` vs `corp.example.com` near-miss.
-- [ ] **AC6.** The consumer client's request base host is a member of
+- [x] **AC5.** On the cookie path the cookie set that actually leaves the process
+  is a subset of the declared `cookie_domains`, asserted on **every request the
+  mock transport observes** (the initial request and any redirect hop, not merely a
+  base-host check). The test matrix includes the `evil-corp.example.com` vs
+  `corp.example.com` static near-miss **and** the off-`cookie_domains` `302` case
+  (see AC20).
+- [x] **AC6.** The consumer client's request base host is a member of
   `cookie_domains`; a mismatch fails closed before any cookie-bearing request
-  leaves the process.
-- [ ] **AC7.** On the cookie path, the HTTP client sends **no** `Authorization`
+  leaves the process. The resolved base URL scheme must also be `https` at client
+  construction (defense-in-depth below the config-layer AC3 guard — the cookie jar
+  is a bearer secret, so the token path's `http://` tolerance must not extend to
+  the cookie path); a non-`https` base URL fails closed at construction.
+- [x] **AC7.** On the cookie path, the HTTP client sends **no** `Authorization`
   header and attaches the (filtered) cookie jar; verified on the outbound request
   via a mock transport.
-- [ ] **AC8.** The cookie-path HTTP client honors `HTTPS_PROXY`/`NO_PROXY` and the
+- [x] **AC8.** The cookie-path HTTP client honors `HTTPS_PROXY`/`NO_PROXY` and the
   system/corporate trust store (CA bundle), wired against actual httpx behavior
   (`trust_env=True`; an explicit SSL context that honors `SSL_CERT_FILE`/
   `SSL_CERT_DIR` and maps `REQUESTS_CA_BUNDLE`; the trust store is not clobbered
   by a bare `verify=True`).
-- [ ] **AC9.** Only GET/HEAD reach the wire on the cookie path, enforced by an
+- [x] **AC9.** Only GET/HEAD reach the wire on the cookie path, enforced by an
   allowlist at the `_request` chokepoint in both clients. In `jira` (which exposes
   a `raw(method, …)` escape hatch) a mutating call — including `raw("POST", …)` —
   raises "writes over SSO-cookie auth are not supported yet (RFC-0035 v1); use a
   personal access token, or wait for the XSRF follow-on"; `confluence-crawler`
   (no `raw()`) refuses a non-GET/HEAD `method` at the same chokepoint. In both,
   the mock transport records **zero** requests for a refused verb.
-- [ ] **AC10.** The consumer reads the jar in-process from the broker-supplied
+- [x] **AC10.** The consumer reads the jar in-process from the broker-supplied
   path only — it never re-writes, copies, or logs the jar or its contents,
   including never persisting the AC4-filtered jar back to the broker path (the
   `0600` at-rest floor is the broker's responsibility, verified by the broker's
   own tests).
-- [ ] **AC11.** On a `401` from a read call, the client surfaces the verbatim
+- [x] **AC11.** On a `401` from a read call, the client surfaces the verbatim
   re-`register` remediation `"401 Unauthorized — SSO session expired; run
   'sso-broker register <profile>' to re-authenticate"`, does **not** silently
   retry into a browser flow, and stops using the known-stale jar (no further
-  cookie-bearing request with that session).
-- [ ] **AC12.** `jira` and `confluence-crawler` ship `references/sso-config.toml`,
+  cookie-bearing request with that session). No cookie value appears in any
+  surfaced error or trace text on the `401` or redirect (AC20) paths — the
+  remediation names the profile, never the session bytes.
+- [x] **AC12.** `jira` and `confluence-crawler` ship `references/sso-config.toml`,
   placeholder-shaped upstream: `auth_default = "creds"`, `*.invalid` hosts, no
   cookie values.
-- [ ] **AC13.** The selector resolves the cookie path iff `auth_default =
+- [x] **AC13.** The selector resolves the cookie path iff `auth_default =
   "sso-cookie"` and a profile is registered; with the config absent or
   `auth_default = "creds"` the outbound request headers and the resolved
   `Credentials` are identical to today's `creds` path (a token user with no SSO
   config sees no behavior change).
-- [ ] **AC14.** The setup helper reads the validated `sso-config.toml` and drives
+- [x] **AC14.** The setup helper reads the validated `sso-config.toml` and drives
   `sso-broker register <profile>` from it (RFC-0035 Open Q2), passing no cookie
   value on argv, and validates `login_url`/`base_url` scheme + `validation_endpoint`
   (AC3 primitives) **before** invoking `register`, so no unvalidated value is ever
   seeded into the profile the unchanged broker's `test`/`get-cookies` read.
-- [ ] **AC15.** A new structural lint parses the upstream
+- [x] **AC15.** A new structural lint parses the upstream
   `references/sso-config.toml` and fails if any `[sso]` key is outside the declared
   connection-param schema, if any value matches a cookie-value shape, if
   `auth_default != "creds"`, or if any host is not `*.invalid`. The check is
   TOML-key structural, **not** a substring scan (no false-positive on
   `crowd.token_key`, `session_filename`, `success_url_pattern`).
-- [ ] **AC16.** `jira` and `confluence-crawler` declare `auth: sso-cookie` with a
+- [x] **AC16.** `jira` and `confluence-crawler` declare `auth: sso-cookie` with a
   `metadata.auth-fallback: creds` marker, and their Security sections carry
   **both** brokers' required phrase sets. `lint_credentialed_skills.py` is amended
   so that (a) a skill carrying the `auth-fallback: creds` marker must satisfy both
@@ -201,11 +210,11 @@ Numbered for plan traceability; each maps to one or more `plan.md` tasks.
   import satisfies the broker-invocation requirement (mirroring RFC-0023's
   `has_credbroker_import` for `creds`) in place of an in-`scripts/`
   `sso-broker.py` path expression.
-- [ ] **AC17.** Mock-level tests cover broker invocation shape, cookie-jar
+- [x] **AC17.** Mock-level tests cover broker invocation shape, cookie-jar
   attachment, the no-`Authorization` assertion, the writes-refused error, the
   fail-closed branches, and cookie-domain confinement (capture-filter + send
   subset).
-- [ ] **AC18.** The upstream-upgrade path for a pre-baked `sso-config.toml` is
+- [x] **AC18.** The upstream-upgrade path for a pre-baked `sso-config.toml` is
   documented as the adapt-to-project `.upstream` companion merge (class-2), so an
   org's edited instance config is not clobbered by a later catalogue release.
 - [ ] **AC19.** (deferred: atlassian-sso-cookie-live-dc-read-transcript) A live
@@ -214,6 +223,17 @@ Numbered for plan traceability; each maps to one or more `plan.md` tasks.
   `notes/live-dc-read.md`. This is the gate that flips the feature Experimental →
   Accepted; it reopens when a real corporate-SSO DC instance is available (the
   plan's `## Construction tests` → Manual verification owns the gesture).
+- [x] **AC20.** The cookie-path HTTP client is built with `follow_redirects=False`
+  so no redirect is followed with cookies attached. (httpx re-derives the `Cookie`
+  header from the client store by domain match on **every** hop, so following an
+  off-`cookie_domains` `30x` — open redirect, reverse-proxy misconfig, or an
+  attacker-influenced `Location` — would re-attach and exfiltrate the session
+  cookie; `follow_redirects=False` closes that path.) A `30x` response is surfaced
+  to the caller rather than followed. Verified on a mock transport: a `302` from a
+  permitted host to an off-`cookie_domains` host produces **zero** cookie-bearing
+  requests to that off-domain host. DC read endpoints return `200`; redirect-to-
+  login as an expired-session signal is part of the deferred live-DC transcript
+  (AC19).
 
 ## Assumptions
 
