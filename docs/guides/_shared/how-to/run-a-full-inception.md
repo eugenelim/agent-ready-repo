@@ -19,11 +19,19 @@ You need:
 - An idea, even a rough one.
 - The `core` pack, for `init-project`, `new-spec`, and `work-loop`.
 
-You don't install everything up front. Inception is a spine with optional
-stages in front of it. You add a stage, and the pack behind it, only when
-you're carrying the uncertainty it removes. For the install routes themselves
-see [Install routes](../explanation/install-routes.md), or
-[Install a curated set of packs](install-a-profile.md) to take several at once.
+The three upstream packs — `research`, `product-engineering`, `architect` —
+are the user-scope `inception` profile, so one command carries the whole
+toolkit across every venture:
+
+```bash
+agentbundle install --profile inception <catalogue>
+```
+
+You don't have to use all of it. Inception is a spine with optional stages in
+front of it. You reach for a stage only when you're carrying the uncertainty it
+removes — the profile just means the pack is already there when you do. For the
+install routes themselves see [Install routes](../explanation/install-routes.md),
+or [Install a curated set of packs](install-a-profile.md).
 
 ## The spine
 
@@ -49,8 +57,8 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
 - **Skills:** `research` (run it in `applied` mode for prior art, best
   practice, and known anti-patterns), plus `source-map`, `compare-hypotheses`,
   and `devils-advocate` for contested choices.
-- **Install:** `agentbundle install --pack research <catalogue>`. The
-  `solution-architect` profile bundles it with `architect`.
+- **Install:** in the `inception` profile, or on its own with
+  `agentbundle install --pack research <catalogue>`.
 - **How:** [Run the research pipelines](../../research/how-to/research-pipelines.md),
   or [your first research session](../../research/tutorials/research-first-session.md)
   if the pack is new to you.
@@ -61,7 +69,8 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
   `de-risk-intent` (test the riskiest assumption against a predeclared kill
   condition), `decompose-intent` (cut it into a `core` brief). At app scale the
   leaf intent *is* the brief.
-- **Install:** `agentbundle install --pack product-engineering <catalogue>`.
+- **Install:** in the `inception` profile, or on its own with
+  `agentbundle install --pack product-engineering <catalogue>`.
 - **How:** [Shape a feature intent](../../product-engineering/how-to/shape-a-feature-intent.md).
 
 ### `architect` — when the system shape is uncertain
@@ -69,8 +78,8 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
 - **Skills:** `architect-design` (concept → design doc, converged against
   review), `architect-diagram`, `architect-review`. The decisions it surfaces
   become the rationale `init-project` records.
-- **Install:** `agentbundle install --pack architect <catalogue>`, or the
-  `solution-architect` profile.
+- **Install:** in the `inception` profile, or on its own with
+  `agentbundle install --pack architect <catalogue>`.
 - **How:** [Establish your reference architecture](../../architect/how-to/establish-reference-architecture.md).
 
 ### `core` — always (you already have it)
