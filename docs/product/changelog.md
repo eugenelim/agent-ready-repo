@@ -72,6 +72,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no adapter-contract bump, no new install route — distribution hygiene over
   the existing single-pack install path.
 
+- **New `inception` profile.** A user-scope toolkit for taking an idea from
+  zero to a buildable repo — `research` + `product-engineering` + `architect`,
+  installed once and carried across ventures. Install with `agentbundle install
+  --profile inception <catalogue>`, then use as much of it as the venture
+  warrants: architecture alone for a learning project, plus product shaping for
+  a side project, plus research when sizing a market. The build loop itself
+  stays the repo-scope `core` pack, installed into the new repo at bootstrap.
+
 - **`design` joins the soft `categories` vocabulary.** `agentbundle validate`
   now recognizes `design` as a known pack category, so the `design-craft` pack
   (and any future design pack) declares it without a soft warning. The

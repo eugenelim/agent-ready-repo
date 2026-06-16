@@ -1,0 +1,28 @@
+# Pack profile: inception (RFC-0034)
+#
+# The portable, user-scope toolkit for one person carrying an idea from zero
+# to a buildable repo — playing the research, product, and architecture roles
+# themselves before any build loop. Installed once and carried across every
+# venture, whether that's a side project, a startup, or an enterprise
+# initiative. Single-scope (user); installs in one command:
+#   agentbundle install --profile inception <catalogue>
+#
+# Use as much or as little as the venture warrants: architecture alone for a
+# technical learning project, plus product shaping for a side project, plus
+# research when you're sizing a market. The build loop itself is the
+# repo-scope `core` pack, installed into the new repo at bootstrap.
+#
+# Lint invariants (tools/lint-profiles.py): scope-homogeneous (every pack
+# allows user scope), dependency-complete, deps-first ordered.
+
+scope = "user"
+description = "Portable user-scope toolkit for taking an idea from zero to a buildable repo: research the space, shape the product, design the system."
+
+[[packs]]
+pack = "research"
+
+[[packs]]
+pack = "product-engineering"
+
+[[packs]]
+pack = "architect"
