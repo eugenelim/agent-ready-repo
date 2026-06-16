@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`jira-brief-intake` skill (atlassian pack).** Turns a Jira epic — or a
+  board / sprint / JQL selection of issues — into shippable specs for teams who
+  plan kanban-style in Jira. It pulls the epic and its children via the `jira`
+  skill, maps them onto a Shape B product brief (epic → Outcome, child issues →
+  `US-n` user stories tagged with their Jira key, epic key → `Epic:` provenance
+  pointer) at `docs/product/briefs/<slug>.md`, then hands off to the
+  `receive-brief` skill to elicit any missing fields, decompose, and build. It
+  is read-only against Jira and degrades gracefully — when `receive-brief` is
+  not installed it inlines a decompose/execute instruction for the agent to act
+  on directly. Pure choreography, mirroring `jira-defect-flow`.
+
 ### Fixed
 
 - **`agentbundle install --adapter kiro` now behaves exactly like `kiro-ide`.**

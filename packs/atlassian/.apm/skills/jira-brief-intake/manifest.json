@@ -1,0 +1,38 @@
+{
+  "id": "jira-brief-intake",
+  "name": "Jira Brief Intake",
+  "version": "1.0.0",
+  "description": "Turn a Jira epic (or a board / sprint / JQL selection) into shippable specs: pull the epic and its children via the `jira` skill, map them onto a Shape B product brief (epic -> Outcome, child issues -> `US-n` user stories tagged with their Jira key, epic key -> `Epic:` provenance pointer), write it to `docs/product/briefs/<slug>.md`, and hand off to the `receive-brief` skill to elicit gaps, decompose, and build. Read-only against Jira. Gracefully degrades to an inlined decompose/execute instruction when `receive-brief` is not installed. Pure choreography — composes existing skills by name, never by path.",
+  "category": "workflows",
+  "tags": ["jira", "brief", "receive-brief", "intake", "epic", "workflow", "orchestration", "read-only"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Sibling skills are addressed BY NAME at runtime. The agent's harness resolves the name to whatever install location the user picked. `source` below is install guidance only — never a runtime path.",
+    "skills": [
+      {
+        "name": "jira",
+        "source": "this pack — packs/atlassian/.apm/skills/jira/",
+        "purpose": "All Jira reads: check, get-issue, search (for the flavor-correct child query). The intake skill never makes a raw Jira REST call and never invokes a write verb (no transition, comment, attach, create / update / delete). Hard dependency — there is no degraded path without it."
+      },
+      {
+        "name": "receive-brief",
+        "source": "host repo — core pack — .apm/skills/receive-brief/ (projected to .claude/skills/receive-brief/)",
+        "purpose": "Owns Elicit (fill missing Outcome / Scope conversationally), Decompose (cut into shippable slices), and Execute (chain new-spec -> work-loop). The intake skill hands off the assembled brief and never reimplements elicitation. SOFT dependency: when absent, the skill degrades gracefully, producing the brief and inlining a decompose/execute instruction for the agent to act on."
+      }
+    ],
+    "system": []
+  },
+  "input": {
+    "arguments": "a Jira epic key (e.g., PROJ-100), or a JQL / board / sprint selection of issues that together form one multi-feature body of work. A single non-epic issue is out of scope — the skill recommends `new-spec` (or `jira-defect-flow` for a defect) instead.",
+    "env": {}
+  },
+  "output": {
+    "artifacts": [
+      "docs/product/briefs/<slug>.md — a Shape B product brief: Outcome from the epic, one `US-n` story per child issue tagged with its Jira key, the epic key as the `Epic:` provenance pointer. Gaps (Success metrics, Appetite, silent Scope) are left for `receive-brief` to elicit.",
+      "a hand-off to the `receive-brief` skill (normal flow), or an inlined decompose/execute instruction (degraded flow when `receive-brief` is absent)."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}
