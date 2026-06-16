@@ -2009,3 +2009,36 @@ record. Corrections are appended here, Approver-signed.
   contract change beyond the v0.13 bump the gemini adapter already carries; the
   prefix precondition is satisfied by the shipped contract. Recorded in
   `docs/specs/gemini-full-parity/` (AC11) + `packs/credential-brokers/pack.toml`.
+
+- **2026-06-16 (Approver: eugenelim) — § 2's "every credentialed skill picks
+  exactly one broker" is narrowed to admit an `sso-cookie` + `creds` pairing on
+  a single skill.** [RFC-0035](0035-sso-cookie-auth-for-atlassian-pack.md) wires
+  the atlassian read skills to the `sso-cookie` broker for SSO-only Data Center
+  instances. A single `jira` skill must serve both populations on a mixed
+  estate (token users and SSO-only DC users), which § 2's rule "Every
+  credentialed skill picks exactly one" forbids. The rule is narrowed:
+
+  > A skill MAY declare `auth: sso-cookie` together with a `creds` fallback,
+  > resolved at runtime by a single explicit rule keyed on the skill's
+  > `sso-config.toml` `auth_default` key: absent or `auth_default = "creds"` →
+  > `creds` (the upstream default); `auth_default = "sso-cookie"` + a registered
+  > profile → cookie path; `auth_default = "sso-cookie"` + broker/profile
+  > unavailable → **fail closed** (never a silent downgrade to `creds`). No
+  > other broker combination is permitted; the one-broker rule stands for every
+  > other pairing.
+
+  **Why this is the only loosening.** The pairing is asymmetric and
+  fail-closed: `creds` is reachable only when no SSO config selected the cookie
+  path, and a configured-but-unavailable SSO path fails closed rather than
+  downgrading. Today's token users (no SSO config) resolve to `creds`
+  byte-for-byte as before. This is not a general "skills may stack brokers"
+  relaxation — it is one named pairing with one runtime rule.
+
+  **What is unchanged.** The four-broker contract, the two transports, the
+  in-process `creds` shim, the subprocess `sso-cookie` broker, the no-leak
+  guarantees (RFC-0006 § 1), and the brokers-not-skills architecture are
+  untouched. No contract or schema version bump.
+
+  **Where this is recorded.** [RFC-0035](0035-sso-cookie-auth-for-atlassian-pack.md)
+  § 2 (the drafting record); implementation lands in
+  `docs/specs/atlassian-sso-cookie/` when RFC-0035 is built.
