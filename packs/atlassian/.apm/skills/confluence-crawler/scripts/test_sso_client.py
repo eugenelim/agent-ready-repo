@@ -193,3 +193,34 @@ def test_token_path_unchanged(monkeypatch):
     req = seen[0]
     assert req.headers["authorization"] == "Bearer TOK"
     assert "cookie" not in {k.lower() for k in req.headers}
+
+
+def test_token_path_follows_redirects(monkeypatch):
+    # Token path keeps follow_redirects=True; cookie path disables it (AC20).
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if len(seen) == 1:
+            return httpx.Response(
+                302,
+                headers={"Location": "https://confluence.corp.example.com/rest/api/user/current"},
+            )
+        return httpx.Response(200, json={"type": "known"})
+
+    mock = httpx.MockTransport(handler)
+    real = httpx.AsyncClient
+    monkeypatch.setattr(
+        _client.httpx, "AsyncClient",
+        lambda *a, **k: real(*a, **{**k, "transport": mock}),
+    )
+    creds = _client.Credentials(
+        base_url="https://confluence.corp.example.com", token="TOK", flavor="server", email=None
+    )
+
+    async def go():
+        async with _client.ConfluenceClient(creds) as client:
+            await client.whoami()
+
+    asyncio.run(go())
+    assert len(seen) == 2  # redirect followed on the token path

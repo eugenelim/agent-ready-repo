@@ -112,6 +112,26 @@ def test_writes_refused_records_zero_requests(broker_jar, monkeypatch, method):
     assert seen == []  # nothing reached the wire
 
 
+# --- AC9 accept arm: raw("GET") reaches the wire with confined cookies, no auth
+
+def test_raw_get_reaches_wire_with_confined_cookies(broker_jar, monkeypatch):
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"ok": True})
+
+    async def go():
+        async with _cookie_client(monkeypatch, handler) as client:
+            await client.raw("GET", "/rest/api/2/myself")
+
+    asyncio.run(go())
+    req = seen[0]
+    assert req.method == "GET"
+    assert "authorization" not in {k.lower() for k in req.headers}
+    assert "JSESSIONID=sess1" in req.headers.get("cookie", "")
+
+
 # --- AC20: follow_redirects=False — an off-domain 302 leaks no cookie
 
 def test_off_domain_redirect_not_followed(broker_jar, monkeypatch):
@@ -228,3 +248,34 @@ def test_token_path_unchanged(monkeypatch):
     req = seen[0]
     assert req.headers["authorization"] == "Bearer TOK"
     assert "cookie" not in {k.lower() for k in req.headers}
+
+
+def test_token_path_follows_redirects(monkeypatch):
+    # The token path keeps follow_redirects=True (unchanged); the cookie path
+    # deliberately disables it (AC20). Pin the difference: a 302 is followed.
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if len(seen) == 1:
+            return httpx.Response(
+                302, headers={"Location": "https://jira.corp.example.com/rest/api/2/myself"}
+            )
+        return httpx.Response(200, json={"name": "me"})
+
+    mock = httpx.MockTransport(handler)
+    real = httpx.AsyncClient
+    monkeypatch.setattr(
+        _client.httpx, "AsyncClient",
+        lambda *a, **k: real(*a, **{**k, "transport": mock}),
+    )
+    creds = _client.Credentials(
+        base_url="https://jira.corp.example.com", token="TOK", flavor="server", email=None
+    )
+
+    async def go():
+        async with _client.JiraClient(creds) as client:
+            await client.whoami()
+
+    asyncio.run(go())
+    assert len(seen) == 2  # redirect followed on the token path

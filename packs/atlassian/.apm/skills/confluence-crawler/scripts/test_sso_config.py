@@ -84,6 +84,32 @@ def test_fail_closed_on_malformed_values(tmp_path: Path, mutation: tuple[str, st
         load_sso_config(_write(tmp_path, body))
 
 
+def test_over_broad_single_label_cookie_domain_rejected(tmp_path: Path) -> None:
+    body = _VALID_COOKIE.replace(
+        'cookie_domains = ["jira.corp.example.com"]', 'cookie_domains = ["com"]'
+    )
+    with pytest.raises(SsoConfigError):
+        load_sso_config(_write(tmp_path, body))
+
+
+def test_base_host_outside_cookie_domains_rejected(tmp_path: Path) -> None:
+    body = _VALID_COOKIE.replace(
+        'cookie_domains = ["jira.corp.example.com"]',
+        'cookie_domains = ["other.example.com"]',
+    )
+    with pytest.raises(SsoConfigError):
+        load_sso_config(_write(tmp_path, body))
+
+
+def test_session_filename_with_separator_rejected(tmp_path: Path) -> None:
+    body = _VALID_COOKIE.replace(
+        'session_filename = "jira-session.json"',
+        'session_filename = "../../evil.json"',
+    )
+    with pytest.raises(SsoConfigError):
+        load_sso_config(_write(tmp_path, body))
+
+
 def test_unknown_sso_key_rejected(tmp_path: Path) -> None:
     body = _VALID_COOKIE.replace(
         'ttl_hint_minutes = 480', 'ttl_hint_minutes = 480\nrogue_key = "x"'

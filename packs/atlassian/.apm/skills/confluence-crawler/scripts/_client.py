@@ -412,6 +412,18 @@ class ConfluenceClient:
     async def download_attachment(self, download_path: str, dest: Path) -> None:
         if not download_path:
             raise ConfluenceError("attachment has no download path")
+        # This streaming GET bypasses the _request chokepoint, so it carries the
+        # cookie-path confinement inline: refuse an absolute / off-host download
+        # link (server-supplied) so the session cookie can never leave the base
+        # host. follow_redirects=False already blocks a cross-host 30x; this also
+        # blocks an absolute Location-style `download` value (AC4/AC6/AC20 spirit).
+        if self._auth_mode == "sso-cookie":
+            parsed = urlparse(download_path)
+            if parsed.scheme or parsed.netloc:
+                raise ConfluenceError(
+                    "refusing an absolute attachment download URL on the SSO-cookie "
+                    f"path (must be a path relative to the base host): {download_path!r}"
+                )
         dest.parent.mkdir(parents=True, exist_ok=True)
         async with self._sem:
             async with self._client.stream("GET", download_path) as resp:

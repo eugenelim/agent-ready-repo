@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import tomllib
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from urllib.parse import urlsplit
 
 # The atlassian ``[sso]`` connection-param schema. The structural lint
 # (``tools/lint-sso-config.py``) pins this key set; keep the two in sync.
@@ -83,6 +84,7 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
     # skill bootstrap appends to sys.path is in place before resolution.
     from credbroker import (
         SsoConfigError,
+        domain_in_cookie_domains,
         validate_https_url,
         validate_root_relative_endpoint,
     )
@@ -114,6 +116,40 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
         or not all(isinstance(d, str) for d in domains)
     ):
         raise SsoConfigError("cookie_domains must be a non-empty list of strings")
+    # Reject a dangerously broad confinement set: a single-label domain (no dot,
+    # e.g. "com") would admit the over-broad captured jar against any corporate
+    # host. The instance domain must have at least one label boundary.
+    for dom in domains:
+        if "." not in dom.strip("."):
+            raise SsoConfigError(
+                f"cookie_domains entry {dom!r} is too broad (single-label); "
+                f"declare the instance domain (e.g. corp.example.com)"
+            )
+    # The base host must itself be within cookie_domains — the runtime client
+    # also checks this, but pinning it at load fails a typo'd config closed early.
+    base_host = urlsplit(sso["base_url"]).hostname or ""
+    if not domain_in_cookie_domains(base_host, domains):
+        raise SsoConfigError(
+            f"base_url host {base_host!r} is not within cookie_domains {domains!r}"
+        )
+
+    # session_filename is forwarded to `sso-broker register --session-filename`;
+    # confine it to a bare filename so an adopter-supplied value can't seed a
+    # path-traversal into the broker's store.
+    session_filename = sso.get("session_filename")
+    if session_filename is not None:
+        bad = (
+            session_filename in ("", ".", "..")
+            or "/" in session_filename
+            or "\\" in session_filename
+            or PurePosixPath(session_filename).name != session_filename
+            or PureWindowsPath(session_filename).name != session_filename
+        )
+        if bad:
+            raise SsoConfigError(
+                f"session_filename must be a bare filename (no path separators): "
+                f"{session_filename!r}"
+            )
 
     return SsoConfig(
         profile=str(sso["profile"]),
@@ -122,6 +158,6 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
         success_url_pattern=sso["success_url_pattern"],
         cookie_domains=tuple(domains),
         validation_endpoint=sso["validation_endpoint"],
-        session_filename=sso.get("session_filename"),
+        session_filename=session_filename,
         ttl_hint_minutes=sso.get("ttl_hint_minutes"),
     )

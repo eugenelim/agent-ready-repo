@@ -81,12 +81,58 @@ CASES: list[tuple[str, str, int]] = [
 ]
 
 
+_REPO = Path(__file__).resolve().parent.parent
+_JIRA = _REPO / "packs/atlassian/.apm/skills/jira/scripts"
+_CONF = _REPO / "packs/atlassian/.apm/skills/confluence-crawler/scripts"
+# The per-skill SSO files RFC-0023 forbids sharing as a projected module, so they
+# are duplicated byte-for-byte across the two skills. Pin them equal here so a
+# one-sided edit to the security-control loader fails loudly instead of drifting.
+_DUPLICATED = ("_sso_config.py", "setup_sso.py", "test_sso_config.py", "test_setup_sso.py")
+
+
+def _load_module(path: Path, name: str):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    # Register before exec so `@dataclass` (which resolves cls.__module__ via
+    # sys.modules) works while loading the loader from a file path.
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _parity_failures() -> list[str]:
+    fails: list[str] = []
+    for fn in _DUPLICATED:
+        jb, cb = (_JIRA / fn), (_CONF / fn)
+        if not jb.is_file() or not cb.is_file():
+            fails.append(f"missing duplicated file: {fn}")
+        elif jb.read_bytes() != cb.read_bytes():
+            fails.append(f"{fn} differs between jira and confluence-crawler scripts/")
+    # The lint's schema set must equal the loader's (the triplicated [sso] key set
+    # must not drift between the lint that pins it and the loader that enforces it).
+    try:
+        lint_mod = _load_module(_LINT, "lint_sso_config")
+        loader_mod = _load_module(_JIRA / "_sso_config.py", "sso_loader")
+        if lint_mod._ALLOWED_SSO_KEYS != loader_mod._ALLOWED_SSO_KEYS:
+            fails.append(
+                "lint _ALLOWED_SSO_KEYS != loader _ALLOWED_SSO_KEYS "
+                f"({sorted(lint_mod._ALLOWED_SSO_KEYS)} vs {sorted(loader_mod._ALLOWED_SSO_KEYS)})"
+            )
+    except Exception as exc:  # noqa: BLE001
+        fails.append(f"schema-parity check crashed: {exc!r}")
+    return fails
+
+
 def main() -> int:
     failures: list[str] = []
     for label, body, expected in CASES:
         got = _run(body)
         if got != expected:
             failures.append(f"{label}: expected exit {expected}, got {got}")
+
+    failures.extend(_parity_failures())
 
     # The real shipped files must pass (no-arg invocation scans the repo).
     repo_scan = subprocess.run(

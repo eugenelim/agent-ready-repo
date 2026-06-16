@@ -244,8 +244,12 @@ valid/invalid table.
 **Approach:**
 - Ship placeholder-shaped files (`auth_default = "creds"`, `*.invalid` hosts) per
   RFC-0035 § 3.
-- Loader is small and per-skill (the schema is consumer-specific); selector keys
-  solely on `auth_default` (no separate `enabled` flag).
+- Loader is small and per-skill — duplicated byte-for-byte across the two skills
+  because RFC-0023 forbids a shared projected `scripts/` module, not because the
+  schema diverges (it is identical today; a `test-lint-sso-config` parity guard
+  pins the four duplicated files byte-equal and the lint↔loader `[sso]` key set
+  equal so a one-sided edit fails loudly). Selector keys solely on `auth_default`
+  (no separate `enabled` flag).
 
 **Done when:** loader/selector unit tests green; reference files present and
 placeholder-shaped (AC12).
