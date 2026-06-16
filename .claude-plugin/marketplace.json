@@ -91,7 +91,7 @@
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "credentials",
-      "description": "User-scope credential brokering: credentials_shim (build-projected Python module for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",
+      "description": "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",
       "displayName": "Credential Brokers",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -103,7 +103,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "credential-brokers",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.2"
+      "version": "0.1.3"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
