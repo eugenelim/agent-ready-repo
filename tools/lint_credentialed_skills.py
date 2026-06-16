@@ -444,6 +444,40 @@ def has_credbroker_import(py_path):
     return False
 
 
+# The credbroker SSO resolver entry point (RFC-0035). Importing/using it is the
+# moral equivalent of the old in-`scripts/` sso-broker path expression +
+# subprocess.run — the broker invocation now lives single-sourced in credbroker.
+_CREDBROKER_SSO_RESOLVER = "load_sso_cookies"
+
+
+def has_credbroker_sso_import(py_path):
+    """True iff *py_path* uses the credbroker SSO resolver — either
+    `from credbroker import load_sso_cookies` or `credbroker.load_sso_cookies`
+    (after `import credbroker`).
+
+    RFC-0035 moved SSO broker resolution into the `credbroker` library (mirroring
+    RFC-0023's move of the `creds` resolver), so an `auth: sso-cookie` consumer
+    satisfies the broker-invocation requirement with this import in place of an
+    in-`scripts/` `sso-broker.py` path expression.
+    """
+    tree = _ast_for(py_path)
+    if tree is None:
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "credbroker":
+            for alias in node.names:
+                if alias.name == _CREDBROKER_SSO_RESOLVER:
+                    return True
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr == _CREDBROKER_SSO_RESOLVER
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "credbroker"
+        ):
+            return True
+    return False
+
+
 def env_reads(py_path):
     """Yield literal env-var names read via os.environ[...] /
     os.environ.get(...) / os.getenv(...). Only first-arg
@@ -773,6 +807,9 @@ for skill_md in skill_md_files:
 
     primitive_class = metadata.get("primitive-class", "")
     auth = metadata.get("auth", "") or ""
+    # RFC-0035 AC16a: a dual-auth skill declares a fallback broker; its Security
+    # section must satisfy BOTH phrase sets (the active broker and the fallback).
+    auth_fallback = metadata.get("auth-fallback", "") or ""
     namespace = metadata.get("namespace", "") or ""
     keys = metadata.get("keys", [])
     if isinstance(keys, str):
@@ -787,22 +824,30 @@ for skill_md in skill_md_files:
         report(skill_md, f"missing heading: {SECURITY_HEADING}")
     else:
         normalised = normalize_whitespace(section)
-        phrases = REQUIRED_PHRASES_BY_BROKER.get(auth)
-        if phrases is None:
-            # Skill declares an unknown auth value — refused upstream
-            # by lint-agent-artifacts.py (AC26), but be defensive.
-            report(
-                skill_md,
-                f"unknown metadata.auth={auth!r} "
-                f"(expected one of {sorted(REQUIRED_PHRASES_BY_BROKER)})",
-            )
-        else:
+        # The active broker, plus any declared dual-auth fallback (AC16a): the
+        # Security section must carry EVERY required phrase set, so a skill that
+        # can resolve via either broker documents both don't-block contracts.
+        required_brokers = [auth]
+        if auth_fallback:
+            required_brokers.append(auth_fallback)
+        for broker in required_brokers:
+            phrases = REQUIRED_PHRASES_BY_BROKER.get(broker)
+            if phrases is None:
+                # Unknown auth / auth-fallback value — refused upstream by
+                # lint-agent-artifacts.py (AC26), but be defensive.
+                field = "auth" if broker == auth else "auth-fallback"
+                report(
+                    skill_md,
+                    f"unknown metadata.{field}={broker!r} "
+                    f"(expected one of {sorted(REQUIRED_PHRASES_BY_BROKER)})",
+                )
+                continue
             for phrase in phrases:
                 if normalize_whitespace(phrase) not in normalised:
                     report(
                         skill_md,
                         f"security section missing required phrase "
-                        f"for broker {auth!r}: {phrase!r}",
+                        f"for broker {broker!r}: {phrase!r}",
                     )
 
     scripts_dir = skill_dir / "scripts"
@@ -930,6 +975,11 @@ for skill_md in skill_md_files:
     elif auth == "sso-cookie":
         targets_home = False
         any_subprocess_run = False
+        # RFC-0035: a consumer may resolve the broker via the credbroker SSO
+        # resolver instead of an in-`scripts/` path expression + subprocess.run.
+        resolves_via_credbroker = any(
+            has_credbroker_sso_import(p) for p in consumer_py_files
+        )
         for p in consumer_py_files:
             for bad_name, lineno in disallowed_subprocess_calls(p):
                 report(
@@ -965,13 +1015,21 @@ for skill_md in skill_md_files:
                         f"Path.home() / {DOTFILE_PARENT!r} / "
                         f"{SSO_BROKER_BIN_DIR!r} / {SSO_BROKER_BASENAME!r}",
                     )
-        if not targets_home:
+        if resolves_via_credbroker:
+            # The credbroker SSO import (load_sso_cookies) satisfies the
+            # broker-invocation requirement (RFC-0035 AC16b); the in-`scripts/`
+            # path expression + subprocess.run are not required. The disallowed-
+            # subprocess and no-Playwright checks above still apply, and an
+            # absolute hard-coded broker path is still flagged if one is present.
+            pass
+        elif not targets_home:
             report(
                 skill_md,
-                f"auth=sso-cookie requires a path expression resolving to "
-                f"Path.home() / {DOTFILE_PARENT!r} / "
+                f"auth=sso-cookie requires either a credbroker SSO import "
+                f"(`from credbroker import {_CREDBROKER_SSO_RESOLVER}`) or a path "
+                f"expression resolving to Path.home() / {DOTFILE_PARENT!r} / "
                 f"{SSO_BROKER_BIN_DIR!r} / {SSO_BROKER_BASENAME!r} "
-                f"in scripts/ (none found)",
+                f"in scripts/ (neither found)",
             )
         elif not any_subprocess_run:
             report(

@@ -71,6 +71,8 @@ def main() -> int:
     _run("credentialed-skill lint", [py, "tools/lint_credentialed_skills.py"])
     _run("credentialed-skill lint self-test",
          [py, "tools/test-lint-credentialed-skills.py"])
+    _run("sso-config lint", [py, "tools/lint-sso-config.py"])
+    _run("sso-config lint self-test", [py, "tools/test-lint-sso-config.py"])
     _run("knowledge-surface parity", [py, "tools/lint-knowledge-surface-parity.py"])
     _run("knowledge-surface parity self-test",
          [py, "tools/test-lint-knowledge-surface-parity.py"])
