@@ -56,6 +56,23 @@ The returned object is immutable, and its `repr` lists key names only. A stray `
 
 Linux and other platforms have no keyring tier. Resolution skips straight from the environment variable to the dotfile floor. Without `[crypto]`, that floor is the plaintext `0600` dotfile.
 
+## SSO web-session cookies
+
+Some enterprise instances sit behind corporate SSO and block personal API tokens outright. For those, `credbroker` resolves a *captured web session* instead of a token. The companion `sso-broker` engine drives a one-time browser login and stores the cookie jar; your skill resolves it in-process:
+
+```python
+from credbroker import load_sso_cookies, SsoSessionUnavailableError
+
+try:
+    jar_path = load_sso_cookies("corp")   # returns a path, never the bytes
+except SsoSessionUnavailableError as exc:
+    raise SystemExit(str(exc))            # "...run 'sso-broker register corp'"
+```
+
+Same discipline as the token path: the secret never crosses the model boundary. `load_sso_cookies` hands back the *path* to a `0600` cookie jar — not the cookie values — and fails closed (it never silently falls back to a token) when the session is missing or expired, surfacing a remediation that tells the user to re-`register`.
+
+The confinement helpers that keep a captured jar from over-reaching ship alongside it: `filter_jar_to_domains` reduces the engine's deliberately broad capture down to the domains you declare, `domain_in_cookie_domains` / `require_host_in_cookie_domains` enforce a label-boundary host match (so `evil-corp.example.com` never matches `corp.example.com`), and `validate_https_url` / `validate_root_relative_endpoint` guard the connection config. See [RFC-0035](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0035-sso-cookie-auth-for-atlassian-pack.md) for the full design.
+
 ## Learn more
 
 For local development, install from a repo clone: `pip install -e ./packages/credbroker`.
