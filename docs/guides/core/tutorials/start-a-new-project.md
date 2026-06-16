@@ -2,7 +2,7 @@
 
 > At the end of this tutorial you'll have a brand-new repo with a recorded foundation — an ADR and a `docs/architecture/reference.md` — and a walking-skeleton spec authored and ready to build. You'll learn the rhythm of the greenfield front door by walking it once.
 
-This is a learning walkthrough, not a reference. For *why* the skeleton is built this way, read [Why a walking skeleton beats a throwaway prototype](../explanation/walking-skeleton-vs-throwaway.md) afterward; for the foundation step on its own, see [Decide and record your foundation during inception](../how-to/record-your-foundation-during-inception.md).
+This is a learning walkthrough, not a reference. It uses the `core` pack alone. For the fuller inception — where the `research`, `product-engineering`, and `architect` packs fit around this core spine — see [Run a full inception for a new project](../../_shared/how-to/run-a-full-inception.md). For *why* the skeleton is built this way, read [Why a walking skeleton beats a throwaway prototype](../explanation/walking-skeleton-vs-throwaway.md) afterward; for the foundation step on its own, see [Decide and record your foundation during inception](../how-to/record-your-foundation-during-inception.md).
 
 We'll use one concrete idea throughout: **a URL-shortener service** — an API that takes a long URL and returns a short code, with a datastore behind it. It has real components, so it's a genuine project, not a throwaway.
 
