@@ -14,13 +14,19 @@ Override auto-detection by setting CONFLUENCE_FLAVOR=cloud|server.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import os
 import secrets
+import ssl
 from dataclasses import dataclass
-from typing import AsyncIterator
+from typing import TYPE_CHECKING, AsyncIterator
 from urllib.parse import urlparse
 
 import httpx
+
+if TYPE_CHECKING:
+    from _sso_config import SsoConfig
 
 log = logging.getLogger("confluence_crawler.client")
 
@@ -78,6 +84,30 @@ def detect_flavor(base_url: str) -> str:
     return FLAVOR_CLOUD if host.endswith(".atlassian.net") else FLAVOR_SERVER
 
 
+def _sso_cafile_capath() -> tuple[str | None, str | None]:
+    """Resolve the CA bundle file + dir for the cookie-path SSL context (AC8).
+
+    httpx (``trust_env``) natively honors ``SSL_CERT_FILE`` / ``SSL_CERT_DIR`` but
+    does **not** read ``REQUESTS_CA_BUNDLE``; we map it here. Precedence:
+    ``SSL_CERT_FILE`` wins over ``REQUESTS_CA_BUNDLE`` when both are set.
+    """
+    cafile = os.environ.get("SSL_CERT_FILE") or os.environ.get("REQUESTS_CA_BUNDLE")
+    capath = os.environ.get("SSL_CERT_DIR")
+    return (cafile or None, capath or None)
+
+
+def _sso_ssl_context() -> ssl.SSLContext:
+    """SSL context for the cookie path: the system trust store *plus* any
+    ``SSL_CERT_FILE`` / ``SSL_CERT_DIR`` / ``REQUESTS_CA_BUNDLE`` the corporate
+    environment sets — loaded on top of (never clobbering) the default store (AC8).
+    """
+    ctx = ssl.create_default_context()
+    cafile, capath = _sso_cafile_capath()
+    if cafile or capath:
+        ctx.load_verify_locations(cafile=cafile, capath=capath)
+    return ctx
+
+
 class ConfluenceClient:
     """Async wrapper around the Confluence v1 REST API (works for both
     Cloud and Server/Data Center)."""
@@ -97,6 +127,10 @@ class ConfluenceClient:
 
         self._base = base_url.rstrip("/")
         self._flavor = credentials.flavor
+        # Token path. The SSO-cookie path is built via from_sso_cookies and sets
+        # these to "sso-cookie" / the profile name; _request branches on them.
+        self._auth_mode = "creds"
+        self._profile: str | None = None
         headers = {
             "Accept": "application/json",
             "User-Agent": "atlassian-confluence-crawler/0.1",
@@ -122,6 +156,80 @@ class ConfluenceClient:
         self._last_request = 0.0
         self._lock = asyncio.Lock()
 
+    @classmethod
+    def from_sso_cookies(
+        cls,
+        sso_config: "SsoConfig",
+        *,
+        concurrency: int = DEFAULT_CONCURRENCY,
+        min_delay_ms: int = DEFAULT_MIN_DELAY_MS,
+        timeout_s: float = DEFAULT_TIMEOUT_S,
+    ) -> "ConfluenceClient":
+        """Build a Data Center client authenticated by a captured SSO cookie jar.
+
+        Resolves the jar via credbroker (fail-closed), filters it to the declared
+        ``cookie_domains`` (AC4), confirms the base host is within those domains
+        (AC6), and builds an httpx client with the confined jar attached, **no**
+        ``Authorization`` header (AC7), ``follow_redirects=False`` (AC20), and the
+        corporate proxy / trust store honored (AC8). GET/HEAD only (AC9).
+        """
+        import credbroker
+
+        base_url = sso_config.base_url
+        parsed = urlparse(base_url)
+        if parsed.scheme != "https":
+            raise AuthError(
+                "SSO-cookie base_url must be https (the session cookie is a bearer secret)"
+            )
+        host = parsed.hostname or ""
+        try:
+            credbroker.require_host_in_cookie_domains(host, sso_config.cookie_domains)
+            jar_path = credbroker.load_sso_cookies(sso_config.profile)
+        except credbroker.SsoError as exc:
+            raise AuthError(str(exc)) from exc
+
+        raw_cookies = json.loads(jar_path.read_text(encoding="utf-8"))
+        confined = credbroker.filter_jar_to_domains(
+            raw_cookies, sso_config.cookie_domains
+        )
+
+        self = cls.__new__(cls)
+        self._base = base_url.rstrip("/")
+        self._flavor = FLAVOR_SERVER  # DC only — Cloud cookie auth is out of scope
+        self._auth_mode = "sso-cookie"
+        self._profile = sso_config.profile
+
+        cookies = httpx.Cookies()
+        for c in confined:
+            # Preserve the jar's domain verbatim (keep any leading dot) so httpx's
+            # cookiejar subdomain matching attaches a ".corp.example.com" cookie
+            # to jira/confluence.corp.example.com.
+            cookies.set(
+                c["name"],
+                c.get("value", ""),
+                domain=c.get("domain", ""),
+                path=c.get("path") or "/",
+            )
+
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "atlassian-confluence-crawler/0.1",
+        }  # deliberately NO Authorization header on the cookie path (AC7)
+        self._client = httpx.AsyncClient(
+            base_url=self._base,
+            headers=headers,
+            cookies=cookies,
+            timeout=timeout_s,
+            verify=_sso_ssl_context(),
+            trust_env=True,  # corporate proxy + SSL_CERT_FILE/SSL_CERT_DIR (AC8)
+            follow_redirects=False,  # AC20 — never re-attach the cookie cross-host
+        )
+        self._sem = asyncio.Semaphore(concurrency)
+        self._min_delay = min_delay_ms / 1000.0
+        self._last_request = 0.0
+        self._lock = asyncio.Lock()
+        return self
+
     async def __aenter__(self) -> "ConfluenceClient":
         return self
 
@@ -129,6 +237,15 @@ class ConfluenceClient:
         await self._client.aclose()
 
     async def _request(self, method: str, path: str, **kwargs: object) -> httpx.Response:
+        # Cookie-path write refusal (AC9). confluence-crawler has no raw() escape
+        # hatch, so the allowlist guards the _request method parameter directly;
+        # raised before any request reaches the wire.
+        if self._auth_mode == "sso-cookie" and method.upper() not in ("GET", "HEAD"):
+            raise ConfluenceError(
+                "writes over SSO-cookie auth are not supported yet (RFC-0035 v1); "
+                "use a personal access token, or wait for the XSRF follow-on"
+            )
+
         async with self._sem:
             async with self._lock:
                 now = asyncio.get_running_loop().time()
@@ -147,9 +264,25 @@ class ConfluenceClient:
                     continue
 
                 if resp.status_code == 401:
+                    if self._auth_mode == "sso-cookie":
+                        # Stop using the known-stale jar; remediation names the
+                        # profile, never the cookie bytes (AC11).
+                        self._client.cookies.clear()
+                        raise AuthError(
+                            f"401 Unauthorized — SSO session expired; run "
+                            f"'sso-broker register {self._profile}' to re-authenticate"
+                        )
                     raise AuthError(
                         "401 Unauthorized — credentials are missing, invalid, or expired. "
                         "Re-run `credential-setup` skill."
+                    )
+                if self._auth_mode == "sso-cookie" and 300 <= resp.status_code < 400:
+                    # follow_redirects disabled on the cookie path (AC20): surface a
+                    # 30x, never follow it (which would re-attach the session cookie).
+                    raise AuthError(
+                        f"SSO session may have expired (HTTP {resp.status_code} "
+                        f"redirect, not followed); run 'sso-broker register "
+                        f"{self._profile}' to re-authenticate"
                     )
                 if resp.status_code == 403:
                     raise AuthError(
