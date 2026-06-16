@@ -21,6 +21,12 @@ That lands `core`, the flagship pack and the loop itself, in your repo. Claude C
 # See what's in a catalogue
 agentbundle list-packs git+https://github.com/eugenelim/agent-ready-repo
 
+# See the catalogue's curated install profiles
+agentbundle list-profiles git+https://github.com/eugenelim/agent-ready-repo
+
+# Install a whole curated profile — a single-scope set of packs — in one command
+agentbundle install --profile inception git+https://github.com/eugenelim/agent-ready-repo
+
 # Install the flagship loop into this repo
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
 
@@ -34,7 +40,7 @@ agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-rep
 agentbundle upgrade --pack core --to 0.4.0 git+https://github.com/eugenelim/agent-ready-repo
 ```
 
-A catalogue is a git URL or a local path. Installs auto-detect your agent; pass `--adapter` to override.
+A catalogue is a git URL or a local path. Installs auto-detect your agent; pass `--adapter` to override. A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply.
 
 ## Build your own catalogue
 
