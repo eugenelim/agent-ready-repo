@@ -92,10 +92,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   control surface, so each rejection path — and the over-broad-jar → filtered-jar
   reduction — is a test. Unit level.
 - **Cookie-path HTTP wiring (no `Authorization` header; cookie jar attached;
-  GET/HEAD allowlist refuses writes incl. `raw("POST", …)`; proxy/trust-store
-  env honored): TDD via a mock transport.** Assert on the *outbound request*
-  (headers, cookies, refusal) through httpx's `MockTransport`, not on internal
-  client attributes. Unit/integration level.
+  GET/HEAD allowlist refuses writes incl. `raw("POST", …)`; `follow_redirects=False`
+  with an off-`cookie_domains` `302` attaching zero cookies; non-`https` base URL
+  refused at construction; proxy/trust-store env honored): TDD via a mock
+  transport.** Assert on the *outbound request* (headers, cookies, refusal) across
+  **every** request the transport observes, through httpx's `MockTransport`, not on
+  internal client attributes. Unit/integration level.
 - **`auth_default` selector + `creds` fallback (absent/`creds` → token path
   byte-identical; `sso-cookie` + registered → cookie path; `sso-cookie` +
   unavailable → fail closed): TDD.** Unit level.
@@ -143,12 +145,17 @@ Numbered for plan traceability; each maps to one or more `plan.md` tasks.
   is applied on **every** resolution and its result is never written back to the
   broker path (the on-disk jar stays over-broad; see AC10).
 - [ ] **AC5.** On the cookie path the cookie set that actually leaves the process
-  is a subset of the declared `cookie_domains`, asserted on the **outbound request**
-  via a mock transport (not merely on a base-host check). The test matrix includes
-  the `evil-corp.example.com` vs `corp.example.com` near-miss.
+  is a subset of the declared `cookie_domains`, asserted on **every request the
+  mock transport observes** (the initial request and any redirect hop, not merely a
+  base-host check). The test matrix includes the `evil-corp.example.com` vs
+  `corp.example.com` static near-miss **and** the off-`cookie_domains` `302` case
+  (see AC20).
 - [ ] **AC6.** The consumer client's request base host is a member of
   `cookie_domains`; a mismatch fails closed before any cookie-bearing request
-  leaves the process.
+  leaves the process. The resolved base URL scheme must also be `https` at client
+  construction (defense-in-depth below the config-layer AC3 guard — the cookie jar
+  is a bearer secret, so the token path's `http://` tolerance must not extend to
+  the cookie path); a non-`https` base URL fails closed at construction.
 - [ ] **AC7.** On the cookie path, the HTTP client sends **no** `Authorization`
   header and attaches the (filtered) cookie jar; verified on the outbound request
   via a mock transport.
@@ -173,7 +180,9 @@ Numbered for plan traceability; each maps to one or more `plan.md` tasks.
   re-`register` remediation `"401 Unauthorized — SSO session expired; run
   'sso-broker register <profile>' to re-authenticate"`, does **not** silently
   retry into a browser flow, and stops using the known-stale jar (no further
-  cookie-bearing request with that session).
+  cookie-bearing request with that session). No cookie value appears in any
+  surfaced error or trace text on the `401` or redirect (AC20) paths — the
+  remediation names the profile, never the session bytes.
 - [ ] **AC12.** `jira` and `confluence-crawler` ship `references/sso-config.toml`,
   placeholder-shaped upstream: `auth_default = "creds"`, `*.invalid` hosts, no
   cookie values.
@@ -214,6 +223,17 @@ Numbered for plan traceability; each maps to one or more `plan.md` tasks.
   `notes/live-dc-read.md`. This is the gate that flips the feature Experimental →
   Accepted; it reopens when a real corporate-SSO DC instance is available (the
   plan's `## Construction tests` → Manual verification owns the gesture).
+- [ ] **AC20.** The cookie-path HTTP client is built with `follow_redirects=False`
+  so no redirect is followed with cookies attached. (httpx re-derives the `Cookie`
+  header from the client store by domain match on **every** hop, so following an
+  off-`cookie_domains` `30x` — open redirect, reverse-proxy misconfig, or an
+  attacker-influenced `Location` — would re-attach and exfiltrate the session
+  cookie; `follow_redirects=False` closes that path.) A `30x` response is surfaced
+  to the caller rather than followed. Verified on a mock transport: a `302` from a
+  permitted host to an off-`cookie_domains` host produces **zero** cookie-bearing
+  requests to that off-domain host. DC read endpoints return `200`; redirect-to-
+  login as an expired-session signal is part of the deferred live-DC transcript
+  (AC19).
 
 ## Assumptions
 
