@@ -13,11 +13,12 @@ The pack covers three Atlassian products across four direct-API skills:
 
 ## The skills that build on top
 
-Three skills compose the surfaces above instead of touching the API directly:
+Several skills compose the surfaces above instead of touching the API directly:
 
 - **[`flow-metrics`](../../../../packs/atlassian/.apm/skills/flow-metrics/)** computes DORA / Flow Framework metrics over a Jira scope. It reads through the `jira` skill, joins `jira-align` for program and portfolio scope, and emits canonical JSON / CSV. It is read-only — it never transitions, comments, or mutates.
 - **[`ai-adoption-report`](../../../../packs/atlassian/.apm/skills/ai-adoption-report/)** pairs `flow-metrics` JSON outputs and renders a Markdown comparison report. It makes no upstream calls; its only inputs are local JSON files.
 - **[`jira-defect-flow`](../../../../packs/atlassian/.apm/skills/jira-defect-flow/)** handles a Jira defect end-to-end: pulls the ticket via `jira`, hands the fix to the `bug-fix` skill, opens a PR, then comments and transitions the ticket.
+- **[`jira-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-brief-intake/)** turns a Jira epic (or a board / JQL selection) into shippable specs: pulls the epic and its children via `jira`, maps them onto a Shape B product brief, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. Read-only against Jira; degrades gracefully when `receive-brief` is absent.
 
 ## The auth model
 
