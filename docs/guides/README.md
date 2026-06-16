@@ -8,7 +8,7 @@ The user-facing documentation for the catalogue, organized **by pack**. You inst
 
 | Pack | Start here | What it ships |
 | --- | --- | --- |
-| [`core`](core/) | **The flagship.** | The loop — `init-project`, `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the reviewers, the hooks. Install this even if you install nothing else. |
+| [`core`](core/) | **The flagship.** | The loop — `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the reviewers, the hooks. Install this even if you install nothing else. |
 | [`architect`](architect/) | [home](architect/) | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, and the `reference.md` golden path. |
 | [`research`](research/) | [home](research/) | Evidence-grounded research — `research` with selectable depth, plus the pipeline skills (`source-map`, `compare-hypotheses`, `devils-advocate`, …). |
 | [`product-engineering`](product-engineering/) | [home](product-engineering/) | Shape product intent into shippable specs — the recursive `intent` tree (`frame`, `de-risk`, `decompose`, `align-value-stream`). |
