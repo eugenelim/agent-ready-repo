@@ -41,6 +41,28 @@ def test_public_replacements_for_private_shim_symbols() -> None:
     assert "tier2_backend_label" in credbroker.__all__
 
 
+# SSO web-session cookie family (RFC-0035) — the second consumer-resolution
+# family; every name must be importable from the top-level package.
+SSO_PUBLIC_NAMES = [
+    "load_sso_cookies",
+    "SsoError",
+    "SsoBrokerNotInstalledError",
+    "SsoSessionUnavailableError",
+    "SsoConfigError",
+    "validate_https_url",
+    "validate_root_relative_endpoint",
+    "domain_in_cookie_domains",
+    "filter_jar_to_domains",
+    "require_host_in_cookie_domains",
+]
+
+
+def test_sso_surface_is_reexported() -> None:
+    for name in SSO_PUBLIC_NAMES:
+        assert hasattr(credbroker, name), f"missing public name: {name}"
+        assert name in credbroker.__all__, f"{name} not in credbroker.__all__"
+
+
 def test_no_underscore_names_in_public_all() -> None:
     # The public surface must not advertise private/underscore names
     # (other than the dunder __version__).

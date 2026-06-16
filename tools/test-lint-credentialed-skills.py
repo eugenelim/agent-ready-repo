@@ -78,7 +78,8 @@ SECURITY_BLOCKS = {
 
 
 def make_skill_md(broker: str, *, namespace: str = "", keys: list[str] | None = None,
-                  body_extra: str = "", security_override: str | None = None) -> str:
+                  body_extra: str = "", security_override: str | None = None,
+                  auth_fallback: str = "") -> str:
     lines = [
         "---",
         f"name: fixture-{broker}",
@@ -88,6 +89,8 @@ def make_skill_md(broker: str, *, namespace: str = "", keys: list[str] | None = 
         "  primitive-class: credentialed-cli",
         f"  auth: {broker}",
     ]
+    if auth_fallback:
+        lines.append(f"  auth-fallback: {auth_fallback}")
     if namespace:
         lines.append(f"  namespace: {namespace}")
     if keys is not None:
@@ -355,6 +358,87 @@ def _(root: Path) -> None:
         "import subprocess\nimport sys\nfrom pathlib import Path\n"
         "broker = str(Path.home() / \".agentbundle\" / \"bin\" / \"sso-broker.py\")\n"
         "subprocess.run([sys.executable, broker, 'test'])\n",
+    )
+
+
+# ── RFC-0035 AC16b: credbroker SSO resolver import satisfies broker-invocation
+
+@case(
+    # The credbroker SSO import (load_sso_cookies) stands in for the in-scripts/
+    # path expression + subprocess.run — no broker path or subprocess in scripts/.
+    "sso-cookie-credbroker-resolver-ok",
+    expect_exit=0,
+)
+def _(root: Path) -> None:
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-sso-cookie"
+    write(sk / "SKILL.md", make_skill_md("sso-cookie"))
+    write(
+        sk / "scripts" / "cli.py",
+        "from credbroker import load_sso_cookies\n"
+        "jar = load_sso_cookies('corp')\nprint(jar)\n",
+    )
+
+
+@case(
+    # Neither an in-scripts/ broker path nor a credbroker SSO import → refused;
+    # the message names the credbroker SSO import as the accepted alternative.
+    "sso-cookie-no-resolver-refused",
+    expect_exit=1,
+    expect_substrings=["credbroker SSO import", "load_sso_cookies"],
+)
+def _(root: Path) -> None:
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-sso-cookie"
+    write(sk / "SKILL.md", make_skill_md("sso-cookie"))
+    write(sk / "scripts" / "cli.py", "print('no broker resolution at all')\n")
+
+
+# ── RFC-0035 AC16a: dual-auth skill must carry BOTH phrase sets
+
+_DUAL_SECURITY = (
+    "### Security rules (non-negotiable)\n\n"
+    "- Secrets live only in the dotfile / cookie jar.\n"
+    "  **Never** read that file, print it, or echo the token.\n"
+    "- **Never** put the token on the command line.\n"
+    "- If check fails, tell the user to run setup — do not run it for them.\n"
+    "- **Never** read the jar file directly, print its contents, or echo cookie values.\n"
+    "- **Never** put a session cookie on the command line.\n"
+    "- If SSO expired, tell the user — do not run any setup helper for them.\n"
+)
+
+
+@case(
+    # auth: sso-cookie + auth-fallback: creds, but the Security section carries
+    # only the sso-cookie phrases → the missing creds phrase is reported.
+    "dual-auth-missing-fallback-phrases-refused",
+    expect_exit=1,
+    expect_substrings=["missing required phrase for broker 'creds'"],
+)
+def _(root: Path) -> None:
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-sso-cookie"
+    write(
+        sk / "SKILL.md",
+        make_skill_md("sso-cookie", auth_fallback="creds"),  # default sso-cookie block only
+    )
+    write(
+        sk / "scripts" / "cli.py",
+        "from credbroker import load_sso_cookies\nprint(load_sso_cookies('corp'))\n",
+    )
+
+
+@case(
+    # Both phrase sets present + a credbroker SSO import → passes.
+    "dual-auth-both-phrase-sets-ok",
+    expect_exit=0,
+)
+def _(root: Path) -> None:
+    sk = root / "packs" / "p" / ".apm" / "skills" / "fixture-sso-cookie"
+    write(
+        sk / "SKILL.md",
+        make_skill_md("sso-cookie", auth_fallback="creds", security_override=_DUAL_SECURITY),
+    )
+    write(
+        sk / "scripts" / "cli.py",
+        "from credbroker import load_sso_cookies\nprint(load_sso_cookies('corp'))\n",
     )
 
 

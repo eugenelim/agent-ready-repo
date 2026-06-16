@@ -35,7 +35,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "atlassian",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.2.0"
+      "version": "0.3.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -103,7 +103,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "credential-brokers",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.3"
+      "version": "0.2.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
