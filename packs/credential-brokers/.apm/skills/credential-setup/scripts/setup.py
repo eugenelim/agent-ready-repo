@@ -34,21 +34,36 @@ _floor = pathlib.Path("~/.agentbundle/lib").expanduser()
 if _floor.is_dir() and str(_floor) not in sys.path:
     sys.path.append(str(_floor))
 
-from credbroker import (
-    PermissiveAclError,
-    SchemaError,
-    Tier2HardFailError,
-    VaultUnavailableError,
-    crypto_available,
-    keyring_available,
-    parse_schema,
-    source_vault_master,
-    store_in_dotfile,
-    store_in_keyring,
-    store_in_vault,
-    store_vault_master,
-    tier2_backend_label,
-)
+try:
+    from credbroker import (
+        PermissiveAclError,
+        SchemaError,
+        Tier2HardFailError,
+        VaultUnavailableError,
+        crypto_available,
+        keyring_available,
+        parse_schema,
+        source_vault_master,
+        store_in_dotfile,
+        store_in_keyring,
+        store_in_vault,
+        store_vault_master,
+        tier2_backend_label,
+    )
+except ModuleNotFoundError as exc:
+    # Only the top-level package being absent is "not installed". A broken
+    # submodule (exc.name == "credbroker._core") or any other missing module
+    # is a different fault — re-raise it unchanged rather than misreport it as
+    # a missing install. Print a fixed ASCII line (no exc text / sys.path, which
+    # can carry home-dir paths) and exit on the documented precondition code 3.
+    if exc.name != "credbroker":
+        raise
+    sys.stderr.write(
+        "credbroker not found. Install it from your repository checkout:\n\n"
+        "    pip install -e ./packages/credbroker\n\n"
+        "(run from the repo root), then re-run this script.\n"
+    )
+    raise SystemExit(3)
 
 
 RESERVED_NAMESPACES = frozenset({"sso"})

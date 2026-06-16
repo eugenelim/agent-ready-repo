@@ -12,6 +12,7 @@ import ast
 import importlib.util
 import os
 import pathlib
+import subprocess
 import sys
 
 import pytest
@@ -136,6 +137,77 @@ def test_no_keyring_no_crypto_falls_to_dotfile(env, tmp_path, monkeypatch):
     assert rc == 0
     creds = _core.load_credentials("jira", required_keys=["API_TOKEN"])
     assert creds.API_TOKEN == SECRET
+
+
+def test_missing_credbroker_exits_3_with_install_hint(tmp_path):
+    """setup.py with credbroker unresolvable exits 3 with a clean install hint
+    to stderr, not a ModuleNotFoundError traceback.
+
+    credbroker is installed in this interpreter, so the only honest way to
+    exercise the guard is a subprocess where credbroker resolves through none
+    of its three discovery paths: ``-S`` skips site-packages (and any editable
+    ``.pth``), a temp ``HOME`` makes the ``~/.agentbundle/lib`` floor absent,
+    and ``PYTHONPATH`` is absent from the child env (allowlist dict, not
+    inherited — there is no ``delenv``/``pop`` to grep for).
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    # The floor must be absent under the test HOME; if a real ~/.agentbundle/lib
+    # leaked in, credbroker would resolve and the guard would silently not fire,
+    # leaving this test asserting on the wrong path. Fail loud if so.
+    assert not (home / ".agentbundle" / "lib").exists()
+    env = {
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "PATH": os.environ.get("PATH", ""),
+    }
+    if os.name == "nt":
+        # Python needs SystemRoot to initialise on Windows.
+        env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", "")
+    proc = subprocess.run(
+        [sys.executable, "-S", str(pathlib.Path(setup.__file__)), "jira"],
+        capture_output=True,
+        # Pin the decode to the ASCII contract the guard message honours, so a
+        # future non-ASCII addition fails the assertion cleanly rather than
+        # raising UnicodeDecodeError inside the test harness on an exotic locale.
+        encoding="ascii",
+        errors="replace",
+        env=env,
+    )
+    assert proc.returncode == 3, (proc.returncode, proc.stderr)
+    assert "pip install -e ./packages/credbroker" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
+def test_non_credbroker_import_error_is_reraised(tmp_path):
+    """A ModuleNotFoundError whose ``.name`` is not ``credbroker`` (credbroker
+    present but importing a broken/absent dependency) surfaces unchanged — it is
+    NOT reported as "credbroker not found" (AC3). Guards the ``exc.name``
+    narrowing branch against a mutation that drops it and treats every
+    ModuleNotFoundError as a missing install.
+
+    A fake ``credbroker`` package that fails on import with a *different*
+    missing module is placed first on the child's import path (via PYTHONPATH,
+    which precedes site-packages) so it shadows the real installed one.
+    """
+    fake = tmp_path / "fakelib"
+    (fake / "credbroker").mkdir(parents=True)
+    (fake / "credbroker" / "__init__.py").write_text(
+        "import a_module_that_does_not_exist_zzz\n", encoding="utf-8"
+    )
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(fake)
+    proc = subprocess.run(
+        [sys.executable, str(pathlib.Path(setup.__file__)), "jira"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    # Re-raised: the real fault surfaces (the OTHER module's name, a traceback),
+    # and the guard's credbroker install hint is NOT shown.
+    assert proc.returncode != 3, (proc.returncode, proc.stderr)
+    assert "a_module_that_does_not_exist_zzz" in proc.stderr
+    assert "pip install -e ./packages/credbroker" not in proc.stderr
 
 
 def test_setup_imports_credbroker_not_shim_nor_private():
