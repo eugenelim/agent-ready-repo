@@ -10,6 +10,7 @@ Credentialed skills resolve secrets in-process through the tier ladder (environm
 - **Primary inputs.** Subcommands: `check`, `whoami`, `get-issue`, `search`, `create-issue`, `update-issue`, `delete-issue`, `list-transitions`, `transition`, `comment`, `attach`, `get-project`, `list-projects`, `get-user`, `list-users`, `raw`. Global flags: `--format json|jsonl|csv`, `--output FILE`, `--verbose`, `--insecure`. `search` takes `--fields`, `--limit`, `--page-size` (≤ 100); write subcommands take repeatable `--field KEY=VALUE` (JSON-parsed) or `--data-file`; `delete-issue` requires `--yes`.
 - **Outputs.** Issue / project / user JSON, JSONL, or CSV to stdout or `--output`. Read-only and mutating both available.
 - **Required credentials.** `JIRA_BASE_URL` (required), `JIRA_API_TOKEN` (required), `JIRA_EMAIL` (Cloud only), `JIRA_FLAVOR` (optional — auto-detected). Cloud token from `id.atlassian.com → API tokens`; Server PAT from the user's profile.
+- **Auth (dual).** `auth: sso-cookie` with a `creds` fallback (RFC-0035). On a Data Center instance behind corporate SSO where tokens are blocked, pre-bake `references/sso-config.toml` (`auth_default = "sso-cookie"`) and run `python scripts/setup_sso.py` once; reads then authenticate by a captured web session (no token). Absent SSO config, the token path above is unchanged. Cookie-path reads only (writes are refused pending XSRF design).
 - **Source.** [`jira`](../../../../packs/atlassian/.apm/skills/jira/)
 
 ## `jira-align`
@@ -26,6 +27,7 @@ Credentialed skills resolve secrets in-process through the tier ladder (environm
 - **Primary inputs.** `crawl_space.py` with `--check`, `--space KEY` (required), `--root PAGE_ID`, `--depth N`, `--output DIR` (default `./confluence-out`), `--force`, `--no-attachments`, `--concurrency N` (default 4), `--min-delay-ms N` (default 100), `--insecure`, `--verbose`.
 - **Outputs.** `<output>/<slug>.md` per page (flat layout) with frontmatter (`confluence_id`, `version`, `space_key`, `updated`, `author`, `parent_id`, `labels`, `url`, `slug`); `<output>/attachments/<page_id>/<filename>` for attachments. Final log line `wrote N pages (failed: X, skipped: Y)`.
 - **Required credentials.** `CONFLUENCE_BASE_URL` (required — Cloud must include `/wiki`), `CONFLUENCE_API_TOKEN` (required), `CONFLUENCE_EMAIL` (Cloud only), `CONFLUENCE_FLAVOR` (optional — auto-detected). Shares the `confluence` namespace with `confluence-publisher`.
+- **Auth (dual).** `auth: sso-cookie` with a `creds` fallback (RFC-0035), like `jira`: on a Data Center instance behind corporate SSO, pre-bake `references/sso-config.toml` and run `python scripts/setup_sso.py` once to crawl by captured web session. Absent SSO config, the token path is unchanged.
 - **Source.** [`confluence-crawler`](../../../../packs/atlassian/.apm/skills/confluence-crawler/)
 
 ## `confluence-publisher`

@@ -143,6 +143,20 @@ jobs:
         # The bash test_session_start.sh sibling is intentionally skipped
         # on Windows — pytest discovery only picks up test_*.py.
 
+      # atlassian-sso-cookie (RFC-0035): the cookie-path security suites must
+      # gate on Windows too — corporate-SSO dev machines are commonly Windows,
+      # and the fake-broker subprocess + asyncio + SSL-context wiring are
+      # path/platform-sensitive. credbroker is pip-installed here so the suites
+      # actually run (their `importorskip("credbroker")` would otherwise skip).
+      - name: pip install credbroker + httpx for the atlassian SSO suites (RFC-0035)
+        run: pip install -e ./packages/credbroker "httpx>=0.27"
+      - name: pytest jira SSO suites (atlassian-sso-cookie)
+        working-directory: packs/atlassian/.apm/skills/jira/scripts
+        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+      - name: pytest confluence-crawler SSO suites (atlassian-sso-cookie)
+        working-directory: packs/atlassian/.apm/skills/confluence-crawler/scripts
+        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+
       - name: design-craft framework-agnosticism lint + self-test (design-craft-pack AC8)
         # RFC-0033: proves the design-craft agnosticism linter behaves on
         # Windows. `python` (not `python3`) is the safe cross-platform

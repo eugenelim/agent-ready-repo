@@ -4,7 +4,8 @@ description: Crawl an authenticated Confluence space (Atlassian Cloud or on-prem
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
-  auth: creds
+  auth: sso-cookie
+  auth-fallback: creds
   namespace: confluence
   keys: ["API_TOKEN"]
 ---
@@ -54,6 +55,22 @@ Populate any tier by running `credential-setup` skill.
 - If `--check` reports missing or invalid creds, tell the user to run
   `credential-setup` skill themselves.
   It's interactive — do not run it for them.
+
+This skill is **dual-auth** (`auth: sso-cookie` with a `creds` fallback): on a
+Data Center instance behind corporate SSO it authenticates by a captured web
+session (cookie jar) resolved through the `sso-broker`; everywhere else it uses
+the token (`creds`) path above. On the SSO-cookie path:
+
+- The session cookie jar lives only under the broker's `0600` store; the skill
+  reads it in-process via the `credbroker` resolver, which returns a *path*, not
+  the bytes. **Never** read the jar file directly, print its contents, or echo
+  cookie values.
+- **Never** put a session cookie on the command line. The skill attaches cookies
+  to its HTTP client internally and sends no `Authorization` header on this path.
+- If the SSO session is missing or expired, tell the user to run
+  `python scripts/setup_sso.py` (which drives `sso-broker register`) themselves —
+  it opens a browser for interactive sign-in, so do not run any setup helper for
+  them.
 
 ### Step 1: Verify the environment
 

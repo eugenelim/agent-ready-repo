@@ -167,6 +167,22 @@ jobs:
         working-directory: packs/credential-brokers/.apm/skills/credential-setup/scripts
         run: python -m pytest test_setup.py
 
+      # atlassian-sso-cookie (RFC-0035): the jira + confluence-crawler cookie-path
+      # security suites (mock-transport — cookie confinement, no-Authorization,
+      # write refusal, off-domain-302 leak prevention, 401 remediation; the config
+      # loader/selector; the setup helper) live under the skill scripts/, which
+      # neither `make build-check` nor any package pytest discovers. Wire them
+      # explicitly or the client-side security contract never gates. credbroker is
+      # installed editable above; httpx is the only extra runtime dep.
+      - name: pip install httpx for the atlassian SSO suites (RFC-0035)
+        run: pip install 'httpx>=0.27'
+      - name: pytest jira SSO suites (atlassian-sso-cookie)
+        working-directory: packs/atlassian/.apm/skills/jira/scripts
+        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+      - name: pytest confluence-crawler SSO suites (atlassian-sso-cookie)
+        working-directory: packs/atlassian/.apm/skills/confluence-crawler/scripts
+        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
       # drift-gated. `make build-check` exercises the live drift gate, but the

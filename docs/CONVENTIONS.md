@@ -1029,6 +1029,9 @@ metadata:
   credentialed: true
   primitive-class: credentialed-cli   # or mcp-server
   auth: creds                         # env / cli / creds / sso-cookie
+  # auth-fallback: creds              # optional: dual-auth — the broker to fall
+  #                                   #   back to when the active one can't resolve
+  #                                   #   (e.g. sso-cookie with a creds fallback)
   # broker-specific extras follow:
   # namespace: <ns>                   # required for auth: creds and auth: env
   # keys: ["<KEY>"]                   # required for auth: creds and auth: env
@@ -1041,8 +1044,13 @@ The keys live under `metadata:` rather than at top level because the
 pins the top-level frontmatter set to `name`, `description`,
 `license`, `compatibility`, `metadata`, `allowed-tools` and reserves
 `metadata:` as the project-specific escape hatch. `tools/lint-agent-artifacts.py`
-refuses any top-level key outside that set; `tools/lint-credentialed-skills.sh`
+refuses any top-level key outside that set; `tools/lint_credentialed_skills.py`
 scopes its checks to skills with `metadata.credentialed: true`.
+
+`metadata.auth-fallback` is optional and names a second broker a **dual-auth**
+skill falls back to when the active one can't resolve (e.g. an `auth: sso-cookie`
+skill that drops to `creds` on a non-SSO instance). When present, the skill's
+Security section must satisfy **both** brokers' don't-block phrase sets.
 
 ### Four brokers — pick one per skill
 
@@ -1064,18 +1072,21 @@ four ids are pinned by
   build-projected `credentials_shim` it replaced is retired for
   `creds` consumers (the four-broker taxonomy above is unchanged).
 - **`sso-cookie`** — session cookie acquired via a headed-browser SSO
-  flow. The skill subprocess-invokes
-  `~/.agentbundle/bin/sso-broker.py` (projected by the
-  `credential-brokers` pack at user scope).
+  flow. The skill resolves the session through the `credbroker` SSO
+  resolver (`from credbroker import load_sso_cookies`), which
+  subprocess-invokes `~/.agentbundle/bin/sso-broker.py` (projected by the
+  `credential-brokers` pack at user scope) — mirroring how `creds` moved
+  broker resolution into `credbroker`. A skill that still resolves the
+  broker in its own `scripts/` is also accepted.
 
 The broker-agnostic invariants below apply to every credentialed
 primitive regardless of broker. Broker-specific lint extensions layer
 on top (`auth: creds` requires a credential-resolver import in
 `scripts/` — `from credbroker import …`, or the legacy
 `from .credentials_shim …`; `auth: env` requires each declared `<NAMESPACE>_<KEY>` to
-be read at least once; `auth: sso-cookie` requires
-subprocess-invocation of the canonical
-`Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` path; `auth:
+be read at least once; `auth: sso-cookie` requires either a credbroker SSO import
+(`from credbroker import load_sso_cookies`) or subprocess-invocation of the
+canonical `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` path; `auth:
 cli` falls through to broker-agnostic checks only).
 
 ### Three storage tiers
@@ -1104,7 +1115,7 @@ Credentialed-CLI-class primitives must refuse the value-shaped flags
 `--password`. The CLI verb's `setup` subparser registers these as
 *tombstone arguments* whose action emits the verbatim sentinel
 `tokens cannot be passed via argv` and exits non-zero; the
-`tools/lint-credentialed-skills.sh` lint refuses any primitive's
+`tools/lint_credentialed_skills.py` lint refuses any primitive's
 script that declares one of the banned names in an
 `argparse.ArgumentParser.add_argument` call. MCP-server-class
 primitives may accept *header-naming* flags (`--bearer-header`,

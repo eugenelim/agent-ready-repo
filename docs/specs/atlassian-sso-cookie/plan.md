@@ -1,7 +1,7 @@
 # Plan: atlassian-sso-cookie
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -155,8 +155,13 @@ the two skills under `packs/atlassian/.apm/skills/`.
 
 **Depends on:** none
 
-**Touches:** `packs/credential-brokers/.apm/user-libs/credbroker/*.py`,
-`packages/agentbundle/tests/unit/*`
+**Touches:** `packages/credbroker/credbroker/*.py` (source of truth — byte-projected
+to `packs/credential-brokers/.apm/user-libs/credbroker/` by `agentbundle.build`),
+`packages/credbroker/{pyproject.toml,README.md,CHANGELOG.md}`,
+`packages/credbroker/tests/unit/*`, `packages/credbroker/tests/unit/test_public_surface.py`,
+the pack-version sites `packs/credential-brokers/{pack.toml,.claude-plugin/plugin.json}`,
+`.claude-plugin/marketplace.json`, and the version assertion in
+`packages/agentbundle/tests/integration/test_credential_brokers_pack_install.py`.
 
 **Tests:**
 - `get-cookies` exit 0 + readable path → returns the path (AC1).
@@ -166,21 +171,38 @@ the two skills under `packs/atlassian/.apm/skills/`.
   with install-the-pack remediation (AC1).
 - `subprocess.run` is the only process-spawn used; no cookie value crosses argv
   or is logged (AC10).
+- `test_public_surface.py` updated so the new public names (`load_sso_cookies` +
+  the T2 primitives) are in `__all__` and don't break the no-underscore invariant.
 
 **Approach:**
-- Add `_sso.py` (or extend `_core`) with `load_sso_cookies(profile)`; re-export
-  from `__init__.__all__`; bump `__version__` to `0.2.0`.
+- Edit the **source of truth** `packages/credbroker/credbroker/` (not the pack
+  copy — a drift gate enforces byte-equality; run `make build` to re-project to
+  the pack copy). Add `_sso.py` (or extend `_core`) with `load_sso_cookies(profile)`;
+  re-export from `__init__.__all__`; bump `__version__` to `0.2.0` in **both**
+  `__init__.py` and `pyproject.toml`.
 - Fake the broker in tests with a stub script returning canned exit/stdout.
+- **PyPI README + CHANGELOG (explicit ask):** add an "SSO web-session cookies"
+  section to `packages/credbroker/README.md` documenting `load_sso_cookies(profile)`
+  (path-not-value handoff, fail-closed), and a `## [0.2.0]` entry to
+  `packages/credbroker/CHANGELOG.md`.
+- **Pack version bump:** credential-brokers is a user-scope-default (non-projected)
+  pack, so bump `pack.toml` + `plugin.json` `0.1.3 → 0.2.0`, regenerate
+  `.claude-plugin/marketplace.json` (aggregate, via `make build`), and update the
+  `"0.1.3"` assertion in `test_credential_brokers_pack_install.py` to `"0.2.0"`.
 
-**Done when:** new credbroker SSO-resolver unit tests green; `credbroker`
-imports with no third-party dependency; version asserted 0.2.0.
+**Done when:** new credbroker SSO-resolver unit tests green (`packages/credbroker`
+suite + the `packages/agentbundle` install/integration suite, run by hand per the
+version-bump trap); `credbroker` imports with no third-party dependency; library
+`__version__` and pyproject both `0.2.0`; pack version `0.2.0` across pack.toml,
+plugin.json, marketplace.json, and the install-test assertion; README + CHANGELOG
+document the SSO surface.
 
 ### T2: `credbroker` SSO validation primitives + load-time jar filter
 
 **Depends on:** none
 
-**Touches:** `packs/credential-brokers/.apm/user-libs/credbroker/*.py`,
-`packages/agentbundle/tests/unit/*`
+**Touches:** `packages/credbroker/credbroker/*.py` (source of truth; re-projected
+to the pack copy by `make build`), `packages/credbroker/tests/unit/*`.
 
 **Tests:**
 - non-`https` `login_url`/`success_url_pattern`/`base_url` rejected; `https`
@@ -222,8 +244,12 @@ valid/invalid table.
 **Approach:**
 - Ship placeholder-shaped files (`auth_default = "creds"`, `*.invalid` hosts) per
   RFC-0035 § 3.
-- Loader is small and per-skill (the schema is consumer-specific); selector keys
-  solely on `auth_default` (no separate `enabled` flag).
+- Loader is small and per-skill — duplicated byte-for-byte across the two skills
+  because RFC-0023 forbids a shared projected `scripts/` module, not because the
+  schema diverges (it is identical today; a `test-lint-sso-config` parity guard
+  pins the four duplicated files byte-equal and the lint↔loader `[sso]` key set
+  equal so a one-sided edit fails loudly). Selector keys solely on `auth_default`
+  (no separate `enabled` flag).
 
 **Done when:** loader/selector unit tests green; reference files present and
 placeholder-shaped (AC12).
@@ -232,8 +258,10 @@ placeholder-shaped (AC12).
 
 **Depends on:** T3
 
-**Touches:** `tools/lint-sso-config.py` (new), `tools/hooks/pre-pr.py`,
-CI wiring, `tools/test-lint-sso-config.py` (new).
+**Touches:** `tools/lint-sso-config.py` (new), `tools/test-lint-sso-config.py`
+(new), `tools/pre-pr-catalogue.py` (the repo's own catalogue lint gate — **not**
+`tools/hooks/pre-pr.py`, which is the adopter-facing hook that deliberately runs
+no project linters).
 
 **Tests:**
 - upstream files pass; a fixture with an unknown `[sso]` key, a cookie-value-
@@ -244,8 +272,10 @@ CI wiring, `tools/test-lint-sso-config.py` (new).
 
 **Approach:**
 - `.py` (Windows portability); parse TOML, assert key-set ⊆ schema, value shapes,
-  placeholder invariants. Wire into `pre-pr.py` and the build-check/CI surface
-  that runs the lint family.
+  placeholder invariants. Wire the lint **and** its self-test into
+  `tools/pre-pr-catalogue.py` as a `_run(...)` pair (mirroring the
+  `credentialed-skill lint` + self-test pair already there); `make build-check`
+  runs `pre-pr-catalogue.py`, so CI picks it up with no separate workflow edit.
 
 **Done when:** lint green on repo, red on each crafted fixture; wired into the
 gate.
@@ -262,9 +292,15 @@ gate.
   the outbound request; sent cookie set ⊆ declared domains (AC4, AC5, AC7).
 - GET/HEAD reach the wire; `raw("POST", …)`/PUT/DELETE raise the verbatim
   writes-refused message and the transport records **zero** requests (AC9).
-- base host ∉ `cookie_domains` → fail closed before any request (AC6).
+- base host ∉ `cookie_domains` → fail closed before any request; non-`https`
+  resolved base URL refused at client construction (AC6).
+- `follow_redirects=False` on the cookie-path client; a `302` from a permitted host
+  to an off-`cookie_domains` host produces **zero** cookie-bearing requests to that
+  off-domain host; cookie-subset asserted across **every** observed request, not
+  just the first (AC20, AC5).
 - `401` → verbatim re-`register` remediation, no browser retry, stale jar not
-  reused (AC11).
+  reused; no cookie value in the surfaced error/trace text on the `401` or redirect
+  path (AC11).
 - jar read in-process from the broker path only; never re-written/copied/logged
   (AC10).
 - proxy/trust-store wiring present (`trust_env`, SSL context, `REQUESTS_CA_BUNDLE`
@@ -275,8 +311,13 @@ gate.
 **Approach:**
 - Add a cookie-path branch in `load_credentials`/client construction selected by
   the T3 selector; resolve cookies via `credbroker.load_sso_cookies`, filter via
-  `credbroker.filter_jar_to_domains`; build the httpx client with the filtered jar
-  and no auth header; add the GET/HEAD allowlist at `_request` (covers `raw()`).
+  `credbroker.filter_jar_to_domains`; build the httpx client with the filtered jar,
+  no auth header, and `follow_redirects=False`; reject a non-`https` resolved base
+  URL at construction; add the GET/HEAD allowlist at `_request` (covers `raw()`).
+- CA-bundle precedence: an explicit SSL context honors `SSL_CERT_FILE`/`SSL_CERT_DIR`
+  and maps `REQUESTS_CA_BUNDLE`; when both `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE`
+  are set, `SSL_CERT_FILE` wins (native httpx env takes precedence over the mapped
+  requests-compat var); the wiring test pins this precedence.
 
 **Done when:** jira cookie-path tests green; token-path regression green. The
 jira-side mock-level coverage (broker invocation shape, jar attachment,
@@ -290,10 +331,12 @@ toward the AC17 rollup (T6 mirrors it for confluence-crawler).
 **Touches:** `packs/atlassian/.apm/skills/confluence-crawler/scripts/_client.py`,
 its tests.
 
-**Tests:** the AC4/AC5/AC6/AC7/AC8/AC10/AC11/AC13 set, mirrored for
-confluence-crawler. **AC9 differs:** confluence-crawler has no `raw()`, so assert
-the `_request` chokepoint refuses a non-GET/HEAD `method` argument before the wire
-(transport records zero requests) — not a `raw("POST")` test.
+**Tests:** the AC4/AC5/AC6/AC7/AC8/AC10/AC11/AC13/AC20 set, mirrored for
+confluence-crawler (including `follow_redirects=False` + the off-`cookie_domains`
+302 near-miss, the non-`https`-base-URL refusal, and the CA-bundle precedence).
+**AC9 differs:** confluence-crawler has no `raw()`, so assert the `_request`
+chokepoint refuses a non-GET/HEAD `method` argument before the wire (transport
+records zero requests) — not a `raw("POST")` test.
 
 **Approach:** apply the settled T5 shape to confluence-crawler's client; the
 allowlist guards its `_request` `method` parameter.
@@ -306,7 +349,9 @@ green; the confluence-crawler half of the AC17 mock-coverage rollup lands
 
 **Depends on:** T3
 
-**Touches:** the per-skill setup path that drives `sso-broker register`.
+**Touches:** new per-skill setup helpers
+`packs/atlassian/.apm/skills/jira/scripts/setup_sso.py` and
+`…/confluence-crawler/scripts/setup_sso.py` (net-new files), plus their tests.
 
 **Tests:** goal-based — helper reads the validated config and invokes
 `sso-broker register <profile> --login-url … --cookie-domain …` with values from
@@ -327,7 +372,20 @@ malformed-config fixture is rejected before `register`.
 
 **Touches:** `jira/SKILL.md`, `confluence-crawler/SKILL.md`,
 `tools/lint_credentialed_skills.py`, `tools/test-lint-credentialed-skills.py`,
-`packs/core/seeds/docs/CONVENTIONS.md` (+ projected `docs/CONVENTIONS.md`).
+`packs/core/seeds/docs/CONVENTIONS.md` (+ projected `docs/CONVENTIONS.md`),
+the atlassian pack-version sites `packs/atlassian/{pack.toml,.claude-plugin/plugin.json}`
++ `.claude-plugin/marketplace.json` (atlassian is a non-projected user-scope pack,
+so a skill change bumps the pack `0.2.0 → 0.3.0` and drifts the aggregate
+marketplace, regenerated via `make build` — the aggregate drifts; run the full
+`packages/agentbundle` suite by hand per the version-bump trap), and the
+hand-maintained skill-reference mirror
+`docs/guides/atlassian/reference/atlassian-skills.md` (mirrors `description:`/
+frontmatter verbatim; sweep it for the `auth`/Security-section change).
+
+**CONVENTIONS anchor (AC16 contract):** the `metadata.auth-fallback: creds` marker
+is a net-new frontmatter key — add it to the CONVENTIONS § Frontmatter schema
+section (in the same seed edit) so the dual-auth marker the lint now branches on is
+contract-anchored, not lint-only.
 
 **Bundled fix (same-concern ride-along):** correct the two stale
 `tools/lint-credentialed-skills.sh` references in CONVENTIONS § Frontmatter schema
@@ -336,7 +394,9 @@ malformed-config fixture is rejected before `register`.
 self-host-projected (`self_host.py` allow-list), so edit the **seed**
 `packs/core/seeds/docs/CONVENTIONS.md` and run `make build-self` to regenerate the
 projection — do not hand-edit the projected file. This task already touches the
-same lint, so the reference fix lands with it rather than as a loose flag.
+same lint, so the reference fix lands with it rather than as a loose flag. The PR's
+`Bundled fixes:` line must state it is a two-line mechanical `.sh`→`.py` rename, so
+the ride-along stays visibly smaller than T8's primary lint change (volume guard).
 
 **Tests:**
 - amended lint: a skill carrying the `metadata.auth-fallback: creds` marker must
@@ -413,6 +473,19 @@ implementing PR per the set-final-status-in-the-implementing-PR convention.
 
 ## Changelog
 
+- 2026-06-16: pre-EXECUTE review pass (adversarial + security spec-stage). Spec
+  sharpened: new **AC20** (cookie-path `follow_redirects=False` — httpx re-attaches
+  the session cookie by domain match on every hop, so an off-`cookie_domains` 302
+  would exfiltrate it); AC5 now binds every request in a redirect chain; AC6 adds an
+  https-only base-URL guard at client construction; AC11 forbids cookie bytes in
+  surfaced error text. Plan corrected: T1 now bumps the credential-brokers pack
+  (0.1.3→0.2.0: pack.toml + plugin.json + marketplace.json + install-test assertion)
+  and updates the credbroker PyPI README/CHANGELOG; credbroker tests relocated to
+  `packages/credbroker/tests/` with the source-of-truth at `packages/credbroker/credbroker/`;
+  T4 retargeted from the adopter `tools/hooks/pre-pr.py` to the repo gate
+  `tools/pre-pr-catalogue.py`; T7 names concrete `setup_sso.py` files; T8 bumps the
+  atlassian pack (0.2.0→0.3.0 + marketplace + reference-guide sweep) and anchors the
+  `auth-fallback` marker in CONVENTIONS.
 - 2026-06-16: initial plan. SSO consumer-resolution placed in `credbroker`
   (platform-agnostic) rather than a new user-lib or per-client duplication, after
   establishing that RFC-0023 retired in-pack shared-module projection and that

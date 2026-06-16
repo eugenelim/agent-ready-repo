@@ -48,7 +48,26 @@ from ._core import (
 from ._core import _parse_schema as parse_schema
 from ._core import _tier2_backend_label as tier2_backend_label
 
-__version__ = "0.1.1"
+# SSO web-session cookie family (RFC-0035) — a second consumer-resolution family
+# alongside the token ``creds`` family above. Resolves a captured SSO session to
+# an on-disk cookie-jar path via the unchanged ``sso-broker.py`` engine, with
+# reusable validation primitives for the consumer's ``sso-config.toml`` and the
+# load-time cookie-domain confinement. Imported eagerly: ``_sso`` is stdlib-only,
+# so it keeps the base import graph free of any third-party dependency.
+from ._sso import (
+    SsoBrokerNotInstalledError,
+    SsoConfigError,
+    SsoError,
+    SsoSessionUnavailableError,
+    domain_in_cookie_domains,
+    filter_jar_to_domains,
+    load_sso_cookies,
+    require_host_in_cookie_domains,
+    validate_https_url,
+    validate_root_relative_endpoint,
+)
+
+__version__ = "0.2.0"
 
 __all__ = [
     # Resolver + container.
@@ -77,5 +96,17 @@ __all__ = [
     "source_vault_master",
     "store_vault_master",
     "store_in_vault",
+    # SSO web-session cookie family (RFC-0035).
+    "load_sso_cookies",
+    "SsoError",
+    "SsoBrokerNotInstalledError",
+    "SsoSessionUnavailableError",
+    "SsoConfigError",
+    # SSO confinement primitives (RFC-0035; security-control surface).
+    "validate_https_url",
+    "validate_root_relative_endpoint",
+    "domain_in_cookie_domains",
+    "filter_jar_to_domains",
+    "require_host_in_cookie_domains",
     "__version__",
 ]

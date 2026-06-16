@@ -194,6 +194,34 @@ run the read flow against (the same gap RFC-0013 § 9 reason (b) named; RFC-0035
 asserts it is now resolvable). Also fills the `sso-cookie × <os>` row pending
 under `## credential-broker-contract`.
 
+### atlassian-sso-cookie-success-url-pattern-host-confinement
+
+**Source:** security-reviewer Concern (implementation pass). The consumer
+validates `success_url_pattern` for https scheme (AC3) but does not confine its
+*host* to `cookie_domains`. Deferred because these `[sso]` URL fields drive the
+broker's headed-browser login flow (`login_url` legitimately points at the
+off-domain corporate **IdP**, so a blanket "host ∈ cookie_domains" rule does not
+apply uniformly), the pattern may carry regex/glob metacharacters that make host
+extraction unreliable, and the consumer's cookie-**send** confinement is already
+independently enforced on every outbound request (AC4/AC5/AC6/AC20). **Unblocks
+when:** the live-DC transcript clarifies how the broker treats the pattern host,
+or a follow-on tightens pattern-host validation at the broker (capture-time)
+layer where it belongs.
+
+### atlassian-sso-cookie-selector-integration-test
+
+**Source:** quality-engineer Concern (whole-spec pass). The `_run` /
+`main_async` auth selector (config absent → token path; `sso-cookie` →
+`from_sso_cookies`; malformed → `EXIT_USER_ACTION`) has no end-to-end test; its
+inputs (`load_sso_config` → `None | SsoConfig`) and outputs (`from_sso_cookies`
+fail-closed; token-path byte-identity, AC13) are each unit-tested, leaving a
+~6-line branch uncovered. Deferred because driving the async CLI entrypoint
+requires importing a module designed for `python <script>` invocation (its
+bootstrap sets `__package__` for relative imports) and stubbing the command
+layer — disproportionate to the residual risk. **Unblocks when:** the CLI
+entrypoints grow an import-safe seam, or the selector is extracted to a directly
+testable function.
+
 ## `agentbundle-wheel-release`
 
 Implementation shipped (`.github/workflows/release-agentbundle.yml`, three
