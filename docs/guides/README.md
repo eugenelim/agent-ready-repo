@@ -13,7 +13,7 @@ The user-facing documentation for the catalogue, organized **by pack**. You inst
 | [`research`](research/) | [home](research/) | Evidence-grounded research — `research` with selectable depth, plus the pipeline skills (`source-map`, `compare-hypotheses`, `devils-advocate`, …). |
 | [`product-engineering`](product-engineering/) | [home](product-engineering/) | Shape product intent into shippable specs — the recursive `intent` tree (`frame`, `de-risk`, `decompose`, `align-value-stream`). |
 | [`credential-brokers`](credential-brokers/) | [home](credential-brokers/) | The broker behind credentialed skills — secrets resolve in-process and never reach the model. |
-| [`atlassian`](atlassian/) | [home](atlassian/) | Jira, Confluence, and flow metrics over the REST APIs — `jira`, `confluence-crawler`/`-publisher`, `flow-metrics`, `jira-defect-flow`, and more. |
+| [`atlassian`](atlassian/) | [home](atlassian/) | Jira, Confluence, and flow metrics over the REST APIs — `jira`, `confluence-crawler`/`-publisher`, `flow-metrics`, `jira-defect-flow`, `jira-brief-intake`, and more. |
 | [`contracts`](contracts/) | [home](contracts/) | Contract-first design — `api-contract` (OpenAPI 3.1) and `event-contract` (AsyncAPI), with a pluggable house standard. |
 | [`converters`](converters/) | [home](converters/) | Get documents into Markdown and back out — `file-to-markdown`, `markdown-to-html`, `mermaid-renderer`, `msg-to-markdown`. |
 | [`figma`](figma/) | [home](figma/) | The Figma REST primitive — read files, nodes, and comments; render frames; turn FigJam into Mermaid. |
