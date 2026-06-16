@@ -53,7 +53,7 @@ A fourth subagent, `implementer`, is the loop's own executor. It runs independen
 
 | Pack | Scope | What it ships |
 | --- | --- | --- |
-| [`core`](docs/guides/core/) | **repo** | **The flagship pack.** The loop: `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project` skills, the four reviewer/executor subagents, `pre-pr` + `session-start` hooks, and governance seeds. **Install this even if you install nothing else.** |
+| [`core`](docs/guides/core/) | **repo** | **The flagship pack.** The loop: `init-project`, `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project` skills, the four reviewer/executor subagents, `pre-pr` + `session-start` hooks, and governance seeds. **Install this even if you install nothing else.** |
 | [`governance-extras`](docs/guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos that need a written trail for decisions — `new-rfc`, `new-adr`, `update-conventions` plus the `docs/rfc/` and `docs/adr/` shapes. |
 | [`user-guide-diataxis`](docs/guides/user-guide-diataxis/) | repo | Diátaxis docs skeleton — `docs/guides/{tutorials,how-to,reference,explanation}` plus `new-guide`. |
 | [`monorepo-extras`](docs/guides/monorepo-extras/) | repo | Monorepo scaffolding — `new-package` and a `packages/_example/` template. |
@@ -94,6 +94,8 @@ Adopt the catalogue as-is, or use it as the base for your own. The same bundler 
 That makes this a foundation for an organization's AI dev kit, not just a set of defaults to consume.
 
 ## Going deeper
+
+The full user documentation lives in **[`docs/guides/`](docs/guides/)** — organized by pack, with tutorials, how-tos, reference, and explanation for each ([Diátaxis](https://diataxis.fr/)). Start there to learn a pack end to end; the table below jumps straight to the cross-cutting topics.
 
 | Topic | Link |
 | --- | --- |
