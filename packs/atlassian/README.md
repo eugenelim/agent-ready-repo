@@ -1,14 +1,16 @@
 # atlassian
 
-Atlassian primitives plus the workflows that compose them. Three credentialed
-CLIs — `jira`, `jira-align`, and `confluence-crawler` — and three workflow
-skills: `flow-metrics`, `ai-adoption-report`, and `jira-defect-flow`.
+Atlassian primitives plus the workflows that compose them. Credentialed CLIs —
+`jira`, `jira-align`, and `confluence-crawler`/`-publisher` — and workflow
+skills: `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`, and
+`jira-brief-intake`.
 
 ## What's inside
 
 - Credentialed CLI primitives for Jira, Jira Align, and Confluence.
 - Workflow skills that turn those primitives into flow metrics, an
-  AI-adoption report, and a Jira defect-flow analysis.
+  AI-adoption report, a Jira defect-flow analysis, and a Jira-epic →
+  product-brief intake that feeds `receive-brief`.
 
 ## Install
 

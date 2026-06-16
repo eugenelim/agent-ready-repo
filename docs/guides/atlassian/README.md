@@ -1,6 +1,6 @@
 # `atlassian` — guides
 
-Jira, Jira Align, and Confluence over their REST APIs — plus the flow metrics you build on top of them. The pack ships seven skills: `jira` and `jira-align` for issue and portfolio data, `confluence-crawler` and `confluence-publisher` for wiki content, `jira-defect-flow` for end-to-end defect handling, and `flow-metrics` + `ai-adoption-report` for DORA / Flow Framework measurement. The four API-touching skills are credentialed: the secret resolves in-process and never reaches the model.
+Jira, Jira Align, and Confluence over their REST APIs — plus the flow metrics and intake workflows you build on top of them. The pack ships `jira` and `jira-align` for issue and portfolio data, `confluence-crawler` and `confluence-publisher` for wiki content, `jira-defect-flow` for end-to-end defect handling, `jira-brief-intake` to turn a Jira epic into a product brief, and `flow-metrics` + `ai-adoption-report` for DORA / Flow Framework measurement. The four API-touching skills are credentialed: the secret resolves in-process and never reaches the model.
 
 New here? Read [The `atlassian` pack as a system](explanation/atlassian-pack.md) first — it's the map. Then [work with Jira](how-to/work-with-jira.md) to search and mutate issues.
 

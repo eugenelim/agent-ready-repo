@@ -59,3 +59,11 @@ Credentialed skills resolve secrets in-process through the tier ladder (environm
 - **Outputs.** A triage brief at `.context/defects/$KEY.md`, a feature branch, a PR whose `Why?` section carries `Closes: $KEY`, and Jira comments plus transitions on the ticket.
 - **Required credentials.** None of its own — Jira access is inherited through the `jira` skill. Requires `gh auth` for PR opening.
 - **Source.** [`jira-defect-flow`](../../../../packs/atlassian/.apm/skills/jira-defect-flow/)
+
+## `jira-brief-intake`
+
+- **Purpose.** Turn a Jira epic (or a board / sprint / JQL selection) into shippable specs. Pulls the epic and its children via the `jira` skill, maps them onto a Shape B product brief (epic → Outcome, child issues → `US-n` user stories tagged with their Jira key, epic key → `Epic:` provenance pointer), writes it to `docs/product/briefs/<slug>.md`, and hands off to the `receive-brief` skill to elicit gaps, decompose, and build. Read-only against Jira; gracefully degrades to an inlined decompose/execute instruction when `receive-brief` is absent. For an epic or multi-feature body of work — a single feature goes through `new-spec`, a defect through `jira-defect-flow`.
+- **Primary inputs.** A Jira epic key, or a JQL / board / sprint selection. Composes sibling and host skills by name: `jira` (reads only — `check`, `get-issue`, `search` with a flavor-correct child query) and `receive-brief` (soft dependency — degrades gracefully when absent).
+- **Outputs.** A Shape B product brief at `docs/product/briefs/<slug>.md`, then a hand-off to `receive-brief` (or an inlined decompose/execute instruction in the degraded path).
+- **Required credentials.** None of its own — Jira access is inherited through the `jira` skill.
+- **Source.** [`jira-brief-intake`](../../../../packs/atlassian/.apm/skills/jira-brief-intake/)
