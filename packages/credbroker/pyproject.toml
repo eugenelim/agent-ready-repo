@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "credbroker"
-version = "0.1.1"
+version = "0.2.0"
 description = "Standalone, pip-installable credential resolver for credentialed agent skills (env -> OS keyring -> dotfile, with an optional encrypted-at-rest vault)."
 requires-python = ">=3.11"
 dependencies = []

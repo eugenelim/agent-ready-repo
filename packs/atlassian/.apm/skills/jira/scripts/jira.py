@@ -85,6 +85,7 @@ try:
         JiraError,
         load_credentials,
     )
+    from ._sso_config import load_sso_config  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # A missing module here is a non-secret dependency (e.g. httpx);
     # `credbroker` is imported lazily inside load_credentials(), so its
@@ -707,17 +708,27 @@ def _csv_scalar(value: Any) -> str:
 
 
 async def _run(args: argparse.Namespace) -> int:
+    # Auth selector (RFC-0035): an sso-config.toml with auth_default = "sso-cookie"
+    # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
-        credentials = load_credentials()
+        sso_config = load_sso_config()
+    except Exception as exc:  # noqa: BLE001 — malformed SSO config → fail closed
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USER_ACTION
+
+    try:
+        if sso_config is not None:
+            client = JiraClient.from_sso_cookies(sso_config)
+        else:
+            credentials = load_credentials()
+            client = JiraClient(credentials, verify_tls=not args.insecure)
     except AuthError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
 
     writer = OutputWriter(args.format, args.output)
     try:
-        async with JiraClient(
-            credentials, verify_tls=not args.insecure
-        ) as client:
+        async with client:
             cmd = args.command
             if cmd == "check":
                 return await _cmd_check(client)
