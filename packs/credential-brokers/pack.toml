@@ -1,7 +1,7 @@
 [pack]
 name = "credential-brokers"
-version = "0.1.2"
-description = "User-scope credential brokering: credentials_shim (build-projected Python module for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill."
+version = "0.1.3"
+description = "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill."
 readme = "README.md"
 display_name = "Credential Brokers"
 license = "Apache-2.0 OR MIT"

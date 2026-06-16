@@ -54,17 +54,20 @@ class PackManifestShapeTests(unittest.TestCase):
     def test_pack_name_and_version(self) -> None:
         pack = self.pack_toml["pack"]
         self.assertEqual(pack["name"], "credential-brokers")
-        # Bumped 0.1.0 → 0.1.1 (metadata enrichment) then → 0.1.2 (per-pack
-        # guide-home `documentation` link); the adapter-contract version is unchanged.
-        self.assertEqual(pack["version"], "0.1.2")
+        # Bumped 0.1.0 → 0.1.1 (metadata enrichment) → 0.1.2 (per-pack
+        # guide-home `documentation` link) → 0.1.3 (missing-credbroker guard +
+        # credentials_shim→credbroker description fix); adapter-contract unchanged.
+        self.assertEqual(pack["version"], "0.1.3")
 
     def test_description_names_the_three_artefacts(self) -> None:
-        # The verbatim description from RFC-0013 § 4 names the three
-        # artefacts the pack ships (credentials_shim, sso-broker,
-        # credential-setup). Pin substrings rather than the whole
-        # string so prose touchups don't false-trigger.
+        # The description names the artefacts the pack ships. Since RFC-0023 the
+        # `auth: creds` resolver is the `credbroker` library (the build-projected
+        # `credentials_shim` it replaced is no longer the consumer-facing
+        # resolver), so the description names credbroker, sso-broker, and
+        # credential-setup. Pin substrings rather than the whole string so prose
+        # touchups don't false-trigger.
         desc = self.pack_toml["pack"]["description"]
-        self.assertIn("credentials_shim", desc)
+        self.assertIn("credbroker", desc)
         self.assertIn("sso-broker", desc)
         self.assertIn("credential-setup", desc)
         self.assertIn("LLM-cooperative", desc)

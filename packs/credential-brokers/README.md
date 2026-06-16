@@ -6,10 +6,12 @@ files for secrets. This is the pack the other credentialed packs (`atlassian`,
 
 ## What's inside
 
-- `credentials_shim` — a build-projected Python module that `auth: creds`
-  skills import.
+- `credbroker` — a pip-installable Python library that `auth: creds` skills
+  resolve credentials through, imported in-process (env var → OS keychain →
+  `0600` dotfile floor).
 - `sso-broker` — a subprocess at `~/.agentbundle/bin/` for `auth: sso-cookie`
-  skills.
+  skills. Its companion loader, `credentials_shim`, still ships as internal
+  plumbing for this rail.
 - `credential-setup` — one LLM-cooperative skill that walks a user through
   storing credentials.
 
