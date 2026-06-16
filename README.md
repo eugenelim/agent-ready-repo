@@ -95,6 +95,8 @@ That makes this a foundation for an organization's AI dev kit, not just a set of
 
 ## Going deeper
 
+The full user documentation lives in **[`docs/guides/`](docs/guides/)** — organized by pack, with tutorials, how-tos, reference, and explanation for each ([Diátaxis](https://diataxis.fr/)). Start there to learn a pack end to end; the table below jumps straight to the cross-cutting topics.
+
 | Topic | Link |
 | --- | --- |
 | All four install routes (CLI, APM, Claude plugins, local clone) | [install routes](docs/guides/_shared/how-to/install-agentbundle-from-clone.md) |
