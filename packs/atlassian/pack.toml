@@ -1,7 +1,7 @@
 [pack]
 name = "atlassian"
-version = "0.1.4"
-description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, and jira-defect-flow workflows that compose them."
+version = "0.2.0"
+description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, and jira-brief-intake workflows that compose them."
 readme = "README.md"
 display_name = "Atlassian"
 license = "Apache-2.0 OR MIT"
