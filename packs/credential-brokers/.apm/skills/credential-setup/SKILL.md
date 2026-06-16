@@ -74,9 +74,9 @@ The script:
 
 - `0` — every key written successfully.
 - `2` — reserved namespace (`sso`) refused.
-- `3` — schema not found, stdin not a tty, Tier-2 hard fail,
-  permissive DACL on Windows, or any other interactive precondition
-  unmet.
+- `3` — `credbroker` not installed, schema not found, stdin not a tty,
+  Tier-2 hard fail, permissive DACL on Windows, or any other interactive
+  precondition unmet.
 
 ## Inverse — verifying resolution
 

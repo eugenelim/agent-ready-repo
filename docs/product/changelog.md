@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not installed it inlines a decompose/execute instruction for the agent to act
   on directly. Pure choreography, mirroring `jira-defect-flow`.
 
+### Changed
+
+- **`credential-setup` now gives a clear install hint instead of a traceback
+  when `credbroker` is missing.** Running the setup script without the
+  `credbroker` resolver installed prints a single line telling you how to
+  install it from your repository checkout and exits cleanly (code `3`),
+  rather than dumping a `ModuleNotFoundError` stack trace. A different import
+  failure (a broken `credbroker` submodule, say) still surfaces unchanged.
+
 ### Fixed
 
 - **`agentbundle install --adapter kiro` now behaves exactly like `kiro-ide`.**
