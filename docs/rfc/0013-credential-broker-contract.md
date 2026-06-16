@@ -2042,3 +2042,37 @@ record. Corrections are appended here, Approver-signed.
   **Where this is recorded.** [RFC-0035](0035-sso-cookie-auth-for-atlassian-pack.md)
   § 2 (the drafting record); implementation lands in
   `docs/specs/atlassian-sso-cookie/` when RFC-0035 is built.
+
+- **2026-06-16 (Approver: eugenelim) — the `credbroker` resolver library gains an
+  `sso-cookie` consumer family; the broker *engine* and the four-broker contract
+  are unchanged.** RFC-0035 § 1 illustrated the cookie-resolution logic living in
+  each atlassian *client*. The `atlassian-sso-cookie` spec instead places it in
+  the `credbroker` library — the single consumer-resolution home already in use
+  for the `creds` family (RFC-0023 retired in-pack shared-module projection, so a
+  client-side helper has no other single-source home, and every credentialed skill
+  already imports `credbroker`). This is recorded here because it extends a
+  contract-governed library's public surface:
+
+  > `credbroker` MAY expose a consumer-side `sso-cookie` resolver
+  > (`load_sso_cookies(profile)`) and reusable validation primitives that
+  > subprocess-invoke the **unchanged** `sso-broker.py` engine and confine the
+  > captured jar to declared `cookie_domains` at load time. This is consumer
+  > *resolution*, parallel to `load_credentials` for `creds` — **not** a change to
+  > the broker engine, its storage tiers, the argv ban, the never-logged /
+  > path-not-value guarantees, or the four-broker model.
+
+  **Why it is not a broker redesign.** `credbroker` is the resolver library, not a
+  broker; SSO cookies are a credential family it did not yet resolve. Adding a
+  second consumer entry point alongside `load_credentials` is symmetric with the
+  `creds` family and keeps the base import graph stdlib-only (Playwright stays in
+  the engine). RFC-0035's "consumes the broker unchanged" non-goal is preserved —
+  the `sso-broker.py` engine is untouched.
+
+  **What is unchanged.** The broker engine, its keychain/file-floor storage, the
+  six verbs, the argv ban, the no-leak guarantees, and the brokers-not-skills
+  architecture. `credbroker` bumps a minor version (0.1.1 → 0.2.0) for the new
+  public surface; no adapter-contract or schema bump.
+
+  **Where this is recorded.** [ADR-0026](../adr/0026-sso-consumer-resolution-in-credbroker.md)
+  (the architectural decision); `docs/specs/atlassian-sso-cookie/` (the
+  implementation contract).

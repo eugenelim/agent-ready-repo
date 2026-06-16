@@ -31,6 +31,7 @@
 | 0023 | [The "three reviewers" ceiling scopes the core code-review lenses, not opt-in design-side reviewers (RFC-0032 decision 2)](0023-reviewer-ceiling-scopes-core-code-review-lenses.md) | Accepted |
 | 0024 | [`design-craft` serves designers as upstream design-intent authors, under strict framework-agnosticism](0024-design-craft-upstream-intent-and-agnosticism.md) | Accepted |
 | 0025 | [Pack profiles are single-scope, catalogue-owned CLI manifests — not meta-packs](0025-pack-profiles-single-scope-cli-manifest.md) | Accepted |
+| 0026 | [SSO-cookie consumer resolution lives in the `credbroker` library, platform-agnostic](0026-sso-consumer-resolution-in-credbroker.md) | Accepted |
 
 ## Adding a new ADR
 
