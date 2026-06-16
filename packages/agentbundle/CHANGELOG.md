@@ -6,6 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.5.0] — 2026-06-16
+
+### Added
+
+- **Curated install profiles — `install --profile <name>` and `list-profiles`**
+  (RFC-0034). A profile is a first-party `profiles/<name>.toml` at a catalogue
+  root naming a single-scope, deps-first set of packs an adopter installs in
+  one command. `agentbundle install --profile <name> <catalogue>` pins one
+  scope and one adapter for the whole batch, runs the full read-only pre-flight
+  for every pack before writing any, then installs each in authored order;
+  `agentbundle list-profiles <catalogue>` browses what a catalogue offers.
+  Adds zero primitives and zero adapter-contract surface — the CLI reads the
+  manifest, the catalogue carries it.
+
+### Fixed
+
+- **`agentbundle install --adapter kiro` now behaves exactly like `kiro-ide`**
+  (RFC-0022 alias parity). The `kiro` → `kiro-ide` alias is now canonicalized
+  at every install-path decision site, not just the build registry.
+- **`--version` reports the package version.** `CLI_VERSION` had drifted to
+  `0.1.0` and was printed by `agentbundle --version` regardless of the released
+  version; it now tracks the package version (`0.5.0`).
+
 ## [0.4.0] — 2026-06-14
 
 ### Added
