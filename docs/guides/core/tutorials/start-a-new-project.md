@@ -11,7 +11,14 @@ We'll use one concrete idea throughout: **a URL-shortener service** — an API t
 You need:
 
 - An empty (or nearly empty) repo you can commit to.
-- The `init-project` skill available in your repo.
+- The `init-project` skill, which ships in the `core` pack. If you haven't installed `core` into this repo yet, do that first:
+
+  ```bash
+  pip install agentbundle
+  agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
+  ```
+
+  Then start a fresh agent session so it picks up the new skill.
 - A discovery shape to feed in — for this tutorial, a one-paragraph PRD is enough: *"Users paste a long URL and get back a short link they can share; links resolve fast and never expire. MVP: create a short link and resolve it."* (In real use this comes from the `research` skill or a `receive-brief` brief; a written PRD works the same way.)
 
 ## Step 1 — Start the flow and pass the trigger gate
