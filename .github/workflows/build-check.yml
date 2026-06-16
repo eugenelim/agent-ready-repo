@@ -158,6 +158,15 @@ jobs:
         working-directory: packages/credbroker
         run: python -m pytest
 
+      # The credential-setup skill's own suite (RFC-0023 T8 + the
+      # missing-credbroker guard) lives under the pack's skill scripts/, which
+      # neither `make build-check` nor any package pytest discovers. Wire it
+      # explicitly or it never gates. Placed after the credbroker[crypto]
+      # install above so the in-process import + crypto-extra cases resolve.
+      - name: pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)
+        working-directory: packs/credential-brokers/.apm/skills/credential-setup/scripts
+        run: python -m pytest test_setup.py
+
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
       # drift-gated. `make build-check` exercises the live drift gate, but the
