@@ -178,6 +178,22 @@ Sibling of `user-scope-hooks` for RFC-0005's third surface (standalone
     `_load_cli_module()` loads from pack source, not the projected
     `.claude/skills/…` mirror; parametrise over both.
 
+## `atlassian-sso-cookie`
+
+### atlassian-sso-cookie-live-dc-read-transcript
+
+**Spec:** [atlassian-sso-cookie](specs/atlassian-sso-cookie/spec.md), final AC
+(live Data Center read transcript). The mock-level tests gate in CI, but the
+move from **Experimental** to Accepted requires one manual-QA transcript against
+a **real** Atlassian Data Center instance behind corporate SSO: `sso-broker
+register <profile>` (headed Chromium SSO) → `get-cookies` → an authenticated
+`jira` JQL search returns results → `sso-broker test` exits 0, captured under
+`specs/atlassian-sso-cookie/notes/`. **Blocked on:** no corporate-SSO Data
+Center deployment in CI. **Unblocks when:** a real DC instance is available to
+run the read flow against (the same gap RFC-0013 § 9 reason (b) named; RFC-0035
+asserts it is now resolvable). Also fills the `sso-cookie × <os>` row pending
+under `## credential-broker-contract`.
+
 ## `agentbundle-wheel-release`
 
 Implementation shipped (`.github/workflows/release-agentbundle.yml`, three

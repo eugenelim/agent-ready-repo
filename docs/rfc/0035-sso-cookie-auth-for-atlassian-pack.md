@@ -523,3 +523,45 @@ pasted here; status stays **Experimental** until the transcript lands.
   schema, lint coverage, mock tests, and the live-DC manual-QA transcript.
 - Possible `add-credentialed-skill` template update if `sso-config.toml`
   becomes a standard companion for `auth: sso-cookie` skills.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections found while building it are appended here, Approver-signed.
+
+- **2026-06-16 (Approver: eugenelim) — § 1 step 3's premise that `httpx` ignores
+  proxy / CA environment variables by default is imprecise.** § 1 step 3 asserts
+  the cookie-path client must opt in because "httpx does **not** read these from
+  the environment by default (unlike urllib)." Probing the pinned client
+  (`httpx` 0.28.1) shows `trust_env` defaults to **True**, so httpx already honors
+  `HTTP(S)_PROXY` / `NO_PROXY` and `SSL_CERT_FILE` / `SSL_CERT_DIR`. The real gaps
+  are narrower: httpx does **not** read `REQUESTS_CA_BUNDLE` (a requests-only
+  variable), and the existing client passes `verify=<bool>`, which can override
+  the trust-store context. The **requirement** stands unchanged — the cookie-path
+  client must honor the corporate proxy and system trust store — but the spec's
+  acceptance criterion (`atlassian-sso-cookie` AC8) is written against actual
+  httpx behavior: keep `trust_env=True`, build an explicit SSL context honoring
+  `SSL_CERT_FILE`/`SSL_CERT_DIR` and mapping `REQUESTS_CA_BUNDLE`, and avoid a bare
+  `verify=True` that would clobber the trust store. Recorded in
+  `docs/specs/atlassian-sso-cookie/spec.md` (Assumptions + AC8).
+
+- **2026-06-16 (Approver: eugenelim) — § 1's cookie-resolution logic is placed in
+  the `credbroker` library, not in each client.** § 1 illustrated the resolution
+  steps (resolve broker → `get-cookies` → load jar) living in each `_client.py`.
+  Because RFC-0023 retired in-pack shared-module projection and `credbroker` is
+  the single consumer-resolution home every credentialed skill already imports,
+  the spec places the resolver + the validation/confinement primitives in
+  `credbroker` (platform-agnostic, reusable by any integration). The broker engine
+  stays unchanged, preserving this RFC's non-goal. Recorded in
+  [ADR-0026](../adr/0026-sso-consumer-resolution-in-credbroker.md) and a second
+  [RFC-0013 § Errata](0013-credential-broker-contract.md#errata) entry.
+
+- **2026-06-16 (Approver: eugenelim) — § 3's `register`-time capture-confinement
+  is relocated to the consumer at load time.** § 3 AC(d) reads as though
+  `register` persists only cookies in the declared `cookie_domains`. The shipped
+  `sso-broker.py` (consumed unchanged) persists **every** observed cookie;
+  `--cookie-domain` only writes the profile-TOML metadata, it never filters the
+  jar. Capture-confinement therefore happens in the consumer: it filters the
+  loaded jar to `cookie_domains` at load time, before attaching it
+  (`atlassian-sso-cookie` AC4/AC5). The over-broad jar at rest is the broker's
+  existing behavior, named honestly rather than claimed away.
