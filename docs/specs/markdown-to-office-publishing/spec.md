@@ -1,6 +1,6 @@
 # Spec: markdown-to-office-publishing
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0036, RFC-0007 (the `converters` pack)
@@ -74,8 +74,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   implementation — template-fill only.
 - **No auto-install** of `docxtpl` / `python-pptx` / `openpyxl` (that is Tier-2
   behavior; banned here).
-- **No load-and-resave of an `openpyxl` workbook that carries charts or shapes**
-  — inject into data ranges only; `openpyxl` drops those objects on resave.
+- **Never manipulate, recreate, or resize the chart/shape objects (or a
+  table/named-range's extent) in an `openpyxl` workbook** — inject into data
+  ranges only. Filling named ranges/tables inherently requires a
+  load-and-resave; the realizable rule is to touch only data cells and never the
+  drawing objects. `openpyxl` preserves the charts/images it can parse on that
+  resave, but its tutorial warns it drops *shapes it cannot read* — refines the
+  frozen RFC-0036's "never load-and-resave" / "drops charts" wording; see
+  [RFC-0036 § Errata](../../rfc/0036-markdown-to-office-publishing.md#errata).
 
 ## Testing Strategy
 
@@ -113,26 +119,26 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] Three skills exist — `packs/converters/.apm/skills/{markdown-to-docx,markdown-to-pptx,markdown-to-xlsx}/` — each with a lean `SKILL.md` (detail in `references/`, the renderer in `scripts/`) that passes `tools/lint-skill-spec.py` and `tools/lint-agent-artifacts.py`.
-- [ ] Each `SKILL.md` `description` seeds the RFC-0036 activation vocabulary — both the noun keywords and the **imperative trigger phrasings** RFC-0036 §2 names (the load-bearing activation surface per §177): `markdown-to-docx` ("Word document", "report", "memo", "statement of work", "branded .docx", "turn this Markdown into a Word doc"); `markdown-to-pptx` ("PowerPoint", "slide deck", "presentation", "turn this into slides", "branded .pptx"); `markdown-to-xlsx` ("Excel", "spreadsheet", "workbook", "export this table to Excel", "fill the .xlsx template").
-- [ ] Each skill is **Tier-1**: `## Prerequisites` declares its library and the exact `pip install` line; the script's `--check` verb import-probes the library and exits `0` (present) / `2` (absent); on absence it prints the install line and stops; no code path auto-installs.
-- [ ] Each `SKILL.md` documents the **deterministic-renderer** contract — the script's argv shape and its stdout markers — and instructs the agent to assemble the content model and invoke the script, not to hand-write the Office file.
-- [ ] Each script's **inspect** verb emits a fill-point manifest: docx via `get_undeclared_template_variables()`; pptx by iterating `slide_layouts` → `placeholders` (idx, type, name); xlsx by iterating `defined_names` and worksheet `tables`.
-- [ ] Each script's **map** step projects the Markdown artifact onto the manifest per the RFC-0036 mapping table (front-matter → scalars; H1/H2 → sections/slides/sheets; lists → loops/rows; tables → row-loops/table-placeholder/data-region).
-- [ ] **Template flow** holds for all three: detect a template on disk → confirm the found one or elicit one → on explicit user opt-out, proceed **template-less using the library default** (a bare `docxtpl`/`python-pptx`/`openpyxl` document), communicated up front; the opt-out is never silent and no scaffold asset is shipped.
-- [ ] **No-fill-points guidance** for docx/xlsx: given an untagged `.docx` or a workbook with no named ranges, the skill explains how to add fill-points (insert Jinja tags in Word / define named ranges) rather than silently converting. `.pptx` is exempt — its layouts already carry placeholders.
-- [ ] `markdown-to-xlsx` injects into **data ranges only** and never load-and-resaves a workbook carrying charts/shapes; the chart-loss caveat is documented in its `SKILL.md`.
-- [ ] `markdown-to-docx` documents the `docxtpl` run-fragmentation guidance — author each tag in one uniform run.
-- [ ] `markdown-to-docx` passes `autoescape=True` at the `docxtpl` `render()` call (autoescape is **off** by default in docxtpl), verified by a unit test that a context value containing `{{`/XML metacharacters renders escaped, not interpolated.
-- [ ] Each script **confines the output write**: it fully resolves `--output` with `Path.resolve()` / `realpath` (following symlinks) and verifies the resolved path is the working-directory root or has it among `.parents` — a path-**component** containment check, **not** a string-prefix check (so `workdir-evil` is rejected against root `workdir`) — refusing a `--template`/input path that resolves outside the root. Verified by unit tests covering the `..`-traversal, symlink-escape, and sibling-prefix (`workdir-evil`) cases.
-- [ ] Each `SKILL.md` states the **template trust posture explicitly** — user-supplied templates are treated as trusted-author input (consistent with the converters pack's local-files-trusted stance) — and notes that SSTI via a malicious template author and XXE / zip-bomb on a crafted Office archive are accepted, out-of-scope risks for trusted-author templates.
-- [ ] Each `## Prerequisites` `pip install` line names the **exact canonical PyPI package** (`docxtpl` / `python-pptx` / `openpyxl`) with a minimum-version floor (justified by the docxtpl `get_undeclared_template_variables()` breakage history and any known advisory at authoring time), and notes that these Tier-1 libraries install into the user's environment **outside the repo's SCA** so the user is responsible for keeping them current.
-- [ ] Each skill's **TDD unit suite** (`scripts/test_*.py`) covers manifest enumeration, Markdown→model mapping, and the `--check` probe, and is **CI-gated** by an explicit per-path `python -m pytest` line in `.github/workflows/build-check.yml` (atlassian/credential-brokers precedent).
-- [ ] An **end-to-end integration test per format** renders a fixture template via the documented script invocation and re-opens the produced file to assert the filled values are present.
-- [ ] Each skill ships `evals/evals.json` (canonical `skill_name` + `evals` keys) with activation and don't-render-by-hand assertions; the converters evals carry-over CI check (`build-check.yml`, "converters evals.json carry-over disposition") is extended to enumerate the three new skills.
-- [ ] The pack version is bumped `0.1.2 → 0.2.0` in both `packs/converters/pack.toml` and `packs/converters/.claude-plugin/plugin.json`; `[pack.adapter-contract]` stays `0.8`; `make build` refreshes the top-level `.claude-plugin/marketplace.json` to the new version; `lint-packs` and `make build` are green.
-- [ ] The pack's user-facing surfaces are updated to reflect the Markdown→Office direction: `packs/converters/README.md`'s skill list adds the three skills, and the `description` in `pack.toml` + `plugin.json` (which propagates into `marketplace.json`) names the outward direction — not just the current inward-only wording.
-- [ ] User docs land in the implementing PR: a new `docs/guides/converters/how-to/publish-markdown-to-office.md`, an extension to `docs/guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry.
+- [x] Three skills exist — `packs/converters/.apm/skills/{markdown-to-docx,markdown-to-pptx,markdown-to-xlsx}/` — each with a lean `SKILL.md` (detail in `references/`, the renderer in `scripts/`) that passes `tools/lint-skill-spec.py` and `tools/lint-agent-artifacts.py`.
+- [x] Each `SKILL.md` `description` seeds the RFC-0036 activation vocabulary — both the noun keywords and the **imperative trigger phrasings** RFC-0036 §2 names (the load-bearing activation surface per §177): `markdown-to-docx` ("Word document", "report", "memo", "statement of work", "branded .docx", "turn this Markdown into a Word doc"); `markdown-to-pptx` ("PowerPoint", "slide deck", "presentation", "turn this into slides", "branded .pptx"); `markdown-to-xlsx` ("Excel", "spreadsheet", "workbook", "export this table to Excel", "fill the .xlsx template").
+- [x] Each skill is **Tier-1**: `## Prerequisites` declares its library and the exact `pip install` line; the script's `--check` verb import-probes the library and exits `0` (present) / `2` (absent); on absence it prints the install line and stops; no code path auto-installs.
+- [x] Each `SKILL.md` documents the **deterministic-renderer** contract — the script's argv shape and its stdout markers — and instructs the agent to assemble the content model and invoke the script, not to hand-write the Office file.
+- [x] Each script's **inspect** verb emits a fill-point manifest: docx via `get_undeclared_template_variables()`; pptx by iterating `slide_layouts` → `placeholders` (idx, type, name); xlsx by iterating `defined_names` and worksheet `tables`.
+- [x] Each script's **map** step projects the Markdown artifact onto the manifest per the RFC-0036 mapping table (front-matter → scalars; H1/H2 → sections/slides/sheets; lists → loops/rows; tables → row-loops/table-placeholder/data-region).
+- [x] **Template flow** holds for all three: detect a template on disk → confirm the found one or elicit one → on explicit user opt-out, proceed **template-less using the library default** (a bare `docxtpl`/`python-pptx`/`openpyxl` document), communicated up front; the opt-out is never silent and no scaffold asset is shipped.
+- [x] **No-fill-points guidance** for docx/xlsx: given an untagged `.docx` or a workbook with no named ranges, the skill explains how to add fill-points (insert Jinja tags in Word / define named ranges) rather than silently converting. `.pptx` is exempt — its layouts already carry placeholders.
+- [x] `markdown-to-xlsx` injects into **data ranges only** and never manipulates or resizes chart/shape objects or a table/named-range extent; the shape-loss caveat (`openpyxl` preserves charts/images it can parse on the unavoidable resave but may drop shapes it cannot read) is documented in its `SKILL.md`. Refines RFC-0036's literal "never load-and-resave" wording — see [RFC-0036 § Errata](../../rfc/0036-markdown-to-office-publishing.md#errata).
+- [x] `markdown-to-docx` documents the `docxtpl` run-fragmentation guidance — author each tag in one uniform run.
+- [x] `markdown-to-docx` passes `autoescape=True` at the `docxtpl` `render()` call (autoescape is **off** by default in docxtpl), verified by a unit test that a context value containing `{{`/XML metacharacters renders escaped, not interpolated.
+- [x] Each script **confines the output write**: it fully resolves `--output` with `Path.resolve()` / `realpath` (following symlinks) and verifies the resolved path is the working-directory root or has it among `.parents` — a path-**component** containment check, **not** a string-prefix check (so `workdir-evil` is rejected against root `workdir`) — refusing a `--template`/input path that resolves outside the root. Verified by unit tests covering the `..`-traversal, symlink-escape, and sibling-prefix (`workdir-evil`) cases.
+- [x] Each `SKILL.md` states the **template trust posture explicitly** — user-supplied templates are treated as trusted-author input (consistent with the converters pack's local-files-trusted stance) — and notes that SSTI via a malicious template author and XXE / zip-bomb on a crafted Office archive are accepted, out-of-scope risks for trusted-author templates.
+- [x] Each `## Prerequisites` `pip install` line names the **exact canonical PyPI package** (`docxtpl` / `python-pptx` / `openpyxl`) with a minimum-version floor (justified by the docxtpl `get_undeclared_template_variables()` breakage history and any known advisory at authoring time), and notes that these Tier-1 libraries install into the user's environment **outside the repo's SCA** so the user is responsible for keeping them current.
+- [x] Each skill's **TDD unit suite** (`scripts/test_*.py`) covers manifest enumeration, Markdown→model mapping, and the `--check` probe, and is **CI-gated** by an explicit per-path `python -m pytest` line in `.github/workflows/build-check.yml` (atlassian/credential-brokers precedent).
+- [x] An **end-to-end integration test per format** renders a fixture template via the documented script invocation and re-opens the produced file to assert the filled values are present.
+- [x] Each skill ships `evals/evals.json` (canonical `skill_name` + `evals` keys) with activation and don't-render-by-hand assertions; the converters evals carry-over CI check (`build-check.yml`, "converters evals.json carry-over disposition") is extended to enumerate the three new skills.
+- [x] The pack version is bumped `0.1.2 → 0.2.0` in both `packs/converters/pack.toml` and `packs/converters/.claude-plugin/plugin.json`; `[pack.adapter-contract]` stays `0.8`; `make build` refreshes the top-level `.claude-plugin/marketplace.json` to the new version; `lint-packs` and `make build` are green.
+- [x] The pack's user-facing surfaces are updated to reflect the Markdown→Office direction: `packs/converters/README.md`'s skill list adds the three skills, and the `description` in `pack.toml` + `plugin.json` (which propagates into `marketplace.json`) names the outward direction — not just the current inward-only wording.
+- [x] User docs land in the implementing PR: a new `docs/guides/converters/how-to/publish-markdown-to-office.md`, an extension to `docs/guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry.
 
 ## Assumptions
 

@@ -1,12 +1,15 @@
 # Converter skills
 
-The four skills in the `converters` pack, their inputs, outputs, flags, and prerequisites. Each skill is a thin wrapper: the agent invokes a script and reports the result.
+The skills in the `converters` pack, their inputs, outputs, flags, and prerequisites. Each skill is a thin wrapper: the agent invokes a script and reports the result.
 
 | Skill | Direction | Engine |
 | --- | --- | --- |
 | [`file-to-markdown`](#file-to-markdown) | documents/images → Markdown | Docling / vision pipeline |
 | [`mermaid-renderer`](#mermaid-renderer) | Markdown → Markdown + images | Mermaid CLI (`mmdc`) |
 | [`markdown-to-html`](#markdown-to-html) | Markdown → HTML | `marked` + `highlight.js` |
+| [`markdown-to-docx`](#markdown-to-docx) | Markdown → branded Word (template-fill) | `docxtpl` |
+| [`markdown-to-pptx`](#markdown-to-pptx) | Markdown → branded PowerPoint (template-fill) | `python-pptx` |
+| [`markdown-to-xlsx`](#markdown-to-xlsx) | Markdown → branded Excel (template-fill) | `openpyxl` |
 | [`msg-to-markdown`](#msg-to-markdown) | Outlook `.msg` → Markdown | `@nicecode/msg-reader` / `msgreader` |
 
 ---
@@ -170,6 +173,108 @@ Writes the HTML file and prints three stdout lines:
 | No headings | Sidebar shows `(no sections)`; output still works |
 | Unknown theme | Exits with the list of valid choices |
 | Offline output wanted with Mermaid present | Pass `--no-mermaid`; the block falls back to a plain `<pre>` |
+
+---
+
+## `markdown-to-docx`
+
+Fill a branded Word template from a Markdown artifact. Template-fill via `docxtpl` — the designer's cover page, styles, headers, and logo survive; the skill never converts Markdown into a fresh document.
+
+**Source:** [`packs/converters/.apm/skills/markdown-to-docx/`](../../../../packs/converters/.apm/skills/markdown-to-docx/SKILL.md)
+
+### Prerequisites
+
+Tier-1 on `docxtpl` (exact canonical PyPI package). Install with `python -m pip install 'docxtpl>=0.16.0'` (the floor clears a version where `get_undeclared_template_variables()` was broken). The library installs into your environment, outside the repo's SCA. Verify with `python scripts/render.py --check` (exit 0 → ready; exit 2 → not installed).
+
+### Commands
+
+```bash
+python scripts/render.py --check
+python scripts/render.py inspect <template.docx>
+python scripts/render.py render <markdown> --template <template.docx> [--output <path>]
+```
+
+| Verb | Purpose |
+| --- | --- |
+| `--check` | Import-probe `docxtpl`; exit 0/2. |
+| `inspect <template>` | List the template's declared Jinja variables. |
+| `render <markdown> --template <tpl>` | Fill the template and write a `.docx`. Default output: `<basename>.docx` in CWD. |
+
+### Fill-points and mapping
+
+A `.docx` has no fill-points until you add Jinja tags: `{{ var }}` (scalar), `{%p for it in items %}…{%p endfor %}` (paragraph loop), `{%tr for r in rows %}…{%tr endfor %}` (table-row loop). Mapping: front-matter `key: value` → `{{ key }}`; the first list → `items`; the first Markdown table → `rows` (list of `{column: value}` dicts). Author each tag in one uniform run or Word's run-splitting will hide it.
+
+### Outputs and edge cases
+
+Stdout: `OUTPUT:`, `FILLED:`, `WARNING:`, and `GUIDANCE:` (emitted instead of `OUTPUT:` when the template has no tags). Renders with `autoescape=True`, so user content with `<`/`&`/`{{` is XML-escaped, not interpolated. A user-supplied template is trusted-author input — a malicious template author could embed SSTI; that (and XXE / zip-bomb) is an accepted, out-of-scope risk. The output write is confined under the working directory. Omit `--template` only on the user's explicit opt-out — the skill then writes an unbranded `.docx` via `python-docx` (with a `WARNING:`).
+
+---
+
+## `markdown-to-pptx`
+
+Fill a branded PowerPoint template from a Markdown artifact. Template-fill via `python-pptx` — the slide master, theme, fonts, and placed logo survive.
+
+**Source:** [`packs/converters/.apm/skills/markdown-to-pptx/`](../../../../packs/converters/.apm/skills/markdown-to-pptx/SKILL.md)
+
+### Prerequisites
+
+Tier-1 on `python-pptx`. Install with `python -m pip install 'python-pptx>=1.0.0'`. Installs outside the repo's SCA. Verify with `python scripts/render.py --check`.
+
+### Commands
+
+```bash
+python scripts/render.py --check
+python scripts/render.py inspect <template.pptx>
+python scripts/render.py render <markdown> --template <template.pptx> [--output <path>]
+```
+
+| Verb | Purpose |
+| --- | --- |
+| `--check` | Import-probe `python-pptx`; exit 0/2. |
+| `inspect <template>` | List the layout placeholders (`layout`/`idx`/`type`/`name`). |
+| `render <markdown> --template <tpl>` | Fill the deck and write a `.pptx`. Default output: `<basename>.pptx` in CWD. |
+
+### Fill-points and mapping
+
+PowerPoint layouts already carry placeholders, keyed by their stable `idx` — so every `.pptx` is fillable (no "untagged template" case). Mapping: front-matter `title`/`subtitle` → the title slide; each `#`/`##` heading → one slide; list items → bullet rows; a Markdown table → a `TABLE` placeholder if the layout has one, else a table added to the slide.
+
+### Outputs and edge cases
+
+Stdout: `OUTPUT:`, `FILLED:`, `WARNING:`. `python-pptx` evaluates no template content as code, so there is no SSTI surface; XXE / zip-bomb on a crafted archive is an accepted, out-of-scope risk. The output write is confined under the working directory. Omit `--template` only on the user's explicit opt-out (renders with the python-pptx default master; unbranded).
+
+---
+
+## `markdown-to-xlsx`
+
+Fill a branded Excel template from a Markdown artifact. Template-fill via `openpyxl` — writes into named ranges and Excel Tables only, so formatting, formulas, and charts survive.
+
+**Source:** [`packs/converters/.apm/skills/markdown-to-xlsx/`](../../../../packs/converters/.apm/skills/markdown-to-xlsx/SKILL.md)
+
+### Prerequisites
+
+Tier-1 on `openpyxl`. Install with `python -m pip install 'openpyxl>=3.1.0'`. Installs outside the repo's SCA. Verify with `python scripts/render.py --check`.
+
+### Commands
+
+```bash
+python scripts/render.py --check
+python scripts/render.py inspect <template.xlsx>
+python scripts/render.py render <markdown> --template <template.xlsx> [--output <path>]
+```
+
+| Verb | Purpose |
+| --- | --- |
+| `--check` | Import-probe `openpyxl`; exit 0/2. |
+| `inspect <template>` | List named ranges + Excel Tables (`kind`/`name`/`ref`). |
+| `render <markdown> --template <tpl>` | Fill the data ranges and write a `.xlsx`. Default output: `<basename>.xlsx` in CWD. |
+
+### Fill-points and mapping
+
+A workbook needs **named ranges** (for scalars) and/or **Excel Tables** (for tabular data) defined beforehand. Mapping: front-matter `key: value` → the single-cell named range called `key`; the first Markdown table → the first Excel Table's data region (columns aligned by header, else by position).
+
+### Outputs and edge cases
+
+Stdout: `OUTPUT:`, `FILLED:`, `WARNING:`, and `GUIDANCE:` (when the workbook has no fill-points). The script writes only into data cells and never resizes a range, so a chart reading it keeps working; a Markdown table longer than the Excel Table is truncated with a `WARNING:`, never expanded. `openpyxl` preserves charts/images it can parse on round-trip, but its tutorial warns shapes it cannot read are lost — re-open and verify for complex templates. The output write is confined under the working directory. Omit `--template` only on the user's explicit opt-out — the skill then writes an unbranded `.xlsx` via a bare `openpyxl` workbook (with a `WARNING:`).
 
 ---
 
