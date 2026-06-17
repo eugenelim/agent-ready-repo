@@ -221,3 +221,23 @@ Filled in on acceptance:
 - **Spec:** `docs/specs/markdown-to-office-publishing/` (via `new-spec`) — the three skills, each with a lean `SKILL.md` + `references/` + a deterministic render `scripts/` entry; the `## Prerequisites` Tier-1 `--check` verb; the detect→confirm→elicit→opt-out template flow; the inspect-then-map fill-point manifest + Markdown mapping; the `converters` version bump + `marketplace.json` refresh; activation-tuned names/descriptions.
 - **User docs (decision 7):** a new `docs/guides/converters/how-to/publish-markdown-to-office.md`, an extension to `docs/guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry — authored in the implementing PR alongside the skills.
 - **Possible ADR** — only if the template-fill-over-convert choice warrants a durable architectural record beyond this RFC; likely unnecessary (this RFC is the record).
+
+## Errata
+
+Post-acceptance corrections recorded against this frozen RFC (the original
+decisions stand; these refine imprecise wording surfaced during
+implementation).
+
+- **E1 — `openpyxl` chart/shape preservation (2026-06-17, implementing PR; Approver: eugenelim).**
+  The Risks/library-notes wording (this RFC's "*openpyxl drops charts/images on
+  load-and-save*" / "**never load-and-resave the chart objects**") diverges from
+  observed behavior: `openpyxl` 3.1.x **preserves** the charts and images it can
+  parse through a load-and-resave, and the loss its own tutorial documents is of
+  **shapes it cannot read**. Filling named ranges / Excel Tables *inherently*
+  requires a `load_workbook` + `save`, so a literal "never load-and-resave" rule
+  is unrealizable. The **decision is unchanged** — *inject into data ranges only;
+  never manipulate, recreate, or resize chart/shape objects or a range's extent*
+  — which is exactly what `markdown-to-xlsx` implements and what preserves a
+  chart that reads a filled range. The implementing spec's Boundary and AC carry
+  the corrected wording and the `SKILL.md` documents the accurate
+  shape-loss caveat. No change to the proposal's mitigation intent.

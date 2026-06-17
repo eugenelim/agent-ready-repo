@@ -1,5 +1,5 @@
 {
   "name": "converters",
-  "version": "0.1.2",
-  "description": "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML; Outlook .msg → Markdown."
+  "version": "0.2.0",
+  "description": "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML and to branded Word, PowerPoint, and Excel; Outlook .msg → Markdown."
 }

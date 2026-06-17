@@ -59,7 +59,7 @@ A fourth subagent, `implementer`, is the loop's own executor. It runs independen
 | [`monorepo-extras`](docs/guides/monorepo-extras/) | repo | Monorepo scaffolding — `new-package` and a `packages/_example/` template. |
 | [`research`](docs/guides/research/) | user / repo | Evidence-grounded research — `research`, `source-map`, `compare-hypotheses`, `devils-advocate`, and more, plus two retrieval subagents. |
 | [`contracts`](docs/guides/contracts/) | user / repo | Contract authoring — `api-contract` for OpenAPI 3.1. |
-| [`converters`](docs/guides/converters/) | user / repo | `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `msg-to-markdown`, `mermaid-renderer`. |
+| [`converters`](docs/guides/converters/) | user / repo | `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `markdown-to-docx`/`markdown-to-pptx`/`markdown-to-xlsx` (Markdown → branded Word/PowerPoint/Excel by template-fill), `msg-to-markdown`, `mermaid-renderer`. |
 | [`atlassian`](docs/guides/atlassian/) | user / repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed) plus `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`. |
 | [`figma`](docs/guides/figma/) | user / repo | Figma REST primitive (credentialed) — reads files/nodes/comments/variables, renders frames, FigJam → Mermaid. |
 | [`architect`](docs/guides/architect/) | user / repo | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, plus a read-only, forked-context `design-reviewer` subagent for independent design critique. |

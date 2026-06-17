@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Markdown → Office publishing skills (`converters` pack, RFC-0036).** Three new
+  skills publish a Markdown artifact back out as a distribution-ready, on-brand
+  Office file by **filling a user-provided template** at its existing fill-points —
+  `markdown-to-docx` (Word, via `docxtpl`), `markdown-to-pptx` (PowerPoint, via
+  `python-pptx`), and `markdown-to-xlsx` (Excel, via `openpyxl`). A designer's
+  cover page, slide master, logo, and named cell regions survive because the skill
+  fills the template rather than converting Markdown into a fresh document. Each
+  detects a template, confirms or elicits one, and proceeds unbranded only on the
+  user's explicit opt-out — it never invents a brand and never auto-installs its
+  Tier-1 render library. This completes the pack's Office round-trip, which until
+  now ran only inward (Office → Markdown). The `converters` pack is bumped to
+  `0.2.0`. See
+  [Publish Markdown as a branded Office file](../guides/converters/how-to/publish-markdown-to-office.md).
 - **SSO web-session cookie auth for `jira` reads + `confluence-crawler` (atlassian
   pack, RFC-0035).** On an Atlassian Data Center instance behind corporate SSO
   where API tokens are blocked, both skills can now authenticate by a captured web

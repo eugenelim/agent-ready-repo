@@ -1,0 +1,56 @@
+{
+  "skill_name": "markdown-to-docx",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Turn this Markdown into a Word doc using our branded report template report-template.docx.",
+      "expected_output": "The agent confirms docxtpl is installed (`render.py --check`), inspects the template's Jinja variables, then invokes `python scripts/render.py render <markdown> --template report-template.docx`. It reports OUTPUT and FILLED. It does not hand-write the .docx.",
+      "assertions": [
+        "Agent runs `python scripts/render.py --check` (or otherwise confirms docxtpl) before rendering",
+        "Agent invokes `python scripts/render.py render` with `--template report-template.docx`",
+        "Agent does NOT hand-write the .docx or its XML",
+        "Agent reports the OUTPUT: path and FILLED: count back to the user"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Make a statement of work .docx from this Markdown — here's our template sow.docx, but I'm not sure it has the right fields.",
+      "expected_output": "The agent runs `python scripts/render.py inspect sow.docx`. If the template has no Jinja tags, it relays the GUIDANCE about adding `{{ }}`/`{%p %}`/`{%tr %}` tags in Word rather than converting by hand.",
+      "assertions": [
+        "Agent invokes `python scripts/render.py inspect sow.docx`",
+        "If untagged, agent relays the guidance to add Jinja fill-points rather than silently converting",
+        "Agent does NOT hand-convert the Markdown into a fresh .docx, discarding the brand"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "A tag in my Word template isn't getting filled — {{ client_name }} just shows up as literal text.",
+      "expected_output": "The agent diagnoses run fragmentation: Word split the tag across runs. It advises re-typing the tag in one uniform run (or pasting as plain text), and notes that `inspect` won't list a fragmented tag.",
+      "assertions": [
+        "Agent identifies run fragmentation as the likely cause",
+        "Agent advises re-authoring the tag in a single uniform run (or pasting as plain text)",
+        "Agent does NOT suggest editing the output .docx XML by hand"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "My report has a customer name with an ampersand (Smith & Co) — will that break the Word output?",
+      "expected_output": "The agent explains the renderer passes autoescape=True, so `&` and other XML metacharacters are escaped and rendered as literal text, not interpolated as markup. No manual escaping is needed.",
+      "assertions": [
+        "Agent confirms the value is XML-escaped by the renderer (autoescape=True)",
+        "Agent does NOT instruct the user to pre-escape the ampersand by hand",
+        "Agent does NOT claim the value is executed or interpolated as markup"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I don't have a Word template, just convert this Markdown to a .docx.",
+      "expected_output": "The agent surfaces that without a template the output is unbranded, confirms the explicit opt-out, then renders template-less. It does not invent a corporate brand.",
+      "assertions": [
+        "Agent states up front that a template-less .docx is unbranded",
+        "Agent proceeds only on the user's explicit opt-out",
+        "Agent does NOT invent a corporate brand or ship a default template"
+      ]
+    }
+  ]
+}

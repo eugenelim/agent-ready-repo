@@ -1,12 +1,12 @@
 [pack]
 name = "converters"
-version = "0.1.2"
-description = "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML; Outlook .msg → Markdown."
+version = "0.2.0"
+description = "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML and to branded Word, PowerPoint, and Excel; Outlook .msg → Markdown."
 readme = "README.md"
 display_name = "Converters"
 license = "Apache-2.0 OR MIT"
 categories = ["file-conversion", "documentation"]
-keywords = ["markdown", "html", "msg", "pdf"]
+keywords = ["markdown", "html", "msg", "pdf", "office"]
 
 [pack.adapter-contract]
 version = "0.8"

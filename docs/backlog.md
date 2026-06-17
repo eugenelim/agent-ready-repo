@@ -734,3 +734,21 @@ projection), ordered correctly against the hook-wiring unproject (the orphaned
 agent JSON is also the old merge target) and gated to whole-pack (not
 `--<primitive>`) upgrades. Pinned by an `@unittest.expectedFailure` in
 `test_upgrade_user_hooks.py::LegacyKiroJsonUpgradeMigrationTests`.
+
+---
+
+## `markdown-to-office-publishing`
+
+### office-render-libs-pip-audit
+
+**Spec:** [markdown-to-office-publishing](specs/markdown-to-office-publishing/spec.md)
+No AC — a consciously-deferred follow-on (plan § Dependencies). The three Tier-1
+render libraries (`python-pptx` / `docxtpl` / `openpyxl`) install into the
+*user's* runtime and into CI ephemerally for the per-skill pytest steps, so they
+sit **outside the repo's SCA** (`make sast` / `pip-audit` only audits the repo's
+own pinned tree). A future CVE in any of them is invisible to the project's
+gates. This is the accepted Tier-1 "user owns currency" posture, not a defect.
+**Unblocks when:** a CI step runs `pip-audit` over the exact installed render-lib
+set (the versions pinned in `build-check.yml`'s "pip install the Markdown→Office
+render libraries" step), so the SCA gap becomes a tracked, gating check rather
+than a documented accepted-state.

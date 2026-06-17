@@ -1,7 +1,7 @@
 # Plan: markdown-to-office-publishing
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -347,6 +347,20 @@ activation grading pass is recorded.
   integration test, pack bump to 0.2.0, CI wiring, docs follow-on. Resolves
   RFC-0036 Open Q1 (independent script sets), Q2 (minor bump, contract 0.8), and
   Q3 (library-default fallback).
+- 2026-06-17: implemented (T1–T5) and shipped. Three skills landed with TDD +
+  per-format end-to-end suites (39 tests, CI-wired per-path), pack bumped to
+  0.2.0, marketplace refreshed, docs landed. Post-implementation review changes:
+  (a) docx/xlsx gained the explicit-opt-out **library-default** render path
+  (`render_default_docx` / `render_default_xlsx`) that AC "template-less using
+  the library default" requires — only pptx had it; (b) the xlsx Boundary/AC
+  "never load-and-resave" wording was corrected to "never manipulate/resize
+  chart/shape objects" (filling ranges requires a resave; openpyxl preserves
+  parseable charts, drops only unreadable shapes) and the divergence recorded as
+  **RFC-0036 § Errata E1**; (c) docx `FILLED` no longer counts empty convenience
+  handles; (d) mutation-gap tests added for the unfilled-variable, no-body-
+  placeholder, multi-cell-named-range, overflow-truncation, and empty-input
+  branches; (e) CI pins exact render-lib versions; (f) the outside-SCA
+  pip-audit follow-on recorded in `docs/backlog.md`.
 - 2026-06-17: spec-stage adversarial + security review additions — pack
   README/`description` refresh folded into T4 (was drifting silently); recorded
   activation grading pass; output-path confinement AC + tests; docx

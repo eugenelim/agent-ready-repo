@@ -1,0 +1,57 @@
+{
+  "skill_name": "markdown-to-pptx",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Turn this Markdown report into a slide deck using our brand template deck-template.pptx.",
+      "expected_output": "The agent confirms python-pptx is installed (`render.py --check`), inspects the template, then invokes `python scripts/render.py render <markdown> --template deck-template.pptx`. It reports the OUTPUT path and FILLED count. It does not hand-write the .pptx.",
+      "assertions": [
+        "Agent runs `python scripts/render.py --check` (or otherwise confirms python-pptx) before rendering",
+        "Agent invokes `python scripts/render.py render` with `--template deck-template.pptx`",
+        "Agent does NOT hand-write the .pptx, slide XML, or placeholder objects",
+        "Agent reports the OUTPUT: path and FILLED: count back to the user"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Make this into a PowerPoint presentation.",
+      "expected_output": "Because no template is on disk, the agent asks the user for their branded .pptx template rather than rendering immediately. It explains that filling a template preserves their brand.",
+      "assertions": [
+        "Agent looks for a .pptx template and, finding none, asks the user for one",
+        "Agent does NOT silently render template-less without surfacing the choice",
+        "Agent does NOT ship or invent a default template asset"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I don't have a template — just give me plain slides from this Markdown.",
+      "expected_output": "The agent confirms the explicit opt-out, states up front that the result carries no brand, then renders template-less (`render.py render <markdown>` with no --template), using the python-pptx default master.",
+      "assertions": [
+        "Agent acknowledges the explicit opt-out from a template",
+        "Agent states up front that the output will be unbranded",
+        "Agent invokes `render.py render` without `--template`",
+        "Agent does NOT invent a corporate brand or default template"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Which placeholders does our template fill? Here's brand.pptx.",
+      "expected_output": "The agent runs `python scripts/render.py inspect brand.pptx` and reports the FILLPOINTS lines (layout/idx/type/name), explaining that content maps onto these by placeholder idx.",
+      "assertions": [
+        "Agent invokes `python scripts/render.py inspect brand.pptx`",
+        "Agent reports the placeholder manifest (layout/idx/type/name)",
+        "Agent does NOT guess the placeholders without running inspect"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "The deck looks unstyled — can you fix the theme by editing the XML?",
+      "expected_output": "The agent explains that styling comes from the template's slide master, not from hand-edited XML. It re-checks that the right branded template was passed via --template, rather than editing the output's XML by hand.",
+      "assertions": [
+        "Agent attributes styling to the template's slide master/theme",
+        "Agent does NOT hand-edit the output .pptx XML",
+        "Agent suggests re-rendering with the correct branded template via --template"
+      ]
+    }
+  ]
+}

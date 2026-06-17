@@ -284,13 +284,14 @@ jobs:
 
       - name: converters evals.json carry-over disposition (AC4 + AC4a)
         run: |
-          # Pin the spec's three-skill disposition mechanically:
-          # file-to-markdown and markdown-to-html ship evals.json
-          # (carried verbatim from source); msg-to-markdown must NOT
-          # (spec § Never do: "No synthesised evals/evals.json for
-          # msg-to-markdown"). Enumerated rather than glob-iterated so
-          # a future skill addition can't silently change the contract.
-          for skill in file-to-markdown markdown-to-html; do
+          # Pin the spec's skill disposition mechanically:
+          # file-to-markdown, markdown-to-html, and the three Markdown→Office
+          # skills (markdown-to-docx/-pptx/-xlsx, RFC-0036) ship evals.json;
+          # msg-to-markdown must NOT (converters spec § Never do: "No
+          # synthesised evals/evals.json for msg-to-markdown"). Enumerated
+          # rather than glob-iterated so a future skill addition can't
+          # silently change the contract.
+          for skill in file-to-markdown markdown-to-html markdown-to-docx markdown-to-pptx markdown-to-xlsx; do
             f="packs/converters/.apm/skills/${skill}/evals/evals.json"
             if [ ! -f "$f" ]; then
               echo "::error::AC4: ${f} missing (carry-over disposition)"
@@ -302,6 +303,30 @@ jobs:
             echo "::error::AC4: msg-to-markdown/evals/ exists; spec forbids synthesised evals for this skill"
             exit 1
           fi
+
+      # markdown-to-office-publishing (RFC-0036): the three Markdown→Office
+      # render skills carry TDD suites under their skill scripts/, which neither
+      # `make build-check` nor any package pytest discovers. Wire each in
+      # explicitly or its renderer (manifest enumeration, content mapping,
+      # --check probe, output-path confinement, autoescape, chart survival, the
+      # per-format end-to-end render) never gates. Each Tier-1 render library is
+      # pip-installed first (these libraries are user-installed at runtime, not
+      # bundled), mirroring the atlassian httpx install above.
+      # Pinned to exact known-good versions so the gated artifact is
+      # reproducible (docxtpl's get_undeclared_template_variables() has had
+      # version-specific breakage — see plan § Risks). The SKILL.md prereqs
+      # keep the `>=floor` guidance for users; CI pins what it actually tested.
+      - name: pip install the Markdown→Office render libraries (RFC-0036)
+        run: pip install 'python-pptx==1.0.2' 'docxtpl==0.20.2' 'openpyxl==3.1.5' 'python-docx==1.2.0'
+      - name: pytest markdown-to-pptx renderer (markdown-to-office-publishing)
+        working-directory: packs/converters/.apm/skills/markdown-to-pptx/scripts
+        run: python -m pytest test_render.py
+      - name: pytest markdown-to-docx renderer (markdown-to-office-publishing)
+        working-directory: packs/converters/.apm/skills/markdown-to-docx/scripts
+        run: python -m pytest test_render.py
+      - name: pytest markdown-to-xlsx renderer (markdown-to-office-publishing)
+        working-directory: packs/converters/.apm/skills/markdown-to-xlsx/scripts
+        run: python -m pytest test_render.py
 
       - name: profiles lint + self-test (pack-profiles AC9)
         # RFC-0034: profiles must be scope-homogeneous, dependency-complete
