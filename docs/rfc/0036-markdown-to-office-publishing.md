@@ -1,10 +1,10 @@
 # RFC-0036: Markdown → Office publishing skills for the `converters` pack
 
-- **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-17
-- **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Date closed:** 2026-06-17
 - **Related:** RFC-0007 (`converters` — first user-scope pack; the home) · RFC-0004 (install-scope per pack — the user-scope dimension `converters` uses) · `file-to-markdown` (the inverse direction — Office→Markdown; the Tier-1 pip detect-and-stop precedent) · `markdown-to-html` (the deterministic-script "you are not the renderer" idiom) · `mermaid-renderer` (the Tier-1 `--check` reference) · `docs/guides/_shared/how-to/author-a-skill.md` (the 3-tier dependency model) · `docs/CHARTER.md` (the four principles)
 
 ---
