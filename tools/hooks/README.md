@@ -1,6 +1,6 @@
 # Lifecycle hooks
 
-Two agent-lifecycle hooks ship in this directory. Runtime: `python` ≥
+Three agent-lifecycle hooks ship in this directory. Runtime: `python` ≥
 3.11 (the hooks parse TOML via stdlib `tomllib`); no other
 dependencies. The hooks are stdlib-only and run on native Windows,
 macOS, and Linux — invoke via `python` (not `python3`) so the same
@@ -39,6 +39,23 @@ value exits 2 with `--scope requires a path or glob value`.
 
 See [`docs/knowledge/README.md`](../../docs/knowledge/README.md) for
 the schema and curation conventions.
+
+### `work-loop-check.py` (shipped, adopter-facing)
+
+Runs on every prompt. Prints a short `=== work-loop ===` reminder to
+stdout so the agent is nudged to load the work-loop skill for
+non-trivial work (anything beyond a one-line edit) rather than "just
+going". Input-free and stdlib-only; always exits 0. Wired to Claude
+Code's `UserPromptSubmit` (and the Copilot / Cursor / Gemini / Codex
+equivalents); Kiro IDE gets the same nudge via the companion
+`promptSubmit` `.kiro.hook`. Deciding what counts as non-trivial is the
+agent's call — the hook only reminds.
+
+Usage:
+
+```bash
+python tools/hooks/work-loop-check.py
+```
 
 ### `pre-pr.py` (shipped, adopter-facing)
 
