@@ -3,7 +3,8 @@
 The core pack ships the agent-ready-repo skills (work-loop, new-spec,
 new-rfc, …), the four specialist subagents (adversarial-reviewer,
 security-reviewer, quality-engineer, implementer), the canonical
-session-start hook, and the `/adapt-to-project` command.
+session-start and work-loop-check hooks, and the `/adapt-to-project`
+command.
 
 ## Install routes and adaptation
 

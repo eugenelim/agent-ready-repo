@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Per-prompt work-loop activation hook (`core` pack).** A new
+  `work-loop-check` hook nudges the agent, on every prompt, to load the
+  work-loop skill for non-trivial work — closing a gap where the loop was
+  not reliably activated. It ships as a matched pair so it reaches both
+  surfaces: a `UserPromptSubmit` hook-wiring + hook body for Claude Code
+  (and Copilot / Cursor / Gemini / Codex), and a standalone `promptSubmit`
+  `askAgent` `.kiro.hook` for Kiro IDE, which reads only `.kiro/hooks/`
+  files and ignores hook-wiring. (`agentbundle validate core`'s info line
+  now lists both core hook-wirings as not projecting to the Kiro CLI
+  adapter — `session-start.toml` and `work-loop-check.toml` — since neither
+  declares `attach-to-agent`; this is informational, not a refusal.)
 - **Markdown → Office publishing skills (`converters` pack, RFC-0036).** Three new
   skills publish a Markdown artifact back out as a distribution-ready, on-brand
   Office file by **filling a user-provided template** at its existing fill-points —

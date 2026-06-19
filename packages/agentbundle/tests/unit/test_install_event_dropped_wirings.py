@@ -66,9 +66,10 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_enumerate_event_drops_core_against_kiro(self) -> None:
-        """core against kiro: session-start.toml uses SessionStart (not in
-        kiro's agent-event-vocabulary) AND lacks attach-to-agent, so two
-        entries fire.
+        """core against kiro: both core hook-wirings (session-start.toml and
+        work-loop-check.toml) use a PascalCase event outside kiro's
+        agent-event-vocabulary AND lack attach-to-agent, so two entries fire
+        per file — four in all.
 
         Deviation from plan test #1: the plan's prescribed assertion
         expected only the vocab entry, but packs/core/.apm/hook-wiring/
@@ -76,6 +77,8 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         that file says "No attach-to-agent: that's a Kiro-only field").
         The T3 Approach code fires both step 2a (vocab) and step 2b
         (attach-to-agent) independently; the correct result is two entries.
+        work-loop-check.toml (work-loop-activation-hook spec) mirrors that
+        shape, adding the second pair.
         """
         result = enumerate_event_dropped_wirings(
             _packs_dir() / "core",
@@ -87,6 +90,8 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
             [
                 ("hook-wiring/session-start.toml", "event not in adapter vocabulary"),
                 ("hook-wiring/session-start.toml", "kiro requires 'attach-to-agent'"),
+                ("hook-wiring/work-loop-check.toml", "event not in adapter vocabulary"),
+                ("hook-wiring/work-loop-check.toml", "kiro requires 'attach-to-agent'"),
             ],
         )
 

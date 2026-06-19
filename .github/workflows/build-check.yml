@@ -246,6 +246,21 @@ jobs:
           tests/unit/test_enriched_pack_metadata.py
           tests/integration/test_list_packs_cmd.py
 
+      # core work-loop activation hook (work-loop-activation-hook spec): the
+      # kiro-ide-hook validate rail + real-pack projection + hook-body invocation
+      # gate only here — make build-check / lint-packs / the make validate target
+      # never run the rail against core, and CI does not auto-discover pytest.
+      # The two drop-warning modules pin core's hook-wiring → kiro drop contract,
+      # which this spec changed (work-loop-check.toml joins session-start.toml as
+      # a dropped-for-kiro wiring); they were CI-ungated, so wire them too.
+      - name: pytest core work-loop activation hook + kiro drop-warning contract
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          tests/unit/test_core_work_loop_hook.py
+          tests/unit/test_install_event_dropped_wirings.py
+          tests/unit/test_validate_hook_wiring_per_file_compatibility.py
+
       - name: converters source-attribution scrub (AC2)
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error

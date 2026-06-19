@@ -1,0 +1,12 @@
+{
+  "name": "work-loop activation",
+  "description": "On every prompt, remind the agent to use the work-loop skill for non-trivial work.",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Before non-trivial work (a feature, a multi-file fix, a refactor, a migration, anything beyond a one-line edit), load the work-loop skill and run plan -> execute -> verify -> review with mechanical gates. Pick the mode by risk: light by default, full when a risk trigger fires. Skip only for a genuine one-line edit."
+  }
+}

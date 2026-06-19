@@ -9,6 +9,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "python tools/hooks/work-loop-check.py",
+            "type": "command"
+          }
+        ]
+      }
     ]
   }
 }

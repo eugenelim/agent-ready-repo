@@ -119,12 +119,13 @@ def test_validate_packs_core_exits_zero(capsys):
     assert "validate:" not in captured.err, (
         f"Unexpected 'validate:' refusal on stderr: {captured.err!r}"
     )
-    # AC2: two-reason form because session-start.toml lacks attach-to-agent
-    # AND uses an out-of-vocab event.
+    # AC2: two-reason form because both core hook-wirings (session-start.toml
+    # and work-loop-check.toml) lack attach-to-agent AND use an out-of-vocab
+    # PascalCase event for kiro.
     expected_info = (
         "info: pack core: the following hook-wiring file(s) will not project to kiro "
         "(event not in adapter vocabulary + kiro requires 'attach-to-agent'): "
-        "hook-wiring/session-start.toml."
+        "hook-wiring/session-start.toml, and hook-wiring/work-loop-check.toml."
     )
     assert expected_info in captured.out, (
         f"Expected info line not found in stdout.\n"
