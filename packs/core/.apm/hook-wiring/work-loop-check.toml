@@ -1,0 +1,22 @@
+# Wires the work-loop-check.py hook body to Claude Code's UserPromptSubmit
+# event, so the work-loop nudge fires on every prompt (the strongest
+# "always activated" guarantee). The merge-json adapter rule
+# (packages/agentbundle/agentbundle/build/adapters/claude_code.py) merges
+# this under the `hooks` key of `.claude/settings.local.json`; Copilot,
+# Cursor, Gemini, and Codex consume the same wiring and remap the
+# PascalCase `UserPromptSubmit` event via their contract hook-event maps
+# (userPromptSubmitted / beforeSubmitPrompt / BeforeAgent / verbatim).
+#
+# Kiro IDE is reached separately by the companion
+# `.apm/kiro-ide-hooks/work-loop-check.kiro.hook` — the kiro-ide adapter
+# drops hook-wiring entirely.
+#
+# Shape mirrors session-start.toml: outer entry has no `matcher`; inner
+# `hooks` array carries `type = "command"` and the command string. No
+# `id` (repo-scope merge-json does not consume it) and no
+# `attach-to-agent` (a Kiro CLI-only field; core does not target the
+# agent-JSON-merge Kiro adapters, exactly as session-start does not).
+[[hooks.UserPromptSubmit]]
+hooks = [
+  { type = "command", command = "python tools/hooks/work-loop-check.py" },
+]
