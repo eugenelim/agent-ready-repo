@@ -65,15 +65,15 @@ Before the skill scaffolds anything, it asks (explicitly or implicitly) about ar
 
 The skill runs its bundled `scripts/next-ordinal.py` helper (the path is skill-relative; the skill resolves it for you). It prints the next 4-digit ordinal — `0001` if `docs/adr/` is empty, max-plus-one otherwise. Numbers are sequential and never reused. The helper parses the full digit prefix, so transitions like `0099` → `0100` work correctly without manual zero-padding.
 
-The skill then picks a short kebab-case title from your description (`0007-use-postgres-for-primary-store.md`, not `0007-decision-about-the-database.md`), copies its bundled `assets/adr.md` into `docs/adr/`, and renames.
+The skill then picks a short kebab-case filename from your description (`0007-primary-store-postgres-over-dynamodb.md`, not `0007-decision-about-the-database.md`), copies its bundled `assets/adr.md` into `docs/adr/`, and renames. The H1 title inside names the problem and the chosen solution together (keeping the `ADR-NNNN` ordinal), so the decision reads clearly from the index.
 
 ## Step 4 — Fill in frontmatter
 
-Status starts as `Proposed`. Today's date. Deciders are the GitHub handles of the people signing off. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations).
+Status starts as `Proposed`. Today's date. `Decision-makers` are the GitHub handles of the people who own the call; add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations).
 
-## Step 5 — Draft the four body sections
+## Step 5 — Draft the body sections
 
-The skill walks you through Context, Decision, Consequences, and Alternatives. It pushes back on hand-wavy sections rather than accepting them:
+The skill walks you through Context, Decision, Consequences, and Alternatives, and offers two optional sections — **Decision drivers** (the criteria the choice was judged against, so each alternative is rejected against a stated criterion) and **Confirmation** (how conformance with the decision will be verified) — which it includes when they earn their place and drops otherwise. It pushes back on hand-wavy sections rather than accepting them:
 
 - **Context with no listed constraints** → the skill asks what's actually constraining the choice. "We need a database" isn't context; "~10M records, query by `user_id` and time range, team of two who know Postgres" is.
 - **Decision without a single declarative sentence at the top** → the skill asks you to write one. ("We will use Postgres as the primary data store for user activity.")
@@ -84,15 +84,15 @@ The skill walks you through Context, Decision, Consequences, and Alternatives. I
 
 The skill adds a row to `docs/adr/README.md` so the new ADR appears in the table.
 
-## Step 7 — Get sign-off, then mark Accepted
+## Step 7 — Get sign-off, then mark Accepted (or Rejected)
 
-The skill leaves status as `Proposed` and tells you to flip it to `Accepted` once the relevant reviewers have signed off — usually in the same PR, sometimes in a follow-up commit. Once Accepted, the body is frozen. See the immutability mechanic below.
+The skill leaves status as `Proposed` and tells you to flip it to `Accepted` once the decision-makers have signed off — usually in the same PR, sometimes in a follow-up commit. If the proposal is declined, mark it `Rejected` and keep the file: a recorded rejection stops the same option being re-proposed later. Once Accepted, the body is frozen. See the immutability mechanic below.
 
 ## The immutability principle
 
 ADRs differ from wiki-style docs in one load-bearing way: **once accepted, the body is never edited.** This is what makes ADRs a durable record rather than a moving target.
 
-The status field can move (`Accepted` → `Deprecated`, or `Accepted` → `Superseded by ADR-NNNN`). The body text stays put. If the decision is reversed or revised, you write a *new* ADR that supersedes the old one, with explicit cross-references in both directions, and update the old ADR's `Status:` header — *header only, body untouched*. The old text remains visible as historical record; the new ADR carries the current reasoning.
+The status field can move: `Proposed` → `Accepted` or `Rejected`, and an Accepted ADR later to `Deprecated` (the decision no longer applies and nothing replaces it) or `Superseded by ADR-NNNN` (a specific later ADR replaces it). The body text stays put. If the decision is reversed or revised, you write a *new* ADR that supersedes the old one, with explicit cross-references in both directions, and update the old ADR's `Status:` header — *header only, body untouched*. The old text remains visible as historical record; the new ADR carries the current reasoning.
 
 This is the difference between an ADR and documentation. Documentation should match present truth; ADRs preserve why we *got here*.
 
@@ -104,7 +104,7 @@ You're capturing the call before the details fade. The decision is fresh in ever
 
 ### Recording a decision made months ago
 
-A maintainer joins, asks "why are we doing it this way?" and there's no good answer in writing. Open an ADR now anyway — backfilling is fine. Reconstruct Context from memory and Git history; mark Deciders as the people who actually decided (not you, unless you were in the room); note in `References` that the ADR is being backfilled. The content matters more than the freshness.
+A maintainer joins, asks "why are we doing it this way?" and there's no good answer in writing. Open an ADR now anyway — backfilling is fine. Reconstruct Context from memory and Git history; list the `Decision-makers` as the people who actually decided (not you, unless you were in the room); note in `References` that the ADR is being backfilled. The content matters more than the freshness.
 
 ### Superseding an existing ADR
 

@@ -69,6 +69,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The `new-adr` skill and ADR template now follow MADR conventions
+  (`governance-extras` pack, bumped to `0.2.0`).** The ADR template gains a
+  `Rejected` status (a declined proposal is now kept as a record, not deleted)
+  and two optional sections — **Decision drivers** (the criteria a choice was
+  judged against) and **Confirmation** (how conformance with the decision will
+  be verified). Frontmatter adopts MADR's decision-roles split: the `Deciders`
+  field is renamed to **`Decision-makers`** and gains optional **`Consulted`**
+  and **`Informed`** lines. The H1 title now names the problem *and* the chosen
+  solution together (the `ADR-NNNN` ordinal prefix is unchanged), and the skill
+  now carries the full post-acceptance lifecycle discipline inline (bidirectional
+  supersession, `Deprecated`-vs-`Superseded`, backfilling). The decision stays
+  first in the body (answer-first; no options-first reordering). **Breaking for
+  the template only:** new ADRs use `Decision-makers`; existing ADRs keep
+  `Deciders` and are not rewritten (ADRs are immutable).
+
 - **`credential-setup` now gives a clear install hint instead of a traceback
   when `credbroker` is missing.** Running the setup script without the
   `credbroker` resolver installed prints a single line telling you how to
