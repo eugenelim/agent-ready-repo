@@ -160,7 +160,10 @@ history.
 **Filename:** `NNNN-kebab-case-title.md`, e.g. `0007-use-postgres-for-primary-store.md`.
 Numbers are sequential and never reused.
 
-**Status values:** `Proposed` → `Accepted` → (`Deprecated` | `Superseded by ADR-NNNN`).
+**Status values:** `Proposed` → `Accepted` or `Rejected`. An `Accepted` ADR may
+later become `Deprecated` (the decision no longer applies and nothing replaces
+it) or `Superseded by ADR-NNNN` (a specific later ADR replaces it). A `Rejected`
+ADR is kept as a record, never deleted.
 
 **Template:** `assets/adr.md` in the `new-adr` skill that creates ADRs from it.
 
