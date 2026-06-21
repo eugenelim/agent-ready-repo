@@ -181,9 +181,47 @@ def test_run_and_parse_error_paths() -> None:
         r = det.run_and_parse("q", pathlib.Path("."), 1)
         check("err", r.error is None and r.skills_fired == ["x"],
               "a clean run must carry no error")
+
+        def _oserror(*a, **k):
+            raise OSError("claude not spawnable")
+        M.subprocess.run = _oserror
+        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "spawn-error",
+              "a spawn failure must be flagged as a harness error")
+
+        class _Empty:
+            returncode = 0
+            stdout = ""
+        M.subprocess.run = lambda *a, **k: _Empty()
+        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "no-result-event",
+              "a returncode-0 empty/truncated stream must be flagged")
     finally:
         M.subprocess.run = orig
-    print("✓ run_and_parse flags timeout + non-zero exit; clean run carries no error.")
+    print("✓ run_and_parse flags timeout / non-zero exit / spawn-error / "
+          "no-result-event; clean run carries no error.")
+
+
+def test_print_report_smoke() -> None:
+    import contextlib
+    import io
+
+    summary = {
+        "pack": "p", "adapter": "claude-code", "runs": 2, "iteration": 1,
+        "skills": {"s": {
+            "queries": [{
+                "query_id": "q00", "query": "x", "should_trigger": True,
+                "trigger_rate": 0.0, "passed": False, "errored_runs": 2,
+                "exclusivity_violations": [],
+            }],
+            "pass_count": 0, "total": 1, "error_count": 2,
+        }},
+    }
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        M._print_report(summary)
+    out = buf.getvalue()
+    check("report", "harness error" in out, "per-skill harness-error note must appear")
+    check("report", "errored run" in out, "per-query errored-run note must appear")
+    print("✓ _print_report renders harness-error notes without crashing.")
 
 
 def _build_fake_pack(repo_root: pathlib.Path) -> None:
@@ -319,6 +357,7 @@ def main() -> int:
     test_trigger_rate_and_grade()
     test_safe_segment()
     test_run_and_parse_error_paths()
+    test_print_report_smoke()
     test_detector_seam()
     test_run_eval_workspace_and_grading()
     test_gitignored_control()

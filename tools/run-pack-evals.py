@@ -196,9 +196,11 @@ class ClaudeCodeDetector:
             return ActivationResult(error=kind)
         res = parse_activation(proc.stdout)
         # A non-zero exit (auth failure, rate-limit) or a stream that never
-        # reached a terminal `result` event (truncated / format drift) means
-        # the run could not be measured — flag it so a zeroed trigger_rate is
-        # distinguishable from a genuine miss in the artifact.
+        # reached a terminal `result` event **and** fired no skill (truncated /
+        # format drift) means the run could not be measured — flag it so a
+        # zeroed trigger_rate is distinguishable from a genuine miss. A run that
+        # fired a skill but truncated before the result event is a real
+        # activation, not a harness error, so it is deliberately not flagged.
         if proc.returncode != 0:
             res.error = f"exit-{proc.returncode}"
         elif res.result is None and not res.skills_fired:
