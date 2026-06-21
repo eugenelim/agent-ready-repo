@@ -32,6 +32,7 @@
 | 0024 | [`design-craft` serves designers as upstream design-intent authors, under strict framework-agnosticism](0024-design-craft-upstream-intent-and-agnosticism.md) | Accepted |
 | 0025 | [Pack profiles are single-scope, catalogue-owned CLI manifests — not meta-packs](0025-pack-profiles-single-scope-cli-manifest.md) | Accepted |
 | 0026 | [SSO-cookie consumer resolution lives in the `credbroker` library, platform-agnostic](0026-sso-consumer-resolution-in-credbroker.md) | Accepted |
+| 0027 | [ADR format is MADR-aligned but lean, not full MADR (Rejected status, MADR 4.0 frontmatter, optional Decision drivers + Confirmation; decision stays answer-first)](0027-adr-format-is-madr-aligned-but-lean.md) | Accepted |
 
 ## Adding a new ADR
 
