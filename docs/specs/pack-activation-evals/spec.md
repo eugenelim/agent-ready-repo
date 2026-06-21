@@ -20,7 +20,8 @@ near-misses it shouldn't, producing a number comparable across model versions an
 `[pack.evals].skills` allowlist, projects the pack into an isolated temp
 directory so only that pack's skills are discoverable, runs each covered skill's
 `evals/eval_queries.json` through the headless detector `claude -p "<query>"
---output-format json --allowed-tools Skill`, computes a `trigger_rate` over N
+--output-format stream-json --verbose --allowed-tools Skill` (RFC-0037 § Errata
+E1), computes a `trigger_rate` over N
 runs, grades each query against the 0.5 threshold, and writes each pass's runs +
 activation summary into a gitignored, **iteration-numbered eval-workspace** — the
 agentskills.io evaluating-skills layout (`iteration-<N>/` per pass, per-eval
@@ -69,7 +70,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Read coverage **only** from `pack.toml`'s `[pack.evals].skills` (an explicit
   allowlist, never auto-discovery).
 - Detect activation via a parseable `Skill` `tool_use` event from `claude -p
-  "<query>" --output-format json --allowed-tools Skill`, recording both *whether*
+  "<query>" --output-format stream-json --verbose --allowed-tools Skill`
+  (RFC-0037 § Errata E1 — the `json` envelope carries no `tool_use` events),
+  recording both *whether*
   it fired and *which* skill (`.input.skill`), bounded by a per-run wall-clock
   timeout (`--max-turns` is not a CLI flag on the `claude` CLI).
 - Use only Python stdlib + `tomllib` + the `claude` CLI already on PATH.
@@ -126,7 +129,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **`[pack.evals].skills` coverage check** (each entry names a real skill dir
   that ships `eval_queries.json`; absent block is a no-op): **TDD** — pure read
   over fixture pack dirs.
-- **Runner detector parse** (a `claude -p --output-format json` payload → fired?
+- **Runner detector parse** (a `claude -p --output-format stream-json --verbose` payload → fired?
   + which skill): **TDD** — over a captured/representative JSON fixture, not a
   live call.
 - **Adapter-`Detector` seam** (AC18 — dispatches to the registered `claude-code`
