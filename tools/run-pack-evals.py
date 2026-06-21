@@ -1,0 +1,417 @@
+#!/usr/bin/env python3
+"""Pack activation-eval runner (pack-activation-evals spec, Tier A).
+
+Measures — repeatably and empirically — whether each covered skill in a pack
+*activates* on the prompts it should and stays quiet on the near-misses it
+shouldn't, on **claude-code as the reference harness** (a proxy for the
+byte-identical `description:` projected to every adapter).
+
+For a pack, reads `packs/<pack>/pack.toml` `[pack.evals].skills` (an explicit
+allowlist), projects the pack into an isolated temp directory so only that
+pack's skills are discoverable, and for each query in each covered skill's
+`evals/eval_queries.json` runs the convention's own headless detector:
+
+    claude -p "<query>" --output-format stream-json --verbose --allowed-tools Skill
+
+parsing the event stream for a `Skill` `tool_use` block (`.input.skill`) to
+record whether the skill fired and which one. It runs each query `--runs`
+times (default 3), computes a per-query `trigger_rate`, grades against the 0.5
+threshold, and writes the runs + a bounded activation summary into a
+gitignored, iteration-numbered eval-workspace.
+
+Detection note: `--output-format json` returns a result-only envelope with no
+tool_use events; `stream-json --verbose` is required to observe the activation
+event. RFC-0037 / ADR-0028 / spec AC1 originally specified `json`; corrected by
+an in-PR erratum (the activation event is not present in the `json` envelope on
+claude 2.1.185).
+
+Trust boundary: `--allowed-tools` is held to **`Skill` only** — the run
+*observes* the activation event but the skill *body*'s tools (shell/file/
+network) are never granted, so author-influenced query strings cannot drive
+side effects. Query strings are always passed as an argv list, never via a
+shell. The runner uses only the Python standard library + `tomllib` + the
+already-installed `agentbundle` projection path + the `claude` CLI on PATH.
+
+Report-only: an eval miss is not a non-zero exit. This is dev tooling that runs
+in a scheduled / dispatch workflow, never on the PR critical path.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import shutil
+import subprocess
+import sys
+import tomllib
+from dataclasses import dataclass, field
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+# Repo-relative, gitignored. Distinct from the ephemeral temp dir a pack is
+# *projected* into for discovery — the eval-workspace persists across passes.
+EVAL_WORKSPACE = ".eval-workspace"
+DEFAULT_RUNS = 3
+DEFAULT_TIMEOUT_S = 180
+# The grading threshold (pack-activation-evals convention): a should_trigger
+# query passes iff trigger_rate > 0.5; a should-not-trigger query passes iff
+# trigger_rate < 0.5.
+THRESHOLD = 0.5
+
+
+# ── Pure functions (no live model; unit-tested against fixtures) ──────────
+
+
+@dataclass
+class ActivationResult:
+    """The parsed outcome of one headless detector run.
+
+    `skills_fired` lists every skill named by a `Skill` `tool_use` event in
+    the stream, in order. `result` is the parsed `.result` field of the
+    terminal `result` event (the model's final text) — never the raw stdout
+    stream, stderr, the environment, or any secret.
+    """
+
+    skills_fired: list[str] = field(default_factory=list)
+    result: str | None = None
+
+    @property
+    def fired(self) -> bool:
+        return bool(self.skills_fired)
+
+
+def parse_activation(stdout: str) -> ActivationResult:
+    """Parse a `claude -p --output-format stream-json --verbose` payload.
+
+    The stream is JSON-lines. A skill activation appears as an `assistant`
+    event whose `message.content[]` holds a block
+    `{"type": "tool_use", "name": "Skill", "input": {"skill": "<name>", ...}}`.
+    The stream ends with a `{"type": "result", ..., "result": "<text>"}` event.
+
+    A line that is not valid JSON is skipped (resilience: a partial/garbled
+    line must not crash the parse). Returns the skills fired and the terminal
+    result text.
+    """
+    skills_fired: list[str] = []
+    result_text: str | None = None
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        etype = event.get("type")
+        if etype == "assistant":
+            message = event.get("message") or {}
+            for block in message.get("content") or []:
+                if (
+                    isinstance(block, dict)
+                    and block.get("type") == "tool_use"
+                    and block.get("name") == "Skill"
+                ):
+                    skill = (block.get("input") or {}).get("skill")
+                    if isinstance(skill, str) and skill:
+                        skills_fired.append(skill)
+        elif etype == "result":
+            res = event.get("result")
+            if isinstance(res, str):
+                result_text = res
+    return ActivationResult(skills_fired=skills_fired, result=result_text)
+
+
+def trigger_rate(target_fired: list[bool]) -> float:
+    """Fraction of runs in which the target skill fired."""
+    if not target_fired:
+        return 0.0
+    return sum(1 for f in target_fired if f) / len(target_fired)
+
+
+def grade(rate: float, should_trigger: bool) -> bool:
+    """A should_trigger query passes iff rate > 0.5; a should-not-trigger
+    query passes iff rate < 0.5 (the pack-activation-evals convention)."""
+    if should_trigger:
+        return rate > THRESHOLD
+    return rate < THRESHOLD
+
+
+# ── Detector seam (adapter → headless detector) ───────────────────────────
+#
+# Only the `claude-code` detector ships in the first cut. Additional *headless*
+# detectors (codex / copilot / cursor-agent / gemini) are additive behind this
+# seam. GUI-only IDE adapters (kiro-ide, cursor) expose no headless surface and
+# are rejected, not silently run (spec § Never do).
+
+
+class ClaudeCodeDetector:
+    """Projects a pack for the claude-code adapter and runs the headless
+    `claude -p` detector, parsing the activation event."""
+
+    adapter = "claude-code"
+
+    def project(self, pack_path: pathlib.Path, output_root: pathlib.Path) -> None:
+        # Lazy import so the pure functions above (and their unit tests) do
+        # not require agentbundle to be importable.
+        from agentbundle.build.adapters.claude_code import project
+        from agentbundle.build.contract import load as load_contract
+
+        contract = load_contract(REPO_ROOT / "docs" / "contracts" / "adapter.toml")
+        project(pack_path, contract, output_root)
+
+    def run_and_parse(
+        self, query: str, cwd: pathlib.Path, timeout: int
+    ) -> ActivationResult:
+        # argv list (never shell=True); --allowed-tools held to Skill only.
+        argv = [
+            "claude",
+            "-p",
+            query,
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--allowed-tools",
+            "Skill",
+        ]
+        try:
+            proc = subprocess.run(
+                argv,
+                cwd=str(cwd),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            # A timeout counts as "did not fire" for that run — distinct from
+            # a runner-level crash. We never serialize the (possibly partial)
+            # payload here.
+            return ActivationResult()
+        return parse_activation(proc.stdout)
+
+
+# Adapters with no headless prompt surface — rejected with a clear message
+# rather than silently run (their shared byte-identical `description:` is
+# covered by the claude-code reference-harness measurement).
+_GUI_ONLY_ADAPTERS = {"kiro-ide", "cursor"}
+_DETECTORS = {ClaudeCodeDetector.adapter: ClaudeCodeDetector}
+
+
+def get_detector(adapter: str):
+    """Return a detector instance for `adapter`, or raise ValueError for an
+    unknown / non-headless adapter (the seam never silently runs one)."""
+    detector_cls = _DETECTORS.get(adapter)
+    if detector_cls is not None:
+        return detector_cls()
+    if adapter in _GUI_ONLY_ADAPTERS:
+        raise ValueError(
+            f"adapter {adapter!r} is a GUI-only IDE with no headless surface; "
+            f"activation evals are headless-only (spec § Never do)"
+        )
+    raise ValueError(
+        f"no headless detector registered for adapter {adapter!r}; "
+        f"the first cut ships only {sorted(_DETECTORS)!r}"
+    )
+
+
+# ── Pack reading ──────────────────────────────────────────────────────────
+
+
+def read_covered_skills(pack_dir: pathlib.Path) -> list[str]:
+    """Return the `[pack.evals].skills` allowlist (empty if no block)."""
+    manifest = tomllib.loads((pack_dir / "pack.toml").read_text(encoding="utf-8"))
+    evals_cfg = manifest.get("pack", {}).get("evals") or {}
+    skills = evals_cfg.get("skills", [])
+    if not isinstance(skills, list):
+        raise ValueError("[pack.evals].skills must be an array of strings")
+    return [s for s in skills if isinstance(s, str) and s]
+
+
+def read_eval_queries(pack_dir: pathlib.Path, skill: str) -> list[dict]:
+    """Return the flat [{query, should_trigger}] array for one covered skill."""
+    path = pack_dir / ".apm" / "skills" / skill / "evals" / "eval_queries.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        raise ValueError(f"{path}: eval_queries.json must be a JSON array")
+    return data
+
+
+# ── Orchestration ──────────────────────────────────────────────────────────
+
+
+def _next_iteration(pack_workspace: pathlib.Path) -> int:
+    """One-based iteration number: max existing iteration-<N> + 1."""
+    highest = 0
+    if pack_workspace.is_dir():
+        for child in pack_workspace.iterdir():
+            if child.is_dir() and child.name.startswith("iteration-"):
+                try:
+                    highest = max(highest, int(child.name.split("-", 1)[1]))
+                except ValueError:
+                    continue
+    return highest + 1
+
+
+def run_eval(
+    pack_name: str,
+    *,
+    runs: int = DEFAULT_RUNS,
+    detector=None,
+    timeout: int = DEFAULT_TIMEOUT_S,
+    repo_root: pathlib.Path = REPO_ROOT,
+    project_root: pathlib.Path | None = None,
+) -> dict:
+    """Run the activation eval for one pack and write one `iteration-<N>/`.
+
+    Returns the bounded summary dict (also written as `summary.json`). The
+    detector is injectable so the orchestration is testable without a live
+    model; `project_root` lets a test point the projected pack at a prepared
+    directory instead of invoking agentbundle.
+    """
+    if detector is None:
+        detector = get_detector(ClaudeCodeDetector.adapter)
+    pack_dir = repo_root / "packs" / pack_name
+    covered = read_covered_skills(pack_dir)
+    # Every skill in the pack — for intra-pack exclusivity (a *different*
+    # in-pack skill firing on a query), which may be a non-covered skill.
+    # Cross-*pack* collisions are out of scope (the projection holds only
+    # this pack's skills anyway).
+    skills_root = pack_dir / ".apm" / "skills"
+    pack_skills = (
+        {p.name for p in skills_root.iterdir() if p.is_dir()}
+        if skills_root.is_dir()
+        else set()
+    )
+
+    pack_workspace = repo_root / EVAL_WORKSPACE / pack_name
+    iteration = _next_iteration(pack_workspace)
+    iter_dir = pack_workspace / f"iteration-{iteration}"
+
+    # Project the pack into an isolated dir so only its skills are discoverable.
+    if project_root is None:
+        proj = iter_dir / ".projection"
+        detector.project(pack_dir, proj)
+        run_cwd = proj
+    else:
+        run_cwd = project_root
+
+    summary: dict = {
+        "pack": pack_name,
+        "adapter": getattr(detector, "adapter", "claude-code"),
+        "runs": runs,
+        "iteration": iteration,
+        "skills": {},
+    }
+
+    for skill in covered:
+        queries = read_eval_queries(pack_dir, skill)
+        skill_summary: dict = {"queries": [], "pass_count": 0, "total": len(queries)}
+        for q_index, entry in enumerate(queries):
+            query = entry.get("query", "")
+            should_trigger = bool(entry.get("should_trigger", False))
+            query_id = f"q{q_index:02d}"
+            target_fired: list[bool] = []
+            exclusivity: set[str] = set()
+            for r in range(1, runs + 1):
+                result = detector.run_and_parse(query, run_cwd, timeout)
+                target_fired.append(skill in result.skills_fired)
+                # Intra-pack exclusivity: a *different* in-pack skill fired.
+                for other in result.skills_fired:
+                    if other != skill and other in pack_skills:
+                        exclusivity.add(other)
+                # Capture only the parsed .result field (the model's text),
+                # never the raw stdout stream, stderr, env, or key.
+                out_dir = (
+                    iter_dir / skill / query_id / "with_skill" / f"run-{r}" / "outputs"
+                )
+                out_dir.mkdir(parents=True, exist_ok=True)
+                (out_dir / "result.txt").write_text(
+                    result.result or "", encoding="utf-8"
+                )
+            rate = trigger_rate(target_fired)
+            passed = grade(rate, should_trigger)
+            if passed:
+                skill_summary["pass_count"] += 1
+            skill_summary["queries"].append(
+                {
+                    "query_id": query_id,
+                    "query": query,
+                    "should_trigger": should_trigger,
+                    "trigger_rate": rate,
+                    "passed": passed,
+                    "exclusivity_violations": sorted(exclusivity),
+                }
+            )
+        summary["skills"][skill] = skill_summary
+
+    iter_dir.mkdir(parents=True, exist_ok=True)
+    (iter_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
+    return summary
+
+
+def _print_report(summary: dict) -> None:
+    print(
+        f"pack={summary['pack']} adapter={summary['adapter']} "
+        f"runs={summary['runs']} iteration={summary['iteration']}"
+    )
+    for skill, s in summary["skills"].items():
+        print(f"  {skill}: {s['pass_count']}/{s['total']} queries passed")
+        for q in s["queries"]:
+            mark = "ok " if q["passed"] else "MISS"
+            excl = (
+                f"  ⚠ also fired: {', '.join(q['exclusivity_violations'])}"
+                if q["exclusivity_violations"]
+                else ""
+            )
+            print(
+                f"    [{mark}] {q['query_id']} "
+                f"should_trigger={q['should_trigger']} "
+                f"trigger_rate={q['trigger_rate']:.2f}{excl}"
+            )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="run-pack-evals.py",
+        description="Measure skill activation for a pack (Tier A, report-only).",
+    )
+    parser.add_argument("--pack", required=True, help="pack name under packs/")
+    parser.add_argument(
+        "--runs", type=int, default=DEFAULT_RUNS, help="runs per query (default 3)"
+    )
+    parser.add_argument(
+        "--adapter",
+        default=ClaudeCodeDetector.adapter,
+        help="detector adapter (only claude-code ships in the first cut)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=DEFAULT_TIMEOUT_S,
+        help="per-run wall-clock timeout in seconds (default 180)",
+    )
+    args = parser.parse_args(argv)
+
+    detector = get_detector(args.adapter)
+    # `claude` is a hard prerequisite of the live run — fail fast (clear
+    # message), not a per-query miss.
+    if isinstance(detector, ClaudeCodeDetector) and shutil.which("claude") is None:
+        print(
+            "run-pack-evals: `claude` not found on PATH — it is required to run "
+            "the activation detector.",
+            file=sys.stderr,
+        )
+        return 1
+
+    summary = run_eval(
+        args.pack, runs=args.runs, detector=detector, timeout=args.timeout
+    )
+    _print_report(summary)
+    return 0  # report-only: an eval miss is never a non-zero exit
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -13,6 +13,11 @@ docs/specs/**/state.json
 # Implementer reports — session-scratch.
 docs/specs/**/notes/implementer-*.md
 
+# Pack activation-eval run artifacts (tools/run-pack-evals.py). Captured run
+# outputs + activation summaries are run artifacts, not pack source — never
+# committed to history.
+.eval-workspace/
+
 # Personal Claude Code overrides.
 CLAUDE.local.md
 .claude/settings.local.json

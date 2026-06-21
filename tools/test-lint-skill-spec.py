@@ -513,6 +513,34 @@ def build_tree_broken(root: pathlib.Path) -> None:
         }
         """))
 
+    # eval_queries.json — top-level must be a JSON array, not an object.
+    write(skills / "eq-not-array" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: eq-not-array
+        description: eval_queries.json is a JSON object, not the required array.
+        ---
+
+        Body.
+        """))
+    write(skills / "eq-not-array" / "evals" / "eval_queries.json",
+          '{"queries": []}\n')
+
+    # eval_queries.json — element with an empty query and a non-bool
+    # should_trigger (`1` must not pass via bool's int-subclass quirk).
+    write(skills / "eq-bad-element" / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: eq-bad-element
+        description: eval_queries.json element has an empty query and an int should_trigger.
+        ---
+
+        Body.
+        """))
+    write(skills / "eq-bad-element" / "evals" / "eval_queries.json", textwrap.dedent("""\
+        [
+          {"query": "", "should_trigger": 1}
+        ]
+        """))
+
 
 TREE_A_EXPECTED = [
     # name regex / length / dir-mismatch
@@ -560,8 +588,12 @@ TREE_A_EXPECTED = [
     # body length error
     "body exceeds 1000 lines",
     # evals
-    "evals/ directory present but evals/evals.json is missing",
+    "evals/ directory present but neither evals/evals.json nor evals/eval_queries.json is present",
     "evals/evals.json is not valid JSON",
+    # eval_queries.json (Tier-A trigger evals) schema
+    "evals/eval_queries.json must be a JSON array at top level",
+    "eval_queries[0].query must be a non-empty string",
+    "eval_queries[0].should_trigger must be a boolean (got int)",
     "evals.json skill_name 'some-other-skill' does not match skill name 'evals-wrong-name'",
     "evals/files/does-not-exist.txt",
     "duplicate id 1",
@@ -800,13 +832,60 @@ def build_tree_evals_ok(root: pathlib.Path) -> None:
         }
         """))
 
+    # A skill shipping ONLY eval_queries.json (Tier-A trigger evals) must
+    # pass — the relaxed check no longer requires evals.json.
+    eq_only = root / ".claude" / "skills" / "eval-queries-only"
+    write(eq_only / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: eval-queries-only
+        description: Ships only eval_queries.json — the Tier-A trigger-eval layout.
+        ---
+
+        Body.
+        """))
+    write(eq_only / "evals" / "eval_queries.json", textwrap.dedent("""\
+        [
+          {"query": "do the thing this skill is for", "should_trigger": true},
+          {"query": "a near-miss that needs a different skill", "should_trigger": false}
+        ]
+        """))
+
+    # A skill shipping BOTH files must pass — they validate independently.
+    both = root / ".claude" / "skills" / "evals-both-files"
+    write(both / "SKILL.md", textwrap.dedent("""\
+        ---
+        name: evals-both-files
+        description: Ships both evals.json (Tier B) and eval_queries.json (Tier A).
+        ---
+
+        Body.
+        """))
+    write(both / "evals" / "evals.json", textwrap.dedent("""\
+        {
+          "skill_name": "evals-both-files",
+          "evals": [
+            {"id": 1, "prompt": "P1", "expected_output": "E1"}
+          ]
+        }
+        """))
+    write(both / "evals" / "eval_queries.json", textwrap.dedent("""\
+        [
+          {"query": "trigger this skill", "should_trigger": true}
+        ]
+        """))
+
 
 def run_tree_d(root: pathlib.Path) -> None:
     build_tree_evals_ok(root)
     rc, out = run_linter(root)
     if rc != 0:
         fail("tree-D", f"evals happy-path lint exited {rc}; expected 0.", out)
-    print("✓ tree-D: evals.json with both int and str ids + a resolving files entry passed clean.")
+    assert_all_in("tree-D", out, [
+        ".claude/skills/eval-queries-only/SKILL.md",
+        ".claude/skills/evals-both-files/SKILL.md",
+    ])
+    print("✓ tree-D: evals.json (int+str ids), an eval_queries.json-only skill, "
+          "and a both-files skill all passed clean.")
 
 
 # ── Tree E — reliability: bad inputs must surface, not crash ─────────────
@@ -861,6 +940,91 @@ def run_tree_e(scratch_root: pathlib.Path) -> None:
           "surface as errors (no tracebacks).")
 
 
+# ── Tree G — [pack.evals].skills coverage ────────────────────────────────
+
+def _eval_queries_skill(pack_skills: pathlib.Path, name: str,
+                        with_eval_queries: bool) -> None:
+    write(pack_skills / name / "SKILL.md", textwrap.dedent(f"""\
+        ---
+        name: {name}
+        description: A fixture skill for the [pack.evals] coverage pass.
+        ---
+
+        Body.
+        """))
+    if with_eval_queries:
+        write(pack_skills / name / "evals" / "eval_queries.json", textwrap.dedent("""\
+            [
+              {"query": "trigger me", "should_trigger": true},
+              {"query": "near miss", "should_trigger": false}
+            ]
+            """))
+
+
+def build_tree_pack_evals(root: pathlib.Path) -> None:
+    packs = root / "packs"
+
+    # cov-good: [pack.evals].skills names a skill that ships eval_queries.json.
+    write(packs / "cov-good" / "pack.toml", textwrap.dedent("""\
+        [pack]
+        name = "cov-good"
+
+        [pack.evals]
+        skills = ["good-skill"]
+        """))
+    _eval_queries_skill(packs / "cov-good" / ".apm" / "skills", "good-skill", True)
+
+    # cov-missing-skill: names a skill directory that does not exist.
+    write(packs / "cov-missing-skill" / "pack.toml", textwrap.dedent("""\
+        [pack]
+        name = "cov-missing-skill"
+
+        [pack.evals]
+        skills = ["ghost-skill"]
+        """))
+
+    # cov-no-file: names a real skill dir that ships no eval_queries.json.
+    write(packs / "cov-no-file" / "pack.toml", textwrap.dedent("""\
+        [pack]
+        name = "cov-no-file"
+
+        [pack.evals]
+        skills = ["bare-skill"]
+        """))
+    _eval_queries_skill(packs / "cov-no-file" / ".apm" / "skills", "bare-skill", False)
+
+    # cov-no-block: no [pack.evals] block at all — must be a no-op.
+    write(packs / "cov-no-block" / "pack.toml", textwrap.dedent("""\
+        [pack]
+        name = "cov-no-block"
+        """))
+    _eval_queries_skill(packs / "cov-no-block" / ".apm" / "skills", "lonely-skill", False)
+
+
+TREE_G_EXPECTED = [
+    "[pack.evals].skills names 'ghost-skill' but",
+    "is not a skill directory",
+    "[pack.evals].skills names 'bare-skill' but it ships no evals/eval_queries.json",
+]
+
+TREE_G_UNEXPECTED = [
+    # The good pack and the no-block pack must not error.
+    "[pack.evals].skills names 'good-skill'",
+    "[pack.evals].skills names 'lonely-skill'",
+]
+
+
+def run_tree_g(root: pathlib.Path) -> None:
+    build_tree_pack_evals(root)
+    rc, out = run_linter(root)
+    if rc == 0:
+        fail("tree-G", "linter exited 0; expected non-zero on bad coverage.", out)
+    assert_all_in("tree-G", out, TREE_G_EXPECTED)
+    assert_none_in("tree-G", out, TREE_G_UNEXPECTED)
+    print("✓ tree-G: [pack.evals].skills coverage — missing skill dir and "
+          "missing eval_queries.json both caught; good + no-block packs clean.")
+
+
 # ── Driver ───────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -872,13 +1036,15 @@ def main() -> int:
          tempfile.TemporaryDirectory() as tmp_c, \
          tempfile.TemporaryDirectory() as tmp_d, \
          tempfile.TemporaryDirectory() as tmp_e, \
-         tempfile.TemporaryDirectory() as tmp_f:
+         tempfile.TemporaryDirectory() as tmp_f, \
+         tempfile.TemporaryDirectory() as tmp_g:
         run_tree_a(pathlib.Path(tmp_a))
         run_tree_b(pathlib.Path(tmp_b))
         run_tree_c(pathlib.Path(tmp_c))
         run_tree_d(pathlib.Path(tmp_d))
         run_tree_e(pathlib.Path(tmp_e))
         run_tree_f(pathlib.Path(tmp_f))
+        run_tree_g(pathlib.Path(tmp_g))
 
     print()
     print("Self-test: passed.")
