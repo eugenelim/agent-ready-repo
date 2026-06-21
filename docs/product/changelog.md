@@ -78,6 +78,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Kiro custom agents now reach the bundle's skills — CLI and IDE (contract
+  v0.15).** On both Kiro targets, only the **default** agent auto-discovers
+  skills; a **custom** agent (`kiro --agent <name>`, including every headless
+  `--no-interactive` run, or an IDE subagent) loaded **zero** skills unless it
+  declared them in its `resources` field. Packs projected agents without that
+  field, so agent-driven runs saw none of the catalogue's skills. Both the
+  `kiro-cli` and `kiro-ide` adapters now inject a skill-resources glob
+  (`skill://.kiro/skills/**/SKILL.md` and the `~/.kiro/skills/**/SKILL.md`
+  user-scope twin) into every projected agent — CLI into the agent JSON, IDE
+  into the `.md` YAML frontmatter (quoted, YAML-safe). An agent that declares
+  its own `resources` keeps it; the deprecated `kiro` alias inherits the IDE
+  behavior. Default-agent runs were already fine and are unaffected.
+  (RFC-0022 erratum E4; kiro #6887/#6888/#4993.)
 - **`agentbundle install --adapter kiro` now behaves exactly like `kiro-ide`.**
   The deprecated `kiro` alias (RFC-0022) was honored by `make build` but not by
   the install path, which still emitted `.json` agents and merged hook-wiring —
