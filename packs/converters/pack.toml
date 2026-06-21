@@ -1,6 +1,6 @@
 [pack]
 name = "converters"
-version = "0.2.0"
+version = "0.2.1"
 description = "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML and to branded Word, PowerPoint, and Excel; Outlook .msg → Markdown."
 readme = "README.md"
 display_name = "Converters"
@@ -20,6 +20,14 @@ allowed-scopes = ["user", "repo"]
 # are admitted for credentialed CLIs now that both declare `.agentbundle/`
 # in `allowed-prefixes.user` (the § 4d precondition). Append-only.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# coverage allowlist (each listed skill ships evals/eval_queries.json, measured
+# by tools/run-pack-evals.py). `msg-to-markdown` is excluded — it ships no
+# evals/ at all (the converters evals.json carry-over gate hard-errors if
+# msg-to-markdown/evals exists), so it stays without an eval_queries.json too.
+[pack.evals]
+skills = ["markdown-to-docx", "markdown-to-pptx", "markdown-to-xlsx", "markdown-to-html", "file-to-markdown", "mermaid-renderer"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
