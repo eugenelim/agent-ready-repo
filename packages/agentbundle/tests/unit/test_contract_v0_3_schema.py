@@ -79,8 +79,9 @@ class ContractVersionTests(unittest.TestCase):
         # build-check`, so the drift didn't surface); docs/specs/copilot-full-
         # parity bumped it to v0.10; RFC-0026 / cursor-full-parity bumped it to
         # v0.11; docs/specs/gemini-full-parity bumped it to v0.13;
-        # docs/specs/enriched-pack-manifest bumps it to v0.14.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.14")
+        # docs/specs/enriched-pack-manifest bumped it to v0.14;
+        # docs/specs/kiro-cli-agent-skill-resources bumps it to v0.15.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.15")
 
 
 # ---------------------------------------------------------------------------
