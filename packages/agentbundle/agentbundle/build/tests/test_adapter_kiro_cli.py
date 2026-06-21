@@ -79,6 +79,45 @@ class KiroCliAdapterTests(unittest.TestCase):
             self.assertNotIn("grep_search", tools)
             self.assertNotIn("execute_bash", tools)
 
+    def test_cli_agent_gets_skill_resources(self) -> None:
+        """kiro-cli custom agents must declare the skill-resources glob so
+        they reach the bundle's skills — Kiro custom agents don't inherit the
+        default agent's auto-discovery (RFC-0022 E4; kiro #6887/#6888)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_agent_pack(tmp_path)
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads(
+                (out / ".kiro" / "agents" / "bar.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                data.get("resources"),
+                [
+                    "skill://.kiro/skills/**/SKILL.md",
+                    "skill://~/.kiro/skills/**/SKILL.md",
+                ],
+                "kiro-cli agent JSON must inject both repo- and user-scope skill globs",
+            )
+
+    def test_cli_agent_resources_author_override_wins(self) -> None:
+        """An agent that declares its own `resources` keeps it — the default
+        does not clobber an author-supplied value."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "bar.md").write_text(
+                "---\nname: bar\nresources: [file://README.md]\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads(
+                (out / ".kiro" / "agents" / "bar.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(data.get("resources"), ["file://README.md"])
+
     def test_cli_no_ide_hook_field(self) -> None:
         """kiro-cli projected agent JSON must not contain ide-event-vocabulary
         or kiro-ide-hook sections — those are IDE-only fields that cause the
