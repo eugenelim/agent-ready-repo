@@ -36,34 +36,66 @@ If any of these checks fail, push back rather than proceeding.
    is preferred over `ls | grep | sed | sort` so the snippet works the
    same way on native Windows, macOS, and Linux.)
 
-2. Pick a kebab-case title from the user's description. Keep it short and
-   declarative — `0007-use-postgres-for-primary-store.md`, not
-   `0007-decision-about-the-database.md`.
+2. Pick a kebab-case filename title from the user's description. Keep it
+   short and declarative — `0007-primary-store-postgres-over-dynamodb.md`,
+   not `0007-decision-about-the-database.md`. The H1 title inside the file
+   names the problem *and* the chosen solution together — "Primary store
+   for user activity: Postgres over DynamoDB" — so the decision is legible
+   from the index alone; keep the `ADR-NNNN` ordinal prefix on it.
 
 3. Copy this skill's bundled `assets/adr.md` into `docs/adr/` and
    rename to `NNNN-<title>.md`. (Paths are skill-relative — the
    `assets/` folder lives next to this `SKILL.md` wherever your IDE
    installed the skill.)
 
-4. Fill in the frontmatter (status `Proposed`, today's date, deciders).
+4. Fill in the frontmatter: status `Proposed`, today's date, the
+   `Decision-makers` who own the call, and — when the decision was run past
+   others — the `Consulted` (whose input was sought, two-way) and `Informed`
+   (who is kept up to date, one-way). Delete the `Consulted`/`Informed` lines
+   if neither applies.
 
-5. Help the user draft the four sections (Context, Decision, Consequences,
-   Alternatives). Push back if any section is empty or hand-wavy:
+5. Help the user draft the sections. Push back if any is empty or hand-wavy:
    - Context with no constraints listed → ask what's actually constraining
      this choice.
    - Decision without a single declarative sentence at the top → write one.
    - Consequences without honest negatives → ask what we're giving up.
    - Alternatives without rejection reasons → ask why each was rejected.
 
+   Two sections are optional — include them when they earn their place,
+   delete them otherwise:
+   - **Decision drivers** — the criteria the choice was judged against. Add it
+     when more than one option was viable, so each alternative is rejected
+     against a *stated* criterion rather than an ad-hoc reason.
+   - **Confirmation** — how conformance with the decision will be verified (a
+     design review, an architecture fitness test, a lint or CI check, a
+     periodic audit). Add it when the decision is the kind that erodes
+     silently if no one checks.
+
 6. Update `docs/adr/README.md` to add the new ADR to the table.
 
-7. Tell the user to mark the ADR `Accepted` (and commit) once the relevant
-   reviewers have signed off.
+7. Leave the status `Proposed`. Once the decision-makers sign off, mark it
+   `Accepted`; if they decline it, mark it `Rejected` and keep the file — a
+   recorded rejection stops the same option being re-proposed later. After
+   `Accepted`, the body is frozen (see Lifecycle below).
+
+## Lifecycle after acceptance
+
+- **Reversing a decision.** Don't edit an accepted ADR. Write a *new* ADR for
+  the new decision, set its `Supersedes:` to the old ADR's number, and flip the
+  old ADR's status to `Superseded by ADR-NNNN` — status line only, the old body
+  stays as history. The cross-reference points both ways.
+- **Deprecated vs Superseded.** Mark an ADR `Deprecated` when the decision no
+  longer applies and nothing replaces it; `Superseded by ADR-NNNN` when a
+  specific later ADR replaces it.
+- **Backfilling.** Recording a decision made months ago is fine — reconstruct
+  the Context from memory and history, list the people who actually decided as
+  `Decision-makers`, and note in References that it's a backfill.
 
 ## Anti-patterns to refuse
 
 - "Make this ADR say we're definitely using X" before discussion has happened →
-  that's an RFC, not an ADR. Suggest opening one instead.
-- Editing an existing accepted ADR → ADRs are immutable. If a decision is being
-  reversed, write a *new* ADR that supersedes it, and update the old ADR's
-  status to `Superseded by ADR-NNNN` (status only — leave the body untouched).
+  that's an RFC, not an ADR. An ADR records a decision already made; an open
+  debate is an RFC, and the accepted RFC then produces the ADR. Suggest opening
+  one instead.
+- Editing an accepted ADR's body → ADRs are immutable. A reversal is a *new*
+  ADR that supersedes the old one (see Lifecycle above), never an edit.
