@@ -1,0 +1,77 @@
+# Pack-level activation evals (pack-activation-evals spec, RFC-0037 / ADR-0028).
+#
+# Report-only Tier-A activation measurement. Runs tools/run-pack-evals.py over
+# the covered packs and uploads the bounded per-skill trigger_rate summaries as
+# a build artifact. It is the repo's first managed-secret + model-API workflow.
+#
+# Posture (security-load-bearing, asserted by tools/test-pack-evals-workflow.py):
+#   - schedule + workflow_dispatch ONLY — never push / pull_request, so an
+#     untrusted-fork PR cannot reach the ANTHROPIC_API_KEY secret.
+#   - least-privilege top-level `permissions: contents: read` — a compromised
+#     dependency or claude invocation cannot push commits or mint releases via
+#     the default GITHUB_TOKEN.
+#   - report-only — the eval step is `continue-on-error`, so an eval miss (or a
+#     runner hiccup) never fails the build in the first cut.
+name: pack-evals
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC. Cadence (not push) bounds API cost.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      packs:
+        description: "Space-separated packs to evaluate"
+        default: "core converters"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pack-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  activation-evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install agentbundle (projection path) + tool deps
+        run: |
+          pip install -e packages/agentbundle/
+          pip install -r tools/requirements.txt
+
+      - name: Install the claude CLI (activation detector)
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run activation evals (report-only)
+        id: evals
+        continue-on-error: true
+        env:
+          # Headless auth for `claude -p`. The runner never echoes this value.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          packs="${{ github.event.inputs.packs }}"
+          packs="${packs:-core converters}"
+          for pack in $packs; do
+            echo "::group::pack-evals $pack"
+            python tools/run-pack-evals.py --pack "$pack"
+            echo "::endgroup::"
+          done
+
+      - name: Upload activation summaries (bounded; per-run outputs/ excluded)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pack-activation-summaries
+          # Only the bounded summary.json files — never the per-run
+          # with_skill/.../outputs/ captures (which hold model output text).
+          path: .eval-workspace/**/summary.json
+          if-no-files-found: warn

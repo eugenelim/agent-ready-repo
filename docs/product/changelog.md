@@ -36,6 +36,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   distilled brief. Prompt-only by construction (no engine, index, or counter);
   the seven existing skills are reused as phase operations. RFCs may now carry an
   optional `docs/rfc/NNNN-notes/` companion folder for promoted research.
+- **Pack activation evals (Tier A) — `tools/run-pack-evals.py` + `[pack.evals]`
+  (RFC-0037 / ADR-0028).** A catalogue maintainer can now measure, repeatably
+  and empirically, whether each covered skill *activates* on the prompts it
+  should and stays quiet on the near-misses it shouldn't. Each covered skill
+  ships `evals/eval_queries.json` (a flat `[{query, should_trigger}]` array);
+  a pack's `pack.toml` `[pack.evals].skills` lists the covered skills; the
+  runner projects the pack in isolation, runs each query through the headless
+  `claude` detector, computes a `trigger_rate` over N runs, grades against a
+  0.5 threshold, and writes a gitignored, iteration-numbered eval-workspace.
+  It runs report-only in a scheduled `pack-evals.yml` workflow — never on the
+  PR critical path — and the first cut covers the `core` and `converters`
+  packs. `lint-skill-spec.py` now accepts and validates `eval_queries.json`
+  and enforces `[pack.evals].skills` coverage.
 - **Per-prompt work-loop activation hook (`core` pack).** A new
   `work-loop-check` hook nudges the agent, on every prompt, to load the
   work-loop skill for non-trivial work — closing a gap where the loop was

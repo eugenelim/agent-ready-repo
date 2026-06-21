@@ -152,3 +152,32 @@ When accepted:
 - **ADR** recording: trigger evals adopt the agentskills.io `eval_queries.json` convention; `pack.toml` `[pack.evals]` is the coverage source of truth; the runner is catalogue-internal tooling (not a shipped primitive).
 - **Spec** `docs/specs/pack-activation-evals/` for the Tier-A runner, lint preconditions, the `core`/`converters` first cut, and `pack-evals.yml`.
 - **Future RFC** for Tier B (output-quality grading via `evals/evals.json`, with/without-skill comparison, LLM-judge).
+
+## Errata
+
+> Corrections to this Accepted RFC discovered during implementation. The RFC
+> stays frozen; errata record where the decision-as-written diverges from
+> ground truth, **pending Approver sign-off** (the RFC's original approver).
+
+### E1 — Detector uses `--output-format stream-json --verbose`, not `--output-format json` (2026-06-21) · ⏳ awaiting Approver sign-off
+
+**Decision 3 and the Evidence section specify `claude -p "<query>"
+--output-format json --allowed-tools Skill` and parsing "the result for a
+`Skill` `tool_use` event" (the spike's `jq 'any(.messages[].content[]; …)'`).**
+Verified empirically on `claude` **2.1.185** (the implementing machine; the
+spike ran 2.1.181): `--output-format json` returns a **result-only** envelope —
+`{type, subtype, result, usage, permission_denials, …}` with **no `messages`
+array and no `tool_use` events**. The activation event the runner must observe
+is therefore **not present** in the `json` envelope; the spike's `jq` filter
+matched a transcript shape that `--output-format json` does not emit.
+
+**Correction:** the detector uses **`--output-format stream-json --verbose`**.
+The activation appears as an `assistant` event whose `message.content[]` holds a
+`{"type": "tool_use", "name": "Skill", "input": {"skill": "<name>"}}` block
+(`.input.skill` as specified); the stream still terminates with a
+`{"type": "result", …, "result": "<text>"}` event, so capturing the parsed
+`.result` (the workspace's per-run output) is unchanged. The `--allowed-tools
+Skill` observe-don't-execute trust boundary, the wall-clock-timeout bound, the
+argv-list invocation, and Tier-A scope are all **unaffected**. The spike's
+conclusion — *activation is detectable headless* — **holds**; only the
+output-format flag and the parse target are corrected.

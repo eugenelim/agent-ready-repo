@@ -6,6 +6,16 @@
 - **Supersedes:** none
 - **Related:** RFC-0037 (the proposal this records), RFC-0031 / ADR-0021 (`pack.toml` as the rich source of truth), RFC-0036 (`converters`, first `evals/evals.json`), ADR-0017 (SAST CI gate — catalogue-internal tooling belongs in-repo), ADR-0014 (rigor scales with risk — report-only over a hard gate)
 
+> **Correction (2026-06-21, ⏳ awaiting Approver sign-off — see RFC-0037 § Errata E1):**
+> Decision 3 below records the detector as `claude -p "<query>" --output-format
+> json --allowed-tools Skill`, parsing "the result for a `Skill` `tool_use`
+> event". Verified empirically on `claude` 2.1.185, `--output-format json`
+> returns a **result-only** envelope with **no `tool_use` events**; the runner
+> uses **`--output-format stream-json --verbose`** to observe the activation
+> event (`assistant` event → `message.content[]` → `Skill` `tool_use` →
+> `.input.skill`). The `.result` capture, the `--allowed-tools Skill` trust
+> boundary, the timeout bound, and Tier-A scope are unchanged.
+
 ## Context
 
 Every gate the catalogue runs today is **structural**: `lint-skill-spec.py` and
