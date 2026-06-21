@@ -137,17 +137,53 @@ def test_detector_seam() -> None:
 class FakeDetector:
     adapter = "claude-code"
 
-    def __init__(self, responses: dict[str, list[str]]):
+    def __init__(self, responses: dict[str, list[str]], errors: set[str] | None = None):
         # query text -> skills_fired list returned every run
         self.responses = responses
+        self.errors = errors or set()
 
     def project(self, pack_path, output_root):  # pragma: no cover - not used
         raise AssertionError("project() must not be called when project_root is set")
 
     def run_and_parse(self, query, cwd, timeout):
+        if query in self.errors:
+            return M.ActivationResult(error="exit-1")
         return M.ActivationResult(
             skills_fired=list(self.responses.get(query, [])), result=f"ran: {query}"
         )
+
+
+def test_run_and_parse_error_paths() -> None:
+    import subprocess as sp
+
+    det = M.ClaudeCodeDetector()
+    orig = M.subprocess.run
+    try:
+        def _timeout(*a, **k):
+            raise sp.TimeoutExpired(cmd="claude", timeout=1)
+        M.subprocess.run = _timeout
+        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "timeout",
+              "timeout must be flagged as a harness error")
+
+        class _NonZero:
+            returncode = 2
+            stdout = '{"type":"result","result":"x"}'
+        M.subprocess.run = lambda *a, **k: _NonZero()
+        check("err", det.run_and_parse("q", pathlib.Path("."), 1).error == "exit-2",
+              "non-zero exit must be flagged as a harness error")
+
+        class _Ok:
+            returncode = 0
+            stdout = ('{"type":"assistant","message":{"content":[{"type":"tool_use",'
+                      '"name":"Skill","input":{"skill":"x"}}]}}\n'
+                      '{"type":"result","result":"ok"}')
+        M.subprocess.run = lambda *a, **k: _Ok()
+        r = det.run_and_parse("q", pathlib.Path("."), 1)
+        check("err", r.error is None and r.skills_fired == ["x"],
+              "a clean run must carry no error")
+    finally:
+        M.subprocess.run = orig
+    print("✓ run_and_parse flags timeout + non-zero exit; clean run carries no error.")
 
 
 def _build_fake_pack(repo_root: pathlib.Path) -> None:
@@ -224,6 +260,20 @@ def test_run_eval_workspace_and_grading() -> None:
             f"expected beta flagged, got {qs['q02']['exclusivity_violations']}",
         )
         check("count", summary["skills"]["alpha"]["pass_count"] == 2, "2 of 3 pass")
+        check("err-count", summary["skills"]["alpha"]["error_count"] == 0,
+              "clean detector -> 0 harness errors")
+
+        # A detector that errors on one query surfaces error_count in the summary.
+        err_det = FakeDetector(
+            {"fire alpha": ["alpha"], "stay quiet": [], "beta steals": ["beta"]},
+            errors={"stay quiet"},
+        )
+        err_summary = M.run_eval(
+            "testpack", runs=2, detector=err_det,
+            repo_root=repo_root, project_root=repo_root,
+        )
+        check("err-count", err_summary["skills"]["alpha"]["error_count"] == 2,
+              f"2 errored runs expected, got {err_summary['skills']['alpha']['error_count']}")
 
         # Bounded summary: no secret / stderr / env leakage anywhere.
         blob = (iter1 / "summary.json").read_text(encoding="utf-8")
@@ -268,6 +318,7 @@ def main() -> int:
     test_parse_activation()
     test_trigger_rate_and_grade()
     test_safe_segment()
+    test_run_and_parse_error_paths()
     test_detector_seam()
     test_run_eval_workspace_and_grading()
     test_gitignored_control()

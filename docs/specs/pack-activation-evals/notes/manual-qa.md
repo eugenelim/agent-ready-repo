@@ -51,8 +51,12 @@ Reserved grading slots (`without_skill/`, `timing.json`, `grading.json`,
 
 The emitted `summary.json` contained only `{pack, adapter, runs, iteration,
 skills:{<skill>:{queries:[{query_id, query, should_trigger, trigger_rate,
-passed, exclusivity_violations}], pass_count, total}}}` — **no** `stderr`, no
-process environment, no `ANTHROPIC_API_KEY`. The per-run `outputs/result.txt`
+passed, errored_runs, exclusivity_violations}], pass_count, total,
+error_count}}}` — all bounded fields; **no** `stderr`, no process environment,
+no `ANTHROPIC_API_KEY`. (`error_count`/`errored_runs` distinguish a harness
+failure — non-zero `claude` exit, timeout, truncated stream — from a genuine
+non-activation, so an all-zero `trigger_rate` from a broken CLI is not misread
+as a regression.) The per-run `outputs/result.txt`
 held only the parsed `.result` text. The CI artifact glob
 (`.eval-workspace/**/summary.json`) uploads only `summary.json`, excluding the
 `outputs/` captures. The bounded shape is also locked by

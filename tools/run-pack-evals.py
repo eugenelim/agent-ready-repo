@@ -74,6 +74,11 @@ class ActivationResult:
 
     skills_fired: list[str] = field(default_factory=list)
     result: str | None = None
+    # Set when the run could not be measured (timeout, non-zero exit,
+    # truncated stream) — a **harness failure**, distinct from a genuine
+    # "skill did not fire". Surfaced as `error_count` in the summary so an
+    # all-zero trigger_rate from a broken CLI is not misread as a regression.
+    error: str | None = None
 
     @property
     def fired(self) -> bool:
@@ -183,12 +188,22 @@ class ClaudeCodeDetector:
                 text=True,
                 timeout=timeout,
             )
-        except subprocess.TimeoutExpired:
-            # A timeout counts as "did not fire" for that run — distinct from
-            # a runner-level crash. We never serialize the (possibly partial)
-            # payload here.
-            return ActivationResult()
-        return parse_activation(proc.stdout)
+        except (subprocess.TimeoutExpired, OSError) as exc:
+            # A timeout / spawn failure is a harness error, not a clean
+            # non-activation. We never serialize the (possibly partial)
+            # payload or the exception's stderr.
+            kind = "timeout" if isinstance(exc, subprocess.TimeoutExpired) else "spawn-error"
+            return ActivationResult(error=kind)
+        res = parse_activation(proc.stdout)
+        # A non-zero exit (auth failure, rate-limit) or a stream that never
+        # reached a terminal `result` event (truncated / format drift) means
+        # the run could not be measured — flag it so a zeroed trigger_rate is
+        # distinguishable from a genuine miss in the artifact.
+        if proc.returncode != 0:
+            res.error = f"exit-{proc.returncode}"
+        elif res.result is None and not res.skills_fired:
+            res.error = "no-result-event"
+        return res
 
 
 # Adapters with no headless prompt surface — rejected with a clear message
@@ -253,7 +268,12 @@ def read_covered_skills(pack_dir: pathlib.Path) -> list[str]:
 
 
 def read_eval_queries(pack_dir: pathlib.Path, skill: str) -> list[dict]:
-    """Return the flat [{query, should_trigger}] array for one covered skill."""
+    """Return the flat [{query, should_trigger}] array for one covered skill.
+
+    Read from the source `.apm/skills/.../evals/` (author input), not the
+    projected tree — the runner measures activation against the projection but
+    the queries are authored, not a projected artifact (skill projection is a
+    verbatim copytree today, so the two are byte-identical regardless)."""
     path = pack_dir / ".apm" / "skills" / skill / "evals" / "eval_queries.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
@@ -331,16 +351,36 @@ def run_eval(
 
     for skill in covered:
         queries = read_eval_queries(pack_dir, skill)
-        skill_summary: dict = {"queries": [], "pass_count": 0, "total": len(queries)}
+        skill_summary: dict = {
+            "queries": [], "pass_count": 0, "total": len(queries), "error_count": 0,
+        }
+        if not queries:
+            print(
+                f"run-pack-evals: warning: {skill}: eval_queries.json is empty "
+                f"— 0 queries measured.",
+                file=sys.stderr,
+            )
         for q_index, entry in enumerate(queries):
             query = entry.get("query", "")
             should_trigger = bool(entry.get("should_trigger", False))
             query_id = f"q{q_index:02d}"
+            if not query:
+                # The lint rejects this at source; guard the runner too rather
+                # than measuring an empty prompt.
+                print(
+                    f"run-pack-evals: warning: {skill} {query_id}: empty query "
+                    f"— skipped.",
+                    file=sys.stderr,
+                )
+                continue
             target_fired: list[bool] = []
             exclusivity: set[str] = set()
+            errored = 0
             for r in range(1, runs + 1):
                 result = detector.run_and_parse(query, run_cwd, timeout)
                 target_fired.append(skill in result.skills_fired)
+                if result.error:
+                    errored += 1
                 # Intra-pack exclusivity: a *different* in-pack skill fired.
                 for other in result.skills_fired:
                     if other != skill and other in pack_skills:
@@ -358,6 +398,7 @@ def run_eval(
             passed = grade(rate, should_trigger)
             if passed:
                 skill_summary["pass_count"] += 1
+            skill_summary["error_count"] += errored
             skill_summary["queries"].append(
                 {
                     "query_id": query_id,
@@ -365,6 +406,7 @@ def run_eval(
                     "should_trigger": should_trigger,
                     "trigger_rate": rate,
                     "passed": passed,
+                    "errored_runs": errored,
                     "exclusivity_violations": sorted(exclusivity),
                 }
             )
@@ -383,7 +425,13 @@ def _print_report(summary: dict) -> None:
         f"runs={summary['runs']} iteration={summary['iteration']}"
     )
     for skill, s in summary["skills"].items():
-        print(f"  {skill}: {s['pass_count']}/{s['total']} queries passed")
+        errs = s.get("error_count", 0)
+        err_note = (
+            f"  ⚠ {errs} harness error(s) — trigger rates unreliable"
+            if errs
+            else ""
+        )
+        print(f"  {skill}: {s['pass_count']}/{s['total']} queries passed{err_note}")
         for q in s["queries"]:
             mark = "ok " if q["passed"] else "MISS"
             excl = (
@@ -391,10 +439,15 @@ def _print_report(summary: dict) -> None:
                 if q["exclusivity_violations"]
                 else ""
             )
+            errored = (
+                f"  ⚠ {q['errored_runs']} errored run(s)"
+                if q.get("errored_runs")
+                else ""
+            )
             print(
                 f"    [{mark}] {q['query_id']} "
                 f"should_trigger={q['should_trigger']} "
-                f"trigger_rate={q['trigger_rate']:.2f}{excl}"
+                f"trigger_rate={q['trigger_rate']:.2f}{excl}{errored}"
             )
 
 
