@@ -41,7 +41,7 @@ A skill is a directory with `SKILL.md` plus four optional subdirectories — and
 - `scripts/` — helper code the skill invokes (`python scripts/foo.py`). The skill body drives the script; it is not the script.
 - `references/` — detailed material the agent loads **on demand**, not every time (schemas, per-branch strategies, long tables).
 - `assets/` — templates and fixtures the skill copies or fills in (`assets/template.html`, `assets/state.json`).
-- `evals/` — evaluation fixtures in the canonical `evals/evals.json` + `evals/files/<fixture>` layout.
+- `evals/` — evaluation fixtures. Two files serve two tiers: `evals/eval_queries.json` (Tier-A **activation** evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B **output-quality** evals). See [Evals](#evals--does-the-skill-activate-and-does-it-do-the-job) below.
 
 Two rules the linter enforces, worth getting right the first time:
 
@@ -131,6 +131,82 @@ Never:
 - **A pip/npm package, not a binary.** Probe presence with an import / `require.resolve`, not `shutil.which` (which finds binaries, not library packages); on absence, declare the install line and stop — [`file-to-markdown`](../../../../packs/converters/.apm/skills/file-to-markdown) is the detect-and-stop model. A skill that goes further and *installs* on consent is Tier 2, not Tier 1 ([`markdown-to-html`](../../../../packs/converters/.apm/skills/markdown-to-html)).
 - **A sibling skill.** Detect by invoking that skill's own `check` verb and reading its exit code; on failure, point the user at the sibling's setup rather than reaching into its internals ([`flow-metrics`](../../../../packs/atlassian/.apm/skills/flow-metrics), in the atlassian pack → `jira: check`).
 - **A vendor CLI the user authenticated** (`gh`, `git`, `kubectl`). Presence detection still applies; the credential dimension is the `auth: cli` broker — see the credentialed-skill guide.
+
+## Evals — does the skill activate, and does it do the job?
+
+A skill has two failure modes worth measuring, and `evals/` holds a separate
+file for each. They are **distinct files with distinct schemas** — don't merge
+them.
+
+| File | Tier | Question it answers | Run by |
+| --- | --- | --- | --- |
+| `evals/eval_queries.json` | **A — triggering** | Does this skill *activate* on the prompts it should, and stay quiet on the near-misses it shouldn't? | `tools/run-pack-evals.py` (today) |
+| `evals/evals.json` | **B — output quality** | Once activated, does it *do the job*? | authored by hand now; **automated running/grading is deferred to a future RFC** |
+
+### Tier A — writing activation evals (`evals/eval_queries.json`)
+
+A flat JSON array; each element is `{ "query": "<a natural user prompt>",
+"should_trigger": <bool> }`. Aim for **~8–10 should-trigger and ~8–10
+should-not-trigger** cases. The negatives are the load-bearing part: make them
+**near-misses** — prompts that share keywords or concepts with your skill but
+need a *different* one — not trivially-irrelevant prompts. (For the Office
+converters, the negatives deliberately separate docx / pptx / xlsx from each
+other; for `new-spec`, "record this decision" is a near-miss that belongs to
+`new-adr`.)
+
+```json
+[
+  {"query": "Let's write a spec for a new export feature", "should_trigger": true},
+  {"query": "Fix the bug where export drops the header row", "should_trigger": false}
+]
+```
+
+Declare which skills are covered in the pack's `pack.toml` — an explicit
+allowlist, never auto-discovery:
+
+```toml
+[pack.evals]
+skills = ["new-spec", "bug-fix"]
+```
+
+Then run the evals locally (report-only; needs the `claude` CLI on PATH):
+
+```bash
+python tools/run-pack-evals.py --pack <name>
+```
+
+It projects the pack in isolation, runs each query through the headless `claude`
+detector several times, computes a per-query `trigger_rate`, and grades it: a
+`should_trigger: true` query passes iff `trigger_rate > 0.5`; a
+`should_trigger: false` query passes iff `trigger_rate < 0.5`. The runs and a
+bounded `summary.json` land in a gitignored, iteration-numbered eval-workspace
+(see [pack layout](../../../architecture/pack-layout.md)). A miss is a signal to
+sharpen your `description:` — the one field that drives activation.
+
+Not every skill belongs in `[pack.evals].skills`: a reviewer-internal skill with
+no user-prompt surface (e.g. `security-checklists`), or one loaded broadly by a
+discipline rather than a narrow prompt (e.g. `work-loop`), is deliberately left
+out.
+
+### Tier B — authoring output-quality evals (`evals/evals.json`)
+
+`evals/evals.json` is `{ "skill_name", "evals": [{ "id", "prompt",
+"expected_output", "files"?, "assertions"? }] }`. **Author these now** — they
+document what good output looks like — but note that **this RFC does not run or
+grade them**; automated execution (with/without-skill comparison, LLM-judge,
+pass-rate deltas) is a future Tier-B RFC.
+
+Two things make a Tier-B eval worth writing:
+
+- **A concrete `expected_output`.** Describe what the agent should actually
+  produce and *do* — "invokes `render.py` with `--template report.docx`, reports
+  the OUTPUT path, does not hand-write the .docx" — not a vague "produces a good
+  doc". The detail is what a future grader (or a human reviewer today) checks
+  against.
+- **Assertions that bite.** A good assertion is falsifiable and behaviour-level
+  ("does NOT instruct the user to pre-escape the ampersand"); a weak one restates
+  the prompt ("produces output"). Until automated grading lands, a human reads
+  the run against these — so write them for that reader.
 
 ## What's enforced vs. recommended
 
