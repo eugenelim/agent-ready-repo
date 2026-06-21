@@ -63,6 +63,44 @@ class KiroIdeAdapterTests(unittest.TestCase):
             for cli_only in ("hooks", "allowedTools", "toolsSettings", "mcpServers"):
                 self.assertNotIn(cli_only, raw, f"kiro-ide agent .md must not contain {cli_only!r}")
 
+    def test_kiro_ide_gets_skill_resources(self) -> None:
+        """kiro-ide custom agents (and IDE subagents) must declare the
+        skill-resources glob so they reach skills — IDE custom agents don't
+        inherit the default agent's auto-discovery either (RFC-0022 E4)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_agent_pack(tmp_path)
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            raw = (out / ".kiro" / "agents" / "bar.md").read_text(encoding="utf-8")
+            # Assert the exact emitted line: a flow sequence of DOUBLE-QUOTED
+            # scalars. Quoting makes the `skill://` URIs / `**` globs
+            # unambiguous YAML, guarding the IDE's fail-silent frontmatter
+            # parser (kiro #8329). The bytes were confirmed to round-trip
+            # through PyYAML to the two-element list during verification; this
+            # gate is exact-string (the build tree is stdlib-only — no yaml).
+            self.assertIn(
+                'resources: ["skill://.kiro/skills/**/SKILL.md", '
+                '"skill://~/.kiro/skills/**/SKILL.md"]',
+                raw,
+            )
+
+    def test_kiro_ide_resources_author_override_wins(self) -> None:
+        """An IDE agent that declares its own `resources` keeps it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "bar.md").write_text(
+                "---\nname: bar\nresources: [file://README.md]\n---\nbody\n",
+                encoding="utf-8",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            raw = (out / ".kiro" / "agents" / "bar.md").read_text(encoding="utf-8")
+            self.assertIn("file://README.md", raw)
+            self.assertNotIn("skill://", raw)
+
     def test_kiro_ide_tools_use_ide_ids(self) -> None:
         """kiro-ide uses IDE tool ids (read_file, grep_search) not CLI short-names."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -134,13 +172,13 @@ class KiroIdeAdapterTests(unittest.TestCase):
         self.assertIn(".kiro.hook", target_repo)
 
     def test_contract_version_is_0_9(self) -> None:
-        """Contract version is 0.14 (docs/specs/enriched-pack-manifest, atop
-        gemini-full-parity's 0.13 and copilot-skills-and-web's 0.12).
+        """Contract version is 0.15 (docs/specs/kiro-cli-agent-skill-resources,
+        atop enriched-pack-manifest's 0.14 and gemini-full-parity's 0.13).
         Name preserved to keep the diff small."""
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.14",
-            "adapter.toml [contract] version must be '0.14' after enriched-pack-manifest",
+            "0.15",
+            "adapter.toml [contract] version must be '0.15' after kiro-cli-agent-skill-resources",
         )
 
     def test_kiro_ide_hook_projects_with_flat_prefix_path(self) -> None:

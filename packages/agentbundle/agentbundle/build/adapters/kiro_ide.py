@@ -244,6 +244,15 @@ def _project_agent_as_md(
         agent_name = rewritten.get("name") or entry.stem
         rewritten["name"] = agent_name
 
+        # Skill-resources injection (RFC-0022 E4). Same gap as kiro-cli: IDE
+        # custom agents don't inherit the default agent's `.kiro/skills`
+        # auto-discovery, so inject the declared glob unless the agent set its
+        # own `resources` (author override wins). `resources` is a documented
+        # IDE agent field, so it does not trip the silent-drop bug.
+        inject_resources = rule.get("inject-resources")
+        if inject_resources and "resources" not in rewritten:
+            rewritten["resources"] = list(inject_resources)
+
         output_text = _serialize_frontmatter_md(rewritten) + body
         destination = target_dir / entry.name  # preserves .md extension
         destination.write_text(output_text, encoding="utf-8")
@@ -260,16 +269,24 @@ def _serialize_frontmatter_md(fields: dict[str, Any]) -> str:
     lines = ["---"]
     for key, value in fields.items():
         if isinstance(value, list):
-            items = ", ".join(str(v) for v in value)
+            # Flow sequence. Simple tokens (tool ids like `read_file`) stay
+            # unquoted; items with YAML-special chars (e.g. `skill://` URIs
+            # with `**` globs) are quoted so the IDE's parser can't misread them.
+            items = ", ".join(_yaml_scalar(str(v)) for v in value)
             lines.append(f"{key}: [{items}]")
         elif isinstance(value, str):
-            # Quote strings that contain YAML-special characters.
-            if any(c in value for c in ':#{}[]|>&*!,\'"'):
-                escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-                lines.append(f'{key}: "{escaped}"')
-            else:
-                lines.append(f"{key}: {value}")
+            lines.append(f"{key}: {_yaml_scalar(value)}")
         else:
             lines.append(f"{key}: {value}")
     lines.append("---")
     return "\n".join(lines) + "\n"
+
+
+def _yaml_scalar(value: str) -> str:
+    """Render a string as a YAML scalar, double-quoting when it contains a
+    YAML-special character (else a plain scalar). Used for both top-level
+    values and items inside a `[...]` flow sequence."""
+    if any(c in value for c in ':#{}[]|>&*!,\'"'):
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    return value

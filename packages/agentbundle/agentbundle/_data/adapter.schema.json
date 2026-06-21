@@ -69,6 +69,7 @@
                 "managed-block-delimiter-end": {"type": "string"},
                 "frontmatter-mapping": {"type": "string"},
                 "frontmatter-default": {"type": "string"},
+                "inject-resources": {"type": "array", "items": {"type": "string"}},
                 "info-message": {"type": "string"}
               }
             }

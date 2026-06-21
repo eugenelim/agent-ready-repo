@@ -6,6 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.6.0] — 2026-06-20
+
+### Fixed
+
+- **Kiro custom agents now reach the bundle's skills — CLI and IDE** (RFC-0022
+  erratum E4; adapter contract v0.15). On both Kiro targets, only the *default*
+  agent auto-discovers skills; a *custom* agent (`kiro --agent <name>`, every
+  headless `--no-interactive` run, or an IDE subagent) loaded **zero** skills
+  unless it declared them in its `resources` field (kiro #6887/#6888/#4993). The
+  `kiro-cli` and `kiro-ide` agent projections now inject a skill-resources glob
+  (`skill://.kiro/skills/**/SKILL.md` plus the `~/.kiro/skills/**/SKILL.md`
+  user-scope twin) into every projected agent — CLI into the agent JSON, IDE
+  into the `.md` YAML frontmatter (quoted, YAML-safe). An agent that declares
+  its own `resources` keeps it; the deprecated `kiro` alias inherits the IDE
+  behavior. Default-agent runs were already fine and are unaffected.
+
+### Added
+
+- **`inject-resources` adapter-contract field** (contract v0.15). A typed,
+  optional array on an adapter's agent projection entry that injects a fixed
+  `resources` list into every projected agent. Currently used by the two Kiro
+  adapters for skill reachability (above).
+
 ## [0.5.0] — 2026-06-16
 
 ### Added

@@ -71,7 +71,13 @@
 # each pack's README. All new fields are optional — packs pinned below v0.14
 # build and validate unchanged. Declaration + projection only (no @catalogue/pack
 # resolution, no search, no persisted index).
-version = "0.14"
+# docs/specs/kiro-cli-agent-skill-resources (v0.15): kiro-cli agent projection
+# injects a fixed skill-resources glob (both install scopes) so headless
+# `--agent` runs reach the bundle's skills — Kiro custom agents don't inherit
+# the default agent's `.kiro/skills` auto-discovery (RFC-0022 E4; kiro
+# #6887/#6888/#4993). Additive `inject-resources` on BOTH the kiro-cli and
+# kiro-ide agent projections (CLI → agent JSON, IDE → quoted .md frontmatter).
+version = "0.15"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
@@ -319,6 +325,13 @@ primitive = "agent"
 mode = "direct-file"
 target-path = ".kiro/agents/"
 frontmatter-mapping = "kiro-ide-agent-frontmatter-v0.9"
+# Skill discovery (RFC-0022 E4): IDE custom agents / subagents do NOT inherit
+# the default agent's `.kiro/skills` auto-discovery either (kiro #6887/#6888,
+# #4993). Inject the same fixed skill-resources glob as kiro-cli; the IDE
+# agent `resources` field is documented and `skill://`-aware, so it does not
+# trip the silent-drop bug (that's for non-schema keys like `hooks`). Emitted
+# into the `.md` YAML frontmatter, quoted. Author override wins.
+inject-resources = ["skill://.kiro/skills/**/SKILL.md", "skill://~/.kiro/skills/**/SKILL.md"]
 on-conflict = "prompt-then-preserve"
 
 [[adapter.kiro-ide.projection]]
@@ -388,6 +401,14 @@ primitive = "agent"
 mode = "direct-file"
 target-path = ".kiro/agents/"
 frontmatter-mapping = "kiro-cli-agent-frontmatter-v1.0"
+# Skill discovery (RFC-0022 E4): Kiro custom agents do NOT inherit the default
+# agent's auto-discovery of `.kiro/skills` (kiro #6887/#6888), so a headless
+# `--agent` run sees zero skills unless the agent declares them. Inject this
+# fixed skill-resources glob (both install scopes) into every projected agent.
+# Skipped when the agent source already declares its own `resources` (author
+# override wins). kiro-ide carries the same field on its own agent projection
+# entry (emitted into `.md` frontmatter rather than JSON).
+inject-resources = ["skill://.kiro/skills/**/SKILL.md", "skill://~/.kiro/skills/**/SKILL.md"]
 on-conflict = "prompt-then-preserve"
 
 [[adapter.kiro-cli.projection]]

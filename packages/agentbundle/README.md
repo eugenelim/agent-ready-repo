@@ -13,7 +13,7 @@ pip install agentbundle
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
 ```
 
-That lands `core`, the flagship pack and the loop itself, in your repo. Claude Code, Codex, Cursor, Copilot, Gemini, and Kiro all read it.
+That lands `core`, the flagship pack and the loop itself, in your repo. Claude Code, Codex, Cursor, Copilot, Gemini, and Kiro — both the CLI and the IDE — all read it, subagents and skills included.
 
 ## Common commands
 

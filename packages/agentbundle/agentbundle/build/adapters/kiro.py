@@ -284,6 +284,16 @@ def _project_agent_as_json(
             prompt = body.rstrip("\n")
             if prompt:
                 agent_json["prompt"] = prompt
+        # Skill-resources injection (RFC-0022 E4). The agent projection
+        # declares `inject-resources` so custom agents reach the bundle's
+        # skills — Kiro custom agents don't inherit the default agent's
+        # `.kiro/skills` auto-discovery (kiro #6887/#6888). Author-declared
+        # `resources` win: only inject when the agent set none. This function
+        # handles the CLI (JSON) path; kiro-ide injects the same field in its
+        # own `.md` projector (`_project_agent_as_md`).
+        inject_resources = rule.get("inject-resources")
+        if inject_resources and "resources" not in agent_json:
+            agent_json["resources"] = list(inject_resources)
         destination = target_dir / (entry.stem + ".json")
         destination.write_text(
             json.dumps(agent_json, indent=2, sort_keys=False) + "\n",
