@@ -752,3 +752,52 @@ gates. This is the accepted Tier-1 "user owns currency" posture, not a defect.
 set (the versions pinned in `build-check.yml`'s "pip install the Markdown→Office
 render libraries" step), so the SCA gap becomes a tracked, gating check rather
 than a documented accepted-state.
+
+---
+
+## `pack-activation-evals`
+
+### pack-evals-converters-gate-consolidation
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) — plan T8
+(follow-on, non-blocking). The existing `converters` `evals/evals.json`
+carry-over gate in `build-check.yml` ("converters evals.json carry-over
+disposition") enumerates its covered skills by hand. RFC-0037 names an optional
+consolidation: have that gate read `[pack.evals].skills` instead. Kept separate
+from the first cut because it tests a *different* contract (output-quality
+`evals.json` presence + the `msg-to-markdown` negative assertion), and folding it
+in risks the harness. **Unblocks when:** the `[pack.evals]` coverage lint (plan
+T2) and the converters eval authoring (plan T4) have shipped, and someone takes
+the consolidation as its own PR. **Note:** six converters skills ship
+`evals/evals.json` (`file-to-markdown`, `markdown-to-docx`/`-pptx`/`-xlsx`,
+`markdown-to-html`, `mermaid-renderer`) but the carry-over gate enumerates only
+five plus the `msg-to-markdown` negative — the consolidation must reconcile
+`mermaid-renderer` (output-quality covered, outside the five-skill enumeration).
+
+### secret-scanner-for-api-key-workflows
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) — plan
+§ Risks (security-reviewer spec-stage Nit, 2026-06-21). This spec introduces the
+repo's **first long-lived API-key workflow secret** (`ANTHROPIC_API_KEY` for
+`pack-evals.yml`). The repo wires no secret scanner today (only CodeQL +
+Bandit/Semgrep), so a committed-key regression in a future eval file or workflow
+edit would not be caught in CI. **Unblocks when:** a `gitleaks`/`trufflehog`-class
+secret scan is wired into CI — its own PR, since it is a repo-wide gate, not a
+`pack-activation-evals` deliverable.
+
+### headless-detectors-for-other-adapters
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) — plan
+§ Design decisions (AC18 detector seam). The first cut ships the `claude-code`
+headless detector only. Additional **headless** detectors are additive behind the
+seam: codex (`codex exec --json`) and copilot (`copilot -p --output-format json`)
+expose JSON event streams on this machine; cursor-agent and gemini are documented
+headless+JSON but their CLIs aren't installed here. Each needs a per-adapter
+**confirm-spike**: does the JSON stream carry a parseable *skill-activation* event
+(the equivalent of claude-code's `Skill` tool_use + `.input.skill`)?
+**Out of scope (not a backlog item — a hard boundary):** GUI-only IDEs (Kiro IDE,
+Cursor IDE) have no headless surface; an in-editor `userTriggered` `.kiro.hook`
+driver was rejected as runtime infra (Principle 3). Their byte-identical
+`description:` is covered by the claude-code reference-harness proxy.
+**Unblocks when:** someone runs the confirm-spike for a target CLI and adds its
+detector + a fixture parse test.
