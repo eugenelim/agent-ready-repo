@@ -785,6 +785,16 @@ edit would not be caught in CI. **Unblocks when:** a `gitleaks`/`trufflehog`-cla
 secret scan is wired into CI — its own PR, since it is a repo-wide gate, not a
 `pack-activation-evals` deliverable.
 
+**Adjacent CI-security hardening (security-reviewer impl-pass, 2026-06-21):** the
+implementing PR fixed the immediate findings (the `workflow_dispatch` input now
+passes through an `env:` var, not `${{ }}`-into-`run:`; the `claude` CLI install
+is version-pinned). Two defense-in-depth items remain repo-wide follow-ons in the
+same vehicle as the secret scanner: (a) wire **`actionlint` + `zizmor`** into CI
+to catch the GitHub-Actions script-injection / least-privilege class mechanically
+rather than by review; (b) **pin/lock the workflow's install deps** (an
+agentbundle hashed/locked requirements set + Dependabot/SCA tracking) since those
+installs run in the same job that later exposes the secret.
+
 ### headless-detectors-for-other-adapters
 
 **Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) — plan

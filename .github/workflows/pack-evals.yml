@@ -49,7 +49,9 @@ jobs:
           pip install -r tools/requirements.txt
 
       - name: Install the claude CLI (activation detector)
-        run: npm install -g @anthropic-ai/claude-code
+        # Pinned: the activation event's stream shape is version-sensitive, so
+        # a CLI bump is a deliberate change, not a silent scheduled-run drift.
+        run: npm install -g @anthropic-ai/claude-code@2.1.185
 
       - name: Run activation evals (report-only)
         id: evals
@@ -57,9 +59,11 @@ jobs:
         env:
           # Headless auth for `claude -p`. The runner never echoes this value.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Pass the dispatch input through an env var — never interpolate
+          # `${{ … }}` into the shell body (script-injection sink).
+          PACKS_INPUT: ${{ github.event.inputs.packs }}
         run: |
-          packs="${{ github.event.inputs.packs }}"
-          packs="${packs:-core converters}"
+          packs="${PACKS_INPUT:-core converters}"
           for pack in $packs; do
             echo "::group::pack-evals $pack"
             python tools/run-pack-evals.py --pack "$pack"

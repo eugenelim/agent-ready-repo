@@ -1,7 +1,7 @@
 # Plan: pack-activation-evals
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -109,8 +109,10 @@ third-party dependency.
   `with_skill/.../outputs/` + `summary.json`; the `without_skill/`, `timing.json`,
   `grading.json`, `benchmark.json` slots are named-but-unused so a grading RFC
   fills them without restructuring. `outputs/` stores the **parsed `.result`
-  field** of the `claude -p --output-format json` envelope — never the raw stdout
-  stream, stderr, env, or key; `summary.json` is the bounded aggregation (AC10).
+  field** of the `claude -p --output-format stream-json --verbose` stream (the
+  terminal `result` event) — never the raw stdout stream, stderr, env, or key;
+  `summary.json` is the bounded aggregation (AC10). (Detector format: RFC-0037
+  § Errata E1 — `--output-format json` carries no `tool_use` events.)
 - **`evals/eval_queries.json` schema:** a JSON array; each element
   `{ "query": <non-empty str>, "should_trigger": <bool> }`. Validated by
   `lint-skill-spec.py`. Traces to: AC6, AC14.
@@ -195,7 +197,7 @@ green on the current tree (no skill ships `eval_queries.json` yet).
 **Depends on:** none <!-- consumes T4/T5's files at *runtime* but does not import them; built against fixtures -->
 
 **Tests:**
-- **Parse:** a captured `claude -p --output-format json` payload containing a
+- **Parse:** a captured `claude -p --output-format stream-json --verbose` payload containing a
   `Skill` `tool_use` with `.input.skill == X` → `(fired=True, skill=X)`; a
   payload with no `Skill` event → `(fired=False, skill=None)` (AC1).
 - **`trigger_rate`:** firing fraction over a list of run-results (AC2).
@@ -219,8 +221,9 @@ green on the current tree (no skill ships `eval_queries.json` yet).
 
 **Approach:**
 - stdlib + `tomllib`. The `claude-code` detector runs
-  `subprocess.run([claude, "-p", query, "--output-format", "json",
-  "--allowed-tools", "Skill"], timeout=…)` — argv list, no `shell`;
+  `subprocess.run([claude, "-p", query, "--output-format", "stream-json",
+  "--verbose", "--allowed-tools", "Skill"], timeout=…)` — argv list, no `shell`
+  (detector format: RFC-0037 § Errata E1);
   `--allowed-tools` stays **`Skill` only** (the observe-don't-execute trust
   boundary, spec § Never do). Parse the JSON envelope; capture its **`.result`
   field** (not the raw stdout stream) to
@@ -421,3 +424,4 @@ rather than blocking the harness". Recorded in `docs/backlog.md`.
 ## Changelog
 
 - 2026-06-21: initial plan (authored alongside the spec + ADR-0028; implementation deferred to a separate PR per RFC-0037 § Follow-on artifacts).
+- 2026-06-21: implementing PR — T1–T7 landed; Status → Done. Detector corrected to `--output-format stream-json --verbose` (RFC-0037 § Errata E1 — the `json` envelope carries no `tool_use` events on claude 2.1.185); the T2 coverage check is hosted in `lint-skill-spec.py` (a source-surface lint run locally + in CI), since `pack.toml` is never projected and `lint-agent-artifacts` reads only `.claude/`. T8 deferred to `docs/backlog.md`.

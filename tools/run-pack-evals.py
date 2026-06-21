@@ -218,6 +218,30 @@ def get_detector(adapter: str):
 # ── Pack reading ──────────────────────────────────────────────────────────
 
 
+def _safe_segment(label: str, name: str) -> str:
+    """Reject a path segment that isn't a single, traversal-free name.
+
+    `pack_name` (from `--pack`) and each skill name (from `[pack.evals].skills`)
+    are interpolated into filesystem paths; confine them to a single component
+    so `../…` or an absolute path can't escape the pack tree or the workspace.
+    """
+    # Reject both separators explicitly: `\` is not a separator on POSIX (so
+    # `Path("a\\b").name` would pass there) but is on Windows — confine on all
+    # platforms.
+    if (
+        not name
+        or "/" in name
+        or "\\" in name
+        or name in (".", "..")
+        or name != pathlib.PurePosixPath(name).name
+    ):
+        raise ValueError(
+            f"unsafe {label} {name!r}: must be a single path segment "
+            f"(no '/', '\\', or '..')"
+        )
+    return name
+
+
 def read_covered_skills(pack_dir: pathlib.Path) -> list[str]:
     """Return the `[pack.evals].skills` allowlist (empty if no block)."""
     manifest = tomllib.loads((pack_dir / "pack.toml").read_text(encoding="utf-8"))
@@ -271,8 +295,9 @@ def run_eval(
     """
     if detector is None:
         detector = get_detector(ClaudeCodeDetector.adapter)
+    _safe_segment("pack name", pack_name)
     pack_dir = repo_root / "packs" / pack_name
-    covered = read_covered_skills(pack_dir)
+    covered = [_safe_segment("skill name", s) for s in read_covered_skills(pack_dir)]
     # Every skill in the pack — for intra-pack exclusivity (a *different*
     # in-pack skill firing on a query), which may be a non-covered skill.
     # Cross-*pack* collisions are out of scope (the projection holds only

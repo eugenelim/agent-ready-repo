@@ -99,6 +99,19 @@ def test_trigger_rate_and_grade() -> None:
     print("✓ trigger_rate + 0.5 grading correct.")
 
 
+def test_safe_segment() -> None:
+    for ok in ("core", "new-spec", "markdown-to-docx"):
+        check("safe-seg", M._safe_segment("x", ok) == ok, f"{ok!r} should be accepted")
+    for bad in ("../escape", "a/b", "..", ".", "", "a\\b", "/abs"):
+        try:
+            M._safe_segment("x", bad)
+        except ValueError:
+            pass
+        else:
+            fail("safe-seg", f"{bad!r} must be rejected (path traversal)")
+    print("✓ _safe_segment rejects traversal / multi-segment names.")
+
+
 def test_detector_seam() -> None:
     det = M.get_detector("claude-code")
     check("seam", isinstance(det, M.ClaudeCodeDetector), "claude-code -> detector")
@@ -254,6 +267,7 @@ def test_help_smoke() -> None:
 def main() -> int:
     test_parse_activation()
     test_trigger_rate_and_grade()
+    test_safe_segment()
     test_detector_seam()
     test_run_eval_workspace_and_grading()
     test_gitignored_control()
