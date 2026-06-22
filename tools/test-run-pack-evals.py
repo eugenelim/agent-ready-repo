@@ -298,6 +298,8 @@ def test_run_eval_workspace_and_grading() -> None:
             f"expected beta flagged, got {qs['q02']['exclusivity_violations']}",
         )
         check("count", summary["skills"]["alpha"]["pass_count"] == 2, "2 of 3 pass")
+        check("mode", summary["mode"] == "headless" and summary["fidelity"] == "observed",
+              "headless summary must be labelled mode=headless / fidelity=observed")
         check("err-count", summary["skills"]["alpha"]["error_count"] == 0,
               "clean detector -> 0 harness errors")
 
@@ -332,6 +334,42 @@ def test_run_eval_workspace_and_grading() -> None:
           "iteration bump all correct; reserved slots untouched.")
 
 
+def test_grade_reports_in_harness() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_fake_pack(repo_root)
+        reports = {
+            "alpha": {
+                "q00": ["alpha", "alpha", "alpha"],          # positive, fires -> pass
+                "q01": [None, None, None],                   # negative, quiet -> pass
+                "q02": ["beta", "beta", M.REPORT_ERROR],     # positive, stolen+1 error -> fail
+            }
+        }
+        summary = M.grade_reports("testpack", reports, repo_root=repo_root)
+
+        check("mode", summary["mode"] == "in-harness", "mode must be in-harness")
+        check("fidelity", summary["fidelity"] == "reported", "fidelity must be reported")
+        qs = {q["query_id"]: q for q in summary["skills"]["alpha"]["queries"]}
+        check("grade", qs["q00"]["passed"] is True and qs["q00"]["trigger_rate"] == 1.0,
+              "q00 all-alpha -> pass @ 1.0")
+        check("grade", qs["q01"]["passed"] is True, "q01 all-quiet negative -> pass")
+        check("grade", qs["q02"]["passed"] is False, "q02 stolen -> fail")
+        check("excl", qs["q02"]["exclusivity_violations"] == ["beta"], "beta flagged")
+        check("err", qs["q02"]["errored_runs"] == 1, "1 errored run on q02")
+        check("count", summary["skills"]["alpha"]["pass_count"] == 2, "2 of 3 pass")
+        check("err-count", summary["skills"]["alpha"]["error_count"] == 1, "1 error total")
+
+        # Bounded report capture written, contains only skill names (no model text).
+        cap = (repo_root / ".eval-workspace" / "testpack" / "iteration-1"
+               / "alpha" / "q02" / "in_harness" / "reports.json")
+        check("capture", cap.is_file(), "in_harness reports.json not captured")
+        blob = cap.read_text(encoding="utf-8")
+        for forbidden in ("ANTHROPIC_API_KEY", "stderr", "environ"):
+            check("capture", forbidden not in blob, f"capture leaked {forbidden!r}")
+    print("✓ grade_reports: in-harness grading, mode/fidelity labels, exclusivity, "
+          "errors, bounded capture.")
+
+
 def test_gitignored_control() -> None:
     # The real repo .gitignore must ignore a representative outputs/ path.
     rel = ".eval-workspace/core/iteration-1/new-spec/q00/with_skill/run-1/outputs/result.txt"
@@ -360,6 +398,7 @@ def main() -> int:
     test_print_report_smoke()
     test_detector_seam()
     test_run_eval_workspace_and_grading()
+    test_grade_reports_in_harness()
     test_gitignored_control()
     test_help_smoke()
     print()

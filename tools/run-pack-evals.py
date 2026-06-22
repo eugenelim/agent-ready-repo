@@ -285,6 +285,47 @@ def read_eval_queries(pack_dir: pathlib.Path, skill: str) -> list[dict]:
 
 # ── Orchestration ──────────────────────────────────────────────────────────
 
+# In-harness reports use this sentinel for a run whose dispatch failed (vs a
+# legitimate `null`/None = "the sub-context activated no skill").
+REPORT_ERROR = "__error__"
+
+
+def _pack_skills(pack_dir: pathlib.Path) -> set[str]:
+    """Every skill dir in the pack — for intra-pack exclusivity."""
+    skills_root = pack_dir / ".apm" / "skills"
+    return (
+        {p.name for p in skills_root.iterdir() if p.is_dir()}
+        if skills_root.is_dir()
+        else set()
+    )
+
+
+def _query_summary(
+    query_id: str,
+    query: str,
+    should_trigger: bool,
+    target_fired: list[bool],
+    exclusivity: set[str],
+    errored: int,
+) -> tuple[dict, bool]:
+    """Build one query's bounded summary record from its per-run outcomes.
+    Shared by the headless orchestration and the in-harness grader so both
+    emit an identical record shape. Returns (record, passed)."""
+    rate = trigger_rate(target_fired)
+    passed = grade(rate, should_trigger)
+    return (
+        {
+            "query_id": query_id,
+            "query": query,
+            "should_trigger": should_trigger,
+            "trigger_rate": rate,
+            "passed": passed,
+            "errored_runs": errored,
+            "exclusivity_violations": sorted(exclusivity),
+        },
+        passed,
+    )
+
 
 def _next_iteration(pack_workspace: pathlib.Path) -> int:
     """One-based iteration number: max existing iteration-<N> + 1."""
@@ -320,16 +361,9 @@ def run_eval(
     _safe_segment("pack name", pack_name)
     pack_dir = repo_root / "packs" / pack_name
     covered = [_safe_segment("skill name", s) for s in read_covered_skills(pack_dir)]
-    # Every skill in the pack — for intra-pack exclusivity (a *different*
-    # in-pack skill firing on a query), which may be a non-covered skill.
-    # Cross-*pack* collisions are out of scope (the projection holds only
-    # this pack's skills anyway).
-    skills_root = pack_dir / ".apm" / "skills"
-    pack_skills = (
-        {p.name for p in skills_root.iterdir() if p.is_dir()}
-        if skills_root.is_dir()
-        else set()
-    )
+    # Intra-pack exclusivity may name a non-covered skill; cross-*pack*
+    # collisions are out of scope (the projection holds only this pack's skills).
+    pack_skills = _pack_skills(pack_dir)
 
     pack_workspace = repo_root / EVAL_WORKSPACE / pack_name
     iteration = _next_iteration(pack_workspace)
@@ -346,6 +380,9 @@ def run_eval(
     summary: dict = {
         "pack": pack_name,
         "adapter": getattr(detector, "adapter", "claude-code"),
+        "mode": "headless",
+        # Headless observes the real `Skill` tool_use router event.
+        "fidelity": "observed",
         "runs": runs,
         "iteration": iteration,
         "skills": {},
@@ -396,21 +433,90 @@ def run_eval(
                 (out_dir / "result.txt").write_text(
                     result.result or "", encoding="utf-8"
                 )
-            rate = trigger_rate(target_fired)
-            passed = grade(rate, should_trigger)
+            record, passed = _query_summary(
+                query_id, query, should_trigger, target_fired, exclusivity, errored
+            )
             if passed:
                 skill_summary["pass_count"] += 1
             skill_summary["error_count"] += errored
-            skill_summary["queries"].append(
-                {
-                    "query_id": query_id,
-                    "query": query,
-                    "should_trigger": should_trigger,
-                    "trigger_rate": rate,
-                    "passed": passed,
-                    "errored_runs": errored,
-                    "exclusivity_violations": sorted(exclusivity),
-                }
+            skill_summary["queries"].append(record)
+        summary["skills"][skill] = skill_summary
+
+    iter_dir.mkdir(parents=True, exist_ok=True)
+    (iter_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
+    return summary
+
+
+def grade_reports(
+    pack_name: str,
+    reports: dict,
+    *,
+    repo_root: pathlib.Path = REPO_ROOT,
+) -> dict:
+    """Grade **in-harness** (Phase 2, RFC-0037 § Errata E2) activation reports.
+
+    `reports` is `{skill: {query_id: [reported_skill | null | "__error__", ...]}}`
+    — collected by the catalogue-internal driver, which dispatches each query to
+    a fresh, read-only host sub-context (supplied the covered skills'
+    descriptions) and records which skill it **reports** it would activate.
+    Reuses the Phase-1 `trigger_rate`/grading and the same eval-workspace +
+    `summary.json` contract; labelled `mode: in-harness`, `fidelity: reported`
+    so it is never conflated with the headless `observed` baseline. No model is
+    invoked here — the dispatch is the driver's job; this is pure grading.
+    """
+    _safe_segment("pack name", pack_name)
+    pack_dir = repo_root / "packs" / pack_name
+    covered = [_safe_segment("skill name", s) for s in read_covered_skills(pack_dir)]
+    pack_skills = _pack_skills(pack_dir)
+
+    pack_workspace = repo_root / EVAL_WORKSPACE / pack_name
+    iteration = _next_iteration(pack_workspace)
+    iter_dir = pack_workspace / f"iteration-{iteration}"
+
+    summary: dict = {
+        "pack": pack_name,
+        "adapter": "claude-code",
+        "mode": "in-harness",
+        # Reported (description-match judgement), not the observed router event —
+        # a dispatched sub-context can't be skill-isolated (RFC-0037 § Errata E2).
+        "fidelity": "reported",
+        "runs": None,
+        "iteration": iteration,
+        "skills": {},
+    }
+
+    for skill in covered:
+        queries = read_eval_queries(pack_dir, skill)
+        skill_reports = reports.get(skill, {})
+        skill_summary: dict = {
+            "queries": [], "pass_count": 0, "total": len(queries), "error_count": 0,
+        }
+        for q_index, entry in enumerate(queries):
+            query = entry.get("query", "")
+            should_trigger = bool(entry.get("should_trigger", False))
+            query_id = f"q{q_index:02d}"
+            run_reports = skill_reports.get(query_id, [])
+            target_fired = [r == skill for r in run_reports]
+            errored = sum(1 for r in run_reports if r == REPORT_ERROR)
+            exclusivity = {
+                r for r in run_reports
+                if r and r not in (skill, REPORT_ERROR) and r in pack_skills
+            }
+            record, passed = _query_summary(
+                query_id, query, should_trigger, target_fired, exclusivity, errored
+            )
+            if passed:
+                skill_summary["pass_count"] += 1
+            skill_summary["error_count"] += errored
+            skill_summary["queries"].append(record)
+            # Capture the bounded per-run reports (skill names only — no model
+            # text, no host transcript) for traceability.
+            cap = iter_dir / skill / query_id / "in_harness"
+            cap.mkdir(parents=True, exist_ok=True)
+            (cap / "reports.json").write_text(
+                json.dumps(run_reports) + "\n", encoding="utf-8"
             )
         summary["skills"][skill] = skill_summary
 
@@ -422,9 +528,13 @@ def run_eval(
 
 
 def _print_report(summary: dict) -> None:
+    runs = summary.get("runs")
+    runs_note = f"runs={runs} " if runs is not None else ""
     print(
         f"pack={summary['pack']} adapter={summary['adapter']} "
-        f"runs={summary['runs']} iteration={summary['iteration']}"
+        f"mode={summary.get('mode', 'headless')} "
+        f"fidelity={summary.get('fidelity', 'observed')} "
+        f"{runs_note}iteration={summary['iteration']}"
     )
     for skill, s in summary["skills"].items():
         errs = s.get("error_count", 0)
@@ -473,7 +583,29 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_TIMEOUT_S,
         help="per-run wall-clock timeout in seconds (default 180)",
     )
+    parser.add_argument(
+        "--mode",
+        choices=("headless", "in-harness"),
+        default="headless",
+        help="headless (default; live claude -p) or in-harness (grade reports "
+             "collected by the catalogue-internal driver — RFC-0037 § Errata E2)",
+    )
+    parser.add_argument(
+        "--reports",
+        help="path to the in-harness reports JSON "
+             "({skill: {query_id: [reported|null|\"__error__\", ...]}}); "
+             "required with --mode in-harness",
+    )
     args = parser.parse_args(argv)
+
+    if args.mode == "in-harness":
+        # In-harness grades reports the driver already collected — no model call.
+        if not args.reports:
+            parser.error("--mode in-harness requires --reports <path>")
+        reports = json.loads(pathlib.Path(args.reports).read_text(encoding="utf-8"))
+        summary = grade_reports(args.pack, reports)
+        _print_report(summary)
+        return 0
 
     detector = get_detector(args.adapter)
     # `claude` is a hard prerequisite of the live run — fail fast (clear
