@@ -250,6 +250,7 @@ def _safe_segment(label: str, name: str) -> str:
         or "/" in name
         or "\\" in name
         or name in (".", "..")
+        or name == REPORT_ERROR  # reserved in-harness sentinel, not a skill name
         or name != pathlib.PurePosixPath(name).name
     ):
         raise ValueError(
@@ -567,11 +568,13 @@ def grade_reports(
 def _print_report(summary: dict) -> None:
     runs = summary.get("runs")
     runs_note = f"runs={runs} " if runs is not None else ""
+    prov = summary.get("provenance")
+    prov_note = f"provenance={prov} " if prov else ""
     print(
         f"pack={summary['pack']} adapter={summary['adapter']} "
         f"mode={summary.get('mode', 'headless')} "
         f"fidelity={summary.get('fidelity', 'observed')} "
-        f"{runs_note}iteration={summary['iteration']}"
+        f"{prov_note}{runs_note}iteration={summary['iteration']}"
     )
     for skill, s in summary["skills"].items():
         errs = s.get("error_count", 0)

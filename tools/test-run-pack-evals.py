@@ -102,7 +102,7 @@ def test_trigger_rate_and_grade() -> None:
 def test_safe_segment() -> None:
     for ok in ("core", "new-spec", "markdown-to-docx"):
         check("safe-seg", M._safe_segment("x", ok) == ok, f"{ok!r} should be accepted")
-    for bad in ("../escape", "a/b", "..", ".", "", "a\\b", "/abs"):
+    for bad in ("../escape", "a/b", "..", ".", "", "a\\b", "/abs", M.REPORT_ERROR):
         try:
             M._safe_segment("x", bad)
         except ValueError:
@@ -205,7 +205,9 @@ def test_print_report_smoke() -> None:
     import io
 
     summary = {
-        "pack": "p", "adapter": "claude-code", "runs": 2, "iteration": 1,
+        "pack": "p", "adapter": "claude-code", "mode": "in-harness",
+        "fidelity": "reported", "provenance": "operator-attested",
+        "runs": None, "iteration": 1,
         "skills": {"s": {
             "queries": [{
                 "query_id": "q00", "query": "x", "should_trigger": True,
@@ -221,7 +223,9 @@ def test_print_report_smoke() -> None:
     out = buf.getvalue()
     check("report", "harness error" in out, "per-skill harness-error note must appear")
     check("report", "errored run" in out, "per-query errored-run note must appear")
-    print("✓ _print_report renders harness-error notes without crashing.")
+    check("report", "provenance=operator-attested" in out,
+          "in-harness provenance must show in the console report")
+    print("✓ _print_report renders harness-error + provenance notes without crashing.")
 
 
 def _build_fake_pack(repo_root: pathlib.Path) -> None:
