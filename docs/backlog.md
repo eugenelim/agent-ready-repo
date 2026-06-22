@@ -805,9 +805,21 @@ expose JSON event streams on this machine; cursor-agent and gemini are documente
 headless+JSON but their CLIs aren't installed here. Each needs a per-adapter
 **confirm-spike**: does the JSON stream carry a parseable *skill-activation* event
 (the equivalent of claude-code's `Skill` tool_use + `.input.skill`)?
-**Out of scope (not a backlog item — a hard boundary):** GUI-only IDEs (Kiro IDE,
-Cursor IDE) have no headless surface; an in-editor `userTriggered` `.kiro.hook`
-driver was rejected as runtime infra (Principle 3). Their byte-identical
-`description:` is covered by the claude-code reference-harness proxy.
-**Unblocks when:** someone runs the confirm-spike for a target CLI and adds its
-detector + a fixture parse test.
+GUI-only IDEs (Kiro IDE, Cursor IDE) have no *headless* surface — but
+**RFC-0037 § Errata E2 admitted a second, in-harness mode** that reaches them
+(the host agent dispatches a read-only sub-context and reports activation;
+shipped as a documented procedure + `--mode in-harness`), so Kiro IDE is no
+longer out of scope. **Unblocks when:** someone runs the confirm-spike for a
+target headless CLI and adds its detector + a fixture parse test.
+
+### kiro-native-in-harness-driver
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) § Phase 2
+(RFC-0037 § Errata E2). The in-harness mode ships as a **harness-agnostic
+documented procedure** that any host agent follows (Claude Code validated;
+Kiro's agent can follow the same procedure + run the `--mode in-harness` CLI).
+An optional ergonomic follow-on is a **Kiro-native** trigger (a `.kiro/` command
+or hook) so a Kiro user invokes the dispatch loop with one action instead of
+following the procedure by hand. Catalogue-internal (repo-owned, not a projected
+pack primitive). **Unblocks when:** someone wants the one-click Kiro ergonomics;
+the procedure already works without it.

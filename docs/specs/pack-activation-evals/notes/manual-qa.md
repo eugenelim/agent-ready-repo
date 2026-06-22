@@ -63,6 +63,26 @@ held only the parsed `.result` text. The CI artifact glob
 `tools/test-run-pack-evals.py` (asserts the summary carries no key / stderr /
 env).
 
+## 4. In-harness mode (Phase 2, RFC-0037 § Errata E2) — live validation
+
+Validated the in-harness premise live by dispatching read-only sub-contexts
+(Claude Code `Agent` tool) for two of `core/new-spec`'s queries, each given the
+5 covered core skills' descriptions and asked which it would activate:
+
+| query | reported | tool calls |
+| --- | --- | --- |
+| "Let's write a spec for a new CSV export feature" | `new-spec` | **0** |
+| "Fix the bug where the login button does nothing" | `bug-fix` | **0** |
+
+Both sub-contexts returned a judgement only — **0 tool calls** — confirming the
+containment control (the dispatched context never executes skill bodies or
+project tools against the query string; AC25). Feeding the reports through the
+real CLI (`run-pack-evals.py --pack core --mode in-harness --reports …`)
+produced a `mode: in-harness`, `fidelity: reported` summary that graded the
+positive `1.0`/pass and flagged `bug-fix` as an exclusivity violation — the full
+Phase-2 path end-to-end. The reported signal is a description-match judgement
+(lower fidelity than headless's observed router event), labelled as such.
+
 ## Scope note
 
 Full per-pack sweeps over `core` + `converters` (every covered skill ×

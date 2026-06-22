@@ -188,6 +188,34 @@ no user-prompt surface (e.g. `security-checklists`), or one loaded broadly by a
 discipline rather than a narrow prompt (e.g. `work-loop`), is deliberately left
 out.
 
+#### Running Tier-A evals in-harness (Kiro IDE, or without the `claude` CLI)
+
+The headless mode above needs the `claude` CLI. Where you don't have it —
+**Kiro IDE**, or an interactive session where you'd rather not shell out — there
+is a second, **lower-fidelity** mode (RFC-0037 § Errata E2). The host agent
+itself is the detector: for each query it dispatches a **fresh, read-only
+sub-context** (Claude Code's subagent; Kiro's agent-spawn) given the covered
+skills' `description:`s, and asks which it would activate. Drive it as a
+procedure:
+
+1. For each covered skill's `eval_queries.json`, dispatch one read-only
+   sub-context per query — **judgement only; it must not run any tool or skill
+   body** (the query string is author-influenced; the headless `--allowed-tools
+   Skill` sandbox does not apply here). Prompt it with the covered skills'
+   names + descriptions and the query; collect the single skill name it reports
+   (or `null`).
+2. Assemble the reports as `{skill: {query_id: [reported | null | "__error__", …]}}`
+   (one entry per run; `query_id` is `q00`, `q01`, … by position).
+3. Grade with `python tools/run-pack-evals.py --pack <name> --mode in-harness
+   --reports <reports.json>` — same `trigger_rate`/0.5 grading and
+   eval-workspace, but the summary is labelled `mode: in-harness`,
+   `fidelity: reported`.
+
+This measures a **description-match judgement, not the real activation router**
+(a dispatched sub-context can't be restricted to only the pack's skills), so
+it is a portable reach check — never the calibration baseline. When you have the
+`claude` CLI, prefer the headless mode.
+
 ### Tier B — authoring output-quality evals (`evals/evals.json`)
 
 `evals/evals.json` is `{ "skill_name", "evals": [{ "id", "prompt",
