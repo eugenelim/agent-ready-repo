@@ -6,7 +6,7 @@
 - **Supersedes:** none
 - **Related:** RFC-0037 (the proposal this records), RFC-0031 / ADR-0021 (`pack.toml` as the rich source of truth), RFC-0036 (`converters`, first `evals/evals.json`), ADR-0017 (SAST CI gate — catalogue-internal tooling belongs in-repo), ADR-0014 (rigor scales with risk — report-only over a hard gate)
 
-> **Correction (2026-06-21, ⏳ awaiting Approver sign-off — see RFC-0037 § Errata E1):**
+> **Correction (2026-06-21, ✅ signed off by eugenelim — RFC-0037 Approver; see RFC-0037 § Errata E1):**
 > Decision 3 below records the detector as `claude -p "<query>" --output-format
 > json --allowed-tools Skill`, parsing "the result for a `Skill` `tool_use`
 > event". Verified empirically on `claude` 2.1.185, `--output-format json`

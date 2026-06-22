@@ -159,7 +159,7 @@ When accepted:
 > stays frozen; errata record where the decision-as-written diverges from
 > ground truth, **pending Approver sign-off** (the RFC's original approver).
 
-### E1 — Detector uses `--output-format stream-json --verbose`, not `--output-format json` (2026-06-21) · ⏳ awaiting Approver sign-off
+### E1 — Detector uses `--output-format stream-json --verbose`, not `--output-format json` (2026-06-21) · ✅ signed off: eugenelim (RFC-0037 Approver), 2026-06-21
 
 **Decision 3 and the Evidence section specify `claude -p "<query>"
 --output-format json --allowed-tools Skill` and parsing "the result for a
