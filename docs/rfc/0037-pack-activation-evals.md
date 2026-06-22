@@ -201,8 +201,10 @@ boundary silently foreclosed.
 **Adjustment:** a **second detector mode** is admitted **behind the existing
 detector seam (AC18)** — an **in-harness / agent-dispatch detector**: the host
 harness's own agent (Claude Code's `Agent`/subagent tool; Kiro IDE's
-agent-spawn) runs each `eval_queries.json` query in a fresh, pack-isolated
-sub-context and records which skill it activated. The shared abstraction —
+agent-spawn) runs each `eval_queries.json` query in a fresh sub-context
+(supplied the candidate skills' descriptions) and **reports** which skill it
+would activate — a description-match judgement, **not** a pack-isolated router
+observation (see the Activation-signal paragraph below). The shared abstraction —
 *"the host harness's agent is the detector"* — is what makes the same mode
 serve both Claude Code and Kiro IDE. The seam was built additive (AC18) for
 exactly this; headless is no longer the *only* mode, but it **remains the

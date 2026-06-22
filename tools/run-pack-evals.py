@@ -642,7 +642,12 @@ def main(argv: list[str] | None = None) -> int:
         # In-harness grades reports the driver already collected — no model call.
         if not args.reports:
             parser.error("--mode in-harness requires --reports <path>")
-        reports = json.loads(pathlib.Path(args.reports).read_text(encoding="utf-8"))
+        try:
+            reports = json.loads(
+                pathlib.Path(args.reports).read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            parser.error(f"--reports {args.reports!r}: {exc}")
         summary = grade_reports(args.pack, reports)
         _print_report(summary)
         return 0

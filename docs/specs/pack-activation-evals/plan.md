@@ -414,14 +414,19 @@ This is why E2's signal decision is "reported", and why the summary labels
 runner keeps the model-free logic:
 
 - `run-pack-evals.py` factors out reusable helpers (project, `trigger_rate`,
-  `grade`, workspace-write) and gains `grade_reports(pack, reports, mode=…)`
-  that turns collected `{skill: {query_id: [reported_skill_per_run]}}` into the
-  same `summary.json` (with `mode`/`fidelity` fields). No `claude` call.
-- A **catalogue-internal driver** (a repo-owned `.claude/` command for Claude
-  Code; a `.kiro/` equivalent for Kiro — **not** a projected pack primitive, so
-  Principle 3 holds) reads a pack's `eval_queries.json` + covered descriptions,
-  dispatches a **read-only, no-tool-execution** sub-context per query, collects
-  the reported skill, and calls `grade_reports`.
+  `grade`, workspace-write) and gains `grade_reports(pack_name, reports, *,
+  repo_root=…)` that turns collected `{skill: {query_id: [reported_skill_per_run]}}`
+  into the same `summary.json` (labelled `mode`/`fidelity`/`provenance`). No
+  `claude` call.
+- A **catalogue-internal driver** — as built, a **harness-agnostic documented
+  procedure** (in `author-a-skill.md`) the host agent follows, plus the
+  `--mode in-harness` grading CLI; **not** a projected pack primitive, so
+  Principle 3 holds. (An earlier sketch was a repo-owned `.claude/` command; the
+  procedure form was chosen because it serves Claude Code and Kiro alike and
+  sidesteps the `.claude/commands/` projection-drift surface.) The agent reads a
+  pack's `eval_queries.json` + covered descriptions, dispatches a **read-only,
+  no-tool-execution** sub-context per query, collects the reported skill, and
+  calls `grade_reports`.
 
 **Containment (new trust boundary).** The dispatched sub-context holds the
 host's full tool surface; the `--allowed-tools Skill` headless sandbox does not
@@ -440,9 +445,10 @@ the default and unchanged. Done when: unit tests green; headless path untouched.
 
 ### T10: catalogue-internal in-harness driver (Claude Code) + live validation
 
-**Depends on:** T9 — **manual QA.** A repo-owned `.claude/` command drives the
-dispatch loop (read-only sub-contexts, candidate descriptions in the prompt,
-collect reported activation, call `grade_reports`). Validate **live** by
+**Depends on:** T9 — **manual QA.** A catalogue-internal **documented procedure**
+(in `author-a-skill.md`) the host agent follows drives the dispatch loop
+(read-only sub-contexts, candidate descriptions in the prompt, collect reported
+activation, call `grade_reports` via `--mode in-harness`). Validate **live** by
 dispatching real sub-contexts for a covered skill's queries and recording the
 observed reports + that no tool executed against the query (containment). Done
 when: a recorded in-harness run over a `core` skill produces a labelled summary;
@@ -495,3 +501,4 @@ note; the in-harness mode + `mode`/`fidelity` labelling documented.
 
 - 2026-06-21: initial plan (authored alongside the spec + ADR-0028; implementation deferred to a separate PR per RFC-0037 § Follow-on artifacts).
 - 2026-06-21: implementing PR — T1–T7 landed; Status → Done. Detector corrected to `--output-format stream-json --verbose` (RFC-0037 § Errata E1 — the `json` envelope carries no `tool_use` events on claude 2.1.185); the T2 coverage check is hosted in `lint-skill-spec.py` (a source-surface lint run locally + in CI), since `pack.toml` is never projected and `lint-agent-artifacts` reads only `.claude/`. T8 deferred to `docs/backlog.md`.
+- 2026-06-22: Phase 2 (RFC-0037 § Errata E2) landed in the same PR — T9 (`grade_reports` + `--mode in-harness`/`--reports`), T10 (the in-harness driver as a harness-agnostic documented procedure + live validation), T12 (docs/ADR). The driver shipped as a documented procedure, **not** a `.claude/` command (serves Kiro too; avoids `.claude/commands/` projection drift). Load-bearing finding: a dispatched sub-context can't be skill-isolated, so in-harness is a **reported** description-match judgement (lower fidelity than headless's observed router event), labelled `mode`/`fidelity`/`provenance`. T11 (Kiro-native ergonomic driver) deferred to `docs/backlog.md`. Status remains Shipped (Phase 1 + Phase 2).
