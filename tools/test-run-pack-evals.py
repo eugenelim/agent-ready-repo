@@ -370,6 +370,40 @@ def test_grade_reports_in_harness() -> None:
           "errors, bounded capture.")
 
 
+def test_grade_reports_validation_and_unmeasured() -> None:
+    # Malformed reports must fail loud, not silently mis-grade.
+    for bad in (
+        ["not", "a", "dict"],
+        {"alpha": "not-a-dict"},
+        {"alpha": {"q00": "not-a-list"}},
+        {"alpha": {"q00": [123]}},
+    ):
+        try:
+            M._validate_reports(bad)
+        except ValueError:
+            pass
+        else:
+            fail("validate", f"{bad!r} must be rejected")
+    M._validate_reports({"alpha": {"q00": ["alpha", None, M.REPORT_ERROR]}})  # valid
+
+    # A covered query with no reports is flagged unmeasured (errored), not a miss.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_fake_pack(repo_root)  # alpha has q00, q01, q02
+        summary = M.grade_reports(
+            "testpack", {"alpha": {"q00": ["alpha"]}}, repo_root=repo_root
+        )
+        qs = {q["query_id"]: q for q in summary["skills"]["alpha"]["queries"]}
+        check("unmeasured", qs["q01"]["errored_runs"] == 1, "q01 unmeasured -> errored")
+        check("unmeasured", qs["q02"]["errored_runs"] == 1, "q02 unmeasured -> errored")
+        check("unmeasured", summary["skills"]["alpha"]["error_count"] >= 2,
+              "unmeasured queries surface in error_count")
+        check("provenance", "operator-attested" in summary["provenance"],
+              "summary records operator-attested provenance")
+    print("✓ grade_reports: rejects malformed reports; flags unmeasured queries; "
+          "records provenance.")
+
+
 def test_gitignored_control() -> None:
     # The real repo .gitignore must ignore a representative outputs/ path.
     rel = ".eval-workspace/core/iteration-1/new-spec/q00/with_skill/run-1/outputs/result.txt"
@@ -399,6 +433,7 @@ def main() -> int:
     test_detector_seam()
     test_run_eval_workspace_and_grading()
     test_grade_reports_in_harness()
+    test_grade_reports_validation_and_unmeasured()
     test_gitignored_control()
     test_help_smoke()
     print()

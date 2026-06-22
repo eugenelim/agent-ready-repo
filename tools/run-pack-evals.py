@@ -290,6 +290,28 @@ def read_eval_queries(pack_dir: pathlib.Path, skill: str) -> list[dict]:
 REPORT_ERROR = "__error__"
 
 
+def _validate_reports(reports: object) -> None:
+    """Validate the operator-supplied in-harness reports structure before it
+    drives grading: `{skill: {query_id: [reported_skill | null | "__error__"]}}`.
+    A malformed file must fail loud, not silently produce a wrong summary."""
+    if not isinstance(reports, dict):
+        raise ValueError("reports must be a JSON object {skill: {query_id: [...]}}")
+    for skill, by_query in reports.items():
+        if not isinstance(by_query, dict):
+            raise ValueError(f"reports[{skill!r}] must be an object {{query_id: [...]}}")
+        for query_id, runs in by_query.items():
+            if not isinstance(runs, list):
+                raise ValueError(
+                    f"reports[{skill!r}][{query_id!r}] must be a list of run reports"
+                )
+            for entry in runs:
+                if entry is not None and not isinstance(entry, str):
+                    raise ValueError(
+                        f"reports[{skill!r}][{query_id!r}] entries must be a skill "
+                        f"name, null, or {REPORT_ERROR!r} (got {type(entry).__name__})"
+                    )
+
+
 def _pack_skills(pack_dir: pathlib.Path) -> set[str]:
     """Every skill dir in the pack — for intra-pack exclusivity."""
     skills_root = pack_dir / ".apm" / "skills"
@@ -466,6 +488,7 @@ def grade_reports(
     so it is never conflated with the headless `observed` baseline. No model is
     invoked here — the dispatch is the driver's job; this is pure grading.
     """
+    _validate_reports(reports)
     _safe_segment("pack name", pack_name)
     pack_dir = repo_root / "packs" / pack_name
     covered = [_safe_segment("skill name", s) for s in read_covered_skills(pack_dir)]
@@ -482,6 +505,10 @@ def grade_reports(
         # Reported (description-match judgement), not the observed router event —
         # a dispatched sub-context can't be skill-isolated (RFC-0037 § Errata E2).
         "fidelity": "reported",
+        # The reports are collected by a hand-driven procedure, so the grade is
+        # operator-attested, not tool-observed — a reader must not mistake this
+        # for a measured headless run.
+        "provenance": "operator-attested (driver-collected reports)",
         "runs": None,
         "iteration": iteration,
         "skills": {},
@@ -500,6 +527,16 @@ def grade_reports(
             run_reports = skill_reports.get(query_id, [])
             target_fired = [r == skill for r in run_reports]
             errored = sum(1 for r in run_reports if r == REPORT_ERROR)
+            if not run_reports:
+                # A covered query the driver never dispatched is *unmeasured*,
+                # not a clean non-activation — flag it so it can't read as a
+                # real regression.
+                errored = 1
+                print(
+                    f"run-pack-evals: warning: {skill} {query_id}: no in-harness "
+                    f"reports — unmeasured, flagged as errored (not a miss).",
+                    file=sys.stderr,
+                )
             exclusivity = {
                 r for r in run_reports
                 if r and r not in (skill, REPORT_ERROR) and r in pack_skills
