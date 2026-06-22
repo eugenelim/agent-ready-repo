@@ -155,9 +155,11 @@ When accepted:
 
 ## Errata
 
-> Corrections to this Accepted RFC discovered during implementation. The RFC
-> stays frozen; errata record where the decision-as-written diverges from
-> ground truth, **pending Approver sign-off** (the RFC's original approver).
+> Corrections and scope adjustments to this Accepted RFC discovered during
+> implementation. The RFC stays frozen; errata record where the
+> decision-as-written diverges from ground truth or where a boundary was drawn
+> narrower than intended, **pending Approver sign-off** (the RFC's original
+> approver).
 
 ### E1 — Detector uses `--output-format stream-json --verbose`, not `--output-format json` (2026-06-21) · ✅ signed off: eugenelim (RFC-0037 Approver), 2026-06-21
 
@@ -181,3 +183,58 @@ Skill` observe-don't-execute trust boundary, the wall-clock-timeout bound, the
 argv-list invocation, and Tier-A scope are all **unaffected**. The spike's
 conclusion — *activation is detectable headless* — **holds**; only the
 output-format flag and the parse target are corrected.
+
+### E2 — Admit a second, in-harness / agent-dispatch detector mode (Kiro IDE + interactive Claude Code) (2026-06-22) · ⏳ awaiting Approver sign-off
+
+**Decision 4 (Tier A) and the spec's `§ Never do` draw the boundary
+"headless-only — no non-headless / in-editor / GUI execution mode; GUI-only
+IDEs (Kiro IDE, Cursor IDE) are out of scope."** That boundary was set to keep
+the runner catalogue-internal (Charter Principle 3) and to lean on the one
+harness with a parseable activation event (`claude -p` stream-json). In
+practice it draws the line **narrower than intended**: it means a maintainer
+working in **Kiro IDE** — which has no `claude -p` CLI to shell out to — cannot
+run activation evals at all, and there is no way to run them from **within an
+interactive Claude Code session** without the headless CLI. Reach to the
+agent harnesses people actually author packs in was an unstated goal the
+boundary silently foreclosed.
+
+**Adjustment:** a **second detector mode** is admitted **behind the existing
+detector seam (AC18)** — an **in-harness / agent-dispatch detector**: the host
+harness's own agent (Claude Code's `Agent`/subagent tool; Kiro IDE's
+agent-spawn) runs each `eval_queries.json` query in a fresh, pack-isolated
+sub-context and records which skill it activated. The shared abstraction —
+*"the host harness's agent is the detector"* — is what makes the same mode
+serve both Claude Code and Kiro IDE. The seam was built additive (AC18) for
+exactly this; headless is no longer the *only* mode, but it **remains the
+reference mode**.
+
+**Activation signal (recommended default; ratify on sign-off).** The in-harness
+mode records **reported** activation — the dispatched agent names the skill it
+activated — accepting **lower fidelity** than headless's **observed** `Skill`
+`tool_use` event. Headless `claude -p --output-format stream-json --verbose`
+stays the **high-fidelity calibration reference**; the in-harness mode is the
+**portable** path that extends reach to Kiro IDE + interactive use. Both modes
+write the same `eval_queries.json` / `summary.json` / eval-workspace contract,
+and the summary must label which mode (and thus which fidelity) produced each
+result. *Truly-observed* in-harness activation (reading the host agent's real
+`Skill` invocation) is left open as a future refinement — it is not reliably
+exposed by either harness's subagent surface today.
+
+**New trust boundary to carry into the spec.** The headless mode's
+`--allowed-tools Skill` observe-don't-execute sandbox does **not** transfer:
+dispatching author-influenced query strings into the **host** agent (which holds
+the full project's tools) is a different, larger risk surface. The in-harness
+mode must constrain the dispatched sub-context so it cannot execute skill bodies
+or project tools against those strings — the spec's security pass must specify
+this control as an acceptance criterion, not inherit the headless one.
+
+**Unchanged:** Tier-A scope, the `[pack.evals]` coverage model, the
+`eval_queries.json` schema, the report-only posture, and the headless mode's
+`--allowed-tools Skill` boundary.
+
+**Follow-on artifacts (after sign-off):** narrow the spec's `§ Never do`
+("headless is the reference; an in-harness agent-dispatch mode is admitted
+behind the seam") and add Kiro IDE to scope; extend AC18 and add a new AC for
+the in-harness detector, its fidelity caveat, and its trust boundary; a
+companion correction note on **ADR-0028**; a new plan task; the runner gains the
+second `Detector`; the authoring docs gain the in-harness run path.
