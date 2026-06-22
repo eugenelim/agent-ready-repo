@@ -48,7 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It runs report-only in a scheduled `pack-evals.yml` workflow — never on the
   PR critical path — and the first cut covers the `core` and `converters`
   packs. `lint-skill-spec.py` now accepts and validates `eval_queries.json`
-  and enforces `[pack.evals].skills` coverage.
+  and enforces `[pack.evals].skills` coverage. A second, **in-harness** mode
+  (`run-pack-evals.py --mode in-harness`, RFC-0037 § Errata E2) extends the
+  reach to **Kiro IDE** and interactive Claude Code where there is no `claude`
+  CLI: the host agent dispatches a read-only sub-context per query and reports
+  activation — a lower-fidelity (reported, not observed) proxy, labelled as such
+  in the summary so it is never mistaken for the headless baseline.
 - **Per-prompt work-loop activation hook (`core` pack).** A new
   `work-loop-check` hook nudges the agent, on every prompt, to load the
   work-loop skill for non-trivial work — closing a gap where the loop was
