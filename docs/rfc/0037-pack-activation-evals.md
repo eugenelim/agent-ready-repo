@@ -184,7 +184,7 @@ argv-list invocation, and Tier-A scope are all **unaffected**. The spike's
 conclusion — *activation is detectable headless* — **holds**; only the
 output-format flag and the parse target are corrected.
 
-### E2 — Admit a second, in-harness / agent-dispatch detector mode (Kiro IDE + interactive Claude Code) (2026-06-22) · ⏳ awaiting Approver sign-off
+### E2 — Admit a second, in-harness / agent-dispatch detector mode (Kiro IDE + interactive Claude Code) (2026-06-22) · ✅ signed off: eugenelim (RFC-0037 Approver), 2026-06-22
 
 **Decision 4 (Tier A) and the spec's `§ Never do` draw the boundary
 "headless-only — no non-headless / in-editor / GUI execution mode; GUI-only

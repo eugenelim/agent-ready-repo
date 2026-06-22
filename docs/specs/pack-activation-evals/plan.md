@@ -390,6 +390,76 @@ stale `evals.json`-only layout claim remains in the touched docs.
 The RFC names this as an optional consolidation that "may land as a follow-on PR
 rather than blocking the harness". Recorded in `docs/backlog.md`.
 
+## Phase 2 — in-harness / agent-dispatch detector (RFC-0037 § Errata E2)
+
+### Design (LLD addendum)
+
+Phase 1 (headless) measures activation via `claude -p` and its real `Skill`
+`tool_use` event. Phase 2 adds reach to harnesses with **no** `claude -p` CLI
+(**Kiro IDE**) and to interactive Claude Code, via a second detector behind the
+seam — **lower fidelity**, never replacing the headless reference.
+
+**The isolation finding (load-bearing).** A dispatched sub-context (Claude
+Code's `Agent` tool, Kiro's spawn) **cannot be scoped to only the pack's
+skills** — skill discovery is rooted at the session, not the sub-context's cwd,
+so projecting the pack into a temp dir (the headless trick) does **not** isolate
+a subagent. Consequence: the in-harness mode supplies the candidate skills'
+names + `description:` **in the dispatch prompt** and asks the sub-context which
+it would activate. That is a **description-match judgement (reported)**, not the
+real router event (observed) — a materially different, lower-fidelity signal.
+This is why E2's signal decision is "reported", and why the summary labels
+`fidelity`.
+
+**Architecture (reuse, don't fork).** The driver does the agent dispatch; the
+runner keeps the model-free logic:
+
+- `run-pack-evals.py` factors out reusable helpers (project, `trigger_rate`,
+  `grade`, workspace-write) and gains `grade_reports(pack, reports, mode=…)`
+  that turns collected `{skill: {query_id: [reported_skill_per_run]}}` into the
+  same `summary.json` (with `mode`/`fidelity` fields). No `claude` call.
+- A **catalogue-internal driver** (a repo-owned `.claude/` command for Claude
+  Code; a `.kiro/` equivalent for Kiro — **not** a projected pack primitive, so
+  Principle 3 holds) reads a pack's `eval_queries.json` + covered descriptions,
+  dispatches a **read-only, no-tool-execution** sub-context per query, collects
+  the reported skill, and calls `grade_reports`.
+
+**Containment (new trust boundary).** The dispatched sub-context holds the
+host's full tool surface; the `--allowed-tools Skill` headless sandbox does not
+transfer. The driver must dispatch a sub-context that **elicits the activation
+judgement only** — it must not run a skill body or any project tool against the
+author-influenced query string. Verified by construction (the dispatch prompt
+grants no execution + the sub-context is read-only) and by inspecting that a
+dispatched run touched no files / ran no tools.
+
+### T9: runner `grade_reports` + `--mode` plumbing (model-free)
+
+**Depends on:** none — **TDD.** Tests: `grade_reports` over synthetic collected
+reports produces a `mode: in-harness`, `fidelity: reported` summary with correct
+`trigger_rate`/grading and the same workspace layout; `--mode headless` stays
+the default and unchanged. Done when: unit tests green; headless path untouched.
+
+### T10: catalogue-internal in-harness driver (Claude Code) + live validation
+
+**Depends on:** T9 — **manual QA.** A repo-owned `.claude/` command drives the
+dispatch loop (read-only sub-contexts, candidate descriptions in the prompt,
+collect reported activation, call `grade_reports`). Validate **live** by
+dispatching real sub-contexts for a covered skill's queries and recording the
+observed reports + that no tool executed against the query (containment). Done
+when: a recorded in-harness run over a `core` skill produces a labelled summary;
+containment confirmed.
+
+### T11: Kiro IDE driver
+
+**Depends on:** T9 — **goal-based.** The Kiro-native driver (`.kiro/` hook or
+command) invoking the same `grade_reports` contract. Sequenced after T10 proves
+the model in Claude Code; may land as its own follow-on.
+
+### T12: docs + ADR note
+
+**Depends on:** T9, T10 — **goal-based.** `author-a-skill.md` gains the
+in-harness run path + the fidelity caveat; ADR-0028 carries the E2 companion
+note; the in-harness mode + `mode`/`fidelity` labelling documented.
+
 ## Rollout
 
 - **Delivery:** report-only, no flag. Fully reversible — delete the workflow +

@@ -1,6 +1,6 @@
 # Spec: pack-activation-evals
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived --> <!-- Phase 1 (headless) shipped; Phase 2 (in-harness, RFC-0037 § Errata E2) in progress -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0037, ADR-0028
@@ -114,12 +114,21 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   actions) against author-influenced query strings. Widening it "for fidelity"
   silently converts an observe-only harness into one that runs arbitrary skill
   bodies.
-- **No non-headless / in-editor / GUI execution mode.** The eval is
-  **headless-only**. GUI-only IDEs (Kiro IDE, Cursor IDE) are out of scope — they
-  expose no headless prompt surface, and an in-editor eval driver (e.g. a
-  `userTriggered` `.kiro.hook`) would be runtime infra, not catalogue dev tooling
-  (Charter Principle 3). Their shared byte-identical `description:` is covered by
-  the reference-harness measurement.
+- **Headless is the reference mode; the in-harness mode never executes skill
+  bodies or project tools.** *(Amended — RFC-0037 § Errata E2.)* The original
+  boundary made the eval headless-only and put GUI-only IDEs out of scope; E2
+  narrows that — a second **in-harness / agent-dispatch** detector is admitted
+  behind the seam (the host harness's agent runs each query in a fresh,
+  pack-isolated sub-context and **reports** activation), bringing **Kiro IDE**
+  and interactive Claude Code into scope. What stays forbidden: the in-harness
+  mode must **not** let the dispatched sub-context execute skill bodies or
+  project tools against author-influenced query strings (the headless
+  `--allowed-tools Skill` sandbox does not transfer — the dispatched context
+  holds the host's full tool surface, so containment is a distinct control, AC25
+  below). The driver stays **catalogue-internal** (repo-owned `.claude/` /
+  `.kiro/`, not a projected pack primitive) so Charter Principle 3 holds.
+  Headless `claude -p` remains the **high-fidelity reference**; the in-harness
+  signal is **reported, lower-fidelity** and every result is labelled by mode.
 
 ## Testing Strategy
 
@@ -178,11 +187,21 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] `converters` (user-scope) bumps its pack version for the non-cosmetic addition and `make build` refreshes `marketplace.json` to the new version; `lint-packs` and the build are green.
 - [x] `core` (self-host-projected) bumps its pack version and `make build-self` projects the new `evals/eval_queries.json` files into `.claude/skills/<skill>/evals/` with a clean `git status` afterward (no projection drift); `lint-packs` and the build are green.
 - [x] Adding a `[pack.evals]` block to a `pack.toml` passes `agentbundle validate` and does not drift `marketplace.json` (the section is not projected into plugin/marketplace manifests).
-- [x] The runner isolates activation detection behind a small adapter-`Detector` seam (project-for-adapter → run-headless → parse-activation-event) so additional **headless** adapter detectors (codex / copilot / cursor-agent / gemini) are additive, not a rewrite; the first cut ships the `claude-code` detector only. Non-headless / GUI-IDE execution modes are out of scope (spec § Never do).
+- [x] The runner isolates activation detection behind a small adapter-`Detector` seam (project-for-adapter → run-headless → parse-activation-event) so additional **headless** adapter detectors (codex / copilot / cursor-agent / gemini) are additive, not a rewrite; the first cut ships the `claude-code` detector only. *(The seam also hosts the **in-harness mode** admitted by RFC-0037 § Errata E2 — see Phase 2 ACs below.)*
 - [x] The pack-authoring guide (`docs/guides/_shared/how-to/author-a-skill.md`) documents how to **write** activation evals — `evals/eval_queries.json`, the trigger-eval convention (flat `[{query, should_trigger}]`, ~8–10 each way, near-miss negatives), **distinct** from the output-quality `evals/evals.json` — how to declare `[pack.evals].skills`, and how to **run** them locally (`python tools/run-pack-evals.py --pack <name>`); its existing `evals/` description no longer implies `evals.json` is the only accepted layout, and the per-pack reference guides touched by the first cut (`docs/guides/core/`, `docs/guides/converters/`) carry no stale `evals.json`-only layout claim.
 - [x] The same guide **disambiguates the two eval files** and captures the **human-authored portions** of the output-quality convention (Tier B — authored by hand, **not executed by this RFC**): for `evals/evals.json` (`{skill_name, evals:[{id, prompt, expected_output, files, assertions}]}`) it documents what makes a good `expected_output` and a good-vs-weak `assertion`, and names the human-review discipline — each marked **"author now; automated running/grading is deferred to a future RFC (Tier B)"**. The guide states which file serves which tier: `eval_queries.json` → Tier A (triggering, run by `run-pack-evals.py`) vs `evals/evals.json` → Tier B (output quality, authored, not yet executed).
 - [x] The eval-workspace layout adopts the agentskills.io evaluating-skills convention and is **forward-compatible with a future grading RFC**: `iteration-<N>/` per full pass; per eval, the Tier-A run output is captured under `with_skill/.../outputs/`; and the layout **reserves (this RFC does not produce) the grading slots** a future RFC fills — `without_skill/` (the Tier-B baseline run), per-run `timing.json` and `grading.json`, and an `iteration-<N>/benchmark.json` (Tier-B `pass_rate`/`delta`) — so adding grading later **fills slots without restructuring** the Tier-A output. The workspace is gitignored (run artifacts, not history).
 - [x] `docs/architecture/pack-layout.md` is updated to document **both** (a) the authored eval **source** files in a skill's `evals/` — `eval_queries.json` (Tier-A triggering) alongside the existing `evals/evals.json` (Tier-B quality) — and (b) the **generated** eval-output workspace `.eval-workspace/<pack>/iteration-<N>/…/outputs/` produced when `run-pack-evals.py` runs, explicitly marked **gitignored run-artifacts, not pack source** (so a reader of the layout doc knows what the runner emits vs what authors commit).
+
+### Phase 2 — in-harness / agent-dispatch detector mode (RFC-0037 § Errata E2)
+
+Admitted by E2 so activation evals run where there is no `claude -p` CLI — **Kiro
+IDE** — and from an **interactive Claude Code** session. Headless (Phase 1, above)
+stays the high-fidelity reference; Phase 2 is the portable, lower-fidelity path.
+
+- [ ] **In-harness detector behind the seam.** A second detector mode runs each `eval_queries.json` query through the **host harness's own agent** (Claude Code's `Agent`/subagent tool; Kiro IDE's agent-spawn) in a **fresh sub-context** supplied with the covered skills' names + `description:`, and records which skill the sub-context **reports** it would activate (or none). It reuses the Phase-1 `trigger_rate` + 0.5 grading and the same eval-workspace + `summary.json` contract; every result is **labelled `mode` (`headless`|`in-harness`) and `fidelity` (`observed`|`reported`)** so a reader never conflates the two. Selected via a `--mode in-harness` flag / a catalogue-internal driver.
+- [ ] **Reported, not observed — the isolation finding is documented.** A dispatched sub-context **cannot be restricted to only the pack's skills** (skill discovery is rooted at the session, not the sub-context's cwd), so the in-harness mode supplies the candidate descriptions explicitly and the sub-context reports a **description-match judgement** — materially lower fidelity than headless's real `Skill` `tool_use` router event. The spec, the summary `fidelity` field, and the authoring guide state this plainly; the in-harness number is a reach proxy, never the calibration baseline.
+- [ ] **Containment trust boundary (the headless sandbox does not transfer).** The dispatched sub-context holds the host's **full** tool surface, so author-influenced query strings must not be able to drive side effects: the driver dispatches a **read-only / no-execution** sub-context (it elicits the activation judgement, it does **not** let a skill body or any project tool run against the query). This is a **distinct** control from headless's `--allowed-tools Skill` and is specified here as its own AC. The driver is **catalogue-internal** (repo-owned `.claude/` / `.kiro/`, never a projected pack primitive) so Charter Principle 3 holds.
 
 ## Assumptions
 

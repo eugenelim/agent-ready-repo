@@ -16,6 +16,23 @@
 > `.input.skill`). The `.result` capture, the `--allowed-tools Skill` trust
 > boundary, the timeout bound, and Tier-A scope are unchanged.
 
+> **Scope adjustment (2026-06-22, ✅ signed off by eugenelim — RFC-0037 Approver; see RFC-0037 § Errata E2):**
+> The "headless-only / runner is catalogue-internal" decision below was drawn
+> narrower than intended — it foreclosed running activation evals in **Kiro
+> IDE** (no `claude -p` CLI) and in interactive Claude Code. E2 admits a second
+> **in-harness / agent-dispatch** detector behind the seam: the host harness's
+> agent runs each query in a fresh sub-context (with the candidate skills'
+> descriptions) and **reports** activation. Headless stays the high-fidelity
+> reference; in-harness is **reported, lower-fidelity** (a dispatched
+> sub-context can't be skill-isolated, so it's a description-match judgement,
+> not the real router event) and every result is labelled by mode. A **new
+> containment control** applies (the dispatched context must not execute skill
+> bodies / project tools against author strings — the `--allowed-tools Skill`
+> sandbox doesn't transfer), and the driver stays catalogue-internal
+> (repo-owned, not a projected primitive) so Principle 3 holds. Tier-A scope,
+> the `[pack.evals]` model, the `eval_queries.json` schema, and the report-only
+> posture are unchanged.
+
 ## Context
 
 Every gate the catalogue runs today is **structural**: `lint-skill-spec.py` and
