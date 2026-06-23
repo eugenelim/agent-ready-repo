@@ -757,6 +757,58 @@ than a documented accepted-state.
 
 ## `pack-activation-evals`
 
+### pack-eval-coverage-rollout
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md). Eval
+coverage today: **`core`** (5 skills, Tier-A activation), **`converters`**
+(6 skills, Tier-A activation **+** Tier-B-lite behavior, all 6 run for real),
+and **Tier-4 LLM-judge rubrics** for all of **`architect`** (3 skills) and
+**`product-engineering`** (5 skills) — `expected_output` + `assertions` per
+skill, gradable via `--mode judge`. Every other pack has **no eval coverage
+yet**. Remaining work, tiered by what it needs:
+
+- **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
+  no deps/execution).** ~35 user-triggered skills across `architect` (3),
+  `contracts` (2), `design-craft` (4), `governance-extras` (3),
+  `monorepo-extras` (1), `product-engineering` (5), `research` (7),
+  `user-guide-diataxis` (1) need `evals/eval_queries.json` + a `[pack.evals]`
+  block (the same ~8–10-each-way near-miss pattern as `core`). Exclude
+  reviewer-internal / non-prompt skills (`security-checklists`, `work-loop`,
+  `credential-setup`), as `core` does. This is the bulk of the gap.
+- **Tier 2 — B-lite behavior for other *deterministic* skills.** Assess
+  `contracts` (`api-contract` / `event-contract` — do they deterministically
+  emit/validate a contract artifact? if so, add an `expect` block + fixture).
+  Most non-converters skills are judgment/authoring → not B-lite-able.
+- **Tier 3 — credentialed/backend skills** (`atlassian` 8, `figma` 1): activation
+  only; behavior needs recorded cassettes / a test backend → see
+  `behavior-check-for-backend-skills`.
+- **Tier 4 — judgment / agent-workflow skills** (`core` 5, `architect`,
+  `research`, `product-engineering`, `design-craft`, `governance-extras`,
+  `new-guide`, `new-package`): produce specs/diagrams/research/critiques by
+  judgment, not a deterministic artifact. The **LLM-judge mechanism now exists**
+  (RFC-0037 § Errata E4, `--mode judge`, config-driven multi-adapter) — so the
+  remaining work here is **(a)** a per-skill **lens map** (point each skill at
+  the right rubric / reviewer lens — e.g. `architect-review` for `architect-design`),
+  authoring the `expected_output`/`assertions` rubrics — **done for all of
+  `architect` (3) and `product-engineering` (5)**; remaining for `research`,
+  `design-craft`, `governance-extras`, `new-guide`, `new-package`, and `core`'s
+  judgment skills — and **(b)** the **full
+  Tier-B** pieces still deferred: `benchmark.json` **deltas**, the
+  **with/without-skill** comparison, the **train/validation split**, and the
+  formal **human-calibration** (`feedback.json`) loop. *(Note: `contracts` and
+  `architect-diagram` also have a strong **deterministic** layer — OpenAPI/AsyncAPI
+  spec-validation, `mmdc` parse — worth a B-lite `expect` extension (a `validate`
+  hook + produced-file content checks) independent of the judge.)*
+- **Tier 5 — operational/harness.** (a) Run the **full activation sweep**
+  (so far only spot-validated) — needs the `ANTHROPIC_API_KEY` repo secret +
+  the scheduled `pack-evals.yml`. (b) **CI-automate behavior evals** — needs the
+  deferred declarative-setup capability + per-skill deps in the runner (today
+  behavior is manual/in-harness). (c) **Calibration → gating** (RFC-0037 Open
+  Q1): report-only → regression-from-baseline after one baseline cycle.
+
+**Unblocks when:** taken pack-by-pack (Tier 1 first — highest value, lowest
+cost); Tiers 3–5 are their own follow-on RFCs/PRs.
+
 ### pack-evals-converters-gate-consolidation
 
 **Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) — plan T8
@@ -785,6 +837,16 @@ edit would not be caught in CI. **Unblocks when:** a `gitleaks`/`trufflehog`-cla
 secret scan is wired into CI — its own PR, since it is a repo-wide gate, not a
 `pack-activation-evals` deliverable.
 
+**Adjacent CI-security hardening (security-reviewer impl-pass, 2026-06-21):** the
+implementing PR fixed the immediate findings (the `workflow_dispatch` input now
+passes through an `env:` var, not `${{ }}`-into-`run:`; the `claude` CLI install
+is version-pinned). Two defense-in-depth items remain repo-wide follow-ons in the
+same vehicle as the secret scanner: (a) wire **`actionlint` + `zizmor`** into CI
+to catch the GitHub-Actions script-injection / least-privilege class mechanically
+rather than by review; (b) **pin/lock the workflow's install deps** (an
+agentbundle hashed/locked requirements set + Dependabot/SCA tracking) since those
+installs run in the same job that later exposes the secret.
+
 ### headless-detectors-for-other-adapters
 
 **Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) — plan
@@ -795,9 +857,36 @@ expose JSON event streams on this machine; cursor-agent and gemini are documente
 headless+JSON but their CLIs aren't installed here. Each needs a per-adapter
 **confirm-spike**: does the JSON stream carry a parseable *skill-activation* event
 (the equivalent of claude-code's `Skill` tool_use + `.input.skill`)?
-**Out of scope (not a backlog item — a hard boundary):** GUI-only IDEs (Kiro IDE,
-Cursor IDE) have no headless surface; an in-editor `userTriggered` `.kiro.hook`
-driver was rejected as runtime infra (Principle 3). Their byte-identical
-`description:` is covered by the claude-code reference-harness proxy.
-**Unblocks when:** someone runs the confirm-spike for a target CLI and adds its
-detector + a fixture parse test.
+GUI-only IDEs (Kiro IDE, Cursor IDE) have no *headless* surface — but
+**RFC-0037 § Errata E2 admitted a second, in-harness mode** that reaches them
+(the host agent dispatches a read-only sub-context and reports activation;
+shipped as a documented procedure + `--mode in-harness`), so Kiro IDE is no
+longer out of scope. **Unblocks when:** someone runs the confirm-spike for a
+target headless CLI and adds its detector + a fixture parse test.
+
+### kiro-native-in-harness-driver
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) § Phase 2
+(RFC-0037 § Errata E2). The in-harness mode ships as a **harness-agnostic
+documented procedure** that any host agent follows (Claude Code validated;
+Kiro's agent can follow the same procedure + run the `--mode in-harness` CLI).
+An optional ergonomic follow-on is a **Kiro-native** trigger (a `.kiro/` command
+or hook) so a Kiro user invokes the dispatch loop with one action instead of
+following the procedure by hand. Catalogue-internal (repo-owned, not a projected
+pack primitive). **Unblocks when:** someone wants the one-click Kiro ergonomics;
+the procedure already works without it.
+
+### behavior-check-for-backend-skills
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) § Phase 3
+(RFC-0037 § Errata E3). The B-lite behavior check's scope gate excludes skills
+that integrate a **logged-in backend** (credentialed skills on the `auth: cli` /
+credential-broker contract — e.g. `atlassian`, `figma`): running them needs live
+auth + a real backend and may mutate remote state, so they get **activation
+(Tier-A) coverage only** and the harness never injects real credentials.
+Repeatable *behavior* verification of a backend skill needs a heavier mechanism:
+**recorded-interaction replay** (cassettes — deterministic, no live auth) or a
+disposable **test backend / sandbox tenant** with broker-provisioned test
+credentials. **Unblocks when:** the full Tier-B grading RFC (LLM-judge / deltas)
+takes this on, or a maintainer wants backend-skill behavior coverage sooner; it
+is out of scope for the lightweight B-lite check.

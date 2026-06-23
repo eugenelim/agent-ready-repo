@@ -1,0 +1,21 @@
+[
+  {"query": "Start a brand-new repo for our analytics service", "should_trigger": true},
+  {"query": "Bootstrap a new codebase for a CLI tool", "should_trigger": true},
+  {"query": "I have an idea for a new app — set up the repo from scratch", "should_trigger": true},
+  {"query": "Greenfield a new project for the billing system", "should_trigger": true},
+  {"query": "Turn this idea into a structured new repository", "should_trigger": true},
+  {"query": "Initialize a new project for our internal dashboard", "should_trigger": true},
+  {"query": "Set up a fresh repo with the right structure for a Python library", "should_trigger": true},
+  {"query": "We're starting a new service from zero — scaffold the repo", "should_trigger": true},
+  {"query": "Create a new project repo for the mobile backend", "should_trigger": true},
+
+  {"query": "Add a new feature to our existing app — spec it out", "should_trigger": false},
+  {"query": "We just installed your pack, what do we change in our repo?", "should_trigger": false},
+  {"query": "Fix the crash on startup", "should_trigger": false},
+  {"query": "Decompose this PRD into specs", "should_trigger": false},
+  {"query": "Record the decision to adopt a monorepo", "should_trigger": false},
+  {"query": "Spec a new export feature for the current project", "should_trigger": false},
+  {"query": "Adapt the installed conventions to this existing codebase", "should_trigger": false},
+  {"query": "Write a guide for new contributors", "should_trigger": false},
+  {"query": "Refactor the existing repo's module layout", "should_trigger": false}
+]

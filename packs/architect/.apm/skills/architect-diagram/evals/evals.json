@@ -1,0 +1,17 @@
+{
+  "skill_name": "architect-diagram",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Draw the system the user asked for as a Mermaid diagram.",
+      "expected_output": "Valid Mermaid for a notation that matches the user's intent (flowchart, sequenceDiagram, C4, stateDiagram-v2, or erDiagram), with structural discipline — boundaries / trust zones and technology labels, not bare boxes. Names are grounded: in document mode nothing is fabricated; in design mode any fabricated name is flagged. The diagram stays readable at a glance (split or simplified rather than one sprawling graph), and the diagram itself carries the content rather than surrounding prose.",
+      "assertions": [
+        "Emits valid Mermaid in a notation appropriate to the user's intent (flow/sequence/C4/state/ER)",
+        "Shows structural discipline — boundaries or trust zones and technology labels, not unlabeled boxes",
+        "Names are grounded: no fabricated component names, or any fabrication is explicitly flagged",
+        "Stays readable at a glance — split or simplified rather than one sprawling diagram",
+        "The diagram is the deliverable; it is not padded with prose that the diagram should carry"
+      ]
+    }
+  ]
+}

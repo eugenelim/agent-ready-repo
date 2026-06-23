@@ -52,6 +52,19 @@
         "Agent ties the no-resize behavior to preserving chart wiring",
         "Agent suggests enlarging the Excel Table in the template if all rows are required"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "I don't have an Excel template — just convert sample.md to a .xlsx.",
+      "expected_output": "The agent confirms openpyxl (`render.py --check`), then renders template-less on the explicit opt-out: `python scripts/render.py render sample.md --output sample.xlsx`, printing OUTPUT/FILLED. It states the workbook is unbranded and does not invent named ranges.",
+      "files": ["evals/files/sample.md"],
+      "assertions": [
+        "Agent renders template-less only on the explicit no-template opt-out and says the workbook is unbranded"
+      ],
+      "expect": {
+        "produces": ["sample.xlsx"],
+        "output_contains": ["OUTPUT:", "FILLED:"]
+      }
     }
   ]
 }

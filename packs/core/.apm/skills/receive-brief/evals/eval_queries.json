@@ -1,0 +1,21 @@
+[
+  {"query": "We got a product brief from the client — turn it into specs", "should_trigger": true},
+  {"query": "Decompose this PRD into shippable features", "should_trigger": true},
+  {"query": "Here's a 30-page requirements packet, break it into specs", "should_trigger": true},
+  {"query": "Product handed us a solution handoff doc — process it into specs", "should_trigger": true},
+  {"query": "Break this multi-feature brief into individual specs", "should_trigger": true},
+  {"query": "Take this PRD and decompose it by what we can ship", "should_trigger": true},
+  {"query": "We received a requirements document covering five features — slice it into specs", "should_trigger": true},
+  {"query": "Intake this product brief and produce a spec for each piece", "should_trigger": true},
+  {"query": "Turn this handoff packet into a set of specs", "should_trigger": true},
+
+  {"query": "Write a spec for a single login feature", "should_trigger": false},
+  {"query": "Record the decision behind our caching strategy", "should_trigger": false},
+  {"query": "Fix the broken pagination on the orders list", "should_trigger": false},
+  {"query": "Let's spec out the new comments feature", "should_trigger": false},
+  {"query": "Bootstrap a new repo from scratch for this idea", "should_trigger": false},
+  {"query": "Propose an RFC to change our branching model", "should_trigger": false},
+  {"query": "We just installed the pack — adapt it to our existing repo", "should_trigger": false},
+  {"query": "Write the API reference guide", "should_trigger": false},
+  {"query": "Investigate why checkout fails intermittently", "should_trigger": false}
+]

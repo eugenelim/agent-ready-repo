@@ -51,6 +51,19 @@
         "Agent proceeds only on the user's explicit opt-out",
         "Agent does NOT invent a corporate brand or ship a default template"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "I don't have a Word template — just convert sample.md to a .docx.",
+      "expected_output": "The agent confirms docxtpl (`render.py --check`), then renders template-less on the explicit opt-out: `python scripts/render.py render sample.md --output sample.docx`, printing OUTPUT/FILLED. It states the output is unbranded and does not invent a corporate template.",
+      "files": ["evals/files/sample.md"],
+      "assertions": [
+        "Agent renders template-less only on the explicit no-template opt-out and says the output is unbranded"
+      ],
+      "expect": {
+        "produces": ["sample.docx"],
+        "output_contains": ["OUTPUT:", "FILLED:"]
+      }
     }
   ]
 }

@@ -78,6 +78,8 @@ def main() -> int:
          [py, "tools/test-lint-knowledge-surface-parity.py"])
     _run("profiles lint", [py, "tools/lint-profiles.py", "--root", "."])
     _run("profiles lint self-test", [py, "tools/test-lint-profiles.py"])
+    _run("pack-evals runner self-test", [py, "tools/test-run-pack-evals.py"])
+    _run("pack-evals workflow posture", [py, "tools/test-pack-evals-workflow.py"])
 
     # Delegate to the shipped adopter-facing hook for the work-loop caps gate.
     result = subprocess.run(

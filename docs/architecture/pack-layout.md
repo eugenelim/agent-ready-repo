@@ -113,7 +113,7 @@ The five primitives declared in the adapter contract
 
 | Primitive | On-disk path | Notes |
 | --- | --- | --- |
-| `skill` | `.apm/skills/<name>/SKILL.md` (+ optional `scripts/`, `references/`, `assets/`, `evals/`) | [agentskills.io](https://agentskills.io/specification)-compliant. |
+| `skill` | `.apm/skills/<name>/SKILL.md` (+ optional `scripts/`, `references/`, `assets/`, `evals/`) | [agentskills.io](https://agentskills.io/specification)-compliant. `evals/` holds two authored source files: `eval_queries.json` (Tier-A activation evals) and/or `evals/evals.json` + `evals/files/<fixture>` (Tier-B output-quality evals). |
 | `agent` | `.apm/agents/<name>.md` | Frontmatter declares `name`, `description`, `tools`, `model`; body is the system prompt. |
 | `hook-body` | `.apm/hooks/<name>.{py,sh}` | The executable. The bundler projects to each harness's hook directory. |
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | Declarative binding of a body to an editor event. |
@@ -124,6 +124,26 @@ is designed in [RFC-0005](../rfc/0005-user-scope-hook-support.md) but
 isn't declared in `adapter.toml` v0.6 yet; the implementation work is
 tracked separately and the source path will be `.apm/kiro-ide-hooks/<name>.kiro.hook`
 once it lands.
+
+### Generated: `.eval-workspace/` (run artifacts, not pack source)
+
+When [`tools/run-pack-evals.py`](../../tools/run-pack-evals.py) runs a pack's
+Tier-A activation evals, it writes a repo-relative, **gitignored**
+eval-workspace — distinct from the ephemeral temp dir the pack is *projected*
+into for discovery:
+
+```
+.eval-workspace/<pack>/
+└── iteration-<N>/                         # one per full eval-loop pass
+    ├── <skill>/<query-id>/with_skill/run-<r>/outputs/   # captured model .result
+    └── summary.json                       # bounded per-skill trigger_rate + pass counts
+```
+
+These are **run artifacts, not pack source** — authors never commit them (they
+hold model output and change every run). The layout follows the agentskills.io
+evaluating-skills convention and reserves slots a future Tier-B grading RFC
+fills (`without_skill/`, per-run `timing.json` / `grading.json`, an
+`iteration-<N>/benchmark.json`) without restructuring the Tier-A output.
 
 ### `seeds/`
 

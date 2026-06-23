@@ -1,0 +1,21 @@
+[
+  {"query": "Render the Mermaid diagrams in this Markdown to PNG images", "should_trigger": true},
+  {"query": "Bake the Mermaid charts in this file into images", "should_trigger": true},
+  {"query": "Extract the mermaid fenced blocks and render them as PNGs", "should_trigger": true},
+  {"query": "Turn the Mermaid diagrams into images for Confluence", "should_trigger": true},
+  {"query": "Render each mermaid block in this .md to SVG", "should_trigger": true},
+  {"query": "Replace the Mermaid fences in this file with image references", "should_trigger": true},
+  {"query": "I need the Mermaid diagrams as images for a PDF", "should_trigger": true},
+  {"query": "Convert the mermaid blocks in this doc to pictures", "should_trigger": true},
+  {"query": "Render this file's Mermaid diagrams so they show in slides", "should_trigger": true},
+
+  {"query": "Convert this whole Markdown file to a styled HTML page", "should_trigger": false},
+  {"query": "Turn this Markdown into a Word document", "should_trigger": false},
+  {"query": "Make a slide deck from this Markdown", "should_trigger": false},
+  {"query": "Export this Markdown table to Excel", "should_trigger": false},
+  {"query": "Convert this PDF to Markdown", "should_trigger": false},
+  {"query": "Draw a flowchart of our deployment pipeline", "should_trigger": false},
+  {"query": "Read this .msg email into Markdown", "should_trigger": false},
+  {"query": "Render this README as a styled HTML doc", "should_trigger": false},
+  {"query": "Create a Mermaid diagram from this description", "should_trigger": false}
+]

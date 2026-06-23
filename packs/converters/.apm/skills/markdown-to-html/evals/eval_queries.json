@@ -1,0 +1,21 @@
+[
+  {"query": "Convert this Markdown file to a styled HTML page", "should_trigger": true},
+  {"query": "Render this .md as a shareable HTML document", "should_trigger": true},
+  {"query": "Export this Markdown as a self-contained HTML page", "should_trigger": true},
+  {"query": "Turn this Markdown into an HTML page with a sidebar nav", "should_trigger": true},
+  {"query": "Make a print-ready HTML version of this Markdown", "should_trigger": true},
+  {"query": "Generate an HTML document from this Markdown file", "should_trigger": true},
+  {"query": "I want to share this Markdown as an HTML page", "should_trigger": true},
+  {"query": "Render this README.md as HTML", "should_trigger": true},
+  {"query": "Convert this Markdown doc to a styled web page", "should_trigger": true},
+
+  {"query": "Turn this Markdown into a slide deck", "should_trigger": false},
+  {"query": "Make a Word document from this Markdown", "should_trigger": false},
+  {"query": "Export this Markdown table to Excel", "should_trigger": false},
+  {"query": "Build a pitch deck from this Markdown", "should_trigger": false},
+  {"query": "Turn this HTML page into Markdown", "should_trigger": false},
+  {"query": "Produce a PowerPoint presentation from this Markdown", "should_trigger": false},
+  {"query": "Render the Mermaid diagrams to PNG images", "should_trigger": false},
+  {"query": "Convert this PDF to Markdown", "should_trigger": false},
+  {"query": "Read this .msg file into Markdown", "should_trigger": false}
+]

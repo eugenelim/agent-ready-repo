@@ -1,0 +1,21 @@
+[
+  {"query": "Fix the bug where saving a draft loses the title", "should_trigger": true},
+  {"query": "The search returns stale results — diagnose and fix it", "should_trigger": true},
+  {"query": "This is broken: clicking submit twice creates duplicate orders", "should_trigger": true},
+  {"query": "Investigate this regression in the CSV parser", "should_trigger": true},
+  {"query": "Users report the avatar upload fails silently — fix it", "should_trigger": true},
+  {"query": "The date picker shows the wrong month, please fix it", "should_trigger": true},
+  {"query": "Our nightly job started crashing yesterday — find and fix the cause", "should_trigger": true},
+  {"query": "Fix this: the total doesn't update when I remove an item from the cart", "should_trigger": true},
+  {"query": "There's a defect in the rounding logic, track it down and fix it", "should_trigger": true},
+
+  {"query": "Let's spec out a new feature to let users export their data", "should_trigger": false},
+  {"query": "Refactor this module to be cleaner — behavior should stay the same", "should_trigger": false},
+  {"query": "Add a new endpoint for listing invoices", "should_trigger": false},
+  {"query": "Record why we chose to retry failed webhooks", "should_trigger": false},
+  {"query": "Write a spec for improved error messages", "should_trigger": false},
+  {"query": "Bootstrap a new service repo from scratch", "should_trigger": false},
+  {"query": "Decompose this requirements packet into specs", "should_trigger": false},
+  {"query": "Upgrade us from React 17 to React 18", "should_trigger": false},
+  {"query": "Document the deployment runbook", "should_trigger": false}
+]
