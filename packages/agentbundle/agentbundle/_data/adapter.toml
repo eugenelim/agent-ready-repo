@@ -77,7 +77,14 @@
 # the default agent's `.kiro/skills` auto-discovery (RFC-0022 E4; kiro
 # #6887/#6888/#4993). Additive `inject-resources` on BOTH the kiro-cli and
 # kiro-ide agent projections (CLI → agent JSON, IDE → quoted .md frontmatter).
-version = "0.15"
+# RFC-0040 / ADR-0030 / docs/specs/consolidated-pack-layout (v0.16): pack.toml
+# gains an optional scope-keyed [pack.layout] table (optional .repo / .user
+# sub-tables, each a `parent` base and/or a within-pack template-path) naming
+# where a consuming pack's durable output lands. Consumed by the new installer
+# `_append_layout_section` step (append-if-exists / never-create / never-
+# overwrite) into an adopter-owned `agentbundle-layout.toml`. Additive +
+# optional — packs pinned below v0.16 build and validate unchanged.
+version = "0.16"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
