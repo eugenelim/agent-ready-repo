@@ -1,6 +1,6 @@
 ---
 name: devils-advocate
-description: Adversarially review a research artifact (`research.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `research.md`; runs standalone against any user-supplied claim. Produces `counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
+description: Adversarially review a research artifact (`<topic-slug>-survey.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `<topic-slug>-survey.md`; runs standalone against any user-supplied claim. Produces `<topic-slug>-counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
 ---
 
 # /devils-advocate
@@ -10,19 +10,20 @@ and tries to take it down with cited counter-evidence.
 
 ## When to invoke
 
-- **Auto-invoked** by `/research` deep mode against `research.md`.
+- **Auto-invoked** by `/research` deep mode against `<topic-slug>-survey.md`.
 - **Standalone** against a user-supplied claim ("argue against this
   finding"). The skill body handles both invocations.
-- **In the decision pipeline**, against `hypotheses.md` to surface the
-  counter-evidence each hypothesis must answer.
+- **In the decision pipeline**, against `<topic-slug>-hypotheses.md` to surface
+  the counter-evidence each hypothesis must answer.
 
 ## Invocation shapes
 
 This skill runs in two shapes:
 
 - **Pipeline invocation** — expects a target artifact in the working
-  directory (`research.md` from `/research`, or `hypotheses.md` from
-  `/compare-hypotheses`). The artifact's findings are the input set.
+  directory (`<topic-slug>-survey.md` from `/research`, or
+  `<topic-slug>-hypotheses.md` from `/compare-hypotheses`). The artifact's
+  findings are the input set.
 - **Standalone invocation** — targets a user-supplied claim. The user
   supplies the claim explicitly; no upstream artifact is required.
 
@@ -67,7 +68,9 @@ Two convergent disciplines:
 5. **Moderator pass** — before declaring done, scan retrieved-but-
    uncited counter-material and consider one more query from the
    highest-signal unused snippet (Co-STORM contribution).
-6. **Write `counterpoints.md`**, linking back to the source artifact.
+6. **Write `<topic-slug>-counterpoints.md`**, linking back to the source
+   artifact. `<topic-slug>` matches the survey it reviews; the naming rule
+   lives in the `/research` skill body (§ Typed, topic-named artifacts).
 
 ## The do-not-resolve verdict
 
@@ -101,7 +104,7 @@ won't commit." Thin evidence is `[uncertain]` (a `/research` rating) or
 a known-unknown (a `/research` gap entry) — not a tension. A
 do-not-resolve verdict requires *substantive evidence on both sides*.
 
-## `counterpoints.md` output schema
+## `<topic-slug>-counterpoints.md` output schema
 
 ```markdown
 # Counterpoints — <target artifact or claim>

@@ -1,6 +1,6 @@
 ---
 name: compare-hypotheses
-description: Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis — the +81% parallelizable-task case from multi-agent research). In decision-pipeline invocations expects upstream `perspectives.md` and `sources.md`; standalone invocations enumerate hypotheses inline. Produces `hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
+description: Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis — the +81% parallelizable-task case from multi-agent research). In decision-pipeline invocations expects upstream `<topic-slug>-perspectives.md` and `<topic-slug>-sources.md`; standalone invocations enumerate hypotheses inline. Produces `<topic-slug>-hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
 ---
 
 # /compare-hypotheses
@@ -20,9 +20,9 @@ actually favors.
 
 ## Invocation shapes
 
-- **Pipeline invocation** — expects upstream `perspectives.md` (camps)
-  and `sources.md` (sources tagged by primacy, optionally grouped by
-  camp). The hypotheses come from the camps; the evidence comes from
+- **Pipeline invocation** — expects upstream `<topic-slug>-perspectives.md`
+  (camps) and `<topic-slug>-sources.md` (sources tagged by primacy, optionally
+  grouped by camp). The hypotheses come from the camps; the evidence comes from
   the sources.
 - **Standalone invocation** — the user supplies the hypotheses
   directly; the skill enumerates them inline. Sources come from
@@ -66,9 +66,11 @@ On hosts without subagent support, fall back to sequential evaluation.
    evidence position. Note where evidence is thin or single-sourced.
 5. **Rank** — most-supported first. Name the dominant supporting
    evidence and the strongest contradicting evidence per hypothesis.
-6. **Write `hypotheses.md`**.
+6. **Write `<topic-slug>-hypotheses.md`** — `<topic-slug>` is the kebab-case
+   topic slug; the naming rule lives in the `/research` skill body (§ Typed,
+   topic-named artifacts).
 
-## `hypotheses.md` output schema
+## `<topic-slug>-hypotheses.md` output schema
 
 ```markdown
 # Hypotheses — <decision question>
