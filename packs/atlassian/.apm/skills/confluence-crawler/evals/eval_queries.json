@@ -1,0 +1,21 @@
+[
+  {"query": "Crawl our Confluence space and convert it to Markdown", "should_trigger": true},
+  {"query": "Mirror the ENG Confluence space locally", "should_trigger": true},
+  {"query": "Export every page under this Confluence space as Markdown", "should_trigger": true},
+  {"query": "Ingest our Confluence docs into Markdown with frontmatter", "should_trigger": true},
+  {"query": "Crawl the Confluence space by page hierarchy, depth 3", "should_trigger": true},
+  {"query": "Re-crawl the space idempotently and update changed pages", "should_trigger": true},
+  {"query": "Pull down all the pages in the PRODUCT Confluence space", "should_trigger": true},
+  {"query": "Convert this whole Confluence space to clean Markdown", "should_trigger": true},
+  {"query": "Mirror the on-prem Confluence Data Center space", "should_trigger": true},
+
+  {"query": "Publish this report to a Confluence page", "should_trigger": false},
+  {"query": "Push this Markdown doc up to Confluence", "should_trigger": false},
+  {"query": "Update the existing Confluence page with new content", "should_trigger": false},
+  {"query": "Search Jira for open issues", "should_trigger": false},
+  {"query": "What's our cycle time this quarter?", "should_trigger": false},
+  {"query": "Create a Jira issue from this doc", "should_trigger": false},
+  {"query": "Mirror our GitHub wiki locally", "should_trigger": false},
+  {"query": "Turn this epic into specs", "should_trigger": false},
+  {"query": "Compare flow metrics to last quarter", "should_trigger": false}
+]

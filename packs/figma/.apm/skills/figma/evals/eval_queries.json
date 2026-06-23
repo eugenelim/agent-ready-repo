@@ -1,0 +1,22 @@
+[
+  {"query": "Fetch the structure of this Figma file", "should_trigger": true},
+  {"query": "Render this Figma frame to PNG", "should_trigger": true},
+  {"query": "Export the design tokens from our Figma file", "should_trigger": true},
+  {"query": "Post a comment on this Figma node", "should_trigger": true},
+  {"query": "Pull the version history of the Figma file", "should_trigger": true},
+  {"query": "Inspect the layers of this Figma frame", "should_trigger": true},
+  {"query": "Convert this FigJam connector diagram to Mermaid", "should_trigger": true},
+  {"query": "Read the comments on our Figma design", "should_trigger": true},
+  {"query": "Get the metadata for this Figma file", "should_trigger": true},
+  {"query": "Render the checkout screen from Figma as SVG", "should_trigger": true},
+
+  {"query": "Change the button color in our Figma design", "should_trigger": false},
+  {"query": "Add a new frame to the Figma file", "should_trigger": false},
+  {"query": "Update the text layer in this Figma mockup", "should_trigger": false},
+  {"query": "Create a new design in Figma from scratch", "should_trigger": false},
+  {"query": "Draw a flowchart of the checkout flow", "should_trigger": false},
+  {"query": "Design a system architecture diagram", "should_trigger": false},
+  {"query": "Render this Markdown to HTML", "should_trigger": false},
+  {"query": "What should this button label say?", "should_trigger": false},
+  {"query": "Generate a PNG from this Mermaid diagram", "should_trigger": false}
+]

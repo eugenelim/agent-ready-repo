@@ -1,0 +1,21 @@
+[
+  {"query": "Publish this report to a Confluence page", "should_trigger": true},
+  {"query": "Push this Markdown design doc up to Confluence", "should_trigger": true},
+  {"query": "Update the existing Confluence page with this content", "should_trigger": true},
+  {"query": "Create a new Confluence page from this document", "should_trigger": true},
+  {"query": "Publish this to Confluence under the ENG space", "should_trigger": true},
+  {"query": "Post this content to the Confluence page with ID 12345", "should_trigger": true},
+  {"query": "Push my flow-metrics report to our team's Confluence page", "should_trigger": true},
+  {"query": "Publish this storage-format XHTML to Confluence", "should_trigger": true},
+  {"query": "Update the Confluence page by its URL with the latest draft", "should_trigger": true},
+
+  {"query": "Crawl our Confluence space into Markdown", "should_trigger": false},
+  {"query": "Mirror the whole Confluence space locally", "should_trigger": false},
+  {"query": "Export every page in the space as Markdown", "should_trigger": false},
+  {"query": "Create a Jira issue for this task", "should_trigger": false},
+  {"query": "Comment on PROJ-100 in Jira", "should_trigger": false},
+  {"query": "Generate the flow-metrics report", "should_trigger": false},
+  {"query": "Compare flow metrics to pre-AI", "should_trigger": false},
+  {"query": "Write a tutorial for the export feature", "should_trigger": false},
+  {"query": "Turn this epic into specs", "should_trigger": false}
+]
