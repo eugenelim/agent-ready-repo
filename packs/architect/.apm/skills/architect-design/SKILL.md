@@ -58,6 +58,16 @@ If any check fails, push back rather than proceeding.
    reference fits the domain** → the leading-edge method
    (`references/leading-edge-domains.md`): flag novelty, compose with `research`
    if present (degrade + lower confidence if absent), carry source + confidence.
+   Routing has a second, **orthogonal axis — workload class**: when an LLM or
+   agent is on the critical path — a **generative or agentic** workload (the
+   design generates text on the path, calls tools, takes autonomous action, or
+   runs an agent loop) — additionally load `references/lens-genai-agentic.md` and
+   shape the concept against the tier(s) that apply. This is *additive to* the
+   provider axis, not either/or — an agentic system on a named cloud loads
+   **both** the provider pillars and the agentic overlay; a plain generative
+   design (RAG/chat that only produces text) loads the overlay at its baseline
+   tier only. The overlay itself gates which tiers bite — do not enumerate its
+   concerns here.
 
 4. **Draft inline.** Use the skeleton in `assets/design-doc.md` (load it
    when you start the draft). Sections in order: TL;DR (≤3 sentences),
