@@ -38,25 +38,26 @@ Supply Chain.
 | Tier C **Sub-agent provenance** | LLM03 (multi-agent facet) |
 | Tier B **Output handling** | LLM05 |
 | Tier A token / Tier B loop-cap **consumption** | LLM10 |
-| Tier B **Execution isolation & blast radius** | **design-altitude-only** → backlog `#llm-agent-module-agentic-boundary-extension` |
-| Tier C **Inter-agent identity/privilege propagation** | **design-altitude-only** → backlog `#llm-agent-module-agentic-boundary-extension` |
-| Tier C **Memory poisoning** (LLM04 anchor) | **design-altitude-only** (LLM04 is the OWASP anchor; the module carries no matching check yet) → backlog `#llm-agent-module-agentic-boundary-extension` |
+| Tier B **Execution isolation & blast radius** | `llm-agent` **Execution isolation & blast radius** check (Agentic ASI02 / ASI05) |
+| Tier C **Inter-agent identity/privilege propagation** | `llm-agent` **Inter-agent identity/privilege propagation** check (Agentic ASI03) |
+| Tier C **Memory poisoning** (LLM04 anchor) | `llm-agent` **Memory & context poisoning** check (Agentic ASI06 / LLM04) |
 
 **Pass condition (b): every overlay security-boundary concern resolves to a
-named `llm-agent` check OR an explicit design-altitude-only status.** ✅ Seven
-resolve to a module check; three resolve to design-altitude-only with the
-backlog pointer.
+named `llm-agent` check OR an explicit design-altitude-only status.** ✅ All ten
+now resolve to a named `llm-agent` module check — the three that were formerly
+design-altitude-only (execution isolation & blast radius, inter-agent
+identity/privilege propagation, memory poisoning) gained module checks when the
+`llm-agent-agentic-boundary-extension` spec added the Agentic-Top-10 surface.
 
 ## Net-new boundaries reconciled
 
-The three design-altitude-only boundaries — **execution isolation & blast
-radius**, **inter-agent identity/privilege propagation**, and **memory
-poisoning** — exceed the current `llm-agent` surface (LLM01/02/03/05/06/10, no
-Agentic-Top-10 content). They are named at design altitude in the lens; the
-module extension (OWASP Agentic Top 10: tool misuse, identity/privilege abuse,
-memory poisoning) is the deferred backlog entry
-`docs/backlog.md#llm-agent-module-agentic-boundary-extension`, so the route-out
-has a tracked destination. **No internal backlog anchor is written into the
-shipped lens prose** — the lens names the boundaries and routes control-level
-verification out generically; the anchor lives only in the spec AC and the
-backlog register.
+The three boundaries that once exceeded the `llm-agent` surface — **execution
+isolation & blast radius**, **inter-agent identity/privilege propagation**, and
+**memory poisoning** — are now **named module checks**. The `llm-agent` module
+gained an Agentic-Top-10 surface (ASI02 / ASI03 / ASI05 / ASI06 + LLM04) via the
+`llm-agent-agentic-boundary-extension` spec, so the lens's design-altitude
+route-out for them lands on a control-level check like every other
+security-boundary concern, rather than on cross-cutting standards alone. **No
+internal backlog anchor is written into the shipped lens prose** — the lens names
+the boundaries and routes control-level verification to the `llm-agent` module
+generically; it never carried the anchor.
