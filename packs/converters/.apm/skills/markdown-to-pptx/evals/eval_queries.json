@@ -1,0 +1,21 @@
+[
+  {"query": "Turn this Markdown into a slide deck", "should_trigger": true},
+  {"query": "Build a PowerPoint presentation from this Markdown", "should_trigger": true},
+  {"query": "Produce a branded .pptx from this Markdown", "should_trigger": true},
+  {"query": "Make slides out of this Markdown using our template", "should_trigger": true},
+  {"query": "Generate a presentation deck from this Markdown", "should_trigger": true},
+  {"query": "Fill our deck.pptx template with this Markdown", "should_trigger": true},
+  {"query": "I need a PowerPoint out of this Markdown outline", "should_trigger": true},
+  {"query": "Convert this Markdown into a branded slide presentation", "should_trigger": true},
+  {"query": "Export this Markdown as a .pptx deck", "should_trigger": true},
+
+  {"query": "Turn this Markdown into a Word document", "should_trigger": false},
+  {"query": "Export this Markdown table to an Excel spreadsheet", "should_trigger": false},
+  {"query": "Convert this Markdown to a styled HTML page", "should_trigger": false},
+  {"query": "Turn this PPTX file into Markdown", "should_trigger": false},
+  {"query": "Make a .docx report from this Markdown", "should_trigger": false},
+  {"query": "Produce an .xlsx workbook from this Markdown table", "should_trigger": false},
+  {"query": "Render the Mermaid diagrams to PNGs", "should_trigger": false},
+  {"query": "Read this Outlook .msg into Markdown", "should_trigger": false},
+  {"query": "Convert this existing PowerPoint deck into Markdown notes", "should_trigger": false}
+]

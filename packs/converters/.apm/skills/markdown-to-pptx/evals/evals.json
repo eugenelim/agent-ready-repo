@@ -52,6 +52,19 @@
         "Agent does NOT hand-edit the output .pptx XML",
         "Agent suggests re-rendering with the correct branded template via --template"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "I don't have a deck template — just turn sample.md into a .pptx.",
+      "expected_output": "The agent confirms python-pptx (`render.py --check`), then renders with the default template (no --template): `python scripts/render.py render sample.md --output sample.pptx`, printing OUTPUT/FILLED. It notes the deck uses the built-in default rather than a brand.",
+      "files": ["evals/files/sample.md"],
+      "assertions": [
+        "Agent renders with the default template (no --template) and notes the deck is unbranded"
+      ],
+      "expect": {
+        "produces": ["sample.pptx"],
+        "output_contains": ["OUTPUT:", "FILLED:"]
+      }
     }
   ]
 }

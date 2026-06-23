@@ -1,0 +1,21 @@
+[
+  {"query": "I just installed the pack — walk me through adapting it to my repo", "should_trigger": true},
+  {"query": "We added your conventions to an existing project, what now?", "should_trigger": true},
+  {"query": "Help me merge the installed companion files into my repo", "should_trigger": true},
+  {"query": "The adapt-install marker is here — guide me through the post-install changes", "should_trigger": true},
+  {"query": "I ran the install, now adapt it to our existing codebase", "should_trigger": true},
+  {"query": "Walk me through substituting the placeholders the pack installed", "should_trigger": true},
+  {"query": "After installing, what restructuring does my repo need?", "should_trigger": true},
+  {"query": "Reconcile the newly installed templates with my current docs", "should_trigger": true},
+  {"query": "Guide me through the post-install changes for the pack I just added", "should_trigger": true},
+
+  {"query": "Start a brand-new repo from scratch", "should_trigger": false},
+  {"query": "Write a spec for a new feature", "should_trigger": false},
+  {"query": "Fix this failing test", "should_trigger": false},
+  {"query": "Decompose this product brief into specs", "should_trigger": false},
+  {"query": "Record an architecture decision about our queue choice", "should_trigger": false},
+  {"query": "Bootstrap a greenfield project for the new service", "should_trigger": false},
+  {"query": "Propose a change to our conventions for review", "should_trigger": false},
+  {"query": "Create a new spec for the search feature", "should_trigger": false},
+  {"query": "Investigate a production regression in the API", "should_trigger": false}
+]

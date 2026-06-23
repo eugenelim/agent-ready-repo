@@ -1,0 +1,18 @@
+{
+  "skill_name": "de-risk-intent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Test whether the framed intent's bet holds before building it out.",
+      "expected_output": "A de-risk pass that triages reversibility (one-way vs two-way door), names a single riskiest assumption as 'what would have to be true', predeclares a kill condition in the test's own currency BEFORE any result (a number where there is traffic, a qualitative bar where there isn't), chooses a prototype-approach (validate-first vs prototype-led) consistent with the triage, and ends in a survive/kill verdict compared against the predeclared line. It stays at de-risking — it does not re-author or decompose the intent.",
+      "assertions": [
+        "Triages reversibility — classifies the bet as a one-way or two-way door",
+        "Names a single riskiest assumption, fronted as 'what would have to be true'",
+        "Predeclares a kill condition in the test's own currency, stated before the result (number where there's traffic, qualitative bar where there isn't)",
+        "Chooses a prototype-approach (validate-first or prototype-led) consistent with the reversibility triage",
+        "Ends in an explicit survive/kill verdict compared against the predeclared line",
+        "Stays at de-risking — does not author (frame) or break down (decompose) the intent"
+      ]
+    }
+  ]
+}
