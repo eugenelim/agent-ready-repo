@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import pathlib
 import shutil
 import subprocess
@@ -426,6 +427,9 @@ def _build_behavior_pack(repo_root: pathlib.Path) -> None:
                         "output_excludes": ["Traceback"]}},
             {"id": 2, "prompt": "p2", "expected_output": "e2",
              "expect": {"produces": ["missing.txt"]}},
+            {"id": 3, "prompt": "p3", "expected_output": "e3",
+             "expect": {"produces": "out.txt"}},  # malformed: str not list
+            {"id": 4, "prompt": "p4", "expected_output": "e4"},  # no expect / no assertions
         ],
     }), encoding="utf-8")
 
@@ -449,7 +453,22 @@ def test_seed_workspace() -> None:
             pass
         else:
             fail("seed", "out-of-evals fixture must be refused")
-    print("✓ seed_workspace: OS-temp dir, fixtures confined under evals/, traversal refused.")
+        # A symlinked fixture is refused (the guard checks the UNRESOLVED path).
+        if hasattr(os, "symlink"):
+            link = skill_dir / "evals" / "files" / "link.txt"
+            try:
+                os.symlink(skill_dir / "evals" / "files" / "in.txt", link)
+            except (OSError, NotImplementedError):
+                pass
+            else:
+                try:
+                    M.seed_workspace(skill_dir, ["evals/files/link.txt"])
+                except ValueError:
+                    pass
+                else:
+                    fail("seed", "symlinked fixture must be refused")
+    print("✓ seed_workspace: OS-temp dir, fixtures confined under evals/, "
+          "traversal + symlink refused.")
 
 
 def test_grade_behavior() -> None:
@@ -463,13 +482,18 @@ def test_grade_behavior() -> None:
             (ws1 / "out.txt").write_text("done\n", encoding="utf-8")
             (ws1 / M.BEHAVIOR_OUTPUT_FILE).write_text("all OK here\n", encoding="utf-8")
             # eval 2: missing.txt NOT produced -> deterministic fail.
+            ws3 = pathlib.Path(tempfile.mkdtemp())
+            ws4 = pathlib.Path(tempfile.mkdtemp())
             results = {"alpha": {
                 "1": {"assertions": [True], "errored": False},
                 "2": {"assertions": [], "errored": False},
+                "3": {"assertions": [], "errored": False},
+                "4": {"assertions": [], "errored": False},
             }}
             summary = M.grade_behavior(
                 "bxpack", results,
-                workspaces={"alpha/1": str(ws1), "alpha/2": str(ws2)},
+                workspaces={"alpha/1": str(ws1), "alpha/2": str(ws2),
+                            "alpha/3": str(ws3), "alpha/4": str(ws4)},
                 repo_root=repo_root,
             )
             check("bx", summary["mode"] == "in-harness" and summary["tier"] == "B-lite",
@@ -479,7 +503,13 @@ def test_grade_behavior() -> None:
             check("bx", evs["1"]["passed"] is True, "eval 1 (artifact+output+assertion) passes")
             check("bx", evs["2"]["passed"] is False and not evs["2"]["produces_ok"],
                   "eval 2 fails on the missing artifact (re-derived by the runner)")
-            check("bx", summary["skills"]["alpha"]["pass_count"] == 1, "1 of 2 pass")
+            check("bx", evs["3"]["errored"] and not evs["3"]["passed"],
+                  "eval 3 malformed expect (str not list) fails closed")
+            check("bx", evs["4"]["errored"] and not evs["4"]["passed"],
+                  "eval 4 with no post-conditions fails closed (no vacuous pass)")
+            check("bx", summary["skills"]["alpha"]["pass_count"] == 1, "1 of 4 pass")
+            shutil.rmtree(ws3, ignore_errors=True)
+            shutil.rmtree(ws4, ignore_errors=True)
 
             # Re-derivation is real: deleting eval-1's artifact flips it to fail,
             # regardless of any operator-claimed booleans (which we never accept).

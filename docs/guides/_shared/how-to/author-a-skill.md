@@ -271,9 +271,12 @@ sharper containment requirement than the activation check** (the
    scope until a real OS-level sandbox exists — this is a procedure + scope-gate,
    **not** a mechanical sandbox (a host agent running the skill keeps its full
    tool surface).
-2. **Per eval:** create a working dir under the OS temp root, copy the eval's
-   `evals/files/` fixtures in, and run the skill on the `prompt` **with that dir
-   as cwd**, instructing it to confine writes there. Capture the run's output to
+2. **Per eval:** get a confined working dir from the runner —
+   `python tools/run-pack-evals.py --pack <name> --prepare-workspace
+   <skill>/<eval_id>` prints an OS-temp dir seeded with the eval's
+   `evals/files/` fixtures (path-confined). Run the skill on the `prompt` **with
+   that dir as cwd**, instructing it to confine writes there and bounding the
+   run (stop it if it exceeds a sane per-eval time). Capture the run's output to
    `.eval-output.txt` in that dir. Tear the dir down in a `finally`.
 3. **Collect** `{skill: {eval_id: {"assertions": [<bool per assertion>],
    "errored": <bool>, "workspace": "<dir>"}}}` and grade:

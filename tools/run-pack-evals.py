@@ -597,16 +597,28 @@ def seed_workspace(skill_dir: pathlib.Path, files: list[str]) -> pathlib.Path:
     """
     evals_root = (skill_dir / "evals").resolve()
     ws = pathlib.Path(tempfile.mkdtemp(prefix="pack-eval-bx-"))
+
+    def _refuse(msg: str):
+        shutil.rmtree(ws, ignore_errors=True)
+        raise ValueError(msg)
+
     for f in files or []:
-        src = (skill_dir / f).resolve()
+        raw = skill_dir / f
+        # Check the symlink on the UNRESOLVED path + every component up to the
+        # skill dir, before resolve() collapses it (a resolved path is never a
+        # symlink, so the old post-resolve check was dead).
+        probe = raw
+        while probe != skill_dir and probe.parent != probe:
+            if probe.is_symlink():
+                _refuse(f"fixture {f!r} traverses a symlink ({probe}); refused")
+            probe = probe.parent
+        src = raw.resolve()
         try:
             src.relative_to(evals_root)
         except ValueError:
-            shutil.rmtree(ws, ignore_errors=True)
-            raise ValueError(f"fixture {f!r} resolves outside the skill's evals/ dir")
-        if src.is_symlink() or not src.is_file():
-            shutil.rmtree(ws, ignore_errors=True)
-            raise ValueError(f"fixture {f!r} is not a regular file (symlinks refused)")
+            _refuse(f"fixture {f!r} resolves outside the skill's evals/ dir")
+        if not src.is_file():
+            _refuse(f"fixture {f!r} is not a regular file")
         shutil.copyfile(src, ws / pathlib.Path(f).name)
     return ws
 
@@ -669,28 +681,43 @@ def grade_behavior(
             ws = workspaces.get(f"{skill}/{eid}")
             expect = ev.get("expect", {}) if isinstance(ev.get("expect"), dict) else {}
 
-            errored = bool(attested.get("errored")) or ws is None
+            def _strlist(val) -> bool:
+                return isinstance(val, list) and all(isinstance(x, str) for x in val)
+
+            produces = expect.get("produces", [])
+            contains = expect.get("output_contains", [])
+            excludes = expect.get("output_excludes", [])
+            declared_assertions = ev.get("assertions") or []
+            # Fail closed on a malformed `expect` (a string where a list is
+            # expected would otherwise iterate characters and mis-grade), and on
+            # an eval with NO post-conditions at all (nothing to validate must
+            # not read as a silent pass).
+            malformed = not all(_strlist(v) for v in (produces, contains, excludes))
+            no_postconditions = not (produces or contains or excludes or declared_assertions)
+
+            errored = (
+                bool(attested.get("errored")) or ws is None or malformed or no_postconditions
+            )
             produces_ok = output_ok = True
             wsp = pathlib.Path(ws) if ws is not None else None
             if not errored and not (wsp and wsp.is_dir()):
                 errored = True  # fail closed: the driver never produced this dir
             if not errored:
-                for f in expect.get("produces", []):
+                for f in produces:
                     if not (wsp / f).is_file():
                         produces_ok = False
                 out_txt = ""
                 out_file = wsp / BEHAVIOR_OUTPUT_FILE
                 if out_file.is_file():
                     out_txt = out_file.read_text(encoding="utf-8", errors="replace")
-                for s in expect.get("output_contains", []):
+                for s in contains:
                     if s not in out_txt:
                         output_ok = False
-                for s in expect.get("output_excludes", []):
+                for s in excludes:
                     if s in out_txt:
                         output_ok = False
 
             attested_assertions = attested.get("assertions", [])
-            declared_assertions = ev.get("assertions") or []
             if declared_assertions:
                 # Declared-but-unattested fails closed; otherwise all must hold.
                 if not attested_assertions:
@@ -815,6 +842,13 @@ def main(argv: list[str] | None = None) -> int:
              "(Tier-B-lite output/behavior — RFC-0037 § Errata E3)",
     )
     parser.add_argument(
+        "--prepare-workspace",
+        metavar="SKILL/EVAL_ID",
+        help="seed an OS-temp working dir with a behavior eval's evals/files/ "
+             "fixtures (path-confined) and print its path; the in-harness "
+             "behavior-check driver runs the skill there. Used with --pack.",
+    )
+    parser.add_argument(
         "--reports",
         help="path to the in-harness results JSON; with --check activation: "
              "{skill: {query_id: [reported|null|\"__error__\", ...]}}; with "
@@ -822,6 +856,24 @@ def main(argv: list[str] | None = None) -> int:
              "workspace}}}. Required with --mode in-harness",
     )
     args = parser.parse_args(argv)
+
+    if args.prepare_workspace:
+        # Seed a confined per-eval working dir and print its path (the behavior
+        # driver runs the skill there). Puts the fixture path-confinement on the
+        # live path rather than leaving it a helper nothing calls.
+        try:
+            skill, _, eval_id = args.prepare_workspace.partition("/")
+            _safe_segment("skill name", skill)
+            pack_dir = REPO_ROOT / "packs" / _safe_segment("pack name", args.pack)
+            evals = read_output_evals(pack_dir, skill)
+            ev = next((e for e in evals if str(e.get("id")) == eval_id), None)
+            if ev is None:
+                parser.error(f"--prepare-workspace: no eval {eval_id!r} in {skill}")
+            ws = seed_workspace(pack_dir / ".apm" / "skills" / skill, ev.get("files") or [])
+        except (ValueError, OSError) as exc:
+            parser.error(f"--prepare-workspace: {exc}")
+        print(ws)
+        return 0
 
     if args.mode == "in-harness":
         # In-harness grades results the driver already collected — no model call.

@@ -53,7 +53,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reach to **Kiro IDE** and interactive Claude Code where there is no `claude`
   CLI: the host agent dispatches a read-only sub-context per query and reports
   activation — a lower-fidelity (reported, not observed) proxy, labelled as such
-  in the summary so it is never mistaken for the headless baseline.
+  in the summary so it is never mistaken for the headless baseline. A
+  **lightweight behavior/output check** (`--check behavior`, RFC-0037 § Errata
+  E3) goes further where it's safe: the agent runs the skill in a confined
+  per-eval working dir and the runner re-derives deterministic post-conditions
+  (an `evals/evals.json` `expect` block — produced files, output substrings)
+  plus attested assertions (`tier: B-lite`). The full Tier-B grading (LLM-judge,
+  pass-rate deltas) stays a future RFC.
 - **Per-prompt work-loop activation hook (`core` pack).** A new
   `work-loop-check` hook nudges the agent, on every prompt, to load the
   work-loop skill for non-trivial work — closing a gap where the loop was

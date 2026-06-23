@@ -258,9 +258,11 @@ mode (E2).
 check** that, for each eval in a skill's existing `evals/evals.json`, has the
 host agent **run the skill** on the eval's `prompt` in an **isolated, ephemeral
 workspace** and grades the result by:
-- **deterministic post-conditions (the backbone):** the eval's `files` /
-  `expected_output`-described artifacts exist, and literal expected/forbidden
-  substrings are present/absent in the produced output — mechanical, reliable;
+- **deterministic post-conditions (the backbone):** the eval carries an optional
+  `expect` block (`{produces, output_contains, output_excludes}`); the runner
+  **re-derives** these from the per-eval working dir — `expect.produces` files
+  exist, `output_contains`/`output_excludes` hold against the captured output —
+  mechanical, reliable, never trusting operator-supplied result booleans;
 - **the host agent's per-`assertion` pass/fail self-attestation** for the
   semantic assertions a string check can't cover ("did NOT hand-write the
   .docx"). No separate judge model.
