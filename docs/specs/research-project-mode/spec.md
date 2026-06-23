@@ -1,6 +1,6 @@
 # Spec: research-project-mode
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0039, ADR-0029, RFC-0035 (adopter-editable config precedent), RFC-0034 (config-file-at-known-path precedent)
@@ -112,7 +112,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — `research-project-start` scaffolds the three-layer folder.** The
+- [x] **AC1 — `research-project-start` scaffolds the three-layer folder.** The
   skill creates `<parent>/<YYYY-MM-DD>-<topic-slug>/` containing `overview.md`
   (with `question`, `working_hypothesis` — may be empty —, `shape`, `phase:
   capture`, and stop-signal state) and an empty `sources/` directory.
@@ -120,7 +120,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `sources/`, the `phase: capture` initial state, and the `<YYYY-MM-DD>-<topic-slug>`
   folder grammar.
 
-- [ ] **AC2 — The digest middle layer is specified.** `research-project-digest`
+- [x] **AC2 — The digest middle layer is specified.** `research-project-digest`
   reads `sources/*.md`, clusters contributions into **emergent columns** in
   `synthesis-matrix.md` (rows = sources, columns constructed from the material),
   and writes analytic `memos.md`. Verification: `rg` against
@@ -128,14 +128,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `sources/`, and the emergent/constructed-column rule (and explicitly *not* a
   fixed pillar set).
 
-- [ ] **AC3 — `research-project-synthesize` emits the typed verdict and the
+- [x] **AC3 — `research-project-synthesize` emits the typed verdict and the
   brief.** The skill reads `synthesis-matrix.md` + `memos.md`, writes the typed
   synthesis `<type>.md` into the folder, and writes `<topic-slug>-brief.md`;
   applies ≥3-source triangulation; surfaces a warning when `synthesis-matrix.md`
   is empty. Verification: `rg` against the SKILL.md names both outputs, the
   matrix/memos inputs, the triangulation rail, and the empty-matrix warning.
 
-- [ ] **AC4 — `<topic-slug>-brief.md` is the self-contained governance handoff.**
+- [x] **AC4 — `<topic-slug>-brief.md` is the self-contained governance handoff.**
   The brief is answer-first (BLUF on top), self-contained (no cross-links to other
   project files; safe to copy out of the folder), cited + per-finding
   confidence-tagged, and carries a `## Known unknowns` section — mapping 1:1 onto
@@ -143,7 +143,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `research-project-synthesize` SKILL.md documents each of the four properties and
   the `## Known unknowns` section; the AC5 smoke brief exhibits them.
 
-- [ ] **AC5 — One observable smoke project produces the folder and a valid
+- [x] **AC5 — One observable smoke project produces the folder and a valid
   brief.** A real `start → digest → synthesize` run over 2–3 synthetic source
   files produces the folder, a non-empty `synthesis-matrix.md` with constructed
   columns, a typed synthesis file, and a `<topic-slug>-brief.md` that is
@@ -151,7 +151,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   manual QA — the PR description records the produced tree and confirms the brief
   is self-contained (self-report is not sufficient; the files are the signal).
 
-- [ ] **AC6 — `research-project-check` is passive.** The skill reads the
+- [x] **AC6 — `research-project-check` is passive.** The skill reads the
   matrix/memos by eye and reports a qualitative saturation judgment (is the corpus
   still changing the matrix structure; are recent sources adding columns or just
   confirming; are load-bearing claims corroborated) plus a recommendation. It
@@ -162,7 +162,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   no-auto-phase-advance rule, and the bounded `verdict_status`-only write; and
   documents that there is no counter/metric/score.
 
-- [ ] **AC7 — Config-driven layout, scratch by default.** The default layout
+- [x] **AC7 — Config-driven layout, scratch by default.** The default layout
   (parent, filenames, schema) ships **inside the `research-project-start` skill
   body**; the parent defaults to a **scratch / out-of-repo** location
   (gitignored `.context/research/` or a user-level path), never the committed repo
@@ -173,7 +173,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   order, the scratch default, the never-commit-the-corpus rule, and the
   adopter-created (not shipped-into-a-projected-path) nature of the override.
 
-- [ ] **AC8 — Prompt-only; no engine creeps in.** None of the four new skills
+- [x] **AC8 — Prompt-only; no engine creeps in.** None of the four new skills
   ships executable code, a script, a daemon, an index, a counter, or a derived
   metric that manages corpus state or computes saturation; `phase` and
   `verdict_status` are frontmatter strings the agent reads/writes. Verification:
@@ -182,7 +182,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   '*.py' -o -name '*.sh' \)` returns nothing state-generating); `rg` confirms each
   body frames `phase`/stop-signal as prompt-driven.
 
-- [ ] **AC9 — Additive provenance grading.** Per-source frontmatter in `sources/`
+- [x] **AC9 — Additive provenance grading.** Per-source frontmatter in `sources/`
   gains two **optional, independent** axes — `reliability` (source track-record)
   and `credibility` (corroboration of the specific claim), modelled on the
   Admiralty/NATO scale — that *inform* the existing rail without replacing it. The
@@ -192,28 +192,32 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `reliability` and `credibility` as optional source axes and reaffirms GRADE +
   triangulation as the claim-level rail.
 
-- [ ] **AC10 — Soft, revisable working hypothesis.** `overview.md`'s
+- [x] **AC10 — Soft, revisable working hypothesis.** `overview.md`'s
   `working_hypothesis` may be empty at start and is formed/revised in `memos.md`
   as evidence accumulates; there is no refuse-without-a-claim gate. Verification:
   `rg` against `research-project-start` + `research-project-digest` SKILL.md
   documents the may-be-empty start and the revise-in-memos path, and the absence
   of a hard hypothesis gate.
 
-- [ ] **AC11 — Existing skills reused as phase operations, not rewritten.** The
+- [x] **AC11 — Existing skills reused as phase operations, not rewritten.** The
   project skill bodies reference the seven existing skills in their phase roles:
   `research` (per-source episodic retrieval), `source-map` (populates `sources/`),
-  `build-outline` (seeds initial matrix columns), `identify-perspectives`
+  `build-outline` (seeds the *initial* matrix columns, which the digest's
+  emergent coding then overrides), `identify-perspectives`
   (perspective columns for contested topics), `compare-hypotheses` (**is**
   `hypotheses.md` for the adjudication shape), `devils-advocate` (run at
   synthesis), `decision-archaeology` (stays standalone). Verification: `rg`
   confirms the reuse mapping is documented in the project skill bodies; **and**
-  `git diff --stat origin/main` over the seven existing SKILL.md files is empty —
-  because `research-typed-artifacts` ships first (separate PR), its topic-slug
-  rename is already on `main` at this spec's review time, so this PR adds **no**
-  change to the seven existing skills (the negative — no project-phase logic
-  injected — is checked against `origin/main`, not merely asserted).
+  the diff over the seven existing SKILL.md files is empty against the spec's
+  **effective base** — once `research-typed-artifacts` has merged to `main`
+  that base is `origin/main`; while this PR is stacked on the (not-yet-merged)
+  `research-typed-artifacts` branch, the negative is checked against that branch
+  (`git diff --stat research-typed-artifacts` over the seven skills is empty),
+  since `origin/main` still carries the pre-rename bodies. Either way the
+  negative — no project-phase logic injected into the seven skills — is
+  **checked, not merely asserted**.
 
-- [ ] **AC12 — RFC `NNNN-notes/` companion convention documented.** The
+- [x] **AC12 — RFC `NNNN-notes/` companion convention documented.** The
   convention that an RFC may carry an `NNNN-notes/` companion folder for promoted
   research (mirroring `docs/specs/<feature>/notes/`) is documented where the RFC /
   spec layout conventions live (`docs/CONVENTIONS.md`). This is a CONVENTIONS body
@@ -222,16 +226,21 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   Approved RFC names the companion convention); the named fallback is to split it
   into a follow-up `update-conventions` PR if a reviewer rejects the in-spec edit.
   Verification: `rg -F 'notes/'` against `docs/CONVENTIONS.md` in the RFC section
-  names the companion convention.
+  names the companion convention. The `new-rfc` skill (`governance-extras`) and
+  its `assets/rfc.md` template are also made aware of the optional companion —
+  otherwise the convention is documented but the skill that creates RFCs would
+  never surface it — bumping `governance-extras` 0.2.0 → 0.3.0. Verification:
+  `rg -F 'NNNN-notes/'` against `packs/governance-extras/.apm/skills/new-rfc/SKILL.md`
+  and `…/assets/rfc.md` each return ≥1 hit.
 
-- [ ] **AC13 — Project mode triggers only on explicit phrasing.** The four
+- [x] **AC13 — Project mode triggers only on explicit phrasing.** The four
   project skills' `description:` frontmatter triggers on explicit "start a
   research project" / project-lifecycle phrasing; the depth axis (`/research`)
   stays the default front door and is not displaced. Verification: `rg` against
   each project SKILL.md `description:` shows project-lifecycle trigger phrasing;
   the `research` skill's trigger surface is unchanged by this spec.
 
-- [ ] **AC14 — Pack version bump + changelog.** `packs/research/pack.toml` and the
+- [x] **AC14 — Pack version bump + changelog.** `packs/research/pack.toml` and the
   pack's `plugin.json` are bumped to the next minor after `research-typed-artifacts`
   (0.4.0), and `docs/product/changelog.md` `[Unreleased]` carries an `### Added`
   entry for project mode. Verification: goal-based grep on the version and the
