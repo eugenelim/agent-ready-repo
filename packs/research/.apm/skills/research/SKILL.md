@@ -1,6 +1,6 @@
 ---
 name: research
-description: "Evidence-grounded research with selectable depth and discipline. Use for any look-up, find-out, fact-check, or comprehensive investigation, including prior art and best practice surveys. Carries a mode parameter (quick / standard / applied / deep) with `quick` as default — casual phrasings (`look up`, `find out`, `quick check`) stay quick; academic phrasings (`research with citations`, `evidence-grounded`, `go deep`, `comprehensively`) bias standard or deep; practitioner phrasings (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) bias applied. Quick mode is inline, ≤5 fetches, no artifact. Standard mode produces `research.md` with GRADE-style confidence per finding from peer-reviewed and primary sources. Applied mode produces `research.md` calibrated for practitioner grey literature with a discipline-aware confidence overlay. Deep mode additionally auto-runs `/devils-advocate`, producing `counterpoints.md`."
+description: "Evidence-grounded research with selectable depth and discipline. Use for any look-up, find-out, fact-check, or comprehensive investigation, including prior art and best practice surveys. Carries a mode parameter (quick / standard / applied / deep) with `quick` as default — casual phrasings (`look up`, `find out`, `quick check`) stay quick; academic phrasings (`research with citations`, `evidence-grounded`, `go deep`, `comprehensively`) bias standard or deep; practitioner phrasings (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) bias applied. Quick mode is inline, ≤5 fetches, no artifact. Standard mode produces `<topic-slug>-survey.md` with GRADE-style confidence per finding from peer-reviewed and primary sources. Applied mode produces `<topic-slug>-survey.md` calibrated for practitioner grey literature with a discipline-aware confidence overlay. Deep mode additionally auto-runs `/devils-advocate`, producing `<topic-slug>-counterpoints.md`."
 ---
 
 # /research
@@ -23,9 +23,13 @@ Mode parameter: `mode: quick | standard | applied | deep`. Default: `quick`.
 | Mode | Default? | Artifact? | Discipline | Retrievers | Triangulation |
 |---|---|---|---|---|---|
 | `quick` | yes | no — inline answer | n/a | built-in WebFetch + WebSearch only; ≤5 fetches | not required |
-| `standard` | no | `research.md` | academic / primary-source | all available: built-in + MCP + script retrievers + subagents | ≥3 independent sources per material claim |
-| `applied` | no | `research.md` + discipline marker | practitioner / grey-literature | all available | ≥3 independent sources per material claim; independence calibrated against practitioner taxonomy (same vendor / same employer count as one) |
-| `deep` | no | `research.md` + `counterpoints.md` | academic / primary-source | all available | ≥3 independent sources per material claim |
+| `standard` | no | `<topic-slug>-survey.md` | academic / primary-source | all available: built-in + MCP + script retrievers + subagents | ≥3 independent sources per material claim |
+| `applied` | no | `<topic-slug>-survey.md` + discipline marker | practitioner / grey-literature | all available | ≥3 independent sources per material claim; independence calibrated against practitioner taxonomy (same vendor / same employer count as one) |
+| `deep` | no | `<topic-slug>-survey.md` + `<topic-slug>-counterpoints.md` | academic / primary-source | all available | ≥3 independent sources per material claim |
+
+Artifact names follow the typed, topic-named scheme defined in
+[§ Typed, topic-named artifacts](#typed-topic-named-artifacts) below; the table's
+`<topic-slug>-survey.md` is the default standard/applied/deep stem.
 
 ### Cue precedence
 
@@ -54,8 +58,8 @@ inline in chat.
 
 Fires on explicit academic-discipline signals: `research with citations`,
 `evidence-grounded`, `comprehensively`, `go deep` (when no applied
-cue is also present — see Cue precedence above). Produces `research.md`
-in the working directory. Every finding carries a confidence tag from
+cue is also present — see Cue precedence above). Produces
+`<topic-slug>-survey.md` in the working directory. Every finding carries a confidence tag from
 the closed set `[high]` / `[moderate]` / `[low]` / `[uncertain]`.
 Material claims (those tagged `[high]` or `[moderate]`) require ≥3
 independent sources — triangulation per OSINT, GIJN, ACH, PRISMA,
@@ -87,7 +91,7 @@ would otherwise poison every finding to `[low]` by construction.
   `references/confidence-schema.md` is exactly the discipline that
   surfaces these (only the successes blog; the failures rarely do).
 
-Produces `research.md` in the working directory. The artifact's **first
+Produces `<topic-slug>-survey.md` in the working directory. The artifact's **first
 non-heading line is the canonical discipline marker, byte-for-byte
 literal**:
 
@@ -126,7 +130,7 @@ art` to the closed downgrade-factor set.
 Fires on `go deep`, `exhaustively`, `extensive research` (when no
 applied cue is also present — see Cue precedence above). Same artifact
 shape as standard, plus auto-invocation of `/devils-advocate` on the
-produced `research.md`, producing `counterpoints.md` with a per-finding
+produced `<topic-slug>-survey.md`, producing `<topic-slug>-counterpoints.md` with a per-finding
 verdict — a confidence downgrade, or a do-not-resolve verdict for an
 irreducible tension where both sides are well-evidenced under different
 conditions.
@@ -136,8 +140,52 @@ follow-up invocation when the user wants adversarial review of a
 practitioner-pattern survey. This is especially useful because best
 practice claims are often vendor-blogged or survivorship-biased,
 exactly the cases the overlay's `survivorship bias` factor exists to
-catch. Invoke `/devils-advocate` against the applied-mode `research.md`
-to chain.
+catch. Invoke `/devils-advocate` against the applied-mode
+`<topic-slug>-survey.md` to chain.
+
+## Typed, topic-named artifacts
+
+Every persisted episodic artifact is named **`<topic-slug>-<type>.md`**. The
+topic-slug namespaces the investigation — two studies in one working directory
+never overwrite each other — and the type stem tells a reader what the file
+*is* at a glance. Quick mode is the sole exception: it stays inline, with no
+file.
+
+**Topic-slug rule.** `<topic-slug>` is a short (~2–5 word) kebab-case slug
+derived from the research question — "OAuth PKCE for SPAs" → `oauth-pkce`;
+"which embedded database for a CLI" → `embedded-db`. Keep it stable across a
+single investigation so that study's artifacts sort together.
+
+**Type vocabulary.** The `<type>` stem is fixed by the research mode and the
+shape of the answer (RFC-0039 Decision 2):
+
+| Mode / answer shape | Artifact |
+|---|---|
+| quick | *inline — no file* |
+| fact-check | `<topic-slug>-fact-check.md` |
+| standard / applied survey | `<topic-slug>-survey.md` |
+| deep | `<topic-slug>-survey.md` + `<topic-slug>-counterpoints.md` |
+| comparison / decision | `<topic-slug>-comparison-matrix.md` |
+| ranked candidates | `<topic-slug>-shortlist.md` |
+| spatial / structural | `<topic-slug>-blueprint.md` |
+| hypothesis adjudication | `<topic-slug>-hypotheses.md` |
+
+`survey` is the default standard/applied/deep stem; the other stems fire when
+the answer takes that shape — a `fact-check` verdict, a decision
+`comparison-matrix`, a ranked `shortlist`, a structural `blueprint`, a
+`hypotheses` adjudication. The scoping and rationale skills
+(`/identify-perspectives`, `/build-outline`, `/source-map`,
+`/decision-archaeology`) take the same `<topic-slug>-` prefix on their own
+type-descriptive stems (`perspectives`, `outline`, `sources`, `archaeology`).
+
+**Legacy alias.** `research.md` was the prior name for the survey artifact,
+retained as a recognised legacy alias for one release (RFC-0038 forward-only
+migration) so existing references and muscle memory still resolve. The skill
+emits **only** the typed name — never a second `research.md` written alongside
+it.
+
+The filename is produced by the agent following this rule, never by a script
+(Charter Principle 3).
 
 ## Pipeline
 
@@ -148,8 +196,8 @@ to chain.
 3. **Dispatch** — issue queries across retrievers; on Claude Code,
    `evidence-retriever` and `source-extractor` subagents preserve main-
    session context for the synthesis step.
-4. **Synthesise** — write findings to `research.md` (standard/deep) or
-   inline (quick). Cite every factual claim or mark it `[synthesis]` /
+4. **Synthesise** — write findings to `<topic-slug>-survey.md` (standard/deep)
+   or inline (quick). Cite every factual claim or mark it `[synthesis]` /
    `[inference]` per Wikipedia V/RS and GRADE convergence.
 5. **Rate** — apply the confidence schema in
    `references/confidence-schema.md` to every finding.
@@ -162,7 +210,8 @@ to chain.
    uncited material and consider one more query from the highest-signal
    unused snippet (Co-STORM contribution). Skip in quick mode.
 8. **Adversarial review (deep mode only)** — auto-invoke
-   `/devils-advocate` on `research.md`; emit `counterpoints.md`.
+   `/devils-advocate` on `<topic-slug>-survey.md`; emit
+   `<topic-slug>-counterpoints.md`.
 
 ## Retrievers
 
@@ -215,7 +264,7 @@ including how to add a new script retriever.
 
 ## Citations and confidence
 
-Every factual claim in `research.md` carries a citation, or is marked
+Every factual claim in `<topic-slug>-survey.md` carries a citation, or is marked
 `[synthesis]` (a synthesis across cited material) or `[inference]` (a
 defensible deduction that no single source states). Confidence per
 finding follows the four-level schema in

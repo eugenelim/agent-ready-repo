@@ -35,7 +35,7 @@ factor lands at `moderate`. Two factors → `low`. Three or more →
 
 ## Tagging in artifacts
 
-Every finding line in `research.md` ends with a literal tag from the
+Every finding line in `<topic-slug>-survey.md` ends with a literal tag from the
 closed set, in square brackets:
 
 ```
@@ -48,7 +48,7 @@ closed set, in square brackets:
 
 ## Worked example: `/devils-advocate` proposing a downgrade
 
-Suppose `research.md` contains:
+Suppose `<topic-slug>-survey.md` contains:
 
 ```
 - Finding: vector databases outperform traditional databases for
@@ -64,7 +64,7 @@ counter-evidence:
   what "at scale" means — surfacing the `contested-in-field` factor
   the original analysis did not account for.
 
-`/devils-advocate` proposes the downgrade in `counterpoints.md`:
+`/devils-advocate` proposes the downgrade in `<topic-slug>-counterpoints.md`:
 
 ```
 ## Finding: vector databases outperform traditional databases for
@@ -105,7 +105,7 @@ The `mode` parameter is the load-bearing selector. When `/research`
 is invoked with `mode: applied` (per its SKILL.md), the overlay below
 applies at confidence-rating time — and `/research` writes the
 canonical discipline marker `> Discipline: applied (practitioner-
-pattern survey)` as the first non-heading line of `research.md`. The
+pattern survey)` as the first non-heading line of `<topic-slug>-survey.md`. The
 marker is the **post-condition audit signal** recording that the
 overlay fired into the produced artifact; it is NOT the precondition
 selector. **Manually adding the marker to an existing standard-mode
@@ -146,7 +146,7 @@ from `[high]`. Two factors → two levels. Three or more → `[uncertain]`.
 
 ### Worked example: `/devils-advocate` flagging `survivorship bias` against an applied-mode finding
 
-Suppose an applied-mode `research.md` for "best practices for
+Suppose an applied-mode `<topic-slug>-survey.md` for "best practices for
 warehouse picking optimisation" contains:
 
 ```
@@ -171,7 +171,7 @@ retrieves counter-evidence:
 - A Modern Materials Handling retrospective on failed RF / voice-
   picking rollouts.
 
-`/devils-advocate` proposes the downgrade in `counterpoints.md`:
+`/devils-advocate` proposes the downgrade in `<topic-slug>-counterpoints.md`:
 
 ```
 ## Finding: cluster picking with handheld voice-direction improves

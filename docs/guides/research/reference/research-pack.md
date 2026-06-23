@@ -10,43 +10,43 @@ Seven skills ship in the pack. The `name` and `description` below are reproduced
 
 **name:** `identify-perspectives`.
 
-**description:** Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
+**description:** Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
 
 ### build-outline
 
 **name:** `build-outline`.
 
-**description:** Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PRISMA's PICO framework (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
+**description:** Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PRISMA's PICO framework (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
 
 ### source-map
 
 **name:** `source-map`.
 
-**description:** Curate the authoritative sources for a topic before research begins. Surveys adjacent material to discover voices rather than asking the LLM directly who's authoritative — STORM's finding is that direct question-asking does not work well for source discovery. Produces `sources.md` grouping candidates by primacy (`primary` / `secondary` / `tertiary`). When invoked downstream of `/identify-perspectives`, groups sources by camp; in standalone invocations, skips the camp-grouping step. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for narrow surveys; `comprehensively`, `exhaustively`, `in depth`, `extensive` for thorough ones.
+**description:** Curate the authoritative sources for a topic before research begins. Surveys adjacent material to discover voices rather than asking the LLM directly who's authoritative — STORM's finding is that direct question-asking does not work well for source discovery. Produces `<topic-slug>-sources.md` grouping candidates by primacy (`primary` / `secondary` / `tertiary`). When invoked downstream of `/identify-perspectives`, groups sources by camp; in standalone invocations, skips the camp-grouping step. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for narrow surveys; `comprehensively`, `exhaustively`, `in depth`, `extensive` for thorough ones.
 
 ### research
 
 **name:** `research`.
 
-**description:** Evidence-grounded research with selectable depth and discipline. Use for any look-up, find-out, fact-check, or comprehensive investigation, including prior art and best practice surveys. Carries a mode parameter (quick / standard / applied / deep) with `quick` as default — casual phrasings (`look up`, `find out`, `quick check`) stay quick; academic phrasings (`research with citations`, `evidence-grounded`, `go deep`, `comprehensively`) bias standard or deep; practitioner phrasings (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) bias applied. Quick mode is inline, ≤5 fetches, no artifact. Standard mode produces `research.md` with GRADE-style confidence per finding from peer-reviewed and primary sources. Applied mode produces `research.md` calibrated for practitioner grey literature with a discipline-aware confidence overlay. Deep mode additionally auto-runs `/devils-advocate`, producing `counterpoints.md`.
+**description:** Evidence-grounded research with selectable depth and discipline. Use for any look-up, find-out, fact-check, or comprehensive investigation, including prior art and best practice surveys. Carries a mode parameter (quick / standard / applied / deep) with `quick` as default — casual phrasings (`look up`, `find out`, `quick check`) stay quick; academic phrasings (`research with citations`, `evidence-grounded`, `go deep`, `comprehensively`) bias standard or deep; practitioner phrasings (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) bias applied. Quick mode is inline, ≤5 fetches, no artifact. Standard mode produces `<topic-slug>-survey.md` with GRADE-style confidence per finding from peer-reviewed and primary sources. Applied mode produces `<topic-slug>-survey.md` calibrated for practitioner grey literature with a discipline-aware confidence overlay. Deep mode additionally auto-runs `/devils-advocate`, producing `<topic-slug>-counterpoints.md`.
 
 ### devils-advocate
 
 **name:** `devils-advocate`.
 
-**description:** Adversarially review a research artifact (`research.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `research.md`; runs standalone against any user-supplied claim. Produces `counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
+**description:** Adversarially review a research artifact (`<topic-slug>-survey.md`) or a user-supplied claim. Searches for counter-evidence, names the strongest objections, and routes each to a verdict — either a confidence-rating downgrade or a do-not-resolve verdict for an irreducible tension where both sides are well-evidenced under different conditions. Grounded in ACH (evidence-against column — the discipline that catches premature closure) and GIJN investigative-journalism practice ("what does the other side say"). Auto-invoked by `/research` deep mode against `<topic-slug>-survey.md`; runs standalone against any user-supplied claim. Produces `<topic-slug>-counterpoints.md` linking back to the source artifact. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the strongest objections; `comprehensively`, `exhaustively`, `in depth`, `extensive` for the full set.
 
 ### compare-hypotheses
 
 **name:** `compare-hypotheses`.
 
-**description:** Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis — the +81% parallelizable-task case from multi-agent research). In decision-pipeline invocations expects upstream `perspectives.md` and `sources.md`; standalone invocations enumerate hypotheses inline. Produces `hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
+**description:** Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis — the +81% parallelizable-task case from multi-agent research). In decision-pipeline invocations expects upstream `<topic-slug>-perspectives.md` and `<topic-slug>-sources.md`; standalone invocations enumerate hypotheses inline. Produces `<topic-slug>-hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
 
 ### decision-archaeology
 
 **name:** `decision-archaeology`.
 
-**description:** Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `archaeology.md` with chronology, the rationale chain, the alternatives that were considered and rejected, and a revival check flagging rejected alternatives whose original rejection rationale no longer holds. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
+**description:** Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `<topic-slug>-archaeology.md` with chronology, the rationale chain, the alternatives that were considered and rejected, and a revival check flagging rejected alternatives whose original rejection rationale no longer holds. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
 
 ## Retrieval subagents
 
@@ -79,9 +79,9 @@ Given a list of candidate sources, extracts substantive content per source; retu
 | Mode | Default? | Artifact | Discipline | Retrievers | Triangulation |
 |---|---|---|---|---|---|
 | `quick` | yes | none (inline) | n/a | built-in WebFetch + WebSearch only; ≤5 fetches | not required |
-| `standard` | no | `research.md` | academic / primary-source | all available | ≥3 independent sources |
-| `applied` | no | `research.md` + discipline marker | practitioner / grey-literature | all available | ≥3 independent sources; practitioner-independence calibration (same vendor / same employer count as one) |
-| `deep` | no | `research.md` + `counterpoints.md` | academic / primary-source | all available | ≥3 independent sources |
+| `standard` | no | `<topic-slug>-survey.md` | academic / primary-source | all available | ≥3 independent sources |
+| `applied` | no | `<topic-slug>-survey.md` + discipline marker | practitioner / grey-literature | all available | ≥3 independent sources; practitioner-independence calibration (same vendor / same employer count as one) |
+| `deep` | no | `<topic-slug>-survey.md` + `<topic-slug>-counterpoints.md` | academic / primary-source | all available | ≥3 independent sources |
 
 ### Cue vocabulary
 
@@ -95,7 +95,7 @@ The dispatcher selects modes from the prompt's wording. Cue precedence: **applie
 
 ### Applied-mode discipline marker
 
-Applied-mode `research.md` carries this canonical, byte-for-byte literal as its first non-heading line:
+Applied-mode `<topic-slug>-survey.md` carries this canonical, byte-for-byte literal as its first non-heading line:
 
 ```
 > Discipline: applied (practitioner-pattern survey)
@@ -105,7 +105,7 @@ No bold, no em-dash variant. The marker is an audit signal recording that applie
 
 ## Confidence schema
 
-Every finding in a standard / deep `research.md` ends with a tag from the closed set: `high`, `moderate`, `low`, `uncertain`. A finding that would otherwise rate `high` steps down one level per downgrade factor that applies — `high` → `moderate` for one factor, `moderate` → `low` for two, `low` → `uncertain` for three or more.
+Every finding in a standard / deep `<topic-slug>-survey.md` ends with a tag from the closed set: `high`, `moderate`, `low`, `uncertain`. A finding that would otherwise rate `high` steps down one level per downgrade factor that applies — `high` → `moderate` for one factor, `moderate` → `low` for two, `low` → `uncertain` for three or more.
 
 | Level | Meaning |
 |---|---|
@@ -177,9 +177,9 @@ Cue tokens are advisory — the skill body documents which cues bias which behav
 
 | Pipeline | Sequence | Final artifacts |
 |---|---|---|
-| Survey | `/build-outline` → `/source-map` → `/research` | `outline.md` + `sources.md` + `research.md` (+ `counterpoints.md` in deep) |
-| Decision | `/identify-perspectives` → `/source-map` → `/compare-hypotheses` → `/devils-advocate` | `perspectives.md` + `sources.md` + `hypotheses.md` + `counterpoints.md` |
-| Archaeology | `/decision-archaeology` | `archaeology.md` |
+| Survey | `/build-outline` → `/source-map` → `/research` | `<topic-slug>-outline.md` + `<topic-slug>-sources.md` + `<topic-slug>-survey.md` (+ `<topic-slug>-counterpoints.md` in deep) |
+| Decision | `/identify-perspectives` → `/source-map` → `/compare-hypotheses` → `/devils-advocate` | `<topic-slug>-perspectives.md` + `<topic-slug>-sources.md` + `<topic-slug>-hypotheses.md` + `<topic-slug>-counterpoints.md` |
+| Archaeology | `/decision-archaeology` | `<topic-slug>-archaeology.md` |
 
 ## Pack metadata
 

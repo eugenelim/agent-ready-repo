@@ -7,16 +7,21 @@ This guide is task-shaped. It assumes you already know what the pack does — if
 ```text
   survey       broad question, cited synthesis
     /build-outline ──► /source-map ──► /research
-    outline.md         sources.md      research.md   (+ counterpoints.md with "go deep")
+    <slug>-outline.md  <slug>-sources.md  <slug>-survey.md  (+ <slug>-counterpoints.md with "go deep")
 
   decision     contested choice, weigh the positions
     /identify-perspectives ──► /source-map ──► /compare-hypotheses ──► /devils-advocate
-    perspectives.md            sources.md       hypotheses.md           counterpoints.md
+    <slug>-perspectives.md     <slug>-sources.md  <slug>-hypotheses.md   <slug>-counterpoints.md
 
   archaeology  "why did we do it this way?"   (self-contained — no /source-map)
     /decision-archaeology
-    archaeology.md
+    <slug>-archaeology.md
 ```
+
+Every persisted artifact is named `<topic-slug>-<type>.md` (shown above as
+`<slug>-…` for width) — the topic slug namespaces the investigation so two
+studies in one directory never collide. The naming scheme is defined in the
+`/research` skill body and catalogued in the [reference](../reference/research-pack.md).
 
 ## Recipe 1 — the survey pipeline
 
@@ -30,9 +35,9 @@ This guide is task-shaped. It assumes you already know what the pack does — if
 
 **Expected artifacts:**
 
-1. `outline.md` — sub-questions a thorough answer must address.
-2. `sources.md` — candidate sources grouped by primacy (`primary` / `secondary` / `tertiary`).
-3. `research.md` — synthesised findings with GRADE-style confidence ratings. Add `go deep` to also produce `counterpoints.md`.
+1. `<topic-slug>-outline.md` — sub-questions a thorough answer must address.
+2. `<topic-slug>-sources.md` — candidate sources grouped by primacy (`primary` / `secondary` / `tertiary`).
+3. `<topic-slug>-survey.md` — synthesised findings with GRADE-style confidence ratings. Add `go deep` to also produce `<topic-slug>-counterpoints.md`.
 
 **Degraded-mode example:** skipping `/build-outline` and going straight to `/source-map` + `/research` works for narrower questions — the outline-stage decomposition is what makes the sources actually hit the sub-questions. Skip `/source-map` and `/research` falls back to its own retriever enumeration, which is fine for casual prompts but produces a thinner source list.
 
@@ -48,12 +53,12 @@ This guide is task-shaped. It assumes you already know what the pack does — if
 
 **Expected artifacts:**
 
-1. `perspectives.md` — named camps with core claims and representative voices.
-2. `sources.md` — candidates grouped by primacy *and* by camp (camp- grouping is the decision-pipeline-specific shape).
-3. `hypotheses.md` — ACH-style matrix (hypotheses × evidence-for / against), with a ranking.
-4. `counterpoints.md` — `/devils-advocate` against `hypotheses.md`; a per-finding verdict (rating downgrade, or do-not-resolve for an irreducible tension).
+1. `<topic-slug>-perspectives.md` — named camps with core claims and representative voices.
+2. `<topic-slug>-sources.md` — candidates grouped by primacy *and* by camp (camp- grouping is the decision-pipeline-specific shape).
+3. `<topic-slug>-hypotheses.md` — ACH-style matrix (hypotheses × evidence-for / against), with a ranking.
+4. `<topic-slug>-counterpoints.md` — `/devils-advocate` against `<topic-slug>-hypotheses.md`; a per-finding verdict (rating downgrade, or do-not-resolve for an irreducible tension).
 
-**Degraded-mode example:** if you skip `/source-map`, then `/compare-hypotheses` falls back to enumerating hypotheses with the sources it can find inline — it still produces `hypotheses.md`, but the matrix is thinner and `[high]` ratings will be rare because the triangulation discipline can't be satisfied. The downstream `/devils-advocate` pass then proposes more downgrades. The pipeline *degrades* gracefully — it doesn't break.
+**Degraded-mode example:** if you skip `/source-map`, then `/compare-hypotheses` falls back to enumerating hypotheses with the sources it can find inline — it still produces `<topic-slug>-hypotheses.md`, but the matrix is thinner and `[high]` ratings will be rare because the triangulation discipline can't be satisfied. The downstream `/devils-advocate` pass then proposes more downgrades. The pipeline *degrades* gracefully — it doesn't break.
 
 ## Recipe 3 — the archaeology pipeline
 
@@ -69,9 +74,9 @@ Just the one skill. `/decision-archaeology` is **self-contained** — it does no
 
 **Expected artifacts:**
 
-1. `archaeology.md` — terminal artifact, chronology, rationale chain, alternatives considered.
+1. `<topic-slug>-archaeology.md` — terminal artifact, chronology, rationale chain, alternatives considered.
 
-**Degraded-mode example:** if the artifact trail is sparse — the decision was made in a chat archive that no longer exists, the doc was never written — `archaeology.md` will surface *alternatives-considered* as `[inference]` rather than cited material. The skill is honest about its evidence gaps; the `[inference]` tag is the signal that the rationale isn't established, just plausible.
+**Degraded-mode example:** if the artifact trail is sparse — the decision was made in a chat archive that no longer exists, the doc was never written — `<topic-slug>-archaeology.md` will surface *alternatives-considered* as `[inference]` rather than cited material. The skill is honest about its evidence gaps; the `[inference]` tag is the signal that the rationale isn't established, just plausible.
 
 ## Picking between pipelines
 
@@ -87,6 +92,6 @@ When in doubt, start with `/research` in quick mode — it's the cheapest path a
 
 ## Composing further
 
-The pipelines aren't mutually exclusive. After the decision pipeline produces `hypotheses.md`, you might run `/decision-archaeology` against the leading hypothesis to reconstruct how the team last considered it. After `/research` standard produces `research.md`, you might run `/devils-advocate` standalone against a single finding that surprised you.
+The pipelines aren't mutually exclusive. After the decision pipeline produces `<topic-slug>-hypotheses.md`, you might run `/decision-archaeology` against the leading hypothesis to reconstruct how the team last considered it. After `/research` standard produces `<topic-slug>-survey.md`, you might run `/devils-advocate` standalone against a single finding that surprised you.
 
 The pack is set up so the artifacts compose: each downstream skill documents the upstream artifacts it expects, and what it does when they're absent.

@@ -1,6 +1,6 @@
 ---
 name: identify-perspectives
-description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
+description: Enumerate the named camps on a contested topic before research begins. Builds the perspective scaffold that `/source-map` and `/compare-hypotheses` consume downstream in the decision pipeline. Grounded in Wikipedia NPOV (neutral point of view — fairly represent significant views) and ACH (competing hypotheses — surface all explanations before evaluating). Produces `<topic-slug>-perspectives.md` listing each camp's name, its core claim, and representative voices, plus a tension map recording which disagreements are irreducible (both sides right under different conditions) and what a forced resolution would destroy. Depth cues — `quickly`, `top three`, `briefly` for the dominant few; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe and dissenting positions too.
 ---
 
 # /identify-perspectives
@@ -62,9 +62,11 @@ Evaluation is `/compare-hypotheses`'s job downstream.
    winner, so a disagreement that *shouldn't* have a winner needs to
    carry that marking before it reaches that skill, so a reader (or a
    future `/compare-hypotheses` pass) can refuse to collapse it.
-6. **Write `perspectives.md`**.
+6. **Write `<topic-slug>-perspectives.md`** — `<topic-slug>` is the kebab-case
+   topic slug; the naming rule lives in the `/research` skill body (§ Typed,
+   topic-named artifacts).
 
-## `perspectives.md` output schema
+## `<topic-slug>-perspectives.md` output schema
 
 ```markdown
 # Perspectives — <question>
