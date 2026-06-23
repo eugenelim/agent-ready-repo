@@ -69,6 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The `work-loop` skill's Context hygiene section now covers output, not just
+  input (`core` pack, bumped to `0.4.11`).** A new *Emit less, too* note adds two
+  zero-cost habits to the existing window-management guidance: don't restate code,
+  files, diffs, or tool output already in the conversation — reference them by path
+  and line — and continue with the substance instead of narrating a tool call's
+  success. It is framed as waste reduction, not terseness for its own sake: the
+  rationale, edge cases, and findings prose that review and the human actually read
+  stay in.
 - **The `new-adr` skill and ADR template now follow MADR conventions
   (`governance-extras` pack, bumped to `0.2.0`).** The ADR template gains a
   `Rejected` status (a declined proposal is now kept as a record, not deleted)
