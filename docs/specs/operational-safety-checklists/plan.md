@@ -1,7 +1,7 @@
 # Plan: operational-safety-checklists
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -83,13 +83,19 @@ structure is a deliberate mirror of `security-checklists`, not a fresh design.
   (orchestrator-driven, not self-discovered)" section, and the
   reliability-vs-security carve (spec AC: skill exists, mirrors the pattern;
   carve stated).
-- Each module carries a greppable `> **Grounded in:**` line naming its RFC-table
-  groundings, `grep`s for its coverage terms, and contains no tool-specific
-  normative sentence (illustrative examples labelled) (spec AC: grounded
-  greppably + tool-neutral).
+- Each module carries a greppable `> **Grounded in:**` line naming its **exact**
+  RFC-table groundings (spec AC3 pins them per module: state-and-idempotency →
+  F1.2/F1.3; blast-radius → F3.1/F3.2; environment-isolation → F3.3;
+  cost-and-teardown → F3.4/F3.5; drift-and-rollback → F1.4/F2.6;
+  observability-and-smoke → F2.2 + taxonomy follow-up), `grep`s for its coverage
+  terms, and contains no tool-specific normative sentence (illustrative examples
+  labelled) (spec AC: grounded greppably + tool-neutral).
 - `drift-and-rollback.md` `grep`s for the unresolved auto-remediation tension
   (gate-it vs auto-sync), surfaced not resolved (spec AC: six modules —
   drift-and-rollback).
+- `find packs/core/.apm/skills/operational-safety/ -type f` returns only `.md`
+  files and there is no `scripts/` dir — the skill ships prose only (spec AC: no
+  executable mechanism).
 
 **Approach:**
 - Copy the `security-checklists/SKILL.md` skeleton; rewrite the `description`,
@@ -158,6 +164,13 @@ consumer and no new reviewer is introduced; the rest of the agent is unchanged.
 - State the carve in `security-checklists` SKILL.md (it already scopes itself to
   security; add the one-line "operational config → `operational-safety`" pointer)
   and in `operational-safety` SKILL.md (the converse).
+
+> **Note — additive edit to a shipped skill.** The `security-checklists` side
+> of this task (the `config-misconfig` pointer + the SKILL.md carve sentence) is
+> the *only* edit in this PR that touches already-shipped, in-the-wild skill
+> content; adopters get the new prose on their next pull. It is strictly
+> additive — one pointer sentence in `config-misconfig.md` + one carve sentence
+> in `security-checklists` SKILL.md — and changes **no existing check**.
 
 **Done when:** both greps match; the no-URL/no-version grep is empty; the carve
 reads symmetrically in both skills.

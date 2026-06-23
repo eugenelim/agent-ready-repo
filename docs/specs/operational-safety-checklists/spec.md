@@ -1,6 +1,6 @@
 # Spec: operational-safety-checklists
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0031, RFC-0041 (P3 + the deferred-authority pointer); ADR-0018 (orchestrator-loaded progressive-disclosure depth library — the `security-checklists` pattern this mirrors); ADR-0023 (the three-reviewer ceiling — why this feeds `quality-engineer`, not a new reviewer); ADR-0017 (the SAST/SCA scanner family the deferred-authority pointer complements)
@@ -114,7 +114,11 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
   orchestrator loads matching modules and inlines them into a reviewer's brief
   (the subagent never self-discovers the skill), and the reliability-vs-security
   carve. It is a depth library, **not** a reviewer prompt.
-- [ ] **Six modules, exact names, MECE by failure mode.** `references/` holds
+- [ ] **Six modules, exact names, each a distinct failure-mode family.**
+  Verification is the checkable claim — `references/` holds **exactly the six
+  RFC-0041 Decision-4 modules, no more, no fewer**, each a distinct
+  operational-failure-mode family per the RFC's taxonomy follow-up (not the
+  unfalsifiable assertion "MECE"). `references/` holds
   exactly six files — `state-and-idempotency.md` (convergent re-apply, state
   locking, single-writer), `blast-radius.md` (parse-plan destroy/replace gating,
   `prevent_destroy`, proposer≠approver for destructive ops), `environment-isolation.md`
@@ -130,13 +134,21 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
   **kept separate** (write-path convergence vs divergence-detection/recovery),
   and observability is its own sixth module.
 - [ ] **Each module grounded (greppably) and tool-neutral.** Each module carries
-  a `> **Grounded in:**` line near its top naming the RFC-0041 module-table
-  groundings it rests on (the relevant F-citations and taxonomy sources — e.g.
-  AWS Well-Architected, Google SRE, the Terraform/Pulumi Day-1/Day-2 split),
-  mirroring how each `security-checklists` module carries a `> **Standards:**`
-  line — so grounding is mechanically checkable (grep), not merely asserted.
-  Every module is written tool-neutral; illustrative examples are labelled
-  illustrative, never normative.
+  a `> **Grounded in:**` line near its top naming the **exact** RFC-0041
+  module-table groundings it rests on — pinned per module so the grep asserts
+  the *right* groundings, not merely the line's presence:
+  - `state-and-idempotency.md` → **F1.2, F1.3**
+  - `blast-radius.md` → **F3.1, F3.2**
+  - `environment-isolation.md` → **F3.3**
+  - `cost-and-teardown.md` → **F3.4, F3.5**
+  - `drift-and-rollback.md` → **F1.4, F2.6**
+  - `observability-and-smoke.md` → **F2.2** + the taxonomy follow-up (AWS WAF
+    Operational Excellence, Google SRE monitoring)
+
+  This mirrors how each `security-checklists` module carries a
+  `> **Standards:**` line — so grounding is mechanically checkable (grep), not
+  merely asserted. Every module is written tool-neutral; illustrative examples
+  are labelled illustrative, never normative.
 - [ ] **Routing table in `work-loop` SKILL.md.** `work-loop` SKILL.md gains an
   `operational-safety` boundary→module routing table (mirroring the existing
   `security-checklists` routing table) so the orchestrator loads 1–N matching
@@ -164,7 +176,11 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
   `packs/core/pack.toml`, with a comment naming it as reviewer-internal / never
   self-discovered (mirroring the `security-checklists` exclusion).
 - [ ] **No executable mechanism.** The skill ships prose only — no scripts, no
-  runtime. `loop-cohort.py` and `lint-spec-status.py` are byte-unchanged.
+  runtime. The primary check is on the new skill dir itself:
+  `packs/core/.apm/skills/operational-safety/` contains **no `scripts/`
+  directory and no non-`.md` files** (goal-based — `find` returns only `.md`).
+  As a secondary guard against an unrelated regression, `loop-cohort.py` and
+  `lint-spec-status.py` are byte-unchanged.
 - [ ] **Projection + lint + release hygiene.** `make build-self` projects the new
   skill to `.claude/skills/operational-safety/` cleanly; `make build-check`,
   `python tools/lint-agent-artifacts.py`, and `python tools/lint-agents-md.py`
@@ -194,10 +210,13 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
   the AGENTS hygiene lint; those run by hand / in CI (source:
   `work-loop-light-mode` spec Assumptions).
 - Process: this spec and `infra-aware-work-loop` **both edit `work-loop`
-  SKILL.md** — this one adds the `operational-safety` routing table, the other
-  edits the verification-mode step + security wiring. Land them sequentially
-  (`infra-aware-work-loop` first) or in one PR to avoid a co-edit collision
-  (source: the two specs' scopes; RFC-0041 Follow-on artifacts).
+  SKILL.md** — this one adds the `operational-safety` routing table at the
+  REVIEW `quality-engineer` bullet, the other edited the verification-mode step
+  + the `security-reviewer` bullet. `infra-aware-work-loop` **already shipped**
+  (commit `f62f0fe`, core 0.4.12), so the co-edit collision is resolved: the
+  two edits target distinct bullets, and this spec's routing-table edit applies
+  cleanly onto the now-present infra-flavor prose (source: the two specs'
+  scopes; RFC-0041 Follow-on artifacts; git history).
 - Process: decision frozen in ADR-0031 (Accepted) + RFC-0041 (Accepted
   2026-06-22); the module taxonomy (six, with state/drift kept separate and
   observability sixth) was resolved by the RFC's follow-up research (source:
