@@ -1,6 +1,6 @@
 ---
 name: source-extractor
-description: Read-only extraction subagent. Given a list of candidate URLs or local paths, fetches each, extracts the substantive content, and returns a per-source synthesis with citations. Used by `/source-map` to populate `sources.md` after candidates are discovered; used by `/decision-archaeology` to walk time-ordered artifacts. Preserves main-session context by collapsing raw extracted material into per-source summaries before returning.
+description: Read-only extraction subagent. Given a list of candidate URLs or local paths, fetches each, extracts the substantive content, and returns a per-source synthesis with citations. Used by `/source-map` to populate `<topic-slug>-sources.md` after candidates are discovered; used by `/decision-archaeology` to walk time-ordered artifacts. Preserves main-session context by collapsing raw extracted material into per-source summaries before returning.
 tools: Read, Grep, Glob, WebFetch, WebSearch
 model: sonnet
 ---

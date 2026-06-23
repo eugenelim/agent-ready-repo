@@ -42,7 +42,7 @@ unsure about.
 
 | What you're unsure about | Bring in | It produces |
 | --- | --- | --- |
-| Is this true? What's been built before? What's best practice? | `research` | a cited `research.md` |
+| Is this true? What's been built before? What's best practice? | `research` | a cited `<topic-slug>-survey.md` |
 | Is this worth building? Does the bet hold? What exactly ships? | `product-engineering` | a `core` **brief** |
 | How should it be built? What's the system shape? | `architect` | a design doc and ADR-worthy decisions |
 | — always — | `core` (`init-project`) | an ADR, a `reference.md`, a skeleton spec |
@@ -110,8 +110,9 @@ The upstream stages earn their place only against real uncertainty.
   the gate stops you. That's the signal to go back to `research` or
   `product-engineering`, not to push through.
 - **No home for early notes.** There's no first-class inbox for thinking that
-  predates research. The durable options today are a `research.md` (even in
-  `quick` mode) or `docs/product/intents/<slug>.md` once you've framed an
+  predates research. The durable options today are a `research` artifact (a
+  `<topic-slug>-survey.md` from `standard`/`applied` mode) or
+  `docs/product/intents/<slug>.md` once you've framed an
   intent. `.context/` is session scratch: it's gitignored and doesn't survive a
   fresh workspace, so keep nothing load-bearing there.
 - **Treating the stages as mandatory gates.** They're optional stages keyed to

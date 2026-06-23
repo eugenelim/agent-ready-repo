@@ -1,6 +1,6 @@
 # Spec: research-typed-artifacts
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0039, ADR-0029, RFC-0038 (forward-only migration + legacy retention)
@@ -86,7 +86,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Canonical type vocabulary documented.** The `research` skill body
+- [x] **AC1 — Canonical type vocabulary documented.** The `research` skill body
   documents the canonical episodic artifact-type table, mapping research
   mode/shape to filename type exactly as RFC-0039 Decision 2 fixes it: quick →
   *inline, no file*; fact-check → `fact-check`; standard/applied survey →
@@ -99,7 +99,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `comparison-matrix`, `shortlist`, `blueprint`, `hypotheses`) against the
   `research` SKILL.md returns ≥1 hit each.
 
-- [ ] **AC2 — Topic-slug prefix rule documented and applied across episodic
+- [x] **AC2 — Topic-slug prefix rule documented and applied across episodic
   artifacts.** Each artifact-producing skill that persists an episodic file
   documents that its output is named `<topic-slug>-<type>.md`, with `<topic-slug>`
   a short (~2–5 word) kebab-case slug derived from the research question (e.g.
@@ -118,14 +118,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   Verification: each of the seven artifact-producing SKILL.md files contains the
   literal token `<topic-slug>-` (`rg -F '<topic-slug>-'` returns ≥1 hit per file).
 
-- [ ] **AC3 — `research.md` documented as a one-release legacy alias.** The
+- [x] **AC3 — `research.md` documented as a one-release legacy alias.** The
   `research` SKILL.md states that `research.md` is the prior name for the survey
   artifact, retained as a recognised alias for one release (RFC-0038
   forward-only), and that the skill emits only the typed name. Verification:
   `rg -i 'legacy alias|formerly|deprecated' packs/research/.apm/skills/research/SKILL.md`
   returns ≥1 hit on a line that also names `research.md`.
 
-- [ ] **AC4 — No live consumer asserts `research.md` as a current output.** After
+- [x] **AC4 — No live consumer asserts `research.md` as a current output.** After
   migration, the nine live consumers (3 skill bodies —
   `research`/`devils-advocate`/`build-outline` SKILL.md — plus 1 reference doc
   `research/references/confidence-schema.md`; and 5 docs:
@@ -137,20 +137,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   sits on a line that also carries an alias/deprecation marker (`legacy`,
   `alias`, `formerly`, `deprecated`).
 
-- [ ] **AC5 — One observable episodic run produces a typed artifact.** A real
+- [x] **AC5 — One observable episodic run produces a typed artifact.** A real
   standard-mode `/research` invocation through its documented happy path writes a
   `<topic-slug>-survey.md` file to the working directory and writes **no**
   `research.md`. Verification: manual QA — the implementing PR description records
   the probe prompt, the produced filename, and the absence of `research.md`
   (self-report from the model is not sufficient; the file on disk is the signal).
 
-- [ ] **AC6 — Quick mode unchanged.** Quick mode produces no artifact file of any
+- [x] **AC6 — Quick mode unchanged.** Quick mode produces no artifact file of any
   name (the AC12 guarantee in the research-pack spec is preserved). Verification:
   `rg` confirms the `research` SKILL.md still documents quick mode as inline /
   artifact-free; the manual-QA quick probe in the research-pack spec's existing AC
   still holds (no file matching any episodic type stem appears).
 
-- [ ] **AC7 — Shipped research-pack spec amended, not left stale.** The frozen
+- [x] **AC7 — Shipped research-pack spec amended, not left stale.** The frozen
   `docs/specs/research-pack/spec.md` has its `research.md`-pinning acceptance
   criteria and verification greps updated to the typed scheme (with the alias
   note), recorded by a dated entry in that spec's `## Changelog`. Resolution

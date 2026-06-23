@@ -31,10 +31,10 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 - **Layout test (AC8).** `find packs/research/.apm/skills/*/references packs/research/.apm/skills/*/scripts -mindepth 2 -type d` returns zero results; runs in CI alongside the existing scrub / Rail C greps.
 - **Manual verification matrix (AC11–AC16, AC21).** A small recorded session per mode + pipeline, exercising:
   - Casual prompt → `quick` mode → inline answer, no artifact.
-  - Explicit "with citations" prompt → `standard` mode → `research.md` with GRADE.
-  - Explicit "go deep" prompt → `deep` mode → `research.md` + `counterpoints.md`.
+  - Explicit "with citations" prompt → `standard` mode → `<topic-slug>-survey.md` with GRADE.
+  - Explicit "go deep" prompt → `deep` mode → `<topic-slug>-survey.md` + `<topic-slug>-counterpoints.md`.
   - Sequential decision-pipeline invocation → four artifacts.
-  - Archaeology-shaped prompt → `archaeology.md`.
+  - Archaeology-shaped prompt → `<topic-slug>-archaeology.md`.
   - Depth cue ("comprehensively") on a non-`/research` skill → behavior shift confirmed.
 
 ## Tasks
@@ -89,7 +89,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 - SKILL.md frontmatter compliant.
 - Body documents STORM perspective-discovery methodology ("don't ask the LM directly who's authoritative").
 - Body documents the source taxonomy (authority type + recency + primacy).
-- Body documents the `sources.md` output schema.
+- Body documents the `<topic-slug>-sources.md` output schema.
 - Body documents depth-via-prompt cues (AC21).
 - Lint clean; content-portability grep clean.
 
@@ -107,7 +107,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 **Tests:**
 - SKILL.md frontmatter compliant.
 - Body documents perspective-enumeration methodology (cites Wikipedia NPOV + ACH competing-hypotheses).
-- Body documents the `perspectives.md` output schema (named camps + representative voices).
+- Body documents the `<topic-slug>-perspectives.md` output schema (named camps + representative voices).
 - Body documents depth-via-prompt cues (AC21).
 - Lint clean; content-portability grep clean.
 
@@ -124,7 +124,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 **Tests:**
 - SKILL.md frontmatter compliant.
 - Body documents topic-decomposition methodology (cites STORM outline stage + PRISMA PICO framework).
-- Body documents the `outline.md` output schema (sub-questions + brief rationale).
+- Body documents the `<topic-slug>-outline.md` output schema (sub-questions + brief rationale).
 - Body documents depth-via-prompt cues (AC21).
 - Lint clean; content-portability grep clean.
 
@@ -142,7 +142,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 - SKILL.md frontmatter compliant.
 - Body documents the counter-evidence methodology (cites ACH evidence-against column + GIJN journalism "what does the other side say").
 - Body documents integration with `/research` deep mode AND standalone invocation.
-- Body documents the `counterpoints.md` output schema (linking back to source artifact; proposing rating downgrades).
+- Body documents the `<topic-slug>-counterpoints.md` output schema (linking back to source artifact; proposing rating downgrades).
 - Body documents the moderator unused-snippet pass (AC19).
 - Body documents depth-via-prompt cues (AC21).
 - Lint clean; content-portability grep clean.
@@ -162,7 +162,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 - SKILL.md frontmatter compliant.
 - Body documents the ACH matrix methodology (hypotheses × evidence-for/against).
 - Body documents per-hypothesis parallel retrieval (the +81% parallelizable-task case from the multi-agent literature; main session enumerates hypotheses; N parallel `evidence-retriever` dispatches one-per-hypothesis).
-- Body documents the `hypotheses.md` matrix output schema.
+- Body documents the `<topic-slug>-hypotheses.md` matrix output schema.
 - Body documents depth-via-prompt cues (AC21).
 - Lint clean; content-portability grep clean.
 
@@ -180,7 +180,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 - SKILL.md frontmatter compliant.
 - Body documents the rationale-reconstruction methodology (time-ordered sources; chronology + rationale chain + alternatives considered).
 - Body documents the self-contained orchestration (does not invoke `/source-map`).
-- Body documents the `archaeology.md` output schema.
+- Body documents the `<topic-slug>-archaeology.md` output schema.
 - Body documents depth-via-prompt cues (AC21).
 - Lint clean; content-portability grep clean.
 
@@ -291,7 +291,7 @@ Most construction tests live under per-task `Tests:` subsections below. Cross-cu
 
 **Tests:**
 - `docs/guides/research/tutorials/research-first-session.md` exists.
-- AC22 goal-based verifications pass: `rg -F 'agentbundle install research'`, three per-mode greps (`quick`, `standard`, `deep`), two artifact-name greps (`research.md`, `counterpoints.md`), code-fence count ≥6, `wc -l ≥ 50` — each as a separate invocation per AC22.
+- AC22 goal-based verifications pass: `rg -F 'agentbundle install research'`, three per-mode greps (`quick`, `standard`, `deep`), two artifact-name greps (`<topic-slug>-survey.md`, `<topic-slug>-counterpoints.md`), code-fence count ≥6, `wc -l ≥ 50` — each as a separate invocation per AC22.
 - AC22 manual-QA verification: recorded walkthrough timing note appended to the implementing PR's description, confirming the ≤15-minute target landed (mode declared explicitly here to match the spec's Testing Strategy "Goal-based + manual QA" row).
 
 **Approach:**
@@ -380,7 +380,7 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
 - `mode: quick | standard | applied | deep` literal in body (AC11 amendment + AC26 first grep).
 - Description frontmatter biases applied-mode cues per AC11 — at least one of AC28's closed four-cue set (`applied patterns for`, `best practice for`, `prior art on`, `grey literature`) appears in the description; AC28's positive `/research`-SKILL.md greps still demand each cue appears at least once *somewhere* in the file (which the body's Applied-mode section satisfies), but the description's role is to bias the dispatcher and a single phrase is enough for that. Floor pinned at 1 to match T22's conformance test floor.
 - Body has an `Applied mode` section (heading `### Applied mode` under `## Modes` parent) that names all four AC29 discipline frames (`prior art`, `best practice`, `case studies`, `anti-patterns`) within the section body; documents practitioner-independence (`same vendor`, `same employer`); documents recency (`>5-year` or `stale prior art`). Section-scoped via flag-based awk per AC29 verification — `prior art` and `best practice` would otherwise auto-satisfy via AC28 cue documentation elsewhere in the file, so the AC29 greps run against the awk-extracted section only.
-- Body documents the discipline marker convention — `> Discipline: applied (practitioner-pattern survey)` — that applied-mode `research.md` emits as its first non-heading line (AC26 second grep, full-string literal).
+- Body documents the discipline marker convention — `> Discipline: applied (practitioner-pattern survey)` — that applied-mode `<topic-slug>-survey.md` emits as its first non-heading line (AC26 second grep, full-string literal).
 - Body documents the cue-precedence rule (applied cues scored before standard/deep cues) explicitly so the dispatcher reads consistently (AC11 amendment). Verified by `rg -iE 'precedence|applied cues.*before|score.*applied.*first|before standard|applied.*ahead of' packs/research/.apm/skills/research/SKILL.md` returning ≥1 hit per AC11's body-grep clause.
 - Body cross-links to `references/confidence-schema.md` for the mode-aware overlay (AC27), section-scoped: `awk '/^### Applied mode/{f=1;next} f && /^#{1,3} /{f=0} f' packs/research/.apm/skills/research/SKILL.md | rg -F 'references/confidence-schema.md'` returns ≥1 hit (the cross-link lives inside the Applied-mode body section, not just anywhere in the file — mirrors AC29's awk-extract pattern).
 - `lint-agent-artifacts.py packs/research/.apm/skills/research/` returns zero.
@@ -395,7 +395,7 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
   - Documents the source taxonomy bias (blogs, conference talks, vendor case studies, community threads, podcasts, Substack — practitioner grey literature).
   - Documents the practitioner-independence rule (three sources from the same vendor / employer count as one).
   - Documents the recency rule (>5-year-old patterns in fast-moving domains are suspect under the `stale prior art` downgrade factor).
-  - Documents the discipline marker — the produced `research.md`'s first non-heading line is `> Discipline: applied (practitioner-pattern survey)` (canonical-form byte-for-byte literal per AC26).
+  - Documents the discipline marker — the produced `<topic-slug>-survey.md`'s first non-heading line is `> Discipline: applied (practitioner-pattern survey)` (canonical-form byte-for-byte literal per AC26).
   - Documents the cue-precedence rule (applied cues scored before standard/deep cues) per AC11.
   - Cross-links to `references/confidence-schema.md` for the mode-aware overlay.
 
@@ -409,7 +409,7 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
 - New section titled exactly `## Applied-mode overlay` present (AC27 first grep — single canonical form; em-dash variant not accepted).
 - Names two new factors as headings or as bold-tagged definitions: `survivorship bias`, `stale prior art` (AC27 second and third greps).
 - Acknowledges `no peer review` is dropped for applied mode but still in the base schema (AC27 fourth grep — `no peer review` still appears in the doc).
-- Contains one worked example of `/devils-advocate` proposing a rating change using `survivorship bias` or `stale prior art` against an applied-mode `research.md` (AC27 fifth grep — `devils-advocate` or `adversarial`).
+- Contains one worked example of `/devils-advocate` proposing a rating change using `survivorship bias` or `stale prior art` against an applied-mode `<topic-slug>-survey.md` (AC27 fifth grep — `devils-advocate` or `adversarial`).
 
 **Approach:**
 - Mode: goal-based check.
@@ -418,7 +418,7 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
   - Drops `no peer review` for applied invocations (with the discipline-marker as the rule-set selector).
   - Adds `survivorship bias` — only successes blog; failure stories underweighted.
   - Adds `stale prior art` — a pattern from >5 years ago in a fast-moving domain may have been superseded.
-  - Worked example: a finding rated `[high]` in applied-mode `research.md` downgraded to `[moderate]` by `/devils-advocate` flagging `survivorship bias` after retrieving practitioner post-mortems on failed adopters.
+  - Worked example: a finding rated `[high]` in applied-mode `<topic-slug>-survey.md` downgraded to `[moderate]` by `/devils-advocate` flagging `survivorship bias` after retrieving practitioner post-mortems on failed adopters.
 
 **Done when:** All AC27 greps return expected counts; worked example present.
 
@@ -427,7 +427,7 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
 **Depends on:** T19, T20
 
 **Tests:**
-- Reference guide mode table includes `applied` row with default? = no, artifact = `research.md` + discipline marker, retrievers, triangulation rule (AC24 mode-greps enforce the four mode tokens including `applied`; AC28 cue-greps enforce the four applied-cue phrases inside the reference guide).
+- Reference guide mode table includes `applied` row with default? = no, artifact = `<topic-slug>-survey.md` + discipline marker, retrievers, triangulation rule (AC24 mode-greps enforce the four mode tokens including `applied`; AC28 cue-greps enforce the four applied-cue phrases inside the reference guide).
 - Reference guide enumerates the closed applied-cue set (AC28 greps).
 - Explanation guide mentions the applied-mode rationale as a sixth architectural choice (or extends the mode-on-research section to acknowledge the discipline-axis extension). Manual edit; no separate spec grep added (AC25's existing five-choice grep continues to pass).
 - Tutorial guide adds a short mention of applied mode in the modes table (optional sentence in the "Where to go next" section).
@@ -486,3 +486,4 @@ No staged rollout; no feature flag. Marketplace addition; non-installing users a
 - 2026-05-28: post-clean amendment — added T14 (Diátaxis tutorial), T15 (how-to), T16 (reference), T17 (explanation) paired with spec AC22–AC25. Tasks land in the same PR; dependencies wire each guide to the skill bodies it documents.
 - 2026-05-28: amendment-review pass (mechanical fixes only): T14 Tests bullet extended with explicit artifact-name greps + code-fence count + manual-QA timing-note dimension (matching the spec's Testing Strategy row for AC22).
 - 2026-05-28: post-clean amendment — added T19 (`/research` body, applied mode dispatcher), T20 (`confidence-schema.md` applied-mode overlay), T21 (reference / explanation / tutorial guide touches), T22 (conformance test extension), T23 (catalogue row + gates) paired with spec AC26–AC29. Tasks land in the same PR (the still-open #173) since they extend the still-shipping `/research` skill body and its references; stacking would split a single primitive's contract across two reviews. The integration test is unchanged — applied mode is body-level (no new file projected).
+- 2026-06-22: post-ship amendment (paired with spec) — typed, topic-named artifacts (RFC-0039 Decision 2; `docs/specs/research-typed-artifacts/`). The artifact-name references in this plan's task tests and approach notes are migrated to the `<topic-slug>-<type>.md` scheme to match the renamed skill outputs. Changelog entries dated before this line reference the bare stems by their then-current names, preserved verbatim as history.
