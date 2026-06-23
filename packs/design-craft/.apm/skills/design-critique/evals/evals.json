@@ -1,0 +1,18 @@
+{
+  "skill_name": "design-critique",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a design critique on the screen or flow the user provided.",
+      "expected_output": "A prioritized, severity-rated findings list. It first frames the surface — the user, the primary task, and the steps under review — so every severity call is anchored. It runs the shared quality-floor pass (all states, the accessibility floor, the reduced-motion principle) AND a heuristic evaluation against recognized usability principles, recording what was observed before judging. Each finding maps to the single best-fit usability principle (or floor commitment), with accessibility misses starting at major; each carries a 0–4 severity naming the frequency × impact × persistence factors behind it. Findings are sorted worst-first under a count-by-severity headline, and each has one concrete recommendation expressed as DESIGN INTENT — never a stack-specific implementation (no framework, property, or value).",
+      "assertions": [
+        "Frames the user, primary task, and steps under review before judging",
+        "Runs the quality-floor pass (states, accessibility floor, reduced-motion) in addition to the heuristics, with accessibility misses starting at major",
+        "Maps every finding to a single named usability principle or floor commitment",
+        "Assigns a 0–4 severity to each finding and names the factors that set it",
+        "Sorts findings worst-first and leads with a count-by-severity headline",
+        "Recommendations are design intent, not stack-specific — no framework, CSS property, or literal value is prescribed"
+      ]
+    }
+  ]
+}
