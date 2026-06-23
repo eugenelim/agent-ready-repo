@@ -216,6 +216,12 @@ Once an RFC is **Accepted**, it produces follow-on artifacts:
 
 After follow-ons exist, the RFC's job is done. It stays in the repo as history.
 
+**Optional `NNNN-notes/` companion.** An RFC may carry a sibling
+`docs/rfc/NNNN-notes/` folder for promoted research and supporting material —
+sketches, evidence, a distilled research brief lifted from a sustained
+investigation — mirroring the optional `notes/` folder a spec carries (§4). It
+is optional and informal; the RFC body remains the contract.
+
 **Filename:** `NNNN-kebab-case-title.md`. Numbers are sequential.
 
 **Template:** `assets/rfc.md` in the `new-rfc` skill that creates RFCs from it.

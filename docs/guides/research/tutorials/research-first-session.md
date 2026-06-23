@@ -188,6 +188,7 @@ That signature is the work-loop verification gate — each mode is *observably* 
 ## Where to go next
 
 - The [how-to guide on research pipelines](../how-to/research-pipelines.md) shows the three multi-skill recipes (survey, decision, archaeology).
+- Got a question that outlasts one sitting? [Your first research project](your-first-research-project.md) walks the project lifecycle, and [episodic vs project research](../explanation/episodic-vs-project-research.md) explains when to reach for it instead of a one-off run.
 - The [reference](../reference/research-pack.md) catalogues every skill, subagent, mode, and depth cue.
 - The [explanation](../explanation/research-methodology.md) covers the seven methodologies and the design choices that shaped the pack.
 

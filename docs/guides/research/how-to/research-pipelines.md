@@ -4,6 +4,8 @@ The `research` pack ships seven skills. Three multi-skill pipelines compose them
 
 This guide is task-shaped. It assumes you already know what the pack does — if you don't, start with [your first research session](../tutorials/research-first-session.md). For the dry catalogue of every skill, see the [reference](../reference/research-pack.md).
 
+These three pipelines are **episodic** — one-shot runs that produce an artifact and finish. If your question outlasts one sitting and accumulates a corpus over days or weeks, you want **project mode** instead: see [run a research project and feed it into an RFC](run-a-research-project-into-an-rfc.md), and [episodic vs project research](../explanation/episodic-vs-project-research.md) for which to reach for.
+
 ```text
   survey       broad question, cited synthesis
     /build-outline ──► /source-map ──► /research

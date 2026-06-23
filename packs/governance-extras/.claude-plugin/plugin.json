@@ -1,5 +1,5 @@
 {
   "name": "governance-extras",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Governance skills (new-rfc, new-adr, update-conventions) and RFC/ADR templates + seed READMEs."
 }

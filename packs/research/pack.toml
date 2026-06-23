@@ -1,7 +1,7 @@
 [pack]
 name = "research"
-version = "0.3.0"
-description = "Evidence-grounded research portable across every repo. Seven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
+version = "0.4.0"
+description = "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
 readme = "README.md"
 display_name = "Research"
 license = "Apache-2.0 OR MIT"

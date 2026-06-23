@@ -1,6 +1,6 @@
 # Research methodology — the why behind the pack
 
-The `research` pack ships seven skills and two retrieval subagents. The shapes look obvious in retrospect — modes on `/research`, a flat directory layout, citations forced per claim — but each is a deliberate choice driven either by a mature discipline borrowed from a neighboring field or by an architectural finding from multi-agent research. This page tells the story behind those choices.
+The `research` pack ships eleven skills (seven for episodic depth, four for the project lifecycle) and two retrieval subagents. This page is about the *episodic* skills' methodology — the shapes look obvious in retrospect — modes on `/research`, a flat directory layout, citations forced per claim — but each is a deliberate choice driven either by a mature discipline borrowed from a neighboring field or by an architectural finding from multi-agent research. This page tells the story behind those choices. For the project lifecycle and the two-axis model, see [episodic vs project research](episodic-vs-project-research.md).
 
 For the catalogue of what the pack ships, see the [reference](../reference/research-pack.md). For how to use it, see the [how-to guide on pipelines](../how-to/research-pipelines.md) or the [first-session tutorial](../tutorials/research-first-session.md).
 
