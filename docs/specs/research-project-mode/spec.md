@@ -226,7 +226,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   Approved RFC names the companion convention); the named fallback is to split it
   into a follow-up `update-conventions` PR if a reviewer rejects the in-spec edit.
   Verification: `rg -F 'notes/'` against `docs/CONVENTIONS.md` in the RFC section
-  names the companion convention.
+  names the companion convention. The `new-rfc` skill (`governance-extras`) and
+  its `assets/rfc.md` template are also made aware of the optional companion —
+  otherwise the convention is documented but the skill that creates RFCs would
+  never surface it — bumping `governance-extras` 0.2.0 → 0.3.0. Verification:
+  `rg -F 'NNNN-notes/'` against `packs/governance-extras/.apm/skills/new-rfc/SKILL.md`
+  and `…/assets/rfc.md` each return ≥1 hit.
 
 - [x] **AC13 — Project mode triggers only on explicit phrasing.** The four
   project skills' `description:` frontmatter triggers on explicit "start a

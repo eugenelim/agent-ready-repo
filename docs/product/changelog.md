@@ -86,6 +86,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`new-rfc` now surfaces the optional `NNNN-notes/` companion
+  (`governance-extras` pack, bumped to `0.3.0`).** The skill and its RFC
+  template point authors at the optional sibling `docs/rfc/NNNN-notes/` folder
+  for promoted research — a distilled brief and supporting material summarized
+  into *Evidence & prior art* and linked, rather than pasted into the RFC body.
+  Pairs with the companion convention added to `docs/CONVENTIONS.md` § 3, and is
+  the landing place for a `research`-pack project's `<topic-slug>-brief.md`.
 - **The `work-loop` skill's Context hygiene section now covers output, not just
   input (`core` pack, bumped to `0.4.11`).** A new *Emit less, too* note adds two
   zero-cost habits to the existing window-management guidance: don't restate code,
