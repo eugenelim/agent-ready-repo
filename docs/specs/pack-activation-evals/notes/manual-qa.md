@@ -166,3 +166,21 @@ with an *independent* judge (codex ≠ the skill's runtime) is the no-self-grade
 posture E4 prefers. Judgment-only confirmed (claude no tools; codex sandboxed
 read-only). Report-only — a quality signal, not a gate; a judge wobbles run-to-run
 and wants periodic human calibration.
+
+## 7. LLM-judge applied to judgment packs (architect, product-engineering) — live
+
+The judge (E4) is the right Tier-B tool for judgment skills (no deterministic
+artifact to check structurally). Authored quality rubrics (`evals/evals.json` —
+`expected_output` + `assertions`) for `architect/architect-design` and
+`product-engineering/frame-intent`, then ran `--mode judge` live:
+
+| skill | artifact | verdict |
+| --- | --- | --- |
+| architect-design | a complete webhook-delivery design doc | **PASS** — "all six assertions pass; every section earns its place" |
+| frame-intent | a proper intent (outcome + opportunity, level/scale, stops at the intent) | **PASS** — "all five hold; outcome is behavioral" |
+| frame-intent | a "build a setup wizard" solution brief | **FAIL** — "a solution brief, not an intent — skips to implementation" |
+
+The judge **discriminates quality** (affirms the good, fails the solution-brief),
+proving the workflow for these packs: author a rubric → `--mode judge
+--artifacts {skill: {eval_id: <artifact>}}`. Backend/model is configurable
+(`--judge-adapter` / `--model`); report-only.
