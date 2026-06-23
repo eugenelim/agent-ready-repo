@@ -148,18 +148,16 @@ The security-boundary concerns above name trust boundaries, least privilege, and
 egress minimization at **design altitude only**; control-level verification
 routes to the repo's `security-reviewer` / `security-checklists` (the `llm-agent`
 module), per `cross-cutting-questions.md`. The concerns that route to a named
-module check today: prompt injection, data egress & disclosure, tool-use
-authorization, tool/MCP & sub-agent provenance, output handling, and the token /
-loop-cap consumption surface.
+module check: prompt injection, data egress & disclosure, tool-use
+authorization, tool/MCP & sub-agent provenance, output handling, the token /
+loop-cap consumption surface, and — for a system that acts, delegates, or
+persists state — **execution isolation & blast radius**, **inter-agent
+identity/privilege propagation**, and **memory poisoning**.
 
-Three agentic boundaries reach **beyond** the module's current checks —
-**execution isolation & blast radius**, **inter-agent identity/privilege
-propagation**, and **memory poisoning**. Name them at design altitude here; their
-control-level verification is reasoned from the cross-cutting threat-modelling
-standards rather than a module line item until the security module's agentic
-surface catches up. Name implementation frameworks never — this lens reasons
-about boundaries and authority, not whether to use a particular agent framework
-or vector store.
+Name these boundaries at design altitude here; their control-level verification
+routes to the `llm-agent` module like every other security-boundary concern
+above. Name implementation frameworks never — this lens reasons about boundaries
+and authority, not whether to use a particular agent framework or vector store.
 
 ## Use, don't recite
 
