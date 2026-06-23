@@ -58,8 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   E3) goes further where it's safe: the agent runs the skill in a confined
   per-eval working dir and the runner re-derives deterministic post-conditions
   (an `evals/evals.json` `expect` block — produced files, output substrings)
-  plus attested assertions (`tier: B-lite`). The full Tier-B grading (LLM-judge,
-  pass-rate deltas) stays a future RFC.
+  plus attested assertions (`tier: B-lite`). And a report-only **LLM-judge**
+  (`--mode judge`, RFC-0037 § Errata E4) grades the *quality* layer against the
+  eval rubric, behind a **config-driven, multi-adapter** backend seam: built-in
+  `claude-code` (same model) + `codex` (independent model/IDE), and adopters add
+  their own — e.g. a `kiro-cli` headless judge — and pick the model purely by a
+  `--judge-config` entry, no code change. The judge is judgment-only and
+  fails closed on an unparseable verdict. The **full** Tier-B grading (pass-rate
+  deltas, with/without-skill, train/validation, the human-feedback loop) stays a
+  future RFC.
 - **Per-prompt work-loop activation hook (`core` pack).** A new
   `work-loop-check` hook nudges the agent, on every prompt, to load the
   work-loop skill for non-trivial work — closing a gap where the loop was

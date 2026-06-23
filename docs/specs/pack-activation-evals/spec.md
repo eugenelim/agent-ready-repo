@@ -1,6 +1,6 @@
 # Spec: pack-activation-evals
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> <!-- Phase 1 (headless) + Phase 2 (in-harness activation) + Phase 3 (lightweight B-lite behavior/output check, RFC-0037 § Errata E3) shipped -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> <!-- Phase 1 (headless) + Phase 2 (in-harness activation, E2) + Phase 3 (B-lite behavior/output, E3) + Phase 4 (report-only LLM-judge, E4) shipped -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0037, ADR-0028
@@ -42,10 +42,14 @@ page (Tier B — with/without-skill runs, LLM-judge grading, `benchmark.json`
 pass-rate deltas, the human `feedback.json` review, the SKILL.md improvement
 loop) plus the triggering page's train/validation split and
 description-*optimization* loop are **out of scope** for the **full** grading — a
-separate future RFC (full exclusion list in ADR-0028 § Consequences). *(A
-**lightweight** slice — running `evals/evals.json` and checking deterministic
-post-conditions + attested assertions — is admitted by RFC-0037 § Errata E3;
-see § Errata-driven phases.)*
+separate future RFC (full exclusion list in ADR-0028 § Consequences). *(Two
+**slices** are admitted by errata, leaving the **full** apparatus future: a
+deterministic behavior/output check — running `evals/evals.json` + deterministic
+post-conditions + attested assertions — under § Errata E3; and a report-only
+**LLM-judge mechanism** for the quality layer under § Errata E4. What stays
+future: `benchmark.json` pass-rate deltas, the with/without-skill comparison, the
+train/validation split, and the formal human-`feedback.json` loop. See
+§ Errata-driven phases.)*
 
 The **first cut's** detector is **headless-only** and measures **claude-code as
 the reference harness** — a deliberate proxy for activation quality across every
@@ -72,8 +76,16 @@ Phase sections under Acceptance Criteria):
 - **Phase 3 — lightweight behavior/output check (RFC-0037 § Errata E3).** A
   bounded slice of Tier B: run the skill and validate its outputs against
   deterministic post-conditions (`tier: B-lite`). The **full** Tier-B grading
-  (LLM-judge, `benchmark.json` deltas, with/without-skill, train/val) remains the
-  separate future RFC.
+  (`benchmark.json` deltas, with/without-skill, train/val, human-feedback loop)
+  remains the separate future RFC — the LLM-judge *mechanism* itself ships under
+  § Errata E4.
+- **Phase 4 — report-only LLM-judge for the quality layer (RFC-0037 § Errata
+  E4).** `--mode judge` grades a produced artifact against the eval rubric via a
+  **config-driven, multi-adapter** backend seam (built-in `claude-code`
+  same-model + `codex` independent; adopters add their own — e.g. `kiro-cli` —
+  and pick the model purely by config). Judgment-only, fail-closed, report-only;
+  the full grading apparatus (deltas/with-without/train-val/human-feedback) stays
+  future.
 
 ## Boundaries
 
@@ -229,9 +241,10 @@ stays the high-fidelity reference; Phase 2 is the portable, lower-fidelity path.
 
 A bounded slice of Tier B (RFC-0037 § Errata E3): once a skill activates, *does
 it do the job* — run the right script, produce the expected artifact, avoid the
-documented anti-action? The **full** Tier-B grading (LLM-judge, `benchmark.json`
-deltas, with/without-skill, train/validation) stays out of scope (the separate
-future RFC); this is the *lightweight* check only.
+documented anti-action? The **full** Tier-B grading (`benchmark.json`
+deltas, with/without-skill, train/validation, human-feedback loop) stays out of
+scope (the separate future RFC); this is the *lightweight* deterministic check
+(the LLM-judge *quality* layer ships separately under § Errata E4).
 
 > **Validation status:** the grading contract (`grade_behavior`, the re-derivation,
 > fail-closed) is unit-tested, and the driver loop is validated live **both** with

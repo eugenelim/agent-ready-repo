@@ -552,6 +552,10 @@ def test_judge_prompt_and_parse() -> None:
     # Prose-wrapped JSON (codex tends to chatter around it).
     v = M.parse_judge_verdict('Here is my verdict:\n{"verdict": "fail", "rationale": "nope"}\nDone.')
     check("judge-parse", v["verdict"] == "FAIL", "prose-wrapped + normalized to FAIL")
+    # A `}` inside a string value must not truncate the parse (string-aware).
+    v = M.parse_judge_verdict('{"verdict":"PASS","rationale":"uses {x} and } chars"}')
+    check("judge-parse", v["verdict"] == "PASS" and "}" in v["rationale"],
+          "brace inside a string value doesn't truncate")
     # Unparseable / no verdict → ERROR (fail closed, never silent PASS).
     check("judge-parse", M.parse_judge_verdict("no json here")["verdict"] == "ERROR",
           "no JSON -> ERROR")
@@ -635,8 +639,16 @@ def test_grade_judge() -> None:
         # Bounded verdict capture (no key/artifact dump).
         cap = (repo_root/".eval-workspace"/"bxpack"/"iteration-1"/"alpha"/"1"/"judge"/"verdict.json")
         check("judge", cap.is_file(), "verdict.json captured")
+        # A traversal eval-id (operator-supplied map key → path segment) is refused.
+        try:
+            M.grade_judge("bxpack", {"alpha": {"../escape": str(good)}},
+                          judge=judge, repo_root=repo_root)
+        except ValueError:
+            pass
+        else:
+            fail("judge", "traversal eval-id must be refused (path confinement)")
     print("✓ grade_judge: runs the backend, labels mode/judge_adapter, fails closed "
-          "on missing artifact, bounded capture.")
+          "on missing artifact, confines eval-id, bounded capture.")
 
 
 def test_gitignored_control() -> None:

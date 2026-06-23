@@ -146,3 +146,23 @@ Full per-pack sweeps over `core` + `converters` (every covered skill ×
 scheduled/dispatch run produces the per-skill trigger-rate baselines. This
 manual pass validates the live mechanism, not the calibration baseline (the
 latter is RFC-0037 Open Q1, deferred).
+
+## 6. LLM-judge (Phase 4, RFC-0037 § Errata E4) — live cross-model validation
+
+Validated the quality-layer judge live with **both** backends on the **same**
+artifact (a genuinely good `architect-design` design doc — idempotent webhook
+delivery) graded against a rubric (`expected_output` + assertions: required
+sections, dual-write designed out, ≥2 honest alternatives, risks-with-mitigations):
+
+| judge backend | verdict |
+| --- | --- |
+| `claude-code` (same model) | **PASS** — "all three assertions hold … dual-write resolved via a same-transaction outbox" |
+| `codex` (independent model/IDE, `-s read-only`) | **PASS** — "satisfies the required Google-style structure … alternatives and risks concise but concrete" |
+
+Both ran through the config-driven seam (`get_judge` → `CommandJudge`), parsed a
+structured JSON verdict, and **affirmed a good output** (the calibration concern —
+that an LLM-judge reflexively nitpicks — did not occur). The cross-model agreement
+with an *independent* judge (codex ≠ the skill's runtime) is the no-self-grade
+posture E4 prefers. Judgment-only confirmed (claude no tools; codex sandboxed
+read-only). Report-only — a quality signal, not a gate; a judge wobbles run-to-run
+and wants periodic human calibration.
