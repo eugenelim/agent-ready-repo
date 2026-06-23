@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Research project mode — a four-skill lifecycle for sustained investigations
+  (`research` pack, bumped to `0.4.0`).** Alongside the existing depth axis
+  (`/research` quick/standard/applied/deep), the pack gains a *lifecycle* axis
+  for multi-week investigations that accumulate a corpus:
+  `research-project-start` scaffolds a three-layer project folder (raw
+  `sources/` → a `synthesis-matrix.md` + `memos.md` **digest** middle layer the
+  pack previously lacked → a typed synthesis); `research-project-digest` clusters
+  sources into emergent, constructed matrix columns; `research-project-synthesize`
+  emits the typed verdict **and** a single-file, self-contained
+  `<topic-slug>-brief.md` that governance can lift whole into an RFC; and
+  `research-project-check` is a passive saturation stop-signal that reads the
+  matrix by eye and recommends — it never advances the lifecycle. Projects live
+  in scratch / out-of-repo by default (configurable via an adopter-created
+  `research-layout.toml`); the corpus is never committed to the repo, only the
+  distilled brief. Prompt-only by construction (no engine, index, or counter);
+  the seven existing skills are reused as phase operations. RFCs may now carry an
+  optional `docs/rfc/NNNN-notes/` companion folder for promoted research.
 - **Per-prompt work-loop activation hook (`core` pack).** A new
   `work-loop-check` hook nudges the agent, on every prompt, to load the
   work-loop skill for non-trivial work — closing a gap where the loop was
