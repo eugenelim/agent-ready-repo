@@ -191,6 +191,60 @@ For anything beyond trivial, *think before you write code*. Concretely:
     asserts **invariants** ("didn't crash, didn't render garbage, layout holds,
     no overflow") rather than specific outputs. Reach for it when the failure
     mode is open-ended and you can't enumerate the gestures up front.
+  - **infra/deploy** — provisioning or changing infrastructure: a cloud
+    deploy, an IaC apply, a stateful migration of a running system. This is the
+    fourth verification *mode* (the spec calls it a *flavor* — same thing).
+    Unlike the three modes above, its contract is a **layered GATES sequence**,
+    not a single check — because a deploy is slow, stateful, costs money, and is
+    partially irreversible. The layers, in order: (1) **static preflight** —
+    validate / lint / policy-as-code, run through the provider-appropriate
+    scanner the preflight obligation below requires as a task-zero (the
+    lint+typecheck analog); (2) **plan / preview** — a dry-run diff, reviewed
+    before any mutation; (3) **idempotent convergent apply — the precondition
+    the rest rests on**: re-running after a fix must *converge, not collide*, so
+    iteration is safe; an imperative, non-idempotent script is the
+    retry-collision root cause, and the thing to fix first rather than work
+    around; (4) **active end-to-end smoke** — not a single status check but a
+    multi-hop probe, and the direct extension of the visual/manual-QA "exercise
+    the real built artifact" doctrine to a deployed system: seed test / mock
+    users → load the real CDN / site URL → assert it actually renders → on
+    failure pull the access / error logs and debug → tear down; (5)
+    **rollback** — *before* the first apply, confirm a known-good re-apply path
+    is named (it belongs in `## Rollout`), since no atomic rollback exists for a
+    partially-applied deploy. This mode names *how we verify* a deploy; it does
+    **not** author *deployment sequencing*, which the plan template's
+    `## Rollout` section already owns — cross-reference it, don't duplicate it. Every layer is tool-neutral
+    (Terraform / Pulumi / CDK / CloudFormation / hand-rolled scripts alike);
+    any tool named here is illustrative, never normative.
+
+  **Confirm the mechanism exists before you claim the mode — task zero if it
+  doesn't.** Picking a verification mode obligates confirming that the
+  mechanism that mode depends on actually exists; if it does not, **building it
+  is task zero** — a precondition task in the plan, not an afterthought — and
+  the loop offers to scaffold it. This obligation is **agnostic and universal
+  across light and full mode**: it applies to a TDD task whose test runner
+  isn't wired, a goal-based task whose build command doesn't exist yet, and a
+  manual-QA task whose artifact can't yet be run, exactly as much as to a
+  missing infra smoke check. It strengthens the assumption-trio — "the
+  mechanism exists" is the kind of assumption that goes unsurfaced precisely
+  because it doesn't feel like one.
+
+  For **infra/deploy** the mechanism is rarely one artifact; the preflight
+  enumerates it as a **multi-artifact set, each its own task-zero**: (a) a
+  **verify-status** script (does the deploy report healthy?), (b) a
+  **teardown** script (clean down a failed or ephemeral run), (c) **test-data /
+  mock-user seeding** (so the smoke probe has something to exercise), and (d) a
+  **provider-appropriate policy-as-code / CSPM scanner**. The scanner is the
+  load-bearing one: it is the **per-provider-depth source**, its
+  vendor-maintained rulesets holding the per-service config checks the
+  standards-grounded reviewers cannot and should not carry — and the **same**
+  scanner feeds two layers, *operational* misconfig → the infra/deploy mode's
+  static preflight (layer 1) and *security* misconfig → the mandatory security
+  pass (REVIEW, below). The requirement is **mechanism-level, not tool-level**:
+  a scanner must exist; the adopter picks Checkov / tfsec / a cloud-native CSPM,
+  exactly as the loop requires "tests exist" without mandating a framework. The
+  loop names these as prerequisite tasks and offers to scaffold them; it does
+  not ship them as executable tooling.
 
   Spikes and throwaway exploration are out of scope.
 - **Design tests up front, before any code.** The contract lives in
@@ -284,6 +338,22 @@ For anything beyond trivial, *think before you write code*. Concretely:
   is not a re-use of either. Same Profile-A opt-out and the same
   `approve-plan` gate apply. Fallback if no `security-reviewer` subagent is
   installed: proceed and note the missing review in the final summary.
+
+  **For infra-flavored work this spec-stage pass is mandatory, not
+  discretionary.** "Infra-flavored" is a **defined signal, not an ad-hoc
+  judgement**: work that the **destructive/irreversible risk trigger** routes to
+  full mode *and* whose spec matches the
+  [boundary→module routing table](#boundarymodule-routing-table)'s IaC /
+  deploy-config entry — the same classifier that already drives security-module
+  loading (the spec-stage half keys this match on the spec; the diff-stage half
+  on the diff — same routing-table entry). When that signal is present the
+  `security-reviewer` runs at spec stage **regardless of** the discretionary
+  security-boundary trigger, and the orchestrator **force-loads** the
+  infra-relevant `security-checklists` modules (the candidate set the REVIEW
+  `security-reviewer` bullet names), loaded 1–N as the spec warrants per that
+  table. The matching diff-stage pass, the reviewer-plus-scanner pairing, and
+  the Profile-A / missing-subagent interaction all live in that REVIEW bullet —
+  this is the spec-stage half of the same non-skippable, both-stages pass.
 - **Initialize the loop's state file.** Run this skill's bundled
   `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
   the bundled `assets/state.json` template into place, sets `feature`
@@ -318,6 +388,20 @@ Match the discipline to the verification mode you picked during PLAN:
 - **Visual / manual QA** — implement, then exercise the built artifact
   end-to-end through the documented workflow recorded in the task, and
   record what you observed (real output, not internal state).
+- **infra/deploy** — implement the change (one task may span several GATES
+  layers), then **drive the deploy yourself and read the real environment
+  output**: run the apply, the smoke
+  probe, the log pull, and the teardown, and read their *actual* output rather
+  than reasoning about what they would say. The **human-as-relay** pattern — a
+  human running the deploy command and pasting the error back into the session
+  by hand — is the anti-pattern this removes; the agent reads ground truth from
+  the environment at each step. This is **harness-agnostic doctrine** — do it
+  by hand on any agent. In Claude Code, background tasks (for long applies),
+  `asyncRewake` (to wake on a background deploy's exit with stderr surfaced),
+  and `PreToolUse` (to gate a destructive command before it runs) are an
+  **accelerant only, never a dependency** — matching how `/verify` and
+  `/simplify` are treated; adapters without them lose the shortcut, not the
+  doctrine.
 
 For each task, implement the smallest coherent unit of work toward the
 goal. Resist the urge to fix unrelated things you notice along the way;
@@ -576,6 +660,43 @@ note in the summary, not a blocker.
   Load 1–3 modules for a typical change, never a flat march of all ten; an
   auth-touching endpoint pulls `access-control` and often `authn-session`.
   This same table backs the pre-EXECUTE spec-stage dispatch above.
+
+  **Mandatory and multi-module on infra-flavored work.** When the change is
+  **infra-flavored** — the **destructive/irreversible risk trigger** routed it
+  to full mode *and* its diff matches the routing table's IaC / deploy-config
+  entry — the `security-reviewer` pass is **non-skippable** and runs at
+  **both the spec stage** (the pre-EXECUTE secure-design step above) **and on
+  the diff**, not via the discretionary security-boundary trigger. Because
+  "infra-flavored" keys on the existing classifier rather than a per-diff
+  judgement, the pass **cannot be silently skipped** on an infra diff. The
+  orchestrator force-loads from the infra-relevant **candidate set** —
+  `config-misconfig` (the IaC / deploy-config entry — IAM, CORS, deploy config —
+  present on any infra diff) plus `access-control` (when the change alters the
+  authorization *model*: role bindings or resource policies that change *who can
+  call what*), `secrets-and-crypto` (secrets in state or env, keys),
+  `outbound-ssrf` (public exposure, CDN / origin egress), and `supply-chain`
+  (provider / module pinning) — each pulled in when the diff trips *that
+  module's own* routing-table row, so the routing table stays the single
+  deterministic authority and the set loads **1–N**, never a flat always-five
+  march (a one-line config tweak pulls one; a new public-facing stack pulls
+  several). This adds **no new reviewer and no new
+  module**: it makes the *existing* security pass mandatory and multi-module.
+  The **Profile-A opt-out still applies wholesale** — a project that uses no
+  reviewer at all opts out of the loop entirely — but where `security-reviewer`
+  *is* in use the infra pass is **not individually skippable**, and a missing
+  `security-reviewer` subagent on infra-flavored work is a **loud blocker in the
+  final summary, not a silent proceed** (the one place the
+  select-or-note fallback hardens to a blocker, given the blast radius).
+
+  **Security on infra is a reviewer + scanner *pair*; neither substitutes for
+  the other.** `security-reviewer` is **not** the per-provider depth source — it
+  reasons from cross-cutting standards (OWASP / ASVS / CWE + STRIDE / LINDDUN)
+  and catches failure *classes* (over-broad IAM, public exposure,
+  unencrypted-at-rest, secrets in state, metadata SSRF, missing audit logging)
+  and control-completeness. The **per-provider secure-config depth** comes from
+  the policy-as-code / CSPM scanner the PLAN preflight requires as a task-zero
+  (its vendor-maintained rulesets *are* the provider baselines). Run both: the
+  scanner for per-provider breadth, the reviewer for failure-class reasoning.
 - Match `quality-engineer` — testability, observability, reliability, and
   maintainability lens, applying a raised default quality floor (universal
   maintainability smells + a mutation-testing mindset) even where no static

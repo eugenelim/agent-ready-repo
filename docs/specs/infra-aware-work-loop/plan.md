@@ -1,7 +1,7 @@
 # Plan: infra-aware-work-loop
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -226,3 +226,6 @@ intact.
 - 2026-06-23: initial plan (follow-on to Accepted RFC-0041; authored alongside
   ADR-0031 and the `operational-safety-checklists` spec in a docs-only PR;
   implementation is a separate later PR).
+- 2026-06-23: implementation landed (this PR) — T1–T5 complete; `work-loop`
+  SKILL.md edits (P1/P2/P4/P5), `core` bumped 0.4.11 → 0.4.12, changelog entry.
+  Status flipped to Done.

@@ -39,6 +39,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contract → v0.16). `architect` (0.6.1 → 0.7.0) and `product-engineering`
   (0.4.2 → 0.5.0) become consumers; `research` (0.4.0 → 0.5.0) migrates from the
   undistributed `research-layout.toml` by a **clean rename, no alias**.
+- **Infra-aware `work-loop` — the loop can now drive an infrastructure inner
+  loop end-to-end (`core` pack, bumped to `0.4.12`; RFC-0041 / ADR-0031).** The
+  loop's verification modes previously assumed the verification mechanism
+  already existed and assumed a fast, local, stateless, single-hop gate — so a
+  cloud deploy stalled the agent and the human became a relay, pasting deploy
+  errors back into the session by hand. Four doctrine additions close that gap,
+  all prose (no executable tooling, no new reviewer, no new risk trigger): (P1)
+  a **generalized verification-mechanism preflight** — picking a verification
+  mode now obligates confirming its mechanism exists, and if not, building it is
+  *task zero*; this is agnostic (a missing test runner or build command, not
+  just an infra smoke check) and **universal across light and full mode**, with
+  the infra mechanism enumerated as a multi-artifact set (verify-status +
+  teardown + test-data/mock-user seeding + a provider-appropriate
+  policy-as-code/CSPM scanner). (P2) a fourth **infra/deploy verification
+  flavor** whose contract is a layered GATES sequence (static preflight →
+  plan/preview → idempotent convergent apply → active end-to-end smoke →
+  rollback), cross-linked to the plan's `## Rollout` section. (P4) an
+  **agent-drives-verification** doctrine — the agent runs the deploy and reads
+  real environment output itself, with the human-as-relay named as the
+  anti-pattern and Claude Code background tasks / `asyncRewake` / `PreToolUse`
+  as accelerant only. (P5) **mandatory infra security** — infra-flavored work
+  non-skippably runs `security-reviewer` at both spec stage and on the diff,
+  force-loading the infra-relevant `security-checklists` modules, paired with
+  the P1 policy-as-code/CSPM scanner for per-provider depth.
 - **Research project mode — a four-skill lifecycle for sustained investigations
   (`research` pack, bumped to `0.4.0`).** Alongside the existing depth axis
   (`/research` quick/standard/applied/deep), the pack gains a *lifecycle* axis
