@@ -36,6 +36,38 @@ V14; Proactive Controls 2024 C5).
   `Content-Security-Policy`, TLS verification disabled, or downgraded
   protocol/cipher settings.
 
+## Deferred authority (per-provider secure-config depth)
+
+This module reasons from cross-cutting standards and catches security failure
+*classes*; it deliberately does **not** carry per-provider secure-config
+baselines (they would be stale on arrival and break tool-neutrality). The
+per-provider depth lives in two places, named here by **stable publisher +
+document, with no URL and no version** so the pointer stays evergreen by naming
+rather than linking:
+
+- **CIS Benchmarks** — the per-service hardening baselines.
+- **AWS Well-Architected Security Pillar**, **Microsoft Cloud Adoption
+  Framework / Azure Well-Architected Security**, and **Google Cloud
+  Architecture Framework (Security)** — each provider's standing
+  well-architected security guidance.
+
+The **actual, current per-provider depth lives in the self-updating
+policy-as-code / CSPM scanner** the work-loop's infra preflight requires (its
+vendor-maintained rulesets *are* these baselines, kept fresh by the vendor) —
+not in this pointer. A stale name here never gates a real check; the scanner
+does. Confirm the scanner is wired (the `tool` bullet above) rather than
+re-deriving provider baselines by hand.
+
+## The reliability-vs-security carve
+
+This module owns **IaC *security* config** (IAM, CORS, public exposure, secrets
+posture, TLS). The **reliability / ops** side of infrastructure — idempotent
+convergence, blast radius, environment isolation, cost/teardown, drift/rollback,
+observability/smoke — lives in the **`operational-safety`** skill, consumed by
+`quality-engineer`. Route IaC-security here; route IaC-reliability there. Don't
+pull operational checks into this module, and don't let security config drift
+into an operational one.
+
 ## Established-helper bypass
 
 Resolve the repo's sanctioned config/module (the hardened web-server base, the

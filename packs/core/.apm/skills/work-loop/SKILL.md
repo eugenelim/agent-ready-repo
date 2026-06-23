@@ -704,6 +704,39 @@ note in the summary, not a blocker.
   Different lens from adversarial-reviewer — don't skip it because the spec
   already shipped.
 
+  **Inline operational depth on infra/destructive work, don't make it
+  self-discover.** When the diff is **infra-flavored** — the
+  **destructive/irreversible risk trigger** routed it to full mode *and* it
+  provisions, mutates, deploys, or tears down infrastructure — the
+  `quality-engineer` is the consumer of a second progressive-disclosure depth
+  library, [`operational-safety`](../operational-safety/SKILL.md), exactly as
+  `security-reviewer` consumes `security-checklists`. Detect which operational
+  failure modes the change raises, load **only** the matching
+  `operational-safety` modules, and inline their content into the subagent's
+  brief (reusing the same on-demand `references/*.md` loading) — the
+  `quality-engineer`'s `tools:` has no Skill tool, so loading is
+  orchestrator-driven, not model-relevance-judged. **No new reviewer** — this
+  feeds the existing `quality-engineer` (ADR-0023). Route deterministically:
+
+  <a id="operational-safety-routing-table"></a>
+
+  | Operational failure mode the infra/destructive change raises | Inline module(s) |
+  | --- | --- |
+  | Provisioning or mutating infra; stateful migration; any re-runnable write path | `state-and-idempotency` |
+  | Can delete or replace existing infra; destroy/teardown path; removing a prevent-destroy guard | `blast-radius` |
+  | Iterating against (or able to touch) production; shared vs throwaway/staging state | `environment-isolation` |
+  | Provisions billable resources; ephemeral/per-iteration infra; teardown path | `cost-and-teardown` |
+  | Long-lived infra that can drift; a deploy needing a defined recovery path | `drift-and-rollback` |
+  | Deploys a service / site / endpoint a user reaches; needs smoke + telemetry | `observability-and-smoke` |
+
+  Load 1–N modules as the change warrants, **never a flat march of all six** —
+  a one-line config tweak pulls one; a new public-facing stack pulls several.
+  This is the operational twin of the `security-checklists` routing table
+  above, and the **reliability-vs-security carve** holds: IaC-security →
+  `config-misconfig` (the `security-reviewer` pass); IaC-reliability →
+  `operational-safety` (this pass). The two passes are complementary lenses on
+  the same infra diff, not substitutes.
+
 **Dispatch reviewers in parallel when you invoke more than one** per
 the [Parallel dispatch discipline](#parallel-dispatch-discipline)
 documented under EXECUTE — the same rules cover both fan-out sites in

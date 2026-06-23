@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "0.4.12"
+version = "0.4.13"
 description = "Core agent-ready-repo: work-loop, new-spec, bug-fix skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
 readme = "README.md"
 display_name = "Core"
@@ -31,6 +31,9 @@ allowed-scopes = ["repo"]
 # measured by tools/run-pack-evals.py. Deliberately excluded:
 #   - security-checklists — reviewer-internal, never self-discovered (no
 #     user-prompt activation surface).
+#   - operational-safety — reviewer-internal, never self-discovered (the
+#     orchestrator inlines its modules into the quality-engineer brief; it has
+#     no user-prompt activation surface — exactly as security-checklists).
 #   - work-loop — loaded broadly by the plan→execute→review discipline, not by
 #     a narrow user-prompt surface; a clean negative set isn't writable for it.
 [pack.evals]
