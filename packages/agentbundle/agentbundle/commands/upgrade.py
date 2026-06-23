@@ -10,7 +10,9 @@ Two shapes:
    - Render the new projection in memory.
    - Walk every (relpath, content) pair; apply the Tier-1/2/3 contract via
      ``safety.classify`` + ``safety.write_jailed``/``safety.write_companion``.
-   - Update ``PackState.installed_version`` to ``args.to_version``.
+   - Update ``PackState.installed_version`` to the version the resolved
+     catalogue's ``pack.toml`` declares under ``[pack] version`` — the upgrade
+     target is derived from the catalogue, not supplied by the operator.
    - If the current state has any ``primitive_versions`` for this pack, emit
      a warning to stderr *before* proceeding (mixed-version surface).
 
@@ -20,7 +22,8 @@ Two shapes:
      using a path-segment heuristic (see ``_filter_for_primitive``).
    - Validate that the primitive exists (non-empty filter result → exists).
    - Apply Tier-1/2/3 contract for the filtered file set only.
-   - Record ``PackState.primitive_versions[<ptype>][<name>] = args.to_version``.
+   - Record ``PackState.primitive_versions[<ptype>][<name>]`` = the derived
+     target version.
    - Leave ``PackState.installed_version`` unchanged.
 
 Writes go through ``safety.write_jailed`` — path-jail is non-optional.
@@ -57,13 +60,16 @@ def run(args: "argparse.Namespace") -> int:
     Args:
         args.pack        — pack name (required).
         args.catalogue   — catalogue URI (local path or git+https://...).
-        args.to_version  — target version string (required, from ``--to``).
         args.skill       — primitive name for a skill-only upgrade (optional).
         args.agent       — primitive name for an agent-only upgrade (optional).
         args.hook        — primitive name for a hook-only upgrade (optional).
         args.seed        — primitive name for a seed-only upgrade (optional).
         args.command     — primitive name for a command-only upgrade (optional).
+        args.yes         — skip the confirmation prompt (optional, default off).
         args.root        — repo root (default ``'.'``).
+
+    The upgrade target version is derived from the resolved catalogue's
+    ``pack.toml`` ``[pack] version``; there is no operator-supplied ``--to``.
 
     Returns 0 on success, non-zero on any failure.
     """
@@ -85,7 +91,6 @@ def run(args: "argparse.Namespace") -> int:
 
     pack_name: str = args.pack
     catalogue_uri: str = args.catalogue
-    to_version: str = args.to_version
     cli_scope: str | None = getattr(args, "scope", None)
     # User-config attached by `cli.py:main()` via args._user_config.
     # The pre-flight in `_resolve_target_adapter` no-ops when
@@ -215,6 +220,90 @@ def run(args: "argparse.Namespace") -> int:
         print(
             f"warning: pack {pack_name!r} has mixed-version primitives: "
             f"{mixed_parts}; proceeding with whole-pack upgrade",
+            file=sys.stderr,
+        )
+
+    # ── Derive target version; confirm before writing ─────────────────────────
+    # The upgrade target is a property of the catalogue, not an operator
+    # assertion: the resolved snapshot's pack.toml declares it under
+    # ``[pack] version``. There is no version-history store (the catalogue is a
+    # single git snapshot), so there is nothing to select and no ``--to`` to
+    # validate. Guarded access — a pack.toml with no (or a non-string)
+    # ``[pack] version`` cannot name an upgrade target, and the spec-version
+    # gate above reads only ``[pack.adapter-contract] version``, so this is a
+    # distinct check.
+    _pack_table = pack_toml.get("pack", {})
+    to_version = _pack_table.get("version") if isinstance(_pack_table, dict) else None
+    if not isinstance(to_version, str) or not to_version:
+        print(
+            f"upgrade: pack {pack_name!r} in catalogue declares no [pack] "
+            f"version; cannot determine upgrade target",
+            file=sys.stderr,
+        )
+        return 1
+
+    # The version we are moving *from*, captured before any state mutation.
+    # Per-primitive uses the recorded primitive override when present, else the
+    # whole-pack installed version.
+    if is_per_primitive:
+        _from_ptype = _PRIMITIVE_FLAG_MAP[prim_flag][0]
+        from_version = (
+            pack_state.primitive_versions.get(_from_ptype, {}).get(prim_name)
+            or pack_state.installed_version
+        )
+        confirm_label = f"{pack_name} {_from_ptype}/{prim_name}"
+    else:
+        from_version = pack_state.installed_version
+        confirm_label = pack_name
+
+    # When the installed version already equals the catalogue's, this is a
+    # re-apply (repairs local drift), not a version change — say so either way,
+    # and word the prompt accordingly.
+    already_current = from_version == to_version
+
+    # Note: for a per-primitive upgrade the prompt fires before the
+    # primitive-existence check (below, after render), so confirming
+    # `--skill <typo>` is followed by a "not in pack" refusal. Harmless (no
+    # write happens either way) and rare; left as-is to keep the confirm above
+    # the expensive render.
+
+    # Confirm before the first write — unless ``--yes`` or ``--dry-run`` (which
+    # writes nothing). A non-interactive stdin cannot answer the prompt, so
+    # refuse and explain rather than block on ``input()``. ``--dry-run``
+    # short-circuits the refusal: a dry run never writes, so it is safe
+    # non-interactively without ``--yes``.
+    if not getattr(args, "yes", False) and not getattr(args, "dry_run", False):
+        if not sys.stdin.isatty():
+            print(
+                f"upgrade: refusing to upgrade {confirm_label} from "
+                f"{from_version} to {to_version} without confirmation; pass "
+                f"--yes to upgrade non-interactively",
+                file=sys.stderr,
+            )
+            return 1
+        if already_current:
+            question = (
+                f"{confirm_label} is already at {to_version}. Re-apply at "
+                f"{effective_scope} scope (repairs local drift)? [y/N] "
+            )
+        else:
+            question = (
+                f"Upgrade {confirm_label} at {effective_scope} scope from "
+                f"{from_version} to {to_version}? [y/N] "
+            )
+        try:
+            reply = input(question)
+        except EOFError:
+            reply = ""
+        if reply.strip().lower() not in ("y", "yes"):
+            print("upgrade: aborted; no changes made", file=sys.stderr)
+            return 1
+    elif already_current:
+        # --yes / --dry-run skipped the prompt, but still state the situation.
+        # A dry run previews only, so don't claim a re-apply it won't perform.
+        suffix = "" if getattr(args, "dry_run", False) else "; re-applying"
+        print(
+            f"upgrade: {confirm_label} is already at {to_version}{suffix}",
             file=sys.stderr,
         )
 
@@ -589,10 +678,13 @@ def run(args: "argparse.Namespace") -> int:
         ptype, _src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]
         print(
             f"upgraded: {pack_name} {ptype}/{prim_name} @ "
-            f"{effective_scope} -> {to_version}"
+            f"{effective_scope} {from_version} -> {to_version}"
         )
     else:
-        print(f"upgraded: {pack_name} @ {effective_scope} -> {to_version}")
+        print(
+            f"upgraded: {pack_name} @ {effective_scope} "
+            f"{from_version} -> {to_version}"
+        )
     return 0
 
 

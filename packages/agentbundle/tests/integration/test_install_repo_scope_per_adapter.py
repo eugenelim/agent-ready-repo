@@ -374,7 +374,7 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
                 [
                     "upgrade",
                     "--pack", "core",
-                    "--to", "0.1.0",
+                    "--yes",
                     str(REPO_ROOT),
                     "--root", str(adopter),
                     "--scope", "repo",
@@ -500,15 +500,14 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
                     f"all paths: {sorted(files_before)}",
                 )
 
-            # Step 2: upgrade to the same version. The pack's `version`
-            # in `packs/core/pack.toml` is the source of truth; pin via
-            # the state row so the test stays valid through bumps.
-            installed_version = state_before["pack"]["core"]["installed-version"]
+            # Step 2: upgrade to the same version. The target version is
+            # derived from `packs/core/pack.toml`, which equals the
+            # just-installed version, so this is a same-version re-apply.
             upgrade_args = parser.parse_args(
                 [
                     "upgrade",
                     "--pack", "core",
-                    "--to", installed_version,
+                    "--yes",
                     str(REPO_ROOT),
                     "--root", str(adopter),
                     "--scope", "repo",
