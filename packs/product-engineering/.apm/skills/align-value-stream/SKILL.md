@@ -50,14 +50,71 @@ Before aligning, confirm:
    lives **here**; each component repo's own `reference.md` links to and conforms
    to it rather than re-deriving the system view. This is the `architect` seam.
 
-5. **Keep the rollup current.** Maintain the cross-component rollup (copy this
-   skill's `assets/rollup-template.md` to `docs/product/rollups/<slug>.md`): one
-   row per slice `decompose-intent`
-   produced → its brief → a **status snapshot + a pointer** to that repo's own
-   auto-derived coverage. The **AND across rows** is the answer; an absent-source
-   row is `unknown / not-yet-catalogued`, never silently delivered. See
-   `references/cross-component-rollup.md` and, for the discipline that keeps every
-   artifact above honest, `references/catalog-currency.md`.
+5. **Keep the rollup current.** Resolve `parent` using the config-driven
+   procedure below, then maintain the cross-component rollup (copy this skill's
+   `assets/rollup-template.md` to `<parent>/rollups/<slug>.md`): one row per
+   slice `decompose-intent` produced → its brief → a **status snapshot + a
+   pointer** to that repo's own auto-derived coverage. The **AND across rows** is
+   the answer; an absent-source row is `unknown / not-yet-catalogued`, never
+   silently delivered. See `references/cross-component-rollup.md` and, for the
+   discipline that keeps every artifact above honest, `references/catalog-currency.md`.
+
+## Where the rollup lives — config-driven, `docs/product` by default
+
+Resolve the rollup **parent** directory in this order, **in this skill body**.
+Reading is **prompt-only** (Charter Principle 3): this skill reads a file and
+reasons about a path — there is no engine, index, daemon, or watcher behind it,
+and the only code that ever *writes* the layout file is the install-time append.
+See [`references/agentbundle-layout.md`](references/agentbundle-layout.md) for the
+`[product-engineering]` section's full schema.
+
+1. **Read `agentbundle-layout.toml`'s `[product-engineering]` table** if the
+   adopter created one. Two locations, **repo-root overrides user-profile per
+   table**: the repo-root `./agentbundle-layout.toml` `[product-engineering]`
+   table if present, else the user-profile
+   `~/.agentbundle/agentbundle-layout.toml` `[product-engineering]` table. The
+   file is **adopter-owned**, never shipped into a projected path. Its `parent`
+   key is a **base** directory under which rollups are written as individual
+   files — never a per-topic folder:
+
+   ```toml
+   # agentbundle-layout.toml (adopter-created; optional)
+   [product-engineering]
+   parent = "docs/product"   # a base; rollups land at <parent>/rollups/<slug>.md
+   ```
+
+2. **Fall back to the pack's own default** — `docs/product`.
+3. **Elicit** if neither resolves — ask the user where rollups should live.
+
+**Anchor `parent` by the layout file's own location**, never against the ambient
+cwd: a **repo-root** file's `parent` is **repo-root-relative** (an absolute value
+is permitted but warn it as non-portable); a **user-profile** file's `parent`
+**must be an explicit absolute path** (`~`-anchored is fine), and a *relative*
+value there is an Ask-first deviation, never silently resolved.
+
+**Resolve, then surface, then write.** After anchoring, resolve `parent` to its
+**full absolute path** — `~`-expand it and **realpath-resolve it** so any symlink
+in the path is made visible and never silently followed out of the intended root
+— and **reject any `..` escape**. The `..` rejection and the realpath happen
+**after** anchoring, so a relative repo-file value that escapes via `..` (e.g.
+`parent = "../../etc"`) is caught regardless of which file supplied it; anchoring
+never blesses a `..`-bearing value as in-tree. Then **surface the resolved
+absolute path to the adopter before creating the rollup file** — the first write
+is always preceded by the path you are about to write under.
+
+**A repo-root-sourced `parent` that resolves outside the repo tree** — or whose
+resolution required following a symlink out of the intended root — is
+**untrusted-origin**: a cloned, untrusted repo can carry a hostile `parent`
+(`../../etc`, `~/.ssh`, an out-of-tree symlink). **Confirm the resolved absolute
+path with the adopter before writing.** The user-profile file is foot-gun-only
+(the adopter authored it), but still surface its resolved path.
+
+**Output shape — file-per-slug, not a per-topic folder.** Rollup files live
+directly under `<parent>/rollups/<slug>.md`. A per-topic folder is deliberately
+**not** used: each rollup is a single file. `decompose-intent`'s
+`docs/product/briefs/<slug>.md` output stays **pinned** — that path is the
+hand-off to core's `receive-brief` and is not governed by this config (RFC-0040
+non-goal).
 
 ## Hard limits — state them honestly
 
