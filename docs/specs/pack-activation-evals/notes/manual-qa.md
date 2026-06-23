@@ -117,6 +117,27 @@ block on eval id 8 (`packs/converters/.apm/skills/markdown-to-html/evals/evals.j
 So the B-lite path is now validated against a real skill that really executes
 and really produces an artifact the runner inspects — not only the proxy.
 
+**B-lite coverage across the `converters` skills (2026-06-22).** Each covered
+skill now ships an `expect`-block eval + an `evals/files/` fixture, and was run
+end-to-end (deps installed per the skill's own `## Prerequisites`; the skill
+really executed in a confined per-eval workspace; the runner re-derived the
+deterministic checks):
+
+| skill | eval | deps (temp-installed) | result |
+| --- | --- | --- | --- |
+| markdown-to-html | 8 | npm `marked` + `highlight.js` | ✅ `ok` (produces `sample.html`) |
+| markdown-to-docx | 6 | `docxtpl` (template-less render) | ✅ `ok` (produces `sample.docx`) |
+| markdown-to-pptx | 6 | `python-pptx` (default template) | ✅ `ok` (produces `sample.pptx`) |
+| markdown-to-xlsx | 6 | `openpyxl` (template-less render) | ✅ `ok` (produces `sample.xlsx`) |
+| mermaid-renderer | 5 | npm `@mermaid-js/mermaid-cli` (`mmdc` + headless Chromium) | ✅ `ok` (renders `mermaid-1.png`) |
+| file-to-markdown | — | `docling` (heavy ML: torch + models) | ⏳ see below |
+
+`file-to-markdown` is the one skill whose deps (Docling — torch + downloaded
+models) are heavy; its result is recorded once the install completes, else it
+stays the lone environment-blocked skill with `docs/backlog.md` noting what it
+needs. The Office skills were run **template-less** (their documented opt-out
+path) so no binary template fixture is needed.
+
 ## Scope note
 
 Full per-pack sweeps over `core` + `converters` (every covered skill ×
