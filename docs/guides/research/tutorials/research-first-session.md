@@ -71,7 +71,7 @@ grading evidence quality in clinical guidelines
 
 The session takes longer. The skill dispatches WebSearch, follows the most promising URLs with WebFetch, and on Claude Code may dispatch the `evidence-retriever` subagent to preserve context.
 
-When done, you'll see `evidence-grading-survey.md` in your working directory — the topic slug (`evidence-grading`) plus the type stem (`survey`). Open it:
+When done, you'll see `evidence-grading-survey.md` in your working directory — the topic slug (`evidence-grading`) plus the type stem (`survey`). That's the `<topic-slug>-<type>.md` naming rule (the same one the signatures table below shows as a placeholder) applied to this question. Open it:
 
 ```markdown
 # Research — frameworks for grading evidence quality
