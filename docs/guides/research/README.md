@@ -18,7 +18,7 @@ New here? Walk [your first research session](tutorials/research-first-session.md
 
 ## Reference
 
-- [Research pack reference](reference/research-pack.md) — every skill (episodic and project), the two retrieval subagents, the depth modes, the project folder layout and `research-layout.toml`, and the GRADE confidence schema.
+- [Research pack reference](reference/research-pack.md) — every skill (episodic and project), the two retrieval subagents, the depth modes, the project folder layout and `agentbundle-layout.toml`'s `[research]` table, and the GRADE confidence schema.
 
 ## Explanation
 

@@ -452,16 +452,16 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.15"
-        (bumped from enriched-pack-manifest's "0.14" by
-        docs/specs/kiro-cli-agent-skill-resources: kiro-cli agents inject a
-        skill-resources glob so headless `--agent` runs reach skills).
-        Class/method names preserved to avoid churn.
+        """tomllib.loads of adapter.toml returns contract.version == "0.16"
+        (bumped from kiro-cli-agent-skill-resources' "0.15" by
+        docs/specs/consolidated-pack-layout: pack.toml gains an optional
+        scope-keyed [pack.layout] table). Class/method names preserved to
+        avoid churn.
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.15",
-            "adapter.toml [contract] version must be '0.15' after kiro-cli-agent-skill-resources",
+            "0.16",
+            "adapter.toml [contract] version must be '0.16' after consolidated-pack-layout",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:
