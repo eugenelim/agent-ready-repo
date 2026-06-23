@@ -1,0 +1,21 @@
+[
+  {"query": "Decompose this intent into child intents", "should_trigger": true},
+  {"query": "Break this capability down into shippable specs", "should_trigger": true},
+  {"query": "Slice the onboarding intent into deliverable pieces", "should_trigger": true},
+  {"query": "What specs come out of the marketplace intent?", "should_trigger": true},
+  {"query": "Push these child intents to Linear", "should_trigger": true},
+  {"query": "Break this down one level — what's next under it?", "should_trigger": true},
+  {"query": "Cut this intent into a spec at the leaf", "should_trigger": true},
+  {"query": "Project this decomposition onto our Jira board", "should_trigger": true},
+  {"query": "What's the next level down from this capability intent?", "should_trigger": true},
+
+  {"query": "Shape this idea into an intent", "should_trigger": false},
+  {"query": "What's the intent behind onboarding?", "should_trigger": false},
+  {"query": "Test whether this intent's bet holds", "should_trigger": false},
+  {"query": "Is the core assumption true before we commit?", "should_trigger": false},
+  {"query": "Set up the value-stream meta-repo for the program", "should_trigger": false},
+  {"query": "Decompose this 40-page PRD we got from the client", "should_trigger": false},
+  {"query": "Write the spec for the leaf feature", "should_trigger": false},
+  {"query": "Fix the failing onboarding test", "should_trigger": false},
+  {"query": "What should this button be labeled?", "should_trigger": false}
+]

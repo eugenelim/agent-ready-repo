@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.7.0"
+version = "0.7.1"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
 readme = "README.md"
 display_name = "Architect"
@@ -38,6 +38,13 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 # by hand; see the skill's references/agentbundle-layout.md).
 [pack.layout.repo]
 parent = "docs/design"
+
+# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# the Tier-A activation-eval coverage allowlist. Each listed skill ships
+# evals/eval_queries.json and is measured by tools/run-pack-evals.py. All three
+# architect skills are user-prompt-triggered, so none are excluded.
+[pack.evals]
+skills = ["architect-design", "architect-diagram", "architect-review"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

@@ -1,0 +1,21 @@
+[
+  {"query": "De-risk this intent before we commit engineering time", "should_trigger": true},
+  {"query": "Is the assumption that users want SSO actually true?", "should_trigger": true},
+  {"query": "What would have to be true for the marketplace bet to pay off?", "should_trigger": true},
+  {"query": "Should we validate this with a prototype or just build it?", "should_trigger": true},
+  {"query": "Test the bet that self-serve will cut support load", "should_trigger": true},
+  {"query": "Name the riskiest assumption in the new pricing model", "should_trigger": true},
+  {"query": "What's the kill condition for the AI-summary feature?", "should_trigger": true},
+  {"query": "Is this a one-way door? Help me de-risk it before we proceed", "should_trigger": true},
+  {"query": "Run a quick validation on whether teams will adopt the dashboard", "should_trigger": true},
+
+  {"query": "Shape this idea into an intent", "should_trigger": false},
+  {"query": "Frame the problem behind the pricing change", "should_trigger": false},
+  {"query": "What's the intent behind the pricing change?", "should_trigger": false},
+  {"query": "Break this de-risked intent into specs", "should_trigger": false},
+  {"query": "Slice the marketplace intent into child intents", "should_trigger": false},
+  {"query": "Write the spec for SSO", "should_trigger": false},
+  {"query": "What should the empty state say?", "should_trigger": false},
+  {"query": "Coordinate delivery across our component repos", "should_trigger": false},
+  {"query": "Diagram the marketplace architecture", "should_trigger": false}
+]
