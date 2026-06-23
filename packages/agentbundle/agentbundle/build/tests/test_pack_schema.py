@@ -399,6 +399,85 @@ description = "Core skills."
         self.assertEqual(errors, [], "\n".join(errors))
 
 
+class PackSchemaLayoutTests(unittest.TestCase):
+    """consolidated-pack-layout T1: optional scope-keyed [pack.layout] table.
+
+    pack.schema.json gains an optional `[pack.layout]` table with optional
+    `.repo` / `.user` sub-tables, each carrying a `parent` base and/or a
+    within-pack `template` path. Every field is optional and the change is
+    additive — a manifest omitting it must still validate (legacy invariance),
+    and a pack may declare only `.repo` (the three current consumers do, since
+    their output is per-repo and they have no sensible absolute user default).
+    """
+
+    def test_accepts_layout_with_repo_and_user(self) -> None:
+        """A manifest carrying [pack.layout.repo] and [pack.layout.user] validates."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        toml_text = """
+[pack]
+name = "research"
+version = "0.5.0"
+
+[pack.layout.repo]
+parent = ".context/research"
+
+[pack.layout.user]
+parent = "~/research-projects"
+template = "references/agentbundle-layout.toml"
+"""
+        instance = _parse_toml(toml_text)
+        errors = validate(instance, schema)
+        self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_accepts_layout_repo_only(self) -> None:
+        """A pack may declare only [pack.layout.repo] — the consumer shape."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        toml_text = """
+[pack]
+name = "product-engineering"
+version = "0.5.0"
+
+[pack.layout.repo]
+parent = "docs/product"
+"""
+        instance = _parse_toml(toml_text)
+        errors = validate(instance, schema)
+        self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_accepts_manifest_omitting_layout(self) -> None:
+        """Optionality: a manifest with no [pack.layout] validates (legacy invariance)."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        toml_text = """
+[pack]
+name = "core"
+version = "0.4.0"
+"""
+        instance = _parse_toml(toml_text)
+        errors = validate(instance, schema)
+        self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_rejects_non_string_parent(self) -> None:
+        """[pack.layout.repo].parent must be a string; a non-string is rejected."""
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        instance = {
+            "pack": {
+                "name": "core",
+                "version": "0.1.0",
+                "layout": {"repo": {"parent": 42}},
+            }
+        }
+        errors = validate(instance, schema)
+        self.assertTrue(errors, "schema accepted a non-string layout.repo.parent")
+
+
 class PackSchemaLoadsTests(unittest.TestCase):
     """Smoke test: the schema file loads and has the expected top-level shape."""
 

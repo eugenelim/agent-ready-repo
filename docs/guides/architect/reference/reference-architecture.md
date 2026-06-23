@@ -37,6 +37,21 @@ A `reference.md` can be authored by hand, proposed by the `adapt-to-project` har
 
 A consequence of the first two clauses: **no bundler override field exists or is needed.** The sole-producer case has nothing to collide with, and the two-producer case is handled by the existing `.upstream` companion plus merge — so there is no "this pack's `reference.md` wins" switch to configure.
 
+## Where design docs land
+
+Each `architect-design` effort now lands in its own **per-effort folder**
+`<parent>/<topic-slug>/` — the design doc, diagrams, and notes all go inside it
+rather than as a loose file. The base `<parent>` defaults to `docs/design` and
+can be overridden by the `[architect]` table of an adopter-created
+`agentbundle-layout.toml` (repo-root overrides user-profile per table). When no
+`[architect]` section resolves, the skill falls back to scanning `docs/design/`,
+`design/`, `architecture/`, `docs/` in order and asking if none exists.
+
+For the full schema — two-location read, anchor rules, realpath/`..`-rejection,
+surface-before-write, and the untrusted-origin posture — see the
+`agentbundle-layout.md` schema doc that ships in the `architect-design` skill's
+`references/` directory.
+
 ## See also
 
 - [Foundation vs. map](../../core/explanation/foundation-vs-map.md) — why `reference.md` is normative and `overview.md` is descriptive.

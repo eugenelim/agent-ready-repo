@@ -96,7 +96,7 @@ Link the companion explicitly, e.g. *"Full evidence in
   way.
 - **You want the reasoning trail to survive.** Scratch is gitignored and
   per-workspace, so it won't outlive the workspace. For a high-stakes decision,
-  point `research-layout.toml` at a durable parent and link it from the brief —
+  point `agentbundle-layout.toml`'s `[research]` `parent` at a durable base and link it from the brief —
   but still commit only the brief into the RFC companion.
 
 ## See also
@@ -106,6 +106,6 @@ Link the companion explicitly, e.g. *"Full evidence in
 - [Run the research pipelines](research-pipelines.md) — the one-off (episodic)
   recipes, for when a project is more than you need.
 - [Research pack reference](../reference/research-pack.md) — the four project
-  skills, the folder layout, and the `research-layout.toml` keys.
+  skills, the folder layout, and the `agentbundle-layout.toml` `[research]` keys.
 - [Episodic vs project research](../explanation/episodic-vs-project-research.md)
   — when to reach for which.

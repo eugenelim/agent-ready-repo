@@ -131,6 +131,25 @@
             "type": "string",
             "pattern": "^[^/].*"
           }
+        },
+        "layout": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "object",
+              "properties": {
+                "parent": {"type": "string"},
+                "template": {"type": "string"}
+              }
+            },
+            "user": {
+              "type": "object",
+              "properties": {
+                "parent": {"type": "string"},
+                "template": {"type": "string"}
+              }
+            }
+          }
         }
       },
       "if": {

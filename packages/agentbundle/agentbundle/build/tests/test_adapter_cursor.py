@@ -53,10 +53,11 @@ class CursorContractTests(unittest.TestCase):
     def test_contract_version_is_0_11(self) -> None:
         """AC1 — contract bumped to 0.11 by cursor-full-parity; subsequently
         0.12 (copilot-skills-and-web), 0.13 (docs/specs/gemini-full-parity),
-        0.14 (docs/specs/enriched-pack-manifest), then 0.15
-        (docs/specs/kiro-cli-agent-skill-resources).
+        0.14 (docs/specs/enriched-pack-manifest), 0.15
+        (docs/specs/kiro-cli-agent-skill-resources), then 0.16
+        (docs/specs/consolidated-pack-layout).
         Name preserved to keep the diff small."""
-        self.assertEqual(self.contract["contract"]["version"], "0.15")
+        self.assertEqual(self.contract["contract"]["version"], "0.16")
 
     def test_cursor_block_projects_five_primitives(self) -> None:
         """AC2 — the five standard primitives are in the projection array."""

@@ -246,6 +246,17 @@ jobs:
           tests/unit/test_enriched_pack_metadata.py
           tests/integration/test_list_packs_cmd.py
 
+      # consolidated-pack-layout (RFC-0040): the installer _append_layout_section
+      # construction tests (never-create / never-overwrite / injection-safe emit
+      # incl. the table header / re-emit type-validation / per-scope write-jail /
+      # symlink-fails-closed) live in tests/unit, which `make build-check` does not
+      # run. Wire it in explicitly or it never gates (CI does not auto-discover
+      # package pytest). The [pack.layout] schema + contract-version 0.16 assertions
+      # for this change ride the test_pack_schema.py / test_contract.py steps above.
+      - name: pytest consolidated-pack-layout installer append (RFC-0040)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/unit/test_append_layout_section.py
+
       # core work-loop activation hook (work-loop-activation-hook spec): the
       # kiro-ide-hook validate rail + real-pack projection + hook-body invocation
       # gate only here — make build-check / lint-packs / the make validate target

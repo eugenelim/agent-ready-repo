@@ -1,6 +1,6 @@
 ---
 name: research-project-start
-description: "Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — \"start a research project\", \"set up a research project on X\", \"begin a sustained investigation\", \"open a research dossier\" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves the project parent from an adopter-created research-layout.toml, else a scratch / out-of-repo default, else by eliciting — never the committed repo tree. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there."
+description: "Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — \"start a research project\", \"set up a research project on X\", \"begin a sustained investigation\", \"open a research dossier\" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves the project parent from the [research] table of an adopter-created agentbundle-layout.toml, else a scratch .context/research default, else by eliciting — never the committed repo tree. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there."
 ---
 
 # /research-project-start
@@ -82,23 +82,55 @@ prior is fine too; it is held loosely and revised, never defended.
 
 ## Where the project lives — config-driven, scratch by default
 
-Resolve the project **parent** directory in this order:
+Resolve the project **parent** directory in this order, **in this skill body**.
+Reading is **prompt-only** (Charter Principle 3): this skill reads a file and
+reasons about a path — there is no engine, index, daemon, or watcher behind it,
+and the only code that ever *writes* the layout file is the install-time append.
+See [`references/agentbundle-layout.md`](references/agentbundle-layout.md) for the
+`[research]` section's full schema.
 
-1. **Read `research-layout.toml`** if the adopter created one — at the
-   documented known path (the repo root, or `~/.agentbundle/research-layout.toml`
-   for a user-level default). It is **adopter-created**, never shipped into a
-   projected path (that would trip the self-host drift gate). Keys:
+1. **Read `agentbundle-layout.toml`'s `[research]` table** if the adopter created
+   one. Two locations, **repo-root overrides user-profile per table**: the
+   repo-root `./agentbundle-layout.toml` `[research]` table if present, else the
+   user-profile `~/.agentbundle/agentbundle-layout.toml` `[research]` table. The
+   file is **adopter-owned**, never shipped into a projected path (that would trip
+   the self-host drift gate). Its `parent` key is a **base** directory under which
+   each project gets its own topic-named folder — never the leaf the project lands
+   in:
 
    ```toml
-   # research-layout.toml (adopter-created; optional)
-   parent = "~/research-projects"   # where project folders are created
-   # filename / schema overrides are optional and rarely needed
+   # agentbundle-layout.toml (adopter-created; optional)
+   [research]
+   parent = "~/research-projects"   # a base; project folders are created under it
    ```
 
-2. **Fall back to the scratch / out-of-repo default** — a gitignored
-   `.context/research/` under the repo, or a user-level path. The default is
-   **scratch**: a code repo commits the *decision* (the brief), never the corpus.
+2. **Fall back to the pack's own default** — a gitignored `.context/research/`
+   under the repo. The default is **scratch**: a code repo commits the *decision*
+   (the brief), never the corpus.
 3. **Elicit** if neither resolves — ask the user where the project should live.
+
+**Anchor `parent` by the layout file's own location**, never against the ambient
+cwd: a **repo-root** file's `parent` is **repo-root-relative** (an absolute value
+is permitted but warn it as non-portable); a **user-profile** file's `parent`
+**must be an explicit absolute path** (`~`-anchored is fine), and a *relative*
+value there is an Ask-first deviation, never silently resolved.
+
+**Resolve, then surface, then write.** After anchoring, resolve `parent` to its
+**full absolute path** — `~`-expand it and **realpath-resolve it** so any symlink
+in the path is made visible and never silently followed out of the intended root
+— and **reject any `..` escape**. The `..` rejection and the realpath happen
+**after** anchoring, so a relative repo-file value that escapes via `..` (e.g.
+`parent = "../../etc"`) is caught regardless of which file supplied it; anchoring
+never blesses a `..`-bearing value as in-tree. Then **surface the resolved
+absolute path to the adopter before creating the project folder** — the first
+write is always preceded by the path you are about to write under.
+
+**A repo-root-sourced `parent` that resolves outside the repo tree** — or whose
+resolution required following a symlink out of the intended root — is
+**untrusted-origin**: a cloned, untrusted repo can carry a hostile `parent`
+(`../../etc`, `~/.ssh`, an out-of-tree symlink). **Confirm the resolved absolute
+path with the adopter before writing.** The user-profile file is foot-gun-only
+(the adopter authored it), but still surface its resolved path.
 
 **Never create the project inside the committed repo tree** (`docs/`, repo
 root). Pointing the layout at a durable vault or the committed tree is an
@@ -107,6 +139,12 @@ configured exception for product research). `.context/` is per-workspace and
 gitignored, so a scratch corpus does not survive the workspace — for a
 high-stakes reasoning trail, configure a durable-but-separate parent and link it
 from the brief.
+
+This generalises the read `research-project-mode` shipped via the old
+`research-layout.toml` into the shared `agentbundle-layout.toml` `[research]`
+table — a **clean rename, no alias** (the old file was undistributed, so nothing
+in the wild holds the old name). RFC-0038's forward-only migration alias was
+considered and found not to apply.
 
 ## Source provenance — optional, additive axes
 

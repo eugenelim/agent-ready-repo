@@ -19,6 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **One consolidated, namespaced pack-output layout file — `agentbundle-layout.toml`
+  (RFC-0040 / ADR-0030).** An adopter who wants to control where a pack's durable
+  output lands now edits **one** namespaced file instead of a per-pack config.
+  `agentbundle-layout.toml` carries one `[<pack>]` table per output-producing pack
+  (`research`, `architect`, `product-engineering`), each with a single `parent`
+  **base** under which the skill creates a topic-named folder per unit of work. Two
+  locations resolve with clear precedence — a checked-in `./agentbundle-layout.toml`
+  overrides a personal `~/.agentbundle/agentbundle-layout.toml`, per table. The file
+  is **adopter-owned and never shipped**: it comes into being by hand, or an
+  `agentbundle install` step **appends** a pack's default section to one that already
+  exists (never creating it, never overwriting a section you wrote). Reading stays
+  **prompt-only** (Charter Principle 3 — no engine, index, daemon, or watcher); each
+  consumer confines the resolved path (realpath-resolve, reject `..`, surface the
+  absolute path before the first write) and treats a repo-sourced out-of-tree
+  `parent` as an Ask-first, untrusted-origin case. Each consuming pack ships a
+  `references/agentbundle-layout.md` schema doc and a scope-keyed `[pack.layout]`
+  manifest default; `pack.toml` gains the optional `[pack.layout]` table (adapter
+  contract → v0.16). `architect` (0.6.1 → 0.7.0) and `product-engineering`
+  (0.4.2 → 0.5.0) become consumers; `research` (0.4.0 → 0.5.0) migrates from the
+  undistributed `research-layout.toml` by a **clean rename, no alias**.
 - **Research project mode — a four-skill lifecycle for sustained investigations
   (`research` pack, bumped to `0.4.0`).** Alongside the existing depth axis
   (`/research` quick/standard/applied/deep), the pack gains a *lifecycle* axis
@@ -31,9 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `<topic-slug>-brief.md` that governance can lift whole into an RFC; and
   `research-project-check` is a passive saturation stop-signal that reads the
   matrix by eye and recommends — it never advances the lifecycle. Projects live
-  in scratch / out-of-repo by default (configurable via an adopter-created
-  `research-layout.toml`); the corpus is never committed to the repo, only the
-  distilled brief. Prompt-only by construction (no engine, index, or counter);
+  in scratch / out-of-repo by default (configurable via the `[research]` table
+  of an adopter-created `agentbundle-layout.toml`); the corpus is never committed
+  to the repo, only the distilled brief. Prompt-only by construction (no engine, index, or counter);
   the seven existing skills are reused as phase operations. RFCs may now carry an
   optional `docs/rfc/NNNN-notes/` companion folder for promoted research.
 - **Pack activation evals (Tier A) — `tools/run-pack-evals.py` + `[pack.evals]`
@@ -117,6 +137,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`architect-design` writes each design effort into its own per-effort folder**
+  (`<parent>/<topic-slug>/`) instead of scanning for a loose-file home every run
+  (RFC-0040). The previous `docs/design/`→`design/`→`architecture/`→`docs/`
+  scan-then-elicit becomes the **default** when no `[architect]` layout section
+  resolves. Additive — a folder around what was a file — and documented in the
+  pack's `references/agentbundle-layout.md`.
 - **`new-rfc` now surfaces the optional `NNNN-notes/` companion
   (`governance-extras` pack, bumped to `0.3.0`).** The skill and its RFC
   template point authors at the optional sibling `docs/rfc/NNNN-notes/` folder
