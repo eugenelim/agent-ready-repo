@@ -37,6 +37,7 @@ These are the tokens that buy nothing, and the loop is built to avoid them:
 - **It budgets the always-resident files.** `AGENTS.md` is capped on purpose, because it is re-read every single session; detail lives in docs and skills that load only when relevant.
 - **It drops report text after recording it.** Once a reviewer's findings are captured, the verbatim report leaves resident context. The decision survives; the bulk does not.
 - **It doesn't restate what the runtime already does.** Every supported tool ships context-isolating sub-agents and already steers toward delegation. Re-teaching that in the pack would itself be resident-context cost for no gain.
+- **It doesn't re-emit what's already in context.** When the agent restates a diff, pastes back a file it just read, or narrates each tool result, it duplicates resident content — and because output becomes cached input, every duplicated line is re-read on every later turn at the ~190× multiplier above. This is not the prose-trimming rounding error from the table; the cost is the restated *context* riding inside the message. The loop's practice is to reference by path and line instead, while keeping the rationale and findings a reader actually needs.
 
 None of these trade away quality. They remove tokens that were doing no work.
 

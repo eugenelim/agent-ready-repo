@@ -761,6 +761,12 @@ summarize-on-read, strip comments, or treat RAG chunks as the truth for an edit:
 read-compaction fails *silent*. Skeleton repo-maps are fine for orientation,
 never the bytes you edit against.
 
+**Emit less, too.** Your output becomes resident context next turn, so the
+levers above apply to what you *write*: don't restate code, files, diffs, or
+tool output already in the conversation — cite path and line — and skip
+narrating a tool call that succeeded. This is waste reduction, not terseness:
+keep the rationale, edge cases, and findings the reader needs.
+
 ## Unattended (AFK) loops
 
 The work-loop above is an *in-session* loop: one conversation, state in
