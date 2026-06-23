@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.6.1"
+version = "0.7.0"
 description = "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
 readme = "README.md"
 display_name = "Architect"
@@ -28,6 +28,16 @@ allowed-scopes = ["user", "repo"]
 # `kiro-ide` precedes `kiro-cli` so a Kiro user's `~/.kiro/` auto-probe resolves
 # to the IDE; `cursor` then `gemini` appended last (append-only).
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# [architect] section of an adopter-owned `agentbundle-layout.toml`. Each design
+# effort lands in its own per-effort folder <parent>/<topic-slug>/ under the base.
+# No `[pack.layout.user]`: architect's output is per-repo (design docs belong in
+# the repository they describe) and there is no sensible *absolute* user base, so
+# the user-scope install append is a no-op (adopters write an [architect] section
+# by hand; see the skill's references/agentbundle-layout.md).
+[pack.layout.repo]
+parent = "docs/design"
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

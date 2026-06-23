@@ -42,6 +42,18 @@ At `business-unit` Scale the feature intent is sliced per component into one `co
 
 The hard limits are stated honestly: **no atomic cross-repo commit**, **no shared release train**, and the rollup is a **snapshot, not a live feed**. See the how-to *Run a capability across a value stream*.
 
+## Output locations — config-driven, `docs/product` by default
+
+`frame-intent` writes intents to `<parent>/intents/<slug>.md` and
+`align-value-stream` writes rollups to `<parent>/rollups/<slug>.md`. Both resolve
+`parent` from the `[product-engineering]` table of an adopter-created
+`agentbundle-layout.toml` (repo-root file overrides user-profile file per table;
+default `docs/product` when no section resolves). Each intent and rollup is a
+single file — a per-topic folder is deliberately not used. Full schema and
+anchor/security-rail details are in each skill's
+`references/agentbundle-layout.md`. `decompose-intent`'s
+`docs/product/briefs/<slug>.md` output is pinned and not governed by this config.
+
 ## Contract maturity by stage
 
 The detailed wire contract is pinned at the **spec** stage, not at intent.
