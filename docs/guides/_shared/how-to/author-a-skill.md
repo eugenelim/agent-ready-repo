@@ -270,15 +270,27 @@ sharper containment requirement than the activation check** (the
    A skill that deletes, writes outside its workspace, or phones home is out of
    scope until a real OS-level sandbox exists — this is a procedure + scope-gate,
    **not** a mechanical sandbox (a host agent running the skill keeps its full
-   tool surface).
-2. **Per eval:** get a confined working dir from the runner —
+   tool surface). **Skills that integrate a logged-in backend** (credentialed
+   skills on the `auth: cli` / credential-broker contract) are out of scope here:
+   behavior-checking them would need live auth + a real backend and could mutate
+   remote state — they get **activation (Tier-A) coverage only**. Their *behavior*
+   needs recorded-interaction replay or a disposable test backend (a future Tier-B
+   mechanism), never real credentials injected into an eval.
+2. **Ensure prerequisites — the skill's own contract, never the harness's.** The
+   eval runs the **real** skill, so its deps must be present. Don't hand-roll a
+   setup: run the skill's own detection (`## Prerequisites` → its `--check`); if
+   deps are absent, **install once via the skill's own documented command**
+   (e.g. `npm install` in the skill dir — `node_modules/` is gitignored) and
+   re-check. The harness never auto-installs. After the one-time install the run
+   is repeatable: the skill's `--check` detects-present and you proceed.
+3. **Per eval:** get a confined working dir from the runner —
    `python tools/run-pack-evals.py --pack <name> --prepare-workspace
    <skill>/<eval_id>` prints an OS-temp dir seeded with the eval's
    `evals/files/` fixtures (path-confined). Run the skill on the `prompt` **with
    that dir as cwd**, instructing it to confine writes there and bounding the
    run (stop it if it exceeds a sane per-eval time). Capture the run's output to
    `.eval-output.txt` in that dir. Tear the dir down in a `finally`.
-3. **Collect** `{skill: {eval_id: {"assertions": [<bool per assertion>],
+4. **Collect** `{skill: {eval_id: {"assertions": [<bool per assertion>],
    "errored": <bool>, "workspace": "<dir>"}}}` and grade:
    `python tools/run-pack-evals.py --pack <name> --mode in-harness --check
    behavior --reports <file>`. The runner **re-derives** the deterministic

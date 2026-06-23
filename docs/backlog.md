@@ -823,3 +823,18 @@ or hook) so a Kiro user invokes the dispatch loop with one action instead of
 following the procedure by hand. Catalogue-internal (repo-owned, not a projected
 pack primitive). **Unblocks when:** someone wants the one-click Kiro ergonomics;
 the procedure already works without it.
+
+### behavior-check-for-backend-skills
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) § Phase 3
+(RFC-0037 § Errata E3). The B-lite behavior check's scope gate excludes skills
+that integrate a **logged-in backend** (credentialed skills on the `auth: cli` /
+credential-broker contract — e.g. `atlassian`, `figma`): running them needs live
+auth + a real backend and may mutate remote state, so they get **activation
+(Tier-A) coverage only** and the harness never injects real credentials.
+Repeatable *behavior* verification of a backend skill needs a heavier mechanism:
+**recorded-interaction replay** (cassettes — deterministic, no live auth) or a
+disposable **test backend / sandbox tenant** with broker-provisioned test
+credentials. **Unblocks when:** the full Tier-B grading RFC (LLM-judge / deltas)
+takes this on, or a maintainer wants backend-skill behavior coverage sooner; it
+is out of scope for the lightweight B-lite check.

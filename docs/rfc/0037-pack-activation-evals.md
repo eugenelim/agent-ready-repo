@@ -297,6 +297,18 @@ network-denied environment whenever the runner itself spawns a skill script**.
 The follow-on spec specifies these as acceptance criteria; a future real sandbox
 (container / separate user / netns) would lift the scope gate.
 
+**Pre-test setup & backend skills (repeatability).** The behavior check **never
+installs deps itself** — it leans on each skill's existing Tier-1
+`## Prerequisites` + detection contract (detect-or-guide; the adopter installs
+once via the skill's *own* documented command, then runs are repeatable;
+`node_modules/` is gitignored so in-place installs don't pollute git). Skills
+that integrate a **logged-in backend** (credentialed skills on the `auth: cli` /
+credential-broker contract) are **out of B-lite scope** by the same scope gate —
+they need live auth + a real backend and may mutate remote state, so they get
+**activation-only** coverage and the harness never injects real credentials;
+their behavior testing (recorded cassettes / a disposable test backend) is
+future-Tier-B work (`docs/backlog.md`).
+
 **Unchanged / still out of scope:** Tier-A activation (headless + in-harness),
 the `[pack.evals]` model, the report-only posture, and — explicitly — the
 **full** Tier-B grading (LLM-judge, benchmark deltas, with/without, train/val),
