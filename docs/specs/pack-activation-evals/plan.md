@@ -550,6 +550,43 @@ observed artifact checks + that execution stayed inside the sandbox.
 path + the sandbox rule + the observed/attested fidelity framing; ADR-0028
 carries the E3 companion note; `tier: B-lite` labelling documented.
 
+## Phase 4 — report-only LLM-judge for the quality layer (RFC-0037 § Errata E4)
+
+### Design (LLD addendum)
+
+Deterministic checks (Phase 3) cover validity/shape; the **quality** layer (is
+the contract well-designed? the diagram the right abstraction?) has no ground
+truth → it needs a model. The judge is **report-only** and lives behind a
+**config-driven backend seam** parallel to the detector seam — backends are
+declarative command templates (`{command (with a `{prompt}` argv token),
+model-flag, extract}`), so an adopter adds one (e.g. a `kiro-cli` headless judge)
+and picks the model purely by config, never by editing the runner. The lens is
+the eval's existing rubric (`expected_output` + `assertions`); the verdict is
+strict JSON, parsed string-safely and **fail-closed** (unparseable → ERROR).
+Containment: judgment-only (claude granted no tools; codex `-s read-only`),
+argv-only (no shell; `{prompt}` is a discrete element), cross-model preferred
+(an independent judge can't self-grade).
+
+### T16: runner judge seam (`get_judge`/`CommandJudge`/`build_judge_prompt`/`parse_judge_verdict`/`grade_judge`/`load_judge_config`) + `--mode judge`
+
+**Depends on:** none — **TDD.** Tests (`tools/test-run-pack-evals.py`):
+prompt-build (rubric + inlined artifact + nonce fence + treat-as-data directive);
+verdict-parse (clean / prose-wrapped / brace-in-string / fail-closed); the
+config-driven seam (built-ins + an adopter-added `kiro-cli`, model binding, argv
+substitution, `stdout`/`json:<field>` extract); `grade_judge` over a fake backend
+(labels `mode: judge`/`judge_adapter`, fails closed on missing artifact, confines
+the eval-id, bounded `verdict.json` capture). **Done when:** unit tests green; no
+live model in the runner.
+
+### T17: live cross-model validation + docs/governance
+
+**Depends on:** T16 — **manual QA.** Run the judge live with **both** backends
+(`claude-code` + `codex`) on a good `architect-design` artifact; record the
+cross-model PASS (`notes/manual-qa.md` §6). Docs: `author-a-skill.md` gains the
+`--mode judge` run path (backend + model config, the `[judge.<name>]` BYO-backend
+example); RFC-0037 § Errata E4 + ADR-0028 companion note + changelog. **Done
+when:** both backends return a structured verdict; docs/governance consistent.
+
 ## Rollout
 
 - **Delivery:** report-only, no flag. Fully reversible — delete the workflow +

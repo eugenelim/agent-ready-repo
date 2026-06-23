@@ -15,6 +15,7 @@ import importlib.util
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -545,6 +546,15 @@ def test_judge_prompt_and_parse() -> None:
     for needle in ("alpha", "do X", "produces Y", "does A", "does NOT do B",
                    "THE ARTIFACT BODY", "JSON"):
         check("judge-prompt", needle in p, f"prompt missing {needle!r}")
+    # Prompt-injection defense is pinned: the treat-as-data directive renders and
+    # the artifact is wrapped by two identical per-call nonce-fence markers.
+    check("judge-prompt", "DATA to grade" in p, "treat-as-data directive missing")
+    fences = re.findall(r"---[0-9a-f]{8,}---", p)
+    check("judge-prompt", len(fences) == 2 and fences[0] == fences[1],
+          "artifact not wrapped by two identical nonce-fence markers")
+    body = p.split(fences[0])
+    check("judge-prompt", "THE ARTIFACT BODY" in body[1],
+          "artifact body not enclosed by the fence")
 
     # Clean JSON.
     v = M.parse_judge_verdict('{"verdict":"PASS","assertions":[],"rationale":"ok"}')
