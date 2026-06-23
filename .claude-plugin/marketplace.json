@@ -154,7 +154,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "governance-extras",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.2.0"
+      "version": "0.3.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -192,7 +192,7 @@
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "research",
-      "description": "Evidence-grounded research portable across every repo. Seven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
+      "description": "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
       "displayName": "Research",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -204,7 +204,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "research",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.3.0"
+      "version": "0.4.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
