@@ -558,8 +558,8 @@ Deterministic checks (Phase 3) cover validity/shape; the **quality** layer (is
 the contract well-designed? the diagram the right abstraction?) has no ground
 truth → it needs a model. The judge is **report-only** and lives behind a
 **config-driven backend seam** parallel to the detector seam — backends are
-declarative command templates (`{command (with a `{prompt}` argv token),
-model-flag, extract}`), so an adopter adds one (e.g. a `kiro-cli` headless judge)
+declarative command templates (a `command` list with a standalone `{prompt}`
+token, plus `model-flag` and `extract`), so an adopter adds one (e.g. a `kiro-cli` headless judge)
 and picks the model purely by config, never by editing the runner. The lens is
 the eval's existing rubric (`expected_output` + `assertions`); the verdict is
 strict JSON, parsed string-safely and **fail-closed** (unparseable → ERROR).

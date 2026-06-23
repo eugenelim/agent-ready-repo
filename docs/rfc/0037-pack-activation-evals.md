@@ -341,9 +341,10 @@ grades a skill's produced artifact against the eval's rubric. Key shapes:
   a silent PASS). The repo's own review skills (`architect-review`, the reviewer
   subagents) are natural lenses.
 - **Config-driven, multi-adapter, model-selectable, cross-model preferred.**
-  Backends are **declarative command templates**, not hardcoded classes:
-  `[judge.<name>]` = `{command (with a `{prompt}` argv token), model-flag,
-  extract (`json:<field>`|`stdout`)}`. Built-ins ship `claude-code` (same model,
+  Backends are **declarative command templates**, not hardcoded classes: a
+  `[judge.<name>]` table with a `command` list (carrying a standalone `{prompt}`
+  argv token), a `model-flag`, and an `extract` (`json:<field>` or `stdout`).
+  Built-ins ship `claude-code` (same model,
   `claude -p` → `.result`) and `codex` (independent model/IDE, `codex exec -s
   read-only`); an **adopter adds their own — e.g. a `kiro-cli` headless judge —
   by a config entry, no code change** (`--judge-config <toml>`), and picks the
