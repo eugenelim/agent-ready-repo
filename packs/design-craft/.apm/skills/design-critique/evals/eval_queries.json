@@ -1,0 +1,23 @@
+[
+  {"query": "Critique this design and tell me what's wrong with it", "should_trigger": true},
+  {"query": "Review this checkout screen — what are the usability problems?", "should_trigger": true},
+  {"query": "Do a heuristic evaluation of our onboarding flow", "should_trigger": true},
+  {"query": "Is this dashboard usable? Tell me what's off about it", "should_trigger": true},
+  {"query": "Evaluate this signup mockup against usability principles", "should_trigger": true},
+  {"query": "Here's our settings page — give me a prioritized list of UX issues", "should_trigger": true},
+  {"query": "Run a design critique on this flow and rate the issues by severity", "should_trigger": true},
+  {"query": "Why does this form feel hard to use? Assess it properly", "should_trigger": true},
+  {"query": "Look over this screen and flag the worst usability issues first", "should_trigger": true},
+  {"query": "Heuristic review of this mockup, please — map each problem to a principle", "should_trigger": true},
+
+  {"query": "Name the aesthetic direction for this product", "should_trigger": false},
+  {"query": "Make it feel more premium and calm", "should_trigger": false},
+  {"query": "Derive our token taxonomy from the direction", "should_trigger": false},
+  {"query": "What spacing scale should we use for this system?", "should_trigger": false},
+  {"query": "Structure the information architecture for this page", "should_trigger": false},
+  {"query": "Lay out the reading flow for this article page", "should_trigger": false},
+  {"query": "Review this pull request for correctness bugs", "should_trigger": false},
+  {"query": "Critique this architecture design doc and give a verdict", "should_trigger": false},
+  {"query": "Write better error messages for this screen", "should_trigger": false},
+  {"query": "Design a brand-new dashboard for us from scratch", "should_trigger": false}
+]

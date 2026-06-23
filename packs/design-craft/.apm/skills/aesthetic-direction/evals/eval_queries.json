@@ -1,0 +1,23 @@
+[
+  {"query": "Make it feel premium and calm — I can't describe it better than that yet", "should_trigger": true},
+  {"query": "I want this product to feel like a high-end spa, before we touch any colors", "should_trigger": true},
+  {"query": "What's the vibe for our new landing page? Help me name it", "should_trigger": true},
+  {"query": "We need a look and feel for the brand but I can't articulate what it should be", "should_trigger": true},
+  {"query": "I want it to feel trustworthy and serious, like a bank but warmer", "should_trigger": true},
+  {"query": "Help me turn this mood board into a named design direction", "should_trigger": true},
+  {"query": "Before we pick type or color, let's pin down the feeling we're going for", "should_trigger": true},
+  {"query": "Our app feels generic — I want a distinctive emotional direction for it", "should_trigger": true},
+  {"query": "Let's define the aesthetic goals for the product before any design work starts", "should_trigger": true},
+  {"query": "I keep saying 'make it pop' but I need to name what I actually want it to feel like", "should_trigger": true},
+
+  {"query": "Derive a spacing and type scale from our aesthetic direction", "should_trigger": false},
+  {"query": "Set up our design tokens and name them by role", "should_trigger": false},
+  {"query": "Critique this landing-page mockup and rank the issues", "should_trigger": false},
+  {"query": "What's wrong with this checkout screen's usability?", "should_trigger": false},
+  {"query": "Structure the information architecture for the dashboard", "should_trigger": false},
+  {"query": "How should the navigation for this app be organized?", "should_trigger": false},
+  {"query": "Lay out the visual hierarchy of this settings page", "should_trigger": false},
+  {"query": "Write the empty-state copy for the inbox", "should_trigger": false},
+  {"query": "Build the React component for the hero section", "should_trigger": false},
+  {"query": "Pick the final hex codes for our button palette", "should_trigger": false}
+]

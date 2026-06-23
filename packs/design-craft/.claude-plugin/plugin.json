@@ -1,5 +1,5 @@
 {
   "name": "design-craft",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-agnostic design-craft discipline for interaction/visual designers — authors of the upstream design intent the build consumes. Four skills (aesthetic-direction, design-system-foundations, layout-and-information-architecture, design-critique) plus a shared quality-floor checklist (handle-all-states, accessibility floor, reduced-motion principle). Pure method: no stack, no values tables — points to WCAG / W3C Design Tokens, never reprints them."
 }

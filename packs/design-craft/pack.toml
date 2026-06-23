@@ -1,6 +1,6 @@
 [pack]
 name = "design-craft"
-version = "0.1.0"
+version = "0.1.1"
 description = "Framework-agnostic design-craft discipline for interaction/visual designers — authors of the upstream design intent the build consumes. Four skills (aesthetic-direction, design-system-foundations, layout-and-information-architecture, design-critique) plus a shared quality-floor checklist (handle-all-states, accessibility floor, reduced-motion principle). Pure method: no stack, no values tables — points to WCAG / W3C Design Tokens, never reprints them."
 readme = "README.md"
 display_name = "Design Craft"
@@ -24,6 +24,16 @@ allowed-scopes = ["user", "repo"]
 # adapter that supports the skill primitive. Declared order is load-bearing
 # (RFC-0011): append-only; `kiro-ide` precedes `kiro-cli`.
 allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# coverage allowlist. Each listed skill ships evals/eval_queries.json and is
+# measured by tools/run-pack-evals.py. All four design-craft skills are
+# user-triggered judgment/authoring skills, so all four are covered; each also
+# ships a Tier-4 LLM-judge rubric (evals/evals.json, keyed by file presence,
+# graded via --mode judge). No skill is excluded — the pack has no
+# reviewer-internal / non-prompt skill (unlike core's security-checklists).
+[pack.evals]
+skills = ["aesthetic-direction", "design-critique", "design-system-foundations", "layout-and-information-architecture"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

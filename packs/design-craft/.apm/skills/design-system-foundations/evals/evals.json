@@ -1,0 +1,18 @@
+{
+  "skill_name": "design-system-foundations",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Derive the token/scale taxonomy from the user's named aesthetic direction.",
+      "expected_output": "A token/scale taxonomy and the rationale behind it, derived from the named direction — every token decision tracing back to one of the goals. Tokens are named by SEMANTIC ROLE (the job they do), not by literal appearance, so a value can change without a rename. A single ratio is chosen as the organizing concept and generates the spacing and type scales, with steps expressed SYMBOLICALLY (step −1, base, step +1) rather than as numbers. Accessibility is a derivation-time floor that points to the recognized standard (WCAG, at the context's conformance level) rather than reprinting a contrast ratio, and a contrast budget is allocated across the screen. The system composes atomically (primitive tokens → composed components → pages) and is serialized in the W3C Design Tokens interchange shape. It hands back the METHOD and a symbolic taxonomy shape — never a reprinted palette, spacing, or type table with literal values.",
+      "assertions": [
+        "Traces token decisions back to the named aesthetic-direction goals",
+        "Names tokens by semantic role, not by literal appearance",
+        "Organizes scales by a single ratio-as-concept with steps expressed symbolically, not as numeric values",
+        "Treats accessibility as a derivation-time floor and points to WCAG rather than reprinting a contrast ratio",
+        "Composes atomically (primitives → components → pages) and serializes in the W3C Design Tokens interchange shape",
+        "Ships the method and a symbolic taxonomy shape — does NOT reprint a values table (no hex, no px/rem numbers)"
+      ]
+    }
+  ]
+}

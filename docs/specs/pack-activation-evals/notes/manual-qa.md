@@ -205,3 +205,29 @@ confirm they discriminate: `architect-review` (a proper severity-tagged critique
 **PASS** / a "looks good, consider scalability" hand-wave **FAIL**) and
 `voice-and-microcopy` (blame-free + actionable copy **PASS** / "You entered an
 invalid code" / "Submit" / "Nothing here" **FAIL**). All 8 rubrics lint clean.
+
+## 8. `design-craft` — both layers (Tier-A activation + Tier-4 judge), 2026-06-22
+
+`design-craft`'s four skills are judgment/authoring skills (an aesthetic
+direction, a token taxonomy, an IA doc, a heuristic critique — no deterministic
+artifact), so **both** the layers that apply to judgment skills were added:
+Tier-A activation (`evals/eval_queries.json` + a `[pack.evals]` block, all four
+skills covered) **and** Tier-4 LLM-judge rubrics (`evals/evals.json` —
+`expected_output` + `assertions` matched to each skill's procedure and
+anti-patterns). No B-lite layer (nothing deterministic to re-derive).
+
+| skill | rubric grades |
+| --- | --- |
+| aesthetic-direction | named + ranked goals, dominant-goal tiebreak, recorded arbitration, no values printed, accessibility-floor wins, stops at direction |
+| design-critique | surface framed, quality-floor + heuristics, principle-mapped, 0–4 severity, worst-first headline, design-intent (not stack) recommendations |
+| design-system-foundations | tokens trace to goals, semantic-role names, single ratio with symbolic steps, accessibility floor → WCAG, atomic composition + W3C Design Tokens, method-not-values |
+| layout-and-information-architecture | job+audience per surface, forced primary rank, F/Z from the job, progressive disclosure + depth-vs-breadth nav, wayfinding as mental model, all states, concepts-not-code |
+
+The `design-critique` rubric was spot-checked live (`--mode judge
+--judge-adapter codex`) with good-vs-weak artifacts to confirm it discriminates:
+a proper severity-tagged, principle-mapped, worst-first critique with a
+quality-floor pass **PASS** / a "looks pretty good, bigger buttons, nicer blue,
+more whitespace" polish note **FAIL** ("a brief polish note, not a
+rubric-compliant design critique"). All 12 rubrics across the three judgment
+packs lint clean; `design-craft` bumped 0.1.0 → 0.1.1 and `marketplace.json`
+refreshed via `make build-self`.

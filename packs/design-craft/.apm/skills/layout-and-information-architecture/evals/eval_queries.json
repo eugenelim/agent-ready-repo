@@ -1,0 +1,23 @@
+[
+  {"query": "Structure this screen — what goes where and in what order?", "should_trigger": true},
+  {"query": "Work out the information architecture for the dashboard", "should_trigger": true},
+  {"query": "Lay out this signup flow so users stay oriented", "should_trigger": true},
+  {"query": "What should the visual hierarchy be on this page?", "should_trigger": true},
+  {"query": "How should this app's navigation be organized?", "should_trigger": true},
+  {"query": "Why does this page feel cluttered? Reorganize what's on it", "should_trigger": true},
+  {"query": "Plan the reading flow for this landing page", "should_trigger": true},
+  {"query": "Order the content on this settings screen by priority", "should_trigger": true},
+  {"query": "Design the wayfinding for this multi-step flow", "should_trigger": true},
+  {"query": "What should be primary versus secondary on this screen?", "should_trigger": true},
+
+  {"query": "Name the aesthetic direction for this product", "should_trigger": false},
+  {"query": "Make this feel more playful and energetic", "should_trigger": false},
+  {"query": "Critique this mockup's usability and rate the issues", "should_trigger": false},
+  {"query": "Review this screen against the usability heuristics", "should_trigger": false},
+  {"query": "Derive our token taxonomy from the direction", "should_trigger": false},
+  {"query": "Set up the spacing and type scale for the system", "should_trigger": false},
+  {"query": "Write the actual HTML and CSS layout for this page", "should_trigger": false},
+  {"query": "Design the system architecture for the backend services", "should_trigger": false},
+  {"query": "Write the empty-state and error copy for this view", "should_trigger": false},
+  {"query": "Pick the final color palette for the navigation bar", "should_trigger": false}
+]
