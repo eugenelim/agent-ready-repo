@@ -276,7 +276,7 @@ def test_upgrade_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
     args = argparse.Namespace(
         pack="demo-both",
         catalogue=str(cat),
-        to_version="0.2.0",
+        yes=True,
         skill=None,
         agent=None,
         hook=None,
@@ -362,7 +362,7 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
     args = argparse.Namespace(
         pack="demo-both",
         catalogue=str(cat),
-        to_version="0.2.0",
+        yes=True,
         skill=None,
         agent=None,
         hook=None,
@@ -379,7 +379,10 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
     from agentbundle.config import load_state
 
     state = load_state(fake_home / ".agentbundle" / "state.toml")
-    assert state.packs["demo-both"].installed_version == "0.2.0"
+    # The target version is derived from the catalogue's pack.toml
+    # (PACK_TOML_BOTH = 0.1.0); the re-apply leaves installed-version at the
+    # catalogue's declared version.
+    assert state.packs["demo-both"].installed_version == "0.1.0"
 
 
 def test_install_v01_pack_stray_install_table_ignored(tmp_path):

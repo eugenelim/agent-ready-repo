@@ -374,15 +374,28 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Upgrade a pack or a single primitive within a pack.",
     )
     sp.add_argument("--pack", required=True)
-    sp.add_argument("--to", required=True, dest="to_version", help="Target pack version.")
-    sp.add_argument("--skill")
-    sp.add_argument("--agent")
-    sp.add_argument("--hook")
-    sp.add_argument("--seed")
-    sp.add_argument("--command")
+    # The five per-primitive flags are mutually exclusive: a pack-version
+    # upgrade is for the whole pack or exactly one named primitive, never two
+    # at once. Grouping them lets argparse reject `--skill a --agent b` rather
+    # than silently upgrading only the first.
+    prim_group = sp.add_mutually_exclusive_group()
+    prim_group.add_argument("--skill")
+    prim_group.add_argument("--agent")
+    prim_group.add_argument("--hook")
+    prim_group.add_argument("--seed")
+    prim_group.add_argument("--command")
     sp.add_argument("catalogue", help="Catalogue URI to fetch the new version from.")
     sp.add_argument("--root", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
+    sp.add_argument(
+        "--yes",
+        action="store_true",
+        help=(
+            "Skip the upgrade confirmation prompt. Required for non-interactive "
+            "use (CI, pipes); without it the upgrade asks before writing, and "
+            "refuses rather than blocking when stdin is not a TTY."
+        ),
+    )
     sp.add_argument(
         "--dry-run",
         action="store_true",

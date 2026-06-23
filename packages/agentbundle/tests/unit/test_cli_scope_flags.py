@@ -33,7 +33,7 @@ from agentbundle import cli
 _BASE_ARGS = {
     "install": ["--pack", "core", "/fake/catalogue"],
     "uninstall": ["--pack", "core"],
-    "upgrade": ["--pack", "core", "--to", "0.2.0", "/fake/catalogue"],
+    "upgrade": ["--pack", "core", "/fake/catalogue"],
     "diff": ["packs/core"],
     "init-state": ["--pack", "core"],
     "list-targets": [],
@@ -143,3 +143,45 @@ def test_scope_bogus_value_rejected():
     # Default argparse text — not rewritten because the flag is recognised.
     assert "invalid choice" in err
     assert "repo" in err and "user" in err
+
+
+# ---------------------------------------------------------------------------
+# upgrade: --to removed, --yes added, primitive flags mutually exclusive
+# ---------------------------------------------------------------------------
+
+
+def test_upgrade_no_version_argument_parses():
+    """`upgrade --pack core <catalogue>` parses with no version argument; the
+    target version is derived from the catalogue, so the namespace carries no
+    `to_version`."""
+    parser = cli._build_parser()
+    args = parser.parse_args(["upgrade", "--pack", "core", "/fake/catalogue"])
+    assert not hasattr(args, "to_version")
+
+
+def test_upgrade_to_flag_removed():
+    """The `--to` flag is gone — passing it is now an unknown argument."""
+    rc, err = _parse(["upgrade", "--pack", "core", "--to", "0.2.0", "/fake/catalogue"])
+    assert rc != 0, "--to should no longer be accepted on upgrade"
+
+
+def test_upgrade_yes_flag():
+    """`--yes` is accepted and defaults to False."""
+    parser = cli._build_parser()
+    default = parser.parse_args(["upgrade", "--pack", "core", "/fake/catalogue"])
+    assert default.yes is False
+    with_yes = parser.parse_args(
+        ["upgrade", "--pack", "core", "--yes", "/fake/catalogue"]
+    )
+    assert with_yes.yes is True
+
+
+def test_upgrade_primitive_flags_mutually_exclusive():
+    """Two per-primitive flags at once are rejected by the parser instead of
+    silently upgrading only the first."""
+    rc, err = _parse(
+        ["upgrade", "--pack", "core", "--skill", "a", "--agent", "b",
+         "/fake/catalogue"]
+    )
+    assert rc != 0, "two primitive flags should be mutually exclusive"
+    assert "not allowed with argument" in err or "mutually exclusive" in err

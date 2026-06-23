@@ -24,6 +24,34 @@ One line lands the loop in your repo. Any agent that reads a skill file inherits
 
 Want a whole set at once? A **profile** installs a curated bundle in one command — `agentbundle install --profile full-ceremony git+https://github.com/eugenelim/agent-ready-repo` lands `core` plus the governance packs; `--profile solution-architect` lands an architect's portable toolkit. See [The catalogue](#the-catalogue).
 
+## Quick start
+
+```bash
+# Install (one-time)
+pip install agentbundle
+
+# What's in the catalogue?
+agentbundle list-packs git+https://github.com/eugenelim/agent-ready-repo
+
+# Install the flagship loop into this repo (repo scope)
+agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
+
+# Install a pack at user scope — it follows you across every project
+agentbundle install --pack research git+https://github.com/eugenelim/agent-ready-repo --scope user
+
+# Install a whole curated profile in one command
+agentbundle install --profile solution-architect git+https://github.com/eugenelim/agent-ready-repo
+
+# Upgrade a pack to the version the catalogue ships (shows installed → target,
+# asks before writing; add --yes for CI)
+agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo
+
+# Preview any install without writing a file
+agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo --dry-run
+```
+
+The catalogue is a git URL or a local path. Installs auto-detect your agent — pass `--adapter` to override. Repo scope writes into the current repo; user scope (`--scope user`) installs once into your home so the pack is available in every project.
+
 ## The loop
 
 Most agent workflows are `prompt → code → ship`. `core` replaces that one-shot path. It splits the maker from the verifier, and it won't skip a step.

@@ -162,7 +162,7 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
         upgrade_args = argparse.Namespace(
             pack="converters",
             catalogue=str(self.cat),
-            to_version="0.1.0",
+            yes=True,
             root=str(self.repo),
             scope="user",
         )

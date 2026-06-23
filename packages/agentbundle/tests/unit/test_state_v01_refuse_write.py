@@ -103,7 +103,7 @@ def test_upgrade_refuses_v01_state(tmp_path):
     args = argparse.Namespace(
         pack="core",
         catalogue=str(tmp_path / "catalogue"),
-        to_version="0.2.0",
+        yes=True,
         skill=None,
         agent=None,
         hook=None,

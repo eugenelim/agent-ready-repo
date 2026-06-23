@@ -6,6 +6,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [Unreleased]
+
+### Changed
+
+- **`agentbundle upgrade` no longer takes `--to` (breaking).** The upgrade
+  target is now derived from the resolved catalogue's `pack.toml` `[pack]
+  version` — the catalogue is the single source of truth, and there is no
+  version-history store to select from (`--to` was `required` but never
+  validated against the catalogue's actual version). The command shows
+  `installed → target`, asks before writing, and the success recap names both
+  versions (`upgraded: <pack> @ <scope> <from> -> <to>`). When the installed
+  version already equals the target, it says so and offers to re-apply.
+  Migration: drop `--to <version>`; add `--yes` for non-interactive / CI use.
+  To move to a specific past version, point the catalogue at that git ref.
+
+### Added
+
+- **`agentbundle upgrade --yes`** skips the confirmation prompt for
+  non-interactive use; without it, a non-TTY stdin refuses (with guidance to
+  pass `--yes`) rather than blocking on a prompt.
+
+### Fixed
+
+- **`agentbundle upgrade` rejects two per-primitive flags at once.** The
+  `--skill` / `--agent` / `--hook` / `--seed` / `--command` flags are now a
+  mutually-exclusive group; previously passing two silently upgraded only the
+  first.
+
 ## [0.6.0] — 2026-06-20
 
 ### Fixed

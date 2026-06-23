@@ -147,7 +147,7 @@ def test_agentbundle_build_parser_also_normalises():
             "packs/core",
         ),
         ("upgrade", [
-            "upgrade", "--pack", "core", "--to", "0.2.0",
+            "upgrade", "--pack", "core",
             r"cat\path", "--root", r"r\oot",
         ], "root", "r/oot"),
         ("uninstall", [

@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`agentbundle upgrade` no longer takes `--to`; it derives the version and
+  confirms (breaking).** The upgrade target is now read from the catalogue you
+  point at (its `pack.toml` `[pack] version`) instead of an operator-supplied
+  `--to` that was never validated against the catalogue. The command shows
+  `installed → target`, asks before writing (`--yes` skips the prompt; a
+  non-interactive stdin refuses rather than hanging), names both versions in the
+  recap, and says so when you're already current. To upgrade to a specific past
+  version, point the catalogue at that git ref. See the agentbundle CHANGELOG
+  for the full migration note.
+
 ### Added
 
 - **Agentic security boundaries are now control-level checks in the
