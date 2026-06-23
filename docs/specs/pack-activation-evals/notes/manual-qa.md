@@ -286,3 +286,45 @@ lint clean; `governance-extras` bumped 0.3.0 → 0.3.1 and the self-host project
 (`.claude/skills/`, `.agents/skills/`) + `marketplace.json` refreshed via
 `make build-self` (the projection drift is covered by `make build-check`, which
 is green — unlike `design-craft`, `governance-extras` is self-host-projected).
+
+## 10. `user-guide-diataxis` — both layers (Tier-A activation + Tier-4 judge), 2026-06-23
+
+`new-guide` is a user-triggered judgment/authoring skill (it drafts Diátaxis
+user-facing guides — tutorial / how-to / reference / explanation — by judgment,
+no deterministic artifact), so **both** layers that apply to judgment skills
+were added: Tier-A activation (`evals/eval_queries.json` + a `[pack.evals]`
+block, 10 should-trigger + 10 near-miss) **and** a Tier-4 LLM-judge rubric
+(`evals/evals.json` — `expected_output` + `assertions` matched to the skill's
+discipline). No B-lite layer (a guide has no deterministic post-condition to
+re-derive). The 10 near-misses route across the sibling authoring skills
+(`new-spec` / `new-rfc` / `new-adr`), to contributor-facing architecture docs
+(documentation, but not a *user* guide), to editing an existing guide (a normal
+PR, not `new-guide`), to code docstrings / release notes / a blog post, and to
+`voice-and-microcopy` (UI words, not documentation prose) — each shares
+"write" / "document" / "guide" vocabulary but needs a different skill.
+
+| skill | rubric grades |
+| --- | --- |
+| new-guide | single Diátaxis quadrant chosen by reader posture (no quadrant-mixing — adjacent material linked out), task-focused with concrete runnable/verifiable steps, prose hygiene (no reader-blaming fillers / softened imperatives / inline version-history), See-also links only to existing siblings |
+
+The `new-guide` rubric was spot-checked live (`--mode judge --judge-adapter
+claude-code`) with good-vs-weak artifacts to confirm it discriminates: a focused
+how-to (one named task — rotate an expired API token — concrete steps each with
+a "you should see…" checkpoint, clean prose, one defensible cross-link)
+**PASS** ("a well-formed how-to guide that satisfies all rubric assertions") /
+a quadrant-mixed blob (all four quadrants in one document, vague unverifiable
+steps, reader-blaming fillers + inline version history, fabricated cross-links)
+**FAIL** ("fails every assertion … blends all four Diátaxis quadrants in one
+document"). This same `--mode judge` run **is** the Tier-B light-mode harness
+smoke-check the standing `AGENTS.local.md` eval-coverage policy requires —
+report-only, confirming the rubric loads and discriminates, not a calibration
+gate.
+
+The rubric lints clean; `user-guide-diataxis` bumped 0.1.4 → 0.1.5 and the
+self-host projection (`.claude/skills/new-guide/evals/`,
+`.agents/skills/new-guide/evals/`) + `marketplace.json` refreshed via
+`make build-self` (the projection drift is covered by `make build-check`, which
+is green). **Note:** `user-guide-diataxis` is `default-scope = "repo"` and is
+self-host-projected — like `core` / `governance-extras`, not like the
+user-scope `design-craft` — so the added eval files **do** project into
+`.claude/` and `.agents/`, and `make build-check` is the gate that covers them.

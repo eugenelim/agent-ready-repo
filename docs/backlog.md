@@ -765,19 +765,22 @@ coverage today: **`core`** (5 skills, Tier-A activation), **`converters`**
 **Tier-4 LLM-judge rubrics** for all of **`architect`** (3 skills) and
 **`product-engineering`** (5 skills), **`design-craft`** (4 skills,
 Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite since the
-four skills are judgment/authoring), and **`governance-extras`** (3 skills,
+four skills are judgment/authoring), **`governance-extras`** (3 skills,
 Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite; the three
-skills are governance authoring/judgment) — `expected_output` + `assertions`
-per skill, gradable via `--mode judge`. Every other pack has **no eval coverage
-yet**. Remaining work, tiered by what it needs:
+skills are governance authoring/judgment), and **`user-guide-diataxis`**
+(1 skill — `new-guide` — Tier-A activation **+** Tier-4 LLM-judge — both
+layers, no B-lite; `new-guide` is judgment/authoring) — `expected_output` +
+`assertions` per skill, gradable via `--mode judge`. Every other pack has
+**no eval coverage yet**. Remaining work, tiered by what it needs:
 
 - **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
-  no deps/execution).** ~28 user-triggered skills across `architect` (3),
+  no deps/execution).** ~27 user-triggered skills across `architect` (3),
   `contracts` (2),
-  `monorepo-extras` (1), `product-engineering` (5), `research` (7),
-  `user-guide-diataxis` (1) need `evals/eval_queries.json` + a `[pack.evals]`
+  `monorepo-extras` (1), `product-engineering` (5), `research` (7)
+  need `evals/eval_queries.json` + a `[pack.evals]`
   block (the same ~8–10-each-way near-miss pattern as `core`). `design-craft`
-  (4) and `governance-extras` (3) are **done** (this rollout). Exclude
+  (4), `governance-extras` (3), and `user-guide-diataxis` (1, `new-guide`) are
+  **done** (this rollout). Exclude
   reviewer-internal / non-prompt skills (`security-checklists`, `work-loop`,
   `credential-setup`), as `core` does. This is the bulk of the gap.
 - **Tier 2 — B-lite behavior for other *deterministic* skills.** Assess
@@ -795,8 +798,9 @@ yet**. Remaining work, tiered by what it needs:
   remaining work here is **(a)** a per-skill **lens map** (point each skill at
   the right rubric / reviewer lens — e.g. `architect-review` for `architect-design`),
   authoring the `expected_output`/`assertions` rubrics — **done for all of
-  `architect` (3), `product-engineering` (5), `design-craft` (4), and
-  `governance-extras` (3)**; remaining for `research`, `new-guide`,
+  `architect` (3), `product-engineering` (5), `design-craft` (4),
+  `governance-extras` (3), and `user-guide-diataxis` (`new-guide`)**;
+  remaining for `research`,
   `new-package`, and `core`'s judgment skills — and **(b)** the **full
   Tier-B** pieces still deferred: `benchmark.json` **deltas**, the
   **with/without-skill** comparison, the **train/validation split**, and the
