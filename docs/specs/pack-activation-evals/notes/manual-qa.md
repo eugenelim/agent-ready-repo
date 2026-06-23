@@ -130,13 +130,14 @@ deterministic checks):
 | markdown-to-pptx | 6 | `python-pptx` (default template) | ✅ `ok` (produces `sample.pptx`) |
 | markdown-to-xlsx | 6 | `openpyxl` (template-less render) | ✅ `ok` (produces `sample.xlsx`) |
 | mermaid-renderer | 5 | npm `@mermaid-js/mermaid-cli` (`mmdc` + headless Chromium) | ✅ `ok` (renders `mermaid-1.png`) |
-| file-to-markdown | — | `docling` (heavy ML: torch + models) | ⏳ see below |
+| file-to-markdown | 9 | `docling` + `Pillow` (heavy ML: torch + models) | ✅ `ok` (`sample.docx` → `sample.md`, 59 words) |
 
-`file-to-markdown` is the one skill whose deps (Docling — torch + downloaded
-models) are heavy; its result is recorded once the install completes, else it
-stays the lone environment-blocked skill with `docs/backlog.md` noting what it
-needs. The Office skills were run **template-less** (their documented opt-out
-path) so no binary template fixture is needed.
+**All 6 covered `converters` skills are behavior-verified for real** (`msg-to-markdown`
+is excluded by the converters carry-over gate). The Office skills were run
+**template-less** (their documented opt-out path), so no binary template fixture
+is needed; `file-to-markdown` ships a small `.docx` fixture (the only binary
+fixture, since its input is a document). Each skill's deps were installed via its
+own `## Prerequisites` (the repeatable contract) — none committed.
 
 ## Scope note
 

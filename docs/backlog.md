@@ -757,6 +757,45 @@ than a documented accepted-state.
 
 ## `pack-activation-evals`
 
+### pack-eval-coverage-rollout
+
+**Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md). Eval
+coverage today: **`core`** (5 skills, Tier-A activation) and **`converters`**
+(6 skills, Tier-A activation **+** Tier-B-lite behavior, all 6 run for real).
+Every other pack has **no eval coverage yet**. Remaining work, tiered by what it
+needs:
+
+- **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
+  no deps/execution).** ~35 user-triggered skills across `architect` (3),
+  `contracts` (2), `design-craft` (4), `governance-extras` (3),
+  `monorepo-extras` (1), `product-engineering` (5), `research` (7),
+  `user-guide-diataxis` (1) need `evals/eval_queries.json` + a `[pack.evals]`
+  block (the same ~8–10-each-way near-miss pattern as `core`). Exclude
+  reviewer-internal / non-prompt skills (`security-checklists`, `work-loop`,
+  `credential-setup`), as `core` does. This is the bulk of the gap.
+- **Tier 2 — B-lite behavior for other *deterministic* skills.** Assess
+  `contracts` (`api-contract` / `event-contract` — do they deterministically
+  emit/validate a contract artifact? if so, add an `expect` block + fixture).
+  Most non-converters skills are judgment/authoring → not B-lite-able.
+- **Tier 3 — credentialed/backend skills** (`atlassian` 8, `figma` 1): activation
+  only; behavior needs recorded cassettes / a test backend → see
+  `behavior-check-for-backend-skills`.
+- **Tier 4 — judgment / agent-workflow skills** (`core` 5, `architect`,
+  `research`, `product-engineering`, `design-craft`, `governance-extras`,
+  `new-guide`, `new-package`): produce specs/diagrams/research/critiques by
+  judgment, not a deterministic artifact → out of B-lite; their output quality
+  is the **full Tier-B grading** (LLM-judge / with-without / human review) of
+  the deferred future RFC.
+- **Tier 5 — operational/harness.** (a) Run the **full activation sweep**
+  (so far only spot-validated) — needs the `ANTHROPIC_API_KEY` repo secret +
+  the scheduled `pack-evals.yml`. (b) **CI-automate behavior evals** — needs the
+  deferred declarative-setup capability + per-skill deps in the runner (today
+  behavior is manual/in-harness). (c) **Calibration → gating** (RFC-0037 Open
+  Q1): report-only → regression-from-baseline after one baseline cycle.
+
+**Unblocks when:** taken pack-by-pack (Tier 1 first — highest value, lowest
+cost); Tiers 3–5 are their own follow-on RFCs/PRs.
+
 ### pack-evals-converters-gate-consolidation
 
 **Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md) — plan T8
