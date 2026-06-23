@@ -47,9 +47,9 @@ Open `overview.md`. Its frontmatter records your `question`, a
 
 > Where did the folder land? By default, in scratch / out-of-repo space (a
 > gitignored `.context/research/` or a user-level path) — a code repo commits
-> the *decision*, never the whole corpus. You can point it elsewhere with a
-> `research-layout.toml`; the [reference](../reference/research-pack.md) has the
-> keys.
+> the *decision*, never the whole corpus. You can point it elsewhere with the
+> `[research]` table of an `agentbundle-layout.toml`; the
+> [reference](../reference/research-pack.md) has the keys.
 
 ## Step 2 — capture a few sources
 
@@ -184,6 +184,6 @@ is the shape of every research project.
   into an RFC](../how-to/run-a-research-project-into-an-rfc.md) picks up exactly
   where this tutorial ends.
 - Want the full catalogue of the four project skills, their phases, and the
-  `research-layout.toml` keys? See the [reference](../reference/research-pack.md).
+  `agentbundle-layout.toml` `[research]` keys? See the [reference](../reference/research-pack.md).
 - Wondering when a project is overkill and a one-off `/research` would do?
   [Episodic vs project research](../explanation/episodic-vs-project-research.md).

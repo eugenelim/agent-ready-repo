@@ -1,7 +1,7 @@
 # Plan: consolidated-pack-layout
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -32,8 +32,25 @@ carry the realpath / reject-`..` / surface / untrusted-origin rails verbatim
 enough that `rg` and the smoke can verify them, generalising the rail
 `research-project-start` already takes.
 
-This spec/plan PR authors **governance docs only**; T1–T6 below are the
-**implementing PR**'s work-breakdown, not work done here.
+**Per-pack defaults (settled at PLAN, pre-EXECUTE review):** all three consumers
+default to **user** scope but their output is per-repo, so none has a sensible
+*absolute* user default. Each therefore declares only `[pack.layout.repo]` and
+**omits `[pack.layout.user]`** (user-scope append is a no-op; the commented
+placeholder lives in the schema doc as adopter guidance). Repo defaults:
+`research` → `.context/research` (gitignored scratch — honours research's
+"never the committed tree" posture); `architect` → `docs/design` (its first
+scan-target today); `product-engineering` → `docs/product`.
+
+**Sequencing constraint:** T3, T4, and T5 each append to the single
+`docs/product/changelog.md`, so they are **not** file-disjoint and must merge
+**sequentially** — no parallel implementer wave (the only shared file; each
+otherwise touches its own pack dir + its own guides). T6's self-host / AC12
+`find` gates also require T3–T5's `make build` projections to have landed first.
+
+The spec/plan first landed in a **governance-docs PR** (#359); T1–T6 below were
+then **implemented** in the follow-on PR (this one), which also carries the
+pre-EXECUTE-review refinements recorded in the changelog. All six tasks are done;
+every AC is checked.
 
 ## Constraints
 
@@ -144,8 +161,12 @@ Most tests live per-task below. Cross-cutting:
 **Depends on:** none
 
 **Touches:** `packages/agentbundle/agentbundle/_data/pack.schema.json`,
+`packages/agentbundle/agentbundle/_data/adapter.toml`,
+`docs/contracts/adapter.toml`, `docs/contracts/pack.schema.json`,
 `packages/agentbundle/agentbundle/build/main.py`,
-`packages/agentbundle/tests/**`
+`packages/agentbundle/tests/**`,
+`packages/agentbundle/agentbundle/build/tests/**` (4 of the 5 `== "0.15"`
+contract-version assertions live in this second, CI-ungated test root)
 
 **Tests:**
 - Goal-based: `validate_pack_metadata` accepts a `pack.toml` carrying
@@ -157,14 +178,25 @@ Most tests live per-task below. Cross-cutting:
   `packages/agentbundle/tests/` and `…/agentbundle/build/tests/`) to catch lexical
   version-compare and stale-assertion traps. Verifies AC10.
 
-**Approach:**
-- First settle *which* version field governs the `pack.toml` manifest contract
-  (schema `version`, adapter-contract, or a manifest constant) before bumping —
-  this is the contract-bump trap's entry point.
-- Add `[pack.layout]` to `pack.schema.json` as an optional property with optional
-  `.repo` / `.user` sub-tables, each allowing a `parent` string and/or a
-  template-path string.
-- Bump the governing version field; sweep both test roots for version assertions.
+**Approach (version field settled):** the governing field is the `adapter.toml`
+`[contract] version` → `SPEC_VERSION` (the umbrella manifest/projection contract;
+direct precedent — the enriched-pack-manifest extension, contract v0.14, bumped this
+same field). Bump it **`"0.15"` → `"0.16"`** in *both* byte-identical copies
+(`_data/adapter.toml` and `docs/contracts/adapter.toml`, drift-gated by
+`BundledCopiesMatchTests`) with a dated ledger comment citing this spec.
+- Add `[pack.layout]` to `pack.schema.json` (both copies) as an optional `object`
+  property under `pack.properties` with optional `.repo` / `.user` sub-tables, each
+  allowing a `parent` string and/or a template-path string. The change is purely
+  additive (`pack` has no `additionalProperties: false`).
+- Leave the **stale install-gate enum** (`["0.2","0.3","0.6"]`) and each shipped
+  pack's `[pack.adapter-contract] version` **untouched** — the runtime gate is
+  major-only, so a 0.x pack declaring `[pack.layout]` still validates; re-arming the
+  enum would be an out-of-scope behaviour change.
+- Update the 5 exact-string `== "0.15"` assertions: `tests/unit/test_contract_v0_3_schema.py`
+  (+ its ledger comment), `build/tests/test_contract.py`, `build/tests/test_adapter_gemini.py`,
+  `build/tests/test_adapter_kiro_ide.py`, `build/tests/test_adapter_cursor.py`. (The
+  `>=`-tuple assertions in `test_contract_v07/v08/scope.py` are numeric and safe.)
+- Run the full `agentbundle` package pytest by hand in **both** test roots.
 
 **Done when:** `validate_pack_metadata` accepts/rejects per the tests, the version
 bump is asserted, and the full package pytest is green in both roots.
@@ -196,6 +228,9 @@ bump is asserted, and the full package pytest is green in both roots.
 - Re-emit type-validation: feed a tampered existing section (`parent = 42`,
   `parent = ["x"]`) and assert it is dropped/coerced before re-emit, not crashed
   on — mirroring `_append_install_marker`'s parsed-field hardening. Verifies AC11.
+- Symlink fails-closed: when the layout *file path itself* is a symlink escaping
+  `root`, the append's `write_jailed` → `assert_under` realpath-resolve raises
+  `PathJailError` (never follows the link). Verifies AC11/AC14.
 
 **Approach:**
 - Add `_append_layout_section`, modelled on `_append_install_marker`'s upsert:
@@ -364,3 +399,14 @@ description records the smoke observations.
 ## Changelog
 
 - 2026-06-22: initial plan (governance-docs PR; T1–T6 are the implementing PR).
+- 2026-06-22: implementing-PR pre-EXECUTE review refinements (no behaviour change
+  vs RFC-0040 — all within its optional-sub-table latitude): settled the version
+  field as `adapter.toml` `[contract] version` 0.15→0.16 (T1); recorded that all
+  three consumers omit `[pack.layout.user]` (no sensible absolute default) so the
+  commented placeholder is schema-doc guidance only, never installer-emitted
+  (resolves the net-new-emit-shape concern); fixed per-pack repo defaults
+  (`.context/research` / `docs/design` / `docs/product`); added the symlink-target
+  fails-closed test (T2) and the second test root to T1 Touches; clarified AC11/AC15
+  (append type-validates but never path-confines `parent`); scoped AC17's
+  rename-sweep to live consumer surfaces, exempting the frozen `research-project-mode`
+  spec/plan + its `docs/specs/README.md` row.

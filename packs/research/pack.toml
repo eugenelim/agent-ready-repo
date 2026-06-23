@@ -1,6 +1,6 @@
 [pack]
 name = "research"
-version = "0.4.0"
+version = "0.5.0"
 description = "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
 readme = "README.md"
 display_name = "Research"
@@ -34,6 +34,16 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # **not** degraded there. The read-only restriction is preserved (no
 # edit/execute). The one narrow non-coverage is the Copilot **cloud agent**
 # (served only via repo `.github/`), which has no `web` tool.
+
+# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# [research] section of an adopter-owned `agentbundle-layout.toml`. The repo
+# default is gitignored scratch — research commits the *decision* (the brief),
+# never the corpus, and never the committed repo tree. No `[pack.layout.user]`:
+# research's output is per-repo and there is no sensible *absolute* user base, so
+# the user-scope install append is a no-op (adopters write a user `[research]`
+# section by hand; see the skill's references/agentbundle-layout.md).
+[pack.layout.repo]
+parent = ".context/research"
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

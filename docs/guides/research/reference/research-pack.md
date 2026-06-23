@@ -193,7 +193,7 @@ reproduced verbatim from each SKILL.md frontmatter.
 
 **name:** `research-project-start`.
 
-**description:** Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — "start a research project", "set up a research project on X", "begin a sustained investigation", "open a research dossier" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves the project parent from an adopter-created research-layout.toml, else a scratch / out-of-repo default, else by eliciting — never the committed repo tree. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there.
+**description:** Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — "start a research project", "set up a research project on X", "begin a sustained investigation", "open a research dossier" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves the project parent from the [research] table of an adopter-created agentbundle-layout.toml, else a scratch .context/research default, else by eliciting — never the committed repo tree. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there.
 
 ### research-project-digest
 
@@ -240,17 +240,30 @@ travels out of the folder.
 | `stop_signal` | string | qualitative, set by `/research-project-check` |
 | `verdict_status` | string (optional) | the only state `/research-project-check` may write |
 
-### `research-layout.toml` (adopter-created, optional)
+### `agentbundle-layout.toml` `[research]` (adopter-created, optional)
 
-Read at `research-project-start` to resolve where projects live. Adopter-created
-at a known path (repo root or `~/.agentbundle/research-layout.toml`); never
-shipped into a projected path.
+Read at `research-project-start` to resolve where projects live. `agentbundle-layout.toml`
+is the one shared, adopter-created layout file (a `[<pack>]` table per
+output-producing pack); never shipped into a projected path. The skill reads the
+**repo-root `./agentbundle-layout.toml`** `[research]` table, else the
+**user-profile `~/.agentbundle/agentbundle-layout.toml`** table (repo overrides
+user per table).
+
+```toml
+[research]
+parent = "~/research-projects"   # a base; project folders are created *under* it
+```
 
 | Key | Meaning |
 |---|---|
-| `parent` | directory under which project folders are created (default: scratch / out-of-repo) |
+| `parent` | **base** directory under which each `<YYYY-MM-DD>-<topic-slug>/` project folder is created (default: gitignored `.context/research/` — scratch / out-of-repo) |
 
-Resolution order: `research-layout.toml` → scratch / out-of-repo default → elicit. The committed repo tree is never the default.
+Anchored by the file's location (repo file → repo-relative; user file →
+absolute); resolved to a realpath-resolved absolute path, `..` rejected, and
+**surfaced before the first write**. Resolution order: `[research]` table →
+`.context/research` default → elicit. The committed repo tree is never the
+default. (A clean rename of an undistributed predecessor file — no alias, since
+nothing in the wild held the old name.)
 
 ### Source provenance axes (optional)
 

@@ -1106,6 +1106,12 @@ def run(args: "argparse.Namespace") -> int:
         if repo_projection is not None
         else []
     )
+    # RFC-0040 / spec AC9: maintain an adopter-owned `agentbundle-layout.toml`
+    # if one already exists at the scope's location — append the pack's
+    # scope-keyed `[pack.layout.<scope>]` default, never creating the file and
+    # never overwriting an existing section. No-op for packs that ship no
+    # `[pack.layout]` (most), and for any scope whose sub-table is omitted.
+    pack_layout = pack_toml.get("pack", {}).get("layout", {})
     for plan in plans:
         scope_markers = repo_unresolved_markers if plan.scope == "repo" else []
         try:
@@ -1116,6 +1122,13 @@ def run(args: "argparse.Namespace") -> int:
                 pack_version=pack_version,
                 unresolved_markers=scope_markers,
                 new_companions=plan.new_companions,
+                allowed_prefixes=plan.allowed_prefixes,
+            )
+            _append_layout_section(
+                plan.root,
+                plan.scope,
+                pack_name=pack_name,
+                pack_layout=pack_layout,
                 allowed_prefixes=plan.allowed_prefixes,
             )
         except (OSError, safety.PathJailError) as exc:
@@ -2225,6 +2238,141 @@ def _append_install_marker(
         content,
         scope=scope,
         allowed_prefixes=marker_prefixes,
+    )
+
+
+def _append_layout_section(
+    root: Path,
+    scope: str,
+    *,
+    pack_name: str,
+    pack_layout: dict,
+    allowed_prefixes: list[str] | None,
+) -> None:
+    """Append a ``[<pack_name>]`` table to an adopter-owned
+    ``agentbundle-layout.toml`` at *root* — but **only if the file already
+    exists** and the section is **absent** (RFC-0040 / spec AC9). Repo-scope
+    file lives at ``<repo>/agentbundle-layout.toml``; user-scope at
+    ``<user-root>/.agentbundle/agentbundle-layout.toml``.
+
+    Append-if-exists / never-create / never-overwrite. The file is
+    adopter-owned, so this step never brings it into being and never
+    rewrites a section the adopter already authored.
+
+    Modelled on :func:`_append_install_marker`'s upsert (spec AC11): read +
+    type-validate + re-emit, with **every** emitted string — including each
+    re-emitted table header, since a parsed section key can itself contain
+    ``]`` or a newline — routed through :func:`config._emit_basic_string`, and
+    the write going through :func:`safety.write_jailed` with the
+    marker-mirrored per-scope jail (repo: top-level relpath, no prefixes;
+    user: ``root=<home>`` + ``.agentbundle/`` relpath + ``allowed-prefixes.user``
+    via :func:`safety.user_state_path`).
+
+    The appended default is sourced from the pack's scope-keyed
+    ``[pack.layout.<scope>].parent`` manifest table. A scope whose sub-table
+    (or its ``parent``) is absent appends **nothing** — e.g. all three current
+    consumers omit ``[pack.layout.user]``, so the user-scope append is a no-op
+    (spec AC10). A pack with no ``[pack.layout]`` at all (most packs) no-ops too,
+    so this is safe to call unconditionally per scope.
+    """
+    import tomllib
+
+    from agentbundle import safety
+    from agentbundle.config import _emit_basic_string
+
+    if scope == "user":
+        # Mirror `_append_install_marker`: route through `user_state_path`
+        # so the dot-directory is created 0o700 with the symlink probe, then
+        # sit the layout file next to `state.toml`.
+        state_path = safety.user_state_path(home=root)
+        layout_path = state_path.parent / "agentbundle-layout.toml"
+        layout_relpath = ".agentbundle/agentbundle-layout.toml"
+    else:
+        layout_path = root / "agentbundle-layout.toml"
+        layout_relpath = "agentbundle-layout.toml"
+
+    # Never-create: the file is adopter-owned; absent ⇒ no-op.
+    if not layout_path.exists():
+        return
+
+    # Scope-keyed default. A missing sub-table or missing/`non-str` `parent`
+    # ⇒ no-op (e.g. consumers that omit `[pack.layout.user]`).
+    scope_table = pack_layout.get(scope) if isinstance(pack_layout, dict) else None
+    default_parent = (
+        scope_table.get("parent") if isinstance(scope_table, dict) else None
+    )
+    if not isinstance(default_parent, str):
+        return
+
+    # Read + parse existing sections. A malformed file is left **untouched**
+    # (warn) — appending to a file we cannot parse risks a duplicate
+    # `[<pack>]` or a corrupt write, both worse than a skipped maintenance.
+    try:
+        existing = tomllib.loads(layout_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(
+            f"install: warning: existing layout file at {layout_path} is "
+            f"malformed ({exc}); leaving it untouched (no [{pack_name}] appended)",
+            file=sys.stderr,
+        )
+        return
+
+    # Never-overwrite: section already present ⇒ no-op.
+    if isinstance(existing.get(pack_name), dict):
+        return
+
+    # Re-emit: preserve each existing `[<pack>]` section's `parent`, type-
+    # validating it (drop a non-`str` `parent` before re-emission, mirroring
+    # `_append_install_marker`'s parsed-field hardening), then append the new
+    # section. Every emitted string — header key and value alike — routes
+    # through `_emit_basic_string`, so a tampered existing `parent` (or a
+    # hostile section key) cannot land phantom TOML structure on re-emit.
+    sections: list[tuple[str, str]] = []
+    for key, val in existing.items():
+        if not isinstance(val, dict):
+            # Off-schema top-level scalar/array we don't model (the documented
+            # file schema is `[<pack>]` tables only). Dropped on re-emit, as
+            # the marker model drops anything off its schema.
+            print(
+                f"install: warning: layout file at {layout_path} has an "
+                f"off-schema top-level key {key!r} ({type(val).__name__}); "
+                f"dropping it on re-emit",
+                file=sys.stderr,
+            )
+            continue
+        parent = val.get("parent")
+        if not isinstance(parent, str):
+            print(
+                f"install: warning: layout section [{key}] at {layout_path} "
+                f"has non-string parent (got {type(parent).__name__}); "
+                f"dropping the section on re-emit",
+                file=sys.stderr,
+            )
+            continue
+        sections.append((key, parent))
+    sections.append((pack_name, default_parent))
+
+    lines: list[str] = []
+    for name, parent in sections:
+        lines.append(f"[{_emit_basic_string(name)}]")
+        lines.append(f"parent = {_emit_basic_string(parent)}")
+        lines.append("")
+    content = "\n".join(lines).rstrip() + "\n"
+
+    # Per-scope jail, mirroring `_append_install_marker`: at repo scope the
+    # layout file is a top-level `agentbundle-layout.toml` (not under a
+    # declared prefix), so the per-prefix check is skipped; at user scope it
+    # sits under `.agentbundle/` and the adapter's `allowed-prefixes.user`
+    # list applies.
+    layout_prefixes = allowed_prefixes
+    if scope == "repo" and layout_relpath == "agentbundle-layout.toml":
+        layout_prefixes = None
+    safety.write_jailed(
+        root,
+        layout_relpath,
+        content,
+        scope=scope,
+        allowed_prefixes=layout_prefixes,
     )
 
 
