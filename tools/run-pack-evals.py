@@ -703,8 +703,17 @@ def grade_behavior(
             if not errored and not (wsp and wsp.is_dir()):
                 errored = True  # fail closed: the driver never produced this dir
             if not errored:
+                ws_resolved = wsp.resolve()
                 for f in produces:
-                    if not (wsp / f).is_file():
+                    target = (wsp / f).resolve()
+                    # Confine the existence probe to the workspace — a `../`
+                    # in a `produces` entry must not reach outside it.
+                    try:
+                        target.relative_to(ws_resolved)
+                    except ValueError:
+                        produces_ok = False
+                        continue
+                    if not target.is_file():
                         produces_ok = False
                 out_txt = ""
                 out_file = wsp / BEHAVIOR_OUTPUT_FILE
