@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -408,6 +409,105 @@ def test_grade_reports_validation_and_unmeasured() -> None:
           "records provenance.")
 
 
+def _build_behavior_pack(repo_root: pathlib.Path) -> None:
+    skills = repo_root / "packs" / "bxpack" / ".apm" / "skills"
+    (repo_root / "packs" / "bxpack" / "pack.toml").parent.mkdir(parents=True, exist_ok=True)
+    (repo_root / "packs" / "bxpack" / "pack.toml").write_text(
+        '[pack]\nname = "bxpack"\n\n[pack.evals]\nskills = ["alpha"]\n', encoding="utf-8"
+    )
+    (skills / "alpha" / "evals" / "files").mkdir(parents=True, exist_ok=True)
+    (skills / "alpha" / "evals" / "files" / "in.txt").write_text("fixture\n", encoding="utf-8")
+    (skills / "alpha" / "evals" / "evals.json").write_text(json.dumps({
+        "skill_name": "alpha",
+        "evals": [
+            {"id": 1, "prompt": "p1", "expected_output": "e1",
+             "assertions": ["did the thing"],
+             "expect": {"produces": ["out.txt"], "output_contains": ["OK"],
+                        "output_excludes": ["Traceback"]}},
+            {"id": 2, "prompt": "p2", "expected_output": "e2",
+             "expect": {"produces": ["missing.txt"]}},
+        ],
+    }), encoding="utf-8")
+
+
+def test_seed_workspace() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_behavior_pack(repo_root)
+        skill_dir = repo_root / "packs" / "bxpack" / ".apm" / "skills" / "alpha"
+        ws = M.seed_workspace(skill_dir, ["evals/files/in.txt"])
+        try:
+            check("seed", (ws / "in.txt").is_file(), "fixture copied into workspace")
+            check("seed", str(ws).startswith(tempfile.gettempdir()),
+                  "workspace lives under the OS temp root, not the repo")
+        finally:
+            shutil.rmtree(ws, ignore_errors=True)
+        # Path-traversal fixture is refused.
+        try:
+            M.seed_workspace(skill_dir, ["evals/../../../../etc/hosts"])
+        except ValueError:
+            pass
+        else:
+            fail("seed", "out-of-evals fixture must be refused")
+    print("✓ seed_workspace: OS-temp dir, fixtures confined under evals/, traversal refused.")
+
+
+def test_grade_behavior() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_behavior_pack(repo_root)
+        ws1 = pathlib.Path(tempfile.mkdtemp())
+        ws2 = pathlib.Path(tempfile.mkdtemp())
+        try:
+            # eval 1: produced artifact + output file with OK, assertions attested true.
+            (ws1 / "out.txt").write_text("done\n", encoding="utf-8")
+            (ws1 / M.BEHAVIOR_OUTPUT_FILE).write_text("all OK here\n", encoding="utf-8")
+            # eval 2: missing.txt NOT produced -> deterministic fail.
+            results = {"alpha": {
+                "1": {"assertions": [True], "errored": False},
+                "2": {"assertions": [], "errored": False},
+            }}
+            summary = M.grade_behavior(
+                "bxpack", results,
+                workspaces={"alpha/1": str(ws1), "alpha/2": str(ws2)},
+                repo_root=repo_root,
+            )
+            check("bx", summary["mode"] == "in-harness" and summary["tier"] == "B-lite",
+                  "labelled mode=in-harness / tier=B-lite")
+            check("bx", summary["provenance"] == "operator-attested", "provenance recorded")
+            evs = {e["eval_id"]: e for e in summary["skills"]["alpha"]["evals"]}
+            check("bx", evs["1"]["passed"] is True, "eval 1 (artifact+output+assertion) passes")
+            check("bx", evs["2"]["passed"] is False and not evs["2"]["produces_ok"],
+                  "eval 2 fails on the missing artifact (re-derived by the runner)")
+            check("bx", summary["skills"]["alpha"]["pass_count"] == 1, "1 of 2 pass")
+
+            # Re-derivation is real: deleting eval-1's artifact flips it to fail,
+            # regardless of any operator-claimed booleans (which we never accept).
+            (ws1 / "out.txt").unlink()
+            summary2 = M.grade_behavior(
+                "bxpack", results,
+                workspaces={"alpha/1": str(ws1), "alpha/2": str(ws2)},
+                repo_root=repo_root,
+            )
+            ev1b = {e["eval_id"]: e for e in summary2["skills"]["alpha"]["evals"]}["1"]
+            check("bx", ev1b["passed"] is False,
+                  "removing the artifact flips eval 1 to fail (checks are re-derived)")
+
+            # Fail-closed: a missing workspace grades errored, never a pass.
+            summary3 = M.grade_behavior(
+                "bxpack", {"alpha": {"1": {"assertions": [True], "errored": False}}},
+                workspaces={}, repo_root=repo_root,
+            )
+            ev1c = {e["eval_id"]: e for e in summary3["skills"]["alpha"]["evals"]}["1"]
+            check("bx", ev1c["errored"] and not ev1c["passed"],
+                  "missing workspace fails closed")
+        finally:
+            shutil.rmtree(ws1, ignore_errors=True)
+            shutil.rmtree(ws2, ignore_errors=True)
+    print("✓ grade_behavior: re-derives deterministic checks from the workspace, "
+          "attests assertions, labels B-lite, fails closed on missing workspace.")
+
+
 def test_gitignored_control() -> None:
     # The real repo .gitignore must ignore a representative outputs/ path.
     rel = ".eval-workspace/core/iteration-1/new-spec/q00/with_skill/run-1/outputs/result.txt"
@@ -438,6 +538,8 @@ def main() -> int:
     test_run_eval_workspace_and_grading()
     test_grade_reports_in_harness()
     test_grade_reports_validation_and_unmeasured()
+    test_seed_workspace()
+    test_grade_behavior()
     test_gitignored_control()
     test_help_smoke()
     print()

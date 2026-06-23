@@ -44,6 +44,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import tempfile
 import tomllib
 from dataclasses import dataclass, field
 
@@ -282,6 +283,17 @@ def read_eval_queries(pack_dir: pathlib.Path, skill: str) -> list[dict]:
     if not isinstance(data, list):
         raise ValueError(f"{path}: eval_queries.json must be a JSON array")
     return data
+
+
+def read_output_evals(pack_dir: pathlib.Path, skill: str) -> list[dict]:
+    """Return the `evals` list of a covered skill's evals/evals.json (the
+    Tier-B output-quality source the B-lite behavior check runs against)."""
+    path = pack_dir / ".apm" / "skills" / skill / "evals" / "evals.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    evals = data.get("evals") if isinstance(data, dict) else None
+    if not isinstance(evals, list):
+        raise ValueError(f"{path}: evals.json must have an 'evals' list")
+    return evals
 
 
 # ── Orchestration ──────────────────────────────────────────────────────────
@@ -565,19 +577,184 @@ def grade_reports(
     return summary
 
 
+# The driver writes the skill run's output text here, inside the per-eval
+# working dir, so the runner can re-derive output substring checks from a file
+# it reads itself (not an operator-supplied string).
+BEHAVIOR_OUTPUT_FILE = ".eval-output.txt"
+
+
+def seed_workspace(skill_dir: pathlib.Path, files: list[str]) -> pathlib.Path:
+    """Create an OS-temp working dir and copy the eval's `evals/files/` fixtures
+    into it with path-confinement (every fixture resolved under the skill's
+    `evals/` root; symlinks refused). Returns the working dir; the **driver**
+    runs the skill there and is responsible for teardown in a `finally`.
+
+    This is **not** a mechanical sandbox — a host agent running the skill keeps
+    its full tool surface (RFC-0037 § Errata E3 / the spec-stage security pass).
+    Containment is the procedure + the scope gate (only non-destructive,
+    no-network/credential skills are eligible); this helper only confines what
+    is seeded *in*.
+    """
+    evals_root = (skill_dir / "evals").resolve()
+    ws = pathlib.Path(tempfile.mkdtemp(prefix="pack-eval-bx-"))
+    for f in files or []:
+        src = (skill_dir / f).resolve()
+        try:
+            src.relative_to(evals_root)
+        except ValueError:
+            shutil.rmtree(ws, ignore_errors=True)
+            raise ValueError(f"fixture {f!r} resolves outside the skill's evals/ dir")
+        if src.is_symlink() or not src.is_file():
+            shutil.rmtree(ws, ignore_errors=True)
+            raise ValueError(f"fixture {f!r} is not a regular file (symlinks refused)")
+        shutil.copyfile(src, ws / pathlib.Path(f).name)
+    return ws
+
+
+def grade_behavior(
+    pack_name: str,
+    results: dict,
+    *,
+    workspaces: dict,
+    repo_root: pathlib.Path = REPO_ROOT,
+) -> dict:
+    """Grade the **lightweight behavior/output check** (Phase 3, RFC-0037 §
+    Errata E3). For each eval in a covered skill's `evals/evals.json`, the driver
+    has run the skill in a per-eval working dir; this grades **without running
+    anything**:
+
+    - **deterministic post-conditions are re-derived here** from the working dir
+      the runner reads — the eval's optional `expect.produces` files exist, and
+      `expect.output_contains`/`output_excludes` substrings hold against the
+      driver-captured `BEHAVIOR_OUTPUT_FILE` *inside* that dir. The runner does
+      **not** trust operator `*_ok` booleans (security-reviewer Blocker 3).
+    - only the semantic `assertions` verdicts are operator-**attested**.
+
+    `results`: `{skill: {eval_id: {"assertions": [bool, ...], "errored": bool}}}`.
+    `workspaces`: `{f"{skill}/{eval_id}": <working-dir path>}`. A missing
+    workspace or malformed entry **fails closed** (graded errored, never a pass).
+    """
+    if not isinstance(results, dict):
+        raise ValueError("results must be a JSON object {skill: {eval_id: {...}}}")
+    _safe_segment("pack name", pack_name)
+    pack_dir = repo_root / "packs" / pack_name
+
+    pack_workspace = repo_root / EVAL_WORKSPACE / pack_name
+    iteration = _next_iteration(pack_workspace)
+    iter_dir = pack_workspace / f"iteration-{iteration}"
+
+    summary: dict = {
+        "pack": pack_name,
+        "adapter": "claude-code",
+        "mode": "in-harness",
+        "tier": "B-lite",
+        # Deterministic post-conditions are observed (runner-re-derived); the
+        # semantic assertions are operator-attested.
+        "fidelity": "observed+attested",
+        "provenance": "operator-attested",
+        "runs": None,
+        "iteration": iteration,
+        "skills": {},
+    }
+
+    for skill, by_eval in results.items():
+        _safe_segment("skill name", skill)
+        evals = read_output_evals(pack_dir, skill)
+        skill_summary: dict = {
+            "evals": [], "pass_count": 0, "total": len(evals), "error_count": 0,
+        }
+        for ev in evals:
+            eid = str(ev.get("id"))
+            attested = by_eval.get(eid, {})
+            ws = workspaces.get(f"{skill}/{eid}")
+            expect = ev.get("expect", {}) if isinstance(ev.get("expect"), dict) else {}
+
+            errored = bool(attested.get("errored")) or ws is None
+            produces_ok = output_ok = True
+            wsp = pathlib.Path(ws) if ws is not None else None
+            if not errored and not (wsp and wsp.is_dir()):
+                errored = True  # fail closed: the driver never produced this dir
+            if not errored:
+                for f in expect.get("produces", []):
+                    if not (wsp / f).is_file():
+                        produces_ok = False
+                out_txt = ""
+                out_file = wsp / BEHAVIOR_OUTPUT_FILE
+                if out_file.is_file():
+                    out_txt = out_file.read_text(encoding="utf-8", errors="replace")
+                for s in expect.get("output_contains", []):
+                    if s not in out_txt:
+                        output_ok = False
+                for s in expect.get("output_excludes", []):
+                    if s in out_txt:
+                        output_ok = False
+
+            attested_assertions = attested.get("assertions", [])
+            declared_assertions = ev.get("assertions") or []
+            if declared_assertions:
+                # Declared-but-unattested fails closed; otherwise all must hold.
+                if not attested_assertions:
+                    assertions_ok = False
+                    errored = True
+                else:
+                    assertions_ok = all(bool(a) for a in attested_assertions)
+            else:
+                assertions_ok = True  # no assertions to attest — deterministic only
+            passed = not errored and produces_ok and output_ok and assertions_ok
+            if passed:
+                skill_summary["pass_count"] += 1
+            if errored:
+                skill_summary["error_count"] += 1
+            skill_summary["evals"].append({
+                "eval_id": eid,
+                "produces_ok": produces_ok,
+                "output_ok": output_ok,
+                "assertions_ok": assertions_ok,
+                "errored": errored,
+                "passed": passed,
+            })
+        summary["skills"][skill] = skill_summary
+
+    iter_dir.mkdir(parents=True, exist_ok=True)
+    (iter_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
+    return summary
+
+
 def _print_report(summary: dict) -> None:
     runs = summary.get("runs")
     runs_note = f"runs={runs} " if runs is not None else ""
     prov = summary.get("provenance")
     prov_note = f"provenance={prov} " if prov else ""
+    tier = summary.get("tier")
+    tier_note = f"tier={tier} " if tier else ""
     print(
         f"pack={summary['pack']} adapter={summary['adapter']} "
         f"mode={summary.get('mode', 'headless')} "
-        f"fidelity={summary.get('fidelity', 'observed')} "
+        f"{tier_note}fidelity={summary.get('fidelity', 'observed')} "
         f"{prov_note}{runs_note}iteration={summary['iteration']}"
     )
     for skill, s in summary["skills"].items():
         errs = s.get("error_count", 0)
+        # B-lite summaries carry `evals`; activation summaries carry `queries`.
+        if "evals" in s:
+            err_note = f"  ⚠ {errs} errored" if errs else ""
+            print(f"  {skill}: {s['pass_count']}/{s['total']} evals passed{err_note}")
+            for e in s["evals"]:
+                mark = "ok " if e["passed"] else "FAIL"
+                bits = []
+                if not e["produces_ok"]:
+                    bits.append("missing artifact")
+                if not e["output_ok"]:
+                    bits.append("output check")
+                if not e["assertions_ok"]:
+                    bits.append("assertion")
+                if e["errored"]:
+                    bits.append("errored")
+                note = f"  ⚠ {', '.join(bits)}" if bits else ""
+                print(f"    [{mark}] eval {e['eval_id']}{note}")
+            continue
         err_note = (
             f"  ⚠ {errs} harness error(s) — trigger rates unreliable"
             if errs
@@ -631,24 +808,49 @@ def main(argv: list[str] | None = None) -> int:
              "collected by the catalogue-internal driver — RFC-0037 § Errata E2)",
     )
     parser.add_argument(
+        "--check",
+        choices=("activation", "behavior"),
+        default="activation",
+        help="in-harness check: activation (Tier-A, default) or behavior "
+             "(Tier-B-lite output/behavior — RFC-0037 § Errata E3)",
+    )
+    parser.add_argument(
         "--reports",
-        help="path to the in-harness reports JSON "
-             "({skill: {query_id: [reported|null|\"__error__\", ...]}}); "
-             "required with --mode in-harness",
+        help="path to the in-harness results JSON; with --check activation: "
+             "{skill: {query_id: [reported|null|\"__error__\", ...]}}; with "
+             "--check behavior: {skill: {eval_id: {assertions:[bool], errored, "
+             "workspace}}}. Required with --mode in-harness",
     )
     args = parser.parse_args(argv)
 
     if args.mode == "in-harness":
-        # In-harness grades reports the driver already collected — no model call.
+        # In-harness grades results the driver already collected — no model call.
         if not args.reports:
             parser.error("--mode in-harness requires --reports <path>")
         try:
-            reports = json.loads(
+            payload = json.loads(
                 pathlib.Path(args.reports).read_text(encoding="utf-8")
             )
         except (OSError, json.JSONDecodeError) as exc:
             parser.error(f"--reports {args.reports!r}: {exc}")
-        summary = grade_reports(args.pack, reports)
+        if args.check == "behavior":
+            # Split the driver's payload into attested verdicts + the per-eval
+            # working dirs the runner re-derives deterministic checks from.
+            if not isinstance(payload, dict):
+                parser.error("--reports must be a JSON object for --check behavior")
+            results: dict = {}
+            workspaces: dict = {}
+            for skill, by_eval in payload.items():
+                results[skill] = {}
+                for eid, entry in (by_eval or {}).items():
+                    entry = dict(entry)
+                    ws = entry.pop("workspace", None)
+                    if ws is not None:
+                        workspaces[f"{skill}/{eid}"] = ws
+                    results[skill][eid] = entry
+            summary = grade_behavior(args.pack, results, workspaces=workspaces)
+        else:
+            summary = grade_reports(args.pack, payload)
         _print_report(summary)
         return 0
 
