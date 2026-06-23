@@ -1,6 +1,6 @@
 # Spec: infra-aware-work-loop
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0031, RFC-0041 (P1, P2, P4, P5); ADR-0014 + RFC-0025 (the destructive/irreversible risk trigger that routes `apply` to full mode); ADR-0018 (orchestrator-inlined progressive-disclosure security depth, the mechanism P5 reuses); ADR-0017 (the SAST/SCA scanner family the policy-as-code/CSPM scanner joins)
@@ -86,8 +86,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   loop *offers to scaffold* the P1 task-zero artifacts but does not ship them.
 - **Bind P2's infra-flavor prose to a specific IaC tool** (Principle 1).
 - **Make the infra security pass skippable** — P5 is non-skippable, runs at both
-  spec stage and on the diff, and force-loads more than one `security-checklists`
-  module (Decision 6).
+  spec stage and on the diff, and force-loads the infra `security-checklists`
+  modules **1–N** (multi-module-capable, keyed on the routing table — not the
+  single discretionary module) (Decision 6).
 - Edit the projected copy (`.claude/skills/work-loop/SKILL.md`) directly —
   `make build-self` reverts it; the source is the fix point.
 
@@ -117,14 +118,14 @@ strategy the `work-loop-light-mode` spec used for the same class of change.
 
 ## Acceptance Criteria
 
-- [ ] **P1 — generalized preflight.** The PLAN verification-mode step states that
+- [x] **P1 — generalized preflight.** The PLAN verification-mode step states that
   picking a verification mode requires confirming the mechanism for that mode
   exists; if it does not, creating it is **task zero** (a precondition task, not
   an afterthought), and the loop offers to scaffold it. The obligation is
   explicitly **agnostic** (it applies to a missing test runner or build command
   as much as a missing smoke check) and explicitly **universal across light and
   full mode**.
-- [ ] **P1 — infra multi-artifact set.** For infra work the preflight enumerates
+- [x] **P1 — infra multi-artifact set.** For infra work the preflight enumerates
   the mechanism as a multi-artifact set, **each its own task-zero**: (a) a
   verify-status script, (b) a teardown script, (c) test-data / mock-user
   seeding, and (d) a provider-appropriate policy-as-code/CSPM scanner. The
@@ -132,7 +133,7 @@ strategy the `work-loop-light-mode` spec used for the same class of change.
   P2's static preflight (operational misconfig) and P5's security depth
   (security misconfig). The requirement is **mechanism-level, not tool-level**
   (a scanner must exist; the adopter picks Checkov / tfsec / cloud-native CSPM).
-- [ ] **P2 — infra/deploy verification flavor.** The PLAN verification-mode list
+- [x] **P2 — infra/deploy verification flavor.** The PLAN verification-mode list
   gains a fourth flavor, **infra/deploy**, whose contract is a layered GATES
   sequence rather than a single check: (1) static preflight (validate/lint/
   policy-as-code via the P1 scanner); (2) plan/preview (dry-run diff reviewed
@@ -145,10 +146,10 @@ strategy the `work-loop-light-mode` spec used for the same class of change.
   extension of the existing visual-manual-QA "exercise the real built artifact"
   doctrine; (5) rollback (the known-good re-apply path named *before* the first
   apply, since no atomic rollback exists).
-- [ ] **P2 — cross-link, no duplication.** The infra/deploy flavor cross-links to
+- [x] **P2 — cross-link, no duplication.** The infra/deploy flavor cross-links to
   the plan template's `## Rollout` section (deployment sequencing) and does not
   duplicate it; the flavor names *how we verify*, Rollout owns *the sequencing*.
-- [ ] **P4 — agent drives verification.** The loop states as harness-agnostic
+- [x] **P4 — agent drives verification.** The loop states as harness-agnostic
   doctrine that the agent runs the deploy and reads the real environment output
   itself, and names the **human-as-relay** pattern (a human pasting deploy errors
   back) as the anti-pattern. Claude Code primitives — background tasks for long
@@ -157,7 +158,7 @@ strategy the `work-loop-light-mode` spec used for the same class of change.
   **accelerant only, never a dependency** (matching how `/verify` and
   `/simplify` are treated); adapters without them lose the shortcut, not the
   doctrine.
-- [ ] **P5 — mandatory infra security.** Infra-flavored work **non-skippably**
+- [x] **P5 — mandatory infra security.** Infra-flavored work **non-skippably**
   invokes `security-reviewer` at **both** the spec stage (secure-design pass: is
   the control specified as an acceptance criterion at the right depth?) and on
   the diff — not via the discretionary security-boundary trigger. **"Infra-flavored"
@@ -171,23 +172,28 @@ strategy the `work-loop-light-mode` spec used for the same class of change.
   `supply-chain`), loaded 1–N as the diff warrants per the existing
   boundary→module routing table. This adds **no new reviewer and no new
   module** — it makes the *existing* security pass mandatory and multi-module.
-- [ ] **P5 — reviewer + scanner pair.** The prose states that `security-reviewer`
+  The prose names the **opt-out / missing-subagent interaction** explicitly:
+  the Profile-A opt-out still applies wholesale, but where `security-reviewer`
+  is in use the infra pass is not individually skippable and a missing
+  `security-reviewer` subagent on infra-flavored work is a loud blocker in the
+  summary, not a silent proceed.
+- [x] **P5 — reviewer + scanner pair.** The prose states that `security-reviewer`
   is **not** the per-provider depth source: it reasons from cross-cutting
   standards (OWASP / ASVS / CWE + STRIDE/LINDDUN) and catches failure *classes*,
   while per-provider secure-config depth comes from the P1-required policy-as-code/
   CSPM scanner (its rulesets *are* the provider baselines). Security on infra is
   a **pair**; neither substitutes for the other.
-- [ ] **No executable mechanism.** The change adds no new skill directory, no new
+- [x] **No executable mechanism.** The change adds no new skill directory, no new
   artifact/template format, and no executable code as the feature mechanism
   (ADR-0031 structural constraint). `loop-cohort.py` and `lint-spec-status.py`
   are byte-unchanged (empty `git diff` for both; the sibling
   `operational-safety-checklists` spec asserts the same guard — one `git diff`
   satisfies both in a combined PR).
-- [ ] **Projection + lint.** `make build-self` regenerates the projected
+- [x] **Projection + lint.** `make build-self` regenerates the projected
   `work-loop` SKILL.md cleanly; `make build-check`, `python
   tools/lint-agent-artifacts.py`, and `python tools/lint-agents-md.py` all pass
   (the latter two are not in `make build-check`; run by hand / in CI).
-- [ ] **Release hygiene.** `packs/core/pack.toml` version is bumped, the
+- [x] **Release hygiene.** `packs/core/pack.toml` version is bumped, the
   projected `marketplace.json` reflects it after `make build-self`, and
   `docs/product/changelog.md` carries an `[Unreleased]` entry for the work-loop
   behavior change.
