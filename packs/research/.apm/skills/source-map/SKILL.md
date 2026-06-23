@@ -1,6 +1,6 @@
 ---
 name: source-map
-description: Curate the authoritative sources for a topic before research begins. Surveys adjacent material to discover voices rather than asking the LLM directly who's authoritative — STORM's finding is that direct question-asking does not work well for source discovery. Produces `sources.md` grouping candidates by primacy (`primary` / `secondary` / `tertiary`). When invoked downstream of `/identify-perspectives`, groups sources by camp; in standalone invocations, skips the camp-grouping step. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for narrow surveys; `comprehensively`, `exhaustively`, `in depth`, `extensive` for thorough ones.
+description: Curate the authoritative sources for a topic before research begins. Surveys adjacent material to discover voices rather than asking the LLM directly who's authoritative — STORM's finding is that direct question-asking does not work well for source discovery. Produces `<topic-slug>-sources.md` grouping candidates by primacy (`primary` / `secondary` / `tertiary`). When invoked downstream of `/identify-perspectives`, groups sources by camp; in standalone invocations, skips the camp-grouping step. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for narrow surveys; `comprehensively`, `exhaustively`, `in depth`, `extensive` for thorough ones.
 ---
 
 # /source-map
@@ -54,10 +54,12 @@ three tertiary sources citing the same primary source count as one.
    inline.
 3. **Classify** — tag each surviving source by authority + recency +
    primacy.
-4. **Write `sources.md`** — group by primacy (primary first). In a
+4. **Write `<topic-slug>-sources.md`** — group by primacy (primary first). In a
    decision-pipeline invocation, sub-group within primacy by camp (the
-   upstream `perspectives.md` provides the camps).
-5. **Cite the rule** — `/research` will use `sources.md` to choose
+   upstream `<topic-slug>-perspectives.md` provides the camps). `<topic-slug>`
+   is the kebab-case topic slug; the naming rule lives in the `/research` skill
+   body (§ Typed, topic-named artifacts).
+5. **Cite the rule** — `/research` will use `<topic-slug>-sources.md` to choose
    which sources to triangulate against.
 
 ## Upstream / standalone behavior
@@ -65,16 +67,16 @@ three tertiary sources citing the same primary source count as one.
 `/source-map` runs in two shapes:
 
 - **Decision-pipeline invocation** — expects an upstream
-  `perspectives.md`. Sources are grouped by primacy *and* by camp, so
-  `/compare-hypotheses` downstream can pull camp-aligned sources per
+  `<topic-slug>-perspectives.md`. Sources are grouped by primacy *and* by camp,
+  so `/compare-hypotheses` downstream can pull camp-aligned sources per
   hypothesis.
-- **Standalone invocation** — no upstream `perspectives.md` required.
+- **Standalone invocation** — no upstream `<topic-slug>-perspectives.md` required.
   Sources grouped by primacy only; the camp-grouping step is skipped.
 
 The skill is **not** invoked by `/decision-archaeology`, which is self-
 contained. See that skill's body for why.
 
-## `sources.md` output schema
+## `<topic-slug>-sources.md` output schema
 
 ```markdown
 # Sources — <topic>
@@ -98,7 +100,7 @@ under `### Camp: <name>`.
 
 ## Citation discipline
 
-Every entry in `sources.md` carries a citation (the URL or local path).
+Every entry in `<topic-slug>-sources.md` carries a citation (the URL or local path).
 Notes about a source — its angle, its bias, its credibility — are
 marked `[synthesis]` when they integrate across sources or `[inference]`
 when they deduce from one.

@@ -77,6 +77,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   success. It is framed as waste reduction, not terseness for its own sake: the
   rationale, edge cases, and findings prose that review and the human actually read
   stay in.
+- **Research outputs are now named by topic and type (`research` pack, bumped
+  to `0.3.0`).** Episodic `/research` artifacts are written as
+  `<topic-slug>-<type>.md` (e.g. `oauth-pkce-survey.md`) instead of the generic
+  `research.md`, so two investigations in one working directory no longer
+  overwrite each other and a file's name says what it is — `survey`,
+  `fact-check`, `comparison-matrix`, `shortlist`, `blueprint`, `hypotheses`, or
+  `counterpoints`. The scoping skills (`source-map`, `build-outline`,
+  `identify-perspectives`, `decision-archaeology`) gain the same
+  `<topic-slug>-` prefix. Quick mode is unchanged (inline, no file). The former
+  name `research.md` is retained as a recognised legacy alias for one release.
 - **The `new-adr` skill and ADR template now follow MADR conventions
   (`governance-extras` pack, bumped to `0.2.0`).** The ADR template gains a
   `Rejected` status (a declined proposal is now kept as a record, not deleted)
