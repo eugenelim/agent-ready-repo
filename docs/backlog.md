@@ -932,3 +932,28 @@ the same directory on the same install — so it is a wasted side-effect, not a
 correctness or security defect. **Unblocks when:** someone wants the
 micro-optimization; fix by computing `layout_path` lazily or probing existence
 before the `user_state_path` call.
+
+### ml-saas-serverless-workload-class-lenses
+
+**Spec:** [agentic-well-architected-overlay](specs/agentic-well-architected-overlay/spec.md)
+(final AC; ADR-0032 / RFC-0042 D5). `rubric-well-architected.md` names four
+workload-class lenses — ML, GenAI/agentic, SaaS, serverless — but only
+GenAI/agentic is backed by a lens file. ADR-0032 widens and expands the
+GenAI/agentic overlay only; ML / SaaS / serverless stay **named-but-unbacked**
+(status quo), neither backed nor removed. **Unblocks when:** a future RFC takes
+on backing one of them with its own workload-class lens reference; until then
+the rubric names them as known, deferred gaps.
+
+### llm-agent-module-agentic-boundary-extension
+
+**Spec:** [agentic-well-architected-overlay](specs/agentic-well-architected-overlay/spec.md)
+(coverage-parity AC; ADR-0032). The agentic overlay names three security
+boundaries at design altitude that the `security-checklists` `llm-agent` control
+module does not yet enumerate — **execution isolation & blast radius**,
+**inter-agent identity/privilege propagation**, and **memory poisoning** (OWASP
+Agentic Top 10: tool misuse, identity/privilege abuse, memory poisoning). Until
+the module gains matching checks, the overlay routes these concerns out at
+design altitude and the `security-reviewer` reasons from cross-cutting standards
+(OWASP/STRIDE/LINDDUN) rather than module text. **Unblocks when:** the
+`llm-agent` module (RFC-0029 surface) is extended with Agentic-Top-10 checks for
+these three boundaries, closing the route-out destination gap.
