@@ -1,0 +1,21 @@
+[
+  {"query": "Let's write a spec for a new user-profile feature", "should_trigger": true},
+  {"query": "I want to spec out the new notification system before we build it", "should_trigger": true},
+  {"query": "Start a new feature for CSV export — I'd like a spec first", "should_trigger": true},
+  {"query": "Can you spec this out? We're adding rate limiting to the API", "should_trigger": true},
+  {"query": "Write a spec for the new search filters", "should_trigger": true},
+  {"query": "Let's spec the new onboarding flow", "should_trigger": true},
+  {"query": "We're about to build a webhook delivery feature — write the spec", "should_trigger": true},
+  {"query": "Create a spec for the dashboard widget feature", "should_trigger": true},
+  {"query": "I need a spec for the bulk-import capability", "should_trigger": true},
+
+  {"query": "Record the decision to use Postgres over MySQL", "should_trigger": false},
+  {"query": "Let's get the team's input on changing our deployment process", "should_trigger": false},
+  {"query": "Fix the bug where the login button does nothing", "should_trigger": false},
+  {"query": "This export is broken — diagnose and fix it", "should_trigger": false},
+  {"query": "We got a 40-page PRD from the client, break it into specs", "should_trigger": false},
+  {"query": "Bootstrap a brand-new repo for our CLI tool", "should_trigger": false},
+  {"query": "Decompose this product brief into shippable pieces", "should_trigger": false},
+  {"query": "Write a tutorial for how to use the export feature", "should_trigger": false},
+  {"query": "Refactor the payments module to reduce duplication", "should_trigger": false}
+]

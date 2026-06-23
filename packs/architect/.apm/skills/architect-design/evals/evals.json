@@ -1,0 +1,18 @@
+{
+  "skill_name": "architect-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Design the system the user asked for and produce the design doc.",
+      "expected_output": "A Google-style design doc with the sections in order — TL;DR (≤3 sentences), Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions — with Mermaid where structure helps. Alternatives are considered honestly (each rejected with a concrete reason), Non-goals do real scoping work, every named risk is paired with a mitigation, the rollout is reversible/staged, and the proposal reasons about the design (trade-offs, NFRs) rather than restating the request.",
+      "assertions": [
+        "Has all the required sections, in order (TL;DR, Context, Goals, Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions)",
+        "Non-goals do real scoping work, not filler",
+        "Considers at least two alternatives, each rejected with a concrete reason",
+        "Every named risk is paired with a mitigation",
+        "Proposes a reversible or staged rollout",
+        "Reasons about the design (trade-offs / NFRs), not just a restatement of the ask"
+      ]
+    }
+  ]
+}

@@ -26,6 +26,16 @@ version = "0.12"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
+# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# coverage allowlist. Each listed skill ships evals/eval_queries.json and is
+# measured by tools/run-pack-evals.py. Deliberately excluded:
+#   - security-checklists — reviewer-internal, never self-discovered (no
+#     user-prompt activation surface).
+#   - work-loop — loaded broadly by the plan→execute→review discipline, not by
+#     a narrow user-prompt surface; a clean negative set isn't writable for it.
+[pack.evals]
+skills = ["new-spec", "bug-fix", "receive-brief", "init-project", "adapt-to-project"]
+
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]

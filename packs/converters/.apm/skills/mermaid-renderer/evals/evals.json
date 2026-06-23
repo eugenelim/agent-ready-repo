@@ -45,6 +45,19 @@
         "Agent explains the next step is confluence-publisher with --input <rewritten>.md --attach <each image>",
         "Agent does not invoke confluence-publisher in this step (composition is the user's call)"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Bake the Mermaid diagram in diagram.md into a PNG.",
+      "expected_output": "The agent confirms mmdc (`render_mermaid.py --check`), then runs `python scripts/render_mermaid.py --input diagram.md --output-dir out`, which renders each fenced block to a PNG and writes a rewritten Markdown alongside, printing OUTPUT_DIR/REWRITTEN/DIAGRAMS. It reports the output directory.",
+      "files": ["evals/files/diagram.md"],
+      "assertions": [
+        "Agent invokes render_mermaid.py on diagram.md (does not hand-draw or fabricate the image)"
+      ],
+      "expect": {
+        "produces": ["out/mermaid-1.png", "out/diagram.md"],
+        "output_contains": ["DIAGRAMS:", "REWRITTEN:"]
+      }
     }
   ]
 }
