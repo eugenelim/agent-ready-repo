@@ -491,23 +491,42 @@ code ships** (sequenced as T13a below).
 **Architecture (reuse, don't fork).** Mirror Phase 2: the driver (documented
 procedure) does the agent dispatch + skill run in the sandbox and collects
 results; the runner keeps the model-free logic:
-- `run-pack-evals.py` gains `grade_behavior(pack_name, results, *, repo_root=…)`
-  — `results` is `{skill: {eval_id: {"files_ok": bool, "output_ok": bool,
-  "assertions": [bool,…], "errored": bool}}}` (deterministic-check outcomes +
-  the agent's per-assertion attestations) → a `mode: in-harness`,
-  `tier: B-lite`, `provenance: operator-attested` summary with pass/fail per
-  eval. Reuses `evals/evals.json` as the source of `id`/`prompt`/`files`/
-  `assertions`. **No model call; no skill execution in the runner** — the runner
-  only grades collected results.
-- a **sandbox helper** (`_seed_sandbox`) builds the ephemeral fixtures-only
-  workspace + returns its path; the *driver* runs the skill there.
+- `run-pack-evals.py` gains `grade_behavior(pack_name, results, *, workspaces,
+  repo_root=…)` where `results` carries **only operator-attested** semantic
+  verdicts `{skill: {eval_id: {"assertions": [bool,…], "errored": bool}}}` and
+  `workspaces` maps each `(skill, eval_id)` to the per-eval working dir the
+  driver ran the skill in. The runner **re-derives the deterministic
+  post-conditions itself** (Blocker 3): it reads each working dir and checks the
+  eval's `files` exist + the `expected_output` literal substrings — it does
+  **not** trust operator `*_ok` booleans. Pass iff (re-derived files+output ok)
+  **and** (all attested assertions hold); a malformed/contradictory `results`
+  **fails closed**. → `mode: in-harness`, `tier: B-lite`,
+  `provenance: operator-attested` summary. Reuses `evals/evals.json` for
+  `id`/`prompt`/`files`/`expected_output`/`assertions`. **No model call; no skill
+  execution in the runner.**
+- a **fixtures helper** (`_seed_workspace`) builds the per-eval working dir under
+  the OS temp root (`tempfile.mkdtemp`) and copies the eval's `evals/files/`
+  fixtures with path-confinement (`followlinks=False`, each resolved under the
+  fixtures root); the *driver* runs the skill there and tears it down in
+  `finally`. Containment is **procedure + scope-gate, not a mechanical sandbox**
+  (security-reviewer spec-stage finding) — only author-opted, non-destructive,
+  no-network/credential skills are eligible.
 - `--mode in-harness --check behavior --results <file>` selects it.
 
-### T13a: spec-stage security review of the sandbox (gate)
+### T13a: spec-stage security review of the sandbox (gate) — DONE
 
-**Depends on:** spec/E3 — **review.** A `security-reviewer` pass on the sandbox
-containment design (ephemeral workspace, fixtures-only, no secret/network/
-real-repo access, teardown) **before** any execution code. Done when: clean.
+**Depends on:** spec/E3 — **review.** A `security-reviewer` pass ran on the
+design **before** any execution code (2026-06-22). It returned **3 Blockers**:
+(1) a host-agent-run skill can't be mechanically sandboxed by a temp cwd (same
+cwd≠confinement truth as Phase 2) — the spec overclaimed a sandbox; (2) no
+enforceable env-scrub / deny-network / teardown primitives were named; (3) the
+`--results` handoff trusted operator `*_ok` booleans as "observed". **Resolved
+in-spec:** containment reframed as an honest **procedure + scope-gate** (only
+author-opted, non-destructive, no-network/credential skills), the runner
+**re-derives** the deterministic checks from the workspace, fail-closed on
+malformed results, and the enforceable slices (OS-temp dir, `finally` teardown,
+max-runtime, `followlinks=False` fixture confinement, scrubbed env when the
+runner spawns a script) are named as ACs. Design cleared on that basis.
 
 ### T13: runner `grade_behavior` + sandbox helper (model-free)
 

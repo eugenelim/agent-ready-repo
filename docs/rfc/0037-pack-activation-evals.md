@@ -277,20 +277,23 @@ inspects real artifacts**, so the deterministic post-conditions are *observed*;
 only the semantic-`assertion` verdicts are *self-attested* (lightweight, not an
 independent judge). Honest label: observed outputs + attested assertions.
 
-**Security — this REVERSES E2's containment control, and replaces it with
-sandboxing.** E2 forbade the dispatched sub-context from executing skill bodies
-or project tools (the `--allowed-tools Skill` sandbox "does not transfer"). The
-behavior check **must** execute the skill body (that is the whole point), so the
-"no execution" control is replaced by **isolated-workspace execution**: the
-skill runs in an **ephemeral temp workspace** seeded only with the eval's
-`evals/files/` fixtures — **no access to the real repo tree, no secrets/env, no
-network** (network only on an explicit per-eval opt-in for skills that genuinely
-require it), workspace **gitignored** and **torn down** after the run. The eval
-`prompt` is author-authored (the pack author's own fixture — trusted for a
-catalogue-internal dev tool), but the skill body running arbitrary tools is the
-new surface the sandbox confines. The follow-on spec must specify this as
-acceptance criteria (the new containment control), and a `security-reviewer`
-spec-stage pass must sign off the sandbox before the runner executes anything.
+**Security — this REVERSES E2's containment control.** E2 forbade the dispatched
+sub-context from executing skill bodies (the `--allowed-tools Skill` sandbox
+"does not transfer"); the behavior check **must** execute the skill body, which
+is the whole point. **The spec-stage `security-reviewer` pass (2026-06-22)
+established that a host agent running the skill keeps its full tool surface,
+cwd, inherited environment, and network — so a temp working directory is *not* a
+mechanical sandbox** (the same cwd-isn't-confinement truth as Phase-2 activation).
+The control is therefore honestly a **procedure + scope-gate**, not a sandbox
+guarantee: (1) a **scope gate** — only author-opted skills whose run is
+**non-destructive and needs no network/credentials** are eligible for B-lite (a
+destructive/egressing body waits for a real OS-level sandbox); (2) a **documented
+procedure** — run in an OS-temp working dir (`tempfile.mkdtemp`), confine writes
+to it, teardown in `finally` under a max-runtime; (3) **enforceable slices** —
+fixture-copy path-confinement (`followlinks=False`), and a **scrubbed,
+network-denied environment whenever the runner itself spawns a skill script**.
+The follow-on spec specifies these as acceptance criteria; a future real sandbox
+(container / separate user / netns) would lift the scope gate.
 
 **Unchanged / still out of scope:** Tier-A activation (headless + in-harness),
 the `[pack.evals]` model, the report-only posture, and — explicitly — the
