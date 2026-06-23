@@ -202,16 +202,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] **AC11 — Existing skills reused as phase operations, not rewritten.** The
   project skill bodies reference the seven existing skills in their phase roles:
   `research` (per-source episodic retrieval), `source-map` (populates `sources/`),
-  `build-outline` (seeds initial matrix columns), `identify-perspectives`
+  `build-outline` (seeds the *initial* matrix columns, which the digest's
+  emergent coding then overrides), `identify-perspectives`
   (perspective columns for contested topics), `compare-hypotheses` (**is**
   `hypotheses.md` for the adjudication shape), `devils-advocate` (run at
   synthesis), `decision-archaeology` (stays standalone). Verification: `rg`
   confirms the reuse mapping is documented in the project skill bodies; **and**
-  `git diff --stat origin/main` over the seven existing SKILL.md files is empty —
-  because `research-typed-artifacts` ships first (separate PR), its topic-slug
-  rename is already on `main` at this spec's review time, so this PR adds **no**
-  change to the seven existing skills (the negative — no project-phase logic
-  injected — is checked against `origin/main`, not merely asserted).
+  the diff over the seven existing SKILL.md files is empty against the spec's
+  **effective base** — once `research-typed-artifacts` has merged to `main`
+  that base is `origin/main`; while this PR is stacked on the (not-yet-merged)
+  `research-typed-artifacts` branch, the negative is checked against that branch
+  (`git diff --stat research-typed-artifacts` over the seven skills is empty),
+  since `origin/main` still carries the pre-rename bodies. Either way the
+  negative — no project-phase logic injected into the seven skills — is
+  **checked, not merely asserted**.
 
 - [x] **AC12 — RFC `NNNN-notes/` companion convention documented.** The
   convention that an RFC may carry an `NNNN-notes/` companion folder for promoted
