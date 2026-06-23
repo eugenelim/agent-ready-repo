@@ -1,0 +1,21 @@
+[
+  {"query": "Fetch the Jira Align epic with ID 4521", "should_trigger": true},
+  {"query": "Update this feature in Jira Align", "should_trigger": true},
+  {"query": "List all portfolios in Jira Align", "should_trigger": true},
+  {"query": "Export Jira Align capabilities as CSV with an OData $filter", "should_trigger": true},
+  {"query": "Create a new program record in Jira Align", "should_trigger": true},
+  {"query": "Get the themes under portfolio 12 in Jira Align", "should_trigger": true},
+  {"query": "Paginate through all Jira Align features with $filter and $select", "should_trigger": true},
+  {"query": "Update the status of this Jira Align capability", "should_trigger": true},
+  {"query": "Pull the team records from Jira Align as JSONL", "should_trigger": true},
+
+  {"query": "Fetch the Jira issue PROJ-100", "should_trigger": false},
+  {"query": "Search Jira with JQL for open bugs", "should_trigger": false},
+  {"query": "Create a Jira issue for this bug", "should_trigger": false},
+  {"query": "What's the cycle time for program 42?", "should_trigger": false},
+  {"query": "Roll up flow metrics across the portfolio", "should_trigger": false},
+  {"query": "Turn this epic into shippable specs", "should_trigger": false},
+  {"query": "Fix the defect in PROJ-55", "should_trigger": false},
+  {"query": "Compare flow metrics across the program to pre-AI", "should_trigger": false},
+  {"query": "Publish the portfolio summary to Confluence", "should_trigger": false}
+]

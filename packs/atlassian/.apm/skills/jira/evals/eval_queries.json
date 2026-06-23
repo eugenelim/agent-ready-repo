@@ -1,0 +1,23 @@
+[
+  {"query": "Search Jira for all open bugs in PROJ with JQL", "should_trigger": true},
+  {"query": "Create a Jira issue for the login regression", "should_trigger": true},
+  {"query": "Update the status of PROJ-42 to In Progress", "should_trigger": true},
+  {"query": "Add a comment to PROJ-15", "should_trigger": true},
+  {"query": "Export all issues in the Foo project as CSV", "should_trigger": true},
+  {"query": "Fetch the details of issue PROJ-100", "should_trigger": true},
+  {"query": "Transition PROJ-7 to Done", "should_trigger": true},
+  {"query": "List all projects in our Jira instance", "should_trigger": true},
+  {"query": "Pull every ticket assigned to me as JSONL", "should_trigger": true},
+  {"query": "Look up the user account for jdoe in Jira", "should_trigger": true},
+
+  {"query": "Diagnose and ship a fix for the defect in PROJ-90", "should_trigger": false},
+  {"query": "List all features under Jira Align program 42", "should_trigger": false},
+  {"query": "Turn PROJ-100 into shippable specs", "should_trigger": false},
+  {"query": "Decompose this Jira epic into a product brief", "should_trigger": false},
+  {"query": "Fix the bug in PROJ-123 end to end", "should_trigger": false},
+  {"query": "Fetch this Jira Align portfolio epic", "should_trigger": false},
+  {"query": "Mirror our Confluence space to Markdown", "should_trigger": false},
+  {"query": "Publish this report to a Confluence page", "should_trigger": false},
+  {"query": "Compare our flow metrics to last quarter", "should_trigger": false},
+  {"query": "How should we architect the issue-tracker integration?", "should_trigger": false}
+]

@@ -1,6 +1,6 @@
 [pack]
 name = "contracts"
-version = "0.3.2"
+version = "0.3.3"
 description = "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract). User-scope default — contract style is portable across projects."
 readme = "README.md"
 display_name = "Contracts"
@@ -20,6 +20,13 @@ allowed-scopes = ["user", "repo"]
 # are admitted for credentialed CLIs now that both declare `.agentbundle/`
 # in `allowed-prefixes.user` (the § 4d precondition). Append-only.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# the Tier-A activation-eval coverage allowlist. Each listed skill ships
+# evals/eval_queries.json and is measured by tools/run-pack-evals.py. Both
+# skills are user-prompt-triggered, so none are excluded.
+[pack.evals]
+skills = ["api-contract", "event-contract"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

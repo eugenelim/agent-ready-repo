@@ -328,3 +328,76 @@ is green). **Note:** `user-guide-diataxis` is `default-scope = "repo"` and is
 self-host-projected — like `core` / `governance-extras`, not like the
 user-scope `design-craft` — so the added eval files **do** project into
 `.claude/` and `.agents/`, and `make build-check` is the gate that covers them.
+
+## 11. Tier-A activation backfill — architect / product-engineering / contracts / figma / atlassian, 2026-06-23
+
+Five packs already carried a layer above (LLM-judge rubrics for `architect`
+and `product-engineering`) or are credentialed/backend skills, but had skipped
+the cheaper **Tier-A activation** layer underneath. This rollout adds
+`evals/eval_queries.json` (~9–10 should-trigger + ~9–10 near-miss
+should-NOT-trigger each) and a `[pack.evals]` block to every user-prompt-triggered
+skill across all five — **activation only**; the existing `evals/evals.json`
+judge rubrics were left untouched:
+
+| pack | skills covered | version |
+| --- | --- | --- |
+| architect | architect-design, architect-diagram, architect-review (3) | 0.7.0 → 0.7.1 |
+| product-engineering | frame-intent, de-risk-intent, decompose-intent, align-value-stream, voice-and-microcopy (5) | 0.5.0 → 0.5.1 |
+| contracts | api-contract, event-contract (2) | 0.3.2 → 0.3.3 |
+| figma | figma (1) | 0.1.3 → 0.1.4 |
+| atlassian | jira, jira-align, jira-brief-intake, jira-defect-flow, flow-metrics, confluence-crawler, confluence-publisher, ai-adoption-report (8) | 0.3.0 → 0.3.1 |
+
+No exclusions: unlike `core` (`work-loop` / `security-checklists` are not
+user-prompt-triggered), all 19 skills here fire on a user prompt. The
+highest-value near-misses are **sibling mis-routing within each pack** — the
+tightly-clustered `atlassian` (8) and `product-engineering` (5) sets carry a
+deliberate chunk of negatives that route to a *sibling*, not just to an
+unrelated prompt: e.g. "show me sprint cycle time" → `flow-metrics` not `jira`;
+"publish this page to Confluence" → `confluence-publisher` not
+`confluence-crawler`; "compare our flow metrics to pre-AI" → `ai-adoption-report`
+not `flow-metrics`; "turn PROJ-100 into specs" → `jira-brief-intake` not `jira`;
+"test whether this bet holds" → `de-risk-intent` not `frame-intent`.
+
+**Credentialed packs need NO backend credentials.** Activation is observed at
+the **Skill-router level before the skill body runs**, so a Figma/Atlassian
+login is irrelevant to whether the skill fires — the evals are written and run
+normally. (Repeatable *behavior* testing of a backend skill still needs
+cassettes / a test backend, which stays future-Tier-B-RFC scope.)
+
+### Bounded headless spot-check (live, `claude` 2.1.185 on PATH)
+
+A full sweep is `pack-evals.yml`'s job; this PR ran one bounded headless check
+to validate the new content end-to-end. An ephemeral 2-skill mini-pack
+(`flow-metrics` + `jira`, so intra-pack exclusivity is observable) with a
+trimmed 3-query `flow-metrics` set, `--mode headless --runs 1`:
+
+| query | should_trigger | observed trigger_rate | graded |
+| --- | --- | --- | --- |
+| "What's our cycle time this quarter for PROJ?" | true | 1.00 | pass |
+| "Give me throughput and WIP for the Foo team" | true | 1.00 | pass |
+| "Search Jira for all open bugs in PROJ with JQL" | false | 0.00 | pass |
+
+All three graded correctly: `flow-metrics` fires on the two metrics prompts and
+stays quiet on the Jira-search near-miss (which correctly fired `jira` instead).
+The runner **also flagged `jira` co-firing** on the two metrics prompts (the
+`⚠ also fired: jira` intra-pack-exclusivity signal) — expected, since `jira`'s
+description spans broad Jira data access and "cycle time for PROJ" reads as a
+Jira query too. This is exactly the report-only calibration signal the harness
+exists to produce; it is **not** a grade failure for `flow-metrics` (the
+per-skill activation grade is whether *that* skill fired, and it did) and **not**
+a blocker for this PR. The mini-pack was deleted after the run.
+
+**Authoring consequence for `jira`'s negatives (adversarial-review finding).**
+Because `jira` is the broad catch-all skill, it over-fires on *bare metrics
+phrasings* — so reusing `flow-metrics`'s positive strings verbatim as `jira`
+negatives would assert `jira`-quiet on a prompt the spot-check shows `jira`
+fires. The `metrics → flow-metrics` routing is already exercised by
+`flow-metrics`'s own positive set (proven above); `jira`'s near-miss negatives
+therefore favor **workflow-outcome** asks — "diagnose and ship a fix" →
+`jira-defect-flow`, "decompose this epic into specs" → `jira-brief-intake`,
+"list features under a Jira Align program" → `jira-align`, "publish to
+Confluence" → `confluence-publisher`, "how should we architect…" →
+`architect-design` — where the user clearly wants a *different* skill than raw
+issue CRUD, rather than metrics strings that collide with `flow-metrics`. The
+broader `jira`-vs-metrics over-trigger is a known calibration item for the
+scheduled `pack-evals.yml` sweep, not a per-PR gate. `make build-check` is green.

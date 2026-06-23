@@ -1,0 +1,21 @@
+[
+  {"query": "Draw a diagram of how the payment flow works", "should_trigger": true},
+  {"query": "Show me a C4 container view of our platform", "should_trigger": true},
+  {"query": "Diagram the state machine for an order's lifecycle", "should_trigger": true},
+  {"query": "Can you draw a sequence diagram for the login flow?", "should_trigger": true},
+  {"query": "I need an ER diagram for the subscription tables", "should_trigger": true},
+  {"query": "Sketch the deployment topology across our AWS accounts", "should_trigger": true},
+  {"query": "Show me a flowchart of the CI pipeline", "should_trigger": true},
+  {"query": "Diagram the data flow from ingestion to the dashboard", "should_trigger": true},
+  {"query": "Draw the bounded contexts for our checkout domain", "should_trigger": true},
+
+  {"query": "How should we design the payment flow?", "should_trigger": false},
+  {"query": "What's the right architecture for the order system?", "should_trigger": false},
+  {"query": "Review this sequence diagram and tell me what's wrong", "should_trigger": false},
+  {"query": "Is this C4 diagram any good?", "should_trigger": false},
+  {"query": "Write a design doc for the deployment topology", "should_trigger": false},
+  {"query": "Build me a comparison table of the message-queue options", "should_trigger": false},
+  {"query": "Generate an OpenAPI spec for the payments API", "should_trigger": false},
+  {"query": "Render this Figma frame to PNG", "should_trigger": false},
+  {"query": "Create a slide deck explaining the architecture", "should_trigger": false}
+]

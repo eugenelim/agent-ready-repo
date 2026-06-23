@@ -1,0 +1,21 @@
+[
+  {"query": "What's our cycle time this quarter for PROJ?", "should_trigger": true},
+  {"query": "Give me throughput and WIP for the Foo team", "should_trigger": true},
+  {"query": "Compute lead time and flow efficiency for the last sprint", "should_trigger": true},
+  {"query": "Show me the rework rate for PROJ over Q4", "should_trigger": true},
+  {"query": "Roll up flow metrics across program 42", "should_trigger": true},
+  {"query": "Compare flow efficiency before and after the AI-pairing rollout via a cohort split", "should_trigger": true},
+  {"query": "What's our flow distribution across feature/defect/debt?", "should_trigger": true},
+  {"query": "Calculate the defect ratio for the Bar team this quarter", "should_trigger": true},
+  {"query": "Give me DORA metrics over the PROJ scope", "should_trigger": true},
+
+  {"query": "How do our flow metrics now compare to pre-AI?", "should_trigger": false},
+  {"query": "Roll up the comparison report across all teams in the program", "should_trigger": false},
+  {"query": "Search Jira for open issues", "should_trigger": false},
+  {"query": "Create a Jira issue", "should_trigger": false},
+  {"query": "Stream real-time deployment metrics to a live dashboard", "should_trigger": false},
+  {"query": "Fetch this Jira Align epic", "should_trigger": false},
+  {"query": "Fix the defect PROJ-123", "should_trigger": false},
+  {"query": "Turn this epic into specs", "should_trigger": false},
+  {"query": "What's our change failure rate and MTTR from deploy events?", "should_trigger": false}
+]

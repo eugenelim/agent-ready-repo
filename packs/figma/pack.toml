@@ -1,6 +1,6 @@
 [pack]
 name = "figma"
-version = "0.1.3"
+version = "0.1.4"
 description = "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid."
 readme = "README.md"
 display_name = "Figma"
@@ -20,6 +20,14 @@ allowed-scopes = ["user", "repo"]
 # are admitted for credentialed CLIs now that both declare `.agentbundle/`
 # in `allowed-prefixes.user` (the § 4d precondition). Append-only.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# the Tier-A activation-eval coverage allowlist. The skill ships
+# evals/eval_queries.json and is measured by tools/run-pack-evals.py.
+# Activation is observed at the Skill-router level before the skill body
+# runs, so no Figma credentials are needed to measure it.
+[pack.evals]
+skills = ["figma"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

@@ -1,0 +1,21 @@
+[
+  {"query": "How do our flow metrics now compare to pre-AI?", "should_trigger": true},
+  {"query": "Within Q4, did AI-tagged tickets behave differently from untagged?", "should_trigger": true},
+  {"query": "What does Q4 look like across all teams in the program?", "should_trigger": true},
+  {"query": "Compare these two flow-metrics JSON outputs into a report", "should_trigger": true},
+  {"query": "Produce a baseline comparison report from before and after the AI rollout", "should_trigger": true},
+  {"query": "Run a cohort split: AI vs control within this window", "should_trigger": true},
+  {"query": "Roll up the flow-metrics comparison across all program scopes", "should_trigger": true},
+  {"query": "Generate the AI-adoption Markdown report from these metrics files", "should_trigger": true},
+  {"query": "Compare our cycle time before and after adopting Copilot", "should_trigger": true},
+
+  {"query": "Compute our cycle time this quarter for PROJ", "should_trigger": false},
+  {"query": "Give me throughput and WIP for the team", "should_trigger": false},
+  {"query": "Calculate the rework rate over Q4", "should_trigger": false},
+  {"query": "Search Jira for AI-tagged tickets", "should_trigger": false},
+  {"query": "Fetch the flow metrics for program 42", "should_trigger": false},
+  {"query": "Publish the comparison report to Confluence", "should_trigger": false},
+  {"query": "Fix the defect PROJ-123", "should_trigger": false},
+  {"query": "Turn this epic into specs", "should_trigger": false},
+  {"query": "Fetch this Jira Align portfolio", "should_trigger": false}
+]

@@ -1,0 +1,21 @@
+[
+  {"query": "Set up a value-stream meta-repo for our program", "should_trigger": true},
+  {"query": "How do we coordinate delivery across our component repos?", "should_trigger": true},
+  {"query": "Stand up the cross-component Backstage catalog", "should_trigger": true},
+  {"query": "Where should the shared contract between our services live?", "should_trigger": true},
+  {"query": "Is the checkout feature delivered across all the repos yet?", "should_trigger": true},
+  {"query": "Roll up delivery status across the whole value stream", "should_trigger": true},
+  {"query": "We need one place for the cross-repo C4 architecture", "should_trigger": true},
+  {"query": "Create the coordinating repo for our polyrepo program", "should_trigger": true},
+  {"query": "Track this feature's rollout across every component repo", "should_trigger": true},
+
+  {"query": "Decompose this intent into a single repo's brief", "should_trigger": false},
+  {"query": "Shape the intent for the new capability", "should_trigger": false},
+  {"query": "Break this down into shippable specs", "should_trigger": false},
+  {"query": "Test whether the program bet holds", "should_trigger": false},
+  {"query": "Write a spec for the checkout feature", "should_trigger": false},
+  {"query": "Diagram our microservice topology", "should_trigger": false},
+  {"query": "Set up a brand-new repo for our CLI tool", "should_trigger": false},
+  {"query": "What should the cross-repo dashboard's empty state say?", "should_trigger": false},
+  {"query": "Crawl our Confluence space into Markdown", "should_trigger": false}
+]

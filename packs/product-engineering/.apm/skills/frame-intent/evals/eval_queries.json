@@ -1,0 +1,21 @@
+[
+  {"query": "Shape this idea into an intent before we spec it", "should_trigger": true},
+  {"query": "What's the intent behind the new referral program?", "should_trigger": true},
+  {"query": "Frame the problem we're actually solving with notifications", "should_trigger": true},
+  {"query": "Before we build the loyalty feature, let's get the intent down", "should_trigger": true},
+  {"query": "Turn this rough request into a product brief", "should_trigger": true},
+  {"query": "Help me articulate the outcome we want from the onboarding redesign", "should_trigger": true},
+  {"query": "We have a strategy doc — frame the capability intent from it", "should_trigger": true},
+  {"query": "Write a PRD-style intent for self-serve signup", "should_trigger": true},
+  {"query": "What outcome and opportunity are we chasing with the new dashboard?", "should_trigger": true},
+
+  {"query": "Test whether this bet holds before we build it", "should_trigger": false},
+  {"query": "What's the riskiest assumption in this intent?", "should_trigger": false},
+  {"query": "Break this intent down into shippable specs", "should_trigger": false},
+  {"query": "Slice this capability into child intents", "should_trigger": false},
+  {"query": "Should we validate this assumption or just build it?", "should_trigger": false},
+  {"query": "What should this error message say?", "should_trigger": false},
+  {"query": "Set up a value-stream meta-repo for the program", "should_trigger": false},
+  {"query": "Write the spec for the referral feature", "should_trigger": false},
+  {"query": "Fix the broken signup redirect", "should_trigger": false}
+]
