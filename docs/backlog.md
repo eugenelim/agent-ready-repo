@@ -760,10 +760,12 @@ than a documented accepted-state.
 ### pack-eval-coverage-rollout
 
 **Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md). Eval
-coverage today: **`core`** (5 skills, Tier-A activation) and **`converters`**
-(6 skills, Tier-A activation **+** Tier-B-lite behavior, all 6 run for real).
-Every other pack has **no eval coverage yet**. Remaining work, tiered by what it
-needs:
+coverage today: **`core`** (5 skills, Tier-A activation), **`converters`**
+(6 skills, Tier-A activation **+** Tier-B-lite behavior, all 6 run for real),
+and **Tier-4 LLM-judge rubrics** for all of **`architect`** (3 skills) and
+**`product-engineering`** (5 skills) — `expected_output` + `assertions` per
+skill, gradable via `--mode judge`. Every other pack has **no eval coverage
+yet**. Remaining work, tiered by what it needs:
 
 - **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
   no deps/execution).** ~35 user-triggered skills across `architect` (3),
@@ -787,7 +789,10 @@ needs:
   (RFC-0037 § Errata E4, `--mode judge`, config-driven multi-adapter) — so the
   remaining work here is **(a)** a per-skill **lens map** (point each skill at
   the right rubric / reviewer lens — e.g. `architect-review` for `architect-design`),
-  authoring the `expected_output`/`assertions` rubrics, and **(b)** the **full
+  authoring the `expected_output`/`assertions` rubrics — **done for all of
+  `architect` (3) and `product-engineering` (5)**; remaining for `research`,
+  `design-craft`, `governance-extras`, `new-guide`, `new-package`, and `core`'s
+  judgment skills — and **(b)** the **full
   Tier-B** pieces still deferred: `benchmark.json` **deltas**, the
   **with/without-skill** comparison, the **train/validation split**, and the
   formal **human-calibration** (`feedback.json`) loop. *(Note: `contracts` and

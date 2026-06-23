@@ -184,3 +184,24 @@ The judge **discriminates quality** (affirms the good, fails the solution-brief)
 proving the workflow for these packs: author a rubric → `--mode judge
 --artifacts {skill: {eval_id: <artifact>}}`. Backend/model is configurable
 (`--judge-adapter` / `--model`); report-only.
+
+**Rollout to the rest of both packs (2026-06-22).** Every judgment skill in
+`architect` (3) and `product-engineering` (5) now ships a rubric matched to its
+own discipline:
+
+| pack | skill | rubric grades |
+| --- | --- | --- |
+| architect | architect-design | Google-style design-doc quality |
+| architect | architect-diagram | notation routing, structural discipline, grounded names |
+| architect | architect-review | verdict form, severity-ordered actionable findings, grounded claims |
+| product-engineering | frame-intent | outcome (not solution), opportunity, level/scale, stops at intent |
+| product-engineering | de-risk-intent | reversibility triage, riskiest assumption, predeclared kill condition, verdict |
+| product-engineering | decompose-intent | one level, shippability cut, recorded decision, Scale-correct projection |
+| product-engineering | align-value-stream | federated catalog, contract home, single architecture, AND-rollup, currency |
+| product-engineering | voice-and-microcopy | blame-free errors, next-action, verb+object CTAs, terminology consistency |
+
+Two of the new rubrics were spot-checked live with good-vs-weak artifacts to
+confirm they discriminate: `architect-review` (a proper severity-tagged critique
+**PASS** / a "looks good, consider scalability" hand-wave **FAIL**) and
+`voice-and-microcopy` (blame-free + actionable copy **PASS** / "You entered an
+invalid code" / "Submit" / "Nothing here" **FAIL**). All 8 rubrics lint clean.
