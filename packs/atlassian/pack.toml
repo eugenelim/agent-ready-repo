@@ -1,6 +1,6 @@
 [pack]
 name = "atlassian"
-version = "0.3.0"
+version = "0.3.1"
 description = "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, and jira-brief-intake workflows that compose them."
 readme = "README.md"
 display_name = "Atlassian"
@@ -23,6 +23,16 @@ allowed-scopes = ["user", "repo"]
 # § 4d precondition); the consumer skills resolve the broker from
 # `~/.agentbundle/bin/`. Append-only (RFC-0011 declared-order).
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# the Tier-A activation-eval coverage allowlist. Each listed skill ships
+# evals/eval_queries.json and is measured by tools/run-pack-evals.py.
+# Activation is observed at the Skill-router level before the skill body runs,
+# so the credentialed CLI / backend login is irrelevant to whether the skill
+# fires — no Atlassian credentials are needed to measure these (Tier-A only;
+# behavior testing of a backend skill is future-Tier-B-RFC scope, see the spec).
+[pack.evals]
+skills = ["jira", "jira-align", "jira-brief-intake", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
