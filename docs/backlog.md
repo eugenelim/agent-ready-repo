@@ -899,3 +899,16 @@ disposable **test backend / sandbox tenant** with broker-provisioned test
 credentials. **Unblocks when:** the full Tier-B grading RFC (LLM-judge / deltas)
 takes this on, or a maintainer wants backend-skill behavior coverage sooner; it
 is out of scope for the lightweight B-lite check.
+
+### layout-append-user-scope-no-op-dir-side-effect
+
+**Spec:** [consolidated-pack-layout](specs/consolidated-pack-layout/spec.md) (T2,
+diff-stage security-review Nit). In `_append_layout_section` at user scope,
+`safety.user_state_path(home=root)` runs (creating/probing `~/.agentbundle/` at
+0o700) *before* the `layout_path.exists()` never-create check, so a pack with no
+user-scope layout file triggers the dot-directory creation even on the no-op
+path. **Harmless today** — the marker append (`_append_install_marker`) creates
+the same directory on the same install — so it is a wasted side-effect, not a
+correctness or security defect. **Unblocks when:** someone wants the
+micro-optimization; fix by computing `layout_path` lazily or probing existence
+before the `user_state_path` call.

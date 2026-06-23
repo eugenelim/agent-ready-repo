@@ -80,10 +80,73 @@ If any check fails, push back rather than proceeding.
    the pass cap / stasis escape. **Never auto-resolve a judgment finding** —
    surface the tradeoff / risk / low-confidence calls as explicit decisions.
 
-7. **Offer to save.** Scan the working directory for an obvious home —
-   `docs/design/`, `design/`, `architecture/`, or `docs/`. Suggest a
-   kebab-case filename based on the doc's title. If nothing fits, ask
-   the user where it should go. Saving is an offer, never automatic.
+7. **Offer to save — config-driven, per-effort folder.** Resolve where the
+   design effort lands, in this order, **in this skill body**. Reading is
+   **prompt-only** (Charter Principle 3): this skill reads a file and
+   reasons about a path — there is no engine, index, daemon, or watcher
+   behind it, and the only code that ever *writes* the layout file is the
+   install-time append. See
+   [`references/agentbundle-layout.md`](references/agentbundle-layout.md)
+   for the `[architect]` section's full schema.
+
+   **Resolution order:**
+
+   a. **Read `agentbundle-layout.toml`'s `[architect]` table** if the
+      adopter created one. Two locations, **repo-root overrides user-profile
+      per table**: the repo-root `./agentbundle-layout.toml` `[architect]`
+      table if present, else the user-profile
+      `~/.agentbundle/agentbundle-layout.toml` `[architect]` table. The
+      file is **adopter-owned**, never shipped into a projected path. Its
+      `parent` key is a **base** directory under which each design effort
+      gets its own topic-named folder — never the leaf the effort lands in:
+
+      ```toml
+      # agentbundle-layout.toml (adopter-created; optional)
+      [architect]
+      parent = "docs/design"   # a base; per-effort folders are created under it
+      ```
+
+   b. **Fall back to the scan-then-elicit default** when no `[architect]`
+      section resolves: scan the working directory for an obvious home —
+      `docs/design/`, `design/`, `architecture/`, or `docs/` — and use the
+      first that exists. If nothing fits, ask the user where the effort
+      should live. The scan default base is `docs/design` (the pack's
+      `[pack.layout.repo]` default).
+
+   **Once the base is resolved**, each design effort gets its own
+   **per-effort folder**: `<parent>/<topic-slug>/` where `<topic-slug>` is a
+   short (~2–5 word) kebab-case slug derived from the design doc's title.
+   The design doc, diagrams, and notes all go inside that folder — not as
+   a loose file beside it. This is a change from the old single-file output;
+   the schema doc at `references/agentbundle-layout.md` documents the shift.
+
+   **Anchor `parent` by the layout file's own location**, never against the
+   ambient cwd: a **repo-root** file's `parent` is **repo-root-relative**
+   (an absolute value is permitted but warn it as non-portable); a
+   **user-profile** file's `parent` **must be an explicit absolute path**
+   (`~`-anchored is fine), and a *relative* value there is an Ask-first
+   deviation, never silently resolved.
+
+   **Resolve, then surface, then write.** After anchoring, resolve `parent`
+   to its **full absolute path** — `~`-expand it and **realpath-resolve it**
+   so any symlink in the path is made visible and never silently followed
+   out of the intended root — and **reject any `..` escape**. The `..`
+   rejection and the realpath happen **after** anchoring, so a relative
+   repo-file value that escapes via `..` (e.g. `parent = "../../etc"`) is
+   caught regardless of which file supplied it; anchoring never blesses a
+   `..`-bearing value as in-tree. Then **surface the resolved absolute path
+   to the adopter before creating the effort folder** — the first write is
+   always preceded by the path you are about to write under.
+
+   **A repo-root-sourced `parent` that resolves outside the repo tree** —
+   or whose resolution required following a symlink out of the intended root
+   — is **untrusted-origin**: a cloned, untrusted repo can carry a hostile
+   `parent` (`../../etc`, `~/.ssh`, an out-of-tree symlink). **Confirm the
+   resolved absolute path with the adopter before writing.** The user-profile
+   file is foot-gun-only (the adopter authored it), but still surface its
+   resolved path.
+
+   Saving is an offer, never automatic.
 
 8. **Decision-moment prompt.** If the doc captures one or more discrete
    decisions (technology choice, structural commitment, interface
