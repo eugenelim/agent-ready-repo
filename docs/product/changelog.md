@@ -19,6 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Agentic well-architected overlay, applied at design time (architect
+  0.7.1 → 0.8.0; ADR-0032 / RFC-0042).** Designing an agentic system — one
+  that uses tools, takes autonomous action, or runs an agent loop — now gets
+  the GenAI/agentic well-architected overlay **by construction**, not only when
+  a reviewer later runs well-architected mode. `architect-design`'s Stage 0
+  gains a **workload-class** routing axis alongside its provider axis: an
+  agentic concept loads the shared `lens-genai-agentic.md` overlay (and, on a
+  named cloud, the provider pillars too — the axes are orthogonal). The shared
+  lens is reorganised into a **progressive, capability-tiered** taxonomy —
+  Tier A (the LLM is on the path) → Tier B (the system acts) → Tier C (the
+  agent persists or collaborates) — so a plain RAG/chat design applies only the
+  baseline tier while a multi-agent system with spend authority applies all
+  three. Tier B makes the trust triad first-class — **human oversight,
+  intent verification, and auditable action trails** — alongside tool-use
+  authorization, tool/MCP source provenance, output handling, execution
+  isolation, and reliability under non-determinism; Tier C adds memory & context
+  integrity, sub-agent provenance, and inter-agent identity/privilege
+  propagation. Graduated autonomy is framed as engineering judgment bounded by
+  irreversibility and blast radius, never a standards mandate. Design time and
+  review time consume **one shared lens file**, so the two never diverge.
+  Security-boundary concerns name the boundary at design altitude and route
+  control-level verification to `security-reviewer` / `security-checklists`
+  (`llm-agent`). Prose only — no new reviewer, skill, or tooling ships.
 - **`operational-safety` reference library for infra/destructive work (core
   0.4.12 → 0.4.13; RFC-0041 P3 / ADR-0031).** Infrastructure and destructive
   operational work now gets a first-class operational-safety depth library — a
