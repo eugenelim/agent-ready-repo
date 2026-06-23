@@ -94,6 +94,19 @@
         "Agent does NOT propose to manually downscale the image with PIL or ImageMagick first",
         "Agent does NOT propose to call split_image.py with custom --max-source-dim unless the user asks for a different limit"
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "Convert sample.docx to Markdown.",
+      "expected_output": "The agent confirms Docling (`python -c 'import docling'`), then runs `python scripts/convert.py sample.docx`, which extracts the text via Docling and writes `sample.md` alongside, printing OUTPUT/LINES/WORDS. It reports the output path.",
+      "files": ["evals/files/sample.docx"],
+      "assertions": [
+        "Agent invokes `python scripts/convert.py sample.docx` (Docling text extraction, not a hand transcription)"
+      ],
+      "expect": {
+        "produces": ["sample.md"],
+        "output_contains": ["OUTPUT:", "WORDS:"]
+      }
     }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "skill_name": "align-value-stream",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Stand up (or bring current) the value-stream meta-repo for a polyrepo product org.",
+      "expected_output": "A value-stream meta-repo holding only cross-cutting artifacts (no application code): a federated Backstage catalog that references each component's own catalog-info.yaml rather than copying it; a settled home for the shared contract (the choice named with alternatives), where each per-component brief references contract@version with a read-only courier snapshot; a single C4 / bounded-context architecture that component repos link to; and a cross-component delivery rollup that is an AND across rows, where an absent-source row reads as unknown/not-yet-catalogued rather than silently delivered. Currency is treated as the spine.",
+      "assertions": [
+        "Holds only cross-cutting artifacts — no application code lives in the meta-repo",
+        "Federates the catalog — references each component's catalog-info.yaml rather than re-authoring or copying it",
+        "Settles where the shared contract lives (choice named with alternatives); each brief references contract@version with a read-only snapshot, not attach-as-authority",
+        "Anchors a single C4 / bounded-context architecture that component repos link to",
+        "Rollup is an AND across rows; an absent-source row reads as unknown/not-catalogued, never silently delivered",
+        "Treats currency as the spine — addresses the stale-map failure mode"
+      ]
+    }
+  ]
+}

@@ -13,6 +13,11 @@ docs/specs/**/state.json
 # Implementer reports — session-scratch.
 docs/specs/**/notes/implementer-*.md
 
+# Pack activation-eval run artifacts (tools/run-pack-evals.py). Captured run
+# outputs + activation summaries are run artifacts, not pack source — never
+# committed to history.
+.eval-workspace/
+
 # Personal Claude Code overrides.
 CLAUDE.local.md
 .claude/settings.local.json
@@ -23,6 +28,14 @@ AGENTS.local.md
 *.swp
 .vscode/
 .idea/
+
+# npm install artifacts — a skill's `## Prerequisites` may install Node deps
+# in-place (e.g. markdown-to-html's `marked`/`highlight.js`); its SKILL.md tells
+# adopters to gitignore them. Honour that so the skill's own install step is
+# repeatable in-tree without polluting git (and so the behavior eval can run a
+# skill from its real, deps-present directory).
+node_modules/
+package-lock.json
 
 # Python build artefacts.
 *.egg-info/
