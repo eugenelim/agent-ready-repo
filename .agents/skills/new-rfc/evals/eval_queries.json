@@ -1,0 +1,23 @@
+[
+  {"query": "Let's open an RFC to change how we do code review across all the teams", "should_trigger": true},
+  {"query": "Draft a proposal for moving every service to a shared logging library", "should_trigger": true},
+  {"query": "I want to get input on reversing our earlier decision to use REST", "should_trigger": true},
+  {"query": "Write an RFC for adopting a new release process across packages", "should_trigger": true},
+  {"query": "Let's get the team's feedback on splitting the monorepo", "should_trigger": true},
+  {"query": "Open an RFC proposing we deprecate the v1 API for all consumers", "should_trigger": true},
+  {"query": "I'd like to propose a cross-cutting change to how we version packages", "should_trigger": true},
+  {"query": "Draft an RFC to introduce a new top-level architectural layer", "should_trigger": true},
+  {"query": "Let's circulate a proposal to change our incident-response policy", "should_trigger": true},
+  {"query": "Propose a change to our authentication approach and get sign-off before we build it", "should_trigger": true},
+
+  {"query": "Record the decision to use Postgres — we've already chosen it", "should_trigger": false},
+  {"query": "ADR this: we're going with Kafka", "should_trigger": false},
+  {"query": "Write a spec for the CSV export feature", "should_trigger": false},
+  {"query": "Spec out the new onboarding flow before we build it", "should_trigger": false},
+  {"query": "Change the convention for how we name test files", "should_trigger": false},
+  {"query": "Amend the charter to add observability as a first-class concern", "should_trigger": false},
+  {"query": "Fix this small bug in the parser", "should_trigger": false},
+  {"query": "Refactor the payments module to remove duplication", "should_trigger": false},
+  {"query": "Draft a tutorial on how to use the export API", "should_trigger": false},
+  {"query": "This change only touches one package and breaks no interface — just open a PR", "should_trigger": false}
+]
