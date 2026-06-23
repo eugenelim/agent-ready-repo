@@ -1,0 +1,21 @@
+[
+  {"query": "Look up what the current rate limits are for the Stripe API", "should_trigger": true},
+  {"query": "Find out whether SQLite supports concurrent writers", "should_trigger": true},
+  {"query": "Research with citations the evidence on whether code review reduces defect rates", "should_trigger": true},
+  {"query": "Fact-check the claim that serverless is always cheaper at low traffic", "should_trigger": true},
+  {"query": "Survey the prior art on consensus algorithms for distributed databases", "should_trigger": true},
+  {"query": "What are the applied best practices for structured logging in Go services?", "should_trigger": true},
+  {"query": "Go deep on the evidence for and against four-day work weeks", "should_trigger": true},
+  {"query": "Give me an evidence-grounded survey of vector database options", "should_trigger": true},
+  {"query": "Quick check: does Postgres LISTEN/NOTIFY survive a dropped connection?", "should_trigger": true},
+
+  {"query": "Break this broad question into the sub-questions a thorough answer must address", "should_trigger": false},
+  {"query": "Curate the authoritative sources on this topic before I start reading", "should_trigger": false},
+  {"query": "We have three theories for the latency spike — compare them against the evidence and rank them", "should_trigger": false},
+  {"query": "What are the named camps in the monolith-vs-microservices debate?", "should_trigger": false},
+  {"query": "Why did we choose Kafka over RabbitMQ two years ago?", "should_trigger": false},
+  {"query": "Argue against the finding that we should adopt event sourcing", "should_trigger": false},
+  {"query": "Start a research project on payments fraud that we'll work on for weeks", "should_trigger": false},
+  {"query": "Write a spec for the new CSV export feature", "should_trigger": false},
+  {"query": "Fix the bug where search returns stale results", "should_trigger": false}
+]
