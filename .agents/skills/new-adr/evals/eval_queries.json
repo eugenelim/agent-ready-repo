@@ -1,0 +1,23 @@
+[
+  {"query": "Let's write an ADR for choosing Postgres over DynamoDB as our primary store", "should_trigger": true},
+  {"query": "Record the decision to standardize on REST instead of gRPC", "should_trigger": true},
+  {"query": "Draft a new ADR for the message-queue selection — we've settled on Kafka", "should_trigger": true},
+  {"query": "Let's ADR this: we're going with a monorepo", "should_trigger": true},
+  {"query": "Create an architecture decision record for the caching layer", "should_trigger": true},
+  {"query": "Open a new ADR documenting why we picked Terraform over Pulumi", "should_trigger": true},
+  {"query": "We decided on hexagonal architecture; capture that as an ADR", "should_trigger": true},
+  {"query": "Log the decision to adopt server-side rendering as an architecture decision record", "should_trigger": true},
+  {"query": "Write an ADR recording our move from a shared database to per-service stores", "should_trigger": true},
+  {"query": "Backfill an ADR for the decision we made last quarter to use S3 for blob storage", "should_trigger": true},
+
+  {"query": "Let's get the team's input on whether to adopt event sourcing", "should_trigger": false},
+  {"query": "Propose a change to how we handle deployments and gather feedback", "should_trigger": false},
+  {"query": "We're still debating Postgres vs DynamoDB — help us think it through", "should_trigger": false},
+  {"query": "Draft a proposal for moving to a monorepo so people can weigh in", "should_trigger": false},
+  {"query": "Write a spec for the new caching feature before we build it", "should_trigger": false},
+  {"query": "Spec out the rate-limiting feature", "should_trigger": false},
+  {"query": "Change the convention for how we name branches", "should_trigger": false},
+  {"query": "Amend the charter to add a new scope", "should_trigger": false},
+  {"query": "Fix the bug where the cache never expires", "should_trigger": false},
+  {"query": "Write the README for the caching module", "should_trigger": false}
+]

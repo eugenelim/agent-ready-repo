@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "0.3.0"
+version = "0.3.1"
 description = "Governance skills (new-rfc, new-adr, update-conventions) and RFC/ADR templates + seed READMEs."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -24,6 +24,16 @@ allowed-scopes = ["repo"]
 catalogue = "agent-ready-repo"
 pack = "core"
 version = "^0.1"
+
+# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# coverage allowlist. Each listed skill ships evals/eval_queries.json and is
+# measured by tools/run-pack-evals.py. All three governance-extras skills are
+# user-triggered judgment/authoring skills, so all three are covered; each also
+# ships a Tier-4 LLM-judge rubric (evals/evals.json, keyed by file presence,
+# graded via --mode judge). No skill is excluded — the pack has no
+# reviewer-internal / non-prompt skill (unlike core's security-checklists).
+[pack.evals]
+skills = ["new-adr", "new-rfc", "update-conventions"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

@@ -1,0 +1,23 @@
+[
+  {"query": "Let's change the convention for how we name test files", "should_trigger": true},
+  {"query": "Update the rules for our commit message format", "should_trigger": true},
+  {"query": "Amend the charter to add observability as a first-class concern", "should_trigger": true},
+  {"query": "Change our principles around how we handle errors", "should_trigger": true},
+  {"query": "I want to update CONVENTIONS.md to require typed function signatures", "should_trigger": true},
+  {"query": "Let's revise our branching convention in the conventions doc", "should_trigger": true},
+  {"query": "Modify the charter's scope section to include the new product line", "should_trigger": true},
+  {"query": "Update our coding standards to ban default exports", "should_trigger": true},
+  {"query": "Change the rule about where ADRs are allowed to live", "should_trigger": true},
+  {"query": "Let's amend our conventions to mandate conventional commits", "should_trigger": true},
+
+  {"query": "Record the decision to use Postgres over DynamoDB", "should_trigger": false},
+  {"query": "ADR our move to a hexagonal architecture", "should_trigger": false},
+  {"query": "Open an RFC to change our deployment architecture", "should_trigger": false},
+  {"query": "Draft a proposal to migrate the database to a new engine", "should_trigger": false},
+  {"query": "Write a spec for the new export feature", "should_trigger": false},
+  {"query": "Fix a typo in CONVENTIONS.md", "should_trigger": false},
+  {"query": "Fix the broken link in the charter", "should_trigger": false},
+  {"query": "Update the README with the new install steps", "should_trigger": false},
+  {"query": "Change the retry logic in the HTTP client", "should_trigger": false},
+  {"query": "Update the API documentation for the new endpoint", "should_trigger": false}
+]
