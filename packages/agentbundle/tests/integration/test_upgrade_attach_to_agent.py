@@ -91,8 +91,8 @@ class AttachToAgentRenameTests(unittest.TestCase):
         )
 
         rc, err = _run_upgrade(argparse.Namespace(
-            pack="kiro-user-hooks", catalogue=str(self.cat), to_version="0.2.0",
-            root=str(self.repo), scope="user",
+            pack="kiro-user-hooks", catalogue=str(self.cat),
+            root=str(self.repo), scope="user", yes=True,
             skill=None, agent=None, hook=None, seed=None, command=None,
         ))
         self.assertEqual(rc, 0, f"upgrade failed: {err}")

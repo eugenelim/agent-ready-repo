@@ -155,7 +155,6 @@ def test_upgrade_refuses_incompatible(tmp_path):
     rc, stderr = _run(
         "upgrade",
         pack="incompatible",
-        to_version="0.2",
         skill=None,
         agent=None,
         hook=None,

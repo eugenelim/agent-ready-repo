@@ -46,10 +46,10 @@ def _install_args(pack, catalogue, output, scope="user"):
     )
 
 
-def _upgrade_args(pack, catalogue, to_version, root, scope="user"):
+def _upgrade_args(pack, catalogue, root, scope="user"):
     return argparse.Namespace(
-        pack=pack, catalogue=catalogue, to_version=to_version,
-        root=root, scope=scope,
+        pack=pack, catalogue=catalogue,
+        root=root, scope=scope, yes=True,
         skill=None, agent=None, hook=None, seed=None, command=None,
     )
 
@@ -89,7 +89,7 @@ class UpgradeThenUninstallTests(_UpgradeBase):
         # Upgrade (same wiring shape — exercises the merge phase
         # without testing the rename path).
         rc, err = _run_upgrade(_upgrade_args(
-            "kiro-user-hooks", str(self.cat), "0.2.0", str(self.repo)))
+            "kiro-user-hooks", str(self.cat), str(self.repo)))
         self.assertEqual(rc, 0, f"upgrade failed: {err}")
 
         # Uninstall.
@@ -120,7 +120,7 @@ class InPlaceUpgradeIsNoOpTests(_UpgradeBase):
         before = settings.read_bytes()
         # Upgrade to the same version (idempotent).
         rc, err = _run_upgrade(_upgrade_args(
-            "cc-user-hooks", str(self.cat), "0.1.0", str(self.repo)))
+            "cc-user-hooks", str(self.cat), str(self.repo)))
         self.assertEqual(rc, 0, f"upgrade failed: {err}")
         self.assertEqual(settings.read_bytes(), before,
             "in-place upgrade wasn't byte-stable")
@@ -146,7 +146,7 @@ class UpgradeAddsHookEntryTests(_UpgradeBase):
         (pack_in_cat / ".apm" / "hooks" / "on-session.sh").chmod(0o755)
 
         rc, err = _run_upgrade(_upgrade_args(
-            "cc-user-hooks", str(self.cat), "0.2.0", str(self.repo)))
+            "cc-user-hooks", str(self.cat), str(self.repo)))
         self.assertEqual(rc, 0, f"upgrade failed: {err}")
 
         settings = self.home / ".claude" / "settings.json"
@@ -194,7 +194,7 @@ class UpgradeRemovesHookEntryTests(_UpgradeBase):
         (pack_in_cat / ".apm" / "hook-wiring" / "on-session.toml").unlink()
 
         rc, err = _run_upgrade(_upgrade_args(
-            "cc-user-hooks", str(self.cat), "0.2.0", str(self.repo)))
+            "cc-user-hooks", str(self.cat), str(self.repo)))
         self.assertEqual(rc, 0, f"upgrade failed: {err}")
 
         data_post = json.loads(settings.read_text(encoding="utf-8"))
@@ -241,7 +241,7 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
         )
 
         rc, err = _run_upgrade(_upgrade_args(
-            "kiro-user-hooks", str(self.cat), "0.2.0", str(self.repo)))
+            "kiro-user-hooks", str(self.cat), str(self.repo)))
         self.assertEqual(rc, 0, f"legacy kiro upgrade failed: {err}")
 
         # The kiro alias re-renders the `.md` agent (kiro-ide shape) and the
@@ -284,7 +284,7 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
         )
 
         rc, err = _run_upgrade(_upgrade_args(
-            "kiro-user-hooks", str(self.cat), "0.2.0", str(self.repo)))
+            "kiro-user-hooks", str(self.cat), str(self.repo)))
         self.assertEqual(rc, 0, f"legacy kiro upgrade failed: {err}")
         # This is the assertion that currently fails (orphan left behind):
         self.assertFalse(agent_json.exists())
