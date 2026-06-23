@@ -1,0 +1,18 @@
+{
+  "skill_name": "new-guide",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Author the user-facing guide the user asked for, following the Diátaxis framework.",
+      "expected_output": "A guide that sits cleanly in exactly ONE Diátaxis quadrant (tutorial, how-to, reference, or explanation), chosen by the reader's posture rather than the topic, and does the job of that quadrant without blending in the adjacent ones — when adjacent material is tempting it is LINKED OUT, not folded in. The guide serves one identifiable reader. A task-shaped guide (tutorial/how-to) stays focused on a single named task and its steps are concrete, runnable, and verifiable — each step says what to do and what the reader should see — with no digression into theory or option-dumps; a reference page is neutral, complete, and consistently structured; an explanation stays bounded by an \"About <topic>\" frame and carries no step-by-step. The prose reads like a knowledgeable friend wrote it (second person, active voice, present tense), with no reader-blaming fillers (\"simply\", \"just\", \"easy\", \"obviously\"), no softened imperatives (\"please click\"), and no inline version history (current behavior only — evolution is linked, not narrated). Cross-links point only to sibling pages that exist.",
+      "assertions": [
+        "Sits in exactly one Diátaxis quadrant and does that quadrant's job — no quadrant-mixing (adjacent-quadrant material is linked out, not blended in)",
+        "Quadrant is chosen by reader posture rather than topic, and the guide serves one identifiable reader",
+        "A task-shaped guide (tutorial/how-to) stays focused on one named task with no digression; a reference/explanation guide stays within its quadrant's job (neutral + complete / bounded by an \"About <topic>\" frame, no step-by-step)",
+        "Procedural steps are concrete, runnable, and verifiable — each says what to do and what the reader should see — not abstract narration",
+        "Prose reads human and task-respecting: second person, active voice, present tense; no reader-blaming fillers (simply/just/easy/obviously), no softened imperatives (please), no inline version-history narration",
+        "Cross-links (\"See also\") point only to sibling pages that exist — no fabricated or broken links"
+      ]
+    }
+  ]
+}
