@@ -32,6 +32,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tomllib
 
 try:
     import yaml
@@ -531,15 +532,42 @@ def main() -> int:
                 info(path, f"loose file at skill root: {child.name!r} "
                            f"(allowed by spec; logged for visibility)")
 
-    def check_evals(skill_dir: pathlib.Path, path: pathlib.Path,
-                    skill_name: str | None) -> None:
-        evals_dir = skill_dir / "evals"
-        if not evals_dir.exists() or not evals_dir.is_dir():
+    def check_eval_queries(eval_queries_json: pathlib.Path) -> None:
+        """Validate evals/eval_queries.json — the Tier-A trigger-eval
+        convention (pack-activation-evals spec): a flat JSON array whose
+        every element is {query: non-empty str, should_trigger: bool}.
+        Distinct from the output-quality evals.json schema; a skill may
+        ship either file, both, or neither."""
+        try:
+            data = json.loads(eval_queries_json.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            err(eval_queries_json,
+                f"evals/eval_queries.json is not valid JSON: {exc}")
             return
-        evals_json = evals_dir / "evals.json"
-        if not evals_json.exists():
-            err(path, "evals/ directory present but evals/evals.json is missing")
+        if not isinstance(data, list):
+            err(eval_queries_json,
+                "evals/eval_queries.json must be a JSON array at top level")
             return
+        for idx, entry in enumerate(data):
+            if not isinstance(entry, dict):
+                err(eval_queries_json,
+                    f"eval_queries[{idx}] must be an object")
+                continue
+            query = entry.get("query")
+            if not isinstance(query, str) or not query:
+                err(eval_queries_json,
+                    f"eval_queries[{idx}].query must be a non-empty string")
+            st = entry.get("should_trigger")
+            # `bool` is a subclass of `int` in Python — require a real
+            # bool so a literal `0`/`1` does not silently pass as the
+            # trigger flag (mirrors the id bool-guard above).
+            if not isinstance(st, bool):
+                err(eval_queries_json,
+                    f"eval_queries[{idx}].should_trigger must be a boolean "
+                    f"(got {type(st).__name__})")
+
+    def check_evals_json(skill_dir: pathlib.Path, evals_json: pathlib.Path,
+                         skill_name: str | None) -> None:
         try:
             data = json.loads(evals_json.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
@@ -619,6 +647,26 @@ def main() -> int:
                             err(evals_json, f"evals[{idx}].assertions[{ai}] "
                                             f"must be a non-empty string")
 
+    def check_evals(skill_dir: pathlib.Path, path: pathlib.Path,
+                    skill_name: str | None) -> None:
+        """Dispatch over a skill's evals/ directory. A skill may ship the
+        output-quality evals/evals.json (Tier B), the trigger evals/
+        eval_queries.json (Tier A), both, or neither — but an evals/ dir
+        with neither recognised file is an error."""
+        evals_dir = skill_dir / "evals"
+        if not evals_dir.exists() or not evals_dir.is_dir():
+            return
+        evals_json = evals_dir / "evals.json"
+        eval_queries_json = evals_dir / "eval_queries.json"
+        if not evals_json.exists() and not eval_queries_json.exists():
+            err(path, "evals/ directory present but neither evals/evals.json "
+                      "nor evals/eval_queries.json is present")
+            return
+        if evals_json.exists():
+            check_evals_json(skill_dir, evals_json, skill_name)
+        if eval_queries_json.exists():
+            check_eval_queries(eval_queries_json)
+
     def check_skill(path: pathlib.Path) -> None:
         fields, body_start, body, ferr, fm_text = parse_frontmatter(path)
         if ferr:
@@ -661,6 +709,45 @@ def main() -> int:
                 err(skill_md, f"could not read skill: {exc}")
             if error_count == before_err and warn_count == before_warn:
                 ok(f"{relpath(skill_md)}")
+
+    # ── [pack.evals].skills coverage (pack-activation-evals spec, AC7) ─────
+    # A pack-level pass over packs/*/pack.toml: every entry in the optional
+    # `[pack.evals].skills` allowlist must name a real skill directory under
+    # the pack that ships evals/eval_queries.json. A pack with no [pack.evals]
+    # block is a no-op. pack.toml is source-only (never projected), so this
+    # reads packs/<pack>/ directly; the eval_queries.json *schema* is checked
+    # on both the projection and source by the per-skill walk above.
+    if packs_root.exists():
+        for pack_toml in sorted(packs_root.glob("*/pack.toml")):
+            pack_dir = pack_toml.parent
+            try:
+                manifest = tomllib.loads(pack_toml.read_text(encoding="utf-8"))
+            except (OSError, tomllib.TOMLDecodeError) as exc:
+                err(pack_toml, f"could not parse pack.toml: {exc}")
+                continue
+            evals_cfg = manifest.get("pack", {}).get("evals")
+            if evals_cfg is None:
+                continue
+            if not isinstance(evals_cfg, dict):
+                err(pack_toml, "[pack.evals] must be a table")
+                continue
+            skills = evals_cfg.get("skills", [])
+            if not isinstance(skills, list):
+                err(pack_toml, "[pack.evals].skills must be an array of strings")
+                continue
+            for entry in skills:
+                if not isinstance(entry, str) or not entry:
+                    err(pack_toml, f"[pack.evals].skills entry must be a "
+                                   f"non-empty string (got {entry!r})")
+                    continue
+                skill_dir = pack_dir / ".apm" / "skills" / entry
+                if not skill_dir.is_dir():
+                    err(pack_toml, f"[pack.evals].skills names {entry!r} but "
+                                   f"{relpath(skill_dir)} is not a skill directory")
+                    continue
+                if not (skill_dir / "evals" / "eval_queries.json").is_file():
+                    err(pack_toml, f"[pack.evals].skills names {entry!r} but it "
+                                   f"ships no evals/eval_queries.json")
 
     print()
     print(f"Skills checked: {skill_count} "

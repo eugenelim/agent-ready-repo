@@ -1,7 +1,7 @@
 # Plan: pack-activation-evals
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -109,8 +109,10 @@ third-party dependency.
   `with_skill/.../outputs/` + `summary.json`; the `without_skill/`, `timing.json`,
   `grading.json`, `benchmark.json` slots are named-but-unused so a grading RFC
   fills them without restructuring. `outputs/` stores the **parsed `.result`
-  field** of the `claude -p --output-format json` envelope — never the raw stdout
-  stream, stderr, env, or key; `summary.json` is the bounded aggregation (AC10).
+  field** of the `claude -p --output-format stream-json --verbose` stream (the
+  terminal `result` event) — never the raw stdout stream, stderr, env, or key;
+  `summary.json` is the bounded aggregation (AC10). (Detector format: RFC-0037
+  § Errata E1 — `--output-format json` carries no `tool_use` events.)
 - **`evals/eval_queries.json` schema:** a JSON array; each element
   `{ "query": <non-empty str>, "should_trigger": <bool> }`. Validated by
   `lint-skill-spec.py`. Traces to: AC6, AC14.
@@ -195,7 +197,7 @@ green on the current tree (no skill ships `eval_queries.json` yet).
 **Depends on:** none <!-- consumes T4/T5's files at *runtime* but does not import them; built against fixtures -->
 
 **Tests:**
-- **Parse:** a captured `claude -p --output-format json` payload containing a
+- **Parse:** a captured `claude -p --output-format stream-json --verbose` payload containing a
   `Skill` `tool_use` with `.input.skill == X` → `(fired=True, skill=X)`; a
   payload with no `Skill` event → `(fired=False, skill=None)` (AC1).
 - **`trigger_rate`:** firing fraction over a list of run-results (AC2).
@@ -219,8 +221,9 @@ green on the current tree (no skill ships `eval_queries.json` yet).
 
 **Approach:**
 - stdlib + `tomllib`. The `claude-code` detector runs
-  `subprocess.run([claude, "-p", query, "--output-format", "json",
-  "--allowed-tools", "Skill"], timeout=…)` — argv list, no `shell`;
+  `subprocess.run([claude, "-p", query, "--output-format", "stream-json",
+  "--verbose", "--allowed-tools", "Skill"], timeout=…)` — argv list, no `shell`
+  (detector format: RFC-0037 § Errata E1);
   `--allowed-tools` stays **`Skill` only** (the observe-don't-execute trust
   boundary, spec § Never do). Parse the JSON envelope; capture its **`.result`
   field** (not the raw stdout stream) to
@@ -387,6 +390,203 @@ stale `evals.json`-only layout claim remains in the touched docs.
 The RFC names this as an optional consolidation that "may land as a follow-on PR
 rather than blocking the harness". Recorded in `docs/backlog.md`.
 
+## Phase 2 — in-harness / agent-dispatch detector (RFC-0037 § Errata E2)
+
+### Design (LLD addendum)
+
+Phase 1 (headless) measures activation via `claude -p` and its real `Skill`
+`tool_use` event. Phase 2 adds reach to harnesses with **no** `claude -p` CLI
+(**Kiro IDE**) and to interactive Claude Code, via a second detector behind the
+seam — **lower fidelity**, never replacing the headless reference.
+
+**The isolation finding (load-bearing).** A dispatched sub-context (Claude
+Code's `Agent` tool, Kiro's spawn) **cannot be scoped to only the pack's
+skills** — skill discovery is rooted at the session, not the sub-context's cwd,
+so projecting the pack into a temp dir (the headless trick) does **not** isolate
+a subagent. Consequence: the in-harness mode supplies the candidate skills'
+names + `description:` **in the dispatch prompt** and asks the sub-context which
+it would activate. That is a **description-match judgement (reported)**, not the
+real router event (observed) — a materially different, lower-fidelity signal.
+This is why E2's signal decision is "reported", and why the summary labels
+`fidelity`.
+
+**Architecture (reuse, don't fork).** The driver does the agent dispatch; the
+runner keeps the model-free logic:
+
+- `run-pack-evals.py` factors out reusable helpers (project, `trigger_rate`,
+  `grade`, workspace-write) and gains `grade_reports(pack_name, reports, *,
+  repo_root=…)` that turns collected `{skill: {query_id: [reported_skill_per_run]}}`
+  into the same `summary.json` (labelled `mode`/`fidelity`/`provenance`). No
+  `claude` call.
+- A **catalogue-internal driver** — as built, a **harness-agnostic documented
+  procedure** (in `author-a-skill.md`) the host agent follows, plus the
+  `--mode in-harness` grading CLI; **not** a projected pack primitive, so
+  Principle 3 holds. (An earlier sketch was a repo-owned `.claude/` command; the
+  procedure form was chosen because it serves Claude Code and Kiro alike and
+  sidesteps the `.claude/commands/` projection-drift surface.) The agent reads a
+  pack's `eval_queries.json` + covered descriptions, dispatches a **read-only,
+  no-tool-execution** sub-context per query, collects the reported skill, and
+  calls `grade_reports`.
+
+**Containment (new trust boundary).** The dispatched sub-context holds the
+host's full tool surface; the `--allowed-tools Skill` headless sandbox does not
+transfer. The driver must dispatch a sub-context that **elicits the activation
+judgement only** — it must not run a skill body or any project tool against the
+author-influenced query string. Verified by construction (the dispatch prompt
+grants no execution + the sub-context is read-only) and by inspecting that a
+dispatched run touched no files / ran no tools.
+
+### T9: runner `grade_reports` + `--mode` plumbing (model-free)
+
+**Depends on:** none — **TDD.** Tests: `grade_reports` over synthetic collected
+reports produces a `mode: in-harness`, `fidelity: reported` summary with correct
+`trigger_rate`/grading and the same workspace layout; `--mode headless` stays
+the default and unchanged. Done when: unit tests green; headless path untouched.
+
+### T10: catalogue-internal in-harness driver (Claude Code) + live validation
+
+**Depends on:** T9 — **manual QA.** A catalogue-internal **documented procedure**
+(in `author-a-skill.md`) the host agent follows drives the dispatch loop
+(read-only sub-contexts, candidate descriptions in the prompt, collect reported
+activation, call `grade_reports` via `--mode in-harness`). Validate **live** by
+dispatching real sub-contexts for a covered skill's queries and recording the
+observed reports + that no tool executed against the query (containment). Done
+when: a recorded in-harness run over a `core` skill produces a labelled summary;
+containment confirmed.
+
+### T11: Kiro IDE driver
+
+**Depends on:** T9 — **goal-based.** The Kiro-native driver (`.kiro/` hook or
+command) invoking the same `grade_reports` contract. Sequenced after T10 proves
+the model in Claude Code; may land as its own follow-on.
+
+### T12: docs + ADR note
+
+**Depends on:** T9, T10 — **goal-based.** `author-a-skill.md` gains the
+in-harness run path + the fidelity caveat; ADR-0028 carries the E2 companion
+note; the in-harness mode + `mode`/`fidelity` labelling documented.
+
+## Phase 3 — lightweight in-harness behavior/output check (RFC-0037 § Errata E3)
+
+### Design (LLD addendum)
+
+Once a skill *activates* (Phase 1/2), Phase 3 asks *does it do the job*. The
+**full** Tier-B grading (LLM-judge, `benchmark.json` deltas, with/without-skill,
+train/val) stays the separate future RFC; Phase 3 is the **lightweight** check.
+
+**Higher fidelity than Tier-A in-harness, different control.** Behavior testing
+does **not** hit the skill-isolation wall — we *want* the skill to run, and the
+host agent can invoke it by name. So the skill **really executes** and we inspect
+**real artifacts**: the deterministic post-conditions are **observed**, only the
+semantic-assertion verdicts are **self-attested**.
+
+**The control flips from "don't execute" to "execute in a sandbox" (E3).**
+Because the skill body runs arbitrary tools (scripts, file writes, sometimes
+network), execution is confined to an **ephemeral temp workspace** seeded only
+with the eval's `evals/files/` fixtures — no real-repo tree, no secrets/env, no
+network (per-eval opt-in only), gitignored, torn down after. A
+**`security-reviewer` spec-stage pass signs off the sandbox before any execution
+code ships** (sequenced as T13a below).
+
+**Architecture (reuse, don't fork).** Mirror Phase 2: the driver (documented
+procedure) does the agent dispatch + skill run in the sandbox and collects
+results; the runner keeps the model-free logic:
+- `run-pack-evals.py` gains `grade_behavior(pack_name, results, *, workspaces,
+  repo_root=…)` where `results` carries **only operator-attested** semantic
+  verdicts `{skill: {eval_id: {"assertions": [bool,…], "errored": bool}}}` and
+  `workspaces` maps each `(skill, eval_id)` to the per-eval working dir the
+  driver ran the skill in. The runner **re-derives the deterministic
+  post-conditions itself** (Blocker 3): it reads each working dir and checks the
+  eval's `files` exist + the `expected_output` literal substrings — it does
+  **not** trust operator `*_ok` booleans. Pass iff (re-derived files+output ok)
+  **and** (all attested assertions hold); a malformed/contradictory `results`
+  **fails closed**. → `mode: in-harness`, `tier: B-lite`,
+  `provenance: operator-attested` summary. Reuses `evals/evals.json` for
+  `id`/`prompt`/`files`/`expected_output`/`assertions`. **No model call; no skill
+  execution in the runner.**
+- a **fixtures helper** (`_seed_workspace`) builds the per-eval working dir under
+  the OS temp root (`tempfile.mkdtemp`) and copies the eval's `evals/files/`
+  fixtures with path-confinement (`followlinks=False`, each resolved under the
+  fixtures root); the *driver* runs the skill there and tears it down in
+  `finally`. Containment is **procedure + scope-gate, not a mechanical sandbox**
+  (security-reviewer spec-stage finding) — only author-opted, non-destructive,
+  no-network/credential skills are eligible.
+- `--mode in-harness --check behavior --results <file>` selects it.
+
+### T13a: spec-stage security review of the sandbox (gate) — DONE
+
+**Depends on:** spec/E3 — **review.** A `security-reviewer` pass ran on the
+design **before** any execution code (2026-06-22). It returned **3 Blockers**:
+(1) a host-agent-run skill can't be mechanically sandboxed by a temp cwd (same
+cwd≠confinement truth as Phase 2) — the spec overclaimed a sandbox; (2) no
+enforceable env-scrub / deny-network / teardown primitives were named; (3) the
+`--results` handoff trusted operator `*_ok` booleans as "observed". **Resolved
+in-spec:** containment reframed as an honest **procedure + scope-gate** (only
+author-opted, non-destructive, no-network/credential skills), the runner
+**re-derives** the deterministic checks from the workspace, fail-closed on
+malformed results, and the enforceable slices (OS-temp dir, `finally` teardown,
+max-runtime, `followlinks=False` fixture confinement, scrubbed env when the
+runner spawns a script) are named as ACs. Design cleared on that basis.
+
+### T13: runner `grade_behavior` + sandbox helper (model-free)
+
+**Depends on:** T13a — **TDD.** Tests: `grade_behavior` over synthetic results
+produces a `tier: B-lite` summary (pass iff deterministic checks pass **and**
+all attested assertions hold); `_seed_sandbox` builds a workspace containing
+only the eval's fixtures (asserts no real-repo path leaks in). Done when: unit
+tests green; no skill executes inside the runner.
+
+### T14: behavior-check driver procedure + live validation
+
+**Depends on:** T13 — **manual QA.** Extend the documented driver: per eval, run
+the skill on `prompt` **in the sandbox**, run the deterministic checks, collect
+per-assertion attestations, call `grade_behavior`. Validate **live** on one
+covered skill (e.g. a converters skill with a simple fixture), recording the
+observed artifact checks + that execution stayed inside the sandbox.
+
+### T15: docs + ADR note (Phase 3)
+
+**Depends on:** T13 — **goal-based.** `author-a-skill.md` gains the behavior-check
+path + the sandbox rule + the observed/attested fidelity framing; ADR-0028
+carries the E3 companion note; `tier: B-lite` labelling documented.
+
+## Phase 4 — report-only LLM-judge for the quality layer (RFC-0037 § Errata E4)
+
+### Design (LLD addendum)
+
+Deterministic checks (Phase 3) cover validity/shape; the **quality** layer (is
+the contract well-designed? the diagram the right abstraction?) has no ground
+truth → it needs a model. The judge is **report-only** and lives behind a
+**config-driven backend seam** parallel to the detector seam — backends are
+declarative command templates (a `command` list with a standalone `{prompt}`
+token, plus `model-flag` and `extract`), so an adopter adds one (e.g. a `kiro-cli` headless judge)
+and picks the model purely by config, never by editing the runner. The lens is
+the eval's existing rubric (`expected_output` + `assertions`); the verdict is
+strict JSON, parsed string-safely and **fail-closed** (unparseable → ERROR).
+Containment: judgment-only (claude granted no tools; codex `-s read-only`),
+argv-only (no shell; `{prompt}` is a discrete element), cross-model preferred
+(an independent judge can't self-grade).
+
+### T16: runner judge seam (`get_judge`/`CommandJudge`/`build_judge_prompt`/`parse_judge_verdict`/`grade_judge`/`load_judge_config`) + `--mode judge`
+
+**Depends on:** none — **TDD.** Tests (`tools/test-run-pack-evals.py`):
+prompt-build (rubric + inlined artifact + nonce fence + treat-as-data directive);
+verdict-parse (clean / prose-wrapped / brace-in-string / fail-closed); the
+config-driven seam (built-ins + an adopter-added `kiro-cli`, model binding, argv
+substitution, `stdout`/`json:<field>` extract); `grade_judge` over a fake backend
+(labels `mode: judge`/`judge_adapter`, fails closed on missing artifact, confines
+the eval-id, bounded `verdict.json` capture). **Done when:** unit tests green; no
+live model in the runner.
+
+### T17: live cross-model validation + docs/governance
+
+**Depends on:** T16 — **manual QA.** Run the judge live with **both** backends
+(`claude-code` + `codex`) on a good `architect-design` artifact; record the
+cross-model PASS (`notes/manual-qa.md` §6). Docs: `author-a-skill.md` gains the
+`--mode judge` run path (backend + model config, the `[judge.<name>]` BYO-backend
+example); RFC-0037 § Errata E4 + ADR-0028 companion note + changelog. **Done
+when:** both backends return a structured verdict; docs/governance consistent.
+
 ## Rollout
 
 - **Delivery:** report-only, no flag. Fully reversible — delete the workflow +
@@ -421,3 +621,7 @@ rather than blocking the harness". Recorded in `docs/backlog.md`.
 ## Changelog
 
 - 2026-06-21: initial plan (authored alongside the spec + ADR-0028; implementation deferred to a separate PR per RFC-0037 § Follow-on artifacts).
+- 2026-06-21: implementing PR — T1–T7 landed; Status → Done. Detector corrected to `--output-format stream-json --verbose` (RFC-0037 § Errata E1 — the `json` envelope carries no `tool_use` events on claude 2.1.185); the T2 coverage check is hosted in `lint-skill-spec.py` (a source-surface lint run locally + in CI), since `pack.toml` is never projected and `lint-agent-artifacts` reads only `.claude/`. T8 deferred to `docs/backlog.md`.
+- 2026-06-22: Phase 2 (RFC-0037 § Errata E2) landed in the same PR — T9 (`grade_reports` + `--mode in-harness`/`--reports`), T10 (the in-harness driver as a harness-agnostic documented procedure + live validation), T12 (docs/ADR). The driver shipped as a documented procedure, **not** a `.claude/` command (serves Kiro too; avoids `.claude/commands/` projection drift). Load-bearing finding: a dispatched sub-context can't be skill-isolated, so in-harness is a **reported** description-match judgement (lower fidelity than headless's observed router event), labelled `mode`/`fidelity`/`provenance`. T11 (Kiro-native ergonomic driver) deferred to `docs/backlog.md`. Status remains Shipped (Phase 1 + Phase 2).
+- 2026-06-22: Phase 3 (RFC-0037 § Errata E3) — lightweight B-lite behavior/output check (T13–T15). Spec-stage security gate (T13a) reframed containment to procedure + scope-gate (cwd≠confinement); `grade_behavior` re-derives deterministic checks from the workspace. Real end-to-end run validated against `converters/markdown-to-html` (eval-8 `expect` block + fixture). **Pre-test setup** leans on each skill's own Tier-1 `## Prerequisites` contract (detect-or-guide, never silent-install); `node_modules/` + `package-lock.json` gitignored so a skill's in-place install is repeatable. **Credentialed/backend skills** (`auth: cli` broker — atlassian/figma) are out of B-lite scope (need live auth + a real backend; may mutate state) → activation-only; their behavior testing (recorded cassettes / test backend) deferred to `docs/backlog.md#behavior-check-for-backend-skills`. Status remains Shipped (Phases 1–3).
+- 2026-06-22: Phase 4 (RFC-0037 § Errata E4) — report-only **LLM-judge** for the quality layer, behind a **config-driven multi-adapter judge seam** (`--mode judge`). Backends are declarative command templates (`build_judge_prompt`/`parse_judge_verdict`/`grade_judge`/`get_judge`/`CommandJudge`/`load_judge_config`): built-in `claude-code` + `codex`; adopters add their own (e.g. `kiro-cli`) and pick the model via `--judge-config`/`--model`, no code. Lens = the eval rubric; JSON verdict; fail-closed; judgment-only (claude no-tools, codex `-s read-only`). Validated live cross-model (claude + codex both PASS a good `architect-design` artifact). Full Tier-B (deltas/with-without/train-val/human-feedback) stays the future RFC. Status remains Shipped (Phases 1–4).

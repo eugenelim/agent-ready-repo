@@ -1,0 +1,21 @@
+[
+  {"query": "Turn this Markdown into a Word doc using our branded report template", "should_trigger": true},
+  {"query": "Produce a .docx report from this Markdown", "should_trigger": true},
+  {"query": "Make a statement of work Word document from this Markdown", "should_trigger": true},
+  {"query": "Fill our memo.docx template with this Markdown content", "should_trigger": true},
+  {"query": "Export this Markdown as a branded Word document", "should_trigger": true},
+  {"query": "Generate a .docx from this Markdown using the corporate template", "should_trigger": true},
+  {"query": "I need a Word report out of this Markdown file", "should_trigger": true},
+  {"query": "Convert this Markdown into a formatted Word memo", "should_trigger": true},
+  {"query": "Render this Markdown into our branded .docx", "should_trigger": true},
+
+  {"query": "Turn this Markdown into a slide deck", "should_trigger": false},
+  {"query": "Export this Markdown table to Excel", "should_trigger": false},
+  {"query": "Convert this Markdown to a styled HTML page", "should_trigger": false},
+  {"query": "Turn this PDF into Markdown", "should_trigger": false},
+  {"query": "Build a PowerPoint presentation from this Markdown", "should_trigger": false},
+  {"query": "Make a spreadsheet from this Markdown table", "should_trigger": false},
+  {"query": "Render the Mermaid diagrams in this file to images", "should_trigger": false},
+  {"query": "Read this Outlook .msg email into Markdown", "should_trigger": false},
+  {"query": "Convert this existing DOCX file into Markdown", "should_trigger": false}
+]

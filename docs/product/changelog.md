@@ -36,6 +36,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   distilled brief. Prompt-only by construction (no engine, index, or counter);
   the seven existing skills are reused as phase operations. RFCs may now carry an
   optional `docs/rfc/NNNN-notes/` companion folder for promoted research.
+- **Pack activation evals (Tier A) — `tools/run-pack-evals.py` + `[pack.evals]`
+  (RFC-0037 / ADR-0028).** A catalogue maintainer can now measure, repeatably
+  and empirically, whether each covered skill *activates* on the prompts it
+  should and stays quiet on the near-misses it shouldn't. Each covered skill
+  ships `evals/eval_queries.json` (a flat `[{query, should_trigger}]` array);
+  a pack's `pack.toml` `[pack.evals].skills` lists the covered skills; the
+  runner projects the pack in isolation, runs each query through the headless
+  `claude` detector, computes a `trigger_rate` over N runs, grades against a
+  0.5 threshold, and writes a gitignored, iteration-numbered eval-workspace.
+  It runs report-only in a scheduled `pack-evals.yml` workflow — never on the
+  PR critical path — and the first cut covers the `core` and `converters`
+  packs. `lint-skill-spec.py` now accepts and validates `eval_queries.json`
+  and enforces `[pack.evals].skills` coverage. A second, **in-harness** mode
+  (`run-pack-evals.py --mode in-harness`, RFC-0037 § Errata E2) extends the
+  reach to **Kiro IDE** and interactive Claude Code where there is no `claude`
+  CLI: the host agent dispatches a read-only sub-context per query and reports
+  activation — a lower-fidelity (reported, not observed) proxy, labelled as such
+  in the summary so it is never mistaken for the headless baseline. A
+  **lightweight behavior/output check** (`--check behavior`, RFC-0037 § Errata
+  E3) goes further where it's safe: the agent runs the skill in a confined
+  per-eval working dir and the runner re-derives deterministic post-conditions
+  (an `evals/evals.json` `expect` block — produced files, output substrings)
+  plus attested assertions (`tier: B-lite`). And a report-only **LLM-judge**
+  (`--mode judge`, RFC-0037 § Errata E4) grades the *quality* layer against the
+  eval rubric, behind a **config-driven, multi-adapter** backend seam: built-in
+  `claude-code` (same model) + `codex` (independent model/IDE), and adopters add
+  their own — e.g. a `kiro-cli` headless judge — and pick the model purely by a
+  `--judge-config` entry, no code change. The judge is judgment-only and
+  fails closed on an unparseable verdict. The **full** Tier-B grading (pass-rate
+  deltas, with/without-skill, train/validation, the human-feedback loop) stays a
+  future RFC.
 - **Per-prompt work-loop activation hook (`core` pack).** A new
   `work-loop-check` hook nudges the agent, on every prompt, to load the
   work-loop skill for non-trivial work — closing a gap where the loop was

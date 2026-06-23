@@ -1,0 +1,18 @@
+{
+  "skill_name": "voice-and-microcopy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write the UI microcopy for the states the user named.",
+      "expected_output": "UI copy where error states are blame-free (describe the situation, never fault the user) and every error and empty state offers a next action (no dead ends); buttons/CTAs are verb+object matching the user's goal (not 'Submit'/'OK'); labels are concise, front-loaded, and terminology-consistent (one term per concept). Tone fits each context (calm and plain in an error, warmer in success) while the product voice stays constant. It shapes words only — no visual/layout decisions and no documentation prose.",
+      "assertions": [
+        "Error copy is blame-free — describes the situation, never faults the user",
+        "Every error and empty state offers a next action — no dead-end copy",
+        "Buttons / CTAs are verb + object matching the user's goal, not generic ('Submit' / 'OK')",
+        "Labels are concise, front-loaded, and terminology-consistent (one term per concept)",
+        "Tone fits the context (calm in errors, warmer in success) while the voice stays constant",
+        "Shapes words only — no visual/layout decisions and no documentation prose"
+      ]
+    }
+  ]
+}

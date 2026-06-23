@@ -1,0 +1,21 @@
+[
+  {"query": "Convert this PDF to Markdown", "should_trigger": true},
+  {"query": "Turn this DOCX file into Markdown", "should_trigger": true},
+  {"query": "Extract the text from this PowerPoint into Markdown", "should_trigger": true},
+  {"query": "Convert this scanned image to Markdown", "should_trigger": true},
+  {"query": "Turn this Excel file into a Markdown table", "should_trigger": true},
+  {"query": "Read this PDF and give me Markdown", "should_trigger": true},
+  {"query": "Convert these JPG screenshots into Markdown", "should_trigger": true},
+  {"query": "Extract this PPTX deck's content as Markdown", "should_trigger": true},
+  {"query": "Turn this Word document into Markdown", "should_trigger": true},
+
+  {"query": "Turn this Markdown into a Word document", "should_trigger": false},
+  {"query": "Make a slide deck from this Markdown", "should_trigger": false},
+  {"query": "Export this Markdown table to Excel", "should_trigger": false},
+  {"query": "Convert this Markdown to an HTML page", "should_trigger": false},
+  {"query": "Render the Mermaid diagrams in this Markdown to images", "should_trigger": false},
+  {"query": "Read this Outlook .msg email into Markdown", "should_trigger": false},
+  {"query": "Produce a .docx report from this Markdown", "should_trigger": false},
+  {"query": "Generate a PowerPoint from this Markdown", "should_trigger": false},
+  {"query": "Build a spreadsheet from this Markdown", "should_trigger": false}
+]
