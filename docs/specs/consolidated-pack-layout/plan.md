@@ -1,7 +1,7 @@
 # Plan: consolidated-pack-layout
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -47,8 +47,10 @@ scan-target today); `product-engineering` → `docs/product`.
 otherwise touches its own pack dir + its own guides). T6's self-host / AC12
 `find` gates also require T3–T5's `make build` projections to have landed first.
 
-This spec/plan PR authors **governance docs only**; T1–T6 below are the
-**implementing PR**'s work-breakdown, not work done here.
+The spec/plan first landed in a **governance-docs PR** (#359); T1–T6 below were
+then **implemented** in the follow-on PR (this one), which also carries the
+pre-EXECUTE-review refinements recorded in the changelog. All six tasks are done;
+every AC is checked.
 
 ## Constraints
 

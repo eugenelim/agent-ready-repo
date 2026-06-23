@@ -1,6 +1,6 @@
 # Spec: consolidated-pack-layout
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0040, ADR-0030, ADR-0029 (the `research-layout.toml` this generalises), ADR-0021 (`pack.toml` source of truth — home for `[pack.layout]`), RFC-0035 (namespaced adopter-editable TOML + shipped-placeholder delivery), RFC-0038 (forward-only migration — considered, found not to apply)
@@ -178,7 +178,7 @@ append is real code and is **TDD**.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — One namespaced file, two locations, repo overrides user per table.**
+- [x] **AC1 — One namespaced file, two locations, repo overrides user per table.**
   `agentbundle-layout.toml` carries one `[<pack>]` table per consumer, each with a
   single `parent` key. A skill reads the **repo-root `./agentbundle-layout.toml`**
   `[<pack>]` table if present, else the **user-profile
@@ -188,14 +188,14 @@ append is real code and is **TDD**.
   `references/agentbundle-layout.md` docs names both locations and the
   repo-overrides-user-per-table rule.
 
-- [ ] **AC2 — `parent` is a base; each unit of work gets its own topic-named
+- [x] **AC2 — `parent` is a base; each unit of work gets its own topic-named
   folder.** `parent` is the directory the pack writes *under*, never the leaf the
   work lands *in*. Per-pack folder shape: `research` → `<parent>/<YYYY-MM-DD>-<topic-slug>/`;
   `architect` → `<parent>/<topic-slug>/`; `product-engineering` → file-per-slug
   under `<parent>/{intents,rollups}/`. Verification: `rg` confirms each body and
   its schema doc state the pack's folder shape and that `parent` is a base.
 
-- [ ] **AC3 — `parent` is anchored by the layout file's own location.** A
+- [x] **AC3 — `parent` is anchored by the layout file's own location.** A
   **repo-root** file's `parent` is **repo-root-relative** (an absolute value is
   permitted but warned as non-portable); a **user-profile** file's `parent` **must
   be an explicit absolute path** (`~`-anchored ok) and a relative value there is an
@@ -203,7 +203,7 @@ append is real code and is **TDD**.
   Verification: `rg` against each consumer body + schema doc documents both anchor
   rules.
 
-- [ ] **AC4 — Resolve to, and surface, the full absolute path before the first
+- [x] **AC4 — Resolve to, and surface, the full absolute path before the first
   write.** Regardless of anchor, each consumer resolves `parent` to a full absolute
   path (realpath, `~`-expanded, `..` rejected) and **surfaces that path to the
   adopter before creating the work folder**. The `..` rejection and realpath
@@ -213,7 +213,7 @@ append is real code and is **TDD**.
   `rg` against each consumer body names the resolve-then-surface-then-write order
   and the reject-`..`-after-anchoring invariant.
 
-- [ ] **AC5 — `research` migrates by a clean rename, no alias.**
+- [x] **AC5 — `research` migrates by a clean rename, no alias.**
   `research-layout.toml`'s top-level `parent` becomes the `[research]` table's
   `parent` in `agentbundle-layout.toml`; `research-project-start`'s body and the
   research reference / how-to / tutorial guides are updated to name the new file
@@ -222,7 +222,7 @@ append is real code and is **TDD**.
   `agentbundle-layout.toml` + `[research]` and the RFC-0038-alias-not-applied
   reasoning; AC17 confirms the old name is gone.
 
-- [ ] **AC6 — `architect` is a consumer, with a per-effort folder.**
+- [x] **AC6 — `architect` is a consumer, with a per-effort folder.**
   `architect-design` reads the `[architect]` table and writes each design effort
   into its own `<parent>/<topic-slug>/` folder (the design doc, diagrams, notes)
   instead of scanning for a loose-file home every run; its existing
@@ -232,7 +232,7 @@ append is real code and is **TDD**.
   and the scan-then-elicit default; the `references/agentbundle-layout.md` doc
   documents the folder shape and the file→folder shift.
 
-- [ ] **AC7 — `product-engineering` is a consumer, file-per-slug.** `frame-intent`
+- [x] **AC7 — `product-engineering` is a consumer, file-per-slug.** `frame-intent`
   and `align-value-stream` read the `[product-engineering]` table and write
   `<parent>/intents/<slug>.md` and `<parent>/rollups/<slug>.md` (default
   `parent = docs/product`); a per-topic *folder* is deliberately **not** used
@@ -243,7 +243,7 @@ append is real code and is **TDD**.
   read and the file-per-slug shape; `rg` confirms `decompose-intent` still pins
   `docs/product/briefs/`.
 
-- [ ] **AC8 — Each consumer ships a `references/agentbundle-layout.md` schema
+- [x] **AC8 — Each consumer ships a `references/agentbundle-layout.md` schema
   doc.** A normal projected pack file in each of the three packs documents that
   pack's `[<pack>]` section — `parent`, the default base, the per-unit folder
   shape, and the posture (committed-docs vs out-of-repo). The skill body reads it
@@ -251,7 +251,7 @@ append is real code and is **TDD**.
   three files exist under `packs/{research,architect,product-engineering}/.apm/skills/<skill>/references/agentbundle-layout.md`
   and each names its pack's `parent`, default, and folder shape.
 
-- [ ] **AC9 — Installer `_append_layout_section`: append-if-exists, never-create,
+- [x] **AC9 — Installer `_append_layout_section`: append-if-exists, never-create,
   never-overwrite.** `agentbundle install <pack>` gains an `_append_layout_section`
   step (modelled on `_append_install_marker`), called from the Step-11 per-scope
   loop: *if* a layout file exists at the install scope's location, ensure
@@ -260,7 +260,7 @@ append is real code and is **TDD**.
   never-overwrite + never-create construction tests (Testing Strategy) pass; `rg`
   confirms the Step-11 loop calls the new step per scope.
 
-- [ ] **AC10 — Scope-keyed `[pack.layout]` manifest extension + validator +
+- [x] **AC10 — Scope-keyed `[pack.layout]` manifest extension + validator +
   version bump.** `pack.toml` gains an optional `[pack.layout]` table with optional
   `.repo` / `.user` sub-tables (declaring the section inline or pointing at a
   within-pack `agentbundle-layout.toml` template); `pack.schema.json` accepts it
@@ -278,7 +278,7 @@ append is real code and is **TDD**.
   `pack.toml` and rejects a malformed one; the version bump is asserted; the full
   `agentbundle` package pytest is run by hand (contract-bump traps).
 
-- [ ] **AC11 — The append is injection-safe, path-jailed, and re-emit-safe.**
+- [x] **AC11 — The append is injection-safe, path-jailed, and re-emit-safe.**
   Every pack-sourced string the append writes passes through
   `config._emit_basic_string`, and the write goes through `safety.write_jailed`
   with the jail contract **modelled exactly on `_append_install_marker`** (the
@@ -316,7 +316,7 @@ append is real code and is **TDD**.
   job (AC13–AC15), not the path-jailed *file* write's. *(RFC-0040 spec-stage security
   AC 4.)*
 
-- [ ] **AC12 — Reading is prompt-only; no engine creeps in.** No consumer ships a
+- [x] **AC12 — Reading is prompt-only; no engine creeps in.** No consumer ships a
   script, daemon, index, counter, or any runtime code that reads
   `agentbundle-layout.toml`; resolution lives in the skill body. The only code
   touching the file is the install-time append. Verification: the three consumer
@@ -324,21 +324,21 @@ append is real code and is **TDD**.
   (`find … \( -name '*.py' -o -name '*.sh' \)` returns nothing layout-reading);
   `rg` confirms each body frames resolution as prompt-driven.
 
-- [ ] **AC13 — Confinement + `..` rejection + surface-before-write (security).**
+- [x] **AC13 — Confinement + `..` rejection + surface-before-write (security).**
   Each consumer confines the resolved `parent` + work folder to the pack's intended
   root, rejects `..` escapes, and surfaces the resolved absolute path before the
   first write. Verification: goal-based / manual-QA — `rg` confirms the rail prose
   in each body; the AC16 smoke confirms a `..`-containing `parent` is rejected and
   the resolved path surfaced. *(RFC-0040 spec-stage security AC 1.)*
 
-- [ ] **AC14 — Realpath resolution makes symlinks visible (security).** The
+- [x] **AC14 — Realpath resolution makes symlinks visible (security).** The
   resolved path is realpath-resolved so a symlinked `parent` or ancestor is visible
   and not silently followed out of tree. Verification: goal-based / manual-QA —
   `rg` confirms each body specifies realpath resolution; the AC16 smoke confirms a
   symlinked `parent` surfaces its real target before any write. *(RFC-0040
   spec-stage security AC 2.)*
 
-- [ ] **AC15 — Repo-root-sourced out-of-tree `parent` is untrusted-origin
+- [x] **AC15 — Repo-root-sourced out-of-tree `parent` is untrusted-origin
   (security).** A `parent` taken from the repo-root file that resolves outside the
   repo tree is treated as untrusted-origin and **confirmed before writing** (the
   cloned-untrusted-repo case); the user-profile file is foot-gun-only (adopter is
@@ -350,7 +350,7 @@ append is real code and is **TDD**.
   that escapes the repo via `..`) and confirms the skill asks rather than writing.
   *(RFC-0040 spec-stage security AC 3.)*
 
-- [ ] **AC16 — One observable smoke project.** A real end-to-end run of one
+- [x] **AC16 — One observable smoke project.** A real end-to-end run of one
   consumer with a hand-written repo-root `agentbundle-layout.toml` produces the
   topic-named folder under the resolved `parent` and surfaces the absolute path;
   a hostile/out-of-tree `parent` triggers the Ask-first confirmation; and
@@ -360,7 +360,7 @@ append is real code and is **TDD**.
   surfaced path, the Ask-first prompt, and the append/never-overwrite/never-create
   outcomes (self-report is not sufficient; the files are the signal).
 
-- [ ] **AC17 — `.gitignore` housekeeping (this repo only).**
+- [x] **AC17 — `.gitignore` housekeeping (this repo only).**
   `agentbundle-layout.toml` is added to this repo's `.gitignore` alongside
   `.adapt-install-marker.toml`, so a contributor exercising a consumer skill in the
   catalogue does not trip the self-host drift gate; adopters ship **no** gitignore
@@ -374,7 +374,7 @@ append is real code and is **TDD**.
   body — it is historical description of what that spec shipped); and historical
   `docs/product/changelog.md` entries.
 
-- [ ] **AC18 — Pack version bumps + changelog.** `research` is bumped 0.4.0 →
+- [x] **AC18 — Pack version bumps + changelog.** `research` is bumped 0.4.0 →
   0.5.0; `architect` and `product-engineering` get the appropriate next bump for a
   new-consumer + (architect) behaviour-change; each pack's `pack.toml` and
   `plugin.json` move together; `docs/product/changelog.md` `[Unreleased]` records

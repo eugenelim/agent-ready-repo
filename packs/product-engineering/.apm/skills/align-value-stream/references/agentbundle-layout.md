@@ -3,7 +3,11 @@
 `agentbundle-layout.toml` is a single, **adopter-owned** file that controls where
 output-producing packs write their durable work. It is never shipped into a
 projected path; you create it by hand (or an `agentbundle install` step appends a
-default section to one you already have). This page documents the
+default section to one you already have — **append-if-exists / never-create /
+never-overwrite**). On the rare append of a *missing* section, the installer
+re-emits the file and does **not** preserve freeform comments or off-schema keys;
+an existing section is left byte-identical (the re-emit runs only when your
+section is absent). This page documents the
 `[product-engineering]` section that `frame-intent` and `align-value-stream` read.
 
 ## The `[product-engineering]` table
