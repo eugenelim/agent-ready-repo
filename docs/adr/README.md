@@ -34,6 +34,7 @@
 | 0026 | [SSO-cookie consumer resolution lives in the `credbroker` library, platform-agnostic](0026-sso-consumer-resolution-in-credbroker.md) | Accepted |
 | 0027 | [ADR format is MADR-aligned but lean, not full MADR (Rejected status, MADR 4.0 frontmatter, optional Decision drivers + Confirmation; decision stays answer-first)](0027-adr-format-is-madr-aligned-but-lean.md) | Accepted |
 | 0028 | [Pack-level activation evals adopt the agentskills.io trigger-eval convention; coverage in `pack.toml`; runner is catalogue-internal tooling](0028-pack-activation-evals.md) | Accepted |
+| 0029 | [Research pack structure — two orthogonal axes (depth × lifecycle), with a prompt-only project mode](0029-research-two-axes-depth-and-lifecycle.md) | Accepted |
 
 ## Adding a new ADR
 
