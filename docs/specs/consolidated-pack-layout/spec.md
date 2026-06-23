@@ -64,10 +64,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   install scope's location, ensure `[<pack>]` is present — appending the pack's
   default if missing, leaving an existing section untouched.
 - Source the appended default from the pack's **scope-keyed `[pack.layout]`
-  manifest table** (`[pack.layout.repo]` / `[pack.layout.user]`), so the appended
-  default matches the target file's anchor (repo-relative for the repo file,
-  absolute / `~`-anchored — or a commented placeholder when no sensible absolute
-  default exists — for the user file).
+  manifest table** (`[pack.layout.repo]` / `[pack.layout.user]`, both optional), so
+  the appended default matches the target file's anchor: repo-relative for the repo
+  file; absolute / `~`-anchored for the user file. When a pack has **no sensible
+  absolute user-scope default** (true for all three current consumers, whose output
+  is per-repo), it **omits `[pack.layout.user]` entirely** — the user-scope append is
+  then a **no-op**, and the commented-placeholder shape appears only in the
+  `references/agentbundle-layout.md` schema doc as adopter guidance, never as
+  installer-emitted output (this keeps every installer-written line on the
+  injection-safe `config._emit_basic_string` path; a comment line has no such
+  serialiser and would be a net-new emit shape with no `_append_install_marker`
+  precedent).
 - Serialise every pack-sourced string in the append through the existing
   injection-safe `config._emit_basic_string` and write via the path-jailed atomic
   `safety.write_jailed`.
@@ -258,8 +265,15 @@ append is real code and is **TDD**.
   `.repo` / `.user` sub-tables (declaring the section inline or pointing at a
   within-pack `agentbundle-layout.toml` template); `pack.schema.json` accepts it
   and `validate_pack_metadata` validates it; the install scope selects which
-  sub-table sources the appended default. The manifest schema / contract version
-  field that governs `pack.toml` is bumped per the repo's contract-bump discipline.
+  sub-table sources the appended default. **A pack may declare only `.repo`** (the
+  three current consumers do, since their output is per-repo and they have no
+  sensible absolute user default); a scope whose sub-table is absent **appends
+  nothing** (no-op). The governing manifest / contract version field is the
+  `adapter.toml` `[contract] version` (direct precedent: the enriched-pack-manifest
+  manifest extension bumped it); it is bumped per the repo's contract-bump
+  discipline. The additive optional `[pack.layout]` property leaves the stale
+  `pack.schema.json` install-gate enum and each pack's `[pack.adapter-contract]
+  version` untouched (the runtime version gate is major-only).
   Verification: `validate_pack_metadata` accepts a `[pack.layout]`-carrying
   `pack.toml` and rejects a malformed one; the version bump is asserted; the full
   `agentbundle` package pytest is run by hand (contract-bump traps).
@@ -290,8 +304,17 @@ append is real code and is **TDD**.
   against a real `allowed-prefixes.user` list (not merely that the `TypeError`
   fires when the list is omitted); a **re-emit type-validation** test feeding a
   tampered existing section (`parent = 42`, `parent = ["x"]`) asserts it is
-  dropped/coerced, not crashed on; plus the never-overwrite / never-create tests
-  of AC9. *(RFC-0040 spec-stage security AC 4.)*
+  dropped/coerced, not crashed on; a **symlink-target fails-closed** test confirms
+  that when the layout *file path itself* is a symlink escaping `root`,
+  `write_jailed`'s `assert_under` realpath-resolve raises `PathJailError` (the append
+  fails closed, never following the link); plus the never-overwrite / never-create
+  tests of AC9. **Scope note:** the append validates the *type* of a re-read `parent`
+  (str-vs-non-str, mirroring `_append_install_marker`) and serialises it
+  injection-safely, but it deliberately does **not** validate `parent`'s *path
+  semantics* — a hostile `parent = "../../etc"` round-trips intact and well-formed,
+  because confining the resolved `parent` value is wholly the prompt-only reader's
+  job (AC13–AC15), not the path-jailed *file* write's. *(RFC-0040 spec-stage security
+  AC 4.)*
 
 - [ ] **AC12 — Reading is prompt-only; no engine creeps in.** No consumer ships a
   script, daemon, index, counter, or any runtime code that reads
@@ -319,7 +342,9 @@ append is real code and is **TDD**.
   (security).** A `parent` taken from the repo-root file that resolves outside the
   repo tree is treated as untrusted-origin and **confirmed before writing** (the
   cloned-untrusted-repo case); the user-profile file is foot-gun-only (adopter is
-  the author). Verification: goal-based / manual-QA — `rg` confirms the
+  the author). This trust posture is the **reader's** (AC13–AC15); the install-time
+  append still type-validates the user file's re-read `parent` per AC11 regardless of
+  scope, so the two ACs do not contradict on who trusts the user file. Verification: goal-based / manual-QA — `rg` confirms the
   untrusted-origin Ask-first rail in each body; the AC16 smoke exercises a hostile
   repo-root `parent` (e.g. an absolute `~/.ssh`, or a relative `../../<outside>`
   that escapes the repo via `..`) and confirms the skill asks rather than writing.
@@ -341,7 +366,13 @@ append is real code and is **TDD**.
   catalogue does not trip the self-host drift gate; adopters ship **no** gitignore
   rule. Verification: `rg -F 'agentbundle-layout.toml' .gitignore` returns a hit in
   the install-time-scratch section, and `rg` finds no surviving `research-layout.toml`
-  reference outside the RFC/ADR and historical changelog entries.
+  reference **on a live consumer surface** — the three skill bodies and the
+  `docs/guides/research/**` guides. The old name legitimately survives in **historical
+  record**, which the sweep exempts: this spec/plan and its RFC-0040 / ADR-0030; the
+  **frozen** `docs/specs/research-project-mode/` spec & plan and that spec's row in the
+  living `docs/specs/README.md` index (CONVENTIONS forbids editing a frozen spec's
+  body — it is historical description of what that spec shipped); and historical
+  `docs/product/changelog.md` entries.
 
 - [ ] **AC18 — Pack version bumps + changelog.** `research` is bumped 0.4.0 →
   0.5.0; `architect` and `product-engineering` get the appropriate next bump for a
