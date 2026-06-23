@@ -1,0 +1,21 @@
+[
+  {"query": "Author an AsyncAPI contract for the order-placed event", "should_trigger": true},
+  {"query": "Design the event contract for our Kafka order stream", "should_trigger": true},
+  {"query": "Write the message schema for the payment-completed event we publish", "should_trigger": true},
+  {"query": "Create an AsyncAPI spec for the notifications event stream", "should_trigger": true},
+  {"query": "We own the user-signed-up event — author its contract", "should_trigger": true},
+  {"query": "Design the event-driven contract for our domain events", "should_trigger": true},
+  {"query": "Generate a validated AsyncAPI document for the inventory events", "should_trigger": true},
+  {"query": "Compose a CloudEvents envelope for the events we emit", "should_trigger": true},
+  {"query": "Author the message contract for the shipment-dispatched event", "should_trigger": true},
+
+  {"query": "Generate an OpenAPI spec for the REST orders API", "should_trigger": false},
+  {"query": "Design the HTTP API contract for payments", "should_trigger": false},
+  {"query": "Author the REST endpoints from these user stories", "should_trigger": false},
+  {"query": "Author a contract for an event we only consume from a third party", "should_trigger": false},
+  {"query": "How should we design the event-driven architecture?", "should_trigger": false},
+  {"query": "Diagram the event flow between services", "should_trigger": false},
+  {"query": "Write a spec for the new notifications feature", "should_trigger": false},
+  {"query": "Set up Kafka in our infra", "should_trigger": false},
+  {"query": "Document how our events work for consumers", "should_trigger": false}
+]
