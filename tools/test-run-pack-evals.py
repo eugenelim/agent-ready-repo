@@ -538,6 +538,107 @@ def test_grade_behavior() -> None:
           "attests assertions, labels B-lite, fails closed on missing workspace.")
 
 
+def test_judge_prompt_and_parse() -> None:
+    ev = {"id": 1, "prompt": "do X", "expected_output": "produces Y",
+          "assertions": ["does A", "does NOT do B"]}
+    p = M.build_judge_prompt("alpha", ev, "THE ARTIFACT BODY")
+    for needle in ("alpha", "do X", "produces Y", "does A", "does NOT do B",
+                   "THE ARTIFACT BODY", "JSON"):
+        check("judge-prompt", needle in p, f"prompt missing {needle!r}")
+
+    # Clean JSON.
+    v = M.parse_judge_verdict('{"verdict":"PASS","assertions":[],"rationale":"ok"}')
+    check("judge-parse", v["verdict"] == "PASS", "clean PASS")
+    # Prose-wrapped JSON (codex tends to chatter around it).
+    v = M.parse_judge_verdict('Here is my verdict:\n{"verdict": "fail", "rationale": "nope"}\nDone.')
+    check("judge-parse", v["verdict"] == "FAIL", "prose-wrapped + normalized to FAIL")
+    # Unparseable / no verdict → ERROR (fail closed, never silent PASS).
+    check("judge-parse", M.parse_judge_verdict("no json here")["verdict"] == "ERROR",
+          "no JSON -> ERROR")
+    check("judge-parse", M.parse_judge_verdict('{"x": 1}')["verdict"] == "ERROR",
+          "JSON without verdict -> ERROR")
+    print("✓ build_judge_prompt + parse_judge_verdict (clean / prose-wrapped / "
+          "fail-closed).")
+
+
+def test_get_judge() -> None:
+    # Built-in backends resolve to a CommandJudge bound to the adapter + model.
+    j = M.get_judge("claude-code")
+    check("judge-seam", isinstance(j, M.CommandJudge) and j.adapter == "claude-code",
+          "claude-code -> CommandJudge")
+    j = M.get_judge("codex", model="o3")
+    check("judge-seam", j.adapter == "codex" and j.model == "o3", "codex + model bound")
+    try:
+        M.get_judge("nope")
+    except ValueError:
+        pass
+    else:
+        fail("judge-seam", "unknown judge adapter must raise")
+
+    # Adopter adds a backend (e.g. kiro-cli) via config — no code change.
+    backends = M.load_judge_config(None)  # built-ins
+    check("judge-cfg", {"claude-code", "codex"} <= set(backends), "built-ins present")
+    backends["kiro-cli"] = {"command": ["kiro-cli", "chat", "{prompt}"], "extract": "stdout"}
+    jk = M.get_judge("kiro-cli", model="m", config=backends)
+    check("judge-cfg", jk.adapter == "kiro-cli", "config-added backend resolves")
+
+    # CommandJudge.run: argv substitution + extract, exercised with a stub command
+    # (no real model). stdout extract:
+    je = M.CommandJudge("stub", {"command": ["python3", "-c",
+        "import sys; sys.stdout.write(sys.argv[1])", "{prompt}"], "extract": "stdout"})
+    check("judge-run", je.run("HELLO", 30) == "HELLO", "stdout extract + {prompt} subst")
+    # json:field extract:
+    jj = M.CommandJudge("stub", {"command": ["python3", "-c",
+        "import sys; sys.stdout.write('{\"result\": \"V\"}')"], "extract": "json:result"})
+    check("judge-run", jj.run("x", 30) == "V", "json:result extract")
+    print("✓ judge seam: config-driven backends (built-in + adopter-added kiro-cli), "
+          "model binding, argv substitution + stdout/json extract.")
+
+
+class FakeJudge:
+    adapter = "fake"
+
+    def __init__(self, by_text):  # {artifact_substr: verdict_json}
+        self.by_text = by_text
+
+    def run(self, prompt, timeout):
+        for k, v in self.by_text.items():
+            if k in prompt:
+                return v
+        return '{"verdict":"ERROR","rationale":"no canned response"}'
+
+
+def test_grade_judge() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_behavior_pack(repo_root)  # skill 'alpha', evals incl. id 1
+        good = repo_root / "good.txt"; good.write_text("a strong artifact", encoding="utf-8")
+        bad = repo_root / "bad.txt"; bad.write_text("a weak artifact", encoding="utf-8")
+        judge = FakeJudge({
+            "a strong artifact": '{"verdict":"PASS","assertions":[],"rationale":"solid"}',
+            "a weak artifact": '{"verdict":"FAIL","assertions":[],"rationale":"missing A"}',
+        })
+        summary = M.grade_judge(
+            "bxpack",
+            {"alpha": {"1": str(good), "2": str(bad), "3": "/no/such/artifact"}},
+            judge=judge, repo_root=repo_root,
+        )
+        check("judge", summary["mode"] == "judge" and summary["fidelity"] == "model-judged",
+              "labelled mode=judge / fidelity=model-judged")
+        check("judge", summary["judge_adapter"] == "fake", "judge_adapter recorded")
+        evs = {e["eval_id"]: e for e in summary["skills"]["alpha"]["evals"]}
+        check("judge", evs["1"]["passed"] and evs["1"]["verdict"] == "PASS", "eval 1 PASS")
+        check("judge", not evs["2"]["passed"] and evs["2"]["verdict"] == "FAIL", "eval 2 FAIL")
+        check("judge", evs["3"]["errored"] and not evs["3"]["passed"],
+              "eval 3 missing artifact -> errored (fail closed)")
+        check("judge", summary["skills"]["alpha"]["pass_count"] == 1, "1 of 3 PASS")
+        # Bounded verdict capture (no key/artifact dump).
+        cap = (repo_root/".eval-workspace"/"bxpack"/"iteration-1"/"alpha"/"1"/"judge"/"verdict.json")
+        check("judge", cap.is_file(), "verdict.json captured")
+    print("✓ grade_judge: runs the backend, labels mode/judge_adapter, fails closed "
+          "on missing artifact, bounded capture.")
+
+
 def test_gitignored_control() -> None:
     # The real repo .gitignore must ignore a representative outputs/ path.
     rel = ".eval-workspace/core/iteration-1/new-spec/q00/with_skill/run-1/outputs/result.txt"
@@ -570,6 +671,9 @@ def main() -> int:
     test_grade_reports_validation_and_unmeasured()
     test_seed_workspace()
     test_grade_behavior()
+    test_judge_prompt_and_parse()
+    test_get_judge()
+    test_grade_judge()
     test_gitignored_control()
     test_help_smoke()
     print()

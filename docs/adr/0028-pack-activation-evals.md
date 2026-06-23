@@ -48,6 +48,16 @@
 > `security-reviewer` spec-stage pass signs off the sandbox before execution
 > code ships.
 
+> **Scope adjustment (2026-06-22, ✅ signed off by eugenelim — RFC-0037 Approver; see RFC-0037 § Errata E4):**
+> Adds a **report-only LLM-judge** for the *quality* layer (which deterministic
+> checks can't reach), behind a **config-driven, multi-adapter judge seam**: the
+> lens is the eval's rubric (`expected_output` + `assertions`); backends are
+> declarative command templates (built-in `claude-code` same-model + `codex`
+> independent; adopters add their own — e.g. `kiro-cli` — and pick the model via
+> config, no code). Judgment-only + report-only; an unparseable verdict fails
+> closed. The **full** Tier-B grading (benchmark deltas, with/without-skill,
+> train/validation, human-feedback loop) remains the separate future RFC.
+
 ## Context
 
 Every gate the catalogue runs today is **structural**: `lint-skill-spec.py` and

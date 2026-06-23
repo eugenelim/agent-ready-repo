@@ -783,9 +783,17 @@ needs:
 - **Tier 4 — judgment / agent-workflow skills** (`core` 5, `architect`,
   `research`, `product-engineering`, `design-craft`, `governance-extras`,
   `new-guide`, `new-package`): produce specs/diagrams/research/critiques by
-  judgment, not a deterministic artifact → out of B-lite; their output quality
-  is the **full Tier-B grading** (LLM-judge / with-without / human review) of
-  the deferred future RFC.
+  judgment, not a deterministic artifact. The **LLM-judge mechanism now exists**
+  (RFC-0037 § Errata E4, `--mode judge`, config-driven multi-adapter) — so the
+  remaining work here is **(a)** a per-skill **lens map** (point each skill at
+  the right rubric / reviewer lens — e.g. `architect-review` for `architect-design`),
+  authoring the `expected_output`/`assertions` rubrics, and **(b)** the **full
+  Tier-B** pieces still deferred: `benchmark.json` **deltas**, the
+  **with/without-skill** comparison, the **train/validation split**, and the
+  formal **human-calibration** (`feedback.json`) loop. *(Note: `contracts` and
+  `architect-diagram` also have a strong **deterministic** layer — OpenAPI/AsyncAPI
+  spec-validation, `mmdc` parse — worth a B-lite `expect` extension (a `validate`
+  hook + produced-file content checks) independent of the judge.)*
 - **Tier 5 — operational/harness.** (a) Run the **full activation sweep**
   (so far only spot-validated) — needs the `ANTHROPIC_API_KEY` repo secret +
   the scheduled `pack-evals.yml`. (b) **CI-automate behavior evals** — needs the

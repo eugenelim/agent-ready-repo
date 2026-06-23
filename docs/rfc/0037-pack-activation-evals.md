@@ -322,3 +322,52 @@ access, cleanup); ADR-0028 companion note; plan tasks (a sandbox helper +
 `grade_behavior` model-free grader + the driver-procedure extension + live
 validation); the runner + the authoring guide gain the behavior-check path; a
 spec-stage `security-reviewer` pass on the sandbox.
+
+### E4 — Admit a report-only LLM-judge for the quality layer, behind a multi-adapter judge seam (2026-06-22) · ✅ signed off: eugenelim (RFC-0037 Approver), 2026-06-22
+
+**E3's deterministic B-lite check covers the *validity/shape* layer (artifacts
+exist, substrings, validators) but not output *quality* — "is the contract
+well-designed? is this the right diagram abstraction? is the verdict correct?"**
+That layer has no ground truth, so it needs a model. E4 admits a **report-only
+LLM-judge** for it, behind a **swappable judge backend seam** parallel to the
+detector seam.
+
+**Adjustment.** `run-pack-evals.py --mode judge --judge-adapter {claude-code,codex}`
+grades a skill's produced artifact against the eval's rubric. Key shapes:
+- **The lens is the rubric we already author** — the eval's `expected_output` +
+  `assertions`. The judge prompt inlines the artifact + the rubric and requests a
+  **strict-JSON verdict** (`{verdict: PASS|FAIL, assertions:[…], rationale}`),
+  parsed deterministically; an unparseable verdict **fails closed** (ERROR, never
+  a silent PASS). The repo's own review skills (`architect-review`, the reviewer
+  subagents) are natural lenses.
+- **Config-driven, multi-adapter, model-selectable, cross-model preferred.**
+  Backends are **declarative command templates**, not hardcoded classes:
+  `[judge.<name>]` = `{command (with a `{prompt}` argv token), model-flag,
+  extract (`json:<field>`|`stdout`)}`. Built-ins ship `claude-code` (same model,
+  `claude -p` → `.result`) and `codex` (independent model/IDE, `codex exec -s
+  read-only`); an **adopter adds their own — e.g. a `kiro-cli` headless judge —
+  by a config entry, no code change** (`--judge-config <toml>`), and picks the
+  **model** with `--model` (passed via the backend's model-flag). A **cross-model**
+  judge (codex/kiro judging a claude-run skill) is preferred — it can't
+  self-grade. `{prompt}` substitutes as a discrete argv element (no shell), so a
+  config entry can't inject. Both built-ins validated live (each returned a
+  structured PASS on a good design doc).
+- **Containment.** The judge is **judgment-only**: claude is granted no tools
+  (the artifact is inlined); codex runs `-s read-only` so any model-generated
+  command can't mutate. It reads an operator-supplied artifact path + calls a
+  model — report-only, no gating.
+- **Honest limits.** A judge **wobbles** (mitigate: structured per-assertion
+  verdict, multiple runs, report-only) and needs periodic **human calibration**
+  (does the judge agree with a human on a sample — the agentskills.io
+  `feedback.json` loop). It is a quality *signal*, not a gate.
+
+**Still the separate future RFC (full Tier-B):** `benchmark.json` pass-rate
+**deltas**, the **with/without-skill** comparison, the **train/validation split**,
+and the formal **human-feedback** loop. E4 ships only the judge *mechanism* +
+the multi-adapter seam.
+
+**Follow-on artifacts:** spec — a new AC for the judge mode (lens=rubric,
+multi-adapter, JSON verdict, fail-closed, report-only) + the judge containment
+note; ADR-0028 companion note; the runner's judge seam (`get_judge`,
+`build_judge_prompt`, `parse_judge_verdict`, `grade_judge`) + tests; backlog —
+narrow the full-Tier-B entry to deltas/with-without/train-val/human-feedback.
