@@ -43,7 +43,13 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 2. Copy this skill's bundled `assets/rfc.md` into `docs/rfc/` and rename
    to `NNNN-<kebab-title>.md`. (Paths are skill-relative — the
    `assets/` folder lives next to this `SKILL.md` wherever your IDE
-   installed the skill.)
+   installed the skill.) **Optional `NNNN-notes/` companion.** If the
+   proposal rests on a sustained investigation, you may create a sibling
+   `docs/rfc/NNNN-notes/` folder for the promoted research — a distilled
+   brief, evidence, sketches — mirroring the `notes/` folder a spec carries
+   (docs/CONVENTIONS.md § 3). It is optional; summarize its conclusions in
+   `Evidence & prior art` and link the folder, rather than pasting the corpus
+   into the RFC body.
 
 3. **Research + de-risk checkpoint — gated.** With the file scaffolded, stop.
    Don't write a single body sentence yet. A complex RFC is a tree, not one
@@ -129,7 +135,9 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    - **Risks & what would make this wrong.** Pre-mortem + falsifiable
      assumptions + drawbacks. If they say "no drawbacks", push back.
    - **Evidence & prior art.** Empty prior art is a finding (no one has done
-     this) — surface it; never leave it blank or fabricated.
+     this) — surface it; never leave it blank or fabricated. Promoted research
+     from a sustained investigation (e.g. a `research`-pack project brief) can
+     live in the optional `NNNN-notes/` companion; summarize and link it here.
    - **Open questions.** Each carries a recommended default + owner +
      decide-by; aim for ≤3.
    - **Experiment / validation** (optional). Only if the proposal needs an
