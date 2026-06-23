@@ -19,6 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Agentic security boundaries are now control-level checks in the
+  `security-checklists` `llm-agent` module (core 0.4.13 → 0.4.14; architect
+  0.8.0 → 0.8.1; RFC-0029 / ADR-0032).** The `llm-agent` module — the
+  orchestrator-inlined depth the `security-reviewer` reasons from — gains three
+  control-altitude checks for the agentic boundaries the well-architected overlay
+  previously named only at design time: **execution isolation & blast radius**
+  (the three confinement axes — filesystem scope, network egress, resource/time
+  caps — distinct from authorization), **inter-agent identity/privilege
+  propagation** (a sub-agent must not amplify the spawning request's authority),
+  and **memory poisoning** (a write gate that trust-checks content before it is
+  persisted, plus the read side). The module's Standards surface adds the **OWASP
+  Top 10 for Agentic Applications:2026** (ASI02 / ASI03 / ASI05 / ASI06) and
+  **OWASP LLM04** (Data & Model Poisoning), keeping the existing
+  LLM01/02/03/05/06/10 surface and the module's delegation legend, spec-stage
+  proactive-control, and established-helper-bypass sections intact. As the
+  ride-along, the `architect` GenAI/agentic lens (`lens-genai-agentic.md`, both
+  skill copies) drops its now-stale "these boundaries reach beyond the module's
+  current checks" caveat — they route to a named `llm-agent` check like every
+  other security-boundary concern.
 - **Agentic well-architected overlay, applied at design time (architect
   0.7.1 → 0.8.0; ADR-0032 / RFC-0042).** Designing an agentic system — one
   that uses tools, takes autonomous action, or runs an agent loop — now gets
