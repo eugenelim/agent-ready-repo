@@ -17,9 +17,9 @@ other:
   adversarial pass). Depth is **episodic**: you ask, it answers, you get an
   artifact, you're done.
 - **Lifecycle** — *whether the work is one-shot or accumulates over time.* This
-  is project mode: `start → digest → synthesize → feedback`, a corpus that grows
-  across days or weeks. Lifecycle is **stateful**: the project remembers what
-  you've gathered and what you've concluded so far.
+  is project mode: the phases `capture → digest → synthesize → feedback`, a
+  corpus that grows across days or weeks. Lifecycle is **stateful**: the project
+  remembers what you've gathered and what you've concluded so far.
 
 The axes are independent because a deep one-off and a sustained project are
 different *shapes* of work, not different *amounts*. A single `deep` run can be
@@ -57,10 +57,10 @@ A one-off `/research` goes straight from sources to a written answer; the
 intermediate reasoning is transient. A project makes that middle layer durable
 and structured: a concept matrix whose columns are built from the material
 (grounded-theory coding, not a fixed template), and analytic memos where the
-working hypothesis forms and gets revised as evidence lands. That's the layer
-the pack lacked before project mode, and it's why a project can hold a
-forty-source investigation that a one-off run can't: you can *see* the corpus,
-query it, and watch its structure stabilize.
+working hypothesis forms and gets revised as evidence lands. That durable
+middle layer is what lets a project hold a forty-source investigation a one-off
+run can't: you can *see* the corpus, query it, and watch its structure
+stabilize.
 
 When the matrix structure stops changing — new sources only confirm existing
 columns rather than adding new ones — the corpus has reached *theoretical

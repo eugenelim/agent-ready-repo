@@ -53,10 +53,8 @@ Open `overview.md`. Its frontmatter records your `question`, a
 
 ## Step 2 — capture a few sources
 
-A project is only as good as its `sources/`. Gather three. The fastest way is to
-run a one-off `/research` per sub-question and save each result into `sources/`,
-but for this tutorial drop three short notes by hand so the run is quick. Create
-three files under `sources/`:
+A project is only as good as its `sources/`. For this tutorial, drop three short
+notes by hand so the run stays quick. Create three files under `sources/`:
 
 `sources/src-01.md`:
 
@@ -113,7 +111,7 @@ Open `synthesis-matrix.md`. You should see a table whose **rows are your
 sources** and whose **columns were built from what the sources actually talk
 about** — something like *resolver speed*, *lockfile*, *virtualenv management*,
 *maturity*. The columns are discovered from the material, not chosen from a
-fixed template; that's the point.
+fixed template.
 
 Open `memos.md`. This is where the reasoning lives — and where your
 working hypothesis forms. A note like *"speed and maturity pull in opposite

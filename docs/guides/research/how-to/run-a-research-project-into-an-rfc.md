@@ -12,16 +12,19 @@ research](../explanation/episodic-vs-project-research.md).
 
 ## Run the lifecycle
 
-The four skills map to four phases. Drive them in order; nothing advances on its
-own.
+The four skills drive the lifecycle through its phases. Run them in order;
+nothing advances on its own. (`-start` opens the `capture` phase, `-check` is a
+stop-signal you can run any time, and the `feedback` phase has no skill — it's
+where you act on the brief.)
 
 1. **Start** — `start a research project on <question>`. Records the question
    and (optionally) a working hypothesis, scaffolds the folder, sets
    `phase: capture`.
-2. **Capture** — fill `sources/`. Run a one-off `/research` per sub-question and
-   save each result into `sources/`, and/or use `/source-map` to curate
-   candidates. Grade each source's `reliability` / `credibility` if you want the
-   extra provenance signal.
+2. **Capture** — fill `sources/` with one file per source. Run a one-off
+   `/research` per sub-question and save each result into `sources/`; use
+   `/source-map` to find and curate the candidates first (it produces a
+   `<topic-slug>-sources.md` list you then capture from). Grade each source's
+   `reliability` / `credibility` if you want the extra provenance signal.
 3. **Digest** — `digest the sources`. Builds `synthesis-matrix.md` (rows =
    sources, columns built from the material) and `memos.md` (where the
    hypothesis forms and gets revised).
