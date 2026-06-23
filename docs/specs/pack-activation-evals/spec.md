@@ -1,6 +1,6 @@
 # Spec: pack-activation-evals
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived --> <!-- Phase 1 (headless) + Phase 2 (in-harness activation) shipped; Phase 3 (lightweight behavior/output check, RFC-0037 § Errata E3) in progress -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> <!-- Phase 1 (headless) + Phase 2 (in-harness activation) + Phase 3 (lightweight B-lite behavior/output check, RFC-0037 § Errata E3) shipped -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0037, ADR-0028
@@ -30,7 +30,9 @@ forward-compatible convention** with reserved slots so a future grading RFC adds
 output-quality grading without restructuring. It runs in a scheduled / dispatch,
 **report-only** `pack-evals.yml` workflow — never on the PR critical path — and
 `make build-check` stays structural and fast. The first cut covers `core` and
-`converters`. Scope is **Tier A (activation/selection) only** — the
+`converters`. The **first cut's** scope is **Tier A (activation/selection)** via
+the headless detector; two errata extend it (see § Errata-driven phases at the
+end of this Objective). Scope is **Tier A** — the
 agentskills.io [Optimizing skill descriptions](https://agentskills.io/skill-creation/optimizing-descriptions)
 *methodology* (the `evals/eval_queries.json` **path is the catalogue's
 instantiation**, not agentskills.io's — it illustrates a bare `eval_queries.json`
@@ -42,18 +44,33 @@ review, the SKILL.md improvement loop) plus the triggering page's
 train/validation split and description-*optimization* loop are **out of scope**
 here — a separate future RFC (full exclusion list in ADR-0028 § Consequences).
 
-The eval is **headless-only** and measures **claude-code as the reference
-harness** — a deliberate proxy for activation quality across every adapter. Every
-adapter projects skills as native `direct-directory` primitives to
+The **first cut's** detector is **headless-only** and measures **claude-code as
+the reference harness** — a deliberate proxy for activation quality across every
+adapter. Every adapter projects skills as native `direct-directory` primitives to
 `<tool>/skills/<name>/` with the load-bearing `description:` projected
 **byte-identical**, so the variable a trigger-eval tests is constant across
 adapters; only claude-code exposes a headless prompt mode with a parseable
-skill-activation event to measure it automatically. GUI-only IDEs (**Kiro IDE**,
-**Cursor IDE**) have no headless surface and are **out of scope** — the
-reference-harness measurement covers the `description:` regression they would
-share. The other headless CLIs (codex, copilot, cursor-agent, gemini) expose
-JSON-stream output and become **additive headless detectors later**, behind a
-detector seam; the first cut ships the `claude-code` detector only.
+skill-activation event to measure it automatically. The other headless CLIs
+(codex, copilot, cursor-agent, gemini) expose JSON-stream output and become
+**additive headless detectors later**, behind a detector seam; the first cut
+ships the `claude-code` detector only.
+
+### Errata-driven phases
+
+Headless (above) is **Phase 1** and stays the high-fidelity reference. Two signed
+errata extend the scope, each behind the same detector seam (full ACs in their
+Phase sections under Acceptance Criteria):
+
+- **Phase 2 — in-harness activation (RFC-0037 § Errata E2).** A second detector
+  where the **host harness's own agent** (Claude Code subagent / **Kiro IDE**
+  agent-spawn) reports activation — bringing Kiro IDE and interactive Claude Code
+  *into* scope (they are no longer out of scope). Lower fidelity: a *reported*
+  description-match judgement, not the observed router event.
+- **Phase 3 — lightweight behavior/output check (RFC-0037 § Errata E3).** A
+  bounded slice of Tier B: run the skill and validate its outputs against
+  deterministic post-conditions (`tier: B-lite`). The **full** Tier-B grading
+  (LLM-judge, `benchmark.json` deltas, with/without-skill, train/val) remains the
+  separate future RFC.
 
 ## Boundaries
 
@@ -213,8 +230,8 @@ documented anti-action? The **full** Tier-B grading (LLM-judge, `benchmark.json`
 deltas, with/without-skill, train/validation) stays out of scope (the separate
 future RFC); this is the *lightweight* check only.
 
-- [ ] **Lightweight behavior/output check (`tier: B-lite`).** For each eval in a covered skill's `evals/evals.json`, the in-harness driver has the host agent **run the skill** on the eval's `prompt` **in a per-eval working directory seeded with the eval's `evals/files/` fixtures**; grading then splits by trust: (a) the **deterministic post-conditions are re-derived by the runner itself** — `grade_behavior` reads that working directory and checks the eval's `files` exist and the `expected_output` literal expected/forbidden substrings are present/absent (the runner does **not** trust operator-supplied `*_ok` booleans); (b) only the **semantic `assertions`** a string check can't cover are the host agent's **per-assertion self-attestation**. A malformed/contradictory results file **fails closed**. No separate judge model, no `benchmark.json` deltas, no with/without-skill baseline. Reuses `evals/evals.json` (no new file); writes pass/fail-per-eval + counts to the eval-workspace, labelled `mode: in-harness`, `tier: B-lite`, `provenance: operator-attested`. **Fidelity:** the re-derived post-conditions are **observed** (real artifacts the runner inspects); the semantic-`assertion` verdicts are **self-attested**.
-- [ ] **Behavior-check containment — an operator/agent-followed procedure with a scope gate, NOT a mechanical sandbox.** The behavior check **must** execute the skill body, and (per the Phase-2 isolation finding) a host agent running the skill keeps its full tool surface, real cwd, inherited environment, and network — so a temp working directory is **not** a mechanical sandbox (honest, like the Phase-2 containment AC). The control is three layers: **(1) scope gate** — only skills the author **opts into** behavior-checking via `evals/evals.json`, restricted to those whose run is **non-destructive and needs no network or credentials** (a destructive or egressing body is out of scope for B-lite until a real OS-level sandbox exists); **(2) procedure** — the documented driver runs the skill in a per-eval working dir under the OS temp root (`tempfile.mkdtemp`, **not** repo-relative), instructs the agent to confine writes to it, and tears it down in a `finally` (guaranteed on error/interrupt) under a per-eval max-runtime; **(3) enforceable slices** — fixtures are copied with path-confinement (`followlinks=False`, each fixture resolved under the eval's `evals/files/` root), and **where the runner itself spawns a skill's documented script** it uses a scrubbed allowlisted environment (no `ANTHROPIC_API_KEY` / `*_TOKEN` / `*_SECRET`) with network denied by default. The spec states plainly this is procedure + scope-gate, not a guarantee the architecture can mechanically keep. A **`security-reviewer` spec-stage pass signed off this design (2026-06-22)** before execution code; a future real sandbox (container / separate user / netns) would lift the scope gate.
+- [x] **Lightweight behavior/output check (`tier: B-lite`).** For each eval in a covered skill's `evals/evals.json`, the in-harness driver has the host agent **run the skill** on the eval's `prompt` **in a per-eval working directory seeded with the eval's `evals/files/` fixtures**; grading then splits by trust: (a) the **deterministic post-conditions are re-derived by the runner itself** — `grade_behavior` reads that working directory and checks the eval's `files` exist and the `expected_output` literal expected/forbidden substrings are present/absent (the runner does **not** trust operator-supplied `*_ok` booleans); (b) only the **semantic `assertions`** a string check can't cover are the host agent's **per-assertion self-attestation**. A malformed/contradictory results file **fails closed**. No separate judge model, no `benchmark.json` deltas, no with/without-skill baseline. Reuses `evals/evals.json` (no new file); writes pass/fail-per-eval + counts to the eval-workspace, labelled `mode: in-harness`, `tier: B-lite`, `provenance: operator-attested`. **Fidelity:** the re-derived post-conditions are **observed** (real artifacts the runner inspects); the semantic-`assertion` verdicts are **self-attested**.
+- [x] **Behavior-check containment — an operator/agent-followed procedure with a scope gate, NOT a mechanical sandbox.** The behavior check **must** execute the skill body, and (per the Phase-2 isolation finding) a host agent running the skill keeps its full tool surface, real cwd, inherited environment, and network — so a temp working directory is **not** a mechanical sandbox (honest, like the Phase-2 containment AC). The control is three layers: **(1) scope gate** — only skills the author **opts into** behavior-checking via `evals/evals.json`, restricted to those whose run is **non-destructive and needs no network or credentials** (a destructive or egressing body is out of scope for B-lite until a real OS-level sandbox exists); **(2) procedure** — the documented driver runs the skill in a per-eval working dir under the OS temp root (`tempfile.mkdtemp`, **not** repo-relative), instructs the agent to confine writes to it, and tears it down in a `finally` (guaranteed on error/interrupt) under a per-eval max-runtime; **(3) enforceable slices** — fixtures are copied with path-confinement (`followlinks=False`, each fixture resolved under the eval's `evals/files/` root), and **where the runner itself spawns a skill's documented script** it uses a scrubbed allowlisted environment (no `ANTHROPIC_API_KEY` / `*_TOKEN` / `*_SECRET`) with network denied by default. The spec states plainly this is procedure + scope-gate, not a guarantee the architecture can mechanically keep. A **`security-reviewer` spec-stage pass signed off this design (2026-06-22)** before execution code; a future real sandbox (container / separate user / netns) would lift the scope gate.
 
 ## Assumptions
 

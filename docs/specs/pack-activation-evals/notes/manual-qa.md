@@ -83,6 +83,25 @@ positive `1.0`/pass and flagged `bug-fix` as an exclusivity violation — the fu
 Phase-2 path end-to-end. The reported signal is a description-match judgement
 (lower fidelity than headless's observed router event), labelled as such.
 
+## 5. Behavior/output check (Phase 3, RFC-0037 § Errata E3) — live validation
+
+Validated the full B-lite loop end-to-end. A sub-context was dispatched to act
+**only inside an OS-temp working directory** (the procedure's containment),
+simulating a skill run on the prompt "write the report": it produced `out.txt`
+and a `.eval-output.txt` log (`OUTPUT: out.txt`), writing nothing outside the
+dir. `grade_behavior` then **re-derived** the deterministic post-conditions from
+that directory itself — `expect.produces` (`out.txt` exists) and
+`output_contains`/`output_excludes` (`OUTPUT:` present, no `Traceback`) — and
+graded the eval **PASS**, labelled `mode: in-harness`, `tier: B-lite`,
+`fidelity: observed+attested`, `provenance: operator-attested`. The re-derivation
+is genuine (the runner reads the real artifacts; a unit test confirms deleting
+the artifact flips the grade to fail, and a missing workspace fails closed).
+
+This is a **proxy** skill run (a synthetic writer) — it exercises the driver
+loop (agent-in-confined-workspace → runner re-derives → grade) faithfully; a
+production run against a real covered skill needs that skill's Tier-1 deps
+installed and the author to opt it into the scope gate.
+
 ## Scope note
 
 Full per-pack sweeps over `core` + `converters` (every covered skill ×

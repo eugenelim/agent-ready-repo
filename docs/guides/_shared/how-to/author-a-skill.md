@@ -245,6 +245,45 @@ Two things make a Tier-B eval worth writing:
   the prompt ("produces output"). Until automated grading lands, a human reads
   the run against these — so write them for that reader.
 
+#### Running a *lightweight* behavior/output check in-harness (`tier: B-lite`)
+
+The **full** Tier-B grading (LLM-judge, pass-rate deltas, with/without-skill) is
+a future RFC. But a **lightweight** check — run the skill and validate its
+outputs against deterministic post-conditions — is available now in-harness
+(RFC-0037 § Errata E3). Add an optional `expect` block to an eval to make it
+runner-gradable:
+
+```json
+{"id": 1, "prompt": "Turn this Markdown into a Word doc using report.docx",
+ "expected_output": "…prose…", "assertions": ["does NOT hand-write the .docx"],
+ "files": ["evals/files/report.docx"],
+ "expect": {"produces": ["out.docx"], "output_contains": ["OUTPUT:"],
+            "output_excludes": ["Traceback"]}}
+```
+
+Drive it as a procedure — **this executes the skill body, so it carries a
+sharper containment requirement than the activation check** (the
+`--allowed-tools Skill` and "no execution" controls do **not** apply):
+
+1. **Scope gate — only safe skills.** Run the behavior check **only** for skills
+   whose execution is **non-destructive and needs no network or credentials**.
+   A skill that deletes, writes outside its workspace, or phones home is out of
+   scope until a real OS-level sandbox exists — this is a procedure + scope-gate,
+   **not** a mechanical sandbox (a host agent running the skill keeps its full
+   tool surface).
+2. **Per eval:** create a working dir under the OS temp root, copy the eval's
+   `evals/files/` fixtures in, and run the skill on the `prompt` **with that dir
+   as cwd**, instructing it to confine writes there. Capture the run's output to
+   `.eval-output.txt` in that dir. Tear the dir down in a `finally`.
+3. **Collect** `{skill: {eval_id: {"assertions": [<bool per assertion>],
+   "errored": <bool>, "workspace": "<dir>"}}}` and grade:
+   `python tools/run-pack-evals.py --pack <name> --mode in-harness --check
+   behavior --reports <file>`. The runner **re-derives** the deterministic
+   checks (`expect.produces` files exist, `output_contains`/`excludes` against
+   `.eval-output.txt`) from the working dir itself — you only attest the
+   semantic `assertions`. Summary is labelled `tier: B-lite`,
+   `fidelity: observed+attested`.
+
 ## What's enforced vs. recommended
 
 Frontmatter and description rules are lint-enforced (`tools/lint-skill-spec.py`, `tools/lint-agent-artifacts.py`); credentialed-skill rules have their own lint. The body structure, the cross-platform rules, and the three-tier dependency policy are **reviewer-enforced conventions** — no gate checks them, so they live or die in review. Hold the line there.
