@@ -148,6 +148,7 @@ None remaining. The module-taxonomy question (five vs. merge, plus the observabi
 
 ## Amendments
 
+- **2026-06-23 (additive, Approver-signed: eugenelim) — P4 follow-on placement.** When the follow-on artifacts were authored, **P4 (agent-drives-verification, Decision 5)** was placed in the `docs/specs/infra-aware-work-loop/` spec alongside P1/P2/P5, because P4 is a `work-loop` SKILL.md edit that co-locates with P2's EXECUTE smoke step. The Follow-on-artifacts list below originally named only P1/P2/P5 for that spec (folding P4 implicitly under "the infra verification flavor"); this amendment records that P4 lands there explicitly, so an RFC→spec coverage audit reconciles. No reversal of any accepted decision; placement clarification only.
 - **2026-06-23 (additive, Approver-signed: eugenelim).** Strengthened P1/P5 after a review question — "is `security-reviewer` equipped for every cloud provider's checks?" — clarified the answer: *no, and by design.* (a) P1 now requires a **provider-appropriate policy-as-code/CSPM scanner** as a task-zero mechanism (it holds the per-provider depth; the same scanner feeds P2's static-preflight and P5's security depth). (b) P5 is reframed as a **reviewer + scanner pair** — the standards-grounded reviewer reasons about failure *classes*, the scanner holds per-provider baselines. (c) Added a **URL-free, version-less deferred-authority pointer** (CIS Benchmarks + per-provider well-architected security) in `config-misconfig`, kept evergreen by naming publishers not links and by keeping depth in the self-updating scanner. No reversal of any accepted decision; all additive.
 
 ## Follow-on artifacts
@@ -155,7 +156,7 @@ None remaining. The module-taxonomy question (five vs. merge, plus the observabi
 Filled in on acceptance.
 
 - **ADR-0031**: record "infra is a verification flavor consumed by `quality-engineer`, not a new reviewer; security on infra is a *mandatory* `security-reviewer` + scanner pair" (the three-reviewer-ceiling + mandatory-security decisions). (ADR-0030 was taken by RFC-0040.)
-- **Spec**: `docs/specs/infra-aware-work-loop/` — P1 multi-artifact preflight (incl. the required policy-as-code/CSPM scanner as a task-zero mechanism) + P2 active-end-to-end infra verification flavor + P5 mandatory-security wiring (reviewer + scanner pair) (work-loop SKILL.md edits).
+- **Spec**: `docs/specs/infra-aware-work-loop/` — P1 multi-artifact preflight (incl. the required policy-as-code/CSPM scanner as a task-zero mechanism) + P2 active-end-to-end infra verification flavor + P4 agent-drives-verification doctrine + P5 mandatory-security wiring (reviewer + scanner pair) (work-loop SKILL.md edits). See the P4-placement amendment above.
 - **Spec**: `docs/specs/operational-safety-checklists/` — P3 six-module reference library + routing-table entries + `quality-engineer` wiring + the URL-free deferred-authority pointer in `security-checklists`' `config-misconfig`.
 - **Convention touch**: none expected (the risk-trigger set is unchanged); confirm at spec time.
 - **Changelog**: `docs/product/changelog.md` `[Unreleased]` entry for the work-loop behavior change.

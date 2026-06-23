@@ -36,6 +36,7 @@
 | 0028 | [Pack-level activation evals adopt the agentskills.io trigger-eval convention; coverage in `pack.toml`; runner is catalogue-internal tooling](0028-pack-activation-evals.md) | Accepted |
 | 0029 | [Research pack structure — two orthogonal axes (depth × lifecycle), with a prompt-only project mode](0029-research-two-axes-depth-and-lifecycle.md) | Accepted |
 | 0030 | [Consolidated, namespaced pack-output layout contract (`agentbundle-layout.toml`)](0030-consolidated-pack-output-layout-contract.md) | Accepted |
+| 0031 | [Infra `work-loop` support is doctrine on existing reviewers — `quality-engineer` for operational safety, a mandatory `security-reviewer` + scanner pair for security — not a new reviewer or runtime](0031-infra-support-is-doctrine-on-existing-reviewers-not-a-new-reviewer-or-runtime.md) | Accepted |
 
 ## Adding a new ADR
 
