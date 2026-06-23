@@ -466,6 +466,71 @@ the model in Claude Code; may land as its own follow-on.
 in-harness run path + the fidelity caveat; ADR-0028 carries the E2 companion
 note; the in-harness mode + `mode`/`fidelity` labelling documented.
 
+## Phase 3 — lightweight in-harness behavior/output check (RFC-0037 § Errata E3)
+
+### Design (LLD addendum)
+
+Once a skill *activates* (Phase 1/2), Phase 3 asks *does it do the job*. The
+**full** Tier-B grading (LLM-judge, `benchmark.json` deltas, with/without-skill,
+train/val) stays the separate future RFC; Phase 3 is the **lightweight** check.
+
+**Higher fidelity than Tier-A in-harness, different control.** Behavior testing
+does **not** hit the skill-isolation wall — we *want* the skill to run, and the
+host agent can invoke it by name. So the skill **really executes** and we inspect
+**real artifacts**: the deterministic post-conditions are **observed**, only the
+semantic-assertion verdicts are **self-attested**.
+
+**The control flips from "don't execute" to "execute in a sandbox" (E3).**
+Because the skill body runs arbitrary tools (scripts, file writes, sometimes
+network), execution is confined to an **ephemeral temp workspace** seeded only
+with the eval's `evals/files/` fixtures — no real-repo tree, no secrets/env, no
+network (per-eval opt-in only), gitignored, torn down after. A
+**`security-reviewer` spec-stage pass signs off the sandbox before any execution
+code ships** (sequenced as T13a below).
+
+**Architecture (reuse, don't fork).** Mirror Phase 2: the driver (documented
+procedure) does the agent dispatch + skill run in the sandbox and collects
+results; the runner keeps the model-free logic:
+- `run-pack-evals.py` gains `grade_behavior(pack_name, results, *, repo_root=…)`
+  — `results` is `{skill: {eval_id: {"files_ok": bool, "output_ok": bool,
+  "assertions": [bool,…], "errored": bool}}}` (deterministic-check outcomes +
+  the agent's per-assertion attestations) → a `mode: in-harness`,
+  `tier: B-lite`, `provenance: operator-attested` summary with pass/fail per
+  eval. Reuses `evals/evals.json` as the source of `id`/`prompt`/`files`/
+  `assertions`. **No model call; no skill execution in the runner** — the runner
+  only grades collected results.
+- a **sandbox helper** (`_seed_sandbox`) builds the ephemeral fixtures-only
+  workspace + returns its path; the *driver* runs the skill there.
+- `--mode in-harness --check behavior --results <file>` selects it.
+
+### T13a: spec-stage security review of the sandbox (gate)
+
+**Depends on:** spec/E3 — **review.** A `security-reviewer` pass on the sandbox
+containment design (ephemeral workspace, fixtures-only, no secret/network/
+real-repo access, teardown) **before** any execution code. Done when: clean.
+
+### T13: runner `grade_behavior` + sandbox helper (model-free)
+
+**Depends on:** T13a — **TDD.** Tests: `grade_behavior` over synthetic results
+produces a `tier: B-lite` summary (pass iff deterministic checks pass **and**
+all attested assertions hold); `_seed_sandbox` builds a workspace containing
+only the eval's fixtures (asserts no real-repo path leaks in). Done when: unit
+tests green; no skill executes inside the runner.
+
+### T14: behavior-check driver procedure + live validation
+
+**Depends on:** T13 — **manual QA.** Extend the documented driver: per eval, run
+the skill on `prompt` **in the sandbox**, run the deterministic checks, collect
+per-assertion attestations, call `grade_behavior`. Validate **live** on one
+covered skill (e.g. a converters skill with a simple fixture), recording the
+observed artifact checks + that execution stayed inside the sandbox.
+
+### T15: docs + ADR note (Phase 3)
+
+**Depends on:** T13 — **goal-based.** `author-a-skill.md` gains the behavior-check
+path + the sandbox rule + the observed/attested fidelity framing; ADR-0028
+carries the E3 companion note; `tier: B-lite` labelling documented.
+
 ## Rollout
 
 - **Delivery:** report-only, no flag. Fully reversible — delete the workflow +

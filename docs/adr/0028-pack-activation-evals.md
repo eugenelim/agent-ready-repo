@@ -33,6 +33,21 @@
 > the `[pack.evals]` model, the `eval_queries.json` schema, and the report-only
 > posture are unchanged.
 
+> **Scope adjustment (2026-06-22, ✅ signed off by eugenelim — RFC-0037 Approver; see RFC-0037 § Errata E3):**
+> Decision 4's "Tier A only" is extended with a **lightweight** in-harness
+> behavior/output check (a bounded slice of Tier B): for each eval in a skill's
+> existing `evals/evals.json`, the host agent **runs the skill** on the
+> `prompt` and grades by deterministic post-conditions (artifacts exist;
+> expected/forbidden substrings) plus the agent's per-`assertion` self-
+> attestation — no LLM-judge, no `benchmark.json` deltas, no with/without-skill
+> baseline (those stay the separate future Tier-B RFC). Labelled `tier: B-lite`;
+> the deterministic checks are **observed**, the assertion verdicts
+> **self-attested**. **Security:** this **reverses E2's "no execution" control**
+> — the skill body now runs, confined to an **ephemeral, fixtures-only sandbox**
+> (no real-repo / secrets / network access, gitignored, torn down); a
+> `security-reviewer` spec-stage pass signs off the sandbox before execution
+> code ships.
+
 ## Context
 
 Every gate the catalogue runs today is **structural**: `lint-skill-spec.py` and

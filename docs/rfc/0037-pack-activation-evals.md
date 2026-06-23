@@ -240,3 +240,68 @@ behind the seam") and add Kiro IDE to scope; extend AC18 and add a new AC for
 the in-harness detector, its fidelity caveat, and its trust boundary; a
 companion correction note on **ADR-0028**; a new plan task; the runner gains the
 second `Detector`; the authoring docs gain the in-harness run path.
+
+### E3 — Admit a *lightweight* in-harness behavior/output check (a bounded slice of Tier B) (2026-06-22) · ✅ signed off: eugenelim (RFC-0037 Approver), 2026-06-22
+
+**Decision 4 scoped this RFC to Tier A (activation/selection) only and deferred
+all of Tier B (output quality) to a separate future RFC.** That left a gap a
+maintainer hits in practice: once a skill activates, *does it do the job* — run
+the right script, produce the expected artifact, avoid the documented
+anti-action? The **full** Tier-B apparatus (LLM-judge grading, `benchmark.json`
+pass-rate deltas, with/without-skill comparison, the train/validation split)
+stays out of scope and remains the future RFC. But a **lightweight** check —
+run the skill and validate its behavior + outputs against deterministic
+post-conditions — is cheap, high-value, and belongs in this RFC's in-harness
+mode (E2).
+
+**Adjustment:** the in-harness mode gains a second sub-mode — a **behavior/output
+check** that, for each eval in a skill's existing `evals/evals.json`, has the
+host agent **run the skill** on the eval's `prompt` in an **isolated, ephemeral
+workspace** and grades the result by:
+- **deterministic post-conditions (the backbone):** the eval's `files` /
+  `expected_output`-described artifacts exist, and literal expected/forbidden
+  substrings are present/absent in the produced output — mechanical, reliable;
+- **the host agent's per-`assertion` pass/fail self-attestation** for the
+  semantic assertions a string check can't cover ("did NOT hand-write the
+  .docx"). No separate judge model.
+
+It reuses the existing `evals/evals.json` source (no new file; the file the RFC
+already says authors write now becomes *lightly runnable*). It produces a
+pass/fail per eval + counts, written to the same eval-workspace and labelled a
+distinct tier (e.g. `mode: in-harness`, `tier: B-lite`) so it is never confused
+with the Tier-A activation number **or** with the full Tier-B grade.
+
+**Fidelity.** Unlike Tier-A in-harness (a *reported* description-match — the
+router can't be isolated), the behavior check **runs the skill for real and
+inspects real artifacts**, so the deterministic post-conditions are *observed*;
+only the semantic-`assertion` verdicts are *self-attested* (lightweight, not an
+independent judge). Honest label: observed outputs + attested assertions.
+
+**Security — this REVERSES E2's containment control, and replaces it with
+sandboxing.** E2 forbade the dispatched sub-context from executing skill bodies
+or project tools (the `--allowed-tools Skill` sandbox "does not transfer"). The
+behavior check **must** execute the skill body (that is the whole point), so the
+"no execution" control is replaced by **isolated-workspace execution**: the
+skill runs in an **ephemeral temp workspace** seeded only with the eval's
+`evals/files/` fixtures — **no access to the real repo tree, no secrets/env, no
+network** (network only on an explicit per-eval opt-in for skills that genuinely
+require it), workspace **gitignored** and **torn down** after the run. The eval
+`prompt` is author-authored (the pack author's own fixture — trusted for a
+catalogue-internal dev tool), but the skill body running arbitrary tools is the
+new surface the sandbox confines. The follow-on spec must specify this as
+acceptance criteria (the new containment control), and a `security-reviewer`
+spec-stage pass must sign off the sandbox before the runner executes anything.
+
+**Unchanged / still out of scope:** Tier-A activation (headless + in-harness),
+the `[pack.evals]` model, the report-only posture, and — explicitly — the
+**full** Tier-B grading (LLM-judge, benchmark deltas, with/without, train/val),
+which remains the separate future RFC. E3 is the *lightweight* slice only.
+
+**Follow-on artifacts (after sign-off):** spec — a new AC for the lightweight
+behavior/output check (run-the-skill + deterministic post-conditions + attested
+assertions, `tier: B-lite` label) and a new AC for the **sandbox containment
+control** (ephemeral workspace, fixtures-only, no secret/network/real-repo
+access, cleanup); ADR-0028 companion note; plan tasks (a sandbox helper +
+`grade_behavior` model-free grader + the driver-procedure extension + live
+validation); the runner + the authoring guide gain the behavior-check path; a
+spec-stage `security-reviewer` pass on the sandbox.
