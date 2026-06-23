@@ -1,0 +1,23 @@
+[
+  {"query": "Write a guide for how to rotate an expired API token before the next deploy", "should_trigger": true},
+  {"query": "We need a getting-started tutorial that walks a brand-new user through deploying their first project", "should_trigger": true},
+  {"query": "Add a reference page documenting every flag the CLI accepts", "should_trigger": true},
+  {"query": "Write an explanation of why our sessions are cookie-based rather than token-based", "should_trigger": true},
+  {"query": "Document how an operator configures SSO — write the how-to", "should_trigger": true},
+  {"query": "Create a new tutorial for setting up the local dev environment from scratch", "should_trigger": true},
+  {"query": "We need user-facing docs for the bulk-export feature — write a guide", "should_trigger": true},
+  {"query": "Draft a reference page for the config-file format and its fields", "should_trigger": true},
+  {"query": "Write a how-to for migrating data between two workspaces", "should_trigger": true},
+  {"query": "Write a new explanation page about how our caching model works", "should_trigger": true},
+
+  {"query": "Write a spec for the new CSV export feature before we build it", "should_trigger": false},
+  {"query": "Record the decision to store our guides in Markdown instead of reStructuredText", "should_trigger": false},
+  {"query": "Draft a proposal to reorganize how we structure our documentation", "should_trigger": false},
+  {"query": "Document how the build pipeline is wired for contributors working on the codebase", "should_trigger": false},
+  {"query": "Update the existing installation how-to to mention the new --force flag", "should_trigger": false},
+  {"query": "Add docstrings to the exporter module so the API is documented", "should_trigger": false},
+  {"query": "Write the release notes for the 2.0 release", "should_trigger": false},
+  {"query": "Fix the broken link in the installation guide", "should_trigger": false},
+  {"query": "Write the empty-state and error microcopy for the upload screen", "should_trigger": false},
+  {"query": "Write a blog post announcing our new export feature", "should_trigger": false}
+]

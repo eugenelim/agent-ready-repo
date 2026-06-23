@@ -284,6 +284,41 @@ version.
 > itself, which ships to adopters who receive none of the governance it was
 > written under.)
 
+## Eval coverage is part of pack work — build or update the harness
+
+A new pack, or a **non-cosmetic** update to an existing one, must also build
+or update that pack's **eval harness**. This is the standing default the
+[`pack-eval-coverage-rollout`](docs/backlog.md) backlog item is rolling across
+the catalogue, made a rule here so it stops being a one-off. Per the
+[`pack-activation-evals` spec](docs/specs/pack-activation-evals/spec.md):
+
+- **Tier-A activation** — `evals/eval_queries.json` (~8–10 should-trigger +
+  ~8–10 near-miss should-NOT-trigger queries) plus a `[pack.evals]` block
+  listing **every user-triggered skill**. Exclude only reviewer-internal /
+  non-prompt skills (`security-checklists`, `work-loop`), as `core` does.
+- **Tier-4 LLM-judge rubric** — `evals/evals.json` (`expected_output` +
+  `assertions`) for **each judgment/authoring skill** — one that produces a
+  spec, diagram, critique, guide, or intent by judgment, with no deterministic
+  artifact.
+- **Tier-B-lite** — additionally an `expect` block + an `evals/files/` fixture
+  **where the skill is deterministic** (it runs a script and emits a checkable
+  artifact, as the `converters` skills do).
+
+Then **verify the harness actually works** by running it in Tier-B light mode:
+
+```bash
+python tools/run-pack-evals.py --pack <pack> --mode judge \
+  --judge-adapter claude-code --artifacts <file>
+```
+
+This points the LLM-judge — a different lens (the rubric) on the same model
+running the session — at a good and a weak artifact. It is a lightweight
+smoke-check that the rubric loads and discriminates (good artifact PASS, weak
+artifact FAIL), **not** a calibration gate: report-only, like the rest of the
+harness. The full per-pack sweep, the calibration baseline, and any
+report-only→gating promotion stay the scheduled `pack-evals.yml` workflow's
+job — that detail lives in the spec and the backlog item, not here.
+
 ## Authoring or editing a skill
 
 Skills live under `packs/<pack>/.apm/skills/<name>/SKILL.md` (the seed)
