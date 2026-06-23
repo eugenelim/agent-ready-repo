@@ -30,7 +30,10 @@ throwaway or staging environment, never against the production stack.
 - `hybrid` **Credentials are stage-scoped.** The credentials the change runs
   under are scoped to the target stage; a smoke or teardown step cannot
   accidentally authenticate against prod. Confirm the scoping; judge whether the
-  scope is genuinely narrow.
+  scope is genuinely narrow. *(Carve note: the failure guarded here is the
+  iteration loop converging on prod — a reliability/blast-containment failure;
+  whether a grant is over-broad for **privilege-escalation** purposes is the
+  security lens, owned by `security-checklists`' `config-misconfig`.)*
 
 ## Established-pattern bypass
 

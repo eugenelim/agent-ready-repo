@@ -1,6 +1,6 @@
 # Spec: operational-safety-checklists
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0031, RFC-0041 (P3 + the deferred-authority pointer); ADR-0018 (orchestrator-loaded progressive-disclosure depth library — the `security-checklists` pattern this mirrors); ADR-0023 (the three-reviewer ceiling — why this feeds `quality-engineer`, not a new reviewer); ADR-0017 (the SAST/SCA scanner family the deferred-authority pointer complements)
@@ -108,13 +108,13 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
 
 ## Acceptance Criteria
 
-- [ ] **Skill exists, mirrors the pattern.** `packs/core/.apm/skills/
+- [x] **Skill exists, mirrors the pattern.** `packs/core/.apm/skills/
   operational-safety/SKILL.md` exists with a front-matter `description`, a "How
   it loads (orchestrator-driven, not self-discovered)" section stating the
   orchestrator loads matching modules and inlines them into a reviewer's brief
   (the subagent never self-discovers the skill), and the reliability-vs-security
   carve. It is a depth library, **not** a reviewer prompt.
-- [ ] **Six modules, exact names, each a distinct failure-mode family.**
+- [x] **Six modules, exact names, each a distinct failure-mode family.**
   Verification is the checkable claim — `references/` holds **exactly the six
   RFC-0041 Decision-4 modules, no more, no fewer**, each a distinct
   operational-failure-mode family per the RFC's taxonomy follow-up (not the
@@ -133,7 +133,7 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
   log-driven debugging). `state-and-idempotency` and `drift-and-rollback` are
   **kept separate** (write-path convergence vs divergence-detection/recovery),
   and observability is its own sixth module.
-- [ ] **Each module grounded (greppably) and tool-neutral.** Each module carries
+- [x] **Each module grounded (greppably) and tool-neutral.** Each module carries
   a `> **Grounded in:**` line near its top naming the **exact** RFC-0041
   module-table groundings it rests on — pinned per module so the grep asserts
   the *right* groundings, not merely the line's presence:
@@ -149,39 +149,39 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
   `> **Standards:**` line — so grounding is mechanically checkable (grep), not
   merely asserted. Every module is written tool-neutral; illustrative examples
   are labelled illustrative, never normative.
-- [ ] **Routing table in `work-loop` SKILL.md.** `work-loop` SKILL.md gains an
+- [x] **Routing table in `work-loop` SKILL.md.** `work-loop` SKILL.md gains an
   `operational-safety` boundary→module routing table (mirroring the existing
   `security-checklists` routing table) so the orchestrator loads 1–N matching
   modules on the infra/destructive trigger and inlines them into the
   `quality-engineer` brief — never a flat march of all six.
-- [ ] **`quality-engineer` consumer wiring.** `quality-engineer.md` carries a note
+- [x] **`quality-engineer` consumer wiring.** `quality-engineer.md` carries a note
   that it consumes orchestrator-inlined `operational-safety` depth (mirroring how
   `security-reviewer` consumes `security-checklists`), without self-discovering
   the skill — `quality-engineer` remains the consumer; **no new reviewer** is
   added (ADR-0023).
-- [ ] **Deferred-authority pointer in `config-misconfig`.** `security-checklists`'
+- [x] **Deferred-authority pointer in `config-misconfig`.** `security-checklists`'
   `config-misconfig.md` gains a thin pointer naming the standing authorities —
   **CIS Benchmarks** and each provider's well-architected security guidance (AWS
   Well-Architected Security Pillar; Microsoft Cloud Adoption Framework / Azure
   Well-Architected Security; Google Cloud Architecture Framework Security) —
   **by stable publisher + document name, with no URL and no version**, and noting
   the actual per-provider depth lives in the self-updating scanner.
-- [ ] **Carve stated both ways.** The reliability-vs-security carve is stated in
+- [x] **Carve stated both ways.** The reliability-vs-security carve is stated in
   both `operational-safety` and `security-checklists` (front matter / body): the
   security library owns security config; the operational library owns
   reliability/ops config; the routing splits IaC-security → `config-misconfig`,
   IaC-reliability → `operational-safety`. No security config is duplicated into
   `operational-safety`.
-- [ ] **Eval exclusion.** `operational-safety` is excluded from `[pack.evals]` in
+- [x] **Eval exclusion.** `operational-safety` is excluded from `[pack.evals]` in
   `packs/core/pack.toml`, with a comment naming it as reviewer-internal / never
   self-discovered (mirroring the `security-checklists` exclusion).
-- [ ] **No executable mechanism.** The skill ships prose only — no scripts, no
+- [x] **No executable mechanism.** The skill ships prose only — no scripts, no
   runtime. The primary check is on the new skill dir itself:
   `packs/core/.apm/skills/operational-safety/` contains **no `scripts/`
   directory and no non-`.md` files** (goal-based — `find` returns only `.md`).
   As a secondary guard against an unrelated regression, `loop-cohort.py` and
   `lint-spec-status.py` are byte-unchanged.
-- [ ] **Projection + lint + release hygiene.** `make build-self` projects the new
+- [x] **Projection + lint + release hygiene.** `make build-self` projects the new
   skill to `.claude/skills/operational-safety/` cleanly; `make build-check`,
   `python tools/lint-agent-artifacts.py`, and `python tools/lint-agents-md.py`
   all pass; `packs/core/pack.toml` version is bumped and `marketplace.json`
