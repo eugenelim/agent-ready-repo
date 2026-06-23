@@ -1,0 +1,17 @@
+{
+  "skill_name": "source-map",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Curate the authoritative sources for the topic the user gave and produce the source map.",
+      "expected_output": "A source map grouping candidates by primacy (primary / secondary / tertiary), where each entry carries a citation (URL or local path), an authority-type tag (practitioner / researcher / vendor / journalist / community / regulator), and a recency bucket (current / recent / historical). Primacy is treated as load-bearing for downstream triangulation — the map flags when several tertiary sources collapse to a single primary so independence is not overcounted. Notes about a source's angle, bias, or credibility are marked [synthesis] or [inference] rather than asserted as fact, and sources reflect a survey of adjacent material rather than the model naming authorities directly.",
+      "assertions": [
+        "Groups sources by primacy: primary / secondary / tertiary",
+        "Every entry carries a citation (URL or local path)",
+        "Each source is tagged with an authority type and a recency bucket",
+        "Treats primacy as load-bearing for triangulation (e.g. notes when tertiary sources collapse to one primary)",
+        "Marks angle / bias / credibility notes [synthesis] or [inference] rather than stating them as fact"
+      ]
+    }
+  ]
+}

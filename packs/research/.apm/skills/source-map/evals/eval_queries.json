@@ -1,0 +1,21 @@
+[
+  {"query": "Curate the authoritative sources on WebAuthn before I start researching", "should_trigger": true},
+  {"query": "Who are the primary sources on the safety of intermittent fasting?", "should_trigger": true},
+  {"query": "Map out the most authoritative voices on Rust async runtime design", "should_trigger": true},
+  {"query": "I need a source list grouped by primary, secondary, and tertiary for GDPR enforcement", "should_trigger": true},
+  {"query": "Scope which authorities actually exist on tokenizer design for LLMs", "should_trigger": true},
+  {"query": "Build me a curated reading list of the canonical sources on CRDTs", "should_trigger": true},
+  {"query": "Before I research this, find the original primary sources, not the blog rehashes", "should_trigger": true},
+  {"query": "Survey who the credible authorities are on container security", "should_trigger": true},
+  {"query": "Gather and rank the source material on post-quantum cryptography standards", "should_trigger": true},
+
+  {"query": "Look up whether WebAuthn supports passkeys across all major browsers", "should_trigger": false},
+  {"query": "Decompose the WebAuthn adoption question into its sub-questions", "should_trigger": false},
+  {"query": "What are the named camps in the static-vs-dynamic typing debate?", "should_trigger": false},
+  {"query": "Compare the hypotheses for why our error rate jumped, with an evidence matrix", "should_trigger": false},
+  {"query": "Reconstruct why we picked our current auth library originally", "should_trigger": false},
+  {"query": "Argue against using passkeys for our login flow", "should_trigger": false},
+  {"query": "Start a long-running research project on authentication trends", "should_trigger": false},
+  {"query": "Research with citations the evidence on passwordless adoption rates", "should_trigger": false},
+  {"query": "Diagnose and fix the broken OAuth redirect", "should_trigger": false}
+]

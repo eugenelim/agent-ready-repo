@@ -1,0 +1,17 @@
+{
+  "skill_name": "build-outline",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Decompose the research question the user gave into the sub-questions a thorough answer must address, and produce the outline.",
+      "expected_output": "An outline listing each sub-question with a one-sentence rationale that argues why the sub-question is load-bearing to the main question rather than restating it. The decomposition is grounded in the question's actual components (a PICO / multi-perspective breakdown), not a generic fixed-pillar template imposed before reading. Open and second-order sub-questions a thorough answer raises but does not itself resolve are surfaced in their own section, separate from the must-answer set. Cross-source integration is marked [synthesis] and deduction from precedent [inference], with a citation where a sub-question rests on a specific source.",
+      "assertions": [
+        "Lists discrete sub-questions, each with its own rationale",
+        "Each rationale argues why the sub-question is load-bearing to the main question, not a restatement of it",
+        "The decomposition is grounded in the question's actual components, not a fixed/generic pillar template imposed before reading",
+        "Surfaces open / second-order sub-questions in a section separate from the must-answer set",
+        "Marks cross-source integration [synthesis] / deduction [inference], and cites where a sub-question rests on a specific source"
+      ]
+    }
+  ]
+}

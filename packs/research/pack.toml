@@ -1,6 +1,6 @@
 [pack]
 name = "research"
-version = "0.5.0"
+version = "0.5.1"
 description = "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
 readme = "README.md"
 display_name = "Research"
@@ -34,6 +34,38 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # **not** degraded there. The read-only restriction is preserved (no
 # edit/execute). The one narrow non-coverage is the Copilot **cloud agent**
 # (served only via repo `.github/`), which has no `web` tool.
+
+# pack-eval-coverage-rollout: the Tier-A activation-eval coverage allowlist —
+# each listed skill ships evals/eval_queries.json and is measured by
+# tools/run-pack-evals.py. These are the prompt-triggered skills with a distinct
+# cold-prompt activation surface: the seven scoping / synthesis / decision-support
+# skills, plus research-project-start as the lifecycle entry point.
+#
+# Deliberately excluded (judgment, not oversight):
+#   - research-project-check / -digest / -synthesize — the *interior* steps of the
+#     project-mode lifecycle. They operate on state that only exists once
+#     research-project-start has scaffolded a project (a sources/ corpus, a
+#     synthesis matrix), and are reached by the human walking the
+#     capture -> digest -> synthesize lifecycle inside an active project folder,
+#     not by a distinct cold user-prompt surface. The headless activation detector
+#     projects the pack into an empty dir with no project folder, so it cannot
+#     reproduce the in-project context that legitimately routes to them — measuring
+#     them cold would conflate "no project exists" with "skill mis-routed". The
+#     lifecycle entry point (research-project-start) carries Tier-A coverage for the
+#     project-mode surface. (Mirrors how core excludes work-loop as discipline-loaded
+#     rather than prompt-surfaced — not security-checklists' reviewer-internal
+#     exclusion.)
+#
+# The Tier-4 LLM-judge rubrics (evals/evals.json — independent of the Tier-A
+# allowlist) attach to the artifact-emitting judgment skills. Within project mode
+# that is research-project-synthesize's governance brief (the terminal verdict,
+# where the gradeable verdict disciplines — GRADE confidence, >=3-source
+# triangulation — are applied per the skill body), NOT research-project-digest's
+# synthesis matrix + memos: those are the intermediate structuring artifact the
+# digest emits for -check and -synthesize to consume, and the pack applies the
+# confidence/triangulation rail downstream at synthesis, not at digest time.
+[pack.evals]
+skills = ["research", "source-map", "build-outline", "identify-perspectives", "compare-hypotheses", "devils-advocate", "decision-archaeology", "research-project-start"]
 
 # RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
 # [research] section of an adopter-owned `agentbundle-layout.toml`. The repo

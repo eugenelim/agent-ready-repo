@@ -1,0 +1,21 @@
+[
+  {"query": "Decompose 'should we migrate to Kubernetes' into the sub-questions a thorough answer must address", "should_trigger": true},
+  {"query": "Break this broad research question into its component sub-questions first", "should_trigger": true},
+  {"query": "What are all the sub-questions I'd need to answer to evaluate event-driven architecture?", "should_trigger": true},
+  {"query": "Build an outline of the sub-questions for a survey of LLM evaluation methods", "should_trigger": true},
+  {"query": "Before I research, decompose the topic of database sharding into its must-answer questions", "should_trigger": true},
+  {"query": "Lay out the question structure for a comprehensive review of zero-trust networking", "should_trigger": true},
+  {"query": "Map the sub-questions a complete answer to 'is GraphQL worth it' would have to cover", "should_trigger": true},
+  {"query": "Give me the PICO-style decomposition of this systematic-review question", "should_trigger": true},
+  {"query": "Outline the second-order sub-questions that 'how do we cut cloud cost' raises", "should_trigger": true},
+
+  {"query": "Curate the authoritative sources on Kubernetes migration", "should_trigger": false},
+  {"query": "Look up the default pod scheduling algorithm in Kubernetes", "should_trigger": false},
+  {"query": "What are the named camps in the Kubernetes-vs-serverless debate?", "should_trigger": false},
+  {"query": "Compare the hypotheses for our recurring pod-eviction storms", "should_trigger": false},
+  {"query": "Why did we adopt Kubernetes in the first place?", "should_trigger": false},
+  {"query": "Argue against migrating to Kubernetes", "should_trigger": false},
+  {"query": "Start a multi-week research project on our platform strategy", "should_trigger": false},
+  {"query": "Write a spec for the Kubernetes migration", "should_trigger": false},
+  {"query": "Research with citations whether Kubernetes actually reduces ops toil", "should_trigger": false}
+]

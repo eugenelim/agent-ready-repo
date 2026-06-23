@@ -1,0 +1,17 @@
+{
+  "skill_name": "identify-perspectives",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Enumerate the named camps on the contested topic the user gave, and produce the perspectives map.",
+      "expected_output": "A perspectives map listing each named camp with a one-sentence core claim and its representative voices (each voice cited, or marked [synthesis] / [inference]); a possibly-missing / under-represented camps section; and a tension map that — distinct from the camp list — records only the irreducible disagreements, each with the conditions under which each side holds and what a forced resolution would destroy. Irreducible status requires substantive evidence on both sides; thin evidence is treated as an [uncertain] rating or a known-unknown, not promoted to a tension.",
+      "assertions": [
+        "Lists named camps, each with a one-sentence core claim and representative voices",
+        "Representative voices are cited, or marked [synthesis] / [inference]",
+        "Includes a possibly-missing / under-represented camps section",
+        "The tension map records only irreducible disagreements, each with the conditions under which each side holds and what a forced resolution would destroy",
+        "Distinguishes irreducible tension (substantive evidence on both sides) from thin evidence (an [uncertain] rating or known-unknown, not a tension)"
+      ]
+    }
+  ]
+}

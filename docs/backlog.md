@@ -769,20 +769,31 @@ activation), **`atlassian`** (8 skills, Tier-A activation), **`design-craft`**
 (4 skills, Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite since the
 four skills are judgment/authoring), **`governance-extras`** (3 skills,
 Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite; the three
-skills are governance authoring/judgment), and **`user-guide-diataxis`**
+skills are governance authoring/judgment), **`user-guide-diataxis`**
 (1 skill — `new-guide` — Tier-A activation **+** Tier-4 LLM-judge — both
-layers, no B-lite; `new-guide` is judgment/authoring) — `expected_output` +
+layers, no B-lite; `new-guide` is judgment/authoring), and **`research`**
+(11 skills — 8 Tier-A activation: the 7 scoping / source-curation / synthesis /
+decision-support / archaeology skills **+** `research-project-start` as the
+lifecycle entry point; **+** 8 Tier-4 LLM-judge rubrics: the 7 judgment skills
+that emit an artifact **+** `research-project-synthesize`'s governance brief;
+no B-lite — every research skill is judgment/authoring; the 3 project-mode
+*interior* steps — `research-project-check` / `-digest` / `-synthesize` — are
+excluded from Tier-A as reached within an active project, not by a cold prompt
+surface, per the `[pack.evals]` coverage note) — `expected_output` +
 `assertions` per skill, gradable via `--mode judge`. The judge rubrics for
 `architect` / `product-engineering` predate the activation layer; the
-`contracts` / `figma` / `atlassian` activation evals are this rollout
-(`pack-eval-coverage-rollout`). Remaining work, tiered by what it needs:
+`contracts` / `figma` / `atlassian` activation evals are an earlier rollout
+increment, and `research` is this one (all `pack-eval-coverage-rollout`).
+Remaining work, tiered by what it needs:
 
 - **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
-  no deps/execution).** Remaining: `monorepo-extras` (1) and `research` (~11)
-  need `evals/eval_queries.json` + a `[pack.evals]`
+  no deps/execution).** Remaining: `monorepo-extras` (1)
+  needs `evals/eval_queries.json` + a `[pack.evals]`
   block (the same ~8–10-each-way near-miss pattern as `core`). `architect` (3),
   `product-engineering` (5), `contracts` (2), `design-craft`
-  (4), `governance-extras` (3), and `user-guide-diataxis` (1, `new-guide`) are
+  (4), `governance-extras` (3), `user-guide-diataxis` (1, `new-guide`), and
+  `research` (8 — 7 scoping/synthesis/decision skills + `research-project-start`;
+  the 3 project-interior steps excluded per its `[pack.evals]` coverage note) are
   **done**; the credentialed/backend `figma` (1) and `atlassian` (8) Tier-A
   activation is **done** too (see Tier 3). Exclude
   reviewer-internal / non-prompt skills (`security-checklists`, `work-loop`,
@@ -806,9 +817,11 @@ layers, no B-lite; `new-guide` is judgment/authoring) — `expected_output` +
   the right rubric / reviewer lens — e.g. `architect-review` for `architect-design`),
   authoring the `expected_output`/`assertions` rubrics — **done for all of
   `architect` (3), `product-engineering` (5), `design-craft` (4),
-  `governance-extras` (3), and `user-guide-diataxis` (`new-guide`)**;
-  remaining for `research`,
-  `new-package`, and `core`'s judgment skills — and **(b)** the **full
+  `governance-extras` (3), `user-guide-diataxis` (`new-guide`), and `research`
+  (8 — the 7 artifact-emitting judgment skills + `research-project-synthesize`'s
+  governance brief)**;
+  remaining for
+  `new-package` and `core`'s judgment skills — and **(b)** the **full
   Tier-B** pieces still deferred: `benchmark.json` **deltas**, the
   **with/without-skill** comparison, the **train/validation split**, and the
   formal **human-calibration** (`feedback.json`) loop. *(Note: `contracts` and

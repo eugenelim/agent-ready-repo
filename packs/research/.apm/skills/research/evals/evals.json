@@ -1,0 +1,18 @@
+{
+  "skill_name": "research",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Research the question the user asked and produce the evidence-grounded survey.",
+      "expected_output": "A survey in which every finding carries a GRADE-style confidence tag ([high] / [moderate] / [low] / [uncertain]); every factual claim carries a citation or is explicitly marked [synthesis] or [inference]; material ([high]/[moderate]) claims rest on at least three independent sources (triangulation), favouring primary and peer-reviewed material over rehashes; downgraded findings name the downgrade factor; and a `## Known unknowns` section splits genuinely-open questions (answerable in principle, naming the evidence that would close them) from unknowables. The survey reasons from the evidence rather than restating the question.",
+      "assertions": [
+        "Every finding carries a GRADE-style confidence tag ([high] / [moderate] / [low] / [uncertain])",
+        "Every factual claim carries a citation, or is explicitly marked [synthesis] or [inference]",
+        "Material ([high]/[moderate]) claims rest on >=3 independent sources, favouring primary / peer-reviewed material",
+        "Each downgraded finding names the downgrade factor, not just a lower tag",
+        "Has a ## Known unknowns section splitting known-unknowns (with the evidence that would close them) from unknowables",
+        "Reasons from the evidence rather than restating the question or asserting without support"
+      ]
+    }
+  ]
+}

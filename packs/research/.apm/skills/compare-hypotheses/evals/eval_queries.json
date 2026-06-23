@@ -1,0 +1,21 @@
+[
+  {"query": "Compare the competing hypotheses for why our checkout conversion dropped, with an evidence matrix", "should_trigger": true},
+  {"query": "We have three theories for the latency spike — weigh them against the evidence and rank them", "should_trigger": true},
+  {"query": "Which hypothesis best explains the memory leak: build me an ACH-style evidence-for/against table", "should_trigger": true},
+  {"query": "Adjudicate between 'cache misses' and 'GC pauses' as the cause, ranked by the evidence", "should_trigger": true},
+  {"query": "Set up a hypotheses matrix for which vendor will best meet our SLA", "should_trigger": true},
+  {"query": "Compare the candidate explanations for the revenue dip and tell me the most-supported one", "should_trigger": true},
+  {"query": "Evaluate the competing hypotheses on what's causing the flaky tests, with evidence on both sides", "should_trigger": true},
+  {"query": "Rank the hypotheses for our churn increase against their supporting and contradicting evidence", "should_trigger": true},
+  {"query": "Build the evidence matrix comparing four database choices for this decision", "should_trigger": true},
+
+  {"query": "What are the named camps in the SQL-vs-NoSQL debate?", "should_trigger": false},
+  {"query": "Look up the typical causes of checkout conversion drops", "should_trigger": false},
+  {"query": "Curate the authoritative sources on conversion-rate optimization", "should_trigger": false},
+  {"query": "Decompose 'why did conversion drop' into the sub-questions to investigate", "should_trigger": false},
+  {"query": "Why did we choose our current checkout vendor originally?", "should_trigger": false},
+  {"query": "Argue against the hypothesis that GC pauses cause the latency", "should_trigger": false},
+  {"query": "Start a research project on our conversion funnel", "should_trigger": false},
+  {"query": "Fix the bug causing duplicate checkout charges", "should_trigger": false},
+  {"query": "Research with citations whether single-page checkouts convert better", "should_trigger": false}
+]

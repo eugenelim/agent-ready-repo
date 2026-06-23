@@ -1,0 +1,21 @@
+[
+  {"query": "Start a research project on payments fraud that we'll work on over the next month", "should_trigger": true},
+  {"query": "Set up a research project on the competitive landscape for our product", "should_trigger": true},
+  {"query": "Begin a sustained investigation into LLM agent evaluation methods", "should_trigger": true},
+  {"query": "Open a research dossier on supply-chain security for our dependencies", "should_trigger": true},
+  {"query": "Let's stand up a multi-week research project on database migration strategy", "should_trigger": true},
+  {"query": "Kick off a long-running research project tracking the regulatory landscape for AI", "should_trigger": true},
+  {"query": "Create a project folder and scaffold for an ongoing investigation into our churn drivers", "should_trigger": true},
+  {"query": "I want a stateful research project on observability tooling, capturing sources as we go", "should_trigger": true},
+  {"query": "Set up a sustained research effort on post-quantum migration, with a question and working hypothesis", "should_trigger": true},
+
+  {"query": "Look up the current state of post-quantum cryptography standards", "should_trigger": false},
+  {"query": "Research with citations the evidence on churn-reduction tactics", "should_trigger": false},
+  {"query": "Curate the authoritative sources on supply-chain security", "should_trigger": false},
+  {"query": "Decompose the database-migration question into its sub-questions", "should_trigger": false},
+  {"query": "What are the named camps in the AI-regulation debate?", "should_trigger": false},
+  {"query": "Compare the hypotheses for our churn increase", "should_trigger": false},
+  {"query": "Why did we choose our current observability vendor?", "should_trigger": false},
+  {"query": "Digest the sources I've already gathered for the fraud project", "should_trigger": false},
+  {"query": "Start a new feature for fraud detection — write the spec", "should_trigger": false}
+]

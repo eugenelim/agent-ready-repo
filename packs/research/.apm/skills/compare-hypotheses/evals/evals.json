@@ -1,0 +1,17 @@
+{
+  "skill_name": "compare-hypotheses",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Compare the competing hypotheses on the decision-shaped question the user gave, and produce the hypotheses analysis.",
+      "expected_output": "A hypotheses analysis with a per-hypothesis section (a one-sentence claim, a confidence tag, and its strongest supporting and strongest contradicting evidence — both cited), plus an ACH-style evidence matrix (hypotheses x evidence) whose cells use directional weights (++ strongly supports, + weakly supports, 0 neutral, - weakly contradicts, -- strongly contradicts), and a ranking led by the most-supported hypothesis whose rationale cites the matrix. Every cell traces to cited evidence; thin or single-sourced positions are flagged via the confidence rating rather than overstated.",
+      "assertions": [
+        "Enumerates each hypothesis with a one-sentence claim and a confidence tag",
+        "Gives each hypothesis its strongest supporting AND strongest contradicting evidence, both cited",
+        "Includes an ACH-style evidence matrix (hypotheses x evidence) with directional cells (++ / + / 0 / - / --)",
+        "Ranks the hypotheses with the most-supported first, and the ranking rationale cites the matrix",
+        "Flags thin or single-sourced evidence via a confidence rating rather than overstating it"
+      ]
+    }
+  ]
+}

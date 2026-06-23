@@ -401,3 +401,99 @@ Confluence" → `confluence-publisher`, "how should we architect…" →
 issue CRUD, rather than metrics strings that collide with `flow-metrics`. The
 broader `jira`-vs-metrics over-trigger is a known calibration item for the
 scheduled `pack-evals.yml` sweep, not a per-PR gate. `make build-check` is green.
+## 12. `research` — both layers across the largest pack (Tier-A activation + Tier-4 judge), 2026-06-23
+
+`research` is the catalogue's largest, most heterogeneous pack (11 skills): a
+set of one-shot scoping / source-curation / synthesis / decision-support /
+rationale-reconstruction skills, plus a four-skill project-mode lifecycle for
+sustained investigations. Every skill is judgment/authoring (a survey, an
+outline, a source map, a perspectives map, a hypotheses matrix, a counterpoints
+review, a decision archaeology, a governance brief — no deterministic artifact a
+script re-derives), so **both** judgment-skill layers were added and **no B-lite**
+layer (nothing deterministic to check):
+
+**Tier-A activation (8 skills).** `evals/eval_queries.json` + a `[pack.evals]`
+block, 9 should-trigger + 9 near-miss each. The near-misses are mostly
+**intra-pack sibling cross-routing** — the pack's own routing risk is skill ↔
+skill, not skill ↔ silence — so each negative set walks the sibling pipeline
+(`build-outline` ↔ `source-map` ↔ `research`; `identify-perspectives` ↔
+`compare-hypotheses`; backward-looking `decision-archaeology` ↔ forward-looking
+`compare-hypotheses`; `devils-advocate` ↔ `identify-perspectives`; episodic
+`research` ↔ lifecycle `research-project-start`) plus a few out-of-pack exits
+(`new-spec`, `bug-fix`, `new-adr`). `research-project-start`'s near-miss set
+includes "digest the sources I've already gathered" — a prompt that must route to
+the (excluded) `research-project-digest`, not to `-start`.
+
+| skill | Tier-A | rubric grades |
+| --- | :---: | --- |
+| research | ✓ | GRADE confidence per finding, citation-or-[synthesis]/[inference] on every claim, ≥3-source triangulation for material claims, named downgrade factors, Known-unknowns vs unknowables split |
+| source-map | ✓ | primacy grouping (primary/secondary/tertiary), per-entry citation, authority-type + recency tags, primacy-as-load-bearing for triangulation, [synthesis]/[inference] on bias notes |
+| build-outline | ✓ | sub-questions each with a *load-bearing argument* rationale, decomposition grounded in the question (not a fixed pillar template), open/second-order questions separated, [synthesis]/[inference] marks |
+| identify-perspectives | ✓ | named camps (claim + cited voices), missing-camps section, tension map of *irreducible* disagreements only (holds-when + forced-resolution-destroys), irreducible-vs-thin-evidence distinction |
+| compare-hypotheses | ✓ | per-hypothesis claim+confidence+strongest-for/against (cited), ACH directional matrix (++/+/0/-/--), most-supported ranking citing the matrix, thin-evidence flagged not overstated |
+| devils-advocate | ✓ | strongest non-strawman counter-position per finding, cited counter-evidence, exactly-one-verdict (downgrade OR do-not-resolve), do-not-resolve reserved for substantive-both-sides tensions |
+| decision-archaeology | ✓ | dated cited chronology, rationale chain back to a first cause, alternatives-considered, revival check (only rejection-rationales overtaken by changed constraints), [inference]/[synthesis] marks |
+| research-project-start | ✓ | *(Tier-A only — scaffolds a project folder, no judgment artifact to rubric)* |
+| research-project-synthesize | — | answer-first (BLUF) self-contained brief (no project-file cross-links, RFC-liftable), per-finding GRADE confidence + citations, ≥3-source triangulation, Known-unknowns vs unknowables split |
+| research-project-digest | — | *(excluded — project-interior step; no Tier-A, no rubric)* |
+| research-project-check | — | *(excluded — project-interior step; no Tier-A, no rubric)* |
+
+**Coverage judgment (the heterogeneity call).** The three project-mode *interior*
+steps — `research-project-check` / `-digest` / `-synthesize` — are excluded from
+Tier-A activation. They operate on state that only exists once
+`research-project-start` has scaffolded a project (a `sources/` corpus, a
+synthesis matrix) and are reached by the human walking the
+capture → digest → synthesize lifecycle inside an active project folder, not by a
+distinct cold user-prompt surface; the headless detector projects the pack into an
+empty dir with no project folder, so measuring them cold would conflate "no
+project exists" with "skill mis-routed". This mirrors how `core` excludes
+`work-loop` (discipline-loaded, not prompt-surfaced) rather than
+`security-checklists`' reviewer-internal exclusion. `research-project-start`
+carries Tier-A for the project-mode surface.
+
+Tier-4 is independent of Tier-A (the judge reads `evals/evals.json` directly via
+`--artifacts`, so a skill can have a rubric without an activation allowlist
+entry) — so the Tier-4 split is decided on its own terms, not inherited from the
+Tier-A exclusion. Within project mode the rubric attaches to
+`research-project-synthesize`'s **governance brief** — the terminal verdict, where
+the gradeable verdict disciplines (GRADE confidence, ≥3-source triangulation) are
+applied per the skill body — and **not** to `research-project-digest`'s synthesis
+matrix + memos, which are the *intermediate* structuring artifact `-digest` emits
+for `-check` and `-synthesize` to consume; the pack applies the
+confidence/triangulation rail downstream at synthesis, not at digest time. (So
+the `-digest` Tier-4 omission rests on this artifact-stage reason, not on the
+Tier-A project-interior one.)
+
+A note on the Tier-A set for `research` itself: its should-trigger queries
+deliberately span all four modes (casual "Look up…" / "Quick check:…" → `quick`,
+which is inline with *no* artifact, alongside "Research with citations…" /
+"Go deep…" → standard/deep). Tier-A measures *activation* (does `/research` fire),
+which is mode-independent; the Tier-4 rubric grades the *standard/applied survey*
+artifact. The two files are not in tension — they test different things.
+
+**Smoke-check (the standing `AGENTS.local.md` eval-coverage policy).** Ran the
+`research` rubric live in Tier-B light mode (`--mode judge --judge-adapter
+claude-code`) against a good-vs-weak artifact to confirm it loads and
+discriminates:
+
+| artifact | verdict |
+| --- | --- |
+| a GRADE-tagged, triangulated, citation-bearing survey with a Known-unknowns split | **PASS** ("satisfies every rubric criterion") |
+| a short unsupported opinion paragraph (no tags, no citations, no Known unknowns) | **FAIL** ("a short, unsupported opinion paragraph with no confidence tags") |
+
+The spot-check first caught a real defect in the draft good artifact — a finding
+tagged `[moderate]` (material) but resting on a single source — which the judge
+failed on the ≥3-source-triangulation assertion (5/6 assertions True); downgrading
+that single-org finding to `[low]` (non-material, so the triangulation rule does
+not bind) made it pass. Evidence the rubric discriminates on the substance, not
+the shape. Report-only, confirming the rubric works — not a calibration gate.
+
+All 8 rubrics + 8 eval-query sets lint clean (`tools/lint-skill-spec.py`, incl.
+the `[pack.evals]` coverage check); `agentbundle validate packs/research` passes.
+`research` bumped 0.5.0 → 0.5.1. **Note:** `research` is `default-scope = "user"`,
+so it is **not** self-host-projected to this repo's working tree — `make
+build-self` moved **only** `.claude-plugin/marketplace.json` (the all-packs
+aggregation, research entry 0.5.0 → 0.5.1) and **nothing** under `.claude/` or
+`.agents/` (confirmed via `git status`). The version-bump-drifts-marketplace gate
+is `lint-packs` + `validate` + `build` + the marketplace aggregation, all green in
+`make build-check`.
