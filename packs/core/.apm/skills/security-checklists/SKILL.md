@@ -13,6 +13,14 @@ footer, the output format). The *shape-specific depth* — what to actually
 check at each trust boundary — lives here, in ten `references/<module>.md`
 modules, so the agent prompt stays lean and the depth scales without bloat.
 
+> **Reliability-vs-security carve.** This library owns *security* config; the
+> *reliability / ops* side of infrastructure (idempotent convergence, blast
+> radius, environment isolation, cost/teardown, drift/rollback,
+> observability/smoke) lives in the [`operational-safety`](../operational-safety/SKILL.md)
+> skill, consumed by `quality-engineer`. The routing splits IaC-security →
+> `config-misconfig`, IaC-reliability → `operational-safety`. The two are
+> complementary lenses on the same infra diff — keep the split clean both ways.
+
 ## How it loads (orchestrator-driven, not self-discovered)
 
 **The orchestrator drives loading; the subagent does not.** There is no
