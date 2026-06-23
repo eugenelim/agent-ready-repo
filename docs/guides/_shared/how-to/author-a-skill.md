@@ -299,6 +299,51 @@ sharper containment requirement than the activation check** (the
    semantic `assertions`. Summary is labelled `tier: B-lite`,
    `fidelity: observed+attested`.
 
+#### Grading the *quality* layer with an LLM-judge (`--mode judge`)
+
+Deterministic checks (above) cover validity/shape; the **quality** layer — is
+the contract well-designed? is this the right diagram? — has no ground truth, so
+it needs a model. `--mode judge` grades a produced artifact against the eval's
+rubric (its `expected_output` + `assertions`) and is **report-only** (a quality
+*signal*, never a gate). The lens is the rubric you already authored; the repo's
+own review skills (e.g. `architect-review`) are natural lenses.
+
+```bash
+# point each eval at the artifact the skill produced, then judge:
+python tools/run-pack-evals.py --pack <name> --mode judge \
+  --judge-adapter codex --artifacts artifacts.json   # {skill: {eval_id: <artifact-path>}}
+```
+
+**Choosing the backend and model.** Judge backends are **declarative command
+templates**, not code — so you pick the backend/model, or add your own, by config:
+
+- **Built-in:** `--judge-adapter claude-code` (same model) or `--judge-adapter
+  codex` (an **independent** model/IDE — preferred, since a cross-model judge
+  can't self-grade).
+- **Pick the model:** `--model <name>` (passed via that backend's model flag).
+- **Bring your own backend** — e.g. a Kiro headless judge — with a
+  `--judge-config <toml>`, no code change:
+
+  ```toml
+  [judge.kiro-cli]
+  command    = ["kiro-cli", "chat", "--no-interactive", "{prompt}"]  # your real headless invocation
+  model-flag = "--model"
+  extract    = "stdout"          # or "json:<field>" if the CLI emits a JSON envelope
+  ```
+  ```bash
+  python tools/run-pack-evals.py --pack <name> --mode judge \
+    --judge-adapter kiro-cli --model <your-model> --judge-config judges.toml --artifacts artifacts.json
+  ```
+  `{prompt}` is substituted as a discrete argv element (never a shell string);
+  your file is merged over the built-ins, so you can also override a built-in
+  (e.g. pin `claude-code` to a specific model).
+
+The judge is **judgment-only** (the artifact is inlined; claude is granted no
+tools, codex runs `-s read-only`) and **fails closed** — an unparseable verdict
+is an error, never a silent pass. It **wobbles** run-to-run and wants periodic
+**human calibration** (does it agree with you on a sample?); the full Tier-B
+grading (pass-rate deltas, with/without-skill, train/validation) is a future RFC.
+
 ## What's enforced vs. recommended
 
 Frontmatter and description rules are lint-enforced (`tools/lint-skill-spec.py`, `tools/lint-agent-artifacts.py`); credentialed-skill rules have their own lint. The body structure, the cross-platform rules, and the three-tier dependency policy are **reviewer-enforced conventions** — no gate checks them, so they live or die in review. Hold the line there.
