@@ -77,6 +77,20 @@
         "Agent informs the user that Mermaid diagrams will not be rendered (they remain as code blocks)",
         "Agent does NOT propose downloading Mermaid and inlining it (script does not support that today)"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "Render sample.md as a self-contained HTML page.",
+      "expected_output": "The agent ensures the npm deps are present, then invokes `node scripts/render.js sample.md`, which writes `sample.html` (default extension swap) and prints OUTPUT/SECTIONS/MERMAID. The agent reports the output path and does not hand-write the HTML.",
+      "files": ["evals/files/sample.md"],
+      "assertions": [
+        "Agent invokes `node scripts/render.js` on sample.md (does not hand-write the HTML)",
+        "Agent reports the OUTPUT path rather than pasting the HTML into chat"
+      ],
+      "expect": {
+        "produces": ["sample.html"],
+        "output_contains": ["OUTPUT:", "SECTIONS:"]
+      }
     }
   ]
 }

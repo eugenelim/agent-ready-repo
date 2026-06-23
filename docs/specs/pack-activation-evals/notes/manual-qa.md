@@ -97,10 +97,25 @@ graded the eval **PASS**, labelled `mode: in-harness`, `tier: B-lite`,
 is genuine (the runner reads the real artifacts; a unit test confirms deleting
 the artifact flips the grade to fail, and a missing workspace fails closed).
 
-This is a **proxy** skill run (a synthetic writer) — it exercises the driver
-loop (agent-in-confined-workspace → runner re-derives → grade) faithfully; a
-production run against a real covered skill needs that skill's Tier-1 deps
-installed and the author to opt it into the scope gate.
+**Real end-to-end run (2026-06-22).** Beyond the proxy, a genuine B-lite pass
+was run against the real **`markdown-to-html`** skill, which ships an `expect`
+block on eval id 8 (`packs/converters/.apm/skills/markdown-to-html/evals/evals.json`):
+
+- a temp copy of the skill got its npm deps (`marked` + `highlight.js`) — never
+  creating `node_modules` under `packs/`;
+- `run-pack-evals.py --pack converters --prepare-workspace markdown-to-html/8`
+  seeded a confined OS-temp working dir with the `evals/files/sample.md` fixture;
+- the **real** `node scripts/render.js sample.md` ran there → produced
+  `sample.html` and printed `OUTPUT: …`, `SECTIONS: 2`, `MERMAID: no` (captured to
+  `.eval-output.txt`);
+- `--mode in-harness --check behavior` then **re-derived** the deterministic
+  checks from the working dir — `expect.produces` (`sample.html` exists) and
+  `output_contains` (`OUTPUT:`, `SECTIONS:`) — and graded **eval 8 `ok`**.
+  Evals 1–7 (human-authored Tier-B craft, no `expect` block, not run this pass)
+  correctly **fail-closed as errored** (unmeasured ≠ pass).
+
+So the B-lite path is now validated against a real skill that really executes
+and really produces an artifact the runner inspects — not only the proxy.
 
 ## Scope note
 
