@@ -33,7 +33,6 @@ PACK_V2 = CAT_V2 / "packs" / "core"
 def _args_upgrade(
     pack: str,
     catalogue: str,
-    to_version: str,
     root: str = ".",
     skill: str | None = None,
     agent: str | None = None,
@@ -41,11 +40,13 @@ def _args_upgrade(
     seed: str | None = None,
     command: str | None = None,
     dry_run: bool = False,
+    yes: bool = True,
 ) -> types.SimpleNamespace:
+    # `yes=True` by default so non-prompt tests don't block on input(); the
+    # confirmation-flow tests pass yes=False and monkeypatch input/isatty.
     return types.SimpleNamespace(
         pack=pack,
         catalogue=catalogue,
-        to_version=to_version,
         root=root,
         skill=skill,
         agent=agent,
@@ -53,6 +54,7 @@ def _args_upgrade(
         seed=seed,
         command=command,
         dry_run=dry_run,
+        yes=yes,
     )
 
 
@@ -96,7 +98,6 @@ def test_whole_pack_upgrade_updates_version_and_content(tmp_path):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
     )
     assert rc == 0, "whole-pack upgrade must succeed"
@@ -163,7 +164,7 @@ def test_per_primitive_upgrade_moves_only_matching_files(
         if (tmp_path / rp).exists()
     }
 
-    kwargs: dict = dict(pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path))
+    kwargs: dict = dict(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
     kwargs[flag_attr] = prim_name
     rc = _run_upgrade(**kwargs)
     assert rc == 0, f"per-primitive upgrade --{flag_attr} {prim_name} must succeed"
@@ -211,7 +212,6 @@ def test_mixed_version_warning_on_whole_pack_after_per_primitive(tmp_path, capsy
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
         skill="work-loop",
     )
@@ -224,7 +224,6 @@ def test_mixed_version_warning_on_whole_pack_after_per_primitive(tmp_path, capsy
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V3),
-        to_version="0.3.0",
         root=str(tmp_path),
     )
     assert rc == 0
@@ -256,7 +255,6 @@ def test_primitive_not_found_exits_nonzero(tmp_path, capsys, flag_attr):
     kwargs = dict(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
     )
     kwargs[flag_attr] = "foo"
@@ -281,7 +279,6 @@ def test_hook_extension_preservation_sh(tmp_path):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
         hook="pre-commit",
     )
@@ -312,7 +309,6 @@ def test_hook_upgrade_co_moves_wiring(tmp_path):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
         hook="pre-commit",
     )
@@ -335,7 +331,6 @@ def test_hook_extension_preservation_py(tmp_path):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
         hook="lint",
     )
@@ -358,7 +353,6 @@ def test_pack_not_installed_exits_nonzero(tmp_path, capsys):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
     )
     assert rc != 0
@@ -384,7 +378,6 @@ def test_whole_pack_upgrade_prints_success_recap(tmp_path, capsys):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
     )
     assert rc == 0
@@ -412,7 +405,6 @@ def test_per_primitive_upgrade_prints_success_recap(tmp_path, capsys):
     rc = _run_upgrade(
         pack="core",
         catalogue=str(CAT_V2),
-        to_version="0.2.0",
         root=str(tmp_path),
         skill="work-loop",
     )
@@ -488,7 +480,7 @@ def test_upgrade_tier2_collision_surfaces_companion_path(tmp_path, capsys):
     (tmp_path / target_rel).write_bytes(adopter_bytes)  # forces Tier-2
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path)
+        pack="core", catalogue=str(CAT_V2), root=str(tmp_path)
     )
     assert rc == 0, "upgrade over a Tier-2 collision must still succeed"
 
@@ -524,7 +516,7 @@ def test_upgrade_without_collision_emits_no_companion_notice(tmp_path, capsys):
     capsys.readouterr()  # drop install output
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path)
+        pack="core", catalogue=str(CAT_V2), root=str(tmp_path)
     )
     assert rc == 0
 
@@ -552,7 +544,7 @@ def test_upgrade_multiple_tier2_collisions_counts_and_lists_all(tmp_path, capsys
         (tmp_path / rp).write_bytes(f"# adopter edit of {rp}\n".encode())
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0", root=str(tmp_path)
+        pack="core", catalogue=str(CAT_V2), root=str(tmp_path)
     )
     assert rc == 0
 
@@ -589,7 +581,7 @@ def test_per_primitive_upgrade_surfaces_tier2_companion(tmp_path, capsys):
     (tmp_path / target_rel).write_bytes(b"# adopter-edited skill body\n")
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        pack="core", catalogue=str(CAT_V2),
         root=str(tmp_path), skill="work-loop",
     )
     assert rc == 0
@@ -643,7 +635,7 @@ def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(
     before = _snapshot_tree(tmp_path)
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        pack="core", catalogue=str(CAT_V2),
         root=str(tmp_path), dry_run=True,
     )
     assert rc == 0, "dry-run upgrade must exit 0 even with a Tier-2 collision"
@@ -674,7 +666,7 @@ def test_dry_run_upgrade_no_edits_previews_overwrite_writes_nothing(tmp_path, ca
     before = _snapshot_tree(tmp_path)
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        pack="core", catalogue=str(CAT_V2),
         root=str(tmp_path), dry_run=True,
     )
     assert rc == 0
@@ -705,7 +697,7 @@ def test_dry_run_upgrade_per_primitive_scopes_to_that_primitive(tmp_path, capsys
     before = _snapshot_tree(tmp_path)
 
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        pack="core", catalogue=str(CAT_V2),
         root=str(tmp_path), skill="work-loop", dry_run=True,
     )
     assert rc == 0
@@ -724,7 +716,7 @@ def test_dry_run_upgrade_per_primitive_scopes_to_that_primitive(tmp_path, capsys
 
     # Primitive-not-found passes through as a non-zero pre-render refusal.
     rc = _run_upgrade(
-        pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+        pack="core", catalogue=str(CAT_V2),
         root=str(tmp_path), skill="bogus", dry_run=True,
     )
     assert rc != 0, "a --dry-run for a missing primitive must still exit non-zero"
@@ -775,7 +767,7 @@ def test_dry_run_upgrade_preflight_path_jail_passthrough(tmp_path):
     malicious = {"../../evil_dry_run.txt": b"evil"}
     with mock.patch("agentbundle.render.render_pack", return_value=malicious):
         rc = _run_upgrade(
-            pack="core", catalogue=str(CAT_V2), to_version="0.2.0",
+            pack="core", catalogue=str(CAT_V2),
             root=str(tmp_path), dry_run=True,
         )
     assert rc != 0, "dry-run must surface the path-jail pre-flight failure"
@@ -783,3 +775,213 @@ def test_dry_run_upgrade_preflight_path_jail_passthrough(tmp_path):
         "the escaping file must not be written even under dry-run"
     )
     assert _snapshot_tree(tmp_path) == before, "nothing may change"
+
+
+# ---------------------------------------------------------------------------
+# Derive-version + confirmation flow (upgrade-derive-version-confirm spec)
+# ---------------------------------------------------------------------------
+
+
+def test_derives_target_version_from_catalogue(tmp_path, capsys):
+    """AC1/AC2: with no version argument, the target is derived from the
+    catalogue's pack.toml and the recap names both versions."""
+    from agentbundle.config import load_state
+
+    assert _install_v1(tmp_path) == 0
+    capsys.readouterr()  # drop install output
+
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
+    assert rc == 0
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert state.packs["core"].installed_version == "0.2.0"
+    recap = capsys.readouterr().out.strip().splitlines()[-1]
+    assert recap == "upgraded: core @ repo 0.1.0 -> 0.2.0", recap
+
+
+def test_per_primitive_recap_shows_from_to(tmp_path, capsys):
+    """AC2/AC7: per-primitive recap shows from -> to, with `from` the recorded
+    primitive override (here installed_version, no prior override)."""
+    assert _install_v1(tmp_path) == 0
+    capsys.readouterr()
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop"
+    )
+    assert rc == 0
+    recap = capsys.readouterr().out.strip().splitlines()[-1]
+    assert recap == "upgraded: core skill/work-loop @ repo 0.1.0 -> 0.2.0", recap
+
+
+def test_confirmation_accept_proceeds(tmp_path, capsys, monkeypatch):
+    """AC4: an interactive `y` reply proceeds with the upgrade."""
+    from agentbundle.config import load_state
+
+    assert _install_v1(tmp_path) == 0
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "  YES ")
+
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=False)
+    assert rc == 0
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert state.packs["core"].installed_version == "0.2.0"
+
+
+def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
+    """AC3: a non-affirmative reply aborts non-zero and writes nothing."""
+    from agentbundle.config import load_state
+
+    assert _install_v1(tmp_path) == 0
+    before = _snapshot_tree(tmp_path)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "n")
+
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=False)
+    assert rc != 0
+    assert "aborted; no changes made" in capsys.readouterr().err
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert state.packs["core"].installed_version == "0.1.0"
+    assert _snapshot_tree(tmp_path) == before
+
+
+def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):
+    """AC3: an EOFError at the prompt is treated as a decline."""
+    from agentbundle.config import load_state
+
+    assert _install_v1(tmp_path) == 0
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+
+    def _raise(prompt=""):
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", _raise)
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=False)
+    assert rc != 0
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert state.packs["core"].installed_version == "0.1.0"
+
+
+def test_yes_skips_prompt(tmp_path, monkeypatch):
+    """AC5: --yes proceeds without reading stdin."""
+    from agentbundle.config import load_state
+
+    assert _install_v1(tmp_path) == 0
+
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called with --yes")
+
+    monkeypatch.setattr("builtins.input", _boom)
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=True)
+    assert rc == 0
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert state.packs["core"].installed_version == "0.2.0"
+
+
+def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
+    """AC6: non-TTY stdin without --yes refuses and never blocks on input()."""
+    from agentbundle.config import load_state
+
+    assert _install_v1(tmp_path) == 0
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called when stdin is not a TTY")
+
+    monkeypatch.setattr("builtins.input", _boom)
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=False)
+    assert rc != 0
+    assert "--yes" in capsys.readouterr().err
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert state.packs["core"].installed_version == "0.1.0"
+
+
+def test_dry_run_no_prompt_no_write(tmp_path, capsys, monkeypatch):
+    """AC9: --dry-run resolves the version, prompts nothing, writes nothing —
+    even on a non-TTY without --yes (the refusal is short-circuited)."""
+    assert _install_v1(tmp_path) == 0
+    before = _snapshot_tree(tmp_path)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called under --dry-run")
+
+    monkeypatch.setattr("builtins.input", _boom)
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), root=str(tmp_path),
+        dry_run=True, yes=False,
+    )
+    assert rc == 0
+    assert _snapshot_tree(tmp_path) == before
+
+
+@pytest.mark.parametrize(
+    "pack_toml_body",
+    [
+        '[pack]\nname = "core"\ndescription = "no version"\nseeds = []\n',  # missing key
+        '[pack]\nname = "core"\nversion = 2\nseeds = []\n',                  # non-string
+        '[other]\nx = 1\n',                                                  # no [pack] table
+    ],
+    ids=["missing-key", "non-string", "no-pack-table"],
+)
+def test_missing_pack_version_errors(tmp_path, capsys, pack_toml_body):
+    """AC8: a resolved catalogue whose pack.toml declares no usable [pack]
+    version (missing key, non-string, or no [pack] table) exits non-zero with
+    the catalogue-pointing message — the new derive check, not the spec-version
+    gate (which doesn't read [pack] version)."""
+    assert _install_v1(tmp_path) == 0
+
+    cat = tmp_path / "noversion_cat"
+    pack_dir = cat / "packs" / "core"
+    pack_dir.mkdir(parents=True)
+    (pack_dir / "pack.toml").write_text(pack_toml_body, encoding="utf-8")
+    rc = _run_upgrade(pack="core", catalogue=str(cat), root=str(tmp_path))
+    assert rc != 0
+    assert "declares no [pack] version" in capsys.readouterr().err
+
+
+def test_per_primitive_from_uses_recorded_override(tmp_path, capsys):
+    """AC7: on a second per-primitive upgrade, `from` is the recorded primitive
+    override (0.2.0), not installed_version (0.1.0)."""
+    assert _install_v1(tmp_path) == 0
+    # First per-primitive upgrade → records skill/work-loop @ 0.2.0.
+    assert _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop"
+    ) == 0
+    capsys.readouterr()
+    # Second per-primitive upgrade → from is the recorded override 0.2.0.
+    assert _run_upgrade(
+        pack="core", catalogue=str(CAT_V3), root=str(tmp_path), skill="work-loop"
+    ) == 0
+    recap = capsys.readouterr().out.strip().splitlines()[-1]
+    assert recap == "upgraded: core skill/work-loop @ repo 0.2.0 -> 0.3.0", recap
+
+
+def test_already_current_states_so_with_yes(tmp_path, capsys):
+    """AC13: upgrading to the version already installed states 'already at'
+    and re-applies (with --yes)."""
+    # Install 0.2.0, then "upgrade" against the same 0.2.0 catalogue.
+    assert _run_install("core", str(CAT_V2), str(tmp_path)) == 0
+    capsys.readouterr()
+
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=True)
+    assert rc == 0
+    captured = capsys.readouterr()
+    assert "is already at 0.2.0" in captured.err
+    recap = captured.out.strip().splitlines()[-1]
+    assert recap == "upgraded: core @ repo 0.2.0 -> 0.2.0", recap
+
+
+def test_already_current_interactive_offers_reapply(tmp_path, capsys, monkeypatch):
+    """AC13: interactively, the already-current prompt offers to re-apply."""
+    assert _run_install("core", str(CAT_V2), str(tmp_path)) == 0
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    seen = {}
+
+    def _capture(prompt=""):
+        seen["prompt"] = prompt
+        return "y"
+
+    monkeypatch.setattr("builtins.input", _capture)
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=False)
+    assert rc == 0
+    assert "already at 0.2.0" in seen["prompt"]
+    assert "Re-apply" in seen["prompt"]

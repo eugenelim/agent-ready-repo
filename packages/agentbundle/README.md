@@ -36,11 +36,15 @@ agentbundle install --pack research git+https://github.com/eugenelim/agent-ready
 # Preview an install without writing a file
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo --dry-run
 
-# Upgrade a pack; it reports the .upstream files you need to reconcile
-agentbundle upgrade --pack core --to 0.4.0 git+https://github.com/eugenelim/agent-ready-repo
+# Upgrade a pack to the version the catalogue ships — it shows installed → target,
+# asks before writing, and reports any .upstream files you need to reconcile
+agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo
+
+# Skip the confirmation prompt (required for non-interactive / CI use)
+agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo --yes
 ```
 
-A catalogue is a git URL or a local path. Installs auto-detect your agent; pass `--adapter` to override. A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply.
+A catalogue is a git URL or a local path. Installs auto-detect your agent; pass `--adapter` to override. A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply. **Upgrade takes no version** — the target is whatever the catalogue you point at declares; to move to a specific past version, point the catalogue at that git ref.
 
 ## Build your own catalogue
 
