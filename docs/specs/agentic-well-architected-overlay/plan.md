@@ -1,7 +1,7 @@
 # Plan: agentic-well-architected-overlay
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -46,7 +46,7 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 - `grep` confirms the three tier headings (Tier A / Tier B / Tier C) and their gating instructions are present (AC: progressive taxonomy).
 - `grep` confirms each named concern from the spec's Tier A/B/C ACs is present (injection, egress/disclosure, evaluation, token cost, observability; tool-authz+bounded-autonomy+intent-verification, tool/MCP source provenance, output handling, execution isolation, human oversight, auditability, reliability; memory integrity, sub-agent provenance, multi-agent/identity-propagation).
 - `grep` confirms the Tier-C gate split is written as **distinct** triggers — memory & context integrity on *stateful*, sub-agent provenance + coordination/identity-propagation on *multi-agent*, tool/MCP source provenance on *Tier B* — not collapsed into one gate (AC: Tier-C gate split; tool/MCP provenance on Tier B).
-- `grep`/read confirms each trust-triad item (human oversight/HITL, intent verification, auditable action trails) is its **own** named concern entry, not a sub-clause of the tool-authz or observability bullets (AC: trust triad first-class).
+- `grep`/read confirms each trust-triad item (human oversight/HITL, intent verification, auditable action trails) is its **own** top-level concern entry at the same list level as the tool-authz concern — not a sub-clause or nested sub-bullet of the tool-authz or observability bullets (AC: trust triad first-class).
 - `grep`/read confirms the Tier-B authz concern forces the explicit "tool allowlist + which actions require confirmation" question (AC: Tier B authz, the named design-time miss).
 - `grep` confirms the Tier-C memory/poisoning concern carries the **LLM04** anchor, the Tier-A retrieved-content/embedding surface carries the **LLM08** anchor, and the Tier-A token-cost + Tier-B loop-cap concerns carry the **LLM10** anchor (AC: OWASP anchors; bidirectional parity direction (a) for LLM10).
 - `grep` confirms the graduated-autonomy text names the irreversibility/blast-radius cap (incl. the partially-reversible default-to-gated case) and contains no "a standard requires/prescribes" claim about threshold-gated checkpoint removal (AC: engineering-judgment framing).
@@ -93,14 +93,14 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 **Depends on:** T1
 
 **Tests:**
-- The **bidirectional** parity mapping (cross-cutting check) holds: (a) every `llm-agent` control item (LLM01/02/03/05/06/10 + spec-stage proactive control) maps to an overlay concern, **and** (b) every overlay security-boundary concern resolves to a named `llm-agent` check **or** an explicit design-altitude-only status (AC: bidirectional coverage parity).
-- The three net-new agentic boundaries (execution isolation, inter-agent identity/privilege propagation, memory poisoning) are each named at design altitude **and** carry the deferred backlog pointer `llm-agent-module-agentic-boundary-extension` (AC: net-new boundaries reconciled).
+- The **bidirectional** parity mapping (cross-cutting check) holds: (a) every `llm-agent` control item (LLM01/02/03/05/06/10 + spec-stage proactive control) maps to an overlay concern, **and** (b) every overlay security-boundary concern resolves to a named `llm-agent` check **or** an explicit design-altitude-only status (AC: bidirectional coverage parity). The mapping table is recorded in the PR description (and `notes/coverage-parity.md`) as the re-runnable artifact; each direction's pass condition is the checkable list above.
+- The three net-new agentic boundaries (execution isolation, inter-agent identity/privilege propagation, memory poisoning) are each named at design altitude **in the lens** (the lens carries **no** internal backlog anchor — that would be an internal-governance citation in shipped `.apm/**`, forbidden by `AGENTS.local.md`). The deferred backlog pointer `llm-agent-module-agentic-boundary-extension` lives in the **spec AC** (`spec.md:63` `(deferred:)` marker) and the `docs/backlog.md` register, where it is verified — not grepped-for in shipped content (AC: net-new boundaries reconciled).
 
 **Approach:**
-- Build the concern↔module mapping both ways; for each overlay security concern with no `llm-agent` check, mark it design-altitude-only and confirm the deferred backlog entry covers the module extension.
-- Confirm the lens routes control-level verification out (names the boundary only), not control prescriptions.
+- Build the concern↔module mapping both ways in `notes/coverage-parity.md`; for each overlay security concern with no `llm-agent` check, mark it design-altitude-only and confirm the deferred backlog entry (`docs/backlog.md` `#llm-agent-module-agentic-boundary-extension`) covers the module extension.
+- Confirm the lens routes control-level verification out (names the boundary only), not control prescriptions, and that the lens prose names no RFC/ADR/spec-path/backlog-anchor.
 
-**Done when:** the bidirectional mapping is complete — no `llm-agent` control unmapped, and every overlay security concern resolves to a check or a recorded design-altitude-only status with a backlog pointer.
+**Done when:** the bidirectional mapping in `notes/coverage-parity.md` is complete — no `llm-agent` control unmapped, every overlay security concern resolves to a check or a recorded design-altitude-only status, and the backlog pointer resolves from the spec AC to `docs/backlog.md` (with no anchor leaking into the lens).
 
 ### T5: Confirm `architect-review` WA-mode routing is unregressed
 
@@ -113,20 +113,20 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 **Approach:**
 - Read `rubric-well-architected.md`'s lens-selection section; verify the GenAI/agentic route is unchanged and now resolves to the expanded shared file, and that ML/SaaS/serverless are still named without backing files.
 
-**Done when:** the rubric routes to the expanded lens with no edit required (or a one-line pointer fix if the route drifted), and ML/SaaS/serverless are confirmed unchanged.
+**Done when:** the rubric routes to the expanded lens with no edit required (or a one-line pointer fix if the route drifted — a pointer fix stays within the Always-do "keep the route pointed at the lens" allowance and needs no Ask-first sign-off; **any** rubric change beyond keeping that route triggers the `spec.md:32` Ask-first gate), and ML/SaaS/serverless are confirmed unchanged.
 
 ### T6: Bump the `architect` pack version and refresh projection
 
 **Depends on:** T1-T5
 
 **Tests:**
-- `grep`/build confirms `pack.toml` `[pack].version` and `plugin.json` are bumped in lockstep and the projection (`.claude/skills/architect-*`, marketplace aggregation) is regenerated and drift-clean (AC: version bump).
+- `grep`/build confirms `pack.toml` `[pack].version` and `plugin.json` `version` are bumped in lockstep and the top-level `.claude-plugin/marketplace.json` re-aggregates the new version drift-clean (AC: version bump). **Note:** `architect` is a user-scope-default pack and is **not** part of this repo's self-host projection — there is no `.claude/skills/architect-*` projection to refresh and `make build-self`/`pre-pr` do not apply; the only drift target is `marketplace.json` via `make build`.
 
 **Approach:**
-- Bump `packs/architect/pack.toml` and the pack's `plugin.json`; run the pack build/projection; confirm the build-check drift gate is clean.
+- Bump `packs/architect/pack.toml` `[pack].version` and `packs/architect/.claude-plugin/plugin.json` `version` in lockstep; run `make build` to re-aggregate `marketplace.json`; confirm `git status` shows only the expected `marketplace.json` version line drift.
 - Add the `[Unreleased] → Added` changelog entry (AC: changelog).
 
-**Done when:** the version is bumped in both files, projection is drift-clean, and the changelog carries the entry.
+**Done when:** the version is bumped in both pack files, `marketplace.json` re-aggregation is drift-clean, and the changelog carries the entry.
 
 ### T7: Dogfood the overlay end-to-end
 
@@ -155,3 +155,4 @@ Pure skill-prose / reference-content change. **Delivery:** ships with the next `
 ## Changelog
 
 - 2026-06-23: initial plan (governance PR — ADR-0032 + this spec/plan). Implementation deferred to a separate PR.
+- 2026-06-23: implementing-PR pre-EXECUTE review refinements (no approach change): T4 made explicit that the backlog anchor lives in the spec AC + `docs/backlog.md`, never in shipped lens prose, and named `notes/coverage-parity.md` as the re-runnable parity artifact; T1 trust-triad test tightened to top-level-concern structure; T5 clarified the pointer-fix-vs-Ask-first boundary; T6 corrected the drift target to `marketplace.json` (user-scope-default pack — no `.claude/` self-host projection).
