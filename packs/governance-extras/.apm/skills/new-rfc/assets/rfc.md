@@ -83,7 +83,12 @@ This section is mandatory and load-bearing.
   supports — a link that merely loads is not enough. Empty prior art is itself
   a finding (no one has tried this) — say so rather than leaving it blank, and
   never fabricate.
+- **Promoted research (optional `NNNN-notes/` companion).** If this proposal
+  rests on a sustained investigation, keep the distilled brief and supporting
+  material in a sibling `docs/rfc/NNNN-notes/` folder; summarize its conclusions
+  here and link it, rather than pasting the corpus into the RFC body.
 -->
+
 
 ## Experiment / validation
 
