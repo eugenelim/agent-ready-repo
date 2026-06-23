@@ -1,10 +1,10 @@
 # Research pack — reference
 
-The dry catalogue of every primitive in the `research` pack. For the walkthrough, see [your first research session](../tutorials/research-first-session.md); for the why, see [the research methodology explanation](../explanation/research-methodology.md).
+The dry catalogue of every primitive in the `research` pack. For the walkthrough, see [your first research session](../tutorials/research-first-session.md); for the why, see [the research methodology explanation](../explanation/research-methodology.md). The pack has two axes — episodic depth (`/research` and the pipeline skills) and the project lifecycle (the four `research-project-*` skills); see [episodic vs project research](../explanation/episodic-vs-project-research.md).
 
 ## Skills
 
-Seven skills ship in the pack. The `name` and `description` below are reproduced verbatim from each skill's SKILL.md frontmatter (single- sourced — if the SKILL.md description changes, this reference is regenerated to match).
+Eleven skills ship in the pack — seven episodic skills (below) and the four `research-project-*` lifecycle skills (under [Project mode](#project-mode)). The `name` and `description` below are reproduced verbatim from each skill's SKILL.md frontmatter (single- sourced — if the SKILL.md description changes, this reference is regenerated to match).
 
 ### identify-perspectives
 
@@ -180,14 +180,92 @@ Cue tokens are advisory — the skill body documents which cues bias which behav
 | Survey | `/build-outline` → `/source-map` → `/research` | `<topic-slug>-outline.md` + `<topic-slug>-sources.md` + `<topic-slug>-survey.md` (+ `<topic-slug>-counterpoints.md` in deep) |
 | Decision | `/identify-perspectives` → `/source-map` → `/compare-hypotheses` → `/devils-advocate` | `<topic-slug>-perspectives.md` + `<topic-slug>-sources.md` + `<topic-slug>-hypotheses.md` + `<topic-slug>-counterpoints.md` |
 | Archaeology | `/decision-archaeology` | `<topic-slug>-archaeology.md` |
+| Project (lifecycle) | `/research-project-start` → `-digest` → `-synthesize` (with `-check` as a stop-signal) | a project folder + `<topic-slug>-brief.md` |
+
+## Project mode
+
+The lifecycle axis: four skills that drive a sustained, multi-week investigation
+through `capture → digest → synthesize → feedback`. Phase progression is
+human-driven; no skill auto-advances. The `name` and `description` are
+reproduced verbatim from each SKILL.md frontmatter.
+
+### research-project-start
+
+**name:** `research-project-start`.
+
+**description:** Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — "start a research project", "set up a research project on X", "begin a sustained investigation", "open a research dossier" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves the project parent from an adopter-created research-layout.toml, else a scratch / out-of-repo default, else by eliciting — never the committed repo tree. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there.
+
+### research-project-digest
+
+**name:** `research-project-digest`.
+
+**description:** Build the digest middle layer of a research project — the constructed-column synthesis matrix and analytic memos the pack previously lacked. Triggers on project-lifecycle phrasing — "digest the sources", "build the synthesis matrix", "cluster what I've gathered" — inside an existing project folder. Reads sources/*.md, clusters each source's contribution into emergent columns (rows = sources, columns constructed from the material, never a fixed pillar set) in synthesis-matrix.md, and writes analytic memos.md where the working hypothesis is formed and revised. Prompt-only: no engine, no scoring, no fixed schema. Advances no phase on its own — the human moves capture → digest → synthesize.
+
+### research-project-synthesize
+
+**name:** `research-project-synthesize`.
+
+**description:** Synthesize a research project into its typed verdict and a self-contained governance brief. Triggers on project-lifecycle phrasing — "synthesize the project", "write up the findings", "produce the brief" — inside an existing project folder. Reads synthesis-matrix.md + memos.md and writes BOTH the project's own typed synthesis (<type>.md, named by the project's shape) AND a single-file <topic-slug>-brief.md that governance can lift whole into an RFC. Applies GRADE confidence + ≥3-source triangulation; warns when the matrix is empty (digest was skipped). The brief is answer-first, self-contained, cited and per-finding confidence-tagged, with a Known unknowns section. Prompt-only: advances no phase on its own.
+
+### research-project-check
+
+**name:** `research-project-check`.
+
+**description:** Passive stop-signal for a research project — reads the synthesis matrix and memos by eye and reports whether the corpus has stopped changing the structure (theoretical saturation), plus a recommendation. Triggers on project-lifecycle phrasing — "is this project saturated", "should I keep gathering", "check the stop signal" — inside an existing project folder. It NEVER advances phase and computes no counter, score, or metric; the saturation judgment is qualitative and the human decides. It MAY optionally write a verdict_status string into overview.md (the single permitted light state write) — nothing more. Prompt-only by construction.
+
+### Project folder layout
+
+```
+<parent>/<YYYY-MM-DD>-<topic-slug>/
+  overview.md          # question · working_hypothesis · shape · phase · stop_signal · (verdict_status)
+  sources/             # raw layer — one file per source, never overwritten
+  synthesis-matrix.md  # digest — rows = sources, emergent constructed columns
+  memos.md             # digest — analytic memos; where the hypothesis forms/revises
+  <type>.md            # typed synthesis, named by shape (survey | comparison-matrix | hypotheses | blueprint)
+  <topic-slug>-brief.md  # self-contained governance handoff (the one topic-named file)
+```
+
+Working files inside the folder are bare-named (the folder namespaces the
+topic); `<topic-slug>-brief.md` is the one exception, topic-named because it
+travels out of the folder.
+
+### `overview.md` frontmatter
+
+| Field | Values | Notes |
+|---|---|---|
+| `question` | string | the research question |
+| `working_hypothesis` | string | may be empty at start; revised in `memos.md` |
+| `shape` | `survey` / `comparison` / `decision` / `structural` / `adjudication` | selects the typed synthesis stem |
+| `phase` | `capture` / `digest` / `synthesize` / `feedback` | a string; human-advanced |
+| `stop_signal` | string | qualitative, set by `/research-project-check` |
+| `verdict_status` | string (optional) | the only state `/research-project-check` may write |
+
+### `research-layout.toml` (adopter-created, optional)
+
+Read at `research-project-start` to resolve where projects live. Adopter-created
+at a known path (repo root or `~/.agentbundle/research-layout.toml`); never
+shipped into a projected path.
+
+| Key | Meaning |
+|---|---|
+| `parent` | directory under which project folders are created (default: scratch / out-of-repo) |
+
+Resolution order: `research-layout.toml` → scratch / out-of-repo default → elicit. The committed repo tree is never the default.
+
+### Source provenance axes (optional)
+
+Per-source frontmatter in `sources/` may carry two optional, independent
+Admiralty-style axes: `reliability` (source track record, A–F) and `credibility`
+(corroboration of the specific claim, 1–6). They inform the analysis; the
+claim-level rail stays GRADE confidence + ≥3-source triangulation.
 
 ## Pack metadata
 
 | Field | Value |
 |---|---|
 | Pack name | `research` |
-| Version | `0.1.0` |
-| Adapter contract | `0.8` |
+| Version | `0.4.0` |
+| Adapter contract | `0.12` |
 | Default scope | `user` |
 | Allowed scopes | `user`, `repo` |
-| Allowed adapters | `claude-code`, `kiro`, `codex` |
+| Allowed adapters | `claude-code`, `kiro-ide`, `codex`, `copilot`, `cursor`, `gemini` |
