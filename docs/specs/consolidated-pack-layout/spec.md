@@ -89,9 +89,6 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Adding a **fourth consumer**, a `[core]` table, or relocating `receive-brief` /
   `decompose-intent`'s `docs/product/briefs/` output — that is an RFC-0040
   non-goal and routes through a later RFC.
-- Editing `docs/CONVENTIONS.md` to document the `agentbundle-layout.toml`
-  contract — RFC-0040 marks it the Approver's **optional** call, and CONVENTIONS
-  edits route through `update-conventions` / an RFC, not this spec PR.
 
 ### Never do
 
@@ -397,9 +394,6 @@ append is real code and is **TDD**.
   path-validator in the skill body); verification of AC13–AC15 is goal-based /
   manual-QA by construction (source: RFC-0040 § Risks pre-mortem + § Follow-on
   security ACs).
-- Process: editing `docs/CONVENTIONS.md` to document the contract is the Approver's
-  optional follow-on and routes through `update-conventions` / an RFC, not this
-  spec PR (source: RFC-0040 § Follow-on artifacts "Convention").
 - Product: `architect` and `product-engineering` are genuine relocation needs (the
   Approver confirms it), not a build-the-seam hedge: architect's every-run
   re-elicit can't scale to a platform's many architecture topics, and
