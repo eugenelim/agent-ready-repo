@@ -1,6 +1,6 @@
 ---
 name: build-outline
-description: Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PRISMA's PICO framework (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
+description: Decompose a research question into the sub-questions a thorough answer must address. Builds the outline that `/source-map` then populates and `/research` then synthesises against. Grounded in STORM's outline stage (multi-perspective topic decomposition) and PRISMA's PICO framework (Population, Intervention, Comparison, Outcome — the systematic-review decomposition). Produces `<topic-slug>-outline.md` listing each sub-question with a brief rationale. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the must-answer few; `comprehensively`, `exhaustively`, `in depth`, `extensive` to chase second-order sub-questions.
 ---
 
 # /build-outline
@@ -40,12 +40,14 @@ Two convergent disciplines:
 2. **Survey adjacent material** (STORM step) — what do good answers to
    adjacent questions look like? What sections do they have?
 3. **Enumerate sub-questions** — each one is a question the final
-   `research.md` must answer. Tag each with a one-sentence rationale.
+   `<topic-slug>-survey.md` must answer. Tag each with a one-sentence rationale.
 4. **Order the sub-questions** — context-first, then comparisons, then
    trade-offs, then conclusions.
-5. **Write `outline.md`**.
+5. **Write `<topic-slug>-outline.md`** — `<topic-slug>` is the kebab-case topic
+   slug; the naming rule lives in the `/research` skill body (§ Typed,
+   topic-named artifacts).
 
-## `outline.md` output schema
+## `<topic-slug>-outline.md` output schema
 
 ```markdown
 # Outline — <main question>

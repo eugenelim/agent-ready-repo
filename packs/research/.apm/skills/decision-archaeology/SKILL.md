@@ -1,6 +1,6 @@
 ---
 name: decision-archaeology
-description: Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `archaeology.md` with chronology, the rationale chain, the alternatives that were considered and rejected, and a revival check flagging rejected alternatives whose original rejection rationale no longer holds. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
+description: Reconstruct the rationale for a past decision by walking time-ordered artifacts (commits, PRs, design docs, chat logs, internal memos). Self-contained — does not invoke `/source-map` or other research-pack skills, because the source surface is time-ordered and internal, and authority is established by an artifact's place in the history rather than by external curation. Produces `<topic-slug>-archaeology.md` with chronology, the rationale chain, the alternatives that were considered and rejected, and a revival check flagging rejected alternatives whose original rejection rationale no longer holds. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the main rationale chain; `comprehensively`, `exhaustively`, `in depth`, `extensive` for branch alternatives and dead ends.
 ---
 
 # /decision-archaeology
@@ -72,9 +72,11 @@ Rationale reconstruction has three converging disciplines:
    **revival candidate**. See *The revival check* below. This is the
    payoff of recording *why* each alternative was rejected: a rationale
    you can name is a rationale you can later audit against the present.
-7. **Write `archaeology.md`**. No `sources.md` is produced.
+7. **Write `<topic-slug>-archaeology.md`**. No `<topic-slug>-sources.md` is
+   produced. `<topic-slug>` is the kebab-case topic slug; the naming rule lives
+   in the `/research` skill body (§ Typed, topic-named artifacts).
 
-## `archaeology.md` output schema
+## `<topic-slug>-archaeology.md` output schema
 
 ```markdown
 # Decision archaeology — <decision name>

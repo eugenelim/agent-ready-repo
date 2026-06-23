@@ -54,7 +54,7 @@ Meta-Analyses — the standard for reporting systematic reviews in clinical
 research, codified in 2009 and updated in 2020.
 ```
 
-Check your working directory — `ls`. There's **no `research.md`**. That's the quick-mode signature: an inline answer, no artifact.
+Check your working directory — `ls`. There's **no artifact** — nothing matching `*-survey.md` or any other typed name. That's the quick-mode signature: an inline answer, no file.
 
 Quick mode is capped at five fetches across `WebFetch` and `WebSearch`. If a question would need more, the skill aborts and tells you to escalate.
 
@@ -71,7 +71,7 @@ grading evidence quality in clinical guidelines
 
 The session takes longer. The skill dispatches WebSearch, follows the most promising URLs with WebFetch, and on Claude Code may dispatch the `evidence-retriever` subagent to preserve context.
 
-When done, you'll see `research.md` in your working directory. Open it:
+When done, you'll see `evidence-grading-survey.md` in your working directory — the topic slug (`evidence-grading`) plus the type stem (`survey`). That's the `<topic-slug>-<type>.md` naming rule (the same one the signatures table below shows as a placeholder) applied to this question. Open it:
 
 ```markdown
 # Research — frameworks for grading evidence quality
@@ -105,7 +105,7 @@ Try:
 applied patterns for inventory optimisation in last-mile shipping
 ```
 
-The skill takes a while — it dispatches WebSearch + WebFetch across practitioner sources (vendor case studies, logistics blogs, conference talks, supply-chain community threads). When done, open `research.md`. The **first non-heading line** is the canonical discipline marker, byte-for-byte:
+The skill takes a while — it dispatches WebSearch + WebFetch across practitioner sources (vendor case studies, logistics blogs, conference talks, supply-chain community threads). When done, open `last-mile-inventory-survey.md`. The **first non-heading line** is the canonical discipline marker, byte-for-byte:
 
 ```markdown
 > Discipline: applied (practitioner-pattern survey)
@@ -137,17 +137,17 @@ go deep on this: do vector databases outperform traditional databases
 for similarity search at scale
 ```
 
-This run takes the longest. After `research.md` is written, the skill auto-invokes `/devils-advocate` against it. When done, you'll see **two** artifacts:
+This run takes the longest. After `vector-db-search-survey.md` is written, the skill auto-invokes `/devils-advocate` against it. When done, you'll see **two** artifacts — both carrying the same topic slug:
 
 ```
-research.md
-counterpoints.md
+vector-db-search-survey.md
+vector-db-search-counterpoints.md
 ```
 
-`counterpoints.md` walks each finding in `research.md`, names the strongest counter-position, cites counter-evidence, and routes each to a verdict — either a confidence-rating downgrade, or a *do-not-resolve* verdict when both sides are well-evidenced under different conditions and more evidence would not collapse the disagreement to one answer. Open it:
+`vector-db-search-counterpoints.md` walks each finding in `vector-db-search-survey.md`, names the strongest counter-position, cites counter-evidence, and routes each to a verdict — either a confidence-rating downgrade, or a *do-not-resolve* verdict when both sides are well-evidenced under different conditions and more evidence would not collapse the disagreement to one answer. Open it:
 
 ```markdown
-# Counterpoints — research.md
+# Counterpoints — vector-db-search-survey.md
 
 ## Finding: vector databases outperform traditional databases for
 similarity search at scale.
@@ -179,9 +179,9 @@ The four modes leave four distinct on-disk signatures:
 | Mode | Artifact in working directory | Distinguishing signal |
 |---|---|---|
 | `quick` | none — inline answer in chat | absence of any of the seven enumerated artifacts |
-| `standard` | `research.md` | `research.md` present, no discipline marker on line 1 |
-| `applied` | `research.md` | `research.md` present, canonical discipline marker as first non-heading line |
-| `deep` | `research.md` + `counterpoints.md` | second artifact present |
+| `standard` | `<topic-slug>-survey.md` | a `*-survey.md` present, no discipline marker on line 1 |
+| `applied` | `<topic-slug>-survey.md` | a `*-survey.md` present, canonical discipline marker as first non-heading line |
+| `deep` | `<topic-slug>-survey.md` + `<topic-slug>-counterpoints.md` | second artifact present |
 
 That signature is the work-loop verification gate — each mode is *observably* itself by what is or isn't on disk and what's on line 1.
 
