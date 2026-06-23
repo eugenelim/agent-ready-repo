@@ -1,0 +1,21 @@
+[
+  {"query": "Turn PROJ-100 into shippable specs", "should_trigger": true},
+  {"query": "Decompose this Jira epic into a product brief", "should_trigger": true},
+  {"query": "We plan kanban-style in Jira — break this epic into specs", "should_trigger": true},
+  {"query": "Take this board's issues and turn them into specs", "should_trigger": true},
+  {"query": "Convert epic PROJ-200 and its children into a brief", "should_trigger": true},
+  {"query": "Break down this sprint's selection of issues into a product brief", "should_trigger": true},
+  {"query": "Map this Jira epic onto a product brief and decompose it", "should_trigger": true},
+  {"query": "Turn this JQL selection of stories into shippable work", "should_trigger": true},
+  {"query": "Intake this epic as a brief and hand it off to build", "should_trigger": true},
+
+  {"query": "Create a Jira issue for this feature", "should_trigger": false},
+  {"query": "Fetch the details of PROJ-100", "should_trigger": false},
+  {"query": "Fix the defect PROJ-123 end to end", "should_trigger": false},
+  {"query": "Write a spec for a single new feature", "should_trigger": false},
+  {"query": "Decompose this 40-page PRD from the client", "should_trigger": false},
+  {"query": "What's the cycle time for this epic's stories?", "should_trigger": false},
+  {"query": "Fetch this Jira Align epic", "should_trigger": false},
+  {"query": "Shape the intent behind this initiative", "should_trigger": false},
+  {"query": "Publish the brief to Confluence", "should_trigger": false}
+]

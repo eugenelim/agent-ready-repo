@@ -762,33 +762,40 @@ than a documented accepted-state.
 **Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md). Eval
 coverage today: **`core`** (5 skills, Tier-A activation), **`converters`**
 (6 skills, Tier-A activation **+** Tier-B-lite behavior, all 6 run for real),
-**Tier-4 LLM-judge rubrics** for all of **`architect`** (3 skills) and
-**`product-engineering`** (5 skills), **`design-craft`** (4 skills,
-Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite since the
+**`architect`** (3 skills, Tier-A activation **+** Tier-4 LLM-judge),
+**`product-engineering`** (5 skills, Tier-A activation **+** Tier-4 LLM-judge),
+**`contracts`** (2 skills, Tier-A activation), **`figma`** (1 skill, Tier-A
+activation), **`atlassian`** (8 skills, Tier-A activation), **`design-craft`**
+(4 skills, Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite since the
 four skills are judgment/authoring), **`governance-extras`** (3 skills,
 Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite; the three
 skills are governance authoring/judgment), and **`user-guide-diataxis`**
 (1 skill — `new-guide` — Tier-A activation **+** Tier-4 LLM-judge — both
 layers, no B-lite; `new-guide` is judgment/authoring) — `expected_output` +
-`assertions` per skill, gradable via `--mode judge`. Every other pack has
-**no eval coverage yet**. Remaining work, tiered by what it needs:
+`assertions` per skill, gradable via `--mode judge`. The judge rubrics for
+`architect` / `product-engineering` predate the activation layer; the
+`contracts` / `figma` / `atlassian` activation evals are this rollout
+(`pack-eval-coverage-rollout`). Remaining work, tiered by what it needs:
 
 - **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
-  no deps/execution).** ~27 user-triggered skills across `architect` (3),
-  `contracts` (2),
-  `monorepo-extras` (1), `product-engineering` (5), `research` (7)
+  no deps/execution).** Remaining: `monorepo-extras` (1) and `research` (~11)
   need `evals/eval_queries.json` + a `[pack.evals]`
-  block (the same ~8–10-each-way near-miss pattern as `core`). `design-craft`
+  block (the same ~8–10-each-way near-miss pattern as `core`). `architect` (3),
+  `product-engineering` (5), `contracts` (2), `design-craft`
   (4), `governance-extras` (3), and `user-guide-diataxis` (1, `new-guide`) are
-  **done** (this rollout). Exclude
+  **done**; the credentialed/backend `figma` (1) and `atlassian` (8) Tier-A
+  activation is **done** too (see Tier 3). Exclude
   reviewer-internal / non-prompt skills (`security-checklists`, `work-loop`,
-  `credential-setup`), as `core` does. This is the bulk of the gap.
+  `credential-setup`), as `core` does.
 - **Tier 2 — B-lite behavior for other *deterministic* skills.** Assess
   `contracts` (`api-contract` / `event-contract` — do they deterministically
   emit/validate a contract artifact? if so, add an `expect` block + fixture).
   Most non-converters skills are judgment/authoring → not B-lite-able.
-- **Tier 3 — credentialed/backend skills** (`atlassian` 8, `figma` 1): activation
-  only; behavior needs recorded cassettes / a test backend → see
+- **Tier 3 — credentialed/backend skills** (`atlassian` 8, `figma` 1): Tier-A
+  **activation is done** (`pack-eval-coverage-rollout`) — activation is observed
+  at the Skill-router level before the skill body runs, so no backend
+  credentials are needed to measure it. Only **behavior** testing remains, and it
+  needs recorded cassettes / a test backend → see
   `behavior-check-for-backend-skills`.
 - **Tier 4 — judgment / agent-workflow skills** (`core` 5, `architect`,
   `research`, `product-engineering`, `design-craft`, `governance-extras`,
