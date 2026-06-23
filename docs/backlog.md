@@ -762,17 +762,20 @@ than a documented accepted-state.
 **Spec:** [pack-activation-evals](specs/pack-activation-evals/spec.md). Eval
 coverage today: **`core`** (5 skills, Tier-A activation), **`converters`**
 (6 skills, Tier-A activation **+** Tier-B-lite behavior, all 6 run for real),
-and **Tier-4 LLM-judge rubrics** for all of **`architect`** (3 skills) and
-**`product-engineering`** (5 skills) — `expected_output` + `assertions` per
+**Tier-4 LLM-judge rubrics** for all of **`architect`** (3 skills) and
+**`product-engineering`** (5 skills), and **`design-craft`** (4 skills,
+Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite since the
+four skills are judgment/authoring) — `expected_output` + `assertions` per
 skill, gradable via `--mode judge`. Every other pack has **no eval coverage
 yet**. Remaining work, tiered by what it needs:
 
 - **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
-  no deps/execution).** ~35 user-triggered skills across `architect` (3),
-  `contracts` (2), `design-craft` (4), `governance-extras` (3),
+  no deps/execution).** ~31 user-triggered skills across `architect` (3),
+  `contracts` (2), `governance-extras` (3),
   `monorepo-extras` (1), `product-engineering` (5), `research` (7),
   `user-guide-diataxis` (1) need `evals/eval_queries.json` + a `[pack.evals]`
-  block (the same ~8–10-each-way near-miss pattern as `core`). Exclude
+  block (the same ~8–10-each-way near-miss pattern as `core`). `design-craft`
+  (4) is **done** (this rollout). Exclude
   reviewer-internal / non-prompt skills (`security-checklists`, `work-loop`,
   `credential-setup`), as `core` does. This is the bulk of the gap.
 - **Tier 2 — B-lite behavior for other *deterministic* skills.** Assess
@@ -790,9 +793,9 @@ yet**. Remaining work, tiered by what it needs:
   remaining work here is **(a)** a per-skill **lens map** (point each skill at
   the right rubric / reviewer lens — e.g. `architect-review` for `architect-design`),
   authoring the `expected_output`/`assertions` rubrics — **done for all of
-  `architect` (3) and `product-engineering` (5)**; remaining for `research`,
-  `design-craft`, `governance-extras`, `new-guide`, `new-package`, and `core`'s
-  judgment skills — and **(b)** the **full
+  `architect` (3), `product-engineering` (5), and `design-craft` (4)**;
+  remaining for `research`, `governance-extras`, `new-guide`, `new-package`,
+  and `core`'s judgment skills — and **(b)** the **full
   Tier-B** pieces still deferred: `benchmark.json` **deltas**, the
   **with/without-skill** comparison, the **train/validation split**, and the
   formal **human-calibration** (`feedback.json`) loop. *(Note: `contracts` and

@@ -1,0 +1,18 @@
+{
+  "skill_name": "layout-and-information-architecture",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Produce the information architecture and layout reasoning for the surface(s) the user described.",
+      "expected_output": "An information-architecture and layout-reasoning doc. It frames each surface's one job and its audience, then ranks the content primary / secondary / tertiary — forcing a single primary rather than a flat 'everything important'. It picks a reading pattern (F for dense, scannable surfaces; Z for sparse, hero-style ones) FROM the surface's job, not habit, and lays the ranked content along that scan path. It stages complexity with progressive disclosure, shapes a navigation tree trading depth against breadth and grouped by how users look for things (not by the data schema or org chart), and designs wayfinding as the user's mental model — where am I, where can I go, how do I get back — never as platform roles or attributes. It walks the empty / loading / error / partial states and how each changes the IA. The whole output is reasoning and concepts only — no layout, markup, or styling code.",
+      "assertions": [
+        "Frames each surface's one job and its audience",
+        "Ranks content primary/secondary/tertiary and forces a single primary (no flat 'everything important')",
+        "Chooses a reading pattern (F or Z) justified by the surface's job, not by habit",
+        "Covers progressive disclosure and a depth-vs-breadth navigation tree grouped by how users look for things, not the schema/org chart",
+        "Describes wayfinding as the user's mental model, never as platform roles or attributes",
+        "Designs the empty/loading/error/partial states, and outputs concepts/reasoning only — no layout or styling code"
+      ]
+    }
+  ]
+}
