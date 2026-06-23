@@ -231,7 +231,7 @@ The emergent-vs-fixed-columns choice (Decision 3) is **decided** — ship emerge
 ## Follow-on artifacts
 
 Filled in on acceptance. Anticipated:
-- **ADR**: record the two-axis (depth × lifecycle) model and the emergent-column-over-fixed-pillar choice.
+- **ADR-0029** (Accepted 2026-06-22): records the two-axis (depth × lifecycle) model + prompt-only project discipline; folds the emergent-column-over-fixed-pillar choice in as a driver + revisit-on-validation consequence.
 - **Spec**: `docs/specs/research-typed-artifacts/` — episodic rename-by-type + legacy alias (smaller, lands first).
 - **Spec**: `docs/specs/research-project-mode/` — the 4-skill family, folder layout, middle layer, scratch-default config-driven layout (Decision 5), the `<topic-slug>-brief.md` handoff format (Decision 7), additive provenance grading.
 - **Pack bump**: `packs/research` minor version; `docs/product/changelog.md` `[Unreleased]` entry.
