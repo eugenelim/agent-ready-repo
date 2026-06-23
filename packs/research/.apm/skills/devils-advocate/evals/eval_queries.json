@@ -1,0 +1,21 @@
+[
+  {"query": "Argue against the finding that we should adopt event sourcing", "should_trigger": true},
+  {"query": "Play devil's advocate on my conclusion that we should rewrite the service in Rust", "should_trigger": true},
+  {"query": "Find the counter-evidence to the claim that microservices improved our velocity", "should_trigger": true},
+  {"query": "What are the strongest objections to my recommendation to drop the on-call rotation?", "should_trigger": true},
+  {"query": "Stress-test this finding: 'caching solved our latency problem'", "should_trigger": true},
+  {"query": "Steelman the opposing case against migrating to a monorepo", "should_trigger": true},
+  {"query": "Challenge the claim that our A/B test proves the new flow is better", "should_trigger": true},
+  {"query": "Surface the best arguments against acting on this finding before I commit to it", "should_trigger": true},
+  {"query": "What does the other side say about my conclusion that we should self-host?", "should_trigger": true},
+
+  {"query": "What are the named camps in the monorepo-vs-polyrepo debate?", "should_trigger": false},
+  {"query": "Compare the hypotheses for why our velocity changed, with a matrix", "should_trigger": false},
+  {"query": "Look up the evidence on event-sourcing adoption rates", "should_trigger": false},
+  {"query": "Curate the authoritative sources on event sourcing", "should_trigger": false},
+  {"query": "Decompose 'should we adopt event sourcing' into sub-questions", "should_trigger": false},
+  {"query": "Why did we reject event sourcing two years ago?", "should_trigger": false},
+  {"query": "Start a research project on our architecture direction", "should_trigger": false},
+  {"query": "Research with citations the trade-offs of event sourcing", "should_trigger": false},
+  {"query": "Write a spec for the event-sourcing migration", "should_trigger": false}
+]

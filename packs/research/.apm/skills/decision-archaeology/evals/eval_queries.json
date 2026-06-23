@@ -1,0 +1,21 @@
+[
+  {"query": "Why did we choose Kafka over RabbitMQ two years ago? Reconstruct the rationale", "should_trigger": true},
+  {"query": "Walk the commits and PRs to figure out why we adopted this caching strategy", "should_trigger": true},
+  {"query": "Reconstruct the decision history behind our current auth architecture", "should_trigger": true},
+  {"query": "Dig through the old design docs to understand why we rejected GraphQL back then", "should_trigger": true},
+  {"query": "Before I refactor this, reconstruct why it was built this way from the git history", "should_trigger": true},
+  {"query": "Reconstruct the rationale chain for our switch to a monorepo, and flag any reasons that no longer hold", "should_trigger": true},
+  {"query": "The decision predates everyone on call — excavate why we picked this queue", "should_trigger": true},
+  {"query": "Trace the chronology of how we ended up with this database schema and what alternatives were rejected", "should_trigger": true},
+  {"query": "Surface the revival candidates among the options we rejected when we picked this vendor", "should_trigger": true},
+
+  {"query": "Compare the hypotheses for which message queue we should adopt now", "should_trigger": false},
+  {"query": "What are the named camps in the Kafka-vs-RabbitMQ debate?", "should_trigger": false},
+  {"query": "Look up the durability guarantees of Kafka and RabbitMQ", "should_trigger": false},
+  {"query": "Curate the authoritative sources on message-queue design", "should_trigger": false},
+  {"query": "Decompose 'which message queue should we use' into sub-questions", "should_trigger": false},
+  {"query": "Argue against keeping Kafka as our queue", "should_trigger": false},
+  {"query": "Start a research project on our messaging infrastructure", "should_trigger": false},
+  {"query": "Record the decision to adopt Kafka", "should_trigger": false},
+  {"query": "Research with citations whether Kafka outperforms RabbitMQ at scale", "should_trigger": false}
+]
