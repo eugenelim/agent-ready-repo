@@ -1,0 +1,18 @@
+{
+  "skill_name": "new-rfc",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Draft the RFC the user asked for, answer-first.",
+      "expected_output": "An answer-first RFC that leads with 'The ask' — a recommendation (BLUF) plus the decision the reviewer must make, SCQA framing, and numbered decisions each carrying a recommended option + decide-by. Each decision/subpoint is independently backed by research (repo precedent + external prior art), and its option space is MECE along a stated axis, grounded in prior art, and includes do-nothing — not a small round number of invented categories. Problem & goals has real Non-goals (could-have-been-goals deliberately dropped). Risks is a genuine pre-mortem with falsifiable assumptions and honest drawbacks (not 'no drawbacks'). Evidence & prior art is non-empty and every citation is verifiable — fetched and confirmed to contain the claim, or it explicitly states web search was unavailable rather than fabricating sources. Open questions are capped (~3), each with a recommended default + owner + decide-by; no item is simultaneously a decided default and an open question; all internal cross-references resolve.",
+      "assertions": [
+        "Leads answer-first with 'The ask' — recommendation/BLUF plus the decision the reviewer must make",
+        "Each decision's option space is MECE along a stated axis, grounded in prior art, and includes do-nothing (not invented round-number categories)",
+        "Every decision/subpoint carries a recommendation; open questions are ~3 or fewer, each with a recommended default + owner + decide-by",
+        "Risks is a real pre-mortem with falsifiable assumptions and honest drawbacks, not 'no drawbacks'",
+        "Evidence & prior art is non-empty with verifiable citations (or explicitly notes web search was unavailable) — no fabricated references",
+        "No item is both a decided default and an open question, and internal cross-references resolve"
+      ]
+    }
+  ]
+}
