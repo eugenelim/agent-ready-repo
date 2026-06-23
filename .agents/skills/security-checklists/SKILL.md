@@ -1,6 +1,6 @@
 ---
 name: security-checklists
-description: Progressive-disclosure security-depth modules for the security-reviewer. Holds ten boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
+description: Progressive-disclosure security-depth modules for the security-reviewer. Holds ten boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
 ---
 
 # Skill: security-checklists
@@ -87,7 +87,7 @@ helper names.
 | [`supply-chain`](references/supply-chain.md) | dependencies, lockfiles, build trust | **OWASP A03:2025 (new)** |
 | [`config-misconfig`](references/config-misconfig.md) | CORS, IAM, IaC, server config | OWASP A02:2025 |
 | [`exceptional-conditions`](references/exceptional-conditions.md) | error paths, retries, fail-open | **OWASP A10:2025 (new)** (+ A09 logging) |
-| [`llm-agent`](references/llm-agent.md) | prompts, tool exposure, MCP, model output | OWASP LLM Top 10:2025 |
+| [`llm-agent`](references/llm-agent.md) | prompts, tool exposure, MCP, model output, agentic action | OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026 |
 
 Threat modeling (STRIDE + LINDDUN for privacy) and design-time Insecure
 Design (A06 / Proactive Controls 2024) are **not** runtime modules: STRIDE +
