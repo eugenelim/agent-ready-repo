@@ -1,0 +1,18 @@
+{
+  "skill_name": "new-adr",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Record the architecture decision the user described as a new ADR.",
+      "expected_output": "An ADR created from the template with an H1 that names the problem AND the chosen solution together, and frontmatter filled in (status Proposed, today's date, Decision-makers). The Decision section leads with a single declarative sentence stating the choice (ADR/MADR layout puts Context before the Decision, so 'at the top' means leading its own section, not the document); Context lists the actual constraints driving the choice; Consequences include honest negatives (what is given up), not only upsides; at least one viable alternative is recorded, each rejected against a stated reason. The record is for a decision already made or formally proposed (not an open debate — that would be an RFC), and there is a concrete tradeoff (more than one option was viable). After Accepted the body is immutable — a reversal is a new superseding ADR, never an edit.",
+      "assertions": [
+        "The Decision is stated as a single declarative sentence leading the Decision section",
+        "Context lists the actual constraints driving the choice, not hand-wavy filler",
+        "Consequences include honest negatives (what is given up), not only upsides",
+        "At least one viable alternative is recorded, each rejected with a stated reason",
+        "Records a decision already made or formally proposed — not an open-ended debate (which would be an RFC)",
+        "Frontmatter is filled (status, date, Decision-makers) and the H1 names the problem and the chosen solution together"
+      ]
+    }
+  ]
+}
