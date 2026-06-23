@@ -231,3 +231,58 @@ more whitespace" polish note **FAIL** ("a brief polish note, not a
 rubric-compliant design critique"). All 12 rubrics across the three judgment
 packs lint clean; `design-craft` bumped 0.1.0 → 0.1.1 and `marketplace.json`
 refreshed via `make build-self`.
+
+## 9. `governance-extras` — both layers (Tier-A activation + Tier-4 judge), 2026-06-23
+
+`governance-extras`'s three skills are governance authoring/judgment skills (an
+ADR, an answer-first RFC, a route-through-RFC decision — no deterministic
+artifact), so **both** layers that apply to judgment skills were added: Tier-A
+activation (`evals/eval_queries.json` + a `[pack.evals]` block, all three skills
+covered, 10 should-trigger + 10 near-miss each) **and** Tier-4 LLM-judge rubrics
+(`evals/evals.json` — `expected_output` + `assertions` matched to each skill's
+procedure and anti-patterns). No B-lite layer (nothing deterministic to
+re-derive). Near-misses route across the three sibling governance skills
+(`new-adr`↔`new-rfc`↔`update-conventions`) and out to `new-spec`/`bug-fix`/
+`new-guide`/a plain PR — e.g. `update-conventions`'s negatives include the
+skill's own documented exception (a typo/broken-link fix in CONVENTIONS.md is a
+normal PR, not an RFC).
+
+| skill | rubric grades |
+| --- | --- |
+| new-adr | decision as one declarative sentence, constraint-grounded context, honest negative consequences, alternatives with rejection reasons, decided-not-debated, frontmatter + problem/solution H1 |
+| new-rfc | answer-first "The ask", MECE-with-do-nothing options grounded in prior art, recommendation-per-decision + ≤3 owned open questions, real pre-mortem, verifiable (non-fabricated) citations, no decided-default-also-open-question |
+| update-conventions | pushes back on direct edits → routes through RFC, RFC scoped with the exact edited text, follow-up small PR cites the RFC footer, updates Follow-on artifacts, exempts trivial edits |
+
+The `new-adr` rubric was spot-checked live (`--mode judge --judge-adapter codex`)
+with good-vs-weak artifacts to confirm it discriminates: a template-complete ADR
+(constraint-grounded context, a clear decision sentence, honest negatives, two
+alternatives each rejected with a reason) **PASS** ("records a formally proposed
+architecture choice rather than an open debate") / an unresolved "we're leaning
+towards Postgres but haven't decided … there aren't really any downsides"
+discussion note **FAIL** (all six assertions failed — "an unresolved discussion
+note rather than an ADR"). The spot-check first caught two over-strict rubric
+assertions and they were fixed before shipping: "Decision … at the top" (the
+judge read it as document-top, but the ADR/MADR layout puts Context before the
+Decision — reworded to "leading the Decision section"), and a bundled "the README
+index is updated" clause (the judged artifact is a single ADR file, so a
+cross-file README update can never appear in it — dropped).
+
+The `update-conventions` rubric was also spot-checked live (`--mode judge
+--judge-adapter codex`) after the adversarial-reviewer flagged the same class of
+defect in it: assertion 4 said "Updates the RFC's Follow-on artifacts to point at
+the merged commit" (a completed post-merge action), but the judged artifact is
+the skill's **routing-decision response at request time**, where no merged commit
+exists yet — reworded to "Plans to update … the eventual merged commit" so it
+grades planned intent. After the fix the rubric discriminates: a proper
+RFC-routing response (refuses the direct edit, scopes the RFC with a before/after
+Proposal diff, plans the RFC-citing follow-up PR + Follow-on-artifacts update, and
+exempts all three trivial-edit types — typos/broken-links/formatting) **PASS**
+("satisfies every lifecycle requirement") / a "Sure! I've updated CONVENTIONS.md
+for you … I'll just make them directly" response **FAIL** ("does the opposite of
+the required routing"). Assertion 4 confirmed passable on the good artifact.
+
+All three rubrics
+lint clean; `governance-extras` bumped 0.3.0 → 0.3.1 and the self-host projection
+(`.claude/skills/`, `.agents/skills/`) + `marketplace.json` refreshed via
+`make build-self` (the projection drift is covered by `make build-check`, which
+is green — unlike `design-craft`, `governance-extras` is self-host-projected).

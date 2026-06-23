@@ -1,0 +1,17 @@
+{
+  "skill_name": "update-conventions",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Handle the user's request to change a convention or the charter.",
+      "expected_output": "A response that treats a CONVENTIONS.md / CHARTER.md change as high-leverage, not a normal PR: it pushes back on editing the doc directly and routes the change through RFC review (via new-rfc), with the RFC scoped to the specific 'change section X to Y' and its Proposal carrying the exact edited text (the diff). It plans the eventual doc edit as a small PR that cites the RFC in the commit footer (e.g. 'docs(conventions): adopt RFC-NNNN — <summary>' with 'Implements RFC-NNNN: <link>'), and plans to update the RFC's Follow-on artifacts to point at the eventual merged commit. It correctly exempts trivial edits — typo fixes, broken-link fixes, formatting — from the RFC requirement (a normal PR is fine), and errs toward RFC when unsure. (The judged artifact is the skill's routing-decision response at request time, so the lifecycle steps are graded as planned intent, not as already-completed post-merge facts.)",
+      "assertions": [
+        "Pushes back on editing CONVENTIONS.md / CHARTER.md directly and routes the change through RFC review (new-rfc)",
+        "The RFC is scoped to the specific change and its Proposal carries the exact edited text (the diff)",
+        "Plans the eventual doc edit as a small PR citing the RFC in the commit footer",
+        "Plans to update the RFC's Follow-on artifacts to point at the eventual merged commit",
+        "Correctly exempts trivial edits (typos, broken links, formatting) from the RFC requirement, and errs toward RFC when unsure"
+      ]
+    }
+  ]
+}
