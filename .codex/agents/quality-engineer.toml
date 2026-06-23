@@ -39,6 +39,17 @@ from the prompt and say which you picked.
    local test style before recommending against it).
 5. Any `packages/<name>/AGENTS.md` for the package being changed —
    per-package test conventions live there.
+6. **On infra/destructive work: the `operational-safety` modules the
+   orchestrator inlined into your brief.** When the change provisions,
+   mutates, deploys, or tears down infrastructure, the work-loop detects which
+   operational failure modes it raises and inlines only the matching
+   `operational-safety` modules (idempotency, blast radius, environment
+   isolation, cost/teardown, drift/rollback, observability/smoke) as prompt
+   text — that is your operational depth reference for this change, the
+   reliability-side twin of how `security-reviewer` consumes `security-checklists`.
+   You do **not** load the skill yourself; if no modules were inlined, fall back
+   to your own reliability/observability checklists and say so. **You remain the
+   consumer — no new reviewer is added** for operational safety.
 
 If you skip step 1 you cannot do your job — recommending a test style
 the repo has already rejected is the most common quality-reviewer

@@ -19,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`operational-safety` reference library for infra/destructive work (core
+  0.4.12 → 0.4.13; RFC-0041 P3 / ADR-0031).** Infrastructure and destructive
+  operational work now gets a first-class operational-safety depth library — a
+  new `operational-safety` skill of six failure-mode-keyed prose modules
+  (`state-and-idempotency`, `blast-radius`, `environment-isolation`,
+  `cost-and-teardown`, `drift-and-rollback`, `observability-and-smoke`),
+  structurally identical to `security-checklists`. When the work-loop detects
+  infra/destructive work, the orchestrator loads only the matching modules
+  (1–N, never all six) and inlines them into the **existing `quality-engineer`**
+  reviewer's brief — so idempotency, blast radius, environment isolation,
+  cost/teardown, drift/rollback, and observability/smoke get reviewer depth
+  with **no fourth reviewer** (ADR-0023). The split against `security-checklists`
+  is clean: security config → `security-checklists` (`security-reviewer`);
+  reliability/ops config → `operational-safety` (`quality-engineer`).
+  `security-checklists`' `config-misconfig` also gains a URL-free, version-free
+  deferred-authority pointer (CIS Benchmarks + the per-provider well-architected
+  security guidance) noting the real per-provider depth lives in the
+  self-updating scanner. Prose only — no executable code ships.
 - **One consolidated, namespaced pack-output layout file — `agentbundle-layout.toml`
   (RFC-0040 / ADR-0030).** An adopter who wants to control where a pack's durable
   output lands now edits **one** namespaced file instead of a per-pack config.
