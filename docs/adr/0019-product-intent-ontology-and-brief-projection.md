@@ -4,6 +4,7 @@
 - **Date:** 2026-06-13
 - **Deciders:** eugenelim
 - **Supersedes:** none
+- **Refined by:** ADR-0033 — its part 1 only (the `Level` enum is reopened to an open recognized set and decoupled from `Scale`); parts 2–3 stand. ADR-0019 stays Accepted; this is a metadata back-pointer, not a body edit.
 - **Related:** RFC-0030 (the product-engineering pack — the decision this records) · ADR-0009 (the brief layer this reframes) · ADR-0008 + RFC-0017 + RFC-0018 (the contract-authoring seam this stages) · RFC-0019 (receive-brief)
 
 ## Context
