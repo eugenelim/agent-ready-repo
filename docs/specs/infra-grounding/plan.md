@@ -1,7 +1,7 @@
 # Plan: infra-grounding
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -178,3 +178,4 @@ n/a — methodology / prose change across the `core` pack (one new skill, one ne
 ## Changelog
 
 - 2026-06-24: initial plan — authored alongside ADR-0034 as the RFC-0044 governance-docs follow-on; nine tasks across the six MECE families + Delivery + release hygiene; implementation deferred to a separate PR per the house two-PR pattern.
+- 2026-06-24 (implementation): **progressive-disclosure restructure.** `work-loop/SKILL.md`'s body was already at 990/1000 lines (the skill-spec hard cap), so the spec's seven doctrine additions could not land inline. Per the maintainer's direction ("it should be progressive disclosure for sure … consider if other mode-specific work-loop instructions should be progressive disclosure"), the full **infra/deploy verification-mode doctrine** — the layered GATES sequence detail, the multi-artifact preflight (incl. the new durable-credential artifact), the EXECUTE contract-grounding gate + craft load + reusable-script corollary, V1 phased fidelity, the V2 data-plane probe, the mandatory-infra security pass, and the `quality-engineer` independent re-derivation — was consolidated into a **new `packs/core/.apm/skills/work-loop/references/infra-verification.md`** (the 5th work-loop reference, loaded on infra-flavored work, the same on-demand mechanism as the existing four). `SKILL.md` keeps the **load-bearing one-liners** (the mode entry in the PLAN list, the EXECUTE contract-grounding gate, a lean security-infra stub) and the **cross-referenced routing tables** (load-bearing reviewer-dispatch mechanism, anchors intact); each carries a pointer to the reference. Net effect: SKILL.md is **979 body lines (983 incl. frontmatter) — 11 below the 990-line pre-PR body baseline** — despite the new doctrine. **Verification impact:** the per-task goal-based greps (T2/T4/T5/T6/T8) now target `SKILL.md` **and/or** `references/infra-verification.md` (still "work-loop … states", satisfying the frozen spec, which does not pin SKILL.md vs. references). This also relocated existing `infra-aware-work-loop` P2/P4/P5 prose into the reference — a deliberate progressive-disclosure relocation (the doctrine still ships and still loads on infra work), not a deletion.
