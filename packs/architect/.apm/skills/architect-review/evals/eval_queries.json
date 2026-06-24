@@ -8,6 +8,7 @@
   {"query": "Tear apart this proposed caching strategy", "should_trigger": true},
   {"query": "Assess whether this diagram captures the right abstraction", "should_trigger": true},
   {"query": "Give me a verdict on this integration design", "should_trigger": true},
+  {"query": "Well-architected review of this serverless design — is the synchronous latency budget viable?", "should_trigger": true},
 
   {"query": "How should we design the caching strategy?", "should_trigger": false},
   {"query": "Draw a diagram of the integration", "should_trigger": false},

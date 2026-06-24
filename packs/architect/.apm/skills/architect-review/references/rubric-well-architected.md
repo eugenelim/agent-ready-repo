@@ -14,8 +14,10 @@ user's intent call for. Two orthogonal axes:
 
 - **Concern-lens** — security · cost/FinOps · reliability/SRE · DR · data/privacy
   · compliance · sustainability/green.
-- **Workload-class lens** — ML · **GenAI/agentic** · SaaS · serverless. For
-  GenAI/agentic, load `lens-genai-agentic.md`.
+- **Workload-class lens** — ML · **GenAI/agentic** · SaaS · **serverless**. For
+  GenAI/agentic, load `lens-genai-agentic.md`; for serverless, load
+  `lens-serverless.md`. ML and SaaS are named here but not yet backed by a lens
+  file.
 
 A full review is the union of the relevant passes — usually one or two lenses,
 not all of them. Load `well-architected-pillars.md` for the spine,
@@ -34,13 +36,27 @@ not all of them. Load `well-architected-pillars.md` for the spine,
 - [ ] **Cost** — unit economics, scaling shape (linear vs sublinear), the levers
       the provider class actually offers.
 - [ ] **Performance** — workload-to-resource fit, scaling model, latency budget
-      (p50/p99) as a scenario.
+      (p50/p99) as a scenario. For a **synchronous** request path, treat the
+      latency budget as a **binding-constraint viability check**: is the
+      worst-case sum across every hop compared to the binding front-door timeout?
+      An **unbudgeted synchronous long-operation path is a finding** — 🟥 blocker
+      when it makes the design structurally impossible (the work cannot fit the
+      ceiling), not merely slow.
 - [ ] **Operational excellence** — observability (metrics/logs/traces),
       deploy/rollback, "debuggable at 3am."
 - [ ] **Sustainability** — utilization, region/placement levers (when material).
 - [ ] **Provider fit** — for a primitives provider, are the **capability gaps**
       (`cloud-primitives.md`) the design must build itself named? For a
       hyperscaler, is each pillar tied to the managed service that carries it?
+- [ ] **Platform-contract grounding** — is every **load-bearing managed-service
+      claim** (a binding limit, scaling floor, cold-start cost, or network /
+      identity requirement the design depends on) backed by **visible
+      grounding** — a cited source with confidence — rather than asserted from
+      memory? **Re-derive or flag the claim; do not trust the design's own
+      assertion.** A load-bearing managed-service claim with no visible grounding
+      is a finding. 🔧 mechanical when the pillar spine determines the missing
+      fact must be established (one correct resolution: ground it); 🧭 judgment
+      when grounding it needs a business / risk call.
 - [ ] **Tradeoffs & sensitivity** — is at least one tradeoff point named, and any
       sensitivity point? Flag *undocumented* tradeoffs.
 
