@@ -1,6 +1,6 @@
 ---
 name: operational-safety
-description: Progressive-disclosure operational-safety-depth modules for the quality-engineer reviewer. Holds six failure-mode-keyed checklists (state-and-idempotency, blast-radius, environment-isolation, cost-and-teardown, drift-and-rollback, observability-and-smoke) as references/, each grounded in standing operational taxonomy (AWS Well-Architected, Google SRE, the Terraform/Pulumi Day-1/Day-2 split). The work-loop's orchestrator loads only the matching modules and inlines them into the quality-engineer's brief when infra/destructive work is detected; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from. Carves against security-checklists on the reliability-vs-security lens — security-checklists owns security config while operational-safety owns reliability/ops config.
+description: Progressive-disclosure operational-safety-depth modules for the work-loop. Holds seven references/ modules — six failure-mode-keyed checklists the quality-engineer reviewer reasons from (state-and-idempotency, blast-radius, environment-isolation, cost-and-teardown, drift-and-rollback, observability-and-smoke), plus cloud-implementation-craft, the one module also inlined into the implementer's EXECUTE brief. Each is grounded in standing operational taxonomy (AWS Well-Architected, Google SRE, the Terraform/Pulumi Day-1/Day-2 split). The orchestrator loads only the matching modules and inlines them into the reviewer's REVIEW brief — and cloud-implementation-craft into the implementer's EXECUTE brief — when infra/destructive work is detected; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer and implementer reason from. Carves against security-checklists on the reliability-vs-security lens.
 ---
 
 # Skill: operational-safety
@@ -10,9 +10,11 @@ infrastructure and destructive operational work. The reviewer's body carries
 the *universal method* (its testability / observability / reliability /
 maintainability lens, the severity rubric, the report format). The
 *shape-specific depth* — what to actually check at each operational failure
-mode — lives here, in six `references/<module>.md` modules, so the agent prompt
-stays lean and the depth scales without bloat. It is the operational-lens twin
-of [`security-checklists`](../security-checklists/SKILL.md), built on the same
+mode — lives here, in seven `references/<module>.md` modules (six reviewer
+checklists plus `cloud-implementation-craft`, the EXECUTE-craft module — see
+below), so the agent prompt stays lean and the depth scales without bloat. It
+is the operational-lens twin of
+[`security-checklists`](../security-checklists/SKILL.md), built on the same
 orchestrator-loaded, table-routed mechanism — **no new reviewer** (the CHARTER
 three-reviewer ceiling; ADR-0023), no executable code (ADR-0031).
 
@@ -35,11 +37,25 @@ the orchestrator:
    beside the `security-checklists` one).
 3. **Inlines the selected modules' content** into the `quality-engineer`
    subagent's brief — so the reviewer receives a focused checklist as prompt
-   text, never a path to resolve.
+   text, never a path to resolve. The **same three steps** also run at
+   `work-loop`'s EXECUTE step for `cloud-implementation-craft`, inlining it into
+   the *implementer's* brief (the EXECUTE-consumer extension below).
 
-Loaded 1–N per the routing table, never a flat march of all six. Where an
+Loaded 1–N per the routing table, never a flat march of all seven. Where an
 adapter *does* support subagent skill auto-discovery, that is a redundant
 convenience layered on top — never the load-bearing mechanism.
+
+**The EXECUTE-consumer extension (`cloud-implementation-craft`).** ADR-0031
+established this library as a REVIEW-only depth source for `quality-engineer`.
+One module — `cloud-implementation-craft` — is **also** inlined into the
+**implementer's EXECUTE brief** on infra-flavored work, by the same
+orchestrator on the same routing table, so its golden practices
+(least-privilege-but-sufficient permissions, timing/retry, packaging,
+externalized config) shape the build, not only the review (ADR-0034). The
+mechanism is unchanged — the orchestrator inlines; the subagent does not
+self-discover — only the *consumer* is extended from the reviewer to the
+implementer. `quality-engineer` still loads it at REVIEW to check the craft
+against deployed reality.
 
 ## The reliability-vs-security carve (load-bearing)
 
@@ -92,7 +108,8 @@ the same legend `security-checklists` uses, read through the operational lens:
 | [`environment-isolation`](references/environment-isolation.md) | throwaway/staging vs prod, separate state/accounts | F3.3 |
 | [`cost-and-teardown`](references/cost-and-teardown.md) | cost-ceiling-as-gate, destroy-on-fail, TTL, no orphans | F3.4, F3.5 |
 | [`drift-and-rollback`](references/drift-and-rollback.md) | read-only drift detection, known-good re-apply path | F1.4, F2.6 |
-| [`observability-and-smoke`](references/observability-and-smoke.md) | active end-to-end probe, log access, health, verify-status | F2.2; taxonomy follow-up |
+| [`observability-and-smoke`](references/observability-and-smoke.md) | active end-to-end probe, log access, health, verify-status, symptom→layer log playbook | F2.2; taxonomy follow-up |
+| [`cloud-implementation-craft`](references/cloud-implementation-craft.md) | **EXECUTE-craft** — least-privilege-but-sufficient permissions, timing/retry, packaging / entrypoint model, externalized config (also REVIEW) | RFC-0044 Author·behavioral + packaging gap |
 
 `state-and-idempotency` (write-path convergence) and `drift-and-rollback`
 (divergence detection + recovery) are kept **deliberately separate** — every

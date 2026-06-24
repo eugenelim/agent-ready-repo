@@ -35,6 +35,16 @@ rather than iterate around.
   state and live resources diverged in a way the next apply can't reconcile.
   The next run should *read* current reality and converge, not assume the prior
   run's intent.
+- `hybrid` **Terminal-failed-state is a destroy-recreate convergence case.** A
+  resource can land in a state a normal re-apply **cannot** converge from —
+  e.g. a CloudFormation stack in `ROLLBACK_COMPLETE` must be **deleted and
+  recreated**, not updated. Treat such terminal states as a destroy-recreate
+  branch of the convergence path, not a retry the next `apply` will fix. *Carve
+  note:* this module **names** the terminal state as a convergence case for the
+  reviewer; the sibling
+  [`cloud-implementation-craft`](cloud-implementation-craft.md) module owns
+  **how to author around it** at EXECUTE — the two placements are deliberate
+  (convergence-case naming vs. authoring craft), not duplication.
 
 ## Established-pattern bypass
 
