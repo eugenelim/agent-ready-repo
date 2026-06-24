@@ -75,7 +75,11 @@ answer "yes" to all of them with the draft as it stands, fix the draft.
 
 ## Cross-cutting (load `nfr-checklist.md` if any of these are unclear)
 
-- [ ] Performance / scale assumptions named.
+- [ ] Performance / scale assumptions named. For a **synchronous** request path,
+      the worst-case latency is summed across every hop and compared to the
+      binding front-door timeout; a long-running operation that can exceed it is
+      shown moving off the synchronous path (see the serverless lens's
+      sync-vs-async gate), not left as an unbudgeted assumption.
 - [ ] Data-handling and privacy obligations named.
 - [ ] Failure modes and observability hooks named.
 - [ ] Cost shape named (when material).
