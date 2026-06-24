@@ -38,6 +38,8 @@
 | 0030 | [Consolidated, namespaced pack-output layout contract (`agentbundle-layout.toml`)](0030-consolidated-pack-output-layout-contract.md) | Accepted |
 | 0031 | [Infra `work-loop` support is doctrine on existing reviewers — `quality-engineer` for operational safety, a mandatory `security-reviewer` + scanner pair for security — not a new reviewer or runtime](0031-infra-support-is-doctrine-on-existing-reviewers-not-a-new-reviewer-or-runtime.md) | Accepted |
 | 0032 | [The agentic well-architected overlay is a first-class workload-class lens applied at design *and* review — a routing axis plus progressive taxonomy on the existing `architect` skills, not a new primitive](0032-agentic-overlay-is-a-design-and-review-workload-class-lens.md) | Accepted |
+| 0033 | [The intent `Level` is reopened to an open recognized set (`product-vision › product-strategy › capability › feature`) and decoupled from `Scale` — a refinement of ADR-0019, prompt-only](0033-intent-level-open-recognized-set-decoupled-from-scale.md) | Accepted |
+| 0034 | [Grounding the infra inner loop in platform reality is toolchain-oracle doctrine + EXECUTE-loaded craft — one new `core` skill, not executable tooling, per-vendor data, or a new agent](0034-infra-grounding-toolchain-oracle-doctrine-not-tooling-vendor-data-or-agent.md) | Accepted |
 
 ## Adding a new ADR
 
