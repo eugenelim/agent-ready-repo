@@ -19,6 +19,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`work-loop` grounds its infrastructure inner loop in the platform's real
+  contract, not model memory.** A new `core` skill,
+  **`infra-contract-acquisition`**, runs a tiered, tool-keyed protocol that
+  acquires a stack's real contract from the deterministic oracles its own
+  toolchain ships (`terraform validate` + `plan`, `cdk synth`, `pulumi
+  preview`, CloudFormation change sets, `kubectl --dry-run=server` + a
+  machine-readable schema slice), declares its oracle tier and confidence, and
+  degrades honestly to a runtime probe when the toolchain ships no strong static
+  oracle. `work-loop` gains an **EXECUTE contract-grounding gate** ("acquire the
+  contract before you guess a flag, schema shape, field constraint, or
+  packaging assumption" — the infra generalization of "grep to verify a function
+  exists before importing it"). A new `operational-safety` module,
+  **`cloud-implementation-craft`**, is inlined into the **implementer's EXECUTE
+  brief** (least-privilege-but-sufficient permissions, eventual-consistency
+  waits, timeout / cold-start / backoff, dependency ordering,
+  terminal-failed-state, the managed-runtime packaging / entrypoint model, and
+  externalized script configuration). The infra preflight gains a fifth artifact
+  (a **durable credential session** — establish once, reuse), a
+  **reusable-script corollary** (every live interaction goes through a reusable,
+  idempotent, externally-parameterized script), **phased oracle fidelity** (the
+  cheap early oracle is necessary, not sufficient), a **readiness-aware
+  data-plane probe** (in-network-if-private, write → read-back, poll-with-backoff,
+  self-teardown), and a **symptom→layer log playbook** for failure localization.
+  Contract-conformance review rides the existing `quality-engineer`, which
+  re-derives the contract independently from the oracles — **no new reviewer or
+  agent**, and **no executable tooling or per-vendor data** ships. (RFC-0044,
+  ADR-0034.)
 - **`product-engineering` gains two product altitudes above `capability` — and
   `Level` is now decoupled from `Scale`.** You can shape a greenfield product
   concept (or a multi-feature bet) as a `product-vision` intent (the existence
