@@ -43,21 +43,15 @@ def run(args: "argparse.Namespace") -> int:
 
 
 def _print_table(profiles) -> None:
-    """Print a fixed-column table to stdout: ID, SCOPE, DESCRIPTION.
+    """Print the profile table to stdout: ID, SCOPE, DESCRIPTION.
 
     Deterministic: ``list_profiles`` returns id-sorted rows; column widths are
-    derived from content so the table is alignment-stable.
+    content-derived so the table is alignment-stable. The long DESCRIPTION
+    column word-wraps to fit an interactive terminal — see
+    ``_common.render_table`` for the TTY / non-TTY contract.
     """
+    from agentbundle.commands._common import render_table
+
     headers = ["ID", "SCOPE", "DESCRIPTION"]
-    rows = [(p.id, p.scope, p.description) for p in profiles]
-
-    widths = [len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], len(cell))
-
-    fmt = "  ".join(f"{{:<{w}}}" for w in widths)
-    print(fmt.format(*headers))
-    print(fmt.format(*("-" * w for w in widths)))
-    for row in rows:
-        print(fmt.format(*row))
+    rows = [[p.id, p.scope, p.description] for p in profiles]
+    render_table(headers, rows, wrap_col=2)
