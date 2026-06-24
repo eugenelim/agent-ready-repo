@@ -168,6 +168,9 @@ class OrphanRefusalTests(unittest.TestCase):
                     "--scope",
                     "repo",
                     "--force",
+                    # `--yes` so the orphan-cleanup confirm (CLI-hygiene AC7)
+                    # does not refuse on the non-TTY test stdin.
+                    "--yes",
                     "--output",
                     str(adopter),
                     str(packs_dir),
@@ -182,6 +185,101 @@ class OrphanRefusalTests(unittest.TestCase):
             self.assertTrue(
                 (adopter / ".claude" / "skills" / "demo-skill" / "SKILL.md").exists(),
                 "the pack's real projection must land after --force reinstall",
+            )
+
+    def _setup_orphan(self, tmp: Path):
+        """Plant the (c) orphan shape and return ``(packs_dir, adopter, orphan)``."""
+        packs_dir = tmp / "packs"
+        packs_dir.mkdir()
+        self._make_pack(packs_dir)
+        adopter = tmp / "adopter"
+        adopter.mkdir()
+        orphan = adopter / ".claude" / "skills" / "demo-skill" / "STALE.md"
+        orphan.parent.mkdir(parents=True)
+        orphan.write_text("stale", encoding="utf-8")
+        return packs_dir, adopter, orphan
+
+    def _argv(self, adopter: Path, packs_dir: Path, *, yes: bool = False) -> list[str]:
+        argv = ["install", "--pack", "demo", "--scope", "repo", "--force"]
+        if yes:
+            argv.append("--yes")
+        return argv + ["--output", str(adopter), str(packs_dir)]
+
+    def test_orphan_force_confirm_lists_files_and_proceeds_on_yes(self) -> None:
+        """CLI-hygiene AC6: the orphan (c) --force confirm lists the exact files
+        and proceeds on a TTY 'y'."""
+        import io
+        from contextlib import redirect_stderr
+        from unittest.mock import patch
+
+        from agentbundle.cli import _build_parser
+        from agentbundle.commands import install
+
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            packs_dir, adopter, orphan = self._setup_orphan(tmp)
+            args = _build_parser().parse_args(self._argv(adopter, packs_dir))
+            buf = io.StringIO()
+            with patch("sys.stdin.isatty", return_value=True), \
+                 patch("builtins.input", return_value="y"), \
+                 redirect_stderr(buf):
+                rc = install.run(args)
+            stderr = buf.getvalue()
+            self.assertEqual(rc, 0, stderr)
+            self.assertIn("will REMOVE orphan file:", stderr)
+            self.assertIn("STALE.md", stderr)
+            self.assertFalse(orphan.exists(), "confirmed --force must remove the orphan")
+
+    def test_orphan_force_confirm_decline_deletes_nothing(self) -> None:
+        """CLI-hygiene AC6: declining the orphan --force confirm deletes nothing."""
+        import io
+        from contextlib import redirect_stderr
+        from unittest.mock import patch
+
+        from agentbundle.cli import _build_parser
+        from agentbundle.commands import install
+
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            packs_dir, adopter, orphan = self._setup_orphan(tmp)
+            args = _build_parser().parse_args(self._argv(adopter, packs_dir))
+            buf = io.StringIO()
+            with patch("sys.stdin.isatty", return_value=True), \
+                 patch("builtins.input", return_value="n"), \
+                 redirect_stderr(buf):
+                rc = install.run(args)
+            self.assertNotEqual(rc, 0)
+            self.assertIn("aborted", buf.getvalue())
+            self.assertTrue(orphan.exists(), "a declined --force must delete nothing")
+
+    def test_orphan_force_non_tty_without_yes_refuses_zero_deletions(self) -> None:
+        """CLI-hygiene AC7: a non-TTY orphan --force without --yes refuses and
+        leaves the orphan on disk."""
+        import io
+        from contextlib import redirect_stderr
+        from unittest.mock import patch
+
+        from agentbundle.cli import _build_parser
+        from agentbundle.commands import install
+
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            packs_dir, adopter, orphan = self._setup_orphan(tmp)
+            args = _build_parser().parse_args(self._argv(adopter, packs_dir))
+
+            def _boom(prompt=""):
+                raise AssertionError("input() must not be called on a non-TTY")
+
+            buf = io.StringIO()
+            with patch("sys.stdin.isatty", return_value=False), \
+                 patch("builtins.input", _boom), \
+                 redirect_stderr(buf):
+                rc = install.run(args)
+            self.assertNotEqual(rc, 0)
+            self.assertIn("--yes", buf.getvalue())
+            self.assertTrue(
+                orphan.exists(),
+                "a non-TTY --force without --yes must delete nothing (AC7)",
             )
 
 
