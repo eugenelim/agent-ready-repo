@@ -8,6 +8,7 @@
   {"query": "Write a design doc for the new ingestion pipeline", "should_trigger": true},
   {"query": "What architecture should we use for the offline-first mobile client?", "should_trigger": true},
   {"query": "Let's figure out the right approach for sharding the user database", "should_trigger": true},
+  {"query": "How should we design a serverless API that runs a long agent task behind a synchronous endpoint?", "should_trigger": true},
 
   {"query": "Draw a diagram of the notification service", "should_trigger": false},
   {"query": "Show me a sequence diagram for the checkout flow", "should_trigger": false},

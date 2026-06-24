@@ -65,7 +65,10 @@ ordered by severity.
 
 ## Cross-cutting
 
-- [ ] Performance / scale assumptions named.
+- [ ] Performance / scale assumptions named. For a **synchronous** request path,
+      the worst-case latency is summed across every hop and compared to the
+      binding front-door timeout; an unbudgeted long-operation path that can
+      exceed it is a finding (see the serverless lens's sync-vs-async gate).
 - [ ] Data-handling and privacy obligations named.
 - [ ] Failure modes and observability hooks named.
 - [ ] Cost shape named (when material).

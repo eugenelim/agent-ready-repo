@@ -42,6 +42,21 @@ If any check fails, push back rather than proceeding.
    that leaned on it — as you degrade when `research` is absent. **Either way,
    never fabricate** landscape/standards/in-flight facts.
 
+   **Ground the platform-service contract.** The never-fabricate rule extends to
+   the binding contract of any managed service the design depends on. For every
+   managed service on a **critical path**, ground its *binding* contract —
+   non-configurable limits, scaling floors, cold-start behaviour, network /
+   identity requirements — in an authoritative source: a curated platform skill
+   for that vendor if one is installed; else the provider's official docs; else
+   `research`. Carry **source + confidence** on each load-bearing figure, and
+   **lower the confidence and flag** any claim you could not ground. **Never
+   assert a service contract from model memory** — a binding limit recalled
+   wrong is the design miss that surfaces two days into the build, not at review.
+   This is scoped to **load-bearing critical-path claims** (a limit the design
+   actually depends on), not every service mention. On an unfamiliar managed
+   surface with no platform skill installed, recommend installing one rather
+   than guessing the number.
+
 3. **Shape the concept first (Stage 0).** Before the full doc, draft a
    ≤½-page concept from `assets/concept.md` — problem + constraints, 1–2
    candidate shapes, provider / provider-class, top 2–3 prioritized quality
