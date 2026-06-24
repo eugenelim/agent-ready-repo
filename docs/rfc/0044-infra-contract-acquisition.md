@@ -60,6 +60,8 @@ The unifying cause: **the loop builds, verifies, and reviews against memory/prox
 
 ## Proposal
 
+> *Post-acceptance: see [§ Errata](#errata) (2026-06-24) for additive refinements to A1's EXECUTE gate trigger and A2's craft enumeration — no decision below is reversed.*
+
 Cascaded under the requested decisions; organized by the six MECE families across the four inner-loop stages.
 
 **Decision 1 — scope: doctrine + references, six families, no tooling/agent.** Everything below is prose: one new `core` skill (`infra-contract-acquisition`), one new `operational-safety` module (`cloud-implementation-craft`), a strengthened `observability-and-smoke` module, and `work-loop` SKILL.md edits. No executable code; the orchestrator loads the infra references on the existing **infra-flavored** detection, now into **both** the implementer's EXECUTE brief and the reviewer's REVIEW brief.
@@ -157,3 +159,9 @@ Filled in on acceptance.
 - **Spec**: `docs/specs/infra-grounding/` (working name) — the `infra-contract-acquisition` skill (A1) + EXECUTE grounding gate; the `cloud-implementation-craft` `operational-safety` module loaded at EXECUTE (A2); the credentials-once preflight item + terminal-failed-state convergence (P); phased oracle-fidelity prose (V1); the readiness-aware data-plane probe refinement to P2 (V2); the `observability-and-smoke` symptom→layer playbook (D); `quality-engineer` infra-flavored-mode wiring. All `core` + `work-loop`/`operational-safety` SKILL.md edits.
 - **Changelog**: `docs/product/changelog.md` `[Unreleased]` entry for the work-loop behavior change.
 - **Pack version**: bump `core` (new skill + new module + work-loop edits); add `infra-contract-acquisition` to the catalogue/marketplace manifest at spec time.
+
+## Errata
+
+This section is append-only; it records refinements made after acceptance that the spec (`docs/specs/infra-grounding/`) implements, so the spec does not silently diverge from the frozen RFC body above.
+
+- **2026-06-24 — packaging / entrypoint-import model is named explicitly (A1 + A2). Approver: eugenelim.** Re-reading the field report's **Build 1** (the managed agent-runtime + tool-function-gateway build, per the field report's scrubbed phrasing) found that its dominant Author·structural failure was the managed runtime's **deployment-artifact packaging / entrypoint-import model** — the agent authored package-relative and project-root-rooted imports, not knowing the runtime loads the entrypoint from a *flat package root as a script*, which failed at runtime (`ModuleNotFoundError`). The RFC's A1 EXECUTE gate ("before generating a CLI invocation or IaC resource") and A2's craft enumeration did not name this class explicitly. **Two additive refinements (no contradiction with the decisions above):** (1) the A1 EXECUTE contract-grounding gate also fires on **authoring application code that runs on a managed runtime** (a function handler whose packaging / import model the platform dictates), not only on a CLI invocation or IaC resource; (2) the A2 `cloud-implementation-craft` module names the **deployment-artifact packaging & entrypoint / module-resolution model** as a craft area (general habit: confirm how the runtime packages and imports the entrypoint before writing imports — platform specifics still defer to the **T2 curated platform skill**, e.g. `aws-bedrock-agentcore-skill`, never bundled per-vendor data, preserving Principle 1 and Decision 8). This sharpens the existing families; it adds no new family, skill, module, or reviewer.
