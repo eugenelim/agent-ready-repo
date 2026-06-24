@@ -122,6 +122,11 @@ system, at the tier it has earned — never a generic recitation of the whole se
   runaway-loop half of OWASP LLM10, Unbounded Consumption, paired with the Tier-A
   token-cost concern)? Are tool calls idempotent where retried, and does the
   system degrade gracefully when the model returns garbage or a tool fails?
+- **Synchronous long-running turn** — an agent turn is the canonical
+  long-running operation; if it sits behind a synchronous front door, does the
+  worst-case turn fit the binding timeout? Apply the serverless lens's
+  sync-vs-async gate for the mechanics (it fires even when the runtime is not
+  itself serverless).
 
 ## Tier C — the agent persists or collaborates
 

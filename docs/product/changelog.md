@@ -19,6 +19,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`architect` grounds the design phase in platform reality — a backed
+  serverless workload-class lens plus two dual-consumed disciplines.** The
+  `architect` pack gains **`lens-serverless.md`** (in both `architect-design`
+  and `architect-review`), the cloud-agnostic serverless workload-class lens
+  that fills the slot the well-architected rubric named but never backed. It
+  carries five durable, concern-grouped concerns — execution & throughput
+  limits + the **sync-vs-async gate**, cold-start & readiness, scale-to-zero
+  economics / capacity floors / cost cliffs, statelessness & idempotency &
+  delivery semantics, and private-serverless network reachability — applied
+  across the whole serverless class (compute, data, search/analytics, event
+  glue). Two cross-cutting disciplines ride the same routing axis: a
+  **platform-contract grounding discipline** (`architect-design` grounds every
+  load-bearing managed-service contract on a critical path in an authoritative
+  source with stated confidence — never model memory — and `architect-review`
+  **independently re-checks** it) and a **synchronous-path viability check**
+  (sum worst-case latency across every hop, compare it to the binding
+  front-door timeout, and force a sync-vs-async gate for a long-running
+  operation — caught at design *and* re-checked at review). The lens stays
+  cloud-agnostic; version-specific numbers route to curated platform skills. The
+  agentic lens gains a one-line cross-reference into the gate. **No new skill,
+  reviewer, or executable tooling, and no per-vendor numbers ship.** (RFC-0045,
+  ADR-0035.)
+
 - **`work-loop` grounds its infrastructure inner loop in the platform's real
   contract, not model memory.** A new `core` skill,
   **`infra-contract-acquisition`**, runs a tiered, tool-keyed protocol that
