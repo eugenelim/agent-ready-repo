@@ -35,6 +35,7 @@ import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 
 def _make_pack(
@@ -181,8 +182,10 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
                 "{}", encoding="utf-8"
             )
 
+            # `--yes` so the new force-cleanup confirm (CLI-hygiene AC7) does
+            # not refuse on the non-TTY test stdin.
             rc, stderr = _run_install(
-                ["--pack", "demo", "--scope", "repo", "--force",
+                ["--pack", "demo", "--scope", "repo", "--force", "--yes",
                  "--output", str(adopter), str(packs_dir)]
             )
             self.assertEqual(
@@ -479,3 +482,89 @@ class EmitInstallRoutesBypassesDetectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ForceCleanupConfirmTests(unittest.TestCase):
+    """CLI-hygiene AC6/AC7: the ``--force`` destructive cleanup (trigger (b))
+    lists what it removes and confirms before deleting."""
+
+    def setUp(self) -> None:
+        _clear_session_set()
+
+    def _setup_b(self, tmp: Path):
+        """Plant the (b) shape — state row + a dist-tree subtree — and return
+        ``(packs_dir, adopter)``."""
+        packs_dir = tmp / "packs"
+        packs_dir.mkdir()
+        _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
+        adopter = tmp / "adopter"
+        adopter.mkdir()
+        _plant_state(adopter, pack_name="demo")
+        (adopter / "claude-plugins" / "demo").mkdir(parents=True)
+        (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
+            "{}", encoding="utf-8"
+        )
+        return packs_dir, adopter
+
+    def _argv(self, adopter: Path, packs_dir: Path) -> list[str]:
+        return ["--pack", "demo", "--scope", "repo", "--force",
+                "--output", str(adopter), str(packs_dir)]
+
+    def test_force_confirm_lists_subtree_and_proceeds_on_yes(self) -> None:
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            packs_dir, adopter = self._setup_b(tmp)
+            with patch("sys.stdin.isatty", return_value=True), \
+                 patch("builtins.input", return_value="y"):
+                rc, stderr = _run_install(self._argv(adopter, packs_dir))
+            self.assertEqual(rc, 0, f"install did not complete on 'y': {stderr!r}")
+            self.assertIn("will REMOVE", stderr)
+            self.assertIn("claude-plugins", stderr)
+            self.assertIn("demo", stderr)
+            self.assertFalse(
+                (adopter / "claude-plugins" / "demo").exists(),
+                "subtree must be removed after a confirmed --force",
+            )
+
+    def test_force_confirm_decline_deletes_nothing(self) -> None:
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            packs_dir, adopter = self._setup_b(tmp)
+            with patch("sys.stdin.isatty", return_value=True), \
+                 patch("builtins.input", return_value="n"):
+                rc, stderr = _run_install(self._argv(adopter, packs_dir))
+            self.assertNotEqual(rc, 0)
+            self.assertIn("aborted", stderr)
+            self.assertTrue(
+                (adopter / "claude-plugins" / "demo" / "plugin.json").exists(),
+                "a declined --force must delete nothing",
+            )
+            # AC6 atomicity: decline must not pop the state row or rewrite
+            # state either — the whole destructive block is gated.
+            import tomllib
+
+            state = tomllib.loads(
+                (adopter / ".agentbundle-state.toml").read_text(encoding="utf-8")
+            )
+            self.assertIn(
+                "demo", state.get("pack", {}),
+                "a declined --force must leave the state row intact",
+            )
+
+    def test_force_non_tty_without_yes_refuses_zero_deletions(self) -> None:
+        with TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            packs_dir, adopter = self._setup_b(tmp)
+
+            def _boom(prompt=""):
+                raise AssertionError("input() must not be called on a non-TTY")
+
+            with patch("sys.stdin.isatty", return_value=False), \
+                 patch("builtins.input", _boom):
+                rc, stderr = _run_install(self._argv(adopter, packs_dir))
+            self.assertNotEqual(rc, 0)
+            self.assertIn("--yes", stderr)
+            self.assertTrue(
+                (adopter / "claude-plugins" / "demo" / "plugin.json").exists(),
+                "a non-TTY --force without --yes must delete nothing (AC7)",
+            )
