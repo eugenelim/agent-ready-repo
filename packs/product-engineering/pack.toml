@@ -1,7 +1,7 @@
 [pack]
 name = "product-engineering"
-version = "0.5.1"
-description = "Shape product intent into shippable specs — and into the words users read. Habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (a capability intent and a feature intent are the same artifact at different levels): outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds — at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. `voice-and-microcopy` adds the content layer: characterize a product's voice and write blame-free, actionable UI copy. Pure-markdown, user-scope."
+version = "0.6.0"
+description = "Shape product intent into shippable specs — and into the words users read. Habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (product-vision, product-strategy, capability, and feature intents are the same artifact at different levels — Level is an open recognized set decoupled from Scale): outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds — at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. `voice-and-microcopy` adds the content layer: characterize a product's voice and write blame-free, actionable UI copy. Pure-markdown, user-scope."
 readme = "README.md"
 display_name = "Product Engineering"
 license = "Apache-2.0 OR MIT"

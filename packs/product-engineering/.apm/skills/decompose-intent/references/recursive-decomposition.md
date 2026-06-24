@@ -14,6 +14,9 @@ intent (capability) ──decompose──▶ intent (feature) ──decompose─
 - **Above feature level** → produce **child intents** at the next lower `Level:`,
   each with a `Parent intent:` back-link and the parent's outcome/scope context.
   Each child re-enters at `frame-intent` → `de-risk-intent` → `decompose-intent`.
+  This rule reads for **any** level above the leaf — a `product-vision`
+  decomposes to `product-strategy`, that to `capability`, that to `feature` — not
+  a fixed `capability | feature` ladder.
 - **At feature level (the leaf)** → produce the **spec/slice**: the shippable,
   agent-buildable unit — one coherent scope, vertical (it ships and tests on its
   own), sized to what one delivery pass can carry.
