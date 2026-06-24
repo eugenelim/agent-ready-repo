@@ -8,6 +8,8 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-06-24
+
 ### Changed
 
 - **`agentbundle uninstall` gains `--dry-run` and `--yes`, and confirms before
