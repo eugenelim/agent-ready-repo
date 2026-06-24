@@ -4,6 +4,8 @@
 
 You have an idea or a request and you want to turn it into a spec your delivery loop can build, without skipping the thinking. Install the `product-engineering` pack, then:
 
+> **Starting higher than a feature.** This walkthrough shapes a *feature* intent, but `Level` is an open set (`product-vision › product-strategy › capability › feature`) and is **no longer stamped from `Scale`**. An app-scale **greenfield product concept** — where the real question is "should this product exist at all" — can start at a **product altitude** (`product-vision`), not only at `feature`. `frame-intent` asks the altitude for concept-shaped input; Scale only *suggests* a starting point you override in a word. The rest of the loop (de-risk, decompose) is the same shape at any level.
+
 ## 1. Frame the intent
 
 Invoke **`frame-intent`**. It runs intake first: it infers **Scale** (one repo with app code → `app`), confirms it, and asks whether this work is **greenfield** or **brownfield**. Then you fill an intent (the skill ships the template at `frame-intent/assets/intent-template.md`; copy it to `docs/product/intents/<slug>.md`):

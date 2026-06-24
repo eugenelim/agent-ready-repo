@@ -19,7 +19,7 @@ You need:
   ```
 
   Then start a fresh agent session so it picks up the new skill.
-- A discovery shape to feed in — for this tutorial, a one-paragraph PRD is enough: *"Users paste a long URL and get back a short link they can share; links resolve fast and never expire. MVP: create a short link and resolve it."* (In real use this comes from the `research` skill or a `receive-brief` brief; a written PRD works the same way.)
+- A discovery shape to feed in — for this tutorial, a one-paragraph PRD is enough: *"Users paste a long URL and get back a short link they can share; links resolve fast and never expire. MVP: create a short link and resolve it."* (In real use this comes from the `research` skill, an `intent` shaped by `frame-intent` when the `product-engineering` pack is installed — an optional upstream source — or a `receive-brief` brief; a written PRD works the same way.)
 
 ## Step 1 — Start the flow and pass the trigger gate
 

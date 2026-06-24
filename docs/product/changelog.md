@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`product-engineering` gains two product altitudes above `capability` — and
+  `Level` is now decoupled from `Scale`.** You can shape a greenfield product
+  concept (or a multi-feature bet) as a `product-vision` intent (the existence
+  bet: why this product should exist, for whom, through what wedge) or a
+  `product-strategy` intent (the path: central challenge, guiding policy,
+  coherent actions, problem/segment sequence), instead of being forced into a
+  `feature`. `Level` is now an **open recognized set**
+  (`product-vision › product-strategy › capability › feature`); `Scale` only
+  *suggests* a starting altitude you override in a word, and `frame-intent` asks
+  the altitude for concept-shaped input. The product-existence bet is de-risked
+  once at the top as `market-existence` (market desirability **and** viability),
+  distinct from feature-level `desirability`. A sibling-spawn detector *offers*
+  to frame a product parent when work won't reduce to one shippable slice, and a
+  retroactive-parent affordance back-links orphaned siblings at an inferred
+  altitude. Existing `capability` / `feature` intents stay valid — the change is
+  additive.
+- **`init-project` recognises an `intent` from `frame-intent` as a fourth
+  discovery source.** When the `product-engineering` pack is installed, the
+  `frame → de-risk → decompose` loop hands its leaf into `init-project`'s value
+  gate as an optional upstream source, alongside `research`, a PRD, and a
+  `receive-brief` brief.
+
 ### Changed
 
 - **`agentbundle uninstall` gains `--dry-run` and `--yes`, and confirms before

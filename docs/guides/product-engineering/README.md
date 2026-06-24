@@ -16,7 +16,7 @@ New here? Start with [the intent tree](explanation/the-intent-tree.md) for the m
 
 ## Explanation
 
-- [The intent tree — level-agnostic product shaping](explanation/the-intent-tree.md) — why one recursive shape covers a strategy, an epic, and a feature alike.
+- [The intent tree — level-agnostic product shaping](explanation/the-intent-tree.md) — why one recursive shape covers the product altitudes (`product-vision`, `product-strategy`) and engineering work (`capability`, `feature`) alike, with `Level` an open set decoupled from `Scale`.
 
 ---
 

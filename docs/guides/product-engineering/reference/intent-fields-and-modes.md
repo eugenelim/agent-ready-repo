@@ -9,7 +9,7 @@ The `intent` template (shipped with the `frame-intent` skill at `frame-intent/as
 | Field | Meaning |
 | --- | --- |
 | `Slug` | kebab-case; matches the filename |
-| `Level` | `capability` or `feature` — the altitude this intent sits at |
+| `Level` | the altitude this intent sits at — an **open recognized set**, `product-vision › product-strategy › capability › feature` (name an intervening altitude if your org has one; not a closed enum) |
 | `Scale` | `app` or `business-unit` — resolved at intake (see Modes) |
 | `Maturity` | `greenfield` or `brownfield` — gates current-state inputs |
 | `Parent intent` | optional back-link to the intent this was decomposed from |
@@ -18,13 +18,32 @@ The `intent` template (shipped with the `frame-intent` skill at `frame-intent/as
 | `Assumptions` | what must be true for the bet to pay off |
 | `Decomposition` | the children: lower-level intents, or a spec/slice at the leaf |
 
+## Product-altitude fields (level-conditional)
+
+When `Level` is a product altitude, the `intent` template seeds an extra, **level-conditional** field block — filled only at that rung; an empty heading is a prompt, not an error. Both live in the single `intent-template.md`; there is no new per-rung template or schema.
+
+| Rung | Seeded fields |
+| --- | --- |
+| `product-vision` | customer-shaped pitch · the change · the job + struggling moment · who, by circumstance · existing alternatives · narrowest wedge · demand evidence · open assumptions tiered (`must-test-before-shipping` / `accept-as-bet` / `will-monitor-post-ship`) · counter-metrics |
+| `product-strategy` | central challenge (diagnosis) · guiding policy · coherent actions (3–5) · problem/segment sequence · horizon |
+
+## De-risk kind by level
+
+`de-risk-intent` tests *this* intent's riskiest assumption in the kind its level calls for:
+
+| Level | De-risk kind |
+| --- | --- |
+| `product-vision` / `product-strategy` | **`market-existence`** — will anyone want this at all (market desirability) *and* can it be a business (viability); tested **once at the top**, categorically distinct from feature `desirability` |
+| `capability` | architectural / adoption |
+| `feature` | `desirability` |
+
 ## Modes
 
 One **global** axis, resolved once; the rest are **per-intent** flags.
 
 | Mode | Scope | Values | Effect |
 | --- | --- | --- | --- |
-| **Scale** | global (per repo) | `app` ↔ `business-unit` | sets default level, where work lives, leaf shape; resolved at intake (infer → confirm → ask) |
+| **Scale** | global (per repo) | `app` ↔ `business-unit` | *suggests* a starting altitude (decoupled from `Level`, overridable in a word), and sets where work lives + leaf shape; resolved at intake (infer → confirm → ask) |
 | **Maturity** | per-intent | `greenfield` ↔ `brownfield` | brownfield unlocks current-state inputs (journey / process map) |
 | **Reversibility** | per-intent (in `de-risk-intent`) | one-way ↔ two-way door | recommends the prototype-approach |
 | **Prototype-approach** | per-intent (in `de-risk-intent`) | `validate-first` ↔ `prototype-led` | how the bet is tested; defaulted by reversibility, overridable |

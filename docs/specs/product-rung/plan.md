@@ -1,7 +1,7 @@
 # Plan: product-rung
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -45,14 +45,16 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 
 **Tests:**
 - `grep` confirms `intent-model.md` documents the recognized set `product-vision › product-strategy › capability › feature` and states `Level` stays open-valued (AC: Level open + recognized set).
-- `grep` confirms `intent-template.md:11`'s `Level:` comment is widened from `<capability | feature>` to show the recognized set without closing the field (AC: Level open).
+- `grep` confirms `intent-template.md`'s `Level:` comment (line 12) is widened from `<capability | feature>` to show the recognized set without closing the field (AC: Level open).
 - `grep`/read confirms `intent-model.md` documents `product-vision` (existence bet) and `product-strategy` (the path) semantics, vision above strategy above capability (AC: semantics).
+- `grep`/read confirms the existing "same artifact at every level" tree diagram and the two-consequences de-risk-kind list in `intent-model.md` are **generalized above `capability`** — no wording still presents `capability` as the top of the tree (AC: semantics, generalization clause).
 
 **Approach:**
 - Edit `frame-intent/references/intent-model.md` to add the recognized set + the two-rung semantics, keeping the "no fixed ladder / open field" framing.
+- Generalize the existing capability-rooted tree diagram and the two-consequences kind list so they read for any level above the leaf, rather than topping out at `capability`.
 - Widen the `intent-template.md` `Level:` field comment to the recognized set, leaving the value a free string.
 
-**Done when:** the recognized set and the two-rung semantics are documented in `intent-model.md` and the template comment, with `Level` still an open field, and the T1 greps pass.
+**Done when:** the recognized set and the two-rung semantics are documented in `intent-model.md`, the existing tree/consequences prose is generalized above `capability`, the template comment shows the recognized set with `Level` still an open field, and the T1 greps pass.
 
 ### T2: Decouple Scale→Level to a suggestion; preserve leaf-projection
 
@@ -62,12 +64,14 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 - `grep` confirms `scale-intake.md`'s "default level" wording is reframed as a *suggested starting altitude* and `frame-intent` SKILL.md step 3 no longer hard-nudges `feature` at `app` Scale (AC: stamp → suggestion).
 - `grep` confirms `scale-intake.md`'s leaf-projection sentence and the intake table's "Leaf lands as" column are **unchanged in meaning** — `app` → same-repo brief, `business-unit` → per-component slices (AC: leaf-projection preserved).
 - `grep`/read confirms `frame-intent` step 3 asks the altitude explicitly for concept-shaped / greenfield input and offers the suggested starting points (AC: ask altitude for concepts).
+- `grep` confirms `frame-intent/SKILL.md:3`'s `description:` frontmatter no longer reads "Authors a capability or feature intent" — the shipped trigger blurb names the product altitudes / the open recognized set (AC: frontmatter no longer encodes the two-level ceiling).
 
 **Approach:**
 - In `scale-intake.md`, split Scale's two roles explicitly: keep leaf-projection as-is; reword the "default level" role to a suggestion (`app` greenfield concept → `product-vision`; `app` known feature → `feature`; `business-unit` → `product-strategy`/`capability`), overridable in one word.
 - In `frame-intent/SKILL.md` step 3, replace the hard `feature`-at-`app` nudge with an explicit altitude question for concept-shaped/greenfield input.
+- Widen `frame-intent/SKILL.md:3`'s `description:` frontmatter so the trigger blurb names the product altitudes (keep it adopter-clean — no RFC/ADR citation; mind the Kiro frontmatter limits — no unquoted `: ` in the description).
 
-**Done when:** Scale suggests rather than stamps the altitude, the leaf-projection role is provably untouched, and the T2 greps pass.
+**Done when:** Scale suggests rather than stamps the altitude, the `frame-intent` `description:` no longer encodes the two-level ceiling, the leaf-projection role is provably untouched, and the T2 greps pass.
 
 ### T3: Seed the `product-vision` and `product-strategy` field blocks
 
@@ -134,7 +138,7 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 **Tests:**
 - `grep` confirms `core/init-project/SKILL.md` stage 2 names `intent` / `frame-intent` as a **fourth** recognized discovery source alongside `research`, a PRD, and a `receive-brief` brief (AC: seam added).
 - `grep`/read confirms the source is framed as an **optional upstream** ("when the `product-engineering` pack is installed", mirroring the `research`-pack "when installed" framing) so a `core`-only adopter reads it as optional, not a dangling reference (AC: by reference only; design-review R2).
-- `grep`/read confirms `init-project` still imports nothing from `product-engineering` and still performs no discovery (the `:128` anti-pattern and the `:143-146` by-reference rule are intact, the latter naming `frame-intent` only as an upstream discovery shape it receives) (AC: by reference only, no discovery).
+- `grep`/read confirms `init-project` still imports nothing from `product-engineering` and still performs no discovery (the "Performing discovery / research yourself" anti-pattern and the "Adding a new top-level directory, or importing another pack's code" by-reference rule are intact, the latter naming `frame-intent` only as an upstream discovery shape it receives) (AC: by reference only, no discovery).
 
 **Approach:**
 - In `init-project/SKILL.md` stage 2 (and the matching anti-pattern bullet), add `intent` / `frame-intent` as a fourth recognized fed-in discovery shape, phrased as an optional upstream ("when the `product-engineering` pack is installed"), and document the `frame → de-risk → decompose` → `init-project` hand-off, by reference only.
@@ -158,9 +162,26 @@ Most verification is per-task below. Cross-cutting checks that span tasks:
 
 **Done when:** all four guide pages, the pack README, and the core inception guide(s) describe the rungs / the seam, and the T8 checks pass. (The pack README re-projects via `make build` in T9; guides and the pack README are repo-owned — no `build-self`.)
 
+### T8b: Update the pack eval harnesses for the product altitudes
+
+**Depends on:** T1, T2, T4, T6
+
+**Tests:**
+- `grep` confirms `frame-intent/evals/evals.json` no longer asserts the intent is level-tagged *only* `capability or feature` — the rubric recognises the open recognized set including `product-vision` / `product-strategy` (AC: eval harnesses recognise the altitudes).
+- `grep`/read confirms `de-risk-intent/evals/` and `decompose-intent/evals/` need **no** change: the de-risk rubric describes de-risk currencies generically (no `desirability`/level token to widen) and the decompose rubric already reads "above feature level" for any level — this bullet is a *verification that no ceiling is encoded*, not a required edit (AC: eval harnesses; reviewer C1–C3).
+- `grep` confirms the touched eval file(s) carry no `RFC-\d` / `ADR-\d` / `docs/rfc/` / backlog-anchor citation (they ship under `.apm/**`; adopter-clean cross-cutting check).
+- `python tools/run-pack-evals.py --pack product-engineering --mode judge` smoke-check (Tier-B-light) does not regress on the existing queries after the rubric widening.
+
+**Approach:**
+- Widen the `frame-intent` `evals/evals.json` `expected_output` + rubric assertions so a `product-vision` / `product-strategy` intent is judged correct, not penalised. This is the only substantive eval edit; `eval_queries.json` is a trigger-phrase activation list with no level assertion to widen (add a product-altitude trigger query only if a near-miss surfaces).
+- Read `de-risk-intent/evals/` and `decompose-intent/evals/` to confirm neither encodes the two-level ceiling; edit only if a ceiling is actually found (none expected — the `desirability` token lives in the skill bodies T4 edits, and the decompose rubric is already level-agnostic).
+- Keep all eval prose adopter-clean.
+
+**Done when:** `frame-intent`'s evals recognise the product altitudes, the de-risk/decompose evals are confirmed not to encode a ceiling (edited only if one is found), the judge smoke-check does not regress, and the T8b greps pass.
+
 ### T9: Version bumps, projection refresh, changelog
 
-**Depends on:** T1-T8
+**Depends on:** T1-T8, T8b
 
 **Tests:**
 - `grep`/build confirms `product-engineering` `pack.toml` `[pack].version` and `.claude-plugin/plugin.json` `version` are bumped `0.5.1 → 0.6.0` in lockstep and `marketplace.json` re-aggregates the new version drift-clean (AC: version bump). `product-engineering` is **not** self-host-projected — there is no `.claude/skills/frame-intent` projection; the only drift target is `marketplace.json` via `make build`.
@@ -202,3 +223,5 @@ Pure skill-prose / template / reference change. **Delivery:** ships with the nex
 ## Changelog
 
 - 2026-06-23: initial plan (governance PR — ADR-0033 + this spec/plan). Implementation deferred to a separate PR; this plan describes that implementing PR.
+- 2026-06-23: implementing-PR pre-EXECUTE review amendments — added T8b (pack eval-harness update, per the standing pack-eval-coverage rule); added the `frame-intent` `description:` frontmatter widening to T2; extended T1 to generalise the existing capability-rooted tree/consequences prose in `intent-model.md`; noted the migration AC is verified by T1. Reviewer findings C1–C4.
+- 2026-06-23: EXECUTE complete — all 11 tasks (T1–T8, T8b, T9, T10) implemented in one PR; both packs bumped (`product-engineering` 0.6.0, `core` 0.4.15), `marketplace.json` + the projected `init-project` (both adapter roots) refreshed drift-clean, changelog `[Unreleased] → Added` entry added, T10 dogfood recorded in `notes/dogfood.md`. Post-EXECUTE review (adversarial + quality-engineer) clean after the status-flip / AC-check / anchor-refresh fixes and lifting the `frame-intent` sibling-spawn offer out of the anti-patterns section. **Bundled fix:** genericised all four pre-existing `RFC-0040` citations across the pack — `frame-intent` (SKILL.md + references/agentbundle-layout.md) and `align-value-stream` (SKILL.md + references/agentbundle-layout.md) — so the whole `product-engineering` pack is adopter-clean (the `align-value-stream` pair was folded in at the user's request rather than deferred).

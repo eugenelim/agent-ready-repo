@@ -64,11 +64,19 @@ continue.
 ### 2. Value gate — over fed-in discovery
 
 Discovery is **fed in**, never performed here (see anti-patterns). Consume a
-discovery shape from one of three upstream sources:
+discovery shape from one of four upstream sources:
 
 - the `research` skill's output (when the `research` pack is installed),
+- an `intent` shaped by `frame-intent` (when the `product-engineering` pack is
+  installed) — its `frame → de-risk → decompose` loop hands its leaf in here: at
+  `app` scale a feature-level leaf intent *is* a `core` brief,
 - a provided PRD, or
 - a brief produced by `receive-brief`.
+
+The `product-engineering` source is **optional upstream**, named the same way the
+`research` source is — "when the pack is installed". A `core`-only adopter has the
+other three and reads this one as a clearly-optional source, not a dangling
+reference.
 
 From that input, derive the **business value** and the **MVP**: what outcome
 this serves and the smallest thing that delivers it. **Gate on it** — if you
@@ -126,8 +134,10 @@ normal loop running — instead of a throwaway someone has to clean up later.
 ## Anti-patterns to refuse
 
 - **Performing discovery / research yourself.** Discovery is fed *in* (stage 2)
-  from the `research` pack, a PRD, or a `receive-brief` brief. This skill
-  consumes a discovery shape; it does not own the research phase.
+  from the `research` pack, an `intent` from `frame-intent` (when
+  `product-engineering` is installed), a PRD, or a `receive-brief` brief. This
+  skill consumes a discovery shape; it does not own the research phase and does
+  not shape product intent itself.
 - **Building an autonomous multi-agent "software company" generator.** The human
   stays in the loop and the existing skills do the work. The wins of a swarm of
   agents auto-generating a codebase are survivorship-bias stories; the boring,
@@ -143,7 +153,10 @@ normal loop running — instead of a throwaway someone has to clean up later.
 - **Adding a new top-level directory, or importing another pack's code.** This
   skill lives beside the other core skills and composes the rest **by reference,
   not import** — it names `research`, `receive-brief`, the arc42 `reference.md`
-  template, `new-spec`, and `work-loop`, and hands off to them.
+  template, `new-spec`, and `work-loop`, and hands off to them. The
+  `product-engineering` seam is by reference too: `frame-intent` is named only as
+  an *upstream discovery shape this skill receives* (when that pack is installed),
+  never imported.
 - **Restating what a composed skill already documents.** Reference `new-spec`,
   `work-loop`, and the brief; don't copy their procedures into this file.
 

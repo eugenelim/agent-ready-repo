@@ -8,9 +8,20 @@ description: Use when an intent is framed and you need to test whether the bet h
 Test whether a framed `intent`'s bet holds before you build it out. The flow:
 **reversibility triage → riskiest assumption → predeclared kill condition →
 prototype-approach → survive/kill verdict.** It operates on *this* intent at
-*its* level — the kind of assumption that dominates follows the level
-(capability → architectural / adoption; feature → desirability). The predeclared
-kill condition is the load-bearing guard against validation theatre.
+*its* level — the kind of assumption that dominates follows the level:
+**product-level** (`product-vision` / `product-strategy`) → **market-existence**;
+**capability** → architectural / adoption; **feature** → **desirability**. The
+predeclared kill condition is the load-bearing guard against validation theatre.
+
+**`market-existence` — the product-level kind.** At `product-vision` /
+`product-strategy` the bet is not "do users want this feature" but
+**market-existence**: *will anyone want this at all* (market desirability) **and**
+*can this be a business* (viability). It is **categorically distinct** from
+feature-level `desirability` — a different token for a different question, named so
+the viability half cannot quietly drop out — and it is tested **once at the top**,
+not re-litigated per sibling feature. It reuses the existing pre-PMF **qualitative
+bar** in `references/kill-condition.md` (no new mechanism): predeclare a clear
+qualitative line, in 0-to-1 terms, before you probe.
 
 ## When to invoke
 

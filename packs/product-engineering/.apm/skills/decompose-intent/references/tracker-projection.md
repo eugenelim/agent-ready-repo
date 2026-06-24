@@ -10,6 +10,8 @@ hierarchies silently corrupts data; that's why this is one-way by default.
 
 | Canonical | `none` | Linear (lean — collapse) | Jira Align (deep — expand) |
 | --- | --- | --- | --- |
+| product-vision intent | markdown | Initiative / label | Theme / Strategy tier |
+| product-strategy intent | markdown | Initiative / label | Theme / Strategy tier |
 | top (capability) intent | markdown | Initiative | Epic (Portfolio) |
 | feature-level intent | markdown | Project | Feature (Program) |
 | extra intervening intents | markdown | labels / sub-issues | (Capability, Solution tier — multi-ART) |
@@ -23,9 +25,12 @@ hierarchies silently corrupts data; that's why this is one-way by default.
   **collapses**: top → Initiative, feature → Project, leaf → Issue. Intervening
   levels flatten to labels.
 - **Jira Align (deep)** — six levels, so the tree **expands** near 1:1: capability
-  → Epic, feature → Feature, leaf → Story. (A Jira Align *Feature* is a Jira
-  Software *Epic* on sync — the same word names different levels in adjacent
-  tools, which is exactly why the model must be canonical.)
+  → Epic, feature → Feature, leaf → Story. The two product rungs
+  (`product-vision`, `product-strategy`) land **above** the portfolio Epic, at the
+  **Theme / Strategy** tier; in lean Linear they collapse onto the Initiative or a
+  label, like any intervening level. (A Jira Align *Feature* is a Jira Software
+  *Epic* on sync — the same word names different levels in adjacent tools, which
+  is exactly why the model must be canonical.)
 
 ## The impedance is the point
 
