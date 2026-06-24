@@ -72,5 +72,5 @@ file by hand:
 
 `decompose-intent`'s `docs/product/briefs/<slug>.md` output is **not** governed
 by this table. That path is the hand-off to core's `receive-brief` skill and
-stays pinned (RFC-0040 non-goal). Only `frame-intent` (intents) and
+stays pinned (a deliberate non-goal of this layout config). Only `frame-intent` (intents) and
 `align-value-stream` (rollups) read `[product-engineering]`.
