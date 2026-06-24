@@ -1,14 +1,15 @@
 ---
 name: frame-intent
-description: Use when shaping a piece of product work before it becomes a spec — turning an idea, a request, or a strategy into a level-tagged `intent` (an outcome + the opportunity behind it). Triggers on "shape this", "what's the intent here", "frame the problem", "before we build X", "turn this into a brief/PRD". Authors a capability or feature intent, resolves Scale (app ↔ business-unit) at intake, and offers current-state inputs only when brownfield. Do NOT use to test an assumption (use `de-risk-intent`) or to break an intent down (use `decompose-intent`).
+description: Use when shaping a piece of product work before it becomes a spec — turning an idea, a request, or a strategy into a level-tagged `intent` (an outcome + the opportunity behind it). Triggers on "shape this", "what's the intent here", "frame the problem", "before we build X", "turn this into a brief/PRD". Authors an `intent` at any altitude in the open recognized set — product-vision, product-strategy, capability, or feature — resolves Scale (app ↔ business-unit) at intake, and offers current-state inputs only when brownfield. Do NOT use to test an assumption (use `de-risk-intent`) or to break an intent down (use `decompose-intent`).
 ---
 
 # Skill: frame-intent
 
 Shape a piece of product work into an `intent` — a level-tagged statement of an
-outcome and the opportunity behind it — *before* it becomes a spec. A capability
-intent and a feature intent are the same artifact at different levels; a PRD is
-just a feature intent written as a document. This is the entry point of the
+outcome and the opportunity behind it — *before* it becomes a spec. A
+product-vision, a product-strategy, a capability, and a feature intent are the
+same artifact at different levels; a PRD is just a feature intent written as a
+document. This is the entry point of the
 product-engineering loop: frame here, then `de-risk-intent`, then
 `decompose-intent`. The intent model is in `references/intent-model.md`.
 
@@ -53,10 +54,18 @@ Before framing, confirm:
    into `Assumptions`); never fabricate; treat sensitive or read-only sources as
    ask-before-quoting.
 
-3. **Pick the level.** `capability` (spans several features / components) or
-   `feature` (one shippable capability). At `app` Scale most intents are
-   `feature`-level; at `business-unit` Scale you usually start at `capability`
-   and let `decompose-intent` produce feature intents beneath it.
+3. **Pick the altitude — Scale only *suggests* it.** The recognized set runs
+   `product-vision › product-strategy › capability › feature` and is **open**
+   (name an intervening altitude if your org has one — see
+   `references/intent-model.md`). Scale suggests where to start, it does not stamp
+   it: an `app` **greenfield product concept** → `product-vision` (the existence
+   bet); an `app` **known feature** → `feature`; a `business-unit` effort →
+   `product-strategy` or `capability`. **For concept-shaped or greenfield input,
+   ask the altitude explicitly** — "is this a product bet, or a feature you've
+   already scoped?" — rather than defaulting to `feature`; the user overrides the
+   suggestion in one word. A clearly-scoped feature proceeds at `feature` without
+   ceremony, and `decompose-intent` produces the levels beneath whatever altitude
+   you start at.
 
 4. **Write the outcome — three parts.** A *steerable input metric* you can move,
    the *lagging outcome* it should drive, and a *guardrail* that must not get
@@ -137,7 +146,18 @@ directly under `<parent>/intents/<slug>.md`. A per-topic folder is deliberately
 **not** used: each intent is a single file handed downstream to `de-risk-intent`
 and `decompose-intent`. `decompose-intent`'s `docs/product/briefs/<slug>.md`
 output stays **pinned** — that path is the hand-off to core's `receive-brief`
-and is not governed by this config (RFC-0040 non-goal).
+and is not governed by this config (a deliberate non-goal of this layout config).
+
+## Spotting a missing parent — offer, never block
+
+When a concept won't reduce to a single shippable slice — it implies several
+independent value bets, not one buildable thing — that is the signal a **product
+parent is missing**. **Offer** to frame the product parent (`product-vision` /
+`product-strategy`) and shape the rest beneath it, rather than letting the user
+emit orphaned siblings. The sibling *count* is a hint, not a fixed threshold; the
+real test is the qualitative shippability one. It is an **offer** — never a block;
+the user can decline and proceed. `decompose-intent` carries the same detector,
+plus a retroactive-parent affordance for intents that already exist.
 
 ## Anti-patterns to refuse
 
