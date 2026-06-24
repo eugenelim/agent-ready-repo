@@ -28,6 +28,18 @@ In this order:
    single task you were assigned. The task body declares its
    verification mode and tests.
 4. Any files the task body cites.
+5. **On infra-flavored work: the `cloud-implementation-craft` module the
+   orchestrator inlined into your brief.** When the task authors
+   infrastructure, a managed-runtime deployment, or live-environment
+   interaction, the work-loop inlines the `operational-safety`
+   `cloud-implementation-craft` module (least-privilege-but-sufficient
+   permissions, eventual-consistency waits, timeout / cold-start / backoff,
+   dependency ordering, terminal-failed-state, the packaging / entrypoint
+   model, externalized script config) as prompt text — that is your craft
+   reference for this change. You do **not** load the skill yourself; if it was
+   not inlined, fall back to your own judgment and say so. This is the
+   EXECUTE-consumer extension of `operational-safety` (ADR-0034); review of the
+   same craft still rides `quality-engineer`, no new reviewer is added.
 
 If the supervisor's brief omits the spec/plan paths, ask — don't guess.
 

@@ -191,31 +191,24 @@ For anything beyond trivial, *think before you write code*. Concretely:
     asserts **invariants** ("didn't crash, didn't render garbage, layout holds,
     no overflow") rather than specific outputs. Reach for it when the failure
     mode is open-ended and you can't enumerate the gestures up front.
-  - **infra/deploy** — provisioning or changing infrastructure: a cloud
-    deploy, an IaC apply, a stateful migration of a running system. This is the
-    fourth verification *mode* (the spec calls it a *flavor* — same thing).
-    Unlike the three modes above, its contract is a **layered GATES sequence**,
-    not a single check — because a deploy is slow, stateful, costs money, and is
-    partially irreversible. The layers, in order: (1) **static preflight** —
-    validate / lint / policy-as-code, run through the provider-appropriate
-    scanner the preflight obligation below requires as a task-zero (the
-    lint+typecheck analog); (2) **plan / preview** — a dry-run diff, reviewed
-    before any mutation; (3) **idempotent convergent apply — the precondition
-    the rest rests on**: re-running after a fix must *converge, not collide*, so
-    iteration is safe; an imperative, non-idempotent script is the
-    retry-collision root cause, and the thing to fix first rather than work
-    around; (4) **active end-to-end smoke** — not a single status check but a
-    multi-hop probe, and the direct extension of the visual/manual-QA "exercise
-    the real built artifact" doctrine to a deployed system: seed test / mock
-    users → load the real CDN / site URL → assert it actually renders → on
-    failure pull the access / error logs and debug → tear down; (5)
-    **rollback** — *before* the first apply, confirm a known-good re-apply path
-    is named (it belongs in `## Rollout`), since no atomic rollback exists for a
-    partially-applied deploy. This mode names *how we verify* a deploy; it does
-    **not** author *deployment sequencing*, which the plan template's
-    `## Rollout` section already owns — cross-reference it, don't duplicate it. Every layer is tool-neutral
-    (Terraform / Pulumi / CDK / CloudFormation / hand-rolled scripts alike);
-    any tool named here is illustrative, never normative.
+  - **infra/deploy** — provisioning or changing infrastructure (a cloud
+    deploy, an IaC apply, a stateful migration). The fourth verification
+    *mode*; unlike the three above, its contract is a **layered GATES
+    sequence**, not a single check — **static preflight** < **plan / preview**
+    < **idempotent convergent apply** (the precondition the rest rests on —
+    re-run must *converge, not collide*) < **active end-to-end smoke** (a
+    multi-hop probe, not a status check) < **rollback** (a known-good re-apply
+    path named *before* the first apply). It names *how we verify*, not
+    deployment *sequencing* (the plan template's `## Rollout` owns that —
+    cross-reference, don't duplicate). Every layer is tool-neutral (Terraform /
+    Pulumi / CDK / CloudFormation / hand-rolled alike; any tool named is
+    illustrative). **Full infra doctrine — the layer detail, the multi-artifact
+    preflight, the EXECUTE contract-grounding gate + craft load, the
+    reusable-script discipline, phased oracle fidelity (V1, the cheap-early
+    oracle is necessary-not-sufficient), and the readiness-aware data-plane
+    probe (V2) — is progressive-disclosure depth in
+    [`references/infra-verification.md`](references/infra-verification.md),
+    loaded on infra-flavored work.**
 
   **Confirm the mechanism exists before you claim the mode — task zero if it
   doesn't.** Picking a verification mode obligates confirming that the
@@ -230,21 +223,14 @@ For anything beyond trivial, *think before you write code*. Concretely:
   because it doesn't feel like one.
 
   For **infra/deploy** the mechanism is rarely one artifact; the preflight
-  enumerates it as a **multi-artifact set, each its own task-zero**: (a) a
-  **verify-status** script (does the deploy report healthy?), (b) a
-  **teardown** script (clean down a failed or ephemeral run), (c) **test-data /
-  mock-user seeding** (so the smoke probe has something to exercise), and (d) a
-  **provider-appropriate policy-as-code / CSPM scanner**. The scanner is the
-  load-bearing one: it is the **per-provider-depth source**, its
-  vendor-maintained rulesets holding the per-service config checks the
-  standards-grounded reviewers cannot and should not carry — and the **same**
-  scanner feeds two layers, *operational* misconfig → the infra/deploy mode's
-  static preflight (layer 1) and *security* misconfig → the mandatory security
-  pass (REVIEW, below). The requirement is **mechanism-level, not tool-level**:
-  a scanner must exist; the adopter picks Checkov / tfsec / a cloud-native CSPM,
-  exactly as the loop requires "tests exist" without mandating a framework. The
-  loop names these as prerequisite tasks and offers to scaffold them; it does
-  not ship them as executable tooling.
+  enumerates a **multi-artifact set, each its own task-zero** — a
+  **verify-status** script, a **teardown** script, **test-data / mock-user
+  seeding**, a **provider-appropriate policy-as-code / CSPM scanner**
+  (per-provider-depth source, **mechanism-level not tool-level**, feeding both
+  the static preflight and the mandatory security pass), and a **durable
+  credential session** (establish once, reuse). Detail — and that none ship as
+  executable tooling — in
+  [`references/infra-verification.md`](references/infra-verification.md).
 
   Spikes and throwaway exploration are out of scope.
 - **Design tests up front, before any code.** The contract lives in
@@ -388,20 +374,28 @@ Match the discipline to the verification mode you picked during PLAN:
 - **Visual / manual QA** — implement, then exercise the built artifact
   end-to-end through the documented workflow recorded in the task, and
   record what you observed (real output, not internal state).
-- **infra/deploy** — implement the change (one task may span several GATES
-  layers), then **drive the deploy yourself and read the real environment
-  output**: run the apply, the smoke
-  probe, the log pull, and the teardown, and read their *actual* output rather
-  than reasoning about what they would say. The **human-as-relay** pattern — a
-  human running the deploy command and pasting the error back into the session
-  by hand — is the anti-pattern this removes; the agent reads ground truth from
-  the environment at each step. This is **harness-agnostic doctrine** — do it
-  by hand on any agent. In Claude Code, background tasks (for long applies),
-  `asyncRewake` (to wake on a background deploy's exit with stderr surfaced),
-  and `PreToolUse` (to gate a destructive command before it runs) are an
-  **accelerant only, never a dependency** — matching how `/verify` and
-  `/simplify` are treated; adapters without them lose the shortcut, not the
-  doctrine.
+- **infra/deploy** — implement the change, then **drive the deploy yourself
+  and read the real environment output** (run the apply, smoke probe, log pull,
+  teardown; read their *actual* output, don't reason about what they'd say). The
+  **human-as-relay** pattern — a human pasting deploy errors back by hand — is
+  the anti-pattern this removes. Harness-agnostic doctrine; Claude Code
+  background tasks / `asyncRewake` / `PreToolUse` are **accelerant, never a
+  dependency**. The EXECUTE-phase infra craft — the `cloud-implementation-craft`
+  load (orchestrator-inlined into the implementer's brief) and the
+  reusable-script discipline — is in
+  [`references/infra-verification.md`](references/infra-verification.md).
+
+**EXECUTE contract-grounding gate (infra — universal across light and full
+mode).** Before generating a CLI invocation, an IaC resource, **or application
+code that runs on a managed runtime**, against an **unfamiliar platform**,
+acquire its contract via the
+[`infra-contract-acquisition`](../infra-contract-acquisition/SKILL.md) skill —
+never guess a flag, schema shape, field constraint, or packaging assumption.
+It is the **infra generalization of AGENTS.md's "Grep to verify a function
+exists before importing it"**, and is **universal** (fires in light mode too);
+heavier infra-flavor layers fire only on the infra-flavored signal. (RFC-0044 §
+Errata 2026-06-24; full detail in
+[`references/infra-verification.md`](references/infra-verification.md).)
 
 For each task, implement the smallest coherent unit of work toward the
 goal. Resist the urge to fix unrelated things you notice along the way;
@@ -662,41 +656,22 @@ note in the summary, not a blocker.
   This same table backs the pre-EXECUTE spec-stage dispatch above.
 
   **Mandatory and multi-module on infra-flavored work.** When the change is
-  **infra-flavored** — the **destructive/irreversible risk trigger** routed it
-  to full mode *and* its diff matches the routing table's IaC / deploy-config
-  entry — the `security-reviewer` pass is **non-skippable** and runs at
-  **both the spec stage** (the pre-EXECUTE secure-design step above) **and on
-  the diff**, not via the discretionary security-boundary trigger. Because
-  "infra-flavored" keys on the existing classifier rather than a per-diff
-  judgement, the pass **cannot be silently skipped** on an infra diff. The
-  orchestrator force-loads from the infra-relevant **candidate set** —
-  `config-misconfig` (the IaC / deploy-config entry — IAM, CORS, deploy config —
-  present on any infra diff) plus `access-control` (when the change alters the
-  authorization *model*: role bindings or resource policies that change *who can
-  call what*), `secrets-and-crypto` (secrets in state or env, keys),
-  `outbound-ssrf` (public exposure, CDN / origin egress), and `supply-chain`
-  (provider / module pinning) — each pulled in when the diff trips *that
-  module's own* routing-table row, so the routing table stays the single
-  deterministic authority and the set loads **1–N**, never a flat always-five
-  march (a one-line config tweak pulls one; a new public-facing stack pulls
-  several). This adds **no new reviewer and no new
-  module**: it makes the *existing* security pass mandatory and multi-module.
-  The **Profile-A opt-out still applies wholesale** — a project that uses no
-  reviewer at all opts out of the loop entirely — but where `security-reviewer`
-  *is* in use the infra pass is **not individually skippable**, and a missing
-  `security-reviewer` subagent on infra-flavored work is a **loud blocker in the
-  final summary, not a silent proceed** (the one place the
-  select-or-note fallback hardens to a blocker, given the blast radius).
-
-  **Security on infra is a reviewer + scanner *pair*; neither substitutes for
-  the other.** `security-reviewer` is **not** the per-provider depth source — it
-  reasons from cross-cutting standards (OWASP / ASVS / CWE + STRIDE / LINDDUN)
-  and catches failure *classes* (over-broad IAM, public exposure,
-  unencrypted-at-rest, secrets in state, metadata SSRF, missing audit logging)
-  and control-completeness. The **per-provider secure-config depth** comes from
-  the policy-as-code / CSPM scanner the PLAN preflight requires as a task-zero
-  (its vendor-maintained rulesets *are* the provider baselines). Run both: the
-  scanner for per-provider breadth, the reviewer for failure-class reasoning.
+  **infra-flavored** (the destructive/irreversible trigger routed it to full
+  mode *and* its diff matches the IaC / deploy-config entry above), the
+  `security-reviewer` pass is **non-skippable** and runs at **both the spec
+  stage and on the diff** — it keys on the existing classifier, so it **cannot
+  be silently skipped**. The orchestrator force-loads the infra-relevant
+  modules **1–N** (`config-misconfig` always, plus `access-control` /
+  `secrets-and-crypto` / `outbound-ssrf` / `supply-chain` as the diff trips
+  *that module's own* row — never a flat always-five march). **No new reviewer
+  or module.** The Profile-A opt-out still applies wholesale, but where
+  `security-reviewer` is in use the infra pass is **not individually skippable**,
+  and a missing subagent on infra-flavored work is a **loud blocker, not a
+  silent proceed**. Security on infra is a **reviewer + scanner *pair*** — the
+  reviewer for failure *classes* (over-broad IAM, public exposure, secrets in
+  state, metadata SSRF), the scanner for per-provider secure-config depth; run
+  both. Full detail in
+  [`references/infra-verification.md`](references/infra-verification.md).
 - Match `quality-engineer` — testability, observability, reliability, and
   maintainability lens, applying a raised default quality floor (universal
   maintainability smells + a mutation-testing mindset) even where no static
@@ -722,6 +697,7 @@ note in the summary, not a blocker.
 
   | Operational failure mode the infra/destructive change raises | Inline module(s) |
   | --- | --- |
+  | Authoring infra / a managed-runtime deployment / live interaction — permissions, timing/retry, packaging, externalized config (**also inlined into the implementer's EXECUTE brief**, above) | `cloud-implementation-craft` |
   | Provisioning or mutating infra; stateful migration; any re-runnable write path | `state-and-idempotency` |
   | Can delete or replace existing infra; destroy/teardown path; removing a prevent-destroy guard | `blast-radius` |
   | Iterating against (or able to touch) production; shared vs throwaway/staging state | `environment-isolation` |
@@ -729,13 +705,26 @@ note in the summary, not a blocker.
   | Long-lived infra that can drift; a deploy needing a defined recovery path | `drift-and-rollback` |
   | Deploys a service / site / endpoint a user reaches; needs smoke + telemetry | `observability-and-smoke` |
 
-  Load 1–N modules as the change warrants, **never a flat march of all six** —
+  Load 1–N modules as the change warrants, **never a flat march of all seven** —
   a one-line config tweak pulls one; a new public-facing stack pulls several.
   This is the operational twin of the `security-checklists` routing table
   above, and the **reliability-vs-security carve** holds: IaC-security →
   `config-misconfig` (the `security-reviewer` pass); IaC-reliability →
   `operational-safety` (this pass). The two passes are complementary lenses on
   the same infra diff, not substitutes.
+
+  **Independent contract re-derivation on infra-flavored work (Delivery — no
+  new agent).** On infra-flavored work the orchestrator also inlines
+  [`infra-contract-acquisition`](../infra-contract-acquisition/SKILL.md) into
+  the `quality-engineer` brief, and the reviewer **re-derives the platform
+  contract independently from the oracles** — **never trusting the implementer's
+  own contract evidence** (which would reproduce the field-report blind spot).
+  **No new reviewer or agent** (ADR-0023): contract-conformance rides the
+  existing `quality-engineer`; the dedicated `infra-contract-reviewer` is
+  deferred behind RFC-0044 Decision 8's evidence trigger, and the
+  auth-flow-contradiction class is caught at spec stage by `design-reviewer`
+  where the architect pack is installed. Full wiring in
+  [`references/infra-verification.md`](references/infra-verification.md).
 
 **Dispatch reviewers in parallel when you invoke more than one** per
 the [Parallel dispatch discipline](#parallel-dispatch-discipline)

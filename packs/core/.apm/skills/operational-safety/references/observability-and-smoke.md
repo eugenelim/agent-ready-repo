@@ -39,6 +39,35 @@ human.
   — so the probe is repeatable and leaves no residue (this meets
   `cost-and-teardown`).
 
+## Symptom→layer log playbook (failure localization)
+
+When a smoke or a live request fails, **localize before deep-reading** — the
+field report shows a facade-emitted timeout chased dozens of times in the
+*backend* log because no map said which layer emits which symptom. The method:
+
+- `reason` **Enumerate the path's log groups up front.** Before debugging, list
+  every log source along the request / deploy path (edge / CDN, proxy / facade,
+  authorizer, handler, datastore) so you know where to look, not just where you
+  looked last.
+- `reason` **Match the symptom against a failure-signature → likely-cause
+  catalog *first*.** A runbook-style match resolves many investigations before
+  any deep log reading. Examples (illustrative, not exhaustive): `ROLLBACK_COMPLETE`
+  → stack must be **recreated**, not updated (a convergence case, see
+  [`state-and-idempotency`](state-and-idempotency.md)); a **cold-start 504** →
+  **retry / poll**, not a code bug; **conditional-write contention** → it's
+  *contention*, expected under concurrency, not an error to "fix."
+- `reason` **Map the failing status to the *emitting* layer.** **504 / timeout
+  → proxy / facade** (the front door gave up, not necessarily the backend);
+  **403 → authorizer / IAM** (the call was rejected before logic ran);
+  **500 → handler** (logic failed). Read the layer that *emits* the symptom
+  first, not the layer you assume owns the logic.
+- `hybrid` **Bisect the chain.** When the emitting layer isn't obvious, halve
+  the request path — confirm the call reaches the midpoint healthy, then narrow
+  to the failing half — rather than scanning every log linearly.
+- `reason` **Carry a correlation id.** A request / deploy carries an id that
+  threads every layer's logs, so a single failure can be followed across the
+  chain instead of guessed at per-layer.
+
 ## Established-pattern bypass
 
 Resolve the repo's sanctioned smoke / observability harness — the end-to-end
