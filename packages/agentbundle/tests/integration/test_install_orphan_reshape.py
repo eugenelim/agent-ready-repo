@@ -31,6 +31,10 @@ def _install_core(target: Path, *, force: bool = False) -> tuple[int, str, str]:
         scope="repo",
         emit_install_routes=False,
         force=force,
+        # `yes=True` so the new --force destructive-cleanup confirm (CLI-hygiene
+        # AC7) does not refuse on the non-TTY test stdin; harmless when no
+        # cleanup fires.
+        yes=True,
     )
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
