@@ -4,47 +4,57 @@
 [![Python](https://img.shields.io/pypi/pyversions/agentbundle)](https://pypi.org/project/agentbundle/)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](https://github.com/eugenelim/agent-ready-repo#license)
 
-**The installer for [agent-ready-repo](https://github.com/eugenelim/agent-ready-repo).** Think npm, but for the skills, subagents, and hooks your coding agent runs on.
+**The installer for [agent-ready-repo](https://github.com/eugenelim/agent-ready-repo).** Think npm, but for the skills, subagents, and hooks your coding agent runs on. One pack, one command, every major agent — Claude Code, Codex, Cursor, Copilot, Gemini, and Kiro (both the CLI and the IDE).
 
-`agentbundle` installs packs of agent primitives into your repo or your home directory. It projects each primitive into the layout every agent expects. One pack. One command. Every major agent.
+## Quick start
 
 ```bash
 pip install agentbundle
+```
+
+**Install into a repo** — so everyone who clones it gets the pack. `core` is the flagship pack, the loop itself:
+
+```bash
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
 ```
 
-That lands `core`, the flagship pack and the loop itself, in your repo. Claude Code, Codex, Cursor, Copilot, Gemini, and Kiro — both the CLI and the IDE — all read it, subagents and skills included.
+It lands in the repo's agent config — subagents and skills included — and you commit it like any other project file. This is the default scope: the pack belongs to the project and the whole team.
 
-## Common commands
+**Install for yourself, everywhere** — so a pack follows you across every project, with no per-repo setup:
 
 ```bash
-# See what's in a catalogue
-agentbundle list-packs git+https://github.com/eugenelim/agent-ready-repo
+agentbundle install --pack research git+https://github.com/eugenelim/agent-ready-repo --scope user
+```
 
-# See the catalogue's curated install profiles
+User-scope packs land in your home directory, not the repo — they're yours, not the team's, and they're there in every project you open.
+
+A catalogue is a git URL or a local path, and the install auto-detects your agent (`--adapter` overrides).
+
+## More commands
+
+```bash
+# See what a catalogue offers
+agentbundle list-packs    git+https://github.com/eugenelim/agent-ready-repo
 agentbundle list-profiles git+https://github.com/eugenelim/agent-ready-repo
 
 # Install a whole curated profile — a single-scope set of packs — in one command
 agentbundle install --profile inception git+https://github.com/eugenelim/agent-ready-repo
 
-# Install the flagship loop into this repo
-agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
-
-# Install a pack at user scope, so it follows you across every project
-agentbundle install --pack research git+https://github.com/eugenelim/agent-ready-repo --scope user
-
-# Preview an install without writing a file
+# Preview any install without writing a file
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo --dry-run
 
-# Upgrade a pack to the version the catalogue ships — it shows installed → target,
-# asks before writing, and reports any .upstream files you need to reconcile
+# Upgrade to the version the catalogue ships — shows installed → target, asks first
 agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo
+agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo --yes  # skip the prompt (CI)
 
-# Skip the confirmation prompt (required for non-interactive / CI use)
-agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo --yes
+# Uninstall — previews remove (Tier-1) vs keep (your edits), asks first
+agentbundle uninstall --pack core --dry-run
+agentbundle uninstall --pack core --yes
 ```
 
-A catalogue is a git URL or a local path. Installs auto-detect your agent; pass `--adapter` to override. A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply. **Upgrade takes no version** — the target is whatever the catalogue you point at declares; to move to a specific past version, point the catalogue at that git ref.
+A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply. **Upgrade takes no version** — the target is whatever the catalogue you point at declares; to pin a past version, point the catalogue at that git ref. Install a pack that's **already there** and `agentbundle` offers to `upgrade` it instead (`--yes` runs it straight away).
+
+**Mutating commands ask first.** `uninstall`, the `--force` cleanup, and the upgrade offer all preview what they'll do and confirm before touching anything; `--dry-run` previews without writing, and `--yes` skips the prompt for non-interactive / CI use (where, without it, they refuse rather than hang).
 
 ## Build your own catalogue
 

@@ -3,10 +3,16 @@
 Algorithm:
   1. Load ``.agentbundle-state.toml`` from ``args.root``.
      Exit non-zero with stderr if the pack is not in state.
-  2. For each file recorded under ``[pack.<name>.files]``:
-     - Compute the on-disk SHA.
-     - If it matches the state-recorded SHA (Tier-1) → ``os.remove``.
-     - If it differs (or file is absent) → Tier-2 → warn on stderr and keep.
+  2a. Classify each file recorded under ``[pack.<name>.files]`` (no mutation):
+      - Compute the on-disk SHA. Match (Tier-1) → ``remove``; differ / absent-
+        sha (Tier-2) → ``keep``. Absent-on-disk files are skipped.
+  2a'. ``--dry-run`` → print the per-file plan + a one-line summary and exit 0,
+       writing nothing (no remove, unproject, prune, or state rewrite).
+  2b. Confirm before the first removal (``--yes`` skips; a non-TTY stdin refuses
+      rather than blocking on ``input()``).
+  2c. Execute the classified plan: ``os.remove`` each ``remove``; warn-and-keep
+      each ``keep``. Acts on the classification without re-hashing.
+  2d. Unproject any hook-wiring-owned entries from their merge target.
   3. Best-effort: remove empty parent directories left behind by removals.
   4. Save the updated state file with ``[pack.<name>]`` table dropped.
   5. Print summary to stdout: N removed, M kept.
@@ -30,8 +36,11 @@ def run(args: "argparse.Namespace") -> int:
     """Entry point for ``agentbundle uninstall``.
 
     Args:
-        args.pack  — name of the pack to uninstall (required).
-        args.root  — repo root directory (default '.').
+        args.pack     — name of the pack to uninstall (required).
+        args.root     — repo root directory (default '.').
+        args.scope    — {repo, user} disambiguator (optional).
+        args.dry_run  — preview the per-file plan; write nothing (optional).
+        args.yes      — skip the confirmation prompt (optional, default off).
 
     Returns 0 on success, non-zero on error.
     """
@@ -122,8 +131,10 @@ def run(args: "argparse.Namespace") -> int:
         return 1
 
     pack_state = state.packs[pack_name]
+    dry_run: bool = bool(getattr(args, "dry_run", False))
+    yes: bool = bool(getattr(args, "yes", False))
 
-    # ── Step 2: Walk the pack's recorded files ────────────────────────────────
+    # ── Step 2a: Classify the pack's recorded files (no mutation) ─────────────
     # State-file relpaths are *untrusted input* — a malicious state file
     # could record `relpath = "../.ssh/authorized_keys"` and the
     # `os.remove` below would happily delete a path outside the jail.
@@ -131,9 +142,15 @@ def run(args: "argparse.Namespace") -> int:
     # directory; at repo scope it's still wrong even though smaller.
     # `safety.assert_under` + (at user scope) the prefix-list check
     # refuses any entry that escapes the per-scope jail before any
-    # filesystem operation runs.
-    removed: list[str] = []
-    kept: list[str] = []
+    # filesystem operation runs. These "refusing to touch" warnings apply
+    # equally to a real run and a `--dry-run` preview, so they print here.
+    #
+    # The classification is computed once, into `decisions`, and the
+    # execution pass (Step 2c) acts on it WITHOUT re-hashing — so the bytes
+    # a `--dry-run` / prompt shows are exactly the bytes a real run removes
+    # (the Tier-1 SHA is captured here, once; the confirm-reading window is
+    # not re-checked — see spec AC5).
+    decisions: list[tuple[str, str]] = []  # (relpath, "remove" | "keep")
 
     for relpath, entry in sorted(pack_state.files.items()):
         on_disk = root / relpath
@@ -167,7 +184,58 @@ def run(args: "argparse.Namespace") -> int:
         # Compute on-disk SHA and compare against the recorded value.
         on_disk_sha = safety.sha256_file(on_disk)
         if recorded_sha and on_disk_sha == recorded_sha:
-            # Tier-1: the bundle owns this file — safe to remove.
+            decisions.append((relpath, "remove"))  # Tier-1: bundle owns it.
+        else:
+            decisions.append((relpath, "keep"))  # Tier-2: adopter-edited.
+
+    n_remove = sum(1 for _, d in decisions if d == "remove")
+    n_keep = len(decisions) - n_remove
+
+    # ── Step 2a': --dry-run preview — print the plan and write nothing ────────
+    # Returns BEFORE the hook-wiring unproject (Step 2b), the empty-dir prune
+    # (Step 3), and the state rewrite (Step 4): a dry run mutates nothing on
+    # disk or in state (spec AC1).
+    if dry_run:
+        from agentbundle.commands._common import format_plan_line
+
+        for relpath, decision in decisions:
+            tier = "tier-1" if decision == "remove" else "tier-2"
+            print(format_plan_line(decision, tier, relpath))
+        print(
+            f"dry-run: {len(decisions)} file(s) — {n_remove} remove, "
+            f"{n_keep} keep. Nothing written."
+        )
+        return 0
+
+    # ── Step 2b: Confirm before the first os.remove (spec AC2/AC3/AC4) ────────
+    # `--yes` skips the prompt; a non-interactive stdin refuses rather than
+    # blocking on input(). Mirrors `upgrade`'s posture via the shared helper.
+    from agentbundle.commands._common import confirm_or_refuse
+
+    if not confirm_or_refuse(
+        yes=yes,
+        question=(
+            f"Uninstall {pack_name} at {effective_scope} scope? This removes "
+            f"{n_remove} file(s); {n_keep} adopter-edited file(s) will be kept. "
+            f"[y/N] "
+        ),
+        refuse_message=(
+            f"uninstall: refusing to uninstall {pack_name} at {effective_scope} "
+            f"scope without confirmation; pass --yes to uninstall non-interactively"
+        ),
+        abort_message="uninstall: aborted; no changes made",
+    ):
+        return 1
+
+    # ── Step 2c: Execute the classified plan ──────────────────────────────────
+    # Acts on `decisions` directly (no re-hash): the bytes shown above are the
+    # bytes removed. The "keeping adopter-edited file" warning preserves the
+    # pre-existing Tier-2 notice.
+    removed: list[str] = []
+    kept: list[str] = []
+    for relpath, decision in decisions:
+        on_disk = root / relpath
+        if decision == "remove":
             try:
                 os.remove(on_disk)
             except OSError as exc:
@@ -178,14 +246,13 @@ def run(args: "argparse.Namespace") -> int:
                 return 1
             removed.append(relpath)
         else:
-            # Tier-2: adopter-edited (or no recorded SHA) — preserve with warning.
             print(
                 f"uninstall: keeping adopter-edited file: {relpath}",
                 file=sys.stderr,
             )
             kept.append(relpath)
 
-    # ── Step 2b: RFC-0005 T8b — unproject hook-wiring-owned entries ─────────
+    # ── Step 2d: RFC-0005 T8b — unproject hook-wiring-owned entries ─────────
     # When the pack has hook_wiring_owned rows (v0.3 user-scope hooks),
     # dispatch to the right merge engine's `unproject` to remove those
     # entries from the merge target file. Empty `hooks.<event>` arrays
