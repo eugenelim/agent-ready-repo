@@ -937,12 +937,16 @@ before the `user_state_path` call.
 
 **Spec:** [agentic-well-architected-overlay](specs/agentic-well-architected-overlay/spec.md)
 (final AC; ADR-0032 / RFC-0042 D5). `rubric-well-architected.md` names four
-workload-class lenses — ML, GenAI/agentic, SaaS, serverless — but only
-GenAI/agentic is backed by a lens file. ADR-0032 widens and expands the
-GenAI/agentic overlay only; ML / SaaS / serverless stay **named-but-unbacked**
+workload-class lenses — ML, GenAI/agentic, SaaS, serverless. **GenAI/agentic**
+is backed by `lens-genai-agentic.md`; **serverless** is now backed by
+`lens-serverless.md` — **resolved by RFC-0045 / ADR-0035 /
+[architect-platform-grounding](specs/architect-platform-grounding/spec.md)**,
+which also added the dual-consumed platform-contract grounding discipline and
+the synchronous-path viability check. **ML and SaaS stay named-but-unbacked**
 (status quo), neither backed nor removed. **Unblocks when:** a future RFC takes
-on backing one of them with its own workload-class lens reference; until then
-the rubric names them as known, deferred gaps.
+on backing ML or SaaS with its own workload-class lens reference; until then the
+rubric names them as known, deferred gaps. (Backing ML / SaaS is an explicit
+non-goal of RFC-0045.)
 
 ### scope-disambiguator-extraction
 
