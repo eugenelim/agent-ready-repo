@@ -943,3 +943,31 @@ GenAI/agentic overlay only; ML / SaaS / serverless stay **named-but-unbacked**
 (status quo), neither backed nor removed. **Unblocks when:** a future RFC takes
 on backing one of them with its own workload-class lens reference; until then
 the rubric names them as known, deferred gaps.
+
+### scope-disambiguator-extraction
+
+**Spec:** [agentbundle-cli-hygiene](specs/agentbundle-cli-hygiene/spec.md)
+(§ Declined / deferred). The multi-scope disambiguator block — read both state
+files + the identical "installed at multiple scopes; pass --scope {repo, user}"
+refusal — is duplicated across `commands/uninstall.py`, `commands/upgrade.py`,
+and `commands/diff.py`. The CLI-hygiene sweep extracted the confirm mechanics to
+`_common` but deferred this one: each command's *downstream* of the detection
+diverges sharply (root rebind + `user_prefixes`; `allowed_prefixes` + recorded
+adapter; `pack_state` for the render-shape pick), so a helper leaves most of each
+block behind and would pull `diff` (otherwise untouched) into a security-sensitive
+path-jail refactor. **Unblocks when:** someone is already touching all three
+commands' scope handling and can carry the shared detection + refusal into a
+`_common` helper as a net simplification.
+
+### force-cleanup-symlink-confinement
+
+**Spec:** [agentbundle-cli-hygiene](specs/agentbundle-cli-hygiene/spec.md)
+(§ Declined / deferred; diff-stage security-review Nit). `install`'s
+`_scan_dist_tree_artifacts` uses `base.rglob("*")` and the `--force` cleanup uses
+`shutil.rmtree(subtree)` — neither follows the `os.walk(followlinks=False)` +
+per-entry symlink-skip convention the pack-content walks elsewhere use, so a
+symlink planted under `claude-plugins/<pack>/` or `apm/<pack>/` could be listed /
+deleted through. **Pre-existing**, not introduced by the preview/confirm sweep;
+listing the subtree root as the deletion unit avoids widening the divergence.
+**Unblocks when:** a hardening pass adopts the no-follow walk convention for the
+`--force` scan + delete, consistent with `commands/_common.deliver_seeds`.

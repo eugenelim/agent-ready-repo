@@ -243,3 +243,51 @@ def summarize_plan(actions: list[str]) -> str:
     ]
     body = ", ".join(parts) if parts else "no files"
     return f"dry-run: {len(actions)} file(s) — {body}. Nothing written."
+
+
+# ---------------------------------------------------------------------------
+# Destructive-confirmation mechanics (shared by `uninstall`, `install --force`,
+# the `install`→`upgrade` offer, and `upgrade`)
+# ---------------------------------------------------------------------------
+
+
+def confirm_or_refuse(
+    *,
+    yes: bool,
+    question: str,
+    refuse_message: str,
+    abort_message: str,
+) -> bool:
+    """Decide whether a destructive command may proceed.
+
+    The single home for the confirm / non-TTY-refuse / ``--yes`` mechanics first
+    introduced for ``upgrade`` in PR #374, so ``uninstall``, ``install --force``,
+    and the ``install``→``upgrade`` offer share one implementation:
+
+      - ``yes`` (the ``--yes`` flag) → return ``True`` without touching stdin.
+      - non-interactive stdin (``not sys.stdin.isatty()``) → print
+        ``refuse_message`` to stderr and return ``False`` (never block on
+        ``input()``).
+      - interactive stdin → prompt with ``question``; return ``True`` only when
+        the reply is ``y``/``yes`` (case-insensitive, stripped). Any other reply
+        — including EOF — prints ``abort_message`` to stderr and returns
+        ``False``.
+
+    The caller owns the ``--dry-run`` short-circuit (a dry run writes nothing, so
+    it must return *before* calling this), and owns every command-specific
+    message string passed in here — so each call site preserves its own exact
+    stderr contract.
+    """
+    if yes:
+        return True
+    if not sys.stdin.isatty():
+        print(refuse_message, file=sys.stderr)
+        return False
+    try:
+        reply = input(question)
+    except EOFError:
+        reply = ""
+    if reply.strip().lower() not in ("y", "yes"):
+        print(abort_message, file=sys.stderr)
+        return False
+    return True

@@ -35,23 +35,16 @@ if TYPE_CHECKING:
     import argparse
 
 
-def run(args: "argparse.Namespace") -> int:
+def run(args: "argparse.Namespace") -> int:  # noqa: ARG001
     """Entry point for ``agentbundle reconcile``.
 
-    The only supported scope today is ``user`` (RFC-0005's report
-    surface). A future RFC may extend to repo scope; ``--scope``
-    is accepted with that single value for now.
+    The report surface is user-scope only (RFC-0005). The old ``--scope``
+    flag had a single legal value (``user``) that equalled its default, so
+    it could never select anything — it was dropped (CLI-hygiene sweep). A
+    future RFC that adds a second scope can reintroduce the flag then.
     """
     from agentbundle import scope as scope_mod
     from agentbundle.config import ConfigError, load_state
-
-    cli_scope: str | None = getattr(args, "scope", None)
-    if cli_scope != "user":
-        print(
-            "reconcile: only --scope user is supported today",
-            file=sys.stderr,
-        )
-        return 1
 
     try:
         user_root = scope_mod.resolve_user_root()

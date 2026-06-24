@@ -62,6 +62,7 @@ def _uninstall_args(pack: str, output: str, scope: str | None = None):
         pack=pack,
         root=output,
         scope=scope,
+        yes=True,
     )
 
 

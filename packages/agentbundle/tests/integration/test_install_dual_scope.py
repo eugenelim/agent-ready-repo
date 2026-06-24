@@ -316,7 +316,9 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
     assert rc == 0
     assert (fake_home / ".agentbundle" / "state.toml").exists()
 
-    args = argparse.Namespace(pack="demo-both", root=str(target), scope="user")
+    args = argparse.Namespace(
+        pack="demo-both", root=str(target), scope="user", yes=True
+    )
     out = io.StringIO()
     err = io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):

@@ -10,6 +10,34 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ### Changed
 
+- **`agentbundle uninstall` gains `--dry-run` and `--yes`, and confirms before
+  removing.** It classifies each recorded file into `remove` (Tier-1, bundle-
+  owned) or `keep` (Tier-2, adopter-edited): `--dry-run` prints that plan and
+  writes nothing (no removal, no hook-wiring unproject, no state change);
+  otherwise it confirms before the first `os.remove` (`--yes` skips; a non-TTY
+  stdin refuses rather than blocking). The execution acts on the previewed
+  classification without re-hashing, so the bytes a dry-run / prompt shows are
+  exactly the bytes removed. Tier-2 preservation is unchanged.
+- **`agentbundle install --force` confirms before its destructive cleanup; new
+  `--yes`.** When `--force` would delete on-disk paths, it lists the deletion
+  unit — the dist-tree subtree roots (`claude-plugins/<pack>`, `apm/<pack>`) or
+  the orphan files — and confirms before deleting; the whole destructive block
+  (rmtree + state-row drop + state-file rewrite) is gated atomically, so a
+  decline mutates nothing. `--yes` skips the prompt; a non-TTY without `--yes`
+  refuses with zero deletions. `--force` used only as a cross-scope bypass (no
+  deletion) is unchanged and never prompts. **Migration:** CI using the deleting
+  form of `install --force` must add `--yes`.
+- **`agentbundle install` offers to upgrade an already-installed pack.** Instead
+  of flatly refusing with `use 'upgrade'`, installing a pack already present at
+  the requested scope now offers (on a TTY) to run `upgrade` against the same
+  catalogue/scope; `install --yes` runs it without prompting. A non-interactive
+  stdin without `--yes`, and `install --dry-run`, keep the historical refusal.
+- **`agentbundle reconcile` and `list-targets` drop their dead `--scope` flag.**
+  `reconcile --scope` had a single legal value (`user`) equal to its default, and
+  `list-targets --scope` was parsed but never read. Both are removed; passing
+  `--scope` to either now reports `unknown flag for <verb>: --scope`. Default
+  behaviour is unchanged.
+
 - **`agentbundle upgrade` no longer takes `--to` (breaking).** The upgrade
   target is now derived from the resolved catalogue's `pack.toml` `[pack]
   version` — the catalogue is the single source of truth, and there is no

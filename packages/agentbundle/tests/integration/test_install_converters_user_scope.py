@@ -153,6 +153,7 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
             pack="converters",
             root=str(self.repo),
             scope="user",
+            yes=True,
         )
         rc, stdout, stderr = _run_uninstall(uninstall_args)
         self.assertEqual(rc, 0, f"uninstall failed: stdout={stdout!r} stderr={stderr!r}")

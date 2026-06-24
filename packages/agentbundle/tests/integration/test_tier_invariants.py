@@ -193,6 +193,7 @@ def _run_uninstall(root: Path, pack_dir: Path) -> int:
     args = argparse.Namespace(
         pack=pack_dir.name,
         root=str(root),
+        yes=True,
     )
     return run(args)
 

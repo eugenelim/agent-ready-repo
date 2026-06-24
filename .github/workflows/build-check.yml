@@ -272,6 +272,24 @@ jobs:
           tests/unit/test_install_event_dropped_wirings.py
           tests/unit/test_validate_hook_wiring_per_file_compatibility.py
 
+      # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
+      # helper, uninstall --dry-run/--yes/confirm, install --force confirm +
+      # the install→upgrade offer, and the dropped --scope flags. The CLI
+      # command suites are not otherwise CI-wired (CI does not auto-discover
+      # package pytest), so the new preview/confirm behaviour would never gate
+      # without this step.
+      - name: pytest CLI-hygiene sweep (agentbundle-cli-hygiene)
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          tests/unit/test_confirm_helper.py
+          tests/integration/test_uninstall_cmd.py
+          tests/integration/test_install_upgrade_offer.py
+          tests/unit/test_install_inband_detection.py
+          tests/unit/test_cli_scope_flags.py
+          tests/integration/test_reconcile.py
+          tests/unit/test_list_targets_cmd.py
+
       - name: converters source-attribution scrub (AC2)
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error

@@ -1,12 +1,15 @@
-"""T16: argparse surface gains --scope on six subcommands + --force on install.
+"""T16: argparse surface gains --scope on the install-scope subcommands +
+--force on install.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec:
+Verifies AC #(RFC-0004) for the agent-spec-cli spec, as narrowed by the
+CLI-hygiene sweep (which dropped the dead --scope on `list-targets` — parsed
+but never read — and on `reconcile` — single legal value equal to its default):
   - --scope {repo,user} is accepted on install, uninstall, upgrade, diff,
-    init-state, and list-targets.
+    and init-state.
   - Passing --scope to any forbidden subcommand (list-packs, scaffold,
-    validate, render, adapt) exits non-zero with the documented stderr
-    `unknown flag for <verb>: --scope`. Parametrised across both
-    space-separated (`--scope user`) and value-glued (`--scope=user`)
+    validate, render, adapt, and now list-targets / reconcile) exits non-zero
+    with the documented stderr `unknown flag for <verb>: --scope`. Parametrised
+    across both space-separated (`--scope user`) and value-glued (`--scope=user`)
     forms.
   - --force is accepted only on install; any other verb refuses with
     `unknown flag for <verb>: --force`.
@@ -37,6 +40,7 @@ _BASE_ARGS = {
     "diff": ["packs/core"],
     "init-state": ["--pack", "core"],
     "list-targets": [],
+    "reconcile": [],
     "list-packs": ["/fake/catalogue"],
     "scaffold": ["--output", "/tmp/out"],
     "validate": ["packs/core"],
@@ -58,13 +62,13 @@ def _parse(argv: list[str]) -> tuple[int | None, str]:
 
 
 # ---------------------------------------------------------------------------
-# --scope is accepted on the six subcommands
+# --scope is accepted on the install-scope subcommands
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
     "subcommand",
-    ["install", "uninstall", "upgrade", "diff", "init-state", "list-targets"],
+    ["install", "uninstall", "upgrade", "diff", "init-state"],
 )
 @pytest.mark.parametrize("flag_form", ["space", "glued"])
 def test_scope_accepted(subcommand, flag_form):
@@ -81,12 +85,15 @@ def test_scope_accepted(subcommand, flag_form):
 
 
 # ---------------------------------------------------------------------------
-# --scope is rejected on the five forbidden subcommands with exact stderr
+# --scope is rejected on the forbidden subcommands with exact stderr.
+# list-targets and reconcile join this set after the CLI-hygiene sweep.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
-    "subcommand", ["list-packs", "scaffold", "validate", "render", "adapt"]
+    "subcommand",
+    ["list-packs", "scaffold", "validate", "render", "adapt",
+     "list-targets", "reconcile"],
 )
 @pytest.mark.parametrize("flag_form", ["space", "glued"])
 def test_scope_rejected_with_documented_stderr(subcommand, flag_form):

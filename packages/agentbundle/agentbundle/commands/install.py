@@ -81,6 +81,7 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import (
         check_spec_version_gate,
+        confirm_or_refuse,
         format_plan_line,
         plan_action,
         summarize_plan,
@@ -117,6 +118,7 @@ def run(args: "argparse.Namespace") -> int:
     force: bool = bool(getattr(args, "force", False))
     force_merge: bool = bool(getattr(args, "force_merge", False))
     dry_run: bool = bool(getattr(args, "dry_run", False))
+    yes: bool = bool(getattr(args, "yes", False))
     cli_adapter: str | None = getattr(args, "adapter", None)
     # User-config attached by `cli.py:main()` via args._user_config.
     # Default to None for callers that construct an args namespace by
@@ -426,6 +428,7 @@ def run(args: "argparse.Namespace") -> int:
             repo_target_adapter=repo_target_adapter,
             allowed_prefixes_repo=allowed_prefixes_repo,
             force=force,
+            yes=yes,
             projection_relpaths=_orphan_filter_relpaths,
         )
         if rc is not None:
@@ -441,17 +444,44 @@ def run(args: "argparse.Namespace") -> int:
     installed_at_user = user_state is not None and pack_name in user_state.packs
 
     # ── Step 4: Branch on already-installed shape ─────────────────────────────
-    # 4a. Already at requested scope → refuse (use 'upgrade'); --force does
+    # 4a. Already at requested scope → offer to upgrade instead; --force does
     #     not bypass this case.
+    #
+    #   - `--dry-run` keeps the historical refusal (a read-only preview makes no
+    #     offer and never prompts).
+    #   - On a non-TTY without `--yes`, `confirm_or_refuse` prints the historical
+    #     refusal (`already installed at <scope>` + `use 'upgrade' to change
+    #     version`) and returns 1 — the CI/test contract is unchanged.
+    #   - On a TTY, it offers to upgrade; `--yes` auto-confirms. Confirming hands
+    #     off to `upgrade.run` against the same catalogue/scope (CLI-hygiene
+    #     AC11/AC12).
     if (requested_scope == "repo" and installed_at_repo) or (
         requested_scope == "user" and installed_at_user
     ):
-        print(
-            f"install: {pack_name} already installed at {requested_scope}; "
-            "use 'upgrade' to change version",
-            file=sys.stderr,
-        )
-        return 1
+        if dry_run:
+            print(
+                f"install: {pack_name} already installed at {requested_scope}; "
+                "use 'upgrade' to change version",
+                file=sys.stderr,
+            )
+            return 1
+        if not confirm_or_refuse(
+            yes=yes,
+            question=(
+                f"{pack_name} is already installed at {requested_scope}. "
+                f"Upgrade it instead? [y/N] "
+            ),
+            refuse_message=(
+                f"install: {pack_name} already installed at {requested_scope}; "
+                "use 'upgrade' to change version"
+            ),
+            abort_message=(
+                f"install: {pack_name} already installed at {requested_scope}; "
+                "not upgrading. Use 'upgrade' to change version"
+            ),
+        ):
+            return 1
+        return _offer_upgrade(args, pack_name=pack_name, scope=requested_scope)
 
     # 4b. Already at the *other* scope, no --force → refuse cross-scope.
     other_scope = "user" if requested_scope == "repo" else "repo"
@@ -1689,6 +1719,33 @@ def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
     return sorted(out)
 
 
+def _offer_upgrade(args: "argparse.Namespace", *, pack_name: str, scope: str) -> int:
+    """Hand off an already-installed `install` to `upgrade` (CLI-hygiene AC11/12).
+
+    The install-side offer is the confirmation, so the upgrade runs with
+    ``yes=True``. Builds the FULL attribute set ``upgrade.run`` reads — mapping
+    ``install.output`` → ``upgrade.root``, pinning the concrete install-resolved
+    ``scope`` (never ``None`` so upgrade's own multi-scope disambiguator is a
+    no-op), threading ``_user_config`` so adapter resolution matches a direct
+    ``upgrade`` invocation, and leaving all five primitive flags unset
+    (whole-pack). Returns ``upgrade.run``'s exit code.
+    """
+    import argparse as _argparse
+
+    from agentbundle.commands import upgrade as _upgrade
+
+    ns = _argparse.Namespace()
+    ns.pack = pack_name
+    ns.catalogue = args.catalogue
+    ns.root = getattr(args, "output", ".")
+    ns.scope = scope
+    ns.yes = True
+    ns.dry_run = False
+    ns.skill = ns.agent = ns.hook = ns.seed = ns.command = None
+    ns._user_config = getattr(args, "_user_config", None)
+    return _upgrade.run(ns)
+
+
 def _classify_pre_rfc0012_state(
     *,
     output_root: Path,
@@ -1698,6 +1755,7 @@ def _classify_pre_rfc0012_state(
     repo_target_adapter: str,
     allowed_prefixes_repo: list[str],
     force: bool,
+    yes: bool = False,
     projection_relpaths: "set[str] | None" = None,
 ) -> int | None:
     """RFC-0012 AC24: in-band detection of pre-RFC-0012 state.
@@ -1707,12 +1765,22 @@ def _classify_pre_rfc0012_state(
     ``(output_root, pack_name)`` per process; subsequent calls
     short-circuit to silence.
 
+    When ``--force`` would *delete* on-disk paths (the dist-tree (b) and
+    orphan (c) branches), the deletion is confirmed first: ``yes`` skips the
+    prompt, a non-interactive stdin refuses rather than deleting unattended,
+    and the paths to be removed are listed on stderr before the prompt
+    (CLI-hygiene AC6/AC7). The confirm gates the *whole* destructive block —
+    for (b) that is the ``rmtree`` plus the in-memory ``packs.pop`` plus the
+    state-file rewrite — so a decline mutates nothing.
+
     Returns:
       - ``None`` — no trigger fired, or ``--force`` cleared the
         trigger's on-disk shape; caller proceeds with the install.
-      - ``1`` — refused with pinned stderr; caller returns 1.
+      - ``1`` — refused with pinned stderr (or the operator declined the
+        ``--force`` cleanup); caller returns 1.
     """
     from agentbundle import safety
+    from agentbundle.commands._common import confirm_or_refuse
 
     key = (str(output_root), pack_name)
     if key in _INBAND_DETECTION_SEEN:
@@ -1745,6 +1813,41 @@ def _classify_pre_rfc0012_state(
                 import shutil
 
                 from agentbundle.config import dump_state
+
+                # CLI-hygiene AC6/AC7: confirm before the FIRST mutation. The
+                # deletion unit is the subtree root `rmtree` removes (not the
+                # scanned file list, which could diverge from what rmtree
+                # actually takes). Decline → return 1 having touched nothing:
+                # no rmtree, no packs.pop, no state rewrite.
+                subtree_roots = [
+                    f"{top}/{pack_name}"
+                    for top in ("claude-plugins", "apm")
+                    if (output_root / top / pack_name).exists()
+                ]
+                for root_rel in subtree_roots:
+                    print(
+                        f"install --force will REMOVE pre-RFC-0012 dist-tree "
+                        f"subtree: {root_rel}/ (recursively)",
+                        file=sys.stderr,
+                    )
+                if not confirm_or_refuse(
+                    yes=yes,
+                    question=(
+                        f"Remove the listed dist-tree subtree(s) for "
+                        f"{pack_name} and reinstall? [y/N] "
+                    ),
+                    refuse_message=(
+                        f"install: refusing to remove dist-tree files for "
+                        f"{pack_name} without confirmation; pass --yes to "
+                        f"clean and reinstall non-interactively"
+                    ),
+                    abort_message="install: aborted; no changes made",
+                ):
+                    # Decline/refuse: discard the once-per-session marker so a
+                    # later in-process retry re-prompts instead of short-
+                    # circuiting to a plain install over the un-cleaned shape.
+                    _INBAND_DETECTION_SEEN.discard(key)
+                    return 1
 
                 for top in ("claude-plugins", "apm"):
                     subtree = output_root / top / pack_name
@@ -1870,6 +1973,33 @@ def _classify_pre_rfc0012_state(
         if orphans:
             _INBAND_DETECTION_SEEN.add(key)
             if force:
+                # CLI-hygiene AC6/AC7: list the exact files to be unlinked and
+                # confirm before the FIRST unlink. Decline → return 1, nothing
+                # removed.
+                for orphan in orphans:
+                    print(
+                        f"install --force will REMOVE orphan file: "
+                        f"{orphan.relative_to(output_root).as_posix()}",
+                        file=sys.stderr,
+                    )
+                if not confirm_or_refuse(
+                    yes=yes,
+                    question=(
+                        f"Remove the listed orphan file(s) for {pack_name} "
+                        f"and reinstall? [y/N] "
+                    ),
+                    refuse_message=(
+                        f"install: refusing to remove orphan files for "
+                        f"{pack_name} without confirmation; pass --yes to "
+                        f"clean and reinstall non-interactively"
+                    ),
+                    abort_message="install: aborted; no changes made",
+                ):
+                    # Decline/refuse: discard the once-per-session marker so a
+                    # later in-process retry re-prompts instead of short-
+                    # circuiting to a plain install over the orphan files.
+                    _INBAND_DETECTION_SEEN.discard(key)
+                    return 1
                 for orphan in orphans:
                     try:
                         orphan.unlink()
@@ -3756,6 +3886,10 @@ def _run_profile(args: "argparse.Namespace") -> int:
         ns.force_merge = False
         ns.emit_install_routes = False  # modern per-IDE projection at repo scope
         ns.dry_run = dry_run
+        # Batch pre-filters already-installed packs before calling run(), so
+        # the Step 4a upgrade-offer never fires here; pin yes=False explicitly
+        # since the namespace is hand-built and run() now reads `args.yes`.
+        ns.yes = False
         ns._user_config = user_config
         ns._install_route = "profile"  # AC13
         ns._batch_packs = batch  # AC7 — in-batch deps satisfy the gate

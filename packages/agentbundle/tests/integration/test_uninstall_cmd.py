@@ -39,9 +39,16 @@ def _run_install(pack: str, catalogue: str, output: str) -> int:
     ))
 
 
-def _run_uninstall(pack: str, root: str) -> int:
+def _run_uninstall(
+    pack: str, root: str, *, yes: bool = True, dry_run: bool = False
+) -> int:
     from agentbundle.commands.uninstall import run
-    return run(types.SimpleNamespace(pack=pack, root=root))
+    # `yes=True` by default so the pre-existing non-prompt tests don't block on
+    # input(); the confirmation-flow tests pass yes=False and monkeypatch
+    # input/isatty (mirrors test_upgrade_cmd.py's `_run_upgrade`).
+    return run(types.SimpleNamespace(
+        pack=pack, root=root, yes=yes, dry_run=dry_run,
+    ))
 
 
 def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:
@@ -216,3 +223,154 @@ def test_missing_pack_exits_nonzero(tmp_path, capsys):
     assert "nonexistent" in captured.err, (
         "stderr must mention the missing pack name"
     )
+
+
+# ---------------------------------------------------------------------------
+# 6. --dry-run / --yes / confirmation (CLI-hygiene AC1–AC5)
+# ---------------------------------------------------------------------------
+
+
+def _snapshot_tree(root: Path) -> dict[str, bytes]:
+    """Map every file under `root` to its bytes (for write-nothing assertions)."""
+    return {
+        str(p.relative_to(root)): p.read_bytes()
+        for p in sorted(root.rglob("*"))
+        if p.is_file()
+    }
+
+
+def test_dry_run_previews_and_writes_nothing(tmp_path, capsys):
+    """AC1: `uninstall --dry-run` prints the per-file plan + summary, exits 0,
+    and mutates nothing — no file removed, no state change."""
+    from agentbundle.render import render_pack
+
+    rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    assert rc == 0
+    capsys.readouterr()  # drain install output
+
+    before = _snapshot_tree(tmp_path)
+    rc = _run_uninstall("alpha", str(tmp_path), dry_run=True)
+    assert rc == 0, "dry-run must exit 0"
+
+    out = capsys.readouterr().out
+    assert "Nothing written." in out
+    # Every projected file is previewed as `remove tier-1`.
+    for relpath in render_pack(ALPHA_PACK_DIR):
+        assert f"remove" in out and relpath in out
+
+    assert _snapshot_tree(tmp_path) == before, "dry-run must write nothing"
+
+
+def test_yes_skips_prompt(tmp_path, monkeypatch):
+    """AC3: --yes proceeds without reading stdin."""
+    rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    assert rc == 0
+
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called with --yes")
+
+    monkeypatch.setattr("builtins.input", _boom)
+    rc = _run_uninstall("alpha", str(tmp_path), yes=True)
+    assert rc == 0
+
+
+def test_confirmation_accept_proceeds(tmp_path, monkeypatch):
+    """AC2: an interactive 'y' proceeds with the removal."""
+    from agentbundle.config import load_state
+
+    rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    assert rc == 0
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "  YES ")
+    rc = _run_uninstall("alpha", str(tmp_path), yes=False)
+    assert rc == 0
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert "alpha" not in state.packs
+
+
+def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
+    """AC2: declining aborts and removes nothing."""
+    from agentbundle.config import load_state
+
+    rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    assert rc == 0
+    capsys.readouterr()
+    before = _snapshot_tree(tmp_path)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "n")
+    rc = _run_uninstall("alpha", str(tmp_path), yes=False)
+    assert rc == 1
+    assert "aborted" in capsys.readouterr().err
+    assert _snapshot_tree(tmp_path) == before, "decline must write nothing"
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    assert "alpha" in state.packs, "declined uninstall keeps the pack in state"
+
+
+def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):
+    """AC2: EOF on the prompt declines."""
+    rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    assert rc == 0
+    capsys.readouterr()
+
+    def _raise(prompt=""):
+        raise EOFError
+
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", _raise)
+    rc = _run_uninstall("alpha", str(tmp_path), yes=False)
+    assert rc == 1
+    assert "aborted" in capsys.readouterr().err
+
+
+def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
+    """AC4: a non-TTY stdin without --yes refuses, names --yes, writes nothing."""
+    rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    assert rc == 0
+    capsys.readouterr()
+    before = _snapshot_tree(tmp_path)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    def _boom(prompt=""):
+        raise AssertionError("input() must not be called on a non-TTY")
+
+    monkeypatch.setattr("builtins.input", _boom)
+    rc = _run_uninstall("alpha", str(tmp_path), yes=False)
+    assert rc == 1
+    assert "--yes" in capsys.readouterr().err
+    assert _snapshot_tree(tmp_path) == before, "refusal must write nothing"
+
+
+def test_dry_run_remove_keep_parity_with_real_run(tmp_path, capsys):
+    """AC5: the remove/keep split shown by --dry-run is exactly what a real
+    --yes run removes/keeps (Tier-2 file shown `keep` is preserved byte-identical)."""
+    from agentbundle.render import render_pack
+
+    rc = _run_install("alpha", str(FIXTURE_CATALOGUE), str(tmp_path))
+    assert rc == 0
+    capsys.readouterr()
+
+    # Edit one projected file → Tier-2 (should be labelled `keep`).
+    tier2_relpath = sorted(render_pack(ALPHA_PACK_DIR).keys())[0]
+    tier2_file = tmp_path / tier2_relpath
+    edited = b"adopter-edited -- keep me\n"
+    tier2_file.write_bytes(edited)
+
+    rc = _run_uninstall("alpha", str(tmp_path), dry_run=True)
+    assert rc == 0
+    plan = capsys.readouterr().out
+    # Parse the plan lines into (decision, relpath).
+    previewed_remove = set()
+    previewed_keep = set()
+    for line in plan.splitlines():
+        parts = line.split()
+        if len(parts) >= 3 and parts[0] in ("remove", "keep"):
+            (previewed_remove if parts[0] == "remove" else previewed_keep).add(parts[2])
+    assert tier2_relpath in previewed_keep
+    assert tier2_relpath not in previewed_remove
+
+    # Real run removes exactly the previewed `remove` set; keeps the Tier-2 file.
+    rc = _run_uninstall("alpha", str(tmp_path), yes=True)
+    assert rc == 0
+    for relpath in previewed_remove:
+        assert not (tmp_path / relpath).exists(), f"{relpath} previewed remove must be gone"
+    assert tier2_file.read_bytes() == edited, "previewed `keep` file must be byte-identical"

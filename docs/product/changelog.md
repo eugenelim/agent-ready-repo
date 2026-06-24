@@ -19,6 +19,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`agentbundle uninstall` gains `--dry-run` and `--yes`, and confirms before
+  removing anything.** Previously `uninstall` deleted every bundle-owned (Tier-1)
+  file immediately with no preview. It now classifies each recorded file
+  (`remove` Tier-1 / `keep` Tier-2) and: `--dry-run` prints that plan and writes
+  nothing; without `--dry-run` it asks before the first removal (`--yes` skips
+  the prompt; a non-interactive stdin refuses rather than hanging). Adopter-edited
+  files are still preserved exactly as before.
+- **`agentbundle install --force` confirms before its destructive cleanup, and
+  `install` offers to upgrade an already-installed pack.** `--force` now lists the
+  paths it will remove (the pre-RFC-0012 dist-tree subtrees, or orphan files) and
+  asks before deleting; `install` gains `--yes` to skip that prompt. Used purely
+  as a cross-scope bypass (no deletion), `--force` is unchanged and never prompts.
+  **Migration:** CI that runs the *deleting* form of `install --force`
+  non-interactively must now add `--yes` (a non-TTY without `--yes` refuses rather
+  than deleting unattended — mirroring `upgrade`). Separately, installing a pack
+  already installed at the requested scope now offers to run `upgrade` instead of
+  flatly refusing; `install --yes` runs it, and a non-interactive stdin keeps the
+  old `use 'upgrade'` refusal.
+- **`agentbundle reconcile` and `list-targets` drop their dead `--scope` flag.**
+  `reconcile`'s `--scope` had a single legal value (`user`) equal to its default,
+  and `list-targets`'s `--scope` was parsed but never read; both are removed, so
+  passing `--scope` to either now reports `unknown flag for <verb>: --scope`.
+  Default behaviour of both verbs is unchanged.
+
 - **`agentbundle upgrade` no longer takes `--to`; it derives the version and
   confirms (breaking).** The upgrade target is now read from the catalogue you
   point at (its `pack.toml` `[pack] version`) instead of an operator-supplied

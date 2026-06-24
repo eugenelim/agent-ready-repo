@@ -94,7 +94,7 @@ class UpgradeThenUninstallTests(_UpgradeBase):
 
         # Uninstall.
         un_args = argparse.Namespace(
-            pack="kiro-user-hooks", root=str(self.repo), scope="user",
+            pack="kiro-user-hooks", root=str(self.repo), scope="user", yes=True,
         )
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             rc = uninstall_cmd.run(un_args)
