@@ -6,13 +6,16 @@ every workspace, like `architect` and `research`.
 
 The pack is built on one artifact and a set of habits. The artifact is an
 **`intent`**: a level-tagged statement of an outcome and the opportunity behind
-it. A *capability intent* and a *feature intent* are the same artifact at
-different levels — and a PRD is just a feature intent written as a document.
-Intents form a recursive tree whose leaf is a shippable spec.
+it. A *product-vision intent*, a *product-strategy intent*, a *capability
+intent*, and a *feature intent* are the same artifact at different levels — and a
+PRD is just a feature intent written as a document. `Level` is an **open
+recognized set** (`product-vision › product-strategy › capability › feature`)
+**decoupled from `Scale`**: Scale suggests a starting altitude but no longer
+stamps one. Intents form a recursive tree whose leaf is a shippable spec.
 
 | Skill | What it does |
 | --- | --- |
-| `frame-intent` | Author an `intent` at any level — outcome (a steerable input metric, a lagging outcome, and a guardrail) + the opportunity. Resolves **Scale** (app ↔ business-unit) at intake, and offers current-state inputs (a process or journey map) only when the work is brownfield. |
+| `frame-intent` | Author an `intent` at any altitude in the open recognized set — `product-vision` / `product-strategy` / `capability` / `feature` — outcome (a steerable input metric, a lagging outcome, and a guardrail) + the opportunity. Resolves **Scale** (app ↔ business-unit) at intake (Scale *suggests* the starting altitude, decoupled from `Level`), and offers current-state inputs (a process or journey map) only when the work is brownfield. |
 | `de-risk-intent` | Name the riskiest assumption, predeclare the **kill condition** in the test's own currency, and run it under a **choosable prototype-approach** — `validate-first` (predeclare, then test) or `prototype-led` (build to learn; the build *is* the test) — to a survive/kill verdict. |
 | `decompose-intent` | Break an intent into the next level down — child intents, or a spec/slice at the leaf — and project the tree **one-way** onto your tracker (`none` / Linear / Jira Align). At app scale the leaf *is* an ordinary `core` brief; at business-unit scale it **slices the feature intent per component** into one brief per repo (each carrying `parent-intent:` + a version-pinned contract reference). |
 | `align-value-stream` | Stand up and keep current a **value-stream meta-repo** — a coordinating repo with no app code that holds the cross-component artifacts a polyrepo has nowhere else to put: the Backstage **federated catalog**, the shared-contract authority (referenced by version, never forked), the C4/bounded-context architecture, and the **cross-component delivery rollup**. Business-unit scale only. |
