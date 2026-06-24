@@ -8,6 +8,18 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+### Changed
+
+- **`agentbundle list-packs` and `list-profiles` word-wrap the DESCRIPTION
+  column to fit the terminal.** On an interactive terminal whose width the
+  table would overflow, the long description column wraps to the leftover
+  width — every physical line stays within the terminal, continuation lines
+  align under the column, and the columns that follow it (DEPENDENCIES) stay on
+  the row's first line. When stdout is **not** a terminal (piped or
+  redirected), output is unchanged: full content-width columns, untruncated, so
+  `grep`/`awk`/`cut` still see stable columns — the convention `gh`, `git`, and
+  `ls` follow. Both commands now share one terminal-aware table renderer.
+
 ## [0.7.0] — 2026-06-24
 
 ### Changed
