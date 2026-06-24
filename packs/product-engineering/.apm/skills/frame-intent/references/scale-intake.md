@@ -1,13 +1,14 @@
 # Scale intake — infer → confirm → ask
 
 **Scale** is the one global axis of the pack. It is resolved once, at intake, and
-stamped on the intent (and on the `docs/product/` root the first time). Everything
-else — altitude, where the work lives, how it decomposes — follows from it.
+stamped on the intent (and on the `docs/product/` root the first time). Where the
+work lives and how it decomposes **follow from it**; the starting **altitude** it
+merely *suggests* — `Level` is decoupled from Scale and overridable in one word.
 
-| Scale | What it means | Typical top level | Leaf lands as |
+| Scale | What it means | Suggested starting altitude | Leaf lands as |
 | --- | --- | --- | --- |
-| `app` | a solo dev / small team in **one repo** | `feature` | a `core` brief in this repo |
-| `business-unit` | a product org whose work fans out to **many component repos** | `capability` | per-component briefs, coordinated from a value-stream meta-repo |
+| `app` | a solo dev / small team in **one repo** | `feature` (a known feature) or `product-vision` (a greenfield concept) | a `core` brief in this repo |
+| `business-unit` | a product org whose work fans out to **many component repos** | `product-strategy` or `capability` | per-component briefs, coordinated from a value-stream meta-repo |
 
 ## The routine
 
@@ -26,9 +27,13 @@ the artifact records the mode.
 
 ## Why it matters here
 
-Scale sets the **default level** (`app` → feature; `business-unit` → capability)
-and tells `decompose-intent` whether the leaf is a same-repo brief (`app`) or a
-per-component slice that crosses repos (`business-unit`). At `business-unit` Scale
+Scale **suggests a starting altitude** — it does not stamp one. The suggestion:
+an `app` greenfield product concept → `product-vision`; an `app` effort with a
+known feature in hand → `feature`; a `business-unit` effort → `product-strategy`
+or `capability`. You override it in one word. Scale's **load-bearing** role is
+unchanged: it tells `decompose-intent` whether the leaf is a same-repo brief
+(`app`) or a per-component slice that crosses repos (`business-unit`). At
+`business-unit` Scale
 the cross-component artifacts — catalog, shared contracts, architecture, and the
 delivery rollup — live in a coordinating **value-stream meta-repo** (the
 `align-value-stream` skill); `decompose-intent` slices each feature intent into

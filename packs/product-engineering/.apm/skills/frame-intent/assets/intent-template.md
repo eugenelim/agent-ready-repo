@@ -3,12 +3,13 @@
 > **This is a template, not a schema.** It shows the *shape* of a product
 > `intent` — a level-tagged statement of an outcome and the opportunity behind
 > it. Copy it to `docs/product/intents/<slug>.md` and fill in what you have; an
-> empty heading is a prompt, not an error. A capability intent and a feature
-> intent are the same shape at different levels — the `Level:` field is the only
-> difference. Keep only the sections that earn their place.
+> empty heading is a prompt, not an error. A `product-vision`, a
+> `product-strategy`, a capability, and a feature intent are the same shape at
+> different levels — the `Level:` field is the only difference. Keep only the
+> sections that earn their place.
 
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename -->
-- **Level:** `<capability | feature>` <!-- the altitude this intent sits at -->
+- **Level:** `<product-vision | product-strategy | capability | feature>` <!-- the altitude this intent sits at; an open recognized set, not a closed enum — name an intervening altitude if your org has one -->
 - **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** <!-- optional: the higher-level intent this was decomposed from; omit at the top of the tree -->
@@ -31,6 +32,38 @@ user is trying to get done (a job / opportunity), framed without baking in a
 solution. -->
 
 <the opportunity>
+
+## Product-vision fields
+
+<!-- LEVEL-CONDITIONAL — fill only when `Level: product-vision`. The existence
+bet: why this product should exist, for whom, through what wedge. This is a
+prompt sheet, not a schema — an empty heading is a prompt, not an error; fill
+what you have. Drop this whole section at any other Level. -->
+
+- **Customer-shaped pitch:** <the one-liner in the customer's words — what they get>
+- **The change:** <what is different for the customer once this exists>
+- **The job + struggling moment:** <the job to be done, and the moment it bites>
+- **Who, by circumstance:** <the early adopter by situation, not demographic>
+- **Existing alternatives:** <what they do today instead, and why it serves them badly>
+- **Narrowest wedge:** <the smallest version someone would pay for or adopt now>
+- **Demand evidence:** <behaviour or payment that shows pull — not stated interest>
+- **Open assumptions (tiered):**
+  - *must-test-before-shipping:* <the bet that has to hold before you build>
+  - *accept-as-bet:* <a bet you will take without testing>
+  - *will-monitor-post-ship:* <something you will watch once it is live>
+- **Counter-metrics:** <what you would watch to catch this going wrong>
+
+## Product-strategy fields
+
+<!-- LEVEL-CONDITIONAL — fill only when `Level: product-strategy`. The path:
+diagnosis → guiding policy → coherent action. Same prompt-not-schema posture —
+an empty heading is a prompt. Drop this whole section at any other Level. -->
+
+- **Central challenge (diagnosis):** <the crux — the one obstacle the strategy must overcome>
+- **Guiding policy:** <the overall approach chosen to meet the challenge>
+- **Coherent actions (3–5):** <the handful of mutually-reinforcing moves that enact the policy>
+- **Problem / segment sequence:** <which problem for which segment, in what order, and why now>
+- **Horizon:** <the time / scope window this strategy covers>
 
 ## Assumptions
 

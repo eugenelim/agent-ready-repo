@@ -75,6 +75,26 @@ Before decomposing, confirm:
    canonical tree is the source; the tracker is a render. **One-way only** —
    don't try to round-trip status back.
 
+## Spotting a missing parent — offer, never block
+
+Two prompt-only checks catch a skipped product rung. Both **offer**; neither
+gates, and the user can decline and proceed.
+
+- **Sibling-spawn detector.** When decomposition (or framing) produces children
+  that won't each reduce to a single shippable slice — they read as several
+  independent value bets, not slices of one buildable thing — that is the signal a
+  **product parent is missing**. The sibling *count* is a hint, not a fixed
+  threshold; the real test is the qualitative shippability test above. **Offer** to
+  frame the product parent (`product-vision` / `product-strategy`) and hang the
+  siblings beneath it, rather than emitting orphaned siblings.
+- **Retroactive parent.** When several intents already exist with no shared parent
+  (a rung was skipped earlier), **offer** to reconstruct one and back-link the
+  siblings via their `Parent intent:` field. **Infer the altitude and name it for
+  the user to correct:** siblings that are *architectural slices of one buildable
+  thing* → a `capability` parent; siblings that are *independent value bets that
+  together constitute one product* → a `product-vision` / `product-strategy`
+  parent. Infer and confirm, never assume.
+
 ## Anti-patterns to refuse
 
 - **Decomposing by component or layer instead of shippability.** "Backend then
