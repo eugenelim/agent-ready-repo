@@ -76,7 +76,7 @@ n/a — methodology / prose change across the `core` pack (one new skill, one ne
 
 **Tests:**
 - Goal-based: `packs/core/.apm/skills/operational-safety/references/cloud-implementation-craft.md` exists with the module shape (Loaded-when / Grounded-in blockquote + checks). Verifies AC "A2 — module".
-- Goal-based (grep): the six craft areas are present (sufficient-permissions-in-one-pass; eventual-consistency / propagation waits; timeout / cold-start / client-tolerance / backoff; dependency ordering; terminal-failed-state; deployment-artifact packaging & entrypoint / module-resolution model — platform specifics deferred to T2). Verifies "A2 — module" (incl. RFC-0044 § Errata 2026-06-24). Build-1 evidence: the flat-package-root / relative-import `ModuleNotFoundError` failure is exactly this area.
+- Goal-based (grep): the seven craft areas are present (sufficient-permissions-in-one-pass; eventual-consistency / propagation waits; timeout / cold-start / client-tolerance / backoff; dependency ordering; terminal-failed-state; deployment-artifact packaging & entrypoint / module-resolution model — platform specifics deferred to T2; externalized script configuration — resource prefixes / region / account / tags / naming tokens from external config, never hardcoded, illustrative mechanisms only). Verifies "A2 — module" (incl. RFC-0044 § Errata 2026-06-24). Build-1 evidence: the flat-package-root / relative-import `ModuleNotFoundError` failure is exactly the packaging area.
 - Goal-based (grep): `work-loop` SKILL.md states the orchestrator inlines this module into the **implementer's EXECUTE brief** on infra-flavored work, via the `operational-safety` routing table; the routing table gains the `cloud-implementation-craft` row. Verifies "A2 — loaded at EXECUTE".
 - Goal-based (grep): the module front matter states the four-way carve. Verifies "A2 — carve".
 
@@ -94,7 +94,8 @@ n/a — methodology / prose change across the `core` pack (one new skill, one ne
 **Tests:**
 - Goal-based (grep): `work-loop`'s infra multi-artifact preflight lists a **fifth artifact — a durable credential session** (establish-once / single identity check / reuse / profile-vs-static precedence) alongside the four RFC-0041 artifacts. Verifies AC "P — fifth preflight artifact".
 - Goal-based (grep): `operational-safety/references/state-and-idempotency.md` names terminal-failed-state (`ROLLBACK_COMPLETE` → destroy-recreate) as a convergence case. Verifies "P — terminal-failed-state".
-- Goal-based (grep): `work-loop` states every live-environment interaction (deploy / probe / log pull / debug) goes through a reusable, idempotent, credential-reusing script, framed as sharpening RFC-0041 P4. Verifies "P / D — reusable-script corollary".
+- Goal-based (grep): `work-loop` states every live-environment interaction (deploy / probe / log pull / debug) goes through a reusable, idempotent, credential-reusing script, framed as sharpening RFC-0041 P4. Verifies "P — reusable-script corollary".
+- Goal-based (grep): the corollary states the scripts are **externally parameterized** (resource name prefixes / region / account / tags / naming tokens from external config — tfvars / `TF_VAR_*` / env / CDK context, never hardcoded — illustrative only, Principle 1), enabling org naming conventions + like-for-like environments. Verifies the externalized-script-config half of "P — reusable-script corollary" (RFC-0044 § Errata 2026-06-24).
 
 **Approach:** edit the `work-loop` infra preflight prose; edit `state-and-idempotency.md`; add the reusable-script corollary near P4.
 
