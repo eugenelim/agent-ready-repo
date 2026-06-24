@@ -76,6 +76,7 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import (
         check_spec_version_gate,
+        confirm_or_refuse,
         format_plan_line,
         plan_action,
         summarize_plan,
@@ -273,14 +274,6 @@ def run(args: "argparse.Namespace") -> int:
     # short-circuits the refusal: a dry run never writes, so it is safe
     # non-interactively without ``--yes``.
     if not getattr(args, "yes", False) and not getattr(args, "dry_run", False):
-        if not sys.stdin.isatty():
-            print(
-                f"upgrade: refusing to upgrade {confirm_label} from "
-                f"{from_version} to {to_version} without confirmation; pass "
-                f"--yes to upgrade non-interactively",
-                file=sys.stderr,
-            )
-            return 1
         if already_current:
             question = (
                 f"{confirm_label} is already at {to_version}. Re-apply at "
@@ -291,12 +284,16 @@ def run(args: "argparse.Namespace") -> int:
                 f"Upgrade {confirm_label} at {effective_scope} scope from "
                 f"{from_version} to {to_version}? [y/N] "
             )
-        try:
-            reply = input(question)
-        except EOFError:
-            reply = ""
-        if reply.strip().lower() not in ("y", "yes"):
-            print("upgrade: aborted; no changes made", file=sys.stderr)
+        if not confirm_or_refuse(
+            yes=False,
+            question=question,
+            refuse_message=(
+                f"upgrade: refusing to upgrade {confirm_label} from "
+                f"{from_version} to {to_version} without confirmation; pass "
+                f"--yes to upgrade non-interactively"
+            ),
+            abort_message="upgrade: aborted; no changes made",
+        ):
             return 1
     elif already_current:
         # --yes / --dry-run skipped the prompt, but still state the situation.

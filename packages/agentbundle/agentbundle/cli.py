@@ -1,4 +1,4 @@
-"""`agentbundle` CLI dispatcher — argparse over the eleven F-cli subcommands.
+"""`agentbundle` CLI dispatcher — argparse over the F-cli subcommands.
 
 Subcommand order on the parser matches the canonical install-workflow order
 from the spec (discovery-first): `list-packs`, `list-profiles`, `list-targets`,
@@ -11,9 +11,12 @@ Each subcommand's `run(args) -> int` lives under `agentbundle.commands.*`;
 this module wires `argparse` and prints `--version`. No business logic here.
 
 RFC-0004 surface additions:
-  - `--scope {repo,user}` on install, uninstall, upgrade, diff, init-state,
-    list-targets (the six subcommands enumerated in spec § *Install-scope
-    dimension*).
+  - `--scope {repo,user}` on install, uninstall, upgrade, diff, init-state
+    (the spec § *Install-scope dimension* subcommands). The original RFC-0004
+    set also listed `list-targets`, and `reconcile` carried a single-value
+    `--scope user`; both were dead (parsed-but-never-read / only-legal-value-
+    equals-default) and dropped in the CLI-hygiene sweep, so passing `--scope`
+    to either now surfaces `unknown flag for <verb>: --scope`.
   - `--force` on install only (cross-scope conflict bypass; see
     spec § *Dual-scope install conflict*).
   - Forbidden flags on the five excluded subcommands surface with the
@@ -202,12 +205,11 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
     sp.set_defaults(func=_lazy("list_profiles"))
 
-    # --- list-targets --- (--scope as read-only filter)
+    # --- list-targets --- (no flags; queries the adapter registry)
     sp = subparsers.add_parser(
         "list-targets",
         help="List adapter targets the CLI supports (claude-code, kiro-ide, kiro-cli, kiro (deprecated → kiro-ide), copilot, codex).",
     )
-    sp.add_argument("--scope", choices=("repo", "user"))
     sp.set_defaults(func=_lazy("list_targets"))
 
     # --- scaffold --- (no --scope; always repo-targeted)
@@ -307,6 +309,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "marker, and no chained adapt. Refused with --force (its destructive "
             "cleanup is incompatible with a read-only preview). Exits 0 on a "
             "successful preview, even with Tier-2 collisions present."
+        ),
+    )
+    sp.add_argument(
+        "--yes",
+        action="store_true",
+        help=(
+            "Answer yes to install's interactive confirmations: the --force "
+            "destructive-cleanup prompt (removing leftover files), and the "
+            "offer to upgrade a pack already installed at the requested scope. "
+            "Required for non-interactive use of those paths; without it they "
+            "prompt on a TTY and refuse rather than block on a non-TTY."
         ),
     )
     sp.set_defaults(func=_lazy("install"))
@@ -415,6 +428,24 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--pack", required=True)
     sp.add_argument("--root", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
+    sp.add_argument(
+        "--yes",
+        action="store_true",
+        help=(
+            "Skip the uninstall confirmation prompt. Required for non-interactive "
+            "use (CI, pipes); without it the uninstall asks before removing any "
+            "file, and refuses rather than blocking when stdin is not a TTY."
+        ),
+    )
+    sp.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Preview the per-file plan (remove tier-1 / keep tier-2) without "
+            "removing anything — no file removed, no hook-wiring unproject, no "
+            "state change. Exits 0."
+        ),
+    )
     sp.set_defaults(func=_lazy("uninstall"))
 
     # --- init-state --- (--scope selector; --migrate flag)
@@ -466,10 +497,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "RFC-0005: read-only orphan reporter — walks Claude Code "
             "settings.json and Kiro agent JSONs named in user-scope state, "
             "reports entries the file/state pair disagrees on. Read-only; "
-            "no --apply flag."
+            "no --apply flag. User-scope only; no --scope flag."
         ),
     )
-    sp.add_argument("--scope", choices=("user",), default="user")
     sp.set_defaults(func=_lazy("reconcile"))
 
     return parser
