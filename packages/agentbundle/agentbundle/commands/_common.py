@@ -291,3 +291,100 @@ def confirm_or_refuse(
         print(abort_message, file=sys.stderr)
         return False
     return True
+
+
+# ---------------------------------------------------------------------------
+# Terminal-aware table rendering (shared by `list-packs`, `list-profiles`)
+# ---------------------------------------------------------------------------
+
+# Floor for the wrapped column so a very narrow terminal still gets a readable
+# (if tall) cell rather than one-character-per-line. Below this we let the row
+# overflow the terminal rather than shred the text.
+_MIN_WRAP_WIDTH = 20
+
+# Spaces between columns.
+_COL_GAP = 2
+
+
+def _stream_is_tty(stream: Any) -> bool:
+    """True only when *stream* is a real interactive terminal.
+
+    A closed or non-tty stream (pytest's capture, a pipe, a file) answers
+    False — and may raise ``ValueError`` on a closed file — so we swallow both.
+    """
+    try:
+        return bool(stream.isatty())
+    except (AttributeError, ValueError):
+        return False
+
+
+def render_table(
+    headers: list[str],
+    rows: list[list[str]],
+    *,
+    wrap_col: int | None = None,
+    stream: Any = None,
+) -> None:
+    """Print a left-justified, content-sized column table to *stream*.
+
+    Columns are sized to the widest of their header and cells. When *wrap_col*
+    is given **and** the destination is an interactive terminal **and** the
+    natural table would overflow that terminal's width, that one column is
+    word-wrapped to the leftover width; every other column keeps its content
+    width, the row spans as many physical lines as the wrap needs, and the
+    columns that follow the wrapped one appear on the row's first line only.
+
+    Wrapping is deliberately suppressed when stdout is **not** a TTY (piped or
+    redirected): the table is emitted at full content width, untruncated, so
+    downstream tools (`grep`, `awk`, `cut`) see stable, parseable columns — the
+    convention `gh`, `git`, and `ls` follow. It is likewise suppressed when the
+    natural table already fits, leaving that output byte-identical to a plain
+    content-width table.
+
+    ``stream`` defaults to ``sys.stdout`` (read at call time, not import time,
+    so a window resize between invocations is honoured).
+    """
+    import shutil
+    import textwrap
+
+    if stream is None:
+        stream = sys.stdout
+
+    ncols = len(headers)
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i in range(ncols):
+            widths[i] = max(widths[i], len(row[i]))
+
+    # Decide the wrapped column's width, if any.
+    wrap_width: int | None = None
+    if wrap_col is not None and _stream_is_tty(stream):
+        term_cols = shutil.get_terminal_size(fallback=(80, 24)).columns
+        natural = sum(widths) + _COL_GAP * (ncols - 1)
+        if natural > term_cols:
+            others = natural - widths[wrap_col]
+            wrap_width = max(_MIN_WRAP_WIDTH, term_cols - others)
+            widths[wrap_col] = wrap_width
+
+    gap = " " * _COL_GAP
+
+    def emit(cells: list[str]) -> None:
+        if wrap_width is None:
+            line = gap.join(cells[i].ljust(widths[i]) for i in range(ncols))
+            print(line.rstrip(), file=stream)
+            return
+        chunks = textwrap.wrap(cells[wrap_col], width=wrap_width) or [""]
+        for li, chunk in enumerate(chunks):
+            parts = [
+                (chunk if i == wrap_col else (cells[i] if li == 0 else "")).ljust(
+                    widths[i]
+                )
+                for i in range(ncols)
+            ]
+            print(gap.join(parts).rstrip(), file=stream)
+
+    emit(headers)
+    # Separator built directly so a long dash run is never word-wrapped.
+    print(gap.join("-" * widths[i] for i in range(ncols)).rstrip(), file=stream)
+    for row in rows:
+        emit(row)

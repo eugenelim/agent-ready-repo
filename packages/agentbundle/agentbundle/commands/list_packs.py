@@ -151,36 +151,24 @@ def _extract_row(toml: dict) -> dict:
 
 
 def _print_table(rows: list[dict]) -> None:
-    """Print a fixed-column table to stdout.
+    """Print the pack table to stdout.
 
-    Columns: name, version, description, dependencies.
-    Output is deterministic: rows are already sorted by caller; column
-    widths are derived from content so the table is alignment-stable.
+    Columns: name, version, description, dependencies. Rows arrive sorted from
+    the caller; column widths are content-derived so the table is
+    alignment-stable. The long DESCRIPTION column word-wraps to fit an
+    interactive terminal — see ``_common.render_table`` for the TTY / non-TTY
+    contract.
     """
-    headers = ["NAME", "VERSION", "DESCRIPTION", "DEPENDENCIES"]
+    from agentbundle.commands._common import render_table
 
-    # Convert deps list to a display string.
-    display_rows = [
-        {
-            "name": r["name"],
-            "version": r["version"],
-            "description": r["description"],
-            "dependencies": ", ".join(r["dependencies"]) if r["dependencies"] else "-",
-        }
+    headers = ["NAME", "VERSION", "DESCRIPTION", "DEPENDENCIES"]
+    table_rows = [
+        [
+            r["name"],
+            r["version"],
+            r["description"],
+            ", ".join(r["dependencies"]) if r["dependencies"] else "-",
+        ]
         for r in rows
     ]
-
-    # Compute column widths.
-    col_keys = ["name", "version", "description", "dependencies"]
-    widths = [len(h) for h in headers]
-    for row in display_rows:
-        for i, key in enumerate(col_keys):
-            widths[i] = max(widths[i], len(row[key]))
-
-    # Format string: left-justify each column.
-    fmt = "  ".join(f"{{:<{w}}}" for w in widths)
-
-    print(fmt.format(*headers))
-    print(fmt.format(*("-" * w for w in widths)))
-    for row in display_rows:
-        print(fmt.format(*(row[k] for k in col_keys)))
+    render_table(headers, table_rows, wrap_col=2)
