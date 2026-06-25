@@ -24,7 +24,9 @@ consumer.
 Self-host scope (see docs/specs/self-hosting/spec.md § Phased rollout):
 the `SELF_HOST_ADAPTERS` allow-list runs `claude-code` and `codex`.
 Kiro and Copilot stay distribution-only so self-host does not project
-`.kiro/` or `.github/instructions/`.
+`.kiro/` or `.github/instructions/`. Both `SELF_HOST_ADAPTERS` and
+`SELF_HOST_PACKS` are sourced from `recipes/self-host.toml` (see the
+`_DEFAULT_*` block below); the values named here are the current defaults.
 """
 
 from __future__ import annotations
@@ -79,26 +81,75 @@ TARGET_PATHS = (
     Path("AGENTS.md"),
 )
 
-# Self-host allow-list (see self-hosting spec § Phased rollout).
-# Kiro and Copilot remain in the contract for distribution builds but
-# are excluded from the self-host runner.
-SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
-
-# Self-host *pack* allow-list. This repo is the catalogue's home, not
-# an adopter — `make build-self` should only project the in-house
-# packs into the working tree. User-scope-default packs (architect,
-# atlassian, contracts, converters, credential-brokers, figma) are
-# advertised via `marketplace.json` but their primitives don't belong
-# in this repo's `.claude/skills/` (or future `.kiro/skills/`) tree.
-# `monorepo-extras` is repo-only by metadata but the bundle is not a
-# canonical monorepo consumer of `new-package`, so it's left out too.
-# `_aggregate_marketplace` intentionally ignores this filter — the
-# catalogue advertises every pack.
-SELF_HOST_PACKS: tuple[str, ...] = (
+# Built-in fallbacks for the self-host pack / adapter allow-lists. The
+# authoritative values live in `recipes/self-host.toml` (read at import below);
+# these are used only when that recipe is missing a key or can't be read, so
+# module import stays total. Kiro and Copilot remain in the contract for
+# distribution builds but are excluded from the self-host runner. This repo is
+# the catalogue's home, not an adopter, so `make build-self` only projects the
+# in-house packs; `_aggregate_marketplace` intentionally ignores the pack
+# filter — the catalogue advertises every pack. See the recipe for the full
+# rationale behind the pack selection.
+_DEFAULT_SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
+_DEFAULT_SELF_HOST_PACKS: tuple[str, ...] = (
     "core",
     "governance-extras",
     "user-guide-diataxis",
 )
+
+_SELF_HOST_RECIPE = "self-host"
+
+
+def _read_recipe_text(name: str) -> str | None:
+    """Return the text of `recipes/<name>.toml`, or None if unreadable.
+
+    Mirrors `build.main`'s recipe resolution: filesystem first (dev / editable
+    install), then `importlib.resources` (zipapp, where the package lives inside
+    a `.pyz` archive that `Path.exists()` cannot traverse).
+    """
+    recipe_path = Path(__file__).resolve().parent / "recipes" / f"{name}.toml"
+    if recipe_path.exists():
+        return recipe_path.read_text(encoding="utf-8")
+    try:
+        from importlib.resources import files
+
+        resource = files("agentbundle.build").joinpath(f"recipes/{name}.toml")
+        if resource.is_file():
+            return resource.read_text(encoding="utf-8")
+    except (FileNotFoundError, ModuleNotFoundError):
+        pass
+    return None
+
+
+def _extract_self_host_lists(
+    recipe: dict,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Pull `(packs, adapters)` from a parsed self-host recipe, substituting the
+    built-in defaults for any list that is absent or empty."""
+    body = recipe.get("recipe", {})
+    packs = tuple(body.get("packs", {}).get("include", ())) or _DEFAULT_SELF_HOST_PACKS
+    adapters = (
+        tuple(body.get("adapters", {}).get("targets", ()))
+        or _DEFAULT_SELF_HOST_ADAPTERS
+    )
+    return packs, adapters
+
+
+def _load_self_host_lists() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Read the self-host allow-lists from the recipe. Total: any read or parse
+    failure falls back to the built-in defaults so module import never raises."""
+    try:
+        text = _read_recipe_text(_SELF_HOST_RECIPE)
+        if text is None:
+            return _DEFAULT_SELF_HOST_PACKS, _DEFAULT_SELF_HOST_ADAPTERS
+        return _extract_self_host_lists(tomllib.loads(text))
+    except Exception:
+        # Unreadable (non-UTF-8 / permission / IO) or malformed recipe — fall
+        # back so module import is total (AC3).
+        return _DEFAULT_SELF_HOST_PACKS, _DEFAULT_SELF_HOST_ADAPTERS
+
+
+SELF_HOST_PACKS, SELF_HOST_ADAPTERS = _load_self_host_lists()
 
 
 def _filter_self_host_packs(pack_paths: list[Path]) -> list[Path]:
