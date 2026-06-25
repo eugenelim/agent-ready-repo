@@ -14,7 +14,29 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 from agentbundle.version import SPEC_VERSION
 
 if TYPE_CHECKING:
+    import argparse
+
     from agentbundle.safety import Tier
+
+
+def resolve_catalogue_uri(args: "argparse.Namespace") -> str:
+    """Resolve the catalogue URI for ``install`` / ``upgrade``.
+
+    Applies the four-layer default chain (RFC-0046 / ADR-0036) when the
+    ``catalogue`` positional was omitted. An explicit positional is returned
+    verbatim (layer 1 short-circuits before any metadata/bundle read), so the
+    default chain runs only on a bare invocation. May raise ``CatalogueError``
+    when no layer yields a source — handlers catch it alongside their existing
+    ``resolve_catalogue`` error handling.
+    """
+    from agentbundle.source_defaults import resolve_default_source
+
+    user_cfg = getattr(args, "_user_config", None)
+    config_source = getattr(user_cfg, "source", None)
+    return resolve_default_source(
+        getattr(args, "catalogue", None),
+        config_source=config_source,
+    )
 
 
 class SeedDelivery(NamedTuple):

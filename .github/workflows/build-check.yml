@@ -126,6 +126,21 @@ jobs:
           tests/integration/test_install_profile.py
           tests/integration/test_install_profile_live.py
 
+      # convenient-install-defaults (RFC-0046): the four-layer source resolver,
+      # the `source` config key, the optional-catalogue CLI surface, and the
+      # keystone editable-detection test (a real `pip install -e` in a throwaway
+      # venv). make build-check runs no pytest, so wire these paths explicitly.
+      - name: pytest convenient-install-defaults (RFC-0046)
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          tests/unit/test_source_defaults.py
+          tests/unit/test_user_config_source.py
+          tests/unit/test_cli_catalogue_optional.py
+          tests/unit/test_config_cmd.py
+          tests/integration/test_install_default_source.py
+          tests/integration/test_editable_source_detection.py
+
       # credbroker-user-scope T1: consumer bootstraps append the vendored
       # ~/.agentbundle/lib floor at LOWEST sys.path precedence. The
       # no-insert-0 source guard enforces the spec's "never prepend"
