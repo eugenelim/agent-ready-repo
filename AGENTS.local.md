@@ -63,6 +63,24 @@ all run it. If you're tempted to make a shipped hook/command/template reference
 stop: that's catalogue-internal — it breaks on arrival in an adopter's repo
 (this is the issue #190 / `adopter-clean-enforcement-gate` class of bug).
 
+**Repo-gate orchestration is a `tools/` script, never an `agentbundle` package
+subcommand.** Same rule applied to *chaining* the gates: the make-free
+`tools/build_gate_chain.py` (`build-self` / `build-check`, which the Makefile
+targets route through) lives in `tools/` as a sibling of
+`tools/pre-pr-catalogue.py` — **not** as a `python -m agentbundle.build`
+subcommand — precisely because `build-check` spawns repo-only scripts
+(`tools/pre-pr-catalogue.py`, the projected `.claude/skills/.../*.py` linters)
+that never ship. The reusable engine (`lint-packs` / `build` / `check` / `self`)
+stays in the package as public subcommands; the repo-specific wiring does not.
+The deeper rule: **don't expand or change the shipped `agentbundle` package's
+public CLI/API surface as a side effect of an implementation-shape choice.**
+Adding, removing, or renaming a `python -m agentbundle.build` subcommand (or any
+adopter-facing artifact) is an adopter-surface change with a release
+implication — Surface it as an explicit decision (package-surface vs.
+repo-tooling) before building, never let it ride in silently. When the
+orchestration has to reach repo-only paths, `tools/` is the answer and the
+package stays untouched.
+
 ### Shipped pack content carries no internal-governance citations
 
 When you author or edit anything under a pack's `.apm/**` (skills, agents,
