@@ -46,7 +46,7 @@ def test_catalogue_hook_runs_all_8_checks_and_delegates() -> None:
         "tools/lint-skill-spec.py",
         "tools/lint-knowledge.py",
         "tools/lint-build.py",
-        "tools/lint-seeds.py",
+        "tools/lint-catalogue-seeds.py",
         "tools/lint_credentialed_skills.py",
         "tools/test-lint-credentialed-skills.py",
     ):
