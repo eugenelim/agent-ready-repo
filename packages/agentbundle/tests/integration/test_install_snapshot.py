@@ -11,7 +11,7 @@ leak:
      "an expected scaffold file disappeared" regressions.
 
   2. **No catalogue-string leaks.** Each scaffolded file is scanned
-     against the same blocklist `tools/lint-seeds.py` uses — no
+     against the same blocklist `tools/lint-catalogue-seeds.py` uses — no
      `agent-ready-repo`, RFC-NNNN, K-NNNN, or internal-spec names.
      Catches "seed scrub got reverted" regressions.
 
@@ -24,7 +24,7 @@ see `docs/specs/core-install-seed-delivery/`). As of issue #190 the
 `build/tests/test_build_ships_seeds.py`); that copy is byte-verbatim from the
 same source tree this golden/leak test guards, so testing `scaffold` here
 remains sufficient to catch a seed-scrub regression at the source. AC21's
-`tools/lint-seeds.py` is the cross-source invariant.
+`tools/lint-catalogue-seeds.py` is the cross-source invariant.
 
 Goldens live at
 `packages/agentbundle/tests/fixtures/install_snapshot/<pack>.paths.txt`
@@ -54,8 +54,8 @@ FIXTURES_DIR = (
     / "install_snapshot"
 )
 
-# Mirror lint-seeds.py's blocklist. Sourced from RFC-0002 § Amendments
-# § 2026-05-25. Keep in sync; see lint-seeds.py:BLOCKLIST_PATTERNS.
+# Mirror lint-catalogue-seeds.py's blocklist. Sourced from RFC-0002 § Amendments
+# § 2026-05-25. Keep in sync; see lint-catalogue-seeds.py:BLOCKLIST_PATTERNS.
 BLOCKLIST_REGEXES = [
     re.compile(p)
     for p in (
@@ -72,7 +72,7 @@ BLOCKLIST_REGEXES = [
     )
 ]
 
-# Same single-line sentinel lint-seeds.py honours. Catalogue-attribution
+# Same single-line sentinel lint-catalogue-seeds.py honours. Catalogue-attribution
 # footer at `packs/core/seeds/AGENTS.md:171` is the documented exception.
 SENTINEL_RE = re.compile(
     r"^\s*<!--\s*seed-content-lint-ignore:\s*([^>]+?)\s*-->\s*$"

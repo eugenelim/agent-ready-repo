@@ -42,6 +42,7 @@ def _repo_root() -> Path:
 # child runs with the same interpreter as the umbrella.
 TESTS: list[tuple[str, list[str]]] = [
     ("lint-agent-artifacts", ["bash", "tools/test-lint-agent-artifacts.sh"]),
+    ("lint-catalogue-seeds", [sys.executable, "tools/test-lint-catalogue-seeds.py"]),
     ("lint-knowledge",       ["bash", "tools/test-lint-knowledge.sh"]),
     ("lint-skill-spec",      [sys.executable, "tools/test-lint-skill-spec.py"]),
     ("loop-cohort",          ["bash", "tools/test-loop-cohort.sh"]),

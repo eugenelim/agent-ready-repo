@@ -12,7 +12,7 @@ Covers, per the spec's Testing Strategy:
     stack-pack-contract clauses, and the guides are adopter-clean.
 
 "Adopter-clean" = no internal-repo reference: no ``RFC-NNNN`` / ``ADR-NNNN``
-token and no ``docs/(specs|rfc|adr)/`` path string. ``lint-seeds`` enforces only
+token and no ``docs/(specs|rfc|adr)/`` path string. ``lint-catalogue-seeds`` enforces only
 RFC-number absence and only under ``packs/*/seeds/**`` — it covers neither the
 ``.apm/`` template/SKILL nor the ``docs/guides/`` files — so these checks carry
 the invariant for the surfaces lint misses.
