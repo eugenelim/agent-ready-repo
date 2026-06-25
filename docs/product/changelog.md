@@ -46,6 +46,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ties them together — how product intent and the architecture concept co-shape
   each other at engagement start — and the affected pack indexes and existing
   guides gain cross-links.
+- **An optional grounding surface lets you record where you deploy and how you
+  verify — in files you already own.** The `core` seed `AGENTS.md` "Commands
+  you'll need" gains an **optional** infra/verification command block
+  (`<deploy>` / `<smoke / verify-status>` / `<teardown>` / `<seed-test-data>`),
+  and the `reference.md` golden-path slots now prompt for the managed-runtime /
+  platform target, framework-/library-level contracts, and where verification
+  tooling lives. The work-loop infra preflight reads these recorded coordinates
+  **if present** and falls back to cold oracle discovery if absent — a repo that
+  fills nothing runs exactly as before. Recorded values **seed** oracle
+  acquisition, never replace it; a coordinate that contradicts the live oracle
+  is surfaced as a drift signal. No new config file, and absence never fails the
+  loop or any CI gate. `adapt-to-project` and `init-project` now optionally
+  offer to record these coordinates.
 - **`architect` grounds the design phase in platform reality — a backed
   serverless workload-class lens plus two dual-consumed disciplines.** The
   `architect` pack gains **`lens-serverless.md`** (in both `architect-design`
