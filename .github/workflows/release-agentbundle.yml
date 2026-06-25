@@ -45,6 +45,22 @@ jobs:
           if tag_ver != pp_ver:
               print(f"::error::tag {tag} declares version {tag_ver} but pyproject.toml has {pp_ver}", file=sys.stderr)
               sys.exit(1)
+          # CLI_VERSION (what `agentbundle --version` reports) is independent of
+          # pyproject and has shipped stale before (stuck at 0.1.0). Refuse a
+          # mismatched release at tag time, not just in unit tests. Read it from
+          # source text: the package isn't installed at this step, and importing
+          # version.py would pull in the adapter.toml read. This step is
+          # tag-only; PR-time drift coverage is delegated to build-check.yml's
+          # `test_version.py` step (test_cli_version_matches_pyproject) — keep
+          # that step if these triggers are ever narrowed, or this gap reopens.
+          src = open("packages/agentbundle/agentbundle/version.py", encoding="utf-8").read()
+          cm = re.search(r'^CLI_VERSION\s*=\s*"([^"]+)"', src, re.MULTILINE)
+          if not cm:
+              print("::error::could not find CLI_VERSION literal in agentbundle/version.py", file=sys.stderr)
+              sys.exit(1)
+          if cm.group(1) != pp_ver:
+              print(f"::error::CLI_VERSION is {cm.group(1)} but pyproject.toml has {pp_ver}; `agentbundle --version` would lie. Bump CLI_VERSION in agentbundle/version.py.", file=sys.stderr)
+              sys.exit(1)
           PY
 
       - name: Assert tag is on main

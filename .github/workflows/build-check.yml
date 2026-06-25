@@ -109,6 +109,15 @@ jobs:
       - name: Install agentbundle (editable) + pytest
         run: pip install -e packages/agentbundle/ pytest
 
+      # version-drift guard: CLI_VERSION (agentbundle/version.py) must equal
+      # [project].version (pyproject.toml). make build-check runs no pytest, so
+      # wire this path explicitly or the guard is dead. A stale CLI_VERSION
+      # makes `agentbundle --version` lie (it was stuck at 0.1.0 across several
+      # releases); the release workflow only asserts the tag matches pyproject.
+      - name: pytest version constants (CLI_VERSION ↔ pyproject drift guard)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/unit/test_version.py
+
       - name: pytest converters install/uninstall (AC6a)
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
