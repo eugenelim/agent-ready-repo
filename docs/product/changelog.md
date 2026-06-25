@@ -146,6 +146,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the flag and is unenforced by construction, with no edit to the lint or any
   central pack list. The flag is catalogue-internal metadata and is not projected
   to `plugin.json` / `marketplace.json`. (RFC-0047 Decision 6 / ADR-0037 D4.)
+- **The work-loop's EXECUTE contract-grounding gate now fires on unfamiliar
+  frameworks and libraries, not just infrastructure.** Before generating code
+  against an unfamiliar internal framework or third-party library whose
+  *behavioral* contract (a versioned signature, a deprecation, a call-order or
+  lifecycle constraint) the agent doesn't already hold, the gate now routes to a
+  **software detect-and-recommend tier** in `infra-contract-acquisition` —
+  mirroring its infra tier exactly: detect a framework-library skill (internal or
+  a published vendor skill), a Context7-style doc-retrieval surface, or official
+  versioned docs via `research`; consult and cite the contract slice if present;
+  recommend a source and surface the gap as a decision if absent. The bare "grep
+  to verify a symbol exists" rule confirmed existence but never the behavioral
+  contract; this closes that gap. The optional doc-retrieval surface stays
+  **Tier-1 detect-and-stop — never auto-installed**, and `quality-engineer`
+  re-derives the cited software contract slice at REVIEW, symmetric with infra.
+  No new skill, no bundled per-library data.
 - **`agentbundle uninstall` gains `--dry-run` and `--yes`, and confirms before
   removing anything.** Previously `uninstall` deleted every bundle-owned (Tier-1)
   file immediately with no preview. It now classifies each recorded file
