@@ -393,10 +393,11 @@ packaging assumption. **Two surfaces, one gate and one skill** (ADR-0037 D1 —
 extend the one gate, never fork a parallel skill): **(1) infra** — a CLI
 invocation, an IaC resource, or application code on a managed runtime, against an
 unfamiliar platform; **(2) software** — code against an **unfamiliar internal
-framework or third-party library** whose *behavioral* contract (a versioned
-signature, a deprecation, a call-order or lifecycle constraint) the agent does
-not hold, routed to the skill's software detect-and-recommend tier. This is the
-**generalization of AGENTS.md's "Grep to verify a function exists before
+framework or third-party library** whose contract (a versioned signature, a
+deprecation, a call-order or lifecycle constraint) the agent does not hold,
+routed to the skill's software protocol (version-detect → type-checker /
+introspection oracle → curated skill → versioned docs → runtime probe). This is
+the **generalization of AGENTS.md's "Grep to verify a function exists before
 importing it"** — the bare grep confirms a symbol *exists* but never its
 behavioral contract; the gate now also covers the software case it was
 abstracted from, not infra alone. It is **universal** (fires in light mode too;

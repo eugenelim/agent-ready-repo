@@ -148,19 +148,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `plugin.json` / `marketplace.json`. (RFC-0047 Decision 6 / ADR-0037 D4.)
 - **The work-loop's EXECUTE contract-grounding gate now fires on unfamiliar
   frameworks and libraries, not just infrastructure.** Before generating code
-  against an unfamiliar internal framework or third-party library whose
-  *behavioral* contract (a versioned signature, a deprecation, a call-order or
-  lifecycle constraint) the agent doesn't already hold, the gate now routes to a
-  **software detect-and-recommend tier** in `infra-contract-acquisition` —
-  mirroring its infra tier exactly: detect a framework-library skill (internal or
-  a published vendor skill), a Context7-style doc-retrieval surface, or official
-  versioned docs via `research`; consult and cite the contract slice if present;
-  recommend a source and surface the gap as a decision if absent. The bare "grep
-  to verify a symbol exists" rule confirmed existence but never the behavioral
-  contract; this closes that gap. The optional doc-retrieval surface stays
-  **Tier-1 detect-and-stop — never auto-installed**, and `quality-engineer`
-  re-derives the cited software contract slice at REVIEW, symmetric with infra.
-  No new skill, no bundled per-library data.
+  against an unfamiliar internal framework or third-party library whose contract
+  (a versioned signature, a deprecation, a call-order or lifecycle constraint)
+  the agent doesn't already hold, the gate routes to the **same tiered oracle
+  protocol** in `infra-contract-acquisition` that infra uses: **T0** detect the
+  installed version (the contract is version-specific); **T1** run the type
+  checker / compiler against the call site (`mypy`/`pyright`, `tsc --noEmit`,
+  `go build`/`vet`, `cargo check`) plus extract the installed package's API
+  surface — the deterministic signature oracle; **T2** consult a curated
+  framework-library skill for the behavioral contract no type encodes (the
+  supplied-not-bundled tier — detect-and-recommend, never bundled); **T3**
+  versioned docs / changelog; and a **runtime invoke-and-observe probe**. It
+  declares its oracle tier honestly — strong (typed / stub-equipped) → medium
+  (untyped-but-introspectable) → weak (dynamic / C-extension → probe-primary) —
+  and `references/oracle-table.md` gives the concrete commands per ecosystem
+  (Python / TypeScript / Go / Rust / Java). The bare "grep to verify a symbol
+  exists" rule confirmed existence but never the contract; this closes that gap.
+  The optional doc-retrieval surface stays **Tier-1 detect-and-stop — never
+  auto-installed**, retrieved docs are treated as untrusted data, and
+  `quality-engineer` re-derives the cited software contract slice at REVIEW,
+  symmetric with infra. No new skill, no bundled per-library data.
 - **`agentbundle uninstall` gains `--dry-run` and `--yes`, and confirms before
   removing anything.** Previously `uninstall` deleted every bundle-owned (Tier-1)
   file immediately with no preview. It now classifies each recorded file
