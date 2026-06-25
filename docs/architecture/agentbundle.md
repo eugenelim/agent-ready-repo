@@ -97,7 +97,10 @@ packs/                                dist/
    `make build-check` runs the same dry-run as a CI gate that fails on
    any byte-divergence between source and projection — the single biggest
    source of CI noise, so the error message names the seed path you
-   should have edited.
+   should have edited. On Windows (no `make`), invoke build-self directly:
+   `python -m agentbundle.build self --packs-dir packs` (add `--dry-run` for
+   the diff). The fixture-overwrite guard is enforced in the CLI handler,
+   not the Makefile, so the direct entry is equally safe.
 
 ### The adapter contract
 

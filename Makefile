@@ -35,14 +35,11 @@ else
 endif
 endif
 
+# The tests/fixtures fixture-overwrite guard lives in the CLI handler
+# (agentbundle.build.self_host.cmd_self) so it protects the make-free
+# `python -m agentbundle.build self` entry on Windows too, honouring the same
+# ALLOW_FIXTURE_PACKS override.
 build-self: lint-packs
-	@case "$(PACKS_DIR)" in \
-		*tests/fixtures/*) \
-			if [ -z "$$ALLOW_FIXTURE_PACKS" ]; then \
-				echo "make build-self: refusing — PACKS_DIR points into tests/fixtures/; this would overwrite your working tree with fixture data. Set ALLOW_FIXTURE_PACKS=1 to override, or set PACKS_DIR=packs (when the F-dist migration lands)." >&2; \
-				exit 1; \
-			fi ;; \
-	esac
 ifeq ($(DRY_RUN),1)
 ifeq ($(FORCE),1)
 	$(PYTHON) -m agentbundle.build self --dry-run --force --packs-dir $(PACKS_DIR)
