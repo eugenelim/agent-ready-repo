@@ -498,7 +498,7 @@ def _run_per_pack_single(
         )
         destination.write_text(
             json.dumps(derived, indent=2, sort_keys=False) + "\n",
-            encoding="utf-8",
+            encoding="utf-8", newline="\n",
         )
         # Defence-in-depth: re-validate the written file against the schema
         # to catch any serialise/parse divergence introduced by json.dumps.
@@ -547,7 +547,7 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
         pack_metadata = tomllib.loads((pack.path / "pack.toml").read_text(encoding="utf-8"))
         (per_pack_output / "apm.yml").write_text(
             _render_apm_yml(pack_metadata.get("pack", {})),
-            encoding="utf-8",
+            encoding="utf-8", newline="\n",
         )
         apm_source = pack.path / ".apm"
         if apm_source.exists():
@@ -568,7 +568,7 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
         (hooks_dir / "install-marker.py").write_bytes(writer_bytes)
         (hooks_dir / "install-marker.json").write_text(
             json.dumps(_APM_INSTALL_MARKER_HOOK_JSON, indent=2) + "\n",
-            encoding="utf-8",
+            encoding="utf-8", newline="\n",
         )
 
         # Project pack.toml verbatim. The writer reads it for
@@ -630,7 +630,7 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps({"plugins": entries}, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n",
     )
     return {"recipe": recipe.name, "type": recipe.type, "entries": len(entries)}
 
