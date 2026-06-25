@@ -1,10 +1,13 @@
-"""T5 end-to-end (no network): a bare `install` (no `catalogue` positional)
-resolves through the default chain at the command boundary and installs.
+"""End-to-end (no network): bare source verbs (no `catalogue` positional)
+resolve through the default chain at the command boundary.
 
-Uses layer 2 (`config set source` → a local catalogue with both markers) so
-the resolution short-circuits before layer 3, exercising the full wiring
-(`resolve_catalogue_uri` → `resolve_default_source` → `resolve_catalogue` →
-install) without touching the network or the ambient editable record.
+Covers `install --pack core` (RFC-0046), the `install --profile` and
+`_offer_upgrade` hand-off sites, and the discovery verbs `list-packs` /
+`list-profiles` (RFC-0047). Uses layer 2 (`config set source` → a local
+catalogue with both markers) so resolution short-circuits before layer 3,
+exercising the full wiring (`resolve_catalogue_uri` → `resolve_default_source`
+→ `resolve_catalogue`) without touching the network or the ambient editable
+record.
 """
 
 from __future__ import annotations
@@ -15,7 +18,7 @@ import io
 import shutil
 from pathlib import Path
 
-from agentbundle.commands import install
+from agentbundle.commands import install, list_packs, list_profiles
 from agentbundle.user_config import UserConfig
 
 
@@ -101,3 +104,34 @@ def test_offer_upgrade_hands_off_resolved_uri(monkeypatch):
         args, pack_name="core", scope="repo", catalogue_uri="git+https://resolved/x"
     )
     assert captured["ns"].catalogue == "git+https://resolved/x"
+
+
+def test_bare_list_packs_resolves_default_source(tmp_path):
+    # RFC-0047: a bare `list-packs` (no catalogue) resolves the source via the
+    # same chain and lists the catalogue's packs.
+    cat = _local_catalogue(tmp_path)
+    args = argparse.Namespace(catalogue=None, _user_config=UserConfig(source=str(cat)))
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = list_packs.run(args)
+    assert rc == 0, err.getvalue()
+    assert "core" in out.getvalue()
+
+
+def test_bare_list_profiles_resolves_default_source(tmp_path):
+    # RFC-0047: a bare `list-profiles` resolves the source AND reads it — plant a
+    # profile so the test fails if resolution were dropped (an empty listing
+    # would pass for the wrong reason).
+    cat = _local_catalogue(tmp_path)
+    profiles_dir = cat / "profiles"
+    profiles_dir.mkdir()
+    (profiles_dir / "sample.toml").write_text(
+        'scope = "repo"\ndescription = "a sample profile"\n\n[[packs]]\npack = "core"\n',
+        encoding="utf-8",
+    )
+    args = argparse.Namespace(catalogue=None, _user_config=UserConfig(source=str(cat)))
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = list_profiles.run(args)
+    assert rc == 0, err.getvalue()
+    assert "sample" in out.getvalue()  # proves the resolved catalogue was read

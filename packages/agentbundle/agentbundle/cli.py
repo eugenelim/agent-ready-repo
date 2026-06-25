@@ -194,7 +194,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "list-packs",
         help="List packs available in a catalogue URI (local path or git+https).",
     )
-    sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
+    sp.add_argument(
+        "catalogue",
+        nargs="?",
+        default=None,
+        help=(
+            "Catalogue URI (local path or git+https://...). Optional: when "
+            "omitted, the source is resolved from your config, an editable "
+            "clone, or the packaged default (RFC-0047)."
+        ),
+    )
     sp.set_defaults(func=_lazy("list_packs"))
 
     # --- list-profiles --- (catalogue query; profiles declare their own scope)
@@ -202,7 +211,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "list-profiles",
         help="List curated install profiles available in a catalogue URI.",
     )
-    sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
+    sp.add_argument(
+        "catalogue",
+        nargs="?",
+        default=None,
+        help=(
+            "Catalogue URI (local path or git+https://...). Optional: when "
+            "omitted, the source is resolved from your config, an editable "
+            "clone, or the packaged default (RFC-0047)."
+        ),
+    )
     sp.set_defaults(func=_lazy("list_profiles"))
 
     # --- list-targets --- (no flags; queries the adapter registry)

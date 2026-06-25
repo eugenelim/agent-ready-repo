@@ -69,7 +69,7 @@ Boundaries on the decision:
 **Neutral / to revisit:**
 
 - **Whether layer 2 should outrank layer 3** (chosen: yes — explicit config beats auto-detection). A user who sets a stale source recovers with `config unset source`, named in the diagnostic. Revisit if real usage shows the auto-detected clone is more often the intended source than the persisted one.
-- **The `list-packs`/`list-profiles` default and integrity-pinning** stay deferred; a future RFC that backs either reopens the relevant edge of this scope (the query-defaulting edge, or the layer-4 integrity edge).
+- **The `list-packs`/`list-profiles` default and integrity-pinning** stay deferred; a future RFC that backs either reopens the relevant edge of this scope (the query-defaulting edge, or the layer-4 integrity edge). *(Update 2026-06-25: the **query-defaulting edge is reopened and decided by RFC-0047** — the discovery verbs now default through the same chain, because a gateway-bound fork is editable and resolves via layer 3, so a bare query never silently fetches upstream. The **layer-4 integrity edge stays deferred**.)*
 - **The forgeable-marker residual in editable detection** is bounded, not eliminated; if a real planted-marker hijack is ever observed, the walk-up's accident-guard would need promoting to a trust control.
 
 ## Confirmation

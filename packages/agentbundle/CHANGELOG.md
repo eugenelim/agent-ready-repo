@@ -10,18 +10,20 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ### Added
 
-- **`agentbundle install`/`upgrade` no longer require a `catalogue` argument
-  (RFC-0046).** When omitted, the source resolves through a four-layer,
-  first-match-wins chain: an explicit `catalogue` positional › your
-  `config set source` value › an editable clone (`pip install -e`, detected
-  via PEP 610 and walked up to the catalogue root, bounded by the enclosing
-  `.git` repo) › a packaged default (`git+https://github.com/eugenelim/agent-ready-repo`).
-  So a public user runs `agentbundle install --pack core` with no URL, and a
-  gateway-bound editable fork defaults to its own clone — with no repo-committed
-  source and no cwd fall-back (a code-provenance boundary). New `source` user
-  config key (`config set/get/unset source`). The discovery verbs `list-packs`
-  / `list-profiles` still take an explicit catalogue. Layer-4 integrity-pinning
-  (pin `main` to a SHA + verify the archive digest) is a named follow-on.
+- **The `catalogue` argument is now optional on `install`, `upgrade`,
+  `list-packs`, and `list-profiles` (RFC-0046 + RFC-0047).** When omitted, the
+  source resolves through a four-layer, first-match-wins chain: an explicit
+  `catalogue` positional › your `config set source` value › an editable clone
+  (`pip install -e`, detected via PEP 610 and walked up to the catalogue root,
+  bounded by the enclosing `.git` repo) › a packaged default
+  (`git+https://github.com/eugenelim/agent-ready-repo`). So a public user runs
+  `agentbundle install --pack core` (or `agentbundle list-packs`) with no URL,
+  and a gateway-bound editable fork defaults to its own clone — with no
+  repo-committed source and no cwd fall-back (a code-provenance boundary). All
+  four verbs share one resolver, so a bare query on an editable fork resolves to
+  the local clone (never silently fetching upstream). New `source` user config
+  key (`config set/get/unset source`). Layer-4 integrity-pinning (pin `main` to a
+  SHA + verify the archive digest) is a named follow-on.
 
 ### Changed
 

@@ -3,7 +3,7 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0036, RFC-0046; honours RFC-0031, RFC-0011/0012, RFC-0040 + ADR-0030
+- **Constrained by:** ADR-0036, RFC-0046, RFC-0047 (defaults the discovery verbs through the same chain); honours RFC-0031, RFC-0011/0012, RFC-0040 + ADR-0030
 - **Contract:** none (CLI behaviour change to an existing command; no new API surface under `contracts/`)
 - **Shape:** service
 
@@ -74,8 +74,13 @@ The three-tier guard that keeps an implementing agent inside the lines.
 - **Never** auto-persist a one-off `--catalogue` (or any resolved layer) back to
   config — resolution is stateless; `config set source` is the only write path
   (ADR-0036 D4).
-- **Never** default the catalogue on the discovery verbs `list-packs` /
-  `list-profiles` — they keep requiring an explicit catalogue (follow-on).
+- The discovery verbs `list-packs` / `list-profiles` **default through the same
+  chain** (RFC-0047): a bare query resolves via `resolve_catalogue_uri` exactly
+  as `install`/`upgrade` do. This is safe — a gateway-bound fork is editable and
+  resolves via layer 3, so a bare query never *silently* fetches upstream; only a
+  wheel install reaches layer 4, where fetching the upstream catalogue is the
+  expected, symmetric-with-install behaviour. (Originally a `Never do` here;
+  reopened and decided by RFC-0047.)
 - **Never** touch the adapter resolver (`scope.DEFAULT_ADAPTER`, the user-config
   adapter layer) — `source` is added *alongside* `adapter`, nothing else moves.
 - **Never** treat the two editable-detection markers (`packs/` +
@@ -94,10 +99,11 @@ The three-tier guard that keeps an implementing agent inside the lines.
   against a *real* editable install in an isolated venv (the artifact a user
   actually runs), reading the real `direct_url.json` and walking to the real
   clone root — not a mock of the metadata.
-- **CLI wiring (`catalogue` optional on `install`/`upgrade`, still required on
-  `list-packs`/`list-profiles`):** **goal-based check** — argparse accepts a
-  bare `install --pack X` and rejects a bare `list-packs`; verify by invoking
-  the parser, no production test file beyond the per-task assertions.
+- **CLI wiring (`catalogue` optional on all four source verbs — `install`,
+  `upgrade`, `list-packs`, `list-profiles`, per RFC-0047):** **goal-based
+  check** — argparse accepts a bare `install --pack X` and a bare
+  `list-packs`/`list-profiles`; verify by invoking the parser, no production
+  test file beyond the per-task assertions.
 - **`config set/unset/get source` round-trip (the literal write→read→remove):**
   **goal-based check** exercised by the existing config-command test shape
   (`test_config_cmd.py`, `test_user_config_io.py`).
@@ -119,8 +125,12 @@ behaviour only proves out across the install boundary, so it is named at
 - [x] `catalogue` is `nargs="?"` (default `None`) on the `install` and `upgrade`
   subparsers (`cli.py:247`, `:400`); an explicit `--catalogue`/positional value
   passes through to `resolve_catalogue` unchanged.
-- [x] `catalogue` **remains a required positional** on `list-packs` (`cli.py:197`)
-  and `list-profiles` (`cli.py:205`); a bare invocation of either errors.
+- [x] `catalogue` is also `nargs="?"` (default `None`) on `list-packs`
+  (`cli.py:197`) and `list-profiles` (`cli.py:205`) — RFC-0047. When omitted,
+  each handler resolves via `resolve_catalogue_uri(args)` (the same four-layer
+  chain) before `resolve_catalogue`; an explicit positional passes through
+  unchanged. Pinned by a test that a bare `list-packs`/`list-profiles` resolves
+  the default (and the explicit-arg path is unchanged).
 - [x] When `catalogue` is omitted on `install`/`upgrade`, the handler calls a
   shared `resolve_default_source()` whose result feeds `resolve_catalogue`. The
   shared call site is `commands/_common.resolve_catalogue_uri(args)`, used at
@@ -252,10 +262,11 @@ behaviour only proves out across the install boundary, so it is named at
   an absent or empty file means no layer-4 default (the private-fork pattern).
 - [x] The adapter resolver is unchanged: the ~13 adapter default-resolution tests
   and `tests/unit/test_resolve_user_scope_target_adapter.py` stay green.
-- [ ] Integrity-pinning for the layer-4 `git+https` fetch + `list-packs`/`list-profiles` defaulting are out of scope here (deferred: convenient-install-defaults-followons).
+- [ ] Integrity-pinning for the layer-4 `git+https` fetch is out of scope here (deferred: convenient-install-defaults-followons).
   The integrity follow-on's finish line is named, not open-ended: **resolve `main`
   to a pinned commit SHA and verify the fetched archive digest** (not merely "add
-  pinning").
+  pinning"). (`list-packs`/`list-profiles` defaulting, previously deferred here,
+  is now **implemented** under RFC-0047 — see the discovery-verb AC above.)
 
 ## Assumptions
 

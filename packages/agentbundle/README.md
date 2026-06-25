@@ -33,9 +33,9 @@ The install auto-detects your agent (`--adapter` overrides). To install from a *
 ## More commands
 
 ```bash
-# See what a catalogue offers (the discovery verbs take an explicit catalogue)
-agentbundle list-packs    git+https://github.com/eugenelim/agent-ready-repo
-agentbundle list-profiles git+https://github.com/eugenelim/agent-ready-repo
+# See what the catalogue offers (bare uses the default; or name one explicitly)
+agentbundle list-packs
+agentbundle list-profiles
 
 # Install a whole curated profile — a single-scope set of packs — in one command
 agentbundle install --profile inception
