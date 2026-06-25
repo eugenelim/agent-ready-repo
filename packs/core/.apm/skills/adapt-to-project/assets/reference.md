@@ -35,7 +35,10 @@ performance or availability targets, and the team conventions that outrank
 local preference.
 
 - **Technical constraints.** <Runtimes, language versions, platforms, and
-  hard external dependencies every component lives within.>
+  hard external dependencies every component lives within. Name the
+  **managed-runtime or deployment platform** you target (the serverless
+  runtime, the orchestrator, the managed service) — the work-loop infra
+  preflight reads this as a starting coordinate rather than rediscovering it.>
 - **Organizational / process constraints.** <Conventions, review rules,
   release cadence, or compliance obligations that shape how code is built.>
 - **Constraints you cannot change here.** <Anything a single feature must work
@@ -52,7 +55,10 @@ reason it won. This is the section a new contributor reads first to understand
   partitioned, how components communicate, where state lives — and why.>
 - **Key technology decisions.** <The load-bearing choices: framework, data
   store, transport, build tooling. One line each on *what* and *why this over
-  the obvious alternative*.>
+  the obvious alternative*. Where a choice carries a **framework- or
+  library-level contract** new work must honour — the entrypoint / packaging
+  model, a required base class or decorator, a config-loading convention — name
+  that contract here so a design conforms to it instead of guessing it.>
 - **Quality-goal strategy.** <For each top-priority quality (e.g. throughput,
   recoverability, security posture), the architectural move that delivers it.>
 
@@ -83,10 +89,16 @@ the default and "deviate" the thing that needs justifying.
 - **Error handling.** <How errors are raised, wrapped, surfaced, and logged —
   the one shape all components use.>
 - **Observability.** <Logging, metrics, and tracing conventions: what gets
-  recorded, in what shape, at what boundary.>
+  recorded, in what shape, at what boundary — and *where* the logs and metrics
+  surface for a deployed change (the dashboard, the log group), so a verifier
+  knows where to read ground truth.>
 - **Security & data handling.** <Authn/authz approach, secret handling, input
   validation at trust boundaries, data-classification rules.>
 - **Configuration & environments.** <How configuration is supplied and
   validated; what differs across environments and what must not.>
 - **Testing standards.** <The expected test shape per component stereotype —
-  what's unit-tested, what's contract-tested, what's verified end-to-end.>
+  what's unit-tested, what's contract-tested, what's verified end-to-end — and
+  **where the verification tooling lives**: the smoke / verify-status check, the
+  deploy and teardown harness, the test-data seeding (the commands their
+  one-liners live under in `AGENTS.md`). Naming where they live lets the
+  work-loop infra preflight seed acquisition from them instead of cold.>
