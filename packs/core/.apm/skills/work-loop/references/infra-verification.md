@@ -48,7 +48,7 @@ validate / policy-as-code) < plan / preview < runtime deploy + smoke — and the
 cheap-early oracle is **necessary but not sufficient**: a green `synth` /
 `validate` is the **local-typecheck analog**, never a done-signal, and "deployed
 ≠ working." Do not over-trust it. This carves cleanly against the
-[`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md) gate
+[`contract-acquisition`](../../contract-acquisition/SKILL.md) gate
 (A1): **A1 owns *did the agent consult the oracle to ground authoring before
 generating the resource?*; V1 owns *is a green early oracle being mistaken for
 "works" at verify?*** — the same oracle output, two different jobs
@@ -97,7 +97,7 @@ the two adopter-owned files above. State which coordinates you found (or
 `<deploy command>` or platform target *seeds* the multi-artifact preflight and
 the contract-grounding gate — it tells you where to start — but the agent still
 derives the **live** contract from the toolchain's oracles
-([`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md)) and
+([`contract-acquisition`](../../contract-acquisition/SKILL.md)) and
 still smokes the **real** deployed system. When a recorded value **contradicts**
 the oracle (the `reference.md` names a runtime the `plan` output disputes, a
 recorded smoke command targets an endpoint the deploy no longer exposes), that
@@ -152,7 +152,7 @@ This section is the **infra-flavor detail** of the gate; the gate itself spans
 **two surfaces** (`SKILL.md` § EXECUTE contract-grounding gate). The **software**
 surface's full tiered protocol (T0 version → T1 type-checker / compiler +
 API-surface oracle → T2 curated skill → T3 versioned docs → runtime probe) lives
-in [`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md)
+in [`contract-acquisition`](../../contract-acquisition/SKILL.md)
 itself — not in this infra-depth reference, which is loaded only on
 infra-flavored work.
 
@@ -160,7 +160,7 @@ Before generating a CLI invocation, an IaC resource, **or application code that
 runs on a managed runtime** (e.g. a function handler whose packaging / import
 model the platform dictates) **against an unfamiliar platform**, acquire that
 platform's contract via the
-[`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md) skill —
+[`contract-acquisition`](../../contract-acquisition/SKILL.md) skill —
 never guess a flag, a schema shape, a field constraint, or a packaging /
 entrypoint assumption. This is the infra flavor of the **generalization of
 AGENTS.md's "Grep to verify a function exists before importing it"**: the
@@ -257,7 +257,7 @@ The re-derivation trigger keys on **a contract slice having been cited at the
 EXECUTE gate — infra *or* software** — not on the infra-flavored signal (that
 signal only adds the infra-specific extras below). On infra-flavored work the
 orchestrator additionally inlines
-[`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md)
+[`contract-acquisition`](../../contract-acquisition/SKILL.md)
 (alongside `cloud-implementation-craft`, routed via the `operational-safety`
 table in `SKILL.md`) into the `quality-engineer` brief, and the reviewer
 **re-derives the platform contract independently from the oracles** — running

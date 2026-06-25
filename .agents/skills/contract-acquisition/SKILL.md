@@ -1,9 +1,9 @@
 ---
-name: infra-contract-acquisition
+name: contract-acquisition
 description: Acquire a platform's or library's real contract from its own toolchain oracles before authoring against an unfamiliar one — infrastructure, a CLI invocation, code on a managed runtime, or code against an unfamiliar framework or third-party library whose contract you don't hold. Triggers on "deploy to", "write the Terraform / Pulumi / CDK for", "provision", "what's the right resource shape", "why does this apply fail", "what's the signature / does this still exist in this version", "why does this library call raise". Runs a tiered, tool-keyed protocol — detect the stack or library + version, run the toolchain's validate / plan / synth or the type-checker / compiler + API-surface oracle, consult a curated skill, retrieve versioned docs, then a runtime probe — declares its oracle tier and degrades honestly to the probe when no strong static oracle exists. Do NOT use for code whose contract you already hold (use work-loop directly), nor to review a finished diff (rides quality-engineer).
 ---
 
-# Skill: infra-contract-acquisition
+# Skill: contract-acquisition
 
 This skill answers one question before you author anything against a **platform
 or library you don't know cold**: **what is its real contract — the flag set,
@@ -29,7 +29,7 @@ its *contract*.
 
 > **The four-way carve — who owns which infra question.** Four distinct
 > questions, four owners; keep the lines clean both ways.
-> - **`infra-contract-acquisition` (this skill)** — *is the IaC / invocation
+> - **`contract-acquisition` (this skill)** — *is the IaC / invocation
 >   correct against the platform's **structural** contract?* (Does this flag
 >   exist, this field accept this value, this resource name match the regex,
 >   this property is immutable?)

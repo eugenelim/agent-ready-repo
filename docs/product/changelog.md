@@ -151,7 +151,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against an unfamiliar internal framework or third-party library whose contract
   (a versioned signature, a deprecation, a call-order or lifecycle constraint)
   the agent doesn't already hold, the gate routes to the **same tiered oracle
-  protocol** in `infra-contract-acquisition` that infra uses: **T0** detect the
+  protocol** in `contract-acquisition` (the skill formerly named
+  `infra-contract-acquisition`, renamed now that it grounds both surfaces) that
+  infra uses: **T0** detect the
   installed version (the contract is version-specific); **T1** run the type
   checker / compiler against the call site (`mypy`/`pyright`, `tsc --noEmit`,
   `go build`/`vet`, `cargo check`) plus extract the installed package's API

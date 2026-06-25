@@ -1,5 +1,5 @@
 {
   "name": "core",
   "version": "0.4.16",
-  "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, infra-contract-acquisition skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
+  "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, contract-acquisition skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
 }

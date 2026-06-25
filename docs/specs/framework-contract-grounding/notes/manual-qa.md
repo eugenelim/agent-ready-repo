@@ -11,7 +11,7 @@ An implementing agent was posed an EXECUTE step writing code against an
 unfamiliar third-party library (`acme_ratelimit.TokenBucket`) whose behavioral
 contract (constructor signature, whether `acquire()` blocks, thread-safety) it
 did not hold, and asked to follow the projected `work-loop` gate +
-`infra-contract-acquisition` skill literally for two situations.
+`contract-acquisition` skill literally for two situations.
 
 **Observed:**
 
@@ -46,7 +46,7 @@ authoritative framework-library skill (`acme-ratelimit-skill.md`): (i) `acquire(
 claimed non-blocking + returning a bool (truth: blocking, returns `None`;
 `try_acquire()` is the bool one); (ii) the bucket claimed thread-safe (truth: not
 thread-safe in v3.x). The reviewer's brief inlined the widened
-`infra-contract-acquisition` + the work-loop re-derivation bullet, exactly as the
+`contract-acquisition` + the work-loop re-derivation bullet, exactly as the
 orchestrator drives a software-contract-citing diff.
 
 **Observed:** the reviewer **re-derived the cited slice independently from the
