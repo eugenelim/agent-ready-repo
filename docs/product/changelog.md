@@ -106,6 +106,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The catalogue's seed lint is now opt-in by construction and renamed
+  `lint-catalogue-seeds`.** `tools/lint-seeds.py` becomes
+  `tools/lint-catalogue-seeds.py` (the CI job, its path filters, the
+  `pre-pr-catalogue.py` gate, and the `tools/hooks/README.md` reference are
+  renamed in lockstep), and **all** of its checks — the anti-leak blocklist and
+  the placeholder-shape checks — now run only on packs whose `pack.toml` carries
+  `[pack].lint-seeds = true`. The four first-party scaffold packs (`core`,
+  `governance-extras`, `monorepo-extras`, `user-guide-diataxis`) carry the flag,
+  so their seeds stay enforced exactly as before; any other pack — including an
+  organization pack that intentionally ships filled-in *instance* content — omits
+  the flag and is unenforced by construction, with no edit to the lint or any
+  central pack list. The flag is catalogue-internal metadata and is not projected
+  to `plugin.json` / `marketplace.json`. (RFC-0047 Decision 6 / ADR-0037 D4.)
 - **`agentbundle uninstall` gains `--dry-run` and `--yes`, and confirms before
   removing anything.** Previously `uninstall` deleted every bundle-owned (Tier-1)
   file immediately with no preview. It now classifies each recorded file

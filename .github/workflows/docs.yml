@@ -20,7 +20,8 @@ on:
       - 'packs/**/.apm/skills/**'
       - 'tools/lint-knowledge.py'
       - 'tools/test-lint-knowledge.sh'
-      - 'tools/lint-seeds.py'
+      - 'tools/lint-catalogue-seeds.py'
+      - 'tools/test-lint-catalogue-seeds.py'
       - 'profiles/**'
       - 'tools/lint-profiles.py'
       - 'tools/test-lint-profiles.py'
@@ -79,13 +80,15 @@ jobs:
       - name: Self-test the linter (schema-drift + content guards)
         run: bash tools/test-lint-knowledge.sh
 
-  lint-seeds:
+  lint-catalogue-seeds:
     name: Seed scaffolds
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run seed-content linter (RFC-0002 scaffold contract)
-        run: python tools/lint-seeds.py
+      - name: Run catalogue seed-content linter (RFC-0002 scaffold contract, opt-in per RFC-0047 D6)
+        run: python tools/lint-catalogue-seeds.py
+      - name: Self-test the linter (opt-in gate — flagged enforced, unflagged skipped)
+        run: python tools/test-lint-catalogue-seeds.py
 
   lint-profiles:
     name: Install profiles

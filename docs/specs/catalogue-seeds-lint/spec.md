@@ -1,6 +1,6 @@
 # Spec: Catalogue-seeds lint — opt-in by construction, renamed `lint-catalogue-seeds`
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (2026-06-25) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0047 (Decision 6), ADR-0037 (D4), ADR-0021 (pack-manifest source of truth + contract-version rule), RFC-0002 (the placeholder-only seed contract)
@@ -12,7 +12,7 @@
 
 ## Objective
 
-The catalogue's seed lint (`tools/lint-seeds.py`) enforces a *placeholder-only* scaffold contract on **every** pack that ships seeds — the anti-leak blocklist *and* the scaffold-shape checks (placeholder-required, fail-loud-on-unknown-seed, empty-`patterns.jsonl`). That is correct for the four first-party scaffold packs, but it is exactly wrong for an **organization pack**, which intentionally ships *instance content* (a filled-in `reference.md`, real conventions) — the inverse of the placeholder contract. An org pack must be unenforced **by construction**, with no edit to the lint and no central pack list to maintain. Success: the lint is renamed `lint-catalogue-seeds`, and **all** its checks are gated on an opt-in `[pack].lint-seeds = true` flag carried **only by the four first-party scaffold packs** (`core`, `governance-extras`, `monorepo-extras`, `user-guide-diataxis`), added in the **same change** so none silently loses enforcement. Any other pack — including any org pack — omits the flag and is unenforced by construction. It stays a **single tool, not split**.
+The catalogue's seed lint (`tools/lint-catalogue-seeds.py`, formerly `lint-seeds`) enforces a *placeholder-only* scaffold contract on **every** pack that ships seeds — the anti-leak blocklist *and* the scaffold-shape checks (placeholder-required, fail-loud-on-unknown-seed, empty-`patterns.jsonl`). That is correct for the four first-party scaffold packs, but it is exactly wrong for an **organization pack**, which intentionally ships *instance content* (a filled-in `reference.md`, real conventions) — the inverse of the placeholder contract. An org pack must be unenforced **by construction**, with no edit to the lint and no central pack list to maintain. Success: the lint is renamed `lint-catalogue-seeds`, and **all** its checks are gated on an opt-in `[pack].lint-seeds = true` flag carried **only by the four first-party scaffold packs** (`core`, `governance-extras`, `monorepo-extras`, `user-guide-diataxis`), added in the **same change** so none silently loses enforcement. Any other pack — including any org pack — omits the flag and is unenforced by construction. It stays a **single tool, not split**.
 
 ## Boundaries
 
@@ -47,15 +47,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] `tools/lint-seeds.py` is renamed to `tools/lint-catalogue-seeds.py`; the `.github/workflows/docs.yml` job, path-filter, and run line, the `tools/pre-pr-catalogue.py` invocation, and the `tools/hooks/README.md` mention are renamed in lockstep (no surviving `lint-seeds` reference except historical changelog/ADR text).
-- [ ] **All** lint checks (anti-leak blocklist, placeholder-required, fail-loud-on-unknown-seed, empty-`patterns.jsonl`) are gated on the pack carrying `[pack].lint-seeds = true`; a pack without the flag is **skipped entirely**.
-- [ ] All four first-party scaffold packs (`core`, `governance-extras`, `monorepo-extras`, `user-guide-diataxis`) carry `[pack].lint-seeds = true`, added in the **same change** as the gating flip.
-- [ ] A synthetic pack that ships seeds but **omits** the flag raises **no** violation even on instance-shaped content (unenforced by construction) — a regression test asserts this.
-- [ ] A flagged pack with a real leak or missing-placeholder violation still **fails** — a regression test asserts the enforcement is intact for first-party packs.
-- [ ] The lint reads the flag from each pack's `pack.toml`; it does **not** carry a central hardcoded first-party pack list **as the source of truth**. (A read-failure bootstrap fallback, if one exists per the Boundaries carve-out, is not the source of truth and does not violate this — verification is "the flag drives enforcement", not "no list literal exists anywhere".)
-- [ ] The new `[pack].lint-seeds` field is **not** projected to `plugin.json`, `marketplace.json`, or any adapter output (catalogue-internal metadata) — confirmed by build-self leaving those clean.
-- [ ] The **manifest contract-version question is resolved**: the plan records, with reasoning against ADR-0021's contract-version rule, whether the new optional field requires a bump — and the implementation matches that answer (default expectation: additive + optional ⇒ no bump).
-- [ ] `python tools/lint-catalogue-seeds.py` runs green on the current tree; `pre-pr-catalogue.py` invokes it; `lint-spec-status.py` clean.
+- [x] `tools/lint-seeds.py` is renamed to `tools/lint-catalogue-seeds.py`; the `.github/workflows/docs.yml` job, path-filter, and run line, the `tools/pre-pr-catalogue.py` invocation, and the `tools/hooks/README.md` mention are renamed in lockstep (no surviving **operative** `lint-seeds` reference — one that executes or breaks; frozen ADR/RFC/changelog and shipped-spec history may still name the old path as historical record, as may this spec's own rename-mapping and assumption lines).
+- [x] **All** lint checks (anti-leak blocklist, placeholder-required, fail-loud-on-unknown-seed, empty-`patterns.jsonl`) are gated on the pack carrying `[pack].lint-seeds = true`; a pack without the flag is **skipped entirely**.
+- [x] All four first-party scaffold packs (`core`, `governance-extras`, `monorepo-extras`, `user-guide-diataxis`) carry `[pack].lint-seeds = true`, added in the **same change** as the gating flip.
+- [x] A synthetic pack that ships seeds but **omits** the flag raises **no** violation even on instance-shaped content (unenforced by construction) — a regression test asserts this.
+- [x] A flagged pack with a real leak or missing-placeholder violation still **fails** — a regression test asserts the enforcement is intact for first-party packs.
+- [x] The lint reads the flag from each pack's `pack.toml`; it does **not** carry a central hardcoded first-party pack list **as the source of truth**. (A read-failure bootstrap fallback, if one exists per the Boundaries carve-out, is not the source of truth and does not violate this — verification is "the flag drives enforcement", not "no list literal exists anywhere".)
+- [x] The new `[pack].lint-seeds` field is **not** projected to `plugin.json`, `marketplace.json`, or any adapter output (catalogue-internal metadata) — confirmed by build-self leaving those clean.
+- [x] The **manifest contract-version question is resolved**: the plan records, with reasoning against ADR-0021's contract-version rule, whether the new optional field requires a bump — and the implementation matches that answer (default expectation: additive + optional ⇒ no bump).
+- [x] `python tools/lint-catalogue-seeds.py` runs green on the current tree; `pre-pr-catalogue.py` invokes it; `lint-spec-status.py` clean (exit 0 — its invariant-iii dangling-ref *warnings* on the old `tools/lint-seeds.py` path in this and frozen specs are warn-only and expected after the rename, not failures).
 
 ## Assumptions
 

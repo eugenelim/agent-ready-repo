@@ -74,7 +74,7 @@ Exits non-zero on the first failure; a missing tool is skipped, not fatal.
 **This catalogue's own full gate** is the repo-native, never-projected
 `tools/pre-pr-catalogue.py`: it runs the 8 catalogue checks
 (`lint-agents-md`, `lint-agent-artifacts`, `lint-skill-spec`, `lint-knowledge`,
-`lint-build`, `lint-seeds`, `lint_credentialed_skills`, and the
+`lint-build`, `lint-catalogue-seeds`, `lint_credentialed_skills`, and the
 `test-lint-credentialed-skills` self-test), then delegates to the shipped
 `pre-pr.py`. `make pre-pr` and `make build-check` run it. See
 [`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement).

@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
-"""Lint pack seed files for the scaffold contract defined by RFC-0002 § Amendments § 2026-05-25.
+"""Lint first-party pack seed files for the scaffold contract defined by RFC-0002 § Amendments § 2026-05-25.
 
 Pack seeds under `packs/<pack>/seeds/` ship to adopters on first
 install. After the 2026-05-25 amendment, most former Projected paths
 are Manual at the projected path — the on-disk file is this repo's
 living instance, while the pack-side seed must remain a placeholder
-template adopters can fill in. This lint enforces two contracts:
+template adopters can fill in.
+
+**Opt-in by construction (RFC-0047 Decision 6 / ADR-0037 D4).** This
+lint enforces its contract *only* on packs whose `pack.toml` carries
+`[pack].lint-seeds = true` — the four first-party scaffold packs
+(`core`, `governance-extras`, `monorepo-extras`, `user-guide-diataxis`).
+Every other pack — including any organization pack, which intentionally
+ships *instance* content (the inverse of the placeholder contract) — omits
+the flag and is unenforced **by construction**: no edit to this lint and no
+central first-party pack list. The gate lives at one chokepoint
+(`_enumerate_seed_files`), so all checks below are gated together.
+
+This lint enforces two contracts on the packs that opt in:
 
   1. **Blocklist (negative check).** No catalogue-specific strings
      appear in any seed file: `agent-ready-repo`, `RFC-NNNN` refs to
@@ -41,6 +53,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tomllib
 from typing import Iterable
 
 
@@ -146,12 +159,42 @@ def _is_blank_or_comment(line: str) -> bool:
     return not s or (s.startswith("<!--") and s.endswith("-->"))
 
 
+def _pack_opts_in(pack_dir: pathlib.Path) -> bool:
+    """Return True iff the pack's `pack.toml` carries `[pack].lint-seeds = true`.
+
+    The flag is the single source of truth for which packs this lint enforces
+    (RFC-0047 Decision 6 / ADR-0037 D4): only the first-party scaffold packs
+    carry it, so an org pack that ships *instance* content is unenforced **by
+    construction** — no edit to this lint and no central pack list. A pack with
+    no `pack.toml`, an unreadable/malformed one, or the flag absent or not
+    literally `true` is skipped. No hardcoded first-party list backs this.
+    """
+    manifest = pack_dir / "pack.toml"
+    if not manifest.is_file():
+        return False
+    try:
+        data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return False
+    pack_table = data.get("pack")
+    if not isinstance(pack_table, dict):
+        return False
+    return pack_table.get("lint-seeds") is True
+
+
 def _enumerate_seed_files(repo_root: pathlib.Path) -> Iterable[pathlib.Path]:
-    """Yield every file under `packs/*/seeds/` in sorted order."""
+    """Yield every file under `packs/*/seeds/` for packs that opt in.
+
+    Only packs whose `pack.toml` carries `[pack].lint-seeds = true` are
+    enumerated (see `_pack_opts_in`); every other pack — including any org
+    pack — is skipped, so all checks below are gated at this one chokepoint.
+    """
     packs_root = repo_root / "packs"
     if not packs_root.is_dir():
         return
     for pack_dir in sorted(packs_root.iterdir()):
+        if not _pack_opts_in(pack_dir):
+            continue
         seeds_dir = pack_dir / "seeds"
         if not seeds_dir.is_dir():
             continue
@@ -172,7 +215,7 @@ def check_seed_file(path: pathlib.Path, seeds_root: pathlib.Path) -> list[str]:
     if relative not in REQUIRED_PLACEHOLDERS:
         return [
             f"{path}: unknown seed file — declare its expected "
-            "placeholder shape in tools/lint-seeds.py:REQUIRED_PLACEHOLDERS, "
+            "placeholder shape in tools/lint-catalogue-seeds.py:REQUIRED_PLACEHOLDERS, "
             "or remove the file. (Fail-loud policy: every seed under "
             "packs/<pack>/seeds/ must have a declared shape.)"
         ]
@@ -274,7 +317,7 @@ def main() -> int:
     repo_root = _repo_root()
     seeds_packs = repo_root / "packs"
     if not seeds_packs.is_dir():
-        print(f"lint-seeds: {seeds_packs} not a directory", file=sys.stderr)
+        print(f"lint-catalogue-seeds: {seeds_packs} not a directory", file=sys.stderr)
         return 1
 
     all_violations: list[str] = []
@@ -296,13 +339,13 @@ def main() -> int:
         for v in all_violations:
             print(v, file=sys.stderr)
         print(
-            f"\nlint-seeds: {len(all_violations)} violation(s) "
+            f"\nlint-catalogue-seeds: {len(all_violations)} violation(s) "
             f"across {seed_count} seed file(s).",
             file=sys.stderr,
         )
         return 1
 
-    print(f"lint-seeds: {seed_count} seed file(s) clean.")
+    print(f"lint-catalogue-seeds: {seed_count} seed file(s) clean.")
     return 0
 
 
