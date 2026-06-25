@@ -61,6 +61,26 @@ def test_python_m_agentbundle_version_prints_versions():
     assert contract_version in out
 
 
+def test_cli_version_matches_pyproject():
+    """Regression guard: the two independent version strings must agree.
+
+    `CLI_VERSION` (agentbundle/version.py) is what `agentbundle --version` and
+    `agentbundle.__version__` report; `[project].version` (pyproject.toml) is
+    what's published to PyPI. Nothing in the code keeps them in sync, and the
+    release workflow only asserts the git tag matches pyproject — so a stale
+    CLI_VERSION can ship and `--version` will lie (it was stuck at 0.1.0 across
+    several releases). This test fails the build the moment they diverge.
+    """
+    import tomllib
+
+    from agentbundle.version import CLI_VERSION
+
+    pyproject = tomllib.loads(
+        (PACKAGE_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    assert CLI_VERSION == pyproject["project"]["version"]
+
+
 def test_spec_version_is_read_at_import_time(tmp_path):
     """Mutate adapter.toml on disk after import; SPEC_VERSION must not change.
 
