@@ -27,11 +27,13 @@ def run(args: "argparse.Namespace") -> int:
     Returns 0 on success, 1 on catalogue resolution failure.
     """
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
+    from agentbundle.commands._common import resolve_catalogue_uri
     from agentbundle.commands.profile import list_profiles
 
-    catalogue_uri: str = args.catalogue
-
+    # RFC-0047: default the source through the same four-layer chain as
+    # install/upgrade when the `catalogue` positional is omitted.
     try:
+        catalogue_uri: str = resolve_catalogue_uri(args)
         catalogue_dir = resolve_catalogue(catalogue_uri)
     except CatalogueError as exc:
         print(f"list-profiles: {exc}", file=sys.stderr)

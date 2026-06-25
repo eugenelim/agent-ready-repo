@@ -981,19 +981,18 @@ listing the subtree root as the deletion unit avoids widening the divergence.
 ### convenient-install-defaults-followons
 
 **Spec:** [convenient-install-defaults](specs/convenient-install-defaults/spec.md)
-(final AC). Two follow-ons RFC-0046 + ADR-0036 scope **out** of the
-install-defaults work: (1) **integrity-pinning** for the layer-4 `git+https`
+(final AC). One follow-on RFC-0046 + ADR-0036 still scope **out** of the
+install-defaults work: **integrity-pinning** for the layer-4 `git+https`
 catalogue fetch — today it pulls an unauthenticated GitHub-archive tarball with a
 missing ref defaulting to `main` (trust-on-first-use against the current tip, no
 checksum/signature/pin) — when built, integrity verification is partly
 SCA/supply-chain-scanner and lockfile-hash territory (artifact hashing/pinning),
 not bespoke code, so the follow-on RFC should lean on that tooling rather than
-hand-roll it; and (2) **default resolution for the discovery verbs**
-`list-packs` / `list-profiles`, which keep requiring an explicit catalogue
-because defaulting a *query* must not silently fetch the upstream URL on a
-gateway-bound fork. A third, separable item — the **in-repo *adapter* override**
-(the Claude-Code-style repo-overrides-user precedence for the projection
-*target*, distinct from the source decision) — is RFC-scoped to its own future
-RFC. **Unblocks when:** someone opens the integrity-pinning RFC (highest value —
-it closes the one network-trust residual), or a justified need for defaulting the
-query verbs appears.
+hand-roll it. (**Resolved 2026-06-25:** the second item — **default resolution
+for the discovery verbs** `list-packs` / `list-profiles` — shipped under
+**RFC-0047**; a gateway-bound fork is editable and resolves via layer 3, so a
+bare query never silently fetches upstream.) A separable item — the **in-repo
+*adapter* override** (the Claude-Code-style repo-overrides-user precedence for the
+projection *target*, distinct from the source decision) — is RFC-scoped to its own
+future RFC. **Unblocks when:** someone opens the integrity-pinning RFC (highest
+value — it closes the one network-trust residual).

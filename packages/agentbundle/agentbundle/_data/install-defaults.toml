@@ -1,0 +1,10 @@
+# Packaged install default — layer 4 of the catalogue-source resolution chain
+# (RFC-0046 / ADR-0036). When `agentbundle install`/`upgrade` is run with no
+# `catalogue` positional and layers 1–3 (explicit arg, user config, editable
+# detection) yield nothing, this source is used.
+#
+# Private-fork pattern: blank the `source` value below (or delete this file
+# entirely) to disable the packaged GitHub default — layers 1–3 still apply, so
+# an editable clone or a `config set source` still resolves.
+[defaults]
+source = "git+https://github.com/eugenelim/agent-ready-repo"

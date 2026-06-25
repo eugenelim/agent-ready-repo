@@ -109,6 +109,15 @@ jobs:
       - name: Install agentbundle (editable) + pytest
         run: pip install -e packages/agentbundle/ pytest
 
+      # version-drift guard: CLI_VERSION (agentbundle/version.py) must equal
+      # [project].version (pyproject.toml). make build-check runs no pytest, so
+      # wire this path explicitly or the guard is dead. A stale CLI_VERSION
+      # makes `agentbundle --version` lie (it was stuck at 0.1.0 across several
+      # releases); the release workflow only asserts the tag matches pyproject.
+      - name: pytest version constants (CLI_VERSION ↔ pyproject drift guard)
+        working-directory: packages/agentbundle
+        run: python -m pytest tests/unit/test_version.py
+
       - name: pytest converters install/uninstall (AC6a)
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
@@ -125,6 +134,21 @@ jobs:
           tests/unit/test_cli_profile_surface.py
           tests/integration/test_install_profile.py
           tests/integration/test_install_profile_live.py
+
+      # convenient-install-defaults (RFC-0046): the four-layer source resolver,
+      # the `source` config key, the optional-catalogue CLI surface, and the
+      # keystone editable-detection test (a real `pip install -e` in a throwaway
+      # venv). make build-check runs no pytest, so wire these paths explicitly.
+      - name: pytest convenient-install-defaults (RFC-0046)
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          tests/unit/test_source_defaults.py
+          tests/unit/test_user_config_source.py
+          tests/unit/test_cli_catalogue_optional.py
+          tests/unit/test_config_cmd.py
+          tests/integration/test_install_default_source.py
+          tests/integration/test_editable_source_detection.py
 
       # credbroker-user-scope T1: consumer bootstraps append the vendored
       # ~/.agentbundle/lib floor at LOWEST sys.path precedence. The
@@ -157,6 +181,12 @@ jobs:
       - name: pytest self-host fixture guard (windows-build-self-entry)
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
+
+      # The make-free build-self / build-check chaining script (repo-native
+      # tools/, not the agentbundle package); wire its test explicitly since
+      # make build-check runs no pytest.
+      - name: pytest make-free gate chains (windows-build-gate-chain)
+        run: python -m pytest tools/test_build_gate_chain.py
 
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
