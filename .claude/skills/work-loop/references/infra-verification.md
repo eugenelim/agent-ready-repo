@@ -146,7 +146,15 @@ on any agent. In Claude Code, background tasks (for long applies), `asyncRewake`
 dependency** — matching how `/verify` and `/simplify` are treated; adapters
 without them lose the shortcut, not the doctrine.
 
-## EXECUTE contract-grounding gate (infra — universal across light and full mode)
+## EXECUTE contract-grounding gate (infra flavor — universal across light and full mode)
+
+This section is the **infra-flavor detail** of the gate; the gate itself spans
+**two surfaces** (`SKILL.md` § EXECUTE contract-grounding gate). The **software**
+surface's full tiered protocol (T0 version → T1 type-checker / compiler +
+API-surface oracle → T2 curated skill → T3 versioned docs → runtime probe) lives
+in [`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md)
+itself — not in this infra-depth reference, which is loaded only on
+infra-flavored work.
 
 Before generating a CLI invocation, an IaC resource, **or application code that
 runs on a managed runtime** (e.g. a function handler whose packaging / import
@@ -154,10 +162,11 @@ model the platform dictates) **against an unfamiliar platform**, acquire that
 platform's contract via the
 [`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md) skill —
 never guess a flag, a schema shape, a field constraint, or a packaging /
-entrypoint assumption. This is the **infra generalization of AGENTS.md's "Grep
-to verify a function exists before importing it"**: the toolchain's own
-deterministic oracles (validate / plan / synth + a machine-readable schema
-slice) are the grep, and a guessed contract is the broken import. The gate's
+entrypoint assumption. This is the infra flavor of the **generalization of
+AGENTS.md's "Grep to verify a function exists before importing it"**: the
+toolchain's own deterministic oracles (validate / plan / synth + a
+machine-readable schema slice) are the grep, and a guessed contract is the broken
+import. The gate's
 output is a **cited contract slice the generated resource references** (the
 schema field, the plan line, the doc) — not a bare "contract acquired: yes"
 flag; that citation is what lets `quality-engineer` re-derive independently. The
