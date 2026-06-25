@@ -72,7 +72,7 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
                 dir=str(agents_md.parent),
             )
             try:
-                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
                     handle.write(stripped)
                 os.replace(tmp_path, agents_md)
             except BaseException:
