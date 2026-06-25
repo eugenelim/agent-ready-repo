@@ -1,6 +1,6 @@
 # The intent tree — level-agnostic product shaping
 
-> **Diátaxis: explanation.** Why the `product-engineering` pack shapes work the way it does. For the step-by-step, see the how-to *Shape a feature intent*; for field definitions, the reference *Intent fields and modes*.
+> **Diátaxis: explanation.** Why the `product-engineering` pack shapes work the way it does. For the step-by-step, see the how-tos [*Frame a product vision*](../how-to/frame-a-product-vision.md), [*Shape a product strategy*](../how-to/shape-a-product-strategy.md), and [*Shape a feature intent*](../how-to/shape-a-feature-intent.md); for field definitions, the reference [*Intent fields and modes*](../reference/intent-fields-and-modes.md). For how these product altitudes meet the architecture concept at the start of an engagement, see [*Shaping a new engagement*](../../_shared/explanation/shaping-a-new-engagement.md).
 
 ## The problem it solves
 
