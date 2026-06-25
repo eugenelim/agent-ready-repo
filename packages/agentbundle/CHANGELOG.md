@@ -8,6 +8,8 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-06-25
+
 ### Added
 
 - **The `catalogue` argument is now optional on `install`, `upgrade`,
