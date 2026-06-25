@@ -27,7 +27,7 @@ Some guides are about the catalogue itself — installing it, upgrading it, seei
 
 - **Install & upgrade** — [from a clone](_shared/how-to/install-agentbundle-from-clone.md), into [Codex](_shared/how-to/install-user-scope-pack-into-codex.md) or [Kiro](_shared/how-to/install-user-scope-pack-into-kiro.md), [preview first with `--dry-run`](_shared/how-to/preview-install-or-upgrade.md), [upgrade an installed pack](_shared/how-to/upgrade-packs.md).
 - **Reference** — the [`agentbundle` CLI](_shared/reference/agentbundle.md) and the [adapter support matrix](_shared/reference/adapter-support.md).
-- **Understand** — [install routes](_shared/explanation/install-routes.md), [the pack catalogue](_shared/explanation/pack-catalogue.md), and [the file-safety contract](_shared/explanation/file-safety-contract.md) (your edits are never silently overwritten).
+- **Understand** — [install routes](_shared/explanation/install-routes.md), [the pack catalogue](_shared/explanation/pack-catalogue.md), [the file-safety contract](_shared/explanation/file-safety-contract.md) (your edits are never silently overwritten), and [shaping a new engagement](_shared/explanation/shaping-a-new-engagement.md) (how a product vision, a product strategy, and an architecture concept co-shape each other at the start).
 - **Contribute** — [how to author a skill](_shared/how-to/author-a-skill.md) for any pack.
 
 ## The four kinds
