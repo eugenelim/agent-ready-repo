@@ -227,4 +227,4 @@ def project_gemini_command_toml(
 
         destination = target_root / relative.with_suffix(".toml")
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        destination.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

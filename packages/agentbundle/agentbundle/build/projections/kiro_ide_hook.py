@@ -191,7 +191,7 @@ def project(
         # POSIX-friendliness.
         target_path.write_text(
             json.dumps(body, indent=2, sort_keys=False) + "\n",
-            encoding="utf-8",
+            encoding="utf-8", newline="\n",
         )
 
 

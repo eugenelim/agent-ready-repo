@@ -297,7 +297,7 @@ def _project_agent_as_json(
         destination = target_dir / (entry.stem + ".json")
         destination.write_text(
             json.dumps(agent_json, indent=2, sort_keys=False) + "\n",
-            encoding="utf-8",
+            encoding="utf-8", newline="\n",
         )
 
 

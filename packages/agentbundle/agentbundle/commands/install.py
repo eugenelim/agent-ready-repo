@@ -1867,7 +1867,7 @@ def _classify_pre_rfc0012_state(
                     # lifted into a standalone verb, route through
                     # ``safety.write_jailed`` for atomicity.
                     state_path.write_text(
-                        dump_state(repo_state), encoding="utf-8"
+                        dump_state(repo_state), encoding="utf-8", newline="\n"
                     )
                 return None
             print(

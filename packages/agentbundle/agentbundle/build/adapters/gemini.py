@@ -220,7 +220,7 @@ def _project_agent_as_md(
         frontmatter, body = _split_frontmatter(entry.read_text(encoding="utf-8"))
         out_fm = _apply_mapping(frontmatter, mapping, entry.stem)
         output_text = _serialize_frontmatter_md(out_fm) + body
-        (target_dir / entry.name).write_text(output_text, encoding="utf-8")
+        (target_dir / entry.name).write_text(output_text, encoding="utf-8", newline="\n")
 
 
 def _apply_mapping(
@@ -386,7 +386,7 @@ def _project_settings_json(
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(
         json.dumps(existing, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n",
     )
 
 
