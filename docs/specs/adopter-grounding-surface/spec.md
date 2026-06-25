@@ -1,6 +1,6 @@
 # Spec: Adopter grounding surface — a persistent recording surface the adopter already owns
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0047 (Decisions 3, 4), ADR-0037 (D2), ADR-0010 (reference-architecture foundation)
@@ -46,14 +46,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] `packs/core/seeds/AGENTS.md`'s "Commands you'll need" carries a short, optional infra/verification command block (deploy / smoke-or-verify-status / teardown / seed-test-data), each line marked optional ("if any").
-- [ ] The `reference.md` asset's existing slots are sharpened to explicitly name (a) managed-runtime/platform targets under **Constraints**, (b) framework-library contracts under **Key technology decisions**, and (c) *where the verification tooling lives* under **Observability / Testing standards** — without adding a new section.
-- [ ] The work-loop infra preflight (`references/infra-verification.md`) gains a first step: **read the recorded coordinates** (the `AGENTS.md` block + the `reference.md` platform/verification sections) *if present*, then fall back to cold oracle discovery — phrased as "check recorded coordinates → acquire via oracles".
-- [ ] **Every** new read is presence-checked: absence lowers only the starting information, never fails the loop, and is **not** enforced by any CI gate (explicit negative criterion).
-- [ ] The recorded surface is documented as a **seed for** oracle acquisition, never a replacement; a recorded value contradicting the oracle is surfaced as a drift signal (matching AGENTS.md's "when this file is wrong").
-- [ ] **No new top-level config file** is introduced (`grep` finds no `grounding.toml` or equivalent).
-- [ ] `adapt-to-project` / `init-project` elicitation optionally prompts for these coordinates, phrased as optional and non-mandating (or this AC is deferred with a backlog anchor if descoped from the implementing PR).
-- [ ] `make build-self` projects the edited sources and the tree is clean afterward; `lint-spec-status.py` clean.
+- [x] `packs/core/seeds/AGENTS.md`'s "Commands you'll need" carries a short, optional infra/verification command block (deploy / smoke-or-verify-status / teardown / seed-test-data), each line marked optional ("if any").
+- [x] The `reference.md` asset's existing slots are sharpened to explicitly name (a) managed-runtime/platform targets under **Constraints**, (b) framework-library contracts under **Key technology decisions**, and (c) *where the verification tooling lives* under **Observability / Testing standards** — without adding a new section.
+- [x] The work-loop infra preflight (`references/infra-verification.md`) gains a first step: **read the recorded coordinates** (the `AGENTS.md` block + the `reference.md` platform/verification sections) *if present*, then fall back to cold oracle discovery — phrased as "check recorded coordinates → acquire via oracles".
+- [x] **Every** new read is presence-checked: absence lowers only the starting information, never fails the loop, and is **not** enforced by any CI gate (explicit negative criterion).
+- [x] The recorded surface is documented as a **seed for** oracle acquisition, never a replacement; a recorded value contradicting the oracle is surfaced as a drift signal (matching AGENTS.md's "when this file is wrong").
+- [x] **No new top-level config file** is introduced (`grep` finds no `grounding.toml` or equivalent).
+- [x] `adapt-to-project` / `init-project` elicitation optionally prompts for these coordinates, phrased as optional and non-mandating (threaded into `adapt-to-project`'s reference-architecture-harvest Detect step and `init-project`'s Foundation phase, both read-if-present and non-mandating).
+- [x] `make build-self` projects the edited sources and the tree is clean afterward; `lint-spec-status.py` clean.
 
 ## Assumptions
 

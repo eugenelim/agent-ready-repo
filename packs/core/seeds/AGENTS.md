@@ -134,6 +134,18 @@ tasks, not most — the work-loop skill covers when it's the right tool.
 <build command>             # produce build artifacts
 ```
 
+<!-- Optional — fill any of these only if this repo deploys to a platform.
+     Each is read-if-present by the work-loop infra preflight; leaving them
+     blank costs nothing. Keep them one-liners; where the tooling lives and
+     what it targets belongs in docs/architecture/reference.md, not here. -->
+
+```bash
+<deploy command>            # deploy to your platform — if any
+<smoke command>             # post-deploy verify-status / end-to-end smoke — if any
+<teardown command>          # tear down a failed or ephemeral deploy — if any
+<seed-test-data command>    # seed test / mock-user data for the smoke probe — if any
+```
+
 ## Code style
 
 We don't list style rules here — the linter does that job better than prose can.

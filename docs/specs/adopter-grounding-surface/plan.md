@@ -1,7 +1,7 @@
 # Plan: Adopter grounding surface — a persistent recording surface the adopter already owns
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -93,6 +93,22 @@ Three additive prose edits to existing seed/template/skill sources, then project
 
 **Done when:** build-self clean, lint clean, changelog present, manual-QA recorded.
 
+**Manual-QA pass recorded (2026-06-25, doctrine walkthrough).** This change is
+prose steering, not runnable code, so the two-repo check is a walkthrough of the
+new preflight step against two repo shapes:
+- *Filled repo* — `AGENTS.md`'s optional infra block carries real `<deploy>` /
+  `<smoke>` / `<teardown>` / `<seed-test-data>` one-liners and `reference.md`
+  names the platform target + where verification tooling lives. Following the
+  new step, the preflight reads those coordinates *first*, states what it found,
+  and **seeds** the multi-artifact preflight + contract-grounding gate from them
+  — then still derives the live contract via the oracles and smokes the real
+  system. Recorded values seed, never replace; a recorded value that disputes
+  the oracle surfaces as a drift signal.
+- *Empty repo* — neither surface filled. The step is presence-checked: it finds
+  no coordinates, states "none," and **degrades to today's cold oracle
+  discovery with no failure** — no loop failure, no CI gate. Confirms the
+  regression fence: a repo that fills nothing runs exactly as it does today.
+
 ## Rollout
 
 Additive seed/template/skill prose, projected by `make build-self`. No infra, no migration. Reversible by reverting the prose. Deployment sequencing: this spec and `catalogue-seeds-lint` touch disjoint files but share a **lint-name dependency** — this spec's seed edit (T1) must satisfy whichever lint name is current, so if they land in separate PRs, sequence the rename-aware one to rebase onto the other.
@@ -106,3 +122,8 @@ Additive seed/template/skill prose, projected by `make build-self`. No infra, no
 ## Changelog
 
 - 2026-06-25: initial plan (RFC-0047 Layer B follow-on).
+- 2026-06-25: implemented (T1–T5). AGENTS.md infra block, three sharpened
+  `reference.md` slots, the presence-checked preflight step, and optional
+  elicitation threaded into `adapt-to-project` (Detect) + `init-project`
+  (Foundation) — AC7 threaded, not deferred. Projected via `make build-self`;
+  spec marked Shipped, all ACs checked.
