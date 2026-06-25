@@ -1,0 +1,27 @@
+# Line-ending normalization.
+#
+# Commit LF, check out LF — on every platform. This repo is developed on
+# macOS/Linux (always LF) but is distributed downstream, including to
+# Windows-clean white-label forks. Without this file, line endings are left
+# to each contributor's `core.autocrlf` setting and to whatever bytes a tool
+# writes (e.g. Python text-mode writers emit CRLF on Windows), so files drift
+# to CRLF the moment Windows enters the picture. `eol=lf` pins both the
+# committed blob and the working tree to LF, eliminating that drift at the
+# source regardless of platform or git config.
+#
+# After adding/changing this file, run `git add --renormalize .` once to
+# rewrite any already-committed CRLF (a no-op in an all-LF tree).
+
+* text=auto eol=lf
+
+# Binary files: never normalize.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.woff binary
+*.woff2 binary

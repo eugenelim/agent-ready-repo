@@ -246,7 +246,7 @@ def resolve_markers(
             text,
         )
         if replaced != text:
-            path.write_text(replaced, encoding="utf-8")
+            path.write_text(replaced, encoding="utf-8", newline="\n")
             modified += 1
     return modified
 
@@ -321,7 +321,7 @@ def _compose_agents_md(
     body = body_path.read_text(encoding="utf-8").replace("\r\n", "\n")
     if body and not body.endswith("\n"):
         body += "\n"
-    target_path.write_text(body, encoding="utf-8")
+    target_path.write_text(body, encoding="utf-8", newline="\n")
 
     if footer_path.exists():
         text = target_path.read_text(encoding="utf-8")
@@ -330,7 +330,7 @@ def _compose_agents_md(
             text += "\n"
         if footer and not footer.endswith("\n"):
             footer += "\n"
-        target_path.write_text(text + footer, encoding="utf-8")
+        target_path.write_text(text + footer, encoding="utf-8", newline="\n")
     return target_path
 
 
@@ -380,6 +380,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "README.md",  # root-level; nested README.md not excluded
     "LICENSE-*",
     ".gitignore",
+    ".gitattributes",
     ".github/**",
     "AGENTS.local.md",
     "AGENTS.md",  # root-level; nested AGENTS.md not excluded
@@ -586,7 +587,7 @@ def _aggregate_marketplace(
     }
     target.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n",
     )
     return target
 

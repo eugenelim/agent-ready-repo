@@ -208,4 +208,4 @@ def project_copilot_agent_md(
             _validate_tools(frontmatter["tools"])
             emitted["tools"] = frontmatter["tools"]
         destination = target_dir / (entry.stem + ".agent.md")
-        destination.write_text(_emit(emitted, body), encoding="utf-8")
+        destination.write_text(_emit(emitted, body), encoding="utf-8", newline="\n")

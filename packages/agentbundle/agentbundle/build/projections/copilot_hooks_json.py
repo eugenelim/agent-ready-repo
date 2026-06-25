@@ -138,5 +138,5 @@ def project_copilot_hooks_json(
         destination = target_dir / (entry.stem + ".json")
         destination.write_text(
             json.dumps(document, indent=2, sort_keys=False) + "\n",
-            encoding="utf-8",
+            encoding="utf-8", newline="\n",
         )

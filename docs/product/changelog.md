@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The `agentbundle` CLI now writes LF line endings on every platform.** Every
+  generated text artifact — adapter projections (Kiro, Cursor, Codex, Gemini,
+  Copilot), the composed `AGENTS.md`, the self-host tree, merged
+  `.claude/settings.json`, hooks, and TOML/JSON config — is emitted with `\n`
+  regardless of OS. Previously, running the CLI on Windows produced CRLF
+  (Python's text-mode writers translate `\n`→`\r\n` there), so a repo populated
+  on Windows drifted from one populated on macOS/Linux and polluted diffs with
+  line-ending churn. All 24 text-mode writers now pass `newline="\n"`, a
+  repo-root `.gitattributes` pins `* text=auto eol=lf` at the commit boundary,
+  and an AST guard test fails CI if a future writer omits the kwarg.
+
 ### Added
 
 - **`architect` grounds the design phase in platform reality — a backed
