@@ -1514,10 +1514,42 @@ def run_build_check_drift_gates(
     return 0
 
 
+def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
+    """Refuse a real-write self-host whose `packs_dir` points into
+    `tests/fixtures/` (which would overwrite the working tree with fixture
+    data), unless `ALLOW_FIXTURE_PACKS` is set.
+
+    This is the cross-platform home of the guard that used to live only in the
+    Makefile `build-self` recipe — so the make-free entry
+    `python -m agentbundle.build self` (the only way to run build-self on
+    Windows) is protected too. Returns a non-zero exit code to refuse, or
+    `None` to proceed. Dry-run writes to a shadow temp dir, so it is never
+    guarded (matching the `run_self_host` dirty-tree check). `as_posix()`
+    normalises separators so the match is Windows-safe.
+    """
+    if dry_run or os.environ.get("ALLOW_FIXTURE_PACKS"):
+        return None
+    # Trailing slash mirrors the historical Makefile glob `*tests/fixtures/*`
+    # exactly — so a sibling like `my-tests/fixtures-backup/` doesn't over-match.
+    if "tests/fixtures/" in packs_dir.as_posix():
+        print(
+            "self-host: refusing — --packs-dir points into tests/fixtures/; "
+            "this would overwrite your working tree with fixture data. Set "
+            "ALLOW_FIXTURE_PACKS=1 to override, or use --packs-dir packs.",
+            file=sys.stderr,
+        )
+        return 2
+    return None
+
+
 def cmd_self(args) -> int:
+    packs_dir = Path(args.packs_dir).resolve()
+    refusal = _refuse_fixture_packs_dir(packs_dir, dry_run=args.dry_run)
+    if refusal is not None:
+        return refusal
     return run_self_host(
         working_tree=Path(args.output_dir).resolve(),
-        packs_dir=Path(args.packs_dir).resolve(),
+        packs_dir=packs_dir,
         dry_run=args.dry_run,
         force=args.force,
         no_symlink=getattr(args, "no_symlink", False),

@@ -152,6 +152,12 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_self_host_recipe_config.py
 
+      # The fixture-overwrite guard now lives in cmd_self (not the Makefile);
+      # wire its test explicitly since make build-check runs no pytest.
+      - name: pytest self-host fixture guard (windows-build-self-entry)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
+
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with
