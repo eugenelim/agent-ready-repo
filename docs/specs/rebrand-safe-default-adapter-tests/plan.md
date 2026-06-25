@@ -58,12 +58,11 @@ Verification: goal-based.
 
 ## Decisions surfaced
 
-- **The three resolver test files are not in CI's curated path list** (only ~18
-  of 86 `tests/unit/` files gate; see the self-documenting comment in
-  `test_install_argparse_adapter_flag.py`). Pre-existing gap, not introduced
-  here. The change still meets its goal — the downstream playbook runs full
-  `pytest`. Wiring these into `build-check.yml` so the rebrand-safety enforces
-  upstream too is a separate decision, left to the human.
+- **The three resolver test files were not in CI's curated path list** (only ~18
+  of 86 `tests/unit/` files gate). Pre-existing gap, not introduced here.
+  **Resolved in this PR (human go-ahead):** added a `pytest adapter resolver`
+  step to `build-check.yml` running all three files, so the rebrand-safety now
+  enforces upstream too.
 
 ## Changelog
 
