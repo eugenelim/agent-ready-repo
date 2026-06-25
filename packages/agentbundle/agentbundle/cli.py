@@ -194,7 +194,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "list-packs",
         help="List packs available in a catalogue URI (local path or git+https).",
     )
-    sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
+    sp.add_argument(
+        "catalogue",
+        nargs="?",
+        default=None,
+        help=(
+            "Catalogue URI (local path or git+https://...). Optional: when "
+            "omitted, the source is resolved from your config, an editable "
+            "clone, or the packaged default (RFC-0047)."
+        ),
+    )
     sp.set_defaults(func=_lazy("list_packs"))
 
     # --- list-profiles --- (catalogue query; profiles declare their own scope)
@@ -202,7 +211,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "list-profiles",
         help="List curated install profiles available in a catalogue URI.",
     )
-    sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
+    sp.add_argument(
+        "catalogue",
+        nargs="?",
+        default=None,
+        help=(
+            "Catalogue URI (local path or git+https://...). Optional: when "
+            "omitted, the source is resolved from your config, an editable "
+            "clone, or the packaged default (RFC-0047)."
+        ),
+    )
     sp.set_defaults(func=_lazy("list_profiles"))
 
     # --- list-targets --- (no flags; queries the adapter registry)
@@ -244,7 +262,16 @@ def _build_parser() -> argparse.ArgumentParser:
             "profile declares its own scope)."
         ),
     )
-    sp.add_argument("catalogue", help="Catalogue URI (local path or git+https://...).")
+    sp.add_argument(
+        "catalogue",
+        nargs="?",
+        default=None,
+        help=(
+            "Catalogue URI (local path or git+https://...). Optional: when "
+            "omitted, the source is resolved from your config, an editable "
+            "clone, or the packaged default (RFC-0046)."
+        ),
+    )
     sp.add_argument("--output", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.add_argument(
@@ -397,7 +424,16 @@ def _build_parser() -> argparse.ArgumentParser:
     prim_group.add_argument("--hook")
     prim_group.add_argument("--seed")
     prim_group.add_argument("--command")
-    sp.add_argument("catalogue", help="Catalogue URI to fetch the new version from.")
+    sp.add_argument(
+        "catalogue",
+        nargs="?",
+        default=None,
+        help=(
+            "Catalogue URI to fetch the new version from. Optional: when "
+            "omitted, the source is resolved from your config, an editable "
+            "clone, or the packaged default (RFC-0046)."
+        ),
+    )
     sp.add_argument("--root", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.add_argument(
