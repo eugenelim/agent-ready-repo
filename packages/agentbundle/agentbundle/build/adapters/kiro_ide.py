@@ -255,7 +255,7 @@ def _project_agent_as_md(
 
         output_text = _serialize_frontmatter_md(rewritten) + body
         destination = target_dir / entry.name  # preserves .md extension
-        destination.write_text(output_text, encoding="utf-8")
+        destination.write_text(output_text, encoding="utf-8", newline="\n")
 
 
 def _serialize_frontmatter_md(fields: dict[str, Any]) -> str:

@@ -331,4 +331,4 @@ def project_codex_agent_toml(
         )
         toml_lines = _emit_fields(rewritten, body)
         destination = target_dir / (entry.stem + ".toml")
-        destination.write_text("\n".join(toml_lines) + "\n", encoding="utf-8")
+        destination.write_text("\n".join(toml_lines) + "\n", encoding="utf-8", newline="\n")
