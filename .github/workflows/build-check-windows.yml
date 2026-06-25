@@ -125,6 +125,12 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_self_host_recipe_config.py
 
+      # The fixture-overwrite guard protects the make-free Windows entry; run
+      # its test on Windows too (as_posix path matching is platform-sensitive).
+      - name: pytest self-host fixture guard (windows-build-self-entry)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
+
       # credbroker-user-scope T3: prove the vendored credbroker floor projects
       # and is importable on Windows too — the projection's path handling +
       # file modes are platform-sensitive, and the floor must import
