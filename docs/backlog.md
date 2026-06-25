@@ -996,3 +996,18 @@ bare query never silently fetches upstream.) A separable item — the **in-repo
 projection *target*, distinct from the source decision) — is RFC-scoped to its own
 future RFC. **Unblocks when:** someone opens the integrity-pinning RFC (highest
 value — it closes the one network-trust residual).
+
+## `framework-contract-grounding`
+
+### framework-contract-grounding-enumeration-dedup
+
+**Spec:** [framework-contract-grounding](specs/framework-contract-grounding/spec.md)
+(reviewer Nit, not a deferred AC). The illustrative behavioral-contract
+enumeration — "a versioned signature, a deprecation, a call-order or lifecycle
+constraint" — is stated in both the work-loop EXECUTE gate and the
+`infra-contract-acquisition` T2 software sub-tier (and, frozen, in the changelog).
+The gate↔skill duplication was kept **deliberately** so the trigger
+self-describes without a jump to the routing target; it is a low-stakes prose
+drift risk, not a correctness one. **Unblocks when:** someone refines the
+enumeration (e.g. adds "thread-safety") and wants the two live copies collapsed
+to one canonical site with the gate cross-referencing it.

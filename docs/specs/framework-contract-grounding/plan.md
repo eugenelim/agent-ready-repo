@@ -1,7 +1,7 @@
 # Plan: Framework/library contract grounding — extend the EXECUTE gate, don't fork it
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -46,7 +46,8 @@ A small, surgical prose + routing change to two existing `core`-pack skill sourc
 
 **Tests:**
 - `grep` in `packs/core/.apm/skills/infra-contract-acquisition/SKILL.md` finds the software detect target — a framework-library skill (internal *or* published vendor) **or** a Context7-style `resolve-library-id` + docs-retrieval surface **or** official versioned docs via `research` (spec AC2).
-- `grep` confirms the absent-source branch reads detect-**and-recommend-and-degrade** (recommend a vendor skill / `author-a-skill` / doc MCP, surface as a decision), and that the doc-retrieval surface is named **Tier-1 detect-and-stop** (spec AC5).
+- `grep` confirms the **present-source** branch reads consult-**and-cite** the contract slice (mirroring infra T2's "if present, read it"), not just the absent branch (spec AC2).
+- `grep` confirms the absent-source branch reads detect-**and-recommend-and-degrade** (recommend a vendor skill / the `author-a-skill` how-to guide / doc MCP, surface as a decision), and that the doc-retrieval surface is named **Tier-1 detect-and-stop** (spec AC5).
 - `grep` confirms **no** new `framework-contract-acquisition` skill directory and **no** per-library data file (spec AC3, AC4).
 
 **Approach:**
@@ -59,12 +60,13 @@ A small, surgical prose + routing change to two existing `core`-pack skill sourc
 **Depends on:** T2
 
 **Tests:**
-- `grep` in `work-loop/SKILL.md` confirms the `quality-engineer` infra-flavored re-derivation bullet (or its general framing) covers the cited framework/library contract slice symmetric with infra (spec AC6).
+- `grep` in `work-loop/SKILL.md` confirms the `quality-engineer` re-derivation bullet covers the cited framework/library contract slice symmetric with infra (spec AC6).
+- `grep` confirms the bullet's **firing condition** is widened too — it triggers on a diff that cites a framework/library contract slice, not only on "infra-flavored work" — so the re-derivation is reachable for a pure-software diff (pre-EXECUTE review Concern 3).
 
 **Approach:**
-- Adjust the `quality-engineer` REVIEW prose so the independent contract re-derivation is explicitly framework/library-aware, not infra-only.
+- Adjust the `quality-engineer` REVIEW prose so the independent contract re-derivation is explicitly framework/library-aware, not infra-only — widening **both** the slice noun and the bullet's trigger condition so a software-contract-citing diff reaches the re-derivation.
 
-**Done when:** the REVIEW prose names the software slice re-derivation; `grep` green.
+**Done when:** the REVIEW prose names the software slice re-derivation **and** fires on a software-contract-citing diff; `grep` green.
 
 ### T4: Project and verify the change is clean and additive
 
@@ -73,7 +75,7 @@ A small, surgical prose + routing change to two existing `core`-pack skill sourc
 **Tests:**
 - `make build-self` projects the edited sources to every adapter; `git status` is clean afterward (self-host drift gate, spec AC8).
 - `python .claude/skills/work-loop/scripts/lint-spec-status.py` is clean (spec AC8).
-- Manual-QA pass recorded per the spec's Testing Strategy.
+- Manual-QA pass recorded in `docs/specs/framework-contract-grounding/notes/manual-qa.md` per the spec's Testing Strategy (both the EXECUTE happy-path observation and the AC6 reviewer re-derivation observation).
 - `docs/product/changelog.md` `[Unreleased]` gains an entry for the user-visible gate-behavior change (Assumptions: changelog rule).
 
 **Approach:**
@@ -94,3 +96,4 @@ Pure prose/routing change to `core`-pack skill sources, projected by `make build
 ## Changelog
 
 - 2026-06-25: initial plan (RFC-0047 Layer A follow-on).
+- 2026-06-25: folded pre-EXECUTE adversarial findings — T2 present-source consult-and-cite grep (Concern 1); named `notes/manual-qa.md` recording location (Concern 2); T3 widens the re-derivation bullet's firing condition, not just the slice noun (Concern 3); `author-a-skill` referenced as the how-to guide it is (Nit 4).

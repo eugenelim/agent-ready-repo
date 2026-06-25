@@ -1,6 +1,6 @@
 # Spec: Framework/library contract grounding — extend the EXECUTE gate, don't fork it
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0047 (Decisions 1, 2), ADR-0037 (D1), ADR-0034 (Principle 1)
@@ -42,20 +42,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - **Gate prose + routing exists (goal-based check).** `grep` the widened trigger and the software detect-and-recommend tier in the pack **source** (`packs/core/.apm/skills/work-loop/SKILL.md` and/or `infra-contract-acquisition/SKILL.md`), and confirm it projects to every adapter via `make build-self` with a clean tree afterward (the self-host drift gate).
 - **No new skill, no bundled data (goal-based check).** `grep` confirms no new `framework-contract-acquisition` skill directory exists and no per-library data file was added.
-- **Behavioral happy path — EXECUTE (manual QA).** Exercise the skill as a user would: pose an EXECUTE step that writes code against an unfamiliar library with (a) a framework skill present → the agent consults and cites the contract slice; (b) no source present → the agent recommends a source and surfaces the gap as a decision rather than guessing. Record the observed agent behavior.
-- **Re-derivation — REVIEW (manual QA, AC6).** Drive a `quality-engineer` REVIEW pass over a diff that cites a framework/library contract slice, and record whether the reviewer **independently re-derives** that slice from the source (the framework skill / doc-retrieval surface / versioned docs) rather than trusting the implementer's citation — symmetric with its infra re-derivation. AC6 is verified by this observed reviewer behavior, not by the prose grep alone.
+- **Behavioral happy path — EXECUTE (manual QA).** Exercise the skill as a user would: pose an EXECUTE step that writes code against an unfamiliar library with (a) a framework skill present → the agent consults and cites the contract slice; (b) no source present → the agent recommends a source and surfaces the gap as a decision rather than guessing. Record the observed agent behavior in `notes/manual-qa.md` under this spec dir.
+- **Re-derivation — REVIEW (manual QA, AC6).** Drive a `quality-engineer` REVIEW pass over a diff that cites a framework/library contract slice, and record whether the reviewer **independently re-derives** that slice from the source (the framework skill / doc-retrieval surface / versioned docs) rather than trusting the implementer's citation — symmetric with its infra re-derivation. AC6 is verified by this observed reviewer behavior, not by the prose grep alone. Record the observed reviewer behavior in the same `notes/manual-qa.md`.
 - **Activation eval (goal-based, if the pack carries trigger evals).** The widened gate prose is reachable from the work-loop skill's existing activation surface; no new eval pack required.
 
 ## Acceptance Criteria
 
-- [ ] The EXECUTE contract-grounding gate's trigger explicitly fires when generating code against an **unfamiliar internal framework or third-party library** whose behavioral contract the agent does not hold, in addition to the existing infra surfaces, in the pack source.
-- [ ] The gate routes the software case to a **detect-and-recommend tier that mirrors `infra-contract-acquisition`'s T2** — detect a framework-library skill (internal *or* published vendor) **or** a Context7-style retrieval surface **or** official versioned docs via `research`; consult-and-cite if present; recommend-and-surface-as-a-decision if absent.
-- [ ] The change is **prose + routing only** — no new skill directory is created, and `grep` finds no `framework-contract-acquisition` skill.
-- [ ] **No per-library / per-vendor contract data** is added to the catalogue.
-- [ ] The optional doc-retrieval surface is documented as **Tier-1 detect-and-stop** (never Tier-2 auto-install); the gate language is detect-**and-recommend-and-degrade** (absence routes to a surfaced decision, never silent progress).
-- [ ] `quality-engineer`'s REVIEW pass re-derives the cited framework/library contract slice independently, symmetric with its infra re-derivation.
-- [ ] The gate's universality is preserved: it remains stated as **universal across light and full mode** (it already is for the infra case).
-- [ ] `make build-self` projects the edited source to every adapter and the tree is clean afterward (self-host drift gate green); `lint-spec-status.py` is clean.
+- [x] The EXECUTE contract-grounding gate's trigger explicitly fires when generating code against an **unfamiliar internal framework or third-party library** whose behavioral contract the agent does not hold, in addition to the existing infra surfaces, in the pack source.
+- [x] The gate routes the software case to a **detect-and-recommend tier that mirrors `infra-contract-acquisition`'s T2** — detect a framework-library skill (internal *or* published vendor) **or** a Context7-style retrieval surface **or** official versioned docs via `research`; consult-and-cite if present; recommend-and-surface-as-a-decision if absent.
+- [x] The change is **prose + routing only** — no new skill directory is created, and `grep` finds no `framework-contract-acquisition` skill.
+- [x] **No per-library / per-vendor contract data** is added to the catalogue.
+- [x] The optional doc-retrieval surface is documented as **Tier-1 detect-and-stop** (never Tier-2 auto-install); the gate language is detect-**and-recommend-and-degrade** (absence routes to a surfaced decision, never silent progress).
+- [x] `quality-engineer`'s REVIEW pass re-derives the cited framework/library contract slice independently, symmetric with its infra re-derivation.
+- [x] The gate's universality is preserved: it remains stated as **universal across light and full mode** (it already is for the infra case).
+- [x] `make build-self` projects the edited source to every adapter and the tree is clean afterward (self-host drift gate green); `lint-spec-status.py` is clean.
 
 ## Assumptions
 
