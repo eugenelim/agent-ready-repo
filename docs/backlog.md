@@ -384,7 +384,7 @@ of their own yet.
 
 - **Follow-up (reviewer-flagged, not an unmet AC):** the adopter-facing
   leak guard (no `agent-ready-repo` / `RFC-NNNN` / catalogue-spec-name) is
-  enforced by `tools/lint-seeds.py` for **seed** files only. The shipped
+  enforced by `tools/lint-catalogue-seeds.py` for **seed** files only. The shipped
   `receive-brief/SKILL.md` and `receive-brief/examples/*.md` live under
   `packs/core/.apm/skills/` and are outside that lint's scope — clean today by
   inspection, but unguarded against regression. Extend the seed-content
@@ -679,7 +679,7 @@ in the quote-stripping branch.
 
 ### apm-leak-lint-rfc
 
-A `lint-seeds`-analogue for `packs/*/.apm/**` that mechanically catches
+A `lint-catalogue-seeds`-analogue for `packs/*/.apm/**` that mechanically catches
 internal-governance citations (RFC/ADR numbers, `docs/specs|rfc|adr` paths,
 `make`/`tools/lint` references, "this catalogue" identity asides) in shipped
 skills, agents, commands, and hooks. Today the rule is hand-checked

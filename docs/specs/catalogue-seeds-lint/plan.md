@@ -1,7 +1,7 @@
 # Plan: Catalogue-seeds lint — opt-in by construction, renamed `lint-catalogue-seeds`
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -107,3 +107,27 @@ Repo-internal catalogue tooling + manifest-field change. No runtime infra. **Dep
 ## Changelog
 
 - 2026-06-25: initial plan (RFC-0047 Decision 6 follow-on).
+- 2026-06-25: implemented and shipped. Gate added at `_enumerate_seed_files`
+  (one chokepoint, via a `_pack_opts_in` `pack.toml` read — no central list);
+  flag added to the four first-party packs; tool + CI job/path-filter/run-line +
+  `pre-pr-catalogue.py` + `tools/hooks/README.md` renamed in lockstep; new
+  `tools/test-lint-catalogue-seeds.py` self-test wired into `docs.yml`,
+  `pre-pr-catalogue.py`, and `test-all.py`. Confirmed no contract-version bump
+  (additive optional field, unmapped in `_pack_manifest_subset`, so `build-self`
+  leaves `plugin.json`/`marketplace.json` clean). `make build-check` green.
+- 2026-06-25: review (adversarial-reviewer + quality-engineer, no Blockers).
+  Applied: 3 fail-closed self-test cases (`_pack_opts_in` on missing /
+  malformed / non-table `pack.toml` → skip, no crash), a flagged
+  missing-placeholder case (second gated check, enforced direction), stderr
+  substring asserts on the failing cases, the `git init` isolation comment, and
+  AC1/AC9 wording tightened to "operative refs only" + the expected warn-only
+  delta. **Declined (with reason):** a loud "skipped N packs" diagnostic
+  (quality Nit 2) — it contradicts the spec's *unenforced-by-construction,
+  silent* intent for org packs, and the lint cannot distinguish an org pack
+  (wants silence) from a first-party pack that forgot the flag (wants noise)
+  without the central list the spec forbids. **Expected warn-only delta:** the
+  rename turns `tools/lint-seeds.py` references in frozen/shipped specs
+  (`doc-drift-prevention`, `self-hosting`, `spec-code-ref-lint`,
+  `value-stream-meta-repo`, …) and this spec's own rename-mapping/assumption
+  lines into `lint-spec-status` invariant-iii dangling-ref *warnings* (warn-only,
+  exit 0); left as historical record rather than rewriting frozen spec bodies.
