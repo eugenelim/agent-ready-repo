@@ -10,8 +10,20 @@ type = "composite"
 description = "Overlay every pack's Claude Code projection onto this repo; compose AGENTS.md from packs/core/seeds and aggregate .claude-plugin/marketplace.json across packs."
 
 [recipe.adapters]
-# The self-host runtime reads `SELF_HOST_ADAPTERS` and keeps this list in sync.
+# Authoritative source for `SELF_HOST_ADAPTERS` — `self_host.py` reads this list.
+# Kiro and Copilot stay in the contract for distribution builds but are excluded
+# here so self-host does not project `.kiro/` or `.github/instructions/`.
 targets = ["claude-code", "codex"]
+
+[recipe.packs]
+# Authoritative source for `SELF_HOST_PACKS` — `self_host.py` reads this list.
+# This repo is the catalogue's home, not an adopter, so `make build-self` only
+# projects the in-house packs into the working tree. User-scope-default packs
+# (architect, atlassian, contracts, converters, credential-brokers, figma) are
+# advertised via `marketplace.json` but their primitives don't belong in this
+# repo's `.claude/skills/` tree; `monorepo-extras` is repo-only by metadata but
+# the bundle is not a canonical `new-package` consumer, so it's left out too.
+include = ["core", "governance-extras", "user-guide-diataxis"]
 
 [recipe.iterate]
 over = "packs/*/"

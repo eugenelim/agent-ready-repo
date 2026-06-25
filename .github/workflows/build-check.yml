@@ -146,6 +146,12 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
 
+      # self_host derives SELF_HOST_PACKS / SELF_HOST_ADAPTERS from the recipe;
+      # make build-check runs no pytest, so wire this unit test explicitly.
+      - name: pytest self-host recipe config (externalize-self-host-config)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_self_host_recipe_config.py
+
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with
