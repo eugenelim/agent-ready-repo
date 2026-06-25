@@ -244,7 +244,10 @@ for per-provider breadth, the reviewer for failure-class reasoning.
 
 ## REVIEW — `quality-engineer` independent contract re-derivation (Delivery — no new agent)
 
-On infra-flavored work the orchestrator additionally inlines
+The re-derivation trigger keys on **a contract slice having been cited at the
+EXECUTE gate — infra *or* software** — not on the infra-flavored signal (that
+signal only adds the infra-specific extras below). On infra-flavored work the
+orchestrator additionally inlines
 [`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md)
 (alongside `cloud-implementation-craft`, routed via the `operational-safety`
 table in `SKILL.md`) into the `quality-engineer` brief, and the reviewer
@@ -252,7 +255,12 @@ table in `SKILL.md`) into the `quality-engineer` brief, and the reviewer
 the validate / plan / synth + schema-slice acquisition itself — **never trusting
 the implementer's own contract evidence**, which would reproduce the
 field-report blind spot (a build that authored against model memory, then
-"verified" against the same memory). This adds **no new reviewer or agent** (the
+"verified" against the same memory). **A cited *software* slice gets the same
+independent re-derivation** — the reviewer re-runs the type-checker / API-surface
+oracle (or reads the curated skill / versioned docs) itself, never trusting the
+implementer's citation; this fires on any software-contract-citing diff, not
+only an infra-flavored one, so the broadened EXECUTE software surface ships with
+its matching REVIEW half. This adds **no new reviewer or agent** (the
 three-reviewer ceiling, ADR-0023): contract-conformance rides the **existing**
 `quality-engineer`, already the infra reviewer in spirit. The
 **auth-flow-contradiction class** (a spec whose auth design contradicts itself)
