@@ -387,7 +387,7 @@ Match the discipline to the verification mode you picked during PLAN:
 
 **EXECUTE contract-grounding gate (universal across light and full mode).**
 Before generating code against a contract you do not already hold, acquire it
-via the [`infra-contract-acquisition`](../infra-contract-acquisition/SKILL.md)
+via the [`contract-acquisition`](../contract-acquisition/SKILL.md)
 skill — never guess a flag, schema shape, field constraint, signature, or
 packaging assumption. **Two surfaces, one gate and one skill** (ADR-0037 D1 —
 extend the one gate, never fork a parallel skill): **(1) infra** — a CLI
@@ -716,7 +716,7 @@ note in the summary, not a blocker.
   **Independent contract re-derivation (Delivery — no new agent, ADR-0023).**
   When a diff was authored against a contract grounded at the EXECUTE gate, the
   orchestrator inlines
-  [`infra-contract-acquisition`](../infra-contract-acquisition/SKILL.md) into the
+  [`contract-acquisition`](../contract-acquisition/SKILL.md) into the
   `quality-engineer` brief and the reviewer **re-derives the cited contract slice
   independently from the source — never trusting the implementer's citation** (the
   field-report blind spot). Symmetric across both gate surfaces: the toolchain
