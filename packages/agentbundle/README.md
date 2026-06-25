@@ -15,37 +15,37 @@ pip install agentbundle
 **Install into a repo** — so everyone who clones it gets the pack. `core` is the flagship pack, the loop itself:
 
 ```bash
-agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
+agentbundle install --pack core
 ```
 
-It lands in the repo's agent config — subagents and skills included — and you commit it like any other project file. This is the default scope: the pack belongs to the project and the whole team.
+No catalogue argument needed: it defaults to the agent-ready-repo catalogue. It lands in the repo's agent config — subagents and skills included — and you commit it like any other project file. This is the default scope: the pack belongs to the project and the whole team.
 
 **Install for yourself, everywhere** — so a pack follows you across every project, with no per-repo setup:
 
 ```bash
-agentbundle install --pack research git+https://github.com/eugenelim/agent-ready-repo --scope user
+agentbundle install --pack research --scope user
 ```
 
 User-scope packs land in your home directory, not the repo — they're yours, not the team's, and they're there in every project you open.
 
-A catalogue is a git URL or a local path, and the install auto-detects your agent (`--adapter` overrides).
+The install auto-detects your agent (`--adapter` overrides). To install from a **different** catalogue, pass it as a trailing argument — a git URL or a local path (`agentbundle install --pack core <catalogue>`); a `config set source <catalogue>` makes that the default, and an editable clone (`pip install -e`) defaults to itself.
 
 ## More commands
 
 ```bash
-# See what a catalogue offers
-agentbundle list-packs    git+https://github.com/eugenelim/agent-ready-repo
-agentbundle list-profiles git+https://github.com/eugenelim/agent-ready-repo
+# See what the catalogue offers (bare uses the default; or name one explicitly)
+agentbundle list-packs
+agentbundle list-profiles
 
 # Install a whole curated profile — a single-scope set of packs — in one command
-agentbundle install --profile inception git+https://github.com/eugenelim/agent-ready-repo
+agentbundle install --profile inception
 
 # Preview any install without writing a file
-agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo --dry-run
+agentbundle install --pack core --dry-run
 
 # Upgrade to the version the catalogue ships — shows installed → target, asks first
-agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo
-agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo --yes  # skip the prompt (CI)
+agentbundle upgrade --pack core
+agentbundle upgrade --pack core --yes  # skip the prompt (CI)
 
 # Uninstall — previews remove (Tier-1) vs keep (your edits), asks first
 agentbundle uninstall --pack core --dry-run

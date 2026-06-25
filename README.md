@@ -16,10 +16,10 @@ The leverage in agent coding moved from the prompt to the **loop** — it plans,
 
 ```bash
 pip install agentbundle
-agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
+agentbundle install --pack core
 ```
 
-One line lands the loop in your repo. Any agent that reads a skill file inherits it: Claude Code, Codex, Cursor, Copilot, Gemini, Kiro.
+One line lands the loop in your repo — no catalogue argument needed; it defaults to this catalogue. Any agent that reads a skill file inherits it: Claude Code, Codex, Cursor, Copilot, Gemini, Kiro.
 
 Behind `core` is a **catalogue of kits** — research, integration contract authoring, solution architecture, product shaping, and more — each a cohesive set of skills, subagents, and hooks that delivers one whole job, installed one line at a time. [See the catalogue.](#the-catalogue)
 
@@ -29,28 +29,28 @@ Behind `core` is a **catalogue of kits** — research, integration contract auth
 # Install the CLI (one-time)
 pip install agentbundle
 
-# See the catalogue
-agentbundle list-packs git+https://github.com/eugenelim/agent-ready-repo
+# See the catalogue (bare uses the default; or name one explicitly)
+agentbundle list-packs
 
 # Install the flagship loop into this repo
-agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
+agentbundle install --pack core
 
 # Install a pack at user scope — follows you across every project
-agentbundle install --pack research git+https://github.com/eugenelim/agent-ready-repo --scope user
+agentbundle install --pack research --scope user
 
 # Install a whole curated profile in one command
-agentbundle install --profile solution-architect git+https://github.com/eugenelim/agent-ready-repo
+agentbundle install --profile solution-architect
 
 # Upgrade a pack to the catalogue's version (asks before writing; --yes for CI)
-agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo
+agentbundle upgrade --pack core
 
 # Preview any install without writing a file
-agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo --dry-run
+agentbundle install --pack core --dry-run
 ```
 
 `--dry-run` previews every file before anything is written — one line per file (skills, the four reviewer/executor subagents, the hooks), then a `create`/`overwrite` summary count — so you see exactly what would land in your repo.
 
-The catalogue is a git URL or local path. Installs auto-detect your agent (`--adapter` overrides). Repo scope writes into the current repo; user scope (`--scope user`) installs once into your home so the pack is available everywhere.
+Every source verb — `install`, `upgrade`, `list-packs`, `list-profiles` — defaults to this catalogue when you don't name one; pass an explicit catalogue (a git URL or local path) as a trailing argument to use a different one, or `agentbundle config set source <catalogue>` to change the default (an editable `pip install -e` clone defaults to itself). Installs auto-detect your agent (`--adapter` overrides). Repo scope writes into the current repo; user scope (`--scope user`) installs once into your home so the pack is available everywhere.
 
 ## The loop
 

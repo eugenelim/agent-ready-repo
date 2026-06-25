@@ -32,7 +32,7 @@ from typing import Any, Mapping
 from agentbundle.config import _emit_basic_string
 
 
-_KNOWN_KEYS: tuple[str, ...] = ("adapter",)
+_KNOWN_KEYS: tuple[str, ...] = ("adapter", "source")
 
 
 @dataclass(frozen=True)
@@ -43,9 +43,13 @@ class UserConfig:
     exist, or the on-disk value failed validation." Callers cannot
     distinguish these three from the dataclass alone; the loader emits
     a stderr warning when validation drops a value.
+
+    `adapter` and `source` are parsed independently: a malformed value
+    for one is dropped (with a warning) without dropping the other.
     """
 
     adapter: str | None = None
+    source: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -123,9 +127,20 @@ def read_user_config(path: Path) -> UserConfig:
         )
         return UserConfig()
 
+    # `adapter` and `source` are parsed independently so a malformed value
+    # for one fail-softs without dropping the other.
+    return UserConfig(
+        adapter=_parse_adapter(settings, path),
+        source=_parse_source(settings, path),
+    )
+
+
+def _parse_adapter(settings: dict, path: Path) -> str | None:
+    """Fail-soft parse of `[settings].adapter` (warns + returns `None` on a
+    non-string value or a value outside the shipped adapter contract)."""
     raw_adapter = settings.get("adapter")
     if raw_adapter is None:
-        return UserConfig()
+        return None
     if not isinstance(raw_adapter, str):
         print(
             f"agentbundle: warning: user config at {path} has a "
@@ -133,7 +148,7 @@ def read_user_config(path: Path) -> UserConfig:
             f"ignoring.",
             file=sys.stderr,
         )
-        return UserConfig()
+        return None
 
     # Validate against the shipped adapter contract. Late import to
     # avoid a circular import at module load.
@@ -149,9 +164,32 @@ def read_user_config(path: Path) -> UserConfig:
             f"file or run `agentbundle config set adapter <name>`.",
             file=sys.stderr,
         )
-        return UserConfig()
+        return None
 
-    return UserConfig(adapter=raw_adapter)
+    return raw_adapter
+
+
+def _parse_source(settings: dict, path: Path) -> str | None:
+    """Fail-soft parse of `[settings].source` (warns + returns `None` on a
+    non-string value).
+
+    Scheme/marker validation is deliberately **not** here — it lives in
+    `source_defaults.resolve_default_source`, so a value set via
+    `config set source` persists and is rejected (with a diagnostic) only at
+    resolution time. The loader's job is to surface the string for layer 2.
+    """
+    raw_source = settings.get("source")
+    if raw_source is None:
+        return None
+    if not isinstance(raw_source, str):
+        print(
+            f"agentbundle: warning: user config at {path} has a "
+            f"non-string `source` value ({type(raw_source).__name__}); "
+            f"ignoring.",
+            file=sys.stderr,
+        )
+        return None
+    return raw_source
 
 
 def load_user_config() -> UserConfig:
@@ -236,6 +274,16 @@ def _validate_key_value(key: str, value: str) -> None:
             raise ValueError(
                 f"agentbundle: unknown adapter {value!r}. Admissible: "
                 f"{sorted(shipped)}."
+            )
+    if key == "source":
+        # Parseable-only at write time: refuse an empty/whitespace value. The
+        # scheme gate (reject non-`git+https` URLs, require markers for a local
+        # path) lives in `source_defaults.resolve_default_source`, so a value
+        # like `http://…` is accepted-but-inert here and rejected at resolution.
+        if not value.strip():
+            raise ValueError(
+                "agentbundle: `source` must be a non-empty catalogue URI "
+                "(git+https://…) or local path."
             )
 
 

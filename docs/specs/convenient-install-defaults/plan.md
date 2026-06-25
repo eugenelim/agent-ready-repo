@@ -1,7 +1,7 @@
 # Plan: Convenient install defaults
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Shipped
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -142,16 +142,29 @@ wheel, and `None` from a blanked file. Verifies the packaged-default AC.
 - Unit: `source` is in `_KNOWN_KEYS`; `config set source <uri>` writes it,
   `config get source` reads it back, `config unset source` removes it
   (extend `test_config_cmd.py` / `test_user_config_io.py`).
-- Unit: an unknown key is still refused; a malformed `source` value is rejected
-  by `_validate_key_value` (parseable-URI check only — no host allowlist).
+- Unit (read-back — closes the write-only gap): a file with `[settings] source =
+  "<uri>"` is parsed by `read_user_config` onto `UserConfig.source`, and
+  `resolve_default_source` consumes it as layer 2.
+- Unit: `config get source` reports provenance `file` when set, `unset` when
+  absent (no builtin constant for `source`).
+- Unit (independent fail-soft): a malformed/non-string `source` value leaves a
+  valid `adapter` intact — `read_user_config` drops only the bad field, mirroring
+  the existing `adapter` fail-soft.
+- Unit: an unknown key is still refused; a malformed `source` value (empty /
+  whitespace) is rejected by `_validate_key_value` (parseable-only — **no scheme
+  gate, no host allowlist**; `config set source http://…` is accepted-but-inert).
 - Regression: `adapter` validation and the config-cascade tests stay green.
 
 **Approach:**
-- Add `"source"` to `_KNOWN_KEYS` and the `UserConfig` dataclass; add a `source`
-  branch to `_validate_key_value` (parseable URI). User scope only.
+- Add `"source"` to `_KNOWN_KEYS`, the `UserConfig` dataclass, **and the
+  `read_user_config` parse path** (fail-soft on a non-string value, mirroring
+  `adapter`). Add a `source` branch to `_validate_key_value` (parseable / non-empty
+  only) and to `_effective_value` in `commands/config.py` (`file` vs `unset`
+  provenance). User scope only. The scheme gate is **not** here — it is in
+  `resolve_default_source` (T4).
 
-**Done when:** `config set/get/unset source` round-trips and the adapter path is
-untouched. Verifies the config-key AC.
+**Done when:** `config set/get/unset source` round-trips, `read_user_config`
+surfaces `source`, and the adapter path is untouched. Verifies the config-key AC.
 
 ### T3: Editable detection (layer 3) — the keystone
 
@@ -165,6 +178,8 @@ untouched. Verifies the config-key AC.
 - Unit: missing `direct_url.json` → `None`, no error.
 - Unit: `dir_info.editable == false` → `None`.
 - Unit: a non-empty / non-localhost `file://` host → rejected.
+- Unit: `.git` as a **regular file** (worktree gitdir pointer) is recognized as
+  the repo boundary, not only `.git` as a directory.
 - Unit: a `packs/` + `marketplace.json` pair planted in a parent **above** the
   `.git` root is **not** matched (repo-bounded ascent); a pair in an intermediate
   dir *inside* the clone stops the walk at first match (accident-guard residual,
@@ -187,9 +202,15 @@ untouched. Verifies the config-key AC.
 - Return the catalogue root, or `None` (with the stderr diagnostic when editable
   was detected but no root found below the boundary).
 
+The keystone integration test is `tests/integration/test_editable_source_detection.py`;
+it builds its **own** throwaway venv (`python -m venv`) + `pip install -e
+packages/agentbundle`, reads the real `direct_url.json`, and is **wired into CI
+explicitly** in `build-check.yml` (not picked up by `make build-check`).
+
 **Done when:** the keystone integration test passes against a real editable
 install and every negative/hardening unit test is green. Verifies the editable
-detection, walk-up-bound, `file://`-host, and fall-back-with-diagnostic ACs.
+detection, walk-up-bound, `.git`-as-file, `file://`-host, and
+fall-back-with-diagnostic ACs.
 
 ### T4: `resolve_default_source()` — compose the four layers
 
@@ -201,9 +222,12 @@ detection, walk-up-bound, `file://`-host, and fall-back-with-diagnostic ACs.
 - Unit: layer 2 outranks layer 3 (explicit config beats auto-detection).
 - Unit: an invalid layer output (bad-marker path / unparseable URI) is **skipped**,
   not passed to `resolve_catalogue`.
-- Unit (scheme validation): a `file://` / `http://` / other-scheme source from
-  layer 2 or layer 4 is **rejected** (only `git+https` and a local path pass),
-  distinct from the deferred host allowlist.
+- Unit (scheme validation — table-driven, the parser-differential cases): accept
+  `git+https://…` and a schemeless local path with markers (`/abs`, `./rel`,
+  `rel`) and a Windows drive path with markers (`C:\repo`); **reject** `file://`,
+  `file:/` (single-slash), `http://`, `https://`, `git+ssh://`, and a mis-cased
+  `GIT+HTTPS://` — only the literal-`git+https://` and schemeless/drive local-path
+  branches pass. Distinct from the deferred host allowlist.
 - Unit: all layers empty → the clear error naming all three recovery paths.
 - Unit (negative invariants): a planted `./` cwd source is never consulted; there
   is no repo-scoped layer to consult.
@@ -226,22 +250,40 @@ clear-error ACs.
 **Depends on:** T4
 
 **Tests:**
-- Goal-based: argparse accepts a bare `install --pack X` and `upgrade` (no
-  catalogue); `list-packs` / `list-profiles` still reject a bare invocation.
-- Unit: an explicit `--catalogue`/positional passes through unchanged (the
-  default path does not run).
+- Goal-based: argparse accepts a bare `install --pack X`, a bare `install
+  --profile Y`, and a bare `upgrade` (no catalogue); `list-packs` /
+  `list-profiles` still reject a bare invocation.
+- Unit: an explicit positional `catalogue` passes through unchanged (the default
+  chain does not run — layer 1 short-circuits).
 - Integration: a bare `install --pack core` in an editable checkout resolves via
   layer 3 and proceeds (end-to-end happy path); the same is unaffected by a
   planted `./` source (no-cwd, at the command boundary).
+- Unit: a bare `install --profile X` reaches `resolve_default_source` at the
+  `_run_profile` site (not just the `--pack` path).
 - Regression: `test_resolve_user_scope_target_adapter.py` and the ~13 adapter
   resolution tests stay green.
 
 **Approach:**
+- New shared helper `commands/_common.resolve_catalogue_uri(args) -> str`: gathers
+  `config_source` from `args._user_config` and calls
+  `resolve_default_source(args.catalogue, config_source=…)` **unconditionally**
+  (layer 1 returns an explicit arg verbatim before any metadata/bundle read, so
+  the default chain runs only when the positional is omitted).
 - `cli.py`: `install` (`:247`) and `upgrade` (`:400`) catalogue → `nargs="?"`,
   `default=None`. `list-packs` (`:197`) / `list-profiles` (`:205`) unchanged.
-- `commands/install.py` + `commands/upgrade.py`: when `args.catalogue is None`,
-  call `resolve_default_source(...)` and feed the result to `resolve_catalogue`;
-  otherwise pass the explicit arg straight through.
+- All **three** resolve sites — `install.run` (`:116`), `install._run_profile`
+  (`:3727`), `upgrade.run` (`:94`) — replace `catalogue_uri = args.catalogue`
+  with `catalogue_uri = resolve_catalogue_uri(args)`.
+- The **fourth** consumer, `install._offer_upgrade` (`:1739`), currently copies
+  `ns.catalogue = args.catalogue` into the synthetic namespace it hands to
+  `upgrade.run`. Thread the **already-resolved** `catalogue_uri` from `install.run`
+  into the hand-off (pass it as a parameter or set `ns.catalogue = catalogue_uri`)
+  so the upgrade offer carries the concrete URI rather than re-resolving (which on
+  a bare install would otherwise pass `None` and double-detect). Test: a bare
+  `install` that triggers the upgrade offer resolves once and hands the concrete
+  URI down.
+- CI: wire the keystone integration test (and the new unit tests, if not already
+  swept) into `build-check.yml` explicitly — `make build-check` runs no pytest.
 
 **Done when:** a bare `install`/`upgrade` resolves and runs end-to-end, the
 discovery verbs still require a catalogue, and the explicit-arg path is byte-for-
@@ -274,3 +316,16 @@ byte unchanged. Verifies the two CLI ACs and the end-to-end happy-path.
 ## Changelog
 
 - 2026-06-25: initial plan (authored alongside spec + ADR-0036 from RFC-0046).
+- 2026-06-25 (implementation): corrected the editable-detection **confinement
+  AC** directionality. The package has no repo-root `pyproject.toml` (it lives at
+  `packages/agentbundle/`), so `pip install -e packages/agentbundle` records that
+  subdir as the editable URL and the catalogue/`.git` root is an **ancestor** of
+  it — reached by walking *up*. The original AC's "candidate is a descendant-or-
+  equal of the editable URL" was directionally inverted (it would fail the
+  documented keystone test); rewritten to confine candidates to the closed
+  interval [resolved `.git` root … resolved editable path], all canonicalized.
+  Security intent (no escape via symlink/`..`, no match above the repo) is
+  unchanged. New module: `agentbundle/source_defaults.py` holds T1/T3/T4; the
+  args→inputs adapter is `commands/_common.resolve_catalogue_uri(args)`, which
+  calls `resolve_default_source(args.catalogue, …)` unconditionally (layer 1
+  short-circuits an explicit arg, so the default chain runs only when omitted).

@@ -79,6 +79,7 @@ def run(args: "argparse.Namespace") -> int:
         confirm_or_refuse,
         format_plan_line,
         plan_action,
+        resolve_catalogue_uri,
         summarize_plan,
     )
     from agentbundle.config import (
@@ -91,7 +92,15 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle import safety
 
     pack_name: str = args.pack
-    catalogue_uri: str = args.catalogue
+    # RFC-0046: resolve the default source when the `catalogue` positional was
+    # omitted (an explicit arg short-circuits through layer 1 unchanged). On the
+    # install→upgrade hand-off the synthetic namespace already carries the
+    # concrete resolved URI, so layer 1 returns it verbatim — no re-resolution.
+    try:
+        catalogue_uri: str = resolve_catalogue_uri(args)
+    except CatalogueError as exc:
+        print(f"upgrade: {exc}", file=sys.stderr)
+        return 1
     cli_scope: str | None = getattr(args, "scope", None)
     # User-config attached by `cli.py:main()` via args._user_config.
     # The pre-flight in `_resolve_target_adapter` no-ops when
