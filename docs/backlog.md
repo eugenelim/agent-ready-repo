@@ -1005,7 +1005,7 @@ value — it closes the one network-trust residual).
 (reviewer Nit, not a deferred AC). The illustrative behavioral-contract
 enumeration — "a versioned signature, a deprecation, a call-order or lifecycle
 constraint" — is stated in both the work-loop EXECUTE gate and the
-`infra-contract-acquisition` T2 software sub-tier (and, frozen, in the changelog).
+`contract-acquisition` T2 software sub-tier (and, frozen, in the changelog).
 The gate↔skill duplication was kept **deliberately** so the trigger
 self-describes without a jump to the routing target; it is a low-stakes prose
 drift risk, not a correctness one. **Unblocks when:** someone refines the
