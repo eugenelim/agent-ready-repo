@@ -35,27 +35,29 @@ else
 endif
 endif
 
-# The tests/fixtures fixture-overwrite guard lives in the CLI handler
-# (agentbundle.build.self_host.cmd_self) so it protects the make-free
-# `python -m agentbundle.build self` entry on Windows too, honouring the same
-# ALLOW_FIXTURE_PACKS override.
-build-self: lint-packs
+# Routes through the make-free repo-native chaining script
+# (tools/build_gate_chain.py build-self) so the lint-packs → self step list
+# lives in exactly one place and the Windows entry
+# (`python tools/build_gate_chain.py build-self`) and this target cannot drift.
+# The chain reaches `self` through `cmd_self`, so the tests/fixtures
+# fixture-overwrite guard and the ALLOW_FIXTURE_PACKS override fire unchanged.
+build-self:
 ifeq ($(DRY_RUN),1)
 ifeq ($(FORCE),1)
-	$(PYTHON) -m agentbundle.build self --dry-run --force --packs-dir $(PACKS_DIR)
+	$(PYTHON) tools/build_gate_chain.py build-self --dry-run --force --packs-dir $(PACKS_DIR)
 else
-	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
+	$(PYTHON) tools/build_gate_chain.py build-self --dry-run --packs-dir $(PACKS_DIR)
 endif
 else
 ifeq ($(FORCE),1)
-	$(PYTHON) -m agentbundle.build self --force --packs-dir $(PACKS_DIR)
+	$(PYTHON) tools/build_gate_chain.py build-self --force --packs-dir $(PACKS_DIR)
 else
-	$(PYTHON) -m agentbundle.build self --packs-dir $(PACKS_DIR)
+	$(PYTHON) tools/build_gate_chain.py build-self --packs-dir $(PACKS_DIR)
 endif
 endif
 
-build-self-dry-run: lint-packs
-	$(PYTHON) -m agentbundle.build self --dry-run --packs-dir $(PACKS_DIR)
+build-self-dry-run:
+	$(PYTHON) tools/build_gate_chain.py build-self --dry-run --packs-dir $(PACKS_DIR)
 
 # Projected-artifact + spec-state aggregator. Mirrors what
 # docs.yml's per-layer jobs and the `Lifecycle hooks` job run in CI;
@@ -66,20 +68,20 @@ build-self-dry-run: lint-packs
 pre-pr:
 	$(PYTHON) tools/pre-pr-catalogue.py
 
-build-check: lint-packs build
-	$(PYTHON) -m agentbundle.build check --packs-dir $(PACKS_DIR)
-	$(PYTHON) tools/pre-pr-catalogue.py
-	# Doc-drift spec-metadata gate (RFC-0016 § Errata / ADR-0007). The lint is a
-	# work-loop skill script that ships to adopters; the catalogue runs the
-	# PROJECTED copy as its fail-closed CI gate (mirrors how pre-pr.py invokes
-	# the projected loop-cohort.py). NOT wired into the projected pre-pr.py hook.
-	$(PYTHON) .claude/skills/work-loop/scripts/test-lint-spec-status.py
-	$(PYTHON) .claude/skills/work-loop/scripts/lint-spec-status.py
-	# Brief-coverage auto-rollup gate (receive-brief skill script). Same shape
-	# as the spec-status pair above: run the PROJECTED self-test then the lint.
-	# No-ops on this repo (it ships no brief); fail-closed on a stale Spec map.
-	$(PYTHON) .claude/skills/receive-brief/scripts/test-lint-brief-coverage.py
-	$(PYTHON) .claude/skills/receive-brief/scripts/lint-brief-coverage.py
+# Routes the Windows-clean gate steps through the make-free repo-native script
+# (tools/build_gate_chain.py build-check), which runs — in this order —
+# lint-packs, build, check, pre-pr-catalogue, the spec-status self-test+lint
+# pair (RFC-0016 § Errata / ADR-0007; runs the PROJECTED copy as its fail-closed
+# gate), and the brief-coverage self-test+lint pair (receive-brief; no-ops on
+# this repo, fail-closed on a stale Spec map). The step list lives once, in the
+# script, so this target and the Windows entry
+# (`python tools/build_gate_chain.py build-check`) cannot drift. The script is
+# repo-native (not an `agentbundle` subcommand) because it spawns repo-only
+# scripts never shipped to adopters. The SAST leg below is NOT chained into the
+# script — Semgrep has no Windows support and the leg is conditional — so it
+# stays appended here, run last.
+build-check:
+	$(PYTHON) tools/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
 	# SKIP_SAST short-circuits the SAST/SCA leg only (the drift + lint gates
