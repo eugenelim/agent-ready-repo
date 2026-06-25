@@ -182,6 +182,12 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
 
+      # The make-free build-self / build-check chaining subcommands; wire their
+      # test explicitly since make build-check runs no pytest.
+      - name: pytest make-free gate chains (windows-build-gate-chain)
+        working-directory: packages/agentbundle
+        run: python -m pytest agentbundle/build/tests/test_gate_chains.py
+
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with
