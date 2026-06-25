@@ -1,19 +1,18 @@
 # agent-ready-repo
 
-**A loop your coding agent can't cut corners in.**
+**A loop your coding agent can't cut corners in — and a catalogue of kits for the jobs around the code.**
 
-Loop engineering for any repo, any agent. Plan, execute, verify, review. Gates it can't pass on red. A reviewer that reads every diff cold.
+The sharpest **loop engineering** for coding agents: plan, execute, verify, review — with gates it can't pass on red and a reviewer that reads every diff cold. Any repo, any agent.
 
-[![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](#license)
+[![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/) [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](#license)
+
+[Quick Start](#quick-start) · [The Loop](#the-loop) · [The Catalogue](#the-catalogue) · [Build a Pack](#how-a-pack-is-laid-out) · [Docs](docs/guides/) · [Contributing](CONTRIBUTING.md)
 
 > "You shouldn't be prompting coding agents anymore. You should be designing loops that prompt your agents." — [Peter Steinberger](https://x.com/steipete/status/2063697162748260627)
 
-The leverage in agent coding moved from the prompt to the **loop**. The loop plans, executes, verifies, and decides what comes next. You stop babysitting every turn.
+The leverage in agent coding moved from the prompt to the **loop** — it plans, executes, verifies, and decides what comes next, so you stop babysitting every turn. But a loop running unattended is also a loop making mistakes unattended, so it has to check its own work harder than you would.
 
-Here's the part most people skip. A loop running unattended is also a loop making mistakes unattended. So it has to check its own work harder than you would.
-
-`core` is the flagship pack. It's loop engineering made concrete: the planning discipline, the hard gates, and the cold-eyed review, working as one loop. The agent can't self-certify its way out of it.
+`core` is the flagship pack: that discipline made concrete — planning, hard gates, cold-eyed review, working as one loop the agent can't self-certify its way out of.
 
 ```bash
 pip install agentbundle
@@ -22,108 +21,120 @@ agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-rep
 
 One line lands the loop in your repo. Any agent that reads a skill file inherits it: Claude Code, Codex, Cursor, Copilot, Gemini, Kiro.
 
-Want a whole set at once? A **profile** installs a curated bundle in one command — `agentbundle install --profile full-ceremony git+https://github.com/eugenelim/agent-ready-repo` lands `core` plus the governance packs; `--profile solution-architect` lands an architect's portable toolkit. See [The catalogue](#the-catalogue).
+Behind `core` is a **catalogue of kits** — research, integration contract authoring, solution architecture, product shaping, and more — each a cohesive set of skills, subagents, and hooks that delivers one whole job, installed one line at a time. [See the catalogue.](#the-catalogue)
 
 ## Quick start
 
 ```bash
-# Install (one-time)
+# Install the CLI (one-time)
 pip install agentbundle
 
-# What's in the catalogue?
+# See the catalogue
 agentbundle list-packs git+https://github.com/eugenelim/agent-ready-repo
 
-# Install the flagship loop into this repo (repo scope)
+# Install the flagship loop into this repo
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo
 
-# Install a pack at user scope — it follows you across every project
+# Install a pack at user scope — follows you across every project
 agentbundle install --pack research git+https://github.com/eugenelim/agent-ready-repo --scope user
 
 # Install a whole curated profile in one command
 agentbundle install --profile solution-architect git+https://github.com/eugenelim/agent-ready-repo
 
-# Upgrade a pack to the version the catalogue ships (shows installed → target,
-# asks before writing; add --yes for CI)
+# Upgrade a pack to the catalogue's version (asks before writing; --yes for CI)
 agentbundle upgrade --pack core git+https://github.com/eugenelim/agent-ready-repo
 
 # Preview any install without writing a file
 agentbundle install --pack core git+https://github.com/eugenelim/agent-ready-repo --dry-run
 ```
 
-The catalogue is a git URL or a local path. Installs auto-detect your agent — pass `--adapter` to override. Repo scope writes into the current repo; user scope (`--scope user`) installs once into your home so the pack is available in every project.
+`--dry-run` previews every file before anything is written — one line per file (skills, the four reviewer/executor subagents, the hooks), then a `create`/`overwrite` summary count — so you see exactly what would land in your repo.
+
+The catalogue is a git URL or local path. Installs auto-detect your agent (`--adapter` overrides). Repo scope writes into the current repo; user scope (`--scope user`) installs once into your home so the pack is available everywhere.
 
 ## The loop
 
-Most agent workflows are `prompt → code → ship`. `core` replaces that one-shot path. It splits the maker from the verifier, and it won't skip a step.
+Most agent workflows are `prompt → code → ship`. `core` replaces that one-shot path: it splits the maker from the verifier, and it won't skip a step.
 
-1. **Plan, and surface the assumptions.** Before any code, the agent writes down what it's building, what it won't touch, and what it's assuming. When an assumption breaks mid-run, the loop makes it stop and say so. No guessing past the problem.
+1. **Plan, and surface the assumptions.** Before any code, the agent writes down what it's building, what it won't touch, and what it's assuming. When an assumption breaks mid-run, the loop stops and says so — no guessing past the problem.
 2. **Hard gates between "done" and done.** Lint, typecheck, and tests run as gates. No path through the loop lets the agent claim success on a red gate.
-3. **Adversarial review in a fresh session.** Once the gates pass, a specialist reviewer reads the diff cold. No attachment to the design. No sunk cost in the code. The loop fixes and re-reviews until the reviewer says `Clean — ready to commit.`
-4. **Capture what it learned.** The model forgets between sessions. The repo doesn't. When a run trips over an undocumented convention, the gap lands as a proposed edit to `CONVENTIONS.md`. Mistakes become the project's memory instead of evaporating when the session ends.
+3. **Adversarial review in a fresh session.** Once the gates pass, specialist reviewer agents read the diff cold — no attachment to the design, no sunk cost in the code. The loop fixes and re-reviews until the reviewers say `Clean — ready to commit.`
+4. **Capture what it learned.** The model forgets between sessions; the repo doesn't. A run that trips over an undocumented convention lands the gap as a proposed edit to `CONVENTIONS.md`. Mistakes become the project's memory instead of evaporating.
 
-The reviewer isn't one generic critic. It's three sharp lenses, picked by what the change actually touches:
+The reviewers aren't generic critics. Each reviewer has its own unique sharp lenses, picked by what the change actually touches:
 
 | Reviewer | Lens | When it runs |
 | --- | --- | --- |
 | `adversarial-reviewer` | spec/plan/impl drift, scope creep, missing edge cases | every diff |
 | `security-reviewer` | OWASP 2025 + ASVS, STRIDE + LINDDUN — depth pulled per boundary | security-boundary work, at spec stage *and* on the diff |
-| `quality-engineer` | testability, observability, reliability — the "cost to live with this code", held to a raised default quality floor | logic and interfaces worth maintaining |
+| `quality-engineer` | testability, observability, reliability — the "cost to live with this code" | logic and interfaces worth maintaining |
 
-The security lens **shifts left**: on security-boundary work it runs at spec stage as design guidance — catching a missing control as a one-sentence acceptance criterion instead of a post-implementation round-trip — and pulls its depth from a progressive-disclosure checklist library scoped to the boundaries a change actually crosses, so the review stays current (OWASP 2025, ASVS, CWE Top 25) without bloating the prompt. The quality lens holds every diff to a default quality floor — the universal maintainability smells and the mutation-testing mindset a strict static-analysis gate would enforce — applied by doctrine, whether or not such a gate is wired in.
+The security lens **shifts left**: on security-boundary work it also runs at spec stage, catching a missing control as a one-sentence acceptance criterion instead of a post-implementation round-trip, and pulls its depth from a progressive-disclosure checklist library scoped to the boundaries a change crosses (OWASP 2025, ASVS, CWE Top 25) — current without bloating the prompt. The quality lens holds every diff to a raised maintainability floor by doctrine, whether or not a strict static-analysis gate is wired in. A fourth subagent, `implementer`, is the loop's own executor: it runs independent tasks in parallel.
 
-A fourth subagent, `implementer`, is the loop's own executor. It runs independent tasks in parallel.
-
-→ Want the whole picture? [The core pack as a system](docs/guides/core/explanation/core-pack.md) walks through how the parts compose, and how it compares to vibe-coding, GitHub's Spec Kit, and Kiro's spec mode.
+→ [The core pack as a system](docs/guides/core/explanation/core-pack.md) walks through how the parts compose, and how it compares to vibe-coding, GitHub's Spec Kit, and Kiro's spec mode.
 
 ## The catalogue
 
-`core` is the flagship pack. It's the loop itself. Everything else is à la carte. Install only what your repo needs, at repo or user scope, one line each.
+The flagship `core` pack brings loop engineering to supercharge development in your code repos. Each other pack is a **kit** that delivers a use case end to end — a cohesive set of related skills, subagents, and hooks. Install only the kits needed at user scope or needed by your repo.
 
-| Pack | Scope | What it ships |
+| Pack | Scope | Agentic use case |
 | --- | --- | --- |
-| [`core`](docs/guides/core/) | **repo** | **The flagship pack.** The loop: `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project` skills, the four reviewer/executor subagents, `pre-pr` + `session-start` hooks, and governance seeds. **Install this even if you install nothing else.** |
-| [`governance-extras`](docs/guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos that need a written trail for decisions — `new-rfc`, `new-adr`, `update-conventions` plus the `docs/rfc/` and `docs/adr/` shapes. |
-| [`user-guide-diataxis`](docs/guides/user-guide-diataxis/) | repo | Diátaxis docs skeleton — `docs/guides/{tutorials,how-to,reference,explanation}` plus `new-guide`. |
-| [`monorepo-extras`](docs/guides/monorepo-extras/) | repo | Monorepo scaffolding — `new-package` and a `packages/_example/` template. |
-| [`research`](docs/guides/research/) | user / repo | Evidence-grounded research — `research`, `source-map`, `compare-hypotheses`, `devils-advocate`, and more, plus two retrieval subagents. |
-| [`contracts`](docs/guides/contracts/) | user / repo | Contract authoring — `api-contract` for OpenAPI 3.1. |
-| [`converters`](docs/guides/converters/) | user / repo | `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `markdown-to-docx`/`markdown-to-pptx`/`markdown-to-xlsx` (Markdown → branded Word/PowerPoint/Excel by template-fill), `msg-to-markdown`, `mermaid-renderer`. |
-| [`atlassian`](docs/guides/atlassian/) | user / repo | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed) plus `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`. |
-| [`figma`](docs/guides/figma/) | user / repo | Figma REST primitive (credentialed) — reads files/nodes/comments/variables, renders frames, FigJam → Mermaid. |
-| [`architect`](docs/guides/architect/) | user / repo | Solution architecture — `architect-design`, `architect-diagram`, `architect-review`, plus a read-only, forked-context `design-reviewer` subagent for independent design critique. |
-| [`product-engineering`](docs/guides/product-engineering/) | user / repo | Shape product intent into shippable specs — `frame-intent`, `de-risk-intent`, `decompose-intent` over a recursive, level-tagged `intent`; `voice-and-microcopy` for UI copy (error/empty/button/label) against a voice chart; and `align-value-stream` for the business-unit cross-component value-stream layer. Feeds the briefs/specs your delivery loop already builds. |
-| [`design-craft`](docs/guides/design-craft/) | user / repo | Framework-agnostic design discipline — `aesthetic-direction`, `design-system-foundations`, `layout-and-information-architecture`, `design-critique`, plus a shared `quality-floor` checklist. Authors the upstream design intent the build consumes; points to WCAG / W3C Design Tokens, never a stack or a values table. |
+| [`core`](docs/guides/core/) | **repo** | **The flagship loop, on every change.** `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the four reviewer/executor subagents, `pre-pr` + `session-start` hooks, governance seeds. **Install this even if you install nothing else.** |
+| [`governance-extras`](docs/guides/governance-extras/) | repo | **Keep a written trail of decisions.** RFC/ADR ceremony for teams and long-lived repos — `new-rfc`, `new-adr`, `update-conventions`, plus the `docs/rfc/` and `docs/adr/` shapes. |
+| [`user-guide-diataxis`](docs/guides/user-guide-diataxis/) | repo | **Stand up a docs site.** Diátaxis skeleton — `docs/guides/{tutorials,how-to,reference,explanation}` plus `new-guide`. |
+| [`monorepo-extras`](docs/guides/monorepo-extras/) | repo | **Scaffold packages in a monorepo.** `new-package` and a `packages/_example/` template. |
+| [`research`](docs/guides/research/) | user / repo | **Go from a question to an evidence-grounded answer.** `research`, `source-map`, `compare-hypotheses`, `devils-advocate`, and more, plus two retrieval subagents. |
+| [`contracts`](docs/guides/contracts/) | user / repo | **Author an API contract.** `api-contract` for OpenAPI 3.1. |
+| [`converters`](docs/guides/converters/) | user / repo | **Move documents in and out of Markdown.** `file-to-markdown` (PDF/DOCX/PPTX/XLSX + images), `markdown-to-html`, `markdown-to-docx`/`-pptx`/`-xlsx` (branded Word/PowerPoint/Excel by template-fill), `msg-to-markdown`, `mermaid-renderer`. |
+| [`atlassian`](docs/guides/atlassian/) | user / repo | **Work Jira and Confluence from the agent.** `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher` (credentialed), plus `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`. |
+| [`figma`](docs/guides/figma/) | user / repo | **Read and render Figma designs.** Figma REST primitive (credentialed) — files/nodes/comments/variables, frame renders, FigJam → Mermaid. |
+| [`architect`](docs/guides/architect/) | user / repo | **Design a system and pressure-test it.** `architect-design`, `architect-diagram`, `architect-review`, plus a read-only, forked-context `design-reviewer` subagent. |
+| [`product-engineering`](docs/guides/product-engineering/) | user / repo | **Shape product intent into shippable specs.** `frame-intent`, `de-risk-intent`, `decompose-intent` over a recursive, level-tagged `intent`; `voice-and-microcopy` for UI copy; `align-value-stream` for the business-unit cross-component layer. |
+| [`design-craft`](docs/guides/design-craft/) | user / repo | **Set design direction the build can consume.** `aesthetic-direction`, `design-system-foundations`, `layout-and-information-architecture`, `design-critique`, plus a shared `quality-floor` checklist. Points to WCAG / W3C Design Tokens, never a stack. |
 
-Repo-scope packs install into the current repo and build on `core`. User-scope packs install into `~/.claude/` (or your harness's home root) and follow you across every project. Swap `core` for any pack name in the command above.
+Swap `core` for any pack name in the command above. Repo-scope packs build on `core`; user-scope packs follow you across every project.
 
-**Or install a curated set in one command.** Profiles bundle the blessed combinations: `agentbundle install --profile full-ceremony <catalogue>` lands `core` plus the repo governance packs (deps-first), `--profile solution-architect <catalogue>` lands the `architect` + `research` + `contracts` user-scope toolkit, and `--profile inception <catalogue>` lands the `research` + `product-engineering` + `architect` toolkit for taking an idea from zero to a buildable repo. `agentbundle list-profiles <catalogue>` shows what's available; see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
+**Or stack several kits in one command.** A profile is a blessed combination of packs: `full-ceremony` adds the repo governance packs to `core`; `solution-architect` lands the `architect` + `research` + `contracts` toolkit; `inception` lands `research` + `product-engineering` + `architect` for taking an idea from zero to a buildable repo. `agentbundle list-profiles <catalogue>` shows them all — see the [install-a-profile how-to](docs/guides/_shared/how-to/install-a-profile.md).
 
 ## Ecosystem building blocks
 
-Nothing here is a black box. Every piece is something you can pick up and use on its own.
-
-Your skills, subagents, and hooks are files you own, with no SDK, runtime, or service to run, and nothing proprietary to lock into. You version and compose them like any other code in your repo.
+Nothing here is a black box. Your skills, subagents, and hooks are files you own — no SDK, runtime, or service to run, nothing proprietary to lock into. Version and compose them like any other code.
 
 - **Harness-agnostic.** One adapter pipeline projects the same primitives into Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro layouts.
-- **Inspectable and forkable.** The mechanics are prose you can read and `git diff`. When you outgrow a default, you edit the file instead of filing a feature request.
-- **Composable.** Packs layer cleanly. Your edits are never silently overwritten. Colliding files land as `*.upstream` companions for you to merge, not clobber.
+- **Inspectable and forkable.** The mechanics are prose you can read and `git diff`. Outgrow a default? Edit the file instead of filing a feature request.
+- **Composable.** Packs layer cleanly, and your edits are never silently overwritten — colliding files land as `*.upstream` companions to merge, not clobber.
 
-The two packages underneath are building blocks in their own right. Both are pip-installable, standalone, and useful well beyond this repo:
+The two packages underneath are standalone, pip-installable, and useful well beyond this repo:
 
-- **[`agentbundle`](https://pypi.org/project/agentbundle/)** — the bundler. It installs and upgrades packs, projects each primitive into the layout every agent expects, and builds catalogues of your own. `pip install agentbundle`
-- **[`credbroker`](https://pypi.org/project/credbroker/)** — the credential resolver behind credentialed skills. It resolves secrets in-process through environment variable → OS keyring → dotfile, and never lets cleartext reach the model. Drop it into any Python project. `pip install credbroker`
+- **[`agentbundle`](https://pypi.org/project/agentbundle/)** — the bundler. Installs and upgrades packs, projects each primitive into the layout every agent expects, and builds catalogues of your own.
+- **[`credbroker`](https://pypi.org/project/credbroker/)** — the credential resolver behind credentialed skills. Resolves secrets in-process through environment variable → OS keyring → dotfile, and never lets cleartext reach the model. See [credential handling](docs/architecture/credentials.md).
 
-Loop engineering relocates judgment, it doesn't remove it. Keeping every piece inspectable and composable keeps that judgment where you can exercise it. You stay the engineer, not just the person who presses go.
+Loop engineering relocates judgment, it doesn't remove it — keeping every piece inspectable keeps that judgment where you can exercise it. You stay the engineer, not just the person who presses go.
 
 ## A foundation to build on
 
-Adopt the catalogue as-is, or use it as the base for your own. The same bundler that installs these packs can publish yours: fork them, write your house conventions and review standards into `core`, add skills for your own stack, and ship one catalogue that every engineer installs in a single line. The loop, the reviewers, and the standards come out identical on every machine and in every agent.
+Adopt the catalogue as-is, or fork it as your own. The same bundler that installs these packs can publish yours: write your house conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — the loop, the reviewers, and the standards come out identical on every machine and in every agent. That makes this a foundation for an organization's AI dev kit, not just a set of defaults to consume.
 
-That makes this a foundation for an organization's AI dev kit, not just a set of defaults to consume.
+## How a pack is laid out
+
+Every pack is a directory under `packs/<name>/` — a manifest plus two source trees:
+
+- `pack.toml` — the manifest: name, version, install scope.
+- `.apm/` — upstream for projected primitives: `skills/`, `agents/`, `hooks/`, `commands/`.
+- `seeds/` — upstream for seed files: README, governance docs.
+
+A skill is a self-contained folder — `.apm/skills/<name>/SKILL.md` plus optional `scripts/`, `references/`, `assets/`, `evals/` ([agentskills.io](https://agentskills.io/specification)). No skill imports from another's folder.
+
+One rule governs every change: **edit the upstream, never the projection.** Change `packs/<pack>/.apm/skills/<name>/SKILL.md`, run `make build-self`, and commit the source and the regenerated `.claude/…` together — `make build-check` bounces any projected path edited without its source moving.
+
+- **Add a skill to a pack** → drop a folder under `packs/<pack>/.apm/skills/`, build, commit.
+- **Add a new pack** → an RFC, then a `packs/<name>/` with `pack.toml` + `.apm/` + `seeds/`, then a row in the catalogue table above.
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) has the full steps for all three lanes — pack, skill, subagent — with the frontmatter contracts and the gates your PR must pass.
 
 ## Going deeper
 
-The full user documentation lives in **[`docs/guides/`](docs/guides/)** — organized by pack, with tutorials, how-tos, reference, and explanation for each ([Diátaxis](https://diataxis.fr/)). Start there to learn a pack end to end; the table below jumps straight to the cross-cutting topics.
+Full documentation lives in **[`docs/guides/`](docs/guides/)**, organized by pack with tutorials, how-tos, reference, and explanation ([Diátaxis](https://diataxis.fr/)). The table jumps straight to the cross-cutting topics.
 
 | Topic | Link |
 | --- | --- |
@@ -135,7 +146,7 @@ The full user documentation lives in **[`docs/guides/`](docs/guides/)** — orga
 | Mission, scope, and the four principles | [`docs/CHARTER.md`](docs/CHARTER.md) |
 | The catalogue distribution model | [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) |
 
-Skills follow the [agentskills.io specification](https://agentskills.io/specification). Each is a self-contained folder with closed frontmatter and no hidden cross-skill dependencies. They install, copy, and audit cleanly.
+Skills follow the [agentskills.io specification](https://agentskills.io/specification) — each a self-contained folder with closed frontmatter and no hidden cross-skill dependencies, so they install, copy, and audit cleanly.
 
 ## Contributing
 
