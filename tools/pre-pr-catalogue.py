@@ -67,7 +67,9 @@ def main() -> int:
     _run("skill-spec lint",     [py, "tools/lint-skill-spec.py"])
     _run("knowledge lint",      [py, "tools/lint-knowledge.py"])
     _run("build lint",          [py, "tools/lint-build.py"])
-    _run("seeds lint",          [py, "tools/lint-seeds.py"])
+    _run("catalogue-seeds lint", [py, "tools/lint-catalogue-seeds.py"])
+    _run("catalogue-seeds lint self-test",
+         [py, "tools/test-lint-catalogue-seeds.py"])
     _run("credentialed-skill lint", [py, "tools/lint_credentialed_skills.py"])
     _run("credentialed-skill lint self-test",
          [py, "tools/test-lint-credentialed-skills.py"])
