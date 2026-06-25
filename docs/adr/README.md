@@ -40,6 +40,8 @@
 | 0032 | [The agentic well-architected overlay is a first-class workload-class lens applied at design *and* review — a routing axis plus progressive taxonomy on the existing `architect` skills, not a new primitive](0032-agentic-overlay-is-a-design-and-review-workload-class-lens.md) | Accepted |
 | 0033 | [The intent `Level` is reopened to an open recognized set (`product-vision › product-strategy › capability › feature`) and decoupled from `Scale` — a refinement of ADR-0019, prompt-only](0033-intent-level-open-recognized-set-decoupled-from-scale.md) | Accepted |
 | 0034 | [Grounding the infra inner loop in platform reality is toolchain-oracle doctrine + EXECUTE-loaded craft — one new `core` skill, not executable tooling, per-vendor data, or a new agent](0034-infra-grounding-toolchain-oracle-doctrine-not-tooling-vendor-data-or-agent.md) | Accepted |
+| 0035 | [Grounding the architect *design* phase in platform reality — the deferred serverless lens + a dual-consumed grounding discipline and sync-path viability check, prose-only on the existing routing axis](0035-architect-design-phase-grounded-in-platform-reality-dual-consumed-serverless-lens-and-contract-grounding.md) | Accepted |
+| 0036 | [The install-source default resolves through a trusted-by-construction precedence chain — editable detection as the downstream default, no repo-scoped source, no cwd fallback](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md) | Accepted |
 
 ## Adding a new ADR
 

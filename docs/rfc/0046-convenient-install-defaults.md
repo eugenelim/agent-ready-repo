@@ -156,7 +156,7 @@ None remaining. The two prior open questions (the repo-scope settings file locat
 
 Filled in on acceptance:
 
-- ADR-NNNN: the install-source precedence chain + editable-detection-as-default + the no-repo-scoped-source / no-cwd trust decision.
-- Spec: `docs/specs/convenient-install-defaults/` — optional `catalogue` on install/upgrade, the four-layer chain, PEP 610 detection (with a real editable-install construction test + the canonicalize / repo-bounded-walk-up ACs), `_data/install-defaults.toml`, `config set source`.
+- [ADR-0036](../adr/0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md): the install-source precedence chain + editable-detection-as-default + the no-repo-scoped-source / no-cwd trust decision.
+- Spec: [`docs/specs/convenient-install-defaults/`](../specs/convenient-install-defaults/spec.md) — optional `catalogue` on install/upgrade, the four-layer chain, PEP 610 detection (with a real editable-install construction test + the canonicalize / repo-bounded-walk-up ACs), `_data/install-defaults.toml`, `config set source`.
 - Adopter guide note: the private-fork "blank `install-defaults`, rely on editable detection" pattern.
 - Possible follow-on RFCs: the **in-repo adapter override** (the deferred Claude-Code-style repo-overrides-user precedence for the projection target); integrity-pinning for catalogue fetches; default resolution for the `list-packs`/`list-profiles` query verbs.
