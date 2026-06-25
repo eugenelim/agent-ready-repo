@@ -24,7 +24,7 @@
 >   this too open?) — over-broad IAM, public exposure, secrets in state.
 > - **the policy-as-code / CSPM scanner** owns *config-against-policy* —
 >   per-provider secure-config baselines.
-> - **[`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md)**
+> - **[`contract-acquisition`](../../contract-acquisition/SKILL.md)**
 >   owns *IaC-against-the-platform's-structural-contract* — does this flag /
 >   field / name / immutable-property exist and accept this value?
 >
@@ -81,7 +81,7 @@ the live environment.
   passes on the dev machine **fails in a flat package root or a script-invoked
   entrypoint** (the field-report `ModuleNotFoundError`). The platform specifics
   — the package layout, the handler signature, the module search path — defer to
-  the **T2 curated platform skill** (`infra-contract-acquisition`), never to
+  the **T2 curated platform skill** (`contract-acquisition`), never to
   bundled per-vendor data.
 - `reason` **Externalized script configuration — never hardcoded inline.** Infra
   build scripts and the verify / probe / teardown scripts take **resource name
