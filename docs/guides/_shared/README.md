@@ -21,6 +21,7 @@ Guides about the catalogue itself — installing it, upgrading it, seeing what e
 - [Install routes](explanation/install-routes.md) — the four ways pack content reaches a repo, and where each lands.
 - [The pack catalogue](explanation/pack-catalogue.md) — what a pack is, how the catalogue is composed, and how you build your own.
 - [The file-safety contract](explanation/file-safety-contract.md) — why your edits are never silently overwritten.
+- [Shaping a new engagement](explanation/shaping-a-new-engagement.md) — how a product vision, a product strategy, and an architecture concept co-shape each other at the start of a new engagement.
 
 ---
 

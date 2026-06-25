@@ -21,7 +21,7 @@ The user-facing documentation for the catalogue, organized **by pack**. You inst
 | [`monorepo-extras`](monorepo-extras/) | [home](monorepo-extras/) | Monorepo scaffolding — `new-package` and a package template that ships its own conventions. |
 | [`user-guide-diataxis`](user-guide-diataxis/) | [home](user-guide-diataxis/) | The docs skeleton you're reading right now — Diátaxis quadrants plus `new-guide`. |
 
-## Not tied to one pack
+## Shared
 
 Some guides are about the catalogue itself — installing it, upgrading it, seeing what each agent tool supports — rather than any single pack. They live in [`_shared/`](_shared/):
 
