@@ -32,6 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Guides for shaping a new engagement — product vision, product strategy, and
+  the architecture concept.** Three new how-tos document the top of the shaping
+  funnel that previously had no guide:
+  [*Frame a product vision*](../guides/product-engineering/how-to/frame-a-product-vision.md)
+  and [*Shape a product strategy*](../guides/product-engineering/how-to/shape-a-product-strategy.md)
+  in the `product-engineering` pack (the two product altitudes of `frame-intent`,
+  with their market-existence de-risk), and
+  [*Shape an architecture concept*](../guides/architect/how-to/shape-an-architecture-concept.md)
+  in the `architect` pack (the ≤½-page Stage-0 concept `architect-design` agrees
+  before a full design doc). A new cross-pack explanation,
+  [*Shaping a new engagement*](../guides/_shared/explanation/shaping-a-new-engagement.md),
+  ties them together — how product intent and the architecture concept co-shape
+  each other at engagement start — and the affected pack indexes and existing
+  guides gain cross-links.
 - **`architect` grounds the design phase in platform reality — a backed
   serverless workload-class lens plus two dual-consumed disciplines.** The
   `architect` pack gains **`lens-serverless.md`** (in both `architect-design`

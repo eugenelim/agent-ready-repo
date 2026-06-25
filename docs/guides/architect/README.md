@@ -13,6 +13,7 @@ New here? [Establish your repo's reference architecture](how-to/establish-refere
 ## How-to
 
 - [Establish your repo's reference architecture](how-to/establish-reference-architecture.md) — capture the stack, patterns, and constraints the architect skills design against.
+- [Shape an architecture concept](how-to/shape-an-architecture-concept.md) — get a ≤½-page Stage-0 concept agreed with `architect-design` before committing to a full design doc.
 - [Diagram a system](how-to/diagram-a-system.md) — draw a system, flow, state, data-model, or deployment-topology diagram with `architect-diagram`.
 - [Review an architecture artifact](how-to/review-an-architecture-artifact.md) — get a severity-tagged critique of a design doc, diagram, RFC, or ADR with `architect-review`, or an independent forked-context pass with the `design-reviewer` subagent.
 
