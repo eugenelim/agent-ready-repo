@@ -54,5 +54,5 @@ def project_merge_json(source_dir: Path, output_root: Path, rule: dict) -> None:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(
         json.dumps(existing, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n",
     )

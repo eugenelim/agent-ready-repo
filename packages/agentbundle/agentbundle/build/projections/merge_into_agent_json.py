@@ -243,7 +243,7 @@ def _atomic_write(target_path: Path, data: dict) -> None:
     serialised = json.dumps(data, indent=2, sort_keys=False) + "\n"
     with tempfile.NamedTemporaryFile(
         mode="w",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n",
         dir=str(target_path.parent),
         prefix=target_path.name + ".",
         suffix=".tmp",
