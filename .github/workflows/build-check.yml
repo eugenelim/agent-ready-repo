@@ -118,6 +118,19 @@ jobs:
         working-directory: packages/agentbundle
         run: python -m pytest tests/unit/test_version.py
 
+      # adapter resolver (RFC-0011/0012 six-step lookup) + ADR-0004
+      # single-constant rebrand: the default-fallback assertions reference
+      # DEFAULT_ADAPTER so a downstream rebrand that flips the constant stays
+      # green. make build-check runs no pytest, so wire these paths explicitly
+      # or the resolver coverage never gates.
+      - name: pytest adapter resolver (RFC-0011/0012, ADR-0004 rebrand)
+        working-directory: packages/agentbundle
+        run: >-
+          python -m pytest
+          tests/unit/test_resolve_user_scope_target_adapter.py
+          tests/unit/test_resolve_target_adapter_user_config.py
+          tests/unit/test_install_argparse_adapter_flag.py
+
       - name: pytest converters install/uninstall (AC6a)
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py

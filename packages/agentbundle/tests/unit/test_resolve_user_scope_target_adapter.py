@@ -28,6 +28,7 @@ from agentbundle.commands.install import (
     _AdapterResolutionRefused,
     _resolve_target_adapter,
 )
+from agentbundle.scope import DEFAULT_ADAPTER
 
 
 def _resolve_user_scope_target_adapter(*args, **kwargs):
@@ -145,13 +146,16 @@ def test_first_match_wins_declared_order(tmp_path, fake_home):
 
 def test_greenfield_returns_default_when_default_in_pack_list(tmp_path, fake_home):
     pack = _make_pack(tmp_path)
+    # The list must contain DEFAULT_ADAPTER for this scenario; built from the
+    # constant so a downstream rebrand keeps the default in-list (else the
+    # resolver correctly falls back to allowed_adapters[0]).
     result = _resolve_user_scope_target_adapter(
         pack,
         adapter=None,
-        allowed_adapters=["claude-code", "kiro"],
+        allowed_adapters=[DEFAULT_ADAPTER, "kiro"],
         contract_version="0.6",
     )
-    assert result == "claude-code"  # DEFAULT_ADAPTER
+    assert result == DEFAULT_ADAPTER
 
 
 def test_greenfield_monkeypatch_default_to_kiro(tmp_path, fake_home, monkeypatch):
@@ -332,10 +336,10 @@ def test_legacy_v05_pack_with_agents_returns_default_adapter(tmp_path, fake_home
         allowed_adapters=None,
         contract_version="0.5",
     )
-    assert result == "claude-code"
+    assert result == DEFAULT_ADAPTER
 
 
-def test_legacy_v05_pack_without_agents_returns_claude_code(tmp_path, fake_home):
+def test_legacy_v05_pack_without_agents_returns_default_adapter(tmp_path, fake_home):
     pack = _make_pack(tmp_path, with_agents=False)
     result = _resolve_user_scope_target_adapter(
         pack,
@@ -343,7 +347,7 @@ def test_legacy_v05_pack_without_agents_returns_claude_code(tmp_path, fake_home)
         allowed_adapters=None,
         contract_version="0.5",
     )
-    assert result == "claude-code"
+    assert result == DEFAULT_ADAPTER
 
 
 def test_v06_pack_omitting_allowed_adapters_uses_legacy_heuristic(tmp_path, fake_home):
@@ -357,7 +361,7 @@ def test_v06_pack_omitting_allowed_adapters_uses_legacy_heuristic(tmp_path, fake
         allowed_adapters=None,
         contract_version="0.6",
     )
-    assert result == "claude-code"
+    assert result == DEFAULT_ADAPTER
 
 
 def test_stray_allowed_adapters_on_v05_pack_uses_legacy(tmp_path, fake_home):
@@ -527,14 +531,15 @@ def test_repo_scope_greenfield_returns_default_adapter(tmp_path, fake_home):
     """Spec AC9 step 4 (repo branch) — no --adapter, no probe; returns
     DEFAULT_ADAPTER if in allowed_adapters."""
     pack = _make_pack_v07(tmp_path)
+    # List built from the constant so the default stays in-list under a rebrand.
     result = _resolve_target_adapter(
         pack,
         scope="repo",
         adapter=None,
-        allowed_adapters=["claude-code", "kiro"],
+        allowed_adapters=[DEFAULT_ADAPTER, "kiro"],
         contract_version="0.7",
     )
-    assert result == "claude-code"
+    assert result == DEFAULT_ADAPTER
 
 
 def test_repo_scope_greenfield_falls_back_to_first_when_default_absent(
@@ -567,7 +572,7 @@ def test_repo_scope_legacy_heuristic_for_pre_v07_pack(tmp_path, fake_home):
         allowed_adapters=None,
         contract_version="0.6",
     )
-    assert result == "claude-code"
+    assert result == DEFAULT_ADAPTER
 
     pack_no_agents = _make_pack_v07(tmp_path / "alt", with_agents=False)
     result_no_agents = _resolve_target_adapter(
@@ -577,7 +582,7 @@ def test_repo_scope_legacy_heuristic_for_pre_v07_pack(tmp_path, fake_home):
         allowed_adapters=None,
         contract_version="0.6",
     )
-    assert result_no_agents == "claude-code"
+    assert result_no_agents == DEFAULT_ADAPTER
 
 
 def test_repo_scope_legacy_heuristic_honors_monkey_patched_default(
@@ -642,7 +647,14 @@ def test_repo_scope_state_hint_short_circuit(tmp_path, fake_home):
 
 
 def test_default_adapter_value_unchanged():
-    """The renamed constant carries the same value (claude-code)."""
+    """The renamed constant carries the same value (claude-code).
+
+    This is the single assertion an ADR-0004 enterprise-rebrand flips: a
+    downstream distribution that sets ``DEFAULT_ADAPTER`` to its own default
+    (e.g. ``kiro-ide``) updates this literal and nothing else here — every
+    other default-fallback assertion in this module references the constant and
+    stays green.
+    """
     from agentbundle.scope import DEFAULT_ADAPTER
 
     assert DEFAULT_ADAPTER == "claude-code"
