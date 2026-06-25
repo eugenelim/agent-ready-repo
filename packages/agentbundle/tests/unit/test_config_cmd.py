@@ -41,11 +41,11 @@ def test_get_no_key_on_missing_file_reports_builtin(capsys) -> None:
     exit_code = run(_args("get"))
     captured = capsys.readouterr()
     assert exit_code == 0
-    # One line per known key. Today only `adapter`.
-    out = captured.out.strip()
-    parts = out.split("\t")
-    assert parts[0] == "adapter"
-    assert parts[2] == "(builtin)"
+    # One line per known key: `adapter` (builtin default) and `source`
+    # (unset — no builtin constant; RFC-0046).
+    lines = {ln.split("\t")[0]: ln.split("\t") for ln in captured.out.strip().splitlines()}
+    assert lines["adapter"][2] == "(builtin)"
+    assert lines["source"][2] == "(unset)"
 
 
 def test_get_adapter_after_set_reports_file(capsys) -> None:
