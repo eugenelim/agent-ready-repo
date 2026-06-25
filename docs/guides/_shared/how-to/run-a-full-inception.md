@@ -125,6 +125,9 @@ The upstream stages earn their place only against real uncertainty.
 
 ## See also
 
+- [Shaping a new engagement](../explanation/shaping-a-new-engagement.md) — the
+  *why*: how the product vision, the product strategy, and the architecture
+  concept co-shape each other across the stages this guide sequences.
 - [From idea to a walking skeleton](../../core/tutorials/start-a-new-project.md)
   — the `core`-only walkthrough this guide wraps.
 - [Receive a product brief](../../core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md)
