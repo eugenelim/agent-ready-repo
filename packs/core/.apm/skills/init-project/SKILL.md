@@ -102,7 +102,11 @@ rationale** — a foundation you can hold later work to. Two artifacts:
   (the same golden-path template its reference-architecture harvest fills) —
   here you fill it forward from a decision rather than harvesting it from
   existing code. The core methodology stays stack-neutral; the chosen stack is
-  *yours*, recorded in your ADR and your `reference.md`.
+  *yours*, recorded in your ADR and your `reference.md`. If the project will
+  deploy, this is also the moment to record the **deployment platform** and
+  **where verification tooling will live** in the `reference.md` slots (and the
+  matching one-liners in the `AGENTS.md` infra block) — optional grounding the
+  work-loop infra preflight reads if present, never a prerequisite.
 
 Hand the foundation forward as the steering every later design conforms to.
 
