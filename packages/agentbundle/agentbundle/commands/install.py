@@ -84,6 +84,7 @@ def run(args: "argparse.Namespace") -> int:
         confirm_or_refuse,
         format_plan_line,
         plan_action,
+        resolve_catalogue_uri,
         summarize_plan,
     )
     from agentbundle.config import (
@@ -113,7 +114,13 @@ def run(args: "argparse.Namespace") -> int:
         return _run_profile(args)
 
     pack_name: str = args.pack
-    catalogue_uri: str = args.catalogue
+    # RFC-0046: resolve the default source when the `catalogue` positional was
+    # omitted (an explicit arg short-circuits through layer 1 unchanged).
+    try:
+        catalogue_uri: str = resolve_catalogue_uri(args)
+    except CatalogueError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
     cli_scope: str | None = getattr(args, "scope", None)
     force: bool = bool(getattr(args, "force", False))
     force_merge: bool = bool(getattr(args, "force_merge", False))
@@ -481,7 +488,12 @@ def run(args: "argparse.Namespace") -> int:
             ),
         ):
             return 1
-        return _offer_upgrade(args, pack_name=pack_name, scope=requested_scope)
+        return _offer_upgrade(
+            args,
+            pack_name=pack_name,
+            scope=requested_scope,
+            catalogue_uri=catalogue_uri,
+        )
 
     # 4b. Already at the *other* scope, no --force → refuse cross-scope.
     other_scope = "user" if requested_scope == "repo" else "repo"
@@ -1719,7 +1731,9 @@ def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
     return sorted(out)
 
 
-def _offer_upgrade(args: "argparse.Namespace", *, pack_name: str, scope: str) -> int:
+def _offer_upgrade(
+    args: "argparse.Namespace", *, pack_name: str, scope: str, catalogue_uri: str
+) -> int:
     """Hand off an already-installed `install` to `upgrade` (CLI-hygiene AC11/12).
 
     The install-side offer is the confirmation, so the upgrade runs with
@@ -1736,7 +1750,10 @@ def _offer_upgrade(args: "argparse.Namespace", *, pack_name: str, scope: str) ->
 
     ns = _argparse.Namespace()
     ns.pack = pack_name
-    ns.catalogue = args.catalogue
+    # RFC-0046: carry the concrete source already resolved by `run()` rather
+    # than `args.catalogue` (which is `None` on a bare install) — the upgrade
+    # hand-off must not re-resolve and risk a divergent second detection.
+    ns.catalogue = catalogue_uri
     ns.root = getattr(args, "output", ".")
     ns.scope = scope
     ns.yes = True
@@ -3718,13 +3735,20 @@ def _run_profile(args: "argparse.Namespace") -> int:
     import io
 
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
+    from agentbundle.commands._common import resolve_catalogue_uri
     from agentbundle.commands.profile import ProfileError, load_profile
     from agentbundle.config import ConfigError, load_pack_toml, load_state
     from agentbundle import safety
     from agentbundle import scope as scope_mod
 
     profile_id: str = args.profile
-    catalogue_uri: str = args.catalogue
+    # RFC-0046: a bare `install --profile X` (no catalogue) resolves through the
+    # same default chain as `install --pack X`.
+    try:
+        catalogue_uri: str = resolve_catalogue_uri(args)
+    except CatalogueError as exc:
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
     cli_adapter: str | None = getattr(args, "adapter", None)
     user_config = getattr(args, "_user_config", None)
     output_root = Path(args.output).resolve()

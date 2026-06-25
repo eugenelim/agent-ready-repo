@@ -39,6 +39,12 @@ def _effective_value(key: str, cfg: UserConfig) -> tuple[str, str]:
         if cfg.adapter is not None:
             return cfg.adapter, "file"
         return DEFAULT_ADAPTER, "builtin"
+    if key == "source":
+        if cfg.source is not None:
+            return cfg.source, "file"
+        # No builtin constant for `source`: the layer-4 packaged default is
+        # not a config value, so an absent key reports `unset`, not `builtin`.
+        return "", "unset"
     # Defense in depth — _KNOWN_KEYS gates entry to this branch.
     raise ValueError(f"agentbundle: unknown setting {key!r}")
 
