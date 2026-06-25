@@ -250,7 +250,12 @@ descriptive `overview.md` map. On adapt, when the repo has none, offer to
    the stack and runtimes in use, the reusable internal building blocks and
    shared libraries, the recurring component stereotypes, and the cross-cutting
    standards (error handling, logging, auth, validation) that already repeat
-   across the tree. A thin repo with no real decisions yet has nothing to
+   across the tree. If the repo deploys, also note the **deployment platform**
+   it targets and **where its verification tooling lives** (the deploy / smoke /
+   teardown / test-data commands — whose one-liners also belong in the optional
+   `AGENTS.md` infra block); these are **optional grounding coordinates** the
+   work-loop infra preflight reads if present, so offer to record them, never
+   require them. A thin repo with no real decisions yet has nothing to
    harvest — say so and stop rather than inventing constraints.
 2. **Instantiate.** Fill the arc42 template shipped with this skill at
    `assets/reference.md` (four sections: Constraints, Solution strategy,

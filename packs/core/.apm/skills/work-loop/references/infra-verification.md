@@ -69,6 +69,42 @@ artifact. This **refines** P2 and cross-links the plan template's `## Rollout`
 (which owns sequencing); it does **not** re-author the GATES layer sequence
 above.
 
+## PLAN — read recorded coordinates first, then cold oracle discovery
+
+Before enumerating the multi-artifact preflight below and before the
+contract-grounding gate, do one cheap thing first: **check recorded
+coordinates → acquire via oracles**. The adopter may already have written down
+where they deploy and how they verify, in files they own:
+
+- the **`AGENTS.md` "Commands you'll need"** optional infra/verification block —
+  the `<deploy>` / `<smoke / verify-status>` / `<teardown>` / `<seed-test-data>`
+  one-liners; and
+- the **`reference.md`** platform/verification slots — the
+  **managed-runtime / platform target** under *Constraints*, the
+  **framework-/library-level contract** under *Solution strategy → Key
+  technology decisions*, and **where the verification tooling lives** under
+  *Crosscutting → Observability / Testing standards*.
+
+**Every one of these reads is presence-checked — read-if-present, degrade
+honestly if absent.** A repo that recorded nothing runs exactly as it does
+today: absence lowers only the *starting information* the preflight begins from,
+it **never fails the loop**, and it is **not enforced by any CI gate**. There is
+**no new config file** for this — no `grounding.toml`, no schema; the surface is
+the two adopter-owned files above. State which coordinates you found (or
+"none"), the same way `architect-design` states the surface it detected.
+
+**A recorded coordinate seeds acquisition; it never replaces it.** A found
+`<deploy command>` or platform target *seeds* the multi-artifact preflight and
+the contract-grounding gate — it tells you where to start — but the agent still
+derives the **live** contract from the toolchain's oracles
+([`infra-contract-acquisition`](../../infra-contract-acquisition/SKILL.md)) and
+still smokes the **real** deployed system. When a recorded value **contradicts**
+the oracle (the `reference.md` names a runtime the `plan` output disputes, a
+recorded smoke command targets an endpoint the deploy no longer exposes), that
+contradiction is a **surfaced drift signal**, not a fact to trust — exactly the
+AGENTS.md *"When this file is wrong"* posture: flag the drift, don't silently
+work around it.
+
 ## PLAN — the multi-artifact preflight (each its own task-zero)
 
 For infra/deploy the mechanism is rarely one artifact; the preflight enumerates
