@@ -26,7 +26,6 @@ from pathlib import Path
 
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.validate import validate as validate_instance
-from agentbundle.build.gate_chains import cmd_build_check, cmd_build_self
 from agentbundle.build.lint_packs import cmd_lint_packs
 from agentbundle.build.main import cmd_build
 from agentbundle.build.self_host import cmd_check, cmd_self
@@ -167,38 +166,6 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     lint_packs_parser.add_argument("--packs-dir", default="packs")
     lint_packs_parser.set_defaults(func=cmd_lint_packs)
-
-    # Make-free gate chains. These mirror the `make build-self` / `make
-    # build-check` targets so the full self-host gate runs in one command on
-    # Windows (no `make`, no bash). The Makefile targets route through these,
-    # so the step lists live once and can't drift. The Windows-incompatible
-    # SAST leg stays appended in the Makefile, not chained here.
-    build_self_parser = subparsers.add_parser(
-        "build-self",
-        help="Make-free `make build-self`: lint-packs then self.",
-    )
-    build_self_parser.add_argument("--dry-run", action="store_true")
-    build_self_parser.add_argument("--force", action="store_true")
-    build_self_parser.add_argument("--no-symlink", action="store_true")
-    build_self_parser.add_argument("--packs-dir", default="packs")
-    build_self_parser.set_defaults(func=cmd_build_self)
-
-    build_check_parser = subparsers.add_parser(
-        "build-check",
-        help=(
-            "Make-free `make build-check` (minus the Windows-incompatible "
-            "SAST leg): lint-packs, build, check, pre-pr-catalogue, and the "
-            "spec-status + brief-coverage gates."
-        ),
-    )
-    build_check_parser.add_argument("--packs-dir", default="packs")
-    build_check_parser.add_argument(
-        "--output-dir",
-        default="dist",
-        help="Artifact dir for the build leg (default: dist/); the check leg "
-        "always projects against the working tree.",
-    )
-    build_check_parser.set_defaults(func=cmd_build_check)
 
     return parser
 

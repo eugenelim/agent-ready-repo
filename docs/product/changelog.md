@@ -32,20 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **The full self-host gate chain now runs in one make-free command on every
-  platform.** Two new `python -m agentbundle.build` subcommands chain the
-  self-host gates the way the Makefile targets do: **`build-self`** runs
-  lint-packs → self, and **`build-check`** runs lint-packs → build → check →
-  pre-pr-catalogue → the spec-status and brief-coverage gates — each stopping at
-  the first failing step and exiting with its code. They call the existing
-  `cmd_lint_packs` / `cmd_build` / `cmd_check` / `cmd_self` handlers and spawn
-  the repo scripts via `sys.executable` (pure stdlib, no bash or shell), so a
-  Windows contributor no longer has to invoke each subcommand by hand and
-  remember the order. `make build-self` and `make build-check` now route
-  *through* these subcommands, so the step lists exist once and cannot drift;
-  the Windows-incompatible SAST/SCA leg (Semgrep) stays appended in the Makefile
-  and remains a `make build-check` step on Linux/macOS.
-
 - **`architect` grounds the design phase in platform reality — a backed
   serverless workload-class lens plus two dual-consumed disciplines.** The
   `architect` pack gains **`lens-serverless.md`** (in both `architect-design`

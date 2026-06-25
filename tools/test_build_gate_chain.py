@@ -1,11 +1,9 @@
-"""The make-free self-host gate chains (`build-self` / `build-check`).
+"""Tests for the make-free self-host gate chains (`tools/build_gate_chain.py`).
 
-These chains exist so a Windows contributor runs the whole self-host gate in
-one command without `make`. The load-bearing invariant is "run these steps, in
-this order, stop at the first failure, return its code" — verified here against
-stubbed step outcomes — plus the step assembly (which handler/script, in what
-order, with which namespace attributes) and Windows-cleanliness of the spawned
-argv.
+The load-bearing invariant is "run these steps, in this order, stop at the first
+failure, return its code" — verified against stubbed step outcomes — plus the
+step assembly (which handler/script, in what order, with which namespace
+attributes) and Windows-cleanliness of the spawned argv.
 """
 
 from __future__ import annotations
@@ -20,7 +18,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import agentbundle.build.gate_chains as gc
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import build_gate_chain as gc  # noqa: E402
 
 
 class RunChainTest(unittest.TestCase):
@@ -57,7 +56,7 @@ class RunChainTest(unittest.TestCase):
 
 
 class BuildSelfChainTest(unittest.TestCase):
-    """`cmd_build_self` assembles lint-packs → self with the right namespaces."""
+    """`build_self` assembles lint-packs → self with the right namespaces."""
 
     def test_steps_order_and_namespaces(self):
         recorded: list[tuple[str, argparse.Namespace]] = []
@@ -73,7 +72,7 @@ class BuildSelfChainTest(unittest.TestCase):
             args = argparse.Namespace(
                 packs_dir="packs", dry_run=True, force=False, no_symlink=True
             )
-            rc = gc.cmd_build_self(args)
+            rc = gc.build_self(args)
 
         self.assertEqual(rc, 0)
         self.assertEqual([label for label, _ in recorded], ["lint-packs", "self"])
@@ -91,7 +90,7 @@ class BuildSelfChainTest(unittest.TestCase):
 
 
 class BuildCheckChainTest(unittest.TestCase):
-    """`cmd_build_check` assembles every Windows-clean step, in order, no SAST."""
+    """`build_check` assembles every Windows-clean step, in order, no SAST."""
 
     def test_full_step_sequence_and_namespaces(self):
         order: list[str] = []
@@ -117,7 +116,7 @@ class BuildCheckChainTest(unittest.TestCase):
              mock.patch.object(gc, "cmd_check", rec("check")), \
              mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
-            rc = gc.cmd_build_check(args)
+            rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
         # Handlers first three, then five spawned scripts — Makefile order, no SAST.
@@ -150,7 +149,7 @@ class BuildCheckChainTest(unittest.TestCase):
         )
 
     def test_spawned_argv_is_windows_clean(self):
-        """AC4: every spawned argv is [sys.executable, path] — no shell token."""
+        """Every spawned argv is [sys.executable, path] — no shell token."""
         seen: list[list[str]] = []
 
         def fake_run(argv, check):
@@ -161,7 +160,7 @@ class BuildCheckChainTest(unittest.TestCase):
              mock.patch.object(gc, "cmd_build", lambda ns: 0), \
              mock.patch.object(gc, "cmd_check", lambda ns: 0), \
              mock.patch.object(gc.subprocess, "run", fake_run):
-            gc.cmd_build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+            gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
         self.assertTrue(seen)
         for argv in seen:
@@ -173,25 +172,21 @@ class BuildCheckChainTest(unittest.TestCase):
 
 
 class ParserWiringTest(unittest.TestCase):
-    """The two subcommands parse and dispatch to the chain handlers (AC1/AC2)."""
+    """The two subcommands parse and dispatch to the chain functions."""
 
-    def test_subcommands_dispatch_to_chain_handlers(self):
-        from agentbundle.build import _build_parser
-
-        parser = _build_parser()
-        self.assertIs(parser.parse_args(["build-self"]).func, gc.cmd_build_self)
-        self.assertIs(parser.parse_args(["build-check"]).func, gc.cmd_build_check)
+    def test_subcommands_dispatch_to_chain_functions(self):
+        parser = gc._build_parser()
+        self.assertIs(parser.parse_args(["build-self"]).func, gc.build_self)
+        self.assertIs(parser.parse_args(["build-check"]).func, gc.build_check)
 
     def test_build_check_output_dir_default(self):
-        from agentbundle.build import _build_parser
-
-        args = _build_parser().parse_args(["build-check"])
+        args = gc._build_parser().parse_args(["build-check"])
         self.assertEqual(args.packs_dir, "packs")
         self.assertEqual(args.output_dir, "dist")
 
 
 class MissingScriptTest(unittest.TestCase):
-    """AC3 edge: a missing spawned script yields non-zero and stops the chain."""
+    """A missing spawned script yields the interpreter's exit 2 and stops the chain."""
 
     def test_missing_script_step_fails_and_short_circuits(self):
         ran_after: list[str] = []

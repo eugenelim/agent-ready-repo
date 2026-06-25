@@ -98,17 +98,22 @@ packs/                                dist/
    any byte-divergence between source and projection — the single biggest
    source of CI noise, so the error message names the seed path you
    should have edited. On Windows (no `make`), run the whole gate chain in one
-   command with the make-free chaining subcommands:
-   `python -m agentbundle.build build-self` (lint-packs → self; add `--dry-run`
-   for the diff) and `python -m agentbundle.build build-check` (lint-packs →
-   build → check → pre-pr-catalogue → the spec-status and brief-coverage gates).
-   `build-self` *writes* the projection into the tree; `build-check` is the
-   read-only verify gate. These call the same handlers the Makefile targets do — in fact `make
-   build-self` / `make build-check` route *through* them, so the step lists live
-   once and can't drift. The fixture-overwrite guard is enforced in the CLI
-   handler, so the direct entry is equally safe. The Windows-incompatible SAST
-   leg (Semgrep) is not chained into `build-check`; it stays Makefile-appended,
-   so a full SAST/SCA pass remains a `make build-check` (Linux/macOS) step.
+   command with the make-free repo-native script:
+   `python tools/build_gate_chain.py build-self` (lint-packs → self; add
+   `--dry-run` for the diff) and `python tools/build_gate_chain.py build-check`
+   (lint-packs → build → check → pre-pr-catalogue → the spec-status and
+   brief-coverage gates). `build-self` *writes* the projection into the tree;
+   `build-check` is the read-only verify gate. The script calls the same
+   `agentbundle.build` handlers the Makefile targets do — in fact `make
+   build-self` / `make build-check` route *through* it, so the step lists live
+   once and can't drift. It lives in `tools/` rather than the `agentbundle`
+   package because `build-check` spawns repo-only scripts (`pre-pr-catalogue.py`,
+   the projected skill linters) that never ship to adopters; the reusable engine
+   (`lint-packs` / `build` / `check` / `self`) stays in the package. The
+   fixture-overwrite guard is enforced in the `cmd_self` handler, so the entry is
+   equally safe. The Windows-incompatible SAST leg (Semgrep) is not chained into
+   `build-check`; it stays Makefile-appended, so a full SAST/SCA pass remains a
+   `make build-check` (Linux/macOS) step.
 
 ### The adapter contract
 

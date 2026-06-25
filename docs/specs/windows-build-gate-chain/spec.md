@@ -7,9 +7,10 @@
 - **Brief:** none
 - **Contract:** none
 - **Shape:** service
-- **Mode:** full — risk triggers fire: a new public CLI interface (two
-  subcommands on `python -m agentbundle.build`) and a structural change to the
-  build entrypoint (a new module chaining existing handlers).
+- **Mode:** full — risk triggers fire: a structural change (a new repo-native
+  tool plus a Makefile/CI rewire that reroutes the self-host gate targets). The
+  chain is *not* added to the published `agentbundle` package CLI — it lives in
+  `tools/`, because it orchestrates repo-only gates (see Objective).
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -18,18 +19,30 @@
 
 A Windows contributor regenerating or verifying the self-host projection runs
 the **whole gate chain in one command**, without `make` and without invoking
-bash. `python -m agentbundle.build build-self` chains lint-packs → self; `python
--m agentbundle.build build-check` chains lint-packs → build → check →
-pre-pr-catalogue → the projected `lint-spec-status` and `brief-coverage`
+bash. `python tools/build_gate_chain.py build-self` chains lint-packs → self;
+`python tools/build_gate_chain.py build-check` chains lint-packs → build →
+check → pre-pr-catalogue → the projected `lint-spec-status` and `brief-coverage`
 gates — the same steps in the same order as the corresponding Makefile targets.
 Each chain stops at the first failing step and exits non-zero with that step's
 code, so a failure is as legible as a failed `make` target. The chain logic is
 single-sourced: the `Makefile` `build-self` and `build-check` targets route
-through these subcommands rather than re-listing the steps, so the two surfaces
-cannot drift. The chain runs Python-native steps in-process by calling the
-existing `cmd_lint_packs` / `cmd_build` / `cmd_check` / `cmd_self` handlers, and
+through this script rather than re-listing the steps, so the two surfaces cannot
+drift. The script runs Python-native steps in-process by calling the existing
+`cmd_lint_packs` / `cmd_build` / `cmd_check` / `cmd_self` handlers, and
 out-of-process steps (pre-pr-catalogue, the projected skill linters) by spawning
-`sys.executable` — never bash, never a shell.
+`sys.executable` — never bash, never a shell. It self-inserts
+`packages/agentbundle` on `sys.path` and `chdir`s to the repo root, so it is one
+command with no environment setup, run from anywhere.
+
+The script lives in `tools/`, a sibling of `tools/pre-pr-catalogue.py`, and is
+**deliberately not a subcommand of the published `agentbundle` package**:
+`build-check` spawns repo-only scripts (`tools/pre-pr-catalogue.py` and the
+projected `.claude/skills/.../*.py` linters) that never ship to adopters, so the
+chain is meaningless — and would crash — in a `pip install agentbundle`
+consumer's tree. The reusable engine (`lint-packs` / `build` / `check` / `self`)
+stays in the package as public subcommands; only the repo-specific *wiring*
+lives here. Keeping it out of the package leaves the published CLI surface
+unchanged.
 
 ## Boundaries
 
@@ -70,7 +83,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   assumptions (no hardcoded `/` separators; build paths with `pathlib`).
 - Do not pull the SAST leg into the subcommands — Semgrep has no Windows
   support and the leg is conditional and tool-gated; it stays Makefile-only.
-- Do not reimplement, fork, or copy any gate's logic into the new module.
+- Do not reimplement, fork, or copy any gate's logic into the new script.
+- **Do not add the chain to the shipped `agentbundle` package CLI** (no new
+  `python -m agentbundle.build` subcommand) — it orchestrates repo-only gates
+  and would be dead/broken surface for adopters; it lives in `tools/`.
 - No new top-level directory.
 
 ## Testing Strategy
@@ -85,20 +101,21 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   asserting `func` resolves — a one-shot check, not a behavior with an
   invariant.
 - **End-to-end real invocation (manual QA).** Because this ships a command a
-  user invokes, the built artifact is exercised end-to-end: run `python -m
-  agentbundle.build build-check` and `build-self --dry-run` on a clean tree and
-  confirm the observed exit code and step output match `make build-check` /
-  `make build-self DRY_RUN=1`. Recorded in the plan's verification notes.
+  user invokes, the built artifact is exercised end-to-end: run `python
+  tools/build_gate_chain.py build-check` and `... build-self --dry-run` on a
+  clean tree and confirm the observed exit code and step output match `make
+  build-check` / `make build-self DRY_RUN=1`. Recorded in the plan's
+  verification notes.
 
 ## Acceptance Criteria
 
-- [x] AC1: `python -m agentbundle.build build-self` runs, in order, `lint-packs`
-  then `self` (via `cmd_lint_packs` then `cmd_self`), passing through
-  `--dry-run`, `--force`, and `--packs-dir`. Same steps, order, and flags as
-  `make build-self`, plus the `--no-symlink` pass-through the `self` subcommand
-  already supports. The `self` step is invoked with `output_dir="."` (the
-  working tree, matching the `self` subparser default).
-- [x] AC2: `python -m agentbundle.build build-check` runs, in order,
+- [x] AC1: `python tools/build_gate_chain.py build-self` runs, in order,
+  `lint-packs` then `self` (via `cmd_lint_packs` then `cmd_self`), passing
+  through `--dry-run`, `--force`, and `--packs-dir`. Same steps, order, and flags
+  as `make build-self`, plus the `--no-symlink` pass-through the `self`
+  subcommand already supports. The `self` step is invoked with `output_dir="."`
+  (the working tree, matching the `self` subparser default).
+- [x] AC2: `python tools/build_gate_chain.py build-check` runs, in order,
   `lint-packs` → `build` → `check` → `tools/pre-pr-catalogue.py` →
   `lint-spec-status` self-test + lint → `brief-coverage` self-test + lint —
   i.e. every Windows-clean step `make build-check` runs, in the same order. It
@@ -113,15 +130,19 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   spawned via `[sys.executable, <pathlib path>]`. (The Windows-cleanliness of the
   spawned scripts themselves — `pre-pr-catalogue.py` and the projected linters —
   is the predecessor gates' responsibility, not re-verified here.)
-- [x] AC5: The `Makefile` `build-self` and `build-check` targets route through
-  the new subcommands (the steps are listed once, in the subcommands); the SAST
-  leg remains appended after the `build-check` subcommand in the Makefile,
-  preserving `SKIP_SAST` and its run-last ordering.
+- [x] AC5: The `Makefile` `build-self`, `build-self-dry-run`, and `build-check`
+  targets route through `tools/build_gate_chain.py` (the steps are listed once,
+  in the script); the SAST leg remains appended after the `build-check` target's
+  script call in the Makefile, preserving `SKIP_SAST` and its run-last ordering.
 - [x] AC6: The `build-self` chain honors the `ALLOW_FIXTURE_PACKS` override and
   the `tests/fixtures/` overwrite guard (inherited from `cmd_self`, unchanged).
-- [x] AC7: `python -m agentbundle.build build-check` run on a clean tree exits 0
-  and its observed step output matches `make build-check` (SAST aside); the
-  cross-platform entry is documented in `docs/architecture/agentbundle.md`.
+- [x] AC7: `python tools/build_gate_chain.py build-check` run on a clean tree
+  exits 0 and its observed step output matches `make build-check` (SAST aside);
+  the cross-platform entry is documented in `docs/architecture/agentbundle.md`.
+- [x] AC8: The published `agentbundle` package CLI is unchanged — `python -m
+  agentbundle.build --help` lists no `build-self` / `build-check` subcommand, and
+  no agentbundle version bump is required. The chain is invoked only via
+  `tools/build_gate_chain.py`.
 
 ## Assumptions
 
@@ -135,3 +156,4 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Process: this work is full mode — new public CLI surface + structural build-entrypoint change (source: `work-loop` risk triggers)
 - Product: the users are Windows contributors to this repo, not PyPI/adopter end users — the command is a repo-dev gate run from repo root (source: scope decision 2026-06-25)
 - Process: the `build-check` chain includes the Windows-clean `lint-spec-status`/`brief-coverage` projected-script pairs (beyond the brief's named handler set) for behavioral identity with `make build-check`; SAST is the only excluded leg (source: user confirmation 2026-06-25)
+- Process: the chain is a repo-native `tools/` script, NOT a subcommand on the shipped `agentbundle` package CLI — `build-check` spawns repo-only scripts that never reach adopters, so a package subcommand would be dead/broken surface; this keeps the published CLI unchanged and needs no release (source: user confirmation 2026-06-25 — "don't just change the adopter surface without explicitly surfacing")
