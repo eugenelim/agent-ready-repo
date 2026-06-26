@@ -268,6 +268,20 @@ team decides to override the RFC's wait-and-see stance (then build a stdlib
 `tools/` lint — mind the Windows bash→py and two-lint-surface wiring traps — and
 wire it into `make build-check`).
 
+## `traceability-lint`
+
+### sidecar-drift-hard-fail
+
+The traceability lint's sidecar cross-check (`_state/traceability.json` ↔ on-disk
+edge set) ships **warn-only (exit 0)** because the sidecar matrix schema is
+`core` sidecar doctrine (RFC-0048 D7) that **is not pinned yet** — a hard-failing
+check against an undefined, not-yet-shipped schema is either dead code or a
+false-positive generator. **Unblocks when:** the sidecar `traceability.json`
+schema is pinned by the RFC-0048 child that ships it (the Decision-7 spike / the
+`core` sidecar-schema effort); then promote drift from warn to a hard violation
+(exit 1) and recognize the schema version, mirroring how `lint-brief-coverage.py`
+hard-fails on a stale recorded cell.
+
 ## `architect-knowledge-surfaces`
 
 ### architect-review-diagram-knowledge-surfaces
