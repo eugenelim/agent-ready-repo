@@ -67,9 +67,9 @@ def test_init_state_happy_path(tmp_path):
     assert state_path.exists(), ".agentbundle-state.toml must be written"
 
     state = config.load_state(state_path)
-    assert "core" in state.packs, "[pack.core] must be present"
+    assert state.has_pack("core"), "[pack.core] must be present"
 
-    pack_state = state.packs["core"]
+    pack_state = state.row("core", "claude-code")
     for relpath, content in rendered.items():
         expected_sha = hashlib.sha256(content).hexdigest()
         actual_sha = pack_state.file_sha(relpath)
@@ -88,8 +88,9 @@ def test_init_state_merge_preserves_other_pack(tmp_path):
     """Pre-populate [pack.A]; run init-state --pack core; assert [pack.A] survives."""
     # Write a minimal state file with a different pack.
     pre_state = config.State()
-    pre_state.packs["A"] = config.PackState(
+    pre_state.packs[("A", "claude-code")] = config.PackState(
         installed_version="1.0.0",
+        adapter="claude-code",
         files={"some/path.md": {"sha": "deadbeef", "from-pack-version": "1.0.0"}},
     )
     (tmp_path / ".agentbundle-state.toml").write_text(
@@ -103,9 +104,9 @@ def test_init_state_merge_preserves_other_pack(tmp_path):
     assert rc == 0
 
     state = config.load_state(tmp_path / ".agentbundle-state.toml")
-    assert "A" in state.packs, "[pack.A] must survive the merge"
-    assert state.packs["A"].file_sha("some/path.md") == "deadbeef"
-    assert "core" in state.packs, "[pack.core] must be added"
+    assert state.has_pack("A"), "[pack.A] must survive the merge"
+    assert state.row("A", "claude-code").file_sha("some/path.md") == "deadbeef"
+    assert state.has_pack("core"), "[pack.core] must be added"
 
 
 # ---------------------------------------------------------------------------

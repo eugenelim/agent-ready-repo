@@ -78,27 +78,25 @@ def _make_pack(
 
 
 def _plant_state(adopter: Path, *, pack_name: str, adapter: str = "claude-code") -> None:
-    """Write a minimal v0.3 state.toml carrying a single ``[pack.<name>]`` row.
+    """Write a minimal v0.4 state.toml carrying one ``[pack.<name>.adapters.<a>]``
+    row.
 
-    The fixture mirrors a pre-RFC-0012 install — the row exists but no
-    repo-scope per-IDE files match it on disk (dist-tree or orphan
-    artifacts are planted by the caller).
+    The fixture mirrors a prior install — the row exists but no repo-scope
+    per-IDE files match it on disk (dist-tree or orphan artifacts are planted
+    by the caller). The adapter is part of the table key (RFC-0052).
     """
-    adapter_line = ""
-    if adapter != "claude-code":
-        adapter_line = f'adapter = "{adapter}"\n'
     state_path = adopter / ".agentbundle-state.toml"
     state_path.write_text(
         textwrap.dedent(
             f"""\
-            schema-version = "0.3"
+            schema-version = "0.4"
 
-            [pack.{pack_name}]
+            [pack.{pack_name}.adapters.{adapter}]
             installed-version = "0.1.0"
             source = "agent-ready-repo"
             install-route = "cli"
             scope = "repo"
-            {adapter_line}"""
+            """
         ),
         encoding="utf-8",
     )
@@ -211,7 +209,12 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             state = tomllib.loads(
                 (adopter / ".agentbundle-state.toml").read_text(encoding="utf-8")
             )
-            pack_row = state.get("pack", {}).get("demo", {})
+            pack_row = (
+                state.get("pack", {})
+                .get("demo", {})
+                .get("adapters", {})
+                .get("claude-code", {})
+            )
             self.assertEqual(
                 pack_row.get("installed-version"), "0.1.0",
                 f"state row not refreshed after (b)+--force: {pack_row!r}",
@@ -230,14 +233,24 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             )
 
 
-class TriggerAAdapterDisagreementTests(unittest.TestCase):
-    """(a) adapter disagreement: state row + resolver disagreement +
-    no dist-tree files (precedence (b) → (a))."""
+class CrossAdapterCoexistenceTests(unittest.TestCase):
+    """RFC-0052: a different adapter is no longer a "disagreement" to refuse —
+    it coexists. (The old trigger (a) cross-adapter refusal is removed; a row
+    for a different adapter falls through to a clean coexisting install.)
+    """
 
     def setUp(self) -> None:
         _clear_session_set()
 
-    def test_a_fires_when_recorded_adapter_disagrees_with_resolver(self) -> None:
+    def _state_pack_adapters(self, adopter: Path) -> dict:
+        import tomllib
+
+        state = tomllib.loads(
+            (adopter / ".agentbundle-state.toml").read_text(encoding="utf-8")
+        )
+        return state.get("pack", {}).get("demo", {}).get("adapters", {})
+
+    def test_different_adapter_coexists_not_refused(self) -> None:
         with TemporaryDirectory() as raw:
             tmp = Path(raw)
             packs_dir = tmp / "packs"
@@ -245,22 +258,25 @@ class TriggerAAdapterDisagreementTests(unittest.TestCase):
             _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
             adopter = tmp / "adopter"
             adopter.mkdir()
-            # State records claude-code; resolver picks kiro via --adapter.
+            # State records claude-code; install kiro as a second adapter row.
             _plant_state(adopter, pack_name="demo", adapter="claude-code")
-            # NO dist-tree files — (b) must not fire.
+            # NO dist-tree files.
 
             rc, stderr = _run_install(
                 ["--pack", "demo", "--scope", "repo", "--adapter", "kiro",
                  "--output", str(adopter), str(packs_dir)]
             )
-            self.assertNotEqual(rc, 0)
-            self.assertIn(
-                "state records adapter 'claude-code' for pack demo", stderr
-            )
-            self.assertIn("resolver picked 'kiro'", stderr)
-            self.assertIn("uninstall", stderr)
+            self.assertEqual(rc, 0, f"cross-adapter install refused: {stderr!r}")
+            self.assertNotIn("state records adapter", stderr)
+            # Both adapter rows now coexist.
+            adapters = self._state_pack_adapters(adopter)
+            self.assertIn("claude-code", adapters)
+            self.assertIn("kiro", adapters)
 
-    def test_a_does_not_fire_when_dist_tree_present_b_takes_precedence(self) -> None:
+    def test_dist_tree_for_recorded_adapter_still_fires_b(self) -> None:
+        """(b) still fires for the *recorded* adapter's legacy dist-tree
+        shape — detection is adapter-aware now, so it triggers on a same-
+        adapter install, not a coexisting different-adapter one."""
         with TemporaryDirectory() as raw:
             tmp = Path(raw)
             packs_dir = tmp / "packs"
@@ -269,40 +285,18 @@ class TriggerAAdapterDisagreementTests(unittest.TestCase):
             adopter = tmp / "adopter"
             adopter.mkdir()
             _plant_state(adopter, pack_name="demo", adapter="claude-code")
-            # Plant dist-tree files: (b) fires before (a).
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
             )
 
+            # Same adapter (claude-code) install → (b) fires on the legacy shape.
             rc, stderr = _run_install(
-                ["--pack", "demo", "--scope", "repo", "--adapter", "kiro",
+                ["--pack", "demo", "--scope", "repo", "--adapter", "claude-code",
                  "--output", str(adopter), str(packs_dir)]
             )
             self.assertNotEqual(rc, 0)
-            # (b) fired, not (a).
             self.assertIn("pre-RFC-0012 dist-tree files", stderr)
-            self.assertNotIn("state records adapter", stderr)
-
-    def test_a_not_cleared_by_force(self) -> None:
-        """--force is NOT the corrective action for (a); uninstall + reinstall
-        is. The refusal text must still appear with --force passed."""
-        with TemporaryDirectory() as raw:
-            tmp = Path(raw)
-            packs_dir = tmp / "packs"
-            packs_dir.mkdir()
-            _make_pack(packs_dir, allowed_adapters=["claude-code", "kiro"])
-            adopter = tmp / "adopter"
-            adopter.mkdir()
-            _plant_state(adopter, pack_name="demo", adapter="claude-code")
-
-            rc, stderr = _run_install(
-                ["--pack", "demo", "--scope", "repo", "--adapter", "kiro",
-                 "--force",
-                 "--output", str(adopter), str(packs_dir)]
-            )
-            self.assertNotEqual(rc, 0)
-            self.assertIn("state records adapter 'claude-code'", stderr)
 
 
 class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
@@ -547,7 +541,8 @@ class ForceCleanupConfirmTests(unittest.TestCase):
                 (adopter / ".agentbundle-state.toml").read_text(encoding="utf-8")
             )
             self.assertIn(
-                "demo", state.get("pack", {}),
+                "claude-code",
+                state.get("pack", {}).get("demo", {}).get("adapters", {}),
                 "a declined --force must leave the state row intact",
             )
 

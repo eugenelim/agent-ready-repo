@@ -59,7 +59,13 @@ def run(args: "argparse.Namespace") -> int:
     # to both state files. Importing scope_mod lazily so --version stays fast.
     from agentbundle import scope as scope_mod
 
-    repo_state_for_check = load_state(state_path)
+    # A legacy (non-v0.4) state file is refused on read too (RFC-0052 hard
+    # cross-version refusal); surface it as a clean refuse, not a traceback.
+    try:
+        repo_state_for_check = load_state(state_path)
+    except ConfigError as exc:
+        print(f"uninstall: {exc}", file=sys.stderr)
+        return 1
     installed_at_repo = repo_state_for_check.has_pack(pack_name)
     user_state_path = None
     installed_at_user = False
@@ -73,6 +79,9 @@ def run(args: "argparse.Namespace") -> int:
         # No accessible user root — treat user scope as empty for the
         # disambiguator. The repo write below is unaffected.
         pass
+    except ConfigError as exc:
+        print(f"uninstall: {exc}", file=sys.stderr)
+        return 1
 
     if installed_at_repo and installed_at_user and cli_scope is None:
         print(
