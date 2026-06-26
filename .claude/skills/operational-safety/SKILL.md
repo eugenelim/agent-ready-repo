@@ -1,6 +1,6 @@
 ---
 name: operational-safety
-description: Progressive-disclosure operational-safety-depth modules for the work-loop. Holds seven references/ modules — six failure-mode-keyed checklists the quality-engineer reviewer reasons from (state-and-idempotency, blast-radius, environment-isolation, cost-and-teardown, drift-and-rollback, observability-and-smoke), plus cloud-implementation-craft, the one module also inlined into the implementer's EXECUTE brief. Each is grounded in standing operational taxonomy (AWS Well-Architected, Google SRE, the Terraform/Pulumi Day-1/Day-2 split). The orchestrator loads only the matching modules and inlines them into the reviewer's REVIEW brief — and cloud-implementation-craft into the implementer's EXECUTE brief — when infra/destructive work is detected; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer and implementer reason from. Carves against security-checklists on the reliability-vs-security lens.
+description: Progressive-disclosure operational-safety-depth modules for the work-loop. Holds failure-mode-keyed checklists the quality-engineer reviewer reasons from (state-and-idempotency, blast-radius, environment-isolation, cost-and-teardown, drift-and-rollback, observability-and-smoke), plus cloud-implementation-craft, the module also inlined into the implementer's EXECUTE brief. Each is grounded in standing operational taxonomy (AWS Well-Architected, Google SRE, the Terraform/Pulumi Day-1/Day-2 split). The orchestrator loads only the matching modules and inlines them into the reviewer's REVIEW brief — and cloud-implementation-craft into the implementer's EXECUTE brief — when infra/destructive work is detected; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer and implementer reason from. Carves against security-checklists on the reliability-vs-security lens.
 ---
 
 # Skill: operational-safety
@@ -10,7 +10,7 @@ infrastructure and destructive operational work. The reviewer's body carries
 the *universal method* (its testability / observability / reliability /
 maintainability lens, the severity rubric, the report format). The
 *shape-specific depth* — what to actually check at each operational failure
-mode — lives here, in seven `references/<module>.md` modules (six reviewer
+mode — lives here, in the per-failure-mode `references/<module>.md` modules (reviewer
 checklists plus `cloud-implementation-craft`, the EXECUTE-craft module — see
 below), so the agent prompt stays lean and the depth scales without bloat. It
 is the operational-lens twin of
