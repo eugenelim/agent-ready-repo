@@ -33,15 +33,16 @@ the orchestrator:
 
 1. Detects which **operational failure modes** the diff or spec crosses.
 2. Loads **only the matching modules** via the deterministic failure-mode→module
-   routing table in `work-loop/SKILL.md` (the `operational-safety` table,
-   beside the `security-checklists` one).
+   routing authority — this skill's [Module index](#module-index) below (the
+   `work-loop` REVIEW `quality-engineer` bullet dispatches against it rather than
+   carrying its own copy).
 3. **Inlines the selected modules' content** into the `quality-engineer`
    subagent's brief — so the reviewer receives a focused checklist as prompt
    text, never a path to resolve. The **same three steps** also run at
    `work-loop`'s EXECUTE step for `cloud-implementation-craft`, inlining it into
    the *implementer's* brief (the EXECUTE-consumer extension below).
 
-Loaded 1–N per the routing table, never a flat march of all seven. Where an
+Loaded 1–N per this skill's Module index, never a flat march of all seven. Where an
 adapter *does* support subagent skill auto-discovery, that is a redundant
 convenience layered on top — never the load-bearing mechanism.
 
@@ -49,7 +50,7 @@ convenience layered on top — never the load-bearing mechanism.
 established this library as a REVIEW-only depth source for `quality-engineer`.
 One module — `cloud-implementation-craft` — is **also** inlined into the
 **implementer's EXECUTE brief** on infra-flavored work, by the same
-orchestrator on the same routing table, so its golden practices
+orchestrator on the same Module index, so its golden practices
 (least-privilege-but-sufficient permissions, timing/retry, packaging,
 externalized config) shape the build, not only the review (ADR-0034). The
 mechanism is unchanged — the orchestrator inlines; the subagent does not
@@ -101,15 +102,22 @@ the same legend `security-checklists` uses, read through the operational lens:
 
 ## Module index
 
-| Module | Operational failure mode | Grounded in |
+This index is the **deterministic failure-mode→module routing authority** — the
+`work-loop` REVIEW `quality-engineer` bullet (and, for `cloud-implementation-craft`,
+the EXECUTE implementer brief) dispatches against the **Load when** column rather
+than carrying its own copy. Match the operational failure mode the infra/destructive
+change raises to its module(s). The `> **Grounded in:**` cells pin each module to
+its RFC-0041 module-table groundings.
+
+| Module | Load when — the operational failure mode the change raises | Grounded in |
 |---|---|---|
-| [`state-and-idempotency`](references/state-and-idempotency.md) | convergent re-apply, state locking, single-writer | F1.2, F1.3 |
-| [`blast-radius`](references/blast-radius.md) | destroy/replace gating, `prevent_destroy`, proposer≠approver | F3.1, F3.2 |
-| [`environment-isolation`](references/environment-isolation.md) | throwaway/staging vs prod, separate state/accounts | F3.3 |
-| [`cost-and-teardown`](references/cost-and-teardown.md) | cost-ceiling-as-gate, destroy-on-fail, TTL, no orphans | F3.4, F3.5 |
-| [`drift-and-rollback`](references/drift-and-rollback.md) | read-only drift detection, known-good re-apply path | F1.4, F2.6 |
-| [`observability-and-smoke`](references/observability-and-smoke.md) | active end-to-end probe, log access, health, verify-status, symptom→layer log playbook | F2.2; taxonomy follow-up |
-| [`cloud-implementation-craft`](references/cloud-implementation-craft.md) | **EXECUTE-craft** — least-privilege-but-sufficient permissions, timing/retry, packaging / entrypoint model, externalized config (also REVIEW) | RFC-0044 Author·behavioral + packaging gap |
+| [`state-and-idempotency`](references/state-and-idempotency.md) | provisioning or mutating infra; a stateful migration; any re-runnable write path — covers convergent re-apply, state locking, single-writer | F1.2, F1.3 |
+| [`blast-radius`](references/blast-radius.md) | can delete or replace existing infra; a destroy/teardown path; removing a `prevent_destroy` guard — covers destroy/replace gating, proposer≠approver | F3.1, F3.2 |
+| [`environment-isolation`](references/environment-isolation.md) | iterating against (or able to touch) production; shared vs throwaway/staging state — covers separate state/accounts | F3.3 |
+| [`cost-and-teardown`](references/cost-and-teardown.md) | provisions billable resources; ephemeral/per-iteration infra; teardown path — covers cost-ceiling-as-gate, destroy-on-fail, TTL, no orphans | F3.4, F3.5 |
+| [`drift-and-rollback`](references/drift-and-rollback.md) | long-lived infra that can drift; a deploy needing a defined recovery path — covers read-only drift detection, known-good re-apply path | F1.4, F2.6 |
+| [`observability-and-smoke`](references/observability-and-smoke.md) | deploys a service / site / endpoint a user reaches; needs smoke + telemetry — covers active end-to-end probe, log access, health, verify-status, symptom→layer log playbook | F2.2; taxonomy follow-up |
+| [`cloud-implementation-craft`](references/cloud-implementation-craft.md) | authoring infra / a managed-runtime deployment / live interaction (**also inlined into the implementer's EXECUTE brief**) — **EXECUTE-craft**: least-privilege-but-sufficient permissions, timing/retry, packaging / entrypoint model, externalized config (also REVIEW) | RFC-0044 Author·behavioral + packaging gap |
 
 `state-and-idempotency` (write-path convergence) and `drift-and-rollback`
 (divergence detection + recovery) are kept **deliberately separate** — every
