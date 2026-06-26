@@ -66,3 +66,4 @@ A profile is a one-time convenience for *installing* a set — it is not recorde
 - [The pack catalogue](../explanation/pack-catalogue.md) — what packs and profiles are, and the two-scope model.
 - [Install routes](../explanation/install-routes.md) — the install→adapt chain a profile install inherits per pack.
 - [How to upgrade an installed pack](upgrade-packs.md) — the per-pack upgrade verb.
+- [How to ship your organization's standard stack as a reusable pack](build-an-org-stack-pack.md) — author the org pack a repo-scope profile installs.
