@@ -1,6 +1,6 @@
 ---
 name: security-checklists
-description: Progressive-disclosure security-depth modules for the security-reviewer. Holds ten boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
+description: Progressive-disclosure security-depth modules for the security-reviewer. Holds boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
 ---
 
 # Skill: security-checklists
@@ -10,7 +10,7 @@ reviewer's body carries the *universal method* (the three-bucket delegation
 rule, load-context-first, the always-on STRIDE + LINDDUN open pass, the
 established-helper-bypass meta-check, the severity rubric, the honest-limits
 footer, the output format). The *shape-specific depth* — what to actually
-check at each trust boundary — lives here, in ten `references/<module>.md`
+check at each trust boundary — lives here, in the per-boundary `references/<module>.md`
 modules, so the agent prompt stays lean and the depth scales without bloat.
 
 > **Reliability-vs-security carve.** This library owns *security* config; the
@@ -34,7 +34,9 @@ spec-stage pass), the orchestrator:
 
 1. Detects which **trust boundaries** the diff or spec crosses.
 2. Loads **only the matching modules** via the deterministic
-   boundary→module routing table in `work-loop/SKILL.md`.
+   boundary→module routing authority — this skill's [Module index](#module-index)
+   below (the `work-loop` security-review bullets dispatch against it rather than
+   carrying their own copy).
 3. **Inlines the selected modules' content** into the `security-reviewer`
    subagent's brief — so the reviewer receives a focused ~30-item checklist
    as prompt text, never a path to resolve.
@@ -76,18 +78,25 @@ helper names.
 
 ## Module index
 
-| Module | Boundary | Primary anchor |
+This index is the **deterministic boundary→module routing authority** — the
+`work-loop` security-review bullets (diff-stage and the pre-EXECUTE spec-stage
+pass) dispatch against the **Boundary** column rather than carrying their own
+copy. Match the trust boundary the change crosses to its module(s); the
+**config-misconfig** row's *IaC / deploy-config* entry is the same one the
+`work-loop` infra-flavored signal keys on.
+
+| Module | Boundary (the change crosses) | Primary anchor |
 |---|---|---|
-| [`access-control`](references/access-control.md) | authz / object- & function-level access | OWASP A01:2025 + API Security Top 10:2023 (BOLA/BFLA) |
-| [`authn-session`](references/authn-session.md) | authentication, session, tokens | OWASP A07:2025 + ASVS 5.0 V6/V7 |
-| [`injection`](references/injection.md) | untrusted input → interpreter / deserializer | OWASP A05:2025 (+ A08 deserialization) |
-| [`path-and-file`](references/path-and-file.md) | filesystem paths, uploads, archive extraction | CWE-22 / CWE-73 + ASVS 5.0 V12 |
-| [`secrets-and-crypto`](references/secrets-and-crypto.md) | secrets, keys, hashing, signing, randomness | OWASP A04:2025 + ASVS 5.0 V11 |
-| [`outbound-ssrf`](references/outbound-ssrf.md) | outbound HTTP/DNS, URL fetch, webhooks | OWASP A01:2025 (SSRF) + ASVS 5.0 V13 |
-| [`supply-chain`](references/supply-chain.md) | dependencies, lockfiles, build trust | **OWASP A03:2025 (new)** |
-| [`config-misconfig`](references/config-misconfig.md) | CORS, IAM, IaC, server config | OWASP A02:2025 |
-| [`exceptional-conditions`](references/exceptional-conditions.md) | error paths, retries, fail-open | **OWASP A10:2025 (new)** (+ A09 logging) |
-| [`llm-agent`](references/llm-agent.md) | prompts, tool exposure, MCP, model output, agentic action | OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026 |
+| [`access-control`](references/access-control.md) | authz / object- & function-level access; a new or changed endpoint, handler, RPC | OWASP A01:2025 + API Security Top 10:2023 (BOLA/BFLA) |
+| [`authn-session`](references/authn-session.md) | authentication, session, login, password, MFA, tokens (JWT / API key) | OWASP A07:2025 + ASVS 5.0 V6/V7 |
+| [`injection`](references/injection.md) | untrusted input → interpreter / deserializer (SQL / shell / template / LDAP / HTML; deserialization) | OWASP A05:2025 (+ A08 deserialization) |
+| [`path-and-file`](references/path-and-file.md) | filesystem path from input, file upload, archive extraction | CWE-22 / CWE-73 + ASVS 5.0 V12 |
+| [`secrets-and-crypto`](references/secrets-and-crypto.md) | secrets, keys, hashing, signing, crypto, randomness | OWASP A04:2025 + ASVS 5.0 V11 |
+| [`outbound-ssrf`](references/outbound-ssrf.md) | outbound HTTP / DNS / URL fetch, webhooks | OWASP A01:2025 (SSRF) + ASVS 5.0 V13 |
+| [`supply-chain`](references/supply-chain.md) | dependency / lockfile / manifest change, build-artifact fetch (build trust) | **OWASP A03:2025 (new)** |
+| [`config-misconfig`](references/config-misconfig.md) | CORS, IAM, IaC, server / framework / deploy config | OWASP A02:2025 |
+| [`exceptional-conditions`](references/exceptional-conditions.md) | error handling, retries, fallbacks, fail-open paths | **OWASP A10:2025 (new)** (+ A09 logging) |
+| [`llm-agent`](references/llm-agent.md) | prompts, model / tool exposure, MCP, model-output handling, agentic action | OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026 |
 
 Threat modeling (STRIDE + LINDDUN for privacy) and design-time Insecure
 Design (A06 / Proactive Controls 2024) are **not** runtime modules: STRIDE +
