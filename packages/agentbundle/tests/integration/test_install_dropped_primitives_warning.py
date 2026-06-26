@@ -144,9 +144,9 @@ class CopilotWarningEndToEnd(unittest.TestCase):
             )
 
             # Install completed — skills landed at copilot's target
-            # (v0.11 copilot-skills-and-web: first-class `.github/skills/`).
+            # (RFC-0052 / ADR-0040: shared cohort home `.agents/skills/`).
             self.assertTrue(
-                (adopter / ".github" / "skills").exists(),
+                (adopter / ".agents" / "skills").exists(),
                 "copilot skill projection missing",
             )
 
