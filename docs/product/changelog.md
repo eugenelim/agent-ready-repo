@@ -19,6 +19,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **One pack can now be installed for several adapters at the same scope, and
+  the adapters that all read `.agents/skills/` share one skill copy
+  (RFC-0052).** The `agentbundle` install identity is now the *footprint* — the
+  set of file paths a `(pack, adapter, scope)` install writes, each with its
+  content SHA — not the pack name. Installing `research` for `codex` after
+  `claude-code` now succeeds (their trees are disjoint), and installing it for
+  `cursor` after `codex` *shares* the existing `.agents/skills/` skill files
+  instead of fighting over them. A genuine collision — the same path at
+  different content, or two different packs claiming one path — is refused,
+  naming the conflicting paths; `--force` keeps your copy as a `.upstream`
+  companion. `uninstall`, `upgrade`, and `diff` gain an `--adapter`
+  disambiguator (required only when a pack has more than one adapter row at the
+  scope); `uninstall` removes a shared file only when its last owner goes.
+  **Behaviour change:** cursor, gemini, and copilot now project the *skill*
+  primitive to the shared `.agents/skills/` home (joining codex) instead of
+  their native `.cursor/skills/` / `.gemini/skills/` / `.github/skills/`; their
+  agents/hooks/commands are unchanged. After an install that writes a shared
+  skill, stderr names the other adapters that read it.
+- **The install state file is now schema `v0.4` (`[pack.<name>.adapters.<adapter>]`).**
+  Migration is greenfield: a pre-v0.4 state file is refused (on read and write)
+  with a re-install prompt — there is no auto-converter, and existing installs
+  re-install to regenerate state. Existing cursor/gemini/copilot installs may
+  leave a now-unused `.cursor/skills/` / `.gemini/skills/` / `.github/skills/`
+  (or `.copilot/skills/`) tree behind; re-installing lands skills at the shared
+  home.
 - **The `work-loop`'s two reviewer routing tables now live in the depth-library
   skills they route into, not in `work-loop`'s `SKILL.md`.** The security
   boundary→module table moved into `security-checklists`'s Module index and the

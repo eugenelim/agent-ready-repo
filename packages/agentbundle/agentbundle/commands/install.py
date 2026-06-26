@@ -976,6 +976,16 @@ def run(args: "argparse.Namespace") -> int:
         # fallback render at repo scope) legitimately aggregates shared files
         # across packs — most notably `claude-plugins/marketplace.json` — so it
         # is exempt; there every path is treated as a normal write.
+        #
+        # Concurrency bound: this verdict is computed against the pre-flight
+        # state snapshot, NOT under the state lock. The lock (below) guarantees
+        # that two concurrent installs' *rows* both land (the RFC-0052
+        # concurrency AC — disjoint or co-owned-at-equal-content). It does not
+        # make the conflict decision atomic: two simultaneous installs writing
+        # *different* content to the same shared path is outside the AC's
+        # guarantee (each passes the gate against its stale snapshot). That
+        # genuine-conflict-under-true-concurrency case is not a supported
+        # scenario; the single-process gate refuses it.
         from agentbundle.config import FootprintPlan, FootprintVerdict, footprint_plan
 
         # Detect the dist-tree shape by its aggregation paths (mirrors the
@@ -1023,11 +1033,13 @@ def run(args: "argparse.Namespace") -> int:
 
         for relpath, content in sorted(projection.items()):
             verdict = fp.per_path.get(relpath, "new")
-            if verdict in ("coown", "own"):
+            if verdict in ("coown", "own") and (plan.root / relpath).exists():
                 # A sibling adapter row of the same pack (or this row on an
-                # upgrade) already owns this path at the same content. Record
-                # our claim; the physical file is already in place — skip the
-                # write so a cohort install doesn't rewrite a shared skill.
+                # upgrade) already owns this path at the same content, and the
+                # file is present on disk → record our claim and skip the write
+                # so a cohort install doesn't rewrite a shared skill. If the
+                # file was deleted, fall through to the normal write (Tier-1
+                # self-heal — mirrors safety.classify's absent-on-disk rule).
                 new_pack_state.files[relpath] = {
                     "sha": incoming[relpath],
                     "from-pack-version": pack_version,
@@ -1226,6 +1238,18 @@ def run(args: "argparse.Namespace") -> int:
             )
         except safety.PathJailError as exc:
             print(f"install: {exc}", file=sys.stderr)
+            return 1
+        except ConfigError as exc:
+            # persist_state_locked re-reads state under the lock; a concurrent
+            # process could have rewritten it to a foreign schema between
+            # pre-flight and now. The projected files are already on disk —
+            # surface that so the adopter knows to reconcile and re-run rather
+            # than seeing a bare traceback over a half-recorded install.
+            print(
+                f"install: files were written but state was not recorded: "
+                f"{exc}; reconcile {plan.state_path} and re-run",
+                file=sys.stderr,
+            )
             return 1
 
         # Cross-adapter disclosure rail (RFC-0052 Decision 7): if this
@@ -3646,10 +3670,15 @@ def _adapter_allowed_prefixes_repo(adapter_name: str) -> list[str]:
         return defaults.get(adapter_name, [".agentbundle/"])
 
 
+import functools as _functools
+
+
+@_functools.lru_cache(maxsize=1)
 def _shared_prefix_cohorts() -> dict[str, list[str]]:
     """Return the contract's `[contract.shared-prefixes]` registry — each
     shared prefix → its reader cohort (shipped adapters). Empty when a legacy
-    contract predates the registry (RFC-0052)."""
+    contract predates the registry (RFC-0052). Memoised: the bundled contract
+    is immutable for the process lifetime."""
     import tomllib
     from agentbundle.build.main import _read_bundled
 
@@ -3703,15 +3732,21 @@ def _shared_prefix_disclosure(
     # adopter's chosen name (identity-preservation).
     canonical = _canonical_install_adapter(adapter)
     own = {adapter, canonical}
-    lines = [f"Installed {pack_name} for {adapter} ({scope})."]
+    skill_lines: list[str] = []
     for prefix in touched:
         others = [a for a in cohorts[prefix] if a not in own]
         if not others:
             continue
         others_str = ", ".join(others)
-        lines.append(
+        skill_lines.append(
             f"  Skills → {home}{prefix} — also read by {others_str}."
         )
+    # Degenerate cohort: the installed adapter is the only shipped reader of
+    # every touched shared prefix → there is nothing to disclose.
+    if not skill_lines:
+        return None
+    lines = [f"Installed {pack_name} for {adapter} ({scope})."]
+    lines.extend(skill_lines)
     lines.append(
         f"  Hooks & subagents → {home}{native} — {adapter} only; install those "
         f"adapters\n  separately to get them there."

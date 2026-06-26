@@ -28,7 +28,7 @@ agentbundle install --pack research --scope user
 
 User-scope packs land in your home directory, not the repo — they're yours, not the team's, and they're there in every project you open.
 
-The install auto-detects your agent (`--adapter` overrides). To install from a **different** catalogue, pass it as a trailing argument — a git URL or a local path (`agentbundle install --pack core <catalogue>`); a `config set source <catalogue>` makes that the default, and an editable clone (`pip install -e`) defaults to itself.
+The install auto-detects your agent (`--adapter` overrides). Multi-IDE? Install the same pack for each agent at the same scope — they coexist, and the agents that read `.agents/skills/` (codex, cursor, gemini, copilot) share one skill copy instead of fighting over it. To install from a **different** catalogue, pass it as a trailing argument — a git URL or a local path (`agentbundle install --pack core <catalogue>`); a `config set source <catalogue>` makes that the default, and an editable clone (`pip install -e`) defaults to itself.
 
 ## More commands
 
