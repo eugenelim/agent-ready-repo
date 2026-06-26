@@ -29,13 +29,14 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 
 def _run(verb: str, argv: list[str]) -> tuple[int, str, str]:
     from agentbundle.cli import _build_parser
-    from agentbundle.commands import install, uninstall
+    from agentbundle.commands import diff, install, uninstall, upgrade
 
+    mod = {"install": install, "uninstall": uninstall, "upgrade": upgrade, "diff": diff}[verb]
     parser = _build_parser()
     args = parser.parse_args([verb] + argv)
     out_buf, err_buf = io.StringIO(), io.StringIO()
     with redirect_stdout(out_buf), redirect_stderr(err_buf):
-        rc = (install if verb == "install" else uninstall).run(args)
+        rc = mod.run(args)
     return rc, out_buf.getvalue(), err_buf.getvalue()
 
 
@@ -124,6 +125,62 @@ class KiroFamilyCoexistenceTests(unittest.TestCase):
                             "shared skill must survive — kiro-ide still owns it")
             rows = _state(adopter)["pack"]["core"]["adapters"]
             self.assertEqual(sorted(rows), ["kiro-ide"])
+
+
+class DisambiguatorParityTests(unittest.TestCase):
+    """RFC-0052: uninstall/upgrade/diff require --adapter when a pack has
+    multiple adapter rows at the resolved scope, and infer when it has one.
+    (uninstall's parity is covered by the kiro e2e above; this pins upgrade
+    and diff.)"""
+
+    def setUp(self) -> None:
+        from agentbundle.commands import install as _i
+
+        _i._clear_inband_detection_seen()
+
+    def _install_two(self, adopter: Path) -> None:
+        self.assertEqual(_install(adopter, "codex")[0], 0)
+        self.assertEqual(_install(adopter, "cursor")[0], 0)
+
+    def test_upgrade_requires_adapter_when_multiple_rows(self) -> None:
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw)
+            self._install_two(adopter)
+            rc, _, err = _run(
+                "upgrade",
+                ["--pack", "core", "--root", str(adopter), "--scope", "repo",
+                 "--yes", str(REPO_ROOT)],
+            )
+            self.assertNotEqual(rc, 0)
+            self.assertIn("multiple adapters", err)
+            self.assertIn("--adapter", err)
+
+    def test_upgrade_with_adapter_targets_one_row(self) -> None:
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw)
+            self._install_two(adopter)
+            rc, _, err = _run(
+                "upgrade",
+                ["--pack", "core", "--adapter", "codex", "--root", str(adopter),
+                 "--scope", "repo", "--yes", str(REPO_ROOT)],
+            )
+            # Same version in the catalogue → "already at" no-op exit, but it
+            # must NOT refuse on the disambiguator (rc may be 0 or the
+            # already-current code; the point is no "multiple adapters" refusal).
+            self.assertNotIn("multiple adapters", err)
+
+    def test_diff_requires_adapter_when_multiple_rows(self) -> None:
+        with TemporaryDirectory() as raw:
+            adopter = Path(raw)
+            self._install_two(adopter)
+            rc, _, err = _run(
+                "diff",
+                [str(REPO_ROOT / "packs" / "core"), "--root", str(adopter),
+                 "--scope", "repo"],
+            )
+            self.assertNotEqual(rc, 0)
+            self.assertIn("multiple adapters", err)
+            self.assertIn("--adapter", err)
 
 
 class ConcurrentInstallTests(unittest.TestCase):

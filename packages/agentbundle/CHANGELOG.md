@@ -8,6 +8,38 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-06-26
+
+### Changed
+
+- **Install identity is now the content-addressed *footprint*, not the pack
+  name — one pack can be installed for several adapters at one scope, and the
+  `.agents/skills/` cohort shares one skill copy (RFC-0052 / ADR-0039+0040).**
+  The state file is keyed `[pack.<name>.adapters.<adapter>]` (schema **v0.4**).
+  Installing `research` for `codex` after `claude-code` now succeeds (disjoint
+  trees); installing it for `cursor` after `codex` co-owns the shared
+  `.agents/skills/` files instead of rewriting them. A genuine collision — the
+  same path at different content, or two different packs claiming one path — is
+  refused, naming the conflicting paths; `--force` keeps your copy as a
+  `.upstream` companion. `uninstall`, `upgrade`, and `diff` gain an `--adapter`
+  disambiguator (required only when a pack has more than one adapter row at the
+  scope); `uninstall` removes a shared file only when its last owner goes. After
+  an install that writes a shared skill, stderr names the other adapters that
+  read it.
+- **cursor, gemini, and copilot now project the `skill` primitive to the shared
+  `.agents/skills/` home (joining codex)** instead of their native
+  `.cursor/skills/` / `.gemini/skills/` / `.github/skills/`. Their
+  agents/hooks/commands are unchanged. Adapter contract bumped to **v0.17** with
+  a `[contract.shared-prefixes]` registry.
+
+### Breaking
+
+- **State schema migration is greenfield (no auto-converter).** A pre-v0.4
+  state file is refused on read *and* write with a re-install prompt; mixed
+  CLI versions across CI/local can no longer silently mis-read state. Existing
+  cursor/gemini/copilot installs may leave a now-unused native skills tree
+  behind — re-install to land skills at the shared home.
+
 ## [0.8.0] — 2026-06-25
 
 ### Added

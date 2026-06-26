@@ -151,7 +151,7 @@ class GeminiContractTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_contract_version_is_0_14(self) -> None:
-        """Contract version is 0.16 (docs/specs/consolidated-pack-layout
+        """Contract version is 0.17 (docs/specs/consolidated-pack-layout
         bumped it from kiro-cli-agent-skill-resources' 0.15). Name preserved."""
         self.assertEqual(self.contract["contract"]["version"], "0.17")
 
