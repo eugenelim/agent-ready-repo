@@ -32,7 +32,7 @@ version = "0.1.0"
 recommends = ["beta-rec"]
 
 [pack.adapter-contract]
-version = "0.2"
+version = "0.6"
 
 [pack.install]
 default-scope = "repo"
@@ -46,7 +46,7 @@ version = "0.1.0"
 recommends = ["beta-rec"]
 
 [pack.adapter-contract]
-version = "0.2"
+version = "0.6"
 
 [pack.install]
 default-scope = "repo"
@@ -60,7 +60,7 @@ version = "0.1.0"
 recommends = ["beta-rec"]
 
 [pack.adapter-contract]
-version = "0.2"
+version = "0.6"
 
 [pack.install]
 default-scope = "user"
@@ -73,7 +73,7 @@ name = "beta-rec"
 version = "0.1.0"
 
 [pack.adapter-contract]
-version = "0.2"
+version = "0.6"
 
 [pack.install]
 default-scope = "repo"
@@ -86,7 +86,7 @@ name = "beta-rec"
 version = "0.1.0"
 
 [pack.adapter-contract]
-version = "0.2"
+version = "0.6"
 
 [pack.install]
 default-scope = "user"
@@ -103,7 +103,11 @@ def _stage_pack(catalogue_root: Path, name: str, toml: str) -> Path:
 
 
 def _run(args_dict) -> tuple[int, str, str]:
-    args = argparse.Namespace(**args_dict)
+    # Set emit_install_routes=False explicitly so the per-IDE projection
+    # path is used (not the dist-tree legacy path), consistent with what
+    # the real argparse parser default produces.
+    d = {"emit_install_routes": False, **args_dict}
+    args = argparse.Namespace(**d)
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         rc = install.run(args)
