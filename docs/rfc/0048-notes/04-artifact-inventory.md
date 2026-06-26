@@ -1,8 +1,11 @@
 # Product & design artifact inventory
 
 The artifacts the autonomous product-team flow produces/consumes, vision → spec.
-Status: ✓ exists · ✦ new (to build) · ⊕ enhance existing. Each artifact has a
-producing skill and a named consumer (no orphans). Agents produce design **intent
+Status: ✓ exists · ✦ new (to build) · ⊕ enhance existing. The target state is that
+each artifact has a producing skill and a named consumer (**no orphans**) — the
+traceability lint (RFC-0048 D6) enforces it once the `Discovery:` up-edge and the
+discovery `type:` markers land (RFC-0048 § Amendments DRIFT-G); the persona row's
+producer was reconciled to elicit-inline (DRIFT-F). Agents produce design **intent
 specifications** (markdown/mermaid/tables), NOT pixel comps — that's what makes
 them agent-producible and build-consumable (design-craft's own framing).
 
@@ -14,7 +17,7 @@ them agent-producible and build-consumable (design-craft's own framing).
 | **Opportunity tree** | the intent recursion viewed whole = the OST (outcome → opportunities → solutions → assumption tests) | frame+decompose ✓ | human at G1; orients discovery |
 | **De-risk record** | riskiest assumption · kill condition · prototype-approach · survive/kill verdict | de-risk-intent ✓ | G1.5; reshapes intent if killed |
 | **Domain anchor** | real-life activity grounding + best practice + naive-failure modes + **MVP/appetite scope + out-of-scope register** | research applied ✓ + typed artifact ✦ | UX + tech lenses; scope-creep guard |
-| **Persona** | who it's for; the referent taste + UX fit derive from | (in domain anchor) ✦ | aesthetic-direction; map-journey |
+| **Persona** | who it's for; the referent taste + UX fit derive from | *elicited inline by the first consumer* (not a separate produced artifact in the current child set — RFC-0048 § Amendments DRIFT-F; domain-anchor spec excludes it; promoting it to a produced artifact is a deferred option) | aesthetic-direction; map-journey |
 | **Outcomes & metrics** | North Star + input metrics | frame/decompose ✓ | traceability root; post-build review |
 | **Brief** | the core handoff: outcome, metrics, scope/non-goals, appetite, stories, spec map | decompose-intent writes ✓; template core ✓ | receive-brief |
 | **Spec** | per-feature contract (Shape + LLD + ACs) — the product/tech boundary artifact | new-spec ✓ | work-loop |
@@ -39,7 +42,8 @@ them agent-producible and build-consumable (design-craft's own framing).
 | **Design critique** | findings vs quality floor + **grounded taste reference** (fresh-context) | design-critique ⊕ (taste mode) | the producing lens (iterate) |
 | **Quality-floor checklist** | handle-all-states · accessibility floor · reduced-motion | design-craft shared ✓ | every screen design |
 
-**Content design:**
+**Content design** (`voice-and-microcopy` is **resident in `product-engineering`**, not the
+`experience` pack — RFC-0050 D5/§ cross-pack edit; listed here for the seat, not the home):
 
 | Artifact | What it is | Skill | Consumed by |
 | --- | --- | --- | --- |
