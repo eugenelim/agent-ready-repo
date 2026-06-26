@@ -236,7 +236,7 @@ call what*), `secrets-and-crypto` (secrets in state or env, keys),
 `outbound-ssrf` (public exposure, CDN / origin egress), and `supply-chain`
 (provider / module pinning) — each pulled in when the diff trips *that module's
 own* `security-checklists` Module-index entry, so the Module index stays the
-single deterministic authority and the set loads **1–N**, never a flat always-five march (a one-line
+single deterministic authority and the set loads only what the diff trips, never a blanket load of the whole candidate set (a one-line
 config tweak pulls one; a new public-facing stack pulls several). This adds **no
 new reviewer and no new module**: it makes the *existing* security pass
 mandatory and multi-module. The **Profile-A opt-out still applies wholesale** —
