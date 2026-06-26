@@ -31,6 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   orchestrator-loaded (never subagent-self-discovered), loaded 1–3 / 1–N and
   never a flat march, with the reliability-vs-security carve and the
   infra-mandatory security pass intact.
+- **`work-loop`'s `SKILL.md` moves more situational depth into on-demand
+  `references/`.** Three blocks that only matter in a subset of loops were
+  relocated out of the always-loaded `SKILL.md` body, each leaving a
+  load-bearing trigger/contract one-liner inline: the **visual / manual-QA**
+  verification-mode depth → new `references/verification-modes.md` (loaded when a
+  task picks that mode); the **pre-EXECUTE review** depth (how the reviewer
+  measures a structural change, the re-plan re-fire, the gate mechanism, the
+  infra-mandatory secure-design detail) → new `references/pre-execute-review.md`
+  (loaded when a trigger fires); and the **supervisor parallel-dispatch gate**
+  detail → the existing `references/supervisor-mode.md` (it had been duplicated
+  inline). No behavior change — the doctrine is identical, just disclosed
+  progressively; `SKILL.md`'s body drops further under its size cap.
 
 ### Fixed
 

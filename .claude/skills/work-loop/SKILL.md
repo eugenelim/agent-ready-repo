@@ -166,31 +166,17 @@ For anything beyond trivial, *think before you write code*. Concretely:
     instead of a test file. Don't write a test that just asserts what
     the compiler already proves.
   - **Visual / manual QA** — UI rendering and end-to-end UX flows, **and any
-    other artifact a user invokes directly**: a CLI, a library's public API, an
-    agent or skill, a service endpoint. The task records the manual check
-    explicitly. **When a change ships something a user invokes, verification
-    includes exercising the real built artifact end-to-end the way a user
-    would — through the documented happy path — and recording what you
-    observed**: the actual stdout and exit code, the returned value, the file
-    written, the on-screen result. Assert on that observed result, not on
-    internal state (store contents, mock-call counts, context-provider values),
-    and don't let a passing unit gate stand in for the real invocation. A test
-    or check that passes while the artifact, run as documented, produces the
-    wrong result is mode-mismatched, regardless of which framework wrote it.
-    For UI flows "what you observed" is *what the user actually sees* (rendered
-    text, visible elements, navigation); for a CLI it's the command's real
-    output and exit status; for a library it's the public call's result and
-    effects through its documented entry point, not a private internal. This is
-    **harness-agnostic doctrine** — exercise the artifact by hand on any agent;
-    in Claude Code the native `/verify` and `/run` commands perform it, an
-    optional accelerant and never a dependency, so adapters without them lose
-    only the shortcut, not the step. Add automation when the regression cost (a
-    broken invocation ships invisibly) outweighs the cost (flakiness,
-    brittleness); the choice of tool is the adopter's. A third flavor —
-    *exploratory / visual fuzz* — drives the UI with varied or random input and
-    asserts **invariants** ("didn't crash, didn't render garbage, layout holds,
-    no overflow") rather than specific outputs. Reach for it when the failure
-    mode is open-ended and you can't enumerate the gestures up front.
+    other artifact a user invokes directly** (a CLI, a library's public API, an
+    agent or skill, a service endpoint). The contract: **exercise the real built
+    artifact end-to-end through its documented happy path and record what you
+    observed** (the actual stdout / exit code, returned value, file written,
+    on-screen result) — assert on that observed result, not on internal state,
+    and never let a passing unit gate stand in for the real invocation. Full
+    doctrine — the per-surface shapes (UI / CLI / library), the harness-agnostic
+    `/verify` + `/run` accelerants, when to automate, and the exploratory /
+    visual-fuzz flavor — is progressive-disclosure depth in
+    [`references/verification-modes.md`](references/verification-modes.md),
+    loaded when a task picks this mode.
   - **infra/deploy** — provisioning or changing infrastructure (a cloud
     deploy, an IaC apply, a stateful migration). The fourth verification
     *mode*; unlike the three above, its contract is a **layered GATES
@@ -249,98 +235,43 @@ For anything beyond trivial, *think before you write code*. Concretely:
   `no stub (mode)`; light mode skips this entirely.
 - **Pre-EXECUTE adversarial review.** Select a subagent matching
   `adversarial-reviewer` and ask it to review the spec + plan in
-  spec/plan-review mode. Iterate to clean before EXECUTE begins when
-  **either** trigger fires (fallback if no such subagent is installed:
-  proceed but note the missing review in the final summary):
+  spec/plan-review mode. Iterate to clean before EXECUTE begins when **either**
+  trigger fires (fallback if no such subagent is installed: proceed but note the
+  missing review in the final summary):
 
-  1. **Spec amendment.** PLAN produced or modified a spec — you ran
-     `new-spec`, or you sharpened an existing `spec.md` / `plan.md`.
-  2. **Structural change.** Any plan task introduces structural surface
-     area. Walk this checklist; if **any** condition matches, the
-     trigger fires:
-     - New module boundary — a new directory under `packages/` or
-       `apps/`.
-     - New dependency added to package code — especially a framework,
-       ORM, or runtime.
-     - New abstraction layer — a new interface mediating between two
-       existing concrete things; a new factory, registry, locator, or
-       service-locator pattern.
-     - New top-level directory — the most expensive of the four to
-       undo. Many projects already gate this through their own RFC or
-       ADR process; the trigger fires here either way.
+  1. **Spec amendment** — PLAN produced or modified a spec (`new-spec`, or you
+     sharpened an existing `spec.md` / `plan.md`).
+  2. **Structural change** — any plan task introduces structural surface area;
+     the trigger fires if **any** matches: a **new module boundary** (a new
+     directory under `packages/` or `apps/`), a **new dependency** added to
+     package code, a **new abstraction layer** (a new interface / factory /
+     registry / locator mediating two concrete things), or a **new top-level
+     directory**. The trigger is the **plan's task shape**, not a spec edit — it
+     fires even when no spec is amended, and **re-fires on a mid-EXECUTE re-plan**
+     that introduces a condition the original plan lacked.
 
-  The structural-change trigger fires even when no spec is amended in
-  this PR — the trigger is the **plan's task shape**, not a spec edit.
-  Both triggers route to the same reviewer mode and the same spec-stage
-  checklist; what differs is the standard the reviewer measures against.
-  When the structural-change trigger fires, the reviewer checks the
-  plan against the spec's **Boundaries** section (defined by the
-  `new-spec` skill's bundled `spec.md` template) —
-  primarily `Never do` for hard structural rules and `Ask first` for
-  the ones that require sign-off; `Always do` for positive defaults
-  the plan must honour. If `Boundaries` is empty, that's the
-  finding to surface first — an empty Boundaries section is a
-  spec-stage gap, not a fallback cue. Only when the spec has no
-  Boundaries section at all (an unmigrated template, say) fall back
-  in order to: the PLAN step's **declined-pattern register** (above),
-  and the AGENTS.md **"Check before acting"** list (when installed
-  elsewhere this slug arrives as a fragment under
-  `docs/AGENTS.fragments/`; merge the items the adopter wants into their
-  own AGENTS.md).
-
-  **Re-fire on mid-EXECUTE re-plan.** If EXECUTE discovers a missing or
-  wrong task and updates `plan.md` per the *Design tests up front* rule
-  above, re-evaluate the structural-change checklist against the
-  updated plan. If a re-plan introduces any of the four conditions that
-  the original plan did not, the trigger re-fires and the reviewer
-  re-runs before EXECUTE resumes. This is where most over-engineering
-  emerges in practice — a tempting abstraction surfaces mid-flight, not
-  during the original PLAN — so the one-shot trigger is not enough.
-
-  Cheap-to-fix-early applies harder to specs and structural decisions
-  than to code — catching a vague behavior, a missing `Depends on:`,
-  a mismatched verification mode, or a misplaced module boundary here
-  costs a sentence; catching it post-EXECUTE costs a re-do. Gate
-  mechanism is unchanged: the `loop-cohort approve-plan` verb flips
-  `state.json.plan_review_status` to `approved` once the reviewer is
-  clean; `loop-cohort check <spec-dir> --phase plan` unlocks EXECUTE.
-  No new state fields. **Both triggers respect the Profile-A opt-out:**
-  skip if the project doesn't use the reviewer at all.
-- **Pre-EXECUTE secure-design review (net-new — security-boundary trigger).**
-  **Doctrine: security review shifts left — it runs at spec stage on
-  security-boundary work, not only as a late gate.** When the
-  **security-boundary risk trigger** is present (the change touches auth,
-  secrets, user input, deserialization, or file/network I/O), additionally
-  select a subagent matching `security-reviewer` and dispatch it in
-  **spec-stage secure-design mode** against the spec — asking, per trust
-  boundary the feature crosses, whether the control is specified as an
-  acceptance criterion at the right depth (confinement, not just traversal;
-  scheme allowlist, not "validate the URL"; broker-mediated secrets, not
-  ad-hoc reads). Inline the boundary-matching `security-checklists` modules
-  into its brief in their proactive-control framing, per the
-  [`security-checklists` Module index](../security-checklists/SKILL.md#module-index)
-  — the boundary→module routing authority. This
-  is **net-new wiring** — distinct from the adversarial-only firing above and
-  from the separate light→full escalation use of the same trigger; it
-  is not a re-use of either. Same Profile-A opt-out and the same
-  `approve-plan` gate apply. Fallback if no `security-reviewer` subagent is
-  installed: proceed and note the missing review in the final summary.
-
-  **For infra-flavored work this spec-stage pass is mandatory, not
-  discretionary.** "Infra-flavored" is a **defined signal, not an ad-hoc
-  judgement**: work that the **destructive/irreversible risk trigger** routes to
-  full mode *and* whose spec matches the
-  [`security-checklists` Module index](../security-checklists/SKILL.md#module-index)'s
-  IaC / deploy-config entry — the same classifier that already drives security-module
-  loading (the spec-stage half keys this match on the spec; the diff-stage half
-  on the diff — same Module-index entry). When that signal is present the
-  `security-reviewer` runs at spec stage **regardless of** the discretionary
-  security-boundary trigger, and the orchestrator **force-loads** the
-  infra-relevant `security-checklists` modules (the candidate set the REVIEW
-  `security-reviewer` bullet names), loaded 1–N as the spec warrants per that
-  Module index. The matching diff-stage pass, the reviewer-plus-scanner pairing, and
-  the Profile-A / missing-subagent interaction all live in that REVIEW bullet —
-  this is the spec-stage half of the same non-skippable, both-stages pass.
+  How the reviewer measures a structural change (the spec's **Boundaries**
+  section and its fallback chain), the re-plan re-fire mechanics, the
+  `loop-cohort approve-plan` / `check --phase plan` gate, and the **Profile-A
+  opt-out** are progressive-disclosure depth in
+  [`references/pre-execute-review.md`](references/pre-execute-review.md).
+- **Pre-EXECUTE secure-design review (security-boundary trigger).** Security
+  review **shifts left** — when the **security-boundary risk trigger** is present
+  (auth, secrets, user input, deserialization, or file/network I/O), also select
+  a subagent matching `security-reviewer` and dispatch it in **spec-stage
+  secure-design mode** against the spec, asking whether each control is specified
+  as an acceptance criterion at the right depth (confinement, not just traversal;
+  scheme allowlist, not "validate the URL"; broker-mediated secrets, not ad-hoc
+  reads). Inline **only** the boundary-matching modules (net-new wiring) per the
+  [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
+  **On infra-flavored work this pass is mandatory, not discretionary** — it keys
+  on the same classifier that drives security-module loading (the
+  destructive/irreversible trigger + the Module index's IaC / deploy-config
+  entry). The full firing conditions, the infra force-load set, and the
+  diff-stage / scanner-pairing interaction are progressive-disclosure depth in
+  [`references/pre-execute-review.md`](references/pre-execute-review.md) and the
+  REVIEW `security-reviewer` bullet. Same Profile-A opt-out and `approve-plan`
+  gate; fallback if no `security-reviewer` is installed: proceed and note it.
 - **Initialize the loop's state file.** Run this skill's bundled
   `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
   the bundled `assets/state.json` template into place, sets `feature`
@@ -519,39 +450,20 @@ declare optional `Touches:` globs, `schedule` also prints
 (a predicted overlap is a reason to keep the wave serial; it **never**
 greenlights parallel — the gate below stays authoritative).
 
-**Parallel implementer fan-out is opt-in and gated — never automatic.** A
-wave of mutually-independent tasks may run in parallel *only* when it
-clears the dispatch gate (`loop-cohort dispatch-decision`): every task in
-a safe category (cannot-collide / typed-Group-B / textual-loud) **and** a
-clean `git merge-tree` file-disjointness check. Any other category, or any
-merge-tree conflict, stays serial (fail closed). **You don't hand-classify
-the categories** — omit `--category` and the verb auto-derives each from its
-`--branch`'s committed diff (fail-closed: only all-added, no-danger-path,
-no cross-branch basename/dir collision → `cannot-collide`); pass `--category`
-only to override (the sole way to assert `typed-group-b`, which is never
-auto-derived). When the gate returns
-`parallel`, behavior depends on `state.json.auto_parallel` (set per-run via
-`loop-cohort auto-parallel`, default off):
-- **`auto_parallel` unset (default):** **present the cleared-gate opportunity
-  to the human** — name the parallel-eligible wave and its tasks (the verb's
-  stderr rationale gives you the line) and fan out **only on an explicit
-  opt-in**; absent one, run the wave sequentially. Never fan out silently.
-  Present-and-default-safe, **not** the halt-and-wait Surface verb — so, *with
-  `auto_parallel` unset*, an unattended run simply proceeds sequentially rather
-  than blocking.
-- **`auto_parallel` set:** the human pre-authorized this run, so a
-  **gate-cleared** wave fans out **without** the opt-in (this is what lets a
-  plan finish unattended). **GO-approval-only** — it skips *only* the
-  human-confirm step for an **already-cleared** wave; it is never a gate input,
-  never parallelizes a wave the gate didn't clear, and a parallel wave that
-  **fails** (merge-abort) still **Surfaces and stops** — never auto-retries.
-
-When you do opt in (either path), select a subagent matching `implementer` per the
-parallel-dispatch discipline above; **the full 7-step worktree procedure**
-lives in [`references/supervisor-mode.md`](references/supervisor-mode.md) —
-load it on demand. Parallel *reviewer* (read) fan-out is a separate,
-always-safe path and is unaffected. The single-agent fallback (no
-`implementer` subagent installed) is documented in the reference too.
+**Parallel implementer fan-out is opt-in and gated — never automatic.** The
+short version: a wave fans out only when `loop-cohort dispatch-decision` clears
+it (categories auto-derived fail-closed, plus a clean `git merge-tree`
+disjointness check) **and** — with `state.json.auto_parallel` unset — a human
+opts in; absent that it runs sequentially, and a failed parallel wave
+**Surfaces and stops**, never auto-retries. When you do opt in, select a
+subagent matching `implementer` per the
+[parallel-dispatch discipline](#parallel-dispatch-discipline) above. The full
+gate semantics, the `auto_parallel` GO-approval behavior, the 7-step worktree
+procedure, and the single-agent fallback (no `implementer` subagent installed)
+are progressive-disclosure depth in
+[`references/supervisor-mode.md`](references/supervisor-mode.md) — loaded only
+when you take this path. Parallel *reviewer* (read) fan-out is a separate,
+always-safe path and is unaffected.
 
 ### 3. GATES — mechanical verification
 
