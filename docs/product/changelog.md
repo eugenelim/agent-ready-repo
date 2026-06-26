@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The `work-loop`'s two reviewer routing tables now live in the depth-library
+  skills they route into, not in `work-loop`'s `SKILL.md`.** The security
+  boundary→module table moved into `security-checklists`'s Module index and the
+  operational failure-mode→module table moved into `operational-safety`'s Module
+  index; the `work-loop` `security-reviewer` and `quality-engineer` review steps
+  now dispatch against those indexes. This removes the last copy-paste duplication
+  between `work-loop` and the two depth libraries — the routing table and the
+  modules it routes to can no longer drift apart — and trims `work-loop`'s
+  `SKILL.md` further under its size cap. The routing *behavior* is unchanged:
+  orchestrator-loaded (never subagent-self-discovered), loaded 1–3 / 1–N and
+  never a flat march, with the reliability-vs-security carve and the
+  infra-mandatory security pass intact.
+
 ### Fixed
 
 - **The `agentbundle` CLI now writes LF line endings on every platform.** Every
