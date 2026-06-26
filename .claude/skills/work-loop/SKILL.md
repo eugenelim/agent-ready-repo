@@ -318,7 +318,8 @@ For anything beyond trivial, *think before you write code*. Concretely:
   scheme allowlist, not "validate the URL"; broker-mediated secrets, not
   ad-hoc reads). Inline the boundary-matching `security-checklists` modules
   into its brief in their proactive-control framing, per the
-  [boundary→module routing table](#boundarymodule-routing-table) below. This
+  [`security-checklists` Module index](../security-checklists/SKILL.md#module-index)
+  — the boundary→module routing authority. This
   is **net-new wiring** — distinct from the adversarial-only firing above and
   from the separate light→full escalation use of the same trigger; it
   is not a re-use of either. Same Profile-A opt-out and the same
@@ -329,15 +330,15 @@ For anything beyond trivial, *think before you write code*. Concretely:
   discretionary.** "Infra-flavored" is a **defined signal, not an ad-hoc
   judgement**: work that the **destructive/irreversible risk trigger** routes to
   full mode *and* whose spec matches the
-  [boundary→module routing table](#boundarymodule-routing-table)'s IaC /
-  deploy-config entry — the same classifier that already drives security-module
+  [`security-checklists` Module index](../security-checklists/SKILL.md#module-index)'s
+  IaC / deploy-config entry — the same classifier that already drives security-module
   loading (the spec-stage half keys this match on the spec; the diff-stage half
-  on the diff — same routing-table entry). When that signal is present the
+  on the diff — same Module-index entry). When that signal is present the
   `security-reviewer` runs at spec stage **regardless of** the discretionary
   security-boundary trigger, and the orchestrator **force-loads** the
   infra-relevant `security-checklists` modules (the candidate set the REVIEW
   `security-reviewer` bullet names), loaded 1–N as the spec warrants per that
-  table. The matching diff-stage pass, the reviewer-plus-scanner pairing, and
+  Module index. The matching diff-stage pass, the reviewer-plus-scanner pairing, and
   the Profile-A / missing-subagent interaction all live in that REVIEW bullet —
   this is the spec-stage half of the same non-skippable, both-stages pass.
 - **Initialize the loop's state file.** Run this skill's bundled
@@ -644,34 +645,23 @@ note in the summary, not a blocker.
   `security-checklists` modules, and inline their content into the
   subagent's brief (reusing the on-demand `references/*.md` loading the loop
   already does) — the subagent's `tools:` has no Skill tool, so loading is
-  orchestrator-driven, not model-relevance-judged. Route deterministically:
-
-  <a id="boundarymodule-routing-table"></a>
-
-  | Trust boundary the change crosses | Inline module(s) |
-  | --- | --- |
-  | Authz / access-control; a new or changed endpoint, handler, RPC | `access-control` |
-  | Authentication, session, login, password, MFA, tokens (JWT/API key) | `authn-session` |
-  | Untrusted input → SQL / shell / template / LDAP / HTML; deserialization | `injection` |
-  | Filesystem path from input, file upload, archive extraction | `path-and-file` |
-  | Secrets, keys, hashing, signing, crypto, randomness | `secrets-and-crypto` |
-  | Outbound HTTP / DNS / URL fetch, webhooks | `outbound-ssrf` |
-  | Dependency / lockfile / manifest change, build-artifact fetch | `supply-chain` |
-  | CORS, IAM, IaC, server / framework / deploy config | `config-misconfig` |
-  | Error handling, retries, fallbacks, fail-open paths | `exceptional-conditions` |
-  | Prompts, model / tool exposure, MCP, model-output handling | `llm-agent` |
+  orchestrator-driven, not model-relevance-judged. Route deterministically via
+  [`security-checklists`' **Module index**](../security-checklists/SKILL.md#module-index)
+  — the boundary→module mapping is the routing authority and lives there, beside
+  the depth it routes to, so the dispatch table and the modules can't drift apart.
 
   Load 1–3 modules for a typical change, never a flat march of all ten; an
   auth-touching endpoint pulls `access-control` and often `authn-session`.
-  This same table backs the pre-EXECUTE spec-stage dispatch above.
+  That same Module index backs the pre-EXECUTE spec-stage dispatch above.
 
   **Mandatory and multi-module on infra-flavored work** (the
   destructive/irreversible trigger routed it to full mode *and* its diff matches
-  the IaC / deploy-config row): the pass is **non-skippable**, runs at **both the
+  the Module index's IaC / deploy-config (`config-misconfig`) entry): the pass is
+  **non-skippable**, runs at **both the
   spec stage and on the diff**, and force-loads the infra-relevant modules **1–N**
   (`config-misconfig` always, plus `access-control` / `secrets-and-crypto` /
-  `outbound-ssrf` / `supply-chain` as the diff trips *that module's own* row —
-  never a flat always-five march). A missing `security-reviewer` here is a **loud
+  `outbound-ssrf` / `supply-chain` as the diff trips *that module's own* Module-index
+  entry — never a flat always-five march). A missing `security-reviewer` here is a **loud
   blocker, not a silent proceed**; security on infra is a **reviewer + scanner
   *pair*** (failure-class reasoning + per-provider secure-config depth) — run
   both. **No new reviewer or module.** Full detail in
@@ -691,23 +681,14 @@ note in the summary, not a blocker.
   failure modes raised, load **only** the matching modules, and inline them into
   the subagent's brief (orchestrator-driven — its `tools:` has no Skill tool, so
   loading is not model-relevance-judged). **No new reviewer** — feeds the existing
-  `quality-engineer` (ADR-0023). Route deterministically:
-
-  <a id="operational-safety-routing-table"></a>
-
-  | Operational failure mode the infra/destructive change raises | Inline module(s) |
-  | --- | --- |
-  | Authoring infra / a managed-runtime deployment / live interaction — permissions, timing/retry, packaging, externalized config (**also inlined into the implementer's EXECUTE brief**, above) | `cloud-implementation-craft` |
-  | Provisioning or mutating infra; stateful migration; any re-runnable write path | `state-and-idempotency` |
-  | Can delete or replace existing infra; destroy/teardown path; removing a prevent-destroy guard | `blast-radius` |
-  | Iterating against (or able to touch) production; shared vs throwaway/staging state | `environment-isolation` |
-  | Provisions billable resources; ephemeral/per-iteration infra; teardown path | `cost-and-teardown` |
-  | Long-lived infra that can drift; a deploy needing a defined recovery path | `drift-and-rollback` |
-  | Deploys a service / site / endpoint a user reaches; needs smoke + telemetry | `observability-and-smoke` |
+  `quality-engineer` (ADR-0023). Route deterministically via
+  [`operational-safety`' **Module index**](../operational-safety/SKILL.md#module-index)
+  — the failure-mode→module mapping is the routing authority and lives there,
+  beside the depth it routes to.
 
   Load 1–N modules as the change warrants, **never a flat march of all seven** —
   a one-line config tweak pulls one; a new public-facing stack pulls several.
-  This is the operational twin of the `security-checklists` routing table
+  This is the operational twin of `security-checklists`' Module index
   above, and the **reliability-vs-security carve** holds: IaC-security →
   `config-misconfig` (the `security-reviewer` pass); IaC-reliability →
   `operational-safety` (this pass). The two passes are complementary lenses on

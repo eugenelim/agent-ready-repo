@@ -91,8 +91,11 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
 - **Skill structure** (the skill exists at the source path; six module files
   present with the exact names; SKILL.md mirrors the `security-checklists` shape):
   goal-based — `ls` / `grep`.
-- **Wiring presence** (the `operational-safety` routing table is in `work-loop`
-  SKILL.md; the `quality-engineer.md` consumer note is present; the
+- **Wiring presence** (the `operational-safety` routing authority is documented
+  — at ship time, a routing table in `work-loop` SKILL.md; since 2026-06-25,
+  `operational-safety`'s own Module index, which the `work-loop`
+  `quality-engineer` bullet dispatches against; see RFC-0044 § Errata —
+  the `quality-engineer.md` consumer note is present; the
   deferred-authority pointer is in `config-misconfig.md`): goal-based — `grep`.
 - **Deferred-authority pointer hygiene** (no URL, no version string in the
   pointer): goal-based — `grep` for `http`/`www`/version patterns in the added
@@ -154,6 +157,14 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
   `security-checklists` routing table) so the orchestrator loads 1–N matching
   modules on the infra/destructive trigger and inlines them into the
   `quality-engineer` brief — never a flat march of all six.
+  **(Amended 2026-06-25 — this deliverable shipped as specified and remains
+  checked; the routing authority was subsequently *relocated* from a `work-loop`
+  SKILL.md table into [`operational-safety`'s Module index](../../../packs/core/.apm/skills/operational-safety/SKILL.md#module-index),
+  which the `work-loop` `quality-engineer` bullet now dispatches against. The
+  deliverable's substance — orchestrator loads 1–N matching modules into the
+  `quality-engineer` brief, never a flat march — is unchanged; only its home
+  moved, to put the routing table beside the depth it routes to. See RFC-0044
+  § Errata 2026-06-25.)**
 - [x] **`quality-engineer` consumer wiring.** `quality-engineer.md` carries a note
   that it consumes orchestrator-inlined `operational-safety` depth (mirroring how
   `security-reviewer` consumes `security-checklists`), without self-discovering
@@ -192,8 +203,10 @@ mirrors how `security-checklists` and `work-loop-light-mode` were verified.
 - Technical: `security-checklists` lives at
   `packs/core/.apm/skills/security-checklists/` (SKILL.md + ten `references/*.md`)
   and its SKILL.md already documents the orchestrator-loads-not-self-discovered
-  mechanism and the boundary→module routing table in `work-loop` SKILL.md —
-  `operational-safety` mirrors this exactly (source: `ls` +
+  mechanism and the boundary→module routing table (at authoring time in
+  `work-loop` SKILL.md; relocated 2026-06-25 to `security-checklists`' own Module
+  index — RFC-0044 § Errata) — `operational-safety` mirrors this exactly,
+  including the later relocation of its own table into its Module index (source: `ls` +
   `security-checklists/SKILL.md` "How it loads").
 - Technical: skills are **directory-discovered**, not enumerated in a manifest
   array — adding `operational-safety/` under the pack and running `make
