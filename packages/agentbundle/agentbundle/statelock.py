@@ -22,7 +22,10 @@ import contextlib
 import os
 import time
 from pathlib import Path
-from typing import Callable, Iterator
+from typing import TYPE_CHECKING, Callable, Iterator
+
+if TYPE_CHECKING:
+    from agentbundle.config import State
 
 
 class StateLockTimeout(OSError):
@@ -47,6 +50,10 @@ def state_lock(
 
     Raises ``StateLockTimeout`` if the lock cannot be acquired in time.
     """
+    # ``state_path`` is trusted, CLI-resolved input (the repo root or
+    # ``~/.agentbundle/``), never pack-sourced — so the sibling lock path
+    # cannot be steered outside the jail. A future caller passing an
+    # untrusted ``state_path`` would need its own confinement check.
     lock_path = state_path.with_name(state_path.name + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + timeout
@@ -56,14 +63,30 @@ def state_lock(
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
             break
         except FileExistsError:
-            # Reclaim a stale lock (holder crashed) by age, then retry.
+            # Reclaim a stale lock (a holder crashed) — but do it RACE-SAFELY.
+            # A naive `unlink(); continue` lets two contenders both unlink and
+            # a third's fresh lock get deleted, admitting two holders. Instead
+            # rename the stale lockfile to a per-pid temp: `os.rename` is
+            # atomic, so exactly one contender wins (the lockfile moves once);
+            # losers see FileNotFoundError and re-loop. Staleness is judged on
+            # `st_mtime` — necessarily wall-clock, unlike the monotonic
+            # timeout; the 60s default absorbs normal NTP skew.
             try:
                 age = time.time() - lock_path.stat().st_mtime
-                if age > stale_after:
-                    lock_path.unlink(missing_ok=True)
-                    continue
             except FileNotFoundError:
                 # Holder released between our open and stat — retry promptly.
+                continue
+            if age > stale_after:
+                claimed = lock_path.with_name(
+                    lock_path.name + f".reclaim.{os.getpid()}"
+                )
+                try:
+                    os.rename(lock_path, claimed)
+                except (FileNotFoundError, OSError):
+                    # Another contender reclaimed or the holder released first.
+                    continue
+                # We won the reclaim: drop the stale lock and retry the create.
+                Path(claimed).unlink(missing_ok=True)
                 continue
             if time.monotonic() >= deadline:
                 raise StateLockTimeout(
@@ -85,7 +108,7 @@ def state_lock(
 
 def persist_state_locked(
     state_path: Path,
-    mutate: Callable[["object"], None],
+    mutate: "Callable[[State], None]",
     *,
     scope: str = "repo",
     allowed_prefixes: list[str] | None = None,

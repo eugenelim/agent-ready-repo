@@ -54,7 +54,7 @@ class CursorContractTests(unittest.TestCase):
         """AC1 — contract bumped to 0.11 by cursor-full-parity; subsequently
         0.12 (copilot-skills-and-web), 0.13 (docs/specs/gemini-full-parity),
         0.14 (docs/specs/enriched-pack-manifest), 0.15
-        (docs/specs/kiro-cli-agent-skill-resources), then 0.16
+        (docs/specs/kiro-cli-agent-skill-resources), then 0.17
         (docs/specs/consolidated-pack-layout).
         Name preserved to keep the diff small."""
         self.assertEqual(self.contract["contract"]["version"], "0.17")
