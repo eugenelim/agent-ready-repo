@@ -165,7 +165,7 @@ Sample reads, to calibrate the boundary:
   single monorepo" and deferred the cross-repo split; the first draft inherited that
   and would have false-flagged every cross-repo reference as a dangling edge. The
   user corrected it: the loops span repos (`work-loop` per-module;
-  `discovery-loop`/integration-loop cross-module). The fix wasn't to invent
+  `discovery-loop`/release-loop cross-module). The fix wasn't to invent
   cross-repo plumbing — it was to (a) link **by convention/stable-id, not path**
   (the invariant of every cross-boundary traceability system — OSLC URI, purl,
   Backstage `kind:namespace/name`, SLSA digest) and (b) **reuse the value-stream
@@ -218,6 +218,35 @@ Sample reads, to calibrate the boundary:
   AC** so the backstop can actually detect the failure, and flag the dependency so the claim
   isn't load-bearing on the weaker check. The tell: when you cite a check as a mitigation,
   confirm it detects the specific failure you're mitigating, not merely a related one.
+
+*Sample reads appended by RFC-0049's child spec — the release loop ([`docs/specs/release-loop/`](../../specs/release-loop/spec.md)):*
+- *When the parent pre-decided the value call, resolve the mechanics; surface only the
+  residual taste.* (Integration-loop spec.) RFC-0049 carried two OQs (pack home, agent shape)
+  with referent-grounded recommended defaults. The temptation was to re-open them as
+  decisions for the human. → **resolve both per the defaults** (opt-in pack, not core, by the
+  `discovery-lead`-in-`product-engineering` symmetry; distinct agent by the inner/outer split
+  + the RFC-0053 precedent), and surface **only** the one genuinely-aesthetic residual — the
+  pack *name* — as overridable. The tell: an OQ whose recommendation is grounded in a
+  precedent the parent already accepted is a resolve, not a surface; isolate the sub-part that
+  is pure taste and surface only that.
+- *A copied control contract is necessary but not sufficient when the boundary moved.*
+  (Integration-loop spec, from the spec-stage security pass.) AC10 faithfully mirrored
+  RFC-0053's seven upstream integrity controls — and the security pass still found three gaps,
+  because the *downstream* deploy loop crosses boundaries the *upstream* design loop never did
+  (deploy credentials, ephemeral-env tenancy, deployed-artifact provenance). → **resolve: add
+  the boundary-specific controls** (credential tiering so the autonomous zone *cannot*
+  authenticate to the irreversible tier; env-isolation as a *carve precondition*, not just a
+  reviewer lens; artifact-digest provenance across the G4→deploy handoff). The tell: when you
+  port a contract across a seam, re-run the boundary inventory for the new side — "mirrors the
+  sibling" proves parity, not sufficiency.
+- *A label that does load-bearing safety work must name the condition that makes it true.*
+  (Integration-loop spec.) The carve called the ephemeral outer loop "reversible" and ran it
+  unwatched — but reversibility of the *deploy* says nothing about *isolation* of the env it
+  targets. → **resolve: condition the label** — "reversible" holds only while the env is
+  network/data-isolated from prod, holds no real data, and can't reach prod state; a target
+  that can't be proven isolated is itself a consent-gate crossing. The tell: when a one-word
+  classification (`reversible` / `safe` / `internal`) gates autonomy, write down the
+  precondition that earns the word, or an agent will apply it where it doesn't hold.
 
 **Why this is logged as a scaffold, not left to recall:** in practice the AI loop reaches
 the right resolve-vs-surface call only ~half the time without a nudge (anchoring + the

@@ -27,7 +27,7 @@ brief↔spec edge in one repo) to the full nine-layer chain **across repositorie
 
 **The chain spans repos, because the loops do.** `work-loop` builds **per
 module** — one module is one repo (or one `packages/<c>/` within a monorepo).
-`discovery-loop` and the integration loop ([RFC-0049](../../rfc/0049-the-integration-loop-and-company-os.md))
+`discovery-loop` and the release loop ([RFC-0049](../../rfc/0049-the-release-loop-and-company-os.md))
 work **within one module or across many** — so the upstream discovery artifacts
 (`outcome`…`service`, the shared contracts) commonly live in a discovery or
 value-stream **meta-repo** ([ADR-0022](../../adr/0022-value-stream-meta-repo-cross-component-layer.md)),
@@ -188,7 +188,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and missing direction.
 - [ ] **Terminal layers are exempt** at their open end: `outcome` is never a
   backward orphan; `component` is never a forward orphan (its cross-repo consumer,
-  the integration loop, is [RFC-0049](../../rfc/0049-the-integration-loop-and-company-os.md)'s).
+  the release loop, is [RFC-0049](../../rfc/0049-the-release-loop-and-company-os.md)'s).
 - [ ] **Layer-skip is scoped to globally-unpopulated layers only**: when a layer
   has no artifacts anywhere in scope (a CLI tool has no `screen`/`action` layer),
   edge requirements resolve to the nearest *populated* adjacent layer; a node that
@@ -248,7 +248,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Technical: stdlib-only Python, `.py` for Windows portability (source: both
   precedent lints; CLAUDE.md new-tools-are-Python rule).
 - Technical: **the chain spans repos** — `work-loop` is per-module (per repo);
-  `discovery-loop` and the integration loop are same-or-cross-module/repo; upstream
+  `discovery-loop` and the release loop are same-or-cross-module/repo; upstream
   discovery artifacts and shared contracts commonly live in a discovery /
   value-stream meta-repo (source: user direction 2026-06-25; RFC-0030 Decision 9;
   ADR-0022; RFC-0049; supersedes RFC-0048 note 08's single-monorepo scope — a
