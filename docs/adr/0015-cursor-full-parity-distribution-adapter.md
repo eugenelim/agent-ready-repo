@@ -1,6 +1,6 @@
 # ADR-0015: Cursor is a full-parity distribution adapter
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted — **partially amended:** the **skill-home sub-decision** (`skill` → `.cursor/skills/<name>/`) is **superseded by [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md)** (cohort skills route to the shared `.agents/skills/`, 2026-06-26); the agent / hook / command projection decisions in this ADR stand.
 - **Date:** 2026-06-11
 - **Deciders:** eugenelim
 - **Supersedes:** none

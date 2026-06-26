@@ -1,6 +1,6 @@
 # ADR-0013: Copilot is a full-parity, user-scope-capable adapter
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted — **partially amended:** the **skill-home sub-decision** (Copilot skills projected to its native `.github/` / `~/.copilot/` tree) is **superseded by [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md)** (cohort skills route to the shared `.agents/skills/`, 2026-06-26); the agent / hook-wiring / hook-body / command projection decisions in this ADR stand.
 - **Date:** 2026-06-04
 - **Deciders:** eugenelim
 - **Supersedes:** none

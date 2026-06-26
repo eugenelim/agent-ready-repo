@@ -1,6 +1,6 @@
 # ADR-0016: Gemini CLI is a full-parity distribution adapter
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted — **partially amended:** the **skill-home sub-decision** (`skill` → `.gemini/skills/<name>/`, with "the `.agents/skills/` alias is not relied on") is **superseded by [ADR-0040](0040-route-cohort-skills-to-shared-agents-skills-home.md)** (cohort skills route to the shared `.agents/skills/`, which Gemini now prefers, 2026-06-26); the agent / hook / command / context-bridge projection decisions in this ADR stand.
 - **Date:** 2026-06-11
 - **Deciders:** eugenelim
 - **Supersedes:** none

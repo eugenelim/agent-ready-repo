@@ -44,6 +44,8 @@
 | 0036 | [The install-source default resolves through a trusted-by-construction precedence chain — editable detection as the downstream default, no repo-scoped source, no cwd fallback](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md) | Accepted |
 | 0037 | [Grounding context is adopter- and org-supplied and presence-checked — the EXECUTE contract-grounding gate generalizes from infra to framework/library through one detect-and-recommend tier, extending (not breaking) ADR-0034's no-bundled-KB rule](0037-grounding-is-adopter-and-org-supplied-and-presence-checked-one-gate-from-infra-to-framework.md) | Accepted |
 | 0038 | [Rename the `design-craft` pack to `experience` — live surface renamed, frozen governance bridged, no install-time alias (the `contract-acquisition` precedent)](0038-rename-design-craft-pack-to-experience.md) | Accepted |
+| 0039 | [Install identity is the content-addressed footprint, with a `shared` prefix class — co-ownership derived (not stored), conflicts refuse / `--force` drops `.upstream` (RFC-0052; pairs with ADR-0002)](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md) | Accepted |
+| 0040 | [Route cohort skills (codex, cursor, gemini, copilot) to the shared `.agents/skills/` home — supersedes the skill-home sub-decision of ADR-0013/0015/0016; agent/hook/command projection stands](0040-route-cohort-skills-to-shared-agents-skills-home.md) | Accepted |
 
 ## Adding a new ADR
 
