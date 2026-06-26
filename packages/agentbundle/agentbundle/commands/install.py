@@ -3659,13 +3659,13 @@ def _shared_prefix_cohorts() -> dict[str, list[str]]:
 
 
 # Display-only native dot-directory per adapter, used by the cross-adapter
-# disclosure rail's "Hooks & subagents → <home><native>" line. Copilot's
-# repo home is `.github/`, its user home `.copilot/`.
+# disclosure rail's "Hooks & subagents → <home><native>" line. Only the
+# adapters whose dot-dir doesn't equal `.<adapter>/` are listed; the rest fall
+# back to that derivation (so no per-adapter prefix literal is hardcoded —
+# e.g. `.codex/` is built from the name, not written out; T1 contract-driven).
+# Copilot's repo home is `.github/`, its user home `.copilot/`.
 _ADAPTER_NATIVE_DIR = {
     "claude-code": ".claude/",
-    "codex": ".codex/",
-    "cursor": ".cursor/",
-    "gemini": ".gemini/",
     "copilot": {"repo": ".github/", "user": ".copilot/"},
     "kiro-ide": ".kiro/",
     "kiro-cli": ".kiro/",
@@ -3690,12 +3690,22 @@ def _shared_prefix_disclosure(
     if not touched:
         return None
     home = "~/" if scope == "user" else ""
-    native = _ADAPTER_NATIVE_DIR.get(adapter, f".{adapter}/")
-    if isinstance(native, dict):
+    native = _ADAPTER_NATIVE_DIR.get(adapter)
+    if native is None:
+        # codex / cursor / gemini: dot-dir is `.<adapter>/` (derived, not a
+        # hardcoded prefix literal).
+        native = f".{adapter}/"
+    elif isinstance(native, dict):
         native = native.get(scope, native.get("repo"))
+    # Exclude both the recorded adapter and its canonical form from "others":
+    # installing the deprecated `kiro` alias (→ kiro-ide) must not name
+    # kiro-ide as a separate adapter to install. The header keeps the
+    # adopter's chosen name (identity-preservation).
+    canonical = _canonical_install_adapter(adapter)
+    own = {adapter, canonical}
     lines = [f"Installed {pack_name} for {adapter} ({scope})."]
     for prefix in touched:
-        others = [a for a in cohorts[prefix] if a != adapter]
+        others = [a for a in cohorts[prefix] if a not in own]
         if not others:
             continue
         others_str = ", ".join(others)
