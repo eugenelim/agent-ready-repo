@@ -83,13 +83,14 @@ class CopilotRepoScopeCoreTests(unittest.TestCase):
 
         # All four projected primitive homes are populated.
         agents = self.adopter / ".github" / "agents"
-        skills = self.adopter / ".github" / "skills"
+        # RFC-0052 / ADR-0040: copilot skill routes to the shared cohort home.
+        skills = self.adopter / ".agents" / "skills"
         hooks = self.adopter / ".github" / "hooks"
         self.assertTrue(
             list(agents.glob("*.agent.md")), f"no agents projected: {agents}"
         )
-        # v0.12 (copilot-skills-and-web): skills project as first-class Agent
-        # Skills — `.github/skills/<name>/SKILL.md` (was instruction files).
+        # RFC-0052: skills project to `.agents/skills/<name>/SKILL.md`
+        # (shared cohort home — not `.github/skills/` which was v0.11 shape).
         self.assertTrue(
             list(skills.glob("*/SKILL.md")),
             f"no skills projected: {skills}",
@@ -161,7 +162,9 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
         self.assertEqual(
             rc, 0, f"research via copilot at user scope refused/failed: {err!r}"
         )
-        skills = self.home / ".copilot" / "skills"
+        # RFC-0052 / ADR-0040: copilot skill at user scope routes to
+        # `~/.agents/skills/` (shared cohort home); agents stay at ~/.copilot/agents/.
+        skills = self.home / ".agents" / "skills"
         agents = self.home / ".copilot" / "agents"
         self.assertTrue(
             list(skills.glob("*/SKILL.md")),

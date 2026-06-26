@@ -63,7 +63,8 @@ def test_install_records_seeds_in_state(tmp_path):
     rc, _out, err = _install_core(target)
     assert rc == 0, err
     state = tomllib.loads((target / ".agentbundle-state.toml").read_text(encoding="utf-8"))
-    files = state["pack"]["core"]["files"]
+    # v0.4 shape: [pack.core.adapters.claude-code.files]
+    files = state["pack"]["core"]["adapters"]["claude-code"]["files"]
     for rel in ("AGENTS.md", "docs/CHARTER.md", "docs/CONVENTIONS.md"):
         assert rel in files, f"seed {rel!r} not recorded in state files map"
         # AC2: same {sha, from-pack-version} shape as primitives.
@@ -88,7 +89,7 @@ def test_install_composes_agents_md_and_skips_footer(tmp_path):
     )
     assert "_agents-footer.md" not in (
         tomllib.loads((target / ".agentbundle-state.toml").read_text(encoding="utf-8"))
-        ["pack"]["core"]["files"]
+        ["pack"]["core"]["adapters"]["claude-code"]["files"]
     ), "the composition fragment must not be state-tracked as a standalone file"
 
 

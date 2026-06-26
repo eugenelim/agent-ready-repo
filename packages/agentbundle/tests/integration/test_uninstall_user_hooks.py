@@ -293,7 +293,10 @@ class LegacyKiroJsonUninstallMigrationTests(_UninstallBase):
         # adapter was `kiro`, so an old install recorded `kiro` (not `kiro-cli`).
         state_path = self.home / ".agentbundle" / "state.toml"
         state = load_state(state_path)
-        state.packs["kiro-user-hooks"].adapter = "kiro"
+        # Re-key the row from ("kiro-user-hooks", "kiro-cli") to ("kiro-user-hooks", "kiro").
+        old_row = state.packs.pop(("kiro-user-hooks", "kiro-cli"))
+        old_row.adapter = "kiro"
+        state.packs[("kiro-user-hooks", "kiro")] = old_row
         state_path.write_text(dump_state(state), encoding="utf-8")
 
         rc, err = _run_uninstall(_uninstall_args(

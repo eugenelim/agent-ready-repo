@@ -102,6 +102,7 @@ def run(args: "argparse.Namespace") -> int:
         print(f"upgrade: {exc}", file=sys.stderr)
         return 1
     cli_scope: str | None = getattr(args, "scope", None)
+    cli_adapter: str | None = getattr(args, "adapter", None)
     # User-config attached by `cli.py:main()` via args._user_config.
     # The pre-flight in `_resolve_target_adapter` no-ops when
     # `state_adapter` is set (upgrades preserve their existing-install
@@ -116,17 +117,27 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle import scope as scope_mod
 
     repo_state_path = root / ".agentbundle-state.toml"
-    repo_state_for_check = load_state(repo_state_path)
-    installed_at_repo = pack_name in repo_state_for_check.packs
+    # A legacy (non-v0.4) state file is refused on read too (RFC-0052);
+    # surface it as a clean refuse rather than a traceback.
+    try:
+        repo_state_for_check = load_state(repo_state_path)
+    except ConfigError as exc:
+        print(f"upgrade: {exc}", file=sys.stderr)
+        return 1
+    installed_at_repo = repo_state_for_check.has_pack(pack_name)
     user_state_path = None
     installed_at_user = False
+    user_state_for_check = None
     try:
         user_root_resolved = scope_mod.resolve_user_root()
         user_state_path = user_root_resolved / ".agentbundle" / "state.toml"
         user_state_for_check = load_state(user_state_path)
-        installed_at_user = pack_name in user_state_for_check.packs
+        installed_at_user = user_state_for_check.has_pack(pack_name)
     except scope_mod.UserScopeUnresolvable:
         pass
+    except ConfigError as exc:
+        print(f"upgrade: {exc}", file=sys.stderr)
+        return 1
 
     if installed_at_repo and installed_at_user and cli_scope is None:
         print(
@@ -150,16 +161,43 @@ def run(args: "argparse.Namespace") -> int:
             return 1
         root = user_state_path.parent.parent
         effective_scope = "user"
+
+    # Multi-adapter disambiguator (RFC-0052): a pack can carry multiple
+    # adapter rows at one scope; upgrade targets exactly one. Infer when a
+    # single row exists; require --adapter when more than one.
+    effective_check = (
+        user_state_for_check if effective_scope == "user" else repo_state_for_check
+    )
+    _rows = effective_check.rows_for_pack(pack_name) if effective_check else {}
+    if cli_adapter is not None:
+        if cli_adapter not in _rows:
+            print(
+                f"upgrade: {pack_name} is not installed for adapter "
+                f"{cli_adapter!r} at {effective_scope} scope "
+                f"(installed for: {', '.join(sorted(_rows)) or 'none'})",
+                file=sys.stderr,
+            )
+            return 1
+        target_adapter = cli_adapter
+    elif len(_rows) == 1:
+        target_adapter = next(iter(_rows))
+    elif len(_rows) > 1:
+        print(
+            f"upgrade: {pack_name} installed for multiple adapters at "
+            f"{effective_scope} scope ({', '.join(sorted(_rows))}); pass --adapter",
+            file=sys.stderr,
+        )
+        return 1
+    else:
+        # No row at the effective scope; downstream "not installed" handles it.
+        target_adapter = cli_adapter or "claude-code"
+
+    if effective_scope == "user":
         from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
-        # Use the recorded adapter from state so Kiro-installed packs
-        # get .kiro/ prefixes, not Claude Code's .claude/ prefixes.
-        recorded_adapter = (
-            user_state_for_check.packs[pack_name].adapter
-            if pack_name in user_state_for_check.packs
-            else "claude-code"
-        ) or "claude-code"
-        allowed_prefixes = _adapter_allowed_prefixes_user(recorded_adapter)
+        # Use the targeted row's adapter so Kiro-installed packs get .kiro/
+        # prefixes, not Claude Code's .claude/ prefixes.
+        allowed_prefixes = _adapter_allowed_prefixes_user(target_adapter or "claude-code")
 
     # ── Detect per-primitive flag ─────────────────────────────────────────────
     prim_flag: str | None = None
@@ -215,11 +253,18 @@ def run(args: "argparse.Namespace") -> int:
         print(f"upgrade: {exc}", file=sys.stderr)
         return 1
 
-    if pack_name not in state.packs:
+    if not state.has_pack(pack_name):
         print(f"upgrade: pack {pack_name!r} not installed", file=sys.stderr)
         return 1
 
-    pack_state = state.packs[pack_name]
+    pack_state = state.row(pack_name, target_adapter)
+    if pack_state is None:
+        print(
+            f"upgrade: {pack_name} is not installed for adapter "
+            f"{target_adapter!r} at {effective_scope} scope",
+            file=sys.stderr,
+        )
+        return 1
 
     # ── Mixed-version warning (whole-pack only) ────────────────────────────────
     if not is_per_primitive and pack_state.primitive_versions:

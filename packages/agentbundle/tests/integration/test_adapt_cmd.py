@@ -66,9 +66,10 @@ def _setup_projected(tmp_path: Path, files: dict[str, str]) -> None:
             "from-pack-version": "0.1.0",
         }
 
-    state.packs["core"] = PackState(
+    state.packs[("core", "claude-code")] = PackState(
         installed_version="0.1.0",
         files=file_entries,
+        adapter="claude-code",
     )
     (tmp_path / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"
@@ -291,9 +292,10 @@ def test_binary_file_skipped_without_error(tmp_path):
     from agentbundle.safety import sha256_bytes
 
     state = State()
-    state.packs["core"] = PackState(
+    state.packs[("core", "claude-code")] = PackState(
         installed_version="0.1.0",
         files={"data.bin": {"sha": sha256_bytes(binary_content), "from-pack-version": "0.1.0"}},
+        adapter="claude-code",
     )
     (tmp_path / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
     (tmp_path / "data.bin").write_bytes(binary_content)

@@ -24,10 +24,10 @@ FIXTURE = (
 )
 
 
-def test_user_home_state_file_parses_at_v0_2():
-    """The fixture's `state.toml` parses cleanly as v0.2."""
+def test_user_home_state_file_parses_at_v0_4():
+    """The fixture's `state.toml` parses cleanly as v0.4."""
     state = load_state(FIXTURE / "state.toml")
-    assert state.schema_version == "0.2"
+    assert state.schema_version == "0.4"
 
 
 def test_user_home_discovery_file_parses_at_user_scope():

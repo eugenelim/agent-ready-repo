@@ -153,8 +153,9 @@ def test_state_file_merge_preserves_existing_pack(tmp_path):
 
     # Pre-seed a state with pack 'other'.
     state = State()
-    state.packs["other"] = PackState(
+    state.packs[("other", "claude-code")] = PackState(
         installed_version="1.0.0",
+        adapter="claude-code",
         files={"some/file.md": {"sha": "abc", "from-pack-version": "1.0.0"}},
     )
     state_path = tmp_path / ".agentbundle-state.toml"
@@ -165,11 +166,11 @@ def test_state_file_merge_preserves_existing_pack(tmp_path):
 
     # Reload and check both tables are present.
     merged = load_state(state_path)
-    assert "other" in merged.packs, "[pack.other] must still be present"
-    assert "alpha" in merged.packs, "[pack.alpha] must have been added"
+    assert merged.has_pack("other"), "[pack.other] must still be present"
+    assert merged.has_pack("alpha"), "[pack.alpha] must have been added"
     # 'other' table must be unmodified.
-    assert merged.packs["other"].installed_version == "1.0.0"
-    assert "some/file.md" in merged.packs["other"].files
+    assert merged.row("other", "claude-code").installed_version == "1.0.0"
+    assert "some/file.md" in merged.row("other", "claude-code").files
 
 
 # ---------------------------------------------------------------------------
@@ -375,10 +376,10 @@ def test_state_records_sha_for_tier1_paths(tmp_path):
     assert rc == 0
 
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert "alpha" in state.packs
+    assert state.has_pack("alpha")
 
     projection = render_pack(ALPHA_PACK_DIR)
-    pack_state = state.packs["alpha"]
+    pack_state = state.row("alpha", "claude-code")
     for relpath, expected_bytes in projection.items():
         assert relpath in pack_state.files, f"relpath {relpath!r} missing from state"
         recorded_sha = pack_state.files[relpath].get("sha")
@@ -441,8 +442,9 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
     f.write_bytes(on_disk_content)
 
     state = State()
-    state.packs["other"] = PackState(
+    state.packs[("other", "claude-code")] = PackState(
         installed_version="0.1",
+        adapter="claude-code",
         files={"shared.md": {"sha": safety.sha256_bytes(on_disk_content), "from-pack-version": "0.1"}},
     )
 

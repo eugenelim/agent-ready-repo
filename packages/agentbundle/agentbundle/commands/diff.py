@@ -31,6 +31,7 @@ def run(args: argparse.Namespace) -> int:
     pack_path = Path(args.pack_path).resolve()
     root = Path(args.root).resolve()
     cli_scope: str | None = getattr(args, "scope", None)
+    cli_adapter: str | None = getattr(args, "adapter", None)
 
     # ── Multi-scope disambiguator (RFC-0004) ──────────────────────────────────
     # diff is read-only but still subject to the --scope rule: pick which
@@ -52,16 +53,26 @@ def run(args: argparse.Namespace) -> int:
     repo_state_for_check = None
     user_state_for_check = None
     if pack_name:
-        repo_state_for_check = load_state(root / ".agentbundle-state.toml")
-        installed_at_repo = pack_name in repo_state_for_check.packs
+        # A legacy (non-v0.4) state file is refused on read too (RFC-0052
+        # hard cross-version refusal); surface it as a clean refuse rather
+        # than a traceback.
+        try:
+            repo_state_for_check = load_state(root / ".agentbundle-state.toml")
+        except ConfigError as exc:
+            print(f"diff: {exc}", file=sys.stderr)
+            return 1
+        installed_at_repo = repo_state_for_check.has_pack(pack_name)
         try:
             user_root_resolved = scope_mod.resolve_user_root()
             user_state_for_check = load_state(
                 user_root_resolved / ".agentbundle" / "state.toml"
             )
-            installed_at_user = pack_name in user_state_for_check.packs
+            installed_at_user = user_state_for_check.has_pack(pack_name)
         except scope_mod.UserScopeUnresolvable:
             pass
+        except ConfigError as exc:
+            print(f"diff: {exc}", file=sys.stderr)
+            return 1
 
         if installed_at_repo and installed_at_user and cli_scope is None:
             print(
@@ -83,17 +94,32 @@ def run(args: argparse.Namespace) -> int:
             root = user_root_resolved
 
     # Resolve effective scope and the matching pack_state (if any) so
-    # the renderer below can mirror the shape install used.
+    # the renderer below can mirror the shape install used. A pack can
+    # carry multiple adapter rows at one scope (RFC-0052); pick the row
+    # via --adapter, or infer when there is exactly one.
     effective_scope = "repo"
     pack_state = None
     if cli_scope == "user" or (
         cli_scope is None and installed_at_user and not installed_at_repo
     ):
         effective_scope = "user"
-        if user_state_for_check is not None and pack_name:
-            pack_state = user_state_for_check.packs.get(pack_name)
-    elif repo_state_for_check is not None and pack_name:
-        pack_state = repo_state_for_check.packs.get(pack_name)
+        _check_state = user_state_for_check
+    else:
+        _check_state = repo_state_for_check
+    if _check_state is not None and pack_name:
+        _rows = _check_state.rows_for_pack(pack_name)
+        if cli_adapter is not None:
+            pack_state = _rows.get(cli_adapter)
+        elif len(_rows) == 1:
+            pack_state = next(iter(_rows.values()))
+        elif len(_rows) > 1:
+            print(
+                f"diff: {pack_name} installed for multiple adapters at "
+                f"{effective_scope} scope ({', '.join(sorted(_rows))}); "
+                f"pass --adapter",
+                file=sys.stderr,
+            )
+            return 1
 
     if not (pack_path / "pack.toml").exists():
         print(

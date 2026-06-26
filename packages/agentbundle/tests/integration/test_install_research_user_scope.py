@@ -122,8 +122,8 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
         self.assertEqual(raw_state.get("schema-version"), STATE_SCHEMA_VERSION)
 
         state = load_state(state_path)
-        self.assertIn("research", state.packs)
-        pack_state = state.packs["research"]
+        self.assertTrue(state.has_pack("research"))
+        pack_state = next(iter(state.rows_for_pack("research").values()))
         self.assertEqual(pack_state.scope, "user")
         # Floor at len(SKILL_NAMES) — one file-tracking entry per
         # shipped skill at minimum, matching the converters precedent
@@ -181,7 +181,7 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
         # with the research row removed.
         research_gone = (
             not state_path.exists()
-            or "research" not in load_state(state_path).packs
+            or not load_state(state_path).has_pack("research")
         )
         self.assertTrue(
             research_gone,

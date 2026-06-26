@@ -172,13 +172,13 @@ class KiroIdeAdapterTests(unittest.TestCase):
         self.assertIn(".kiro.hook", target_repo)
 
     def test_contract_version_is_0_9(self) -> None:
-        """Contract version is 0.16 (docs/specs/consolidated-pack-layout,
+        """Contract version is 0.17 (docs/specs/consolidated-pack-layout,
         atop kiro-cli-agent-skill-resources' 0.15 and enriched-pack-manifest's 0.14).
         Name preserved to keep the diff small."""
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.16",
-            "adapter.toml [contract] version must be '0.16' after consolidated-pack-layout",
+            "0.17",
+            "adapter.toml [contract] version must be '0.17' after consolidated-pack-layout",
         )
 
     def test_kiro_ide_hook_projects_with_flat_prefix_path(self) -> None:

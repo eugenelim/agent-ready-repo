@@ -54,10 +54,10 @@ class CursorContractTests(unittest.TestCase):
         """AC1 — contract bumped to 0.11 by cursor-full-parity; subsequently
         0.12 (copilot-skills-and-web), 0.13 (docs/specs/gemini-full-parity),
         0.14 (docs/specs/enriched-pack-manifest), 0.15
-        (docs/specs/kiro-cli-agent-skill-resources), then 0.16
+        (docs/specs/kiro-cli-agent-skill-resources), then 0.17
         (docs/specs/consolidated-pack-layout).
         Name preserved to keep the diff small."""
-        self.assertEqual(self.contract["contract"]["version"], "0.16")
+        self.assertEqual(self.contract["contract"]["version"], "0.17")
 
     def test_cursor_block_projects_five_primitives(self) -> None:
         """AC2 — the five standard primitives are in the projection array."""
@@ -68,7 +68,7 @@ class CursorContractTests(unittest.TestCase):
             {"skill", "agent", "hook-body", "hook-wiring", "command"},
         )
         self.assertEqual(prims["skill"]["mode"], "direct-directory")
-        self.assertEqual(prims["skill"]["target-path"], ".cursor/skills/")
+        self.assertEqual(prims["skill"]["target-path"], ".agents/skills/")
         self.assertEqual(prims["agent"]["mode"], "direct-file")
         self.assertEqual(prims["agent"]["target-path"], ".cursor/agents/")
         self.assertEqual(
@@ -109,7 +109,7 @@ class CursorContractTests(unittest.TestCase):
         scope = self.contract["adapter"]["cursor"]["scope"]
         self.assertEqual(scope["repo"], ".")
         self.assertEqual(scope["user"], "~")
-        self.assertEqual(scope["allowed-prefixes"]["repo"], [".cursor/", ".agentbundle/"])
+        self.assertEqual(scope["allowed-prefixes"]["repo"], [".agents/skills/", ".cursor/", ".agentbundle/"])
         self.assertEqual(
             scope["allowed-prefixes"]["repo"], scope["allowed-prefixes"]["user"]
         )
@@ -147,7 +147,7 @@ class CursorProjectionTests(unittest.TestCase):
             (pack / ".apm" / "hooks" / "on-start.py").write_text("#!py", encoding="utf-8")
             out = tmp_path / "out"
             cursor.project(pack, self.contract, out)
-            self.assertTrue((out / ".cursor" / "skills" / "my-skill" / "SKILL.md").exists())
+            self.assertTrue((out / ".agents" / "skills" / "my-skill" / "SKILL.md").exists())
             self.assertTrue((out / ".cursor" / "commands" / "do-thing.md").exists())
             self.assertTrue((out / ".cursor" / "hooks" / "on-start.py").exists())
 
@@ -332,10 +332,10 @@ class CursorProjectionTests(unittest.TestCase):
             os.symlink(secret, skill / "leak.txt")
             out = tmp_path / "out"
             cursor.project(pack, self.contract, out)
-            leaked = out / ".cursor" / "skills" / "s" / "leak.txt"
+            leaked = out / ".agents" / "skills" / "s" / "leak.txt"
             self.assertFalse(leaked.is_symlink(), "nested symlink must not be reproduced")
             self.assertFalse(leaked.exists(), "nested symlink target must not be copied")
-            self.assertTrue((out / ".cursor" / "skills" / "s" / "SKILL.md").exists())
+            self.assertTrue((out / ".agents" / "skills" / "s" / "SKILL.md").exists())
 
 
 class CursorInstallDispatchTests(unittest.TestCase):

@@ -109,7 +109,7 @@ class AttachToAgentRenameTests(unittest.TestCase):
         # State row now points at the new target-file.
         from agentbundle.config import load_state
         state = load_state(self.home / ".agentbundle" / "state.toml")
-        owned = state.packs["kiro-user-hooks"].hook_wiring_owned
+        owned = state.row("kiro-user-hooks", "kiro-cli").hook_wiring_owned
         self.assertEqual(len(owned), 1)
         self.assertEqual(owned[0]["target-file"], ".kiro/agents/code-reviewer.json")
 

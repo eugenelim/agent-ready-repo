@@ -84,7 +84,7 @@ def _collect_orphans(state, user_root: Path) -> dict[str, list[str]]:
     # claude-code rows is ``~/.claude/settings.json``; kiro rows always
     # carry an explicit ``target-file``.
     grouped: dict[tuple[str, str], set[tuple[str, str]]] = {}
-    for pack_name, pack_state in state.packs.items():
+    for pack_state in state.packs.values():
         if pack_state.scope != "user":
             continue
         adapter = pack_state.adapter or "claude-code"
