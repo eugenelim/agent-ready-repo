@@ -1,4 +1,4 @@
-# RFC-0049: The integration loop — deployed e2e validation, the minimum-regret deploy carve, and the company-OS composition
+# RFC-0049: The release loop — deployed e2e validation, the minimum-regret deploy carve, and the company-OS composition
 
 - **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Provisional:** a **child of [RFC-0048](0048-autonomous-product-team-operating-model.md)**, which stays provisional until its children (this included) are modelled and drift-aligned. This RFC may amend 0048 (the gate arc, the company-OS framing) as it lands.
@@ -11,17 +11,17 @@
 ## The ask
 
 **Recommendation (BLUF).** On top of RFC-0048's discovery + build foundation, add the
-**integration loop** — a deployed **e2e-validation outer loop**. `work-loop` is the
+**release loop** — a deployed **e2e-validation outer loop**. `work-loop` is the
 **inner loop** (local build, made self-sufficient by local-infra-equivalents); the
-**integration-loop** deploys the integrated whole to an **ephemeral environment**, runs
+**release-loop** deploys the integrated whole to an **ephemeral environment**, runs
 e2e, observes telemetry, and **iterates with the inner loop until the deployed whole
 converges**, then ships to prod at **G5** (human-ratified). Carve autonomy by
 **minimum-regret**: agents run the inner loop *and* the outer loop **on ephemeral envs**
 unwatched; humans gate prod / data / spend / security / irreversible. Add an
-**`integration-lead`** agent (the SRE/ops supervisor) — doctrine + reuse of
+**`release-lead`** agent (the SRE/ops supervisor) — doctrine + reuse of
 `operational-safety` + `quality-engineer` + RFC-0041's infra doctrine, **no new runtime**,
 running on the omnigent harness. This completes the **"company OS"**: product (discovery)
-→ engineering (build) → SRE/ops (integration).
+→ engineering (build) → SRE/ops (release).
 
 **Why now (SCQA).** *Situation:* RFC-0048 gets the catalogue from vision → locally-built,
 deploy-ready code (G0–G4). *Complication:* **deployed infrastructure surfaces what you
@@ -33,7 +33,7 @@ iterate-until-converge — so the human becomes the relay for deployed findings.
 
 **Decisions requested.**
 1. **Adopt the inner/outer split.** `work-loop` = inner (local, with local-infra-
-   equivalents); a new **`integration-loop`** = outer (ephemeral deploy + e2e + iterate).
+   equivalents); a new **`release-loop`** = outer (ephemeral deploy + e2e + iterate).
    · decide-by: RFC accept · default: adopt.
 2. **The minimum-regret carve.** Autonomous on the inner loop **and the outer loop on
    ephemeral envs** (deploy / e2e / iterate / teardown + canary with auto-rollback);
@@ -45,14 +45,14 @@ iterate-until-converge — so the human becomes the relay for deployed findings.
    fidelity ladder — fakes → contract tests (Pact) → Testcontainers → LocalStack →
    docker-compose — so software runs and verifies locally before deploy. · decide-by:
    RFC accept · default: adopt.
-4. **Ship `integration-lead`** (the outer-loop supervisor / SRE-ops seat) as an agent +
-   an `integration-loop` skill, reusing `operational-safety` + `quality-engineer` +
+4. **Ship `release-lead`** (the outer-loop supervisor / SRE-ops seat) as an agent +
+   a `release-loop` skill, reusing `operational-safety` + `quality-engineer` +
    RFC-0041. Its **pack home and exact agent shape** (distinct agent vs a `work-loop`
    outer-mode) are OQ1/OQ2. · decide-by: RFC accept (the seat) · default: adopt.
 5. **The company-OS composition.** Three loop-teams — product (discovery) → engineering
-   (build) → SRE/ops (integration) — on RFC-0048's shared substrate (sidecar + gate arc +
-   harness); leads hand off at G3 (brief→spec), at deploy (work→integration), and at G5
-   (integration→prod). · decide-by: RFC accept · default: adopt.
+   (build) → SRE/ops (release) — on RFC-0048's shared substrate (sidecar + gate arc +
+   harness); leads hand off at G3 (brief→spec), at deploy (work→release), and at G5
+   (release→prod). · decide-by: RFC accept · default: adopt.
 6. **Convergence by policy.** Promotion is judged by automated policy (canary metric
    analysis + e2e coverage of the changed surface + flake < 2%) up to the irreversible
    human gate; **DORA** is the health signal. · decide-by: RFC accept · default: adopt.
@@ -81,12 +81,12 @@ summary:
 - **Inner loop = `work-loop`.** Local build + verification via the fidelity ladder
   (fakes → Pact → Testcontainers → LocalStack → docker-compose); run as high up as a
   sub-5-min budget tolerates; push the rest to the outer loop.
-- **Outer loop = `integration-loop`** under `integration-lead`: deploy the integrated whole
+- **Outer loop = `release-loop`** under `release-lead`: deploy the integrated whole
   to an **ephemeral environment** → run e2e → observe telemetry (observability-driven) →
   feed findings back to the inner loop → redeploy → **converge**.
 - **Minimum-regret carve** (the autonomy law applied to deploy): reversible (ephemeral)
   ⇒ autonomous; irreversible (prod/data/spend/security) ⇒ human.
-- **Company OS:** three loop-teams on 0048's substrate; the integration-loop is the SRE/ops
+- **Company OS:** three loop-teams on 0048's substrate; the release-loop is the SRE/ops
   seat, reusing `operational-safety` + `quality-engineer`.
 
 ## Options considered
@@ -96,7 +96,7 @@ Axis: **where the deploy/e2e validation happens and who drives it.**
 | --- | --- | --- |
 | **A. Do nothing** | stop at 0048's deploy-readiness; humans relay deployed findings | Cost: the shift-right ~20% reaches a human as raw deploy errors — the RFC-0041 relay anti-pattern. Rejected. |
 | **B. Deploy flavor inside `work-loop`** (RFC-0041 as-is) | inner loop also does apply + smoke | Conflates fast/local with slow/stateful/deployed; no ephemeral-env iterate-until-converge. Insufficient. |
-| **C. A separate outer `integration-loop` on ephemeral envs** ★ | inner/outer split; reversibility primitives | **Recommended** — the DevOps inner/outer ontology; ephemeral envs make it low-regret + autonomous. |
+| **C. A separate outer `release-loop` on ephemeral envs** ★ | inner/outer split; reversibility primitives | **Recommended** — the DevOps inner/outer ontology; ephemeral envs make it low-regret + autonomous. |
 | **D. Full autonomous prod deploy** | agent ships to prod unwatched | Crosses the irreversible line; violates the minimum-regret carve. Rejected. |
 
 ## Risks & what would make this wrong
@@ -128,19 +128,51 @@ Axis: **where the deploy/e2e validation happens and who drives it.**
 
 ## Open questions
 
-1. **`integration-lead`'s pack home.** A dedicated opt-in `delivery`/`integration` pack
-   (mirroring `discovery-lead` in `product-engineering`) vs `core` (alongside `work-loop` /
-   `operational-safety`, the build+deploy spine). Recommended default: **a dedicated opt-in
-   pack** — deploy is an opt-in capability, like discovery; reuses core's `operational-safety`.
-   · owner: eugenelim · decide-by: this RFC's child spec.
-2. **Agent shape.** A distinct `integration-lead` agent vs a `work-loop` outer-mode.
-   Recommended default: **distinct agent** (the inner/outer split is real), heavily reusing
-   `operational-safety` + `quality-engineer`. · owner: eugenelim · decide-by: child spec.
+*Both resolved per their recommended defaults by the child spec
+([`docs/specs/release-loop/`](../specs/release-loop/spec.md), 2026-06-26) — recorded
+here with where each landed (the RFC-0053 "None remain open" pattern). Neither was a
+value/scope/conflict call; the recommendations were referent-grounded, so the child resolves
+rather than re-litigates.*
+
+1. **`release-lead`'s pack home — resolved: a dedicated opt-in `release-engineering` pack.**
+   Not `core` — `core` is the universal base, and deploy-to-ephemeral-env is an opt-in
+   capability with a real adopter prerequisite (ephemeral-env infra), exactly like discovery,
+   which ships `discovery-lead` in the opt-in `product-engineering` pack, not `core`
+   (RFC-0053 D1). The pack **hard-depends on `core`** (the sidecar schema +
+   `operational-safety` + `quality-engineer` + `security-reviewer`) and detect-and-degrades on
+   cloud/platform packs. **Name `release-engineering`** — the discipline/seat name,
+   parallel to `product-engineering` (the two company-OS discipline packs), keeping the
+   agent/skill on a `release-*` prefix (`release-lead` / `release-loop`). Rejected:
+   `integration` (collides with **Continuous Integration**, a build/*inner*-loop term —
+   "integration" naming the *outer* loop reads backwards to anyone fluent in CI/CD);
+   `delivery` (the dual-track ontology binds "delivery" to the *build* track — RFC-0048
+   D7/D8 names `work-loop` "the delivery track"); a bare `release` pack (collides with the
+   repo's own package-release register — `release-agentbundle.yml` / `[Unreleased]`, meaning
+   *publish our own tooling*; the compound dodges it). The **concept is renamed in lockstep**
+   — this RFC is "the release loop," its gate-arc step is "release (outer)," and the artifacts
+   are `release-*`, so the whole reads uniformly (no concept/artifact split). The name remains
+   the one taste call, overridable. · resolved-by: child spec AC2.
+2. **Agent shape — resolved: a distinct `release-lead` agent + a `release-loop`
+   skill.** The inner/outer split is real (different inputs — local code vs the deployed whole;
+   different verifier — local tests vs deployed telemetry/canary; different autonomy posture —
+   G4-auto vs ephemeral-auto/prod-gated), and RFC-0053 already confirmed the identical pattern
+   upstream (`discovery-lead` agent + `discovery-loop` skill, not a `work-loop` mode). It
+   heavily reuses `operational-safety` + `quality-engineer` + `security-reviewer`, adds no new
+   reviewer, ships no engine (ADR-0031 idiom). · resolved-by: child spec AC1.
 
 ## Follow-on artifacts
 
 Filled on acceptance:
-- ADR: the inner/outer loop split + the minimum-regret deploy carve.
-- Spec: `integration-loop` + `integration-lead` (+ its pack).
+- ADR: the inner/outer loop split + the minimum-regret deploy carve. *Owed by the child
+  spec (its AC11b); not yet authored.*
+- Spec: `release-loop` + `release-lead` (+ its pack). *Drafted:
+  [`docs/specs/release-loop/`](../specs/release-loop/spec.md) — resolves OQ1 (pack
+  home → opt-in `release-engineering` pack) + OQ2 (distinct `release-lead` agent +
+  `release-loop` skill); specifies the deploy + e2e + iterate-to-converge loop, the
+  minimum-regret carve, the reuse of `operational-safety` + `quality-engineer` +
+  `security-reviewer`, the `core`-sidecar consumption, and a 9-part security/integrity
+  contract. 14 ACs / 6 tasks.*
 - Amendment back into RFC-0048: reconcile its gate arc / company-OS framing once this lands.
+  *Recorded — see RFC-0048 § Amendments, 2026-06-26 (the release-lead seat + pack home +
+  agent shape now specified; the company-OS third (SRE/ops) seat confirmed).*
 - CONVENTIONS: the minimum-regret autonomy boundary (reversible ⇒ autonomous; irreversible ⇒ human).
