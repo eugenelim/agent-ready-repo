@@ -3429,10 +3429,14 @@ def _rewrite_copilot_user_scope_paths(
 
     Unlike claude-code (whose skills share ``.claude/`` at both scopes, so
     only its hooks diverge via ``_rewrite_user_scope_hook_paths``), copilot's
-    whole prefix changes, so this rewrite is **not** hook-gated.
+    agent/hook prefix changes, so this rewrite is **not** hook-gated.
+
+    RFC-0052 / ADR-0040: the **skill** primitive no longer routes through here —
+    it projects to the scope-agnostic shared `.agents/skills/` home (→
+    `~/.agents/skills/` at user scope, no rewrite), shared with the rest of the
+    cohort. Only agents + hooks swap to `~/.copilot/`.
     """
     prefix_map = {
-        ".github/skills/": ".copilot/skills/",
         ".github/agents/": ".copilot/agents/",
         ".github/hooks/": ".copilot/hooks/",
     }

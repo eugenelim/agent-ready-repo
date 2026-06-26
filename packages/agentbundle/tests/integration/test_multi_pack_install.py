@@ -41,16 +41,14 @@ Three concerns:
 
 Per-adapter projection geometry:
 
-  - Copilot's skill projection lands at ``.github/skills/<skill>/SKILL.md``
-    (docs/specs/copilot-skills-and-web — first-class Agent Skills, was a flat
-    ``.github/instructions/<skill>.instructions.md``). The per-pack scanner at
-    ``safety.scan_for_pack_artifacts`` matches these by directory name, exactly
-    like ``.claude/skills/<name>/`` etc., so copilot is no longer the odd one
-    out: the orphan branch fires at copilot for both *core* (skills + hooks at
-    ``.github/hooks/``) and *governance-extras* (skills-only). Copilot's
-    ``allowed-prefixes.repo`` is now ``[.github/skills/, .github/agents/,
-    .github/hooks/]``. Both Direction A (force install governance-extras) and
-    Direction B (force install core) therefore run at all shipped adapters.
+  - Copilot's skill projection lands at ``.agents/skills/<skill>/SKILL.md``
+    (RFC-0052 / ADR-0040 — shared cohort home; was ``.github/skills/`` in
+    v0.11). The per-pack scanner at ``safety.scan_for_pack_artifacts`` matches
+    these by directory name, exactly like ``.claude/skills/<name>/`` etc.
+    Hooks stay under ``.github/hooks/``. Copilot's ``allowed-prefixes.repo``
+    is now ``[.agents/skills/, .github/skills/, .github/agents/, .github/hooks/]``.
+    Both Direction A (force install governance-extras) and Direction B (force
+    install core) therefore run at all shipped adapters.
 
 Catalogue source: the live ``packs/`` tree in this repo. ``core`` and
 ``governance-extras`` are the canonical repo-only pair (governance
@@ -126,15 +124,14 @@ def _skill_path(adapter: str, skill_name: str) -> str:
     if adapter == "codex":
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "copilot":
-        # docs/specs/copilot-skills-and-web: first-class Agent Skills —
-        # `.github/skills/<name>/SKILL.md` (was a flat `.instructions.md`).
-        return f".github/skills/{skill_name}/SKILL.md"
-    # RFC-0026 cursor-full-parity: cursor projects skills to `.cursor/skills/`.
+        # RFC-0052 / ADR-0040: copilot skill routes to shared cohort home
+        # `.agents/skills/` (was `.github/skills/` in v0.11).
+        return f".agents/skills/{skill_name}/SKILL.md"
+    # RFC-0052 / ADR-0040: cursor + gemini skills also route to `.agents/skills/`.
     if adapter == "cursor":
-        return f".cursor/skills/{skill_name}/SKILL.md"
-    # RFC-0027 gemini-full-parity: gemini projects skills to `.gemini/skills/`.
+        return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "gemini":
-        return f".gemini/skills/{skill_name}/SKILL.md"
+        return f".agents/skills/{skill_name}/SKILL.md"
     raise ValueError(f"unknown adapter: {adapter!r}")
 
 
@@ -487,17 +484,17 @@ def test_copilot_orphan_scan_finds_skills_and_hooks(tmp_path):
     _install_mod._clear_inband_detection_seen()
 
     # Direct-call the scanner with core's primitive set + copilot's current
-    # repo-scope prefixes (v0.11: skills at `.github/skills/`, hook bodies at
-    # `.github/hooks/`, agents at `.github/agents/`).
+    # repo-scope prefixes (RFC-0052: skills at `.agents/skills/`, hook bodies
+    # at `.github/hooks/`, agents at `.github/agents/`).
     pack_dir = REPO_ROOT / "packs" / "core"
-    prefixes = [".github/skills/", ".github/agents/", ".github/hooks/"]
+    prefixes = [".agents/skills/", ".github/agents/", ".github/hooks/"]
     orphans = safety.scan_for_pack_artifacts(
         adopter, prefixes, pack_dir=pack_dir, pack_name="core",
     )
     rels = sorted(p.relative_to(adopter).as_posix() for p in orphans)
 
-    # Skills are now found (directory-name match), unlike the retired flat shape.
-    skill_hits = [r for r in rels if r.startswith(".github/skills/")]
+    # Skills are found at the shared cohort home (RFC-0052).
+    skill_hits = [r for r in rels if r.startswith(".agents/skills/")]
     assert skill_hits, (
         f"expected scanner to find core's skill dirs at copilot; got: {rels!r}"
     )
