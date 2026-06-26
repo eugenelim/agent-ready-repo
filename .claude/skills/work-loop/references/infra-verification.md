@@ -2,11 +2,15 @@
 
 > **Loaded when:** the work is **infra-flavored** — the destructive/irreversible
 > risk trigger routed it to full mode *and* it provisions, mutates, deploys, or
-> tears down infrastructure (the routing table's IaC / deploy-config entry).
+> tears down infrastructure (the `security-checklists` Module index's IaC /
+> deploy-config entry).
 > **What this is:** the progressive-disclosure depth behind `work-loop`'s
 > infra/deploy verification mode. `SKILL.md` keeps the load-bearing one-liners
 > (the mode entry in the PLAN verification-mode list, the EXECUTE
-> contract-grounding gate, the two reviewer routing tables); the full doctrine —
+> contract-grounding gate, and the reviewer-dispatch bullets that route against
+> the two depth libraries' Module indexes — the boundary→module routing
+> authorities now live in `security-checklists` and `operational-safety`, not in
+> a `SKILL.md` table); the full doctrine —
 > the layered GATES sequence, the multi-artifact preflight, contract grounding,
 > the EXECUTE craft load, the reusable-script discipline, phased oracle fidelity
 > (V1), the readiness-aware data-plane probe (V2), and the reviewer wiring —
@@ -175,8 +179,8 @@ so it
 fires in light mode too; the heavier infra-flavor layers (the
 `cloud-implementation-craft` craft load at EXECUTE, the V2 data-plane probe, the
 `quality-engineer` infra wiring) fire only on the **infra-flavored signal** (the
-destructive/irreversible trigger + the routing table's IaC / deploy-config
-entry). (RFC-0044 § Errata 2026-06-24.)
+destructive/irreversible trigger + the `security-checklists` Module index's IaC /
+deploy-config entry). (RFC-0044 § Errata 2026-06-24.)
 
 ## EXECUTE — `cloud-implementation-craft` loaded into the implementer's brief
 
@@ -188,8 +192,8 @@ timeouts-to-real-latency + bounded backoff + client cold-start tolerance,
 dependency ordering, terminal-failed-state handling, the managed-runtime
 packaging / entrypoint-import model, and externalized script configuration —
 into the **implementer's EXECUTE brief**, via the
-[`operational-safety` routing table](../SKILL.md#operational-safety-routing-table)
-in `SKILL.md`. This is the **deliberate EXECUTE-consumer extension** of
+[`operational-safety` Module index](../../operational-safety/SKILL.md#module-index)
+(the routing authority). This is the **deliberate EXECUTE-consumer extension** of
 `operational-safety`: ADR-0031 established it as a REVIEW-only depth library for
 `quality-engineer`; here the **same module, on the same routing mechanism**, is
 pointed at the implementer so the craft shapes the build, not only the review.
@@ -217,8 +221,9 @@ not a new failure family. (RFC-0044 § Errata 2026-06-24.)
 ## REVIEW — mandatory, multi-module security on infra-flavored work
 
 When the change is **infra-flavored** — the **destructive/irreversible risk
-trigger** routed it to full mode *and* its diff matches the routing table's IaC
-/ deploy-config entry — the `security-reviewer` pass is **non-skippable** and
+trigger** routed it to full mode *and* its diff matches the `security-checklists`
+Module index's IaC / deploy-config entry — the `security-reviewer` pass is
+**non-skippable** and
 runs at **both the spec stage** (the pre-EXECUTE secure-design step) **and on
 the diff**, not via the discretionary security-boundary trigger. Because
 "infra-flavored" keys on the existing classifier rather than a per-diff
@@ -230,8 +235,8 @@ authorization *model*: role bindings or resource policies that change *who can
 call what*), `secrets-and-crypto` (secrets in state or env, keys),
 `outbound-ssrf` (public exposure, CDN / origin egress), and `supply-chain`
 (provider / module pinning) — each pulled in when the diff trips *that module's
-own* routing-table row, so the routing table stays the single deterministic
-authority and the set loads **1–N**, never a flat always-five march (a one-line
+own* `security-checklists` Module-index entry, so the Module index stays the
+single deterministic authority and the set loads **1–N**, never a flat always-five march (a one-line
 config tweak pulls one; a new public-facing stack pulls several). This adds **no
 new reviewer and no new module**: it makes the *existing* security pass
 mandatory and multi-module. The **Profile-A opt-out still applies wholesale** —
