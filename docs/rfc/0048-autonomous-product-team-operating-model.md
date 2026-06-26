@@ -526,6 +526,12 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   (structural orphans only; semantic scope-creep stays the human call at G1.5 per
   Decision 6 / O10).*
 - **Spike → RFC (child 5):** the coordinator contract. *Wave 2; depends on 1–4.*
+  *Drafted (Open): [`0053-the-coordinator-contract.md`](0053-the-coordinator-contract.md)
+  — the spike ran (the typed sidecar + `discovery-loop` prototyped against the worked
+  example; no-engine framing demonstrated on one example + a reproducible lint); the
+  contract (sidecar schema · gate state machine · rejection/recovery + cascade-invalidation
+  · outer cap · supervisor topology · security/integrity ACs) is specified. Spike artifacts
+  in [`0053-notes/`](0053-notes/).*
 - **[RFC-0049](0049-the-integration-loop-and-company-os.md) (child — deploy):** the
   integration (outer) loop + minimum-regret deploy carve + company-OS composition.
   *Already drafted; amends this RFC's gate arc / company-OS framing on landing.*
@@ -569,3 +575,35 @@ reconciled **here**, as a tracked amendment, not absorbed silently downstream.
   layout remains the *minimum* case; the cross-repo model is the generalization.
   See [`docs/specs/traceability-lint/spec.md`](../specs/traceability-lint/spec.md) +
   its `notes/cross-repo-traceability-research.md`.
+- **2026-06-26 — D7/D8 spike-confirmed by child-5 (the coordinator contract,
+  [RFC-0053](0053-the-coordinator-contract.md)).** Decision 7 authorized a *spike, not a
+  build*, and Decisions 7–8 wrote the coordinator's no-engine fit as a default to be
+  *confirmed empirically*. Child-5 ran that prototype — the typed sidecar +
+  `discovery-loop` against the worked example ([`02`](0048-notes/02-worked-example-flow-trace.md))
+  on the form omnigent stores — and the result holds: every transition (descent, the
+  answer-each-other ripple, gate rejection/recovery with cascade-invalidation, saturation,
+  the cap *modelled*) ran as one reasoning context editing four plain files, with a
+  ~60-line lint as the only executable. **D7/D8's no-engine framing for the coordinator
+  moves from hypothesis to demonstrated-on-one-example** (single operator, not replicated;
+  the O12 stall path modelled not run — honest limits carried into RFC-0053's spec as a
+  second-example validation run). No contradiction with D7/D8; this *confirms* them.
+  See [RFC-0053](0053-the-coordinator-contract.md) § Evidence + [`0053-notes/`](0053-notes/).
+- **2026-06-26 — reviewer-ceiling scope clarified, by child-5.** D7/D8's body framed the
+  discovery loop's design-time lens roster (~5 disciplines, incl. a security/compliance
+  lens distinct from `work-loop`'s code `security-reviewer`) as carrying its own roster
+  beyond the CHARTER's "three reviewers" ceiling. Recorded here as a tracked amendment so
+  the scope is explicit: **the CHARTER reviewer ceiling stays a `work-loop`/code-review
+  cap; the discovery loop is loop-scoped and carries its own design-time roster** — a
+  loop-scoped reading, not a raise of the code-review ceiling. (Child-5 reworded its own
+  citation from "RFC-0048's amendment" to this recorded entry per the
+  cite-the-referent-don't-paraphrase note above.)
+- **2026-06-26 — D7's sidecar/coordinator contract extended with a security/integrity
+  surface, by child-5.** A spec-stage secure-design pass on RFC-0053 surfaced controls D7
+  named only implicitly: verdict write-authority (no forged `ratified-by: human`), an
+  append-only/attested decision-log so it is a real audit trail (not just a record),
+  a non-degradable security lens on a crossed boundary, lens-write integrity against
+  blackboard poisoning, a cascade-invalidation circuit-breaker, and a `reversibility-class`
+  enumeration. These *extend* D7's "decision log doubles as the audit trail" and the O5
+  live-lens claim rather than contradicting them, and land as acceptance criteria in
+  RFC-0053's implementing spec. See [RFC-0053](0053-the-coordinator-contract.md)
+  § Security &amp; integrity contract.

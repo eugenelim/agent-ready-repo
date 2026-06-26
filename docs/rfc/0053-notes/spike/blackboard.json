@@ -1,0 +1,47 @@
+{
+  "_comment": "SPIKE ARTIFACT (RFC-0053 Decision-7 prototype). The typed blackboard slot for the example-assistant worked example (0048-notes/02). Hand-maintained by a single reasoning context (discovery-lead) following discovery-loop doctrine — no engine. omnigent supplies the store (a worktree file); this schema supplies the type. Status snapshot: end of round 4, converged at G2 after one G1.5 rejection/recovery cycle (round 2->3). See loop-trace.md.",
+  "initiative": "example-assistant",
+  "schema_version": "0.1",
+  "meta": {
+    "round": 4,
+    "round_cap": 12,
+    "cost_budget_usd": 25.0,
+    "cost_spent_usd": 6.4,
+    "gate": "G2",
+    "status": "converged",
+    "saturation": "no-open-oq + no-orphan + full-pass-no-invalidating-edit"
+  },
+  "slot_status_legend": "draft | proposed | ratified | stale | rejected",
+  "slots": [
+    {"id": "intent:vision", "type": "intent", "altitude": "product-vision", "title": "A secure personal-assistant agent: plan recurring tasks, track resource state, derive a list, improve via approved learning", "status": "ratified", "version": 2, "produced_by": "frame-intent", "lens": "product", "path": "docs/product/intents/example-assistant.md", "round_last_touched": 1},
+
+    {"id": "intent:cap.task-planning", "type": "intent", "altitude": "capability", "title": "Task planning over a cadence", "status": "ratified", "version": 1, "produced_by": "decompose-intent", "lens": "product", "round_last_touched": 1},
+    {"id": "intent:cap.resource-state", "type": "intent", "altitude": "capability", "title": "Approximate resource-state tracking", "status": "ratified", "version": 1, "produced_by": "decompose-intent", "lens": "product", "round_last_touched": 1},
+    {"id": "intent:cap.derived-list", "type": "intent", "altitude": "capability", "title": "Derived acquisition list (needs - store)", "status": "ratified", "version": 1, "produced_by": "decompose-intent", "lens": "product", "round_last_touched": 1},
+    {"id": "intent:cap.approved-learning", "type": "intent", "altitude": "capability", "title": "Improve through owner-approved learning", "status": "ratified", "version": 2, "produced_by": "decompose-intent", "lens": "product", "round_last_touched": 3},
+    {"id": "intent:cap.identity-security", "type": "intent", "altitude": "capability", "title": "Single-owner identity & security", "status": "ratified", "version": 1, "produced_by": "decompose-intent", "lens": "product", "round_last_touched": 1},
+    {"id": "intent:cap.external-fulfillment", "type": "intent", "altitude": "capability", "title": "Third-party fulfillment integration", "status": "rejected", "version": 1, "produced_by": "decompose-intent", "lens": "product", "rejected_at": "G1.5", "rejected_reason": "out-of-appetite (note 02 OOS register); over-scope. Cascade-invalidated screen:fulfillment + service:fulfillment.", "round_last_touched": 2},
+
+    {"id": "domain-anchor", "type": "domain-anchor", "title": "Real recurring-planning activity + approximate-state MVP + out-of-scope register", "status": "ratified", "version": 1, "produced_by": "domain-anchor (research applied)", "lens": "research", "path": "docs/discovery/example-assistant/domain-anchor.md", "round_last_touched": 1},
+    {"id": "persona", "type": "persona", "title": "Single owner, will not maintain precise inventory", "status": "ratified", "version": 1, "produced_by": "domain-anchor", "lens": "research", "round_last_touched": 1},
+
+    {"id": "journey-map", "type": "journey-map", "title": "onboard->setup->plan->review/swap->derived-list->mark-done->approve-learning", "status": "ratified", "version": 2, "produced_by": "map-journey", "lens": "ux", "path": "docs/discovery/example-assistant/journey-map.md", "embedded_steps": ["setup", "plan", "review-swap", "derived-list", "mark-done", "approve-learning", "audit-learning"], "round_last_touched": 3},
+    {"id": "service-blueprint", "type": "service-blueprint", "title": "frontstage screen <-> backstage component, line of visibility", "status": "ratified", "version": 2, "produced_by": "blueprint-service", "lens": "ux", "path": "docs/discovery/example-assistant/service-blueprint.md", "embedded_services": ["plan-service", "store-service", "derived-list-service", "learning-approval-service", "audit-service", "identity-service"], "round_last_touched": 3},
+
+    {"id": "screen:setup", "type": "screen-brief", "title": "Seed the store (rough)", "status": "ratified", "version": 1, "produced_by": "inventory-screens", "lens": "ux", "path": "docs/discovery/example-assistant/screens/setup.md", "round_last_touched": 2},
+    {"id": "screen:plan-review", "type": "screen-brief", "title": "Review / swap / regenerate the cycle plan", "status": "ratified", "version": 1, "produced_by": "inventory-screens", "lens": "ux", "round_last_touched": 2},
+    {"id": "screen:derived-list", "type": "screen-brief", "title": "Derived acquisition list", "status": "ratified", "version": 1, "produced_by": "inventory-screens", "lens": "ux", "round_last_touched": 2},
+    {"id": "screen:learning-review", "type": "screen-brief", "title": "Approve / reject a proposed learning", "status": "ratified", "version": 2, "produced_by": "inventory-screens", "lens": "ux", "round_last_touched": 3},
+    {"id": "screen:audit-view", "type": "screen-brief", "title": "Audit log of approved learnings", "status": "ratified", "version": 1, "produced_by": "inventory-screens", "lens": "ux", "ripple_origin": "OQ-3 (security ripple)", "round_last_touched": 3},
+    {"id": "screen:fulfillment", "type": "screen-brief", "title": "Order from third-party fulfillment", "status": "stale", "version": 1, "produced_by": "inventory-screens", "lens": "ux", "stale_reason": "cascade-invalidated: traced to rejected intent:cap.external-fulfillment (G1.5 rejection, round 2)", "round_last_touched": 2},
+
+    {"id": "aesthetic-direction", "type": "aesthetic-direction", "title": "Calm, low-effort, trust-forward; responsive-web surface", "status": "ratified", "version": 1, "produced_by": "aesthetic-direction", "lens": "design", "platform_axis": "responsive-web", "round_last_touched": 2},
+    {"id": "copy-deck", "type": "copy-deck", "title": "Per screen-state microcopy incl. approval/audit", "status": "ratified", "version": 2, "produced_by": "voice-and-microcopy", "lens": "design", "round_last_touched": 3},
+
+    {"id": "domain-model", "type": "architecture", "title": "C4 + domain model: Store, Item, TaskTemplate, Plan, DerivedList, LearningProposal, Owner", "status": "ratified", "version": 2, "produced_by": "architect-design", "lens": "tech", "round_last_touched": 3},
+    {"id": "contract:learning-approval", "type": "contract", "title": "learning-approval API (propose/approve/reject/audit)", "status": "ratified", "version": 2, "produced_by": "api-contract", "lens": "tech", "id_form": "contract@version", "round_last_touched": 3},
+
+    {"id": "decision-package", "type": "decision-package", "title": "The ratified what (G2): journey + screens + arch + tension/assumption ledger", "status": "ratified", "version": 1, "produced_by": "discovery-lead", "lens": "controller", "path": "docs/discovery/example-assistant/decision-package.md", "round_last_touched": 4},
+    {"id": "backlog", "type": "backlog", "title": "Ordered, DAG'd work items (the bridge to work-loop)", "status": "ratified", "version": 1, "produced_by": "discovery-lead", "lens": "controller", "path": "docs/discovery/example-assistant/backlog.md", "round_last_touched": 4}
+  ]
+}
