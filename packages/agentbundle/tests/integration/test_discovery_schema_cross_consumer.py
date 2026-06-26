@@ -30,7 +30,7 @@ def _seed_repo(root: Path) -> None:
     state = State()
     p = root / "AGENTS.md"
     p.write_text("x\n", encoding="utf-8")
-    state.packs["core"] = PackState(
+    state.packs[("core", "claude-code")] = PackState(
         installed_version="0.1.0",
         files={
             "AGENTS.md": {
@@ -38,6 +38,7 @@ def _seed_repo(root: Path) -> None:
                 "from-pack-version": "0.1.0",
             }
         },
+        adapter="claude-code",
     )
     (root / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"

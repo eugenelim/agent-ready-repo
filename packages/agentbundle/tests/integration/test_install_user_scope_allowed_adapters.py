@@ -92,8 +92,9 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
 
         state_path = self.home / ".agentbundle" / "state.toml"
         state = load_state(state_path)
-        pack_state = state.packs.get("converters")
-        self.assertIsNotNone(pack_state)
+        self.assertTrue(state.has_pack("converters"))
+        pack_state = state.row("converters", expected_adapter)
+        self.assertIsNotNone(pack_state, f"no row for converters/{expected_adapter}")
         self.assertEqual(pack_state.adapter, expected_adapter)
 
     def test_kiro_only_home_lands_at_kiro_skills(self) -> None:
@@ -147,7 +148,8 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
 
         state_path = self.home / ".agentbundle" / "state.toml"
         before = load_state(state_path)
-        self.assertEqual(before.packs["converters"].adapter, "claude-code")
+        self.assertTrue(before.has_pack("converters"))
+        self.assertIsNotNone(before.row("converters", "claude-code"))
 
         # Step 2: populate ~/.kiro/ post-install (would normally
         # redirect a fresh install to kiro on the probe path).
@@ -180,10 +182,14 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
             f"upgrade triggered cross-adapter refusal despite state hint",
         )
         after = load_state(state_path)
-        self.assertEqual(
-            after.packs["converters"].adapter,
-            "claude-code",
-            f"upgrade should preserve state.adapter; got {after.packs['converters'].adapter!r}",
+        self.assertTrue(
+            after.has_pack("converters"),
+            "converters row missing from state after upgrade",
+        )
+        self.assertIsNotNone(
+            after.row("converters", "claude-code"),
+            "upgrade should preserve state.adapter=claude-code; "
+            f"adapters present: {after.adapters_for_pack('converters')!r}",
         )
 
     # Note: `test_adapter_at_repo_scope_refused` was deleted by RFC-0012 —
