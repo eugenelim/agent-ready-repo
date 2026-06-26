@@ -1,6 +1,6 @@
 ---
 name: security-checklists
-description: Progressive-disclosure security-depth modules for the security-reviewer. Holds ten boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
+description: Progressive-disclosure security-depth modules for the security-reviewer. Holds boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
 ---
 
 # Skill: security-checklists
@@ -10,7 +10,7 @@ reviewer's body carries the *universal method* (the three-bucket delegation
 rule, load-context-first, the always-on STRIDE + LINDDUN open pass, the
 established-helper-bypass meta-check, the severity rubric, the honest-limits
 footer, the output format). The *shape-specific depth* — what to actually
-check at each trust boundary — lives here, in ten `references/<module>.md`
+check at each trust boundary — lives here, in the per-boundary `references/<module>.md`
 modules, so the agent prompt stays lean and the depth scales without bloat.
 
 > **Reliability-vs-security carve.** This library owns *security* config; the
