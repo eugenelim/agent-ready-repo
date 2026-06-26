@@ -176,6 +176,49 @@ Sample reads, to calibrate the boundary:
   designing one. (Pressure test that reframed the whole spec; logged with a wide
   prior-art sweep in the spec's `notes/`.)
 
+*Sample reads appended by child-5 — the coordinator contract ([RFC-0053](../0053-the-coordinator-contract.md)):*
+- *When the parent says "empirical, not paper," building the artifact IS the resolution —
+  describing it is the failure the parent pre-named.* (Child-5.) RFC-0048 D7 asked for "a
+  prototype ... not a paper design." The temptation was to author the RFC *asserting* the
+  note-09 resolutions hold. → **resolve by running it:** instantiate the four sidecar files
+  for the worked example, walk the loop injecting the two named failure modes, and run a
+  ~60-line lint over the typed state. The lint flagging real orphans pre-recovery and
+  reporting converged after is the difference between "we think it's checkable" and "it is."
+  The tell: when a parent demands empirical confirmation, prose that claims confirmation is
+  exactly the thing it was warning against — produce the runnable artifact.
+- *Calibrate the verb to the evidence; keep the strong verb only for the reproducible part.*
+  (Child-5.) The spike was one example, one operator, and the outer cap converged early so
+  its stall path was never hit. The draft BLUF said "confirmed the no-engine framing." The
+  fresh-context adversarial pass flagged the BLUF/Evidence running ahead of the spike's own
+  Threats section. → corrected to "demonstrated on one worked example (single operator, not
+  replicated) **plus a reproducible connectedness lint**" — strong verb retained only for the
+  part that actually reproduces. The tell: "confirmed / demonstrated / refuted" are
+  load-bearing; check each against what the artifact supports, and never let the headline
+  outrun the threats-to-validity you already wrote.
+- *Detect-and-degrade is right for a capability lens and wrong for a safety lens on a
+  safety-relevant artifact.* (Child-5, from the spec-stage security pass.) The security/
+  compliance lens was "optional detect-and-degrade" like the others — but the worked
+  example's whole ripple is a prompt-injection-self-modification finding, so a missing
+  security lens would ship the boundary un-reviewed *silently*. → **resolve: a
+  non-degradable floor** — tie the lens to a risk trigger; a security-boundary crossing with
+  no lens installed *surfaces to the human* rather than degrading quietly. The tell: before
+  reusing "optional detect-and-degrade" for a lens, ask whether the lens is a *capability*
+  (degrade is fine) or a *safety control* (degrade needs a surfacing floor).
+- *The same primitive that scopes a blast radius can amplify it — ask who benefits if they
+  can drive it.* (Child-5.) Cascade-invalidation by traceability edges was framed purely as
+  a safety property (it *bounds* a rejection). The security pass noted it is also a
+  denial-of-convergence lever: a poisoned high-fan-out edge could invalidate the whole
+  blackboard and burn the budget. → **resolve: a circuit-breaker** (fan-out threshold
+  surfaces; re-runs count against the budget). The tell: when you describe a mechanism as a
+  safety property, run the adversary's read of the same mechanism before declaring it safe.
+- *Don't cite a backstop weaker than the failure it is invoked against.* (Child-5.) The RFC
+  leaned on child-4's traceability lint as the backstop against an under-implemented sidecar
+  — but the spike's demonstrator is a *presence* check, which a fabricated-edge or
+  disconnected-subtree failure passes. → **resolve: name a child-4 root→leaf *reachability*
+  AC** so the backstop can actually detect the failure, and flag the dependency so the claim
+  isn't load-bearing on the weaker check. The tell: when you cite a check as a mitigation,
+  confirm it detects the specific failure you're mitigating, not merely a related one.
+
 **Why this is logged as a scaffold, not left to recall:** in practice the AI loop reaches
 the right resolve-vs-surface call only ~half the time without a nudge (anchoring + the
 knowing-doing gap — notes/03). So the lens is made an *explicit checklist step* (it lives
