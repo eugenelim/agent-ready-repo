@@ -66,7 +66,7 @@ def test_default_call_without_batch_is_unchanged_behavior():
 
 
 def test_dep_in_state_still_satisfies_with_batch_param():
-    state = State(packs={"core": PackState(installed_version="0.4.9", scope="repo")})
+    state = State(packs={("core", "claude-code"): PackState(installed_version="0.4.9", scope="repo", adapter="claude-code")})
     validate_dependencies_required(
         _pack_requiring_core(),
         repo_state=state,
@@ -79,7 +79,7 @@ def test_dep_on_disk_at_unsatisfying_version_fails_even_if_in_batch():
     # core is pre-installed at 0.0.1 (does NOT satisfy ^0.1) AND named in the
     # batch. Name-membership must not bypass the version check for an on-disk
     # dep — the write-time gate stays real (pack-profiles AC7).
-    state = State(packs={"core": PackState(installed_version="0.0.1", scope="repo")})
+    state = State(packs={("core", "claude-code"): PackState(installed_version="0.0.1", scope="repo", adapter="claude-code")})
     with pytest.raises(RuntimeError) as exc:
         validate_dependencies_required(
             _pack_requiring_core(),

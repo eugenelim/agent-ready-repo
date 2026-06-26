@@ -116,12 +116,12 @@ class CCUserHooksInstallTests(_UserScopeInstallBase):
         from agentbundle.config import load_state
 
         state = load_state(self.home / ".agentbundle" / "state.toml")
-        owned = state.packs["cc-user-hooks"].hook_wiring_owned
+        ps = state.row("cc-user-hooks", "claude-code")
+        self.assertIsNotNone(ps, "cc-user-hooks/claude-code row missing from state")
+        owned = ps.hook_wiring_owned
         self.assertEqual(len(owned), 1)
         self.assertEqual(owned[0]["event"], "UserPromptSubmit")
         self.assertEqual(owned[0]["id"], "cc-user-hooks:on-prompt")
-        # adapter defaults to claude-code on read; we don't require an
-        # explicit field on the row.
 
 
 class KiroUserHooksInstallTests(_UserScopeInstallBase):
@@ -151,7 +151,8 @@ class KiroUserHooksInstallTests(_UserScopeInstallBase):
         from agentbundle.config import load_state
 
         state = load_state(self.home / ".agentbundle" / "state.toml")
-        ps = state.packs["kiro-user-hooks"]
+        ps = state.row("kiro-user-hooks", "kiro-cli")
+        self.assertIsNotNone(ps, "kiro-user-hooks/kiro-cli row missing from state")
         self.assertEqual(ps.adapter, "kiro-cli")
         self.assertEqual(len(ps.hook_wiring_owned), 1)
         self.assertEqual(ps.hook_wiring_owned[0]["event"], "agentSpawn")

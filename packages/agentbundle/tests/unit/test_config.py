@@ -48,15 +48,16 @@ def test_state_round_trip_preserves_per_pack_files(tmp_path):
     state_toml = tmp_path / ".agentbundle-state.toml"
     state_toml.write_text(
         """
-schema-version = "0.1"
+schema-version = "0.4"
 
-[pack.core]
+[pack.core.adapters.claude-code]
 installed-version = "0.2.0"
 source = "agent-ready-repo"
 install-route = "cli"
+scope = "repo"
 primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
 
-[pack.core.files]
+[pack.core.adapters.claude-code.files]
 "AGENTS.md" = { sha = "abc123", from-pack-version = "0.2.0" }
 "docs/CHARTER.md" = { sha = "def456", from-pack-version = "0.2.0" }
 """,
@@ -64,9 +65,9 @@ primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
     )
 
     state = config.load_state(state_toml)
-    assert state.schema_version == "0.1"
-    assert "core" in state.packs
-    core = state.packs["core"]
+    assert state.schema_version == "0.4"
+    assert state.has_pack("core")
+    core = state.row("core", "claude-code")
     assert core.installed_version == "0.2.0"
     assert core.install_route == "cli"
     assert set(core.primitives) == {"skill", "agent", "hook-body", "hook-wiring", "command"}
@@ -76,37 +77,38 @@ primitives = ["skill", "agent", "hook-body", "hook-wiring", "command"]
     # Dump and reload round-trip — fields preserved.
     serialised = config.dump_state(state)
     re_state = config.load_state(_write(tmp_path / "again.toml", serialised))
-    assert re_state.packs["core"].file_sha("AGENTS.md") == "abc123"
-    assert re_state.packs["core"].file_sha("docs/CHARTER.md") == "def456"
+    assert re_state.row("core", "claude-code").file_sha("AGENTS.md") == "abc123"
+    assert re_state.row("core", "claude-code").file_sha("docs/CHARTER.md") == "def456"
 
 
 def test_state_round_trip_preserves_mixed_version_primitives(tmp_path):
     state_toml = tmp_path / ".agentbundle-state.toml"
     state_toml.write_text(
         """
-schema-version = "0.1"
+schema-version = "0.4"
 
-[pack.core]
+[pack.core.adapters.claude-code]
 installed-version = "0.2.0"
 source = "agent-ready-repo"
 install-route = "cli"
+scope = "repo"
 primitives = ["skill"]
 
-[pack.core.files]
+[pack.core.adapters.claude-code.files]
 "x" = { sha = "0", from-pack-version = "0.2.0" }
 
-[pack.core.skill.work-loop]
+[pack.core.adapters.claude-code.skill.work-loop]
 version = "0.3.0"
 """,
         encoding="utf-8",
     )
     state = config.load_state(state_toml)
-    assert state.packs["core"].primitive_versions == {
+    assert state.row("core", "claude-code").primitive_versions == {
         "skill": {"work-loop": "0.3.0"}
     }
     # Round-trip preserves the override.
     again = config.load_state(_write(tmp_path / "again.toml", config.dump_state(state)))
-    assert again.packs["core"].primitive_versions == {
+    assert again.row("core", "claude-code").primitive_versions == {
         "skill": {"work-loop": "0.3.0"}
     }
 
@@ -169,6 +171,10 @@ def test_load_state_rejects_pack_not_a_table(tmp_path):
         encoding="utf-8",
     )
     # The above IS a valid TOML structure; for an actually-broken case:
-    p.write_text('schema-version = "0.1"\n[pack.x]\ninstalled-version = ""\nfiles = "not-a-table"\n', encoding="utf-8")
+    p.write_text(
+        'schema-version = "0.4"\n[pack.x.adapters.claude-code]\n'
+        'installed-version = ""\nfiles = "not-a-table"\n',
+        encoding="utf-8",
+    )
     with pytest.raises(config.ConfigError, match="files"):
         config.load_state(p)

@@ -1025,3 +1025,22 @@ self-describes without a jump to the routing target; it is a low-stakes prose
 drift risk, not a correctness one. **Unblocks when:** someone refines the
 enumeration (e.g. adds "thread-safety") and wants the two live copies collapsed
 to one canonical site with the gate cross-referencing it.
+
+## `shared-prefix-aware-multi-adapter-install`
+
+### multi-adapter-state-lock-uninstall-upgrade
+
+**Spec:** [shared-prefix-aware-multi-adapter-install](specs/shared-prefix-aware-multi-adapter-install/spec.md)
+
+`install` routes its state read-modify-write through the cross-process lock
+(`statelock.persist_state_locked`) so two concurrent installs of different
+adapter rows of one pack both land (the RFC-0052 concurrency AC). `uninstall`
+and `upgrade` still write state via a bare `safety.write_jailed`, so a
+concurrent `install` + `uninstall`/`upgrade` could lose-update one writer's
+change. The spec's concurrency AC is scoped to `install` only, so this is a
+reviewer Concern (intent-corruption under a narrow race), not a shipped-AC gap.
+**Unblocks when:** someone routes uninstall's row-drop and upgrade's
+version-bump through `persist_state_locked` with a mutate closure that
+re-derives against freshly-read state — and adds a multi-process stress test
+for `statelock`'s stale-reclaim collision window (the unit tests cover the
+single-thread reclaim, not the multi-process race).

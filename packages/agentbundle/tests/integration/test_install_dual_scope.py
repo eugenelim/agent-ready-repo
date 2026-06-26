@@ -332,7 +332,7 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
     from agentbundle.config import load_state
 
     state = load_state(fake_home / ".agentbundle" / "state.toml")
-    assert "demo-both" not in state.packs
+    assert not state.has_pack("demo-both")
 
 
 def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
@@ -383,8 +383,8 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
     state = load_state(fake_home / ".agentbundle" / "state.toml")
     # The target version is derived from the catalogue's pack.toml
     # (PACK_TOML_BOTH = 0.1.0); the re-apply leaves installed-version at the
-    # catalogue's declared version.
-    assert state.packs["demo-both"].installed_version == "0.1.0"
+    # catalogue's declared version. User scope defaults to claude-code adapter.
+    assert state.row("demo-both", "claude-code").installed_version == "0.1.0"
 
 
 def test_install_v01_pack_stray_install_table_ignored(tmp_path):

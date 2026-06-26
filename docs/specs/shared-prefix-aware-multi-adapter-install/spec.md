@@ -1,6 +1,6 @@
 # Spec: Shared-prefix-aware multi-adapter install
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0052, ADR-0039, ADR-0040, ADR-0002
@@ -109,82 +109,82 @@ The verification modes (per the `work-loop` skill):
 
 State schema & cross-version safety:
 
-- [ ] The state schema version is `0.4`, and the state file is keyed
+- [x] The state schema version is `0.4`, and the state file is keyed
   `[pack.<name>.adapters.<adapter>]`, so one pack carries multiple adapter rows
   at one scope.
-- [ ] A v0.4 reader refuses any unrecognised `schema-version` on **both read and
+- [x] A v0.4 reader refuses any unrecognised `schema-version` on **both read and
   write**, raising the existing `StateFileLegacy`-style error (not the
   parse-through default that exists today).
-- [ ] A v0.4 file round-tripped through a v0.3 reader raises rather than
+- [x] A v0.4 file round-tripped through a v0.3 reader raises rather than
   mis-parsing adapter rows as a zero-file pack. (RFC-0052 falsifier)
-- [ ] The v0.4 TOML emitter round-trips a nested `[pack.<name>.adapters.<adapter>]`
+- [x] The v0.4 TOML emitter round-trips a nested `[pack.<name>.adapters.<adapter>]`
   structure: emit → load → emit is byte-stable.
 
 Footprint install gate:
 
-- [ ] Installing one pack for two adapters with **disjoint** footprints at the
+- [x] Installing one pack for two adapters with **disjoint** footprints at the
   same scope succeeds (the reported bug: `research` for `codex` after
   `claude-code`).
-- [ ] For an incoming relpath already owned by **another adapter row of the same
+- [x] For an incoming relpath already owned by **another adapter row of the same
   pack at the same SHA**, the install co-owns it — records it in the incoming
   row's `files`, skips the write.
-- [ ] An incoming `(pack, adapter)` that already owns every relpath at matching
+- [x] An incoming `(pack, adapter)` that already owns every relpath at matching
   SHA is reported as *already installed* (upgrade path); some-new-no-conflict
   *proceeds*; any conflict *refuses*.
-- [ ] A same-path / **different-SHA** collision is refused with the conflicting
+- [x] A same-path / **different-SHA** collision is refused with the conflicting
   relpaths named.
-- [ ] A same-path collision across **different packs** is refused even at equal
+- [x] A same-path collision across **different packs** is refused even at equal
   SHA, with the conflicting relpaths named.
-- [ ] `--force` on a footprint conflict calls the existing Tier-2
+- [x] `--force` on a footprint conflict calls the existing Tier-2
   `safety.write_companion` `.upstream` writer; no new override flag is added.
 
 Derived ownership & uninstall:
 
-- [ ] Ownership is derived by scanning rows' `files` maps; nothing is stored
+- [x] Ownership is derived by scanning rows' `files` maps; nothing is stored
   per-file beyond the SHA already recorded.
-- [ ] Uninstall removes a relpath only when the removed row is its **last**
+- [x] Uninstall removes a relpath only when the removed row is its **last**
   owner; the decision is captured once against the persisted union of all rows.
-- [ ] Install a pack for two same-pack adapter rows, uninstall one → the shared
+- [x] Install a pack for two same-pack adapter rows, uninstall one → the shared
   skill survives; uninstall the second → it is removed. (RFC-0052 falsifier)
-- [ ] `State.projected_paths`, `PackState.file_sha`, and `safety.classify`
+- [x] `State.projected_paths`, `PackState.file_sha`, and `safety.classify`
   resolve ownership across **all** adapter rows — `classify` no longer takes the
   first owner via a `break`.
-- [ ] `safety.scan_for_pack_artifacts` is keyed by pack-across-its-adapter-rows:
+- [x] `safety.scan_for_pack_artifacts` is keyed by pack-across-its-adapter-rows:
   a file owned by any sibling adapter row of the same pack is not an orphan.
-- [ ] During a second cohort install, the orphan scan does **not** sweep the
+- [x] During a second cohort install, the orphan scan does **not** sweep the
   first row's shared files (kiro-ide does not wipe kiro-cli `.json` agents; a
   cursor install does not sweep codex's `.agents/skills/`). (RFC-0052 falsifier)
-- [ ] Each removed file is path-jail-validated against its own adapter row's
+- [x] Each removed file is path-jail-validated against its own adapter row's
   `allowed-prefixes`, never a sibling's.
 
 Contract & cohort routing:
 
-- [ ] Each `allowed-prefixes` entry in the adapter contract carries a class —
+- [x] Each `allowed-prefixes` entry in the adapter contract carries a class —
   `private` or `shared` — and each `shared` prefix declares its reader cohort
   (shipped adapters). `_data/adapter.toml` and `docs/contracts/adapter.toml`
   agree byte-for-byte.
-- [ ] `.agents/skills/` is declared `shared` with cohort
+- [x] `.agents/skills/` is declared `shared` with cohort
   {codex, cursor, gemini, copilot}; `.kiro/skills/` is declared `shared` with
   cohort {kiro-ide, kiro-cli}; every other prefix is `private`.
-- [ ] cursor, gemini, and copilot write the `skill` primitive to `.agents/skills/`
+- [x] cursor, gemini, and copilot write the `skill` primitive to `.agents/skills/`
   (codex already does); their agent / hook / command projection is unchanged.
-- [ ] cursor, gemini, and copilot include `.agents/skills/` in `allowed-prefixes`
+- [x] cursor, gemini, and copilot include `.agents/skills/` in `allowed-prefixes`
   at **both repo and user scope** (codex already lists it at both), so the routed
   skill path is jail-admissible at the default repo scope as well as user scope.
   Concretely: `cursor.repo`/`cursor.user`, `gemini.repo`/`gemini.user`, and
   `copilot.repo`/`copilot.user` each gain `.agents/skills/`.
-- [ ] The adapter-contract version is bumped, and the version-assertion sweep
+- [x] The adapter-contract version is bumped, and the version-assertion sweep
   (tests + any pinned constants) is updated to match.
 
 Coexistence flows & disclosure:
 
-- [ ] Kiro family: install kiro-cli (`.kiro/skills/...` + `.kiro/agents/<a>.json`)
+- [x] Kiro family: install kiro-cli (`.kiro/skills/...` + `.kiro/agents/<a>.json`)
   then kiro-ide → skills co-owned, `.kiro/agents/<a>.md` written; uninstall
   kiro-cli → `.json` agents removed, shared skills remain.
-- [ ] `.agents/skills/` cohort: install a pack for codex then cursor → skills
+- [x] `.agents/skills/` cohort: install a pack for codex then cursor → skills
   co-owned at the shared prefix, cursor's private `.cursor/` agents/hooks/commands
   written.
-- [ ] After an install that writes to a `shared` prefix, stderr names the other
+- [x] After an install that writes to a `shared` prefix, stderr names the other
   **shipped** adapters in that prefix's cohort and states the boundary (skills
   shared; private primitives need a separate per-adapter install), using the
   pinned wording below (interpolating the installed pack, adapter, scope, and the
@@ -197,7 +197,7 @@ Coexistence flows & disclosure:
     Hooks & subagents → ~/.<adapter>/ — <adapter> only; install those adapters
     separately to get them there.
   ```
-- [ ] Two simultaneous `install` runs writing different adapter rows of one pack
+- [x] Two simultaneous `install` runs writing different adapter rows of one pack
   to the single `~/.agentbundle/state.toml` both land without corrupting the file.
 
 ## Assumptions
