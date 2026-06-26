@@ -146,7 +146,7 @@ def test_in_process_resolver_honors_user_config(tmp_path: Path) -> None:
 
 def test_resolve_target_adapter_callers_thread_user_config() -> None:
     AGENTBUNDLE_DIR = Path(agentbundle.__file__).parent
-    EXPECTED = 9  # 7 in install.py (2 added by pack-profiles _run_profile), 2 in upgrade.py
+    EXPECTED = 10  # 8 in install.py (2 added by pack-profiles _run_profile, 1 added by RFC-0052 multi-adapter path), 2 in upgrade.py
     found = 0
     for src in [
         AGENTBUNDLE_DIR / "commands" / "install.py",

@@ -161,7 +161,7 @@ class UpgradeAddsHookEntryTests(_UpgradeBase):
         # State has both rows.
         from agentbundle.config import load_state
         state = load_state(self.home / ".agentbundle" / "state.toml")
-        ids = {r["id"] for r in state.packs["cc-user-hooks"].hook_wiring_owned}
+        ids = {r["id"] for r in state.row("cc-user-hooks", "claude-code").hook_wiring_owned}
         self.assertEqual(
             ids,
             {"cc-user-hooks:on-prompt", "cc-user-hooks:on-session"},
@@ -205,7 +205,7 @@ class UpgradeRemovesHookEntryTests(_UpgradeBase):
 
         from agentbundle.config import load_state
         state = load_state(self.home / ".agentbundle" / "state.toml")
-        ids = {r["id"] for r in state.packs["cc-user-hooks"].hook_wiring_owned}
+        ids = {r["id"] for r in state.row("cc-user-hooks", "claude-code").hook_wiring_owned}
         self.assertEqual(ids, {"cc-user-hooks:on-prompt"})
 
 
@@ -233,7 +233,10 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
         # the alias (matching the recorded state hint).
         state_path = self.home / ".agentbundle" / "state.toml"
         state = load_state(state_path)
-        state.packs["kiro-user-hooks"].adapter = "kiro"
+        # Re-key the row from ("kiro-user-hooks", "kiro-cli") to ("kiro-user-hooks", "kiro").
+        old_row = state.packs.pop(("kiro-user-hooks", "kiro-cli"))
+        old_row.adapter = "kiro"
+        state.packs[("kiro-user-hooks", "kiro")] = old_row
         state_path.write_text(dump_state(state), encoding="utf-8")
         pt = (pack_dst / "pack.toml").read_text(encoding="utf-8")
         (pack_dst / "pack.toml").write_text(
@@ -251,7 +254,7 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
             "upgrade should project the .md agent (kiro-ide shape)",
         )
         state2 = load_state(state_path)
-        ps = state2.packs["kiro-user-hooks"]
+        ps = state2.row("kiro-user-hooks", "kiro")
         self.assertEqual(ps.adapter, "kiro")
         self.assertEqual(ps.hook_wiring_owned, [])
 
@@ -276,7 +279,10 @@ class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
 
         state_path = self.home / ".agentbundle" / "state.toml"
         state = load_state(state_path)
-        state.packs["kiro-user-hooks"].adapter = "kiro"
+        # Re-key the row from ("kiro-user-hooks", "kiro-cli") to ("kiro-user-hooks", "kiro").
+        old_row = state.packs.pop(("kiro-user-hooks", "kiro-cli"))
+        old_row.adapter = "kiro"
+        state.packs[("kiro-user-hooks", "kiro")] = old_row
         state_path.write_text(dump_state(state), encoding="utf-8")
         pt = (pack_dst / "pack.toml").read_text(encoding="utf-8")
         (pack_dst / "pack.toml").write_text(
