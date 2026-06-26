@@ -86,6 +86,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is surfaced as a drift signal. No new config file, and absence never fails the
   loop or any CI gate. `adapt-to-project` and `init-project` now optionally
   offer to record these coordinates.
+- **A how-to for shipping your organization's standard stack as a reusable
+  pack.** [*Ship your organization's standard stack as a reusable pack*](../guides/_shared/how-to/build-an-org-stack-pack.md)
+  walks a platform lead through composing an org-stack pack from primitives that
+  already exist — a filled-in `reference.md` seed (plus optional
+  `CONVENTIONS.md` / `AGENTS.md` deltas), `.apm/skills/<framework>/` skills as
+  the work-loop's framework-grounding detect target, and a repo-scope profile
+  that installs the org's forked `core` first — distributed from a detached fork
+  the organization owns via the editable-install path, with no upstream
+  dependency. No new machinery. (RFC-0047 Decision 5, ADR-0037 D3.)
 - **`architect` grounds the design phase in platform reality — a backed
   serverless workload-class lens plus two dual-consumed disciplines.** The
   `architect` pack gains **`lens-serverless.md`** (in both `architect-design`
