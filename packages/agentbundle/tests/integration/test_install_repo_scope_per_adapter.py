@@ -104,19 +104,18 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
                 f"adopter tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",
             )
 
-            # State file records the resolved adapter. The state TOML
-            # uses `[pack.<name>]` (singular). Per `dump_state`, the
-            # `adapter` field is omitted when it equals the default
-            # ("claude-code") — the implicit-default contract that
-            # pre-dates RFC-0012. So we accept both "field absent" and
-            # `field == "claude-code"` for the default case.
+            # State file records the resolved adapter. The v0.4 TOML
+            # shape is [pack.<name>.adapters.<adapter>] — the adapter
+            # name is the sub-table key, not a field in the row body.
             state = _load_state(adopter)
-            pack_state = state.get("pack", {}).get("core", {})
-            recorded_adapter = pack_state.get("adapter", "claude-code")
-            self.assertEqual(
-                recorded_adapter,
+            adapters_table = (
+                state.get("pack", {}).get("core", {}).get("adapters", {})
+            )
+            self.assertIn(
                 expected_adapter,
-                f"state.adapter mismatch: {pack_state!r}",
+                adapters_table,
+                f"expected adapter {expected_adapter!r} as a key under "
+                f"[pack.core.adapters]; got: {sorted(adapters_table)!r}",
             )
 
     def test_claude_code_default_no_adapter_flag(self) -> None:
@@ -181,10 +180,13 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
             # summary record `kiro` (not the canonical `kiro-ide`).
             self.assertIn("installed: core @ repo via kiro", stdout)
             state = _load_state(adopter)
-            self.assertEqual(
-                state.get("pack", {}).get("core", {}).get("adapter"),
+            adapters_table = (
+                state.get("pack", {}).get("core", {}).get("adapters", {})
+            )
+            self.assertIn(
                 "kiro",
-                "kiro alias must record the chosen name in state.adapter",
+                adapters_table,
+                "kiro alias must record the chosen name as the adapter key in state",
             )
 
             # AC3: core ships hook-wiring + a command, both dropped by kiro-ide.
@@ -275,6 +277,12 @@ def _plant_state_row(
 ) -> None:
     """Write a minimal v0.3 state.toml with a single ``[pack.<name>]`` row.
 
+    NOTE: v0.4 (RFC-0052 D8) hard-refuses any state file whose
+    schema-version is not "0.4". A v0.3 file planted by this helper will
+    be refused on read with a StateFileLegacy error. Tests that previously
+    relied on the v0.3 file triggering a migration path now assert the
+    greenfield refusal (schema-version + reinstall in stderr) instead.
+
     Mirrors the fixture helper in
     :mod:`tests.unit.test_install_inband_detection` — kept local rather
     than imported to keep this module self-contained for the integration
@@ -348,9 +356,11 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             rc = install.run(args)
             self.assertEqual(rc, 0)
             state = _load_state(adopter)
-            self.assertEqual(
-                state["pack"]["core"].get("adapter"), "kiro",
-                f"install did not record adapter=kiro: {state!r}",
+            adapters_table = state.get("pack", {}).get("core", {}).get("adapters", {})
+            self.assertIn(
+                "kiro",
+                adapters_table,
+                f"install did not record adapter=kiro in state: {state!r}",
             )
             self.assertTrue(
                 (adopter / ".kiro").exists(),
@@ -398,13 +408,15 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
             # trip this assertion.
             self.assertNotIn("pack adapter changed", stderr)
 
-            # State row's adapter stays kiro across the upgrade.
+            # State row's adapter stays kiro across the upgrade — the
+            # adapter is now the sub-table key under [pack.core.adapters].
             state_after = _load_state(adopter)
-            recorded_after = (
-                state_after.get("pack", {}).get("core", {}).get("adapter", "claude-code")
+            adapters_after = (
+                state_after.get("pack", {}).get("core", {}).get("adapters", {})
             )
-            self.assertEqual(
-                recorded_after, "kiro",
+            self.assertIn(
+                "kiro",
+                adapters_after,
                 f"state.adapter regressed post-upgrade: {state_after!r}",
             )
 
@@ -483,8 +495,9 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
             self.assertEqual(rc, 0, "install of core must succeed")
 
             state_before = _load_state(adopter)
+            # v0.4 shape: [pack.core.adapters.claude-code.files]
             files_before = set(
-                state_before["pack"]["core"].get("files", {}).keys()
+                state_before["pack"]["core"]["adapters"]["claude-code"].get("files", {}).keys()
             )
             self.assertTrue(
                 files_before,
@@ -520,9 +533,10 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
 
             # Step 3: `state.files` keyset must match the install
             # snapshot — same paths, no dist-tree leak.
+            # v0.4 shape: [pack.core.adapters.claude-code.files]
             state_after = _load_state(adopter)
             files_after = set(
-                state_after["pack"]["core"].get("files", {}).keys()
+                state_after["pack"]["core"]["adapters"]["claude-code"].get("files", {}).keys()
             )
             new_keys = files_after - files_before
             self.assertFalse(
@@ -612,8 +626,14 @@ class RepoScopeDiffAfterInstallTests(unittest.TestCase):
 
 
 class RepoScopeMigrationTriggerBTests(unittest.TestCase):
-    """AC33 + AC24(b): a pre-RFC-0012 state file plus on-disk dist-tree
-    files refuses the install with the pinned (b) message."""
+    """AC33 + AC24(b): a pre-RFC-0012 (v0.3) state file refuses at load
+    time with the RFC-0052 D8 hard refusal.
+
+    Originally these tests pinned specific (b)-branch messages; RFC-0052
+    (ADR-0039) made cross-version handling a hard refusal on both read
+    and write — a v0.3 file now refuses before any migration branch fires.
+    The test is re-keyed to assert the greenfield refusal shape
+    (schema-version + reinstall in stderr)."""
 
     def setUp(self) -> None:
         _clear_inband_detection_seen()
@@ -623,7 +643,8 @@ class RepoScopeMigrationTriggerBTests(unittest.TestCase):
             adopter = Path(raw) / "adopter"
             adopter.mkdir()
             _plant_state_row(adopter, pack_name="core")
-            # Plant dist-tree files (legacy producer shape).
+            # Plant dist-tree files (legacy producer shape) — these are
+            # now irrelevant because the v0.3 state file itself refuses.
             (adopter / "claude-plugins" / "core").mkdir(parents=True)
             (adopter / "claude-plugins" / "core" / "plugin.json").write_text(
                 "{}", encoding="utf-8"
@@ -641,19 +662,21 @@ class RepoScopeMigrationTriggerBTests(unittest.TestCase):
                     str(REPO_ROOT),
                 ]
             )
+            # RFC-0052 D8: v0.3 state file is hard-refused before install runs.
             self.assertNotEqual(rc, 0)
-            self.assertIn("pre-RFC-0012 dist-tree files for pack core", stderr)
-            # Platform-portable: separate segments avoid the Windows
-            # path-separator (``\\``) breaking the joined substring.
-            self.assertIn("claude-plugins", stderr)
-            self.assertIn("apm", stderr)
-            self.assertIn("rerun with --force", stderr)
+            self.assertIn("schema-version", stderr)
+            self.assertIn("reinstall", stderr)
 
 
 class RepoScopeMigrationTriggerATests(unittest.TestCase):
-    """AC33 + AC24(a): a pre-RFC-0012 state file whose recorded adapter
-    disagrees with the resolver's pick (and no dist-tree files) refuses
-    the install with the pinned (a) message."""
+    """AC33 + AC24(a): a pre-RFC-0012 (v0.3) state file refuses at load
+    time with the RFC-0052 D8 hard refusal.
+
+    Originally this test pinned the (a)-branch adapter-disagreement
+    message; RFC-0052 (ADR-0039) made cross-version handling a hard
+    refusal — a v0.3 file now refuses before any adapter-disagreement
+    branch fires. The test is re-keyed to assert the greenfield refusal
+    shape (schema-version + reinstall in stderr)."""
 
     def setUp(self) -> None:
         _clear_inband_detection_seen()
@@ -663,8 +686,9 @@ class RepoScopeMigrationTriggerATests(unittest.TestCase):
             adopter = Path(raw) / "adopter"
             adopter.mkdir()
             # State records claude-code; CLI passes --adapter kiro.
+            # Both branches are now irrelevant: the v0.3 state file itself
+            # refuses before any adapter logic runs (RFC-0052 D8).
             _plant_state_row(adopter, pack_name="core", adapter="claude-code")
-            # No dist-tree files → (b) does not fire; (a) does.
 
             rc, stdout, stderr = _run_install(
                 [
@@ -675,11 +699,10 @@ class RepoScopeMigrationTriggerATests(unittest.TestCase):
                     str(REPO_ROOT),
                 ]
             )
+            # RFC-0052 D8: v0.3 state file is hard-refused.
             self.assertNotEqual(rc, 0)
-            self.assertIn(
-                "state records adapter 'claude-code' for pack core", stderr
-            )
-            self.assertIn("resolver picked 'kiro'", stderr)
+            self.assertIn("schema-version", stderr)
+            self.assertIn("reinstall", stderr)
 
 
 if __name__ == "__main__":

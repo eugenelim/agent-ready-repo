@@ -64,9 +64,9 @@ def _pre_install_core(
     """Write `core` into the state file directly so tests don't need a real core pack."""
     from agentbundle.config import PackState, State, dump_state
 
-    ps = PackState(installed_version=version, scope=scope)
+    ps = PackState(installed_version=version, scope=scope, adapter="claude-code")
     state = State()
-    state.packs["core"] = ps
+    state.packs[("core", "claude-code")] = ps
 
     if scope == "repo":
         state_path = target / ".agentbundle-state.toml"
