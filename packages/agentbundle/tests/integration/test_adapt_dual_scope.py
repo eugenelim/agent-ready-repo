@@ -32,11 +32,12 @@ from agentbundle.config import PackState, State, dump_state
 
 
 def _write_state(path: Path, files: dict[str, str], scope: str = "repo") -> None:
-    state = State(schema_version="0.2")
-    state.packs["demo"] = PackState(
+    state = State()
+    state.packs[("demo", "claude-code")] = PackState(
         installed_version="0.1.0",
         scope=scope,
         files={k: {"sha": v, "from-pack-version": "0.1.0"} for k, v in files.items()},
+        adapter="claude-code",
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(dump_state(state), encoding="utf-8")

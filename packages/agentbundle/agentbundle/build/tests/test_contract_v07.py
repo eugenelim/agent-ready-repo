@@ -83,17 +83,20 @@ class TestContractV07(unittest.TestCase):
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(copilot_scope, "copilot scope table missing")
         self.assertEqual(copilot_scope["repo"], ".")
-        # v0.10 (copilot-full-parity) made copilot user-scope-capable; v0.11
-        # (copilot-skills-and-web) flips `skill` to `.github/skills/` SKILL.md, so
-        # the repo skill prefix is `.github/skills/` (was `.github/instructions/`).
+        # RFC-0052 / ADR-0040: copilot skill now routes to `.agents/skills/`
+        # (shared cohort home, prepended); agents + hooks stay under `.github/`.
+        # `.github/skills/` is kept for path-jail compat with existing files.
         self.assertEqual(
             copilot_scope["allowed-prefixes"]["repo"],
-            [".github/skills/", ".github/agents/", ".github/hooks/"],
+            [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"],
         )
         self.assertEqual(copilot_scope["user"], "~")
+        # RFC-0052: `.agents/skills/` prepended to user list too.
+        # `.copilot/skills/` retained for path-jail compat.
         self.assertEqual(
             copilot_scope["allowed-prefixes"]["user"],
             [
+                ".agents/skills/",
                 ".copilot/skills/",
                 ".copilot/agents/",
                 ".copilot/hooks/",

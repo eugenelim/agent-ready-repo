@@ -43,7 +43,9 @@ def _setup_brownfield(tmp_path: Path) -> Path:
             "from-pack-version": "0.1.0",
         }
     state = State()
-    state.packs["core"] = PackState(installed_version="0.1.0", files=files)
+    state.packs[("core", "claude-code")] = PackState(
+        installed_version="0.1.0", files=files, adapter="claude-code"
+    )
     (work / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"
     )
@@ -163,7 +165,9 @@ def test_pending_report_byte_identical_with_multiple_companions(tmp_path):
         }
 
     state = State()
-    state.packs["core"] = PackState(installed_version="0.1.0", files=files)
+    state.packs[("core", "claude-code")] = PackState(
+        installed_version="0.1.0", files=files, adapter="claude-code"
+    )
     (work / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8"
     )

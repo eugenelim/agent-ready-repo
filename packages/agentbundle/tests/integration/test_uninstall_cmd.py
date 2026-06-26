@@ -56,7 +56,7 @@ def _seed_state(tmp_path: Path, pack_name: str, files: dict[str, str]) -> None:
     from agentbundle.config import PackState, State, dump_state
 
     state = State()
-    state.packs[pack_name] = PackState(
+    state.packs[(pack_name, "claude-code")] = PackState(
         installed_version="0.1.0",
         files={relpath: {"sha": sha, "from-pack-version": "0.1.0"} for relpath, sha in files.items()},
     )
@@ -91,7 +91,7 @@ def test_happy_path_tier1_files_removed(tmp_path):
 
     # State must no longer reference the pack.
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert "alpha" not in state.packs, "[pack.alpha] must be absent after uninstall"
+    assert not state.has_pack("alpha"), "[pack.alpha] must be absent after uninstall"
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +180,7 @@ def test_multi_pack_uninstall_a_preserves_b(tmp_path):
     # Reload state (alpha is there) and add beta.
     state_path = tmp_path / ".agentbundle-state.toml"
     state = load_state(state_path)
-    state.packs["beta"] = PackState(
+    state.packs[("beta", "claude-code")] = PackState(
         installed_version="1.0.0",
         files={"docs/beta_readme.md": {"sha": beta_sha, "from-pack-version": "1.0.0"}},
     )
@@ -192,9 +192,9 @@ def test_multi_pack_uninstall_a_preserves_b(tmp_path):
 
     # [pack.beta] must still be present.
     updated_state = load_state(state_path)
-    assert "beta" in updated_state.packs, "[pack.beta] must survive uninstalling alpha"
-    assert updated_state.packs["beta"].installed_version == "1.0.0"
-    assert "docs/beta_readme.md" in updated_state.packs["beta"].files
+    assert updated_state.has_pack("beta"), "[pack.beta] must survive uninstalling alpha"
+    assert updated_state.row("beta", "claude-code").installed_version == "1.0.0"
+    assert "docs/beta_readme.md" in updated_state.row("beta", "claude-code").files
 
     # beta's on-disk file must be byte-identical.
     assert beta_file.read_bytes() == beta_content, (
@@ -285,7 +285,7 @@ def test_confirmation_accept_proceeds(tmp_path, monkeypatch):
     rc = _run_uninstall("alpha", str(tmp_path), yes=False)
     assert rc == 0
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert "alpha" not in state.packs
+    assert not state.has_pack("alpha")
 
 
 def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
@@ -303,7 +303,7 @@ def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
     assert "aborted" in capsys.readouterr().err
     assert _snapshot_tree(tmp_path) == before, "decline must write nothing"
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert "alpha" in state.packs, "declined uninstall keeps the pack in state"
+    assert state.has_pack("alpha"), "declined uninstall keeps the pack in state"
 
 
 def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):

@@ -41,16 +41,14 @@ Three concerns:
 
 Per-adapter projection geometry:
 
-  - Copilot's skill projection lands at ``.github/skills/<skill>/SKILL.md``
-    (docs/specs/copilot-skills-and-web — first-class Agent Skills, was a flat
-    ``.github/instructions/<skill>.instructions.md``). The per-pack scanner at
-    ``safety.scan_for_pack_artifacts`` matches these by directory name, exactly
-    like ``.claude/skills/<name>/`` etc., so copilot is no longer the odd one
-    out: the orphan branch fires at copilot for both *core* (skills + hooks at
-    ``.github/hooks/``) and *governance-extras* (skills-only). Copilot's
-    ``allowed-prefixes.repo`` is now ``[.github/skills/, .github/agents/,
-    .github/hooks/]``. Both Direction A (force install governance-extras) and
-    Direction B (force install core) therefore run at all shipped adapters.
+  - Copilot's skill projection lands at ``.agents/skills/<skill>/SKILL.md``
+    (RFC-0052 / ADR-0040 — shared cohort home; was ``.github/skills/`` in
+    v0.11). The per-pack scanner at ``safety.scan_for_pack_artifacts`` matches
+    these by directory name, exactly like ``.claude/skills/<name>/`` etc.
+    Hooks stay under ``.github/hooks/``. Copilot's ``allowed-prefixes.repo``
+    is now ``[.agents/skills/, .github/skills/, .github/agents/, .github/hooks/]``.
+    Both Direction A (force install governance-extras) and Direction B (force
+    install core) therefore run at all shipped adapters.
 
 Catalogue source: the live ``packs/`` tree in this repo. ``core`` and
 ``governance-extras`` are the canonical repo-only pair (governance
@@ -126,15 +124,14 @@ def _skill_path(adapter: str, skill_name: str) -> str:
     if adapter == "codex":
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "copilot":
-        # docs/specs/copilot-skills-and-web: first-class Agent Skills —
-        # `.github/skills/<name>/SKILL.md` (was a flat `.instructions.md`).
-        return f".github/skills/{skill_name}/SKILL.md"
-    # RFC-0026 cursor-full-parity: cursor projects skills to `.cursor/skills/`.
+        # RFC-0052 / ADR-0040: copilot skill routes to shared cohort home
+        # `.agents/skills/` (was `.github/skills/` in v0.11).
+        return f".agents/skills/{skill_name}/SKILL.md"
+    # RFC-0052 / ADR-0040: cursor + gemini skills also route to `.agents/skills/`.
     if adapter == "cursor":
-        return f".cursor/skills/{skill_name}/SKILL.md"
-    # RFC-0027 gemini-full-parity: gemini projects skills to `.gemini/skills/`.
+        return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "gemini":
-        return f".gemini/skills/{skill_name}/SKILL.md"
+        return f".agents/skills/{skill_name}/SKILL.md"
     raise ValueError(f"unknown adapter: {adapter!r}")
 
 
@@ -252,22 +249,31 @@ def _sha256(path: Path) -> str:
 def _state_tracked_files(state: dict[str, Any], pack: str) -> dict[str, str]:
     """Return ``{relpath: recorded_sha}`` for ``pack``'s state-tracked files.
 
-    The SHA recorded in state is computed at install.py:788 as
+    The SHA recorded in state is computed at install.py as
     ``safety.sha256_bytes(content)`` over the bytes written to disk,
     so on-disk sha matches recorded sha at install time.
+
+    v0.4 TOML shape: ``[pack.<name>.adapters.<adapter>.files]``.
+    Unions across all adapter rows for the named pack.
     """
-    files = state.get("pack", {}).get(pack, {}).get("files", {})
-    return {rel: meta.get("sha", "") for rel, meta in files.items()}
+    pack_body = state.get("pack", {}).get(pack, {})
+    adapters = pack_body.get("adapters", {})
+    out: dict[str, str] = {}
+    for _adapter, row in adapters.items():
+        for rel, meta in row.get("files", {}).items():
+            if rel not in out:  # first adapter wins on overlap
+                out[rel] = meta.get("sha", "")
+    return out
 
 
 def _drop_pack_from_state(adopter: Path, pack_name: str) -> None:
-    """Remove ``[pack.<pack_name>]`` from on-disk state via the
-    production load/dump roundtrip.
+    """Remove all ``[pack.<pack_name>.adapters.*]`` rows from on-disk state
+    via the production load/dump roundtrip.
 
     Implemented through ``config.load_state`` + ``config.dump_state``
     rather than line-grep so the test does not depend on
     ``dump_state``'s exact serialization shape (multi-line tables,
-    array-of-tables headers like ``[[pack.<name>.hook-wiring-owned]]``,
+    array-of-tables headers like ``[[pack.<name>.adapters.<a>.hook-wiring-owned]]``,
     blank-line conventions). A future change to the writer's emission
     order cannot silently break this helper.
     """
@@ -275,8 +281,10 @@ def _drop_pack_from_state(adopter: Path, pack_name: str) -> None:
 
     state_path = adopter / ".agentbundle-state.toml"
     state = load_state(state_path)
-    if pack_name in state.packs:
-        del state.packs[pack_name]
+    # Remove all (pack_name, *) rows — v0.4 state is keyed by (name, adapter).
+    keys_to_drop = [(n, a) for (n, a) in state.packs if n == pack_name]
+    for key in keys_to_drop:
+        del state.packs[key]
     state_path.write_text(dump_state(state), encoding="utf-8")
 
 
@@ -476,17 +484,17 @@ def test_copilot_orphan_scan_finds_skills_and_hooks(tmp_path):
     _install_mod._clear_inband_detection_seen()
 
     # Direct-call the scanner with core's primitive set + copilot's current
-    # repo-scope prefixes (v0.11: skills at `.github/skills/`, hook bodies at
-    # `.github/hooks/`, agents at `.github/agents/`).
+    # repo-scope prefixes (RFC-0052: skills at `.agents/skills/`, hook bodies
+    # at `.github/hooks/`, agents at `.github/agents/`).
     pack_dir = REPO_ROOT / "packs" / "core"
-    prefixes = [".github/skills/", ".github/agents/", ".github/hooks/"]
+    prefixes = [".agents/skills/", ".github/agents/", ".github/hooks/"]
     orphans = safety.scan_for_pack_artifacts(
         adopter, prefixes, pack_dir=pack_dir, pack_name="core",
     )
     rels = sorted(p.relative_to(adopter).as_posix() for p in orphans)
 
-    # Skills are now found (directory-name match), unlike the retired flat shape.
-    skill_hits = [r for r in rels if r.startswith(".github/skills/")]
+    # Skills are found at the shared cohort home (RFC-0052).
+    skill_hits = [r for r in rels if r.startswith(".agents/skills/")]
     assert skill_hits, (
         f"expected scanner to find core's skill dirs at copilot; got: {rels!r}"
     )
