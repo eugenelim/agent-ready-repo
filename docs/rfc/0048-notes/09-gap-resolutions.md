@@ -82,6 +82,36 @@ Sample reads, to calibrate the boundary:
   `security-reviewer`). The tell: before treating a constraint as global, ask which
   context it was written for.
 
+*Sample reads appended by child-1 — the `experience` pack ([RFC-0050](../0050-the-experience-pack.md)):*
+- "Should `design-critique`'s taste mode become a reviewer **agent**?" → **resolve: no**
+  (referent: ADR-0024 / RFC-0033 — the pack is all-skills-zero-agents *by decision*; the
+  design-artifact live-lens reviewer is `core`/`architect`'s seat, RFC-0048 O5). The tell:
+  a new capability tempts a new agent; check whether an existing posture decision already
+  placed that seat elsewhere before adding one. *Scope-creep guard, resolved against
+  precedent — not surfaced.*
+- "Where do the `experience` artifacts get written?" → **resolve** (referent:
+  `product-engineering`'s `frame-intent` layout pattern — `[<pack>]` table → `parent`
+  default → discover-by-marker; default `docs/design`, paralleling `docs/product`). Never
+  hardcode a path; the three-tier rule is the standing answer (RFC-0040).
+- "How do I rename a *pack* with no alias field?" → **resolve** (referent: the *actual*
+  `infra-contract-acquisition → contract-acquisition` rename, RFC-0047 § Errata — rename
+  the live surface, bridge frozen governance in one new record, ship no alias). The tell:
+  reach for the precedent that already shipped, not a new mechanism. *(RFC-0048 originally
+  framed the rename mechanism as OQ1; the precedent resolved it.)*
+- "Screens are inventoried — now what?" → don't stop at the screen list; **envision the
+  whole-journey verification** (cross-brief consistency pass, then a low-fi clickable
+  prototype via MCP or a text-only steel thread) and build it into the skill's procedure so
+  the model reaches for it unprompted. Picked up from this note's own §Consistency &
+  prototyping forward idea — the proactive-model-thinking tell, now realized in a skill.
+- *Defer to the canonical floor, don't fork it.* notes/04's per-screen state set
+  (`empty/loading/error/success/permission`) and the shipped `quality-floor` floor
+  (`empty/loading/error/success/partial/disabled`) differ. → **resolve:** the per-screen
+  brief *defers to the `quality-floor` floor* as the authoritative state set; `permission/
+  denied` is an **additional gated-screen state**, not a replacement list. The tell: when a
+  note introduces a list a canonical source already owns, reconcile to the source rather
+  than shipping a second list free to drift. *(Drift reconciled in RFC-0050 D2/D4 per the
+  provisional-foundation discipline.)*
+
 **Why this is logged as a scaffold, not left to recall:** in practice the AI loop reaches
 the right resolve-vs-surface call only ~half the time without a nudge (anchoring + the
 knowing-doing gap — notes/03). So the lens is made an *explicit checklist step* (it lives
