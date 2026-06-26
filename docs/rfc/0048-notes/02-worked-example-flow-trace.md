@@ -111,7 +111,7 @@ Designs the *runtime* learning loop (human-approved write to long-term Memory).
 | --- | --- | --- | --- |
 | Shared typed state all lenses read/write | blackboard | blackboard | **✗ GAP-O2** |
 | Channel lenses "answer each other" through | open-questions queue | OQ queue | **✗ GAP-O3** |
-| Orphan detection outcome→opportunity→capability→screen→action→service→contract→spec→code | traceability lint | matrix | **✗ GAP-O4** |
+| Orphan detection outcome→opportunity→capability→screen→action→service→contract→spec→component | traceability lint | matrix | **✗ GAP-O4** |
 
 ### The "answer each other" ripple (connectedness pressure test)
 

@@ -1,12 +1,23 @@
 # RFC-0048: The autonomous product-team operating model — gate doctrine, the `experience` pack, and a child-effort roadmap
 
 - **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
-- **Provisional foundation:** this is an umbrella/foundation RFC. **Even once Accepted it
-  remains *provisional* — amendable, not frozen — until every child RFC has been modelled
-  out and drift-aligned back to it.** Drift between a child effort and this foundation is a
-  bug to reconcile *in this RFC* (a tracked amendment), not to absorb silently downstream.
-  It reaches a terminal/frozen state only when the child set is complete and aligned. This
-  intentionally diverges from the normal Accepted→Frozen lifecycle for this foundation RFC.
+- **Provisional foundation — reconciliation pass complete (2026-06-26); status held
+  provisional pending the owed follow-ons:** this umbrella/foundation RFC remains
+  *provisional* — amendable, not frozen — until every child RFC is modelled out and
+  drift-aligned back to it. The child set is now complete (experience · domain-anchor ·
+  self-coverage · traceability-lint · coordinator · release-loop) and the whole set has been
+  **reconciled as one operating system** — a G0→G5 composed pressure test
+  ([`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md)) plus a
+  resolve-vs-surface lens and two fresh-context adversarial passes — with every surfaced drift
+  folded into § Amendments (the *Provisional-foundation discharge* block) and every open seam
+  assigned to a named owner. **The freeze is deliberately held** until those owner-assigned
+  follow-ons land — RFC-0053's implementing spec (AC0 the `core` sidecar-schema reference, the
+  `docs/discovery/<initiative>/` layout key, the backlog-decomposition + `loop-cohort` ACs) and
+  the CONVENTIONS-edit `new-spec` `Discovery:` header — at which point freezing is a one-line
+  status flip backed by an already-aligned model. Drift is a bug to reconcile *in this RFC* (a
+  tracked amendment), never to absorb silently downstream. This intentionally diverges from the
+  normal Accepted→Frozen lifecycle for this foundation RFC; it reaches its terminal/frozen state
+  when those follow-ons close the assigned seams.
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
@@ -298,7 +309,7 @@ as those packs install.
 **schema in `core`** (harness-neutral); the *store* is the harness's. Four slots:
 - **blackboard** — the typed artifact slots (= the artifact inventory), versioned;
 - **open-questions queue** — `{raised-by, target-discipline, question, status, resolution}`;
-- **traceability matrix** — the outcome→…→code edge set the lint checks (orphan = defect);
+- **traceability matrix** — the outcome→…→component edge set the lint checks (orphan = defect);
 - **decision log** — `{gate, decision, ratified-by, rationale, reversibility-class, ts}`
   (doubles as the audit trail the high-stakes case needs).
 
@@ -344,20 +355,32 @@ flowchart TB
 
   subgraph workloop["work-loop · supervisor (downstream · agent-autonomous)"]
     direction TB
-    G3["G3 Spec"] --> G4["G4 Build — implementer fan-out per screen/service"] -.->|"G4→G5: release loop + ship → RFC-0049"| G5["G5 Ship (RFC-0049)"]
+    G3["G3 Spec"] --> G4["G4 Build — implementer fan-out per screen/service"]
+  end
+
+  subgraph releaseloop["release-loop · release-lead (RFC-0049 · ephemeral-autonomous)"]
+    direction TB
+    REL["release (outer) loop — deploy to ephemeral env → e2e → observe → iterate"] --> G5["G5 Ship — prod"]
   end
 
   G2 -->|"emit brief → new-spec"| G3
+  G4 -.->|"work→release at deploy (digest-pinned artifact)"| REL
   CONV <--> Sidecar
   G4 <--> Sidecar
+  REL <--> Sidecar
   Harness --- discoveryloop
   Harness --- workloop
+  Harness --- releaseloop
 
   Human -. "consent" .-> G0
   Human -. "consent / adjudicate" .-> G15
   Human -. "consent / adjudicate" .-> G2
-  Human -. "consent" .-> G5
+  Human -. "consent (irreversible)" .-> G5
 ```
+
+*(The **release (outer) loop** is a loop sitting in the G4→G5 gap, not a numbered gate;
+**G5** is the human consent gate at its exit. The release loop + G5's mechanics are
+[RFC-0049](0049-the-release-loop-and-company-os.md)'s — shown here for the full arc.)*
 
 *End-to-end, by skill · subagent · artifact · human* (anonymized `example-assistant`):
 
@@ -507,7 +530,12 @@ recommendation the approver ratifies at acceptance:*
 
 **No open questions remain at the foundation level.** Remaining unknowns are *delegated to
 the child efforts* — and the RFC stays **provisional** until they are modelled and
-drift-aligned (see the Provisional-foundation note at the top).
+drift-aligned. As of **2026-06-26 the child set is complete and reconciled** (see the
+Provisional-foundation note at the top and the § Amendments discharge block), and the model
+is aligned; the **freeze is held** pending the owner-assigned follow-ons (the CONVENTIONS
+`Discovery:` edit; RFC-0053's implementing spec carrying AC0 + the layout key + the backlog
+ACs), at which point the terminal flip is a one-line status change over an already-aligned
+model.
 
 ## Follow-on artifacts
 
@@ -518,9 +546,17 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   surfacing predicate.
 - **RFC (child 1):** the `experience` pack (rename + 3 connective skills + grounding/
   taste enhancements + voice wiring). *Wave 1, parallel.*
+  *Drafted (Open): [`0050-the-experience-pack.md`](0050-the-experience-pack.md) — records
+  ADR-0038 (the `design-craft → experience` rename); its two reconciliations are folded into
+  § Amendments (2026-06-26, child-1).*
 - **Spec (child 2):** the domain-anchor primitive. *Wave 1, parallel.*
+  *Drafted: [`docs/specs/domain-anchor/`](../specs/domain-anchor/spec.md) — the three-component
+  typed artifact wrapping `research` applied mode; surfaced the `docs/discovery/` layout-key
+  drift reconciled at § Amendments DRIFT-C.*
 - **RFC (child 3):** the self-coverage gate (doctrine + reference library). *Wave 1,
-  parallel.*
+  parallel.* *Drafted (Open): [`0051-the-self-coverage-gate.md`](0051-the-self-coverage-gate.md)
+  — the non-skippable `core` coverage library both loop controllers run; no drift surfaced
+  against D5.*
 - **Spec (child 4):** the traceability + scope-creep lint. *Wave 1, parallel.*
   *Drafted: [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md)
   (structural orphans only; semantic scope-creep stays the human call at G1.5 per
@@ -531,13 +567,19 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   example; no-engine framing demonstrated on one example + a reproducible lint); the
   contract (sidecar schema · gate state machine · rejection/recovery + cascade-invalidation
   · outer cap · supervisor topology · security/integrity ACs) is specified. Spike artifacts
-  in [`0053-notes/`](0053-notes/).*
+  in [`0053-notes/`](0053-notes/).* **Its implementing spec carries the seams the discharge
+  assigned to it: AC0 — the `core` sidecar-schema reference (§ Amendments DRIFT-I); the
+  `docs/discovery/<initiative>/` layout key (DRIFT-C); and the backlog-decomposition +
+  `loop-cohort` cross-component-ingestion ACs (DRIFT-H).**
 - **[RFC-0049](0049-the-release-loop-and-company-os.md) (child — deploy):** the
   release (outer) loop + minimum-regret deploy carve + company-OS composition.
   *Already drafted; amends this RFC's gate arc / company-OS framing on landing.*
 - **CONVENTIONS edit:** the operating model (two regimes, gate ladder, surfacing
   predicate). *(The minimum-regret deploy boundary — reversible ⇒ autonomous; irreversible
   ⇒ human — is RFC-0049's CONVENTIONS slice; the two land as one operating-model section.)*
+  **Also carries the `new-spec` `Discovery:` up-edge header + the `type:` markers on discovery
+  artifacts (§ Amendments DRIFT-G)** — the producer the traceability lint walks at G3; it must
+  land before the lint is wired fail-closed (`--strict`) at a convergence gate.
 
 ## Amendments (provisional-foundation reconciliations)
 
@@ -625,3 +667,153 @@ reconciled **here**, as a tracked amendment, not absorbed silently downstream.
   two-regime / stakes-density principle, and an inner/outer-split + carve ADR is owed
   (the child spec's AC11b). See [RFC-0049](0049-the-release-loop-and-company-os.md)
   § Open questions (resolved) + [`docs/specs/release-loop/spec.md`](../specs/release-loop/spec.md).
+- **2026-06-26 — child-1 (the `experience` pack, [RFC-0050](0050-the-experience-pack.md))
+  reconciliation, recorded.** RFC-0050:193 states it reconciled two items "as the tracked
+  amendment to RFC-0048" but no landing entry existed here (a reconciled-into-the-foundation
+  claim with no landing site). Recorded now: **(i)** the per-screen state set **defers to the
+  shared handle-all-states floor** (`design-critique`'s `quality-floor.md`, promoted to a
+  pack-shared reference) — `permission/denied` is an *additional* gated-screen state, not a
+  replacement list (RFC-0050 D2/D4); **(ii)** `inventory-screens` ships a **cross-brief
+  consistency pass + a low-fi-prototype / text-only-steel-thread whole-journey verification
+  step** *before* G4 — a promotion of [note 07](0048-notes/07-screen-brief-format.md)'s
+  forward idea from forward-idea to shipped procedure, sanctioned by Decision 9's
+  proactive-model-thinking expectation, extending Decision 3's enumerated skill scope. Neither
+  contradicts D3; both *extend* it. See [RFC-0050](0050-the-experience-pack.md) D2/D4 + its
+  Follow-on artifacts.
+
+### Provisional-foundation discharge — the composed-set reconciliation (2026-06-26)
+
+The child set is **complete** (experience · domain-anchor · self-coverage · traceability-lint
+· coordinator · release-loop, all Open/Drafted). To discharge the provisional status, the
+whole set was pressure-tested *as one operating system* — the worked example
+`example-assistant` walked **G0→G5 across every landed mechanism at once**, producing the
+concrete artifact at each stage ([`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md)) —
+and run through a **resolve-vs-surface lens + two fresh-context adversarial passes** over the
+composed cross-references, the gate arc, the sidecar schema, the agent roster, and the layout
+doctrine. Both passes agreed the **spine holds together** (the three loops, the four-slot
+sidecar, the gate ladder, and the no-engine claim are consistent across every child); the
+drift was **seam-wiring + owner-assignment**, not structural — exactly what this provisional
+period exists to absorb. Each item below is **referent-groundable → resolved here and the
+owner assigned** (none was a value/scope/conflict call; the discharge resolves drift, it does
+not re-open decisions — the note-09 child-pattern read applied to the foundation itself).
+Cross-referenced as **DRIFT-x** in note 10.
+
+- **DRIFT-A — canonical artifact chain terminus is `component`, not `code`.** The chain is the
+  nine-node `outcome → opportunity → capability → screen → action → service → contract → spec
+  → component`; `code` ([`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md)'s
+  worked-example terminus) is the **component's content, not a separate node** (the form the
+  [traceability-lint spec](../specs/traceability-lint/spec.md) § Assumptions and
+  [RFC-0053 D2](0053-the-coordinator-contract.md) already use). Note 02's `…spec→code` line
+  (and its GAP-O4 reference) is corrected to the `component` terminus so the canonical
+  freeze-reading source no longer disagrees with the lint that walks the chain.
+- **DRIFT-B — the sidecar *store*: `_state/` is the harness-neutral in-repo default; the
+  harness worktree is the harness-supplied store when present.** D7 + RFC-0053 D2 say "the
+  store is the harness's (omnigent worktree)"; [`0048-notes/08`](0048-notes/08-artifact-layout-and-backlog.md)
+  homes the four slots at `docs/discovery/<initiative>/_state/`. These are *not* contradictory:
+  `_state/` is the default store an adopter **not** on a sidecar-providing harness uses (the
+  discover-by-marker / in-repo case); a harness that provides a store (omnigent's worktree)
+  supplies it instead. The traceability lint already bridges both (matrix **authoritative
+  when present**, else derived from on-disk artifacts — the child-4 amendment above). The
+  **schema** is single-sourced in `core` regardless of store.
+- **DRIFT-C — the `docs/discovery/<initiative>/` layout config key is unbound; owner assigned
+  to RFC-0053's implementing spec.** The [domain-anchor spec](../specs/domain-anchor/spec.md)
+  § Ask first deferred "the precise adopter-file table for `docs/discovery/`" to "the
+  experience-pack / layout child effort," and flagged note 08's `[experience.layout] discovery`
+  sketch as drifting from the shipped **ADR-0030** contract (the `[<pack>]` adopter-file table
+  is the read target, not the manifest-side `[pack.layout]`; PE's file-per-slug
+  `[product-engineering]` table cannot host a per-initiative tree). But child-1 (RFC-0050)
+  bound **only** `[experience] parent = "docs/design"` and never touched `docs/discovery/` — so
+  the deferral target closed without binding it (a "resolved-by child X" where X did not
+  resolve it). **Resolution:** the discovery-tree layout key is owned by **RFC-0053's
+  implementing spec** (it owns the sidecar paths under `docs/discovery/<initiative>/_state/`,
+  so it is the natural home to mint the discovery adopter-file table, on the `[experience]`
+  precedent). **Until it is bound, the entire `docs/discovery/` tree resolves default + marker
+  only** (tier-1 config is inert for it) — stated so no skill assumes a config key that does
+  not exist.
+- **DRIFT-D — experience artifacts have one home per context: the per-initiative discovery
+  tree when invoked inside discovery; `docs/design/` standalone.** RFC-0050 D6 ships
+  `[experience]` → `docs/design/{journeys,blueprints,screens}`; note 08 homes the same
+  `journey-map` / `service-blueprint` / `screen-inventory` under
+  `docs/discovery/<initiative>/`. **Resolution:** when `discovery-lead` invokes the experience
+  skills *inside an initiative*, it supplies the initiative base and the artifacts are written
+  under `docs/discovery/<initiative>/` (the in-initiative home note 08 + note 10 use);
+  invoked **standalone** by a designer, they default to `docs/design/` (RFC-0050 D6). Same
+  skill, two contexts, one default each — the three-tier resolve makes both reachable and
+  discover-by-marker finds either. (Pairs with DRIFT-C: the in-initiative base is the
+  still-unbound discovery key.)
+- **DRIFT-E — the discovery security/compliance lens is the existing `security-reviewer` in
+  its design-artifact *mode*, not a new agent.** Decision 2 is explicit ("no new reviewer
+  *agent* — the existing `security-reviewer` + `quality-engineer` gain a **design-artifact
+  review mode** (O5), a mode, not a new agent"), and the worked-example table's reconcile row
+  names `security-reviewer` as the live lens. D7/D8's body and [RFC-0053 D5](0053-the-coordinator-contract.md)
+  phrase the discovery security/compliance lens as "**a different agent from `work-loop`'s
+  code `security-reviewer`**," which reads as a fourth agent. **Resolution (Decision 2 is
+  authoritative):** it is the **same `security-reviewer` agent definition**, run in its
+  design-artifact mode as a discovery-time lens over the blackboard (journey/blueprint/arch) —
+  a different *invocation/role*, **not** a different agent. "A different agent" is corrected to
+  "a different *lens/invocation* — the design-time mode, distinct from the code-diff
+  invocation." This preserves both the CHARTER three-reviewer ceiling and the
+  loop-scoped-roster reading (the roster is a roster of *disciplines/lenses*, several of which
+  are modes of the same agents, plus optional lens-packs — not five new reviewer agents).
+- **DRIFT-F — persona is elicited inline by its first consumer, not a separately-produced
+  typed artifact in this child set.** [`0048-notes/04`](0048-notes/04-artifact-inventory.md)
+  lists persona with producer "(in domain anchor)"; the
+  [domain-anchor spec](../specs/domain-anchor/spec.md) fixes its schema at *three* components
+  and makes adding persona an *Ask first* boundary, and RFC-0050 D5 grounds
+  `aesthetic-direction` in "the persona (from the domain anchor, or **elicited inline if
+  absent**)." **Resolution:** no landed child produces persona as a separate typed artifact;
+  its consumers (`aesthetic-direction`, `map-journey`) **elicit it inline**. Note 04's
+  "(in domain anchor)" producer claim is the drift, corrected to "elicited inline by the first
+  consumer; not a separate produced artifact in the current child set." Promoting persona to a
+  produced artifact (a fourth domain-anchor component, or a `frame-persona` step) is a
+  named, deferred option, not a present orphan.
+- **DRIFT-G — the `spec → discovery` (`Discovery:`) up-edge producer is the O8 `new-spec`
+  `Discovery:` header + discovery-artifact `type:` markers, owned by a named follow-on and
+  sequenced before the traceability lint runs `--strict`.** The lint
+  ([traceability-lint spec](../specs/traceability-lint/spec.md)) is the mechanical backstop for
+  "no spec without a discovery parent," but the `Discovery:` header it walks at G3 is authored
+  by no skill in the current set (the lint degrades gracefully where absent — so the G3
+  backstop is silently inert until the header lands). **Resolution:** the producer is
+  [note 09 O8](0048-notes/09-gap-resolutions.md)'s `new-spec` `Discovery:` header (+ the
+  `type:` markers on discovery artifacts), carried by the **CONVENTIONS-edit follow-on** in the
+  list below; it is a **Wave-1 dependency of child-4's `--strict` gate** and must land before
+  the lint is wired fail-closed at a convergence gate. Recorded so the backstop's strength is
+  explicit, not assumed.
+- **DRIFT-H — the backlog producer step (decision-package → work items) and `loop-cohort`'s
+  cross-component ingestion are owed as acceptance criteria at RFC-0053's implementing spec.**
+  Note 08 specifies the backlog work-item schema and names `loop-cohort` as the scheduler, and
+  note 10 produces the example backlog — but no landed spec has an AC verifying the
+  decomposition transition or that `loop-cohort` ingests the **cross-component** work-item
+  shape (`loop-cohort` today schedules *within-spec* tasks, not N work items each pointing at a
+  separate brief→spec→component). **Resolution:** RFC-0053's implementing spec owes (a) a
+  backlog-decomposition AC (work-item schema, the blueprint-as-slicing-instrument mapping,
+  `depends_on` from cross-component edges) and (b) a backlog→`loop-cohort` ingestion AC (extend
+  `loop-cohort`, or name a thin adapter). Assigned to that spec; flagged in the Follow-on list.
+- **DRIFT-I — the `core` sidecar *schema reference* is owed as the first acceptance criterion
+  of RFC-0053's implementing spec; its three consumers sequence behind it.** D7 + RFC-0053 D2
+  decide the schema is single-sourced in `core`, but it exists only as **prose field-lists** —
+  no implementing spec lands the reference file, while `discovery-loop`, the release loop
+  ([release-loop spec](../specs/release-loop/spec.md) Assumptions name the dependency), and the
+  traceability lint all consume it. **Resolution:** "land the `core` sidecar-schema reference"
+  is **AC0 of RFC-0053's implementing spec**; the three consumers are sequenced behind it (they
+  name the slots and consume by convention until it lands — the state they are already in).
+  Assigned; flagged in the Follow-on list.
+
+**Owner-assignment summary (the seams the discharge wires to a named owner so none is "owned by
+nobody"):** RFC-0053's implementing spec gains AC0 (sidecar schema reference, DRIFT-I), the
+discovery-tree layout key (DRIFT-C), and the backlog-decomposition + `loop-cohort`-ingestion
+ACs (DRIFT-H); the **CONVENTIONS-edit follow-on** gains the `new-spec` `Discovery:` header +
+discovery `type:` markers (DRIFT-G), sequenced before the traceability lint's `--strict` gate.
+These are added to the Follow-on artifacts list. DRIFT-A/B/D/E/F are resolved in-text here (and
+the note-02/note-04 freeze-reading sources corrected to match).
+
+**Reconciliation complete; freeze held pending the owed follow-ons.** With the child set
+complete and every surfaced drift reconciled and assigned above, the model is **coherent and
+every seam is owned** — the alignment condition for freeze. The terminal flip is, however,
+**deliberately held** (operator's call, 2026-06-26) until the owner-assigned follow-ons land:
+RFC-0053's implementing spec (AC0 the `core` sidecar-schema reference; the
+`docs/discovery/<initiative>/` layout key, DRIFT-C; the backlog-decomposition + `loop-cohort`
+ACs, DRIFT-H/I) and the CONVENTIONS-edit `new-spec` `Discovery:` header (DRIFT-G). Once those
+close the assigned seams, freezing is a one-line status flip (Open → Accepted) over an
+already-aligned model — no further reconciliation owed. Until then RFC-0048 stays **Open and
+provisional** (amendable), so any drift the owed specs surface is still reconciled *here*.
