@@ -43,6 +43,7 @@
 | 0035 | [Grounding the architect *design* phase in platform reality — the deferred serverless lens + a dual-consumed grounding discipline and sync-path viability check, prose-only on the existing routing axis](0035-architect-design-phase-grounded-in-platform-reality-dual-consumed-serverless-lens-and-contract-grounding.md) | Accepted |
 | 0036 | [The install-source default resolves through a trusted-by-construction precedence chain — editable detection as the downstream default, no repo-scoped source, no cwd fallback](0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md) | Accepted |
 | 0037 | [Grounding context is adopter- and org-supplied and presence-checked — the EXECUTE contract-grounding gate generalizes from infra to framework/library through one detect-and-recommend tier, extending (not breaking) ADR-0034's no-bundled-KB rule](0037-grounding-is-adopter-and-org-supplied-and-presence-checked-one-gate-from-infra-to-framework.md) | Accepted |
+| 0038 | [Rename the `design-craft` pack to `experience` — live surface renamed, frozen governance bridged, no install-time alias (the `contract-acquisition` precedent)](0038-rename-design-craft-pack-to-experience.md) | Accepted |
 
 ## Adding a new ADR
 
