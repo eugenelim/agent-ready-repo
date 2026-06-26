@@ -129,8 +129,9 @@ def test_profile_installs_ordered_one_scope_one_adapter_with_route(tmp_path):
 
     state = _repo_state(target)
     for name in ("pf-core", "pf-addon-a", "pf-addon-b"):
-        assert name in state.packs, f"{name} missing from state"
-        ps = state.packs[name]
+        assert state.has_pack(name), f"{name} missing from state"
+        ps = state.row(name, "claude-code")
+        assert ps is not None, f"{name}/claude-code row missing from state"
         assert ps.install_route == "profile", f"{name} route={ps.install_route!r}"
         assert ps.scope == "repo"
         assert ps.adapter == "claude-code"
@@ -144,7 +145,7 @@ def test_profile_installs_ordered_one_scope_one_adapter_with_route(tmp_path):
     assert "installed" in out
 
     # No profile entity in state — only per-pack rows.
-    assert "test-bundle" not in state.packs
+    assert not state.has_pack("test-bundle")
 
 
 def test_profile_state_schema_version_unchanged(tmp_path):
@@ -173,7 +174,7 @@ def test_profile_skips_already_installed(tmp_path):
 
     # Pre-seed pf-core at repo scope.
     state = State()
-    state.packs["pf-core"] = PackState(installed_version="0.4.9", scope="repo")
+    state.packs[("pf-core", "claude-code")] = PackState(installed_version="0.4.9", scope="repo", adapter="claude-code")
     (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
@@ -182,8 +183,8 @@ def test_profile_skips_already_installed(tmp_path):
     assert "use 'upgrade'" not in err  # refuse-on-reinstall not tripped
 
     final = _repo_state(target)
-    assert final.packs["pf-addon-a"].install_route == "profile"
-    assert final.packs["pf-addon-b"].install_route == "profile"
+    assert final.row("pf-addon-a", "claude-code").install_route == "profile"
+    assert final.row("pf-addon-b", "claude-code").install_route == "profile"
 
 
 # ---------------------------------------------------------------------------
@@ -273,9 +274,9 @@ def test_profile_partial_write_failure_leaves_consistent_prefix(tmp_path, monkey
 
     # pf-core (the prefix) persisted; pf-addon-a failed; no rollback.
     state = _repo_state(target)
-    assert "pf-core" in state.packs
+    assert state.has_pack("pf-core")
     assert (target / ".claude" / "skills" / "pf-core-skill" / "SKILL.md").exists()
-    assert "pf-addon-a" not in state.packs
+    assert not state.has_pack("pf-addon-a")
     assert not (target / ".claude" / "skills" / "pf-addon-a-skill").exists()
 
     # Per-pack summary reports the split, including the unattempted tail.
@@ -301,7 +302,7 @@ def test_profile_refuses_when_dep_preinstalled_at_unsatisfying_version(tmp_path)
 
     # pf-core present at 0.0.1 (does NOT satisfy pf-addon-a's pf-core ^0.1).
     state = State()
-    state.packs["pf-core"] = PackState(installed_version="0.0.1", scope="repo")
+    state.packs[("pf-core", "claude-code")] = PackState(installed_version="0.0.1", scope="repo", adapter="claude-code")
     (target / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
 
     rc, out, err = _run_install(["--profile", "test-bundle", str(cat), "--output", str(target)])
@@ -309,7 +310,7 @@ def test_profile_refuses_when_dep_preinstalled_at_unsatisfying_version(tmp_path)
     assert "pre-flight failed for pack 'pf-addon-a'" in err
     # No addon files written (refused before any write).
     assert not (target / ".claude" / "skills" / "pf-addon-a-skill").exists()
-    assert "pf-addon-a" not in _repo_state(target).packs
+    assert not _repo_state(target).has_pack("pf-addon-a")
 
 
 def test_profile_refuses_when_pack_requires_dep_not_in_batch(tmp_path):
@@ -369,7 +370,7 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
 
     # Pre-install pf-tool at REPO scope (the opposite of the profile's user scope).
     repo_state = State()
-    repo_state.packs["pf-tool"] = PackState(installed_version="0.1.0", scope="repo")
+    repo_state.packs[("pf-tool", "claude-code")] = PackState(installed_version="0.1.0", scope="repo", adapter="claude-code")
     (target / ".agentbundle-state.toml").write_text(dump_state(repo_state), encoding="utf-8")
 
     rc, out, err = _run_install(["--profile", "userset", str(cat), "--output", str(target)])
@@ -391,4 +392,4 @@ def test_single_pack_install_still_records_cli_route(tmp_path):
 
     rc, out, err = _run_install(["--pack", "pf-core", str(cat), "--output", str(target)])
     assert rc == 0, f"single-pack install failed: {err}"
-    assert _repo_state(target).packs["pf-core"].install_route == "cli"
+    assert _repo_state(target).row("pf-core", "claude-code").install_route == "cli"

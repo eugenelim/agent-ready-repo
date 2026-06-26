@@ -49,29 +49,39 @@ def run(args: "argparse.Namespace") -> int:
 
     pack_name: str = args.pack
     cli_scope: str | None = getattr(args, "scope", None)
+    cli_adapter: str | None = getattr(args, "adapter", None)
     root = Path(args.root).resolve()
     state_path = root / ".agentbundle-state.toml"
 
     # ── Step 1: Multi-scope disambiguator (RFC-0004) ──────────────────────────
     # If the pack is at both repo and user scopes, --scope is required.
     # If it's at exactly one scope, infer. The check needs *read* access
-    # to both state files (read-only — v0.1 refusal fires at the *write*
-    # below). Importing scope_mod lazily so --version stays fast.
+    # to both state files. Importing scope_mod lazily so --version stays fast.
     from agentbundle import scope as scope_mod
 
-    repo_state_for_check = load_state(state_path)
-    installed_at_repo = pack_name in repo_state_for_check.packs
+    # A legacy (non-v0.4) state file is refused on read too (RFC-0052 hard
+    # cross-version refusal); surface it as a clean refuse, not a traceback.
+    try:
+        repo_state_for_check = load_state(state_path)
+    except ConfigError as exc:
+        print(f"uninstall: {exc}", file=sys.stderr)
+        return 1
+    installed_at_repo = repo_state_for_check.has_pack(pack_name)
     user_state_path = None
     installed_at_user = False
+    user_state_for_check = None
     try:
         user_root = scope_mod.resolve_user_root()
         user_state_path = user_root / ".agentbundle" / "state.toml"
         user_state_for_check = load_state(user_state_path)
-        installed_at_user = pack_name in user_state_for_check.packs
+        installed_at_user = user_state_for_check.has_pack(pack_name)
     except scope_mod.UserScopeUnresolvable:
         # No accessible user root — treat user scope as empty for the
         # disambiguator. The repo write below is unaffected.
         pass
+    except ConfigError as exc:
+        print(f"uninstall: {exc}", file=sys.stderr)
+        return 1
 
     if installed_at_repo and installed_at_user and cli_scope is None:
         print(
@@ -91,10 +101,6 @@ def run(args: "argparse.Namespace") -> int:
         effective_scope = "repo"
 
     # Route to the correct state file based on effective scope.
-    # At user scope, `root` is the user's home (where projected files
-    # live) and the state file lives at `<root>/.agentbundle/state.toml`.
-    # Keep the two values separate so the path-jailed write picks the
-    # right *relpath relative to root*, not a bare dotfile in $HOME.
     user_prefixes: list[str] | None = None
     if effective_scope == "user":
         if user_state_path is None:
@@ -105,32 +111,53 @@ def run(args: "argparse.Namespace") -> int:
             return 1
         state_path = user_state_path
         root = user_state_path.parent.parent  # = ~ (the user-scope projection root)
-        # Pull the adapter contract's allowed-prefixes so the user-scope
-        # path-jail fires on the per-file removal walk below. The
-        # adapter is recorded on the pack's state row (v0.3); fall back
-        # to claude-code when absent (v0.2-vintage rows preserved across
-        # the header-only migration, per RFC-0005 § State-file impact).
-        from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
-        recorded_adapter = (
-            user_state_for_check.packs[pack_name].adapter
-            if pack_name in user_state_for_check.packs
-            else "claude-code"
-        )
-        user_prefixes = _adapter_allowed_prefixes_user(recorded_adapter or "claude-code")
-
-    # ── Step 1b: Load state for write (refuse v0.1 here, after disambig) ─────
+    # ── Step 1b: Load state for write ────────────────────────────────────────
     try:
         state = load_state(state_path, for_write=True)
     except ConfigError as exc:
         print(f"uninstall: {exc}", file=sys.stderr)
         return 1
 
-    if pack_name not in state.packs:
+    if not state.has_pack(pack_name):
         print(f"uninstall: pack {pack_name!r} not installed", file=sys.stderr)
         return 1
 
-    pack_state = state.packs[pack_name]
+    # ── Step 1c: Multi-adapter disambiguator (RFC-0052) ──────────────────────
+    # A pack can carry multiple adapter rows at one scope; uninstall targets
+    # exactly one. Infer when there is a single row; require --adapter when
+    # there is more than one.
+    rows = state.rows_for_pack(pack_name)
+    if cli_adapter is not None:
+        if cli_adapter not in rows:
+            print(
+                f"uninstall: {pack_name} is not installed for adapter "
+                f"{cli_adapter!r} at {effective_scope} scope "
+                f"(installed for: {', '.join(sorted(rows)) or 'none'})",
+                file=sys.stderr,
+            )
+            return 1
+        target_adapter = cli_adapter
+    elif len(rows) == 1:
+        target_adapter = next(iter(rows))
+    else:
+        print(
+            f"uninstall: {pack_name} installed for multiple adapters at "
+            f"{effective_scope} scope ({', '.join(sorted(rows))}); pass --adapter",
+            file=sys.stderr,
+        )
+        return 1
+
+    pack_state = rows[target_adapter]
+
+    # Per-row path-jail: at user scope, pull the *target adapter's*
+    # allowed-prefixes so each removal is jailed against the removing row's
+    # own prefixes, never a sibling's (RFC-0052 / ADR-0039 per-row jail).
+    if effective_scope == "user":
+        from agentbundle.commands.install import _adapter_allowed_prefixes_user
+
+        user_prefixes = _adapter_allowed_prefixes_user(target_adapter or "claude-code")
+
     dry_run: bool = bool(getattr(args, "dry_run", False))
     yes: bool = bool(getattr(args, "yes", False))
 
@@ -150,7 +177,14 @@ def run(args: "argparse.Namespace") -> int:
     # a `--dry-run` / prompt shows are exactly the bytes a real run removes
     # (the Tier-1 SHA is captured here, once; the confirm-reading window is
     # not re-checked — see spec AC5).
-    decisions: list[tuple[str, str]] = []  # (relpath, "remove" | "keep")
+    decisions: list[tuple[str, str]] = []  # (relpath, "remove" | "keep" | "shared")
+
+    # Last-owner derivation (RFC-0052 / ADR-0039), captured ONCE here
+    # against the persisted union of all rows; the execute pass below acts
+    # on `decisions` without re-deriving. A relpath is removable only when
+    # the row being uninstalled is its **last** owner — i.e. no other
+    # `(pack, adapter)` row's footprint still claims it.
+    target_key = (pack_name, target_adapter)
 
     for relpath, entry in sorted(pack_state.files.items()):
         on_disk = root / relpath
@@ -174,6 +208,13 @@ def run(args: "argparse.Namespace") -> int:
                 continue
         recorded_sha = entry.get("sha") if isinstance(entry, dict) else None
 
+        # Shared-survival: a sibling adapter row of the same pack still owns
+        # this path → it is co-owned; keep the file, just drop our claim.
+        other_owners = [k for k in state.owners_of(relpath) if k != target_key]
+        if other_owners:
+            decisions.append((relpath, "shared"))
+            continue
+
         # If the file is absent on disk, treat as already gone (Tier-2 edge
         # case: the adopter deleted it manually). Do not error — just skip.
         if not on_disk.exists():
@@ -184,12 +225,13 @@ def run(args: "argparse.Namespace") -> int:
         # Compute on-disk SHA and compare against the recorded value.
         on_disk_sha = safety.sha256_file(on_disk)
         if recorded_sha and on_disk_sha == recorded_sha:
-            decisions.append((relpath, "remove"))  # Tier-1: bundle owns it.
+            decisions.append((relpath, "remove"))  # Tier-1: bundle owns it (last owner).
         else:
             decisions.append((relpath, "keep"))  # Tier-2: adopter-edited.
 
     n_remove = sum(1 for _, d in decisions if d == "remove")
-    n_keep = len(decisions) - n_remove
+    n_shared = sum(1 for _, d in decisions if d == "shared")
+    n_keep = len(decisions) - n_remove - n_shared
 
     # ── Step 2a': --dry-run preview — print the plan and write nothing ────────
     # Returns BEFORE the hook-wiring unproject (Step 2b), the empty-dir prune
@@ -199,11 +241,15 @@ def run(args: "argparse.Namespace") -> int:
         from agentbundle.commands._common import format_plan_line
 
         for relpath, decision in decisions:
+            if decision == "shared":
+                print(f"keep   shared   {relpath}  (co-owned by another adapter)")
+                continue
             tier = "tier-1" if decision == "remove" else "tier-2"
             print(format_plan_line(decision, tier, relpath))
+        _shared_note = f", {n_shared} shared (kept)" if n_shared else ""
         print(
             f"dry-run: {len(decisions)} file(s) — {n_remove} remove, "
-            f"{n_keep} keep. Nothing written."
+            f"{n_keep} keep{_shared_note}. Nothing written."
         )
         return 0
 
@@ -233,6 +279,7 @@ def run(args: "argparse.Namespace") -> int:
     # pre-existing Tier-2 notice.
     removed: list[str] = []
     kept: list[str] = []
+    shared: list[str] = []
     for relpath, decision in decisions:
         on_disk = root / relpath
         if decision == "remove":
@@ -245,6 +292,11 @@ def run(args: "argparse.Namespace") -> int:
                 )
                 return 1
             removed.append(relpath)
+        elif decision == "shared":
+            # Co-owned by a sibling adapter row of the same pack; the file
+            # survives — we only drop this row's claim (Step 4). No warning:
+            # this is the normal shared-prefix coexistence path.
+            shared.append(relpath)
         else:
             print(
                 f"uninstall: keeping adopter-edited file: {relpath}",
@@ -297,8 +349,10 @@ def run(args: "argparse.Namespace") -> int:
     # ── Step 3: Best-effort cleanup of empty parent directories ──────────────
     _prune_empty_parents(root, removed)
 
-    # ── Step 4: Remove the pack's table from state and persist ────────────────
-    del state.packs[pack_name]
+    # ── Step 4: Drop only the targeted adapter row from state and persist ─────
+    # Sibling adapter rows of the same pack (and their co-owned shared files)
+    # survive — only this `(pack, adapter)` row is removed (RFC-0052).
+    del state.packs[(pack_name, target_adapter)]
     serialised = dump_state(state)
     # Write the state file at the right per-scope relpath. At repo scope
     # the relpath is `.agentbundle-state.toml`; at user scope it's
@@ -318,7 +372,8 @@ def run(args: "argparse.Namespace") -> int:
         return 1
 
     # ── Step 5: Summary ───────────────────────────────────────────────────────
-    print(f"uninstall: {len(removed)} removed, {len(kept)} kept")
+    _shared_suffix = f", {len(shared)} kept (shared)" if shared else ""
+    print(f"uninstall: {len(removed)} removed, {len(kept)} kept{_shared_suffix}")
     return 0
 
 
