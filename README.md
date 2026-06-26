@@ -50,7 +50,24 @@ agentbundle install --pack core --dry-run
 
 `--dry-run` previews every file before anything is written — one line per file (skills, the four reviewer/executor subagents, the hooks), then a `create`/`overwrite` summary count — so you see exactly what would land in your repo.
 
-Every source verb — `install`, `upgrade`, `list-packs`, `list-profiles` — defaults to this catalogue when you don't name one; pass an explicit catalogue (a git URL or local path) as a trailing argument to use a different one, or `agentbundle config set source <catalogue>` to change the default (an editable `pip install -e` clone defaults to itself). Installs auto-detect your agent (`--adapter` overrides). Repo scope writes into the current repo; user scope (`--scope user`) installs once into your home so the pack is available everywhere.
+Every source verb — `install`, `upgrade`, `list-packs`, `list-profiles` — defaults to this catalogue when you don't name one; pass an explicit catalogue (a git URL or local path) as a trailing argument to use a different one, or `agentbundle config set source <catalogue>` to change the default (an editable `pip install -e` clone defaults to itself). Installs auto-detect your agent — [target another, or change the default](#adapters). Repo scope writes into the current repo; user scope (`--scope user`) installs once into your home so the pack is available everywhere.
+
+## Adapters
+
+Out of the box, installs auto-detect the agent you're working in and fall back to **Claude Code** when there's nothing to detect. If you work across several IDEs — or just want a different default — point agentbundle at the one you want:
+
+```bash
+# Pin a default once — every later install targets it
+agentbundle config set adapter cursor
+
+# Or override for a single install, leaving the default untouched
+agentbundle install --pack core --adapter codex                  # repo scope
+agentbundle install --pack research --scope user --adapter codex  # user scope
+```
+
+The default is user-global: set it once and it applies whether you install into a repo or at user scope. The supported agents are `claude-code`, `cursor`, `codex`, `copilot`, `gemini`, `kiro-ide`, and `kiro-cli`.
+
+When more than one is in play, the most specific wins: a per-install `--adapter` beats the pinned default, which beats auto-detect — and re-running an install keeps whatever adapter that install already uses.
 
 ## The loop
 
@@ -143,6 +160,7 @@ Full documentation lives in **[`docs/guides/`](docs/guides/)**, organized by pac
 | Your edits are never silently overwritten — the file-safety contract | [file-safety contract](docs/guides/_shared/explanation/file-safety-contract.md) |
 | Tailor freshly-installed primitives to your repo | [`adapt-to-project`](docs/guides/core/how-to/adapt-to-project.md) |
 | Upgrading an installed pack | [upgrade packs](docs/guides/_shared/how-to/upgrade-packs.md) |
+| Updating the agentbundle CLI itself — `pip install --upgrade agentbundle` | [PyPI](https://pypi.org/project/agentbundle/) |
 | Mission, scope, and the four principles | [`docs/CHARTER.md`](docs/CHARTER.md) |
 | The catalogue distribution model | [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) |
 
