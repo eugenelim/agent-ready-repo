@@ -137,6 +137,45 @@ Sample reads, to calibrate the boundary:
   than shipping a second list free to drift. *(Drift reconciled in RFC-0050 D2/D4 per the
   provisional-foundation discipline.)*
 
+*Sample reads appended by child-4 — the traceability lint ([`docs/specs/traceability-lint/`](../../specs/traceability-lint/spec.md)):*
+- *A cited referent can say the reverse of what you claim it supports — the reviewer
+  catches it, not the author.* (Child-4, the traceability lint.) I resolved "are the
+  on-disk artifacts or the sidecar matrix authoritative?" in favor of artifacts and
+  cited RFC-0048 D7 as the referent — but D7 says the **matrix** is the connectedness
+  verifier. The fresh-context adversarial pass flagged it as a resolve-vs-surface
+  violation (a referent-groundable item whose referent genuinely *failed*). Corrected
+  to "matrix authoritative **when present**, derive from artifacts when absent" — which
+  *aligns* with D7 and adds the standalone fallback as a tracked refinement. The tell:
+  when you cite a referent to close an item, quote it — don't paraphrase it from
+  memory into agreement.
+- *Structure is mechanizable; "is it the right parent?" is not — and the split is the
+  whole product.* (Child-4.) The lint resolves structural orphans (a node with no
+  edge) and **refuses** semantic scope-creep (a node parented to the wrong outcome) —
+  surfaced to the human at G1.5 (D6/O10). The tell: a presence check is a lint; a
+  rightness check is a judgment — don't let a lint pretend to the second.
+- *Find the artifact the ontology actually has, not the one the chain string implies.*
+  (Child-4.) The chain reads `…capability→screen→action→service…`, but four of those
+  are not files — `outcome`/`opportunity`/`capability` are rungs of one intent ladder,
+  `action`/`service` are entries inside the journey/blueprint (note 04). The first
+  draft modelled nine per-file nodes; the reviewer caught that four rows could never
+  match. The tell: before keying a tool off "one marker per node", check the artifact
+  inventory for which nodes are file-backed vs container-embedded.
+- *Scope the tool to the topology the system actually runs, not the one the note
+  scoped for convenience.* (Child-4.) Note 08 scoped the traceability sidecar to "a
+  single monorepo" and deferred the cross-repo split; the first draft inherited that
+  and would have false-flagged every cross-repo reference as a dangling edge. The
+  user corrected it: the loops span repos (`work-loop` per-module;
+  `discovery-loop`/integration-loop cross-module). The fix wasn't to invent
+  cross-repo plumbing — it was to (a) link **by convention/stable-id, not path**
+  (the invariant of every cross-boundary traceability system — OSLC URI, purl,
+  Backstage `kind:namespace/name`, SLSA digest) and (b) **reuse the value-stream
+  mechanism already decided in ADR-0022** (reference-by-version + courier snapshot +
+  rollup), reconciling the drift back into RFC-0048. The tell: when a tool's scope
+  note says "single repo / deferred", check whether the *system's own loops* already
+  cross that boundary — and research the established cross-boundary pattern before
+  designing one. (Pressure test that reframed the whole spec; logged with a wide
+  prior-art sweep in the spec's `notes/`.)
+
 **Why this is logged as a scaffold, not left to recall:** in practice the AI loop reaches
 the right resolve-vs-surface call only ~half the time without a nudge (anchoring + the
 knowing-doing gap — notes/03). So the lens is made an *explicit checklist step* (it lives
