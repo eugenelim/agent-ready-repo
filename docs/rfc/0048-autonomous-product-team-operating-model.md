@@ -522,6 +522,9 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
 - **RFC (child 3):** the self-coverage gate (doctrine + reference library). *Wave 1,
   parallel.*
 - **Spec (child 4):** the traceability + scope-creep lint. *Wave 1, parallel.*
+  *Drafted: [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md)
+  (structural orphans only; semantic scope-creep stays the human call at G1.5 per
+  Decision 6 / O10).*
 - **Spike → RFC (child 5):** the coordinator contract. *Wave 2; depends on 1–4.*
 - **[RFC-0049](0049-the-integration-loop-and-company-os.md) (child — deploy):** the
   integration (outer) loop + minimum-regret deploy carve + company-OS composition.
@@ -529,3 +532,40 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
 - **CONVENTIONS edit:** the operating model (two regimes, gate ladder, surfacing
   predicate). *(The minimum-regret deploy boundary — reversible ⇒ autonomous; irreversible
   ⇒ human — is RFC-0049's CONVENTIONS slice; the two land as one operating-model section.)*
+
+## Amendments (provisional-foundation reconciliations)
+
+Per the Provisional-foundation note, drift a child surfaces against this foundation is
+reconciled **here**, as a tracked amendment, not absorbed silently downstream.
+
+- **2026-06-25 — D7 sidecar authority, refined by child-4 (traceability lint).** D7
+  frames the **traceability matrix as the connectedness verifier** ("only this typed
+  state makes 'everything holds together' checkable"). Child-4's spec refines this:
+  the matrix is **authoritative when present**, and when the harness sidecar is
+  **absent** the lint **derives the edge set from the on-disk artifacts directly** (the
+  standalone, `lint-brief-coverage`-style mode) — because the sidecar is harness state
+  that is not always present, yet the lint must be useful standalone (the
+  shippable-without-the-coordinator goal). This *extends* D7's claim rather than
+  contradicting it (the matrix stays authoritative wherever it exists); recorded so the
+  coordinator spike (Decision 7) builds the sidecar knowing the lint already has a
+  no-sidecar fallback. See [`docs/specs/traceability-lint/spec.md`](../specs/traceability-lint/spec.md)
+  § Assumptions.
+- **2026-06-25 — note 08's single-monorepo scope, generalized by child-4 (traceability
+  lint).** [`0048-notes/08`](0048-notes/08-artifact-layout-and-backlog.md) scopes the
+  artifact ontology + sidecar to "a single product **monorepo**" and defers the
+  discovery-repo / work-repo split. Child-4 generalizes this: the loops span repos
+  (`work-loop` is **per-module**, one module ≈ one repo; `discovery-loop` and the
+  integration loop are **same-or-cross-module/repo**), so the traceability chain
+  crosses repo boundaries. The lint handles the crossing **by convention, not by
+  path** — every node carries a stable, location-independent id (marker slug /
+  Backstage `kind:namespace/name` / `contract@version`) in a conventional pointer
+  field, and an edge endpoint resolves to one of three states (local /
+  satisfied-by-reference / unresolvable). This **reuses the value-stream cross-repo
+  mechanism already decided in [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md)**
+  (reference-by-version + read-only courier snapshot, the rollup row schema,
+  `unknown / not-yet-catalogued`) rather than inventing a parallel one, and aligns
+  the discovery/build foundation with the integration loop's cross-repo reach
+  ([RFC-0049](0049-the-integration-loop-and-company-os.md)). Note 08's single-repo
+  layout remains the *minimum* case; the cross-repo model is the generalization.
+  See [`docs/specs/traceability-lint/spec.md`](../specs/traceability-lint/spec.md) +
+  its `notes/cross-repo-traceability-research.md`.
