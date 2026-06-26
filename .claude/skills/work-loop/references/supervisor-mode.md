@@ -16,8 +16,12 @@ deliberately — never automatically — and only for a wave that clears the
   its branch's committed diff, fail-closed (only an all-added, no-danger-path
   diff is `cannot-collide`; rename/delete, danger-paths, modified-existing, and
   cross-branch basename/dir collisions all serialize). Pass `--category` only
-  to **override** — the sole way to assert `typed-group-b`, which is never
-  auto-derived (deciding a change is type-shaped isn't fail-closed-mechanizable).
+  to **override** — the sole way to assert the two human-judged safe categories,
+  neither auto-derived: `typed-group-b` (a type-shaped change) and `textual-loud`
+  (append-mostly textual edits whose collisions surface as *loud* merge-tree
+  conflicts rather than silent semantic breakage). Deciding either isn't
+  fail-closed-mechanizable, which is why neither is auto-derived. (The three
+  together are the `SAFE_CATEGORIES` the dispatch gate accepts.)
 - **Disjointness half — on populated branches.** A clean `git merge-tree`
   file-disjointness check is only meaningful once the implementers have
   written and committed, so it is enforced at the **merge** step (step 5's
