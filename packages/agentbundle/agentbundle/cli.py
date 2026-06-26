@@ -406,6 +406,15 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("pack_path", help="Path to the pack to diff against.")
     sp.add_argument("--root", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
+    sp.add_argument(
+        "--adapter",
+        choices=_shipped_adapters_choices(),
+        help=(
+            "Disambiguate when the pack is installed for multiple adapters at "
+            "the resolved scope (RFC-0052). Inferred when the pack has a single "
+            "adapter row; required when it has more than one."
+        ),
+    )
     sp.set_defaults(func=_lazy("diff"))
 
     # --- upgrade --- (--scope disambiguator)
@@ -437,6 +446,15 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--root", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.add_argument(
+        "--adapter",
+        choices=_shipped_adapters_choices(),
+        help=(
+            "Disambiguate when the pack is installed for multiple adapters at "
+            "the resolved scope (RFC-0052). Inferred when the pack has a single "
+            "adapter row; required when it has more than one."
+        ),
+    )
+    sp.add_argument(
         "--yes",
         action="store_true",
         help=(
@@ -464,6 +482,17 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--pack", required=True)
     sp.add_argument("--root", default=".")
     sp.add_argument("--scope", choices=("repo", "user"))
+    sp.add_argument(
+        "--adapter",
+        choices=_shipped_adapters_choices(),
+        help=(
+            "Disambiguate when the pack is installed for multiple adapters at "
+            "the resolved scope (RFC-0052). Inferred when the pack has a single "
+            "adapter row; required when it has more than one. Only the named "
+            "adapter row is uninstalled; shared files survive while a sibling "
+            "row still owns them."
+        ),
+    )
     sp.add_argument(
         "--yes",
         action="store_true",

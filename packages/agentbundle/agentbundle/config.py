@@ -207,6 +207,82 @@ class State:
         return out
 
 
+# ---------------------------------------------------------------------------
+# Footprint ownership (RFC-0052 / ADR-0039) — pure, derived, no I/O
+# ---------------------------------------------------------------------------
+
+
+import enum as _enum
+
+
+class FootprintVerdict(_enum.Enum):
+    """Aggregate verdict for an incoming ``(pack, adapter)`` install."""
+
+    ALREADY_INSTALLED = "already-installed"
+    PROCEED = "proceed"
+    REFUSE = "refuse"
+
+
+def classify_incoming_path(
+    state: State, pack_name: str, adapter: str, relpath: str, incoming_sha: str
+) -> str:
+    """Per-relpath ownership verdict for an incoming install.
+
+    Returns one of:
+      - ``"new"``      — no row owns ``relpath`` → write it, claim it.
+      - ``"own"``      — this exact ``(pack, adapter)`` row already owns it at
+                         the incoming SHA (upgrade/no-op).
+      - ``"coown"``    — a **sibling adapter row of the same pack** owns it at
+                         the **same SHA** → co-own (record, skip the write).
+      - ``"conflict"`` — owned at a **different SHA**, or owned by a **different
+                         pack** (even at equal SHA). Co-ownership is intra-pack
+                         and content-addressed only (ADR-0039).
+    """
+    owners = state.owners_of(relpath)
+    if not owners:
+        return "new"
+    for (op, oa) in owners:
+        if op != pack_name:
+            return "conflict"  # cross-pack claim — never silently co-owned
+        if state.row(op, oa).file_sha(relpath) != incoming_sha:
+            return "conflict"  # same pack, different content
+    return "own" if (pack_name, adapter) in owners else "coown"
+
+
+@dataclass
+class FootprintPlan:
+    """The footprint gate's verdict for an incoming install (ADR-0039)."""
+
+    verdict: FootprintVerdict
+    per_path: dict[str, str]  # relpath -> new|own|coown|conflict
+    conflicts: list[str]      # sorted relpaths in conflict (named on refuse)
+
+
+def footprint_plan(
+    state: State, pack_name: str, adapter: str, incoming: dict[str, str]
+) -> FootprintPlan:
+    """Aggregate the per-relpath verdicts for an incoming install.
+
+    *incoming* maps each relpath the install would write to its content SHA.
+
+    Aggregate rule (spec AC):
+      - any path in conflict → ``REFUSE`` (with the conflicting paths named).
+      - else every path already owned by **this** row at matching SHA →
+        ``ALREADY_INSTALLED`` (the upgrade path).
+      - else (some new or co-owned, no conflict) → ``PROCEED``.
+    """
+    per = {
+        r: classify_incoming_path(state, pack_name, adapter, r, sha)
+        for r, sha in incoming.items()
+    }
+    conflicts = sorted(r for r, v in per.items() if v == "conflict")
+    if conflicts:
+        return FootprintPlan(FootprintVerdict.REFUSE, per, conflicts)
+    if per and all(v == "own" for v in per.values()):
+        return FootprintPlan(FootprintVerdict.ALREADY_INSTALLED, per, [])
+    return FootprintPlan(FootprintVerdict.PROCEED, per, [])
+
+
 def load_state(path: Path, *, for_write: bool = False) -> State:
     """Load `.agentbundle-state.toml`. Returns empty State if file is absent.
 
