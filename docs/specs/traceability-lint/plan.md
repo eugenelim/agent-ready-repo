@@ -53,7 +53,7 @@ sidecar drift, empty) each assert an exact finding list and exit code.
   + read-only courier snapshot, the rollup row schema
   (`Component | Brief (repo+slug) | Contract@version | Status (snapshot) | Coverage pointer`),
   Backstage `kind:namespace/name`, `unknown / not-yet-catalogued`.
-- **RFC-0049** the integration loop — the cross-repo consumer of `component`s
+- **RFC-0049** the release loop — the cross-repo consumer of `component`s
   (the chain's leaf-side context; component-down-edge traceability is RFC-0049's).
 - **RFC-0040** the `agentbundle-layout.toml` layout config tier-1 reads.
 - **RFC-0019 / `receive-brief`** the `lint-brief-coverage.py` this generalizes.
@@ -412,7 +412,7 @@ postures) produce the expected states and exit codes.
   `code` is the component's content); removed the mis-placed AC11 deferral marker.
   (Findings 1–4.)
 - 2026-06-25: **cross-repo revision** (user direction: the loops span repos —
-  `work-loop` per-module, `discovery-loop`/integration-loop same-or-cross-repo).
+  `work-loop` per-module, `discovery-loop`/release-loop same-or-cross-repo).
   Dropped the single-monorepo assumption; made edges **by-convention stable-ids**
   (slug / `kind:namespace/name` / `contract@version`) resolvable in **three endpoint
   states** (local / satisfied-by-reference / unresolvable); added the cross-repo

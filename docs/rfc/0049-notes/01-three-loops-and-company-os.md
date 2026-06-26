@@ -6,10 +6,10 @@
 | --- | --- | --- | --- | --- | --- |
 | **discovery-loop** (shape · upstream) | Product org | `discovery-lead` (product-engineering) | lens-team: research/analyst · product · UX/design · architecture · **security/compliance (design-time)** | none — human-ratified | gated at G0 / G1.5 / G2 |
 | **work-loop** (build · **inner loop**) | Engineering | work-loop supervisor | `implementer` (fan-out); reviewers `adversarial-reviewer` · `security-reviewer` (code) · `quality-engineer` | local tests / lint / types + local-infra-equivalents | high — G4 auto |
-| **integration-loop** (deploy + e2e · **outer loop**) *(new; name provisional, alt `e2e-loop`)* | SRE / ops / QA | `integration-lead` (new; provisional) | deploy/e2e driver + observability/reliability lens (`operational-safety` + `quality-engineer`) | deployed telemetry · e2e on ephemeral · canary analysis | high **on ephemeral**; human at prod (G5) |
+| **release-loop** (deploy + e2e · **outer loop**) *(new; name provisional, alt `e2e-loop`)* | SRE / ops / QA | `release-lead` (new; provisional) | deploy/e2e driver + observability/reliability lens (`operational-safety` + `quality-engineer`) | deployed telemetry · e2e on ephemeral · canary analysis | high **on ephemeral**; human at prod (G5) |
 
 **The chain:** discovery-loop → (G3 brief→spec) → work-loop (inner; local with
-stubs/mocks/local-infra-equivalents) → integration-loop (outer; ephemeral deploy + e2e +
+stubs/mocks/local-infra-equivalents) → release-loop (outer; ephemeral deploy + e2e +
 observe → findings → back to work-loop → gate → redeploy → **until converge**) → (G5) prod
 ship. It mirrors a real company: **product org → engineering → SRE/ops**, each a team with
 a lead + specialists, coordinated via the blackboard, execs (humans) at the irreversible
@@ -24,7 +24,7 @@ emulation) → **docker-compose** full-stack. *Packs/skills must produce these e
 part of building* — the build loop is only autonomous because the software runs and
 verifies locally without the real deployed infra.
 
-## The outer loop (integration-loop) — shift-right, made low-regret
+## The outer loop (release-loop) — shift-right, made low-regret
 
 Some findings only appear deployed (~20%, Charity Majors): real traffic, infra drift,
 version combinations, emergent behavior. The outer loop exists to surface them. It's
@@ -60,7 +60,7 @@ where reversible, human where not.*
 
 All three loops run on one substrate (the catalogue ships it as doctrine; the harness runs it):
 - **sidecar** — blackboard · open-questions · traceability · decision-log (core schema);
-- **gate ladder + surfacing predicate** — G0 · G1 · G1.5 · G2 · G3 · G4 (inner) · **integration (outer)** · G5;
+- **gate ladder + surfacing predicate** — G0 · G1 · G1.5 · G2 · G3 · G4 (inner) · **release (outer)** · G5;
 - **self-coverage gate** — incl. the resolve-vs-surface lens + scenario-variation;
 - **harness** — omnigent (runner/server, ephemeral envs, option-card consent UI), harness-neutral.
 
@@ -68,11 +68,11 @@ So the "company OS of agents" = **three loop-teams (product / engineering / ops)
 leads, on a shared blackboard, gated by the surfacing predicate, with humans at value,
 conflict, and irreversible decisions.** Each loop is loop-scoped (its own roster, its own
 verifier, its own autonomy posture); the leads hand off (discovery→work at G3, work→
-integration at deploy, integration→prod at G5).
+release at deploy, release→prod at G5).
 
 ## Open / provisional
-- Names `integration-loop` / `integration-lead` are provisional (alt `e2e-loop`) — taste call.
-- Whether the outer loop needs a *distinct* `integration-lead` agent vs. an outer-mode of
+- Names `release-loop` / `release-lead` are provisional (alt `e2e-loop`) — taste call.
+- Whether the outer loop needs a *distinct* `release-lead` agent vs. an outer-mode of
   work-loop's supervisor is a child-RFC design call; lean distinct (the inner/outer split
   is real), but it heavily reuses `operational-safety` + `quality-engineer` + RFC-0041's
   infra doctrine — not a new agent zoo.
