@@ -89,20 +89,21 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
         scope = contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(scope, "copilot [scope] block missing")
         self.assertEqual(scope["repo"], ".")
-        # v0.11 (docs/specs/copilot-skills-and-web): copilot `skill` projects as
-        # first-class `direct-directory` SKILL.md under `.github/skills/`, so the
-        # repo skill prefix is `.github/skills/` (was `.github/instructions/`).
-        # Agent + hook homes under `.github/` are unchanged.
+        # RFC-0052 / ADR-0040: copilot skill routes to the shared `.agents/skills/`
+        # cohort home (prepended to the list); agents + hooks stay under `.github/`.
+        # The `.github/skills/` prefix is retained to allow the path-jail to admit
+        # any existing `.github/skills/` files written by the previous contract.
         self.assertEqual(
             scope["allowed-prefixes"]["repo"],
-            [".github/skills/", ".github/agents/", ".github/hooks/"],
+            [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"],
         )
-        # User scope: `~/.copilot/{skills,agents,hooks}/` + `.agentbundle/`
-        # (the install state-file home, same as every other user-capable adapter).
+        # User scope: RFC-0052 prepends `.agents/skills/` to the user list.
+        # `.copilot/skills/` is kept for path-jail compat; `.agentbundle/` stays.
         self.assertEqual(scope["user"], "~")
         self.assertEqual(
             scope["allowed-prefixes"]["user"],
             [
+                ".agents/skills/",
                 ".copilot/skills/",
                 ".copilot/agents/",
                 ".copilot/hooks/",

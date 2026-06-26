@@ -84,13 +84,29 @@
 # `_append_layout_section` step (append-if-exists / never-create / never-
 # overwrite) into an adopter-owned `agentbundle-layout.toml`. Additive +
 # optional — packs pinned below v0.16 build and validate unchanged.
-version = "0.16"
+# RFC-0052 / ADR-0039+0040 (v0.17): the `[contract.shared-prefixes]` registry
+# (below) classifies each allowed-prefix as `shared` (a path more than one
+# adapter reads) or — by absence — `private`, and a shared prefix declares its
+# reader cohort. cursor/gemini/copilot route the `skill` primitive to the shared
+# `.agents/skills/` home (joining codex) and gain it in `allowed-prefixes` at
+# both scopes; their agent/hook/command projection stays native.
+version = "0.17"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
 [contract.schemas]
 pack = "pack.schema.json"
 plugin-manifest = "plugin-manifest.schema.json"
+
+# Shared-prefix registry (RFC-0052 / ADR-0039). Each key is a `shared` prefix —
+# a path more than one shipped adapter reads — mapped to its reader cohort (the
+# shipped adapters that read it). Every prefix NOT listed here is `private`
+# (adapter-exclusive). The install-time cross-adapter disclosure names a shared
+# prefix's *other* shipped cohort members; the footprint gate co-owns a shared
+# path across same-pack rows. A future adapter joins a cohort by one line here.
+[contract.shared-prefixes]
+".agents/skills/" = ["codex", "cursor", "gemini", "copilot"]
+".kiro/skills/" = ["kiro-ide", "kiro-cli"]
 
 # ---------------------------------------------------------------------------
 # Primitive types — source paths within a pack's .apm/ directory
@@ -477,7 +493,10 @@ allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 [[adapter.copilot.projection]]
 primitive = "skill"
 mode = "direct-directory"
-target-path = ".github/skills/"
+# RFC-0052 / ADR-0040: cohort skill home. Copilot reads `.agents/skills/`
+# (project) and `~/.agents/skills/` (personal); routing skills there lets the
+# whole cohort (codex, cursor, gemini, copilot) share one co-owned copy.
+target-path = ".agents/skills/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter.copilot.projection]]
@@ -517,12 +536,14 @@ repo = "."
 user = "~"
 # RFC-0024 + copilot-skills-and-web: repo-scope skills at `.github/skills/`,
 # agents at `.github/agents/`, hook wiring + bodies at `.github/hooks/`.
-allowed-prefixes.repo = [".github/skills/", ".github/agents/", ".github/hooks/"]
-# User-scope home is `~/.copilot/` — the prefix the install rewrite produces
-# from the adapter's repo-relpaths. `.agentbundle/` carries the install
-# state file (`~/.agentbundle/state.toml`), same as every other user-scope-
-# capable adapter (claude-code, codex).
-allowed-prefixes.user = [".copilot/skills/", ".copilot/agents/", ".copilot/hooks/", ".agentbundle/"]
+# RFC-0052: skills route to the shared `.agents/skills/` home; agents + hooks
+# stay native under `.github/` (ADR-0040 moves only the skill primitive).
+allowed-prefixes.repo = [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"]
+# User-scope home is `~/.copilot/` for agents/hooks (the prefix the install
+# rewrite produces) and `~/.agents/skills/` for skills (scope-agnostic, no
+# rewrite). `.agentbundle/` carries the install state file
+# (`~/.agentbundle/state.toml`), same as every other user-scope-capable adapter.
+allowed-prefixes.user = [".agents/skills/", ".copilot/skills/", ".copilot/agents/", ".copilot/hooks/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Codex adapter — 5 projections (one per primitive)
@@ -596,7 +617,10 @@ allowed-prefixes.user = [".agents/skills/", ".codex/", ".agentbundle/"]
 [[adapter.cursor.projection]]
 primitive = "skill"
 mode = "direct-directory"
-target-path = ".cursor/skills/"
+# RFC-0052 / ADR-0040: cohort skill home. Cursor reads `.agents/skills/` and
+# `~/.agents/skills/` alongside `.cursor/skills/`; route skills there to share
+# one co-owned copy across the cohort.
+target-path = ".agents/skills/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter.cursor.projection]]
@@ -650,8 +674,10 @@ mode = "dropped"
 [adapter.cursor.scope]
 repo = "."
 user = "~"
-allowed-prefixes.repo = [".cursor/", ".agentbundle/"]
-allowed-prefixes.user = [".cursor/", ".agentbundle/"]
+# RFC-0052: skills route to the shared `.agents/skills/` home (both scopes);
+# agents/hooks stay under `.cursor/` (ADR-0040 moves only the skill primitive).
+allowed-prefixes.repo = [".agents/skills/", ".cursor/", ".agentbundle/"]
+allowed-prefixes.user = [".agents/skills/", ".cursor/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Gemini adapter — full-parity native adapter (RFC-0027 / ADR-0016 /
@@ -685,7 +711,10 @@ allowed-prefixes.user = [".cursor/", ".agentbundle/"]
 [[adapter.gemini.projection]]
 primitive = "skill"
 mode = "direct-directory"
-target-path = ".gemini/skills/"
+# RFC-0052 / ADR-0040: cohort skill home. Gemini CLI reads `.agents/skills/`
+# and `~/.agents/skills/`, and its docs now make the alias precedence-winning
+# over `.gemini/skills/`; route skills there to share one co-owned copy.
+target-path = ".agents/skills/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter.gemini.projection]]
@@ -744,8 +773,10 @@ mode = "dropped"
 [adapter.gemini.scope]
 repo = "."
 user = "~"
-allowed-prefixes.repo = [".gemini/", ".agentbundle/"]
-allowed-prefixes.user = [".gemini/", ".agentbundle/"]
+# RFC-0052: skills route to the shared `.agents/skills/` home (both scopes);
+# agents/hooks stay under `.gemini/` (ADR-0040 moves only the skill primitive).
+allowed-prefixes.repo = [".agents/skills/", ".gemini/", ".agentbundle/"]
+allowed-prefixes.user = [".agents/skills/", ".gemini/", ".agentbundle/"]
 
 # ---------------------------------------------------------------------------
 # Frontmatter mappings — rewrite rules applied when projecting a primitive

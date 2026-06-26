@@ -82,7 +82,7 @@ class ContractVersionTests(unittest.TestCase):
         # docs/specs/enriched-pack-manifest bumped it to v0.14;
         # docs/specs/kiro-cli-agent-skill-resources bumped it to v0.15;
         # docs/specs/consolidated-pack-layout bumps it to v0.16.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.16")
+        self.assertEqual(_load_contract()["contract"]["version"], "0.17")
 
 
 # ---------------------------------------------------------------------------
