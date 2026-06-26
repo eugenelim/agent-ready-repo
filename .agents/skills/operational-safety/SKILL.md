@@ -42,7 +42,8 @@ the orchestrator:
    `work-loop`'s EXECUTE step for `cloud-implementation-craft`, inlining it into
    the *implementer's* brief (the EXECUTE-consumer extension below).
 
-Loaded 1–N per this skill's Module index, never a flat march of all seven. Where an
+Loaded per this skill's Module index — only the modules the change raises, never a
+flat march through every module. Where an
 adapter *does* support subagent skill auto-discovery, that is a redundant
 convenience layered on top — never the load-bearing mechanism.
 
