@@ -441,14 +441,55 @@ def run(args: "argparse.Namespace") -> int:
         if rc is not None:
             return rc
 
+    # Resolve the user-scope target adapter early when the request targets
+    # user scope, so the already-installed gate below can be **adapter-aware**
+    # (RFC-0052): a pack already installed for a *different* adapter at this
+    # scope is not "already installed" — it coexists. (Only resolve when
+    # requested_scope=="user"; resolving unconditionally would surface the
+    # copilot user-scope-capability refusal on a repo-only install.) The
+    # dual-scope --force path resolves it again at Step 5 if still None.
+    user_target_adapter: str | None = None
+    allowed_prefixes_user: list[str] | None = None
+    if requested_scope == "user":
+        try:
+            user_target_adapter = _resolve_target_adapter(
+                pack_dir,
+                scope="user",
+                adapter=cli_adapter,
+                allowed_adapters=_pack_allowed_adapters,
+                contract_version=_pack_contract_version,
+                state_adapter=None,
+                command_name="install",
+                user_config=user_config,
+            )
+        except _AdapterResolutionRefused as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        allowed_prefixes_user = _adapter_allowed_prefixes_user(user_target_adapter)
+
     # ``installed_at_*`` is computed AFTER Step 3c because (b)+--force
     # drops the stale state row inside ``_classify_pre_rfc0012_state``
     # so the subsequent install proceeds as a clean reinstall. Computing
     # the flag before detection would cache pre-cleanup state and fire
     # the misleading "use 'upgrade' to change version" refusal at
     # Step 4 even after --force succeeded.
-    installed_at_repo = pack_name in repo_state.packs
-    installed_at_user = user_state is not None and pack_name in user_state.packs
+    #
+    # Adapter-aware (RFC-0052): a scope counts as "already installed" only
+    # when the SAME (pack, adapter) row is present there. A different adapter
+    # is a coexisting install, fixing the reported bug (research/codex after
+    # research/claude-code). When the scope's target adapter isn't resolved
+    # yet (e.g. repo adapter under an emit-install-routes run), fall back to
+    # pack-level membership — that path has no per-adapter rows to coexist.
+    installed_at_repo = (
+        repo_state.row(pack_name, repo_target_adapter) is not None
+        if repo_target_adapter is not None
+        else repo_state.has_pack(pack_name)
+    )
+    installed_at_user = user_state is not None and (
+        user_state.row(pack_name, user_target_adapter) is not None
+        if user_target_adapter is not None
+        else user_state.has_pack(pack_name)
+    )
 
     # ── Step 4: Branch on already-installed shape ─────────────────────────────
     # 4a. Already at requested scope → offer to upgrade instead; --force does
@@ -531,9 +572,10 @@ def run(args: "argparse.Namespace") -> int:
     # surface the user-scope-capability subcheck refusal (e.g.
     # `--adapter copilot` against a repo-only install) even though the
     # install would never write to user scope.
-    user_target_adapter: str | None = None
-    allowed_prefixes_user: list[str] | None = None
-    if "user" in scopes_to_install:
+    # Resolved early (before the gate) when requested_scope=="user"; the
+    # dual-scope --force path reaches user scope without a user request, so
+    # resolve here when still unresolved.
+    if "user" in scopes_to_install and user_target_adapter is None:
         try:
             user_target_adapter = _resolve_target_adapter(
                 pack_dir,
@@ -916,8 +958,38 @@ def run(args: "argparse.Namespace") -> int:
         if projection is None:
             projection = {}
 
+        # The adapter this scope's row is keyed by (RFC-0052). emit-install-
+        # routes (legacy dist-tree) has no per-IDE adapter → claude-code.
+        scope_adapter = (
+            repo_target_adapter if plan.scope == "repo" else user_target_adapter
+        ) or "claude-code"
+
+        # ── Footprint gate (RFC-0052 / ADR-0039) ──────────────────────────
+        # Resolve every incoming relpath against the union of installed
+        # footprints at this scope: new → write+claim; same-pack same-SHA →
+        # co-own (record, skip the write); different-SHA or cross-pack →
+        # conflict. A conflict refuses (naming the paths) unless --force, which
+        # routes through the existing Tier-2 `.upstream` companion writer.
+        from agentbundle.config import FootprintVerdict, footprint_plan
+
+        incoming = {
+            relpath: safety.sha256_bytes(content)
+            for relpath, content in projection.items()
+        }
+        fp = footprint_plan(plan.state, pack_name, scope_adapter, incoming)
+        if fp.verdict is FootprintVerdict.REFUSE and not force:
+            print(
+                "install: refusing — these paths are already owned at a "
+                "different content (or by another pack):\n  "
+                + "\n  ".join(fp.conflicts)
+                + "\n  Pass --force to keep your version as a .upstream "
+                "companion.",
+                file=sys.stderr,
+            )
+            return 1
+
         # Reset the PackState for this scope's install.
-        prior = plan.state.packs.get(pack_name)
+        prior = plan.state.row(pack_name, scope_adapter)
         new_pack_state = PackState(
             installed_version=pack_version,
             source="agent-ready-repo",
@@ -926,16 +998,32 @@ def run(args: "argparse.Namespace") -> int:
             # single-pack callers unchanged.
             install_route=getattr(args, "_install_route", "cli"),
             scope=plan.scope,
+            adapter=scope_adapter,
             primitives=_collect_primitives(pack_dir),
             files={},
             primitive_versions=dict(prior.primitive_versions) if prior else {},
         )
 
         for relpath, content in sorted(projection.items()):
+            verdict = fp.per_path.get(relpath, "new")
+            if verdict in ("coown", "own"):
+                # A sibling adapter row of the same pack (or this row on an
+                # upgrade) already owns this path at the same content. Record
+                # our claim; the physical file is already in place — skip the
+                # write so a cohort install doesn't rewrite a shared skill.
+                new_pack_state.files[relpath] = {
+                    "sha": incoming[relpath],
+                    "from-pack-version": pack_version,
+                }
+                continue
+
             tier = _classify_for_install(
                 relpath, plan.root, content, plan.state, pack_name=pack_name,
             )
-            if tier is safety.Tier.TIER_2:
+            # A footprint conflict reaches here only under --force (refused
+            # above otherwise) → drop a .upstream companion rather than
+            # overwriting a differing-content path.
+            if tier is safety.Tier.TIER_2 or verdict == "conflict":
                 try:
                     safety.write_companion(plan.root, relpath, content)
                 except safety.PathJailError as exc:
@@ -1083,14 +1171,11 @@ def run(args: "argparse.Namespace") -> int:
             # producer has no single adapter to pin.
             new_pack_state.adapter = repo_target_adapter
 
-        plan.state.packs[pack_name] = new_pack_state
-        # Stamp the post-write schema. Always emit the current
-        # ``STATE_SCHEMA_VERSION`` (bumped to v0.3 in T8a) so a fresh
-        # install never produces a state file pinned at a stale version.
         from agentbundle.config import STATE_SCHEMA_VERSION
 
+        row_key = (pack_name, scope_adapter)
+        plan.state.packs[row_key] = new_pack_state
         plan.state.schema_version = STATE_SCHEMA_VERSION
-        serialised = dump_state(plan.state)
         # State file is CLI-owned metadata, not pack-projected content.
         # At repo scope the path is `<root>/.agentbundle-state.toml` —
         # a top-level file that wouldn't match any `.agentbundle/`-style
@@ -1102,13 +1187,25 @@ def run(args: "argparse.Namespace") -> int:
         state_prefixes = plan.allowed_prefixes
         if plan.scope == "repo" and state_relpath == ".agentbundle-state.toml":
             state_prefixes = None
+
+        # Persist under the cross-process lock (RFC-0052 T0): re-read the
+        # latest state and merge **only this row**, so two concurrent
+        # installs of different adapter rows of one pack both land (the
+        # naive read-modify-write would drop the first's row — lost update).
+        from agentbundle import statelock
+
+        def _merge_row(fresh, _key=row_key, _row=new_pack_state):
+            fresh.packs[_key] = _row
+            fresh.schema_version = STATE_SCHEMA_VERSION
+
         try:
-            safety.write_jailed(
-                plan.root,
-                state_relpath,
-                serialised,
+            statelock.persist_state_locked(
+                plan.state_path,
+                _merge_row,
                 scope=plan.scope,
                 allowed_prefixes=state_prefixes,
+                root=plan.root,
+                relpath=state_relpath,
             )
         except safety.PathJailError as exc:
             print(f"install: {exc}", file=sys.stderr)
@@ -1803,7 +1900,11 @@ def _classify_pre_rfc0012_state(
     if key in _INBAND_DETECTION_SEEN:
         return None
 
-    state_row = repo_state.packs.get(pack_name)
+    # Adapter-aware (RFC-0052): the "state row" is this adapter's row, not
+    # the pack's. A row for a *different* adapter is a coexisting install, not
+    # a pre-RFC-0012 signal — so it falls through to the orphan branch (c),
+    # where sibling-row files are recognised as owned, not swept.
+    state_row = repo_state.row(pack_name, repo_target_adapter)
 
     # (b) Shape-mismatch — state row exists AND dist-tree files exist.
     # Pre-RFC-0012 signal per spec AC24: state.toml carries a row AND
@@ -1873,7 +1974,7 @@ def _classify_pre_rfc0012_state(
                             shutil.rmtree(subtree)
                         except OSError:
                             pass
-                repo_state.packs.pop(pack_name, None)
+                repo_state.packs.pop((pack_name, repo_target_adapter), None)
                 state_path = output_root / ".agentbundle-state.toml"
                 if state_path.exists():
                     # Direct write (not ``safety.write_jailed``) because
@@ -1898,25 +1999,14 @@ def _classify_pre_rfc0012_state(
             )
             return 1
 
-        # (a) Adapter disagreement — state row exists, no dist-tree
-        # files (so (b) didn't fire), AND resolver's pick disagrees
-        # with the recorded adapter. AC25(iii): the corrective action
-        # is uninstall + reinstall; ``--force`` does NOT clear this.
-        # ``state_row.adapter`` is always a non-empty string per
-        # ``load_state`` (defaults to "claude-code" at read time for
-        # absent / non-string values); no coercion needed.
-        recorded_adapter = state_row.adapter
-        if recorded_adapter != repo_target_adapter:
-            _INBAND_DETECTION_SEEN.add(key)
-            print(
-                f"install: state records adapter "
-                f"{recorded_adapter!r} for pack {pack_name}, but "
-                f"resolver picked {repo_target_adapter!r} — uninstall "
-                f"the pack at repo scope and reinstall to reconcile "
-                f"(cross-adapter install is not supported)",
-                file=sys.stderr,
-            )
-            return 1
+        # (a) Adapter disagreement — REMOVED by RFC-0052. A row for a
+        # different adapter is no longer a disagreement; cross-adapter
+        # coexistence is the whole point of the footprint model. Because
+        # ``state_row`` is now resolved for ``repo_target_adapter``
+        # specifically, ``state_row.adapter == repo_target_adapter`` always
+        # holds here, so the old refusal could never fire anyway. A clean
+        # same-adapter row with no dist-tree falls through to ``return None``
+        # — Step 4's already-installed branch handles the upgrade offer.
     else:
         # (c) Orphan recovery — no state row AND per-IDE artifacts
         # exist under the resolved adapter's allowed-prefixes.repo.
@@ -1975,9 +2065,12 @@ def _classify_pre_rfc0012_state(
         # result as orphans.
         if orphans:
             foreign_owned: set[str] = set()
-            for other_name, other_state in repo_state.packs.items():
-                if other_name == pack_name:
-                    continue
+            # Any path recorded by ANY row (RFC-0052: including sibling
+            # adapter rows of the *same* pack) is owned, not an orphan — a
+            # cursor install must not sweep codex's shared `.agents/skills/`
+            # files. We are in branch (c) precisely because this adapter has
+            # no row yet, so even same-pack rows are "other".
+            for other_state in repo_state.packs.values():
                 foreign_owned.update(
                     _canon_relpath(rel) for rel in other_state.files.keys()
                 )
@@ -2593,8 +2686,8 @@ def _emit_recommends_warning(
         )
         return
 
-    rec_repo_installed = rec_name in repo_state.packs if repo_state else False
-    rec_user_installed = rec_name in user_state.packs if user_state else False
+    rec_repo_installed = repo_state.has_pack(rec_name) if repo_state else False
+    rec_user_installed = user_state.has_pack(rec_name) if user_state else False
 
     # Look up the recommended pack's allowed-scopes from the catalogue.
     # We only need this for the disjoint branch; cache the lookup result.
@@ -3554,7 +3647,7 @@ def _classify_for_install(
     if on_disk_sha == incoming_sha:
         return _safety.Tier.TIER_1
 
-    for other_pack_name, ps in state.packs.items():
+    for (other_pack_name, _other_adapter), ps in state.packs.items():
         recorded = ps.file_sha(relpath)
         if recorded and on_disk_sha == recorded:
             if pack_name and other_pack_name and other_pack_name != pack_name:
@@ -3626,11 +3719,13 @@ def validate_dependencies_required(
     if not required:
         return
 
-    # Union of installed packs across both scopes (pack name → installed version string).
+    # Union of installed packs across both scopes (pack name → installed
+    # version string). A pack may have several adapter rows; any row's
+    # version satisfies the dependency check (they share the pack version).
     installed: dict[str, str] = {}
-    for name, ps in repo_state.packs.items():
+    for (name, _adapter), ps in repo_state.packs.items():
         installed[name] = ps.installed_version
-    for name, ps in user_state.packs.items():
+    for (name, _adapter), ps in user_state.packs.items():
         if name not in installed:
             installed[name] = ps.installed_version
 
@@ -3865,7 +3960,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
     except ConfigError as exc:
         print(f"install: {exc}", file=sys.stderr)
         return 1
-    already = {name for name in pack_names if name in state.packs}
+    already = {name for name in pack_names if state.has_pack(name)}
     remaining = [name for name in pack_names if name not in already]
 
     # ── Refuse cross-scope: a pack present at the *opposite* scope ────────────
@@ -3885,7 +3980,7 @@ def _run_profile(args: "argparse.Namespace") -> int:
     except (scope_mod.UserScopeUnresolvable, ConfigError):
         opp_state = None  # opposite scope unreadable → nothing to conflict with
     if opp_state is not None:
-        cross = [name for name in remaining if name in opp_state.packs]
+        cross = [name for name in remaining if opp_state.has_pack(name)]
         if cross:
             print(
                 f"install: profile {profile_id!r}: pack(s) {cross} already "
