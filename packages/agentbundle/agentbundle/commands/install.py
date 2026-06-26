@@ -1228,6 +1228,16 @@ def run(args: "argparse.Namespace") -> int:
             print(f"install: {exc}", file=sys.stderr)
             return 1
 
+        # Cross-adapter disclosure rail (RFC-0052 Decision 7): if this
+        # install wrote to a `shared` prefix, name the prefix's other shipped
+        # cohort adapters and the skills-shared / private-needs-own-install
+        # boundary. stderr so the stdout `installed:` rail stays parseable.
+        _disclosure = _shared_prefix_disclosure(
+            pack_name, scope_adapter, plan.scope, set(new_pack_state.files)
+        )
+        if _disclosure:
+            print(_disclosure, file=sys.stderr)
+
     # ── Step 10: recommends cross-scope warnings (stderr) ─────────────────────
     # Emitted per scope per recommend per spec § *recommends across
     # scopes*. The warning text distinguishes three cases (compatible-
@@ -3634,6 +3644,69 @@ def _adapter_allowed_prefixes_repo(adapter_name: str) -> list[str]:
             "copilot": [".github/skills/"],
         }
         return defaults.get(adapter_name, [".agentbundle/"])
+
+
+def _shared_prefix_cohorts() -> dict[str, list[str]]:
+    """Return the contract's `[contract.shared-prefixes]` registry — each
+    shared prefix → its reader cohort (shipped adapters). Empty when a legacy
+    contract predates the registry (RFC-0052)."""
+    import tomllib
+    from agentbundle.build.main import _read_bundled
+
+    contract = tomllib.loads(_read_bundled("adapter.toml"))
+    sp = contract.get("contract", {}).get("shared-prefixes", {})
+    return {k: list(v) for k, v in sp.items() if isinstance(v, list)}
+
+
+# Display-only native dot-directory per adapter, used by the cross-adapter
+# disclosure rail's "Hooks & subagents → <home><native>" line. Copilot's
+# repo home is `.github/`, its user home `.copilot/`.
+_ADAPTER_NATIVE_DIR = {
+    "claude-code": ".claude/",
+    "codex": ".codex/",
+    "cursor": ".cursor/",
+    "gemini": ".gemini/",
+    "copilot": {"repo": ".github/", "user": ".copilot/"},
+    "kiro-ide": ".kiro/",
+    "kiro-cli": ".kiro/",
+}
+
+
+def _shared_prefix_disclosure(
+    pack_name: str, adapter: str, scope: str, written_relpaths: "set[str]"
+) -> str | None:
+    """Build the install-time cross-adapter disclosure (RFC-0052 Decision 7).
+
+    When an install wrote to a ``shared`` prefix, name the prefix's **other
+    shipped** cohort adapters and state the boundary (skills are shared;
+    private primitives need a per-adapter install). Returns the pinned stderr
+    block, scope-aware (``~/`` at user scope, repo-relative at repo scope), or
+    ``None`` when no shared prefix was touched.
+    """
+    cohorts = _shared_prefix_cohorts()
+    touched = sorted(
+        p for p in cohorts if any(rp.startswith(p) for rp in written_relpaths)
+    )
+    if not touched:
+        return None
+    home = "~/" if scope == "user" else ""
+    native = _ADAPTER_NATIVE_DIR.get(adapter, f".{adapter}/")
+    if isinstance(native, dict):
+        native = native.get(scope, native.get("repo"))
+    lines = [f"Installed {pack_name} for {adapter} ({scope})."]
+    for prefix in touched:
+        others = [a for a in cohorts[prefix] if a != adapter]
+        if not others:
+            continue
+        others_str = ", ".join(others)
+        lines.append(
+            f"  Skills → {home}{prefix} — also read by {others_str}."
+        )
+    lines.append(
+        f"  Hooks & subagents → {home}{native} — {adapter} only; install those "
+        f"adapters\n  separately to get them there."
+    )
+    return "\n".join(lines)
 
 
 def _classify_for_install(
