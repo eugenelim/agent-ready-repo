@@ -177,8 +177,8 @@ class KiroIdeAdapterTests(unittest.TestCase):
         Name preserved to keep the diff small."""
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.16",
-            "adapter.toml [contract] version must be '0.16' after consolidated-pack-layout",
+            "0.17",
+            "adapter.toml [contract] version must be '0.17' after consolidated-pack-layout",
         )
 
     def test_kiro_ide_hook_projects_with_flat_prefix_path(self) -> None:
