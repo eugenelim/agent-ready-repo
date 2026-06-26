@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 
-STATE_SCHEMA_VERSION = "0.3"
+STATE_SCHEMA_VERSION = "0.4"
 
 # Read-time default for v0.3 rows lacking explicit ``target-file`` when the
 # resolved adapter is ``claude-code`` — the adapter's user-scope settings
@@ -41,17 +41,22 @@ class ConfigError(ValueError):
 
 
 class StateFileLegacy(ConfigError):
-    """Raised when a write-capable invocation hits a v0.1 or v0.2 state file.
+    """Raised when a state file's ``schema-version`` is not the one this
+    binary speaks.
 
-    Migrations are append-only (v0.1 → v0.2 added a per-row scope column;
-    v0.2 → v0.3 added optional ``adapter`` / ``target-file`` /
-    ``hook-wiring-owned`` fields under RFC-0005's header-only-additive
-    rule), so the CLI never silently rewrites — every write-capable
-    handler surfaces this exception as a one-line refuse-and-explain
-    pointing the adopter at ``agentbundle init-state --migrate``.
-    Read-only paths still parse the legacy file: v0.1 implies repo scope
-    per RFC-0004 § *Backward compatibility*; v0.2 lets the v0.3
-    read-time defaults fire.
+    The v0.4 schema (RFC-0052 / ADR-0039) re-keyed state to
+    ``[pack.<name>.adapters.<adapter>]`` and made cross-version handling a
+    **hard refusal**: a reader refuses any ``schema-version`` it does not
+    recognise, on **both read and write** (not the v0.1/v0.2-write-only
+    refusal that preceded it). Without this, a v0.3-era binary reading a
+    v0.4 file would parse ``[pack.research.adapters.claude-code]`` as a pack
+    literally named ``research`` with an ``adapters`` sub-table and zero
+    files, then a later uninstall/install would corrupt ownership.
+
+    Migration is **greenfield** (RFC-0052 Decision 8): there is no
+    converter from a legacy version: an adopter on an older state file
+    **re-installs** rather than auto-upgrading. The refuse-and-explain
+    message therefore directs re-install, not ``init-state --migrate``.
 
     Carries the path on disk plus the offending version so the formatter
     can name both in the stderr message — adopters running mixed CLI
@@ -62,8 +67,9 @@ class StateFileLegacy(ConfigError):
         self.path = path
         self.version = version
         super().__init__(
-            f"state file at {path} is schema-version {version}; "
-            f"run 'agentbundle init-state --migrate' first"
+            f"state file at {path} is schema-version {version}, but this "
+            f"agentbundle speaks {STATE_SCHEMA_VERSION}; reinstall the pack "
+            f"to regenerate state (no legacy migration — RFC-0052 D8)"
         )
 
 
@@ -141,10 +147,58 @@ class PackState:
 
 @dataclass
 class State:
-    """Parsed `.agentbundle-state.toml` — all installed packs."""
+    """Parsed `.agentbundle-state.toml` — all installed pack/adapter rows.
+
+    Keyed by the ``(pack_name, adapter)`` tuple (RFC-0052 / ADR-0039): one
+    pack can carry multiple adapter rows at a single scope, so the v0.3
+    pack-name-keyed dict is replaced by a flat tuple-keyed one. The flat
+    shape is deliberate — every whole-pack access (`del state.packs[name]`,
+    `name in state.packs`) fails loudly under the tuple key, forcing each
+    call site to declare whether it means "any adapter row of this pack"
+    (`has_pack`) or "this specific row" (`row`).
+    """
 
     schema_version: str = STATE_SCHEMA_VERSION
-    packs: dict[str, PackState] = field(default_factory=dict)
+    packs: dict[tuple[str, str], PackState] = field(default_factory=dict)
+
+    def has_pack(self, name: str) -> bool:
+        """True if any adapter row of *name* is installed at this scope."""
+        return any(p == name for (p, _a) in self.packs)
+
+    def rows_for_pack(self, name: str) -> dict[str, PackState]:
+        """Return {adapter: PackState} for every row of *name*."""
+        return {a: ps for (p, a), ps in self.packs.items() if p == name}
+
+    def adapters_for_pack(self, name: str) -> list[str]:
+        """Return the adapters *name* is installed for, sorted."""
+        return sorted(a for (p, a) in self.packs if p == name)
+
+    def row(self, name: str, adapter: str) -> "PackState | None":
+        """Return the ``(name, adapter)`` row, or None if absent."""
+        return self.packs.get((name, adapter))
+
+    def owners_of(self, relpath: str) -> list[tuple[str, str]]:
+        """Return every ``(pack, adapter)`` row whose footprint claims *relpath*.
+
+        This is the derived-ownership primitive (ADR-0039): nothing is
+        stored per-file beyond the SHA already in ``PackState.files``;
+        the owner-set is computed by scanning rows.
+        """
+        return [key for key, ps in self.packs.items() if relpath in ps.files]
+
+    def shas_for(self, relpath: str) -> set[str]:
+        """Return the set of recorded SHAs for *relpath* across all rows.
+
+        Co-owned rows hold an identical SHA by construction (the install
+        gate refuses a same-path/different-SHA collision), so this set is
+        normally a singleton; a multi-element set means corruption.
+        """
+        out: set[str] = set()
+        for ps in self.packs.values():
+            sha = ps.file_sha(relpath)
+            if sha:
+                out.add(sha)
+        return out
 
     def projected_paths(self) -> set[str]:
         out: set[str] = set()
@@ -160,18 +214,19 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
     before the first install / init-state. Callers distinguish "absent" from
     "present but empty" via `path.exists()` if they need to.
 
-    RFC-0004 read-vs-write split:
-      - Read paths (``for_write=False``, default): a v0.1 file is loaded
-        with every ``[pack.<name>]`` entry getting an implicit
-        ``scope = "repo"``; the returned ``State.schema_version`` preserves
-        ``"0.1"`` so the caller can detect legacy state without re-reading
-        the file. No migration is forced at read.
-      - Write paths (``for_write=True``): a v0.1 file raises
-        ``StateFileLegacy(path)``. The CLI's top-level handler formats this
-        as ``state file at <path> is schema-version 0.1; run 'agentbundle
-        init-state --migrate' first``. Migration is destructive — adopters
-        running mixed CLI versions across CI and local must opt into it
-        explicitly via ``init-state --migrate``.
+    **Hard cross-version refusal (RFC-0052 Decision 4 / ADR-0039).** A v0.4
+    reader refuses any ``schema-version`` it does not recognise, on **both
+    read and write** — the refusal is an allowlist (``== "0.4"``), not a
+    denylist of known-legacy versions, and an **absent** ``schema-version``
+    raises rather than defaulting to the current constant. This closes the
+    stale-binary mis-parse the prior parse-through default left open: a v0.3
+    file (flat ``[pack.<name>]`` rows) loaded under v0.4 rules, or a v0.4
+    file (``[pack.<name>.adapters.<adapter>]``) loaded by a v0.3 binary,
+    would otherwise corrupt ownership silently. Migration is greenfield
+    (Decision 8) — no converter; the adopter re-installs.
+
+    ``for_write`` is retained for call-site compatibility but no longer
+    gates the refusal (it is now unconditional, read and write).
     """
     if not path.exists():
         return State()
@@ -182,150 +237,133 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
             f".agentbundle-state.toml at {path} is not valid TOML: {exc}"
         ) from exc
 
-    schema_version = raw.get("schema-version", STATE_SCHEMA_VERSION)
-    if not isinstance(schema_version, str):
-        raise ConfigError(f"schema-version must be a string, got {type(schema_version)!r}")
-
-    # Refuse-and-explain on writes to a legacy state file. We check this
-    # *before* parsing pack entries so callers can rely on the exception
-    # type alone — no half-parsed State leaks out. Both v0.1 and v0.2
-    # are legacy from v0.3's perspective (RFC-0005 § State-file impact).
-    if for_write and schema_version in ("0.1", "0.2"):
-        raise StateFileLegacy(path, version=schema_version)
+    # Allowlist gate: anything that is not exactly the version this binary
+    # speaks is refused — including an absent version (which previously
+    # defaulted to the current constant and parsed through).
+    schema_version = raw.get("schema-version")
+    if schema_version != STATE_SCHEMA_VERSION:
+        display = schema_version if isinstance(schema_version, str) else "absent"
+        raise StateFileLegacy(path, version=display)
 
     state = State(schema_version=schema_version)
     pack_table = raw.get("pack", {})
     if not isinstance(pack_table, dict):
         raise ConfigError("[pack] must be a table")
-    for name, body in pack_table.items():
-        if not isinstance(body, dict):
+    for name, pack_body in pack_table.items():
+        if not isinstance(pack_body, dict):
             raise ConfigError(f"[pack.{name}] must be a table")
-        files = body.get("files", {}) or {}
-        if not isinstance(files, dict):
-            raise ConfigError(f"[pack.{name}.files] must be a table")
-
-        # Primitive-version sub-tables look like `[pack.<name>.skill.<X>]`,
-        # one nested table per primitive type. We collect them lazily; if a
-        # body key is one of the five primitive type names, it's a
-        # mixed-version override map rather than a top-level field.
-        PRIMITIVE_KEYS = ("skill", "agent", "hook-body", "hook-wiring", "command")
-        primitive_versions: dict[str, dict[str, str]] = {}
-        for ptype in PRIMITIVE_KEYS:
-            sub = body.get(ptype)
-            if isinstance(sub, dict):
-                primitive_versions[ptype] = {
-                    pname: pbody.get("version", "")
-                    for pname, pbody in sub.items()
-                    if isinstance(pbody, dict)
-                }
-
-        # RFC-0004 scope column. v0.2 carries it explicitly; v0.1 files
-        # imply repo scope for every pack (read-time compatibility). A
-        # v0.2 file with an unknown scope value falls back to "repo" so
-        # readers never trip on a typo — schema validation catches that
-        # earlier in the write path.
-        raw_scope = body.get("scope") if schema_version != "0.1" else None
-        scope = raw_scope if isinstance(raw_scope, str) and raw_scope in ("repo", "user") else "repo"
-
-        # RFC-0005 v0.3 read-time defaults. ``adapter`` absent → claude-code
-        # (covers v0.2-vintage rows preserved across the header-only
-        # migration and v0.3-vintage claude-code rows omitting the field).
-        # ``target-file`` absent on claude-code → ``~/.claude/settings.json``;
-        # absent on kiro is a contract violation (no implicit default).
-        raw_adapter = body.get("adapter") if schema_version not in ("0.1",) else None
-        adapter = raw_adapter if isinstance(raw_adapter, str) else "claude-code"
-
-        raw_target = body.get("target-file") if schema_version not in ("0.1",) else None
-        if isinstance(raw_target, str):
-            target_file: str | None = raw_target
-        elif adapter == "claude-code":
-            target_file = _CLAUDE_CODE_USER_SETTINGS_DEFAULT
-        else:
-            # Kiro rows require ``target-file`` per RFC-0005 § State-file
-            # impact ("no implicit default — Kiro rows always carry the
-            # pack-owned `.kiro/agents/<agent>.json` path explicitly").
-            # The read path stays operationally tolerant (returns None);
-            # consumers that need the field surface their own error when
-            # they go to use it. This keeps ``init-state --migrate``
-            # able to operate on a malformed v0.3 file without trapping
-            # the adopter in a refuse-and-explain dead end.
-            target_file = None
-
-        # RFC-0005: optional `[[pack.<name>.hook-wiring-owned]]` array-of-tables.
-        # Each entry carries at least `event` and `id`, and optionally
-        # `target-file` (used by upgrade reconciliation when a Kiro pack's
-        # `attach-to-agent` value changes between versions — T8c).
-        raw_owned = body.get("hook-wiring-owned", []) or []
-        hook_wiring_owned: list[dict[str, str]] = []
-        if isinstance(raw_owned, list):
-            for i, entry in enumerate(raw_owned):
-                if not isinstance(entry, dict):
-                    raise ConfigError(
-                        f"[pack.{name}.hook-wiring-owned] entry {i} must be a table"
-                    )
-                hook_wiring_owned.append({
-                    k: str(v) for k, v in entry.items() if isinstance(v, str)
-                })
-
-        ps = PackState(
-            installed_version=body.get("installed-version", ""),
-            source=body.get("source", "agent-ready-repo"),
-            install_route=body.get("install-route", "cli"),
-            scope=scope,
-            primitives=list(body.get("primitives", []) or []),
-            files={k: dict(v) for k, v in files.items() if isinstance(v, dict)},
-            primitive_versions=primitive_versions,
-            adapter=adapter,
-            target_file=target_file,
-            hook_wiring_owned=hook_wiring_owned,
-        )
-        state.packs[name] = ps
+        adapters = pack_body.get("adapters", {})
+        if not isinstance(adapters, dict):
+            raise ConfigError(f"[pack.{name}.adapters] must be a table")
+        for adapter, body in adapters.items():
+            if not isinstance(body, dict):
+                raise ConfigError(
+                    f"[pack.{name}.adapters.{adapter}] must be a table"
+                )
+            state.packs[(name, adapter)] = _parse_adapter_row(name, adapter, body)
     return state
 
 
+def _parse_adapter_row(name: str, adapter: str, body: dict[str, Any]) -> "PackState":
+    """Parse one ``[pack.<name>.adapters.<adapter>]`` row into a PackState.
+
+    The adapter is part of the table key, so it is passed in rather than
+    read from a field. ``target-file`` is read-time-defaulted to the
+    claude-code user settings path for claude-code rows; kiro rows have no
+    implicit default (consumers surface their own error if they need it).
+    """
+    files = body.get("files", {}) or {}
+    if not isinstance(files, dict):
+        raise ConfigError(f"[pack.{name}.adapters.{adapter}.files] must be a table")
+
+    # Primitive-version sub-tables look like
+    # `[pack.<name>.adapters.<adapter>.skill.<X>]`, one nested table per
+    # primitive type — a mixed-version override map, not a top-level field.
+    PRIMITIVE_KEYS = ("skill", "agent", "hook-body", "hook-wiring", "command")
+    primitive_versions: dict[str, dict[str, str]] = {}
+    for ptype in PRIMITIVE_KEYS:
+        sub = body.get(ptype)
+        if isinstance(sub, dict):
+            primitive_versions[ptype] = {
+                pname: pbody.get("version", "")
+                for pname, pbody in sub.items()
+                if isinstance(pbody, dict)
+            }
+
+    raw_scope = body.get("scope")
+    scope = raw_scope if isinstance(raw_scope, str) and raw_scope in ("repo", "user") else "repo"
+
+    raw_target = body.get("target-file")
+    if isinstance(raw_target, str):
+        target_file: str | None = raw_target
+    elif adapter == "claude-code":
+        target_file = _CLAUDE_CODE_USER_SETTINGS_DEFAULT
+    else:
+        target_file = None
+
+    raw_owned = body.get("hook-wiring-owned", []) or []
+    hook_wiring_owned: list[dict[str, str]] = []
+    if isinstance(raw_owned, list):
+        for i, entry in enumerate(raw_owned):
+            if not isinstance(entry, dict):
+                raise ConfigError(
+                    f"[pack.{name}.adapters.{adapter}.hook-wiring-owned] "
+                    f"entry {i} must be a table"
+                )
+            hook_wiring_owned.append({
+                k: str(v) for k, v in entry.items() if isinstance(v, str)
+            })
+
+    return PackState(
+        installed_version=body.get("installed-version", ""),
+        source=body.get("source", "agent-ready-repo"),
+        install_route=body.get("install-route", "cli"),
+        scope=scope,
+        primitives=list(body.get("primitives", []) or []),
+        files={k: dict(v) for k, v in files.items() if isinstance(v, dict)},
+        primitive_versions=primitive_versions,
+        adapter=adapter,
+        target_file=target_file,
+        hook_wiring_owned=hook_wiring_owned,
+    )
+
+
 def dump_state(state: State) -> str:
-    """Serialise a State to TOML.
+    """Serialise a State to TOML in the v0.4 ``[pack.<name>.adapters.<adapter>]``
+    shape.
 
     Stdlib `tomllib` is read-only; we emit a deterministic textual form by
-    hand. Order: schema-version, then packs sorted by name, then per-pack
-    fields in fixed order, then files sorted by path. Determinism matters
-    because the state file participates in diffing and merging.
+    hand. Order: schema-version, then rows sorted by ``(pack, adapter)``,
+    then per-row fields in fixed order, then files sorted by path.
+    Determinism matters because the state file participates in diffing and
+    merging.
+
+    The adapter is part of the table key, so it is not re-emitted as a
+    field. Every key segment — pack name **and** adapter name — routes
+    through `_toml_key` so a non-`[alnum-_]` name cannot inject phantom
+    TOML structure (ADR-0039 / security review).
     """
-    # Every basic-string interpolation routes through `_emit_basic_string`
-    # (helper emits the surrounding quotes) so pack-sourced values like
-    # `installed-version` can never break out into phantom TOML structure.
     lines: list[str] = [
         f"schema-version = {_emit_basic_string(state.schema_version)}",
         "",
     ]
-    for name in sorted(state.packs):
-        ps = state.packs[name]
-        lines.append(f"[pack.{_toml_key(name)}]")
+    for name, adapter in sorted(state.packs):
+        ps = state.packs[(name, adapter)]
+        prefix = f"pack.{_toml_key(name)}.adapters.{_toml_key(adapter)}"
+        lines.append(f"[{prefix}]")
         lines.append(f"installed-version = {_emit_basic_string(ps.installed_version)}")
         lines.append(f"source = {_emit_basic_string(ps.source)}")
         lines.append(f"install-route = {_emit_basic_string(ps.install_route)}")
-        # RFC-0004: emit `scope` only when the state file's schema is v0.2+.
-        # A v0.1 file round-trips unchanged (no scope column) because the
-        # read-only-as-repo-scope contract works at *read* time; the only
-        # write path through this branch is `init-state --migrate`, which
-        # bumps schema_version before calling dump_state.
-        if state.schema_version != "0.1":
-            lines.append(f"scope = {_emit_basic_string(ps.scope)}")
-        # RFC-0005 v0.3 fields. ``adapter`` defaults to "claude-code"
-        # on read; only emit when non-default to keep the common case
-        # byte-compatible with v0.2. ``target-file`` is always emitted
-        # when set (even if it equals the claude-code default) so
-        # round-trip is byte-stable for explicit-default rows that
-        # T8b/T8c install/upgrade writers may produce.
-        if state.schema_version == "0.3":
-            if ps.adapter and ps.adapter != "claude-code":
-                lines.append(f"adapter = {_emit_basic_string(ps.adapter)}")
-            if ps.target_file is not None:
-                lines.append(f"target-file = {_emit_basic_string(ps.target_file)}")
+        lines.append(f"scope = {_emit_basic_string(ps.scope)}")
+        # ``target-file`` is emitted when set (even if it equals the
+        # claude-code default) so round-trip is byte-stable for
+        # explicit-default rows the install/upgrade writers may produce.
+        if ps.target_file is not None:
+            lines.append(f"target-file = {_emit_basic_string(ps.target_file)}")
         primitives_repr = ", ".join(_emit_basic_string(p) for p in ps.primitives)
         lines.append(f"primitives = [{primitives_repr}]")
         lines.append("")
-        lines.append(f"[pack.{_toml_key(name)}.files]")
+        lines.append(f"[{prefix}.files]")
         for relpath in sorted(ps.files):
             entry = ps.files[relpath]
             inline = ", ".join(
@@ -336,16 +374,15 @@ def dump_state(state: State) -> str:
         # Mixed-version primitive overrides (T12).
         for ptype, primitives in sorted(ps.primitive_versions.items()):
             for pname, version in sorted(primitives.items()):
-                lines.append(f"[pack.{_toml_key(name)}.{ptype}.{_toml_key(pname)}]")
+                lines.append(f"[{prefix}.{ptype}.{_toml_key(pname)}]")
                 lines.append(f"version = {_emit_basic_string(version)}")
                 lines.append("")
-        # RFC-0005 v0.3: `[[pack.<name>.hook-wiring-owned]]` rows. Order
+        # `[[pack.<name>.adapters.<adapter>.hook-wiring-owned]]` rows. Order
         # is the in-memory order — install appends; uninstall walks the
-        # stored list. T8a does not introduce sort discipline; T8b/T9
-        # will lock that down if needed.
-        if state.schema_version == "0.3" and ps.hook_wiring_owned:
+        # stored list.
+        if ps.hook_wiring_owned:
             for entry in ps.hook_wiring_owned:
-                lines.append(f"[[pack.{_toml_key(name)}.hook-wiring-owned]]")
+                lines.append(f"[[{prefix}.hook-wiring-owned]]")
                 for key in sorted(entry):
                     lines.append(f"{key} = {_emit_basic_string(entry[key])}")
                 lines.append("")
