@@ -5,7 +5,7 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-26
 - **Date closed:**
-- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 5**, the coordinator spike→RFC for Decisions 7 + 8; the provisional foundation this drift-aligns back to) · [RFC-0049](0049-the-integration-loop-and-company-os.md) (the sibling *downstream* outer loop — `integration-lead` + `integration-loop`, the same agent-def + skill + harness pattern this RFC establishes upstream; both build on the same RFC-0048 substrate (the sidecar + the gate arc), and this RFC specifies the sidecar schema RFC-0049's integration loop would also consume) · [RFC-0051](0051-the-self-coverage-gate.md) (the self-coverage gate — `discovery-loop` is its **second controller**; the gate is `discovery-loop`'s pre-G2 phase, seam specified there, wired here) · [RFC-0050](0050-the-experience-pack.md) (the `experience` lens this loop detect-and-degrades on) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the *doctrine + reference library + reuse, no engine/no new reviewer* precedent the framing rests on) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey) · RFC-0019 (`receive-brief` — the brief→spec join at G3; its coverage lint child-4's traceability lint generalizes) · [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md) (the cross-repo reference-by-version mechanism the traceability slot reuses) · [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md) (child-4 — the lint that consumes the traceability slot) · promoted research + the empirical prototype in [`0053-notes/`](0053-notes/); [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the paper resolutions this spike confirms) and [`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md) (the worked example it was run against)
+- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 5**, the coordinator spike→RFC for Decisions 7 + 8; the provisional foundation this drift-aligns back to) · [RFC-0049](0049-the-release-loop-and-company-os.md) (the sibling *downstream* outer loop — `release-lead` + `release-loop`, the same agent-def + skill + harness pattern this RFC establishes upstream; both build on the same RFC-0048 substrate (the sidecar + the gate arc), and this RFC specifies the sidecar schema RFC-0049's release loop would also consume) · [RFC-0051](0051-the-self-coverage-gate.md) (the self-coverage gate — `discovery-loop` is its **second controller**; the gate is `discovery-loop`'s pre-G2 phase, seam specified there, wired here) · [RFC-0050](0050-the-experience-pack.md) (the `experience` lens this loop detect-and-degrades on) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the *doctrine + reference library + reuse, no engine/no new reviewer* precedent the framing rests on) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey) · RFC-0019 (`receive-brief` — the brief→spec join at G3; its coverage lint child-4's traceability lint generalizes) · [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md) (the cross-repo reference-by-version mechanism the traceability slot reuses) · [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md) (child-4 — the lint that consumes the traceability slot) · promoted research + the empirical prototype in [`0053-notes/`](0053-notes/); [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the paper resolutions this spike confirms) and [`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md) (the worked example it was run against)
 
 ## The ask
 
@@ -131,7 +131,7 @@ and **writes the contract** the prototype validated (Decisions 2–5).
 - *The self-coverage gate's modules.* RFC-0051 (child-3) ships the gate; this RFC names it
   as `discovery-loop`'s pre-G2 phase (the seam RFC-0051 specified for its second controller).
 - *The downstream / deploy loop.* `work-loop` (G3–G5 build) is unchanged; the
-  integration/deploy outer loop is RFC-0049's `integration-lead`. This RFC is the **upstream**
+  release/deploy outer loop is RFC-0049's `release-lead`. This RFC is the **upstream**
   (G0–G2) coordinator only; the two loops hand off at G3 and must not be conflated.
 - *Multi-week project statefulness beyond one initiative.* One `discovery-loop` run = one
   decision package = one backlog (note 08); cross-initiative memory is the harness's
@@ -202,7 +202,7 @@ producing skill creates its dir lazily on first write.
 
 *Schema home.* The schema ships as a **small `core` schema reference** — the
 `operational-safety` / `self-coverage` reference shape, **not** a self-discovered skill — so
-that child-4's traceability lint, RFC-0049's integration loop, and `discovery-loop` all cite
+that child-4's traceability lint, RFC-0049's release loop, and `discovery-loop` all cite
 **one source** for the slot shapes. The exact file layout is a spec-time detail; that the
 home is a single `core` reference (not duplicated prose in `work-loop`, not a skill an agent
 must choose to load) is decided here.
@@ -364,7 +364,7 @@ coordinator must sit somewhere on it; prior art grounds each point.
 
 Prior art grounds the axis: RFC-0041 chose the B-shape ("no executable tooling, no new
 reviewer, no new runtime") for the infra loop and was Accepted; RFC-0049 chose it again for
-the *downstream* outer loop (`integration-lead` + `integration-loop` + the harness); MetaGPT
+the *downstream* outer loop (`release-lead` + `release-loop` + the harness); MetaGPT
 / ChatDev / CrewAI are C-shape and MAST measures their failure cost; the charter forbids C.
 
 ## Risks & what would make this wrong
@@ -381,7 +381,7 @@ the *downstream* outer loop (`integration-lead` + `integration-loop` + the harne
   RFC states this honestly rather than claiming "ran".
 - *The sidecar schema drifts from child-4's lint / RFC-0049's reuse* — three efforts touch
   the same typed state. **Mitigation:** `core` owns the schema (Decision 2); child-4's lint
-  and RFC-0049's integration loop *consume* it; the edge model is the one ADR-0022 + the
+  and RFC-0049's release loop *consume* it; the edge model is the one ADR-0022 + the
   child-4 amendment already fixed.
 - *Lens-team mode reintroduces MAST thrash* — parallel lens-agents could negotiate.
   **Mitigation:** the topology forbids agent-to-agent chat *structurally* — all coordination
@@ -449,7 +449,7 @@ in Risks and a second-example run owed at spec time.
 **Repo precedent.** RFC-0048 D7/D8 + [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the
 paper resolutions this confirms) and [`02`](0048-notes/02-worked-example-flow-trace.md) (the
 worked example); RFC-0041 + ADR-0031 (the doctrine + reference-library + reuse, no-engine
-idiom); RFC-0049 (the sibling downstream loop shipped as `integration-lead` agent + skill +
+idiom); RFC-0049 (the sibling downstream loop shipped as `release-lead` agent + skill +
 harness — the exact pattern this establishes upstream); RFC-0051 (the self-coverage gate,
 whose second controller is `discovery-loop`); RFC-0050 (the `experience` lens);
 `work-loop`'s supervisor mode + `loop-cohort` (doctrine + a scheduler-*script*, not a
