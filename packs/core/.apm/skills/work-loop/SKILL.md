@@ -650,8 +650,8 @@ note in the summary, not a blocker.
   — the boundary→module mapping is the routing authority and lives there, beside
   the depth it routes to, so the dispatch table and the modules can't drift apart.
 
-  Load 1–3 modules for a typical change, never a flat march of all ten; an
-  auth-touching endpoint pulls `access-control` and often `authn-session`.
+  Load only the modules the change crosses, never a flat march through the whole
+  index; an auth-touching endpoint pulls `access-control` and often `authn-session`.
   That same Module index backs the pre-EXECUTE spec-stage dispatch above.
 
   **Mandatory and multi-module on infra-flavored work** (the
@@ -661,7 +661,7 @@ note in the summary, not a blocker.
   spec stage and on the diff**, and force-loads the infra-relevant modules **1–N**
   (`config-misconfig` always, plus `access-control` / `secrets-and-crypto` /
   `outbound-ssrf` / `supply-chain` as the diff trips *that module's own* Module-index
-  entry — never a flat always-five march). A missing `security-reviewer` here is a **loud
+  entry — never a blanket load of the whole candidate set). A missing `security-reviewer` here is a **loud
   blocker, not a silent proceed**; security on infra is a **reviewer + scanner
   *pair*** (failure-class reasoning + per-provider secure-config depth) — run
   both. **No new reviewer or module.** Full detail in
@@ -686,8 +686,8 @@ note in the summary, not a blocker.
   — the failure-mode→module mapping is the routing authority and lives there,
   beside the depth it routes to.
 
-  Load 1–N modules as the change warrants, **never a flat march of all seven** —
-  a one-line config tweak pulls one; a new public-facing stack pulls several.
+  Load only the modules the change warrants, **never a flat march through the whole
+  index** — a one-line config tweak pulls one; a new public-facing stack pulls several.
   This is the operational twin of `security-checklists`' Module index
   above, and the **reliability-vs-security carve** holds: IaC-security →
   `config-misconfig` (the `security-reviewer` pass); IaC-reliability →
