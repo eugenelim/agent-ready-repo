@@ -117,7 +117,13 @@ def run(args: "argparse.Namespace") -> int:
     from agentbundle import scope as scope_mod
 
     repo_state_path = root / ".agentbundle-state.toml"
-    repo_state_for_check = load_state(repo_state_path)
+    # A legacy (non-v0.4) state file is refused on read too (RFC-0052);
+    # surface it as a clean refuse rather than a traceback.
+    try:
+        repo_state_for_check = load_state(repo_state_path)
+    except ConfigError as exc:
+        print(f"upgrade: {exc}", file=sys.stderr)
+        return 1
     installed_at_repo = repo_state_for_check.has_pack(pack_name)
     user_state_path = None
     installed_at_user = False
@@ -129,6 +135,9 @@ def run(args: "argparse.Namespace") -> int:
         installed_at_user = user_state_for_check.has_pack(pack_name)
     except scope_mod.UserScopeUnresolvable:
         pass
+    except ConfigError as exc:
+        print(f"upgrade: {exc}", file=sys.stderr)
+        return 1
 
     if installed_at_repo and installed_at_user and cli_scope is None:
         print(
