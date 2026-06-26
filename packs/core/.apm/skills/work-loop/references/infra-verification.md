@@ -16,7 +16,9 @@
 > (V1), the readiness-aware data-plane probe (V2), and the reviewer wiring —
 > lives here. Tool-neutral throughout (Terraform / Pulumi / CDK / CloudFormation
 > / Kubernetes / hand-rolled scripts alike); any tool named is illustrative,
-> never normative.
+> never normative. (The other three verification modes' depth — the manual-QA
+> "exercise the real artifact" doctrine — lives in
+> [`verification-modes.md`](verification-modes.md).)
 
 ## PLAN — the layered GATES sequence
 
