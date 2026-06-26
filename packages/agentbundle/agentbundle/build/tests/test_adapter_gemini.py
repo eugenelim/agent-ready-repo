@@ -153,7 +153,7 @@ class GeminiContractTests(unittest.TestCase):
     def test_contract_version_is_0_14(self) -> None:
         """Contract version is 0.16 (docs/specs/consolidated-pack-layout
         bumped it from kiro-cli-agent-skill-resources' 0.15). Name preserved."""
-        self.assertEqual(self.contract["contract"]["version"], "0.16")
+        self.assertEqual(self.contract["contract"]["version"], "0.17")
 
     def test_gemini_block_projects_five_primitives(self) -> None:
         """AC2 — five standard primitives with their gemini targets."""
@@ -161,7 +161,7 @@ class GeminiContractTests(unittest.TestCase):
         prims = {e["primitive"]: e for e in block["projection"]}
         self.assertEqual(set(prims), {"skill", "agent", "hook-body", "hook-wiring", "command"})
         self.assertEqual(prims["skill"]["mode"], "direct-directory")
-        self.assertEqual(prims["skill"]["target-path"], ".gemini/skills/")
+        self.assertEqual(prims["skill"]["target-path"], ".agents/skills/")
         self.assertEqual(prims["agent"]["mode"], "direct-file")
         self.assertEqual(prims["agent"]["target-path"], ".gemini/agents/")
         self.assertEqual(prims["agent"]["frontmatter-mapping"], "gemini-agent-frontmatter")
@@ -210,7 +210,7 @@ class GeminiContractTests(unittest.TestCase):
         scope = self.contract["adapter"]["gemini"]["scope"]
         self.assertEqual(scope["repo"], ".")
         self.assertEqual(scope["user"], "~")
-        self.assertEqual(scope["allowed-prefixes"]["repo"], [".gemini/", ".agentbundle/"])
+        self.assertEqual(scope["allowed-prefixes"]["repo"], [".agents/skills/", ".gemini/", ".agentbundle/"])
         self.assertEqual(scope["allowed-prefixes"]["repo"], scope["allowed-prefixes"]["user"])
 
     def test_frontmatter_mapping_keeps_tools_and_model(self) -> None:
@@ -254,7 +254,7 @@ class GeminiProjectionTests(unittest.TestCase):
             (pack / ".apm" / "hooks" / "on-start.py").write_text("#!py", encoding="utf-8")
             out = tmp_path / "out"
             gemini.project(pack, self.contract, out)
-            self.assertTrue((out / ".gemini" / "skills" / "my-skill" / "SKILL.md").exists())
+            self.assertTrue((out / ".agents" / "skills" / "my-skill" / "SKILL.md").exists())
             self.assertTrue((out / ".gemini" / "commands" / "do-thing.toml").exists())
             self.assertTrue((out / ".gemini" / "hooks" / "on-start.py").exists())
 
@@ -361,9 +361,9 @@ class GeminiProjectionTests(unittest.TestCase):
             os.symlink(secret, skill / "leak.txt")
             out = tmp_path / "out"
             gemini.project(pack, self.contract, out)
-            leaked = out / ".gemini" / "skills" / "s" / "leak.txt"
+            leaked = out / ".agents" / "skills" / "s" / "leak.txt"
             self.assertFalse(leaked.exists())
-            self.assertTrue((out / ".gemini" / "skills" / "s" / "SKILL.md").exists())
+            self.assertTrue((out / ".agents" / "skills" / "s" / "SKILL.md").exists())
 
 
 # ===========================================================================
