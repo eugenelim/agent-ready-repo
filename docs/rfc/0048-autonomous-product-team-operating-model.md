@@ -162,8 +162,8 @@ can the catalogue become an autonomous product team without violating Principle 
    (see the Provisional-foundation note). · *why:* the discipline this RFC was built with
    becomes the standard the series runs by, not a one-off — and the foundation earns its
    frozen state only by surviving the children. · decide-by: RFC accept · default: adopt.
-*(The integration/deploy **outer loop**, the minimum-regret deploy carve, and the
-"company OS" composition are **split into the sibling [RFC-0049](0049-the-integration-loop-and-company-os.md)**,
+*(The release/deploy **outer loop**, the minimum-regret deploy carve, and the
+"company OS" composition are **split into the sibling [RFC-0049](0049-the-release-loop-and-company-os.md)**,
 which cites this RFC as its foundation. RFC-0048 scopes the **discovery + build**
 foundation — vision → spec → locally-built, deploy-ready code; the deployed e2e loop is
 0049's. This split keeps each RFC reviewable.)*
@@ -202,7 +202,7 @@ worked example (a secure personal-assistant agent) end-to-end ([`0048-notes/02`]
   chart** (MAST: fewer agents win); **pixel/Figma comps** (agents author design
   *intent specs*); **sprint ceremony / RACI** (human-coordination overhead).
 - **The deploy + e2e outer loop (the G4→G5 gap) and G5's deploy mechanics** — detailed in
-  [RFC-0049](0049-the-integration-loop-and-company-os.md). 0048 defines the full gate arc
+  [RFC-0049](0049-the-release-loop-and-company-os.md). 0048 defines the full gate arc
   (G0–G5) but *details* discovery→build (G0–G4); deploy-ready code is its hand-off.
 - **Building the harness / desktop orchestration app** — it is a *tool*, not a habit
   (Principle 3); the catalogue ships the doctrine such a harness executes.
@@ -228,8 +228,8 @@ decision-packaging); only **value** and **accountability** are irreducibly human
 G4 Build · G5 Ship, with a single **surfacing predicate**: surface iff the judgment is
 value/accountability, or a substitutable judgment's referent failed. Consent gates:
 G0, G1.5, G2, G5; the rest auto-advance unless a risk trigger (RFC-0025) fires.
-*(0048 details G0–G4; the **G4→G5 integration/deploy loop and the G5 ship gate's
-mechanics are [RFC-0049](0049-the-integration-loop-and-company-os.md)** — shown here for
+*(0048 details G0–G4; the **G4→G5 release/deploy loop and the G5 ship gate's
+mechanics are [RFC-0049](0049-the-release-loop-and-company-os.md)** — shown here for
 the full arc.)*
 **The seam with `work-loop`:** G3–G5 *are* the existing `work-loop`/RFC-0025 gates
 (named for the ladder's continuity); only G0–G2, G1.5, and the surfacing predicate are
@@ -247,8 +247,8 @@ the traceability/scope-creep lint (a tool).
 
 **D7 / D8 — the two loops, the `discovery-lead`, and the sidecar (design proposal).**
 
-*Two loops, one spine* (a **third — the integration/SRE outer loop — is added by
-[RFC-0049](0049-the-integration-loop-and-company-os.md)**). `core`'s orchestration spine
+*Two loops, one spine* (a **third — the release/SRE outer loop — is added by
+[RFC-0049](0049-the-release-loop-and-company-os.md)**). `core`'s orchestration spine
 gains a second, peer loop:
 - **`work-loop`** — the *build* loop: spec → plan → implement → gate → review → code.
   Downstream, verifiable, agent-autonomous. (Exists.)
@@ -344,7 +344,7 @@ flowchart TB
 
   subgraph workloop["work-loop · supervisor (downstream · agent-autonomous)"]
     direction TB
-    G3["G3 Spec"] --> G4["G4 Build — implementer fan-out per screen/service"] -.->|"G4→G5: integration loop + ship → RFC-0049"| G5["G5 Ship (RFC-0049)"]
+    G3["G3 Spec"] --> G4["G4 Build — implementer fan-out per screen/service"] -.->|"G4→G5: release loop + ship → RFC-0049"| G5["G5 Ship (RFC-0049)"]
   end
 
   G2 -->|"emit brief → new-spec"| G3
@@ -375,10 +375,10 @@ flowchart TB
 | 6 | Brief emit (per feature) | `discovery-lead` | `decompose-intent` (PE) | brief (`docs/product/briefs/`) | — |
 | — | **G3 handoff** | → `work-loop` | `receive-brief` → `new-spec` (core); `security-reviewer` at spec stage | spec | none, unless a risk trigger fires |
 | 7 | **G4 Build** | `work-loop` supervisor | `implementer` fan-out per screen/service (core); `contract-acquisition` + platform skill; `adversarial-reviewer` / `security-reviewer` / `quality-engineer` | code · tests | none (tests are the verifier) |
-| — | **G4→G5: integration loop + G5 Ship** | → **RFC-0049** | `integration-lead` + deploy/e2e on ephemeral envs (detailed in RFC-0049) | deploy · e2e · prod ship | **ratifies prod ship** (consent, irreversible) |
+| — | **G4→G5: release loop + G5 Ship** | → **RFC-0049** | `release-lead` + deploy/e2e on ephemeral envs (detailed in RFC-0049) | deploy · e2e · prod ship | **ratifies prod ship** (consent, irreversible) |
 
 Steps 1–6 are `discovery-loop` under `discovery-lead`; step 7 is `work-loop`; they meet at
-the G3 brief→spec handoff. The G4→G5 integration/deploy loop + ship is **RFC-0049**'s. The
+the G3 brief→spec handoff. The G4→G5 release/deploy loop + ship is **RFC-0049**'s. The
 sidecar threads all of it — every artifact is a blackboard slot, every consent a
 decision-log entry.
 
@@ -491,7 +491,7 @@ from scratch — strong evidence the no-engine framing holds.
 research consolidation, the worked-example flow trace, the autonomy/gate economics, the
 artifact inventory, the judgment decomposition, the per-pack delta + orchestration, the
 per-screen brief format, the artifact layout + backlog, and the gap resolutions + lens
-sample-bank. (The three-loops + company-OS note moved to [RFC-0049](0049-the-integration-loop-and-company-os.md).)
+sample-bank. (The three-loops + company-OS note moved to [RFC-0049](0049-the-release-loop-and-company-os.md).)
 
 ## Open questions
 
@@ -502,8 +502,8 @@ recommendation the approver ratifies at acceptance:*
 - the chief's name **`discovery-lead`** — adopted (Decision 8).
 - **self-coverage gate packaging** — resolved: reference library + doctrine in `core`,
   loaded by both loop controllers, non-skippable (Decision 5).
-- **build→deploy boundary** — **delegated to [RFC-0049](0049-the-integration-loop-and-company-os.md)**
-  (the integration loop + minimum-regret deploy carve); out of 0048's scope.
+- **build→deploy boundary** — **delegated to [RFC-0049](0049-the-release-loop-and-company-os.md)**
+  (the release loop + minimum-regret deploy carve); out of 0048's scope.
 
 **No open questions remain at the foundation level.** Remaining unknowns are *delegated to
 the child efforts* — and the RFC stays **provisional** until they are modelled and
@@ -532,8 +532,8 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   contract (sidecar schema · gate state machine · rejection/recovery + cascade-invalidation
   · outer cap · supervisor topology · security/integrity ACs) is specified. Spike artifacts
   in [`0053-notes/`](0053-notes/).*
-- **[RFC-0049](0049-the-integration-loop-and-company-os.md) (child — deploy):** the
-  integration (outer) loop + minimum-regret deploy carve + company-OS composition.
+- **[RFC-0049](0049-the-release-loop-and-company-os.md) (child — deploy):** the
+  release (outer) loop + minimum-regret deploy carve + company-OS composition.
   *Already drafted; amends this RFC's gate arc / company-OS framing on landing.*
 - **CONVENTIONS edit:** the operating model (two regimes, gate ladder, surfacing
   predicate). *(The minimum-regret deploy boundary — reversible ⇒ autonomous; irreversible
@@ -561,7 +561,7 @@ reconciled **here**, as a tracked amendment, not absorbed silently downstream.
   artifact ontology + sidecar to "a single product **monorepo**" and defers the
   discovery-repo / work-repo split. Child-4 generalizes this: the loops span repos
   (`work-loop` is **per-module**, one module ≈ one repo; `discovery-loop` and the
-  integration loop are **same-or-cross-module/repo**), so the traceability chain
+  release loop are **same-or-cross-module/repo**), so the traceability chain
   crosses repo boundaries. The lint handles the crossing **by convention, not by
   path** — every node carries a stable, location-independent id (marker slug /
   Backstage `kind:namespace/name` / `contract@version`) in a conventional pointer
@@ -570,8 +570,8 @@ reconciled **here**, as a tracked amendment, not absorbed silently downstream.
   mechanism already decided in [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md)**
   (reference-by-version + read-only courier snapshot, the rollup row schema,
   `unknown / not-yet-catalogued`) rather than inventing a parallel one, and aligns
-  the discovery/build foundation with the integration loop's cross-repo reach
-  ([RFC-0049](0049-the-integration-loop-and-company-os.md)). Note 08's single-repo
+  the discovery/build foundation with the release loop's cross-repo reach
+  ([RFC-0049](0049-the-release-loop-and-company-os.md)). Note 08's single-repo
   layout remains the *minimum* case; the cross-repo model is the generalization.
   See [`docs/specs/traceability-lint/spec.md`](../specs/traceability-lint/spec.md) +
   its `notes/cross-repo-traceability-research.md`.
@@ -607,3 +607,21 @@ reconciled **here**, as a tracked amendment, not absorbed silently downstream.
   live-lens claim rather than contradicting them, and land as acceptance criteria in
   RFC-0053's implementing spec. See [RFC-0053](0053-the-coordinator-contract.md)
   § Security &amp; integrity contract.
+- **2026-06-26 — the company-OS third (SRE/ops) seat specified, by RFC-0049's child spec.**
+  RFC-0048's end-to-end table and diagram name the **G4→G5 release/deploy loop + ship**
+  as [RFC-0049](0049-the-release-loop-and-company-os.md)'s, deferring the
+  `release-lead` seat's pack home + agent shape to a child. RFC-0049's child spec
+  ([`docs/specs/release-loop/`](../specs/release-loop/spec.md)) now specifies that
+  seat: the **release (outer) loop** ships as a distinct **`release-lead`** agent +
+  a **`release-loop`** skill in a **new opt-in `release-engineering` pack** (resolving RFC-0049's
+  OQ1 + OQ2), reusing `core`'s `operational-safety` + `quality-engineer` + `security-reviewer`
+  + the RFC-0053 sidecar schema — **no new engine, no new reviewer** (the same ADR-0031 idiom
+  child-5 confirmed upstream). This **completes the company-OS composition** RFC-0048 framed
+  (product/discovery → engineering/build → SRE-ops/release): the third loop-team is now a
+  specified peer of `discovery-lead` and `work-loop`'s supervisor, with the leads handing off
+  **work→release at deploy** and **release→prod at G5**. It *fills in* RFC-0048's
+  deferred G4→G5 arc rather than contradicting it; the minimum-regret deploy carve (reversible
+  ⇒ autonomous on ephemeral; irreversible ⇒ human) is the deploy-scoped instance of D1's
+  two-regime / stakes-density principle, and an inner/outer-split + carve ADR is owed
+  (the child spec's AC11b). See [RFC-0049](0049-the-release-loop-and-company-os.md)
+  § Open questions (resolved) + [`docs/specs/release-loop/spec.md`](../specs/release-loop/spec.md).
