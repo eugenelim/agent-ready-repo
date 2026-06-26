@@ -248,6 +248,48 @@ Sample reads, to calibrate the boundary:
   classification (`reversible` / `safe` / `internal`) gates autonomy, write down the
   precondition that earns the word, or an agent will apply it where it doesn't hold.
 
+*Sample reads appended by the RFC-0048 provisional-foundation discharge — the composed-set
+reconciliation ([`0048-notes/10`](10-composed-end-to-end-walkthrough.md); RFC-0048
+§ Amendments 2026-06-26):*
+- *A "resolved-by child X" is an orphan, not a resolution, when X closed without binding it.*
+  Two children each deferred the `docs/discovery/` layout key to "the other one" — the
+  domain-anchor spec deferred it to "the experience-pack / layout child effort," and child-1
+  (RFC-0050) bound only `[experience]→docs/design` and never touched it. The temptation was to
+  read "deferred to a named effort" as closed. → **resolve by re-checking the target actually
+  bound it**, and when it didn't, **assign a concrete owner** (RFC-0053's implementing spec, the
+  sidecar-path owner). The tell: a deferral pointer is only discharged if you open the target and
+  confirm it landed — "owned by a named effort" that closed without acting is still owned by nobody.
+- *Freeze the reading-source, not just the downstream consumer.* The canonical chain terminus
+  was reconciled to `component` in the traceability-lint spec, but note 02 — a canonical
+  freeze-reading source — still said `code`. → **resolve by amending the source note too**, not
+  only the spec that consumes it. The tell: when a reconciliation lands in the consumer, grep the
+  *reading sources* an implementer is told to read at freeze; a stale source sends them down the
+  pre-reconciliation path the consumer already abandoned.
+- *Two siblings each shipping a default for the same artifact is resolved by which **context**
+  each default serves, not which default wins.* `docs/design/` (RFC-0050, standalone) vs
+  `docs/discovery/<initiative>/` (note 08, in-initiative) for the journey/blueprint/screens. →
+  **resolve by context-conditioning** (in-initiative → discovery tree supplied by `discovery-lead`;
+  standalone → `docs/design`), since both are legitimate and the three-tier resolve + marker make
+  both reachable. The tell: when a "which path wins" conflict appears between two correct authors,
+  ask whether they are serving *different invocation contexts* before picking a winner.
+- *When wording collides, the statement that names itself a decision outranks prose that
+  paraphrases it.* "No new reviewer *agent* … a mode, not a new agent" (Decision 2) vs "a
+  different agent" (D7/D8, RFC-0053 D5). → **resolve to Decision 2** (the explicit ruling) and
+  correct the prose to "a different *lens/invocation*." The tell: a contradiction between a
+  decision and a description is not a 50/50 — the decision is the referent; reword the description.
+- *Don't let an inventory assert as already-true an invariant its own backstop can't yet check.*
+  Note 04's "no orphans" header, while the traceability lint cannot yet walk the unbound
+  `Discovery:` edge and a persona/producer gap existed. → **resolve by rewording to target-state
+  + naming the open seams**, not by deleting the goal. The tell: a guarantee stated as fact masks
+  exactly the seams a reviewer must find; phrase it as "the lint enforces this once edge X lands."
+- *Freeze-readiness for a provisional foundation = coherence + every seam owned, not every
+  follow-on built.* The discharge faced six Blocker-tagged findings yet both fresh-context passes
+  said SHIP WITH CHANGES, because each was a seam-wiring/owner-assignment item the provisional
+  mechanism exists to absorb. → **resolve: fold each into a tracked amendment that resolves +
+  assigns an owner, then freeze** — do not wait for the owed specs to ship. The tell: a foundation
+  RFC is "aligned" when nothing is owned-by-nobody and the spine is internally consistent; the
+  named follow-ons land on their own lifecycles and are not freeze preconditions.
+
 **Why this is logged as a scaffold, not left to recall:** in practice the AI loop reaches
 the right resolve-vs-surface call only ~half the time without a nudge (anchoring + the
 knowing-doing gap — notes/03). So the lens is made an *explicit checklist step* (it lives
