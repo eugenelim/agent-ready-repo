@@ -393,7 +393,7 @@ class FrontmatterTableTests(unittest.TestCase):
             if p["primitive"] == "skill"
         )
         self.assertEqual(skill["mode"], "direct-directory")
-        self.assertEqual(skill["target-path"], ".github/skills/")
+        self.assertEqual(skill["target-path"], ".agents/skills/")
         self.assertNotIn("frontmatter-default", skill)
 
     def test_frontmatter_mapping_and_default_are_structurally_distinct(self) -> None:
@@ -452,7 +452,7 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.16"
+        """tomllib.loads of adapter.toml returns contract.version == "0.17"
         (bumped from kiro-cli-agent-skill-resources' "0.15" by
         docs/specs/consolidated-pack-layout: pack.toml gains an optional
         scope-keyed [pack.layout] table). Class/method names preserved to
@@ -460,8 +460,8 @@ class ContractV05Tests(unittest.TestCase):
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.16",
-            "adapter.toml [contract] version must be '0.16' after consolidated-pack-layout",
+            "0.17",
+            "adapter.toml [contract] version must be '0.17' after consolidated-pack-layout",
         )
 
     def test_claude_code_install_routes_includes_apm(self) -> None:

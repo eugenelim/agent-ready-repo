@@ -205,13 +205,12 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
         )
 
     def test_copilot_explicit_adapter(self) -> None:
-        """Copilot's skill projection target is `.github/skills/` (v0.11
-        copilot-skills-and-web: first-class Agent Skills, was
-        `.github/instructions/`)."""
+        """Copilot's skill projection target is `.agents/skills/` (RFC-0052 /
+        ADR-0040: shared cohort home; was `.github/skills/` in v0.11)."""
         self._install_and_assert(
             adapter_flag="copilot",
             expected_adapter="copilot",
-            expected_dir=".github/skills",
+            expected_dir=".agents/skills",
         )
 
 

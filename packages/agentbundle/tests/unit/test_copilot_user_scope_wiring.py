@@ -28,11 +28,11 @@ class TestCopilotUserScopeCapability(unittest.TestCase):
         from agentbundle.commands.install import _adapter_allowed_prefixes_repo
 
         prefixes = _adapter_allowed_prefixes_repo("copilot")
-        # v0.11 (copilot-skills-and-web): skills project as first-class
-        # `.github/skills/` SKILL.md (was `.github/instructions/`).
+        # RFC-0052 / ADR-0040: skills route to the shared `.agents/skills/`
+        # home (prepended); agents/hooks stay native under `.github/`.
         self.assertEqual(
             prefixes,
-            [".github/skills/", ".github/agents/", ".github/hooks/"],
+            [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"],
         )
         # Legacy tools/hooks/ prefix is gone (hook-body retargeted).
         self.assertNotIn("tools/hooks/", prefixes)
@@ -44,6 +44,7 @@ class TestCopilotUserScopeCapability(unittest.TestCase):
         self.assertEqual(
             prefixes,
             [
+                ".agents/skills/",
                 ".copilot/skills/",
                 ".copilot/agents/",
                 ".copilot/hooks/",
@@ -92,8 +93,12 @@ class TestRewriteCopilotUserScopePaths(unittest.TestCase):
     def test_rewrites_every_primitive_prefix(self) -> None:
         from agentbundle.commands.install import _rewrite_copilot_user_scope_paths
 
+        # RFC-0052 / ADR-0040: the skill projects to the shared
+        # `.agents/skills/` home and is NOT rewritten (scope-agnostic →
+        # `~/.agents/skills/` at user scope). Only agents/hooks swap to
+        # `~/.copilot/`.
         projection = {
-            ".github/skills/work-loop/SKILL.md": b"i",
+            ".agents/skills/work-loop/SKILL.md": b"i",
             ".github/agents/reviewer.agent.md": b"a",
             ".github/hooks/session-start.json": b"w",
             ".github/hooks/session-start.py": b"b",
@@ -102,7 +107,7 @@ class TestRewriteCopilotUserScopePaths(unittest.TestCase):
         self.assertEqual(
             set(rewritten),
             {
-                ".copilot/skills/work-loop/SKILL.md",
+                ".agents/skills/work-loop/SKILL.md",
                 ".copilot/agents/reviewer.agent.md",
                 ".copilot/hooks/session-start.json",
                 ".copilot/hooks/session-start.py",
@@ -112,7 +117,8 @@ class TestRewriteCopilotUserScopePaths(unittest.TestCase):
         self.assertEqual(
             rewritten[".copilot/agents/reviewer.agent.md"], b"a"
         )
-        # No `.github/` path survives.
+        # The shared skill home survives unchanged; no `.github/` path survives.
+        self.assertIn(".agents/skills/work-loop/SKILL.md", rewritten)
         self.assertFalse(any(p.startswith(".github/") for p in rewritten))
 
 
