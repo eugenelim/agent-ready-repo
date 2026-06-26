@@ -126,11 +126,15 @@ def run(args: argparse.Namespace) -> int:
         print(f"init-state: {exc}", file=sys.stderr)
         return 1
 
+    # init-state records the legacy dist-tree projection, which has no
+    # per-IDE adapter notion; key the row under the default claude-code
+    # adapter so the file is v0.4-shaped (RFC-0052).
     new_pack_state = config.PackState(
         installed_version=pack_version,
         files=files,
+        adapter="claude-code",
     )
-    existing_state.packs[pack_name] = new_pack_state
+    existing_state.packs[(pack_name, "claude-code")] = new_pack_state
 
     serialised = config.dump_state(existing_state)
     try:
@@ -149,45 +153,28 @@ def run(args: argparse.Namespace) -> int:
 
 
 def _run_migrate(args: argparse.Namespace) -> int:
-    """`init-state --migrate`: bump a state file to the current schema-version.
+    """`init-state --migrate`: report on a state file's schema-version.
 
-    Two migration shapes the CLI supports:
-
-    - **v0.1 → v0.3 (legacy full re-serialize).** Adds ``scope = "repo"``
-      to every pack entry, sets ``schema-version = "0.3"``, and writes
-      atomically. The v0.1 → v0.2 invariant (per-row scope backfill)
-      lands here in a single step because RFC-0005's v0.2 → v0.3
-      migration is header-only (no per-row changes), so the two compose
-      cleanly.
-    - **v0.2 → v0.3 (header-only-additive, RFC-0005 § State-file
-      impact).** Rewrites only the ``schema-version = "0.2"`` line to
-      ``"0.3"``. Every body byte is preserved; existing rows omit the
-      new ``adapter`` / ``target-file`` fields and let v0.3 read-time
-      defaults supply them. Cheapest possible additive migration.
-
-    Already-v0.3 files are a no-op exit-zero — idempotent.
+    Migration is **greenfield** as of state schema v0.4 (RFC-0052
+    Decision 8): there is no converter from a legacy version. The prior
+    header-only rewrite (v0.2/v0.3 → bump the version line, preserve the
+    body) is unsafe under v0.4 because the body shape changed —
+    ``[pack.<name>]`` became ``[pack.<name>.adapters.<adapter>]`` — so a
+    header-only bump would relabel a v0.3 body as v0.4 and the reader
+    would then mis-parse it. So this command now refuses any non-current
+    version with re-install guidance, and treats an already-current file
+    as an idempotent no-op.
     """
     scope = getattr(args, "scope", None) or "repo"
-    user_prefixes: list[str] | None = None
     if scope == "user":
         try:
             state_path = safety.user_state_path()
         except OSError as exc:
             print(f"init-state: cannot create user state directory: {exc}", file=sys.stderr)
             return 1
-        # Write through the user root + relative path so the path-jail
-        # rail fires on the migration write — same shape every other
-        # user-scope write uses.
-        write_root = state_path.parent.parent  # = ~
-        relpath = state_path.relative_to(write_root).as_posix()
-        from agentbundle.commands.install import _claude_code_allowed_prefixes_user
-
-        user_prefixes = _claude_code_allowed_prefixes_user()
     else:
         root = Path(args.root).resolve()
         state_path = root / ".agentbundle-state.toml"
-        write_root = root
-        relpath = ".agentbundle-state.toml"
 
     if not state_path.exists():
         # Migration of an absent file is meaningless — surface so the
@@ -206,45 +193,27 @@ def _run_migrate(args: argparse.Namespace) -> int:
 
     source_version = _peek_schema_version(original_text)
 
-    if source_version in ("0.2", "0.3"):
-        # Header-only-additive (RFC-0005). Rewrite only the version
-        # line. The already-v0.3 case is a true byte-no-op (identity
-        # rewrite) so adopters running ``--migrate`` against a current
-        # file get a round-trip-stable result — full re-serialize would
-        # silently strip explicit fields T8b/T8c writers may produce.
-        serialised = _rewrite_schema_version_line(
-            original_text, config.STATE_SCHEMA_VERSION
+    # Greenfield migration (RFC-0052 Decision 8): there is no converter
+    # from a legacy schema to v0.4. The old header-only rewrite would have
+    # relabelled a flat v0.3 ``[pack.<name>]`` body as v0.4 while leaving
+    # the body in the v0.3 shape — a file the v0.4 reader would then
+    # mis-parse. So any non-current version is refused with re-install
+    # guidance; an already-current file is an idempotent no-op.
+    if source_version == config.STATE_SCHEMA_VERSION:
+        print(
+            f"init-state --migrate: {state_path} is already schema-version "
+            f"{config.STATE_SCHEMA_VERSION}; nothing to migrate"
         )
-    else:
-        # v0.1 or unrecognised — full re-serialize. load_state with
-        # for_write=False so the legacy refusal does not fire (we *are*
-        # the migration).
-        try:
-            state = config.load_state(state_path, for_write=False)
-        except config.ConfigError as exc:
-            print(f"init-state --migrate: {exc}", file=sys.stderr)
-            return 1
-        state.schema_version = config.STATE_SCHEMA_VERSION
-        for ps in state.packs.values():
-            if not ps.scope:
-                ps.scope = "repo"
-        serialised = config.dump_state(state)
-
-    try:
-        safety.write_jailed(
-            write_root, relpath, serialised,
-            scope=scope,
-            allowed_prefixes=user_prefixes,
-        )
-    except safety.PathJailError as exc:
-        print(f"init-state --migrate: {exc}", file=sys.stderr)
-        return 1
+        return 0
 
     print(
-        f"init-state --migrate: {state_path} → schema-version "
-        f"{config.STATE_SCHEMA_VERSION}"
+        f"init-state --migrate: {state_path} is schema-version "
+        f"{source_version or 'absent'}, but this agentbundle speaks "
+        f"{config.STATE_SCHEMA_VERSION}. Migration is greenfield (RFC-0052 "
+        f"D8) — reinstall the pack(s) to regenerate state instead.",
+        file=sys.stderr,
     )
-    return 0
+    return 1
 
 
 import re as _re

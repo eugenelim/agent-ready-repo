@@ -78,12 +78,12 @@ def test_dump_state_resists_pack_version_injection() -> None:
     basic-string and started a new ``[pack.evil]`` table."""
     adversarial = '0.1.0"\nname = "evil"'
     state = State()
-    state.packs["target"] = PackState(installed_version=adversarial)
+    state.packs[("target", "claude-code")] = PackState(installed_version=adversarial)
 
     serialised = dump_state(state)
     parsed = tomllib.loads(serialised)
 
-    assert parsed["pack"]["target"]["installed-version"] == adversarial
+    assert parsed["pack"]["target"]["adapters"]["claude-code"]["installed-version"] == adversarial
     assert "evil" not in parsed["pack"], (
         "phantom [pack.evil] table landed via injection"
     )
@@ -96,10 +96,10 @@ def test_dump_state_resists_files_sha_injection() -> None:
     state = State()
     ps = PackState(installed_version="0.1.0")
     ps.files["AGENTS.md"] = {"sha": adversarial, "from-pack-version": "0.1.0"}
-    state.packs["core"] = ps
+    state.packs[("core", "claude-code")] = ps
 
     parsed = tomllib.loads(dump_state(state))
-    assert parsed["pack"]["core"]["files"]["AGENTS.md"]["sha"] == adversarial
+    assert parsed["pack"]["core"]["adapters"]["claude-code"]["files"]["AGENTS.md"]["sha"] == adversarial
     assert "evil" not in parsed["pack"]
 
 
@@ -110,10 +110,10 @@ def test_dump_state_resists_relpath_key_injection() -> None:
     state = State()
     ps = PackState(installed_version="0.1.0")
     ps.files[adversarial] = {"sha": "abc", "from-pack-version": "0.1.0"}
-    state.packs["core"] = ps
+    state.packs[("core", "claude-code")] = ps
 
     parsed = tomllib.loads(dump_state(state))
-    assert adversarial in parsed["pack"]["core"]["files"]
+    assert adversarial in parsed["pack"]["core"]["adapters"]["claude-code"]["files"]
     assert "evil" not in parsed["pack"]
 
 
@@ -125,10 +125,10 @@ def test_dump_state_resists_primitive_version_injection() -> None:
     state = State()
     ps = PackState(installed_version="0.2.0")
     ps.primitive_versions = {"skill": {"work-loop": adversarial}}
-    state.packs["core"] = ps
+    state.packs[("core", "claude-code")] = ps
 
     parsed = tomllib.loads(dump_state(state))
-    assert parsed["pack"]["core"]["skill"]["work-loop"]["version"] == adversarial
+    assert parsed["pack"]["core"]["adapters"]["claude-code"]["skill"]["work-loop"]["version"] == adversarial
     assert "evil" not in parsed["pack"]
 
 
