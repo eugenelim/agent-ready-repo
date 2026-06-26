@@ -103,18 +103,20 @@ def classify(relpath: str, root: Path, state: State) -> Tier:
     if not on_disk.exists():
         return Tier.TIER_1
 
-    expected_sha = None
-    for ps in state.packs.values():
-        sha = ps.file_sha(relpath)
-        if sha:
-            expected_sha = sha
-            break
-    if expected_sha is None:
+    # Multi-row resolution (RFC-0052 / ADR-0039): a path may be co-owned by
+    # several adapter rows. We no longer take the *first* owner via a
+    # `break` — instead the file is Tier-1 when its on-disk SHA matches
+    # **any** owner-row's recorded SHA. Co-owned rows hold an identical SHA
+    # by construction (the install gate refuses a same-path/different-SHA
+    # collision), so this normally compares against a single value; the
+    # set form is robust if a future corruption leaves rows disagreeing.
+    expected_shas = state.shas_for(relpath)
+    if not expected_shas:
         # Path recorded under a pack table but without a sha entry; we
         # can't prove tier-1 vs tier-2 — be conservative.
         return Tier.TIER_2
 
-    return Tier.TIER_1 if sha256_file(on_disk) == expected_sha else Tier.TIER_2
+    return Tier.TIER_1 if sha256_file(on_disk) in expected_shas else Tier.TIER_2
 
 
 # ---------------------------------------------------------------------------
@@ -567,10 +569,12 @@ def copy_jailed(root: Path, source: Path, relpath: str) -> Path:
 
 
 def projected_files_in_state(state: State, pack_name: str) -> Iterable[str]:
-    ps = state.packs.get(pack_name)
-    if ps is None:
-        return ()
-    return tuple(ps.files.keys())
+    # A pack may have several adapter rows (v0.4); the union of their
+    # footprints is the set of paths the pack projects at this scope.
+    out: set[str] = set()
+    for ps in state.rows_for_pack(pack_name).values():
+        out.update(ps.files.keys())
+    return tuple(sorted(out))
 
 
 # ---------------------------------------------------------------------------
