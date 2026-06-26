@@ -238,7 +238,8 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   blackboard · open-questions · traceability · decision-log) — every cycle's
   state is a blackboard slot, every consent a decision-log entry — and **does not
   fork it**. The seam is stated as **G4** (`work-loop` build done) → **the release
-  loop (RFC-0048's `release (outer)` gate-arc step)** → **G5** (human prod
+  loop (the release (outer) loop RFC-0048 places in the G4→G5 gap — a loop, not a
+  numbered gate)** → **G5** (human prod
   ship), continuing RFC-0048's gate arc. The outer
   loop deploys the **digest-pinned artifact the inner loop verified** — a
   substituted or rebuilt artifact between G4 and deploy is detectable (artifact
