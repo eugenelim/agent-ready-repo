@@ -121,8 +121,8 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         self.assertEqual(raw_state.get("schema-version"), STATE_SCHEMA_VERSION)
 
         state = load_state(state_path)
-        self.assertIn("converters", state.packs)
-        pack_state = state.packs["converters"]
+        self.assertTrue(state.has_pack("converters"))
+        pack_state = next(iter(state.rows_for_pack("converters").values()))
         self.assertEqual(pack_state.scope, "user")
         # The install→state→uninstall data flow runs through this dict;
         # uninstall reads it to know what to remove. Floor at three (one
@@ -171,7 +171,7 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         # that silently no-ops when the file is gone.
         converters_gone = (
             not state_path.exists()
-            or "converters" not in load_state(state_path).packs
+            or not load_state(state_path).has_pack("converters")
         )
         self.assertTrue(
             converters_gone,

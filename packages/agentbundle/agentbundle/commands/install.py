@@ -970,23 +970,40 @@ def run(args: "argparse.Namespace") -> int:
         # co-own (record, skip the write); different-SHA or cross-pack →
         # conflict. A conflict refuses (naming the paths) unless --force, which
         # routes through the existing Tier-2 `.upstream` companion writer.
-        from agentbundle.config import FootprintVerdict, footprint_plan
+        #
+        # The gate is the per-IDE projection's model. The **legacy dist-tree
+        # producer** (`--emit-install-routes`, or the no-resolved-adapter
+        # fallback render at repo scope) legitimately aggregates shared files
+        # across packs — most notably `claude-plugins/marketplace.json` — so it
+        # is exempt; there every path is treated as a normal write.
+        from agentbundle.config import FootprintPlan, FootprintVerdict, footprint_plan
 
-        incoming = {
-            relpath: safety.sha256_bytes(content)
-            for relpath, content in projection.items()
-        }
-        fp = footprint_plan(plan.state, pack_name, scope_adapter, incoming)
-        if fp.verdict is FootprintVerdict.REFUSE and not force:
-            print(
-                "install: refusing — these paths are already owned at a "
-                "different content (or by another pack):\n  "
-                + "\n  ".join(fp.conflicts)
-                + "\n  Pass --force to keep your version as a .upstream "
-                "companion.",
-                file=sys.stderr,
-            )
-            return 1
+        # Detect the dist-tree shape by its aggregation paths (mirrors the
+        # detection in diff.py) — robust to legacy packs that resolve an
+        # adapter but still render the dist-tree fallback, not just the
+        # explicit --emit-install-routes producer.
+        _is_dist_tree = emit_install_routes or any(
+            rp == "marketplace.json" or rp.startswith(("claude-plugins/", "apm/"))
+            for rp in projection
+        )
+        if _is_dist_tree:
+            fp = FootprintPlan(FootprintVerdict.PROCEED, {}, [])
+        else:
+            incoming = {
+                relpath: safety.sha256_bytes(content)
+                for relpath, content in projection.items()
+            }
+            fp = footprint_plan(plan.state, pack_name, scope_adapter, incoming)
+            if fp.verdict is FootprintVerdict.REFUSE and not force:
+                print(
+                    "install: refusing — these paths are already owned at a "
+                    "different content (or by another pack):\n  "
+                    + "\n  ".join(fp.conflicts)
+                    + "\n  Pass --force to keep your version as a .upstream "
+                    "companion.",
+                    file=sys.stderr,
+                )
+                return 1
 
         # Reset the PackState for this scope's install.
         prior = plan.state.row(pack_name, scope_adapter)

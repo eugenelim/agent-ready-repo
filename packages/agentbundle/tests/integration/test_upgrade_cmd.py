@@ -104,7 +104,7 @@ def test_whole_pack_upgrade_updates_version_and_content(tmp_path):
 
     # installed-version must be updated.
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert state.packs["core"].installed_version == "0.2.0"
+    assert state.row("core", "claude-code").installed_version == "0.2.0"
 
     # All projected files must now have 0.2.0 content.
     v2_projection = render_pack(PACK_V2)
@@ -185,14 +185,14 @@ def test_per_primitive_upgrade_moves_only_matching_files(
 
     # State must have primitive_versions entry.
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    pv = state.packs["core"].primitive_versions
+    pv = state.row("core", "claude-code").primitive_versions
     assert prim_type in pv, f"primitive_versions must contain {prim_type!r}"
     assert pv[prim_type].get(prim_name) == "0.2.0", (
         f"primitive_versions[{prim_type!r}][{prim_name!r}] must be '0.2.0'"
     )
 
     # Pack-level installed-version must NOT be updated on per-primitive upgrade.
-    assert state.packs["core"].installed_version == "0.1.0", (
+    assert state.row("core", "claude-code").installed_version == "0.1.0", (
         "installed-version must stay at 0.1.0 for a per-primitive upgrade"
     )
 
@@ -678,7 +678,7 @@ def test_dry_run_upgrade_no_edits_previews_overwrite_writes_nothing(tmp_path, ca
     state = __import__("agentbundle.config", fromlist=["load_state"]).load_state(
         tmp_path / ".agentbundle-state.toml"
     )
-    a_path = sorted(state.packs["core"].files)[0]
+    a_path = sorted(state.row("core", "claude-code").files)[0]
     assert a_path in out, f"plan must show the target path {a_path!r}; got:\n{out}"
 
     assert _snapshot_tree(tmp_path) == before, "dry-run upgrade must write nothing"
@@ -793,7 +793,7 @@ def test_derives_target_version_from_catalogue(tmp_path, capsys):
     rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
     assert rc == 0
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert state.packs["core"].installed_version == "0.2.0"
+    assert state.row("core", "claude-code").installed_version == "0.2.0"
     recap = capsys.readouterr().out.strip().splitlines()[-1]
     assert recap == "upgraded: core @ repo 0.1.0 -> 0.2.0", recap
 
@@ -823,7 +823,7 @@ def test_confirmation_accept_proceeds(tmp_path, capsys, monkeypatch):
     rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=False)
     assert rc == 0
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert state.packs["core"].installed_version == "0.2.0"
+    assert state.row("core", "claude-code").installed_version == "0.2.0"
 
 
 def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
@@ -839,7 +839,7 @@ def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
     assert rc != 0
     assert "aborted; no changes made" in capsys.readouterr().err
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert state.packs["core"].installed_version == "0.1.0"
+    assert state.row("core", "claude-code").installed_version == "0.1.0"
     assert _snapshot_tree(tmp_path) == before
 
 
@@ -857,7 +857,7 @@ def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):
     rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=False)
     assert rc != 0
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert state.packs["core"].installed_version == "0.1.0"
+    assert state.row("core", "claude-code").installed_version == "0.1.0"
 
 
 def test_yes_skips_prompt(tmp_path, monkeypatch):
@@ -873,7 +873,7 @@ def test_yes_skips_prompt(tmp_path, monkeypatch):
     rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=True)
     assert rc == 0
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert state.packs["core"].installed_version == "0.2.0"
+    assert state.row("core", "claude-code").installed_version == "0.2.0"
 
 
 def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
@@ -891,7 +891,7 @@ def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
     assert rc != 0
     assert "--yes" in capsys.readouterr().err
     state = load_state(tmp_path / ".agentbundle-state.toml")
-    assert state.packs["core"].installed_version == "0.1.0"
+    assert state.row("core", "claude-code").installed_version == "0.1.0"
 
 
 def test_dry_run_no_prompt_no_write(tmp_path, capsys, monkeypatch):

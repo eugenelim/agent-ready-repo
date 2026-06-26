@@ -32,7 +32,9 @@ def _seed_repo(root: Path, files: dict[str, str]) -> None:
             "sha": sha256_bytes(data),
             "from-pack-version": "0.1.0",
         }
-    state.packs["core"] = PackState(installed_version="0.1.0", files=file_entries)
+    state.packs[("core", "claude-code")] = PackState(
+        installed_version="0.1.0", files=file_entries, adapter="claude-code"
+    )
     (root / ".agentbundle-state.toml").write_text(dump_state(state), encoding="utf-8")
 
 

@@ -232,6 +232,14 @@ def test_orphan_refusal_does_not_cite_foreign_owned_paths(tmp_path):
     not in err`` regardless of whether the refusal message fires, so a
     future stderr rewording can't make this test silently vacuous.
     """
+    # RFC-0052 update: two *different* packs that ship the same primitive
+    # name land on the same per-IDE path — which is now a genuine **cross-pack
+    # footprint conflict** (ADR-0039: a cross-pack same-path claim is refused,
+    # even at equal content). The footprint gate fires *before* the orphan
+    # scan, so the historical orphan-refusal-misattribution scenario can no
+    # longer arise via two same-path packs; the cross-pack conflict is the
+    # correct, louder refusal. (The orphan-scan foreign-owned filter itself is
+    # still exercised by the `--force` test above and the scan unit tests.)
     cat = tmp_path / "cat"
     _stage_pack(cat, "pack-a", skills=["shared-tool"])
     _stage_pack(cat, "pack-b", skills=["shared-tool"])
@@ -247,19 +255,17 @@ def test_orphan_refusal_does_not_cite_foreign_owned_paths(tmp_path):
     rc, _, err = _install_argv(
         ["--pack", "pack-b", "--output", str(adopter), str(cat)]
     )
-    # Load-bearing: with the fix, the orphan-refusal branch must not
-    # fire for pack-b — every "orphan" the scanner returned was in
-    # fact pack-a's foreign-owned file, filtered out by the foreign-
-    # state-consultation pass. The install proceeds (rc=0).
-    assert rc == 0, (
-        f"pack-b install must proceed cleanly after the fix; the "
-        f"orphan-refusal branch fired against a foreign-owned path. "
-        f"rc={rc}, stderr: {err!r}"
+    # pack-b claims a path pack-a already owns → cross-pack conflict → refuse,
+    # naming the conflicting relpath (not citing it as a pack-b "orphan").
+    assert rc != 0, (
+        f"pack-b must refuse on the cross-pack same-path conflict; rc={rc}, "
+        f"stderr: {err!r}"
     )
-    # And the specific orphan-refusal phrasing must NOT have been
-    # emitted (positive signal that the filter ran, not that the
-    # branch was bypassed for some other reason).
+    assert "already owned" in err and "shared-tool" in err, (
+        f"refusal should name the conflicting path; stderr: {err!r}"
+    )
+    # The misleading orphan-refusal phrasing must NOT be what fired.
     assert "orphan projection files for pack pack-b" not in err, (
-        f"orphan refusal still fired against a foreign-owned path; "
+        f"orphan refusal fired instead of the cross-pack conflict; "
         f"stderr: {err!r}"
     )
