@@ -81,6 +81,31 @@ Sample reads, to calibrate the boundary:
   design-time lens roster (incl. a security/compliance lens distinct from the code
   `security-reviewer`). The tell: before treating a constraint as global, ask which
   context it was written for.
+- *A child effort whose parent pre-decided the value calls should resolve, not re-surface.*
+  Authoring the self-coverage gate's own RFC ([RFC-0051](../0051-the-self-coverage-gate.md)),
+  the resolve-vs-surface pass over its open items landed on **surfacing nothing genuinely
+  open** — every item (packaging, non-skippability mechanism, module set, light/full
+  right-sizing, sample-bank home) was referent-grounded by RFC-0048 D5, RFC-0041, or
+  `work-loop` itself. → **resolve.** The "land on nothing when research supports it" read,
+  applied reflexively: a child must not re-litigate what the foundation already settled. The
+  tell: when every candidate surface item traces to a referent the parent already cited, the
+  honest output is a recommendation, not a question.
+- *Blast radius, not topic, decides whether a naming call surfaces.* "Rename the **pack**
+  `design-craft`→`experience`?" → **surface** (adopter-facing identity, mild irreversibility).
+  "Name the internal `core` library `self-coverage`?" → **resolve** (the parent already calls
+  it "the self-coverage gate"; an internal library name is not adopter-identity-defining and
+  is cheaply changed). Same *kind* of question (what do we call our own surface), opposite
+  routing — set by who sees the name and how reversibly. The tell: ask who the name is
+  adopter-facing to before treating it as a value/identity call.
+- *A mechanism gap is referent-groundable even when the precedent doesn't transfer verbatim.*
+  "How is a gate made non-skippable when it runs in the **controller's own context**, where
+  `operational-safety`'s inline-into-a-subagent-brief mechanism has no brief to inline into?"
+  → **resolve** (referent: `work-loop`'s done-checklist already enforces non-skippable
+  refusal items — reviewer-clean, doc-drift — by doctrine + a mechanical record, no runtime;
+  the coverage record is one more of the same kind). The tell: when a cited precedent's
+  *mechanism* doesn't fit, look for the *property* it delivers (here: a mechanical artifact
+  the done-gate refuses to pass without) and find that property's nearest in-repo referent —
+  don't escalate the gap to the human just because the first precedent didn't transfer.
 
 *Sample reads appended by child-1 — the `experience` pack ([RFC-0050](../0050-the-experience-pack.md)):*
 - "Should `design-critique`'s taste mode become a reviewer **agent**?" → **resolve: no**
