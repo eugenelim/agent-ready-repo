@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The `new-rfc` skill now drafts more reviewer- and author-friendly RFCs
+  (governance-extras 0.3.2).** Three refinements, none of which changes the
+  answer-first template or the research→draft→gate flow: (1) the skill draws an
+  explicit *body-as-argument* line — a section that changes the reviewer's
+  decision stays in the RFC body, while proof-of-work (research transcripts,
+  prior-art matrices, review logs) is summarized and its detail linked from the
+  optional `NNNN-notes/` companion; (2) the pre-handoff gate runs the same checks
+  but hands back a concise, reviewer-oriented *readiness summary* with the heavy
+  proof linked rather than pasted; (3) RFC titles are kept short and identifying,
+  with the fuller explanation living in "The ask" so the RFC index stays
+  scannable.
 - **One pack can now be installed for several adapters at the same scope, and
   the adapters that all read `.agents/skills/` share one skill copy
   (RFC-0052).** The `agentbundle` install identity is now the *footprint* — the
