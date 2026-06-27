@@ -27,7 +27,8 @@
 ## The ask
 
 **Recommendation (BLUF).** Adopt an *operating model* that lets the catalogue act as
-an **autonomous product team from vision → shipped code** — and deliver it the way
+an **autonomous product team from vision → deploy-ready code** (release/ship completed
+by RFC-0049's outer loop) — and deliver it the way
 RFC-0041 and RFC-0043 delivered comparable cross-cutting capability: **as doctrine +
 pure-markdown skills + reference libraries — no new runtime engine.** This RFC *decides the model and the roadmap*; each artifact is built
 by a named child effort, not here. Concretely it adopts (a) the **two-regime principle** + a
@@ -208,8 +209,9 @@ worked example (a secure personal-assistant agent) end-to-end ([`0048-notes/02`]
    engine that isn't specified, and naively specified it risks Principle 3.
 
 **Goals.**
-- Vision → shipped code with **autonomy maximized between gates** and the human present
-  only at irreducible points (value origination; risk acceptance).
+- Vision → deploy-ready code in this RFC (RFC-0049 owns the G4→G5 release/ship loop),
+  with **autonomy maximized between gates** and the human present only at irreducible
+  points (value origination; risk acceptance).
 - Deliver entirely as **doctrine + pure-markdown skills + reference libraries + reuse**,
   so the capability is a *way of working*, not a runtime.
 - Make each child effort **shippable and useful standalone**, so value lands even if the
