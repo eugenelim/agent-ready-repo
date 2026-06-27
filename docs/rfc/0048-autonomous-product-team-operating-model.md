@@ -88,7 +88,8 @@ can the catalogue become an autonomous product team without violating Principle 
    carry a **platform/surface axis** (responsive web · iOS · Android · cross-platform),
    grounded in platform conventions (HIG / Material / responsive breakpoints / PWA).
    **Rename `design-craft` → `experience` — adopted** (more recognizable; v0.1.1 ⇒ low
-   migration cost now). No pack-level rename/alias field exists (grep-confirmed), so
+   migration cost now). No pack-level rename/alias field exists (surfaces and date pinned
+   in § Evidence & prior art → *Source pins for current-state claims*), so
    migration follows the actual `contract-acquisition` precedent: rename the dirs + a
    governance erratum, no install-time alias. · *why:* the missing column is the design/UX
    seat; one pack = one seat, and `experience` names it better than `design-craft`. ·
@@ -128,7 +129,9 @@ can the catalogue become an autonomous product team without violating Principle 
 7. **Adopt `omnigent` as the harness (temporarily) and run a *sidecar + chief-loop*
    validation — not a from-scratch coordinator build.** `omnigent` (DAIS 2026) already
    provides the runner/server harness, gates-outside-the-prompt, worktree blackboard,
-   YAML agent defs, and cross-vendor review — so "can a harness exist / is the no-engine
+   YAML agent defs, and cross-vendor review (this feature set is pinned to its source and
+   date — and flagged unverified-against-a-pinned-commit — in § Evidence & prior art → *Source pins
+   for current-state claims*) — so "can a harness exist / is the no-engine
    framing real" is **answered**, and a bespoke harness is **deferred** (build our own
    one day, optional; the catalogue ships harness-neutral doctrine + skills + the sidecar
    *schema*, so it runs on omnigent now). What **remains to validate** is exactly what
@@ -314,7 +317,10 @@ It is a **supervisor of a discovery lens-team**, and it right-sizes between two 
   blackboard** (the open-questions ripple), with `discovery-lead` as the **controller** —
   the proven supervisor + blackboard topology, not chat negotiation. This extends autonomy
   and parallelism: each lens runs deep and fresh-context in its domain at once. The MAST
-  guardrail is preserved by *how* they coordinate — via the blackboard + controller, never
+  guardrail (arXiv:2503.13657; consolidated in
+  [`0048-notes/01`](0048-notes/01-research-consolidation.md) and
+  [`03`](0048-notes/03-autonomy-and-gate-economics.md)) is preserved by *how* they
+  coordinate — via the blackboard + controller, never
   agent-to-agent negotiation-to-consensus.
 
 **The discovery lens-team is loop-scoped and distinct from `work-loop`'s reviewers.** The
@@ -495,7 +501,8 @@ MetaGPT and ChatDev are C-shape and the MAST study measures their failure cost
   batches consent at four gates; the frame-domain + self-coverage gate raise the floor.
 - *The rename breaks adopters.* `design-craft` is `default-scope = user`, so a rename
   touches every repo an adopter opens — *wider* per-adopter surface, not narrower — and
-  no pack-level rename/alias field exists today (grep-confirmed). **Mitigation:** the
+  no pack-level rename/alias field exists today (surfaces pinned in § Evidence & prior art →
+  *Source pins for current-state claims*). **Mitigation:** the
   rename mechanism is OQ1; default to the *actual* `infra-contract-acquisition →
   contract-acquisition` precedent (rename the dirs, bridge frozen governance via an RFC
   § Errata — that rename shipped **no** install-time alias), unless child-1 designs a
@@ -538,7 +545,8 @@ precisely because its fit is unproven.
 **Repo precedent.** RFC-0043, RFC-0030, RFC-0041, RFC-0025, RFC-0019, ADR-0019,
 `design-craft` pack, `work-loop` supervisor-mode + `loop-cohort`,
 `receive-brief`'s `lint-brief-coverage.py`. **Dependency note:** RFC-0043's product-rung
-spec is **Shipped** (`docs/specs/product-rung/`), so the `product-vision` /
+spec is **Shipped** (`docs/specs/product-rung/spec.md` status line; pinned in § Evidence & prior art →
+*Source pins for current-state claims*), so the `product-vision` /
 `product-strategy` altitudes that G0/G1 build on are live — a satisfied dependency, not
 an open risk.
 
@@ -577,6 +585,25 @@ artifact inventory, the judgment decomposition, the per-pack delta + orchestrati
 per-screen brief format, the artifact layout + backlog, and the gap resolutions + lens
 sample-bank. (The three-loops + company-OS note moved to [RFC-0049](0049-the-release-loop-and-company-os.md).)
 
+**Source pins for current-state claims.** Several load-bearing claims describe mutable
+state — pack versions, spec status, an external repo, the child-set roster — that future
+readers cannot re-derive from the prose. Each is pinned to the exact surface checked and
+the date it was checked, so an outside reviewer can re-verify (or flag staleness) before
+acceptance. Where a surface cannot be pinned to an immutable revision, the row says so
+explicitly.
+
+| Claim | Surface checked | As of |
+| --- | --- | --- |
+| No pack-level rename/alias field exists | `packages/agentbundle/agentbundle/config.py` (pack-manifest model) + `commands/install.py` (installer manifest handling — aliasing is adapter-only, e.g. `kiro`→`kiro-ide`) + `packs/design-craft/pack.toml`; ADR-0038 records the chosen no-alias rename path | 2026-06-26 |
+| `design-craft` is v0.1.1 and user-scope (⇒ low migration cost) | `packs/design-craft/pack.toml` — `version = "0.1.1"`, `default-scope = "user"` | 2026-06-26 |
+| Product-rung spec is Shipped | `docs/specs/product-rung/spec.md` status line — `**Status:** Shipped` | 2026-06-26 |
+| `omnigent` provides runner/server, gates-outside-the-prompt, worktree blackboard, YAML agent defs, cross-vendor review (⇒ runs on omnigent now) | Databricks DAIS-2026 announcement — [blog](https://www.databricks.com/blog/introducing-omnigent-meta-harness-combine-control-and-share-your-agents) + [repo](https://github.com/omnigent-ai/omnigent); feature set as-described in the announcement — **unverified against a pinned commit/tag; an external repo moves, so confirm against the repo's then-current revision before acceptance** | 2026-06-26 |
+| Child set complete and reconciled | the RFC index rows + the child RFC/spec paths in § Follow-on artifacts — RFC-0050, RFC-0051, RFC-0053, and specs `frame-domain` / `traceability-lint` | 2026-06-26 |
+
+The MAST design guardrail invoked in the body (Decision 8 / the lens-team topology) is
+arXiv:2503.13657, consolidated in [`0048-notes/01`](0048-notes/01-research-consolidation.md)
+and [`03`](0048-notes/03-autonomy-and-gate-economics.md).
+
 ## Open questions
 
 *All foundation-level questions are decided (folded into the body), each carrying a
@@ -590,7 +617,9 @@ recommendation the approver ratifies at acceptance:*
   (the release loop + minimum-regret deploy carve); out of 0048's scope.
 
 **No open questions remain at the foundation level.** Remaining unknowns are *delegated to
-the child efforts*. As of **2026-06-26 the child set is complete and reconciled** (see the
+the child efforts*. As of **2026-06-26 the child set is complete and reconciled** (the
+snapshot — the RFC index rows and the child RFC/spec paths — is pinned in § Evidence & prior art →
+*Source pins for current-state claims*; see also the
 Acceptance note at the top and the § Amendments discharge block), and the model is aligned;
 **acceptance is blocked** only by the owner-assigned follow-ons (the CONVENTIONS
 `Discovery:` edit; RFC-0053's implementing spec carrying AC0 + the layout key + the backlog
