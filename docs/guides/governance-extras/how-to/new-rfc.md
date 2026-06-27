@@ -58,7 +58,16 @@ to 7 based on six months of stasis-detection data
 
 Natural phrasings (`propose a change to …`, `let's get input on …`, `draft an RFC for …`) match the skill's description and often trigger it. The explicit form is the reliable one.
 
-## Step 2 — Watch the research + de-risk phase
+## Step 2 — Shape the proposal (the skill offers, doesn't force)
+
+Before any research, the skill gets the frame straight — and how hard it leans depends on how well-formed your ask already is:
+
+- **A sharp ask** (a clear change, a named surface, an evident motivation) — the skill infers the frame and moves straight to research. You won't be made to fill in a questionnaire you've already answered.
+- **A vague ask** ("we should probably do something about X") — the skill asks a *small* set of framing questions (what outcome, what's in and out of scope, what's the bet) and reflects back a short proposal frame for you to confirm, so research effort doesn't get spent on the wrong target.
+
+The skill also **picks the RFC's `Decision weight`** here — `light`, `standard`, or `heavy` — by reading `work-loop`'s risk triggers: a reversal of a frozen ADR/RFC, a governance/charter/security boundary, or a one-way door makes it `heavy`; a reversible, narrow change makes it `light`; everything else is `standard` (the default). The weight right-sizes how much research depth and pre-handoff ceremony the RFC carries — a `light` RFC collapses sections to one-liners — but it **never** licenses dropping a gate check (see Step 5). It's an offer, not a gate: a half-formed ask is normal input, not something to be rejected.
+
+## Step 3 — Watch the research + de-risk phase
 
 The skill scaffolds `docs/rfc/NNNN-<kebab-title>.md` from the bundled template and then **stops** before writing any body sentence. This is the load-bearing move: a complex RFC is a tree, not one blob, so the skill researches each *subpoint*, models its options out, and de-risks its own riskiest assumption — rather than handing you a pile of un-researched questions to rescue.
 
@@ -77,24 +86,25 @@ Read the recommendations carefully. For each:
 
 > **Do not approve the block in bulk.** A vague "looks good" doesn't count as sign-off on the highest-stakes recommendation. Name the recommendation you're accepting, especially when the skill flagged one as load-bearing.
 
-## Step 3 — Drafting resumes, answer-first
+## Step 4 — Drafting resumes, answer-first
 
 Once you sign off, the skill drafts the body — leading with the decision, then cascading detail:
 
-- **The ask.** Answer-first: the recommendation (BLUF) + an SCQA framing (Situation → Complication → Question) + the numbered decisions you're being asked to make, each with a recommended option and a decide-by. A reviewer should know what they're approving from the first screen.
+- **Reviewer brief.** A fixed first-screen orientation grid above "The ask" (Decision · Recommended outcome · Change if accepted · Affected surface · Stakes · Review focus · Not in scope). It *orients* the reviewer; "The ask" *argues* the decision — the skill keeps them de-duplicated rather than restating the BLUF twice. (This in-body brief is distinct from the chat-only `REVIEW READINESS` summary in Step 5.)
+- **The ask.** Answer-first: the recommendation (BLUF) + an SCQA framing (Situation → Complication → Question) + the decisions you're being asked to make rendered as a **table** — one row per decision, each with a recommended option, a decide-by, and a *reviewer action* column naming what you must do (confirm X, rule on Y). A reviewer should know what they're approving from the first screen.
 - **Problem & goals.** Diagnosis before solution, plus **Non-goals** — the could-have-been-goals deliberately dropped (not "won't crash").
 - **Proposal.** The concrete shape of the change, detailed under each decision.
 - **Options considered.** Mandatory and MECE along a stated axis, each option grounded in prior art and including "do nothing." The skill pushes back if the enumeration is a round number with no exhaustiveness argument.
 - **Risks & what would make this wrong.** A pre-mortem (assume it shipped and failed), falsifiable key assumptions, and drawbacks. The skill pushes back on "no drawbacks."
 - **Evidence & prior art.** The spike result and the prior-art citations from the research phase. Empty-with-explanation is valid; empty-with-no- explanation is not, and every citation is fetched and confirmed.
 - **Open questions.** Each carries a recommended default + owner + decide-by.
-- **Experiment / validation** (optional). Present only if the proposal needs an experiment — hypothesis, what's measured, success/failure criteria — with the *results* linked out to a spike note, not pasted into the RFC. Once circulating, while the trial runs the RFC sits in `Experimental` (see Step 5).
+- **Experiment / validation** (optional). Present only if the proposal needs an experiment — hypothesis, what's measured, success/failure criteria — with the *results* linked out to a spike note, not pasted into the RFC. Once circulating, while the trial runs the RFC sits in `Experimental` (see Step 6).
 
-The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft` and an `Approver` named in the frontmatter.
+The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft`, the `Decision weight` set, and an `Approver` named in the frontmatter.
 
-## Step 4 — The pre-handoff gate
+## Step 5 — The pre-handoff gate
 
-Before the RFC moves to `Open`, the skill runs a mandatory self-review gate so you aren't the one catching obvious misses. Each check is *run, not asserted*:
+Before the RFC moves to `Open`, the skill runs a mandatory self-review gate so you aren't the one catching obvious misses. Each check is *run, not asserted*. The `Decision weight` right-sizes how much research and draft each tier carries — **never whether a check runs**: a `light` RFC runs the full gate over a smaller draft (citations still fetched, the adversarial pass still mandatory and re-run until clean), `standard` is the full gate, and `heavy` adds a mandatory de-risk spike and explicit Approver sign-off. The checks:
 
 - **Citation-integrity.** Every reference is fetched and confirmed to actually contain the claim it's cited for — a link that merely loads isn't enough. Citations are challenged the same way (by fetching), never by eyeballing whether an identifier "looks real."
 - **Verify-before-you-assert.** Self-claims the RFC makes about itself (counts, "lighter", "readable") are checked against the artifact.
@@ -103,7 +113,7 @@ Before the RFC moves to `Open`, the skill runs a mandatory self-review gate so y
 
 What you get back at handoff is a short, reviewer-friendly **readiness summary** — the skill's `REVIEW READINESS` checklist (decision clear, citations checked, adversarial pass clean, and the rest) — not a compliance dump, and the heavy **proof** (citation-fetch detail, the adversarial-review transcript) stays *linked*, not pasted into the RFC. The summary is a chat handoff, never a section in the RFC itself. (The skill owns the exact item list, so this guide doesn't re-enumerate it.)
 
-## Step 5 — Move through the lifecycle
+## Step 6 — Move through the lifecycle
 
 The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn`. You move the status manually as the discussion progresses:
 
@@ -115,7 +125,7 @@ The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejecte
 
 The skill also updates `docs/rfc/README.md` so the new file shows up in the index.
 
-## Step 6 — After acceptance
+## Step 7 — After acceptance
 
 An accepted RFC is rarely the last artifact. It points at concrete follow-on work, which lives in `docs/specs/<feature>/`, `docs/adr/`, or `docs/CONVENTIONS.md`:
 
