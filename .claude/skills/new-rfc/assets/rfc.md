@@ -1,4 +1,6 @@
 # RFC-NNNN: <proposal title>
+<!-- short, identifying title (e.g. "Coordinator contract"); the fuller
+explanation goes in "The ask", not the title — a scannable index depends on it -->
 
 - **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental (optional: trial running, results pending — see the Experiment / validation section) -->
 - **Author:** <github-handle>
@@ -87,6 +89,10 @@ This section is mandatory and load-bearing.
   rests on a sustained investigation, keep the distilled brief and supporting
   material in a sibling `docs/rfc/NNNN-notes/` folder; summarize its conclusions
   here and link it, rather than pasting the corpus into the RFC body.
+
+Split rule: a section that changes the reviewer's decision stays in the body;
+one that mainly proves the work was done is summarized here and its detail moved
+to `NNNN-notes/`. The body is the argument; the notes are the audit trail.
 -->
 
 
