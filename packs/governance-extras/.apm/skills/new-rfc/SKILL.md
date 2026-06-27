@@ -41,7 +41,11 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    same way on native Windows, macOS, and Linux.)
 
 2. Copy this skill's bundled `assets/rfc.md` into `docs/rfc/` and rename
-   to `NNNN-<kebab-title>.md`. (Paths are skill-relative — the
+   to `NNNN-<kebab-title>.md`. **Keep the title short** — it should
+   *identify* the proposal in a few words (`RFC-NNNN: Coordinator
+   contract`), and the kebab filename follows it; the fuller explanation
+   belongs in **The ask**, not the title. A title that carries the whole
+   abstract makes the RFC index hard to scan. (Paths are skill-relative — the
    `assets/` folder lives next to this `SKILL.md` wherever your IDE
    installed the skill.) **Optional `NNNN-notes/` companion.** If the
    proposal rests on a sustained investigation, you may create a sibling
@@ -122,8 +126,17 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 
 4. **Draft the body, answer-first.** Lead with **The ask**; then route the
    findings: repo precedent → `Problem & goals` / `Evidence & prior art`;
-   external precedent and the spike result → `Evidence & prior art`. Sections
-   to push hardest on:
+   external precedent and the spike result → `Evidence & prior art`.
+
+   **Body-as-argument split rule.** The RFC body is the *argument* a reviewer
+   decides from — not an audit trail of your work. Keep a section in the body
+   when it changes the reviewer's decision; when a section mainly demonstrates
+   the work was done — full research transcripts, prior-art matrices,
+   adversarial-review logs — summarize its conclusion in the body and move the
+   detail to the optional `NNNN-notes/` companion (step 2). Default the body to
+   the argument and link the proof.
+
+   Sections to push hardest on:
    - **The ask.** The decision a reviewer must make, in plain language, on
      top — Recommendation (BLUF) + SCQA framing + numbered decisions, each
      with a recommended option + decide-by.
@@ -171,6 +184,24 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
      boundary. If no such subagent is installed, note it in the summary
      rather than skipping silently.
 
+   **Hand back a reviewer-friendly readiness summary, not a compliance dump.**
+   The checks above are run to build the *reviewer's* confidence, so report
+   their result as a short summary the reviewer can act on — and **link** the
+   heavy proof (citation-fetch detail, the adversarial-review transcript)
+   rather than pasting it into the RFC body or the handoff. Emit this **to chat
+   at handoff** — it is a handoff artifact, **never an RFC body or template
+   section**:
+
+   ```
+   REVIEW READINESS:
+   - Decision clear: yes/no
+   - Options include do-nothing: yes/no
+   - Riskiest assumption tested: yes/no (+ link)
+   - Citations checked: yes/no
+   - Open questions owned: yes/no
+   - Adversarial pass: clean | issues linked
+   ```
+
 6. Set status to `Draft` until the user is ready to circulate, then `Open`.
 
 7. Update `docs/rfc/README.md` table (create the file with the standard
@@ -209,3 +240,10 @@ The RFC itself is then "done" and stays as historical record.
   processes plainly exist → "we didn't look" isn't an answer. When web search
   *wasn't* available, say so explicitly under the heading and never fabricate
   citations to fill it.
+- Padding the RFC body with proof-of-work — full research transcripts,
+  prior-art matrices, adversarial-review logs — that belongs in the optional
+  `NNNN-notes/` companion → the body is the argument; summarize the conclusion
+  and link the detail.
+- A title that carries the whole abstract → shorten it to *identify* the
+  proposal; the explanation lives in **The ask**, and a scannable RFC index
+  depends on it.
