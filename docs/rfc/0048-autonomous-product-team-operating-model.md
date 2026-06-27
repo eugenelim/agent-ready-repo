@@ -11,8 +11,8 @@
   release-loop) was **reconciled as one operating system** — a G0→G5 composed pressure test
   ([`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md)) plus a
   resolve-vs-surface lens and two fresh-context adversarial passes — with every surfaced drift
-  folded into § Amendments (the *Foundation reconciliation discharge* block) and every open seam
-  assigned to a named owner. The remaining work is **prerequisite closure** (the acceptance
+  folded into § Amendments (the present contract in its *Current reconciliation state* table;
+  how each was reached in the audit trail below it) and every open seam assigned to a named owner. The remaining work is **prerequisite closure** (the acceptance
   blockers above), not unresolved foundation design. Drift the owed specs surface is still a bug
   to reconcile *in this RFC* (a tracked amendment), never to absorb silently downstream.
 - **Author:** eugenelim
@@ -625,6 +625,31 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
 
 Per the Acceptance note, drift a child surfaces against this foundation is
 reconciled **here**, as a tracked amendment, not absorbed silently downstream.
+This section is two layers: the **Current reconciliation state** table directly
+below is the authoritative present contract; the **amendment history** that
+follows it (the dated entries and the *Foundation reconciliation discharge*
+block) is the audit trail of how those corrections were reached. Where a
+historical entry carries superseded wording, the current-state table wins.
+
+### Current reconciliation state
+
+The corrections in force today — read these, not the log, for the present
+contract:
+
+| Area | Current rule | Owner / blocker |
+| --- | --- | --- |
+| Sidecar schema | Carried in `discovery-loop` at user scope; consumers read instances by convention + a `schema_version` stamp. | RFC-0053 implementing spec **AC0** (DRIFT-I) |
+| Discovery layout | The `docs/discovery/<initiative>/` config key is owned by RFC-0053's implementing spec; default + marker only until it binds. | RFC-0053 implementing spec (DRIFT-C) |
+| Discovery reviewers | `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope, distinct-named); `core`'s depth libraries are optional detect-and-degrade enhancers. | RFC-0053 / `discovery-loop` (DRIFT-E) |
+| Spec up-edge | `new-spec` produces the `Discovery:` header + discovery `type:` markers; must land before the traceability lint runs `--strict`. | CONVENTIONS / `new-spec` follow-on (DRIFT-G) |
+| Backlog handoff | RFC-0053's implementing spec owns decision-brief → work-item decomposition and `loop-cohort` cross-component ingestion. | RFC-0053 implementing spec (DRIFT-H) |
+
+### Amendment history / audit trail
+
+The dated entries below — and the *Foundation reconciliation discharge* block
+after them — explain **how** the corrections above were discovered and assigned.
+They are the audit trail, not a second source of truth; where an entry includes
+superseded wording, the current-state table above wins.
 
 - **2026-06-25 — D7 sidecar authority, refined by child-4 (traceability lint).** D7
   frames the **traceability matrix as the connectedness verifier** ("only this typed
@@ -807,10 +832,10 @@ Cross-referenced as **DRIFT-x** in note 10.
   discover-by-marker / in-repo case); a harness that provides a store (omnigent's worktree)
   supplies it instead. The traceability lint already bridges both (matrix **authoritative
   when present**, else derived from on-disk artifacts — the child-4 amendment above). The
-  **schema** is single-sourced in `core` regardless of store. **Revised 2026-06-26
-  (scope-decoupling):** the schema is no longer single-sourced in `core` — it is a carried
-  versioned contract that travels with its producer pack (see the dated entry above); the
-  store split (`_state/` vs harness worktree) stands unchanged.
+  **schema** travels as a carried versioned contract with its producer pack
+  (`discovery-loop`, user scope) — see the current-state table; the store split
+  (`_state/` vs harness worktree) stands unchanged. *(Superseded wording: an earlier draft
+  single-sourced the schema in `core`; the scope-decoupling entry above corrected that.)*
 - **DRIFT-C — the `docs/discovery/<initiative>/` layout config key is unbound; owner assigned
   to RFC-0053's implementing spec.** The [frame-domain spec](../specs/frame-domain/spec.md)
   § Ask first deferred "the precise adopter-file table for `docs/discovery/`" to "the
@@ -889,7 +914,7 @@ Cross-referenced as **DRIFT-x** in note 10.
 - **DRIFT-I — the carried sidecar *schema reference* (in `discovery-loop`, user scope, not
   `core`) is owed as the first acceptance criterion of RFC-0053's implementing spec; its three
   consumers sequence behind it.** Earlier D7 / RFC-0053 D2 wording had treated the schema as
-  single-sourced in `core` (since revised — see the dated entry below), but it exists only as
+  single-sourced in `core` (since revised — see the scope-decoupling dated entry above), but it exists only as
   **prose field-lists** —
   no implementing spec lands the reference file, while `discovery-loop`, the release loop
   ([release-loop spec](../specs/release-loop/spec.md) Assumptions name the dependency), and the
