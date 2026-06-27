@@ -621,6 +621,37 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   artifacts (§ Amendments DRIFT-G)** — the producer the traceability lint walks at G3; it must
   land before the lint is wired fail-closed (`--strict`) at a convergence gate.
 
+## Rollout and backout plan
+
+The Current reconciliation state table below names *what* the corrections in
+force are and *who* owns each. This table names *how each lands and how to back
+it out* — the operational half the design-doc rollout bar asks for. Two rules
+govern the whole set:
+
+- **Producers land before consumers; nothing is wired fail-closed until its
+  contract has landed.** The `--strict` traceability lint, required
+  `schema_version` checks, and automatic `loop-cohort` ingestion are each the
+  *last* step for their change, never the first — so a half-migrated state is a
+  warning, not a build break.
+- **Backout is reversion to the convention-tolerant fallback, not a separate
+  compatibility mode.** Each change degrades to the behavior that held before it
+  (convention-only reads, default + marker layout, non-strict lint, manual
+  work-item handoff). There is no partial-compatibility surface to maintain or
+  later remove.
+
+The owner named here is the **person/process accountable for landing and, if
+needed, reverting the change** — concretely, the author/approver of the spec or
+edit named in the row, which is the same artifact named in the Current
+reconciliation state table's *Owner / blocker* column.
+
+| Change | Rollout owner | Rollout shape (order) | Backout / rollback |
+| --- | --- | --- | --- |
+| `design-craft → experience` rename | RFC-0050 / ADR-0038 implementing-spec owner | Wave 1. Rename dirs + manifests + cross-links + layout key in one change; bridge frozen governance via ADR-0038 errata. No install-time alias. | Revert the rename patch before acceptance. No install-time alias means there is no partial-compatibility mode to maintain — the old name is either fully live or fully historical. |
+| Carried sidecar schema (DRIFT-I) | RFC-0053 implementing-spec owner | Land the schema reference first as **AC0**; consumers stay convention-tolerant (read by convention + a `schema_version` stamp) until compatibility checks exist. | Keep consumers in convention-only mode; do not require `schema_version` compatibility checks until AC0 passes. |
+| `docs/discovery/<initiative>/` layout key (DRIFT-C) | RFC-0053 implementing-spec owner | Add the layout key, then update producers to read it; default + marker remains the fallback until it binds. | Remove/ignore the config key; default + marker behavior stays valid. |
+| `Discovery:` header + discovery `type:` markers (DRIFT-G) | CONVENTIONS / `new-spec` follow-on owner | Add producers first (`new-spec` emits the header + markers); the traceability lint reports warnings before it runs `--strict`. | Keep the lint non-strict; specs without headers remain warnings, not failures. |
+| Backlog → `loop-cohort` ingestion (DRIFT-H) | RFC-0053 implementing-spec owner | Add the decomposition AC, then the ingestion AC; validate on the worked example before anything depends on it. | Keep the handoff as a manual work-item list; do not route through `loop-cohort` automatically. |
+
 ## Amendments (foundation reconciliations)
 
 Per the Acceptance note, drift a child surfaces against this foundation is
