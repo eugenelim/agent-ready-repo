@@ -13,8 +13,9 @@
 The change is **content + governance reconciliation**, not code: a new opt-in
 `release-engineering` pack holding one agent definition (`release-lead`) and one skill
 (`release-loop`), reusing `core`'s `operational-safety` depth modules + the
-`quality-engineer` and `security-reviewer` reviewers + the RFC-0053 `core` sidecar
-schema, and reconciling RFC-0049's two OQs + a tracked RFC-0048 amendment. The
+`quality-engineer` and `security-reviewer` reviewers + the RFC-0053 sidecar
+schema (carried in `product-engineering`'s `discovery-loop` skill, not `core`;
+consumed by convention), and reconciling RFC-0049's two OQs + a tracked RFC-0048 amendment. The
 shape is the established `implementer`/`discovery-lead` pattern: **shipping an
 agent def + a loop skill is shipping content, not a runtime** — Principle 3 forbids
 the harness, which omnigent supplies and we do not ship.
@@ -43,7 +44,7 @@ or the sidecar schema (RFC-0053) — both fenced off as Never-do / Ask-first.
 - **RFC-0048** (the provisional foundation): the G4→G5 arc, the sidecar substrate,
   the company-OS framing; reconciled here as a tracked amendment (D9
   series-execution standard).
-- **RFC-0053** (the sibling): the `core` sidecar schema this loop consumes, the
+- **RFC-0053** (the sibling): the sidecar schema this loop consumes by convention (carried in `product-engineering`'s `discovery-loop` skill, not `core`), the
   `agent-def + skill + no-engine` pattern, and the § Security & integrity contract
   shape AC10 mirrors downstream.
 - **RFC-0041 + ADR-0031**: doctrine + reference-library + reuse-existing-reviewers,
@@ -84,8 +85,11 @@ doctrine correctness.
 - Create `packs/release-engineering/` with `pack.toml`, `.claude-plugin/plugin.json`
   (version `0.1.0`), and `README.md` describing the SRE/ops outer-loop seat and
   its `core` hard-dependency + cloud/platform detect-and-degrade.
-- Declare the `core` hard-dependency (sidecar schema + `operational-safety` +
-  `quality-engineer` + `security-reviewer`) per the pack-manifest convention.
+- Declare the `core` hard-dependency (`operational-safety` +
+  `quality-engineer` + `security-reviewer`) per the pack-manifest convention; the
+  sidecar schema is consumed by convention (definition carried in
+  `product-engineering`'s `discovery-loop`, not `core`), so it is **not** a manifest
+  hard-dependency on `core` or `product-engineering`.
 - Mirror the self-host pack-scope rule: `release-engineering` is a user-scope-default
   opt-in pack — it belongs in `marketplace.json` but **not** in this repo's
   working-tree projection (the `make build-self` core+governance-extras scope).
@@ -256,7 +260,8 @@ updated.
   scaffold* an adopter's deploy / smoke / teardown artifacts, it does not ship
   them.
 - **External-system integration:** the omnigent harness (ephemeral envs, HITL
-  pause, cost policies) and the RFC-0053 `core` sidecar schema are
+  pause, cost policies) and the RFC-0053 sidecar schema (carried in
+  `product-engineering`'s `discovery-loop` skill, not `core`) are
   named-but-not-built dependencies — the loop consumes both by convention until
   RFC-0053's schema lands; flagged in the spec Assumptions.
 - **Deployment sequencing:** T1 before T2/T3 (pack home before its residents);
@@ -265,7 +270,7 @@ updated.
 
 ## Risks
 
-- **The `core` sidecar schema (RFC-0053) is not built yet.** AC7 consumes it by
+- **The sidecar schema (RFC-0053; carried in `discovery-loop`, not `core`) is not built yet.** AC7 consumes it by
   convention until it lands; if RFC-0053's schema differs from the slots named
   here, AC7's wording needs a follow-up sync. Mitigation: cite RFC-0053 as the
   single source and name the consume-by-convention fallback explicitly (spec

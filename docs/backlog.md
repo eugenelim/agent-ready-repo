@@ -274,11 +274,12 @@ wire it into `make build-check`).
 
 The traceability lint's sidecar cross-check (`_state/traceability.json` ↔ on-disk
 edge set) ships **warn-only (exit 0)** because the sidecar matrix schema is
-`core` sidecar doctrine (RFC-0048 D7) that **is not pinned yet** — a hard-failing
+sidecar doctrine carried in `product-engineering`'s `discovery-loop` skill
+(RFC-0048 D7 / § Amendments 2026-06-26, not `core`) that **is not pinned yet** — a hard-failing
 check against an undefined, not-yet-shipped schema is either dead code or a
 false-positive generator. **Unblocks when:** the sidecar `traceability.json`
 schema is pinned by the RFC-0048 child that ships it (the Decision-7 spike / the
-`core` sidecar-schema effort); then promote drift from warn to a hard violation
+carried sidecar-schema effort); then promote drift from warn to a hard violation
 (exit 1) and recognize the schema version, mirroring how `lint-brief-coverage.py`
 hard-fails on a stale recorded cell.
 
