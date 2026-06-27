@@ -337,10 +337,13 @@ journey/blueprint/architecture artifacts, never code diffs; for diff review use 
 blackboard; *value* disagreement (security says no, product says ship) → the human at G2
 (the conflict-adjudication act). **Progressive enhancement:** hard deps are
 product-engineering's intent skills + the carried sidecar-schema contract + the G3 handoff
-(schema home revised — § Amendments 2026-06-26); the `research` / `experience` / `architect`
-/ security-compliance lenses are **optional (detect-and-degrade)** — product-only discovery
-alone, lighting up into the full lens-team as those packs install (the security/quality lens
-is discovery's own user-scope reviewer, deepening on `core` when present).
+(schema home revised — § Amendments 2026-06-26) + the two `product-engineering` discovery reviewers
+(`discovery-threat-reviewer`, `discovery-reliability-reviewer`), **required at G2 reconcile**
+per the roster table above and degrading only in *depth* — they fall back to their own
+baseline checklists when `core`'s `security-checklists` / `operational-safety` +
+`quality-engineer` depth is absent, never to nothing. The `research` / `experience` /
+`architect` lenses are the **optional (detect-and-degrade)** set — product-only discovery
+alone, lighting up into the full lens-team as those packs install.
 
 *The sidecar (catalogue doctrine).* The typed state the two loops share is shipped as a
 **carried versioned schema contract** (harness-neutral; § Amendments 2026-06-26 revised this

@@ -108,9 +108,10 @@ and **writes the contract** the prototype validated (Decisions 2–5).
 - **Specify the harness-neutral contract**: the sidecar schema, the gate state machine, the
   outer cap, the supervisor topology — concrete enough that an adopter or a bespoke harness
   implements it without re-deriving it.
-- Ship as the **RFC-0041 idiom** — doctrine + an agent def + a skill + a schema, reusing the
-  existing reviewers (in a design-artifact mode, RFC-0048 O5) — so the capability is a *way
-  of working*, not a runtime (CHARTER Principle 3).
+- Ship as the **RFC-0041 idiom** — doctrine + an agent def + a skill + a schema, with the
+  design-time lens roster RFC-0048's authoritative roster table fixes (its own
+  `discovery-threat-reviewer` / `discovery-reliability-reviewer`, not `work-loop`'s code
+  reviewers) — so the capability is a *way of working*, not a runtime (CHARTER Principle 3).
 - Keep `discovery-loop` **useful at the floor** (product-only discovery with just
   `product-engineering` + `core`) and **progressively enhanced** as lens packs install.
 
@@ -279,21 +280,29 @@ counter-compare grounded in `work-loop`'s cap + omnigent's `cost_budget`, no run
   thrash is the *other* pattern (agents negotiating to consensus via chat), which the
   blackboard + controller mediation never does.
 
-The discovery roster is **loop-scoped**: the discovery **security/compliance** lens is a
-*design-time* role (threat-modeling + regulated-domain compliance over the
-journey/blueprint/architecture) — **a different agent from `work-loop`'s code
-`security-reviewer`**. So the charter's "three reviewers is the ceiling" is a
+The discovery roster is **loop-scoped** and authoritatively defined by RFC-0048's roster
+table — this RFC adds no roster of its own. The discovery **security/compliance** and
+**quality/reliability** lenses are *design-time* roles (threat-modeling + regulated-domain
+compliance, and reliability/operability, over the journey/blueprint/architecture), carried
+by `product-engineering`'s **`discovery-threat-reviewer`** and
+**`discovery-reliability-reviewer`** — **distinct agents from `work-loop`'s code
+`security-reviewer` / `quality-engineer`**, by exact name (the collision-hardening RFC-0048's
+table requires). So the charter's "three reviewers is the ceiling" is a
 `work-loop`/code-review constraint; the discovery loop carries its own design-time lens
-roster (RFC-0048 D7/D8's loop-scoped-roster framing, ~5 disciplines — disciplined, not a
-marketplace; the CHARTER's reviewer ceiling itself stays a `work-loop`/code-review cap,
-recorded as a tracked RFC-0048 amendment by this child — see Follow-on artifacts). **Lens conflicts:** factual disagreement → `discovery-lead`
-arbitrates via referents on the blackboard; *value* disagreement (security says no, product
-says ship) → the human at G2 (the conflict-adjudication act). **Progressive enhancement
-(A3):** hard deps are `product-engineering`'s intent skills + `core`'s sidecar schema + the
-G3 handoff; the `research` / `experience` / `architect` / security-compliance lenses are
-optional detect-and-degrade — product-only discovery alone, lighting up as packs install.
-The "team" is the installed lens-packs + a thin team-manifest; omnigent YAML agent-defs are
-the harness expression.
+roster (RFC-0048's roster table — disciplined, not a marketplace; the CHARTER's reviewer
+ceiling itself stays a `work-loop`/code-review cap, recorded as a tracked RFC-0048 amendment
+by this child — see Follow-on artifacts). **Lens conflicts:** factual disagreement →
+`discovery-lead` arbitrates via referents on the blackboard; *value* disagreement (security
+says no, product says ship) → the human at G2 (the conflict-adjudication act). **Progressive
+enhancement (A3):** hard deps are `product-engineering`'s intent skills + the carried
+versioned sidecar-schema contract (harness-neutral, travels with its producer pack — RFC-0048
+§ Amendments 2026-06-26) + the G3 handoff + the two `product-engineering` discovery reviewers,
+**required at G2 reconcile** and degrading only in *depth* (their own baseline checklists when
+`core`'s `security-checklists` / `operational-safety` + `quality-engineer` depth is absent,
+never to nothing). The `research` / `experience` / `architect` lenses are the optional
+detect-and-degrade set — product-only discovery alone, lighting up as packs install. The
+"team" is the installed lens-packs + a thin team-manifest; omnigent YAML agent-defs are the
+harness expression.
 
 ### Security & integrity contract (spec-stage acceptance criteria)
 
@@ -315,14 +324,17 @@ RFC ships no code, so it specifies the controls, it does not implement them):
   the integrity delegated to a harness-provided immutable log) and a **trusted timestamp**.
   Append-only is partly mechanically checkable (a lint/CI assertion that the slot's commits
   are add-only), so pair the AC with that wiring.
-- **Security/compliance lens is non-degradable on a security boundary.** Detect-and-degrade
-  is right for low/moderate stakes, but it must not let security be *silently* skipped on a
-  security-relevant product (the worked example's whole ripple is an OWASP LLM-01/08
-  prompt-injection-self-modification finding). **AC:** tie the security/compliance lens to a
-  **risk trigger** (mirroring RFC-0025 / the surfacing predicate) — when an intent or
-  artifact crosses a security boundary (auth, untrusted-input-to-memory, regulated data) and
-  the lens pack is absent, the loop **surfaces to the human** ("security-relevant boundary
-  crossed, no security lens installed") rather than degrading silently.
+- **Security/compliance lens is non-degradable on a security boundary.** The
+  `discovery-threat-reviewer` is a hard dep (required at G2; it ships in `product-engineering`,
+  the floor) and degrades only in *depth* — never silently skipped. But its baseline checklist
+  must not silently stand in for full depth on a security-relevant product (the worked
+  example's whole ripple is an OWASP LLM-01/08 prompt-injection-self-modification finding).
+  **AC:** tie the lens's *depth* to a **risk trigger** (mirroring RFC-0025 / the surfacing
+  predicate) — when an intent or artifact crosses a security boundary (auth,
+  untrusted-input-to-memory, regulated data) and `core`'s `security-checklists` depth is absent
+  (only the reviewer's baseline checklist is available), the loop **surfaces to the human**
+  ("security-relevant boundary crossed, only baseline security depth installed") rather than
+  degrading silently.
 - **Lens-write integrity (no blackboard poisoning).** In lens-team mode, lens-agents write
   the blackboard the controller trusts for convergence and cascade-invalidation; a lens that
   ingests untrusted external content (web `research`, adopter docs) is an injection sink.
@@ -371,7 +383,7 @@ coordinator must sit somewhere on it; prior art grounds each point.
 | Option | Shape | Verdict |
 | --- | --- | --- |
 | **A. Do nothing** — leave the coordinator a noun (RFC-0048's diagnosis: "a noun, not a design") | none | Cost of delay: every operating-model step assumes an unspecified orchestrator; the gate ladder stays un-runnable; the connectedness claim stays an assertion. Rejected. |
-| **B. Doctrine + agent-def + skill + sidecar schema, reuse reviewers, no engine** ★ | the RFC-0041 / RFC-0049 idiom, one altitude up | **Recommended.** Fits Principle 3; **spike-confirmed** (Decision 1); the contract is harness-neutral; `discovery-loop` is useful at the floor and progressively enhanced. |
+| **B. Doctrine + agent-def + skill + sidecar schema, reviewers-as-content, no engine** ★ | the RFC-0041 / RFC-0049 idiom, one altitude up (with its own design-time reviewer roster — RFC-0048's table, not `core`'s code reviewers reused) | **Recommended.** Fits Principle 3; **spike-confirmed** (Decision 1); the contract is harness-neutral; `discovery-loop` is useful at the floor and progressively enhanced. |
 | **C. A coordinator runtime / engine** (a scheduler + convergence solver + message bus) | MetaGPT / ChatDev / CrewAI manager-routing shape | Rejected for two distinct reasons: (i) Principle 3 forbids shipping runtime infrastructure; (ii) *separately*, manager-routing/chat-negotiation multi-agent measures 41–86% failure (MAST). The spike showed none of it is needed — the loop runs as content + a lint. Rejected; the harness (omnigent) supplies the runner without us shipping it. |
 | **D. Fold the coordinator into `work-loop`** (one loop for discovery + build) | a single mega-loop | Conflates two loops with different inputs, verifiers, and autonomy postures (RFC-0048 D8's "must not be conflated"); the upstream has no local verifier, the downstream does. Un-right-sizable. Rejected. |
 
