@@ -101,6 +101,8 @@ Before the RFC moves to `Open`, the skill runs a mandatory self-review gate so y
 - **Per-subpoint backing + completeness.** Each decision is backed; the `Approver` is named; every decision has a recommendation; do-nothing is present; open questions are ≤3 and owned.
 - **A different-lens review.** A fresh-context `adversarial-reviewer` pass (and `security-reviewer` if the RFC touches a security boundary), re-run until clean — because a same-session self-check rationalises its own draft.
 
+What you get back at handoff is a short, reviewer-friendly **readiness summary** — the skill's `REVIEW READINESS` checklist (decision clear, citations checked, adversarial pass clean, and the rest) — not a compliance dump, and the heavy **proof** (citation-fetch detail, the adversarial-review transcript) stays *linked*, not pasted into the RFC. The summary is a chat handoff, never a section in the RFC itself. (The skill owns the exact item list, so this guide doesn't re-enumerate it.)
+
 ## Step 5 — Move through the lifecycle
 
 The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn`. You move the status manually as the discussion progresses:
