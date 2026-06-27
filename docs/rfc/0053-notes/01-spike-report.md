@@ -70,7 +70,8 @@ library + reuse, "no engine"; `work-loop`'s own supervisor mode is doctrine + th
 kind of thing one altitude up.
 
 So the catalogue ships: a `discovery-lead` **agent definition** + a `discovery-loop`
-**skill** (content, like `implementer`) + the sidecar **schema** (core doctrine). The
+**skill** (content, like `implementer`) + the sidecar **schema** (carried in the
+`discovery-loop` skill, not `core` — RFC-0048 § Amendments 2026-06-26). The
 *store* and the *gate enforcement* are the harness's. No runtime crosses the charter's
 Principle 3.
 
