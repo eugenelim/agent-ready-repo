@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The `new-rfc` skill now sizes each RFC to its two humans — the author and
+  the reviewer (governance-extras 0.4.0, implementing RFC-0054).** Four changes,
+  the deferred half of the human-consumption work whose RFC-0014-clean half
+  shipped in 0.3.2: (1) a `Decision weight: light | standard | heavy` header
+  field that right-sizes research depth and the pre-handoff gate — an
+  author-picked prose heuristic off `work-loop`'s risk triggers, defaulting to
+  `standard`; (2) a top-of-doc `## Reviewer brief` orientation grid that gives a
+  reviewer first-screen bearings above "The ask"; (3) "The ask" decisions
+  rendered as a table (with a per-decision *reviewer action* column) instead of
+  numbered prose; (4) a guided shape/intake step before research that asks
+  framing questions when intent is vague and infers when it's already specified
+  — offered, never forced. Weight-based right-sizing changes how much research
+  and draft an RFC carries, never whether a mandated pre-handoff gate check runs.
 - **The `new-rfc` skill now drafts more reviewer- and author-friendly RFCs
   (governance-extras 0.3.2).** Three refinements, none of which changes the
   answer-first template or the research→draft→gate flow: (1) the skill draws an
