@@ -46,11 +46,11 @@ architecture is drawn.
 | Hop | Detail | Status |
 | --- | --- | --- |
 | Agent | `research` applied mode ✓ — grounds the real-life activity (how owners actually plan/act/restock) + best practice + naive-design failure modes. | exists, **not wired as a mandatory pre-convergence gate → GAP-P4** |
-| Agent | Produce a **domain-anchor artifact** the UX/tech lenses MUST consume; reconcile lens flags any screen/service that contradicts it. | typed artifact shape missing → **GAP-P4** |
-| Agent | Bound **appetite/MVP**: anything not rooted in an in-appetite outcome is scope creep. | appetite in brief ✓ + frame-intent ✓, but **no scope-creep guard → GAP-O10** |
+| Agent | Produce a **Domain Framing artifact** the UX/tech lenses MUST consume; reconcile lens flags any screen/service that contradicts it. | typed artifact shape missing → **GAP-P4** |
+| Agent | Bound **appetite/MVP** via the **Scope Boundary artifact**: anything not rooted in an in-appetite outcome is scope creep. | appetite in brief ✓ + frame-intent ✓, but **no scope-creep guard → GAP-O10** |
 | Surface | Assumptions research could NOT resolve → surfaced here. MVP boundary → human confirms in/out. | — |
 
-### Domain anchor — the recurring activity (MVP-scoped) — *worked example of GAP-P4 output*
+### Domain Framing + Scope Boundary — the recurring activity (MVP-scoped) — *worked example of GAP-P4 output*
 
 *How the activity is really done (the real activity, not a fantasy of it):*
 - It runs on a **cadence/horizon** (e.g. weekly), and the high-deliberation slice is a
@@ -131,7 +131,7 @@ writes approval/audit copy. **Ripple settles → converged.**
 | Hop | Detail | Status |
 | --- | --- | --- |
 | Agent | Saturation check: no new OQ + traceability closed; else stall-at-cap. | `research-project-check` pattern exists but research-scoped → **GAP-O6 (generalize stop-signal)** |
-| Agent | Render blackboard → **decision package**: journey + screens + arch sketch + tension/assumption ledger + one-way doors before build. | depends on GAP-O2 |
+| Agent | Render blackboard → **decision brief**: journey + screens + arch sketch + tension/assumption ledger + one-way doors before build. | depends on GAP-O2 |
 | Human | Approves the "what" before any "how". | — |
 | Agent | Per feature: `decompose-intent` leaf → writes `docs/product/briefs/<slug>.md`. | ✓ |
 
@@ -166,7 +166,7 @@ writes approval/audit copy. **Ripple settles → converged.**
 ## Validated gap inventory
 
 **Primitive gaps (build first — each usable standalone):**
-- **GAP-P4 domain-anchor** — wire `research` applied mode as a mandatory pre-convergence gate + a typed domain-anchor artifact lenses must consume. (The single biggest correctness lever: stops the agent hallucinating the domain.)
+- **GAP-P4 frame-domain** — wire `research` applied mode as a mandatory pre-convergence gate + a typed Domain Framing artifact lenses must consume. (The single biggest correctness lever: stops the agent hallucinating the domain.)
 - GAP-P1 `map-journey` · GAP-P2 `blueprint-service` · GAP-P3 `inventory-screens` (experience pack)
 - GAP-C1 wire `voice-and-microcopy` to consume a screen inventory
 - GAP-O4 traceability lint (tool) · GAP-O6 generalize saturation stop-signal
@@ -182,6 +182,6 @@ writes approval/audit copy. **Ripple settles → converged.**
 **Decision (not necessarily build):** GAP-O9 build→deploy boundary.
 
 ## Sequencing: primitives → orchestrated team
-1. **Domain-anchor wiring (P4)** + **Experience pack** (P1–P3) + GAP-C1 — standalone, immediately useful; P4 first because every later lens consumes its output.
+1. **frame-domain wiring (P4)** + **Experience pack** (P1–P3) + GAP-C1 — standalone, immediately useful; P4 first because every later lens consumes its output.
 2. **Convergence primitives** — blackboard schema (O2), OQ queue (O3), traceability lint with scope-creep direction (O4+O10), generalized saturation (O6), gate-ladder + predicate definitions.
-3. **Coordinator/orchestrator** — drives descent (O1), runs the blackboard loop with live lenses (O5), cross-feature DAG (O7), spec linkage (O8), renders decision packages at consent gates. Last because it depends on 1+2.
+3. **Coordinator/orchestrator** — drives descent (O1), runs the blackboard loop with live lenses (O5), cross-feature DAG (O7), spec linkage (O8), renders decision briefs at consent gates. Last because it depends on 1+2.
