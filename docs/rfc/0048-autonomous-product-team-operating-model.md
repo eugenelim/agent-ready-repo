@@ -4,14 +4,14 @@
 - **Provisional foundation — reconciliation pass complete (2026-06-26); status held
   provisional pending the owed follow-ons:** this umbrella/foundation RFC remains
   *provisional* — amendable, not frozen — until every child RFC is modelled out and
-  drift-aligned back to it. The child set is now complete (experience · domain-anchor ·
+  drift-aligned back to it. The child set is now complete (experience · frame-domain ·
   self-coverage · traceability-lint · coordinator · release-loop) and the whole set has been
   **reconciled as one operating system** — a G0→G5 composed pressure test
   ([`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md)) plus a
   resolve-vs-surface lens and two fresh-context adversarial passes — with every surfaced drift
   folded into § Amendments (the *Provisional-foundation discharge* block) and every open seam
   assigned to a named owner. **The freeze is deliberately held** until those owner-assigned
-  follow-ons land — RFC-0053's implementing spec (AC0 the `core` sidecar-schema reference, the
+  follow-ons land — RFC-0053's implementing spec (AC0 the carried sidecar-schema contract, the
   `docs/discovery/<initiative>/` layout key, the backlog-decomposition + `loop-cohort` ACs) and
   the CONVENTIONS-edit `new-spec` `Discovery:` header — at which point freezing is a one-line
   status flip backed by an already-aligned model. Drift is a bug to reconcile *in this RFC* (a
@@ -35,7 +35,7 @@ by a named child effort, not here. Concretely it adopts (a) the **two-regime pri
 **judgment-decomposition→equipping map** + a **risk-calibrated gate ladder and
 surfacing predicate** as `work-loop`/CONVENTIONS doctrine; (b) the rename
 `design-craft → experience` plus its connective UX skills; (c) three primitives
-(domain-anchor, self-coverage gate, traceability lint); and (d) a **coordinator
+(frame-domain, self-coverage gate, traceability lint); and (d) a **coordinator
 spike — not a build** — gating any orchestration RFC behind a design pass.
 
 **Why now (SCQA).** *Situation:* the catalogue already has the product altitude
@@ -90,13 +90,16 @@ can the catalogue become an autonomous product team without violating Principle 
    governance erratum, no install-time alias. · *why:* the missing column is the design/UX
    seat; one pack = one seat, and `experience` names it better than `design-craft`. ·
    decide-by: RFC accept (records an ADR).
-4. **Add the domain-anchor primitive** — a typed artifact (real-activity grounding +
-   best practice + naive-failure modes + MVP/appetite **out-of-scope register**),
-   produced via `research` applied mode. For **brownfield** it carries a **current-system
-   half** (reverse-engineered from code/docs via `decision-archaeology` + architecture
-   extraction) alongside the real-world-activity half, plus *reverse* traceability
-   (code→artifacts). · *why:* the single biggest correctness lever against
-   domain-hallucination. · decide-by: RFC accept · default: adopt.
+4. **Add the frame-domain primitive** — one skill producing **two** typed artifacts:
+   **Domain Framing** (real-activity grounding + best practice + naive-failure modes,
+   produced via `research` applied mode; for **brownfield** a **current-system half**
+   reverse-engineered from code/docs via `decision-archaeology` + architecture
+   extraction alongside the real-world-activity half, plus *reverse* traceability
+   code→artifacts) and **Scope Boundary** (the MVP/appetite **out-of-scope register**,
+   the upstream scope-creep guard the brief inherits/refines at G3). · *why:* the
+   single biggest correctness lever against domain-hallucination and over-scoping. ·
+   decide-by: RFC accept · default: adopt. (Split into two artifacts — § Amendments
+   2026-06-26.)
 5. **Add the self-coverage gate** — its content (domain-grounding table · pre-mortem ·
    taxonomy walk · saturation declaration · fresh-context adversarial · a
    **scenario-variation** step that re-runs the design against a varied domain /
@@ -144,13 +147,16 @@ can the catalogue become an autonomous product team without violating Principle 
    convergence-loop skill, in `product-engineering`** (an *opt-in product capability*, not
    `core`: unlike `work-loop` it is product-discipline-specific, so it ships in the
    product pack an adopter chooses, not the universal base). It depends **hard** on
-   product-engineering's own intent skills + `core`'s sidecar schema + the G3 handoff to
-   `work-loop`, and **optionally** (Tier-1 detect-and-degrade) on `research` / `experience`
-   / `architect` — so it runs a product-only discovery with just product-engineering +
-   core, and **lights up into full cross-discipline convergence as more packs are
+   product-engineering's own intent skills + the carried sidecar-schema contract + the G3
+   handoff to `work-loop` (schema home revised — § Amendments 2026-06-26), and
+   **optionally** (Tier-1 detect-and-degrade) on `research` / `experience` / `architect`
+   *and on `core`'s reviewers + depth libraries* — so it runs a product-only discovery with
+   just **product-engineering** installed (the schema contract and its design lenses travel
+   with the pack; `core` is an optional depth enhancer, not required), and **lights up into
+   full cross-discipline convergence as more packs are
    installed**. It is the human-facing **upstream supervisor** (peer of
-   `work-loop` / `implementer`): it runs `discovery-loop` (intents → domain anchor →
-   blackboard → decision package at consent gates → emits briefs/specs), holds the
+   `work-loop` / `implementer`): it runs `discovery-loop` (intents → frame-domain →
+   blackboard → decision brief at consent gates → emits briefs/specs), holds the
    blackboard in **one reasoning context**, fans
    out only to disjoint workers, and talks to the human at the consent gates. It is a
    *peer* of `work-loop`'s supervisor, **not the same loop** — `work-loop` supervises the
@@ -263,8 +269,8 @@ the traceability/scope-creep lint (a tool).
 gains a second, peer loop:
 - **`work-loop`** — the *build* loop: spec → plan → implement → gate → review → code.
   Downstream, verifiable, agent-autonomous. (Exists.)
-- **`discovery-loop`** — the *discovery* (shaping) loop (new): vision → intents → domain anchor → blackboard
-  convergence (product / UX / tech / reconcile lenses) → decision package at consent
+- **`discovery-loop`** — the *discovery* (shaping) loop (new): vision → intents → frame-domain → blackboard
+  convergence (product / UX / tech / reconcile lenses) → decision brief at consent
   gates → emits briefs/specs. Upstream, generative, human-ratified.
 
 The names are the **dual-track** ontology a product org already speaks: `discovery-loop`
@@ -300,13 +306,16 @@ loop-scoped, ~5 disciplines — disciplined, not a marketplace).
 **Lens conflicts:** factual disagreement → `discovery-lead` arbitrates via referents on the
 blackboard; *value* disagreement (security says no, product says ship) → the human at G2
 (the conflict-adjudication act). **Progressive enhancement:** hard deps are
-product-engineering's intent skills + `core`'s sidecar schema + the G3 handoff; the
-`research` / `experience` / `architect` / security-compliance lenses are **optional
-(detect-and-degrade)** — product-only discovery alone, lighting up into the full lens-team
-as those packs install.
+product-engineering's intent skills + the carried sidecar-schema contract + the G3 handoff
+(schema home revised — § Amendments 2026-06-26); the `research` / `experience` / `architect`
+/ security-compliance lenses are **optional (detect-and-degrade)** — product-only discovery
+alone, lighting up into the full lens-team as those packs install (the security/quality lens
+is discovery's own user-scope reviewer, deepening on `core` when present).
 
-*The sidecar (catalogue doctrine).* The typed state the two loops share is shipped as
-**schema in `core`** (harness-neutral); the *store* is the harness's. Four slots:
+*The sidecar (catalogue doctrine).* The typed state the two loops share is shipped as a
+**carried versioned schema contract** (harness-neutral; § Amendments 2026-06-26 revised this
+from "schema in `core`" to a contract that travels with its producer pack); the *store* is
+the harness's. Four slots:
 - **blackboard** — the typed artifact slots (= the artifact inventory), versioned;
 - **open-questions queue** — `{raised-by, target-discipline, question, status, resolution}`;
 - **traceability matrix** — the outcome→…→component edge set the lint checks (orphan = defect);
@@ -322,7 +331,7 @@ harness-neutral schema keeps a future bespoke harness open. The Decision-7 work 
 not a paper design.
 
 *Artifact organization & the backlog bridge.* `discovery-loop` converges a
-**decision-package** and decomposes it into a **backlog** — the bridge artifact: ordered,
+**decision-brief** and decomposes it into a **backlog** — the bridge artifact: ordered,
 dependency-aware **work items**, each a buildable slice scoped to one (or few) distributed
 component(s). `work-loop` pulls them **one at a time** in topological order (`loop-cohort`),
 so a multi-module discovery slices cleanly into per-component build runs — the **service
@@ -344,7 +353,7 @@ write. Full ontology + folder layout (incl. the establish-and-resolve doctrine) 
 flowchart TB
   Human(("Human"))
   Harness["omnigent harness — runner/server · git-worktrees · option-card consent UI"]
-  Sidecar[("sidecar (core doctrine) — blackboard · open-questions · traceability · decision log")]
+  Sidecar[("sidecar (carried schema contract) — blackboard · open-questions · traceability · decision log")]
 
   subgraph discoveryloop["discovery-loop · discovery-lead (upstream · human-ratified)"]
     direction TB
@@ -387,14 +396,14 @@ flowchart TB
 | # | Gate / phase | Driver | Skill(s) (pack) | Artifact | Human |
 | --- | --- | --- | --- | --- | --- |
 | 1 | **G0 Intake** | `discovery-lead` | `frame-intent` (product-engineering) | product-vision intent | **ratifies** the vision / scale / appetite read (consent) |
-| 2 | **G1 Strategy** | `discovery-lead` | `de-risk-intent`, `decompose-intent` (PE); `research` (research) subroutine; `identify-perspectives` (research) if multi-stakeholder | capability intents · outcomes · de-risk record · tension map | none, unless a scope one-way-door or logged conflict |
-| 3 | **G1.5 Domain & MVP** | `discovery-lead` | `domain-anchor` (PE) wrapping `research` applied + (brownfield) `decision-archaeology` (research) | domain anchor (+ out-of-scope register) · persona | **ratifies the MVP boundary** (consent) |
+| 2 | **G1 Strategy** | `discovery-lead` | `de-risk-intent`, `decompose-intent` (PE); `research` (research) subroutine; `identify-perspectives` (research) if multi-stakeholder | capability intents · outcomes · assumption test · tension map | none, unless a scope one-way-door or logged conflict |
+| 3 | **G1.5 Domain & MVP** | `discovery-lead` | `frame-domain` (PE) wrapping `research` applied + (brownfield) `decision-archaeology` (research) | Domain Framing + Scope Boundary · persona | **ratifies the MVP boundary** (consent) |
 | 4a | Convergence — product | `discovery-lead` | `decompose-intent` (PE) | feature intents | — |
 | 4b | Convergence — UX | `discovery-lead` | `map-journey` → `inventory-screens` (+ per-screen briefs) → `blueprint-service` (experience) | journey · screen inventory + briefs · service blueprint | — |
 | 4c | Convergence — design | `discovery-lead` | `aesthetic-direction`, `design-critique` (experience); `voice-and-microcopy` (PE) | aesthetic direction · critiques · copy deck | — |
 | 4d | Convergence — tech | `discovery-lead` | `architect-design`, `architect-diagram` (architect); `api`/`event-contract` (contracts) | C4 · domain model · contracts | — |
 | 4e | Convergence — reconcile | `discovery-lead` | `security-reviewer` + `quality-engineer` as **live lenses**; traceability lint; self-coverage gate (pre-mortem · taxonomy · scenario-variation · fresh-context) | resolved open-questions · coverage record · updated traceability matrix | only if an **irreducible tension / value conflict** surfaces |
-| 5 | **G2 Convergence** | `discovery-lead` | (renders the blackboard) | **decision package** (journey + screens + arch + tension/assumption ledger) | **ratifies the "what"**; **adjudicates conflicts** (consent) |
+| 5 | **G2 Convergence** | `discovery-lead` | (renders the blackboard) | **decision brief** (journey + screens + arch + tension/assumption ledger) | **ratifies the "what"**; **adjudicates conflicts** (consent) |
 | 6 | Brief emit (per feature) | `discovery-lead` | `decompose-intent` (PE) | brief (`docs/product/briefs/`) | — |
 | — | **G3 handoff** | → `work-loop` | `receive-brief` → `new-spec` (core); `security-reviewer` at spec stage | spec | none, unless a risk trigger fires |
 | 7 | **G4 Build** | `work-loop` supervisor | `implementer` fan-out per screen/service (core); `contract-acquisition` + platform skill; `adversarial-reviewer` / `security-reviewer` / `quality-engineer` | code · tests | none (tests are the verifier) |
@@ -431,7 +440,7 @@ MetaGPT and ChatDev are C-shape and the MAST study measures their failure cost
   deliver value regardless.
 - *Generative-upstream autonomy is over-claimed* → either the human drowns in surfaced
   decisions, or the agent runs off-domain. **Mitigation:** the surfacing predicate
-  batches consent at four gates; the domain-anchor + self-coverage gate raise the floor.
+  batches consent at four gates; the frame-domain + self-coverage gate raise the floor.
 - *The rename breaks adopters.* `design-craft` is `default-scope = user`, so a rename
   touches every repo an adopter opens — *wider* per-adopter surface, not narrower — and
   no pack-level rename/alias field exists today (grep-confirmed). **Mitigation:** the
@@ -549,8 +558,8 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   *Drafted (Open): [`0050-the-experience-pack.md`](0050-the-experience-pack.md) — records
   ADR-0038 (the `design-craft → experience` rename); its two reconciliations are folded into
   § Amendments (2026-06-26, child-1).*
-- **Spec (child 2):** the domain-anchor primitive. *Wave 1, parallel.*
-  *Drafted: [`docs/specs/domain-anchor/`](../specs/domain-anchor/spec.md) — the three-component
+- **Spec (child 2):** the frame-domain primitive. *Wave 1, parallel.*
+  *Drafted: [`docs/specs/frame-domain/`](../specs/frame-domain/spec.md) — the three-component
   typed artifact wrapping `research` applied mode; surfaced the `docs/discovery/` layout-key
   drift reconciled at § Amendments DRIFT-C.*
 - **RFC (child 3):** the self-coverage gate (doctrine + reference library). *Wave 1,
@@ -568,7 +577,7 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   contract (sidecar schema · gate state machine · rejection/recovery + cascade-invalidation
   · outer cap · supervisor topology · security/integrity ACs) is specified. Spike artifacts
   in [`0053-notes/`](0053-notes/).* **Its implementing spec carries the seams the discharge
-  assigned to it: AC0 — the `core` sidecar-schema reference (§ Amendments DRIFT-I); the
+  assigned to it: AC0 — the carried sidecar-schema contract (§ Amendments DRIFT-I); the
   `docs/discovery/<initiative>/` layout key (DRIFT-C); and the backlog-decomposition +
   `loop-cohort` cross-component-ingestion ACs (DRIFT-H).**
 - **[RFC-0049](0049-the-release-loop-and-company-os.md) (child — deploy):** the
@@ -680,10 +689,63 @@ reconciled **here**, as a tracked amendment, not absorbed silently downstream.
   proactive-model-thinking expectation, extending Decision 3's enumerated skill scope. Neither
   contradicts D3; both *extend* it. See [RFC-0050](0050-the-experience-pack.md) D2/D4 + its
   Follow-on artifacts.
+- **2026-06-26 — `discovery-loop` scope-decoupling: carried schema contract, own user-scope
+  design lenses, monorepo anchor dropped (surfaced in review, post-discharge).** The owning
+  pack `product-engineering` is `default-scope = "user"` (its `pack.toml`: "pure-markdown,
+  user-scope"), yet the discharge homed its hard-dep sidecar **schema** in repo-scope `core`
+  (DRIFT-B/I) and satisfied its design-time security/quality lenses by reusing `core`'s
+  repo-scope `security-reviewer` + `quality-engineer` in a mode (Decision 2 / DRIFT-E). A
+  user-scope, workspace-portable capability — a PM/designer running discovery against an
+  Obsidian vault or any non-repo markdown workspace — cannot assume a repo-scope `core`
+  install, so that dependency direction was inverted. The fix is three coupled corrections;
+  none re-opens a Decision's *value* call, each corrects a *scope* mechanic the discharge
+  under-weighed:
+  - **(a) Schema → carried in the producing skill; consumers read instances by convention +
+    a version stamp.** The schema *definition* (the four slots) is a `references/` file
+    **inside the producing skill** — `discovery-loop` in `product-engineering` — exactly the
+    self-contained progressive-disclosure shape `security-checklists/references/` already
+    uses; it is **not** a shared cross-pack layer (the skills spec has none — the only
+    library-consumed-by-another-skill pattern, `security-checklists` ↔ `work-loop`, lives
+    *within* one pack, `core`). Downstream consumers (the traceability lint + `work-loop` +
+    the release loop) **do not import the definition** — they read the produced `_state/`
+    *instances* by convention (the slot field-names) and tolerate a `schema_version` stamp,
+    which is the state DRIFT-I already names ("consume by convention"). "Versioned contract"
+    therefore means the instances carry `schema_version` and consumers check compatibility —
+    agreement by **convention + version stamp, not co-location and not a shared code layer**
+    (in a vault there is no `core` to co-locate in, and no build system to share). This is the
+    "copied/carried" model done to the skills spec, not a new mechanism. **Revises
+    DRIFT-B/I.**
+  - **(b) Discovery ships its own user-scope design lenses, distinct names.** The discovery
+    security/quality lens is a discovery-owned, user-scope design-time reviewer set with
+    **distinct names**, not `core`'s code reviewers overloaded with a mode (a user-scope and
+    a repo-scope agent sharing a name is a resolution footgun). Precedent: the user-scope
+    `architect` pack already ships its own `design-reviewer`. They carry a **baseline**
+    checklist and **detect-and-degrade to `core`'s `security-checklists` / `operational-safety`
+    depth library when `core` is present** — the detect-and-degrade pattern the optional
+    lenses already use. **Revises Decision 2 / DRIFT-E** on scope grounds: the three-reviewer
+    ceiling is already loop-scoped, and MAST-safety is a *topology* property (lenses bounce
+    through the blackboard, never agent-to-agent) independent of where an agent is defined —
+    so distinct discovery reviewers reopen neither.
+  - **(c) Drop the single-monorepo anchor.** `discovery-loop` is workspace-agnostic: three-tier
+    resolution + discover-by-marker + the file-based `_state/` store already make any
+    markdown-with-`type:`-frontmatter workspace (Obsidian vault included) a valid home, and
+    child-4 already generalized the lint to cross boundaries **by stable id, not path**. The
+    only hard repo anchor that legitimately remains is the **G3 handoff into `work-loop`**
+    (inherently where code lands). Note 08's "single product monorepo" framing is corrected to
+    "any document workspace upstream of G3."
+
+  Hard-dep line corrected: `discovery-loop` hard-deps = PE's intent skills + **the carried
+  sidecar-schema contract** + the G3 handoff; `core`'s reviewers + depth libraries are
+  **optional detect-and-degrade enhancers**, not hard deps — so the minimal install is
+  `product-engineering` alone, not PE + `core`. **Owners:** RFC-0053's implementing spec —
+  **AC0** lands the schema as a **versioned contract carried at user scope** (not a `core`
+  doctrine file), and its design-lens deliverable ships **discovery's own user-scope reviewers**
+  (not a mode-edit to `core`'s two agents); note 06's `core` ⊕ delta and note 08's layout move
+  with it. DRIFT-B/E/I below carry revised pointers.
 
 ### Provisional-foundation discharge — the composed-set reconciliation (2026-06-26)
 
-The child set is **complete** (experience · domain-anchor · self-coverage · traceability-lint
+The child set is **complete** (experience · frame-domain · self-coverage · traceability-lint
 · coordinator · release-loop, all Open/Drafted). To discharge the provisional status, the
 whole set was pressure-tested *as one operating system* — the worked example
 `example-assistant` walked **G0→G5 across every landed mechanism at once**, producing the
@@ -714,9 +776,12 @@ Cross-referenced as **DRIFT-x** in note 10.
   discover-by-marker / in-repo case); a harness that provides a store (omnigent's worktree)
   supplies it instead. The traceability lint already bridges both (matrix **authoritative
   when present**, else derived from on-disk artifacts — the child-4 amendment above). The
-  **schema** is single-sourced in `core` regardless of store.
+  **schema** is single-sourced in `core` regardless of store. **Revised 2026-06-26
+  (scope-decoupling):** the schema is no longer single-sourced in `core` — it is a carried
+  versioned contract that travels with its producer pack (see the dated entry above); the
+  store split (`_state/` vs harness worktree) stands unchanged.
 - **DRIFT-C — the `docs/discovery/<initiative>/` layout config key is unbound; owner assigned
-  to RFC-0053's implementing spec.** The [domain-anchor spec](../specs/domain-anchor/spec.md)
+  to RFC-0053's implementing spec.** The [frame-domain spec](../specs/frame-domain/spec.md)
   § Ask first deferred "the precise adopter-file table for `docs/discovery/`" to "the
   experience-pack / layout child effort," and flagged note 08's `[experience.layout] discovery`
   sketch as drifting from the shipped **ADR-0030** contract (the `[<pack>]` adopter-file table
@@ -755,17 +820,23 @@ Cross-referenced as **DRIFT-x** in note 10.
   invocation." This preserves both the CHARTER three-reviewer ceiling and the
   loop-scoped-roster reading (the roster is a roster of *disciplines/lenses*, several of which
   are modes of the same agents, plus optional lens-packs — not five new reviewer agents).
+  **Revised 2026-06-26 (scope-decoupling):** superseded on scope grounds — because
+  `product-engineering` is user-scope, the discovery security/quality lens is a
+  discovery-owned, user-scope reviewer set with **distinct names** (not `core`'s code
+  reviewers in a mode), degrading to `core`'s depth library when present. The CHARTER
+  three-reviewer ceiling (loop-scoped) and MAST-safety (a topology guarantee) both still hold.
+  See the dated entry above.
 - **DRIFT-F — persona is elicited inline by its first consumer, not a separately-produced
   typed artifact in this child set.** [`0048-notes/04`](0048-notes/04-artifact-inventory.md)
-  lists persona with producer "(in domain anchor)"; the
-  [domain-anchor spec](../specs/domain-anchor/spec.md) fixes its schema at *three* components
-  and makes adding persona an *Ask first* boundary, and RFC-0050 D5 grounds
-  `aesthetic-direction` in "the persona (from the domain anchor, or **elicited inline if
+  lists persona with producer "(in Domain Framing)"; the
+  [frame-domain spec](../specs/frame-domain/spec.md) fixes Domain Framing's schema at its
+  grounding components and makes adding persona an *Ask first* boundary, and RFC-0050 D5 grounds
+  `aesthetic-direction` in "the persona (from Domain Framing, or **elicited inline if
   absent**)." **Resolution:** no landed child produces persona as a separate typed artifact;
   its consumers (`aesthetic-direction`, `map-journey`) **elicit it inline**. Note 04's
-  "(in domain anchor)" producer claim is the drift, corrected to "elicited inline by the first
+  "(in Domain Framing)" producer claim is the drift, corrected to "elicited inline by the first
   consumer; not a separate produced artifact in the current child set." Promoting persona to a
-  produced artifact (a fourth domain-anchor component, or a `frame-persona` step) is a
+  produced artifact (a third `frame-domain` artifact, or a `frame-persona` step) is a
   named, deferred option, not a present orphan.
 - **DRIFT-G — the `spec → discovery` (`Discovery:`) up-edge producer is the O8 `new-spec`
   `Discovery:` header + discovery-artifact `type:` markers, owned by a named follow-on and
@@ -779,7 +850,7 @@ Cross-referenced as **DRIFT-x** in note 10.
   list below; it is a **Wave-1 dependency of child-4's `--strict` gate** and must land before
   the lint is wired fail-closed at a convergence gate. Recorded so the backstop's strength is
   explicit, not assumed.
-- **DRIFT-H — the backlog producer step (decision-package → work items) and `loop-cohort`'s
+- **DRIFT-H — the backlog producer step (decision-brief → work items) and `loop-cohort`'s
   cross-component ingestion are owed as acceptance criteria at RFC-0053's implementing spec.**
   Note 08 specifies the backlog work-item schema and names `loop-cohort` as the scheduler, and
   note 10 produces the example backlog — but no landed spec has an AC verifying the
@@ -794,13 +865,18 @@ Cross-referenced as **DRIFT-x** in note 10.
   decide the schema is single-sourced in `core`, but it exists only as **prose field-lists** —
   no implementing spec lands the reference file, while `discovery-loop`, the release loop
   ([release-loop spec](../specs/release-loop/spec.md) Assumptions name the dependency), and the
-  traceability lint all consume it. **Resolution:** "land the `core` sidecar-schema reference"
+  traceability lint all consume it. **Resolution:** "land the carried sidecar-schema contract"
   is **AC0 of RFC-0053's implementing spec**; the three consumers are sequenced behind it (they
   name the slots and consume by convention until it lands — the state they are already in).
-  Assigned; flagged in the Follow-on list.
+  Assigned; flagged in the Follow-on list. **Revised 2026-06-26 (scope-decoupling):** AC0
+  lands the schema *definition* as a `references/` file **inside the producing
+  `discovery-loop` skill** (`product-engineering`, user scope), not a repo-scope `core`
+  doctrine file and not a shared cross-pack layer; consumers read produced instances by
+  convention + a `schema_version` stamp. See the dated entry (a) above.
 
 **Owner-assignment summary (the seams the discharge wires to a named owner so none is "owned by
-nobody"):** RFC-0053's implementing spec gains AC0 (sidecar schema reference, DRIFT-I), the
+nobody"):** RFC-0053's implementing spec gains AC0 (sidecar-schema contract carried at user scope,
+DRIFT-I revised), the
 discovery-tree layout key (DRIFT-C), and the backlog-decomposition + `loop-cohort`-ingestion
 ACs (DRIFT-H); the **CONVENTIONS-edit follow-on** gains the `new-spec` `Discovery:` header +
 discovery `type:` markers (DRIFT-G), sequenced before the traceability lint's `--strict` gate.
@@ -811,7 +887,7 @@ the note-02/note-04 freeze-reading sources corrected to match).
 complete and every surfaced drift reconciled and assigned above, the model is **coherent and
 every seam is owned** — the alignment condition for freeze. The terminal flip is, however,
 **deliberately held** (operator's call, 2026-06-26) until the owner-assigned follow-ons land:
-RFC-0053's implementing spec (AC0 the `core` sidecar-schema reference; the
+RFC-0053's implementing spec (AC0 the carried sidecar-schema contract; the
 `docs/discovery/<initiative>/` layout key, DRIFT-C; the backlog-decomposition + `loop-cohort`
 ACs, DRIFT-H/I) and the CONVENTIONS-edit `new-spec` `Discovery:` header (DRIFT-G). Once those
 close the assigned seams, freezing is a one-line status flip (Open → Accepted) over an
