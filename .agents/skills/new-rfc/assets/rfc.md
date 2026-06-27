@@ -7,7 +7,25 @@ explanation goes in "The ask", not the title — a scannable index depends on it
 - **Approver:** <github-handle who signs off — the one person whose yes starts implementation>
 - **Date opened:** YYYY-MM-DD
 - **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Decision weight:** standard <!-- light | standard | heavy — right-sizes research depth + the pre-handoff gate. Pick it yourself by reading work-loop's risk triggers (a prose heuristic, not a computed value); default `standard` when unsure. light = a reversible, narrow change (one research sweep, sections collapse to one-liners); standard = a normal multi-decision RFC (full per-subpoint research + full gate); heavy = reverses a frozen ADR/RFC, crosses a governance/charter/security boundary, or is a one-way door (full gate + a de-risk spike + explicit Approver sign-off). The gate's checks never drop by tier — weight changes how much research/draft, not whether a mandated check runs. -->
 - **Related:** <!-- ADRs, specs, prior RFCs -->
+
+## Reviewer brief
+
+<!--
+First-screen orientation for the reviewer — a fixed, scannable grid they read
+before anything else. Keep each line short; this orients, "The ask" argues. Do
+NOT restate the BLUF here — these are different jobs. (For a `light` RFC, a few
+lines suffice.)
+
+- **Decision:** the one thing being decided, in a sentence.
+- **Recommended outcome:** accept / reject / amend.
+- **Change if accepted:** ≤3 bullets — what actually changes.
+- **Affected surface:** code / docs / packs / interfaces touched.
+- **Stakes:** reversible / costly-to-reverse / one-way door.
+- **Review focus:** the one or two things most worth a reviewer's scrutiny.
+- **Not in scope:** the dog that didn't bark — what this deliberately doesn't do.
+-->
 
 ## The ask
 
@@ -18,11 +36,15 @@ being asked to approve, in plain language, without hunting through the design.
 - **Recommendation (BLUF):** one or two sentences — what to approve.
 - **Why now (SCQA):** Situation (agreed context) → Complication (what changed /
   the problem) → the Question it raises. Three or four lines.
-- **Decisions requested:** numbered. Each = the question · the recommended
-  option · a one-line why · decide-by (and the default if no objection).
+- **Decisions requested:** render as a table — one row per decision — so a
+  reviewer can scan what they must decide and what action each needs:
+
+  | ID | Question | Recommendation | Why | Decide by | Reviewer action |
+  | --- | --- | --- | --- | --- | --- |
+  | D1 | <the decision> | <recommended option> | <one-line why> | <this review / date> | <what the reviewer must do — confirm X, rule on Y> |
 
 Right-size to the stakes: a small, reversible change keeps this short and
-collapses the sections below to one-liners.
+collapses the sections below to one-liners (see the `Decision weight` header).
 -->
 
 ## Problem & goals
