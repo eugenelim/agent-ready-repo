@@ -122,9 +122,12 @@ and **writes the contract** the prototype validated (Decisions 2–5).
 - *Building or forking the harness.* `omnigent` exists and is the reference runtime; we
   ship the contract it (or a successor) enforces, not the harness (RFC-0048 non-goal;
   RFC-0041 P4 harness-neutrality).
-- *The `experience`, `architect`, `research`, and security/compliance **lens skills
-  themselves.*** Those are RFC-0050 (child-1) and reused packs; this RFC wires them as
-  *optional detect-and-degrade lenses*, it does not author them.
+- *The `experience`, `architect`, and `research` **lens skills themselves.*** Those are
+  RFC-0050 (child-1) and reused packs; this RFC wires them as *optional detect-and-degrade
+  lenses*, it does not author them. (The security/compliance and reliability floors are **not**
+  in this optional set — they are carried by `product-engineering`'s **required** discovery
+  reviewers (`discovery-threat-reviewer` / `discovery-reliability-reviewer`, required at G2 per
+  RFC-0048's roster table) and degrade only in *depth*, never to nothing.)
 - *The traceability lint.* Child-4 (`docs/specs/traceability-lint/`) builds the lint; this
   RFC defines the **traceability slot** the lint reads and the **cascade-invalidation**
   transition that walks its edges. The spike's `check_sidecar.py` is a *demonstrator*, not
