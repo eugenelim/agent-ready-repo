@@ -12,7 +12,7 @@
 **Recommendation (BLUF).** Adopt the **coordinator contract** the RFC-0048 Decision-7 spike
 was meant to validate — and **ship it the way RFC-0041/0049 ship their loops: a
 `discovery-lead` agent definition + a `discovery-loop` skill (content, like `implementer`)
-+ the typed sidecar *schema* as `core` doctrine — no new runtime engine.** A timeboxed
++ the typed sidecar *schema* as a carried contract in the producing skill — no new runtime engine.** A timeboxed
 **empirical prototype** ([`0053-notes/`](0053-notes/)) ran the loop against the worked
 example ([`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md)) on the form
 `omnigent` stores (worktree files). On that **one worked example, walked once by a single
@@ -43,13 +43,13 @@ worked example as engine-free content, and what exactly is the harness-neutral c
 **Decisions requested.**
 
 1. **Adopt the no-engine coordinator contract — `discovery-lead` (agent) + `discovery-loop`
-   (skill) in `product-engineering`, the sidecar *schema* in `core` — confirmed by the
+   (skill) in `product-engineering`, the sidecar *schema* carried in the `discovery-loop` skill — confirmed by the
    prototype.** The spike refutes the failure mode (no transition needed a scheduler, bus,
    or convergence solver); the catalogue ships content + schema, the harness supplies the
    store and gate enforcement. · *why:* it is the one D7/D8 claim that was hypothesized, now
    demonstrated; it is the spine every step of the operating model hangs from. · decide-by:
    RFC accept · default: adopt (spike-confirmed).
-2. **Ship the typed sidecar schema as `core` doctrine — the connectedness verifier.** The
+2. **Ship the typed sidecar schema as a carried contract in the producing skill — the connectedness verifier.** (Not `core` — RFC-0048 § Amendments 2026-06-26.) The
    slots `blackboard` · `open-questions` · `traceability` · `decision-log`, each typed to a
    named schema, harness-neutral; the **store is the harness's** (omnigent's worktree).
    Paths resolve config → default → discover-by-marker (RFC-0040), never hardcoded. · *why:*
@@ -57,7 +57,7 @@ worked example as engine-free content, and what exactly is the harness-neutral c
    together" *checkable* — and the prototype showed a ~60-line lint over it suffices. ·
    decide-by: RFC accept · default: adopt.
 3. **Adopt the gate state machine — consent checkpoint/resume (A1/A2) + rejection/recovery
-   with cascade-invalidation (O11).** A consent gate writes the decision package, sets
+   with cascade-invalidation (O11).** A consent gate writes the decision brief, sets
    `status=awaiting-human`, surfaces an option card, records the verdict to the decision
    log, and resumes. A rejection emits reason→correction, re-enters the gate's phase,
    **cascade-invalidates downstream blackboard slots by walking the traceability edges**
@@ -134,7 +134,7 @@ and **writes the contract** the prototype validated (Decisions 2–5).
   release/deploy outer loop is RFC-0049's `release-lead`. This RFC is the **upstream**
   (G0–G2) coordinator only; the two loops hand off at G3 and must not be conflated.
 - *Multi-week project statefulness beyond one initiative.* One `discovery-loop` run = one
-  decision package = one backlog (note 08); cross-initiative memory is the harness's
+  decision brief = one backlog (note 08); cross-initiative memory is the harness's
   (omnigent's documented gap), not this contract's.
 
 ## Proposal
@@ -147,13 +147,13 @@ Cascaded under the requested decisions. The detail and the worked artifacts live
 `discovery-lead` ships as an **agent definition** and `discovery-loop` as a **skill**, both
 in `product-engineering` (an opt-in product capability — `discovery-loop` is
 product-discipline-specific, so it ships in the product pack an adopter chooses, not the
-universal `core`; the *sidecar schema* it reads is `core` doctrine). This is precisely the
+universal `core`; the *sidecar schema* it carries lives in the `discovery-loop` skill, not `core`). This is precisely the
 `implementer`-shape precedent: shipping an agent def + a loop skill is shipping **content**,
 not a runtime — what Principle 3 forbids is the harness, which we do not ship.
 
 `discovery-lead` is the human-facing **upstream supervisor**, a *peer* of `work-loop`'s
-supervisor and `implementer`. It runs `discovery-loop` (intents → domain anchor →
-blackboard convergence → decision package at consent gates → emits briefs/specs), holds the
+supervisor and `implementer`. It runs `discovery-loop` (intents → frame-domain →
+blackboard convergence → decision brief at consent gates → emits briefs/specs), holds the
 blackboard in **one reasoning context**, fans out only to disjoint workers, and talks to the
 human at the consent gates. It is **not** `work-loop`'s supervisor: `work-loop` supervises
 the *downstream* spec→build loop; `discovery-lead` supervises the *upstream* vision→brief
@@ -165,11 +165,21 @@ two named failure modes (over-scope; an unbacked security-sensitive screen) deli
 injected, every transition was a file edit plus, at most, a lint. See Evidence and
 [`0053-notes/01-spike-report.md`](0053-notes/01-spike-report.md).
 
-### Decision 2 — the typed sidecar schema (`core` doctrine)
+### Decision 2 — the typed sidecar schema (carried contract in the producing skill)
 
-The typed state both loops share, shipped as **schema in `core`** (harness-neutral); the
-*store* is the harness's (omnigent's git-worktree). The slots, with their schemas as the
-prototype instantiated them ([`0053-notes/spike/`](0053-notes/spike/)):
+> **Revised per RFC-0048 § Amendments 2026-06-26 (scope-decoupling).** This decision
+> originally shipped the schema as **`core` doctrine**. Because `discovery-loop`'s owning
+> pack `product-engineering` is user-scope and must run portably (Obsidian vault / non-repo),
+> the schema *definition* is now a `references/` file **carried in the `discovery-loop`
+> skill**, not single-sourced in repo-scope `core`. There is no shared cross-pack layer (the
+> skills spec has none): downstream consumers — the traceability lint, `work-loop`, the
+> release loop — **read the produced `_state/` instances by convention + a `schema_version`
+> stamp**, they do not import the definition. "Versioned contract" = the instances carry
+> `schema_version` and consumers check compatibility. The slot field-set below is unchanged.
+
+The typed state both loops share, its *definition* carried in the producing `discovery-loop`
+skill (harness-neutral); the *store* is the harness's (omnigent's git-worktree). The slots,
+with their schemas as the prototype instantiated them ([`0053-notes/spike/`](0053-notes/spike/)):
 
 - **blackboard** — the typed artifact slots (= the artifact inventory, note 04), each
   `{id, type, lens, status ∈ draft|proposed|ratified|stale|rejected, version, produced_by,
@@ -210,7 +220,7 @@ must choose to load) is decided here.
 ### Decision 3 — the gate state machine (checkpoint/resume + rejection/recovery)
 
 *Consent checkpoint/resume (A1/A2).* A consent gate (G0, G1.5, G2; G5 is RFC-0049's) is a
-pause, not a special runtime: `discovery-lead` writes the **decision package** to the
+pause, not a special runtime: `discovery-lead` writes the **decision brief** to the
 blackboard, sets `status=awaiting-human`, and emits an **option card** —
 `{gate, summary, decisions-requested, recommended, reversibility-class, artifacts}` (A2). The
 harness surfaces it (omnigent's human-in-the-loop pause; a Claude-Code plan-mode-style
@@ -235,8 +245,11 @@ edit, not a framework call.
 
 *The answer-each-other ripple (O5).* Lenses bounce off each other **through the
 open-questions queue and the blackboard**, never by chat. The reconcile lens runs
-`security-reviewer` + `quality-engineer` in their **design-artifact mode** (RFC-0048 O5) over
-the journey/blueprint mid-loop. The prototype's OQ-3 settled security→product→tech→ux→design
+`product-engineering`'s **own user-scope design reviewers** (the discovery security/quality
+lenses — distinct names from `core`'s code reviewers, degrading to `core`'s depth library when
+present; RFC-0048 § Amendments 2026-06-26, revising the original "core reviewers in a mode"
+reading of O5) over the journey/blueprint mid-loop. The prototype's OQ-3 settled
+security→product→tech→ux→design
 as queue-status + blackboard edits with **zero agent-to-agent negotiation** — the MAST
 guardrail held by topology (Decision 5).
 
@@ -345,7 +358,7 @@ RFC ships no code, so it specifies the controls, it does not implement them):
   the cascade-invalidation transition (D3) walks the same edges. The lint is authoritative
   when the matrix is present and derives from on-disk artifacts when the sidecar is absent
   (RFC-0048's child-4 amendment), so the loop and the standalone lint share one edge model.
-- **The backlog bridge** (note 08): the decision package decomposes into an ordered,
+- **The backlog bridge** (note 08): the decision brief decomposes into an ordered,
   dependency-aware backlog; `loop-cohort` orders it; `work-loop` pulls one item at a time.
 
 ## Options considered
@@ -505,13 +518,15 @@ rounds + the adopter's omnigent `cost_budget` — so they were never an open que
 Filled in on acceptance.
 
 - **ADR:** record "the upstream coordinator is `discovery-lead` (agent) + `discovery-loop`
-  (skill) + a `core` sidecar schema — no new runtime engine, spike-confirmed; the sidecar is
-  the connectedness verifier" (the sibling of RFC-0041's ADR-0031 / RFC-0049's coordinator
-  ADR).
+  (skill) + a carried sidecar-schema contract (in the skill, not `core`) — no new runtime
+  engine, spike-confirmed; the sidecar is the connectedness verifier" (the sibling of
+  RFC-0041's ADR-0031 / RFC-0049's coordinator ADR).
 - **Spec:** `docs/specs/coordinator-contract/` (or `discovery-loop/`) — the `discovery-lead`
   agent def + the `discovery-loop` skill (the gate state machine, the rejection/recovery +
-  cascade-invalidation transition, the cap), the `core` sidecar schema reference, the
-  design-artifact reviewer-mode wiring (RFC-0048 O5), the second-example validation run
+  cascade-invalidation transition, the cap), **AC0 the carried sidecar-schema `references/`
+  file** (in the skill, not a `core` doctrine file — RFC-0048 § Amendments 2026-06-26),
+  **`product-engineering`'s own user-scope design reviewers** (not a mode-edit to `core`'s
+  code reviewers), the second-example validation run
   (forcing the O12 cap-stall path), the **§ Security & integrity contract ACs** (verdict
   write-authority; append-only-attested decision log; non-degradable security lens on a
   boundary; lens-write integrity; cascade circuit-breaker; `reversibility-class`
@@ -523,9 +538,10 @@ Filled in on acceptance.
   predicate's stall clause in the operating-model section (RFC-0048's CONVENTIONS slice).
 - **Changelog:** `docs/product/changelog.md` `[Unreleased]` entry for the new
   `discovery-lead` / `discovery-loop` capability.
-- **Pack version:** bump `product-engineering` (new agent + skill) and `core` (sidecar
-  schema); add `discovery-lead` / `discovery-loop` to the catalogue/marketplace manifest at
-  spec time.
+- **Pack version:** bump `product-engineering` (new agent + skill + the carried
+  sidecar-schema `references/` file + the discovery design reviewers); `core` is **not**
+  bumped for the schema (it no longer carries it — § Amendments 2026-06-26); add
+  `discovery-lead` / `discovery-loop` to the catalogue/marketplace manifest at spec time.
 - **Foundation reconciliation (done in this PR):** RFC-0048 D7/D8 marked
   **spike-confirmed**; the loop-scoped-reviewer-roster change recorded as a tracked RFC-0048
   amendment (the CHARTER ceiling stays a `work-loop`/code-review cap); the note-09 sample-bank

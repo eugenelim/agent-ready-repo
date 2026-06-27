@@ -6,7 +6,8 @@
   "leaf_kind": "component",
   "nodes": [
     {"id": "vision", "kind": "intent", "backed_by": "ladder"},
-    {"id": "domain-anchor", "kind": "domain-anchor", "backed_by": "file"},
+    {"id": "domain-framing", "kind": "domain-framing", "backed_by": "file"},
+    {"id": "scope-boundary", "kind": "scope-boundary", "backed_by": "file"},
     {"id": "persona", "kind": "persona", "backed_by": "file"},
     {"id": "cap.resource-state", "kind": "intent", "backed_by": "ladder"},
     {"id": "cap.approved-learning", "kind": "intent", "backed_by": "ladder"},
@@ -29,12 +30,14 @@
     {"id": "component:web-app", "kind": "component", "backed_by": "file"}
   ],
   "edges": [
-    {"from": "vision", "to": "domain-anchor"},
+    {"from": "vision", "to": "domain-framing"},
+    {"from": "vision", "to": "scope-boundary"},
     {"from": "vision", "to": "cap.resource-state"},
     {"from": "vision", "to": "cap.approved-learning"},
     {"from": "vision", "to": "cap.identity-security"},
-    {"from": "domain-anchor", "to": "persona"},
-    {"from": "domain-anchor", "to": "journey-map"},
+    {"from": "domain-framing", "to": "persona"},
+    {"from": "domain-framing", "to": "journey-map"},
+    {"from": "scope-boundary", "to": "journey-map"},
     {"from": "persona", "to": "journey-map"},
     {"from": "cap.resource-state", "to": "journey-map"},
     {"from": "cap.approved-learning", "to": "journey-map"},
