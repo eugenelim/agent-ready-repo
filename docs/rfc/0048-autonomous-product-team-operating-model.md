@@ -888,8 +888,9 @@ Cross-referenced as **DRIFT-x** in note 10.
   backlog-decomposition AC (work-item schema, the blueprint-as-slicing-instrument mapping,
   `depends_on` from cross-component edges) and (b) a backlog→`loop-cohort` ingestion AC (extend
   `loop-cohort`, or name a thin adapter). Assigned to that spec; flagged in the Follow-on list.
-- **DRIFT-I — the `core` sidecar *schema reference* is owed as the first acceptance criterion
-  of RFC-0053's implementing spec; its three consumers sequence behind it.** D7 + RFC-0053 D2
+- **DRIFT-I — the carried sidecar *schema reference* (in `discovery-loop`, user scope, not
+  `core`) is owed as the first acceptance criterion of RFC-0053's implementing spec; its three
+  consumers sequence behind it.** D7 + RFC-0053 D2
   decide the schema is single-sourced in `core`, but it exists only as **prose field-lists** —
   no implementing spec lands the reference file, while `discovery-loop`, the release loop
   ([release-loop spec](../specs/release-loop/spec.md) Assumptions name the dependency), and the

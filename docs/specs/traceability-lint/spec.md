@@ -307,9 +307,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   authored by sibling children and the RFC-gated "CONVENTIONS edit" follow-on; the
   lint degrades gracefully where absent (source: `docs/CONVENTIONS.md:284`
   spec-metadata contract is RFC-gated; RFC-0048 follow-on list).
-- Process: the sidecar `traceability.json` matrix schema is `core` doctrine **not
-  yet pinned**, so drift ships warn-only until it lands (source: RFC-0048 D7;
-  deferral `sidecar-drift-hard-fail` in `docs/backlog.md`).
+- Process: the sidecar `traceability.json` matrix schema is sidecar doctrine carried
+  in `product-engineering`'s `discovery-loop` skill (not `core`), **not yet pinned**,
+  so drift ships warn-only until it lands; the lint reads the produced instance by
+  convention + a `schema_version` stamp, never importing the definition (source:
+  RFC-0048 D7 / § Amendments 2026-06-26; deferral `sidecar-drift-hard-fail` in
+  `docs/backlog.md`).
 - Process: semantic scope-creep detection is out of scope — deferred to the
   coordinator spike (source: RFC-0048 Decision 6; note 09 O10).
 - Product: the chain and the structural-vs-semantic split came directly in the
