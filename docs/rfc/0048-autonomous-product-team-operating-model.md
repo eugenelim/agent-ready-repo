@@ -29,8 +29,7 @@
 **Recommendation (BLUF).** Adopt an *operating model* that lets the catalogue act as
 an **autonomous product team from vision → shipped code** — and deliver it the way
 RFC-0041 and RFC-0043 delivered comparable cross-cutting capability: **as doctrine +
-pure-markdown skills + reference libraries + reuse of the existing reviewers — no new
-runtime engine.** This RFC *decides the model and the roadmap*; each artifact is built
+pure-markdown skills + reference libraries — no new runtime engine.** This RFC *decides the model and the roadmap*; each artifact is built
 by a named child effort, not here. Concretely it adopts (a) the **two-regime principle** + a
 **judgment-decomposition→equipping map** + a **risk-calibrated gate ladder and
 surfacing predicate** as `work-loop`/CONVENTIONS doctrine; (b) the rename
@@ -66,15 +65,19 @@ can the catalogue become an autonomous product team without violating Principle 
    the Decision-7 spike confirms them empirically. · *why:* it is the spine every child
    effort hangs from. · decide-by: RFC accept · default: adopt (placement + predicate +
    three-act boundary + stakes-density; O11/O12 resolved on paper, spike-confirmed).
-2. **Frame D1, D3–D6 as doctrine + pure-markdown skills + reference libraries + reuse
-   of existing reviewers — no new runtime engine and no new reviewer** (the shared
-   claim RFC-0041 and RFC-0043 both support; note this RFC *does* add four new skills,
-   so the borrowed precedent is "no new runtime/reviewer", not RFC-0043's stricter "no
-   new skill"). "No new reviewer" means no new reviewer *agent* — the existing
-   `security-reviewer` + `quality-engineer` gain a **design-artifact review mode** for
-   blackboard artifacts (O5), a mode, not a new agent. The coordinator's no-engine fit is
-   **excepted** — it is the Decision-7 spike, not decided here. · decide-by: RFC accept ·
-   default: adopt.
+2. **Frame D1, D3–D6 as doctrine + pure-markdown skills + reference libraries — no new
+   runtime engine** (the shared claim RFC-0041 and RFC-0043 both support; note this RFC
+   *does* add four new skills, so the borrowed precedent is "no new runtime engine", not
+   RFC-0043's stricter "no new skill"). The build loop (`work-loop`, G4) **reuses the
+   existing code reviewers**; the *discovery* design-time reviewers are a separate matter —
+   discovery ships its **own distinct-named, user-scope design-time reviewers** rather than
+   overloading `core`'s code `security-reviewer` / `quality-engineer` with a mode (a
+   user-scope and a repo-scope agent sharing a name is a resolution footgun), and they
+   **detect-and-degrade** to `core`'s depth libraries when `core` is present — see the
+   **discovery reviewer roster** under D7/D8. This leaves the CHARTER's "three reviewers"
+   ceiling untouched: that ceiling is a `work-loop` / code-review cap, and the discovery
+   roster is loop-scoped and user-scope. The coordinator's no-engine fit is **excepted** —
+   it is the Decision-7 spike, not decided here. · decide-by: RFC accept · default: adopt.
 3. **Grow the design/UX seat:** add `map-journey`, `blueprint-service`,
    `inventory-screens` (states deferring to the existing handle-all-states floor; **emits
    a per-screen brief — a self-contained generation unit + references to the shared
@@ -296,12 +299,39 @@ It is a **supervisor of a discovery lens-team**, and it right-sizes between two 
   agent-to-agent negotiation-to-consensus.
 
 **The discovery lens-team is loop-scoped and distinct from `work-loop`'s reviewers.** The
-discovery **security/compliance** lens is a *design-time* role (threat-modeling + regulated-
-domain compliance over the journey/blueprint/architecture) — **a different agent from
-`work-loop`'s code `security-reviewer`** (injection/authz in the diff). So the charter's
+discovery **security/compliance** and **quality** lenses are *design-time* roles
+(threat-modeling + regulated-domain compliance, and design-stage testability/reliability,
+over the journey/blueprint/architecture) — shipped as discovery's **own distinct-named,
+user-scope reviewer agents**, *not* `work-loop`'s code reviewers overloaded with a mode (a
+user-scope and a repo-scope agent sharing a name is a resolution footgun; precedent: the
+user-scope `architect` pack already ships its own `design-reviewer`). So the charter's
 "three reviewers is the ceiling" is a **work-loop / code-review** constraint; the discovery
-loop carries its own design-time lens roster (RFC-0048 amends the ceiling to be
-loop-scoped, ~5 disciplines — disciplined, not a marketplace).
+loop carries its own design-time reviewer roster — loop-scoped and user-scope, disciplined,
+not a marketplace:
+
+| Discipline / lens | Runtime primitive | Name | Pack | Scope | Required? | Degrades to |
+| --- | --- | --- | --- | --- | --- | --- |
+| Security / compliance (design-time) | reviewer agent — new, distinct name | `discovery-threat-reviewer` (proposed) | `product-engineering` | user-scope | required at G2 reconcile | `core`'s `security-checklists` depth when present; else its own baseline checklist |
+| Quality / reliability (design-time) | reviewer agent — new, distinct name | `discovery-reliability-reviewer` (proposed) | `product-engineering` | user-scope | required at G2 reconcile | `core`'s `operational-safety` + `quality-engineer` depth when present; else its own baseline checklist |
+| Architecture (design-time) | reviewer agent — reuse | `design-reviewer` | `architect` | user-scope | optional (detect-and-degrade) | absent → `discovery-lead` holds the arch lens itself |
+| Research/analyst · product · UX/design | skill, **not** a reviewer agent | `research`/`identify-perspectives` · `frame-intent`/`decompose-intent` · `map-journey`/`design-critique`/… | `research` · `product-engineering` · `experience` | user-scope | optional (detect-and-degrade) | product-only discovery |
+
+None of these is `work-loop`'s code `security-reviewer` / `quality-engineer` /
+`adversarial-reviewer`; the CHARTER ceiling on *those* is untouched. **This table is
+authoritative for the roster** — Decision 2 and the walkthrough's reconcile row refer to it.
+
+**Names are collision-hardened by construction, not by dispatch.** Reviewers are dispatched
+by the orchestrator *selecting a subagent matching a role* (the `work-loop` idiom), and
+exact-name dispatch is **not** available on every adapter — so the names, not the harness,
+must carry the distinction. Each discovery reviewer therefore takes a **discipline-word
+head** (`threat`, `reliability`) that is *not* a keying token of any `core` reviewer and does
+not contain a `core` reviewer's name as a substring (the trap a literal `discovery-security-reviewer`
+would spring — it embeds `security-reviewer`; `discovery-quality-reviewer` would attract on the
+shared `quality` token), following the `architect` pack's parallel-not-nested `design-reviewer`
+precedent. As a second, name-independent guard, each discovery reviewer's `description:` **must
+lead with a design-time-only cue** — *"Design-time / discovery-loop ONLY — reviews
+journey/blueprint/architecture artifacts, never code diffs; for diff review use `core`'s
+`security-reviewer` / `quality-engineer`."*
 
 **Lens conflicts:** factual disagreement → `discovery-lead` arbitrates via referents on the
 blackboard; *value* disagreement (security says no, product says ship) → the human at G2
@@ -402,7 +432,7 @@ flowchart TB
 | 4b | Convergence — UX | `discovery-lead` | `map-journey` → `inventory-screens` (+ per-screen briefs) → `blueprint-service` (experience) | journey · screen inventory + briefs · service blueprint | — |
 | 4c | Convergence — design | `discovery-lead` | `aesthetic-direction`, `design-critique` (experience); `voice-and-microcopy` (PE) | aesthetic direction · critiques · copy deck | — |
 | 4d | Convergence — tech | `discovery-lead` | `architect-design`, `architect-diagram` (architect); `api`/`event-contract` (contracts) | C4 · domain model · contracts | — |
-| 4e | Convergence — reconcile | `discovery-lead` | `security-reviewer` + `quality-engineer` as **live lenses**; traceability lint; self-coverage gate (pre-mortem · taxonomy · scenario-variation · fresh-context) | resolved open-questions · coverage record · updated traceability matrix | only if an **irreducible tension / value conflict** surfaces |
+| 4e | Convergence — reconcile | `discovery-lead` | discovery reviewer roster — `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope), plus `design-reviewer` if `architect` is installed — as **live lenses**; traceability lint; self-coverage gate (pre-mortem · taxonomy · scenario-variation · fresh-context) | resolved open-questions · coverage record · updated traceability matrix | only if an **irreducible tension / value conflict** surfaces |
 | 5 | **G2 Convergence** | `discovery-lead` | (renders the blackboard) | **decision brief** (journey + screens + arch + tension/assumption ledger) | **ratifies the "what"**; **adjudicates conflicts** (consent) |
 | 6 | Brief emit (per feature) | `discovery-lead` | `decompose-intent` (PE) | brief (`docs/product/briefs/`) | — |
 | — | **G3 handoff** | → `work-loop` | `receive-brief` → `new-spec` (core); `security-reviewer` at spec stage | spec | none, unless a risk trigger fires |
@@ -423,7 +453,7 @@ engine → monolith").
 | Option | Shape | Verdict |
 | --- | --- | --- |
 | **A. Do nothing** | upstream stays human-heavy; agents build only downstream | Cost of delay: the connective + guard gaps recur on every product; the team re-derives them by hand each time. Rejected. |
-| **B. Doctrine + pure-markdown skills + reference libraries + reuse reviewers** ★ | the RFC-0041 / RFC-0043 idiom | **Recommended.** Fits Principle 3; primitives stand alone; precedent is Accepted. |
+| **B. Doctrine + pure-markdown skills + reference libraries + markdown reviewers** ★ | the RFC-0041 / RFC-0043 idiom | **Recommended.** Fits Principle 3; primitives stand alone; precedent is Accepted. |
 | **C. New orchestration runtime engine** (coordinator service/daemon) | MetaGPT/ChatDev-shape | Rejected for two distinct reasons: (i) Principle 3 forbids shipping runtime infrastructure; (ii) *separately*, where such an engine coordinates multiple agents, MAST measures 41–86% failure — though our convergence loop runs as single-context skill-lenses, so the primary objection is charter, not thrash. |
 | **D. Single mega-pack / monolith** | one "autonomous-team" pack | Un-reviewable; couples standalone-useful primitives; blocks the parallel child-session plan. Rejected. |
 
@@ -806,26 +836,21 @@ Cross-referenced as **DRIFT-x** in note 10.
   skill, two contexts, one default each — the three-tier resolve makes both reachable and
   discover-by-marker finds either. (Pairs with DRIFT-C: the in-initiative base is the
   still-unbound discovery key.)
-- **DRIFT-E — the discovery security/compliance lens is the existing `security-reviewer` in
-  its design-artifact *mode*, not a new agent.** Decision 2 is explicit ("no new reviewer
-  *agent* — the existing `security-reviewer` + `quality-engineer` gain a **design-artifact
-  review mode** (O5), a mode, not a new agent"), and the worked-example table's reconcile row
-  names `security-reviewer` as the live lens. D7/D8's body and [RFC-0053 D5](0053-the-coordinator-contract.md)
-  phrase the discovery security/compliance lens as "**a different agent from `work-loop`'s
-  code `security-reviewer`**," which reads as a fourth agent. **Resolution (Decision 2 is
-  authoritative):** it is the **same `security-reviewer` agent definition**, run in its
-  design-artifact mode as a discovery-time lens over the blackboard (journey/blueprint/arch) —
-  a different *invocation/role*, **not** a different agent. "A different agent" is corrected to
-  "a different *lens/invocation* — the design-time mode, distinct from the code-diff
-  invocation." This preserves both the CHARTER three-reviewer ceiling and the
-  loop-scoped-roster reading (the roster is a roster of *disciplines/lenses*, several of which
-  are modes of the same agents, plus optional lens-packs — not five new reviewer agents).
-  **Revised 2026-06-26 (scope-decoupling):** superseded on scope grounds — because
-  `product-engineering` is user-scope, the discovery security/quality lens is a
-  discovery-owned, user-scope reviewer set with **distinct names** (not `core`'s code
-  reviewers in a mode), degrading to `core`'s depth library when present. The CHARTER
-  three-reviewer ceiling (loop-scoped) and MAST-safety (a topology guarantee) both still hold.
-  See the dated entry above.
+- **DRIFT-E — the discovery security/compliance and quality lenses are discovery's own
+  distinct-named, user-scope reviewer agents, not `core`'s code reviewers overloaded with a
+  mode.** Earlier drafts variously phrased these as the existing `security-reviewer` +
+  `quality-engineer` "in a design-artifact mode" *and* (in D7/D8's body and
+  [RFC-0053 D5](0053-the-coordinator-contract.md)) as "a different agent" — leaving a reader
+  unable to tell which primitive to build. **Resolution:** because `product-engineering` is
+  user-scope, the discovery security/quality lenses ship as a discovery-owned, **user-scope
+  reviewer set with collision-hardened names** (`discovery-threat-reviewer` /
+  `discovery-reliability-reviewer`, proposed — discipline-word heads that neither embed nor
+  share a keying token with a `core` reviewer, since exact-name dispatch is not available on
+  every adapter) — *not* `core`'s code reviewers in a mode (a user-scope and a repo-scope agent
+  sharing a name is a resolution footgun) — degrading to `core`'s `security-checklists` /
+  `operational-safety` depth library when present. The authoritative roster is the table
+  under D7/D8. The CHARTER three-reviewer ceiling (a loop-scoped, code-review cap) and
+  MAST-safety (a topology guarantee) both still hold.
 - **DRIFT-F — persona is elicited inline by its first consumer, not a separately-produced
   typed artifact in this child set.** [`0048-notes/04`](0048-notes/04-artifact-inventory.md)
   lists persona with producer "(in Domain Framing)"; the
