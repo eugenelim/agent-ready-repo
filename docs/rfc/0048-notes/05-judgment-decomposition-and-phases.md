@@ -27,7 +27,7 @@ elicit → offer-grounded-options → ratify interaction.
 | 4 | **Aesthetic / taste** | does it look/feel right? | visual direction, UX feel | **grounded referent** — persona + precedent + standards (Kahneman: valid only with a stable referent) | aesthetic-direction ⊕, design-critique ⊕ | no precedent; brand seed missing |
 | 5 | **Trade-off / prioritization** | given limits, what matters more? | MVP scope, appetite, what to cut | **objective function + decision matrix** (referent = stated outcomes/metrics) | frame-intent outcomes ✓ + appetite ✓ + ranking step | objective ambiguous / weights unset |
 | 6 | **Value / strategic intent** | what do WE want? what's the bet? | the vision; brand; "this product not that" | **elicit + offer grounded options + execute faithfully** — cannot originate | frame-intent intake ✓, AskUserQuestion, offer-options ✦ | always (irreducible — origination of ends) |
-| 7 | **Risk-acceptance / accountability** | do we accept this irreversible risk? ship? | one-way doors: spend, legal, security sign-off, deploy | **package the decision for fast ratification** — accountability is non-transferable | decision package ✦, reversibility triage (de-risk) ✓ | always at one-way doors |
+| 7 | **Risk-acceptance / accountability** | do we accept this irreversible risk? ship? | one-way doors: spend, legal, security sign-off, deploy | **package the decision for fast ratification** — accountability is non-transferable | decision brief ✦, reversibility triage (de-risk) ✓ | always at one-way doors |
 
 **Spectrum:** types 1–4 are substitutable (agent does them against a referent);
 type 5 is substitutable once the objective is set; types 6–7 are irreducible
@@ -58,18 +58,18 @@ confirms. *Artifacts:* product-vision intent.
 
 **Phase 1 — Discovery & domain grounding (gates G1, G1.5).** Dominant: types 1
 (empirical), 2 (normative), 5 (trade-off). Agent researches how the real activity
-works + best practice + naive-failure modes (domain anchor), de-risks the riskiest
+works + best practice + naive-failure modes (Domain Framing), de-risks the riskiest
 assumption, bounds MVP against the stated appetite, builds the persona.
 *Surfaces:* the MVP cut (type 5, value-laden) + assumptions research couldn't
 ground (type 1 referent-failure) — human ratifies the scope line. *Artifacts:*
-domain anchor (+ out-of-scope register), persona, intent/OST, de-risk record.
+Domain Framing + Scope Boundary (the MVP out-of-scope register), persona, intent/OST, assumption test.
 
 **Phase 2 — Convergence design (the blackboard loop → gate G2).** Dominant: types
 3 (predictive), 4 (aesthetic), 2 (normative), 5 (trade-off). Agent runs the
 product/UX/tech lenses in one context, simulates (pre-mortem/trace), pressure-tests
 taste against the grounded reference, checks standards (security/quality/a11y as
 live lenses), reconciles via the open-questions queue, runs the self-coverage gate.
-*Surfaces at G2:* the decision package for ratification (type 7 — about to spend
+*Surfaces at G2:* the decision brief for ratification (type 7 — about to spend
 build tokens), any irreducible tension, residual taste-seed forks (type 6).
 *Artifacts:* journey map, service blueprint, screen inventory, grounded aesthetic
 direction, design critiques, architecture sketch + contracts, coverage record.
@@ -91,7 +91,7 @@ class. *Surfaces:* always (irreversible). *Artifacts:* deploy plan.
 ## The human's total interaction (the "how much human" answer)
 
 Across the whole flow: **seed** the vision/brand (P0) · **ratify** the MVP cut and
-grounded options (P1–P2) · **ratify** the decision package (G2) · **ratify** ship
+grounded options (P1–P2) · **ratify** the decision brief (G2) · **ratify** ship
 (G5) · plus bounded **referent-failure escalations**. A handful of compressed
 touchpoints, not continuous oversight — because every other judgment was converted
 to referent-grounded labor the agent did and recorded.

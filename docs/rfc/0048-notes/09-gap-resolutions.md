@@ -18,8 +18,8 @@ go to the human (surfaced one by one).
 | **O11** rejection/recovery | gate state-machine: reject emits reason→correction → loop re-enters that gate's phase → **cascade-invalidate downstream blackboard slots via the traceability edges** (mark stale) → re-run affected lenses; bounded by O12 | LangGraph checkpointers (pause/modify/resume); plan-mode reject→revise; `work-loop` iteration |
 | **O12** outer cap | `discovery-loop` carries an outer round cap + a cost budget (tunable defaults); on cap → stall surfaces to the human (predicate c) | `work-loop`'s cap + omnigent's `cost_budget` |
 | **O13** coordinator shape | `discovery-lead` agent + `discovery-loop` skill in `product-engineering`, runs on a harness | (decided — D8) |
-| **A1** headless checkpoint/resume | consent-gate contract: write decision-package to sidecar, status=awaiting-human → harness surfaces option-card → human verdict → decision-log → resume | omnigent human-in-the-loop pause; LangGraph checkpointer |
-| **A2** harness-neutral decision schema | the decision-package / option-card schema (gate · summary · decisions-requested · recommended · reversibility-class · artifacts); shipped doctrine | omnigent + our decision-log schema |
+| **A1** headless checkpoint/resume | consent-gate contract: write decision-brief to sidecar, status=awaiting-human → harness surfaces option-card → human verdict → decision-log → resume | omnigent human-in-the-loop pause; LangGraph checkpointer |
+| **A2** harness-neutral decision schema | the decision-brief / option-card schema (gate · summary · decisions-requested · recommended · reversibility-class · artifacts); shipped doctrine | omnigent + our decision-log schema |
 | **A3** team-composition | the "team" = installed lens-packs (progressive enhancement) + a thin team-manifest; omnigent YAML agent-defs as the harness expression | omnigent YAML defs + our detect-and-degrade |
 | **OQ3** self-coverage packaging | reference library + doctrine, **no new reviewer** (the `operational-safety` shape) | `operational-safety` / RFC-0041 |
 | omnigent commitment | keep as a **harness-neutral reference**, not a hard dependency; the portable sidecar schema is the hedge | the RFC's own no-engine principle |
@@ -253,7 +253,7 @@ reconciliation ([`0048-notes/10`](10-composed-end-to-end-walkthrough.md); RFC-00
 § Amendments 2026-06-26):*
 - *A "resolved-by child X" is an orphan, not a resolution, when X closed without binding it.*
   Two children each deferred the `docs/discovery/` layout key to "the other one" — the
-  domain-anchor spec deferred it to "the experience-pack / layout child effort," and child-1
+  frame-domain spec deferred it to "the experience-pack / layout child effort," and child-1
   (RFC-0050) bound only `[experience]→docs/design` and never touched it. The temptation was to
   read "deferred to a named effort" as closed. → **resolve by re-checking the target actually
   bound it**, and when it didn't, **assign a concrete owner** (RFC-0053's implementing spec, the

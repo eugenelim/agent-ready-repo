@@ -15,23 +15,38 @@ The bias is **reuse + a few new pure-markdown skills**, never a new runtime — 
 - ✦ **self-coverage gate** — reference library + doctrine (domain-grounding table ·
   pre-mortem · taxonomy walk · saturation · fresh-context adversarial · **scenario-
   variation**); **no new reviewer**. Packaging (library vs skill) = OQ3.
-- ✦ **traceability lint** — a tool: *structural* orphan detection along the chain.
-- ✦ **sidecar schema** — the shared typed-state contract both loops read (blackboard ·
-  open-questions · traceability · decision log); harness-neutral doctrine, the *store* is
-  the harness's.
-- ⊕ **`security-reviewer` + `quality-engineer`** (agents) — gain a **design-artifact /
-  live-lens mode** so they can review a journey/blueprint mid-loop (GAP-O5).
+- ✦ **traceability lint** — a tool: *structural* orphan detection along the chain; reads
+  the produced sidecar *instances* by convention + a `schema_version` stamp (it does **not**
+  import the schema definition).
+- ✓ **`security-reviewer` + `quality-engineer`** (agents) — reused as-is for `work-loop`'s
+  code-diff review. **They do *not* gain a discovery design-artifact mode** — under the
+  scope-decoupling amendment (§ Amendments 2026-06-26) the discovery security/quality lens is
+  a discovery-owned, user-scope reviewer in `product-engineering` (distinct name), degrading
+  to `core`'s `security-checklists` / `operational-safety` depth library when `core` is present.
 - ✓ **`implementer`, `loop-cohort`** — reused as-is for G4 parallel fan-out.
+
+> **Scope-decoupling (§ Amendments 2026-06-26):** the **sidecar schema** is no longer a `core`
+> delta — its definition is a `references/` file carried in `product-engineering`'s
+> `discovery-loop` skill (consumers read instances by convention), and the discovery design
+> reviewers are `product-engineering`-owned. `core` keeps only the traceability lint + the
+> reused (unmodified) code reviewers above.
 
 ### `product-engineering`
 - ✦ **`discovery-lead`** (agent) + **`discovery-loop`** (skill) — the chief / upstream
-  supervisor; an *opt-in product capability*; hard-deps PE's intent skills + `core`'s
-  sidecar schema + the G3 handoff; **optional detect-and-degrade** on `research` /
-  `experience` / `architect` (lights up as packs are installed).
+  supervisor; an *opt-in product capability*; hard-deps PE's intent skills + **the carried
+  sidecar-schema contract** (a `references/` file in this skill — § Amendments 2026-06-26) +
+  the G3 handoff; **optional detect-and-degrade** on `research` / `experience` / `architect`
+  *and on `core`'s reviewers + depth libraries* (lights up as packs are installed). Minimal
+  install is `product-engineering` alone — no `core` required (vault / non-repo portable).
+- ✦ **discovery design reviewers** (agents, user-scope) — `product-engineering`'s own
+  design-time security/quality lenses (distinct names from `core`'s code reviewers; precedent:
+  `architect`'s `design-reviewer`); carry a baseline checklist, deepen on `core` when present.
 - ⊕ **`frame-intent`** — multi-stakeholder intake + conflict surfacing; brownfield
   current-state inputs.
-- ✦ **`domain-anchor`** — new skill + typed artifact: real-world-activity half **and**
-  (brownfield) a current-system half (reverse-engineered); wraps `research` applied mode.
+- ✦ **`frame-domain`** — new skill producing **two** typed artifacts: **Domain Framing**
+  (real-world-activity half **and**, for brownfield, a reverse-engineered current-system half;
+  wraps `research` applied mode) and **Scope Boundary** (the MVP out-of-scope register; the
+  G1.5 scope-creep guard the brief inherits/refines at G3).
 - ⊕ **`de-risk-intent`** — an optional value-conflict assumption kind.
 - ⊕ **`voice-and-microcopy`** — cross-linked into the `experience` seat; wired to consume
   the screen inventory (GAP-C1).
@@ -56,7 +71,7 @@ The bias is **reuse + a few new pure-markdown skills**, never a new runtime — 
 - ⊕ **`design-reviewer`** (agent) — optional live-lens mode for design artifacts.
 
 ### `research`  — pure reuse, the analyst seat
-- ✓ `research` (applied) → domain-anchor · `identify-perspectives` → conflict/tension
+- ✓ `research` (applied) → frame-domain (Domain Framing) · `identify-perspectives` → conflict/tension
   artifact · `decision-archaeology` → brownfield current-state · `devils-advocate` →
   the self-coverage fresh-context pass. **No new skills.**
 
@@ -66,12 +81,14 @@ The bias is **reuse + a few new pure-markdown skills**, never a new runtime — 
 
 ### Net
 - **New:** 4 skills (`map-journey`, `blueprint-service`, `inventory-screens`,
-  `domain-anchor`) + 1 reference-library/doctrine (self-coverage gate) + 1 tool
-  (traceability lint).
+  `frame-domain`) + 1 reference-library/doctrine (self-coverage gate) + 1 tool
+  (traceability lint) + `product-engineering`'s own user-scope discovery design
+  reviewers (agents — § Amendments 2026-06-26).
 - **Modify:** `work-loop`, `new-spec`/`receive-brief`, `frame-intent`,
   `aesthetic-direction`, `design-critique`, `voice-and-microcopy`,
-  `architect-design`/`-diagram`; agents `security-reviewer`, `quality-engineer`,
-  `design-reviewer`.
+  `architect-design`/`-diagram`; agent `design-reviewer` (architect, user-scope).
+  (`security-reviewer` / `quality-engineer` are **reused as-is** — no design mode,
+  per the scope-decoupling amendment.)
 - **The chief ships as an agent def + convergence-loop skill** (the upstream
   supervisor); only the *harness/runtime* is not shipped (below).
 
@@ -81,12 +98,13 @@ The bias is **reuse + a few new pure-markdown skills**, never a new runtime — 
 supervisor), but NOT a runtime.** It is a *peer* of `work-loop`'s supervisor running a
 **different loop** (vision→brief, not spec→build); the two hand off at G3 and must not be
 conflated. Names: **`discovery-lead`** (agent) + **`discovery-loop`** (loop), resident in
-**`product-engineering`** (opt-in product capability; the sidecar schema it reads is
-`core` doctrine). Three layers:
+**`product-engineering`** (opt-in product capability; the sidecar schema it **carries** —
+a `references/` file in the `discovery-loop` skill, § Amendments 2026-06-26 — not `core`
+doctrine). Three layers:
 
 1. **The chief = a supervisor of a discovery lens-team, running the gate-ladder doctrine.**
    It holds the blackboard, routes each judgment to its referent or the human (the
-   three-act boundary), and renders decision packages at the consent gates. It
+   three-act boundary), and renders decision briefs at the consent gates. It
    right-sizes: **solo** (small discovery — switches lenses in one context, cheap) or
    **lens-team** (large/multi-discipline — dispatches parallel lens-agents that each
    supervise a domain). Peer of `work-loop`'s supervisor at a different altitude — the
@@ -125,9 +143,9 @@ sidecar being the thing that makes "everything holds together" *checkable*.
 ## Updated flow (with the folded gaps)
 
 `G0 Intake` (value seed; **multi-stakeholder intake surfaces conflicting seeds**) →
-`G1 Strategy` → **`G1.5 Domain & MVP`** (domain-anchor: real-activity + brownfield
+`G1 Strategy` → **`G1.5 Domain & MVP`** (frame-domain → Domain Framing: real-activity + brownfield
 current-system half; MVP/out-of-scope register) → **convergence loop** (product/UX/tech/
 reconcile lenses on the blackboard; UX carries the platform axis; self-coverage gate incl.
 scenario-variation; **conflict-adjudication surfaces to the human**) → `G2 Convergence`
-(decision package; stakes-density sets gate frequency) → `G3 Spec` → `G4 Build`
+(decision brief; stakes-density sets gate frequency) → `G3 Spec` → `G4 Build`
 (autonomous; tests are the referent) → `G5 Ship` (irreversible; human).

@@ -15,9 +15,10 @@ them agent-producible and build-consumable (design-craft's own framing).
 | --- | --- | --- | --- |
 | **Intent** (level-tagged) | outcome+opportunity at product-vision / strategy / capability / feature; the recursive backbone | frame-intent ✓ | decompose-intent; rendered → brief |
 | **Opportunity tree** | the intent recursion viewed whole = the OST (outcome → opportunities → solutions → assumption tests) | frame+decompose ✓ | human at G1; orients discovery |
-| **De-risk record** | riskiest assumption · kill condition · prototype-approach · survive/kill verdict | de-risk-intent ✓ | G1.5; reshapes intent if killed |
-| **Domain anchor** | real-life activity grounding + best practice + naive-failure modes + **MVP/appetite scope + out-of-scope register** | research applied ✓ + typed artifact ✦ | UX + tech lenses; scope-creep guard |
-| **Persona** | who it's for; the referent taste + UX fit derive from | *elicited inline by the first consumer* (not a separate produced artifact in the current child set — RFC-0048 § Amendments DRIFT-F; domain-anchor spec excludes it; promoting it to a produced artifact is a deferred option) | aesthetic-direction; map-journey |
+| **Assumption test** | riskiest assumption · kill condition · prototype-approach · survive/kill verdict | de-risk-intent ✓ | G1.5; reshapes intent if killed |
+| **Domain Framing** | real-life activity grounding + best practice + naive-failure modes + brownfield current-system half | frame-domain ✦ (wraps research applied ✓) | UX + tech lenses; correctness/anti-hallucination |
+| **Scope Boundary** | MVP/appetite scope + out-of-scope register; the upstream G1.5 scope-creep guard | frame-domain ✦ (same skill, second artifact) | scope-creep guard; **brief inherits/refines at G3** |
+| **Persona** | who it's for; the referent taste + UX fit derive from | *elicited inline by the first consumer* (not a separate produced artifact in the current child set — RFC-0048 § Amendments DRIFT-F; the frame-domain spec excludes it; promoting it to a produced artifact is a deferred option) | aesthetic-direction; map-journey |
 | **Outcomes & metrics** | North Star + input metrics | frame/decompose ✓ | traceability root; post-build review |
 | **Brief** | the core handoff: outcome, metrics, scope/non-goals, appetite, stories, spec map | decompose-intent writes ✓; template core ✓ | receive-brief |
 | **Spec** | per-feature contract (Shape + LLD + ACs) — the product/tech boundary artifact | new-spec ✓ | work-loop |
@@ -59,7 +60,7 @@ Two edges cross into the tech packs (architect / contracts / core) — not enume
 ## Cross-cutting gate artifacts (wrap the above, not product/design per se)
 
 - **Coverage/pre-mortem record** — the self-coverage gate output (domain-grounding table, pre-mortem, taxonomy walk, saturation declaration, fresh-context findings). Gates "converged."
-- **Decision package** — at G2, the journey + screen inventory + arch sketch + tension/assumption ledger rendered for human ratification.
+- **Decision brief** — at G2, the journey + screen inventory + arch sketch + tension/assumption ledger rendered for human ratification.
 
 ## Deliberately NOT artifacts (MVP discipline)
 
