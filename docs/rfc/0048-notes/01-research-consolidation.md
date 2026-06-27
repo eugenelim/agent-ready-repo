@@ -53,7 +53,7 @@ The connective tissue best-in-class teams use:
 **The deliverable is the human's; the state is the agents'.** Agents coordinate
 through a typed blackboard + open-questions queue that needs to be *consistent*,
 not pretty. At a gate, that state is *rendered* into a human-readable deliverable
-(journey map, screen inventory, decision package, brief, spec, ADR) for consent
+(journey map, screen inventory, decision brief, brief, spec, ADR) for consent
 or audit. Keep the human deliverables; don't make agents produce
 human-coordination overhead they don't need (sprint backlog, standup, RACI,
 launch/GTM brief).

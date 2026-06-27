@@ -44,7 +44,7 @@
 - **An install-time pack alias.** No pack-level rename/alias field exists (grep-confirmed, RFC-0048); inventing one is a distribution-mechanism RFC, not this one. We follow the `contract-acquisition` precedent: rename + erratum, no alias.
 - **Pixel comps / Figma files.** Agents author design **intent specs** (markdown/mermaid/tables); a designer or UI-codegen realizes them (the `design-craft` framing, unchanged).
 - **Values tables.** No fixed breakpoints, HIG spacing, or Material token sets reprinted — the platform axis *points to* the conventions, the method derives the values (RFC-0033's guardrail).
-- **The traceability lint / domain anchor / self-coverage gate.** Those are RFC-0048's sibling child efforts (Decisions 4–6); this RFC *consumes* their contracts (the per-screen brief's traceability columns) but builds none of them.
+- **The traceability lint / Domain Framing + Scope Boundary / self-coverage gate.** Those are RFC-0048's sibling child efforts (Decisions 4–6); this RFC *consumes* their contracts (the per-screen brief's traceability columns) but builds none of them.
 - **Building the discovery loop or `discovery-lead`.** The connective skills are invoked by a human designer today and by `discovery-lead` once it ships (RFC-0048 D8) — this RFC makes them work either way.
 
 ## Proposal
@@ -104,7 +104,7 @@ Coherence is enforced by three things, only one of which this RFC ships: (a) eve
 
 ### D5 — grounded `aesthetic-direction`, taste-mode `design-critique`
 
-**`aesthetic-direction` (⊕).** Today it converges a felt vibe into ranked named goals. The enhancement **grounds** those goals in a stable referent — the **persona** (from the domain anchor, or elicited inline if absent), **precedent** (a brief survey of comparable products' taste, refreshed only when the loop needs it), recognized **standards**, and **platform conventions** (D3). The recorded direction names *what grounds each goal*, so a later choice points back to a referent, not a fresh opinion. It stays method-not-values (no palette/font/value printed).
+**`aesthetic-direction` (⊕).** Today it converges a felt vibe into ranked named goals. The enhancement **grounds** those goals in a stable referent — the **persona** (from the Domain Framing, or elicited inline if absent), **precedent** (a brief survey of comparable products' taste, refreshed only when the loop needs it), recognized **standards**, and **platform conventions** (D3). The recorded direction names *what grounds each goal*, so a later choice points back to a referent, not a fresh opinion. It stays method-not-values (no palette/font/value printed).
 
 **`design-critique` (⊕).** Today it runs a heuristic + quality-floor evaluation. The enhancement adds a **taste mode**: an evidence-grounded critique of a screen against the **grounded aesthetic reference** + **platform fit**, run **fresh-context** (the design-side analog of an adversarial pass). The critique's rubric is reusable by the live-lens reviewer (RFC-0048 O5) — but `design-critique` itself stays an **interactive authoring-time skill, not a reviewer subagent** (ADR-0024; RFC-0032's ceiling reading). No new agent.
 

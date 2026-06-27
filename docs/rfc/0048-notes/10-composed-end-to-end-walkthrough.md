@@ -64,7 +64,7 @@ the two load-bearing terms confirmed. Auto-advance to G1.
 **Driver:** DL · **Skills:** `de-risk-intent`, `decompose-intent` (PE); `research`
 subroutine (research) on the memory-pattern assumption.
 
-**EXAMPLE ARTIFACTS** (capability intents + de-risk record, abbreviated):
+**EXAMPLE ARTIFACTS** (capability intents + assumption test, abbreviated):
 
 ```markdown
 # Capabilities (decompose-intent, one level down from product-vision)
@@ -74,7 +74,7 @@ subroutine (research) on the memory-pattern assumption.
 - cap:approved-learning  — owner-approved writes to durable memory
 - cap:identity-security  — single-owner auth boundary
 
-# De-risk record (riskiest assumptions + kill conditions)
+# Assumption test (riskiest assumptions + kill conditions)
 - A1: owner *approves* learning rather than ignoring the prompt.
       Kill if approval-acceptance rate < threshold in the prototype walk.
 - A2: coarse state stays useful without burdensome manual entry.
@@ -85,22 +85,24 @@ Auto-advances (no scope one-way-door yet; the fulfillment temptation surfaces at
 
 ---
 
-## Stage 2 · G1.5 Domain & MVP — the domain anchor  [consent gate]
+## Stage 2 · G1.5 Domain & MVP — Domain Framing + Scope Boundary  [consent gate]
 
-**Driver:** DL · **Skill:** `domain-anchor` (PE) wrapping `research` applied mode (+
-`decision-archaeology` if brownfield — greenfield here, so that half is omitted and the
-artifact says so, per [domain-anchor spec AC3](../../specs/domain-anchor/spec.md)).
+**Driver:** DL · **Skill:** `frame-domain` (PE) wrapping `research` applied mode (+
+`decision-archaeology` if brownfield — greenfield here, so the current-system half is omitted and the
+Domain Framing says so, per [frame-domain spec AC3](../../specs/frame-domain/spec.md)).
+This stage produces **two** typed artifacts: the **Domain Framing** (the grounding) and the
+**Scope Boundary** (the MVP appetite + out-of-scope register).
 
-**EXAMPLE ARTIFACT — `docs/discovery/example-assistant/domain-anchor.md`** (the three
-load-bearing components fixed by the [domain-anchor spec](../../specs/domain-anchor/spec.md)
-AC2; the activity content is note 02's domain anchor, now shaped into the typed artifact):
+**EXAMPLE ARTIFACT — `docs/discovery/example-assistant/domain-framing.md`** (the grounding
+components fixed by the [frame-domain spec](../../specs/frame-domain/spec.md)
+AC2; the activity content is note 02's domain grounding, now shaped into the typed artifact):
 
 ```markdown
 ---
-type: domain-anchor
+type: domain-framing
 slug: example-assistant
 ---
-# Domain anchor: example-assistant
+# Domain Framing: example-assistant
 
 ## Real-world-activity half  (research applied mode — grounded, not intuited)
 - Runs on a cadence/horizon (e.g. weekly); the high-deliberation slice is a subset — the
@@ -121,6 +123,21 @@ slug: example-assistant
 ## Current-system half
 - N/A — greenfield. (Stated explicitly per AC3.)
 
+## Residual assumptions (could not ground — surfaced for the human, AC5)
+- The right managed-platform memory pattern for approved-learning writes (routed to a
+  platform skill at G1; remains a build-time tech-lens question).
+```
+
+**EXAMPLE ARTIFACT — `docs/discovery/example-assistant/scope-boundary.md`** (the MVP appetite
++ out-of-scope register — the upstream G1.5 scope-creep guard the brief inherits and refines at G3):
+
+```markdown
+---
+type: scope-boundary
+slug: example-assistant
+---
+# Scope Boundary: example-assistant
+
 ## MVP out-of-scope register  (each with its appetite reason — AC4)
 - third-party fulfillment / external-service integration — a one-way door (spend, IAM,
   third-party contract); out of a single-owner MVP appetite.
@@ -128,13 +145,9 @@ slug: example-assistant
 - analytics / optimization — second-order; no in-appetite outcome roots it.
 - multi-user collaboration — single-owner is the security boundary.
 - budget optimization, large-scale external import — beyond appetite.
-
-## Residual assumptions (could not ground — surfaced for the human, AC5)
-- The right managed-platform memory pattern for approved-learning writes (routed to a
-  platform skill at G1; remains a build-time tech-lens question).
 ```
 
-**H ratifies the MVP boundary** (decision-log r2 region). The out-of-scope register is now
+**H ratifies the MVP boundary** (decision-log r2 region). The Scope Boundary's out-of-scope register is now
 the referent the scope guard and the human use to reject the fulfillment temptation.
 
 ---
@@ -249,11 +262,11 @@ Let the owner review one proposed learning and approve or reject it before it is
 `aesthetic-direction` (grounded in persona + precedent + standards + platform — RFC-0050 D5),
 `design-critique` taste mode, `voice-and-microcopy` (PE) consuming the per-screen state matrix.
 
-▶ **DRIFT-F (persona).** `aesthetic-direction` consumes a persona "from the domain anchor,
-or **elicited inline if absent**" (RFC-0050 D5). The domain-anchor spec fixes its schema at
-*three* components and excludes persona. So in this walk the persona is **elicited inline by
+▶ **DRIFT-F (persona).** `aesthetic-direction` consumes a persona "from the Domain Framing,
+or **elicited inline if absent**" (RFC-0050 D5). The frame-domain spec fixes the Domain Framing schema at
+its grounding components and excludes persona. So in this walk the persona is **elicited inline by
 its first consumer**, not produced as a separate typed artifact. Note 04 lists persona with a
-producer "(in domain anchor)" — that producer claim is the drift; reconciled at **DRIFT-F**.
+producer "(in Domain Framing)" — that producer claim is the drift; reconciled at **DRIFT-F**.
 
 ### 3d · Tech lens
 `architect-design` / `architect-diagram` (architect) + a managed-agent-platform skill +
@@ -311,22 +324,22 @@ only the UX lens. The edge set scopes the blast radius. A markdown+JSON edit, no
 
 ---
 
-## Stage 4 · G2 Convergence — the decision package  [consent gate]
+## Stage 4 · G2 Convergence — the decision brief  [consent gate]
 
 **Driver:** DL renders the blackboard · **Human:** ratifies the "what"; adjudicates conflicts.
 
 Saturation (O6): no open/routed OQ + traceability closed + a full pass with no invalidating
 edit → CONVERGED (the spike: round 4 of 12, $6.40 of $25 — the O12 cap *modelled*, not hit).
 
-**EXAMPLE ARTIFACT — `docs/discovery/example-assistant/decision-package.md`:**
+**EXAMPLE ARTIFACT — `docs/discovery/example-assistant/decision-brief.md`:**
 
 ```markdown
 ---
-type: decision-package
+type: decision-brief
 slug: example-assistant
 gate: G2
 ---
-# Decision package — the "what" (ratified)
+# Decision brief — the "what" (ratified)
 ## Journey + screens
 Plan → Adjust → List → Act → Learn; screens plan-review, resource-dashboard, derived-list,
 learning-review, audit-view (+ per-screen briefs).
@@ -346,7 +359,7 @@ at G1.5, so no open conflict remains at G2.
 
 ---
 
-## Stage 5 · The backlog bridge — decision package → ordered work items
+## Stage 5 · The backlog bridge — decision brief → ordered work items
 
 **Driver:** DL decomposes; the **service blueprint is the slicing instrument**; `loop-cohort`
 will order it ([note 08](08-artifact-layout-and-backlog.md)).
@@ -359,21 +372,21 @@ will order it ([note 08](08-artifact-layout-and-backlog.md)).
   components: [api-service]
   brief: docs/product/briefs/identity-security.md
   depends_on: []
-  traces_to: outcome=secure · decision-package §architecture
+  traces_to: outcome=secure · decision-brief §architecture
   status: todo
 - id: WI-002
   title: coarse resource-state (read / decrement / drift-tolerant)
   components: [api-service, data-store]
   brief: docs/product/briefs/resource-state.md
   depends_on: [WI-001]
-  traces_to: outcome=waste-down · decision-package §journey(Act)
+  traces_to: outcome=waste-down · decision-brief §journey(Act)
   status: todo
 - id: WI-003
   title: approve a proposed learning  (owner-gated memory write + audit)
   components: [api-service, web-app, worker, data-store]
   brief: docs/product/briefs/approved-learning.md
   depends_on: [WI-001]                # identity before learning
-  traces_to: outcome=learning-acceptance · decision-package §learning
+  traces_to: outcome=learning-acceptance · decision-brief §learning
   status: todo
 ```
 
@@ -395,7 +408,7 @@ spec stage (identity + memory writes = security boundary → full mode). `work-l
 ```markdown
 # Spec: approved-learning
 - Status: Draft
-- Discovery: docs/discovery/example-assistant/decision-package.md §learning   # ◀ the G3 up-edge (DRIFT-G)
+- Discovery: docs/discovery/example-assistant/decision-brief.md §learning   # ◀ the G3 up-edge (DRIFT-G)
 - Brief: docs/product/briefs/approved-learning.md
 - Component: api-service + web-app + worker + data-store
 - Shape: mixed

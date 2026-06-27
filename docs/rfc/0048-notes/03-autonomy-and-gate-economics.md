@@ -27,7 +27,7 @@ check.** Everywhere else, let the agent run.
 **Corollary: autonomy is inversely proportional to error-compounding cost, which
 is inversely proportional to verifiability.** High-altitude decisions (right
 product? right domain? right scope?) have no local verifier and the largest blast
-radius — a wrong domain anchor poisons every screen, spec, and line below it.
+radius — a wrong Domain Framing poisons every screen, spec, and line below it.
 Low-altitude decisions (does this function work?) have a cheap verifier (tests)
 and a contained blast radius. So **human gates cluster at the top; agent autonomy
 is greatest at the bottom.**
@@ -110,7 +110,7 @@ out-of-charter or net-new skills.
 unspecified (GAP-O13); (3) gate recovery + outer cap (GAP-O11/O12). RFC-ready now:
 the Experience pack (P1–P3) — real, correctly diagnosed, shippable standalone.
 The convergence engine must NOT be RFC'd until the coordinator's contract, the
-domain-anchor typed artifact (GAP-P4 — `research` applied mode does NOT emit it
+Domain Framing typed artifact (GAP-P4 — `research` applied mode does NOT emit it
 for free), the scope-creep guard's mechanism (GAP-O10 — orphan-lint catches
 structural orphans, NOT semantic over-scoping), live-lens review modes (GAP-O5 —
 reviewers have no design-artifact mode today), and the engine's OWN charter-fit
