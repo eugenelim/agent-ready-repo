@@ -18,13 +18,15 @@
   repeatedly in one context.
 - **G1 Strategy** [auto]. `de-risk-intent` predeclares kill conditions. Predicate did not
   fire (no scope one-way-door, no logged conflict) -> auto-advance (decision-log r1).
-- **G1.5 Domain & MVP** [consent]. `domain-anchor` (wrapping `research` applied) grounds
-  the real recurring-planning activity + the approximate-state MVP + the **out-of-scope
-  register** (third-party fulfillment, precise inventory, multi-user, analytics). OQ-1
-  (approximate state) and OQ-4 (single-owner) resolved against the anchor — referent-
-  settled, not surfaced. Human ratifies the MVP boundary (decision-log r1).
+- **G1.5 Domain & MVP** [consent]. `frame-domain` (wrapping `research` applied) grounds
+  the real recurring-planning activity + the approximate-state MVP (`domain-framing`) and
+  registers the **out-of-scope register** (`scope-boundary`: third-party fulfillment,
+  precise inventory, multi-user, analytics). OQ-1 (approximate state) resolved against
+  `domain-framing` and OQ-4 (single-owner) against `scope-boundary` — referent-settled,
+  not surfaced. Human ratifies the MVP boundary (decision-log r1).
 
-At end of round 1 the blackboard holds the intent ladder + domain-anchor + persona; the
+At end of round 1 the blackboard holds the intent ladder + domain-framing + scope-boundary
++ persona; the
 traceability matrix has the upstream edges; the OQ queue has 2 resolved rows.
 
 ## Round 2 — convergence opens; two defects appear
@@ -44,7 +46,7 @@ Running the checker on the round-2 snapshot (reproducible):
 ```
 $ python3 check_sidecar.py traceability.preconverge.json
 == traceability: traceability.preconverge.json ==
-   17 nodes, 19 edges
+   18 nodes, 21 edges
    ORPHANS (2):
      - service:learning-approval [service]: no consumer (down-edge)
      - service:fulfillment [service]: no consumer (down-edge)
@@ -109,7 +111,7 @@ $ python3 check_sidecar.py traceability.json open-questions.md
 ```
 
 - **G2 Convergence** [consent]. `discovery-lead` renders the blackboard into the
-  **decision-package**. The one value/scope call (OQ-2) was already adjudicated at G1.5, so
+  **decision-brief**. The one value/scope call (OQ-2) was already adjudicated at G1.5, so
   there is **no open conflict to adjudicate** at G2 — the human ratifies the "what"
   (decision-log r4).
 - **Backlog + G3 handoff**: decompose the package into ordered work items (the

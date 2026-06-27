@@ -118,8 +118,8 @@ deliver.
   ship the doctrine such a harness enforces, not the harness.
 - *Building `discovery-loop`.* The second controller is RFC-0048 D8's child; this RFC wires
   the **first** consumer (`work-loop`) and specifies the seam the second will use.
-- *The domain-anchor typed artifact and the traceability lint* (RFC-0048 D4/D6, sibling
-  children). The domain-grounding step *consumes* a domain anchor where one exists and
+- *The Domain Framing + Scope Boundary typed artifacts and the traceability lint* (RFC-0048 D4/D6, sibling
+  children). The domain-grounding step *consumes* a Domain Framing where one exists and
   degrades to in-gate grounding where it does not; it does not define that artifact.
 
 ## Proposal
@@ -172,7 +172,7 @@ never a flat march. The seven, with the failure each guards and its grounding:
 
 | Module | The step | Blocks declaring covered if… | Grounded in |
 |---|---|---|---|
-| `domain-grounding` | a domain-grounding table — one row per load-bearing domain claim, each grounded in a referent (a domain anchor where RFC-0048 D4 supplies one; else in-gate `research`) | any cell empty or "assumed" | note 03 table (WHO-checklist −36% complications); RFC-0048 D4 |
+| `domain-grounding` | a domain-grounding table — one row per load-bearing domain claim, each grounded in a referent (a Domain Framing where RFC-0048 D4 supplies one; else in-gate `research`) | any cell empty or "assumed" | note 03 table (WHO-checklist −36% complications); RFC-0048 D4 |
 | `pre-mortem` | prospective hindsight — assume it shipped and failed; enumerate failure modes, each tagged to a design element | < N scenarios, or any untagged | note 03 (+30% failure ID); Klein prospective hindsight |
 | `taxonomy-walk` | an external dimension register walked one paragraph each (a substantive paragraph, never yes/no) | any dimension blank | note 03 (recall→recognition; external scaffolds beat free recall) |
 | `saturation-declaration` | a grounded-theory stop rule — declare convergence only when a full pass surfaces no new open question and no invalidating edit | declaration absent | note 03; `research-project-check`'s stop-signal (RFC-0048 O6) |
