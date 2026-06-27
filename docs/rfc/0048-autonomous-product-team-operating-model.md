@@ -12,7 +12,9 @@
   ([`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md)) plus a
   resolve-vs-surface lens and two fresh-context adversarial passes — with every surfaced drift
   folded into § Amendments (the present contract in its *Current reconciliation state* table;
-  how each was reached in the audit trail below it) and every open seam assigned to a named owner. The remaining work is **prerequisite closure** (the acceptance
+  how each was reached in the audit trail below it) and every open seam assigned to a named owner. Reconciliation and owner-assignment are the **alignment** condition for
+  acceptance — *necessary but not sufficient*; the model's *success* is judged
+  against the explicit pass/fail tests in the Success criteria below (§ Problem & goals). The remaining work is **prerequisite closure** (the acceptance
   blockers above), not unresolved foundation design. Drift the owed specs surface is still a bug
   to reconcile *in this RFC* (a tracked amendment), never to absorb silently downstream.
 - **Author:** eugenelim
@@ -228,6 +230,24 @@ worked example (a secure personal-assistant agent) end-to-end ([`0048-notes/02`]
 - **Between-gate autonomy for high-assurance / regulated work** — those domains
   right-size *up* (more human gates); the autonomy claim is scoped to low/moderate
   stakes.
+
+**Success criteria.** The Goals above are directional; these are the model's
+pass/fail tests. RFC-0048 succeeds when an **outside reviewer can independently
+verify each row** — and each row tests the operating model's *behavior*, not
+whether the child roadmap exists and has owners (that is the alignment condition
+for acceptance — the Acceptance note above — which is *necessary but not
+sufficient*). The acceptance blockers gate *when* these can be run end-to-end
+(producers must land first — see § Rollout and backout plan), not *whether* the
+model is judged by them.
+
+| Criterion | Evidence an outside reviewer can check |
+| --- | --- |
+| **End-to-end path works** | A worked example reaches G0→G4 (G5 is [RFC-0049](0049-the-release-loop-and-company-os.md)) with the required discovery artifacts, a decision brief, a `Discovery:`-linked spec, and a deploy-ready component handoff — the composed walkthrough in [`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md). |
+| **Human gates are bounded** | Every human intervention in the worked example maps to one of the three irreducible acts — originate value · accept irreversible risk · adjudicate a genuine value conflict (Decision 1); none is a substitutable, referent-groundable judgment the surfacing predicate should have absorbed. |
+| **Reconciliation is mechanical where claimed** | The [traceability lint](../specs/traceability-lint/spec.md) finds zero *structural* orphans once producers are present, and every unresolved open question is assigned to a discipline or surfaced at a gate. (*Semantic* scope-creep is not mechanizable and stays the human call at G1.5 — Decision 6 / O10.) |
+| **Child efforts stand alone** | Each child artifact (D3–D6) remains useful with the coordinator never shipped, carrying its own acceptance evidence — the "shippable and useful standalone" goal above. |
+| **No runtime boundary crossed** | Delivered artifacts are doctrine, pure-markdown skills, reference libraries, specs, and reviewers only; no daemon / service / orchestration runtime is introduced (Decision 2; Principle 3; Option B). |
+| **Fail-closed wiring is safe** | `--strict` traceability lint, required `schema_version` checks, and automatic `loop-cohort` ingestion are enabled only after their producers/contracts land — the producers-before-consumers rule of § Rollout and backout plan. |
 
 ## Proposal
 
@@ -969,7 +989,8 @@ the note-02/note-04 freeze-reading sources corrected to match).
 
 **Reconciliation complete; acceptance blocked pending the owed follow-ons.** With the child set
 complete and every surfaced drift reconciled and assigned above, the model is **coherent and
-every seam is owned** — the alignment condition for acceptance. Acceptance is, however,
+every seam is owned** — the alignment condition for acceptance, *necessary but not
+sufficient* (the model's success is judged against the Success criteria in § Problem & goals). Acceptance is, however,
 **blocked** (operator's call, 2026-06-26) until the owner-assigned follow-ons land:
 RFC-0053's implementing spec (AC0 the carried sidecar-schema contract; the
 `docs/discovery/<initiative>/` layout key, DRIFT-C; the backlog-decomposition + `loop-cohort`
