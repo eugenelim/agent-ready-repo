@@ -248,7 +248,7 @@ Sample reads, to calibrate the boundary:
   classification (`reversible` / `safe` / `internal`) gates autonomy, write down the
   precondition that earns the word, or an agent will apply it where it doesn't hold.
 
-*Sample reads appended by the RFC-0048 provisional-foundation discharge — the composed-set
+*Sample reads appended by the RFC-0048 foundation reconciliation discharge — the composed-set
 reconciliation ([`0048-notes/10`](10-composed-end-to-end-walkthrough.md); RFC-0048
 § Amendments 2026-06-26):*
 - *A "resolved-by child X" is an orphan, not a resolution, when X closed without binding it.*
