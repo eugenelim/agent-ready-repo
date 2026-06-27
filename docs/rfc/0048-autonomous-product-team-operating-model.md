@@ -1,23 +1,20 @@
 # RFC-0048: The autonomous product-team operating model — gate doctrine, the `experience` pack, and a child-effort roadmap
 
 - **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
-- **Provisional foundation — reconciliation pass complete (2026-06-26); status held
-  provisional pending the owed follow-ons:** this umbrella/foundation RFC remains
-  *provisional* — amendable, not frozen — until every child RFC is modelled out and
-  drift-aligned back to it. The child set is now complete (experience · frame-domain ·
-  self-coverage · traceability-lint · coordinator · release-loop) and the whole set has been
-  **reconciled as one operating system** — a G0→G5 composed pressure test
+- **Acceptance blockers** — this RFC may move Open → Accepted only after each of these lands:
+  1. RFC-0053's implementing spec lands **AC0**: the carried sidecar-schema contract (DRIFT-I, at user scope).
+  2. RFC-0053's implementing spec lands the `docs/discovery/<initiative>/` layout key (DRIFT-C).
+  3. RFC-0053's implementing spec lands the backlog-decomposition + `loop-cohort`-ingestion ACs (DRIFT-H).
+  4. The CONVENTIONS / `new-spec` follow-on lands the `Discovery:` header + discovery `type:` markers (DRIFT-G).
+- **Acceptance note** — the child-set reconciliation is complete (pass dated 2026-06-26): the
+  child set (experience · frame-domain · self-coverage · traceability-lint · coordinator ·
+  release-loop) was **reconciled as one operating system** — a G0→G5 composed pressure test
   ([`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md)) plus a
   resolve-vs-surface lens and two fresh-context adversarial passes — with every surfaced drift
-  folded into § Amendments (the *Provisional-foundation discharge* block) and every open seam
-  assigned to a named owner. **The freeze is deliberately held** until those owner-assigned
-  follow-ons land — RFC-0053's implementing spec (AC0 the carried sidecar-schema contract, the
-  `docs/discovery/<initiative>/` layout key, the backlog-decomposition + `loop-cohort` ACs) and
-  the CONVENTIONS-edit `new-spec` `Discovery:` header — at which point freezing is a one-line
-  status flip backed by an already-aligned model. Drift is a bug to reconcile *in this RFC* (a
-  tracked amendment), never to absorb silently downstream. This intentionally diverges from the
-  normal Accepted→Frozen lifecycle for this foundation RFC; it reaches its terminal/frozen state
-  when those follow-ons close the assigned seams.
+  folded into § Amendments (the *Foundation reconciliation discharge* block) and every open seam
+  assigned to a named owner. The remaining work is **prerequisite closure** (the acceptance
+  blockers above), not unresolved foundation design. Drift the owed specs surface is still a bug
+  to reconcile *in this RFC* (a tracked amendment), never to absorb silently downstream.
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
@@ -179,10 +176,10 @@ can the catalogue become an autonomous product team without violating Principle 
    draft→adversarial→Draft→Open→Accepted→follow-ons gates, or the spec/skill equivalent).
    Each appends its sample reads to the living sample-bank (`0048-notes/09`), **and
    reconciles any drift it surfaces back into this foundation RFC** (a tracked amendment) —
-   which is why RFC-0048 stays *provisional* until the child set is complete and aligned
-   (see the Provisional-foundation note). · *why:* the discipline this RFC was built with
-   becomes the standard the series runs by, not a one-off — and the foundation earns its
-   frozen state only by surviving the children. · decide-by: RFC accept · default: adopt.
+   which is why RFC-0048 stays **Open with acceptance blocked** until the child set is complete
+   and aligned (see the Acceptance note). · *why:* the discipline this RFC was built with
+   becomes the standard the series runs by, not a one-off — and the foundation earns acceptance
+   only by surviving the children. · decide-by: RFC accept · default: adopt.
 *(The release/deploy **outer loop**, the minimum-regret deploy carve, and the
 "company OS" composition are **split into the sibling [RFC-0049](0049-the-release-loop-and-company-os.md)**,
 which cites this RFC as its foundation. RFC-0048 scopes the **discovery + build**
@@ -573,12 +570,11 @@ recommendation the approver ratifies at acceptance:*
   (the release loop + minimum-regret deploy carve); out of 0048's scope.
 
 **No open questions remain at the foundation level.** Remaining unknowns are *delegated to
-the child efforts* — and the RFC stays **provisional** until they are modelled and
-drift-aligned. As of **2026-06-26 the child set is complete and reconciled** (see the
-Provisional-foundation note at the top and the § Amendments discharge block), and the model
-is aligned; the **freeze is held** pending the owner-assigned follow-ons (the CONVENTIONS
+the child efforts*. As of **2026-06-26 the child set is complete and reconciled** (see the
+Acceptance note at the top and the § Amendments discharge block), and the model is aligned;
+**acceptance is blocked** only by the owner-assigned follow-ons (the CONVENTIONS
 `Discovery:` edit; RFC-0053's implementing spec carrying AC0 + the layout key + the backlog
-ACs), at which point the terminal flip is a one-line status change over an already-aligned
+ACs), at which point Open → Accepted is a one-line status change over an already-aligned
 model.
 
 ## Follow-on artifacts
@@ -625,9 +621,9 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   artifacts (§ Amendments DRIFT-G)** — the producer the traceability lint walks at G3; it must
   land before the lint is wired fail-closed (`--strict`) at a convergence gate.
 
-## Amendments (provisional-foundation reconciliations)
+## Amendments (foundation reconciliations)
 
-Per the Provisional-foundation note, drift a child surfaces against this foundation is
+Per the Acceptance note, drift a child surfaces against this foundation is
 reconciled **here**, as a tracked amendment, not absorbed silently downstream.
 
 - **2026-06-25 — D7 sidecar authority, refined by child-4 (traceability lint).** D7
@@ -778,10 +774,10 @@ reconciled **here**, as a tracked amendment, not absorbed silently downstream.
   (not a mode-edit to `core`'s two agents); note 06's `core` ⊕ delta and note 08's layout move
   with it. DRIFT-B/E/I below carry revised pointers.
 
-### Provisional-foundation discharge — the composed-set reconciliation (2026-06-26)
+### Foundation reconciliation discharge — the composed-set reconciliation (2026-06-26)
 
 The child set is **complete** (experience · frame-domain · self-coverage · traceability-lint
-· coordinator · release-loop, all Open/Drafted). To discharge the provisional status, the
+· coordinator · release-loop, all Open/Drafted). To complete the reconciliation, the
 whole set was pressure-tested *as one operating system* — the worked example
 `example-assistant` walked **G0→G5 across every landed mechanism at once**, producing the
 concrete artifact at each stage ([`0048-notes/10`](0048-notes/10-composed-end-to-end-walkthrough.md)) —
@@ -789,8 +785,8 @@ and run through a **resolve-vs-surface lens + two fresh-context adversarial pass
 composed cross-references, the gate arc, the sidecar schema, the agent roster, and the layout
 doctrine. Both passes agreed the **spine holds together** (the three loops, the four-slot
 sidecar, the gate ladder, and the no-engine claim are consistent across every child); the
-drift was **seam-wiring + owner-assignment**, not structural — exactly what this provisional
-period exists to absorb. Each item below is **referent-groundable → resolved here and the
+drift was **seam-wiring + owner-assignment**, not structural — exactly what this reconciliation
+pass exists to absorb. Each item below is **referent-groundable → resolved here and the
 owner assigned** (none was a value/scope/conflict call; the discharge resolves drift, it does
 not re-open decisions — the note-09 child-pattern read applied to the foundation itself).
 Cross-referenced as **DRIFT-x** in note 10.
@@ -915,13 +911,13 @@ discovery `type:` markers (DRIFT-G), sequenced before the traceability lint's `-
 These are added to the Follow-on artifacts list. DRIFT-A/B/D/E/F are resolved in-text here (and
 the note-02/note-04 freeze-reading sources corrected to match).
 
-**Reconciliation complete; freeze held pending the owed follow-ons.** With the child set
+**Reconciliation complete; acceptance blocked pending the owed follow-ons.** With the child set
 complete and every surfaced drift reconciled and assigned above, the model is **coherent and
-every seam is owned** — the alignment condition for freeze. The terminal flip is, however,
-**deliberately held** (operator's call, 2026-06-26) until the owner-assigned follow-ons land:
+every seam is owned** — the alignment condition for acceptance. Acceptance is, however,
+**blocked** (operator's call, 2026-06-26) until the owner-assigned follow-ons land:
 RFC-0053's implementing spec (AC0 the carried sidecar-schema contract; the
 `docs/discovery/<initiative>/` layout key, DRIFT-C; the backlog-decomposition + `loop-cohort`
 ACs, DRIFT-H/I) and the CONVENTIONS-edit `new-spec` `Discovery:` header (DRIFT-G). Once those
-close the assigned seams, freezing is a one-line status flip (Open → Accepted) over an
-already-aligned model — no further reconciliation owed. Until then RFC-0048 stays **Open and
-provisional** (amendable), so any drift the owed specs surface is still reconciled *here*.
+close the assigned seams, acceptance is a one-line status flip (Open → Accepted) over an
+already-aligned model — no further reconciliation owed. Until then RFC-0048 stays **Open**
+(governance, amendable), so any drift the owed specs surface is still reconciled *here*.
