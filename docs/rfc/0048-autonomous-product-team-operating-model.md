@@ -890,8 +890,9 @@ Cross-referenced as **DRIFT-x** in note 10.
   `loop-cohort`, or name a thin adapter). Assigned to that spec; flagged in the Follow-on list.
 - **DRIFT-I — the carried sidecar *schema reference* (in `discovery-loop`, user scope, not
   `core`) is owed as the first acceptance criterion of RFC-0053's implementing spec; its three
-  consumers sequence behind it.** D7 + RFC-0053 D2
-  decide the schema is single-sourced in `core`, but it exists only as **prose field-lists** —
+  consumers sequence behind it.** Earlier D7 / RFC-0053 D2 wording had treated the schema as
+  single-sourced in `core` (since revised — see the dated entry below), but it exists only as
+  **prose field-lists** —
   no implementing spec lands the reference file, while `discovery-loop`, the release loop
   ([release-loop spec](../specs/release-loop/spec.md) Assumptions name the dependency), and the
   traceability lint all consume it. **Resolution:** "land the carried sidecar-schema contract"
