@@ -156,7 +156,7 @@ the referent the scope guard and the human use to reject the fulfillment temptat
 
 **Driver:** DL as controller; **solo** here (small discovery — the spike ran solo), with
 the design-time lenses switched in one context per [RFC-0053 D5](../0053-the-coordinator-contract.md).
-The sidecar (core schema, [RFC-0053 D2](../0053-the-coordinator-contract.md)) threads it.
+The sidecar (schema carried in `discovery-loop`, not `core`, [RFC-0053 D2](../0053-the-coordinator-contract.md)) threads it.
 
 ### 3a · Product lens — features
 `decompose-intent`: `cap:resource-state` → features add/edit/view item, auto-decrement on
@@ -472,9 +472,10 @@ canary OK + changed-surface covered + flake < 2% → CONVERGED to the human gate
 finding→task feedback (none this round); env torn down on cycle end (AC10f).
 ```
 
-▶ **DRIFT-I (sidecar schema).** Both this loop and `discovery-loop` *consume* the `core`
-sidecar schema, which exists only as **prose field-lists** in RFC-0053 D2 — no implementing
-spec lands the schema reference yet. Three consumers, a prose producer. Assigned at **DRIFT-I**.
+▶ **DRIFT-I (sidecar schema).** Both this loop and the traceability lint *consume* the
+sidecar schema (carried in `discovery-loop`, not `core`), which exists only as **prose
+field-lists** in RFC-0053 D2 — no implementing spec lands the carried schema reference yet.
+Three consumers, a prose producer. Assigned at **DRIFT-I**.
 
 ---
 
@@ -514,7 +515,7 @@ DRIFT-A (chain terminus `component`) · DRIFT-B (sidecar store `_state/` vs harn
 DRIFT-C (`docs/discovery/` layout key owner) · DRIFT-D (experience artifacts in-initiative
 home) · DRIFT-E (reviewer = mode not new agent) · DRIFT-F (persona elicit-inline) ·
 DRIFT-G (`Discovery:` up-edge producer) · DRIFT-H (backlog producer + `loop-cohort` fit) ·
-DRIFT-I (`core` sidecar schema reference owed).
+DRIFT-I (carried sidecar schema reference owed — in `discovery-loop`, not `core`).
 
 Every drift is a **seam/wiring/owner-assignment** item, not a structural flaw — which is why
 the foundation is **frozen after** these reconciliations, the exact job the provisional period

@@ -214,12 +214,16 @@ pre-recovery and CONVERGED after — connectedness is checkable in ~60 lines, no
 (Decision 2's load-bearing empirical claim). Paths obey RFC-0040's three tiers; each
 producing skill creates its dir lazily on first write.
 
-*Schema home.* The schema ships as a **small `core` schema reference** — the
-`operational-safety` / `self-coverage` reference shape, **not** a self-discovered skill — so
-that child-4's traceability lint, RFC-0049's release loop, and `discovery-loop` all cite
-**one source** for the slot shapes. The exact file layout is a spec-time detail; that the
-home is a single `core` reference (not duplicated prose in `work-loop`, not a skill an agent
-must choose to load) is decided here.
+*Schema home.* The schema *definition* ships as a **`references/` file carried in the
+producing `discovery-loop` skill** (`product-engineering`, user scope) — the
+`security-checklists/references/` reference shape, **not** a self-discovered skill and **not**
+a repo-scope `core` doctrine file. There is **no shared cross-pack schema layer**: downstream
+consumers — child-4's traceability lint, RFC-0049's release loop, and `work-loop` — **do not
+import the definition**; they read the produced `_state/` instances by convention (the slot
+field-names) and check `schema_version` compatibility. The exact file layout is a spec-time
+detail; that the home is the carried `discovery-loop` reference (not duplicated prose in
+`work-loop`, not a `core` doctrine file, not a skill an agent must choose to load) is decided
+here, per RFC-0048 § Amendments 2026-06-26.
 
 ### Decision 3 — the gate state machine (checkpoint/resume + rejection/recovery)
 
@@ -408,9 +412,10 @@ the *downstream* outer loop (`release-lead` + `release-loop` + the harness); Met
   counter-compare grounded in `work-loop`'s cap; a spec-time test should force a cap hit. The
   RFC states this honestly rather than claiming "ran".
 - *The sidecar schema drifts from child-4's lint / RFC-0049's reuse* — three efforts touch
-  the same typed state. **Mitigation:** `core` owns the schema (Decision 2); child-4's lint
-  and RFC-0049's release loop *consume* it; the edge model is the one ADR-0022 + the
-  child-4 amendment already fixed.
+  the same typed state. **Mitigation:** the producing `discovery-loop` skill carries the one
+  schema *definition* (Decision 2); child-4's lint and RFC-0049's release loop *consume the
+  produced instances by convention + a `schema_version` stamp*, not a shared definition; the
+  edge model is the one ADR-0022 + the child-4 amendment already fixed.
 - *Lens-team mode reintroduces MAST thrash* — parallel lens-agents could negotiate.
   **Mitigation:** the topology forbids agent-to-agent chat *structurally* — all coordination
   is controller + blackboard; the prototype's ripple settled with zero negotiation. The
@@ -448,7 +453,8 @@ the *downstream* outer loop (`release-lead` + `release-loop` + the harness); Met
   (Believed adequate — the edges *are* the dependency model; a slot not reachable from the
   rejected node genuinely does not depend on it.)
 
-**Drawbacks.** A new agent def + a new skill + a `core` schema to maintain, plus the
+**Drawbacks.** A new agent def + a new skill + a carried sidecar schema to maintain (in the
+`discovery-loop` skill, not `core`), plus the
 design-artifact reviewer modes (RFC-0048 O5) — real surface, justified because the
 coordinator is the spine the whole operating model needs. The sidecar adds a typed-state
 discipline an adopter must keep current (the same cost any blackboard carries). The
@@ -520,10 +526,14 @@ settled the value calls *resolves*, it does not re-litigate). Recorded with wher
    end-to-end run is a **nice-to-have, not a spec gate**, because the contract is
    harness-neutral by design and the sidecar was already prototyped in omnigent's storage
    form. Folded into § Evidence and the Follow-on spec bullet.
-2. **Sidecar schema home — resolved.** A **small `core` schema reference** (the
-   `operational-safety` / `self-coverage` reference shape), **not** a self-discovered skill
-   and **not** duplicated prose in `work-loop`, so child-4's lint, RFC-0049, and
-   `discovery-loop` cite one source. Folded into Decision 2 (§ *Schema home*).
+2. **Sidecar schema home — resolved.** The schema *definition* is a **`references/` file
+   carried in the producing `discovery-loop` skill** (`product-engineering`, user scope; the
+   `security-checklists/references/` shape), **not** a self-discovered skill, **not**
+   duplicated prose in `work-loop`, and **not** a repo-scope `core` doctrine file. There is no
+   shared cross-pack schema layer: child-4's lint, RFC-0049, and `work-loop` read produced
+   `_state/` instances by convention + a `schema_version` stamp rather than importing the
+   definition. Folded into Decision 2 (§ *Schema home*); revised per RFC-0048 § Amendments
+   2026-06-26.
 
 (The outer-cap default values are *decided* in Decision 4 — tunable defaults, recommended 12
 rounds + the adopter's omnigent `cost_budget` — so they were never an open question here.)

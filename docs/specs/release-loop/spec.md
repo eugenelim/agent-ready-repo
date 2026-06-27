@@ -3,9 +3,9 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0049 (the parent — the release (outer) loop + minimum-regret deploy carve + company-OS composition; resolves its OQ1 pack-home + OQ2 agent-shape) · RFC-0048 (the provisional foundation — the G4→G5 arc, the sidecar substrate, the company-OS framing) · RFC-0053 (the sibling — the `core` sidecar *schema* this loop consumes, and the `agent-def + skill + no-engine` pattern + § Security & integrity contract shape it mirrors downstream) · RFC-0041 + ADR-0031 (the *doctrine + reference-library + reuse-existing-reviewers, no engine / no new reviewer* precedent; the deploy *flavor* this graduates into a proper outer loop; P5's non-skippable security posture) · ADR-0018 (the orchestrator-inlined progressive-disclosure depth mechanism the reuse rides) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey)
+- **Constrained by:** RFC-0049 (the parent — the release (outer) loop + minimum-regret deploy carve + company-OS composition; resolves its OQ1 pack-home + OQ2 agent-shape) · RFC-0048 (the provisional foundation — the G4→G5 arc, the sidecar substrate, the company-OS framing) · RFC-0053 (the sibling — the sidecar *schema* this loop consumes by convention (carried in `product-engineering`'s `discovery-loop` skill, not `core`; RFC-0048 § Amendments 2026-06-26), and the `agent-def + skill + no-engine` pattern + § Security & integrity contract shape it mirrors downstream) · RFC-0041 + ADR-0031 (the *doctrine + reference-library + reuse-existing-reviewers, no engine / no new reviewer* precedent; the deploy *flavor* this graduates into a proper outer loop; P5's non-skippable security posture) · ADR-0018 (the orchestrator-inlined progressive-disclosure depth mechanism the reuse rides) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey)
 - **Brief:** none
-- **Contract:** none — the loop *consumes* the `core` sidecar schema (RFC-0053: blackboard · open-questions · traceability · decision-log); it authors no new `contracts/<type>/` surface.
+- **Contract:** none — the loop *consumes* the sidecar schema by convention (RFC-0053: blackboard · open-questions · traceability · decision-log; the schema *definition* is carried in `product-engineering`'s `discovery-loop` skill, not `core`, and consumed by reading produced `_state/` instances + a `schema_version` stamp); it authors no new `contracts/<type>/` surface.
 - **Shape:** n/a — content/methodology change (a new `release-engineering` pack holding a `release-lead` agent definition + a `release-loop` skill); no application LLD. The "contract" is the loop's state machine + the minimum-regret carve + the security/integrity controls, specified below as Acceptance Criteria.
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -32,7 +32,8 @@ threshold, security/auth-boundary changes, anything irreversible beyond MTTR, an
 the prod ship. `release-lead` is the SRE/ops **outer-loop supervisor**, a
 *peer* of `work-loop`'s supervisor and `discovery-lead` — it reuses `core`'s
 `operational-safety` depth modules + the `quality-engineer` and `security-reviewer`
-reviewers, consumes `core`'s sidecar schema, ships **no new runtime engine and no
+reviewers, consumes the sidecar schema by convention (carried in `discovery-loop`,
+not `core`), ships **no new runtime engine and no
 new reviewer agent** (the RFC-0041/ADR-0031 idiom), and runs on the **omnigent**
 harness (ephemeral envs, option-card consent, cost policies) harness-neutrally.
 This completes the **company OS**: product (discovery) → engineering (build) →
@@ -42,8 +43,10 @@ SRE/ops (release).
 fidelity-ladder / local-infra-equivalents skills are the *inner-loop* obligation
 RFC-0049 Decision 3 places on the build packs — a separate concern, not authored
 here; the **harness** is not built or forked (omnigent exists; we ship the
-contract it enforces); the **sidecar schema** is RFC-0053's `core` artifact — this
-loop consumes it, never forks it; **G5 cloud-specific deploy mechanics / IaC** are
+contract it enforces); the **sidecar schema** is RFC-0053's artifact, carried in
+`product-engineering`'s `discovery-loop` skill (not `core`; RFC-0048 § Amendments
+2026-06-26) — this loop consumes the produced instances by convention, never forks
+the definition; **G5 cloud-specific deploy mechanics / IaC** are
 the adopter's, tool-neutral here; the **CONVENTIONS edit** naming the minimum-regret
 boundary is a follow-on (RFC-0049's CONVENTIONS slice); **running the live
 product-as-a-managed-service** long-term is adopter ops (RFC-0049 non-goal).
@@ -59,8 +62,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Ship the capability as an **agent definition** (`release-lead`) + a
   **skill** (`release-loop`) in the new opt-in **`release-engineering` pack**, and
   **reuse** `core`'s `operational-safety` reference modules + the
-  `quality-engineer` and `security-reviewer` agents + the RFC-0053 `core` sidecar
-  schema — content only, the `implementer`/`discovery-lead` shape, no engine
+  `quality-engineer` and `security-reviewer` agents + the RFC-0053 sidecar
+  schema (carried in `discovery-loop`, not `core`; consumed by convention) — content
+  only, the `implementer`/`discovery-lead` shape, no engine
   (ADR-0031).
 - Express the loop **harness-neutrally**; name **omnigent** as the *reference*
   runtime (ephemeral envs, human-in-the-loop option-card pause, cost policies),
@@ -112,8 +116,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Authoring the fidelity-ladder / local-infra-equivalents skills**
   (RFC-0049 Decision 3) — that is the inner-loop build obligation, a separate
   effort; surface before expanding scope into it.
-- **Any change to the `core` sidecar schema** (RFC-0053 owns it) — the loop
-  consumes it; surface, don't fork.
+- **Any change to the sidecar schema** (RFC-0053 owns it; the definition is carried
+  in `product-engineering`'s `discovery-loop` skill, not `core`) — the loop
+  consumes the produced instances by convention; surface, don't fork.
 - **Adding or reordering any risk trigger, or adding any reviewer** beyond the
   three reused (`quality-engineer`, `security-reviewer`, and — at the spec/diff —
   `adversarial-reviewer`).
@@ -132,8 +137,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   channel the agent holds no token for.
 - **Bind the loop to a specific cloud or IaC tool, or to omnigent internals**
   (harness- and tool-neutral; Principle 1).
-- **Fork or duplicate the `core` sidecar schema** (RFC-0053) — consume the one
-  source.
+- **Fork or duplicate the sidecar schema** (RFC-0053; the definition is carried in
+  `discovery-loop`, not `core`) — consume the produced instances by convention.
 - **Edit the projected `.claude/...` copies directly** — `make build-self`
   reverts them; the `packs/...` source is the fix point.
 - **Create any new top-level directory beyond the single RFC-0049-sanctioned
@@ -188,9 +193,13 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   state that the two loops have different inputs, verifiers, and autonomy postures
   and **must not be conflated**.
 - [ ] **AC2 — the pack home (RFC-0049 OQ1).** The capability ships in a **new
-  opt-in `release-engineering` pack** (not `core`), which **hard-depends** on `core` (the
-  sidecar schema + `operational-safety` + `quality-engineer` + `security-reviewer`)
-  and **detect-and-degrades** on cloud/platform/contract packs — with a defined
+  opt-in `release-engineering` pack** (not `core`), which **hard-depends** on `core`
+  (`operational-safety` + `quality-engineer` + `security-reviewer`) and
+  **consumes the sidecar schema by convention** — reading produced `_state/` instances
+  + a `schema_version` stamp, not importing a shared definition (the schema *definition*
+  is carried in `product-engineering`'s `discovery-loop` skill, not `core`, so the pack
+  adds no hard dependency on `product-engineering`) — and **detect-and-degrades** on
+  cloud/platform/contract packs — with a defined
   observable: when a platform/cloud pack is **absent**, the loop **names the
   deploy / smoke / teardown artifacts it would otherwise consume and surfaces the
   gap** to the human (the "offer to scaffold" path), rather than failing or
@@ -234,10 +243,12 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
 - [ ] **AC7 — the inner↔outer feedback seam + sidecar consumption.** A deployed
   finding is written to the **sidecar blackboard** and fed back to `work-loop` as
   a build task (observability-driven, **no human relay**); the loop then
-  redeploys. The loop **consumes** the `core` sidecar schema (RFC-0053:
-  blackboard · open-questions · traceability · decision-log) — every cycle's
-  state is a blackboard slot, every consent a decision-log entry — and **does not
-  fork it**. The seam is stated as **G4** (`work-loop` build done) → **the release
+  redeploys. The loop **consumes** the sidecar schema (RFC-0053:
+  blackboard · open-questions · traceability · decision-log; the definition is carried
+  in `product-engineering`'s `discovery-loop` skill, not `core`) **by convention** —
+  reading the produced `_state/` instances and checking the `schema_version` stamp,
+  not importing a shared definition; every cycle's state is a blackboard slot, every
+  consent a decision-log entry — and **does not fork it**. The seam is stated as **G4** (`work-loop` build done) → **the release
   loop (the release (outer) loop RFC-0048 places in the G4→G5 gap — a loop, not a
   numbered gate)** → **G5** (human prod
   ship), continuing RFC-0048's gate arc. The outer
@@ -357,12 +368,16 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   operational *mode*, not a new mechanism (source:
   `packs/core/.apm/skills/operational-safety/SKILL.md` "How it loads";
   `packs/core/.apm/agents/quality-engineer.md`).
-- Technical: the `core` sidecar schema (blackboard · open-questions · traceability
-  · decision-log) is specified by RFC-0053 as a `core` schema reference, not yet
-  built — so AC7's "consume the schema" carries a **dependency on RFC-0053's
-  implementing spec** landing the schema; until then the loop names the slots and
-  consumes them by convention (source: RFC-0053 Decision 2; RFC-0053 § Follow-on
-  artifacts — the schema home is an open implementing spec).
+- Technical: the sidecar schema (blackboard · open-questions · traceability
+  · decision-log) is specified by RFC-0053 as a `references/` file carried in the
+  producing `discovery-loop` skill (`product-engineering`, user scope; not `core` —
+  RFC-0048 § Amendments 2026-06-26), not yet built — so AC7's "consume the schema"
+  carries a **dependency on RFC-0053's implementing spec** landing the carried
+  reference; the loop consumes the produced `_state/` instances by convention (the slot
+  field-names) + a `schema_version` stamp, never importing the definition, so the
+  consumption shape is the same before and after the reference lands (source: RFC-0053
+  Decision 2; RFC-0053 § Follow-on artifacts — the schema home is an open implementing
+  spec).
 - Technical: the omnigent harness provides ephemeral envs, a human-in-the-loop
   option-card pause, and `cost_budget` policies enforced outside the prompt — so
   the carve's human gates + the cost budget + verdict write-authority map onto

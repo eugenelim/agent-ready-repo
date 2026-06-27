@@ -138,9 +138,13 @@ rather than re-litigates.*
    Not `core` — `core` is the universal base, and deploy-to-ephemeral-env is an opt-in
    capability with a real adopter prerequisite (ephemeral-env infra), exactly like discovery,
    which ships `discovery-lead` in the opt-in `product-engineering` pack, not `core`
-   (RFC-0053 D1). The pack **hard-depends on `core`** (the sidecar schema +
-   `operational-safety` + `quality-engineer` + `security-reviewer`) and detect-and-degrades on
-   cloud/platform packs. **Name `release-engineering`** — the discipline/seat name,
+   (RFC-0053 D1). The pack **hard-depends on `core`** (`operational-safety` +
+   `quality-engineer` + `security-reviewer`) and detect-and-degrades on
+   cloud/platform packs. It **consumes the sidecar schema by convention** — reading the
+   produced `_state/` instances and checking the `schema_version` stamp, not importing a
+   shared definition (the schema *definition* is carried in `product-engineering`'s
+   `discovery-loop` skill, per RFC-0048 § Amendments 2026-06-26 / RFC-0053 D2), so it adds no
+   hard dependency on `product-engineering`. **Name `release-engineering`** — the discipline/seat name,
    parallel to `product-engineering` (the two company-OS discipline packs), keeping the
    agent/skill on a `release-*` prefix (`release-lead` / `release-loop`). Rejected:
    `integration` (collides with **Continuous Integration**, a build/*inner*-loop term —
@@ -170,7 +174,7 @@ Filled on acceptance:
   home → opt-in `release-engineering` pack) + OQ2 (distinct `release-lead` agent +
   `release-loop` skill); specifies the deploy + e2e + iterate-to-converge loop, the
   minimum-regret carve, the reuse of `operational-safety` + `quality-engineer` +
-  `security-reviewer`, the `core`-sidecar consumption, and a 9-part security/integrity
+  `security-reviewer`, the sidecar consumption by convention (schema carried in `discovery-loop`, not `core`), and a 9-part security/integrity
   contract. 14 ACs / 6 tasks.*
 - Amendment back into RFC-0048: reconcile its gate arc / company-OS framing once this lands.
   *Recorded — see RFC-0048 § Amendments, 2026-06-26 (the release-lead seat + pack home +

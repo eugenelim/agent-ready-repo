@@ -59,7 +59,7 @@ where reversible, human where not.*
 ## The company OS — shared substrate
 
 All three loops run on one substrate (the catalogue ships it as doctrine; the harness runs it):
-- **sidecar** — blackboard · open-questions · traceability · decision-log (core schema);
+- **sidecar** — blackboard · open-questions · traceability · decision-log (schema carried in `discovery-loop`, not `core`);
 - **gate ladder + surfacing predicate** — G0 · G1 · G1.5 · G2 · G3 · G4 (inner) · **release (outer)** · G5;
 - **self-coverage gate** — incl. the resolve-vs-surface lens + scenario-variation;
 - **harness** — omnigent (runner/server, ephemeral envs, option-card consent UI), harness-neutral.
