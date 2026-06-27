@@ -147,9 +147,11 @@ third-party dependency.
 - **Sidecar `traceability.json`** (read-only, optional): the materialized edge set
   at `<discovery-base>/<initiative>/_state/traceability.json` (note 08), discovered
   by the same three-tier rule (config → default `docs/discovery/` → glob
-  `_state/traceability.json`), never a hardcoded `_state/` path. Schema is `core`
-  doctrine (RFC-0048 D7), **not pinned yet** — recognize a versioned schema when it
-  lands; warn until then.
+  `_state/traceability.json`), never a hardcoded `_state/` path. Schema is sidecar
+  doctrine carried in `discovery-loop` (RFC-0048 D7 / § Amendments 2026-06-26, not
+  `core`), **not pinned yet** — the lint reads the produced instance by convention,
+  never importing the definition; recognize a versioned schema when it lands; warn
+  until then.
   Traces to: AC1, AC2, AC4, AC5, AC11, AC14 · none.
 
 ### Interfaces & contracts
