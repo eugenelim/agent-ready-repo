@@ -18,6 +18,11 @@ Before invoking, confirm:
    a venue for open-ended discussion — that's an RFC.
 3. There is a *concrete tradeoff* — at least one viable alternative was
    considered. If there's only one option, you don't need an ADR.
+4. The record is *one decision wide*. If you're packing three or more
+   load-bearing sub-decisions into a single ADR, stop and ask whether this is
+   really one decision — or an umbrella that should be an RFC spawning several
+   smaller ADRs. For an ADR, *complete* is not *exhaustive*: the RFC carries the
+   debate, the ADR records the durable outcome.
 
 If any of these checks fail, push back rather than proceeding.
 
@@ -41,7 +46,10 @@ If any of these checks fail, push back rather than proceeding.
    not `0007-decision-about-the-database.md`. The H1 title inside the file
    names the problem *and* the chosen solution together — "Primary store
    for user activity: Postgres over DynamoDB" — so the decision is legible
-   from the index alone; keep the `ADR-NNNN` ordinal prefix on it.
+   from the index alone; keep the `ADR-NNNN` ordinal prefix on it. **Keep it short: the title
+   *identifies* the decision, it doesn't encode the rationale** — the detail
+   belongs in the Decision section, not the H1. A title that compresses the whole
+   argument into a clause makes the ADR index hard to scan.
 
 3. Copy this skill's bundled `assets/adr.md` into `docs/adr/` and
    rename to `NNNN-<title>.md`. (Paths are skill-relative — the
@@ -52,9 +60,29 @@ If any of these checks fail, push back rather than proceeding.
    `Decision-makers` who own the call, and — when the decision was run past
    others — the `Consulted` (whose input was sought, two-way) and `Informed`
    (who is kept up to date, one-way). Delete the `Consulted`/`Informed` lines
-   if neither applies.
+   if neither applies. Keep the metadata *pointer-like* — `Consulted` and
+   `Related` are short lists of handles and ADR/RFC/spec references, not prose.
+   If a relationship needs explaining, the explanation goes in Context or
+   References, never in the frontmatter.
 
-5. Help the user draft the sections. Push back if any is empty or hand-wavy:
+5. **Frame the decision before drafting — offer, don't force.** An ADR records a
+   decision *already made*, so the job here is to isolate it cleanly, not to
+   re-open it. Read the request:
+   - **When the decision is already crisp** (a clear choice, a named driver, an
+     obvious tradeoff), infer the frame and go straight to drafting — don't make
+     the author answer a questionnaire they've already answered.
+   - **When it arrives tangled** (rationale, history, and several sub-decisions
+     in one breath — the RFC-residue an ADR should shed), walk a short decision
+     frame and reflect it back before drafting: the decision in one sentence; the
+     problem it resolves; the alternatives seriously considered; the driver that
+     made the chosen option win; what we're giving up; whether it replaces or
+     amends a prior ADR.
+
+   Synthesize the frame into the title, the Decision sentence, Context,
+   Consequences, and Alternatives below. The frame is a thinking aid, not a
+   required form — a half-shaped decision is normal input.
+
+6. Help the user draft the sections. Push back if any is empty or hand-wavy:
    - Context with no constraints listed → ask what's actually constraining
      this choice.
    - Decision without a single declarative sentence at the top → write one.
@@ -71,9 +99,9 @@ If any of these checks fail, push back rather than proceeding.
      periodic audit). Add it when the decision is the kind that erodes
      silently if no one checks.
 
-6. Update `docs/adr/README.md` to add the new ADR to the table.
+7. Update `docs/adr/README.md` to add the new ADR to the table.
 
-7. Leave the status `Proposed`. Once the decision-makers sign off, mark it
+8. Leave the status `Proposed`. Once the decision-makers sign off, mark it
    `Accepted`; if they decline it, mark it `Rejected` and keep the file — a
    recorded rejection stops the same option being re-proposed later. After
    `Accepted`, the body is frozen (see Lifecycle below).
@@ -99,3 +127,9 @@ If any of these checks fail, push back rather than proceeding.
   one instead.
 - Editing an accepted ADR's body → ADRs are immutable. A reversal is a *new*
   ADR that supersedes the old one (see Lifecycle above), never an edit.
+- A title that carries the whole rationale → shorten it to *identify* the
+  decision; the detail lives in the Decision section, and a scannable ADR index
+  depends on it.
+- Packing several independent load-bearing decisions into one ADR → split them.
+  One ADR, one durable decision; an umbrella belongs in an RFC that spawns the
+  ADRs.
