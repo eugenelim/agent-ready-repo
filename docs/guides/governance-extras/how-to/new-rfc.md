@@ -135,6 +135,8 @@ An accepted RFC is rarely the last artifact. It points at concrete follow-on wor
 
 The RFC's job is done once the follow-on artifacts exist. It stays as history.
 
+A published RFC can still need a correction later — a spec finds a gap, a later RFC reframes a decision. You record it *inside* the RFC (never by editing the frozen body), under an `## Errata` section for a Frozen RFC or `## Amendments` for an in-flight one, following the `new-rfc` skill's [Recording corrections (Errata / Amendments)](../../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) convention — append-only, with an optional two-layer current-state-over-audit-trail structure once corrections accumulate. The skill is the canonical home for the rules; this guide just points at it.
+
 ## Pitfalls
 
 > **Writing body content before the research phase clears.** The skill refuses to do this; if you find yourself filling sections by hand to "save time", you've skipped the part of the workflow that makes the RFC worth reading. Let the research phase emit, sign off, *then* let the body fill.
