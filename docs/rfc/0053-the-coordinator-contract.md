@@ -358,6 +358,18 @@ RFC ships no code, so it specifies the controls, it does not implement them):
   agent must not under-classify a one-way door as `reversible`. **AC:** enumerate the classes
   (`reversible` / `costly-to-reverse` / `one-way-door`) and bind `one-way-door` to a
   mandatory consent gate regardless of which gate it arose at.
+- **Sidecar data-handling / classification (not just integrity).** The slots above carry
+  product strategy, personas, security findings, customer/domain facts, and consent
+  rationale — sensitive product and (potentially) regulated data, a *data-handling* surface
+  distinct from the integrity controls above. **AC:** the spec **classifies each slot**
+  (`public` / `internal` / `sensitive` / `regulated`, or an adopter's repo-local equivalent),
+  gives **redaction guidance** for examples and promoted notes (so a `sensitive`/`regulated`
+  fact is not copied verbatim into a shared example or a promoted note), and states
+  **retention/export expectations** for `_state/` and harness-backed stores. **A regulated- or
+  secret-bearing artifact surfaces to the human / `discovery-threat-reviewer` lens before
+  being written to a shared repo-backed sidecar** — the same surface-don't-degrade-silently
+  posture as the security-lens-depth AC above. (RFC-0048 § Amendments 2026-06-28 records the
+  contract; this spec owns the concrete rules.)
 - **Traceability backstop is a reachability check, not just presence.** The RFC leans on
   child-4's lint as the backstop against an under-implemented sidecar, but the spike's
   demonstrator is a *presence* check (flags a node missing an edge), which a
