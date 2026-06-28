@@ -62,6 +62,7 @@
 
 | [0054](0054-new-rfc-two-humans.md) | Right-size `new-rfc` for its two humans | Accepted | 2026-06-27 | 2026-06-27 |
 | [0055](0055-rfc-amendment-and-errata-convention.md) | RFC amendment & errata convention — Errata (Frozen) / Amendments (in-flight), optional two-layer current-state + audit-trail; convention lives in the `new-rfc` skill, no CONVENTIONS change | Accepted | 2026-06-27 | 2026-06-28 |
+| [0056](0056-right-size-adr-template-decision-summary-revisit-confirmation.md) | Right-size the ADR template — track-2 of the `new-adr` critique: a first-screen `## Decision summary` (R2), a structured `Revisit if:` trigger (R6), and a `Mode / Signal / Owner` sub-structure for Confirmation (R7), all optional-deletable; amends RFC-0038 and extends ADR-0027's MADR-aligned-but-lean format without crossing into MADR-full | Draft | 2026-06-28 | |
 
 ## Adding a new RFC
 
