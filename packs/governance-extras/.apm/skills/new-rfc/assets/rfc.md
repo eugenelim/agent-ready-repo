@@ -153,3 +153,47 @@ Filled in when the RFC is accepted. The bridge from "we agreed" to "we did it".
 - Spec: docs/specs/<feature>/
 - Convention change: docs/CONVENTIONS.md, section X
 -->
+
+<!--
+CORRECTIONS — DELETE THIS WHOLE BLOCK unless this RFC is accumulating
+post-publication corrections. Do NOT ship it as an empty section on a fresh
+RFC. See the new-rfc skill, "Recording corrections (Errata / Amendments)", for
+the full rules; the shape below is the optional, threshold-gated scaffold.
+
+Pick the heading by lifecycle class: `## Errata` for a Frozen RFC
+(Accepted/Rejected), `## Amendments` for an in-flight Open one. (Rename
+`## Amendments` → `## Errata` if this RFC is later Accepted.)
+
+A single one-line correction stays a plain dated bullet under the heading — no
+table — like this:
+
+## Errata        (or ## Amendments)
+
+- **YYYY-MM-DD — <short title>.** <what was corrected and why>.
+
+Split into the two layers below ONLY once the section crosses the threshold:
+more than one entry, or any entry supersedes another. Heading wording is your
+call; the two-layer split (authoritative current state over a dated audit trail,
+current state wins on disagreement) is the contract.
+
+## Errata        (or ## Amendments)
+
+### Current state
+
+The corrections in force today — read these, not the log, for the present
+contract. Where this layer disagrees with a historical entry below, this layer
+wins.
+
+| Area | Current rule | Owner / note |
+| --- | --- | --- |
+| <area> | <the rule in force> | <owner / blocker> |
+
+### History / audit trail
+
+Dated, append-only entries explaining how each correction was reached. Never
+delete an entry — it is the audit trail. (On an in-flight `## Amendments` you
+MAY reword a stale entry in place, tagging it `*(Superseded: …)*`; on a Frozen
+`## Errata` the entries are immutable.)
+
+- **YYYY-MM-DD — <short title>.** <what was corrected and why>.
+-->

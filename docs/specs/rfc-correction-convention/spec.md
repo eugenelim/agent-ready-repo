@@ -1,6 +1,6 @@
 # Spec: RFC correction convention (Errata / Amendments)
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0055
@@ -86,35 +86,35 @@ which is **manual QA**:
 
 ## Acceptance Criteria
 
-- [ ] `new-rfc` `SKILL.md` documents recording RFC corrections under two
+- [x] `new-rfc` `SKILL.md` documents recording RFC corrections under two
   lifecycle-keyed sections — **Errata** for a Frozen RFC (Accepted/Rejected),
   **Amendments** for an in-flight Open RFC — selected by the RFC's
   Document-lifecycle class (RFC-0055 D1).
-- [ ] `SKILL.md` documents the optional, threshold-gated two-layer structure — an
+- [x] `SKILL.md` documents the optional, threshold-gated two-layer structure — an
   authoritative *Current state* layer over a *History / audit trail* (these layer
   names are illustrative; the contract is the two-layer split, not the exact
   heading text) — names the threshold (more than one entry, **or** any entry
   supersedes another), and states that the current-state layer wins on
   disagreement (RFC-0055 D2).
-- [ ] `SKILL.md` documents the append-only rule with no per-entry ritual, the
+- [x] `SKILL.md` documents the append-only rule with no per-entry ritual, the
   optional in-place reword (tagged `*(Superseded: …)*`) **for in-flight Amendments
   only**, and that whole-RFC replacement is out of scope — recorded as an Errata
   entry naming the superseding RFC (RFC-0055 D3).
-- [ ] `assets/rfc.md` carries an optional, clearly-conditional **commented**
+- [x] `assets/rfc.md` carries an optional, clearly-conditional **commented**
   scaffold for the correction section, headed by a delete-unless-accumulating
   instruction, whose two-layer shape matches `SKILL.md` — heading wording is the
   author's call; the structure is the contract (RFC-0055 D2 shape, in the D4
   template home).
-- [ ] No `docs/CONVENTIONS.md` change is made (RFC-0055 D4) and no file under
+- [x] No `docs/CONVENTIONS.md` change is made (RFC-0055 D4) and no file under
   `docs/rfc/*.md` is modified (RFC-0055 D5, forward-only) — verifiable from the diff.
-- [ ] The repo-only guide `docs/guides/governance-extras/how-to/new-rfc.md` gains
+- [x] The repo-only guide `docs/guides/governance-extras/how-to/new-rfc.md` gains
   a short note pointing at the convention; it does not restate the convention and
   does not ship with the pack.
-- [ ] `docs/product/changelog.md` `[Unreleased]` records the skill-behavior change,
+- [x] `docs/product/changelog.md` `[Unreleased]` records the skill-behavior change,
   naming RFC-0055 and the current unreleased `governance-extras` version (0.4.0 today).
-- [ ] `make build-self` projects the source edits to `.claude/skills/new-rfc/` with
+- [x] `make build-self` projects the source edits to `.claude/skills/new-rfc/` with
   a clean drift gate; `lint-packs` and `tools/lint-agent-artifacts.py` pass.
-- [ ] Dogfood walk (manual QA): applying the documented convention to RFC-0048 /
+- [x] Dogfood walk (manual QA): applying the documented convention to RFC-0048 /
   PR #430 reproduces the same two-layer *structure* it already carries — a
   current-state layer (authoritative, wins on disagreement) over a dated
   append-only audit trail — even though RFC-0048 predates the convention and uses
