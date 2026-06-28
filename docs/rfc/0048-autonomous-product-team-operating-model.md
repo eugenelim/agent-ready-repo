@@ -730,6 +730,7 @@ contract:
 | Area | Current rule | Owner / blocker |
 | --- | --- | --- |
 | Sidecar schema | Carried in `discovery-loop` at user scope; consumers read instances by convention + a `schema_version` stamp. | RFC-0053 implementing spec **AC0** (DRIFT-I) |
+| Sidecar data handling | Sidecar slots are a **data-classification surface**; regulated/secret-bearing artifacts surface to the human / `discovery-threat-reviewer` lens before shared repo-backed writes (`_state/`). | RFC-0053 implementing spec owns per-slot classification, redaction, retention/export (R10) |
 | Discovery layout | The `docs/discovery/<initiative>/` config key is owned by RFC-0053's implementing spec; default + marker only until it binds. | RFC-0053 implementing spec (DRIFT-C) |
 | Discovery reviewers | `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope, distinct-named); `core`'s depth libraries are optional detect-and-degrade enhancers. | RFC-0053 / `discovery-loop` (DRIFT-E) |
 | Spec up-edge | `new-spec` produces the `Discovery:` header + discovery `type:` markers; must land before the traceability lint runs `--strict`. | CONVENTIONS / `new-spec` follow-on (DRIFT-G) |
