@@ -65,15 +65,15 @@ Before the skill scaffolds anything, it asks (explicitly or implicitly) about ar
 
 The skill runs its bundled `scripts/next-ordinal.py` helper (the path is skill-relative; the skill resolves it for you). It prints the next 4-digit ordinal — `0001` if `docs/adr/` is empty, max-plus-one otherwise. Numbers are sequential and never reused. The helper parses the full digit prefix, so transitions like `0099` → `0100` work correctly without manual zero-padding.
 
-The skill then picks a short kebab-case filename from your description (`0007-primary-store-postgres-over-dynamodb.md`, not `0007-decision-about-the-database.md`), copies its bundled `assets/adr.md` into `docs/adr/`, and renames. The H1 title inside names the problem and the chosen solution together (keeping the `ADR-NNNN` ordinal), so the decision reads clearly from the index.
+The skill then picks a short kebab-case filename from your description (`0007-primary-store-postgres-over-dynamodb.md`, not `0007-decision-about-the-database.md`), copies its bundled `assets/adr.md` into `docs/adr/`, and renames. The H1 title inside names the problem and the chosen solution together (keeping the `ADR-NNNN` ordinal), so the decision reads clearly from the index. The skill keeps it **short** — the title *identifies* the decision rather than encoding the whole rationale (that lives in the Decision section); a title that compresses the whole argument into a clause makes the index hard to scan.
 
 ## Step 4 — Fill in frontmatter
 
-Status starts as `Proposed`. Today's date. `Decision-makers` are the GitHub handles of the people who own the call; add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations).
+Status starts as `Proposed`. Today's date. `Decision-makers` are the GitHub handles of the people who own the call; add `Consulted` (whose input was sought, two-way) and `Informed` (who is kept up to date, one-way) when the decision was run past others, and delete those two lines otherwise. `Supersedes:` is `none` for a greenfield ADR; otherwise the ADR number being replaced (see Variations). Keep `Consulted` and `Related` **pointer-like** — short lists of handles and ADR/RFC/spec references, not prose; if a relationship needs explaining, that explanation goes in Context or References, not the frontmatter.
 
 ## Step 5 — Draft the body sections
 
-The skill walks you through Context, Decision, Consequences, and Alternatives, and offers two optional sections — **Decision drivers** (the criteria the choice was judged against, so each alternative is rejected against a stated criterion) and **Confirmation** (how conformance with the decision will be verified) — which it includes when they earn their place and drops otherwise. It pushes back on hand-wavy sections rather than accepting them:
+If your request arrives tangled — rationale, history, and several sub-decisions in one breath — the skill first reflects back a short **decision frame** (the decision in a sentence, the problem it resolves, the alternatives, the winning driver, what you're giving up) to isolate the call before drafting; when the decision is already crisp it skips the frame and drafts straight away. It then walks you through Context, Decision, Consequences, and Alternatives, and offers two optional sections — **Decision drivers** (the criteria the choice was judged against, so each alternative is rejected against a stated criterion) and **Confirmation** (how conformance with the decision will be verified) — which it includes when they earn their place and drops otherwise. It pushes back on hand-wavy sections rather than accepting them:
 
 - **Context with no listed constraints** → the skill asks what's actually constraining the choice. "We need a database" isn't context; "~10M records, query by `user_id` and time range, team of two who know Postgres" is.
 - **Decision without a single declarative sentence at the top** → the skill asks you to write one. ("We will use Postgres as the primary data store for user activity.")
@@ -131,6 +131,8 @@ The RFC carried the debate; its accepted outcome lists "one or more ADRs to reco
 > **Consequences with only positives.** Every decision has tradeoffs; an ADR that lists only upside isn't honest, and the next person will discount it. Push for at least one real negative or "to revisit" item.
 
 > **An ADR for a single feature's internals.** That's a spec (`docs/specs/<feature>/`), not an ADR. ADRs are for cross-cutting architectural and infrastructural calls.
+
+> **Packing several decisions into one ADR.** If a record carries three or more load-bearing sub-decisions, it's an umbrella — the skill pushes back and asks whether it should be an RFC that spawns several smaller ADRs. One ADR, one durable decision; *complete* is not *exhaustive*.
 
 ## When not to use this workflow
 

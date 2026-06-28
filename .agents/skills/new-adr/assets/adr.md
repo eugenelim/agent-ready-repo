@@ -3,7 +3,9 @@
 <!--
 Title names the problem and the solution together, so the decision is legible
 from the index alone — "Primary store for user activity: Postgres over DynamoDB",
-not "Decision about the database". Keep the ADR-NNNN ordinal prefix.
+not "Decision about the database". Keep it short — it identifies the decision, it
+does not encode the whole rationale (that lives in the Decision section). Keep
+the ADR-NNNN ordinal prefix.
 -->
 
 - **Status:** Proposed <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
@@ -12,7 +14,7 @@ not "Decision about the database". Keep the ADR-NNNN ordinal prefix.
 - **Consulted:** <!-- whose input was sought, two-way; optional, delete if none -->
 - **Informed:** <!-- who is kept up to date, one-way; optional, delete if none -->
 - **Supersedes:** <!-- ADR-NNNN, or "none" -->
-- **Related:** <!-- RFCs, other ADRs, specs -->
+- **Related:** <!-- RFCs, other ADRs, specs — pointers, not prose; explanation goes in Context or References -->
 
 <!--
 Status lifecycle: Proposed → Accepted, or Proposed → Rejected. An Accepted ADR
