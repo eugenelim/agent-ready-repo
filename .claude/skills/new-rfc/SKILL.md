@@ -265,6 +265,71 @@ concrete next steps — usually:
 
 The RFC itself is then "done" and stays as historical record.
 
+## Recording corrections (Errata / Amendments)
+
+An RFC's body freezes, but the proposal can still need a correction after it
+publishes — a spec finds a gap, a later RFC reframes a decision. Record the
+correction *inside the RFC*, in one of two sections chosen by the RFC's
+lifecycle class (the Document-lifecycle table in
+`docs/CONVENTIONS.md` § Document lifecycle — Frozen vs. Governance), **never**
+by editing the frozen body:
+
+- **`## Errata`** — for a **Frozen** RFC (Accepted or Rejected). The body is
+  immutable; corrections are appended here, Approver-signed. This is the common
+  case — most corrections are found after acceptance.
+- **`## Amendments`** — for an **in-flight** RFC (Open / Governance class) that
+  needs to track reconciliations *while still being worked*, without rewriting
+  its body. The rare case.
+
+The heading itself signals whether the text beneath it is immutable, so the two
+never coexist in one RFC: an Open RFC carrying `## Amendments` renames the
+section to `## Errata` if and when it is Accepted (a status-driven edit the
+Frozen rule already permits).
+
+### The two-layer structure — optional, threshold-gated
+
+A single one-line erratum stays a plain dated bullet. Split the section into two
+layers **only once it crosses the threshold — more than one entry, *or* any
+entry supersedes another** — at which point a reader can no longer recover the
+present rules without diffing the whole log by hand:
+
+```
+## Errata            (or ## Amendments)
+
+### Current state
+<an authoritative summary — usually a table — of the corrections in force:
+ "read this, not the log", for the present contract>
+
+### History / audit trail
+<dated entries explaining how each correction was reached>
+```
+
+- The **current-state** layer is the authoritative present contract. **Where it
+  disagrees with a historical entry, the current-state layer wins** — say so in
+  the section so a reader knows which layer to trust.
+- The layer *names* above are illustrative; the contract is the two-layer split
+  (authoritative current state over a dated audit trail), not the exact heading
+  wording. RFC-0048 / PR #430 is the worked precedent this generalizes — it uses
+  "Current reconciliation state" over an "Amendment history / audit trail."
+
+### Append-only and supersession
+
+- Correction sections are **append-only**. A later entry supersedes an earlier
+  one simply by being later; the **newest entry plus the current-state layer**
+  carry present truth. Earlier entries are never deleted — they *are* the audit
+  trail.
+- **No per-entry ritual is required.** On a Frozen RFC's `## Errata`, prior
+  entries cannot be reworded anyway (immutable body). On an in-flight
+  `## Amendments`, an author *may* optionally reword a stale entry in place,
+  tagging it `*(Superseded: …)*` — permitted, not required, and **only for
+  in-flight Amendments** (a Frozen RFC's entries can't be touched).
+- **Whole-RFC replacement is out of scope.** When an entire RFC — not one
+  correction within it — is superseded by a later one, record that as an
+  **Errata entry naming the superseding RFC** (e.g. RFC-0012 carries an erratum
+  recording that its Alternative #7 was superseded by RFC-0052). This convention
+  governs corrections *within* an RFC; it neither defines nor changes the
+  whole-RFC-supersession mechanism.
+
 ## Anti-patterns to refuse
 
 - Writing into the RFC body before the checkpoint clears → see step 4.
