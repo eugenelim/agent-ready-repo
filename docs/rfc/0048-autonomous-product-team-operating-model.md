@@ -383,6 +383,17 @@ the harness's. Four slots:
 The sidecar is the **connectedness verifier**: omnigent's worktrees hold the artifact
 *files*, but only this typed state makes "everything holds together" *checkable*.
 
+*Data-handling boundary.* Those four slots can carry product strategy, personas, security
+findings, customer/domain facts, and consent rationale — so the sidecar is a
+**data-classification surface**, not only the integrity one RFC-0053 § Security & integrity
+contract covers. The contract here: **regulated- or secret-bearing artifacts surface to the
+human / `discovery-threat-reviewer` lens before being written to a shared repo-backed
+sidecar** (`_state/`), never silently committed. The concrete rules are **owned downstream by
+RFC-0053's implementing spec** — per-slot classification (`public` / `internal` / `sensitive`
+/ `regulated`, or an adopter's repo-local equivalent), redaction guidance for examples and
+promoted notes, and retention/export expectations for `_state/` and harness-backed stores —
+the same delegate-to-the-child idiom the schema and layout keys use.
+
 *The harness.* `omnigent` (DAIS 2026) runs all of the above now; the sidecar's
 harness-neutral schema keeps a future bespoke harness open. The Decision-7 work is a
 **prototype of the sidecar + `discovery-loop` on `omnigent`** against the worked example —
@@ -793,6 +804,19 @@ superseded wording, the current-state table above wins.
   enumeration. These *extend* D7's "decision log doubles as the audit trail" and the O5
   live-lens claim rather than contradicting them, and land as acceptance criteria in
   RFC-0053's implementing spec. See [RFC-0053](0053-the-coordinator-contract.md)
+  § Security &amp; integrity contract.
+- **2026-06-28 — D7's sidecar contract extended with a data-handling / privacy boundary (R10).**
+  A review pass found the sidecar/coordinator contract covered integrity and authorization
+  (the 2026-06-26 entry above) but not data **classification**, **retention**, or
+  **redaction** — yet the four slots can carry product strategy, personas, security findings,
+  customer/domain facts, and consent rationale. Recorded: the sidecar is a
+  **data-classification surface**; regulated- or secret-bearing artifacts **surface to the
+  human / `discovery-threat-reviewer` lens before being written to a shared repo-backed
+  sidecar**, and RFC-0053's implementing spec **owns** per-slot classification, redaction
+  guidance, and retention/export rules. This *extends* D7's sidecar doctrine and the
+  2026-06-26 security/integrity surface rather than contradicting either; like those integrity
+  controls it lands as an acceptance criterion in RFC-0053's implementing spec — **not** an
+  RFC-0048 acceptance blocker. See [RFC-0053](0053-the-coordinator-contract.md)
   § Security &amp; integrity contract.
 - **2026-06-26 — the company-OS third (SRE/ops) seat specified, by RFC-0049's child spec.**
   RFC-0048's end-to-end table and diagram name the **G4→G5 release/deploy loop + ship**
