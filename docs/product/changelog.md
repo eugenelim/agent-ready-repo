@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carries the same shape as a clearly-conditional commented scaffold, so it travels
   into every RFC an adopter drafts without being filled into empty sections.
   Forward-only — existing correction sections are untouched.
+- **The `new-adr` skill now helps you isolate the decision before drafting, so
+  ADRs stay lean (governance-extras 0.4.0).** Four guidance refinements, none of
+  which changes the ADR template's sections or fields: (1) a "frame the decision
+  before drafting" step that *offers, doesn't force* — it infers the frame when
+  the decision is already crisp and walks a short decision frame (the decision in
+  a sentence, the problem, the alternatives, the winning driver, the tradeoff,
+  any prior ADR it amends) when the request arrives tangled; (2) stronger title
+  discipline — the title *identifies* the decision rather than encoding the whole
+  rationale; (3) a one-decision-wide push-back that routes an umbrella of three
+  or more load-bearing sub-decisions to an RFC spawning smaller ADRs; (4)
+  pointer-like metadata guidance — `Consulted`/`Related` are short reference
+  lists, not prose. The behavioral evals gain matching usability assertions.
 - **The `new-rfc` skill now sizes each RFC to its two humans — the author and
   the reviewer (governance-extras 0.4.0, implementing RFC-0054).** Four changes,
   the deferred half of the human-consumption work whose RFC-0014-clean half
