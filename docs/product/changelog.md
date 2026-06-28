@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The `new-rfc` skill now documents a convention for recording post-publication
+  RFC corrections (governance-extras 0.4.0, implementing RFC-0055).** A published
+  RFC's body is frozen, but it can still need a correction — a spec finds a gap, a
+  later RFC reframes a decision. The skill now names two lifecycle-keyed sections
+  for recording one *inside* the RFC: `## Errata` for a Frozen RFC
+  (Accepted/Rejected) and `## Amendments` for an in-flight Open one. Corrections
+  are append-only, and once a section accumulates (more than one entry, or any
+  entry supersedes another) it splits into an optional two-layer structure — an
+  authoritative *current state* layer over a dated *audit trail*, where the
+  current-state layer wins on disagreement. The bundled `assets/rfc.md` template
+  carries the same shape as a clearly-conditional commented scaffold, so it travels
+  into every RFC an adopter drafts without being filled into empty sections.
+  Forward-only — existing correction sections are untouched.
 - **The `new-rfc` skill now sizes each RFC to its two humans — the author and
   the reviewer (governance-extras 0.4.0, implementing RFC-0054).** Four changes,
   the deferred half of the human-consumption work whose RFC-0014-clean half
