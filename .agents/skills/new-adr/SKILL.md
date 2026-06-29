@@ -89,15 +89,38 @@ If any of these checks fail, push back rather than proceeding.
    - Consequences without honest negatives → ask what we're giving up.
    - Alternatives without rejection reasons → ask why each was rejected.
 
-   Two sections are optional — include them when they earn their place,
-   delete them otherwise:
+   Several sections are optional — offer them, don't force them; include each
+   when it earns its place and delete it otherwise:
+   - **Decision summary** — a first-screen TL;DR (Decision / Because / Applies
+     to / Tradeoff accepted / Revisit if) placed before Context. Offer it once
+     the ADR is long enough that the decision isn't visible on the first screen
+     — a multi-line title, a paragraph of metadata, a long Context push it down;
+     skip it on a short ADR, where five restated lines are pure redundancy.
+     Every line restates the body, so it never carries new reasoning and is
+     never a place to weigh options against each other. When you include it,
+     its `Revisit if:` **restates** the Consequences `Revisit if:` line verbatim
+     — the two must not diverge.
    - **Decision drivers** — the criteria the choice was judged against. Add it
      when more than one option was viable, so each alternative is rejected
      against a *stated* criterion rather than an ad-hoc reason.
-   - **Confirmation** — how conformance with the decision will be verified (a
-     design review, an architecture fitness test, a lint or CI check, a
-     periodic audit). Add it when the decision is the kind that erodes
-     silently if no one checks.
+   - **Confirmation** — how conformance with the decision will be verified,
+     structured as `Mode` / `Signal` / `Owner`, where `Mode` is one of
+     `reviewer-checked | lint/CI | architecture fitness test | periodic audit |
+     none`. Where a reader would plausibly expect a conformance mechanism,
+     prefer an explicit `Mode: none` (with a one-line reason) over silently
+     deleting the section — a non-checkable residual should be visible, not
+     hidden. Delete the section only for trivial decisions where no one would
+     expect a check.
+
+   One field in the always-present Consequences section is recommended, not
+   optional:
+   - **Revisit if** — the named trigger for reconsidering the decision (a new
+     constraint, a failed confirmation, changed platform support, a scale
+     threshold). It lives in Consequences as its canonical home — present even
+     when the optional Decision summary is deleted — and is recommended for any
+     decision likely to age. For one that genuinely won't, `Revisit if: stable
+     — no foreseeable trigger` is a valid explicit value, not a reason to omit
+     the line.
 
 7. Update `docs/adr/README.md` to add the new ADR to the table.
 

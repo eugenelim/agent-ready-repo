@@ -1045,3 +1045,23 @@ version-bump through `persist_state_locked` with a mutate closure that
 re-derives against freshly-read state — and adds a multi-process stress test
 for `statelock`'s stale-reclaim collision window (the unit tests cover the
 single-thread reclaim, not the multi-process race).
+
+## `adr-template-right-sizing`
+
+### short-adr-eval-coverage
+
+**Spec:** [adr-template-right-sizing](specs/adr-template-right-sizing/spec.md)
+
+The three behavioral evals (AC5) are pinned verbatim and each carries a
+two-branch assertion (present-when-long / omitted-when-short; trigger-present /
+`stable — no foreseeable trigger`). The authored eval scenario (`evals.json`
+id 3) prompts a single long, aging, conformance-expected ADR, so an LLM judge
+can only observe the first branch of each assertion — the omit-on-a-short-ADR
+and the explicit-`stable` branches are never exercised. AC5's contract (the
+three assertions present, parsing, contract-pinned) is fully met; this is the
+spec's deliberate pinned-string tradeoff and matches the existing id 1 / id 2
+multi-clause-against-single-prompt style, so it is a coverage Concern, not a
+shipped-AC gap. **Unblocks when:** someone adds a second eval scenario whose
+prompt is a *short* ADR (and a not-likely-to-age decision), reusing the same
+pinned assertion strings, so the judge can observe the omit / explicit-`stable`
+branches the assertions promise.
