@@ -6,6 +6,14 @@
 - **Supersedes:** none
 - **Related:** RFC-0048 Decision 3 (adopted the rename at the foundation level), RFC-0050 (the `experience`-pack child RFC that models it), RFC-0033 + ADR-0024 (created the `design-craft` pack and its posture — **frozen, bridged here**), RFC-0047 § Errata 2026-06-25 (the `infra-contract-acquisition → contract-acquisition` skill rename — the precedent this follows), `docs/specs/design-craft-pack/` (Shipped — **frozen, bridged here**)
 
+## Decision summary
+
+- **Decision:** We will rename the `design-craft` pack to `experience` — renaming the live surface and bridging frozen governance, with no install-time alias.
+- **Because:** "experience" names the whole seat (flow + service + screen + taste + words) better than "design-craft", and the pre-stable, user-scope window makes the rename cheap now.
+- **Applies to:** the pack *identity* (name + the live surfaces that carry it); the pack's posture (ADR-0024 agnosticism + all-skills-zero-agents) is unchanged.
+- **Tradeoff accepted:** adopters with an installed `design-craft` must uninstall and reinstall as `experience` (no alias), and the name appears in two forms across the repo (frozen-historical vs. live).
+- **Revisit if:** a pack-alias mechanism is ever designed (deferred, RFC-0048 OQ) — a future rename could then smooth the install tail (this rename does not wait for it).
+
 ## Context
 
 The `design-craft` pack (RFC-0033, ADR-0024) ships four framework-agnostic
@@ -102,17 +110,13 @@ all-skills-zero-agents commitments carry forward to `experience` verbatim.
 - `design-craft` now appears in two namings across the repo (frozen-historical
   vs. live), a small ongoing legibility cost the bridge note carries.
 
-**Neutral / to revisit:**
-- If a pack-alias mechanism is ever designed (deferred, RFC-0048 OQ), a future
-  rename could smooth the install tail — but this rename does not wait for it.
+**Revisit if:** a pack-alias mechanism is ever designed (deferred, RFC-0048 OQ) — a future rename could then smooth the install tail (this rename does not wait for it).
 
 ## Confirmation
 
-- The implementing spec (`docs/specs/experience-pack/`) and CI manifest/lint
-  gates confirm the live surface carries `experience` consistently (pack dir,
-  manifests, marketplace aggregation, guides, cross-links) and that no live
-  surface still names `design-craft`.
-- A `docs/product/changelog.md` entry records the user-visible rename.
+- **Mode:** lint/CI.
+- **Signal:** the implementing spec (`docs/specs/experience-pack/`) and the CI manifest/lint gates confirm the live surface carries `experience` consistently (pack dir, manifests, marketplace aggregation, guides, cross-links) and that no live surface still names `design-craft`; a `docs/product/changelog.md` entry records the user-visible rename.
+- **Owner:** RFC-0050's implementing-spec owner (the `experience-pack` spec + its CI gates).
 
 ## Alternatives considered
 
