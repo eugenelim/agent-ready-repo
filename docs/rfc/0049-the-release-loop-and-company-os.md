@@ -15,9 +15,9 @@
 - **Recommended outcome:** accept.
 - **Change if accepted:**
   - Split the loop into **inner** (`work-loop`, local with local-infra-equivalents) and **outer** (`release-loop`, ephemeral deploy + e2e + iterate-to-converge).
-  - Add a `release-lead` agent + `release-loop` skill in a new opt-in `release-engineering` pack, reusing `operational-safety` + `quality-engineer` + `security-reviewer` + the RFC-0053 sidecar — **no new runtime, no new reviewer**.
+  - Add a `release-lead` agent + `release-loop` skill in a new opt-in, **repo-scope** `release-engineering` pack, reusing `operational-safety` + `quality-engineer` + `security-reviewer` + the RFC-0053 sidecar — **no new runtime, no new reviewer** (the reuse of `core`'s repo-scope reviewers is sound because the pack is **repo-scope and co-located in the build repo** where `core` is installed — see OQ1).
   - Carve autonomy by **minimum-regret**: agents run inner + outer loops on ephemeral envs unwatched; humans gate prod / data / spend / security / irreversible (G5).
-- **Affected surface:** a new `release-engineering` pack + agent + skill; CONVENTIONS (the inner/outer split + the minimum-regret deploy carve); reuse of `core`'s operational/security reviewers + the RFC-0053 sidecar; the `omnigent` harness (ephemeral envs).
+- **Affected surface:** a new **repo-scope** `release-engineering` pack (installed into the build repo) + agent + skill; CONVENTIONS (the inner/outer split + the minimum-regret deploy carve); reuse of `core`'s operational/security reviewers + the RFC-0053 sidecar; the `omnigent` harness (ephemeral envs).
 - **Stakes:** costly-to-reverse — it sets deploy-to-prod autonomy doctrine (an irreversible + security boundary); the prod-ship step itself stays human-gated, so the irreversible move is bounded.
 - **Review focus:** (1) the minimum-regret carve draws the agent/human line correctly (reversible ⇒ autonomous on ephemeral; irreversible ⇒ human); (2) the no-new-runtime / no-new-reviewer claim holds for the release loop.
 - **Not in scope:** building the harness; the exact `release-lead` agent shape (OQ2 — resolved by the child spec; the pack home, OQ1, already resolves to a new `release-engineering` pack); RFC-0048's G0–G4 discovery+build foundation (this is its G4→G5 extension).
@@ -138,7 +138,54 @@ rather than re-litigates.*
    which ships `discovery-lead` in the opt-in `product-engineering` pack, not `core`
    (RFC-0053 D1). The pack **hard-depends on `core`** (`operational-safety` +
    `quality-engineer` + `security-reviewer`) and detect-and-degrades on
-   cloud/platform packs. It **consumes the sidecar schema by convention** — reading the
+   cloud/platform packs.
+
+   **Scope — repo-scope, co-located in the build repo (this is what makes the
+   reviewer reuse sound).** `release-engineering` installs at **repo scope**, into the
+   same repo `work-loop` (the inner loop) ran in — the repo that holds the built,
+   deploy-ready component and where `core` is therefore repo-installed. That co-location
+   is *precisely what makes reusing `core`'s repo-scope `quality-engineer` /
+   `security-reviewer` / `operational-safety` sound*: the reused reviewers and
+   `release-lead` sit at the same scope in the same repo, so the reuse resolves by
+   construction — `release-lead` is the downstream, repo-scope peer of `work-loop`'s
+   supervisor (itself `core`, repo-scope) reusing the same reviewers, **not** a
+   user-scope agent reaching for repo-scope reviewers it cannot assume are present. This
+   is the **deliberate scope-inverse of the discovery loop's resolution**
+   ([RFC-0048](0048-autonomous-product-team-operating-model.md) § Amendments — the
+   2026-06-26 scope-decoupling entry + DRIFT-E): `discovery-lead` is **user-scope**
+   because discovery runs *upstream of G3*, in non-repo document workspaces that cannot
+   assume a `core` install, so it ships its **own** user-scope reviewers
+   (`discovery-threat-reviewer` / `discovery-reliability-reviewer`); `release-lead` runs
+   *downstream of the build, in the build repo*, so it **reuses** `core`'s. The same
+   "user-scope-agent-reaching-for-a-repo-scope-reviewer is a footgun" rule, applied at
+   opposite scopes — *scope follows where the work happens*, and the company-OS scope
+   boundary falls at the G3 handoff where shaping becomes a concrete repo. ("Parallels
+   `product-engineering`" below is a **discipline/seat-name** parallel, not a scope claim
+   — the two packs are opt-in for different prerequisite reasons and need not share
+   scope.)
+
+   **Cross-repo / value-stream reach.** In a single product monorepo the build repo *is*
+   the integrated whole, so the above holds directly. In a **polyrepo / value-stream**
+   topology the "integrated whole" spans component repos. Two distinct mechanisms are in
+   play, and conflating them would re-import the very presence assumption the discovery
+   footgun rule forbids: **(i) reviewer presence is an adopter precondition, not something
+   ADR-0022 provides** — each component repo, and whatever repo hosts the cross-component
+   integrated-whole deploy + e2e (a value-stream meta-repo or a designated integration
+   repo), must *itself* install `core` + `release-engineering` at repo scope; **absent that
+   install the per-repo reuse is not sound, and the loop surfaces the gap rather than
+   assuming the reviewers are present** (the same fail-closed posture as the discovery loop,
+   one scope up). **(ii) artifact referencing across repos** — pointing at the other
+   components' contracts / specs / built versions — uses the cross-repo mechanism already
+   decided in [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md)
+   (reference-by-version + the read-only courier snapshot), the same mechanism RFC-0048's
+   traceability chain crosses repos with (§ Amendments, the 2026-06-25 note-08
+   generalization), **not** a new coordinator. So `release-loop` runs **per-component-repo**
+   (reuse sound where both packs are installed), and the cross-component e2e runs in its
+   `core`-bearing host repo. The monorepo case is the minimum; the per-repo + named-install
+   precondition + reference-by-version model is the generalization, detailed by the
+   implementing spec where a concrete topology needs it.
+
+   It **consumes the sidecar schema by convention** — reading the
    produced `_state/` instances and checking the `schema_version` stamp, not importing a
    shared definition (the schema *definition* is carried in `product-engineering`'s
    `discovery-loop` skill, per RFC-0048 § Amendments 2026-06-26 / RFC-0053 D2), so it adds no

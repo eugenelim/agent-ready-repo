@@ -192,8 +192,11 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   and `discovery-lead`, **not** a `work-loop` outer-mode — the skill and the agent
   state that the two loops have different inputs, verifiers, and autonomy postures
   and **must not be conflated**.
-- [ ] **AC2 — the pack home (RFC-0049 OQ1).** The capability ships in a **new
-  opt-in `release-engineering` pack** (not `core`), which **hard-depends** on `core`
+- [ ] **AC2 — the pack home + scope (RFC-0049 OQ1; RFC-0048 § Amendments 2026-06-28).**
+  The capability ships in a **new opt-in `release-engineering` pack** (not `core`),
+  installed at **repo scope** into the **build repo** — the same repo `work-loop` ran in,
+  which holds the deploy-ready component and therefore has `core` repo-installed. The pack
+  **hard-depends** on `core`
   (`operational-safety` + `quality-engineer` + `security-reviewer`) and
   **consumes the sidecar schema by convention** — reading produced `_state/` instances
   + a `schema_version` stamp, not importing a shared definition (the schema *definition*
@@ -206,7 +209,13 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   silently proceeding; when **present**, it consumes them. `core` is
   unchanged except for the version touch its `marketplace.json` aggregation
   requires. The pack carries `pack.toml`, `.claude-plugin/plugin.json`, and a
-  `README.md`, and is registered in the catalogue / `marketplace.json`.
+  `README.md`, and is registered in the catalogue / `marketplace.json`. The **repo-scope
+  co-location is load-bearing for AC9's reuse**: `release-lead` and the reused `core`
+  reviewers sit at the same scope in the same repo, so the reuse resolves by construction
+  — the deliberate scope-inverse of the user-scope `discovery-lead`, which ships its *own*
+  reviewers because it runs upstream in non-repo workspaces that cannot assume a `core`
+  install (RFC-0048 DRIFT-E). ("Parallels `product-engineering`" in § Ask first is a
+  discipline/seat-name parallel, not a scope claim.)
 - [ ] **AC3 — the carve, autonomous zone (RFC-0049 D2).** The skill enumerates the
   **reversibility zone** the agent runs unwatched: the inner loop; the outer loop
   **on ephemeral environments** (deploy / e2e / observe / iterate / teardown); and
@@ -277,7 +286,17 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   **reuses `security-reviewer`** on deploy diffs. It adds **no new reviewer agent** (the
   CHARTER three-reviewer ceiling holds; the operational lens is a *mode* of
   `quality-engineer`, not a new agent) and **no executable code** as the feature
-  mechanism. `loop-cohort.py` / `lint-spec-status.py` are byte-unchanged.
+  mechanism. `loop-cohort.py` / `lint-spec-status.py` are byte-unchanged. **The reuse is
+  sound because the reused reviewers are present where the loop runs:** per AC2 the pack is
+  **repo-scope and co-located in the build repo** where `core` is repo-installed, so the
+  repo-scope `quality-engineer` / `security-reviewer` resolve at the same scope — not a
+  user-scope agent reaching for repo-scope reviewers it cannot assume are present (the
+  discovery footgun, avoided here by scope-inversion). In a **polyrepo / value-stream**
+  topology each component repo and the cross-component-e2e host repo must *themselves*
+  install `core` + `release-engineering`; **absent that install the per-repo reuse is not
+  sound and the loop surfaces the gap** (the same fail-closed posture as AC2's
+  detect-and-degrade and AC10(c)'s no-lens surface), while cross-repo *artifact
+  referencing* uses ADR-0022 (RFC-0049 OQ1; RFC-0048 § Amendments 2026-06-28).
 - [ ] **AC10 — the security & integrity contract (mirrors RFC-0053, extended for
   the deploy boundary).** The skill / agent specify, as first-class controls:
   **(a) verdict write-authority** — the prod / irreversible consent verdict is
