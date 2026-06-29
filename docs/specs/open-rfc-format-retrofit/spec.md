@@ -1,6 +1,6 @@
 # Spec: Retrofit the open RFC cluster to the current RFC format
 
-- **Status:** Draft (work complete + reviewer-verified; pending the user's commit/PR decision)
+- **Status:** Shipped
 - **Mode:** full (governance-surface risk trigger — edits the `docs/rfc/` governance corpus)
 - **Author:** eugenelim
 - **Date:** 2026-06-28
