@@ -68,7 +68,7 @@ can the catalogue become an autonomous product team without violating Principle 
 | --- | --- | --- | --- | --- | --- |
 | D1 | Adopt the operating model as doctrine — two regimes, the judgment→equipping map, the gate ladder G0–G5 + surfacing predicate, the three-act human boundary, and stakes-scaled gate density? | Adopt (placement + predicate + three-act boundary + stakes-density; O11/O12 resolved on paper, spike-confirmed) | It is the spine every child effort hangs from | RFC accept | Confirm the model + that the human boundary is exactly the three irreducible acts |
 | D2 | Frame D1, D3–D6 as doctrine + pure-markdown skills + reference libraries (no new runtime engine), with the build loop reusing `core`'s code reviewers and discovery shipping its own distinct-named user-scope design-time reviewers? | Adopt (the coordinator's no-engine fit is excepted — it is the Decision-7 spike) | The Accepted RFC-0041/0043 precedent; leaves the CHARTER three-reviewer ceiling untouched | RFC accept | Confirm the no-runtime framing + the loop-scoped discovery reviewer roster |
-| D3 | Grow the design/UX seat (`map-journey`, `blueprint-service`, `inventory-screens` + grounding/taste + voice wiring) and rename `design-craft → experience`? | Adopt; rename adopted (v0.1.1 user-scope ⇒ low migration cost; `contract-acquisition` precedent — rename dirs + a governance erratum, no install-time alias) | The missing column is the design/UX seat, and `experience` names it better | RFC accept (records ADR-0038) | Confirm the seat additions + the rename + its migration path |
+| D3 | Grow the design/UX seat (`map-customer-journey`, `blueprint-service`, `inventory-screens`, `map-internal-process` + grounding/taste + voice wiring + the `experience-reviewer`) and rename `design-craft → experience`? | Adopt; rename adopted (v0.1.1 user-scope ⇒ low migration cost; `contract-acquisition` precedent — rename dirs + a governance erratum, no install-time alias) | The missing column is the design/UX seat, and `experience` names it better | RFC accept (records ADR-0038) | Confirm the seat additions + the rename + its migration path (modelled in RFC-0050) |
 | D4 | Add the `frame-domain` primitive — one skill producing two typed artifacts (Domain Framing + Scope Boundary)? | Adopt (split into two artifacts — § Amendments 2026-06-26) | The single biggest correctness lever against domain-hallucination and over-scoping | RFC accept | Confirm the two-artifact split |
 | D5 | Add the self-coverage gate — a `core` reference library + doctrine, run by both loop controllers, non-skippable, no new reviewer? | Adopt | Fixes the knowing-doing gap that lets errors compound between human gates | RFC accept | Confirm the non-skippable packaging |
 | D6 | Add the traceability lint — structural-orphan detection generalizing `receive-brief`'s coverage lint? | Adopt (semantic scope-creep deferred to the coordinator spike / O10; MVP stays a human call at G1.5) | Mechanizes the chain's structural integrity | RFC accept | Confirm the structural-only scope |
@@ -171,8 +171,9 @@ the full arc.)*
 net-new doctrine — the ladder extends the loop, it does not duplicate it.
 
 **D3 — the `experience` pack.** `experience` becomes the design/UX seat: the existing
-four `design-craft` skills + a content cross-link to `voice-and-microcopy` + three new
-connective skills (`map-journey`, `blueprint-service`, `inventory-screens`) +
+four `design-craft` skills + a content cross-link to `voice-and-microcopy` + the new
+connective skills (`map-customer-journey`, `blueprint-service`, `inventory-screens`) +
+`map-internal-process` (RFC-0050 D9) + the `experience-reviewer` (RFC-0050 D7) +
 grounding/taste enhancements. The full producer→consumer artifact inventory (8 product
 + 10 design artifacts; 4 net-new) is in [`0048-notes/04`](0048-notes/04-artifact-inventory.md).
 
@@ -232,11 +233,23 @@ not a marketplace:
 | Security / compliance (design-time) | reviewer agent — new, distinct name | `discovery-threat-reviewer` (proposed) | `product-engineering` | user-scope | required at G2 reconcile | `core`'s `security-checklists` depth when present; else its own baseline checklist |
 | Quality / reliability (design-time) | reviewer agent — new, distinct name | `discovery-reliability-reviewer` (proposed) | `product-engineering` | user-scope | required at G2 reconcile | `core`'s `operational-safety` + `quality-engineer` depth when present; else its own baseline checklist |
 | Architecture (design-time) | reviewer agent — reuse | `design-reviewer` | `architect` | user-scope | optional (detect-and-degrade) | absent → `discovery-lead` holds the arch lens itself |
-| Research/analyst · product · UX/design | skill, **not** a reviewer agent | `research`/`identify-perspectives` · `frame-intent`/`decompose-intent` · `map-journey`/`design-critique`/… | `research` · `product-engineering` · `experience` | user-scope | optional (detect-and-degrade) | product-only discovery |
+| Research/analyst · product · UX/design | skill (+ a forked `experience-reviewer` for the UX/design lens — RFC-0050 D7) | `research`/`identify-perspectives` · `frame-intent`/`decompose-intent` · `map-customer-journey`/`map-internal-process`/`design-critique`/… | `research` · `product-engineering` · `experience` | user-scope | optional (detect-and-degrade) | product-only discovery |
 
 None of these is `work-loop`'s code `security-reviewer` / `quality-engineer` /
 `adversarial-reviewer`; the CHARTER ceiling on *those* is untouched. **This table is
 authoritative for the roster** — Decision 2 and the walkthrough's reconcile row refer to it.
+
+> **Reconciliation (child-1, 2026-06-29 — see § Amendments).** A pressure-test of child-1
+> (RFC-0050, the `experience` pack) found the **UX/design row above is asymmetric**: security and
+> reliability each got a forked design-time reviewer, but UX/design relied on a *skill*
+> (`design-critique`) that, run in the authoring context, marks its own homework. RFC-0050 **D7
+> (adopted)** admits a forked-context **`experience-reviewer`** (collision-hardened name — *not*
+> `design-reviewer`) — under the generalized agent-addition policy
+> ([ADR-0042](../adr/0042-agent-additions-keyed-to-loop-and-work-type.md), supersedes ADR-0023),
+> on the **agent-autonomous-where-possible** posture (the design review between human-value-add
+> gates runs without a human, so it cannot be a same-session skill). On RFC-0050's acceptance the
+> UX/design row reads *"skill + an opt-in forked `experience-reviewer`"*; recorded as a tracked
+> amendment that binds then.
 
 **Names are collision-hardened by construction, not by dispatch.** Reviewers are dispatched
 by the orchestrator *selecting a subagent matching a role* (the `work-loop` idiom), and
@@ -361,10 +374,10 @@ flowchart TB
 | 2 | **G1 Strategy** | `discovery-lead` | `de-risk-intent`, `decompose-intent` (PE); `research` (research) subroutine; `identify-perspectives` (research) if multi-stakeholder | capability intents · outcomes · assumption test · tension map | none, unless a scope one-way-door or logged conflict |
 | 3 | **G1.5 Domain & MVP** | `discovery-lead` | `frame-domain` (PE) wrapping `research` applied + (brownfield) `decision-archaeology` (research) | Domain Framing + Scope Boundary · persona | **ratifies the MVP boundary** (consent) |
 | 4a | Convergence — product | `discovery-lead` | `decompose-intent` (PE) | feature intents | — |
-| 4b | Convergence — UX | `discovery-lead` | `map-journey` → `inventory-screens` (+ per-screen briefs) → `blueprint-service` (experience) | journey · screen inventory + briefs · service blueprint | — |
-| 4c | Convergence — design | `discovery-lead` | `aesthetic-direction`, `design-critique` (experience); `voice-and-microcopy` (PE) | aesthetic direction · critiques · copy deck | — |
+| 4b | Convergence — UX & process | `discovery-lead` | `map-customer-journey` → `inventory-screens` (+ per-screen briefs) → `blueprint-service`; `map-internal-process` (as-is/to-be) where the initiative touches internal operations (experience) | journey · screen inventory + briefs · service blueprint · internal process flow | — |
+| 4c | Convergence — design | `discovery-lead` | `aesthetic-direction`, `design-critique` (experience; both **authoring-time** — the fresh-context design review is `experience-reviewer` at row 4e, not `design-critique`); `voice-and-microcopy` (PE) | aesthetic direction · critiques · copy deck | — |
 | 4d | Convergence — tech | `discovery-lead` | `architect-design`, `architect-diagram` (architect); `api`/`event-contract` (contracts) | C4 · domain model · contracts | — |
-| 4e | Convergence — reconcile | `discovery-lead` | discovery reviewer roster — `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope), plus `design-reviewer` if `architect` is installed — as **live lenses**; traceability lint; self-coverage gate (pre-mortem · taxonomy · scenario-variation · fresh-context) | resolved open-questions · coverage record · updated traceability matrix | only if an **irreducible tension / value conflict** surfaces |
+| 4e | Convergence — reconcile | `discovery-lead` | discovery reviewer roster — `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope), plus `experience-reviewer` if `experience` is installed (UX/design artifacts — RFC-0050 D7) and `design-reviewer` if `architect` is installed (architecture artifacts) — as **live lenses**; traceability lint; self-coverage gate (pre-mortem · taxonomy · scenario-variation · fresh-context) | resolved open-questions · coverage record · updated traceability matrix | only if an **irreducible tension / value conflict** surfaces |
 | 5 | **G2 Convergence** | `discovery-lead` | (renders the blackboard) | **decision brief** (journey + screens + arch + tension/assumption ledger) | **ratifies the "what"**; **adjudicates conflicts** (consent) |
 | 6 | Brief emit (per feature) | `discovery-lead` | `decompose-intent` (PE) | brief (`docs/product/briefs/`) | — |
 | — | **G3 handoff** | → `work-loop` | `receive-brief` → `new-spec` (core); `security-reviewer` at spec stage | spec | none, unless a risk trigger fires |
@@ -375,6 +388,47 @@ Steps 1–6 are `discovery-loop` under `discovery-lead`; step 7 is `work-loop`; 
 the G3 brief→spec handoff. The G4→G5 release/deploy loop + ship is **RFC-0049**'s. The
 sidecar threads all of it — every artifact is a blackboard slot, every consent a
 decision-log entry.
+
+### Deployment architecture — how the loops compose (runtime-agnostic)
+
+The three loops are **separate deployment units**, not one process. What composes them is
+**durable artifacts with stable, location-independent ids** — never shared memory or
+agent-to-agent chat. This is what lets each loop run in its own environment (its own context,
+container, or repo checkout) on whatever substrate the adopter runs — *we ship the loop-teams
+and the handoff contract, never the runtime that schedules them* (Principle 3; an autonomous-agent
+runtime, a workflow engine, or a CI matrix are all valid hosts — none is codified).
+
+- **The loop is the unit.** Each loop = a supervisor + its agents + the skills it needs,
+  installed into an environment: `discovery-loop`/`discovery-lead` (user-scope, workspace-portable
+  — a PM/designer environment, possibly pre-repo); `work-loop`/supervisor + `implementer`
+  (repo-scope, **per-module ≈ per-repo**, fans out in parallel); `release-loop`/`release-lead`
+  (repo-scope, in the build repo). Scope + cadence dictate the environment.
+- **The seams are artifacts, not calls.** discovery emits a **decision brief + backlog** (the
+  bridge); `work-loop` consumes a **brief/spec** and emits **merged code + tests**; `release-loop`
+  consumes merged code and emits a **deploy**. Every cross-loop edge resolves through a stable id
+  (marker slug / `contract@version` / Backstage `kind:namespace/name`) — the same cross-repo
+  convention the traceability lint walks (§ Amendments, 2026-06-25). An initiative entering the
+  backlog triggers a discovery environment; its emitted backlog items trigger (parallel) work-loop
+  environments; merges trigger the release environment. The **backlog/queue is the coupling**, not
+  a daemon.
+- **Humans sit at the human-value-add gates, agents run between them.** The operating model is
+  **agent-autonomous where possible, human review reserved for the value/judgment calls** — G0
+  (ratify vision), G1.5 (ratify MVP boundary), G2 (ratify the "what" + adjudicate conflicts), and
+  any one-way-door (G5 prod ship). Everything verifiable in between — spec→code→tests, reversible
+  deploys — runs without a human.
+- **The reviewers are what make "autonomous between gates" safe.** Each loop's forked-context
+  reviewers substitute for the human at the *non*-value-add review points: `work-loop`'s three code
+  lenses; discovery's `discovery-threat-reviewer` + `discovery-reliability-reviewer` + (RFC-0050 D7)
+  `experience-reviewer` + (architect) `design-reviewer`. A loop can run unattended **only because**
+  its reviewers hold the quality bar a human would otherwise hold — which is exactly why each design-time
+  discipline needs its own forked reviewer (the RFC-0050 D7 roster correction), decided within
+  ADR-0042's loop/work-type agent-addition policy.
+
+So "deploy the autonomous product team" = stand up one environment per loop (per initiative for
+discovery, per module for build, per build-repo for release), wire them through the backlog + the
+stable-id artifacts, place humans at the four ratify gates, and let each loop's reviewer roster
+hold the line in between. The catalogue makes every loop-team deployable into that shape;
+the substrate is the adopter's.
 
 ## Options considered
 
@@ -629,6 +683,8 @@ contract:
 | Spec up-edge | `new-spec` produces the `Discovery:` header + discovery `type:` markers; must land before the traceability lint runs `--strict`. | CONVENTIONS / `new-spec` follow-on (DRIFT-G) |
 | Backlog handoff | RFC-0053's implementing spec owns decision-brief → work-item decomposition and `loop-cohort` cross-component ingestion. | RFC-0053 implementing spec (DRIFT-H) |
 | Release-loop reviewer reuse | `release-engineering` is **repo-scope**, installed in the build repo; `release-lead` therefore **reuses** `core`'s repo-scope `quality-engineer` / `security-reviewer` / `operational-safety` — sound because release runs **downstream, in the build repo** where `core` is installed. The scope-inverse of discovery's own-reviewer resolution (user-scope, pre-repo); same footgun rule, opposite scope. | RFC-0049 / [release-loop spec](../specs/release-loop/spec.md) |
+| Agent-addition governance | The reviewer-ceiling reading is **generalized** into a loop/work-type-keyed agent-addition policy ([ADR-0042](../adr/0042-agent-additions-keyed-to-loop-and-work-type.md), supersedes ADR-0023): add an agent only where it clears a value test (independence / parallelism / distinct surface-cadence); the core `work-loop` code-review gate stays capped at three lenses. The discovery roster and any new design-time reviewer are decided *within* this policy. | ADR-0042 (Proposed) / RFC-0050 D7 |
+| UX/design design-time reviewer | **RFC-0050 D7 adopted** (binds on RFC-0050 acceptance): the UX/design lens gains an opt-in forked `experience-reviewer` (collision-hardened, *not* `design-reviewer`) for autonomous design review between human-value-add gates; `design-critique` stays the authoring-time skill. | RFC-0050 D7 |
 
 ### Amendment history / audit trail
 
@@ -824,6 +880,26 @@ superseded wording, the current-state table above wins.
   [release-loop spec](../specs/release-loop/spec.md) — the spec records the resolved repo
   scope at AC2 and the co-location reuse precondition at AC9 (landed together with this
   entry). **Not** an RFC-0048 acceptance blocker.
+- **2026-06-29 — agent-addition policy generalized + a UX/design design-time reviewer surfaced, by child-1 (RFC-0050).**
+  A pressure-test of the `experience` pack surfaced two coupled reconciliations. **(1) Governance:**
+  the reviewer-ceiling reading (ADR-0023) was framed too narrowly (core-loop lenses vs. one opt-in
+  design reviewer) for the multi-loop roster this RFC already runs; it is **generalized** into a
+  loop/work-type-keyed agent-addition policy —
+  [ADR-0042](../adr/0042-agent-additions-keyed-to-loop-and-work-type.md) (supersedes ADR-0023):
+  add an agent only where it clears a value test (forked-context independence / parallelism /
+  distinct surface-cadence), never blindly; the core `work-loop` code-review gate stays capped at
+  three lenses. The discovery roster (above) and any new design-time reviewer are decided *within*
+  this policy — no change to the discovery reviewers themselves. **(2) Roster asymmetry:** the
+  lens-team roster gave security and reliability each a forked design-time reviewer but left
+  **UX/design** as a skill (`design-critique`) that, run in the authoring context, marks its own
+  homework. RFC-0050 **D7 (adopted)** admits a forked-context **`experience-reviewer`**
+  (collision-hardened name — *not* architect's `design-reviewer`; per this RFC's own
+  names-are-collision-hardened rule), on the **agent-autonomous-where-possible** posture (human
+  review reserved for the human-value-add judgment gates, so the design review *between* gates
+  runs without a human and cannot be a same-session skill). Recorded as a tracked amendment to the
+  roster (RFC-0048:235) and the *Current reconciliation state* table; it **binds on RFC-0050's
+  acceptance**. Neither item re-opens a Decision's value call: (1) generalizes the governance
+  reading, (2) corrects a roster asymmetry. See [RFC-0050](0050-the-experience-pack.md) § D7.
 
 ### Foundation reconciliation discharge — the composed-set reconciliation (2026-06-26)
 
@@ -910,7 +986,7 @@ Cross-referenced as **DRIFT-x** in note 10.
   grounding components and makes adding persona an *Ask first* boundary, and RFC-0050 D5 grounds
   `aesthetic-direction` in "the persona (from Domain Framing, or **elicited inline if
   absent**)." **Resolution:** no landed child produces persona as a separate typed artifact;
-  its consumers (`aesthetic-direction`, `map-journey`) **elicit it inline**. Note 04's
+  its consumers (`aesthetic-direction`, `map-customer-journey`) **elicit it inline**. Note 04's
   "(in Domain Framing)" producer claim is the drift, corrected to "elicited inline by the first
   consumer; not a separate produced artifact in the current child set." Promoting persona to a
   produced artifact (a third `frame-domain` artifact, or a `frame-persona` step) is a
