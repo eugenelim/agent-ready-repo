@@ -128,3 +128,19 @@ additions. Nygard is the base both share.
 - Convention change: `docs/CONVENTIONS.md § 2` status-values line.
 - Pack change: `governance-extras` `new-adr` skill + template, bumped to
   `0.2.0`.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections and extensions found after acceptance are appended here,
+Approver-signed.
+
+- **2026-06-28 (Approver: eugenelim) — the template decision is extended by
+  RFC-0056.** This RFC set the ADR template as MADR-aligned-but-lean (recorded in
+  ADR-0027). [RFC-0056](0056-right-size-adr-template-decision-summary-revisit-confirmation.md)
+  extends that template — staying on the same lean side of the line — with three
+  optional fields: a first-screen `## Decision summary`, a structured `Revisit if:`
+  trigger in Consequences, and a `Mode / Signal / Owner` sub-structure for
+  Confirmation. The decision recorded in this RFC's body stands unchanged; the
+  extension is recorded in [ADR-0041](../adr/0041-adr-template-optional-summary-revisit-confirmation.md),
+  which extends (does not supersede) ADR-0027.
