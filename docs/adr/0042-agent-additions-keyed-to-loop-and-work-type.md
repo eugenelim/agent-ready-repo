@@ -1,6 +1,6 @@
 # ADR-0042: Agent additions are keyed to loop and work type, not a global cap
 
-- **Status:** Proposed <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
 - **Date:** 2026-06-29
 - **Decision-makers:** eugenelim
 - **Supersedes:** ADR-0023
