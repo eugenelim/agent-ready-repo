@@ -1,7 +1,7 @@
 # Plan: adr-template-right-sizing
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -99,8 +99,9 @@ the two sub-sections that earn their place are kept.
 
 **Tests:**
 - Goal-based: `grep -n "## Decision summary" packs/governance-extras/.apm/skills/new-adr/assets/adr.md` returns a match positioned before `## Context`. Verifies AC1.
-- Goal-based: `grep -n "Revisit if" assets/adr.md` matches inside Consequences, and the old `**Neutral / to revisit:**` bullet is gone (renamed). Verifies AC2.
-- Goal-based: `grep -n "Mode:" assets/adr.md` matches inside `## Confirmation` alongside `Signal:` and `Owner:`. Verifies AC3.
+- Goal-based (AC2, two-part — binds the match to the canonical home): `awk '/## Consequences/,/## Confirmation/' assets/adr.md | grep -q '\*\*Revisit if:\*\*'` succeeds (the named line lives in Consequences) **and** `! grep -q 'Neutral / to revisit' assets/adr.md` (the old ad-hoc bullet is renamed, not merely supplemented). A bare `grep "Revisit if"` is insufficient because R2 also puts the phrase inside `## Decision summary`. Verifies AC2.
+- Goal-based: inside `## Confirmation`, `Mode:` appears alongside `Signal:` and `Owner:`, and the `Mode` enum line carries the verbatim RFC-0056 R7 values per AC3. Verifies AC3.
+- Goal-based (adopter-clean — `.apm/skills/` files are NOT scanned by `lint-seeds`, so verify by hand): `! grep -nE 'RFC-0[0-9]|ADR-0[0-9]' packs/governance-extras/.apm/skills/new-adr/assets/adr.md` (no catalogue-internal numbers in the shipped template; the literal `ADR-NNNN` placeholder is allowed).
 - Manual-QA: read the template top-to-bottom — all three fields carry OPTIONAL/deletable guidance comments; answer-first ordering holds; a short ADR could delete all three.
 
 **Approach:**
@@ -126,7 +127,8 @@ gone, and the read-through confirms optionality + answer-first ordering.
 
 **Tests:**
 - Goal-based: `grep -n "Decision summary\|Revisit if\|Mode: none" SKILL.md` shows all three referenced in the drafting guidance (step 6 / the optional-sections area).
-- Manual-QA: the prose keeps the offer-don't-force shape — inclusion keyed to length (summary), aging (revisit), explicit-`none` (Confirmation) — and makes none mandatory.
+- Goal-based (adopter-clean): `! grep -nE 'RFC-0[0-9]|ADR-0[0-9]' packs/governance-extras/.apm/skills/new-adr/SKILL.md` (the `ADR-NNNN` placeholder is allowed; catalogue numbers are not).
+- Manual-QA: the prose keeps the offer-don't-force shape — inclusion keyed to length (summary), aging (revisit), explicit-`none` (Confirmation) — and makes none mandatory; when both summary and Consequences are present it states the summary's `Revisit if:` **restates** (does not diverge from) the canonical Consequences line.
 
 **Approach:**
 - Extend the existing optional-sections guidance in `SKILL.md` step 6 (today it
@@ -144,8 +146,9 @@ shape with nothing made mandatory.
 
 **Tests:**
 - Goal-based: `python -c "import json; json.load(open('packs/governance-extras/.apm/skills/new-adr/evals/evals.json'))"` succeeds.
-- Goal-based: the new assertions are present (grep for the three assertion strings) and reference the three fields T1 added. Verifies AC5.
+- Goal-based: the three assertion strings pinned verbatim in spec AC5 are each present in `evals.json` (grep each one literally) and reference the three fields T1 added. Verifies AC5.
 - Goal-based: `git diff --stat packs/governance-extras/.apm/skills/new-adr/evals/eval_queries.json` is empty (byte-unchanged).
+- Goal-based (adopter-clean): `! grep -nE 'RFC-0[0-9]|ADR-0[0-9]' packs/governance-extras/.apm/skills/new-adr/evals/evals.json`.
 
 **Approach:**
 - Extend `evals.json` with behavioral assertions for: Decision summary present
@@ -180,7 +183,7 @@ shape with nothing made mandatory.
 **Tests:**
 - Goal-based: `docs/adr/0041-*.md` exists; `grep "Related:" ` cites ADR-0027 with "extends"; no `Supersedes:` of ADR-0027. Verifies AC7.
 - Goal-based: `docs/adr/README.md` gains the ADR-0041 row.
-- Manual-QA: the ADR dogfoods the three new fields (it carries a `## Decision summary`, a `Revisit if:`, and a structured `Confirmation`).
+- Manual-QA: the ADR dogfoods the three new fields (it carries a `## Decision summary`, a `Revisit if:`, and a structured `Confirmation`) **and** its summary `Revisit if:` is identical to its Consequences `Revisit if:` line (the AC4 restate invariant, exercised here on a real ADR).
 
 **Approach:**
 - Run `new-adr` (or scaffold from the just-edited `assets/adr.md`) for "ADR
@@ -204,7 +207,9 @@ three fields, and the index row is present.
 **Approach:**
 - Append an `## Errata` section to RFC-0038 per the RFC-0055 convention — dated
   and Approver-signed (`eugenelim`) — naming RFC-0056 as extending its template
-  decision.
+  decision. RFC-0038 has no prior errata, so this is a **single dated, signed
+  bullet** — below the RFC-0055 two-layer threshold (>1 entry / supersession), so
+  no `### Current state` / `### History` structure.
 - Fill RFC-0056's `## Follow-on artifacts` placeholder in place: `ADR-NNNN` →
   `ADR-0041` (Approver-authorized — the section's self-described "filled in on
   acceptance" area; **no RFC-0056 `## Errata`**). Leave the rest of the RFC-0056
@@ -227,9 +232,15 @@ governance-record artifacts. T8 closes the DAG over all of T1–T7. -->
   (no bump — track-2 rides the unreleased 0.4.0). Verifies AC11.
 
 **Approach:**
-- Add a `### Changed` (and/or `### Added`) `[Unreleased]` changelog entry written
-  for users, describing the three optional fields, tagged `governance-extras
+- Add a `### Added` (template fields are new surface) `[Unreleased]` changelog entry
+  written for users, describing the three optional fields, tagged `governance-extras
   0.4.0` to sit beside the existing track-1 + RFC-0055 entries.
+- **Distinguish from track 1 explicitly.** The existing track-1 entry states "none
+  of which changes the ADR template's sections or fields"; track 2 *does* change the
+  template's sections/fields and adds *format-dependent* evals. Word the new entry so
+  a reader can tell the two apart and so it does not read as contradicting the
+  track-1 entry (e.g. open with "the ADR *template* now offers three optional fields"
+  to contrast with track-1's guidance-only scope).
 - No version-file change: 0.4.0 is unreleased and ships carrying track-2.
 
 **Done when:** the changelog entry is present and the version files are unchanged
@@ -243,16 +254,21 @@ at `0.4.0`.
 - Goal-based: `make build-self` then `git status --porcelain` is empty (clean tree). Verifies AC12.
 - Goal-based: `lint-packs` passes; `python tools/lint-agent-artifacts.py` passes (the two lint surfaces).
 - Goal-based: `git diff --stat docs/CONVENTIONS.md` is empty. Verifies AC9.
+- Goal-based: `python .claude/skills/work-loop/scripts/lint-spec-status.py` is clean for this spec — spec Status is `Shipped` and every AC is `[x]`.
 
 **Approach:**
+- **Flip spec metadata in this implementing PR** (the spec+code land atomically, so
+  this is not a forward-claim): set `docs/specs/adr-template-right-sizing/spec.md`
+  Status `Approved` → `Shipped`, check every AC `[x]`, and flip the plan Status to
+  `Done`. (Memory: set final status in the implementing PR.)
 - Run `make build-self` to project core + governance-extras to `.claude/` +
   `.agents/` and re-aggregate `marketplace.json`.
 - Run both lint surfaces by hand (memory: only `lint-packs` is in the local gate;
   `lint-agent-artifacts.py` is CI-only).
 - Confirm `docs/CONVENTIONS.md` is untouched.
 
-**Done when:** `make build-self` leaves a clean tree, both lints pass, and
-CONVENTIONS shows no diff.
+**Done when:** spec is `Shipped` with all ACs `[x]`, `make build-self` leaves a clean
+tree, both lints pass, and CONVENTIONS shows no diff.
 
 ## Rollout
 

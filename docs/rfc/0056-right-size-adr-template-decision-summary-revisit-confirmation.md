@@ -149,7 +149,7 @@ Prior art grounds the recommended option as *lean*, not additive ceremony: R2 is
 ## Follow-on artifacts
 
 Filled in on acceptance:
-- ADR-NNNN: ADR template adds optional Decision summary / Revisit-if / structured Confirmation — extends ADR-0027 (Related, not Supersedes).
+- [ADR-0041](../adr/0041-adr-template-optional-summary-revisit-confirmation.md): ADR template adds optional Decision summary / Revisit-if / structured Confirmation — extends ADR-0027 (Related, not Supersedes).
 - Errata entry on RFC-0038 naming RFC-0056.
 - Pack change: `governance-extras` `new-adr` template + skill + evals + how-to guide; pack version bump.
 - (No `docs/CONVENTIONS.md` change — status vocabulary is unchanged.)

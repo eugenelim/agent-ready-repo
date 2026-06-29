@@ -1,6 +1,6 @@
 # Spec: adr-template-right-sizing
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0056, RFC-0038, ADR-0027
@@ -34,7 +34,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Always do
 
 - Keep every new field **optional-deletable** — the `Revisit if:` trigger is
-  recommended-not-required; nothing becomes mandatory surface a short ADR
+  recommended-not-required; nothing becomes mandatory surface that a short ADR
   carries as dead weight.
 - Preserve answer-first ordering and the lean budget: source each field to a
   lean precedent (Y-statement for the summary, Nygard for the revisit trigger,
@@ -103,61 +103,70 @@ contract. No TDD-mode task; there is no compressible invariant to drive.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 (R2/D1 — first-screen Decision summary).** `assets/adr.md` gains an
+- [x] **AC1 (R2/D1 — first-screen Decision summary).** `assets/adr.md` gains an
   **optional, deletable** `## Decision summary` section placed immediately after
   the frontmatter and before `## Context`, carrying the five fields
   `Decision` / `Because` / `Applies to` / `Tradeoff accepted` / `Revisit if:`,
   with a guidance comment that keys inclusion to ADR length (include once the
   Decision isn't visible on the first screen; delete on a short ADR).
-- [ ] **AC2 (R6/D2 — structured Revisit-if trigger).** The Consequences section's
+- [x] **AC2 (R6/D2 — structured Revisit-if trigger).** The Consequences section's
   ad-hoc `**Neutral / to revisit:**` bullet is renamed to a named
   `**Revisit if:**` line as the **canonical home** (Consequences is always
   present, so the trigger survives deletion of the optional summary); it is
   mirrored in `## Decision summary` when that block is present; and
   `Revisit if: stable — no foreseeable trigger` is documented as a valid
   explicit value.
-- [ ] **AC3 (R7/D3 — right-sized Confirmation).** The existing optional
+- [x] **AC3 (R7/D3 — right-sized Confirmation).** The existing optional
   `## Confirmation` section, when present, carries a `Mode` / `Signal` / `Owner`
-  sub-structure where `Mode: none` (with a one-line reason) is a **valid,
-  explicit** value; the section stays deletable for trivial decisions, but the
-  guidance prefers explicit `Mode: none` over silent deletion where a reader
-  would plausibly expect a confirmation mechanism.
-- [ ] **AC4 (skill guidance).** `new-adr/SKILL.md` describes the three fields in
+  sub-structure where `Mode` takes the RFC-0056 R7 enum verbatim —
+  `reviewer-checked | lint/CI | architecture fitness test | periodic audit | none`
+  — and `Mode: none` (with a one-line reason) is a **valid, explicit** value; the
+  section stays deletable for trivial decisions, but the guidance prefers explicit
+  `Mode: none` over silent deletion where a reader would plausibly expect a
+  confirmation mechanism. No field beyond `Mode`/`Signal`/`Owner` is added (no
+  per-option content — the lean line).
+- [x] **AC4 (skill guidance).** `new-adr/SKILL.md` describes the three fields in
   the established offer-don't-force shape — inclusion keyed to length (summary),
   aging (revisit), and the explicit-`none` preference (Confirmation) — makes
   none of them mandatory, and states that when both are present the summary's
   `Revisit if:` **restates** (does not diverge from) the canonical Consequences
   line.
-- [ ] **AC5 (format-dependent evals).** `evals/evals.json` is extended with the
-  three behavioral assertions track 1 foreclosed: a Decision summary is present
-  when the ADR's length warrants it; a Revisit trigger is present for an aging
-  decision; Confirmation is concrete or explicitly `Mode: none`. The file parses
-  as JSON; `eval_queries.json` (trigger detection) is byte-unchanged.
-- [ ] **AC6 (how-to guide sync).** Step 5 of
+- [x] **AC5 (format-dependent evals).** `evals/evals.json` is extended with the
+  three behavioral assertions track 1 foreclosed, authored verbatim as the
+  following three assertion strings (so the eval checks authored-against-contract,
+  not authored-against-itself):
+  1. `A ## Decision summary block is present when the ADR is long enough that the Decision is not visible on the first screen, and is omitted on a short ADR where it would be pure redundancy`
+  2. `A Revisit if: trigger is present in Consequences for a decision likely to age, with 'stable — no foreseeable trigger' as the valid explicit value when it will not`
+  3. `When a ## Confirmation section is present it is concrete (a named Mode/Signal/Owner) or explicitly Mode: none with a one-line reason — not aspirational, and not silently omitted where a reader would expect a conformance check`
+
+  The file parses as JSON; `eval_queries.json` (trigger detection) is byte-unchanged.
+- [x] **AC6 (how-to guide sync).** Step 5 of
   `docs/guides/governance-extras/how-to/new-adr.md` describes the three fields
   consistently with the skill, so guide and skill don't contradict each other.
-- [ ] **AC7 (follow-on ADR extends ADR-0027).** A new ADR (ADR-0041) records the
+- [x] **AC7 (follow-on ADR extends ADR-0027).** A new ADR (ADR-0041) records the
   template extension with `Related:` pointing at ADR-0027 ("extends — read the
   two together"), **not** `Supersedes:`; it dogfoods the three new fields; and
   `docs/adr/README.md` gains its index row.
-- [ ] **AC8 (Errata on RFC-0038).** RFC-0038 gains an `## Errata` entry — dated
+- [x] **AC8 (Errata on RFC-0038).** RFC-0038 gains an `## Errata` entry — dated
   and Approver-signed (eugenelim), per the RFC-0055 errata convention — naming
   RFC-0056 as extending its template decision; the rest of the RFC body stays
   frozen.
-- [ ] **AC8b (RFC-0056 ↔ ADR-0041 link).** RFC-0056's `## Follow-on artifacts`
+- [x] **AC8b (RFC-0056 ↔ ADR-0041 link).** RFC-0056's `## Follow-on artifacts`
   placeholder (`ADR-NNNN`) is filled in place with `ADR-0041` (Approver-authorized
   at approval — this is the section's self-described "filled in on acceptance"
   area, not an `## Errata`); the rest of the RFC-0056 body stays frozen. ADR-0041's
-  `Related:` back-reference to RFC-0056 holds regardless.
-- [ ] **AC9 (CONVENTIONS § 2 untouched).** `docs/CONVENTIONS.md` is unchanged —
+  `Related:` back-reference to RFC-0056 is authored in T5 and is the durable
+  cross-link (the forward link in RFC-0056 is the backfill this AC authorizes; the
+  back link is net-new content in a frozen-once-Accepted ADR).
+- [x] **AC9 (CONVENTIONS § 2 untouched).** `docs/CONVENTIONS.md` is unchanged —
   the status vocabulary the section governs is not affected by this change.
-- [ ] **AC10 (changelog).** A `[Unreleased]` entry records the user-visible
+- [x] **AC10 (changelog).** A `[Unreleased]` entry records the user-visible
   template + skill change under the chosen pack version.
-- [ ] **AC11 (version).** The change ships under `governance-extras` **`0.4.0`**
+- [x] **AC11 (version).** The change ships under `governance-extras` **`0.4.0`**
   (no bump — track-2 rides the unreleased 0.4.0, which is released carrying it):
   `pack.toml` and `.claude-plugin/plugin.json` stay at `0.4.0` and top-level
   `marketplace.json` reflects `0.4.0`.
-- [ ] **AC12 (projection clean).** `make build-self` projects the source change
+- [x] **AC12 (projection clean).** `make build-self` projects the source change
   to `.claude/` and `.agents/` (plus marketplace aggregation) and leaves a clean
   `git status`; `lint-packs` and `tools/lint-agent-artifacts.py` pass.
 
