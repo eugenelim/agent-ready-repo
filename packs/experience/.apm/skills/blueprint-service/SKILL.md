@@ -40,9 +40,11 @@ Confirm all three before proceeding; if any fails, resolve it first.
 
 ## Procedure
 
-1. **Resolve and surface the output path.** Read `agentbundle-layout.toml`'s
-   `[experience]` table — repo-root file first, user-profile file second; fall
-   back to the pack default `docs/design`. Derive the blueprint path as
+1. **Resolve and surface the output path.** Resolve `<parent>` by the canonical
+   three-tier order — `agentbundle-layout.toml`'s `[experience]` table (repo-root
+   file first, user-profile file second) → the pack default `docs/design` →
+   discover-by-marker (scan for the artifacts' frontmatter `type:`). Derive the
+   blueprint path as
    `<parent>/blueprints/<slug>.md`. Resolve to a full absolute path
    (`~`-expand, realpath-resolve, reject `..` escapes); a repo-root-sourced
    `parent` that resolves outside the repo tree is untrusted-origin — confirm

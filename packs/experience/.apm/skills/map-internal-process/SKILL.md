@@ -19,7 +19,7 @@ Confirm all three before drafting; if any fails, resolve it first.
 
 ## Procedure
 
-1. **Resolve and surface the output path.** Read `agentbundle-layout.toml`'s `[experience]` table — repo-root file first, user-profile file second; fall back to the pack default `docs/design`. Derive the path as `<parent>/processes/<slug>.md`. Resolve to a full absolute path (`~`-expand, realpath-resolve, reject `..` escapes); a repo-root-sourced `parent` that resolves outside the repo tree is untrusted-origin — confirm before writing. **Surface the resolved path before the first write.** Create the `processes/` directory lazily on first write. See `references/agentbundle-layout.md` for the full schema.
+1. **Resolve and surface the output path.** Resolve `<parent>` by the canonical three-tier order — `agentbundle-layout.toml`'s `[experience]` table (repo-root file first, user-profile file second) → the pack default `docs/design` → discover-by-marker (scan for the artifacts' frontmatter `type:`). Derive the path as `<parent>/processes/<slug>.md`. Resolve to a full absolute path (`~`-expand, realpath-resolve, reject `..` escapes); a repo-root-sourced `parent` that resolves outside the repo tree is untrusted-origin — confirm before writing. **Surface the resolved path before the first write.** Create the `processes/` directory lazily on first write. See `references/agentbundle-layout.md` for the full schema.
 
 2. **Build the SIPOC.** Before drawing any swimlane, scope the process with a SIPOC table — Suppliers, Inputs, Process (the L3 name), Outputs, Customers. This bounds the process boundary and prevents scope creep into adjacent processes. Load `references/process-mapping.md` § SIPOC scoping.
 

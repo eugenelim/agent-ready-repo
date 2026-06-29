@@ -19,6 +19,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The `design-craft` pack grows up into the `experience` pack — the design/UX
+  seat that carries the whole design thread from journey to realization
+  (experience 0.2.0, implementing RFC-0050 D1–D10; the rename is bridged by the
+  already-Accepted ADR-0038, frozen governance untouched).** `design-craft` is
+  **renamed in place to `experience`** (dirs, manifests, guides dir, the
+  catalogue rows, and the framework-agnosticism CI lint
+  `lint-design-craft-agnostic.py → lint-experience-agnostic.py` retargeted to
+  `packs/experience/`, env `DESIGN_CRAFT_ROOT → EXPERIENCE_ROOT`; the RFC-0033
+  docstring citation and the `(design-craft-pack AC8)` CI step tag stay pinned;
+  **no install-time alias**). The seat gains **five new pure-markdown skills**:
+  the connective trio **`map-customer-journey`** (stages × actions / emotions /
+  pains / opportunities, with a platform/surface axis), **`map-screen-flow`**
+  (the journey's screens *sequenced* — transitions, error/edge flows, the
+  per-screen state matrix, one per-screen brief per screen, a cross-brief
+  consistency pass, and a **non-droppable whole-journey steel thread** that
+  degrades from an MCP prototype to a text-only walk but never to nothing, plus
+  an optional design-tool handover that is instructions-not-pixels), and
+  **`blueprint-service`** (frontstage / line-of-visibility / backstage / support,
+  the backstage column the slicing instrument handed to `architect` / `contracts`
+  by-name); the inside-out **`map-internal-process`** (APQC L3→L4, as-is + to-be
+  with a delta table, SIPOC, a mermaid swimlane, a pain/waste register); and the
+  behavioral-pillar craft skill **`interaction-design`** (feedback & timing,
+  input & forms, component state machines as mermaid `stateDiagram-v2`, purposeful
+  motion honoring reduced-motion, navigation-as-behavior, gesture, cognitive-law
+  fit — enriching the per-screen brief, owning no artifact). The three-part
+  **`quality-floor`** (handle-all-states + accessibility + reduced-motion, now
+  with `permission/denied` as an additional gated state) becomes the pack-shared
+  floor every consuming skill defers to. **`aesthetic-direction`** now grounds
+  each named goal in persona + precedent + standards + platform conventions and
+  carries the surface axis; **`design-critique`** gains a **taste mode** while
+  staying an interactive authoring-time skill. A forked-context **`experience-reviewer`**
+  agent gives the design step an independent design-time review (grounded
+  aesthetic reference + platform fit + cross-brief coherence + the full quality
+  floor incl. accessibility) — the only independent a11y check between
+  human-value-add gates; collision-hardened name + a design-time-only `description`
+  cue (never code diffs, never architecture design docs). Artifact paths resolve
+  through a new `[experience]` layout table (`parent = "docs/design"`,
+  config → default → discover-by-marker). The five new skills join the pack's
+  eval surface (trigger + Tier-4 judge). **Pure-markdown method + manifests + one
+  CI-lint rename — no runtime, hook, validator, values table, or pixel comp**
+  (RFC-0033 / ADR-0024 guardrails unchanged). User-scope-default: re-aggregates
+  `marketplace.json`, not projected into this repo's tree.
+- **`voice-and-microcopy` (in `product-engineering`) learns the screen flow
+  (product-engineering 0.8.0, RFC-0050 D5).** When a `map-screen-flow` per-screen
+  state matrix is present it writes copy **per screen × state**, keyed to the
+  matrix; absent one it behaves as before (detect-and-degrade). The `experience`
+  and `product-engineering` READMEs now cross-link, so the design seat reads as
+  one even though the words live in PE.
+
 - **A new `lint-traceability.py` work-loop script in the `core` pack mechanically
   checks that the product-team artifact chain holds together — `outcome →
   opportunity → capability → screen → action → service → contract → spec →

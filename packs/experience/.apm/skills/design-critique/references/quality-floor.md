@@ -1,11 +1,18 @@
 # The `quality-floor` checklist
 
-The shared floor every design-craft artifact is held to. The authoring
-skills (`aesthetic-direction`, `design-system-foundations`,
-`layout-and-information-architecture`) reference it as they work;
-`design-critique` applies it as an explicit pass. It is three commitments,
-not a values sheet — it points at the recognized standards and names the
-principle, never the numbers.
+The **pack-shared floor** every `experience` artifact is held to — one file,
+referenced by skills across the pack, never copied into a private sibling. The
+authoring and connective skills (`aesthetic-direction`,
+`design-system-foundations`, `layout-and-information-architecture`,
+`map-screen-flow`, `interaction-design`) reference it as they work via the
+sibling-relative path `../design-critique/references/quality-floor.md`;
+`design-critique` applies it as an explicit pass; `product-engineering`'s
+`voice-and-microcopy` defers to it by-name (cross-pack, so by reference, not a
+hard file load). It lives in `design-critique/references/` because that is the
+one location every consumer can resolve once the pack projects every skill as a
+sibling under the adapter's skills root — a pack-level `references/` directory
+does not project to any adapter. It is three commitments, not a values sheet —
+it points at the recognized standards and names the principle, never the numbers.
 
 ## 1. Handle all states
 
@@ -28,6 +35,14 @@ in each of:
   what you have and mark what you don't, rather than hiding the whole.
 - **Disabled / unavailable** — an action can't be taken right now. Make the
   *why* recoverable (what would re-enable it), not just the *that*.
+
+**Additional gated-screen state — `permission/denied`.** For a surface behind
+authorization, design what an *unauthorized* or *locked* viewer sees: a
+read-only or locked view with a recoverable note (who can act, how to request
+access), never a blank screen or a dead end. This **extends** the state set
+above for gated screens; it does not replace it — a gated screen still handles
+empty / loading / error / success / partial / disabled *and* permission/denied.
+(The per-screen brief carries it as `permission/denied (if gated)`.)
 
 ## 2. Accessibility floor
 

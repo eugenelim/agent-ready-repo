@@ -16,9 +16,13 @@ bank — framework-agnostic, and it never mandates a schema. The voice axes are 
 
 When a **per-screen state matrix** from `experience`'s `map-screen-flow` is
 present, this skill writes copy **per screen × state** — one copy entry per
-screen/state cell in the matrix — and keys every string to the matrix row. When
-the matrix is absent the skill is still fully useful: it writes copy for the
-states you name directly (detect-and-degrade; no screen flow required).
+screen/state cell in the matrix — and keys every string to the matrix row. The
+state *set* those cells enumerate is the `experience` pack's shared
+**`quality-floor`** (empty / loading / error / success / partial / disabled, plus
+`permission/denied` when gated); defer to it by-name for which states a screen
+owes copy, rather than inventing a state list. When the matrix is absent the
+skill is still fully useful: it writes copy for the states you name directly
+(detect-and-degrade; no screen flow required).
 
 > **Design-seat pairing.** This skill is the content layer of the design seat;
 > the design methods and screen-flow artifacts live in the `experience` pack. See

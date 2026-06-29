@@ -74,11 +74,13 @@ file by hand:
 # parent = "/abs/path/to/design-docs"   # uncomment + set an absolute path
 ```
 
-## Discover-by-marker
+## Discover-by-marker fallback
 
-When no `agentbundle-layout.toml` is present and no inline elicitation
-resolves a path, the skill may discover the parent directory by scanning for
-files with a known frontmatter `type:` value and using their common ancestor:
+If neither a config `[experience]` table nor the `docs/design` default
+resolves to an existing directory (the third tier of the canonical
+config → default → discover-by-marker order), the skill discovers the parent
+directory by scanning for files with a known frontmatter `type:` value and
+using their common ancestor:
 
 | Frontmatter value | Written by |
 | --- | --- |

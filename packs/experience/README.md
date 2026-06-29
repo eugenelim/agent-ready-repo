@@ -104,12 +104,6 @@ write. See any artifact-writing skill's `references/agentbundle-layout.md`.
   design artifacts (journeys / screen flows / briefs / aesthetics), never code
   diffs and never architecture design docs.
 
----
-
-→ **Go deeper:** the [`experience` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/experience/).
-
----
-
 ## Cross-pack: `product-engineering`
 
 The **words** a user reads in the UI are the `product-engineering` pack's
@@ -117,3 +111,7 @@ The **words** a user reads in the UI are the `product-engineering` pack's
 `map-screen-flow`'s per-screen state matrix to `voice-and-microcopy` and it
 writes copy keyed to every screen × state cell. See the
 [`product-engineering` pack README](../product-engineering/README.md).
+
+---
+
+→ **Go deeper:** the [`experience` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/experience/).

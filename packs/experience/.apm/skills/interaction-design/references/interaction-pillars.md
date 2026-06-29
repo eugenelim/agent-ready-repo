@@ -6,7 +6,7 @@ The method `interaction-design` draws on. Each pillar names its recognized refer
 
 Every action a user takes must produce a perceptible, proportionate response. The design question is not "does it respond?" but "when does it respond, and what does the user see while waiting?"
 
-**The Doherty Threshold** is the design-time anchor: responses within roughly 400 ms keep the user in a flow state; beyond that, the system must communicate that work is in progress. This is the *perceived-performance* lens — design-time reasoning about response shape and timing intent, not a runtime measurement target. Runtime performance (Core Web Vitals and similar) is an engineering and delivery concern, outside the design charter here.
+**The Doherty Threshold** is the design-time anchor: responses within the sub-perceptual threshold the Doherty research names keep the user in a flow state; beyond that, the system must communicate that work is in progress. Read the threshold value from the source — design to the principle, not a reprinted number. This is the *perceived-performance* lens — design-time reasoning about response shape and timing intent, not a runtime measurement target. Runtime performance (Core Web Vitals and similar) is an engineering and delivery concern, outside the design charter here.
 
 Three response shapes to decide:
 - **Skeleton screen vs. spinner** — a skeleton preserves layout and signals "content is coming"; a spinner signals "this will take a moment." Neither is wrong; the choice depends on how predictable the content shape is and how long the wait is.
@@ -90,7 +90,7 @@ Interaction design is grounded in the cognitive science of how users perceive an
 - **Fitts's Law** — the time to acquire a target is a function of distance and size; make frequent targets large and close.
 - **Hick's Law** — decision time grows with the number and complexity of choices; minimize cognitive load at decision points.
 - **Miller's Law** — working memory holds roughly seven items (plus or minus two); chunk information to respect this limit.
-- **Doherty Threshold** — systems that respond within ~400 ms engage users; delays break the flow (see § 1, above).
+- **Doherty Threshold** — systems that respond within the threshold the research names engage users; delays break the flow (see § 1, above — read the value from the source).
 - **Jakob's Law** — users spend most of their time on other sites; they expect your design to work like the ones they already know. Depart from convention only when the benefit is clear and demonstrable.
 
 **Nielsen's usability heuristics** are the complementary principle set for finding and framing usability problems. They live in `../design-critique/references/heuristics.md` — cross-reference them; do not duplicate them here.

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Framework-agnosticism lint for the `design-craft` pack (RFC-0033).
+"""Framework-agnosticism lint for the `experience` pack (RFC-0033).
 
-The `design-craft` pack ships portable design *method*, never a stack or a
+The `experience` pack ships portable design *method*, never a stack or a
 values cheat-sheet (RFC-0033 Guardrails A and B; the charter's "not a
 framework that picks your tech stack"). This lint is the mechanical floor
 under that promise — the RFC-0007 grep-enforcement pattern, scoped to one
-pack. It walks every Markdown file under `packs/design-craft/` and fails on
+pack. It walks every Markdown file under `packs/experience/` and fails on
 any **stack token** (UI-framework name, styling-language syntax, animation
 library, ARIA role) or **values-table shape** (color literal — hex, rgb(),
 hsl(); a dimension/duration literal — px/ms/rem/em/pt/vh/vw and decimal
@@ -30,7 +30,7 @@ Exit codes:
   2 — tool error (the scan root does not exist).
 
 Self-test / fixture mode: point the scan at a different tree with
-  DESIGN_CRAFT_ROOT=/path/to/tree python3 tools/lint-design-craft-agnostic.py
+  EXPERIENCE_ROOT=/path/to/tree python3 tools/lint-experience-agnostic.py
 """
 
 from __future__ import annotations
@@ -141,17 +141,17 @@ def _rules() -> list[tuple[str, re.Pattern[str]]]:
 
 
 def _scan_root() -> pathlib.Path:
-    override = os.environ.get("DESIGN_CRAFT_ROOT")
+    override = os.environ.get("EXPERIENCE_ROOT")
     if override:
         return pathlib.Path(override)
-    return _repo_root() / "packs" / "design-craft"
+    return _repo_root() / "packs" / "experience"
 
 
 def main() -> int:
     root = _scan_root()
     if not root.exists():
         print(
-            f"::error::design-craft agnosticism lint: scan root {root} does not exist",
+            f"::error::experience agnosticism lint: scan root {root} does not exist",
             file=sys.stderr,
         )
         return 2
@@ -172,7 +172,7 @@ def main() -> int:
                 if m:
                     violations.append(
                         f"{rel}:{lineno}: {label}: '{m.group(0)}'  "
-                        f"— design-craft ships portable method, not a stack or a "
+                        f"— experience ships portable method, not a stack or a "
                         f"values table (RFC-0033)"
                     )
 
@@ -180,13 +180,13 @@ def main() -> int:
         for v in violations:
             print(f"::error::{v}", file=sys.stderr)
         print(
-            f"\n✖ design-craft agnosticism lint: {len(violations)} "
+            f"\n✖ experience agnosticism lint: {len(violations)} "
             f"violation(s) in {root}",
             file=sys.stderr,
         )
         return 1
 
-    print(f"✓ design-craft agnosticism lint: clean ({root})")
+    print(f"✓ experience agnosticism lint: clean ({root})")
     return 0
 
 

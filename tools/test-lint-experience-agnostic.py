@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Self-test for tools/lint-design-craft-agnostic.py.
+"""Self-test for tools/lint-experience-agnostic.py.
 
 Pure-stdlib Python so the suite runs on Windows without an MSYS shell.
 Pattern (mirrors test-lint-knowledge-surface-parity.py): write fixture
-Markdown into a tempdir, point DESIGN_CRAFT_ROOT at it, run the linter as a
+Markdown into a tempdir, point EXPERIENCE_ROOT at it, run the linter as a
 subprocess, and assert the exit code (and a diagnostic substring on the
 failure cases).
 
@@ -24,7 +24,7 @@ import sys
 import tempfile
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-LINTER = REPO_ROOT / "tools" / "lint-design-craft-agnostic.py"
+LINTER = REPO_ROOT / "tools" / "lint-experience-agnostic.py"
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -43,7 +43,7 @@ See [the facade pattern](#facade) and [states](#handle-all-states).
 
 def _run(root: pathlib.Path) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
-    env["DESIGN_CRAFT_ROOT"] = str(root)
+    env["EXPERIENCE_ROOT"] = str(root)
     return subprocess.run(
         [sys.executable, str(LINTER)],
         capture_output=True, text=True, env=env, check=False,
