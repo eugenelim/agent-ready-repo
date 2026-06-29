@@ -5,7 +5,21 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
 - **Date closed:**
+- **Decision weight:** standard <!-- light | standard | heavy — additive and reversible: pure-markdown skills, zero new agents, user-scope v0.1.1; it renames a published pack (a small migration tail, no install-time alias) and records ADR-0038, but reverses no frozen decision and crosses no security boundary. -->
 - **Related:** **RFC-0048** (the autonomous product-team operating model — this is its child-1, the `experience`-pack effort; Decision 3 adopted everything below at the foundation level, this RFC *models it out*) · RFC-0033 (`design-craft` pack — the pack being renamed and grown; **frozen, bridged by ADR-0038**) · ADR-0024 (`design-craft` agnosticism + all-skills-zero-agents posture — **frozen, bridged by ADR-0038**) · RFC-0047 § Errata 2026-06-25 (the *actual* `infra-contract-acquisition → contract-acquisition` rename — the dirs+erratum, no-alias precedent this migration follows) · RFC-0040 / ADR-0030 (`agentbundle-layout.toml` path-resolution contract) · RFC-0037 / ADR-0028 (pack-activation-evals) · RFC-0030 (`product-engineering` — `voice-and-microcopy`'s home) · RFC-0032 / ADR-0023 (the `design-reviewer` subagent + the "three reviewers is a code-review ceiling" reading) · RFC-0004 (install-scope-per-pack, Rail A) · promoted research in [`0048-notes/04`](0048-notes/04-artifact-inventory.md), [`/06`](0048-notes/06-pack-delta-and-orchestration.md), [`/07`](0048-notes/07-screen-brief-format.md), [`/09`](0048-notes/09-gap-resolutions.md)
+
+## Reviewer brief
+
+- **Decision:** whether to grow the design/UX seat into the **`experience` pack** — rename `design-craft → experience`, add three connective UX skills, ground taste, and wire `voice-and-microcopy` — all pure-markdown, zero new agents.
+- **Recommended outcome:** accept.
+- **Change if accepted:**
+  - Rename `design-craft → experience` (dirs + `name` + manifests + cross-links + guides dir + layout key); **no install-time alias**; frozen governance bridged by ADR-0038.
+  - Add `map-journey`, `blueprint-service`, `inventory-screens` (connective, platform/surface axis, per-screen briefs); ground `aesthetic-direction` + add a taste mode to `design-critique`.
+  - Wire `voice-and-microcopy` (staying in `product-engineering`) to the screen inventory; add an `[experience]` layout table (default `parent = "docs/design"`).
+- **Affected surface:** the `design-craft` → `experience` pack (rename + 3 new skills + 2 enhanced); `product-engineering` (the `voice-and-microcopy` cross-link); `agentbundle-layout.toml`; records ADR-0038; frozen RFC-0033 / ADR-0024 bridged.
+- **Stakes:** reversible — pure-markdown, user-scope v0.1.1; the rename's small migration tail (no install-time alias) is revertible before acceptance.
+- **Review focus:** (1) the additions preserve `design-craft`'s two guardrails — stack-neutrality (no values tables) and all-skills-zero-agents (ADR-0024); (2) the rename's no-alias migration is complete and bridges frozen governance.
+- **Not in scope:** a new reviewer agent (`design-critique` stays an interactive skill; the live-lens reviewer is `core` / `architect`'s seat); pixel/Figma comps; re-opening RFC-0048 Decision 3 (this models it).
 
 ## The ask
 
@@ -15,12 +29,14 @@
 
 **Decisions requested.**
 
-1. **Rename `design-craft → experience`.** Migrate via the **`contract-acquisition` precedent** (RFC-0047 § Errata): rename the dirs + `name` + manifests + cross-links + the guides dir + the layout key; **no install-time alias** (none exists, grep-confirmed by RFC-0048); frozen governance (RFC-0033, ADR-0024, the Shipped `design-craft-pack` spec, README index rows) keeps `design-craft` as historical record, **bridged by ADR-0038**. · *why:* `experience` names the seat better than `design-craft`, and v0.1.1 user-scope keeps migration cheap. · decide-by: RFC accept (records **ADR-0038**).
-2. **Add three connective skills** — `map-journey`, `blueprint-service`, `inventory-screens` — pure-markdown, no new agents, framework-agnostic intent specs. Each carries the **platform/surface axis** where it applies; `inventory-screens` **emits one per-screen brief per screen**. · decide-by: RFC accept.
-3. **Carry the platform/surface axis** (responsive web · iOS · Android · cross-platform) on `map-journey`, `inventory-screens`, and `aesthetic-direction`, grounded in **platform conventions** (HIG / Material 3 / responsive breakpoints / PWA) — *pointed to, never reprinted* (the stack-neutral guardrail holds). · decide-by: RFC accept.
-4. **Ground `aesthetic-direction`** in persona + precedent + standards + platform conventions (a stable taste referent), and **add a taste mode to `design-critique`** (evidence-grounded critique against that referent + platform fit). `design-critique` stays an **interactive skill, not a reviewer agent** — the live-lens reviewer (RFC-0048 O5) is `core`/`architect`'s seat, out of this RFC. · decide-by: RFC accept.
-5. **Wire `voice-and-microcopy`** (resident in `product-engineering`) to consume the screen inventory's per-screen state matrix (closes RFC-0048 GAP-C1), and cross-link the two packs. · decide-by: RFC accept.
-6. **Resolve artifact paths config → default → discover-by-marker** (never hardcoded): a new `[experience]` table in `agentbundle-layout.toml` (default `parent = "docs/design"`), mirroring `product-engineering`'s pattern (RFC-0040). · decide-by: RFC accept.
+| ID | Question | Recommendation | Why | Decide by | Reviewer action |
+| --- | --- | --- | --- | --- | --- |
+| D1 | Rename `design-craft → experience` via the `contract-acquisition` precedent (rename dirs + manifests + cross-links + layout key; no install-time alias; frozen governance bridged by ADR-0038)? | Adopt | `experience` names the seat better, and v0.1.1 user-scope keeps migration cheap | RFC accept (records ADR-0038) | Confirm the rename + the no-alias migration path |
+| D2 | Add three connective skills — `map-journey`, `blueprint-service`, `inventory-screens` (pure-markdown, no new agents; `inventory-screens` emits one per-screen brief per screen)? | Adopt | They are the missing connective layer (outcome → journey → screen → backing service) | RFC accept | Confirm the three skills + the per-screen brief |
+| D3 | Carry the platform/surface axis (responsive web · iOS · Android · cross-platform) on `map-journey`, `inventory-screens`, and `aesthetic-direction`, grounded in platform conventions — pointed to, never reprinted? | Adopt | Platform fit matters without violating the stack-neutral guardrail | RFC accept | Confirm the axis stays pointed-to, not reprinted |
+| D4 | Ground `aesthetic-direction` in persona + precedent + standards + platform conventions, and add a taste mode to `design-critique` (which stays an interactive skill, not a reviewer agent)? | Adopt | A stable taste referent enables evidence-grounded critique without adding a reviewer | RFC accept | Confirm the grounding + that `design-critique` stays a skill |
+| D5 | Wire `voice-and-microcopy` (resident in `product-engineering`) to the screen inventory's per-screen state matrix, and cross-link the two packs? | Adopt | Closes RFC-0048 GAP-C1 — copy currently ties to no screen list | RFC accept | Confirm the cross-pack wiring |
+| D6 | Resolve artifact paths config → default → discover-by-marker via a new `[experience]` table in `agentbundle-layout.toml` (default `parent = "docs/design"`)? | Adopt | Never hardcode paths; mirror `product-engineering`'s RFC-0040 pattern | RFC accept | Confirm the layout table + default |
 
 *Default if no objection: adopt all six. Each is already decided at the foundation level by RFC-0048 Decision 3; this RFC's job is to model them, pressure-test them, and reconcile any drift back into RFC-0048 (the series-execution standard, RFC-0048 Decision 9).*
 
