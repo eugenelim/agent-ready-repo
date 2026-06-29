@@ -11,6 +11,7 @@ in one command on any platform:
                                                      # -> pre-pr-catalogue
                                                      # -> spec-status (self-test+lint)
                                                      # -> brief-coverage (self-test+lint)
+                                                     # -> traceability (self-test+lint)
 
 **Why it lives in `tools/`, not the shipped `agentbundle` package.** It
 orchestrates *this repo's* gates: `build-check` spawns repo-native scripts —
@@ -123,7 +124,8 @@ def build_check(args: argparse.Namespace) -> int:
     """`build-check` chain: every Windows-clean step of `make build-check`.
 
     lint-packs → build → check → pre-pr-catalogue → lint-spec-status
-    (self-test + lint) → brief-coverage (self-test + lint), in that order. The
+    (self-test + lint) → brief-coverage (self-test + lint) → traceability
+    (self-test + lint), in that order. The
     SAST leg is intentionally omitted (Semgrep has no Windows support and is
     conditional) — it stays Makefile-appended after this chain.
     """
@@ -156,6 +158,14 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-brief-coverage",
             ".claude", "skills", "receive-brief", "scripts", "lint-brief-coverage.py",
         ),
+        _script_step(
+            "test-lint-traceability",
+            ".claude", "skills", "work-loop", "scripts", "test-lint-traceability.py",
+        ),
+        _script_step(
+            "lint-traceability",
+            ".claude", "skills", "work-loop", "scripts", "lint-traceability.py",
+        ),
     ]
     return _run_chain(steps)
 
@@ -176,7 +186,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     bc = sub.add_parser(
         "build-check",
-        help="lint-packs, build, check, pre-pr-catalogue, spec-status, brief-coverage (no SAST).",
+        help="lint-packs, build, check, pre-pr-catalogue, spec-status, brief-coverage, traceability (no SAST).",
     )
     bc.add_argument("--packs-dir", default="packs")
     bc.add_argument(
