@@ -1,75 +1,109 @@
-# Author design intent for a feature
+# Thread a feature from journey to screens
 
-> **How-to** — task-oriented. Run the `design-craft` loop end to end, from a
-> vague vibe to a severity-rated critique. Assumes the pack is installed (see
-> [`../_shared/`](../../_shared/)). For *why* the loop is shaped this way, read
-> [The design-craft loop](../explanation/the-design-craft-loop.md).
+> **How-to** — task-oriented. Run the `experience` thread end to end, from a
+> customer journey to a reviewed set of per-screen briefs. Assumes the pack is
+> installed (see [`../_shared/`](../../_shared/)). For *why* the thread is shaped
+> this way, read [The experience thread](../explanation/the-experience-thread.md).
 
 You drive each skill by asking your agent in natural language; the skill's
 trigger phrases route the request. You don't need to name the skill — but you
-can.
+can. Each skill is standalone-useful, so you can also enter the thread at any
+step and it will elicit what it needs inline.
 
-## 1. Name the direction
+## 1. Map the journey
 
-Start from the feeling, even a rough one:
+Start from the customer, even roughly:
 
-> "We're building a personal-finance dashboard. It should feel calm but
-> premium — help me turn that into named design goals."
+> "Map the customer journey for onboarding a new user to our personal-finance
+> dashboard."
 
-`aesthetic-direction` interrogates the vibe, converges on a few **named, ranked
-goals** (each a noun phrase you can recall), records which goal wins when two
-conflict, and copies an **aesthetic-direction doc** into your repo. That doc is
-the durable artifact the rest of the loop — and the build — reads.
+`map-customer-journey` divides the journey into a few named stages and, for
+each, captures actions, emotions, pains, and opportunities — outside-in, in the
+customer's words. It carries a **surface** (responsive-web / iOS / Android /
+cross-platform) that changes what it asks. The pains-to-opportunities column is
+the output the rest of the thread points back to.
 
-Stop here until the goals are named and ranked. Everything downstream points
-back to them.
+## 2. Derive the screen flow and the per-screen briefs
 
-## 2. Derive the system
+> "Turn that journey into a screen flow — sequence the screens, route the error
+> cases, and give me a brief per screen."
 
-With direction in hand:
+`map-screen-flow` sequences the screens the journey implies, draws the
+transitions and the **error/edge flows** (where a failed or denied action
+lands), records which quality-floor states each screen handles, and emits **one
+self-contained brief per screen** — split into a shared design contract
+(referenced, not copied) and a per-screen spec. Each action names its backing
+service; each screen names its journey step.
 
-> "Derive a token and scale taxonomy from these goals — don't pick values yet."
+It finishes by walking the whole journey: a low-fi prototype if a design-tool
+MCP is connected, otherwise a **text-only steel thread** that asserts every
+transition resolves and every action has a backing service. It never stops at
+"briefs emitted."
 
-`design-system-foundations` hands back the **method and a symbolic shape**:
-tokens named by semantic role, a spacing and type scale organized around a
-single ratio-as-concept (expressed as `step −1, base, step +1`, never numbers),
-accessibility as a floor, and an atomic-composition model. You resolve the
-symbolic shape to real values for your medium — the skill teaches the
-derivation; it never prints a palette.
+## 3. Blueprint the backing services
 
-## 3. Structure the screen
+> "Blueprint the services behind these screens."
 
-> "Structure the dashboard's information architecture and reading flow."
+`blueprint-service` lays out frontstage / line-of-visibility / backstage /
+support. The backstage column is the slicing instrument you hand to `architect`
+and `contracts` by-name — or, when those aren't installed, it names the services
+textually so the thread still holds.
 
-`layout-and-information-architecture` ranks the content
-(primary / secondary / tertiary), picks a reading pattern from the surface's
-job, stages complexity with progressive disclosure, shapes the navigation tree,
-and designs **wayfinding** so the user always knows where they are and how to
-get back — all as concepts, no markup. It also walks the surface's states
-(empty, loading, error) because those change the IA.
+## 4. Design each screen from its brief
 
-## 4. Critique the result
+With a brief in hand, run the craft skills against it:
 
-When you have a screen or mockup:
+> "Name the aesthetic direction for this dashboard, grounded in our persona and
+> platform." → `aesthetic-direction` (each goal grounded in a stable referent)
+> "Derive a token and scale taxonomy from those goals." → `design-system-foundations`
+> "Structure this screen's hierarchy and reading flow." → `layout-and-information-architecture`
+> "Design how this form behaves — feedback, validation, and its state machine." → `interaction-design`
 
-> "Run a heuristic critique of this screen and rank the findings by severity."
+`interaction-design` enriches the brief's interaction section: feedback and
+timing, input/validation flow, a component **state machine** (a mermaid
+`stateDiagram-v2`), purposeful motion that honors reduced-motion, navigation
+behavior, gesture, and cognitive-law fit. It designs how the screen *behaves* —
+the macro flow across screens stays `map-screen-flow`'s.
 
-`design-critique` applies the shared **`quality-floor`** first (all states, the
-accessibility floor, the reduced-motion principle), then evaluates against
-recognized usability principles. Each finding maps to the principle it
-violates, gets a **0–4 severity**, and comes with one concrete recommendation.
-The output is worst-first, with a count-by-severity headline — a list a
-stakeholder can argue and a builder can act on.
+## 5. Critique as you author
 
-## 5. Loop back as needed
+> "Run a critique of this screen — heuristics and taste — and rank the findings."
 
-A catastrophic critique finding often sends you back to direction or structure.
-That's the loop working. Re-open the relevant skill, amend the artifact
-deliberately (don't quietly drift), and re-run the critique.
+`design-critique` applies the shared **`quality-floor`** (all states, the
+accessibility floor, reduced-motion), evaluates against usability heuristics,
+and runs a **taste mode** against the grounded aesthetic reference and platform
+fit. Each finding maps to the principle it violates, gets a 0–4 severity, and
+comes with one concrete recommendation. This is authoring-time self-review — not
+the independent pass.
+
+## 6. Get the independent review
+
+> "Have the experience-reviewer review this journey and screen flow."
+
+`experience-reviewer` is a forked-context agent that reviews the set
+independently — the grounded aesthetic reference, platform fit, cross-brief
+coherence, and the full quality floor including accessibility — and returns a
+verdict with severity-tagged findings. It marks no homework of its own: it never
+saw the authoring. Use it as the design gate that runs without a human in the
+loop.
+
+## 7. (Optional) Hand off to realization
+
+> "Emit a design-tool handover for these screens."
+
+`map-screen-flow` can emit a handover keyed to each brief — instructions a
+generative design tool consumes, never a comp. If a design-tool MCP is
+connected, it triggers the tool; otherwise it writes a `.handover.md` you paste
+into whichever tool you use.
 
 ## What you end up with
 
-Durable design-intent artifacts in your repo — an aesthetic-direction doc, a
-token-taxonomy rationale, an information architecture, and a critique — each
-framework-agnostic, each steering the build, none of them a values cheat-sheet
-tied to one stack.
+Durable design-intent artifacts in your repo — a journey map, a screen flow with
+per-screen briefs, a service blueprint, a grounded aesthetic direction, and a
+critique — each framework-agnostic, each steering the build, none of them a
+values cheat-sheet tied to one stack, and the whole thread proved walkable by the
+steel thread.
+
+> Mapping an **internal** process instead of a customer-facing one? Use
+> `map-internal-process` — the inside-out sibling (APQC L3→L4, as-is/to-be,
+> SIPOC, swimlane, pain/waste). It carries no surface axis.

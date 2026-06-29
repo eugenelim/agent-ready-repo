@@ -114,15 +114,18 @@ def _rules() -> list[tuple[str, re.Pattern[str]]]:
             ),
         ),
         # Dimension / duration literals — a reprinted spacing / type / timing
-        # scale. A digit immediately followed by a CSS unit. `s` (seconds) is
-        # matched only with a decimal point (0.2s) so decades ("the 1990s")
-        # and bare counts don't false-positive; `%` is deliberately omitted
-        # because plain prose ("80% of users") uses it constantly.
+        # scale. A digit followed by a CSS unit, optionally across a single
+        # space (`400 ms` is as much a reprinted value as `400ms` — a designer
+        # who wrote "respond within 400 ms" reprinted the number either way).
+        # `s` (seconds) is matched only with a decimal point (0.2s / 0.2 s) so
+        # decades ("the 1990s") and bare counts don't false-positive; `%` is
+        # deliberately omitted because plain prose ("80% of users") uses it
+        # constantly.
         (
             "dimension / duration literal",
             re.compile(
-                r"\b\d+(\.\d+)?(px|ms|rem|em|pt|vh|vw|vmin|vmax)\b"
-                r"|\b\d+\.\d+s\b"
+                r"\b\d+(\.\d+)?\s?(px|ms|rem|em|pt|vh|vw|vmin|vmax)\b"
+                r"|\b\d+\.\d+\s?s\b"
             ),
         ),
         # Contrast / scale ratios reprinted as a literal — the value the docs

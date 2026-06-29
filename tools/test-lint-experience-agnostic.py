@@ -89,7 +89,9 @@ def main() -> int:
             "rgb-hsl": "The accent is rgb(26, 43, 60), hover hsl(210, 40%, 30%).",
             "dimension": "Set the base spacing to 16px and the duration to 200ms.",
             "dimension-units": "The hero is 100vh tall with 12pt captions.",
+            "dimension-spaced": "Respond within 400 ms to keep the user in flow.",
             "duration-seconds": "Let the transition run for 0.2s.",
+            "duration-seconds-spaced": "Let the transition run for 0.2 s.",
             "ratio": "Text must clear a 4.5:1 contrast ratio.",
             "easing": "Use cubic-bezier(0.4, 0, 0.2, 1) for the curve.",
         }
