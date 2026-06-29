@@ -133,6 +133,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The ADR *template* now offers three optional fields — a first-screen Decision
+  summary, a named Revisit-if trigger, and a structured Confirmation
+  (governance-extras 0.4.0, implementing RFC-0056).** Distinct from the track-1
+  `new-adr` change above (which refined guidance and changed none of the
+  template's sections or fields), this track-2 change adds template surface, all
+  optional and lean-keyed: (1) a `## Decision summary` block before Context
+  (Decision / Because / Applies to / Tradeoff accepted / Revisit if), offered once
+  an ADR is long enough that the decision isn't on the first screen and skipped on
+  a short one; (2) a named `Revisit if:` trigger whose canonical home is
+  Consequences (so it survives deletion of the optional summary), with `stable —
+  no foreseeable trigger` as a valid explicit value; (3) a `Mode` / `Signal` /
+  `Owner` sub-structure for the existing Confirmation section, where an explicit
+  `Mode: none` is preferred over silently dropping the section. None of the three
+  is mandatory, the skill and how-to guide describe them in the offer-don't-force
+  shape, and the behavioral evals gain three matching format-dependent assertions.
+  Forward-only — no existing ADR is converted.
 - **Guides for shaping a new engagement — product vision, product strategy, and
   the architecture concept.** Three new how-tos document the top of the shaping
   funnel that previously had no guide:

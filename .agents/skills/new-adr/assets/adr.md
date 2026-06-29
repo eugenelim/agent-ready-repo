@@ -24,6 +24,29 @@ is kept, never deleted — recording what we declined, and why, is the point. On
 Accepted, the body is frozen; only the Status line moves after that.
 -->
 
+## Decision summary
+
+<!--
+OPTIONAL — a first-screen TL;DR. Include it once the ADR is long enough that the
+decision isn't visible on the first screen (a multi-line title, a paragraph of
+metadata, a long Context push it down); delete it on a short ADR, where five
+restated lines are pure redundancy.
+
+Every line restates something the body already carries — Decision ← Decision
+section, Because ← the winning driver, Tradeoff accepted ← Consequences,
+Revisit if ← Consequences. The duplication is the point: it is the first-screen
+retrieval surface, so a reader gets the answer before the argument. Keep it a
+fixed five-line summary of single values — NOT a place to weigh options against
+each other (that belongs in Alternatives, or in an RFC). Mirror `Revisit if:`
+from Consequences here verbatim — restate it, don't diverge from it.
+-->
+
+- **Decision:** We will <the choice, one sentence>.
+- **Because:** <the one winning driver>.
+- **Applies to:** <scope / boundary of the decision>.
+- **Tradeoff accepted:** <the main negative consequence>.
+- **Revisit if:** <the trigger that should reopen this decision — restated from Consequences>.
+
 ## Context
 
 <!--
@@ -79,20 +102,33 @@ Group as:
 **Negative:**
 - ...
 
-**Neutral / to revisit:**
-- ...
+`Revisit if:` is the named trigger for reconsidering the decision — a new
+constraint, a failed confirmation, changed platform support, a scale threshold.
+This is its canonical home (Consequences is always present, so the trigger
+survives deletion of the optional Decision summary); when a summary is present,
+mirror this line into it verbatim. `Revisit if: stable — no foreseeable trigger`
+is a valid explicit value for a decision that genuinely won't age.
 -->
+
+**Revisit if:** <the trigger that should reopen this decision, or `stable — no foreseeable trigger`>
 
 ## Confirmation
 
 <!--
-OPTIONAL — delete this section if the decision isn't the kind you can verify.
+OPTIONAL — keep this section when the decision is the kind you can verify, or
+when a reader would plausibly expect a conformance mechanism. How we will know
+the decision is actually being followed: a decision with no way to confirm
+conformance erodes silently as the code drifts away from it.
 
-How we will know the decision is actually being followed: a design review, an
-architecture fitness test, a lint or CI check, a periodic audit. A decision
-with no way to confirm conformance erodes silently as the code drifts away
-from it.
+Prefer the explicit `Mode: none` form (with a one-line reason) over silently
+deleting the section where a reader would expect a check — a non-checkable
+residual should be visible, not hidden. Delete the section only for trivial
+decisions where no one would expect one. Pick `Mode` from the listed values.
 -->
+
+- **Mode:** reviewer-checked | lint/CI | architecture fitness test | periodic audit | none
+- **Signal:** <what proves conformance>
+- **Owner:** <who notices drift>
 
 ## Alternatives considered
 
