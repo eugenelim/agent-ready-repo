@@ -28,7 +28,7 @@
 | 0020 | [Per-pack Diátaxis hierarchy for `docs/guides/` (`docs/guides/<pack>/{quadrant}/`) — amends ADR-0001's guides sub-decision; adopter seed scaffold stays type-at-top](0020-per-pack-diataxis-hierarchy-for-guides.md) | Accepted |
 | 0021 | [`pack.toml` is the metadata source of truth, projected lossily per tool; pack identity is `@catalogue/pack` (RFC-0031 D2 + D7)](0021-pack-manifest-source-of-truth-and-scoped-identity.md) | Accepted |
 | 0022 | [The business-unit cross-component layer — a value-stream meta-repo, per-component brief slicing with `parent-intent` provenance, and a referenced (never forked) shared contract](0022-value-stream-meta-repo-cross-component-layer.md) | Accepted |
-| 0023 | [The "three reviewers" ceiling scopes the core code-review lenses, not opt-in design-side reviewers (RFC-0032 decision 2)](0023-reviewer-ceiling-scopes-core-code-review-lenses.md) | Accepted (supersession by ADR-0042 proposed) |
+| 0023 | [The "three reviewers" ceiling scopes the core code-review lenses, not opt-in design-side reviewers (RFC-0032 decision 2)](0023-reviewer-ceiling-scopes-core-code-review-lenses.md) | Superseded by ADR-0042 |
 | 0024 | [`design-craft` serves designers as upstream design-intent authors, under strict framework-agnosticism](0024-design-craft-upstream-intent-and-agnosticism.md) | Accepted |
 | 0025 | [Pack profiles are single-scope, catalogue-owned CLI manifests — not meta-packs](0025-pack-profiles-single-scope-cli-manifest.md) | Accepted |
 | 0026 | [SSO-cookie consumer resolution lives in the `credbroker` library, platform-agnostic](0026-sso-consumer-resolution-in-credbroker.md) | Accepted |
@@ -47,7 +47,7 @@
 | 0039 | [Install identity is the content-addressed footprint, with a `shared` prefix class — co-ownership derived (not stored), conflicts refuse / `--force` drops `.upstream` (RFC-0052; pairs with ADR-0002)](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md) | Accepted |
 | 0040 | [Route cohort skills (codex, cursor, gemini, copilot) to the shared `.agents/skills/` home — supersedes the skill-home sub-decision of ADR-0013/0015/0016; agent/hook/command projection stands](0040-route-cohort-skills-to-shared-agents-skills-home.md) | Accepted |
 | 0041 | [ADR template gains optional first-screen summary, revisit trigger, and structured Confirmation — extends ADR-0027 (lean-compatible additions, not superseded)](0041-adr-template-optional-summary-revisit-confirmation.md) | Accepted |
-| 0042 | [Agent additions are keyed to loop and work type, not a global cap (supersedes ADR-0023)](0042-agent-additions-keyed-to-loop-and-work-type.md) | Proposed |
+| 0042 | [Agent additions are keyed to loop and work type, not a global cap (supersedes ADR-0023)](0042-agent-additions-keyed-to-loop-and-work-type.md) | Accepted |
 
 ## Adding a new ADR
 
