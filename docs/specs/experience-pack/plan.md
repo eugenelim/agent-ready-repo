@@ -118,7 +118,7 @@ before writing. Mirrors `product-engineering`'s `frame-intent`. Traces to: D6 AC
 - The single shared `quality-floor.md` contains all three sections (handle-all-states, accessibility, reduced-motion); `grep -c '^##'` matches the three-part structure.
 - Every consuming skill references the one floor sibling-relative (`grep '../design-critique/references/quality-floor.md'`); no private sibling copy exists. Verifies D2 ACs.
 
-**Approach (corrected — see RFC-0050 § Errata + spec D2 floor AC):**
+**Approach (amended — see RFC-0050 § Amendments + spec D2 floor AC):**
 - A **pack-level `references/` directory does not project** to any adapter (the build projects only `skills`/`agents`/`hooks`/`hook-wiring`/`commands`), so the buildable realization of "one pack-shared floor" is the **single canonical file kept resident at `design-critique/references/quality-floor.md`**, documented as the pack-shared floor and referenced **sibling-relative** by every consuming skill (`map-screen-flow`, `interaction-design`, the existing craft skills); cross-pack `voice-and-microcopy` defers by-name. Add `permission/denied` as an *additional* gated-screen state. The file is **not** moved (moving it to a non-projecting location would dangle on every adopter; moving it to another skill's `references/` is churn for no projection benefit and the existing referrers already point at it).
 
 **Done when:** one shared floor file with all three sections, referenced sibling-relative by every consumer; no private copy.
