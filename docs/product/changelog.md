@@ -19,6 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A new `lint-traceability.py` work-loop script in the `core` pack mechanically
+  checks that the product-team artifact chain holds together — `outcome →
+  opportunity → capability → screen → action → service → contract → spec →
+  component` — and flags every structural orphan (a node with no producer above
+  it or no consumer below it), across repositories (core 0.5.0, implementing
+  `docs/specs/traceability-lint`; RFC-0048 Decision 6, consuming the RFC-0053
+  traceability slot).** It generalizes `receive-brief`'s brief↔spec coverage lint
+  to the full nine-layer chain: it reads an authoritative sidecar
+  `_state/traceability.json` when present (by convention + its `schema_version`
+  stamp) or derives the edge set from local artifacts when absent, resolves each
+  cross-repo edge endpoint to **local / satisfied-by-reference / unresolvable**
+  (an unresolvable target is reported `unknown / not-yet-catalogued`, never a
+  false orphan), and reports orphans informationally (exit 0) while failing hard
+  (exit 1) on a dangling edge or a cycle. `--strict` additionally fails on any
+  orphan for the convergence / CI gate. It is **structural only** — it never
+  judges whether a node is parented to the *right* outcome (semantic scope-creep
+  stays a human call). It no-ops cleanly in a repo with no discovery chain, runs
+  stdlib-only, and projects to every adapter like `lint-spec-status.py`.
+
 - **A new `frame-domain` skill in the `product-engineering` pack grounds a product
   in its real-world domain and bounds its MVP before any screen, service, or
   architecture is drawn (product-engineering 0.7.0, implementing RFC-0048

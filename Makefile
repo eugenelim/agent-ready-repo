@@ -72,8 +72,10 @@ pre-pr:
 # (tools/build_gate_chain.py build-check), which runs — in this order —
 # lint-packs, build, check, pre-pr-catalogue, the spec-status self-test+lint
 # pair (RFC-0016 § Errata / ADR-0007; runs the PROJECTED copy as its fail-closed
-# gate), and the brief-coverage self-test+lint pair (receive-brief; no-ops on
-# this repo, fail-closed on a stale Spec map). The step list lives once, in the
+# gate), the brief-coverage self-test+lint pair (receive-brief; no-ops on
+# this repo, fail-closed on a stale Spec map), and the traceability self-test+lint
+# pair (work-loop; no-ops on this repo — no discovery chain — fail-closed on a
+# dangling edge or cycle). The step list lives once, in the
 # script, so this target and the Windows entry
 # (`python tools/build_gate_chain.py build-check`) cannot drift. The script is
 # repo-native (not an `agentbundle` subcommand) because it spawns repo-only

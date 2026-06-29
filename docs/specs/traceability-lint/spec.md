@@ -1,6 +1,6 @@
 # Spec: traceability-lint
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (2026-06-29) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0048 (governing — Decision 6); RFC-0053 (the traceability slot, the `schema_version` convention, and the child-4-consumes-the-slot relationship); RFC-0040, RFC-0019, RFC-0025, RFC-0030, ADR-0022, RFC-0049 (mechanism precedent)
@@ -152,26 +152,26 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] The lint **recognizes each chain node-type by its realization** — a
+- [x] The lint **recognizes each chain node-type by its realization** — a
   **file-backed node** (`screen`, `contract`, `spec`, `component`) by canonical
   filename + frontmatter `type:`/header, and a **container-embedded node**
   (`outcome`/`opportunity`/`capability` in the intent ladder, `action` in the
   journey, `service` in the blueprint) by extracting its typed entry — per a
   declarative marker registry, with **no hardcoded artifact path** in source.
-- [ ] The lint **identifies every node by a stable, location-independent id carried
+- [x] The lint **identifies every node by a stable, location-independent id carried
   by convention** — a marker slug, a component's `kind:namespace/name`, a
   `contract@version` — reusing the existing conventions (`parent-intent:`,
   `Brief:`/`Discovery:`, `Component:`, `contract@version`), never a file path and
   never a new parallel id scheme.
-- [ ] Each **layer's base location is resolved by the three tiers** (config →
+- [x] Each **layer's base location is resolved by the three tiers** (config →
   default → discover-by-marker); base-location ambiguity is reported, while
   multiple node instances within a resolved location are enumerated.
-- [ ] The lint **builds the directed edge set** by reading each adjacent-layer
+- [x] The lint **builds the directed edge set** by reading each adjacent-layer
   edge from the conventional pointer that carries it — a back-link
   (`Discovery:`/`Brief:`/`parent-intent:`) or a forward declaration (`Component:`,
   `contract@version`); a `component`'s producer edge is derived by reverse-indexing
   specs' `Component:` declarations.
-- [ ] Each edge endpoint **resolves to one of three states** — **local**
+- [x] Each edge endpoint **resolves to one of three states** — **local**
   (resolvable in this root), **satisfied-by-reference** (a well-formed conventional
   pointer — a stable-id resolving to an external target, courier snapshot optional),
   or **unresolvable** — and a **satisfied-by-reference endpoint is never reported as
@@ -182,39 +182,39 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   pinning is the ADR-0022 `contract@version` convention and an unpinned reference is
   a soft warning, not a broken edge. The state/discriminator is thus total over
   every pointer shape.
-- [ ] A node that **asserts no producer pointer** (and is not in the root layer) is
+- [x] A node that **asserts no producer pointer** (and is not in the root layer) is
   a **backward (up) orphan**; a node with **no consumer pointing at it** (and not
   in the leaf layer) is a **forward (down) orphan** — each named with node, type,
   and missing direction.
-- [ ] **Terminal layers are exempt** at their open end: `outcome` is never a
+- [x] **Terminal layers are exempt** at their open end: `outcome` is never a
   backward orphan; `component` is never a forward orphan (its cross-repo consumer,
   the release loop, is [RFC-0049](../../rfc/0049-the-release-loop-and-company-os.md)'s).
-- [ ] **Layer-skip is scoped to globally-unpopulated layers only**: when a layer
+- [x] **Layer-skip is scoped to globally-unpopulated layers only**: when a layer
   has no artifacts anywhere in scope (a CLI tool has no `screen`/`action` layer),
   edge requirements resolve to the nearest *populated* adjacent layer; a node that
   skips a layer **populated elsewhere** is a real orphan, not exempt.
-- [ ] A **dangling edge** — a pointer that names a **missing local target**, or is
+- [x] A **dangling edge** — a pointer that names a **missing local target**, or is
   malformed (no resolvable stable-id and not a well-formed cross-repo reference) —
   is a hard violation, **exit 1 in every mode**. The discriminator is explicit and
   three-way: absent pointer = orphan; pointer to a missing local target / malformed
   = dangling; well-formed external pointer = satisfied-by-reference. The classifier
   never reports one break as two classes.
-- [ ] A **self-referential or cyclic producer pointer** (A→A, A→B→A) is a hard
+- [x] A **self-referential or cyclic producer pointer** (A→A, A→B→A) is a hard
   violation reported **without non-termination**, **exit 1 in every mode**.
-- [ ] An **unresolvable cross-repo endpoint** (and a not-yet-catalogued rollup row)
+- [x] An **unresolvable cross-repo endpoint** (and a not-yet-catalogued rollup row)
   is reported as **`unknown / not-yet-catalogued`** — **informational, never fatal
   and never silently satisfied** (the open-world, federated-catalog posture).
-- [ ] **Exit codes are coherent:** default mode — structural orphans are
+- [x] **Exit codes are coherent:** default mode — structural orphans are
   **informational (exit 0)**; **`--strict`** — any structural orphan **exits 1**
   (the convergence-/CI-gate enforcing "traceability closed", RFC-0048 O6); dangling
   edges and cycles **exit 1 in every mode**; unresolvable-cross-repo, unpinned
   references, and drift are **never fatal**.
-- [ ] The lint runs in **two postures**: **single-repo** (checks the local
+- [x] The lint runs in **two postures**: **single-repo** (checks the local
   sub-chain and validates that outbound cross-repo pointers are well-formed — carry
   a stable-id — reporting an unpinned outbound pointer informationally), and
   **meta-repo / federated** (joins component rows through the value-stream rollup /
   sidecar). `--root` selects the tree per invocation.
-- [ ] When a **recognized sidecar `traceability.json` or value-stream rollup is
+- [x] When a **recognized sidecar `traceability.json` or value-stream rollup is
   present** it supplies the cross-repo edge set the lint resolves references
   against (authoritative-when-present, RFC-0048 D7); when **absent** the lint
   **derives the edge set from the local artifacts** (the standalone mode). A
@@ -223,17 +223,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   promoting drift to a hard violation once the sidecar matrix schema is pinned — is
   tracked at
   [`docs/backlog.md` → `sidecar-drift-hard-fail`](../../backlog.md#sidecar-drift-hard-fail).
-- [ ] The lint **no-ops cleanly** — exit 0, no diagnostic — when no chain artifacts
+- [x] The lint **no-ops cleanly** — exit 0, no diagnostic — when no chain artifacts
   exist (the `lint-brief-coverage.py` no-brief precedent), and **degrades
   gracefully** (informational, never a crash) when a marker, pointer, layer,
   snapshot, or sidecar is absent or unreadable.
-- [ ] The lint **never reports a semantic finding** — no judgment about whether a
+- [x] The lint **never reports a semantic finding** — no judgment about whether a
   node is parented to the *correct* outcome; only edge presence/absence, the three
   endpoint states, and the three defect classes.
-- [ ] The lint accepts **`--root DIR`** and **`--strict`**, runs stdlib-only (no
+- [x] The lint accepts **`--root DIR`** and **`--strict`**, runs stdlib-only (no
   new dependency), and mirrors the precedent lints' output shape (stdout report,
   stderr violations, one-line summary).
-- [ ] **`make build-self`** projects the script to every adapter's
+- [x] **`make build-self`** projects the script to every adapter's
   `work-loop/scripts/`, the way `lint-spec-status.py` projects.
 
 ## Assumptions
