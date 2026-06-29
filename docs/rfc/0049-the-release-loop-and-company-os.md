@@ -6,7 +6,21 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
 - **Date closed:**
+- **Decision weight:** heavy <!-- light | standard | heavy — defines deploy-to-prod autonomy doctrine (an irreversible + security boundary) and adds a new opt-in pack + agent; it reuses existing reviewers and runtime, but the prod / data / spend / irreversible gating is the heavy part, so explicit Approver sign-off is warranted. -->
 - **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the discovery+build foundation this extends — it details G0–G4; this details G4→G5) · RFC-0041 (infra-aware `work-loop` — whose deploy *flavor* this graduates into a proper outer loop) · RFC-0025 (`work-loop`) · `operational-safety` pack (the reliability/observability reference library this reuses) · omnigent (the harness; ephemeral-env + option-card support) · promoted design in [`0049-notes/`](0049-notes/)
+
+## Reviewer brief
+
+- **Decision:** whether to add a deployed e2e-validation **release loop** (the outer loop) above `work-loop`'s inner build loop, carve deploy autonomy by minimum-regret, and add a `release-lead` SRE/ops seat — completing the product → engineering → SRE "company OS".
+- **Recommended outcome:** accept.
+- **Change if accepted:**
+  - Split the loop into **inner** (`work-loop`, local with local-infra-equivalents) and **outer** (`release-loop`, ephemeral deploy + e2e + iterate-to-converge).
+  - Add a `release-lead` agent + `release-loop` skill in a new opt-in `release-engineering` pack, reusing `operational-safety` + `quality-engineer` + `security-reviewer` + the RFC-0053 sidecar — **no new runtime, no new reviewer**.
+  - Carve autonomy by **minimum-regret**: agents run inner + outer loops on ephemeral envs unwatched; humans gate prod / data / spend / security / irreversible (G5).
+- **Affected surface:** a new `release-engineering` pack + agent + skill; CONVENTIONS (the inner/outer split + the minimum-regret deploy carve); reuse of `core`'s operational/security reviewers + the RFC-0053 sidecar; the `omnigent` harness (ephemeral envs).
+- **Stakes:** costly-to-reverse — it sets deploy-to-prod autonomy doctrine (an irreversible + security boundary); the prod-ship step itself stays human-gated, so the irreversible move is bounded.
+- **Review focus:** (1) the minimum-regret carve draws the agent/human line correctly (reversible ⇒ autonomous on ephemeral; irreversible ⇒ human); (2) the no-new-runtime / no-new-reviewer claim holds for the release loop.
+- **Not in scope:** building the harness; the exact `release-lead` agent shape (OQ2 — resolved by the child spec; the pack home, OQ1, already resolves to a new `release-engineering` pack); RFC-0048's G0–G4 discovery+build foundation (this is its G4→G5 extension).
 
 ## The ask
 
@@ -32,30 +46,14 @@ iterate-until-converge — so the human becomes the relay for deployed findings.
 *Question:* how far into deploy + e2e can agents go autonomously, with minimum regret?
 
 **Decisions requested.**
-1. **Adopt the inner/outer split.** `work-loop` = inner (local, with local-infra-
-   equivalents); a new **`release-loop`** = outer (ephemeral deploy + e2e + iterate).
-   · decide-by: RFC accept · default: adopt.
-2. **The minimum-regret carve.** Autonomous on the inner loop **and the outer loop on
-   ephemeral envs** (deploy / e2e / iterate / teardown + canary with auto-rollback);
-   **human-gated** at first real users/data, data migrations, spend over threshold,
-   security boundaries, anything irreversible, and prod ship (G5). The unlock is the
-   **reversibility primitives** — ephemeral envs + feature flags + auto-rollback. ·
-   decide-by: RFC accept · default: adopt.
-3. **Local-infra-equivalents as a build-loop obligation.** Packs/skills produce the
-   fidelity ladder — fakes → contract tests (Pact) → Testcontainers → LocalStack →
-   docker-compose — so software runs and verifies locally before deploy. · decide-by:
-   RFC accept · default: adopt.
-4. **Ship `release-lead`** (the outer-loop supervisor / SRE-ops seat) as an agent +
-   a `release-loop` skill, reusing `operational-safety` + `quality-engineer` +
-   RFC-0041. Its **pack home and exact agent shape** (distinct agent vs a `work-loop`
-   outer-mode) are OQ1/OQ2. · decide-by: RFC accept (the seat) · default: adopt.
-5. **The company-OS composition.** Three loop-teams — product (discovery) → engineering
-   (build) → SRE/ops (release) — on RFC-0048's shared substrate (sidecar + gate arc +
-   harness); leads hand off at G3 (brief→spec), at deploy (work→release), and at G5
-   (release→prod). · decide-by: RFC accept · default: adopt.
-6. **Convergence by policy.** Promotion is judged by automated policy (canary metric
-   analysis + e2e coverage of the changed surface + flake < 2%) up to the irreversible
-   human gate; **DORA** is the health signal. · decide-by: RFC accept · default: adopt.
+| ID | Question | Recommendation | Why | Decide by | Reviewer action |
+| --- | --- | --- | --- | --- | --- |
+| D1 | Adopt the inner/outer split — `work-loop` = inner (local, with local-infra-equivalents); a new `release-loop` = outer (ephemeral deploy + e2e + iterate)? | Adopt | The inner loop can't surface deployed-only failures; the outer loop iterates the deployed whole to convergence | RFC accept | Confirm the inner/outer split |
+| D2 | Adopt the minimum-regret carve — autonomous on the inner loop and the outer loop on ephemeral envs; human-gated at first real users/data, migrations, spend over threshold, security, anything irreversible, and prod ship (G5)? | Adopt | The reversibility primitives (ephemeral envs + feature flags + auto-rollback) make unwatched autonomy safe up to the irreversible line | RFC accept | Confirm where the carve draws the agent/human line |
+| D3 | Make local-infra-equivalents a build-loop obligation — the fidelity ladder (fakes → contract tests → Testcontainers → LocalStack → docker-compose)? | Adopt | Software must run and verify locally before deploy, so the inner loop is self-sufficient | RFC accept | Confirm the obligation + the ladder |
+| D4 | Ship `release-lead` (the outer-loop / SRE-ops seat) as an agent + a `release-loop` skill, reusing `operational-safety` + `quality-engineer` + RFC-0041? | Adopt | A reuse-not-rebuild seat; no new runtime, no new reviewer | RFC accept (the seat) | Confirm the seat; pack home (OQ1) resolves to a new `release-engineering` pack, exact agent shape is OQ2 |
+| D5 | Adopt the company-OS composition — three loop-teams (discovery → build → release) on RFC-0048's shared substrate, handing off at G3, at deploy, and at G5? | Adopt | Completes the autonomous product team end to end on one substrate | RFC accept | Confirm the three-team composition + the hand-offs |
+| D6 | Adopt convergence by policy — promotion judged by automated policy (canary analysis + e2e coverage of the changed surface + flake < 2%) up to the irreversible human gate, with DORA as the health signal? | Adopt | Makes outer-loop promotion a checkable policy, not a human relay | RFC accept | Confirm the promotion policy + DORA as the signal |
 
 ## Problem & goals
 

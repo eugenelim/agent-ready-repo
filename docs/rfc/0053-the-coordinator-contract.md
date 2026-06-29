@@ -5,7 +5,21 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-26
 - **Date closed:**
+- **Decision weight:** heavy <!-- light | standard | heavy — sets the upstream orchestration contract the whole operating model hangs from, ships a new agent + skill + a versioned sidecar schema, and carries a security/integrity + data-classification surface; explicit Approver sign-off is warranted. -->
 - **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 5**, the coordinator spike→RFC for Decisions 7 + 8; the provisional foundation this drift-aligns back to) · [RFC-0049](0049-the-release-loop-and-company-os.md) (the sibling *downstream* outer loop — `release-lead` + `release-loop`, the same agent-def + skill + harness pattern this RFC establishes upstream; both build on the same RFC-0048 substrate (the sidecar + the gate arc), and this RFC specifies the sidecar schema RFC-0049's release loop would also consume) · [RFC-0051](0051-the-self-coverage-gate.md) (the self-coverage gate — `discovery-loop` is its **second controller**; the gate is `discovery-loop`'s pre-G2 phase, seam specified there, wired here) · [RFC-0050](0050-the-experience-pack.md) (the `experience` lens this loop detect-and-degrades on) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the *doctrine + reference library + reuse, no engine/no new reviewer* precedent the framing rests on) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey) · RFC-0019 (`receive-brief` — the brief→spec join at G3; its coverage lint child-4's traceability lint generalizes) · [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md) (the cross-repo reference-by-version mechanism the traceability slot reuses) · [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md) (child-4 — the lint that consumes the traceability slot) · promoted research + the empirical prototype in [`0053-notes/`](0053-notes/); [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the paper resolutions this spike confirms) and [`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md) (the worked example it was run against)
+
+## Reviewer brief
+
+- **Decision:** whether to adopt the no-engine **coordinator contract** — `discovery-lead` (agent) + `discovery-loop` (skill) + the typed sidecar schema as a carried contract — confirmed by an empirical prototype.
+- **Recommended outcome:** accept.
+- **Change if accepted:**
+  - Ship `discovery-lead` + `discovery-loop` in `product-engineering`, with the sidecar schema (blackboard · open-questions · traceability · decision-log) carried in the producing skill — **no new runtime engine**.
+  - Adopt the gate state machine — consent checkpoint/resume + rejection/recovery with cascade-invalidation along traceability edges — plus an outer round cap + cost budget.
+  - Adopt the solo / lens-team supervisor topology, MAST-safe by construction (lenses bounce through the blackboard, never agent-to-agent).
+- **Affected surface:** `product-engineering` (new agent + skill + the sidecar `references/` schema); the traceability lint + `work-loop` + the release loop (sidecar consumers, by convention + `schema_version`); `omnigent` (the store + gate enforcement); a security/integrity contract.
+- **Stakes:** costly-to-reverse — it sets the upstream orchestration contract the whole operating model hangs from, plus a security/integrity + data-classification surface; demonstrated on one example (residual scale risk named).
+- **Review focus:** (1) the no-engine claim survives — every transition is markdown+JSON edits, not a framework call; (2) the security/integrity + data-handling controls on the sidecar are specified at the right depth (write-authority, append-only decision log, cascade-invalidation circuit-breaker).
+- **Not in scope:** a new runtime engine; homing the schema in `core` (it is carried at user scope — RFC-0048 § Amendments 2026-06-26); a second-example replication run (carried as an implementing-spec validation).
 
 ## The ask
 
@@ -42,43 +56,13 @@ worked example as engine-free content, and what exactly is the harness-neutral c
 
 **Decisions requested.**
 
-1. **Adopt the no-engine coordinator contract — `discovery-lead` (agent) + `discovery-loop`
-   (skill) in `product-engineering`, the sidecar *schema* carried in the `discovery-loop` skill — confirmed by the
-   prototype.** The spike refutes the failure mode (no transition needed a scheduler, bus,
-   or convergence solver); the catalogue ships content + schema, the harness supplies the
-   store and gate enforcement. · *why:* it is the one D7/D8 claim that was hypothesized, now
-   demonstrated; it is the spine every step of the operating model hangs from. · decide-by:
-   RFC accept · default: adopt (spike-confirmed).
-2. **Ship the typed sidecar schema as a carried contract in the producing skill — the connectedness verifier.** (Not `core` — RFC-0048 § Amendments 2026-06-26.) The
-   slots `blackboard` · `open-questions` · `traceability` · `decision-log`, each typed to a
-   named schema, harness-neutral; the **store is the harness's** (omnigent's worktree).
-   Paths resolve config → default → discover-by-marker (RFC-0040), never hardcoded. · *why:*
-   omnigent's worktrees hold artifact *files*; only this typed state makes "everything holds
-   together" *checkable* — and the prototype showed a ~60-line lint over it suffices. ·
-   decide-by: RFC accept · default: adopt.
-3. **Adopt the gate state machine — consent checkpoint/resume (A1/A2) + rejection/recovery
-   with cascade-invalidation (O11).** A consent gate writes the decision brief, sets
-   `status=awaiting-human`, surfaces an option card, records the verdict to the decision
-   log, and resumes. A rejection emits reason→correction, re-enters the gate's phase,
-   **cascade-invalidates downstream blackboard slots by walking the traceability edges**
-   (mark stale, drop their edges), and re-runs only the affected lenses — the edge set
-   *scopes the blast radius*. · *why:* the prototype ran this as a markdown+JSON edit, not a
-   framework call; it is what makes a rejection cheap and bounded. · decide-by: RFC accept ·
-   default: adopt.
-4. **Adopt the outer cap + cost budget (O12).** `discovery-loop` carries an outer round cap
-   and a cost budget (tunable defaults); on cap-with-unconverged-state the loop **does not
-   loop forever** — it writes a stall record and **surfaces to the human** (surfacing
-   predicate clause c). · *why:* the same safety valve `work-loop`'s cap and omnigent's
-   `cost_budget` provide, lifted to the upstream loop; the prototype confirmed the counter
-   is a `meta` field the controller increments, no runtime. · decide-by: RFC accept ·
-   default: adopt (defaults: 12 rounds / a per-initiative cost budget, tunable).
-5. **Adopt the supervisor topology — solo / lens-team right-sizing + a loop-scoped lens
-   roster, MAST-safe by construction.** `discovery-lead` right-sizes between **solo**
-   (switches lenses in one context) and **lens-team** (dispatches parallel lens-agents that
-   bounce off each other *through the blackboard*, never agent-to-agent chat). The discovery
-   roster is **loop-scoped** and distinct from `work-loop`'s three code reviewers. · *why:*
-   the prototype's ripple settled with zero negotiation-to-consensus — the MAST guardrail
-   held by topology, not by limiting the roster. · decide-by: RFC accept · default: adopt.
+| ID | Question | Recommendation | Why | Decide by | Reviewer action |
+| --- | --- | --- | --- | --- | --- |
+| D1 | Adopt the no-engine coordinator contract — `discovery-lead` (agent) + `discovery-loop` (skill) in `product-engineering`, the sidecar schema carried in the skill — confirmed by the prototype? | Adopt (spike-confirmed) | The spike refutes the failure mode (no transition needed a scheduler, bus, or solver); it is the spine the operating model hangs from | RFC accept | Confirm the no-engine contract |
+| D2 | Ship the typed sidecar schema as a carried contract in the producing skill (not `core`) — slots blackboard · open-questions · traceability · decision-log, harness-neutral, store is the harness's? | Adopt | Only this typed state makes "everything holds together" checkable; a ~60-line lint over it suffices | RFC accept | Confirm the schema + carried-not-`core` home |
+| D3 | Adopt the gate state machine — consent checkpoint/resume (A1/A2) + rejection/recovery with cascade-invalidation along traceability edges (O11)? | Adopt | The prototype ran this as a markdown+JSON edit, not a framework call; the edge set scopes the blast radius | RFC accept | Confirm the state machine + cascade-invalidation |
+| D4 | Adopt the outer cap + cost budget (O12) — on cap-with-unconverged-state the loop writes a stall record and surfaces to the human? | Adopt (defaults: 12 rounds / a per-initiative cost budget, tunable) | The `work-loop` cap / omnigent `cost_budget` safety valve lifted to the upstream loop; the counter is a `meta` field, no runtime | RFC accept | Confirm the cap + the stall-and-surface behavior |
+| D5 | Adopt the supervisor topology — solo / lens-team right-sizing + a loop-scoped lens roster, MAST-safe by construction? | Adopt | The prototype's ripple settled with zero negotiation-to-consensus — MAST safety held by topology, not by limiting the roster | RFC accept | Confirm the topology + that it is loop-scoped, distinct from `work-loop`'s code reviewers |
 
 ## Problem & goals
 

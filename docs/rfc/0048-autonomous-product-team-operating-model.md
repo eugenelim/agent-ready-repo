@@ -21,7 +21,21 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
 - **Date closed:**
+- **Decision weight:** heavy <!-- light | standard | heavy — sets catalogue-wide product-team doctrine, edits CONVENTIONS + work-loop, names a multi-RFC roadmap, and carries a rename + migration tail; a one-way-ish foundation, so explicit Approver sign-off and the named acceptance blockers gate it. -->
 - **Related:** RFC-0043 (product rung — the `product-vision`/`product-strategy` altitudes this model's G0/G1 build on) · RFC-0030 (the `product-engineering` pack) · RFC-0041 (infra-aware `work-loop` — the *doctrine + reference-library + reuse-existing-reviewer, no new runtime* precedent this RFC mirrors) · RFC-0025 (`work-loop` light/full mode + risk triggers — the gate model this extends) · RFC-0019 (`receive-brief` — the brief→spec join, and its coverage-lint the traceability lint generalizes) · ADR-0019 (intent ontology) · `design-craft` pack (renamed by a follow-on ADR) · promoted research in [`0048-notes/`](0048-notes/)
+
+## Reviewer brief
+
+- **Decision:** whether to adopt an operating model that lets the catalogue act as an autonomous product team from vision → deploy-ready code, delivered as doctrine + pure-markdown skills + reference libraries (no new runtime), plus the child-effort roadmap that builds it.
+- **Recommended outcome:** accept — Open → Accepted once the named acceptance blockers land.
+- **Change if accepted:**
+  - Adopt the two-regime gate ladder (G0–G5) + surfacing predicate + three-act human boundary as `work-loop` / CONVENTIONS doctrine.
+  - Add four primitives — the `experience` pack (rename + connective UX skills), `frame-domain`, the self-coverage gate, the traceability lint — plus the `discovery-lead` agent + `discovery-loop` skill.
+  - Spike (not build) the coordinator on the `omnigent` harness behind a carried sidecar-schema contract.
+- **Affected surface:** CONVENTIONS (the operating model), `work-loop` doctrine, the `experience` / `product-engineering` / `core` packs, four new skills + a user-scope discovery reviewer roster; **no runtime / daemon / service**.
+- **Stakes:** costly-to-reverse — it sets catalogue-wide product-team doctrine and a multi-RFC roadmap, and the rename + CONVENTIONS edits carry a migration tail; acceptance is gated by named blockers, not a single one-way door.
+- **Review focus:** (1) the human-gate boundary is exactly the three irreducible acts and nothing substitutable leaks across it; (2) the no-runtime claim holds for every *delivered* artifact (the coordinator is spiked, not built).
+- **Not in scope:** a new orchestration runtime / daemon / service; building the coordinator here; the G4→G5 release/deploy loop + G5 ship mechanics ([RFC-0049](0049-the-release-loop-and-company-os.md)); PMM / go-to-market seats; a 1:1 agent-per-role org chart; pixel/Figma comps; between-gate autonomy for regulated / high-assurance work.
 
 ## The ask
 
@@ -50,141 +64,20 @@ can the catalogue become an autonomous product team without violating Principle 
 
 **Decisions requested.**
 
-1. **Adopt the operating model as doctrine** — the two regimes (generative upstream =
-   human-ratified; verifiable downstream = agent-autonomous), the judgment
-   decomposition → equipping map, and the **gate placement (G0–G5) + surfacing
-   predicate**. The **human boundary is three irreducible acts** — originate value ·
-   accept irreversible risk · **adjudicate genuine value conflicts** (people, not facts,
-   disagree, and no referent settles it); the predicate gains a condition for the third,
-   protected by a **conflict artifact** (reuse `identify-perspectives`' tension map).
-   **Human-gate density scales with stakes:** low/moderate-stakes work right-sizes
-   *down* (light), regulated/safety-critical right-sizes *up* (more gates; audit trail
-   and compliance grounding become first-class) — autonomy between gates is a
-   low/moderate-stakes claim, not universal. The gate ladder's *rejection/recovery
-   transitions and outer iteration cap* (O11/O12) are **resolved on paper** (note 09) and
-   the Decision-7 spike confirms them empirically. · *why:* it is the spine every child
-   effort hangs from. · decide-by: RFC accept · default: adopt (placement + predicate +
-   three-act boundary + stakes-density; O11/O12 resolved on paper, spike-confirmed).
-2. **Frame D1, D3–D6 as doctrine + pure-markdown skills + reference libraries — no new
-   runtime engine** (the shared claim RFC-0041 and RFC-0043 both support; note this RFC
-   *does* add four new skills, so the borrowed precedent is "no new runtime engine", not
-   RFC-0043's stricter "no new skill"). The build loop (`work-loop`, G4) **reuses the
-   existing code reviewers**; the *discovery* design-time reviewers are a separate matter —
-   discovery ships its **own distinct-named, user-scope design-time reviewers** rather than
-   overloading `core`'s code `security-reviewer` / `quality-engineer` with a mode (a
-   user-scope and a repo-scope agent sharing a name is a resolution footgun), and they
-   **detect-and-degrade** to `core`'s depth libraries when `core` is present — see the
-   **discovery reviewer roster** under D7/D8. This leaves the CHARTER's "three reviewers"
-   ceiling untouched: that ceiling is a `work-loop` / code-review cap, and the discovery
-   roster is loop-scoped and user-scope. The coordinator's no-engine fit is **excepted** —
-   it is the Decision-7 spike, not decided here. · decide-by: RFC accept · default: adopt.
-3. **Grow the design/UX seat:** add `map-journey`, `blueprint-service`,
-   `inventory-screens` (states deferring to the existing handle-all-states floor; **emits
-   a per-screen brief — a self-contained generation unit + references to the shared
-   design contract — so one screen can be generated in isolation while the whole stays
-   coherent**); enhance `aesthetic-direction` (grounded in persona+precedent+standards) and
-   `design-critique` (evidence-grounded taste mode); wire `voice-and-microcopy` to
-   consume the screen inventory. The journey, screen inventory, and `aesthetic-direction`
-   carry a **platform/surface axis** (responsive web · iOS · Android · cross-platform),
-   grounded in platform conventions (HIG / Material / responsive breakpoints / PWA).
-   **Rename `design-craft` → `experience` — adopted** (more recognizable; v0.1.1 ⇒ low
-   migration cost now). No pack-level rename/alias field exists (surfaces and date pinned
-   in § Evidence & prior art → *Source pins for current-state claims*), so
-   migration follows the actual `contract-acquisition` precedent: rename the dirs + a
-   governance erratum, no install-time alias. · *why:* the missing column is the design/UX
-   seat; one pack = one seat, and `experience` names it better than `design-craft`. ·
-   decide-by: RFC accept (records an ADR).
-4. **Add the frame-domain primitive** — one skill producing **two** typed artifacts:
-   **Domain Framing** (real-activity grounding + best practice + naive-failure modes,
-   produced via `research` applied mode; for **brownfield** a **current-system half**
-   reverse-engineered from code/docs via `decision-archaeology` + architecture
-   extraction alongside the real-world-activity half, plus *reverse* traceability
-   code→artifacts) and **Scope Boundary** (the MVP/appetite **out-of-scope register**,
-   the upstream scope-creep guard the brief inherits/refines at G3). · *why:* the
-   single biggest correctness lever against domain-hallucination and over-scoping. ·
-   decide-by: RFC accept · default: adopt. (Split into two artifacts — § Amendments
-   2026-06-26.)
-5. **Add the self-coverage gate** — its content (domain-grounding table · pre-mortem ·
-   taxonomy walk · saturation declaration · fresh-context adversarial · a
-   **scenario-variation** step that re-runs the design against a varied domain /
-   stakes-level / scale / platform / harness — orthogonal-axis modelling, so the gate
-   catches stakes- and conflict-class gaps without the human · a **resolve-vs-surface
-   pass** over every open item — solve referent-groundable items, surface only
-   value/scope/conflict — calibrated by a **living sample-bank** that every effort in the
-   series appends to, refining the loop's self-thought across situations
-   ([`0048-notes/09`](0048-notes/09-gap-resolutions.md))), consumed by `work-loop`,
-   **no new reviewer**. **Packaging resolved: a reference library + doctrine (the
-   `operational-safety` shape) in `core`, loaded by both loop controllers, right-sized
-   light/full — *not* a self-discovered skill**, because the gate must be non-skippable
-   (a self-discovered skill could be skipped at the agent's discretion, defeating it); the
-   sample-bank graduates into this library. · *why:* fixes the knowing-doing gap that lets
-   errors compound between human gates. · decide-by: RFC accept · default: adopt.
-6. **Add the traceability lint** — a tool that detects *structural* orphans (a node
-   with no producer or consumer along the chain), generalizing `receive-brief`'s
-   coverage lint. *Semantic* scope-creep detection (a node wrongly parented to an
-   in-appetite outcome) is **not** mechanizable by this lint and is deferred to the
-   coordinator spike (O10); MVP scope stays a human call at G1.5. · *why:*
-   mechanizes the chain's structural integrity. · decide-by: RFC accept · default:
-   adopt.
-7. **Adopt `omnigent` as the harness (temporarily) and run a *sidecar + chief-loop*
-   validation — not a from-scratch coordinator build.** `omnigent` (DAIS 2026) already
-   provides the runner/server harness, gates-outside-the-prompt, worktree blackboard,
-   YAML agent defs, and cross-vendor review (this feature set is pinned to its source and
-   date — and flagged unverified-against-a-pinned-commit — in § Evidence & prior art → *Source pins
-   for current-state claims*) — so "can a harness exist / is the no-engine
-   framing real" is **answered**, and a bespoke harness is **deferred** (build our own
-   one day, optional; the catalogue ships harness-neutral doctrine + skills + the sidecar
-   *schema*, so it runs on omnigent now). What **remains to validate** is exactly what
-   omnigent lacks and this doctrine adds:
-   (a) the **typed state sidecar** — blackboard slots (= the artifact inventory), the
-   **open-questions queue**, the **traceability matrix**, and the **gate-outcome /
-   decision log** — *without which the "everything holds together" claim is an assertion,
-   not a check* (omnigent's worktrees hold artifacts, not the typed convergence state);
-   (b) the **chief shipped as an agent definition + a convergence-loop skill** (the
-   *upstream* supervisor — see Decision 8); (c) the consent-gate **rejection/recovery
-   transitions + outer cap**. These design blockers are now **resolved on paper** in
-   [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (descent, lint, live-lens,
-   saturation, spec-linkage, rejection/recovery, outer cap, the harness seam — each
-   settled by a named referent); the spike's job shrinks to **confirming those
-   resolutions empirically** via a prototype on `omnigent` against the worked example —
-   not a paper design. · *why:* the sidecar is the connectedness verifier. · decide-by:
-   RFC accept · default: sidecar-prototype-first.
-8. **Ship the chief — proposed `discovery-lead` — as an agent + the `discovery-loop`
-   convergence-loop skill, in `product-engineering`** (an *opt-in product capability*, not
-   `core`: unlike `work-loop` it is product-discipline-specific, so it ships in the
-   product pack an adopter chooses, not the universal base). It depends **hard** on
-   product-engineering's own intent skills + the carried sidecar-schema contract + the G3
-   handoff to `work-loop` (schema home revised — § Amendments 2026-06-26), and
-   **optionally** (Tier-1 detect-and-degrade) on `research` / `experience` / `architect`
-   *and on `core`'s reviewers + depth libraries* — so it runs a product-only discovery with
-   just **product-engineering** installed (the schema contract and its design lenses travel
-   with the pack; `core` is an optional depth enhancer, not required), and **lights up into
-   full cross-discipline convergence as more packs are
-   installed**. It is the human-facing **upstream supervisor** (peer of
-   `work-loop` / `implementer`): it runs `discovery-loop` (intents → frame-domain →
-   blackboard → decision brief at consent gates → emits briefs/specs), holds the
-   blackboard in **one reasoning context**, fans
-   out only to disjoint workers, and talks to the human at the consent gates. It is a
-   *peer* of `work-loop`'s supervisor, **not the same loop** — `work-loop` supervises the
-   *downstream* spec→build loop; the chief supervises the *upstream* vision→brief loop;
-   they **hand off at G3 and must not be conflated**. Shipping it as an agent def + skill
-   (like `implementer`) does **not** violate Principle 3 — that constrains shipping a
-   *runtime*, which is the harness, which we do not ship. · *why:* the user-facing
-   orchestrator is content, not infra; the two-loop split keeps each loop honest. ·
-   decide-by: RFC accept · default: adopt (shape confirmed by the Decision-7 prototype).
-9. **Adopt a series-execution standard.** Every subsequent effort in this series — each
-   child RFC, spec, subagent, and skill design — **automatically researches and models
-   its own space as far as it can** (applying the resolve-vs-surface lens: solve
-   referent-groundable items, surface only value/scope/conflict), **vigorously plans and
-   runs its pressure test** (scenario-variation + a fresh-context adversarial pass), and
-   **carries itself through the complete lifecycle** (the `new-rfc` research→de-risk→
-   draft→adversarial→Draft→Open→Accepted→follow-ons gates, or the spec/skill equivalent).
-   Each appends its sample reads to the living sample-bank (`0048-notes/09`), **and
-   reconciles any drift it surfaces back into this foundation RFC** (a tracked amendment) —
-   which is why RFC-0048 stays **Open with acceptance blocked** until the child set is complete
-   and aligned (see the Acceptance note). · *why:* the discipline this RFC was built with
-   becomes the standard the series runs by, not a one-off — and the foundation earns acceptance
-   only by surviving the children. · decide-by: RFC accept · default: adopt.
+| ID | Question | Recommendation | Why | Decide by | Reviewer action |
+| --- | --- | --- | --- | --- | --- |
+| D1 | Adopt the operating model as doctrine — two regimes, the judgment→equipping map, the gate ladder G0–G5 + surfacing predicate, the three-act human boundary, and stakes-scaled gate density? | Adopt (placement + predicate + three-act boundary + stakes-density; O11/O12 resolved on paper, spike-confirmed) | It is the spine every child effort hangs from | RFC accept | Confirm the model + that the human boundary is exactly the three irreducible acts |
+| D2 | Frame D1, D3–D6 as doctrine + pure-markdown skills + reference libraries (no new runtime engine), with the build loop reusing `core`'s code reviewers and discovery shipping its own distinct-named user-scope design-time reviewers? | Adopt (the coordinator's no-engine fit is excepted — it is the Decision-7 spike) | The Accepted RFC-0041/0043 precedent; leaves the CHARTER three-reviewer ceiling untouched | RFC accept | Confirm the no-runtime framing + the loop-scoped discovery reviewer roster |
+| D3 | Grow the design/UX seat (`map-journey`, `blueprint-service`, `inventory-screens` + grounding/taste + voice wiring) and rename `design-craft → experience`? | Adopt; rename adopted (v0.1.1 user-scope ⇒ low migration cost; `contract-acquisition` precedent — rename dirs + a governance erratum, no install-time alias) | The missing column is the design/UX seat, and `experience` names it better | RFC accept (records ADR-0038) | Confirm the seat additions + the rename + its migration path |
+| D4 | Add the `frame-domain` primitive — one skill producing two typed artifacts (Domain Framing + Scope Boundary)? | Adopt (split into two artifacts — § Amendments 2026-06-26) | The single biggest correctness lever against domain-hallucination and over-scoping | RFC accept | Confirm the two-artifact split |
+| D5 | Add the self-coverage gate — a `core` reference library + doctrine, run by both loop controllers, non-skippable, no new reviewer? | Adopt | Fixes the knowing-doing gap that lets errors compound between human gates | RFC accept | Confirm the non-skippable packaging |
+| D6 | Add the traceability lint — structural-orphan detection generalizing `receive-brief`'s coverage lint? | Adopt (semantic scope-creep deferred to the coordinator spike / O10; MVP stays a human call at G1.5) | Mechanizes the chain's structural integrity | RFC accept | Confirm the structural-only scope |
+| D7 | Adopt `omnigent` as the (temporary) harness and run a sidecar + chief-loop validation — a spike, not a from-scratch coordinator build? | Sidecar-prototype-first (validate the typed sidecar, the chief, and consent rejection/recovery + outer cap against the worked example) | The sidecar is the connectedness verifier | RFC accept | Confirm spike-first, not build |
+| D8 | Ship the chief — `discovery-lead` — as an agent + the `discovery-loop` convergence-loop skill, in `product-engineering`? | Adopt (shape confirmed by the Decision-7 prototype) | The user-facing orchestrator is content, not infra; the two-loop split keeps each loop honest | RFC accept | Confirm the agent+skill shape, the `product-engineering` home, and the G3 hand-off to `work-loop` |
+| D9 | Adopt a series-execution standard — each child researches + pressure-tests + carries its full lifecycle + reconciles drift back into this RFC? | Adopt | The discipline this RFC was built with becomes the series standard; the foundation earns acceptance only by surviving its children | RFC accept | Confirm the standard + the reconcile-back-to-RFC-0048 obligation |
+
+*(Detail for each decision cascades under § Proposal — D1, D3–D9 — and the notes it links.)*
+
 *(The release/deploy **outer loop**, the minimum-regret deploy carve, and the
 "company OS" composition are **split into the sibling [RFC-0049](0049-the-release-loop-and-company-os.md)**,
 which cites this RFC as its foundation. RFC-0048 scopes the **discovery + build**
