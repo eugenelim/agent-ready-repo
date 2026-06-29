@@ -628,6 +628,7 @@ contract:
 | Discovery reviewers | `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope, distinct-named); `core`'s depth libraries are optional detect-and-degrade enhancers. | RFC-0053 / `discovery-loop` (DRIFT-E) |
 | Spec up-edge | `new-spec` produces the `Discovery:` header + discovery `type:` markers; must land before the traceability lint runs `--strict`. | CONVENTIONS / `new-spec` follow-on (DRIFT-G) |
 | Backlog handoff | RFC-0053's implementing spec owns decision-brief → work-item decomposition and `loop-cohort` cross-component ingestion. | RFC-0053 implementing spec (DRIFT-H) |
+| Release-loop reviewer reuse | `release-engineering` is **repo-scope**, installed in the build repo; `release-lead` therefore **reuses** `core`'s repo-scope `quality-engineer` / `security-reviewer` / `operational-safety` — sound because release runs **downstream, in the build repo** where `core` is installed. The scope-inverse of discovery's own-reviewer resolution (user-scope, pre-repo); same footgun rule, opposite scope. | RFC-0049 / [release-loop spec](../specs/release-loop/spec.md) |
 
 ### Amendment history / audit trail
 
@@ -796,6 +797,33 @@ superseded wording, the current-state table above wins.
   doctrine file), and its design-lens deliverable ships **discovery's own user-scope reviewers**
   (not a mode-edit to `core`'s two agents); note 06's `core` ⊕ delta and note 08's layout move
   with it. DRIFT-B/E/I below carry revised pointers.
+- **2026-06-28 — release-loop reviewer reuse reconciled as the scope-symmetric inverse of
+  discovery's own-reviewer resolution, by RFC-0049.** The 2026-06-26 company-OS SRE-seat entry
+  above recorded that `release-lead` **reuses** `core`'s `operational-safety` +
+  `quality-engineer` + `security-reviewer` ("no new reviewer"); the scope-decoupling entry
+  directly above established that the **user-scope** `discovery-lead` must ship its **own**
+  user-scope reviewers rather than reuse `core`'s repo-scope ones (the "a user-scope and a
+  repo-scope agent sharing a name is a resolution footgun" rule). A review pass surfaced that
+  RFC-0049 never stated *why* release may reuse where discovery may not — leaving the two
+  children apparently contradicting the same footgun rule, and leaving `release-engineering`'s
+  scope undeclared. **Resolution (recorded in
+  [RFC-0049](0049-the-release-loop-and-company-os.md) OQ1):** the two are the *same* rule
+  applied at opposite scopes — **scope follows where the work happens**. Discovery runs
+  **upstream of G3**, in non-repo document workspaces that cannot assume a `core` install →
+  user-scope, own reviewers. Release runs **downstream of the build, in the build repo** that
+  holds the deploy-ready component and therefore has `core` repo-installed → **`release-engineering`
+  is repo-scope**, co-located with the reviewers it reuses, exactly as `work-loop`'s own
+  (repo-scope `core`) supervisor reuses them. The company-OS scope boundary falls at the G3
+  handoff. This **extends** the SRE-seat entry (pinning the previously-unstated scope of
+  `release-engineering` and the soundness precondition of its reuse) and is **consistent with**
+  DRIFT-E (same footgun rule, opposite scope), contradicting neither. The cross-repo /
+  value-stream case (`release-loop` per-component-repo + cross-component e2e in a repo that
+  also carries `core` + `release-engineering`) reuses the
+  [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md) reference mechanism,
+  per the 2026-06-25 note-08 generalization above. **Owner:** RFC-0049 / its
+  [release-loop spec](../specs/release-loop/spec.md) — the spec records the resolved repo
+  scope at AC2 and the co-location reuse precondition at AC9 (landed together with this
+  entry). **Not** an RFC-0048 acceptance blocker.
 
 ### Foundation reconciliation discharge — the composed-set reconciliation (2026-06-26)
 
