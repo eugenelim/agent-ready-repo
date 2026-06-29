@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0048 (governing — Decision 6); RFC-0040, RFC-0019, RFC-0025, RFC-0030, ADR-0022, RFC-0049 (mechanism precedent)
+- **Constrained by:** RFC-0048 (governing — Decision 6); RFC-0053 (the traceability slot, the `schema_version` convention, and the child-4-consumes-the-slot relationship); RFC-0040, RFC-0019, RFC-0025, RFC-0030, ADR-0022, RFC-0049 (mechanism precedent)
 - **Brief:** none
 - **Contract:** none
 - **Shape:** service
