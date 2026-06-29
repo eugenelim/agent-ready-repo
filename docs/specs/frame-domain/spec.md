@@ -89,8 +89,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 - **Adding a component beyond the ones this spec fixes** — Domain Framing's two
   halves (real-world-activity, brownfield current-system) and Scope Boundary's
-  out-of-scope register — e.g. folding the persona in as a co-product (RFC-0048's
-  artifact inventory lists it as a *separate* artifact; it is out of scope here),
+  out-of-scope register — e.g. folding the persona in as a co-product (per RFC-0048
+  DRIFT-F persona is *elicited inline by its first consumer*, not a separately
+  produced artifact; it is out of scope here),
   or adding a third artifact to the `frame-domain` skill's output.
 - **Changing either canonical filename or frontmatter `type:` value**
   (`domain-framing.md` / `type: domain-framing`, `scope-boundary.md` /

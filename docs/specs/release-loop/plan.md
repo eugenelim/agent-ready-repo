@@ -279,7 +279,7 @@ updated.
   as Never-do / Ask-first; the worked example references but does not author
   local-infra-equivalents.
 - **The security/integrity controls under-specified.** The `security-reviewer`
-  spec-stage pass is the check; mirror RFC-0053's six-control depth exactly.
+  spec-stage pass is the check; mirror RFC-0049's nine-control depth exactly.
 
 ## Changelog
 
