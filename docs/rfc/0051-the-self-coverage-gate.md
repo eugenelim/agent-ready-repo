@@ -5,7 +5,21 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
 - **Date closed:**
+- **Decision weight:** standard <!-- light | standard | heavy — an additive `core` reference library + loop doctrine; no new runtime, no new reviewer. It adds one refusal item to `work-loop`'s done-checklist (an additive doctrine change, not a checklist rewrite) and reverses no frozen decision, so it sits below the governance-boundary line — the same standard-weight framing the analogous additive RFC-0055 convention used. -->
 - **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 3**, Decision 5; the provisional foundation this drift-aligns back to) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the `operational-safety` reference-library + reuse-the-reviewer precedent this RFC mirrors exactly — *no new runtime, no new reviewer*) · RFC-0025 (`work-loop` light/full mode + risk triggers — the right-sizing model this reuses) · `operational-safety` + `security-checklists` skills (the controller-loaded progressive-disclosure shape) · `work-loop` skill (the consuming controller; PLAN trio + declined-pattern register + REVIEW adversarial pass + the done-checklist refusal items this gate joins) · RFC-0048 D8 (`discovery-loop` / `discovery-lead` — the *second* controller, not built yet) · promoted research in RFC-0048's [`0048-notes/03`](0048-notes/03-autonomy-and-gate-economics.md) (the floor-raiser table) and [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the resolve-vs-surface sample-bank this graduates)
+
+## Reviewer brief
+
+- **Decision:** whether to build the self-coverage gate as a `core` reference library + loop doctrine — a non-skippable coverage phase both loop controllers run — with no new runtime and no new reviewer.
+- **Recommended outcome:** accept.
+- **Change if accepted:**
+  - Add a `core` skill holding seven step-modules + a living sample-bank (the `operational-safety` shape), controller-loaded.
+  - Make it **non-skippable** via a controller-gate + a done/converged-checklist refusal (doctrine + a mechanical coverage record), not a runtime lock.
+  - `work-loop` is the first consumer; `discovery-loop` becomes the second when RFC-0048 D8 ships; right-size light/full mirroring `work-loop`.
+- **Affected surface:** a new `core` reference-library skill + its seven `references/<step>.md` modules; `work-loop` SKILL.md (the gate phase + a checklist-refusal item); reuse of `adversarial-reviewer` / `devils-advocate`; the sample-bank graduating from `0048-notes/09`.
+- **Stakes:** reversible — additive doctrine + a reference library; no runtime, no new reviewer; degrades to the prior done-checklist if reverted.
+- **Review focus:** (1) the non-skippable mechanism is genuinely non-skippable yet harness-neutral (controller-gate + checklist-refusal, never a self-discovered skill); (2) light/full right-sizing reuses RFC-0025 rather than inventing a second knob.
+- **Not in scope:** a fourth reviewer agent; a runtime lock; semantic scope-creep detection (RFC-0048 D6 / O10).
 
 ## The ask
 
@@ -34,43 +48,14 @@ lock and without a fourth reviewer?
 
 **Decisions requested.**
 
-1. **Build it as a `core` reference library + loop doctrine, the `operational-safety`
-   shape — never a self-discovered skill.** A skill-packaged `references/<step>.md` set
-   (so depth scales without bloating any prose), whose loading is *controller-driven*. ·
-   *why:* it is the precedent RFC-0048 D5 named and RFC-0041/ADR-0031 already accepted. ·
-   decide-by: RFC accept · default: adopt.
-2. **Make it non-skippable by the controller-gate + checklist-refusal mechanism, stated
-   honestly as doctrine + a mechanical record, not a runtime lock.** The consuming loop's
-   SKILL.md names the gate a required phase; the done/converged checklist refuses to
-   declare done without the **coverage record** artifact and with any fresh-context finding
-   unresolved — joining the existing refusal items (reviewer-clean, doc-drift invariants)
-   at `work-loop` SKILL.md:675-713. On harnesses that enforce gates outside the prompt
-   (omnigent), the same gate becomes structural; harness-neutrally it is doctrine + the
-   coverage-record check. · *why:* this is the one design question RFC-0048 left to the
-   child, and the honest answer is the same posture `operational-safety` already ships. ·
-   decide-by: RFC accept · default: adopt.
-3. **Decompose into seven step-modules + the living sample-bank**, routed by mode and by
-   the axes the design crosses (not a flat march). · *why:* the operational-safety module
-   shape keeps each step lean and lets light mode load only the core. · decide-by: RFC
-   accept · default: adopt.
-4. **No new reviewer — the fresh-context adversarial step reuses the existing
-   `adversarial-reviewer` (and `devils-advocate` for the research/design case) dispatched
-   in a fresh context.** · *why:* the CHARTER three-reviewer ceiling; the parent's "no new
-   reviewer"; the existing fresh-context dispatch already exists in `work-loop`'s REVIEW. ·
-   decide-by: RFC accept · default: adopt.
-5. **Right-size light/full, mirroring `work-loop`.** Light mode loads the always-on core
-   (domain-grounding + resolve-vs-surface + a single bounded fresh-context pass; a
-   surviving Blocker escalates to full); full mode loads all seven — running
-   scenario-variation across the axes in play and the fresh-context pass iterated to clean.
-   · *why:* the gate must not become ceremony on a one-line change; reuse
-   RFC-0025's right-sizing rather than invent a second knob. · decide-by: RFC accept ·
-   default: adopt.
-6. **Graduate the resolve-vs-surface sample-bank into the library as a living, append-only
-   reference**, seeded from [`0048-notes/09`](0048-notes/09-gap-resolutions.md). Until
-   RFC-0048 is Accepted, appends continue in note 09; on acceptance the bank's durable home
-   is this library. · *why:* the lens hits the right call only ~half the time without an
-   externalized scaffold (note 09); the bank *is* that scaffold, and it applies repo-wide,
-   not just to this RFC. · decide-by: RFC accept · default: adopt.
+| ID | Question | Recommendation | Why | Decide by | Reviewer action |
+| --- | --- | --- | --- | --- | --- |
+| D1 | Build it as a `core` reference library + loop doctrine (the `operational-safety` shape, controller-driven loading) — never a self-discovered skill? | Adopt | The precedent RFC-0048 D5 named and RFC-0041 / ADR-0031 already accepted | RFC accept | Confirm the library + doctrine shape |
+| D2 | Make it non-skippable by a controller-gate + checklist-refusal mechanism — doctrine + a mechanical coverage record, not a runtime lock? | Adopt | The one design question RFC-0048 left to the child; the honest answer is the posture `operational-safety` already ships | RFC accept | Confirm the non-skippable mechanism is genuine yet harness-neutral |
+| D3 | Decompose into seven step-modules + the living sample-bank, routed by mode and the axes the design crosses (not a flat march)? | Adopt | The module shape keeps each step lean and lets light mode load only the core | RFC accept | Confirm the seven-module decomposition |
+| D4 | No new reviewer — the fresh-context adversarial step reuses the existing `adversarial-reviewer` (and `devils-advocate` for research/design) in a fresh context? | Adopt | The CHARTER three-reviewer ceiling; the parent's no-new-reviewer; the dispatch already exists in `work-loop` REVIEW | RFC accept | Confirm no fourth reviewer |
+| D5 | Right-size light/full, mirroring `work-loop` (light loads the always-on core; full loads all seven)? | Adopt | The gate must not become ceremony on a one-line change; reuse RFC-0025 rather than a second knob | RFC accept | Confirm the light/full right-sizing |
+| D6 | Graduate the resolve-vs-surface sample-bank into the library as a living, append-only reference (seeded from `0048-notes/09`)? | Adopt | The lens hits the right call only ~half the time without an externalized scaffold; the bank is that scaffold | RFC accept | Confirm the sample-bank's durable home |
 
 ## Problem & goals
 
