@@ -46,6 +46,7 @@
 | 0038 | [Rename the `design-craft` pack to `experience` — live surface renamed, frozen governance bridged, no install-time alias (the `contract-acquisition` precedent)](0038-rename-design-craft-pack-to-experience.md) | Accepted |
 | 0039 | [Install identity is the content-addressed footprint, with a `shared` prefix class — co-ownership derived (not stored), conflicts refuse / `--force` drops `.upstream` (RFC-0052; pairs with ADR-0002)](0039-footprint-co-ownership-install-identity-and-shared-prefix-class.md) | Accepted |
 | 0040 | [Route cohort skills (codex, cursor, gemini, copilot) to the shared `.agents/skills/` home — supersedes the skill-home sub-decision of ADR-0013/0015/0016; agent/hook/command projection stands](0040-route-cohort-skills-to-shared-agents-skills-home.md) | Accepted |
+| 0041 | [ADR template gains optional first-screen summary, revisit trigger, and structured Confirmation — extends ADR-0027 (lean-compatible additions, not superseded)](0041-adr-template-optional-summary-revisit-confirmation.md) | Accepted |
 
 ## Adding a new ADR
 
