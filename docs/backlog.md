@@ -1065,3 +1065,18 @@ shipped-AC gap. **Unblocks when:** someone adds a second eval scenario whose
 prompt is a *short* ADR (and a not-likely-to-age decision), reusing the same
 pinned assertion strings, so the judge can observe the omit / explicit-`stable`
 branches the assertions promise.
+
+## `frame-domain`
+
+### frame-domain-eval-coverage
+
+**Spec:** [frame-domain](specs/frame-domain/spec.md)
+
+The `frame-domain` skill ships with `examples/` (the recorded worked-example QA)
+but no `evals/`, unlike its `product-engineering` siblings (`frame-intent`,
+`decompose-intent`, `de-risk-intent`). No acceptance criterion requires an eval —
+the spec's verification is the AC1–AC9 structural greps plus the AC2/AC6 recorded
+worked-example run — so this is a consistency gap, not a shipped-AC gap. **Unblocks
+when:** someone adds a minimal eval mirroring the sibling pattern (e.g. asserting
+skill activation on a domain-framing prompt and that both typed artifacts with
+their markers are produced).

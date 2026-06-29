@@ -290,6 +290,21 @@ whitespace/formatting, comment reflow with no semantic change — need no bump.
 When in doubt, bump: a spurious patch bump is cheaper than a silently-stale
 version.
 
+**Bump-per-PR: take the *next* version, never ride an unreleased one.** The
+version is assigned at merge, not accumulated — `pack.toml` holds the last
+merged change's version, and `docs/product/changelog.md`'s single `[Unreleased]`
+heading is not an accumulate-then-cut pool (each entry cites its own target
+version inline). So read the current `pack.toml` version and take the next
+SemVer increment; two features never share one. (PE: `0.5.1`→`0.6.0` for
+product-rungs #379, then `0.6.0`→`0.7.0` for `frame-domain` — not a ride-along.)
+
+**A user-scope pack** (anything outside `_DEFAULT_SELF_HOST_PACKS` = `core` /
+`governance-extras` / `user-guide-diataxis`) bumps the same three surfaces —
+`pack.toml`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` —
+even though its skills don't project into `.claude/`. `marketplace.json`
+aggregates the version from `plugin.json`, so run `make build-self FORCE=1` after
+the bump to re-aggregate it, or `build-check` red-fails on stale drift.
+
 > **Governance note (2026-06-12).** The `work-loop` light/full-mode
 > *mechanics summary* was thinned out of the CONVENTIONS seed
 > (`packs/core/seeds/docs/CONVENTIONS.md` § Light and full modes), leaving
