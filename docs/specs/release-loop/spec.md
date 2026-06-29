@@ -163,7 +163,7 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   whole" / "iterate the deployed env" prompts and *not* on inner-loop build
   prompts (the inner/outer boundary is legible to the model).
 - **Content presence** (the carve's two zones; the convergence policy; the outer
-  cap + stall-surface; the sidecar consumption; the reuse wiring; the six
+  cap + stall-surface; the sidecar consumption; the reuse wiring; the nine
   security/integrity controls; *no* executable engine added): goal-based —
   `grep` / `git diff` checks against the Acceptance Criteria.
 - **Doctrine correctness** (does the prose actually *carve* autonomy at the
