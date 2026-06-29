@@ -1,6 +1,6 @@
 # Spec: frame-domain
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0048 (Decision 4; child 2 of the autonomous product-team series — the foundation RFC is Open and *provisional*, and this spec is authored under its series-execution standard, Decision 9) · RFC-0040 + ADR-0030 (the consolidated `agentbundle-layout.toml` adopter-file mechanism the config-resolution tier reads)
@@ -164,31 +164,32 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — wraps research applied mode.** The `frame-domain` skill body
+- [x] **AC1 — wraps research applied mode.** The `frame-domain` skill body
   invokes `research` in `applied` mode to ground Domain Framing's real-world-activity
   half, and states that it *consumes and shapes* the applied-mode findings rather than
   re-implementing retrieval.
-- [ ] **AC2 — two typed artifacts, fixed components.** The skill body defines two
+- [x] **AC2 — two typed artifacts, fixed components.** The skill body defines two
   typed artifacts from one pass: **Domain Framing** with exactly two components (the
   real-world-activity half — how the activity is really done · best practice ·
-  naive-failure modes — and the brownfield current-system half) and **Scope
-  Boundary** (the MVP out-of-scope register).
-- [ ] **AC3 — brownfield half via decision-archaeology.** The skill body
+  naive-failure modes — and the brownfield current-system half; the
+  *Residual assumptions* section is the cross-cutting AC5 rule, not a counted
+  component) and **Scope Boundary** (the MVP out-of-scope register).
+- [x] **AC3 — brownfield half via decision-archaeology.** The skill body
   reverse-engineers Domain Framing's current-system half via `decision-archaeology`
   plus architecture extraction, and states this half is produced **only when a
   current system exists** (greenfield omits it, and the artifact says so).
-- [ ] **AC4 — Scope Boundary register is first-class.** The Scope Boundary schema
+- [x] **AC4 — Scope Boundary register is first-class.** The Scope Boundary schema
   requires the out-of-scope register to list each excluded capability *with its
   appetite reason*, not a bare list, and names it the G1.5 scope-creep guard the
   brief inherits/refines at G3.
-- [ ] **AC5 — residual assumptions surfaced.** The body requires every finding the
+- [x] **AC5 — residual assumptions surfaced.** The body requires every finding the
   wrapped research could not ground to be listed as a named residual assumption,
   and forbids asserting an ungrounded domain claim as fact.
-- [ ] **AC6 — stable markers.** Domain Framing is named `domain-framing.md` carrying
+- [x] **AC6 — stable markers.** Domain Framing is named `domain-framing.md` carrying
   `type: domain-framing`, and Scope Boundary `scope-boundary.md` carrying
   `type: scope-boundary`; given either at a non-default path, a marker search
   resolves it.
-- [ ] **AC7 — three-tier path resolution.** The skill body documents resolution for
+- [x] **AC7 — three-tier path resolution.** The skill body documents resolution for
   each artifact in order: (1) the adopter's discovery base from
   `agentbundle-layout.toml` (RFC-0040 / ADR-0030 adopter-file mechanism — whatever
   discovery layout key the cross-cutting layout effort settles; currently unbound,
@@ -197,16 +198,25 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `docs/discovery/<initiative>/domain-framing.md` and `…/scope-boundary.md`,
   (3) discover-by-marker; it creates the directory lazily on first write and
   surfaces ambiguity rather than guessing.
-- [ ] **AC8 — detect-and-degrade on optional deps.** With `research` or
+- [x] **AC8 — detect-and-degrade on optional deps.** With `research` or
   `decision-archaeology` absent, the skill names the gap, degrades to best-effort
   grounding, and flags the ungrounded residue — it does not fail hard and does not
   silently fabricate grounding. (Grep-only verification — see Testing Strategy.)
-- [ ] **AC9 — standalone.** The skill is invokable standalone with no hard
+- [x] **AC9 — standalone.** The skill is invokable standalone with no hard
   dependency on the unbuilt coordinator / discovery-loop; the worked-example run is
   driven without the coordinator present.
-- [ ] **AC10 — lint-clean.** The skill passes `lint-packs` and the agent-artifact
-  lint (frontmatter, description, body shape), and projects via `make build-self`
-  with no drift.
+- [x] **AC10 — lint-clean.** The skill passes `lint-packs` (the source-side
+  frontmatter / description / body-shape check that validates this skill) plus
+  `validate` and `build`, and the `packages/agentbundle` pack/contract tests stay
+  green. **`product-engineering` is a user-scope pack and is *not* in this repo's
+  self-host projection scope** (`_DEFAULT_SELF_HOST_PACKS` = core /
+  governance-extras / user-guide-diataxis; no `recipes/self-host.toml` override),
+  so `make build-self` does **not** project it into `.claude/skills/` — confirmed:
+  `make build-self FORCE=1` runs clean and no `.claude/skills/frame-domain/`
+  appears. The agent-artifact projection lint (`tools/lint-agent-artifacts.py`)
+  therefore covers the *projected* packs, not this one. *(Corrects the original
+  AC10 "projects via `make build-self` with no drift" clause, which was wrong for
+  a user-scope pack — drift surfaced and fixed in the implementing PR.)*
 
 ## Assumptions
 
