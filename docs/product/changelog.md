@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A new `frame-domain` skill in the `product-engineering` pack grounds a product
+  in its real-world domain and bounds its MVP before any screen, service, or
+  architecture is drawn (product-engineering 0.7.0, implementing RFC-0048
+  Decision 4).** Run at the discovery loop's G1.5 Domain & MVP point or
+  standalone, it produces **two typed artifacts** from one `research`-grounded
+  pass: **Domain Framing** (`domain-framing.md`, `type: domain-framing`) — a
+  real-world-activity half (how the activity is really done · best practice ·
+  naive-design failure modes, grounded by wrapping `research` applied mode) plus a
+  brownfield current-system half (reverse-engineered via `decision-archaeology` +
+  architecture extraction, omitted with a note when greenfield); and **Scope
+  Boundary** (`scope-boundary.md`, `type: scope-boundary`) — the MVP out-of-scope
+  register, each excluded capability paired with its appetite reason, the
+  scope-creep guard the brief inherits and refines at G3. Each artifact carries a
+  stable marker and resolves its write path in three tiers (config → designed
+  default → discover-by-marker); findings the wrapped research could not ground
+  surface as named residual assumptions, never silent assertions; absent optional
+  dependencies degrade cleanly rather than fail. Prompt-only (Charter Principle 3).
+
 ### Changed
 
 - **The `new-rfc` skill now documents a convention for recording post-publication

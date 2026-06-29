@@ -1,7 +1,7 @@
 # Plan: frame-domain
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -242,9 +242,16 @@ degrades rather than blocks.
 **Depends on:** T1, T2, T3
 
 **Tests:**
-- `make build-self` projects the new skill into `.claude/skills/` with no drift
-  (AC10).
-- `lint-packs` and `tools/lint-agent-artifacts.py` pass on the new skill (AC10).
+- `lint-packs` (source-side) validates the new skill's frontmatter / description /
+  body shape (AC10); `validate` + `build` + the `packages/agentbundle` pack/contract
+  tests stay green.
+- `make build-self` stays drift-free. **`product-engineering` is a user-scope pack,
+  *not* in this repo's self-host projection scope** (`_DEFAULT_SELF_HOST_PACKS` =
+  core / governance-extras / user-guide-diataxis; no `recipes/self-host.toml`), so
+  build-self does **not** project the skill into `.claude/skills/` —
+  `tools/lint-agent-artifacts.py` covers the *projected* packs, not this one.
+  *(Corrects the original T4 "build-self projects the new skill" wording — drift
+  found and fixed in the implementing PR.)*
 - A grep asserts the body declares no hard coordinator / discovery-loop dependency,
   and the worked-example run below is driven without the coordinator (AC9).
 - A real `frame-domain` run against `example-assistant` produces `domain-framing.md`
@@ -296,3 +303,8 @@ decision surfaced at merge, per the package-release convention.
   artifact into two — Domain Framing (`domain-framing.md`) and Scope Boundary
   (`scope-boundary.md`) — to match the restructured spec (RFC-0048 D4 + Amendments
   2026-06-26).
+- 2026-06-29: implemented (T1–T4). Single skill authored at
+  `packs/product-engineering/.apm/skills/frame-domain/SKILL.md` + a worked-example
+  file. Corrected AC10 / T4: `product-engineering` is user-scope and out of the
+  self-host projection scope, so `make build-self` does not project the skill —
+  the gate is lint-packs + validate + build + pytest. Spec flipped to Shipped.
