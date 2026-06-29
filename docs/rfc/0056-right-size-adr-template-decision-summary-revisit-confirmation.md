@@ -1,10 +1,10 @@
 # RFC-0056: Right-size the ADR template — first-screen Decision summary, Revisit-if trigger, structured Confirmation
 
-- **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-28
-- **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Date closed:** 2026-06-28
 - **Decision weight:** heavy <!-- amends a frozen RFC (0038) and extends the format a frozen ADR (0027) froze; governance-template surface; explicit Approver sign-off required -->
 - **Related:** [RFC-0038](0038-align-adr-template-with-madr.md) (the template decision this amends), [ADR-0027](../adr/0027-adr-format-is-madr-aligned-but-lean.md) (froze the format as MADR-aligned-but-lean; this extends it), [RFC-0014](0014-answer-first-rfc-format-and-drafting-flow.md) (the answer-first house style), [RFC-0054](0054-new-rfc-two-humans.md) (introduced the `## Reviewer brief` first-screen grid — the duplicate-by-design precedent for R2), `packs/governance-extras/.apm/skills/new-adr/` (the skill + template + evals this changes), PR #441 (track 1 — guidance + format-independent evals)
 
