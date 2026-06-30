@@ -4,8 +4,7 @@ The calibration reference for the
 [self-coverage gate](../../SKILL.md#the-self-coverage-gate)'s disposition record. The
 loop reaches the right resolve-vs-surface call only about half the time without a
 scaffold; an explicit rubric plus calibrated examples climbs that rate. This is
-`work-loop`'s own per-loop copy, seeded from the RFC-0048-series reads in
-`docs/rfc/0048-notes/09-gap-resolutions.md`.
+`work-loop`'s own per-loop copy of the calibration examples.
 
 ## The rubric
 
@@ -40,7 +39,7 @@ and the **tell** — the cue that should have fired.
 
 ## Examples
 
-*(Seeded from the RFC-0048-series reads, note 09. Non-exhaustive by design.)*
+*(Non-exhaustive by design.)*
 
 - "How is the backlog handled?" → **resolve** (referent: how product teams work).
   *Tell: should not have waited to be asked.*
@@ -80,7 +79,8 @@ and the **tell** — the cue that should have fired.
   exists to catch.*
 - *A contradiction between two of your own clauses is resolve-with-referent, not
   surface.* The spec said both "this PR seeds the reference" and "appends continue in
-  note 09 until accepted." → **resolve** (referent: the per-loop copy is a *distinct*
-  file from the series reads — this PR creates the former, the rule governs the latter).
+  the upstream source until accepted." → **resolve** (referent: the per-loop copy is a
+  *distinct* file from the upstream source — this PR creates the former, the rule
+  governs the latter).
   *Tell: when two clauses collide, check whether they name the same object before
   treating it as an open question.*

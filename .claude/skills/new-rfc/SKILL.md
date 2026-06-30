@@ -190,7 +190,7 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    the first time it appears in the body — **inline, in a few words, not in a
    separate glossary section**. Don't lean on vocabulary inherited from related
    RFCs as if the reader already holds it: a reviewer arrives at the RFC from the
-   index, cold. (RFC-0053 is the cautionary case — it had to be hand-patched with
+   index, cold. (The cautionary case: an RFC that has to be hand-patched with
    inline glosses *after* drafting because the draft assumed its siblings' terms;
    the cold-reader check in the gate, step 6, exists to catch this before
    handoff.)
@@ -342,8 +342,8 @@ present rules without diffing the whole log by hand:
   the section so a reader knows which layer to trust.
 - The layer *names* above are illustrative; the contract is the two-layer split
   (authoritative current state over a dated audit trail), not the exact heading
-  wording. RFC-0048 / PR #430 is the worked precedent this generalizes — it uses
-  "Current reconciliation state" over an "Amendment history / audit trail."
+  wording. One worked precedent uses "Current reconciliation state" over an
+  "Amendment history / audit trail."
 
 ### Append-only and supersession
 
@@ -358,8 +358,8 @@ present rules without diffing the whole log by hand:
   in-flight Amendments** (a Frozen RFC's entries can't be touched).
 - **Whole-RFC replacement is out of scope.** When an entire RFC — not one
   correction within it — is superseded by a later one, record that as an
-  **Errata entry naming the superseding RFC** (e.g. RFC-0012 carries an erratum
-  recording that its Alternative #7 was superseded by RFC-0052). This convention
+  **Errata entry naming the superseding RFC** (e.g. an RFC carries an erratum
+  recording that its Alternative #7 was superseded by a later RFC). This convention
   governs corrections *within* an RFC; it neither defines nor changes the
   whole-RFC-supersession mechanism.
 

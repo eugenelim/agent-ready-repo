@@ -1,5 +1,9 @@
 # Roadmap
 
+> **Template.** Scaffolded by the bundle — replace the `<theme>` placeholders
+> and the `YYYY-MM-DD` dates with your project's real roadmap and review dates
+> before relying on it.
+
 > Direction for the next 2-4 quarters. **Not** commitments. The whole point
 > of writing this down is that it can change.
 

@@ -157,7 +157,7 @@ derived from the research question — "OAuth PKCE for SPAs" → `oauth-pkce`;
 single investigation so that study's artifacts sort together.
 
 **Type vocabulary.** The `<type>` stem is fixed by the research mode and the
-shape of the answer (RFC-0039 Decision 2):
+shape of the answer:
 
 | Mode / answer shape | Artifact |
 |---|---|
@@ -179,7 +179,7 @@ the answer takes that shape — a `fact-check` verdict, a decision
 type-descriptive stems (`perspectives`, `outline`, `sources`, `archaeology`).
 
 **Legacy alias.** `research.md` was the prior name for the survey artifact,
-retained as a recognised legacy alias for one release (RFC-0038 forward-only
+retained as a recognised legacy alias for one release (a forward-only
 migration) so existing references and muscle memory still resolve. The skill
 emits **only** the typed name — never a second `research.md` written alongside
 it.

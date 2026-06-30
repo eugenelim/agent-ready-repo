@@ -5,7 +5,7 @@ requirements work — a BRD, a PRD, an SRS/FRD, use cases, a requirements-tracea
 matrix (RTM) — and often refine requirements at several levels at different times.
 This loop does **not** replace that and adds **no requirements pillar of its own**;
 it *maps* those artifacts onto what it already produces, **ingests** them as input,
-and can **emit** in their format for sign-off. *(AC38.)*
+and can **emit** in their format for sign-off.
 
 ## The crosswalk
 
@@ -39,7 +39,7 @@ and can **emit** in their format for sign-off. *(AC38.)*
 - **Requirements as output (emit for sign-off).** Where governance *requires* a
   formal BRD/SRS/RTM with sign-off, the loop **projects** its decision brief +
   traceability matrix + spec ACs into that format — a **formatting/projection
-  adapter** (the converters / md-to-office path, RFC-0036), **not** a discovery
+  adapter** (the converters / md-to-office path), **not** a discovery
   skill; the decision-log + the security & integrity controls supply the auditable
   sign-off trail.
 
