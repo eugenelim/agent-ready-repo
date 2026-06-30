@@ -1,6 +1,10 @@
 # RFC-NNNN: <proposal title>
 <!-- short, identifying title (e.g. "Coordinator contract"); the fuller
 explanation goes in "The ask", not the title — a scannable index depends on it -->
+<!-- Write this RFC for a COLD READER who has not read the related RFCs: gloss
+every coined term, acronym, and sibling-RFC back-reference in plain language on
+first use, inline (not a glossary section). The gate's cold-reader check (new-rfc
+SKILL.md step 6) verifies it before handoff. -->
 
 - **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental (optional: trial running, results pending — see the Experiment / validation section) -->
 - **Author:** <github-handle>

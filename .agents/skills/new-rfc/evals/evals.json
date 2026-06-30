@@ -14,7 +14,20 @@
         "No item is both a decided default and an open question, and internal cross-references resolve",
         "Carries a 'Decision weight' header field (light | standard | heavy) sized to the change's stakes",
         "Opens with a '## Reviewer brief' orientation section, above 'The ask', that orients rather than restating the BLUF",
-        "The decisions requested are rendered as a table (ID | Question | Recommendation | Why | Decide by | Reviewer action), not numbered prose"
+        "The decisions requested are rendered as a table (ID | Question | Recommendation | Why | Decide by | Reviewer action), not numbered prose",
+        "Reads from zero prior context: every project-coined term, acronym, or back-reference to a sibling RFC is glossed in plain language on first use (inline, not deferred to a glossary), so a reviewer who has not read the related RFCs can follow it"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Research and de-risk this proposal, then present the decisions for me to decide — don't draft the RFC body yet.",
+      "expected_output": "A chat-emitted 'RESEARCH FINDINGS' handoff (not an RFC body) whose '## Decisions / subpoints' section is self-contained — a reader can decide from the block alone, without opening a file. Each decision states the question in plain language; lists its options MECE along a stated axis (including do-nothing), each option carrying its real trade-off (what it buys vs. costs) and the concrete consequence of accepting it; and gives a recommendation with one or two sentences of reasoning plus owner + decide-by. Prior art (in repo) and (external) and a De-risk section (riskiest assumption + spike result or why none needed) follow. No RFC body section is written.",
+      "assertions": [
+        "Emits a chat 'RESEARCH FINDINGS' handoff and does NOT write any RFC body section yet",
+        "Each decision is self-contained/decidable from the block alone — states the question in plain language",
+        "Each decision lists options with their real trade-offs (buys vs. costs) and the concrete consequence of accepting each, not a bare list of option names",
+        "Options are MECE along a stated axis and include do-nothing",
+        "Each decision carries a recommendation with one-to-two-sentence reasoning plus owner + decide-by"
       ]
     }
   ]

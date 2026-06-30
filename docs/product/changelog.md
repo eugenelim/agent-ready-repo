@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`new-rfc` now drafts RFCs that read from zero prior context and hands you
+  decisions you can make in the chat message itself (governance-extras 0.5.0).**
+  The skill glosses every project-coined term, acronym, and sibling-RFC
+  back-reference in plain language on first use (inline, not a glossary), so a
+  reviewer who hasn't read the related RFCs can still follow it; a new
+  **cold-reader check** in the pre-handoff gate dispatches a context-denied
+  subagent — given only the RFC text — to flag any jargon it can't resolve, so
+  inherited vocabulary gets caught before a reviewer hits it cold. The
+  research/de-risk handoff now presents each decision **self-contained** — the
+  plain-language question, the concrete options with their trade-offs and the
+  consequence of each, and a recommendation — so you can decide without opening a
+  file. The how-to guide and the Tier-4 eval ride along.
+
 - **The `product-engineering` pack gains the discovery loop — a `discovery-loop`
   skill, a `discovery-lead` agent, and two discovery reviewers (product-engineering
   0.9.0, implementing RFC-0053 / the `discovery-loop` spec).** The upstream loop
