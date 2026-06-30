@@ -1,4 +1,4 @@
-"""SSO config loader + selector (spec task T3; AC3, AC12, AC13, fail-closed AC2).
+"""SSO config loader + selector (fail-closed).
 
 Exercises the per-skill loader against the real placeholder reference file and a
 table of crafted fixtures. Requires ``credbroker`` (the validation primitives) on
@@ -43,7 +43,7 @@ def _write(tmp_path: Path, body: str) -> Path:
 
 
 def test_real_reference_file_is_creds_path() -> None:
-    # Upstream placeholder: auth_default = "creds" → None (token path). AC12/AC13.
+    # Upstream placeholder: auth_default = "creds" → None (token path).
     assert load_sso_config() is None
 
 

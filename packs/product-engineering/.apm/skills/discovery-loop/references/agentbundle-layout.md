@@ -6,9 +6,8 @@ projected path; you create it by hand (or an `agentbundle install` step appends 
 default section to one you already have — **append-if-exists / never-create /
 never-overwrite**). This page **mints and documents** the `[discovery]` section
 that `discovery-loop` (and the discovery-side skills `frame-domain` /
-`explore-options` / `plan-validation`) read — the discovery-tree layout key
-RFC-0048 § Amendments (DRIFT-C) assigns this implementing spec to mint, on the
-`[experience]` precedent.
+`explore-options` / `plan-validation`) read — the discovery-tree layout key this
+skill mints, on the `[experience]` precedent.
 
 > **Why its own table, not `[product-engineering]` or `[pack.layout]`.** The
 > `[<pack>]` *adopter-file* table is the read target (not the manifest-side
@@ -37,7 +36,7 @@ parent = "docs/discovery"   # a base directory; one subdirectory per initiative 
   directories; they cross-link by stable id, never by sharing a tree.
 - **Lazy creation.** Directories are created on first write, never up front.
 
-## Three-tier resolution (RFC-0040)
+## Three-tier resolution
 
 `discovery-loop` resolves the discovery root in this order — **config → designed
 default → discover-by-marker** — and surfaces ambiguity rather than guessing:

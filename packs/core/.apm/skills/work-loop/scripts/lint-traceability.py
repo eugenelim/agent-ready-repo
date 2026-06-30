@@ -23,13 +23,13 @@ content, not a separate node.
 
 **Structure only.** Whether a node is parented to the *right* outcome (semantic
 scope-creep) is never this lint's call — structural presence is mechanizable,
-semantic correctness is not (the established traceability split; RFC-0048
-Decision 6, deferred to the coordinator spike O10, a human call at G1.5).
+semantic correctness is not (the established traceability split — semantic
+scope-creep is a human call at G1.5, never this lint's).
 
 **The chain spans repos, because the loops do.** `work-loop` builds per module
 (one repo, or one `packages/<c>/`); `discovery-loop` and the release loop work
 within or across modules, so the upstream discovery artifacts and shared
-contracts commonly live in a discovery / value-stream meta-repo (ADR-0022). A
+contracts commonly live in a discovery / value-stream meta-repo. A
 single working tree therefore sees only part of the chain. The crossing is
 handled by **convention, not path**: every node carries a stable,
 location-independent id (a marker slug, a `contract@version`, a Backstage
@@ -41,7 +41,7 @@ open-world federated-catalog posture — never fatal, never silently satisfied).
 
 Two sources, one classifier:
   - When a recognized sidecar `traceability.json` (a `schema_version`-stamped
-    `_state/` instance, RFC-0053 D7) is present it supplies the authoritative
+    `_state/` instance) is present it supplies the authoritative
     edge set. The schema *definition* is carried in `product-engineering`'s
     `discovery-loop` skill — this lint reads the produced instance by
     convention + the stamp, it never imports the definition.
@@ -54,8 +54,8 @@ On the authoritative sidecar graph the lint also runs a **root→leaf reachabili
 pass (`reachability_sidecar`): a node is reachable iff it is forward-reachable from
 `root` AND can reach a clean terminus (a `leaf_kind` node or a rollup-resolved
 `satisfied-by-reference` endpoint). A node off every root→leaf path is `UNREACHABLE`
-(the disconnected-subtree finding the discovery-loop cascade backstop depends on,
-RFC-0053 AC34) — additive to, and non-overlapping with, the presence orphans. An
+(the disconnected-subtree finding the discovery-loop cascade backstop depends
+on) — additive to, and non-overlapping with, the presence orphans. An
 *unresolvable* cross-repo hop is **not** a clean terminus (the sidecar is untrusted
 input — a forged out-edge must not silently green a stranded subtree); a node whose
 only escape is such a hop is surfaced informationally, never fatal. Reachability is
@@ -69,7 +69,7 @@ Exit codes:
   1 = a hard violation — a dangling edge (a pointer to a missing local target,
       or malformed) or a cycle, **in every mode**; or, under `--strict`, any
       structural orphan or `UNREACHABLE` node (the convergence-/CI-gate enforcing
-      "traceability closed", RFC-0048 O6). `--strict` degrades gracefully where the
+      "traceability closed"). `--strict` degrades gracefully where the
       producer `Discovery:` headers / `type:` markers are absent (a separate
       CONVENTIONS follow-on lands those).
 
@@ -93,11 +93,11 @@ try:  # py311+ stdlib; degrade where a layout config exists but tomllib doesn't.
 except ModuleNotFoundError:  # pragma: no cover - py<3.11
     tomllib = None  # type: ignore[assignment]
 
-# The canonical nine-node chain, in order (RFC-0048 note 08). Index = layer
+# The canonical nine-node chain, in order. Index = layer
 # depth; used for adjacency, terminal exemption, and the globally-unpopulated
 # layer-skip. `outcome` is the root (never a backward orphan); `component` is
 # the leaf (never a forward orphan — its cross-repo consumer is the release
-# loop, RFC-0049).
+# loop).
 CHAIN = (
     "outcome", "opportunity", "capability", "screen", "action",
     "service", "contract", "spec", "component",
@@ -122,7 +122,7 @@ KNOWN_SCHEMA_VERSIONS = frozenset({"0.1"})
 # marker); no discovery logic elsewhere may name a path literal (the no-
 # hardcoded-path NFR, AC1/AC2; the self-test greps this block's exclusivity).
 # Each layer: realization, default base (path segments under the root), and the
-# layout-config key (RFC-0040 `agentbundle-layout.toml`, tier 1).
+# layout-config key (`agentbundle-layout.toml`, tier 1).
 #
 # realization ∈ {file, container, ladder} — mirrors the sidecar's `backed_by`.
 _DEFAULT_BASES = {
@@ -205,7 +205,7 @@ def _token(raw: str) -> str:
 
 
 # --------------------------------------------------------------------------
-# Layer 0 — three-tier base resolution (RFC-0040)
+# Layer 0 — three-tier base resolution
 # --------------------------------------------------------------------------
 
 def load_layout(root: Path) -> dict:
@@ -471,7 +471,7 @@ def recognize_contracts(base: Path, root: Path, g: Graph) -> None:
 
 def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
     """Container/ladder `outcome`/`opportunity`/`capability` nodes from the
-    intent ladder `<intents-base>/*.md`. Per RFC-0048 note 04 the ladder tags
+    intent ladder `<intents-base>/*.md`. The ladder tags
     `outcome`/`opportunity` *kinds* across `vision`/`strategy`/`capability`/
     `feature` *levels*, so `capability` is a level while the other two are
     kinds. The extractor maps `**Kind:** outcome|opportunity` → that chain node,
@@ -533,7 +533,7 @@ def load_rollup_ids(root: Path, layout: dict) -> dict[str, bool]:
     The rollup row schema is
     `| Component | Brief (repo+slug) | Contract@version | Status | Coverage |`;
     a `<contract>@<version>` cell is a pinned reference, a bare id is unpinned.
-    Reused verbatim — never a parallel mechanism (ADR-0022)."""
+    Reused verbatim — never a parallel mechanism."""
     refs: dict[str, bool] = {}
     base, _ = _anchor_base(root, layout, "rollups", _ROLLUPS_BASE)
     if base is None:
@@ -767,7 +767,7 @@ def classify_standalone(g: Graph, briefs_present: bool) -> list[tuple[str, str, 
 
 def classify_sidecar(g: Graph) -> list[tuple[str, str, str]]:
     """Orphan classification for the authoritative sidecar graph — the
-    `check_sidecar` rule (RFC-0053 spike): `root` is exempt from an in-edge,
+    `check_sidecar` rule: `root` is exempt from an in-edge,
     `leaf_kind` from an out-edge, everything else needs both. The sidecar's
     edges already encode any layer-skip explicitly, so no populated-layer
     inference is applied. A **reference (external) endpoint** registered by
@@ -1226,6 +1226,9 @@ def _repo_root() -> Path:
         if r.returncode == 0 and r.stdout.strip():
             return Path(r.stdout.strip())
     except (FileNotFoundError, OSError):
+        # `git` may be unavailable on PATH (or the subprocess otherwise
+        # fails); fall through to the script-relative root, which is the
+        # intended fallback.
         pass
     return Path(__file__).resolve().parent.parent
 

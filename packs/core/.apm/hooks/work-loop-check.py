@@ -3,12 +3,12 @@
 work-loop skill for non-trivial work.
 
 Wired to the per-prompt event of each tool's hook surface — Claude Code
-`UserPromptSubmit` (and Copilot / Cursor / Gemini / Codex equivalents)
-via `.apm/hook-wiring/work-loop-check.toml`. The Kiro IDE counterpart is
-`.apm/kiro-ide-hooks/work-loop-check.kiro.hook` (an `askAgent` hook on
-`promptSubmit`), which carries the *same* instruction as a prompt because
-the IDE drops hook-wiring and `runCommand` does not feed the agent. Keep
-the two messages semantically aligned (both must mention `work-loop`).
+`UserPromptSubmit`, the Codex equivalent in `.codex/hooks.json`, and the
+Copilot / Cursor / Gemini equivalents. Kiro IDE gets the same nudge via a
+companion `promptSubmit` hook that carries the *same* instruction as a
+prompt (the IDE drops hook-wiring and `runCommand` does not feed the
+agent), so keep the two messages semantically aligned (both must mention
+`work-loop`). See `tools/hooks/README.md` § Wiring for what lands where.
 
 Pure-stdlib, input-free: prints a fixed reminder to stdout and exits 0.
 It deliberately does not parse the prompt or classify triviality — that
