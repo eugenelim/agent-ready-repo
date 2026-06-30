@@ -1,6 +1,6 @@
-"""confluence-crawler cookie-path client — mock-transport security contract (T6).
+"""confluence-crawler cookie-path client — mock-transport security contract.
 
-Mirrors the jira T5 contract (AC4/5/6/7/8/10/11/13/20). AC9 differs:
+Mirrors the jira cookie-path contract. The GET/HEAD allowlist differs:
 confluence-crawler has no raw() escape hatch, so the GET/HEAD allowlist is asserted
 directly on the _request chokepoint's method argument.
 """
@@ -77,10 +77,10 @@ def test_no_authorization_header_and_confined_cookies(broker_jar, monkeypatch):
 
     asyncio.run(go())
     req = seen[0]
-    assert "authorization" not in {k.lower() for k in req.headers}  # AC7
+    assert "authorization" not in {k.lower() for k in req.headers}
     cookie = req.headers.get("cookie", "")
     assert "JSESSIONID=sess1" in cookie and "crowd.token_key=tok1" in cookie
-    assert "_ga" not in cookie and "near" not in cookie  # AC4/AC5
+    assert "_ga" not in cookie and "near" not in cookie
 
 
 @pytest.mark.parametrize("method", ["POST", "PUT", "DELETE"])
@@ -196,7 +196,7 @@ def test_token_path_unchanged(monkeypatch):
 
 
 def test_token_path_follows_redirects(monkeypatch):
-    # Token path keeps follow_redirects=True; cookie path disables it (AC20).
+    # Token path keeps follow_redirects=True; cookie path disables it.
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:

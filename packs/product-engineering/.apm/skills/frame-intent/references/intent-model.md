@@ -94,7 +94,7 @@ deeper than any tracker, and projects **one-way** onto trackers (see
 
 When you run the discovery-traceability chain, the structural-orphan lint walks the
 nine-node product chain `outcome → opportunity → capability → screen → action →
-service → contract → spec → component` (RFC-0048 note 04 — the opportunity-solution
+service → contract → spec → component` (the opportunity-solution
 tree viewed as a structural chain, with the North-Star **outcome** as its root and
 **opportunities** as its children). An intent declares which **chain rung** it
 occupies through two **optional** markers the lint reads:

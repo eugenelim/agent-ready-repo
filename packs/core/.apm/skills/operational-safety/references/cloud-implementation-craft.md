@@ -7,7 +7,7 @@
 > reviewer's REVIEW brief), the deliberate EXECUTE-consumer extension of the
 > depth-library pattern. `quality-engineer` also loads it at REVIEW to check the
 > craft against deployed reality.
-> **Grounded in:** RFC-0044's field report — the **Author · behavioral** family
+> **Grounded in:** a production field report — the **Author · behavioral** family
 > (permissions iterated reactively, undesigned propagation waits, escalating
 > timeouts and sprinkled `sleep`s, no client cold-start tolerance, dependency
 > cycles fixed by trial) and the **packaging gap** from Author · structural (a

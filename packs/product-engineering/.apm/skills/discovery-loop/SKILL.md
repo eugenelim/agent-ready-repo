@@ -77,7 +77,7 @@ state-machine engine**. The proven pattern is **Hierarchical-Task-Network planni
 over a blackboard**: a *plan tree* held as data (`assets/plan-tree.md`), walked
 depth-first by **one controller** that decomposes the next node and updates
 status. The "state machine" is **status fields per node** + the decision log —
-*data the controller reads*, not an executed engine. *(AC2.)*
+*data the controller reads*, not an executed engine.
 
 `discovery-lead` is the **upstream supervisor — a *peer* of `work-loop`'s
 supervisor, not its supervisor.** It holds the blackboard in one context, fans out
@@ -87,7 +87,7 @@ at G3.
 **Honest bet.** Choosing the next node, accounting spend per branch, and deciding
 descend-vs-surface is itself in-context scheduling; the spike's single solo walk
 does not evidence it at depth. So the no-engine win is a **defensible bet on a
-shallow tree, gated conservatively by D4's depth/breadth bounds**. Scheduling many
+shallow tree, gated conservatively by the depth/breadth bounds**. Scheduling many
 concurrent or long-parked threads across initiatives stays the **harness's** job.
 
 ## The gate ladder
@@ -116,7 +116,7 @@ each other only through the open-questions queue — never chat**: *product*
 
 ## Consent gates are a pause, not a runtime
 
-A consent gate (G0, G1.5, G2) is a **pause**, not a special runtime *(AC10)*:
+A consent gate (G0, G1.5, G2) is a **pause**, not a special runtime:
 
 1. `discovery-lead` writes the decision brief, sets `status=awaiting-human`, and
    emits an **option card** — `{gate, summary, decisions-requested, recommended,
@@ -126,26 +126,25 @@ A consent gate (G0, G1.5, G2) is a **pause**, not a special runtime *(AC10)*:
    token for** (see Security).
 3. The next round reads the log and resumes.
 
-Non-consent gates auto-advance **unless a risk trigger (RFC-0025) fires**.
+Non-consent gates auto-advance **unless a risk trigger fires**.
 
 ## The verdict is a typed set, not yes/no
 
 The human's answer is richer than approve/reject. Each verdict has its own
 transition; **every blackboard-changing row reuses the one cascade mechanism**
-(walk traceability out-edges → mark `stale` → re-run only the affected lenses)
-*(AC12)*:
+(walk traceability out-edges → mark `stale` → re-run only the affected lenses):
 
 | Verdict | What the human means |
 | --- | --- |
 | **approve** | proceed as recommended |
 | **approve-with-constraint** | OK, but a scope cut that **must be honoured before proceeding** |
 | **redirect / steer** | not this — go *this* way |
-| **explore-alternatives** | show me other paths first (routes back to the D6 divergence phase) |
+| **explore-alternatives** | show me other paths first (routes back to the divergence phase) |
 | **abandon** | kill it (cascade the subtree to `abandoned`) |
 | **park / defer** | not now (resumable; advance siblings) |
 | **extend / override** | keep going past a bound (the row used at a `paused-at-bound` gate) |
 
-**Two integrity guards bind every row** *(AC13)*:
+**Two integrity guards bind every row**:
 
 1. **Impact-before-blast** — any verdict that would invalidate/change slots
    **first shows the affected set and waits for confirmation** before cascading.
@@ -157,13 +156,12 @@ transition; **every blackboard-changing row reuses the one cascade mechanism**
 
 Full per-verdict transitions, the rejection/recovery + cascade-invalidation
 transition, and the two-tier persistence + resume design are in
-[`references/gate-state-machine.md`](references/gate-state-machine.md). *(AC11,
-AC14, AC15.)*
+[`references/gate-state-machine.md`](references/gate-state-machine.md).
 
 ## Bounds — pause-and-confirm, never auto-terminal
 
 The `meta` block and each plan-tree node carry `round`/`round_cap` and
-`cost_budget`/`cost_spent` — **data counters, no runtime** *(AC16)*:
+`cost_budget`/`cost_spent` — **data counters, no runtime**:
 
 - **Per-initiative** enforcement (one budget + round cap for the whole tree).
 - **Per-node convergence round cap** + **per-node spend** (observability).
@@ -173,7 +171,7 @@ The `meta` block and each plan-tree node carry `round`/`round_cap` and
 - **Structural bounds** — a max sub-walk **depth** and max **open sub-ideas**
   (breadth), guarding against nesting explosion.
 
-**Every bound is a pause-and-confirm/override gate, not an auto-terminal** *(AC17)*:
+**Every bound is a pause-and-confirm/override gate, not an auto-terminal**:
 hitting any bound sets `status: paused-at-bound` (a *paused-awaiting-human* state,
 **not** a terminal `stalled` walk-away), writes an option card, and surfaces the
 verdict set (**extend/override** / narrow / park / abandon). A paused-at-bound
@@ -182,7 +180,7 @@ another consent gate.
 
 ## Supervisor topology — solo / lens-team, never chat-to-consensus
 
-`discovery-lead` right-sizes *(AC18)*:
+`discovery-lead` right-sizes:
 
 - **Solo** (small discovery) — holds the blackboard in one context, switches
   lenses itself. The prototype ran solo.
@@ -198,8 +196,8 @@ mesh consumes (the briefs / `contract@version` ids / backlogs), **not the mesh**
 
 ## The discovery roster — loop-scoped, required at G2
 
-The roster is **loop-scoped per RFC-0048's roster table** — this skill adds no
-roster of its own *(AC19)*:
+The roster is **loop-scoped** — this skill adds no
+roster of its own:
 
 - **Required at G2 reconcile:** `discovery-threat-reviewer` +
   `discovery-reliability-reviewer` — design-time roles (threat-modeling +
@@ -216,8 +214,8 @@ roster of its own *(AC19)*:
   blackboard; **value → the human at G2** (the conflict-adjudication act).
 
 The CHARTER's "three reviewers is the ceiling" stays a **`work-loop`/code-review
-cap**; the loop-scoped discovery roster is recorded as a **tracked RFC-0048
-amendment, not a CHARTER edit** *(AC20)*.
+cap**; the loop-scoped discovery roster is recorded as a **tracked amendment,
+not a CHARTER edit**.
 
 ## Security & integrity — falsifiable controls, not prose
 
@@ -228,63 +226,63 @@ full set (verdict write-authority, append-only attested log + hash-chain,
 non-degradable security lens, lens-write integrity, cascade circuit-breaker,
 `reversibility-class` enumeration, slot data-classification) is in
 [`references/security-and-integrity.md`](references/security-and-integrity.md).
-The load-bearing ones in brief *(AC25–AC31)*:
+The load-bearing ones in brief:
 
-- **No forged consent (AC25).** The `human` verdict is written through a
+- **No forged consent.** The `human` verdict is written through a
   **harness-attested channel the agent has no token for**. Resume **re-derives
   `human` provenance only from that untokened store and rejects any
   `ratified_by: human` row not attested there** — not self-asserted in a file the
-  agent also writes. The AC tests the *channel*, not the slot's append-only-ness.
+  agent also writes. The control tests the *channel*, not the slot's append-only-ness.
   **An adopter whose harness cannot provide an agent-untokened channel cannot run
   the loop unattended safely.**
-- **Decision log is a real audit trail (AC26).** Append-only + per-row actor
+- **Decision log is a real audit trail.** Append-only + per-row actor
   attestation + a **SHA-256 hash-chain whose tip is anchored in the
   agent-untokened / harness-immutable store** (the bare chain alone is re-chainable
   by the writing agent) + trusted timestamp, paired with a lint/CI add-only
   assertion.
-- **Non-degradable security lens on a boundary (AC27).** The
+- **Non-degradable security lens on a boundary.** The
   `discovery-threat-reviewer`'s *depth* keys on a risk trigger; a security-boundary
   crossing with only baseline depth installed **surfaces to the human** rather than
   degrading silently.
-- **Lens-write integrity (AC28).** A lens only *proposes*; only the controller
+- **Lens-write integrity.** A lens only *proposes*; only the controller
   promotes; untrusted external content is data, not instructions.
-- **Cascade circuit-breaker (AC29).** Cascade re-runs **count against the cost
+- **Cascade circuit-breaker.** Cascade re-runs **count against the cost
   budget**, and an invalidation exceeding a **fan-out threshold surfaces to the
   human** rather than auto-cascading — **default: more than `1/3` of the active
   matrix *or* more than `8` nodes absolute, whichever is smaller** (the absolute
   companion stops a shrink-the-denominator bypass).
-- **`reversibility-class` is an enumeration (AC30)** — `reversible` /
+- **`reversibility-class` is an enumeration** — `reversible` /
   `costly-to-reverse` / `one-way-door`; `one-way-door` binds to a **mandatory
   consent gate** regardless of which gate it arose at.
-- **Data-classification (AC31).** Each slot is classified; a
+- **Data-classification.** Each slot is classified; a
   `sensitive`/`regulated` slot is **redacted-or-surfaced before** the checkpoint
-  write reaches a shared store (the check composes with the checkpoint, AC8).
+  write reaches a shared store (the check composes with the checkpoint).
 
 ## Persistence & checkpointing
 
 The discovery-workspace is **durably checkpointed at each round and each consent
 gate** (not per keystroke) — to the **harness's own store/branch, never the
 product repo's main line** — under the data-classification controls, with the
-state branch **protected against history rewrite** *(AC8)*. This is what makes the
+state branch **protected against history rewrite**. This is what makes the
 loop resumable and the decision log a real audit trail. The two-tier persistence +
 the resume design (entry / reconstruction / re-entry by per-node status / integrity
 on resume) are in [`references/gate-state-machine.md`](references/gate-state-machine.md).
 
-**Cross-teardown resume — AC choice.** Tier 2 carries a **per-gate snapshot of
+**Cross-teardown resume.** Tier 2 carries a **per-gate snapshot of
 `meta` + per-node status** so cross-teardown resume is faithful (the recommended
-default — D4's bounds and "resume where it stopped" depend on the counters
+default — the bounds and "resume where it stopped" depend on the counters
 surviving). Absent the snapshot, cross-teardown resume is **gate-granularity only**,
-with the round/cost counters reset. *(AC15.)*
+with the round/cost counters reset.
 
 ## Seams with the rest of the operating model
 
 - **G3 handoff to `work-loop`** (unchanged): `discovery-loop` emits a brief →
-  `new-spec` → `work-loop`. Different inputs, verifier, autonomy posture. *(AC32.)*
-- **The self-coverage gate (RFC-0051) runs as the pre-G2 phase**, and
+  `new-spec` → `work-loop`. Different inputs, verifier, autonomy posture.
+- **The self-coverage gate runs as the pre-G2 phase**, and
   `discovery-loop` is the **primary home of the full seven-module
   design-convergence instantiation** — it carries its **own co-scoped copy of all
   seven modules** in `product-engineering`, right-sized by this loop's progressive
-  mode, conforming to RFC-0051's cross-loop seam (goal + resolve-vs-surface + a
+  mode, conforming to the cross-loop seam (goal + resolve-vs-surface + a
   non-skippable coverage record). Unlike `work-loop` (the net-new slice only),
   discovery runs the **full battery** — this is the altitude it was built for. The
   seven modules:
@@ -294,24 +292,24 @@ with the round/cost counters reset. *(AC15.)*
   [`fresh-context.md`](references/self-coverage/fresh-context.md),
   [`domain-grounding.md`](references/self-coverage/domain-grounding.md),
   [`resolve-vs-surface.md`](references/self-coverage/resolve-vs-surface.md),
-  [`coverage-record.md`](references/self-coverage/coverage-record.md). *(AC33.)*
-- **The traceability lint (child-4)** consumes the **traceability slot** this loop
-  produces; the D3 cascade transition walks **the same edges**. The loop runs the
+  [`coverage-record.md`](references/self-coverage/coverage-record.md).
+- **The traceability lint** consumes the **traceability slot** this loop
+  produces; the cascade transition walks **the same edges**. The loop runs the
   lint at the **G2 / convergence gate**: once the `Discovery:` up-edge header has
   landed (the producer — `new-spec` + `CONVENTIONS.md` § 4), the loop runs it
   **fail-closed (`--strict`)** at G2 so a structural orphan blocks convergence;
   **until the header is in place the lint stays warn-only** (specs without the
   header are warnings, not failures). Producer-before-consumer: the header lands
-  first, the `--strict` flip is sequenced after. *(AC37.)* **Child-4
-  dependency (MET):** the backstop against a disconnected-subtree failure relies on
+  first, the `--strict` flip is sequenced after. The backstop against a
+  disconnected-subtree failure relies on
   the lint's **root→leaf reachability** pass — and the lint now performs it, so the
   backstop catches the **whole** disconnected subtree, not just the orphan tip a
   presence check flags. A fabricated cross-repo edge is *surfaced* informationally
   (an open-world graph cannot tell a forged token from a not-yet-catalogued one),
-  never silently green. *(AC34.)*
+  never silently green.
 - **The backlog bridge:** the decision brief decomposes into an ordered,
   dependency-aware backlog (parked sub-ideas carried as **first-class entries**);
-  `loop-cohort` orders it; `work-loop` pulls one item at a time. *(AC35.)*
+  `loop-cohort` orders it; `work-loop` pulls one item at a time.
 
 ## Folding in traditional requirements capture
 
@@ -320,20 +318,20 @@ use cases / RTM) and adds **no requirements pillar of its own** — it *maps* th
 artifacts onto what it already produces, **ingests** them as input, and can **emit**
 in their format for sign-off. The full crosswalk is
 [`references/requirements-crosswalk.md`](references/requirements-crosswalk.md). In
-brief *(AC38)*:
+brief:
 
 - **Requirements as input** — `receive-brief` + `frame-intent` brownfield ingest
   seeds the loop (a thin `receive-brief` extension at most — **not** a new skill).
 - **The traceability slot serves as the RTM.**
 - **Requirements as output** — a formal BRD/SRS/RTM with sign-off rides the
-  **converters / md-to-office projection adapter** (RFC-0036), not a discovery
+  **converters / md-to-office projection adapter**, not a discovery
   skill.
 
 ## Loop-skill doctrine (carried here, not in CONVENTIONS)
 
 The **two-loop split** (discovery vs delivery) and the **surfacing predicate's
 stall clause** are carried in **this skill's doctrine — not a `CONVENTIONS.md`
-operating-model section** *(AC41)*:
+operating-model section**:
 
 - **Two loops, not one.** Discovery (vision → brief, this loop) and delivery (spec
   → build, `work-loop`) have different inputs, verifiers, and autonomy postures.

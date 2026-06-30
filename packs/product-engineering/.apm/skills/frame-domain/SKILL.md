@@ -46,7 +46,7 @@ Before framing, confirm:
 This skill is **invokable standalone** with **no hard dependency on the
 coordinator / discovery-loop** (which is unbuilt). It produces on demand; the
 non-skippable "cannot proceed without it" gate property is the coordinator's to
-own (RFC-0048 child 5), not this skill's.
+own, not this skill's.
 
 ## Wrapping `research` applied mode — the real-world-activity half
 
@@ -169,7 +169,7 @@ literal path**; it always runs the three tiers and surfaces ambiguity rather tha
 guessing.
 
 1. **Config — the adopter's discovery base from `agentbundle-layout.toml`.** Read
-   the adopter-created `agentbundle-layout.toml` (RFC-0040 / ADR-0030 adopter-file
+   the adopter-created `agentbundle-layout.toml` (the adopter-file
    mechanism) for the **discovery base** the cross-cutting layout effort settles.
    `docs/discovery/` is a **shared discovery-loop home**, so its config key is the
    **discovery layout key** — **not** `product-engineering`'s file-per-slug
@@ -181,8 +181,7 @@ guessing.
    **not** mint a new table itself, and it never *writes* the layout file.
 2. **Designed default** — `docs/discovery/<initiative>/domain-framing.md` and
    `docs/discovery/<initiative>/scope-boundary.md`. `docs/discovery/` is a
-   *resolved default*, not a path this skill mints (RFC-0048's layout note
-   introduces it).
+   *resolved default*, not a path this skill mints.
 3. **Discover-by-marker** — search the workspace for each artifact's **canonical
    filename + frontmatter `type:`** (`domain-framing.md` + `type: domain-framing`,
    `scope-boundary.md` + `type: scope-boundary`). The **marker, not the path, is
@@ -200,7 +199,7 @@ eventually bound, surface the resolved path before the first write and reject an
 ## Detect-and-degrade on optional dependencies
 
 `research` and `decision-archaeology` are **optional, Tier-1 detect-and-degrade**
-dependencies (RFC-0048 Decision 8 progressive enhancement). Because this is a
+dependencies (progressive enhancement). Because this is a
 prompt-only skill with no script, the **detect primitive is the agent checking
 its available-skills roster** — the same roster-check `new-spec` already relies on
 — **not** a body-level `shutil.which`.
@@ -246,4 +245,4 @@ If `research` (or, in brownfield, `decision-archaeology`) is **not installed**:
 - **Hardcoding a write path.** Always run the three-tier resolve and surface
   ambiguity; never write to a literal path.
 - **Promoting this skill to a mandatory gate.** It produces standalone; the
-  non-skippable enforcement is the coordinator's (RFC-0048 child 5).
+  non-skippable enforcement is the coordinator's.

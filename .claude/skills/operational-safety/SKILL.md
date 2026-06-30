@@ -16,7 +16,7 @@ below), so the agent prompt stays lean and the depth scales without bloat. It
 is the operational-lens twin of
 [`security-checklists`](../security-checklists/SKILL.md), built on the same
 orchestrator-loaded, table-routed mechanism — **no new reviewer** (the CHARTER
-three-reviewer ceiling; ADR-0023), no executable code (ADR-0031).
+three-reviewer ceiling), no executable code.
 
 ## How it loads (orchestrator-driven, not self-discovered)
 
@@ -47,13 +47,13 @@ flat march through every module. Where an
 adapter *does* support subagent skill auto-discovery, that is a redundant
 convenience layered on top — never the load-bearing mechanism.
 
-**The EXECUTE-consumer extension (`cloud-implementation-craft`).** ADR-0031
-established this library as a REVIEW-only depth source for `quality-engineer`.
+**The EXECUTE-consumer extension (`cloud-implementation-craft`).** This library
+is, by default, a REVIEW-only depth source for `quality-engineer`.
 One module — `cloud-implementation-craft` — is **also** inlined into the
 **implementer's EXECUTE brief** on infra-flavored work, by the same
 orchestrator on the same Module index, so its golden practices
 (least-privilege-but-sufficient permissions, timing/retry, packaging,
-externalized config) shape the build, not only the review (ADR-0034). The
+externalized config) shape the build, not only the review. The
 mechanism is unchanged — the orchestrator inlines; the subagent does not
 self-discover — only the *consumer* is extended from the reviewer to the
 implementer. `quality-engineer` still loads it at REVIEW to check the craft
@@ -107,8 +107,8 @@ This index is the **deterministic failure-mode→module routing authority** — 
 `work-loop` REVIEW `quality-engineer` bullet (and, for `cloud-implementation-craft`,
 the EXECUTE implementer brief) dispatches against the **Load when** column rather
 than carrying its own copy. Match the operational failure mode the infra/destructive
-change raises to its module(s). The `> **Grounded in:**` cells pin each module to
-its RFC-0041 module-table groundings.
+change raises to its module(s). The **Grounded in** column pins each module to
+the operational failure modes it covers.
 
 | Module | Load when — the operational failure mode the change raises | Grounded in |
 |---|---|---|
@@ -118,7 +118,7 @@ its RFC-0041 module-table groundings.
 | [`cost-and-teardown`](references/cost-and-teardown.md) | provisions billable resources; ephemeral/per-iteration infra; teardown path — covers cost-ceiling-as-gate, destroy-on-fail, TTL, no orphans | F3.4, F3.5 |
 | [`drift-and-rollback`](references/drift-and-rollback.md) | long-lived infra that can drift; a deploy needing a defined recovery path — covers read-only drift detection, known-good re-apply path | F1.4, F2.6 |
 | [`observability-and-smoke`](references/observability-and-smoke.md) | deploys a service / site / endpoint a user reaches; needs smoke + telemetry — covers active end-to-end probe, log access, health, verify-status, symptom→layer log playbook | F2.2; taxonomy follow-up |
-| [`cloud-implementation-craft`](references/cloud-implementation-craft.md) | authoring infra / a managed-runtime deployment / live interaction (**also inlined into the implementer's EXECUTE brief**) — **EXECUTE-craft**: least-privilege-but-sufficient permissions, timing/retry, packaging / entrypoint model, externalized config (also REVIEW) | RFC-0044 Author·behavioral + packaging gap |
+| [`cloud-implementation-craft`](references/cloud-implementation-craft.md) | authoring infra / a managed-runtime deployment / live interaction (**also inlined into the implementer's EXECUTE brief**) — **EXECUTE-craft**: least-privilege-but-sufficient permissions, timing/retry, packaging / entrypoint model, externalized config (also REVIEW) | Author·behavioral + packaging gap |
 
 `state-and-idempotency` (write-path convergence) and `drift-and-rollback`
 (divergence detection + recovery) are kept **deliberately separate** — every

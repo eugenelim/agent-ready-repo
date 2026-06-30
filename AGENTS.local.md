@@ -371,6 +371,23 @@ them right the first time. See
 [`.claude/skills/README.md`](.claude/skills/README.md#spec-compliance)
 for the full ruleset.
 
+The mechanics above are linted; the **craft** is not, so hold it in your
+head while authoring — the canonical rules live in
+[`.claude/skills/README.md` § Authoring skills](.claude/skills/README.md#authoring-skills):
+
+- **The frontmatter `description` is the activation trigger surface.** It
+  alone decides whether the right skill fires (and the wrong ones don't) —
+  write it as a sharp, differentiable trigger, not a summary.
+- **Keep the body terse — the token budget is real.** A skill loads into
+  context when triggered; bloat crowds out the user's actual task. Push
+  depth into `references/` the body links on demand, not the body itself.
+- **Keep the body disjoint from the trigger.** It answers *what to do once
+  invoked* (preconditions, judgment, procedure); it must not restate *when*
+  to invoke — that is the `description`'s job.
+- **No internal-governance citations** — per *Shipped pack content carries
+  no internal-governance citations* above; that rule applies to every
+  SKILL.md body and its `references/`, `scripts/`, and `assets/`.
+
 ## Install-test coverage rule
 
 Tests that exercise an on-disk projection layout, the per-pack orphan

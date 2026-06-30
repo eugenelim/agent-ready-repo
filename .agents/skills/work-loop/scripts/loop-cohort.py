@@ -44,7 +44,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -124,6 +123,9 @@ def write_state_atomic(spec_dir: Path, state: dict) -> None:
         try:
             os.unlink(tmp)
         except OSError:
+            # Best-effort cleanup of the temp file: if the original write or
+            # os.replace failed, a failed unlink here must not mask that
+            # original failure, which we re-raise below.
             pass
         raise
 

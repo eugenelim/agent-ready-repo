@@ -83,7 +83,7 @@ def _api_prefix(flavor: str) -> str:
 
 
 def _sso_cafile_capath() -> tuple[str | None, str | None]:
-    """Resolve the CA bundle file + dir for the cookie-path SSL context (AC8).
+    """Resolve the CA bundle file + dir for the cookie-path SSL context.
 
     httpx (``trust_env``) natively honors ``SSL_CERT_FILE`` / ``SSL_CERT_DIR`` but
     does **not** read ``REQUESTS_CA_BUNDLE``; we map it here. Precedence:
@@ -99,7 +99,7 @@ def _sso_ssl_context() -> ssl.SSLContext:
     """SSL context for the cookie path: the system trust store *plus* any
     ``SSL_CERT_FILE`` / ``SSL_CERT_DIR`` / ``REQUESTS_CA_BUNDLE`` the corporate
     environment sets — loaded on top of (never clobbering) the default store, so a
-    bare ``verify=True`` can't drop the corporate CA (AC8)."""
+    bare ``verify=True`` can't drop the corporate CA."""
     ctx = ssl.create_default_context()
     cafile, capath = _sso_cafile_capath()
     if cafile or capath:
@@ -177,26 +177,26 @@ class JiraClient:
         """Build a Data Center client authenticated by a captured SSO cookie jar.
 
         Resolves the jar via credbroker (fail-closed, never downgrades to a
-        token), filters it to the declared ``cookie_domains`` (AC4), confirms the
-        base host is within those domains (AC6), and builds an httpx client with
-        the confined jar attached, **no** ``Authorization`` header (AC7),
+        token), filters it to the declared ``cookie_domains``, confirms the
+        base host is within those domains, and builds an httpx client with
+        the confined jar attached, **no** ``Authorization`` header,
         ``follow_redirects=False`` so the session cookie is never re-attached
-        across a redirect (AC20), and the corporate proxy / trust store honored
-        (AC8). The cookie path is GET/HEAD only, enforced in ``_request`` (AC9).
+        across a redirect, and the corporate proxy / trust store honored.
+        The cookie path is GET/HEAD only, enforced in ``_request``.
         """
         import credbroker
 
         base_url = sso_config.base_url
         parsed = urlparse(base_url)
-        # Defense-in-depth https guard at construction (AC6): the cookie jar is a
+        # Defense-in-depth https guard at construction: the cookie jar is a
         # bearer secret, so the token path's http:// tolerance must not extend
-        # here, even though the config layer (AC3) already rejects a non-https URL.
+        # here, even though the config layer already rejects a non-https URL.
         if parsed.scheme != "https":
             raise AuthError(
                 "SSO-cookie base_url must be https (the session cookie is a bearer secret)"
             )
         host = parsed.hostname or ""
-        # Send-host confinement (AC6) + fail-closed jar resolution (AC1/AC2). Both
+        # Send-host confinement + fail-closed jar resolution. Both
         # credbroker fail-closed paths re-raise as AuthError so the skill surfaces
         # them as a single user-action (the remediation text is preserved).
         try:
@@ -206,7 +206,7 @@ class JiraClient:
             raise AuthError(str(exc)) from exc
 
         # Confine the deliberately over-broad captured jar to the declared domains
-        # before attaching it (AC4); the result is never written back (AC10).
+        # before attaching it; the result is never written back.
         raw_cookies = json.loads(jar_path.read_text(encoding="utf-8"))
         confined = credbroker.filter_jar_to_domains(
             raw_cookies, sso_config.cookie_domains
@@ -235,15 +235,15 @@ class JiraClient:
         headers = {
             "Accept": "application/json",
             "User-Agent": "atlassian-jira/0.1",
-        }  # deliberately NO Authorization header on the cookie path (AC7)
+        }  # deliberately NO Authorization header on the cookie path
         self._client = httpx.AsyncClient(
             base_url=self._base,
             headers=headers,
             cookies=cookies,
             timeout=timeout_s,
             verify=_sso_ssl_context(),
-            trust_env=True,  # corporate proxy + SSL_CERT_FILE/SSL_CERT_DIR (AC8)
-            follow_redirects=False,  # AC20 — never re-attach the cookie cross-host
+            trust_env=True,  # corporate proxy + SSL_CERT_FILE/SSL_CERT_DIR
+            follow_redirects=False,  # never re-attach the cookie cross-host
         )
         self._sem = asyncio.Semaphore(concurrency)
         return self
@@ -283,14 +283,14 @@ class JiraClient:
             # of the multipart form, masking the mistake. Fail loudly.
             raise ValueError("cannot send json_body and files in the same request")
 
-        # Cookie-path write refusal (AC9). This chokepoint is the single point
+        # Cookie-path write refusal. This chokepoint is the single point
         # every call funnels through — including the raw() escape hatch — so a
         # GET/HEAD allowlist here covers future verbs by construction. Raised
         # before any request reaches the wire (the transport records zero
         # requests for a refused verb).
         if self._auth_mode == "sso-cookie" and method.upper() not in ("GET", "HEAD"):
             raise JiraError(
-                "writes over SSO-cookie auth are not supported yet (RFC-0035 v1); "
+                "writes over SSO-cookie auth are not supported yet; "
                 "use a personal access token, or wait for the XSRF follow-on"
             )
 
@@ -315,7 +315,7 @@ class JiraClient:
                 if resp.status_code == 401:
                     if self._auth_mode == "sso-cookie":
                         # Stop using the known-stale jar — no further
-                        # cookie-bearing request with this session (AC11). The
+                        # cookie-bearing request with this session. The
                         # remediation names the profile, never the cookie bytes.
                         self._client.cookies.clear()
                         raise AuthError(
@@ -328,7 +328,7 @@ class JiraClient:
                         "`credential-setup` skill."
                     )
                 if self._auth_mode == "sso-cookie" and 300 <= resp.status_code < 400:
-                    # follow_redirects is disabled on the cookie path (AC20), so a
+                    # follow_redirects is disabled on the cookie path, so a
                     # 30x is surfaced, never followed (which would re-attach the
                     # session cookie to the redirect target). A redirect to login
                     # is the DC expired-session signal.

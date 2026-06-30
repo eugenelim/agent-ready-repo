@@ -19,7 +19,7 @@ import pathlib
 import re
 import sys
 
-# credbroker is a pip-installed package (RFC-0023), so this is an absolute
+# credbroker is a pip-installed package, so this is an absolute
 # import — no ``__package__`` bootstrap is needed (the former relative
 # sibling-resolver import did require one for file-path invocation).
 #

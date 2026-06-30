@@ -14,7 +14,7 @@ reviewer toward agreeing).
 
 ## Who runs
 
-The **loop-scoped discovery reviewer roster** (selected per ADR-0042, keyed to
+The **loop-scoped discovery reviewer roster** (keyed to
 loop + work type), **required at G2 reconcile**:
 
 - **`discovery-threat-reviewer`** — the threat-modeling + regulated-domain

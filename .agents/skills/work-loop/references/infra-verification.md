@@ -60,7 +60,7 @@ generating the resource?*; V1 owns *is a green early oracle being mistaken for
 "works" at verify?*** — the same oracle output, two different jobs
 (ground-before-authoring vs. don't-mistake-cheap-for-done).
 
-### Readiness-aware data-plane probe (V2 — refines layer 4 / RFC-0041 P2)
+### Readiness-aware data-plane probe (V2 — refines layer 4)
 
 The active end-to-end smoke (layer 4) has a specific shape, distinct from app
 verification: **in-network if private** (probe from *inside* the network
@@ -137,7 +137,7 @@ the loop requires "tests exist" without mandating a framework. The loop names
 these as prerequisite tasks and offers to scaffold them; it does not ship them
 as executable tooling.
 
-## EXECUTE — drive the deploy yourself (RFC-0041 P4)
+## EXECUTE — drive the deploy yourself
 
 Implement the change (one task may span several GATES layers), then **drive the
 deploy yourself and read the real environment output**: run the apply, the smoke
@@ -182,7 +182,7 @@ fires in light mode too; the heavier infra-flavor layers (the
 `cloud-implementation-craft` craft load at EXECUTE, the V2 data-plane probe, the
 `quality-engineer` infra wiring) fire only on the **infra-flavored signal** (the
 destructive/irreversible trigger + the `security-checklists` Module index's IaC /
-deploy-config entry). (RFC-0044 § Errata 2026-06-24.)
+deploy-config entry).
 
 ## EXECUTE — `cloud-implementation-craft` loaded into the implementer's brief
 
@@ -196,14 +196,14 @@ packaging / entrypoint-import model, and externalized script configuration —
 into the **implementer's EXECUTE brief**, via the
 [`operational-safety` Module index](../../operational-safety/SKILL.md#module-index)
 (the routing authority). This is the **deliberate EXECUTE-consumer extension** of
-`operational-safety`: ADR-0031 established it as a REVIEW-only depth library for
+`operational-safety`: by default a REVIEW-only depth library for
 `quality-engineer`; here the **same module, on the same routing mechanism**, is
 pointed at the implementer so the craft shapes the build, not only the review.
 Loading is **orchestrator-driven** (the subagent's `tools:` carries no Skill
 tool), never subagent self-discovery — exactly as the REVIEW-side
 `operational-safety` and `security-checklists` inlining works.
 
-## EXECUTE — reusable-script corollary (sharpens RFC-0041 P4, not a new failure family)
+## EXECUTE — reusable-script corollary (a discipline sharpening, not a new failure family)
 
 **Every** live-environment interaction — deploy, smoke probe, **log pull, debug
 step** — goes through a **reusable, idempotent, credential-reusing script** that
@@ -217,8 +217,8 @@ inline**. That lets the harness **honour an organization's naming + tagging
 conventions** without editing script bodies, and **port across accounts to stand
 up like-for-like environments** — the property V2's ephemeral, uniquely-named
 probe target and `environment-isolation`'s per-PR ephemeral harness both rest
-on. This is a **discipline sharpening agent-drives-verification (RFC-0041 P4)**,
-not a new failure family. (RFC-0044 § Errata 2026-06-24.)
+on. This is a **discipline sharpening agent-drives-verification**,
+not a new failure family.
 
 ## REVIEW — mandatory, multi-module security on infra-flavored work
 
@@ -277,12 +277,12 @@ oracle (or reads the curated skill / versioned docs) itself, never trusting the
 implementer's citation; this fires on any software-contract-citing diff, not
 only an infra-flavored one, so the broadened EXECUTE software surface ships with
 its matching REVIEW half. This adds **no new reviewer or agent** (the
-three-reviewer ceiling, ADR-0023): contract-conformance rides the **existing**
+three-reviewer ceiling): contract-conformance rides the **existing**
 `quality-engineer`, already the infra reviewer in spirit. The
 **auth-flow-contradiction class** (a spec whose auth design contradicts itself)
 is caught **earlier, at spec stage, by `design-reviewer`** where the architect
 pack is installed — otherwise it falls to the spec-stage adversarial pass. A
 **dedicated `infra-contract-reviewer` is deferred** behind a named evidence
-trigger (RFC-0044 Decision 8 — a spike showing oracle-execution traffic, large
-`plan` / `synth` output, measurably degrades `quality-engineer`'s other lenses);
+trigger (a spike showing oracle-execution traffic — large
+`plan` / `synth` output — measurably degrades `quality-engineer`'s other lenses);
 fetching the contract in *slices* softens the isolation case meanwhile.

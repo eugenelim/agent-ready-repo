@@ -4,7 +4,7 @@
 > `frame-domain` run and the two typed artifacts it produces. Your domain will
 > look different; copy the *moves*, not the wording.
 
-The RFC-0048 worked example — `example-assistant`, a secure personal-assistant
+A worked example — `example-assistant`, a secure personal-assistant
 agent that helps an owner plan recurring tasks, track resource state, generate a
 derived list, and improve through approved learning. After `decompose-intent`
 produced its capabilities, the agent runs `frame-domain` at **G1.5 Domain &

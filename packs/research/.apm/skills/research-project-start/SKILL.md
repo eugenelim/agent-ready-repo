@@ -143,7 +143,7 @@ from the brief.
 This generalises the read `research-project-mode` shipped via the old
 `research-layout.toml` into the shared `agentbundle-layout.toml` `[research]`
 table — a **clean rename, no alias** (the old file was undistributed, so nothing
-in the wild holds the old name). RFC-0038's forward-only migration alias was
+in the wild holds the old name). A forward-only migration alias was
 considered and found not to apply.
 
 ## Source provenance — optional, additive axes

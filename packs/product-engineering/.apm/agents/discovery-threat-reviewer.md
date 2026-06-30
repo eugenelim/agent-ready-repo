@@ -52,7 +52,7 @@ If any check fails, say so and stop.
 
 ## Depth & degradation (non-negotiable)
 
-Your *depth* keys on a **risk trigger** (mirroring RFC-0025). When an intent or
+Your *depth* keys on a **risk trigger**. When an intent or
 artifact crosses a **security boundary** (auth, untrusted-input-to-memory,
 regulated data):
 

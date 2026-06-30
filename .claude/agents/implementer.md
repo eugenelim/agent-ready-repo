@@ -38,7 +38,7 @@ In this order:
    model, externalized script config) as prompt text — that is your craft
    reference for this change. You do **not** load the skill yourself; if it was
    not inlined, fall back to your own judgment and say so. This is the
-   EXECUTE-consumer extension of `operational-safety` (ADR-0034); review of the
+   EXECUTE-consumer extension of `operational-safety`; review of the
    same craft still rides `quality-engineer`, no new reviewer is added.
 
 If the supervisor's brief omits the spec/plan paths, ask — don't guess.

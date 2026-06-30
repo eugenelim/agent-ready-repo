@@ -1,4 +1,4 @@
-"""setup_sso helper — seed the broker profile from the file (spec task T7; AC14).
+"""setup_sso helper — seed the broker profile from the file.
 
 Goal-based: the helper reads the validated config and drives `sso-broker register`
 with connection params from the file (no cookie value on argv), and a malformed
@@ -37,7 +37,7 @@ def test_build_register_argv_carries_connection_params_no_cookie(tmp_path):
     assert argv.count("--cookie-domain") == 2
     assert "corp.example.com" in argv and "jira.corp.example.com" in argv
     assert argv[argv.index("--ttl-hint-minutes") + 1] == "480"
-    # No cookie *value* shape anywhere on argv (AC14 path-not-value).
+    # No cookie *value* shape anywhere on argv (path-not-value).
     assert not any(token in part for part in argv for token in ("JSESSIONID", "Cookie:", "crowd.token"))
 
 

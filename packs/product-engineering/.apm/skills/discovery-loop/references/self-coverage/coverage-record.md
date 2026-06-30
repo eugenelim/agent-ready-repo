@@ -1,16 +1,16 @@
 # Self-coverage gate — the module index + the coverage record
 
 `discovery-loop` is the **primary home of the full seven-module design-convergence
-instantiation** of RFC-0051's self-coverage gate. Unlike `work-loop` (which adopts
+instantiation** of the self-coverage gate. Unlike `work-loop` (which adopts
 only the net-new slice atop the passes it already runs), discovery runs the **full
 battery** — this is the altitude it was built for. The gate runs as the **pre-G2
 phase**, right-sized by this loop's progressive mode (solo runs it lean; a
-lens-team run runs it in full). *(AC33.)*
+lens-team run runs it in full).
 
 This is `discovery-loop`'s **own co-scoped copy** of the modules; it does not
 import `work-loop`'s copy (which carries only `resolve-vs-surface`). A schema/seam
-change moves both copies — they conform to the **same cross-loop seam** RFC-0051
-fixes (the goal + resolve-vs-surface + a non-skippable coverage record), never
+change moves both copies — they conform to the **same cross-loop seam**
+(the goal + resolve-vs-surface + a non-skippable coverage record), never
 re-worded.
 
 ## The discipline
@@ -48,5 +48,5 @@ record** — a short, durable artifact (promoted into the decision-log / brief) 
 
 **Done-checklist refusal.** The loop does **not** declare G2 reached until the
 coverage record exists and every fresh-context finding is resolved. This refusal
-item is what makes the gate non-skippable — the same backstop RFC-0051's seam
+item is what makes the gate non-skippable — the same backstop the cross-loop seam
 requires of every loop.

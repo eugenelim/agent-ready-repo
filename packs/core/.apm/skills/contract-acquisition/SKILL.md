@@ -58,7 +58,7 @@ This skill is **user- and agent-invoked** (it has an activation surface, unlike
 the reviewer-internal depth libraries). It fires when the agent is about to
 author against a contract it doesn't already hold — at `work-loop`'s
 **EXECUTE contract-grounding gate**, which routes **two surfaces** here (one
-gate, one skill — ADR-0037 D1):
+gate, one skill):
 
 - **Infra** — before generating a CLI invocation, an IaC resource, or
   application code that runs on a managed runtime (a function handler whose

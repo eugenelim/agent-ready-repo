@@ -1,4 +1,4 @@
-"""credential-setup tests (spec task T8) — credential-setup ships none today.
+"""credential-setup tests — credential-setup ships none today.
 
 Exercises the three Tier-selection orchestration paths after the migration onto
 credbroker's public write API, plus the import-surface invariant (no
@@ -182,7 +182,7 @@ def test_missing_credbroker_exits_3_with_install_hint(tmp_path):
 def test_non_credbroker_import_error_is_reraised(tmp_path):
     """A ModuleNotFoundError whose ``.name`` is not ``credbroker`` (credbroker
     present but importing a broken/absent dependency) surfaces unchanged — it is
-    NOT reported as "credbroker not found" (AC3). Guards the ``exc.name``
+    NOT reported as "credbroker not found". Guards the ``exc.name``
     narrowing branch against a mutation that drops it and treats every
     ModuleNotFoundError as a missing install.
 

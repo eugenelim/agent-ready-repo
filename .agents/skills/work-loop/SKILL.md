@@ -70,8 +70,8 @@ are net-new. In order:
    referent that genuinely failed). The
    [resolve-vs-surface reference](references/self-coverage/resolve-vs-surface.md)
    calibrates the call.
-4. **Fresh-context-adversarial review** — *existing (REVIEW):* reviewers selected per
-   ADR-0042 from the work-type-keyed roster.
+4. **Fresh-context-adversarial review** — *existing (REVIEW):* reviewers selected
+   from the work-type-keyed roster.
 5. **Resolve-vs-surface routing** — *existing (DECIDE):* `Surface` + apply/defer.
 6. **Done-checklist refusal** — *net-new (DECIDE):* don't declare done until the
    disposition record exists and every fresh-context finding is resolved.
@@ -358,8 +358,8 @@ Match the discipline to the verification mode you picked during PLAN:
 Before generating code against a contract you do not already hold, acquire it
 via the [`contract-acquisition`](../contract-acquisition/SKILL.md)
 skill — never guess a flag, schema shape, field constraint, signature, or
-packaging assumption. **Two surfaces, one gate and one skill** (ADR-0037 D1 —
-extend the one gate, never fork a parallel skill): **(1) infra** — a CLI
+packaging assumption. **Two surfaces, one gate and one skill** (extend the one
+gate, never fork a parallel skill): **(1) infra** — a CLI
 invocation, an IaC resource, or application code on a managed runtime, against an
 unfamiliar platform; **(2) software** — code against an **unfamiliar internal
 framework or third-party library** whose contract (a versioned signature, a
@@ -372,8 +372,7 @@ behavioral contract; the gate now also covers the software case it was
 abstracted from, not infra alone. It is **universal** (fires in light mode too;
 heavier infra-flavor layers fire only on the infra-flavored signal), and is for
 the *unfamiliar-contract* case — **not** every import, not familiar code whose
-contract the agent already holds. (RFC-0044 § Errata 2026-06-24; RFC-0047
-Decisions 1–2 / ADR-0037 D1; detail in
+contract the agent already holds. (Detail in
 [`references/infra-verification.md`](references/infra-verification.md).)
 
 For each task, implement the smallest coherent unit of work toward the
@@ -630,7 +629,7 @@ note in the summary, not a blocker.
   failure modes raised, load **only** the matching modules, and inline them into
   the subagent's brief (orchestrator-driven — its `tools:` has no Skill tool, so
   loading is not model-relevance-judged). **No new reviewer** — feeds the existing
-  `quality-engineer` (ADR-0023). Route deterministically via
+  `quality-engineer`. Route deterministically via
   [`operational-safety`' **Module index**](../operational-safety/SKILL.md#module-index)
   — the failure-mode→module mapping is the routing authority and lives there,
   beside the depth it routes to.
@@ -643,7 +642,7 @@ note in the summary, not a blocker.
   `operational-safety` (this pass). The two passes are complementary lenses on
   the same infra diff, not substitutes.
 
-  **Independent contract re-derivation (Delivery — no new agent, ADR-0023).**
+  **Independent contract re-derivation (Delivery — no new agent).**
   When a diff was authored against a contract grounded at the EXECUTE gate, the
   orchestrator inlines
   [`contract-acquisition`](../contract-acquisition/SKILL.md) into the

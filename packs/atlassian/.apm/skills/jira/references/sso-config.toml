@@ -1,4 +1,4 @@
-# SSO web-session cookie config (RFC-0035) — Atlassian Data Center only.
+# SSO web-session cookie config — Atlassian Data Center only.
 #
 # This file is PLACEHOLDER-SHAPED upstream: auth_default = "creds", *.invalid
 # hosts, and no cookie values. With it untouched, `jira` behaves exactly as

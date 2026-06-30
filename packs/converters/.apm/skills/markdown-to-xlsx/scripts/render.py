@@ -95,7 +95,7 @@ def confine(path: Path, root: Path) -> Path:
 def parse_markdown(text: str) -> dict:
     """Project a Markdown artifact onto the xlsx content model.
 
-    Mapping (RFC-0036): front-matter ``key: value`` lines → ``scalars`` (each
+    Mapping: front-matter ``key: value`` lines → ``scalars`` (each
     written into a single-cell *named range* of the same name); the first
     Markdown table → ``table`` (``{header, rows}``, written into an Excel
     *Table* data region). Pure transform — no I/O.

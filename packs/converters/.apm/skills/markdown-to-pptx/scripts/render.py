@@ -68,7 +68,7 @@ def confine(path: Path, root: Path) -> Path:
 def parse_markdown(text: str) -> dict:
     """Project a Markdown artifact onto the pptx content model.
 
-    Mapping (RFC-0036): front-matter ``key: value`` lines → ``scalars``; each
+    Mapping: front-matter ``key: value`` lines → ``scalars``; each
     H1/H2 heading → one ``section`` (→ one slide); list items under a heading →
     ``bullets``; a Markdown table under a heading → ``table`` (rows of cells).
 

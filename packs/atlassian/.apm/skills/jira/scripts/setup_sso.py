@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Seed the sso-broker profile from references/sso-config.toml (RFC-0035; T7).
+"""Seed the sso-broker profile from references/sso-config.toml.
 
 Reads and **validates** the ``[sso]`` config through the loader (which applies the
-credbroker scheme / root-relative primitives — AC3 — *before* the broker is
+credbroker scheme / root-relative primitives *before* the broker is
 touched), then drives ``sso-broker register <profile>`` with the connection
 parameters from the file. No cookie value is ever passed on argv — only validated
-connection parameters (RFC-0013 § 1 path-not-value; AC14). The headed-browser
+connection parameters (path-not-value). The headed-browser
 capture and at-rest storage are the unchanged broker's job.
 
 Run once after an enterprise pre-bakes ``references/sso-config.toml`` with
@@ -66,7 +66,7 @@ def build_register_argv(broker: Path, cfg: SsoConfig) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     try:
-        cfg = load_sso_config()  # validates (AC3) before we touch the broker
+        cfg = load_sso_config()  # validates before we touch the broker
     except Exception as exc:  # noqa: BLE001 — malformed config → don't register
         print(f"error: invalid sso-config.toml: {exc}", file=sys.stderr)
         return 2

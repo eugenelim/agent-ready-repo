@@ -231,7 +231,7 @@ is installed):
 - **Don't force a single ticket into a brief.** One issue is one feature →
   `new-spec`. A defect → `jira-defect-flow`.
 - **Don't become a cross-repo coordination hub.** Carry the epic key as the
-  `Epic:` pointer only; do not reimplement a tracker (RFC-0019 own-the-slice).
+  `Epic:` pointer only; do not reimplement a tracker (own the slice).
 - **Don't hardcode a sibling skill or template path.** Look skills up by name.
 
 ## Edge cases

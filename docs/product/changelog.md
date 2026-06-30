@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Shipped skill content is now self-contained — internal RFC/ADR citations removed.**
+  Skills, subagents, reference docs, and scripts across `core`, `governance-extras`,
+  `atlassian`, `converters`, `research`, and `product-engineering` no longer cite the
+  bundle's own governance artifacts (`RFC-00xx`, `ADR-00xx`, `docs/rfc/…`, spec
+  task/AC numbers) as load-bearing references — each rule now reads on its own terms.
+  Adopters install these skills without the bundle's `docs/` tree, so a dangling
+  `RFC-00xx` pointer was an unresolvable reference; the rules are unchanged, only the
+  provenance citations are gone. Real external standards (e.g. RFC-1918, RFC-9457) are
+  left intact. Also: the `.claude/skills/` README inventory now matches the projected
+  skill set, the scaffolded `docs/product/roadmap.md` is marked as a template, and the
+  `work-loop` activation hook's docstring points at `tools/hooks/README.md` for wiring.
 - **The traceability lint gains a root→leaf reachability pass (core 0.7.1).** On the
   authoritative sidecar graph, `work-loop`'s `lint-traceability.py` now flags every
   node that does not lie on a path from `root` to a leaf — a **`UNREACHABLE`

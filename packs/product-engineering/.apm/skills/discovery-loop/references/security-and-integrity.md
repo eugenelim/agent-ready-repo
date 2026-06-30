@@ -7,7 +7,7 @@ implementing run can falsify** — not prose. The decision-log row schema and th
 data-classification table live in
 [`sidecar-schema.md`](sidecar-schema.md); this file is *how the controls behave*.
 
-## 1. Verdict write-authority — no forged consent *(AC25)*
+## 1. Verdict write-authority — no forged consent
 
 The *same* reasoning context both sets `status=awaiting-human` and reads the
 decision log to resume, so the contract must prevent the controller (or a poisoned
@@ -32,7 +32,7 @@ human never saw.
   records that the forged row is **rejected/flagged** (or, for a harness without the
   untokened channel, records that the loop **refuses unattended operation**).
 
-## 2. Decision-log as a real audit trail *(AC26)*
+## 2. Decision-log as a real audit trail
 
 The slot is **append-only** + **per-row actor attestation** + **tamper-evidence** +
 a **trusted timestamp**, paired with a lint/CI assertion that the slot's commits
@@ -48,8 +48,8 @@ are add-only.
   tamper-evident against the in-scope adversary (the agent that writes it). The
   chain is tamper-evident **only when its tip is anchored where the agent has no
   token to rewrite it** — the **same agent-untokened / harness-immutable store as
-  the AC25 verdict channel** (or the tip is signed with a key the agent lacks). The
-  falsifiable AC26-(a) requirement is **that anchored tip**, not the bare hash
+  the verdict channel in control 1** (or the tip is signed with a key the agent lacks). The
+  falsifiable requirement for option (a) is **that anchored tip**, not the bare hash
   field; the verify-lint compares the recomputed chain against the
   externally-held tip. **or**
 - **(b) a harness-provided immutable log** — an explicit harness-conformance
@@ -58,21 +58,21 @@ are add-only.
 The validation run exercises a **tamper attempt** (an in-place prior-row edit) and
 records that it is **detected**.
 
-## 3. Non-degradable security lens on a boundary *(AC27)*
+## 3. Non-degradable security lens on a boundary
 
 The `discovery-threat-reviewer` is a hard dep (required at G2; ships in
 `product-engineering`, the floor) and degrades only in *depth* — never silently
 skipped. Its baseline checklist must not silently stand in for full depth on a
 security-relevant product.
 
-- Tie the lens's *depth* to a **risk trigger** (mirroring RFC-0025 / the surfacing
+- Tie the lens's *depth* to a **risk trigger** (mirroring the surfacing
   predicate): when an intent or artifact crosses a security boundary (auth,
   untrusted-input-to-memory, regulated data) **and** `core`'s `security-checklists`
   depth is absent (only the reviewer's baseline checklist is available), the loop
   **surfaces to the human** — *"security-relevant boundary crossed, only baseline
   security depth installed"* — rather than degrading silently.
 
-## 4. Lens-write integrity — no blackboard poisoning *(AC28)*
+## 4. Lens-write integrity — no blackboard poisoning
 
 In lens-team mode, lens-agents write the blackboard the controller trusts for
 convergence and cascade-invalidation; a lens that ingests untrusted external
@@ -91,7 +91,7 @@ content (web `research`, adopter docs) is an injection sink.
   implementer satisfies this control by wiring the marker + the inert-promote rule,
   not by repeating the property.
 
-## 5. Cascade-invalidation circuit-breaker *(AC29)*
+## 5. Cascade-invalidation circuit-breaker
 
 The edge-walk *scopes* a rejection, but the same primitive is a
 denial-of-convergence lever (spurious edges from a high-fan-out node could
@@ -99,7 +99,7 @@ invalidate the whole blackboard and burn the budget).
 
 - Cascade re-runs **count against the cost budget**.
 - An invalidation exceeding a **fan-out threshold surfaces to the human** rather
-  than auto-cascading. The threshold is a **spec-tunable default** (mirroring D4's
+  than auto-cascading. The threshold is a **spec-tunable default** (mirroring the
   ~40% concentration default — a modelled-not-run control must not ship without a
   value): **surface when an invalidation touches more than `1/3` of the active
   matrix *or* more than `N` nodes absolute (default `N = 8`), whichever is
@@ -111,7 +111,7 @@ invalidate the whole blackboard and burn the budget).
 - The validation run **forces one over-threshold invalidation** and records that it
   **surfaced** rather than auto-cascading.
 
-## 6. `reversibility-class` is an enumeration *(AC30)*
+## 6. `reversibility-class` is an enumeration
 
 It gates consent stakes, so an agent must not under-classify a one-way door as
 `reversible`.
@@ -121,7 +121,7 @@ It gates consent stakes, so an agent must not under-classify a one-way door as
 - `one-way-door` binds to a **mandatory consent gate regardless of which gate it
   arose at**.
 
-## 7. Sidecar data-handling / classification *(AC31)*
+## 7. Sidecar data-handling / classification
 
 The slots carry product strategy, personas, security findings, customer/domain
 facts, and consent rationale — sensitive and potentially regulated data.
@@ -135,7 +135,7 @@ facts, and consent rationale — sensitive and potentially regulated data.
 - **A regulated- or secret-bearing artifact surfaces** to the human /
   `discovery-threat-reviewer` before being written to a shared repo-backed
   sidecar — the same surface-don't-degrade-silently posture as control 3.
-- **Composition with the checkpoint (AC8).** The classification check is a
+- **Composition with the checkpoint.** The classification check is a
   **precondition on the per-round/per-gate checkpoint write**: a
   `sensitive`/`regulated` slot is redacted-or-surfaced **before** it reaches the
   shared store, not as a separate later step. The two requirements **compose** —
