@@ -32,6 +32,9 @@ pip install agentbundle
 # See the catalogue (bare uses the default; or name one explicitly)
 agentbundle list-packs
 
+# See what YOU have installed — version + whether an upgrade is available
+agentbundle list-installed
+
 # Install the flagship loop into this repo
 agentbundle install --pack core
 

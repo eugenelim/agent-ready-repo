@@ -21,12 +21,18 @@ Pick the verb that matches how you originally installed.
 - **`agentbundle` CLI:**
 
   ```bash
-  agentbundle upgrade --pack <name> --to <version> <catalogue>
+  agentbundle upgrade --pack <name> <catalogue>
   ```
 
-The first two use the host tool's native verbs and follow that tool's conflict-resolution rules, not the catalogue's. The `agentbundle upgrade` verb is the only route that drops `*.upstream.<ext>` companions next to any Tier-2 file whose content has diverged since install — letting you walk the merges later via the `adapt-to-project` skill (see *One file at a time* below).
+`upgrade` takes **no version** — the target is whatever the catalogue you point at declares. To move to a specific past version, point `<catalogue>` at that git ref.
+
+The first two use the host tool's native verbs and follow that tool's conflict-resolution rules, not the catalogue's. The `agentbundle upgrade` verb is the only route that drops `*.upstream.<ext>` companions next to any Tier-2 file whose content has diverged since install — letting you walk the merges later via the `adapt-to-project` skill (see *One file at a time* below). Before it writes, it tells you how many of your edited files it will preserve as companions.
 
 `<catalogue>` is the same URI you installed from, e.g. `git+https://github.com/eugenelim/agent-ready-repo` or a local checkout path.
+
+> **Check first.** `agentbundle list-installed` shows every installed pack with its version and whether an upgrade is available — run it before upgrading to see what's outstanding (see the [CLI reference](../reference/agentbundle.md#see-whats-installed)).
+
+> **Multiple adapters.** If a pack is installed for more than one adapter at the scope, `upgrade` upgrades one adapter per run and asks you to `--adapter` which; the message lists each adapter with its version. Re-running against the version you already have is reported as `re-applied … (already current)`, not a version change.
 
 > **Pitfall — `install --pack` is not the upgrade verb.** `agentbundle install --pack` refuses an in-place re-install. Use `upgrade --pack` to change an installed pack's version.
 
@@ -35,7 +41,7 @@ The first two use the host tool's native verbs and follow that tool's conflict-r
 Add a primitive filter to the same `upgrade` verb:
 
 ```bash
-agentbundle upgrade --pack <name> --to <version> --skill <skill-name> <catalogue>
+agentbundle upgrade --pack <name> --skill <skill-name> <catalogue>
 ```
 
 `--agent`, `--hook`, `--seed <path>`, and `--command` work the same way. Only the named primitive moves; the rest of the pack stays at the previously-installed version. The CLI records the resulting mixed-version state in `.agentbundle-state.toml`; the next whole-pack upgrade flags it.
