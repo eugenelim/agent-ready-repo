@@ -28,6 +28,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   filters to one scope; `--check-drift` adds a per-row count of files edited
   locally since install. Closes the gap where no command could report installed
   state — only what a *catalogue* offered.
+- **The release loop — a new opt-in `release-engineering` pack (release-engineering 0.1.0).**
+  Adds the SRE/ops **outer loop** above `work-loop`'s inner build loop: a
+  **`release-lead`** agent (the outer-loop supervisor — a peer of `work-loop`'s
+  supervisor and `discovery-lead`, **not** a `work-loop` mode) and a
+  **`release-loop`** skill that deploys the integrated whole to an **ephemeral
+  environment**, runs e2e, observes telemetry, feeds deployed findings back to the
+  inner loop (no human relay), redeploys, and **iterates until the deployed whole
+  converges** — then stops at the **human consent gate** for the prod ship (G5),
+  surfaced as a **release-readiness record** to ratify rather than a bare
+  go/no-go. Autonomy is carved by **minimum-regret**: the agent runs the inner and
+  outer loops on reversible ephemeral envs unwatched; humans gate the irreversible
+  exits (first real users or data, data migrations, spend over threshold,
+  security/auth-boundary changes, anything irreversible, and prod). Convergence up
+  to that gate is judged by **policy** (canary SLOs + e2e coverage of the changed
+  surface + flake < 2%), with **DORA** as the health signal. The pack is
+  **repo-scope** (co-located in the build repo where `core` is installed) and
+  **reuses** `core`'s `operational-safety` modules + `quality-engineer` +
+  `security-reviewer`, consuming the discovery sidecar by convention — **no new
+  runtime engine and no new reviewer**. This completes the **company OS**: product
+  (discovery) → engineering (build) → SRE/ops (release). *(Implements RFC-0049,
+  now Accepted; ADR-0044 records the inner/outer split + the minimum-regret deploy
+  carve; the `release-loop` spec is Shipped, all 15 ACs checked.)*
 
 ### Changed
 

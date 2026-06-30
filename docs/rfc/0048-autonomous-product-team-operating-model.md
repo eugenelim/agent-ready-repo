@@ -1072,6 +1072,24 @@ superseded wording, the current-state table above wins.
   Current-reconciliation-state *Spec up-edge* row, and the discharge prose all now name RFC-0053's
   implementing spec. See [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts →
   *Spec→discovery up-edge (DRIFT-G)*.
+- **2026-06-30 — the company-OS third (SRE/ops) seat implemented, by RFC-0049's implementing PR.**
+  The 2026-06-26 SRE-seat entry and the 2026-06-28 reviewer-reuse / repo-scope entry above
+  recorded the `release-lead` seat as *modelled* (specified by the drafted release-loop spec).
+  Its implementing PR has now landed the artifacts (the spec is **Approved**; it ships when its
+  ACs check at the ship transition): the opt-in, **repo-scope** `release-engineering` pack
+  holding the `release-lead` agent + the `release-loop` skill — reusing `core`'s
+  `operational-safety` + `quality-engineer` + `security-reviewer` (no new reviewer, no engine),
+  consuming the RFC-0053 sidecar by convention. The **gate arc is wired**: G4 (`work-loop` build
+  done) → the release (outer) loop in the G4→G5 gap → G5 (human prod ship), with leads handing
+  off **work→release at deploy** and **release→prod at G5** — the company OS
+  (discovery → build → SRE/ops) is now **complete** on this foundation's substrate. RFC-0049 moved **Open → Accepted**
+  (2026-06-30); its OQ1/OQ2 were resolved in RFC-0049 per their recommended defaults and the
+  follow-on [ADR-0044](../adr/0044-inner-outer-loop-split-and-minimum-regret-deploy-carve.md) was
+  authored. **Re-opens no value call** — it discharges the modelled seat into shipped artifacts
+  (the [release-loop spec](../specs/release-loop/spec.md) is **Shipped**, all 15 ACs checked).
+  **Owner:** RFC-0049 / its [release-loop spec](../specs/release-loop/spec.md). **Not** an
+  RFC-0048 acceptance blocker (0048 accepted on RFC-0053's blockers, treating this seat as
+  modelled).
 
 ### Foundation reconciliation discharge — the composed-set reconciliation (2026-06-26)
 
