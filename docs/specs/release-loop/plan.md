@@ -41,8 +41,8 @@ or the sidecar schema (RFC-0053) — both fenced off as Never-do / Ask-first.
 - **RFC-0049** (the parent): the inner/outer split (D1), the minimum-regret carve
   (D2), convergence by policy (D6), the company-OS composition (D5); and its OQ1
   (pack home) + OQ2 (agent shape), which this plan resolves.
-- **RFC-0048** (the provisional foundation): the G4→G5 arc, the sidecar substrate,
-  the company-OS framing; reconciled here as a tracked amendment (D9
+- **RFC-0048** (the foundation, Accepted 2026-06-30): the G4→G5 arc, the sidecar
+  substrate, the company-OS framing; reconciled here as a tracked amendment (D9
   series-execution standard).
 - **RFC-0053** (the sibling): the sidecar schema this loop consumes by convention (carried in `product-engineering`'s `discovery-loop` skill, not `core`), the
   `agent-def + skill + no-engine` pattern, and the § Security & integrity contract
