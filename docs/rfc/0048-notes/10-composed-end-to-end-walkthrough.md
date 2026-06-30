@@ -164,7 +164,7 @@ completion. (Feature intents land as blackboard slots.)
 
 ### 3b · UX lens — the connective layer (the experience pack, RFC-0050)
 
-**EXAMPLE ARTIFACT — `journey-map`** (`map-journey`; surface: cross — [RFC-0050 D3](../0050-the-experience-pack.md)):
+**EXAMPLE ARTIFACT — `journey-map`** (`map-customer-journey`; surface: cross — [RFC-0050 D3](../0050-the-experience-pack.md)):
 
 ```markdown
 ---
@@ -208,7 +208,7 @@ Backstage column → the slicing instrument: each backstage component becomes a 
 (web-app · api-service · data-store · worker); cross-component edges → `depends_on`.
 
 **EXAMPLE ARTIFACT — `screen-inventory` + one per-screen brief**
-(`inventory-screens`; states **defer to the shared handle-all-states floor**, RFC-0050 D2/D4;
+(`map-screen-flow`; states **defer to the shared handle-all-states floor**, RFC-0050 D2/D4;
 brief template = [note 07](07-screen-brief-format.md)):
 
 ```markdown
@@ -278,27 +278,34 @@ Identity, Guardrails. Designs the *runtime* learning loop (human-approved durabl
 ### 3e · Reconcile lens + the answer-each-other ripple
 
 Lenses bounce off each other **through the open-questions queue + blackboard**, never chat
-(MAST guardrail by topology). The reconcile lens runs `security-reviewer` + `quality-engineer`
-in their **design-artifact mode** ([RFC-0048 O5 / Decision 2](../0048-autonomous-product-team-operating-model.md)).
+(MAST guardrail by topology). The reconcile lens runs the **discovery reviewer roster** —
+`discovery-threat-reviewer` + `discovery-reliability-reviewer` (`product-engineering`,
+user-scope), plus `experience-reviewer` (`experience`, if installed) and `design-reviewer`
+(`architect`, if installed) as live lenses over the journey/blueprint/architecture
+([RFC-0048 § rollout 4e](../0048-autonomous-product-team-operating-model.md); RFC-0050 D7).
 
-▶ **DRIFT-E (reviewer roster).** The security lens that fires here is the **same
-`security-reviewer` agent in design-artifact mode** — *not* a fourth agent. RFC-0048 D7/D8
-and RFC-0053 D5 call it "a different agent from `work-loop`'s code `security-reviewer`,"
-which collides with Decision 2's "a mode, not a new agent." Reconciled at **DRIFT-E** (same
-agent definition; different *invocation/lens*, design-time over the blackboard).
+▶ **DRIFT-E (reviewer roster) — reconciled.** An earlier draft fired `work-loop`'s code
+`security-reviewer` + `quality-engineer` here in a **"design-artifact mode."** The
+reconciliation landed the other way: the design-time lenses are **distinct, user-scope
+agents** — `discovery-threat-reviewer` + `discovery-reliability-reviewer` in
+`product-engineering`, with `experience-reviewer` (RFC-0050 D7) and `design-reviewer`
+(architect) — **not** a mode bolted onto `core`'s code reviewers, which are reused *as-is*
+for code-diff review only. So RFC-0048 D7/D8 + RFC-0053 D5's "a different agent from
+`work-loop`'s code `security-reviewer`" reading is the one that held; recorded in RFC-0048
+§ Amendments (2026-06-26 scope-decoupling) + ADR-0042's loop/work-type agent-addition policy.
 
 **EXAMPLE ARTIFACT — the OQ ripple on the blackboard** (from the [spike](../0053-notes/01-spike-report.md),
 the connectedness pressure test):
 
 ```
-inventory-screens emits screen:learning-review
+map-screen-flow emits screen:learning-review
   → blueprint-service must back it → tech: "gated Memory write"
-  → SECURITY LENS FIRES (security-reviewer, design-artifact mode):
+  → SECURITY LENS FIRES (discovery-threat-reviewer, design-time):
        unapproved input writing to agent memory = prompt-injection self-modification
        (OWASP LLM-01/08)
   → OQ-3 routed to product → decompose-intent: "what makes a learning approvable + who audits"
   → tech: approval aggregate + audit log, contract:learning-approval@2
-  → inventory-screens: adds screen:audit-view
+  → map-screen-flow: adds screen:audit-view
   → voice-and-microcopy: approval/audit copy
   → ripple settles → service:learning-approval no longer orphaned → CONVERGED
 ```
@@ -513,7 +520,7 @@ not just per-child).
 **Surfaced drift (folded into [RFC-0048 § Amendments](../0048-autonomous-product-team-operating-model.md#amendments), 2026-06-26):**
 DRIFT-A (chain terminus `component`) · DRIFT-B (sidecar store `_state/` vs harness) ·
 DRIFT-C (`docs/discovery/` layout key owner) · DRIFT-D (experience artifacts in-initiative
-home) · DRIFT-E (reviewer = mode not new agent) · DRIFT-F (persona elicit-inline) ·
+home) · DRIFT-E (reviewer = distinct user-scope agents, not a mode on core's code reviewers) · DRIFT-F (persona elicit-inline) ·
 DRIFT-G (`Discovery:` up-edge producer) · DRIFT-H (backlog producer + `loop-cohort` fit) ·
 DRIFT-I (carried sidecar schema reference owed — in `discovery-loop`, not `core`).
 

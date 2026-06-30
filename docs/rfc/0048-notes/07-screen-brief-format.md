@@ -1,4 +1,4 @@
-# Per-screen brief — the unit `inventory-screens` emits
+# Per-screen brief — the unit `map-screen-flow` emits
 
 Goal: a brief **self-contained enough to generate one screen in isolation** (feed it to
 Claude design / a UI-codegen step), yet **carrying the connective context so the whole
@@ -108,7 +108,7 @@ Let the owner review what the assistant proposes to learn, and approve or reject
 ```
 
 ## How it fits the system
-- `inventory-screens` produces the screen inventory (the list + the shared-contract
+- `map-screen-flow` produces the screen inventory (the list + the shared-contract
   pointer) and **emits one of these briefs per screen**.
 - Each brief feeds Claude design / UI-codegen to generate **one screen** — fanned out in
   parallel (per-screen is the disjoint-work case).

@@ -76,9 +76,9 @@ launch/GTM brief).
 
 1. **The Experience/design discipline** — the confirmed gap (both research
    streams). Candidate skills:
-   - `map-journey` — journey map from outcomes/JTBD.
+   - `map-customer-journey` — journey map from outcomes/JTBD.
    - `blueprint-service` — service blueprint (frontstage/backstage); the UX↔tech tie.
-   - `inventory-screens` — screen inventory + per-screen state matrix
+   - `map-screen-flow` — screen inventory + per-screen state matrix
      (empty/loading/error/success/permission) from the journey.
    - (`map-story` — story map; likely folds into decompose-intent's slicing.
      Defer until it earns its own skill.)
