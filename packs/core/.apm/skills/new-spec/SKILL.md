@@ -123,6 +123,14 @@ look like?" before any code.
      blank or `none` for a spec authored directly. It records *product
      provenance* and is distinct from `Constrained by:` (governance).
      A spec without it stays valid — the field is additive.
+   - Stamp the optional `Discovery:` header **only** when this spec
+     descended from an upstream discovery artifact (a decision brief /
+     intent produced by an upstream discovery process — e.g. the
+     discovery loop's G3 hand-off). Set it to that artifact's stable id;
+     leave it blank or `none` otherwise. It is the discovery-side sibling
+     of `Brief:` — the spec→discovery up-edge a traceability check walks
+     — additive, and a spec without it stays valid. (Format only — the
+     header field; see `CONVENTIONS.md` § 4 Spec metadata.)
 
 4. Fill in the spec — including the **Testing Strategy** section. Push
    back hard on these failure modes:
