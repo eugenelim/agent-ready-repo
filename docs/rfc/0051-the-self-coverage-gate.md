@@ -1,78 +1,134 @@
-# RFC-0051: the self-coverage gate — a non-skippable coverage library both loop controllers run
+# RFC-0051: the self-coverage gate — non-skippable coverage doctrine each loop controller carries
 
 - **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
 - **Date closed:**
-- **Decision weight:** standard <!-- light | standard | heavy — an additive `core` reference library + loop doctrine; no new runtime, no new reviewer. It adds one refusal item to `work-loop`'s done-checklist (an additive doctrine change, not a checklist rewrite) and reverses no frozen decision, so it sits below the governance-boundary line — the same standard-weight framing the analogous additive RFC-0055 convention used. -->
-- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 3**, Decision 5; the provisional foundation this drift-aligns back to) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the `operational-safety` reference-library + reuse-the-reviewer precedent this RFC mirrors exactly — *no new runtime, no new reviewer*) · RFC-0025 (`work-loop` light/full mode + risk triggers — the right-sizing model this reuses) · `operational-safety` + `security-checklists` skills (the controller-loaded progressive-disclosure shape) · `work-loop` skill (the consuming controller; PLAN trio + declined-pattern register + REVIEW adversarial pass + the done-checklist refusal items this gate joins) · RFC-0048 D8 (`discovery-loop` / `discovery-lead` — the *second* controller, not built yet) · promoted research in RFC-0048's [`0048-notes/03`](0048-notes/03-autonomy-and-gate-economics.md) (the floor-raiser table) and [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the resolve-vs-surface sample-bank this graduates)
+- **Decision weight:** standard <!-- light | standard | heavy — additive loop doctrine: each controller carries the gate in its own skill at its own scope; no new pack, no cross-pack coupling, no new runtime, no new reviewer. It adds one refusal item to `work-loop`'s done-checklist (an additive doctrine change, not a checklist rewrite). It does *amend* one in-flight foundation decision (RFC-0048 D5's "a `core` library loaded by both controllers" packaging), recorded as a tracked amendment to that Open RFC, not a reversal of a frozen decision — so it stays below the governance-boundary line, the same standard-weight framing the analogous additive RFC-0055 convention used. -->
+- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 3**, Decision 5; the provisional foundation this drift-aligns back to) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the `operational-safety` reference-library + reuse-the-reviewer precedent this RFC mirrors on *form* and *reuse* — *no new runtime, no new reviewer* — diverging only on *locus*: per-loop co-scoped copies, not one shared library, because this gate's consumers straddle the repo/user scope boundary) · RFC-0025 (`work-loop` light/full mode + risk triggers — the right-sizing model this reuses) · `operational-safety` + `security-checklists` skills (the controller-loaded progressive-disclosure shape) · `work-loop` skill (the consuming controller; PLAN trio + declined-pattern register + REVIEW adversarial pass + the done-checklist refusal items this gate joins) · RFC-0048 D8 (`discovery-loop` / `discovery-lead` — the *second* controller, not built yet) · promoted research in RFC-0048's [`0048-notes/03`](0048-notes/03-autonomy-and-gate-economics.md) (the floor-raiser table) and [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the resolve-vs-surface sample-bank this seeds into a per-loop bank)
 
 ## Reviewer brief
 
-- **Decision:** whether to build the self-coverage gate as a `core` reference library + loop doctrine — a non-skippable coverage phase both loop controllers run — with no new runtime and no new reviewer.
+- **Decision:** whether to ship the self-coverage gate as **per-loop controller doctrine** — each loop controller carries the gate in its own skill, at its own scope, with progressive-disclosure depth modules and a per-loop sample-bank — non-skippable, with **no shared library, no cross-pack coupling**, no new runtime, and no new reviewer.
 - **Recommended outcome:** accept.
 - **Change if accepted:**
-  - Add a `core` skill holding seven step-modules + a living sample-bank (the `operational-safety` shape), controller-loaded.
-  - Make it **non-skippable** via a controller-gate + a done/converged-checklist refusal (doctrine + a mechanical coverage record), not a runtime lock.
-  - `work-loop` is the first consumer; `discovery-loop` becomes the second when RFC-0048 D8 ships; right-size light/full mirroring `work-loop`.
-- **Affected surface:** a new `core` reference-library skill + its seven `references/<step>.md` modules; `work-loop` SKILL.md (the gate phase + a checklist-refusal item); reuse of `adversarial-reviewer` / `devils-advocate`; the sample-bank graduating from `0048-notes/09`.
-- **Stakes:** reversible — additive doctrine + a reference library; no runtime, no new reviewer; degrades to the prior done-checklist if reverted.
-- **Review focus:** (1) the non-skippable mechanism is genuinely non-skippable yet harness-neutral (controller-gate + checklist-refusal, never a self-discovered skill); (2) light/full right-sizing reuses RFC-0025 rather than inventing a second knob.
-- **Not in scope:** a fourth reviewer agent; a runtime lock; semantic scope-creep detection (RFC-0048 D6 / O10).
+  - Add the gate's seven step-modules + a per-loop sample-bank as **progressive-disclosure reference files under the consuming loop's own skill** (loaded on demand by the gate phase — not a standalone skill, not a shared pack).
+  - Make it **non-skippable** via a controller-gate phase + a done/converged-checklist refusal (doctrine + a mechanical coverage record), not a runtime lock — enforced per loop, and *guaranteed present wherever each controller runs* (`work-loop` today; `discovery-loop` when D8 ships its own copy) because the gate is co-scoped with its controller.
+  - `work-loop` (in `core`, repo-scope) is the first consumer and the only one wired now; `discovery-loop` (in `product-engineering`, user-scope) carries its **own** copy of the same method when RFC-0048 D8 ships it — neither pack depends on the other. Right-size light/full mirroring `work-loop`.
+- **Affected surface:** the `work-loop` skill — its SKILL.md (the gate phase + a checklist-refusal item) and new `references/self-coverage/` modules (seven step-modules + a seeded per-loop sample-bank); reuse of `adversarial-reviewer` / `devils-advocate`; the cross-loop seam (goal + resolve-vs-surface + the non-skippable record) + the seven-module instantiation specified for `discovery-loop` to carry its own copy; a tracked amendment to RFC-0048 D5.
+- **Stakes:** reversible — additive doctrine + reference modules carried by one loop; no runtime, no new reviewer, no new pack; degrades to the prior done-checklist if reverted.
+- **Review focus:** (1) the non-skippable mechanism is genuinely non-skippable yet harness-neutral (controller-gate + checklist-refusal, never a self-discovered skill); (2) **per-loop co-scoping (not a shared `core` library) is the right call** — it dissolves the scope-coupling a shared library hits when `discovery-loop` runs user-scope/pre-repo, and keeps `core` and `product-engineering` standalone; (3) light/full right-sizing reuses RFC-0025 rather than inventing a second knob.
+- **Not in scope:** a fourth reviewer agent; a runtime lock; a shared cross-pack library or a dependency between `core` and `product-engineering`; a new standalone skill/pack for the gate; semantic scope-creep detection (RFC-0048 D6 / O10).
 
 ## The ask
 
-**Recommendation (BLUF).** Build the self-coverage gate the way RFC-0041 built
-`operational-safety`: a **`core` reference library + loop doctrine — no new runtime,
-no new reviewer**. It holds seven step-modules (domain-grounding table · pre-mortem ·
-taxonomy walk · saturation declaration · fresh-context adversarial pass ·
-scenario-variation · resolve-vs-surface) plus the **living sample-bank** graduated out of
-[`0048-notes/09`](0048-notes/09-gap-resolutions.md). It is **non-skippable** — but by a
-different mechanism than `operational-safety`: it runs in the **loop controller's own
-context** as a named gate phase whose coverage record the done/converged checklist refuses
-to pass without, *not* inlined into a subagent brief. `work-loop` is the first consumer;
-`discovery-loop` becomes the second when RFC-0048 D8 ships it.
+**What self-coverage is (the goal).** Self-coverage is not a fixed checklist — it is a *goal*:
+let each AI loop **proceed more autonomously by substituting rigorous checklists for what would
+otherwise be surfaced to a human**. The discipline at its core is **resolve-vs-surface** — resolve
+autonomously everything a referent or checklist can resolve; surface to the human only the
+irreducible (value origination, irreversible risk, value conflict). The remaining steps are the
+*vigorous checklist content* that makes more autonomous resolution safe (grounding, pre-mortem,
+taxonomy, saturation, fresh-context review, scenario-variation). Every loop with a human handoff
+realizes this goal — **with checklists appropriate to its own work**. This RFC owns the goal, the
+**seam** (the goal + the resolve-vs-surface disposition + the non-skippable coverage record that
+every loop's instantiation conforms to), and the **design/build instantiation** — the seven modules
+below — and wires `work-loop`. `discovery-loop` carries the same seven modules (wired by
+[RFC-0053](0053-the-discovery-loop.md)); `release-loop` realizes the same goal + seam through
+a deploy-appropriate *composite* ([RFC-0049](0049-the-release-loop-and-company-os.md)). See
+*Consumers & sequencing*.
+
+**Recommendation (BLUF).** Ship the self-coverage gate as **per-loop controller doctrine**:
+each loop controller carries the gate *in its own skill, at its own scope*, with **no shared
+library and no coupling between packs** — no new runtime, no new reviewer. The gate is a named
+phase in the consuming loop's SKILL.md; its depth is seven **progressive-disclosure reference
+modules** (domain-grounding table · pre-mortem · taxonomy walk · saturation declaration ·
+fresh-context adversarial pass · scenario-variation · resolve-vs-surface) plus a **per-loop
+sample-bank**, loaded on demand by the gate phase (light loads the always-on core; full loads
+all seven). It is **non-skippable** because it runs in the **loop controller's own context** as
+a named gate phase whose coverage record the done/converged checklist refuses to pass without,
+*not* a skill the controller may discover. `work-loop` (in `core`, repo-scope) is the first
+consumer and the only one wired now; `discovery-loop` (in `product-engineering`, user-scope)
+carries its **own** copy of the same method when RFC-0048 D8 ships it — neither pack depends on
+the other.
+
+**Why per-loop and not a shared `core` library.** RFC-0048 D5 framed this as "a reference
+library in `core`, loaded by both loop controllers." That packaging does not survive the scope
+split the operating model itself draws: `work-loop` is repo-scope (it lives in `core`), but
+`discovery-loop` is **user-scope and possibly pre-repo** (RFC-0048's operating-model section — a
+PM/designer environment). A repo-scope `core` library is simply absent when discovery runs
+outside a `core`-installed repo, and a *non-skippable* gate whose depth can be absent is a
+contradiction — it would have to detect-and-degrade, the very move RFC-0048 reserves for the
+discovery *reviewers'* depth (`security-checklists` / `operational-safety` "when present, else a
+baseline") and which is self-defeating for the floor-raiser itself. The fix is **not** to
+relocate one shared copy to a broader scope: a whole new pack for one markdown gate is overkill,
+and coupling `core` to `product-engineering` (either direction) couples two packs that should
+each stand alone. The honest fix is to see that, *unlike* `operational-safety`, this gate runs in
+the **controller's own context** and therefore needs no external shareable skill at all. Each
+loop carries the method as its own doctrine; "loaded by both controllers" means **both loops run
+the same method**, not both read one file. RFC-0048 D5 is amended to say so (§ Follow-on
+artifacts → foundation reconciliation; recorded at RFC-0048 § Amendments).
 
 **Why now (SCQA).** *Situation:* RFC-0048 decided the operating model and named the
 self-coverage gate (Decision 5) as the floor-raiser that fixes the knowing-doing gap —
 the agent failing to apply knowledge it already had, so errors compound unwatched between
 human gates ([`0048-notes/03`](0048-notes/03-autonomy-and-gate-economics.md)). *Complication:*
-RFC-0048 *decided* the gate and its packaging but **built nothing** — and the parent is
-explicit that a self-discovered skill is the wrong vehicle (the agent could skip it at its
-discretion, defeating the whole point), while `operational-safety`'s exact loading
-mechanism (inline into a *subagent* brief) does not transfer, because this gate runs in the
-*controller's own* reasoning context, where there is no brief to inline into. *Question:*
-how do we ship a gate that is genuinely non-skippable, harness-neutrally, without a runtime
-lock and without a fourth reviewer?
+RFC-0048 *decided* the gate and named its packaging — "a reference library in `core`, loaded by
+both controllers" — but **built nothing**, and that packaging does not survive contact with the
+operating model's own scope split: the second controller (`discovery-loop`) is user-scope and
+possibly pre-repo, where a repo-scope `core` library is absent. The parent is also explicit that a
+self-discovered skill is the wrong vehicle (the agent could skip it at its discretion, defeating
+the whole point), and `operational-safety`'s loading mechanism (inline into a *subagent* brief)
+does not transfer either, because this gate runs in the *controller's own* reasoning context,
+where there is no brief to inline into. *Question:* how do we ship a gate that is genuinely
+non-skippable, harness-neutrally, **available wherever either controller runs**, without a runtime
+lock, without a fourth reviewer, and without coupling two packs that should stand alone?
 
 **Decisions requested.**
 
 | ID | Question | Recommendation | Why | Decide by | Reviewer action |
 | --- | --- | --- | --- | --- | --- |
-| D1 | Build it as a `core` reference library + loop doctrine (the `operational-safety` shape, controller-driven loading) — never a self-discovered skill? | Adopt | The precedent RFC-0048 D5 named and RFC-0041 / ADR-0031 already accepted | RFC accept | Confirm the library + doctrine shape |
-| D2 | Make it non-skippable by a controller-gate + checklist-refusal mechanism — doctrine + a mechanical coverage record, not a runtime lock? | Adopt | The one design question RFC-0048 left to the child; the honest answer is the posture `operational-safety` already ships | RFC accept | Confirm the non-skippable mechanism is genuine yet harness-neutral |
-| D3 | Decompose into seven step-modules + the living sample-bank, routed by mode and the axes the design crosses (not a flat march)? | Adopt | The module shape keeps each step lean and lets light mode load only the core | RFC accept | Confirm the seven-module decomposition |
+| D1 | Ship it as **per-loop controller doctrine** — each loop carries the gate in its own skill at its own scope (progressive-disclosure reference modules under the consuming loop's skill), with **no shared library and no cross-pack coupling** — never a self-discovered skill? | Adopt (**amends RFC-0048 D5**) | Dissolves the scope-coupling a shared `core` library hits when `discovery-loop` runs user-scope/pre-repo; keeps each pack standalone; the controller-context (not subagent) means no external shareable skill is needed | RFC accept | Confirm the per-loop shape + the amendment to D5 |
+| D2 | Make it non-skippable by a controller-gate + checklist-refusal mechanism — doctrine + a mechanical coverage record, not a runtime lock — enforced per loop? | Adopt | The one design question RFC-0048 left to the child; co-scoping guarantees the gate is present wherever the controller runs (no cross-scope absence to degrade around) | RFC accept | Confirm the non-skippable mechanism is genuine yet harness-neutral |
+| D3 | Decompose into seven **progressive-disclosure** step-modules + a per-loop sample-bank, loaded on demand by mode and the axes the design crosses (not a flat march, not all inlined into SKILL.md)? | Adopt | The module shape keeps each step lean and lets light mode load only the core | RFC accept | Confirm the seven-module decomposition + progressive disclosure |
 | D4 | No new reviewer — the fresh-context adversarial step reuses the existing `adversarial-reviewer` (and `devils-advocate` for research/design) in a fresh context? | Adopt | The CHARTER three-reviewer ceiling; the parent's no-new-reviewer; the dispatch already exists in `work-loop` REVIEW | RFC accept | Confirm no fourth reviewer |
 | D5 | Right-size light/full, mirroring `work-loop` (light loads the always-on core; full loads all seven)? | Adopt | The gate must not become ceremony on a one-line change; reuse RFC-0025 rather than a second knob | RFC accept | Confirm the light/full right-sizing |
-| D6 | Graduate the resolve-vs-surface sample-bank into the library as a living, append-only reference (seeded from `0048-notes/09`)? | Adopt | The lens hits the right call only ~half the time without an externalized scaffold; the bank is that scaffold | RFC accept | Confirm the sample-bank's durable home |
+| D6 | Seed a **per-loop** resolve-vs-surface sample-bank — append-only within each loop's own scope, not a shared cross-scope bank? | Adopt | The lens hits the right call only ~half the time without an externalized scaffold; per-loop keeps the bank co-scoped with its controller and avoids cross-pack coupling | RFC accept | Confirm the per-loop sample-bank |
 
 ## Problem & goals
 
 **Diagnosis.** RFC-0048 Decision 5 decided *that* the self-coverage gate exists and *what*
-it must contain, and resolved its packaging in principle — "a reference library + doctrine
+it must contain, and proposed its packaging — "a reference library + doctrine
 (the `operational-safety` shape) in `core`, loaded by both loop controllers, right-sized
 light/full — *not* a self-discovered skill." What it did **not** do — because it builds
-nothing — is settle the one mechanism that makes the principle real: **how a gate is
-non-skippable when it runs in the controller's own context.** `operational-safety` earns
-its non-skippability cheaply: its consumer is a *subagent* whose `tools:` has no Skill
-tool, so the orchestrator inlines the modules into the subagent's brief as prompt text and
-the subagent never has to find the library (`operational-safety` SKILL.md:21-48). The
-self-coverage gate has no such consumer — it runs in the **loop controller**, the main
-agent that has *already loaded* `work-loop` (or, later, `discovery-loop`). There is no
-brief to inline into, and the same "skill discovery is model-invoked, so it can be skipped"
-hazard the parent flagged applies to the controller too. The gate therefore needs its own
-non-skippability mechanism, and that mechanism is this RFC's load-bearing design work.
+nothing — is settle two things that make the principle real, and on the second the proposed
+packaging is wrong.
+
+*First: how a gate is non-skippable when it runs in the controller's own context.*
+`operational-safety` earns its non-skippability cheaply: its consumer is a *subagent* whose
+`tools:` has no Skill tool, so the orchestrator inlines the modules into the subagent's brief as
+prompt text and the subagent never has to find the library (`operational-safety` SKILL.md:21-48).
+The self-coverage gate has no such consumer — it runs in the **loop controller**, the main agent
+that has *already loaded* `work-loop` (or, later, `discovery-loop`). There is no brief to inline
+into, and the same "skill discovery is model-invoked, so it can be skipped" hazard the parent
+flagged applies to the controller too. The gate therefore needs its own non-skippability
+mechanism (Decision 2).
+
+*Second: where the depth lives — and the parent's answer (`core`) does not survive the operating
+model's own scope split.* `work-loop` is repo-scope (it lives in `core`); `discovery-loop` is
+**user-scope and possibly pre-repo** (RFC-0048's operating-model section — "a PM/designer
+environment, possibly pre-repo"). A repo-scope `core` library is reachable by `work-loop` but
+**absent** when `discovery-loop` runs outside a `core`-installed repo. A *non-skippable* gate
+whose depth can be absent is a contradiction: it would have to detect-and-degrade — exactly the
+posture RFC-0048 reserves for the discovery *reviewers'* depth ("`core`'s depth libraries are
+optional detect-and-degrade enhancers"), and exactly the posture that is self-defeating for the
+floor-raiser itself. Relocating one shared copy to a broader scope does not fix it cleanly: a new
+pack for one markdown gate is overkill, and a `core`↔`product-engineering` dependency couples two
+packs that should each stand alone. The resolution is that this gate, unlike `operational-safety`,
+runs in the controller's own context and so needs no shared external skill — **each loop carries
+its own co-scoped copy** (Decision 1). That makes the depth *guaranteed present wherever the
+controller runs*, which is the property a shared `core` library could never give the user-scope
+`discovery-loop`.
 
 The failure this prevents is concrete and measured: agents exhibit *myopic greedy
 commitment* — chain-of-thought locks in early decisions and builds on them confidently;
@@ -84,16 +140,26 @@ unwatched — but only if it actually runs, every time, which is what "non-skipp
 deliver.
 
 **Goals.**
-- Ship the gate as the RFC-0041 idiom — **doctrine + a `core` reference library + reuse of
-  the existing reviewers** — so it is a *habit*, not a runtime (CHARTER Principle 3).
-- Make it **genuinely non-skippable** harness-neutrally, with an honest account of where
-  that is doctrine-plus-a-mechanical-check versus structurally enforced.
-- Keep each step **lean and load-only-what-applies**, so the gate is proportionate (a
-  one-line change pulls the core; a multi-discipline convergence pulls all seven).
-- Give the **resolve-vs-surface lens** its durable, living home, so the calibration that
-  lives in one RFC note becomes the repo-wide scaffold the parent intended.
+- Ship the gate as the RFC-0041 idiom — **doctrine + reference modules carried by the loop +
+  reuse of the existing reviewers** — so it is a *habit*, not a runtime (CHARTER Principle 3).
+- Make it **genuinely non-skippable** harness-neutrally, and **guaranteed present wherever the
+  controller runs** (co-scoped, never detect-and-degrade), with an honest account of where that
+  is doctrine-plus-a-mechanical-check versus structurally enforced.
+- Keep each loop's pack **standalone** — the gate must not couple `core` to
+  `product-engineering`; each carries its own copy, so either installs without the other.
+- Keep each step **lean and load-only-what-applies** via progressive disclosure, so the gate is
+  proportionate (a one-line change pulls the core; a multi-discipline convergence pulls all seven)
+  and the loop's SKILL.md stays lean.
+- Give the **resolve-vs-surface lens** a durable home **per loop**, so the calibration that lives
+  in one RFC note becomes a living scaffold each loop accretes in its own scope.
 
 **Non-goals** (could-have-been goals, deliberately dropped).
+- *A shared cross-pack library, or a dependency between `core` and `product-engineering`.* Each
+  loop carries its own copy; neither pack depends on the other. This **amends** RFC-0048 D5's "one
+  library in `core`, loaded by both controllers" (§ Follow-on artifacts → foundation
+  reconciliation).
+- *A new standalone `self-coverage` skill or pack.* The gate is doctrine + reference modules under
+  the consuming loop's own skill — a whole pack for one markdown gate is overkill.
 - *A self-discovered skill.* Explicitly rejected by RFC-0048 D5; a trigger-matched skill is
   skippable at the agent's discretion, which defeats a *gate*.
 - *A fourth reviewer agent.* The CHARTER caps reviewers at three; the fresh-context step
@@ -102,7 +168,9 @@ deliver.
   writing past the gate is runtime infrastructure (Principle 3) and harness-specific; we
   ship the doctrine such a harness enforces, not the harness.
 - *Building `discovery-loop`.* The second controller is RFC-0048 D8's child; this RFC wires
-  the **first** consumer (`work-loop`) and specifies the seam the second will use.
+  the **first** consumer (`work-loop`) and specifies the cross-loop seam (goal + resolve-vs-surface
+  + the non-skippable record) plus the seven-module design/build instantiation the second will
+  carry in its own copy.
 - *The Domain Framing + Scope Boundary typed artifacts and the traceability lint* (RFC-0048 D4/D6, sibling
   children). The domain-grounding step *consumes* a Domain Framing where one exists and
   degrades to in-gate grounding where it does not; it does not define that artifact.
@@ -111,13 +179,27 @@ deliver.
 
 Cascaded under the requested decisions.
 
-**Decision 1 — a `core` reference library + loop doctrine.** A new `core` skill —
-proposed name **`self-coverage`** (OQ1) — structurally identical to `operational-safety`:
-a lean SKILL.md (the universal method + a Module index that is the routing authority) over
-`references/<step>.md` modules carrying the depth. No executable code ships; the artifact
-is prose + a routing table, exactly as RFC-0041 Decision 1 framed `operational-safety`.
-This clears Principle 3 by the same argument the repo already accepted: a depth library a
-controller reasons from is a habit, not infrastructure.
+**Decision 1 — per-loop controller doctrine, not a shared library.** The gate ships as a
+**named phase in the consuming loop's own SKILL.md** plus **progressive-disclosure reference
+modules under that skill** — `references/self-coverage/<step>.md` under `work-loop` today, and
+under `discovery-loop` when RFC-0048 D8 builds it. The gate phase carries a lean Module index
+(the universal method + the routing authority) over the modules that hold the depth. No new
+standalone skill, no new pack, and **no dependency between `core` and `product-engineering`** —
+each loop carries its own copy and either pack installs without the other. No executable code
+ships; the artifact is prose + a routing table, exactly as RFC-0041 Decision 1 framed
+`operational-safety`. This clears Principle 3 the same way (a depth library a controller reasons
+from is a habit, not infrastructure) and goes further on Principle 1: because the gate runs in the
+**controller's own context** — not a subagent brief — it needs no external shareable skill to
+inline from; the loop that already loaded its own SKILL.md simply reads its own reference modules
+on demand.
+
+*Why not the shared `core` library RFC-0048 D5 named.* A repo-scope `core` library is absent when
+`discovery-loop` runs user-scope/pre-repo (the operating-model section's "PM/designer environment,
+possibly pre-repo"). Relocating one copy to a broader scope means either a whole new pack for one
+markdown gate (overkill) or coupling two packs that should stand alone. Per-loop doctrine
+dissolves the problem: "loaded by both controllers" becomes "both loops run the same method," and
+the depth is guaranteed present wherever each controller runs. (Amends RFC-0048 D5 — § Follow-on
+artifacts → foundation reconciliation.)
 
 **Decision 2 — the non-skippability mechanism (load-bearing).** The gate is non-skippable
 by three layers, named honestly from strongest-available to the harness-neutral floor:
@@ -126,9 +208,11 @@ by three layers, named honestly from strongest-available to the harness-neutral 
    (and later `discovery-loop`'s) names the self-coverage gate as a phase the loop *runs*,
    not a skill it *may discover* — the plan-mode lesson that a gate works when it is a hard
    state, not an instruction ([`0048-notes/03`](0048-notes/03-autonomy-and-gate-economics.md):82-90).
-   The controller loads the library directly because it is *already running the loop that
-   mandates the gate*; there is no discretionary "is this skill relevant?" judgment of the
-   kind the parent warned about.
+   The controller reads its own reference modules directly because it is *already running the loop
+   that mandates the gate*, and those modules are co-located under that very skill; there is no
+   discretionary "is this skill relevant?" judgment of the kind the parent warned about, and — the
+   property a shared `core` library could not give — **no cross-scope absence to degrade around**,
+   because the gate is co-scoped with its controller and ships with it.
 2. **A coverage-record refusal in the done/converged checklist.** The gate emits a
    **coverage record** (the domain-grounding table, the pre-mortem scenarios tagged to the
    design, the taxonomy-walk paragraphs, the saturation declaration, the fresh-context
@@ -150,10 +234,12 @@ the gate is doctrine + a mechanical coverage-record check — strong, not absolu
 honesty is the same posture `operational-safety` ships under ("if the delegated gate is
 absent, do not silently skip — reason it best-effort and flag the gap").
 
-**Decision 3 — the seven step-modules + the living sample-bank.** Each step is a
-`references/<step>.md` module; the SKILL.md Module index routes by **mode** (which steps
-light vs full loads) and, for scenario-variation, by **which axes the design crosses** —
-never a flat march. The seven, with the failure each guards and its grounding:
+**Decision 3 — the seven step-modules + the per-loop sample-bank, progressively disclosed.**
+Each step is a `references/self-coverage/<step>.md` module **under the consuming loop's skill**;
+the gate phase's Module index in that loop's SKILL.md routes by **mode** (which steps light vs
+full loads) and, for scenario-variation, by **which axes the design crosses** — progressive
+disclosure, loaded on demand, never a flat march and never all inlined into the SKILL.md. The
+seven, with the failure each guards and its grounding:
 
 | Module | The step | Blocks declaring covered if… | Grounded in |
 |---|---|---|---|
@@ -166,9 +252,9 @@ never a flat march. The seven, with the failure each guards and its grounding:
 | `resolve-vs-surface` | a pass over every open item — solve referent-groundable items and cite the referent; surface only value-origination / irreversible-risk / value-conflict (or a referent that genuinely failed) | any open item neither resolved-with-referent nor surfaced-with-reason | RFC-0048 D5; note 09 sample-bank |
 
 The first five are note 03's original floor-raiser table; scenario-variation and
-resolve-vs-surface are RFC-0048 D5's two additions. The **living sample-bank**
-(`references/resolve-vs-surface-sample-bank.md`) is the calibration the `resolve-vs-surface`
-module points to — see Decision 6.
+resolve-vs-surface are RFC-0048 D5's two additions. The **per-loop sample-bank**
+(`references/self-coverage/resolve-vs-surface-sample-bank.md` under the consuming loop's skill) is
+the calibration the `resolve-vs-surface` module points to — see Decision 6.
 
 **Decision 4 — no new reviewer.** The `fresh-context-adversarial` module *invokes* the
 existing reviewers; it adds none. For a build/spec/implementation artifact that is
@@ -193,45 +279,76 @@ This keeps the gate proportionate — a one-line change in light mode runs three
 a multi-discipline convergence in full mode runs the full battery — and it inherits
 right-sizing from the loop instead of re-deciding it.
 
-**Decision 6 — the living sample-bank.** The resolve-vs-surface sample-bank currently lives
+**Decision 6 — a per-loop sample-bank.** The resolve-vs-surface sample-bank currently lives
 in [`0048-notes/09`](0048-notes/09-gap-resolutions.md) as a "living artifact — expectation
-set for the whole series." RFC-0048 D5 and note 09 both state it **graduates** into this
-library on acceptance, because the lens applies repo-wide, not just to RFC-0048. This RFC
-specifies the graduated home: `references/resolve-vs-surface-sample-bank.md`, seeded with
-note 09's starting reads, append-only (a sample that stops holding earns a *new* entry
-citing the old, never an edit — the `docs/knowledge/patterns.jsonl` discipline,
-CONVENTIONS.md:803-832). Every series effort appends its own reads, so the bank accretes
-calibration and the ~half-the-time hit rate climbs (note 09).
+set for the whole series." It is the calibration the `resolve-vs-surface` module points to —
+without it the lens hits the right call only ~half the time (note 09). This RFC homes it
+**per loop**: each controller seeds and accretes its own bank under its own skill
+(`references/self-coverage/resolve-vs-surface-sample-bank.md` — under `work-loop` in `core`/repo
+today; under `discovery-loop` when D8 builds it), append-only within that loop (a sample that
+stops holding earns a *new* entry citing the old, never an edit — the
+`docs/knowledge/patterns.jsonl` discipline, CONVENTIONS.md:803-832).
 
-*Migration & the projection seam.* The bank ships **as pack content**, so an adopter's
-installed copy is theirs to append to in place. For **this** repo (which self-hosts the
-pack), appends go to the source under `packs/core/.apm/skills/self-coverage/references/`
-and reach the projected `.claude/` copy via `make build-self` — the same source-edit-then-
-rebuild discipline every pack-content change follows here. Until RFC-0048 is **Accepted**,
-appends continue in note 09 (its pre-graduation home); the graduation move itself is a
-follow-on of *this* RFC's implementing spec. The build-self/projection mechanics are a
-spec-time detail, not an open design question (OQ2 records the recommended default).
+A per-loop bank is the consequence of per-loop doctrine: with no shared cross-scope file there is
+no shared bank to append to, and a build-track done-declaration and a discovery-track convergence
+accrete genuinely different reads anyway. RFC-0048 D5 / note 09's "the bank **graduates** into the
+shared library" therefore becomes "it **seeds the `work-loop` bank** now; the discovery bank is
+seeded when its loop is built" — recorded as a foundation reconciliation (§ Follow-on artifacts).
 
-*The seam with `work-loop` (Principle 2 — no duplication).* The library does **not**
-re-implement REVIEW. An inventory diff against `work-loop` today: the `fresh-context-
-adversarial` step *is* the existing REVIEW adversarial pass (named, not duplicated); the
-`pre-mortem` and the open-item disposition have partial hooks in PLAN's assumption trio and
-declined-pattern register; `domain-grounding`, `taxonomy-walk`, `saturation-declaration`,
-and `scenario-variation` are **net-new surface** the loop does not carry today. So the
-library supplies depth for steps the loop already gestures at and adds the missing steps —
-the same inventory-diff argument RFC-0041 used to clear Principle 2 for `operational-safety`.
+*Migration & the projection seam.* The `work-loop` bank ships **as pack content**, so an adopter's
+installed copy is theirs to append to in place. For **this** repo (which self-hosts the pack),
+appends go to the source under `packs/core/.apm/skills/work-loop/references/self-coverage/` and
+reach the projected `.claude/` copy via `make build-self` — the same source-edit-then-rebuild
+discipline every pack-content change follows here. Until RFC-0048 is **Accepted**, appends continue
+in note 09 (its pre-seeding home); the seeding move itself is a follow-on of *this* RFC's
+implementing spec. The build-self/projection mechanics are a spec-time detail, not an open design
+question (OQ2 records the recommended default).
 
-*Consumers & sequencing.* `work-loop` is the **first** consumer: the gate runs at its
-REVIEW→DECIDE boundary as the pre-done coverage pass. `discovery-loop` (RFC-0048 D8, not
-built) becomes the **second**: it runs the gate as its pre-convergence (pre-G2) gate, which
-is where [`0048-notes/05`](0048-notes/05-judgment-decomposition-and-phases.md):51 places it.
-Shipping the library now with `work-loop` wired, and the `discovery-loop` seam specified for
-its child to consume, satisfies RFC-0048 D5's "loaded by both loop controllers" with honest
-sequencing — the library exists and is consumed the moment each controller does.
+*The seam with `work-loop` (Principle 2 — no duplication).* The gate does **not** re-implement
+REVIEW. An inventory diff against `work-loop` today: the `fresh-context-adversarial` step *is* the
+existing REVIEW adversarial pass (named, not duplicated); the `pre-mortem` and the open-item
+disposition have partial hooks in PLAN's assumption trio and declined-pattern register;
+`domain-grounding`, `taxonomy-walk`, `saturation-declaration`, and `scenario-variation` are
+**net-new surface** the loop does not carry today. So the gate supplies depth for steps the loop
+already gestures at and adds the missing steps — the same inventory-diff argument RFC-0041 used to
+clear Principle 2 for `operational-safety`.
+
+*Consumers & sequencing — three loops, two instantiations.* Self-coverage is a **goal** every
+loop with a human handoff realizes (§ The ask → *What self-coverage is*), and the seven modules are
+its instantiation for **generative design/build** work, where myopic-greedy commitment is the
+risk. So:
+
+- **`work-loop`** is the **first** consumer of the design/build instantiation: the gate runs at its
+  REVIEW→DECIDE boundary as the pre-done coverage pass, carrying the seven modules under its own
+  skill. Wired **here**.
+- **`discovery-loop`** (RFC-0048 D8, not built) is the **second**: it runs the same seven modules
+  as its pre-convergence (pre-G2) gate — where [`0048-notes/05`](0048-notes/05-judgment-decomposition-and-phases.md):51
+  places it — carrying **its own** copy under its own skill in `product-engineering`. Wired by
+  **[RFC-0053](0053-the-discovery-loop.md)** (the discovery-loop RFC), which consumes this
+  RFC's seam.
+- **`release-loop`** ([RFC-0049](0049-the-release-loop-and-company-os.md)) realizes the **same goal
+  and the same seam** (resolve-vs-surface + the non-skippable coverage record) through a
+  **different, deploy-appropriate instantiation** — a *composite*, not a single checklist. No one
+  reference library covers it: `operational-safety` is the **reliability** lens only; the release
+  loop's gates also span **security** (`security-reviewer` / `security-checklists`) and **change
+  quality** (`quality-engineer`), with the **automated convergence policy** (canary + e2e coverage
+  + flake — RFC-0049 D6) as the stop-rule and the **minimum-regret carve** (RFC-0049 D2) as the
+  resolve-vs-surface disposition. Self-coverage's contribution here is the **meta-discipline that
+  composes them** — run every loop-appropriate checklist rigorously and apply resolve-vs-surface
+  *across* them so the carve surfaces only the irreducible (raising deploy autonomy). It does
+  **not** carry the seven design-convergence modules — there is no design artifact to ground and it
+  converges empirically on telemetry. RFC-0049 names that instantiation; this RFC owns the goal +
+  seam it conforms to.
+
+This RFC specifies the **seam** — the goal + the resolve-vs-surface disposition + the non-skippable
+mechanism — as the cross-loop invariant each loop implements in its own co-scoped copy; it does
+**not** ship a file any other loop imports. That satisfies RFC-0048 D5's "every loop controller
+runs it" the honest way: each loop runs the same *goal* through a loop-appropriate instantiation,
+neither pack depending on the other.
 
 ## Options considered
 
-**Axis: what artifact form is the gate, and how is it enforced non-skippably?** This axis
+**Axis 1: what artifact form is the gate, and how is it enforced non-skippably?** This axis
 exhausts the space because any answer must name both a *form* (prose doctrine / skill /
 reviewer / runtime) and an *enforcement* (discretionary / mechanical-record / structural).
 Options are MECE along it; prior art grounds each.
@@ -240,9 +357,21 @@ Options are MECE along it; prior art grounds each.
 |---|---|---|
 | **A. Do nothing** — leave the steps as scattered prose in `work-loop` | none · discretionary | Cost of delay: the knowing-doing gap (note 03) recurs on every product; the steps stay unnamed, unrouted, and skippable by omission. Rejected. |
 | **B. Self-discovered skill** the agent invokes when it judges it relevant | skill · discretionary | A trigger-matched skill is skippable at the agent's discretion under anchoring — which defeats a *gate*. **Explicitly rejected by RFC-0048 D5.** Rejected. |
-| **C. Controller-loaded reference library + loop doctrine** ★ | library + doctrine · mechanical-record (+ structural where the harness offers it) | **Recommended.** The `operational-safety` / RFC-0041 idiom; clears Principles 1–3; non-skippable via the done-checklist refusal the loop already enforces. |
+| **C. Controller doctrine + progressive-disclosure reference modules** ★ | controller-co-located reference modules + doctrine · mechanical-record (+ structural where the harness offers it) | **Recommended.** The `operational-safety` / RFC-0041 idiom for *form and reuse* — but the modules sit under the consuming loop's own skill, not in a shareable standalone library (Principle 1: the controller reads its own context, never an external skill). Clears Principles 1–3; non-skippable via the done-checklist refusal the loop already enforces. (Locus settled by Axis 2 → per-loop.) |
 | **D. A fourth reviewer agent** dedicated to coverage | new agent · discretionary | Fails the CHARTER three-reviewer ceiling; the fresh-context step already reuses the existing reviewers. Rejected. |
 | **E. Executable gate runtime / lock** that structurally blocks writing past the gate | runtime · structural | The strongest enforcement, but it is runtime infrastructure (Principle 3) and harness-specific (the RFC-0041 P4 harness-neutrality posture). We ship the doctrine such a harness enforces, not the harness. Rejected as the *shipped* form; folded into Option C's layer 3 where the harness provides it. |
+
+**Axis 2 (within C): where does the depth live, given two controllers in different scopes?**
+`work-loop` is repo-scope (`core`); `discovery-loop` is user-scope/pre-repo
+(`product-engineering`). Any answer must place the depth somewhere reachable by *both*, and a
+*non-skippable* gate forbids "absent → degrade." This axis is MECE over *one shared copy* vs
+*one copy per loop*.
+
+| Option | Locus | Verdict |
+|---|---|---|
+| **C1. One shared copy in `core`** (RFC-0048 D5's stated packaging) | repo-scope, shared | Absent when `discovery-loop` runs user-scope/pre-repo; the gate would have to detect-and-degrade, which is self-defeating for the floor-raiser. **Rejected — this RFC amends D5.** |
+| **C2. One shared copy in a new pack** at the broader (user) scope | user-scope, shared | Reachable by both, but a whole pack (pack.toml, evals, guide, marketplace entry, version) for one markdown gate is overkill, and it forces a `core`↔new-pack dependency that couples packs which should stand alone. Rejected. |
+| **C3. One copy per loop, each under its own skill at its own scope** ★ | co-scoped, per-loop | **Recommended.** Guaranteed present wherever each controller runs; zero cross-pack coupling; "loaded by both" = "both run the same method." The duplication cost is bounded — today only `work-loop` exists, and the future discovery copy is *intended* to differ in depth — with two standing cross-copy invariants once D8 exists: the cross-loop **seam** (all loops — goal + resolve-vs-surface + the non-skippable record) and, narrower, the shared **seven-module instantiation** (design/build loops only) (see Risks). |
 
 Prior art for the recommended shape: `operational-safety` and `security-checklists`
 in-repo (controller-loaded progressive-disclosure libraries the loop already inlines);
@@ -262,16 +391,29 @@ Option C's layer 3.
   is not), joining refusal items the loop already honors; and where the harness offers
   layer 3, the gate is structural. The residual risk is real and stated — it is the same
   residual every doctrine-not-runtime decision in this repo carries.
-- *The library duplicates `work-loop`'s REVIEW* and reviewers get two overlapping
+- *The gate duplicates `work-loop`'s REVIEW* and reviewers get two overlapping
   obligations. **Mitigation:** the inventory diff (Decision 6) keeps the fresh-context step
   *the same* pass REVIEW already runs; the net-new steps are non-overlapping.
+- *The two loops' per-loop copies drift apart.* Per-loop doctrine means `work-loop` and (future)
+  `discovery-loop` each carry the method, so the prose can diverge. **Mitigation:** today there is
+  exactly one copy — `discovery-loop` is unbuilt — so the drift is hypothetical until D8; and when
+  D8 builds the second, divergence is *intended* (a build done-declaration and a discovery
+  convergence genuinely differ in emphasis). The shared invariants are specified *here*: the
+  cross-loop **seam** (the goal, resolve-vs-surface, the non-skippable coverage record) that *all*
+  loops conform to, plus — for the two design/build loops specifically — the **seven-module
+  instantiation** the discovery child implements against. So the method stays aligned even though
+  the files are separate. This is cheaper than the cross-pack coupling a single shared file would
+  force, and the alternative (one shared copy) was rejected outright on the scope split (Options
+  C1/C2).
 - *Light mode loads too little and a real coverage gap ships under "light".*
   **Mitigation:** the bounded-pass escalation (a surviving Blocker routes to full mode)
   is the same safety valve `work-loop` light mode already trusts; and any risk trigger
   (RFC-0025) puts the work in full mode before the gate runs at all.
-- *The sample-bank rots or sprawls.* **Mitigation:** append-only with supersede-by-new-
-  entry (the patterns.jsonl discipline); a sample that stops holding is cited, not edited,
-  so the calibration history stays honest.
+- *A per-loop sample-bank rots, sprawls, or fragments the calibration.* **Mitigation:**
+  append-only with supersede-by-new-entry (the patterns.jsonl discipline); a sample that stops
+  holding is cited, not edited, so the calibration history stays honest. Fragmentation across two
+  banks is acceptable: each loop's reads are the calibration *that loop* needs, and a shared bank
+  was rejected on the scope split regardless.
 
 **Key assumptions (falsifiable).**
 - *A coverage record is a sufficient mechanical hook to make the gate non-skippable
@@ -279,20 +421,27 @@ Option C's layer 3.
   detects it, layer 2 is weaker than claimed and the gate needs the lint that
   `lint-spec-status.py` is for doc-drift. (Believed sufficient; the done-checklist already
   enforces comparable refusal items.)
-- *Both controllers can run the same seven steps.* If the discovery convergence and the
-  build done-declaration need materially different step sets, "one library, two consumers"
-  splits. (Believed false; the steps are altitude-neutral — grounding, pre-mortem,
-  saturation, and resolve-vs-surface apply to a spec done-declaration as much as a
-  convergence, which is why RFC-0048 names *both* controllers.)
+- *The cross-loop seam is general enough for every loop, and the seven design/build modules are
+  altitude-neutral enough to be shared by both design/build loops.* The seam (goal +
+  resolve-vs-surface + the non-skippable record) must hold for design, build, *and* deploy work, or
+  "every loop realizes the same goal" is hollow; and the seven modules must fit both `work-loop` and
+  `discovery-loop`, or the design/build instantiation splits. (Believed true; resolve-vs-surface and
+  the coverage record are altitude- and work-type-neutral — they apply to a deploy carve as much as
+  a spec done-declaration — and grounding/pre-mortem/saturation apply to a spec done-declaration as
+  much as a convergence, which is why RFC-0048 names every loop. If a design/build module turns out
+  build-only or discovery-only, the instantiation records which modules are shared vs loop-specific
+  — a cheaper outcome under per-loop copies than under one shared file.)
 - *Right-sizing by `work-loop`'s light/full is the right granularity.* If the gate needs a
   finer dial than two modes, this under-serves it. (Believed adequate; the per-axis routing
   of `scenario-variation` already adds a second dimension within full mode.)
 
-**Drawbacks.** A third controller-loaded reference library to maintain alongside
-`operational-safety` and `security-checklists` — real surface-area cost, justified because
-the gate is universal (it runs on *every* full-mode loop, not only infra/security ones).
-Added prose in `work-loop`'s REVIEW/DECIDE and the done-checklist. A living sample-bank that
-needs curation discipline to stay a scaffold rather than a junk drawer.
+**Drawbacks.** A new set of reference modules under `work-loop` to maintain alongside the
+existing `operational-safety` and `security-checklists` libraries — real surface-area cost,
+justified because the gate is universal (it runs on *every* full-mode loop, not only
+infra/security ones). When `discovery-loop` is built it carries a second copy of the method —
+duplication is the price of zero cross-pack coupling, and is bounded by specifying the shared
+invariants here as a seam. Added prose in `work-loop`'s REVIEW/DECIDE and the done-checklist. A
+per-loop sample-bank that needs curation discipline to stay a scaffold rather than a junk drawer.
 
 ## Evidence & prior art
 
@@ -341,34 +490,46 @@ Two, each with a recommended default — neither a genuine value/scope/conflict 
 are referent-grounded; they are recorded here only because they are confirm-at-accept
 naming/mechanics details, not because the research is unfinished).
 
-1. **Skill name — `self-coverage`?** · *recommended default:* `self-coverage` (mirrors the
-   parent's "self-coverage gate" naming; sibling library names are `operational-safety` /
-   `security-checklists`, so a noun-phrase fits). · owner: eugenelim · decide-by: RFC accept.
+1. **Gate-phase / reference-dir naming.** · *recommended default:* "the self-coverage gate" for
+   the phase (mirrors the parent's naming), and `references/self-coverage/<step>.md` under the
+   consuming loop's skill for the modules (mirrors the existing `operational-safety` /
+   `security-checklists` reference-dir shape). · owner: eugenelim · decide-by: RFC accept.
 2. **Sample-bank projection mechanics** — appends to a *projected* pack reference file
    require source-edit-then-`make build-self` here, and live in the adopter's installed
-   copy for them. · *recommended default:* ship as pack content (the graduated home),
-   appends-via-rebuild here, leave the exact build-self wiring to the implementing spec. ·
-   owner: eugenelim · decide-by: spec authoring.
+   copy for them. · *recommended default:* ship the `work-loop` bank as pack content under
+   `packs/core/.apm/skills/work-loop/references/self-coverage/`, appends-via-rebuild here, leave
+   the exact build-self wiring to the implementing spec. · owner: eugenelim · decide-by: spec
+   authoring.
 
 ## Follow-on artifacts
 
 Filled in on acceptance.
 
-- **ADR:** record "the self-coverage gate is a controller-loaded, non-skippable `core`
-  reference library enforced by a coverage-record checklist refusal — no new reviewer, no
-  new runtime" (the sibling of ADR-0031 for `operational-safety`).
-- **Spec:** `docs/specs/self-coverage-gate/` — the `self-coverage` skill (SKILL.md + the
-  seven `references/<step>.md` modules + the seeded `resolve-vs-surface-sample-bank.md`),
-  the Module index routing (mode + axis), the `work-loop` REVIEW/DECIDE wiring + the
-  done-checklist refusal item, and the sample-bank graduation move (note 09 → library) with
-  its build-self projection wiring.
-- **`discovery-loop` seam:** consumed by RFC-0048 D8's child (the gate as `discovery-loop`'s
-  pre-convergence G2 gate); specified here, wired there.
+- **ADR:** record "the self-coverage gate is **per-loop controller doctrine** — each loop carries
+  the gate (a named phase + progressive-disclosure reference modules + a per-loop sample-bank) in
+  its own skill at its own scope, non-skippable via a coverage-record checklist refusal, with **no
+  shared library and no cross-pack coupling** — no new reviewer, no new runtime" (the sibling of
+  ADR-0031 for `operational-safety`; **amends/extends** RFC-0048 D5's "one `core` library loaded by
+  both controllers").
+- **Spec:** `docs/specs/self-coverage-gate/` — the `work-loop` gate phase + its
+  `references/self-coverage/<step>.md` modules (seven steps + the seeded per-loop
+  `resolve-vs-surface-sample-bank.md`) under the `work-loop` skill, the Module index routing
+  (mode + axis), the `work-loop` REVIEW/DECIDE wiring + the done-checklist refusal item, and the
+  sample-bank seeding (note 09 → the `work-loop` bank) with its build-self projection wiring.
+- **`discovery-loop` seam:** consumed by RFC-0048 D8's child, which carries its **own** copy of the
+  gate (phase + modules + its own sample-bank) in `product-engineering` at user scope, implementing
+  the shared method/invariants specified here (the gate as `discovery-loop`'s pre-convergence G2
+  gate) — *not* a file it imports from `core`.
 - **CONVENTIONS touch:** name the self-coverage gate in the operating-model section
-  (RFC-0048's CONVENTIONS slice), as the floor-raiser both loops run.
+  (RFC-0048's CONVENTIONS slice), as the floor-raiser each loop carries.
 - **Changelog:** `docs/product/changelog.md` `[Unreleased]` entry for the `work-loop`
   behavior change.
-- **Pack version:** bump `core` (new skill + `work-loop` edits); add `self-coverage` to the
-  catalogue/marketplace manifest at spec time.
-- **Foundation reconciliation:** no drift surfaced against RFC-0048 D5 — no amendment
-  required. (Recorded per the D9 series-execution obligation.)
+- **Pack version:** bump `core` (`work-loop` edits + new reference modules). No new skill, no new
+  pack, no marketplace addition — the gate lives under the existing `work-loop` skill.
+- **Foundation reconciliation:** **amends RFC-0048 D5.** D5's packaging ("a reference library in
+  `core`, loaded by both loop controllers") does not survive the operating model's own scope split
+  — `discovery-loop` is user-scope/pre-repo where a repo-scope `core` library is absent. Reconciled
+  to **per-loop co-scoped doctrine** (each loop carries its own copy; no shared library; no
+  `core`↔`product-engineering` coupling); "loaded by both controllers" = "both loops run the same
+  method." Recorded at [RFC-0048 § Amendments](0048-autonomous-product-team-operating-model.md#amendments-foundation-reconciliations)
+  (2026-06-29) per the D9 series-execution obligation.
