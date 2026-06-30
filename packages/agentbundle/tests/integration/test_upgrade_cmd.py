@@ -966,8 +966,61 @@ def test_already_current_states_so_with_yes(tmp_path, capsys):
     assert rc == 0
     captured = capsys.readouterr()
     assert "is already at 0.2.0" in captured.err
+    # Clean re-apply (no local edits) → the upfront drift notice is suppressed
+    # (install-state-visibility AC12 zero-suppression).
+    assert "have local edits" not in captured.err
     recap = captured.out.strip().splitlines()[-1]
-    assert recap == "upgraded: core @ repo 0.2.0 -> 0.2.0", recap
+    # A same-version re-apply is no longer mislabelled `upgraded: X -> X`
+    # (install-state-visibility AC10); a clean re-apply (no local edits) reads
+    # `re-applied: … (already current)`.
+    assert recap == "re-applied: core @ repo 0.2.0 (already current)", recap
+
+
+def test_reapply_with_local_edit_notice_and_companion_recap(tmp_path, capsys):
+    """AC11/AC12: re-applying at the same version after a local edit prints the
+    upfront drift notice (before the action) and a recap that names the edited
+    file kept as a companion — never `upgraded: X -> X`."""
+    from agentbundle.config import load_state
+
+    assert _run_install("core", str(CAT_V2), str(tmp_path)) == 0
+    capsys.readouterr()
+
+    # Edit one installed file so it drifts (becomes Tier-2).
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    ps = state.row("core", "claude-code")
+    edited_relpath = sorted(ps.files)[0]
+    (tmp_path / edited_relpath).write_text("# local edit\n", encoding="utf-8")
+
+    rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path), yes=True)
+    assert rc == 0
+    captured = capsys.readouterr()
+    # Upfront notice on stderr, before the action.
+    assert "installed file(s) have local edits" in captured.err
+    # Recap names the companion count and stays a re-apply, not an upgrade.
+    recap = captured.out.strip().splitlines()[-1]
+    assert recap.startswith("re-applied: core @ repo 0.2.0 —")
+    assert "kept as .upstream companions" in recap
+    assert "->" not in recap
+
+
+def test_per_primitive_upgrade_suppresses_whole_pack_drift_notice(tmp_path, capsys):
+    """AC12 carve-out: a per-primitive upgrade re-applies only that primitive's
+    files, so the whole-pack drift notice is deliberately NOT printed — even
+    when other installed files have local edits."""
+    from agentbundle.config import load_state
+
+    assert _install_v1(tmp_path) == 0
+    # Edit an installed file so a whole-pack run *would* notice drift.
+    state = load_state(tmp_path / ".agentbundle-state.toml")
+    ps = state.row("core", "claude-code")
+    (tmp_path / sorted(ps.files)[0]).write_text("# local edit\n", encoding="utf-8")
+    capsys.readouterr()
+
+    rc = _run_upgrade(
+        pack="core", catalogue=str(CAT_V2), root=str(tmp_path), skill="work-loop"
+    )
+    assert rc == 0
+    assert "have local edits" not in capsys.readouterr().err
 
 
 def test_already_current_interactive_offers_reapply(tmp_path, capsys, monkeypatch):
@@ -985,3 +1038,8 @@ def test_already_current_interactive_offers_reapply(tmp_path, capsys, monkeypatc
     assert rc == 0
     assert "already at 0.2.0" in seen["prompt"]
     assert "Re-apply" in seen["prompt"]
+    # AC12 prompt half: the old "repairs local drift" jargon is gone, and the
+    # prompt states edits are preserved as companions. (Both assertions fail
+    # against the pre-change wording, so they actually pin the rewrite.)
+    assert "repairs local drift" not in seen["prompt"]
+    assert ".upstream companions" in seen["prompt"]

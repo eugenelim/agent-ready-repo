@@ -16,6 +16,7 @@ from agentbundle.version import SPEC_VERSION
 if TYPE_CHECKING:
     import argparse
 
+    from agentbundle.config import PackState
     from agentbundle.safety import Tier
 
 
@@ -197,6 +198,45 @@ def _major(version: str) -> str:
     """Return the major component of a version string like '0.1' or 'v2.0'."""
     v = version.lstrip("v")
     return v.split(".")[0]
+
+
+def format_adapter_versions(rows: "dict[str, PackState]") -> str:
+    """Render sorted ``adapter (version)`` pairs for a multi-adapter
+    disambiguator message (RFC-0052).
+
+    ``rows`` is a ``{adapter: PackState}`` mapping (the shape
+    ``State.rows_for_pack`` returns). Output e.g. ``claude-code (0.9.0),
+    codex (0.9.0)`` — so a "pass --adapter" refusal names not just *which*
+    adapters are installed but *at what version*, making the next command
+    actionable without a second lookup.
+    """
+    return ", ".join(
+        f"{adapter} ({rows[adapter].installed_version})" for adapter in sorted(rows)
+    )
+
+
+def count_drifted_files(pack_state: "PackState", root: Path) -> int:
+    """Count *pack_state*'s files whose on-disk SHA differs from the recorded SHA.
+
+    Row-scoped drift (Tier-2): compares each file against this row's own
+    recorded SHA — **not** ``safety.classify``, which resolves against the SHA
+    set across *all* rows and would undercount a co-owned path. A file absent on
+    disk is not drift (it is Tier-1, "about to (re)write"). Render-free: needs
+    only the loaded state plus on-disk bytes, so it is cheap enough to run
+    before an upgrade confirm. Shared by ``list-installed --check-drift`` and
+    the upgrade upfront drift notice.
+    """
+    from agentbundle.safety import sha256_file
+
+    count = 0
+    for relpath in pack_state.files:
+        on_disk = root / relpath
+        if not on_disk.exists():
+            continue
+        recorded = pack_state.file_sha(relpath)
+        if recorded is not None and sha256_file(on_disk) != recorded:
+            count += 1
+    return count
 
 
 # ---------------------------------------------------------------------------
