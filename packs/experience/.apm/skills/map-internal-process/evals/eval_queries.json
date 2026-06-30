@@ -1,0 +1,21 @@
+[
+  {"query": "Map our internal process for handling warranty claims", "should_trigger": true},
+  {"query": "Document the as-is process for supplier onboarding", "should_trigger": true},
+  {"query": "Draw a swimlane diagram for our order fulfilment process", "should_trigger": true},
+  {"query": "What does our current accounts-payable process look like?", "should_trigger": true},
+  {"query": "Map the monthly close process — as-is and to-be", "should_trigger": true},
+  {"query": "Show me the internal workflow for approving a purchase request", "should_trigger": true},
+  {"query": "Build a process map for our customer-complaint handling flow", "should_trigger": true},
+  {"query": "Document our IT change-management process with a SIPOC and swimlane", "should_trigger": true},
+  {"query": "Map the to-be state of our invoice-processing process and show what changes", "should_trigger": true},
+
+  {"query": "Map the stages and emotions in our customer's checkout journey", "should_trigger": false},
+  {"query": "Blueprint the services that back our onboarding screens", "should_trigger": false},
+  {"query": "Sequence our screens and show the transitions between them", "should_trigger": false},
+  {"query": "Critique this dashboard screen for usability problems", "should_trigger": false},
+  {"query": "Design the interaction behavior for this form — what feedback does each action produce?", "should_trigger": false},
+  {"query": "Write copy for the empty and error states of this screen", "should_trigger": false},
+  {"query": "Name the aesthetic direction for our product", "should_trigger": false},
+  {"query": "Derive our token taxonomy from the aesthetic direction", "should_trigger": false},
+  {"query": "Create a C4 component diagram for our payment service", "should_trigger": false}
+]
