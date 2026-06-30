@@ -1,7 +1,7 @@
 # Plan: experience-pack
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -115,13 +115,13 @@ before writing. Mirrors `product-engineering`'s `frame-intent`. Traces to: D6 AC
 **Depends on:** T1
 
 **Tests:** (goal-based)
-- The promoted `quality-floor.md` exists at the pack-level `references/` path and still contains all three sections (handle-all-states, accessibility, reduced-motion); `grep -c '^##'` matches the three-part structure.
-- `design-critique`'s reference to the floor resolves to the new shared path (no stale private path). Verifies D2 ACs.
+- The single shared `quality-floor.md` contains all three sections (handle-all-states, accessibility, reduced-motion); `grep -c '^##'` matches the three-part structure.
+- Every consuming skill references the one floor sibling-relative (`grep '../design-critique/references/quality-floor.md'`); no private sibling copy exists. Verifies D2 ACs.
 
-**Approach:**
-- Move `quality-floor.md` from `design-critique/references/` to the pack-shared `references/` location; repoint `design-critique`'s reference; confirm `permission/denied` is documented as an *additional* gated-screen state.
+**Approach (amended — see RFC-0050 § Amendments + spec D2 floor AC):**
+- A **pack-level `references/` directory does not project** to any adapter (the build projects only `skills`/`agents`/`hooks`/`hook-wiring`/`commands`), so the buildable realization of "one pack-shared floor" is the **single canonical file kept resident at `design-critique/references/quality-floor.md`**, documented as the pack-shared floor and referenced **sibling-relative** by every consuming skill (`map-screen-flow`, `interaction-design`, the existing craft skills); cross-pack `voice-and-microcopy` defers by-name. Add `permission/denied` as an *additional* gated-screen state. The file is **not** moved (moving it to a non-projecting location would dangle on every adopter; moving it to another skill's `references/` is churn for no projection benefit and the existing referrers already point at it).
 
-**Done when:** one shared floor file with all three sections; `design-critique` references it; no private copy remains.
+**Done when:** one shared floor file with all three sections, referenced sibling-relative by every consumer; no private copy.
 
 ### T3: the `[experience]` layout table + per-skill `agentbundle-layout.md`
 

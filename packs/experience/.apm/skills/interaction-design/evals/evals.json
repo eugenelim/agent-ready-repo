@@ -1,0 +1,20 @@
+{
+  "skill_name": "interaction-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Enrich the interaction/behavior section of the per-screen brief for the screen or component the user described.",
+      "expected_output": "An enriched interaction/behavior section for the per-screen brief. It models the in-component state machine as a mermaid stateDiagram-v2 embedded in the brief — states, events, transitions, and guards named in FSM/statechart vocabulary, with no state-management library API reprinted. It designs feedback and response timing as intent grounded in the Doherty Threshold (perceived-performance lens, design-time only — no millisecond values or Core Web Vitals targets). It specifies the input/validation flow: field sequence as design intent, inline-validation timing decision (on-blur vs on-submit), and error-recovery path. It addresses motion purpose: every animated transition names what state change or spatial relationship it communicates, the reduced-motion alternative is stated as design intent, and no duration or easing value is printed. It carries the gesture and pointer surface on the product's declared platform axis, pointing to Apple HIG or Material 3 gesture guidance. It references cognitive-law fit against Laws of UX (Fitts's, Hick's, Miller's, Doherty, Jakob's) and the heuristics in design-critique/references/heuristics.md. It invokes relevant onboarding or search-interaction pattern families from references/pattern-families.md when applicable. It defers to the shared quality floor (../design-critique/references/quality-floor.md) for the state set and reduced-motion rule rather than re-enumerating them. It emits no standalone artifact; it enriches the brief's interaction section only.",
+      "assertions": [
+        "Models the in-component state machine as a mermaid stateDiagram-v2 with states, events, transitions, and guards — no state-management library code",
+        "Designs feedback and response as intent grounded in the Doherty Threshold; no millisecond, duration, or easing values are printed",
+        "Specifies input/validation flow: field sequence, inline-validation timing (on-blur vs on-submit), and error-recovery path",
+        "Every animated transition names what it communicates; a reduced-motion alternative is stated as design intent",
+        "Gesture and pointer affordances are addressed on the declared platform axis, pointing to Apple HIG or Material 3 — no gesture table reprinted",
+        "References cognitive-law fit (Laws of UX + heuristics cross-reference) without duplicating the heuristics file",
+        "Defers to the shared quality floor sibling-relative for the state set; does not re-enumerate the state set or route across screens",
+        "Output enriches the brief's interaction/behavior section — no standalone file-per-slug artifact emitted"
+      ]
+    }
+  ]
+}
