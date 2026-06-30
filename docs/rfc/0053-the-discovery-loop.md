@@ -1,4 +1,4 @@
-# RFC-0053: the coordinator contract — `discovery-lead`, the typed sidecar, and the no-engine framing, confirmed by prototype
+# RFC-0053: the discovery loop — `discovery-lead`, the typed sidecar, and the no-engine coordinator contract, confirmed by prototype
 
 - **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
@@ -6,7 +6,7 @@
 - **Date opened:** 2026-06-26
 - **Date closed:**
 - **Decision weight:** heavy <!-- light | standard | heavy — sets the upstream orchestration contract the whole operating model hangs from, ships a new agent + skill + a versioned sidecar schema, and carries a security/integrity + data-classification surface; explicit Approver sign-off is warranted. -->
-- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 5**, the coordinator spike→RFC for Decisions 7 + 8; the provisional foundation this drift-aligns back to) · [RFC-0049](0049-the-release-loop-and-company-os.md) (the sibling *downstream* outer loop — `release-lead` + `release-loop`, the same agent-def + skill + harness pattern this RFC establishes upstream; both build on the same RFC-0048 substrate (the sidecar + the gate arc), and this RFC specifies the sidecar schema RFC-0049's release loop would also consume) · [RFC-0051](0051-the-self-coverage-gate.md) (the self-coverage gate — `discovery-loop` is its **second controller**; the gate is `discovery-loop`'s pre-G2 phase, seam specified there, wired here) · [RFC-0050](0050-the-experience-pack.md) (the `experience` lens this loop detect-and-degrades on) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the *doctrine + reference library + reuse, no engine/no new reviewer* precedent the framing rests on) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey) · RFC-0019 (`receive-brief` — the brief→spec join at G3; its coverage lint child-4's traceability lint generalizes) · [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md) (the cross-repo reference-by-version mechanism the traceability slot reuses) · [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md) (child-4 — the lint that consumes the traceability slot) · promoted research + the empirical prototype in [`0053-notes/`](0053-notes/); [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the paper resolutions this spike confirms) and [`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md) (the worked example it was run against)
+- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the foundation — this is **child 5**, the coordinator spike→RFC for Decisions 7 + 8; the provisional foundation this drift-aligns back to) · [RFC-0049](0049-the-release-loop-and-company-os.md) (the sibling *downstream* outer loop — `release-lead` + `release-loop`, the same agent-def + skill + harness pattern this RFC establishes upstream; both build on the same RFC-0048 substrate (the sidecar + the gate arc), and this RFC specifies the sidecar schema RFC-0049's release loop would also consume) · [RFC-0051](0051-the-self-coverage-gate.md) (the self-coverage gate — RFC-0051 owns the goal + seam + the seven-module design/build instantiation; `discovery-loop` carries its **own** co-scoped copy as its pre-G2 phase, wired here) · [RFC-0050](0050-the-experience-pack.md) (the `experience` lens this loop detect-and-degrades on) · [RFC-0041](0041-infra-aware-work-loop.md) + ADR-0031 (the *doctrine + reference library + reuse, no engine/no new reviewer* precedent the framing rests on) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey) · RFC-0019 (`receive-brief` — the brief→spec join at G3; its coverage lint child-4's traceability lint generalizes) · [ADR-0022](../adr/0022-value-stream-meta-repo-cross-component-layer.md) (the cross-repo reference-by-version mechanism the traceability slot reuses) · [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md) (child-4 — the lint that consumes the traceability slot) · promoted research + the empirical prototype in [`0053-notes/`](0053-notes/); [`0048-notes/09`](0048-notes/09-gap-resolutions.md) (the paper resolutions this spike confirms) and [`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md) (the worked example it was run against)
 
 ## Reviewer brief
 
@@ -116,8 +116,11 @@ and **writes the contract** the prototype validated (Decisions 2–5).
   RFC defines the **traceability slot** the lint reads and the **cascade-invalidation**
   transition that walks its edges. The spike's `check_sidecar.py` is a *demonstrator*, not
   the shipped lint.
-- *The self-coverage gate's modules.* RFC-0051 (child-3) ships the gate; this RFC names it
-  as `discovery-loop`'s pre-G2 phase (the seam RFC-0051 specified for its second controller).
+- *The self-coverage gate's modules.* RFC-0051 (child-3) owns the self-coverage **goal + seam**
+  and ships the **design/build instantiation** (the seven modules); this RFC names it as
+  `discovery-loop`'s pre-G2 phase, carrying its **own** co-scoped copy of those modules in
+  `product-engineering` (the seam RFC-0051 specified — both design/build loops share the
+  seven-module instantiation; the release loop realizes the same goal differently per RFC-0049).
 - *The downstream / deploy loop.* `work-loop` (G3–G5 build) is unchanged; the
   release/deploy outer loop is RFC-0049's `release-lead`. This RFC is the **upstream**
   (G0–G2) coordinator only; the two loops hand off at G3 and must not be conflated.
@@ -367,8 +370,10 @@ RFC ships no code, so it specifies the controls, it does not implement them):
 - **G3 handoff to `work-loop`** (unchanged): `discovery-loop` emits a brief → `new-spec` →
   `work-loop`. The two loops meet here; different inputs, different verifier, different
   autonomy posture.
-- **The self-coverage gate** (RFC-0051) runs as `discovery-loop`'s **pre-G2 phase** — the
-  seam RFC-0051 specified for its second controller, wired here.
+- **The self-coverage gate** (RFC-0051) runs as `discovery-loop`'s **pre-G2 phase** — discovery
+  carries its own co-scoped copy of the seven-module design/build instantiation, conforming to
+  RFC-0051's cross-loop seam (goal + resolve-vs-surface + a non-skippable coverage record); wired
+  here.
 - **The traceability lint** (child-4) consumes the **traceability slot** this RFC defines;
   the cascade-invalidation transition (D3) walks the same edges. The lint is authoritative
   when the matrix is present and derives from on-disk artifacts when the sidecar is absent
@@ -480,8 +485,8 @@ in Risks and a second-example run owed at spec time.
 paper resolutions this confirms) and [`02`](0048-notes/02-worked-example-flow-trace.md) (the
 worked example); RFC-0041 + ADR-0031 (the doctrine + reference-library + reuse, no-engine
 idiom); RFC-0049 (the sibling downstream loop shipped as `release-lead` agent + skill +
-harness — the exact pattern this establishes upstream); RFC-0051 (the self-coverage gate,
-whose second controller is `discovery-loop`); RFC-0050 (the `experience` lens);
+harness — the exact pattern this establishes upstream); RFC-0051 (the self-coverage gate —
+`discovery-loop` carries its own copy of the seven-module design/build instantiation); RFC-0050 (the `experience` lens);
 `work-loop`'s supervisor mode + `loop-cohort` (doctrine + a scheduler-*script*, not a
 service — the precedent that a scheduler can be a lint); RFC-0025 (the iteration cap +
 light/full); RFC-0040 (the three-tier layout the sidecar paths obey); RFC-0019's
