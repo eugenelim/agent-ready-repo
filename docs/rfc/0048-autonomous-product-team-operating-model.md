@@ -802,6 +802,28 @@ superseded wording, the current-state table above wins.
   controls it lands as an acceptance criterion in RFC-0053's implementing spec — **not** an
   RFC-0048 acceptance blocker. See [RFC-0053](0053-the-discovery-loop.md)
   § Security &amp; integrity contract.
+- **2026-06-30 — D7/D8 implemented by child-5's implementing PR (the `discovery-loop` build).**
+  The amendments above wrote the controls and the no-engine shape as *acceptance criteria the
+  implementing spec would carry*; that spec is now **built**. The `discovery-loop` skill +
+  `discovery-lead` agent + the two discovery reviewers
+  (`discovery-threat-reviewer` / `discovery-reliability-reviewer`) + the carried sidecar-schema
+  reference + the plan-tree asset ship in `product-engineering` (0.9.0), with the two D6 skills
+  (`explore-options` / `plan-validation`) and the `de-risk-intent` / `decompose-intent`
+  extensions; the coordinator shape is recorded in
+  [ADR-0043](../adr/0043-the-discovery-coordinator-is-an-agent-plus-skill-plus-carried-sidecar-no-engine.md)
+  (the sibling of ADR-0031). The security & integrity + data-handling amendments above land as
+  the spec's hard ACs; the validation run records the **executed** traceability-lint
+  orphan → CONVERGED transition (and the `--strict` convergence-gate behaviour) and **models**
+  the cap-pause + the three security negative paths on a recursive tree. **This discharges the
+  owner-assigned acceptance blockers** — DRIFT-G (the `Discovery:` up-edge header + discovery
+  `type:` markers, format-only in `new-spec` + CONVENTIONS § 4, with the lint's `--strict` flip
+  sequenced *after* the header lands), AC0 (the carried sidecar schema), the layout key, and the
+  backlog ACs — so **Open → Accepted is now the one-line status change** the acceptance note
+  anticipated (left to the owner, not flipped here). **One cross-spec gap surfaced:** AC34 names a
+  dependency on child-4's lint performing **root→leaf reachability**, but the shipped lint does
+  per-node edge-**presence** (the discovery-loop skill names the dependency and flags the gap; a
+  child-4 follow-up owns closing it). This *implements* D7/D8; no contradiction. See
+  [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts and `docs/specs/discovery-loop/`.
 - **2026-06-26 — the company-OS third (SRE/ops) seat specified, by RFC-0049's child spec.**
   RFC-0048's end-to-end table and diagram name the **G4→G5 release/deploy loop + ship**
   as [RFC-0049](0049-the-release-loop-and-company-os.md)'s, deferring the

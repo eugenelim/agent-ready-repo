@@ -19,6 +19,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The `product-engineering` pack gains the discovery loop — a `discovery-loop`
+  skill, a `discovery-lead` agent, and two discovery reviewers (product-engineering
+  0.9.0, implementing RFC-0053 / the `discovery-loop` spec).** The upstream loop
+  turns a raw idea into a ratified, build-ready **decision brief**: it diverges
+  across candidate product shapes (the new `explore-options` skill), converges the
+  chosen one through a lens roster, pauses at three consent gates (G0 / G1.5 / G2),
+  emits a **connected hypothesis** with validation hooks (the new `plan-validation`
+  skill — *converged ≠ validated*), and hands off to `work-loop` at G3 — **with no
+  new engine, scheduler, or service**. It ships as content: the agent + skills, a
+  carried, versioned **sidecar-schema** reference, and a **plan-tree** template
+  asset. `de-risk-intent` gains a validation-hook field and `decompose-intent` an
+  optional ranking step. The two discovery reviewers
+  (`discovery-threat-reviewer` / `discovery-reliability-reviewer`) are **distinct**
+  from `work-loop`'s code reviewers, required at G2, degrading only in depth. A
+  coordinator ADR (ADR-0043) records the no-engine, spike-confirmed shape, and a
+  four-page Diátaxis guide set under `docs/guides/product-engineering/` covers it.
+  The discovery loop is the full-battery home of the self-coverage gate (RFC-0051),
+  wired as its pre-G2 phase. *(Eval coverage for the three new skills is a tracked
+  follow-up, matching the `frame-domain` precedent.)*
+- **`new-spec` and the spec-metadata contract gain an optional `Discovery:` up-edge
+  header + discovery-artifact `type:` markers (core, format-only — DRIFT-G).** A
+  spec descended from an upstream discovery artifact records it in a `Discovery:`
+  header (the discovery-side sibling of `Brief:`), the producer edge a traceability
+  check walks; discovery-side artifacts carry a `type:` marker so a check finds them
+  by marker, not path. Format only — no operating-model doctrine. This resolves
+  RFC-0048 acceptance blocker #4; the traceability lint's `--strict` flip is
+  sequenced after the header lands (warn-only until then).
 - **The `work-loop` skill now carries the self-coverage gate as a thin, named
   phase (core 0.6.0, implementing RFC-0051 for the `work-loop` slice).** The loop
   doctrine now names its existing passes as the gate's steps (REVIEW *is* the
