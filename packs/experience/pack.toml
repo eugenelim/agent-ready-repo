@@ -1,0 +1,59 @@
+[pack]
+name = "experience"
+version = "0.2.0"
+description = "The design/UX seat for product teams — the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (map-customer-journey → map-screen-flow → blueprint-service) and map the inside-out sibling (map-internal-process); craft skills design each screen (aesthetic-direction, design-system-foundations, layout-and-information-architecture, interaction-design) and critique it (design-critique), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps — points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them."
+readme = "README.md"
+display_name = "Experience"
+license = "Apache-2.0 OR MIT"
+categories = ["design", "documentation"]
+keywords = ["customer-journey", "service-blueprint", "interaction-design", "design-systems", "heuristic-evaluation"]
+
+# Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
+# travels with every shipped adapter that projects the skill primitive.
+# Contract v0.12 matches `research` (RFC-0033 OQ#1 default): the level at
+# which Copilot's skill primitive projects as a first-class Agent Skill.
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# Experience method is portable, not project-specific — user-scope by
+# default, like `architect`/`research`. Pure-markdown skills + skill
+# assets/, no `seeds/` (RFC-0004 Rail A), so it projects to every shipped
+# adapter that supports the skill primitive. Declared order is load-bearing
+# (RFC-0011): append-only; `kiro-ide` precedes `kiro-cli`.
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+# consolidated-pack-layout (RFC-0040 / ADR-0030): the artifact-writing skills
+# resolve their durable output path config → default → discover-by-marker,
+# mirroring `product-engineering`'s `frame-intent`. `parent` is a base; each
+# skill writes file-per-slug under a subdirectory of it (journeys/, blueprints/,
+# screens/, processes/). No `[pack.layout.user]` default — output is per-repo,
+# with no sensible absolute user-scope base (same posture as product-engineering).
+# Each artifact-writing skill ships a references/agentbundle-layout.md documenting
+# the adopter-owned `[experience]` table.
+[pack.layout.repo]
+parent = "docs/design"
+
+# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# coverage allowlist. Each listed skill ships evals/eval_queries.json and is
+# measured by tools/run-pack-evals.py; each also ships a Tier-4 LLM-judge
+# rubric (evals/evals.json, keyed by file presence, graded via --mode judge).
+# All are user-triggered judgment/authoring skills, so all are covered. The
+# `experience-reviewer` agent is a role-match-dispatched primitive, not a
+# Skill-router-activated skill, so it is not listed here (its eval surface is
+# its review-list output contract + manual-QA dispatch; RFC-0050 § Errata).
+[pack.evals]
+skills = ["aesthetic-direction", "design-critique", "design-system-foundations", "layout-and-information-architecture", "map-customer-journey", "blueprint-service", "map-screen-flow", "map-internal-process", "interaction-design"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/experience/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
