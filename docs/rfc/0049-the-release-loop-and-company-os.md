@@ -7,7 +7,7 @@
 - **Date opened:** 2026-06-25
 - **Date closed:**
 - **Decision weight:** heavy <!-- light | standard | heavy — defines deploy-to-prod autonomy doctrine (an irreversible + security boundary) and adds a new opt-in pack + agent; it reuses existing reviewers and runtime, but the prod / data / spend / irreversible gating is the heavy part, so explicit Approver sign-off is warranted. -->
-- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the discovery+build foundation this extends — it details G0–G4; this details G4→G5) · RFC-0041 (infra-aware `work-loop` — whose deploy *flavor* this graduates into a proper outer loop) · RFC-0025 (`work-loop`) · `operational-safety` pack (the reliability/observability reference library this reuses) · omnigent (the harness; ephemeral-env + option-card support) · promoted design in [`0049-notes/`](0049-notes/)
+- **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the discovery+build foundation this extends — it details G0–G4; this details G4→G5) · RFC-0041 (infra-aware `work-loop` — whose deploy *flavor* this graduates into a proper outer loop) · RFC-0025 (`work-loop`) · `operational-safety` pack (the reliability/observability reference library this reuses) · [RFC-0051](0051-the-self-coverage-gate.md) (the self-coverage *goal* this loop realizes through a deploy-appropriate composite — see *Self-coverage — the release loop's guiding goal*) · omnigent (the harness; ephemeral-env + option-card support) · promoted design in [`0049-notes/`](0049-notes/)
 
 ## Reviewer brief
 
@@ -33,7 +33,7 @@ converges**, then ships to prod at **G5** (human-ratified). Carve autonomy by
 **minimum-regret**: agents run the inner loop *and* the outer loop **on ephemeral envs**
 unwatched; humans gate prod / data / spend / security / irreversible. Add an
 **`release-lead`** agent (the SRE/ops supervisor) — doctrine + reuse of
-`operational-safety` + `quality-engineer` + RFC-0041's infra doctrine, **no new runtime**,
+`operational-safety` + `quality-engineer` + `security-reviewer` + RFC-0041's infra doctrine, **no new runtime**,
 running on the omnigent harness. This completes the **"company OS"**: product (discovery)
 → engineering (build) → SRE/ops (release).
 
@@ -51,7 +51,7 @@ iterate-until-converge — so the human becomes the relay for deployed findings.
 | D1 | Adopt the inner/outer split — `work-loop` = inner (local, with local-infra-equivalents); a new `release-loop` = outer (ephemeral deploy + e2e + iterate)? | Adopt | The inner loop can't surface deployed-only failures; the outer loop iterates the deployed whole to convergence | RFC accept | Confirm the inner/outer split |
 | D2 | Adopt the minimum-regret carve — autonomous on the inner loop and the outer loop on ephemeral envs; human-gated at first real users/data, migrations, spend over threshold, security, anything irreversible, and prod ship (G5)? | Adopt | The reversibility primitives (ephemeral envs + feature flags + auto-rollback) make unwatched autonomy safe up to the irreversible line | RFC accept | Confirm where the carve draws the agent/human line |
 | D3 | Make local-infra-equivalents a build-loop obligation — the fidelity ladder (fakes → contract tests → Testcontainers → LocalStack → docker-compose)? | Adopt | Software must run and verify locally before deploy, so the inner loop is self-sufficient | RFC accept | Confirm the obligation + the ladder |
-| D4 | Ship `release-lead` (the outer-loop / SRE-ops seat) as an agent + a `release-loop` skill, reusing `operational-safety` + `quality-engineer` + RFC-0041? | Adopt | A reuse-not-rebuild seat; no new runtime, no new reviewer | RFC accept (the seat) | Confirm the seat; pack home (OQ1) resolves to a new `release-engineering` pack, exact agent shape is OQ2 |
+| D4 | Ship `release-lead` (the outer-loop / SRE-ops seat) as an agent + a `release-loop` skill, reusing `operational-safety` + `quality-engineer` + `security-reviewer` + RFC-0041? | Adopt | A reuse-not-rebuild seat; no new runtime, no new reviewer | RFC accept (the seat) | Confirm the seat; pack home (OQ1) resolves to a new `release-engineering` pack, exact agent shape is OQ2 |
 | D5 | Adopt the company-OS composition — three loop-teams (discovery → build → release) on RFC-0048's shared substrate, handing off at G3, at deploy, and at G5? | Adopt | Completes the autonomous product team end to end on one substrate | RFC accept | Confirm the three-team composition + the hand-offs |
 | D6 | Adopt convergence by policy — promotion judged by automated policy (canary analysis + e2e coverage of the changed surface + flake < 2%) up to the irreversible human gate, with DORA as the health signal? | Adopt | Makes outer-loop promotion a checkable policy, not a human relay | RFC accept | Confirm the promotion policy + DORA as the signal |
 
@@ -85,7 +85,44 @@ summary:
 - **Minimum-regret carve** (the autonomy law applied to deploy): reversible (ephemeral)
   ⇒ autonomous; irreversible (prod/data/spend/security) ⇒ human.
 - **Company OS:** three loop-teams on 0048's substrate; the release-loop is the SRE/ops
-  seat, reusing `operational-safety` + `quality-engineer`.
+  seat, reusing `operational-safety` + `quality-engineer` + `security-reviewer`.
+
+**Self-coverage — the release loop's guiding goal.** The release loop exists to **maximize deploy
+autonomy** — take the agent as far into deploy + e2e as minimum-regret allows before a human is
+needed. That *is* the **self-coverage goal** RFC-0048 names and [RFC-0051](0051-the-self-coverage-gate.md)
+owns: *substitute rigorous checklists for what would otherwise be surfaced to a human; resolve
+autonomously everything a checklist can resolve (**resolve-vs-surface**), and surface only the
+irreducible.* The release loop realizes that goal **not** through the seven design-convergence
+modules (there is no design artifact to ground, and it converges empirically on telemetry) but
+through a **deploy-appropriate composite**:
+
+- **Checklist content** — `operational-safety` (reliability: state & idempotency, blast-radius,
+  drift & rollback, cost & teardown, observability), `security-reviewer` (the *security* gate), and
+  `quality-engineer` (change quality). No single library covers it — `operational-safety` is the
+  reliability lens only; the loop's human gates (prod / data / spend / **security** / irreversible)
+  span more than reliability.
+- **The stop-rule** — the automated convergence policy (canary analysis + e2e coverage of the
+  changed surface + flake < 2%, DORA as the health signal — Decision 6). The **coverage record the
+  seam requires is the pair**: the policy result (the empirical leg) *plus* the carve's recorded
+  per-finding dispositions (the resolve-vs-surface leg). The policy alone is not the record — a
+  green canary can pass while a class of risk was never enumerated; what makes the record
+  non-skippable is that every deployed-only finding carries an explicit resolved-or-surfaced
+  disposition, not just a telemetry gate.
+- **The resolve-vs-surface disposition** — the minimum-regret carve (Decision 2): resolve
+  autonomously everything reversible (ephemeral envs + flags + auto-rollback make it groundable);
+  surface to the human the irreducible. The carve's static reversible/irreversible cut is the
+  *floor*, not the whole predicate: a finding the composite **cannot ground** surfaces regardless of
+  reversibility — e.g. a non-deterministic or novel failure that auto-rollback *masks but does not
+  explain*, or convergence that needed anomalous iteration (a flapping canary, a coverage gap closed
+  by retries). "Resolved autonomously" requires a *grounded* resolution, not merely a reversible
+  one.
+
+Applying resolve-vs-surface *across* the composite — every finding either resolved-with-a-referent
+or surfaced-with-a-reason — is what keeps the carve honest: the loop surfaces only what a checklist
+genuinely cannot resolve, which is precisely what lets it run unattended up to the irreversible
+line. This **conforms to RFC-0051's cross-loop seam** (goal + resolve-vs-surface + a non-skippable
+coverage record); it carries **no copy of the seven modules** and adds **no new reviewer** — the
+same reuse-not-rebuild posture as Decision 4.
 
 ## Options considered
 
