@@ -1,6 +1,6 @@
 # Spec: release-loop
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0049 (the parent — the release (outer) loop + minimum-regret deploy carve + company-OS composition; resolves its OQ1 pack-home + OQ2 agent-shape) · RFC-0048 (the foundation, **Accepted 2026-06-30** — the G4→G5 arc, the sidecar substrate, the company-OS framing) · RFC-0053 (the sibling — the sidecar *schema* this loop consumes by convention (carried in `product-engineering`'s `discovery-loop` skill, not `core`; RFC-0048 § Amendments 2026-06-26), and the `agent-def + skill + no-engine` pattern + § Security & integrity contract shape it mirrors downstream) · RFC-0041 + ADR-0031 (the *doctrine + reference-library + reuse-existing-reviewers, no engine / no new reviewer* precedent; the deploy *flavor* this graduates into a proper outer loop; P5's non-skippable security posture) · ADR-0018 (the orchestrator-inlined progressive-disclosure depth mechanism the reuse rides) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey)
@@ -159,14 +159,27 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
 - **Lint conformance**: goal-based — `make build-check`,
   `tools/lint-agent-artifacts.py`, and `tools/lint-agents-md.py` all exit 0; the
   new agent's `tools:` surface and the skill frontmatter pass `lint-packs`.
-- **Activation**: goal-based — a `pack-activation-evals` entry confirms the
-  `release-loop` skill activates on deploy / e2e / "ship the integrated
-  whole" / "iterate the deployed env" prompts and *not* on inner-loop build
-  prompts (the inner/outer boundary is legible to the model).
-- **Content presence** (the carve's two zones; the convergence policy; the outer
-  cap + stall-surface; the sidecar consumption; the reuse wiring; the nine
-  security/integrity controls; *no* executable engine added): goal-based —
-  `grep` / `git diff` checks against the Acceptance Criteria.
+- **Activation legibility**: judgmental — `release-loop` is a **supervisor-run
+  loop skill** (invoked by `release-lead`), the same shape as `discovery-loop`,
+  which deliberately ships **no** `pack-activation-evals` entry and is **not** in
+  its pack's `[pack.evals]` (only user-prompt-activated *habit* skills are
+  eval'd; `build-check` self-tests the eval *runner*, it does not execute pack
+  evals). So activation is verified by the skill's `description` carrying the
+  activating triggers (deploy / e2e / "ship the integrated whole" / "iterate the
+  deployed env") **and** the disjoint `Do NOT use` clause fencing it off from the
+  inner-loop build (the inner/outer boundary legible in the frontmatter) — the
+  `discovery-loop` precedent, not an activation eval.
+- **Content presence** (the carve's two zones; the convergence policy; the
+  AC6b release-readiness record + its `error-budget: not-defined` field; the outer
+  cap + stall-surface; the sidecar consumption; the reuse wiring; the AC10
+  security/integrity controls (a–i) plus the AC7 artifact-provenance control;
+  *no* executable engine added): goal-based —
+  `grep` / `git diff` checks against the Acceptance Criteria. **AC10(b)** (the
+  harness-delegated audit-trail posture + anchored tip) and **AC10(i)**
+  (slot data-classification + redact-or-surface + branch-protection) are verified
+  the same way — `grep` for the named harness guarantee / the classification +
+  redact-or-surface doctrine — since the pack ships no engine to assert them
+  mechanically; their *exercise* is the AC12 trace's tamper / forged-consent paths.
 - **Doctrine correctness** (does the prose actually *carve* autonomy at the
   reversibility line, *gate* the irreversible exits, *bound* the loop with the
   cap, *reuse without forking*, and *bind* security to the boundary?): judgmental
@@ -177,13 +190,14 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   RFC-0053's § Security & integrity contract.
 - **No-engine validation** (the load-bearing empirical claim): a worked-example
   trace (AC12) walks **one full outer-loop cycle** on the form omnigent stores,
-  with a forced cap-hit and a forced security-boundary-without-a-lens, to
+  with four forced negative paths (cap-hit, security-boundary-without-a-lens,
+  forged-consent-rejected, decision-log-tamper-detected), to
   demonstrate every transition is a file edit + a policy check, no runtime — and
   to honestly flag the single-example, single-operator limit.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — the inner/outer split + the agent shape (RFC-0049 D1 / OQ2).** The
+- [x] **AC1 — the inner/outer split + the agent shape (RFC-0049 D1 / OQ2).** The
   `release-loop` skill is the **outer loop** (deploy the integrated whole →
   e2e → observe telemetry → feed findings to the inner loop → redeploy →
   converge), distinct from `work-loop`'s **inner loop** (local build); the
@@ -193,7 +207,7 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   and `discovery-lead`, **not** a `work-loop` outer-mode — the skill and the agent
   state that the two loops have different inputs, verifiers, and autonomy postures
   and **must not be conflated**.
-- [ ] **AC2 — the pack home + scope (RFC-0049 OQ1; RFC-0048 § Amendments 2026-06-28).**
+- [x] **AC2 — the pack home + scope (RFC-0049 OQ1; RFC-0048 § Amendments 2026-06-28).**
   The capability ships in a **new opt-in `release-engineering` pack** (not `core`),
   installed at **repo scope** into the **build repo** — the same repo `work-loop` ran in,
   which holds the deploy-ready component and therefore has `core` repo-installed. The pack
@@ -208,16 +222,19 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   deploy / smoke / teardown artifacts it would otherwise consume and surfaces the
   gap** to the human (the "offer to scaffold" path), rather than failing or
   silently proceeding; when **present**, it consumes them. `core` is
-  unchanged except for the version touch its `marketplace.json` aggregation
-  requires. The pack carries `pack.toml`, `.claude-plugin/plugin.json`, and a
-  `README.md`, and is registered in the catalogue / `marketplace.json`. The **repo-scope
+  **unchanged** — its version line does not move; `marketplace.json` simply
+  re-aggregates to add the new pack's entry (the aggregation reads every pack's
+  `plugin.json` independently). The pack carries `pack.toml`,
+  `.claude-plugin/plugin.json`, and a `README.md`, and is registered in
+  `marketplace.json` via that aggregation (there is no separate top-level
+  catalogue file for the bundle's own packs). The **repo-scope
   co-location is load-bearing for AC9's reuse**: `release-lead` and the reused `core`
   reviewers sit at the same scope in the same repo, so the reuse resolves by construction
   — the deliberate scope-inverse of the user-scope `discovery-lead`, which ships its *own*
   reviewers because it runs upstream in non-repo workspaces that cannot assume a `core`
   install (RFC-0048 DRIFT-E). ("Parallels `product-engineering`" in § Ask first is a
   discipline/seat-name parallel, not a scope claim.)
-- [ ] **AC3 — the carve, autonomous zone (RFC-0049 D2).** The skill enumerates the
+- [x] **AC3 — the carve, autonomous zone (RFC-0049 D2).** The skill enumerates the
   **reversibility zone** the agent runs unwatched: the inner loop; the outer loop
   **on ephemeral environments** (deploy / e2e / observe / iterate / teardown); and
   **canary in non-prod tiers** with metric-gated **auto-rollback**. The "reversible"
@@ -226,7 +243,7 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   **cannot reach prod state** — a deploy target that cannot be proven isolated is
   itself a **consent-gate crossing** (it is no longer reversible), not an
   autonomous-zone action.
-- [ ] **AC4 — the carve, human zone (RFC-0049 D2).** The skill binds to **human
+- [x] **AC4 — the carve, human zone (RFC-0049 D2).** The skill binds to **human
   consent gates**: first promotion to **real users or real data**; **data
   migrations** (schema / destructive); **spend over a pre-agreed threshold**;
   **security / auth-boundary** changes; anything **irreversible beyond MTTR**; and
@@ -234,12 +251,12 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   (`reversible` / `costly-to-reverse` / `one-way-door`), not free text, and
   `one-way-door` binds to a **mandatory consent gate regardless of which gate it
   arose at** (RFC-0053's enumeration AC, applied downstream).
-- [ ] **AC5 — the unlock (RFC-0049 D2).** The skill names the **reversibility
+- [x] **AC5 — the unlock (RFC-0049 D2).** The skill names the **reversibility
   primitives** — **ephemeral environments + feature flags + auto-rollback** — as
   what turns deploy from a one-way door into a two-way door, *which is what lets
   the outer loop run autonomously*, harness-neutrally, with omnigent as the
   reference for each primitive.
-- [ ] **AC6 — convergence by policy (RFC-0049 D6).** Promotion up to the human
+- [x] **AC6 — convergence by policy (RFC-0049 D6).** Promotion up to the human
   gate is judged by **automated policy** — canary metric analysis
   (success / error / latency SLOs) **+** e2e coverage of the **changed surface**
   **+** flake **< 2%** — **not by a human**. Each conjunct carries a **checkable
@@ -250,7 +267,7 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   not waive it. **DORA** (deploy frequency, lead time, change-fail rate, MTTR, +
   the 2025 rework rate) is named as the **health signal**, explicitly *not* a
   per-promotion gate.
-- [ ] **AC6b — the release-readiness gate (the launch PRR before G5).** Before
+- [x] **AC6b — the release-readiness gate (the launch PRR before G5).** Before
   surfacing the **G5** prod-ship consent gate, `release-lead` assembles a
   **readiness record** consolidating, for the changed surface: the **AC6
   convergence-policy result**, the **AC9 `operational-safety` review verdicts**
@@ -279,7 +296,7 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   never a silent pass. This is the *launch* PRR (pre-prod, in scope here); ongoing
   error-budget monitoring + on-call ownership belong to the future operate/incident
   loop, not this spec.
-- [ ] **AC7 — the inner↔outer feedback seam + sidecar consumption.** A deployed
+- [x] **AC7 — the inner↔outer feedback seam + sidecar consumption.** A deployed
   finding is written to the **sidecar blackboard** and fed back to `work-loop` as
   a build task (observability-driven, **no human relay**); the loop then
   redeploys. The loop **consumes** the sidecar schema (RFC-0053:
@@ -294,9 +311,9 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   loop deploys the **digest-pinned artifact the inner loop verified** — a
   substituted or rebuilt artifact between G4 and deploy is detectable (artifact
   provenance across the handoff; OWASP 2025 supply-chain), not assumed identical.
-- [ ] **AC8 — the outer cap + cost budget (RFC-0049; RFC-0053 D4 mirror).** The
+- [x] **AC8 — the outer cap + cost budget (RFC-0049; RFC-0053 D4 mirror).** The
   sidecar `meta` block carries `round`, `round_cap`, `cost_budget`, and
-  `cost_spent`; the loop increments `round` by **exactly one per
+  `cost_spent`; the loop increments `round` by **exactly one at the start of each
   deploy→e2e→converge pass** (a pinned monotonic invariant, so the cap can't be
   stepped over). On `round >= round_cap` **or** `cost_spent ≥ cost_budget`
   **with** any failing canary / uncovered changed surface / open finding
@@ -304,7 +321,7 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   **surfaces to the human**
   (surfacing-predicate stall clause); defaults are **tunable** (recommended: a
   small per-cycle round cap + the adopter's omnigent `cost_budget`).
-- [ ] **AC9 — reuse, no new reviewer / no engine (ADR-0031).** The loop **reuses
+- [x] **AC9 — reuse, no new reviewer / no engine (ADR-0031).** The loop **reuses
   `quality-engineer`** for the operational lens — the orchestrator inlines the
   matching `operational-safety` REVIEW modules (`environment-isolation`,
   `blast-radius`, `cost-and-teardown`, `drift-and-rollback`,
@@ -327,45 +344,86 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   sound and the loop surfaces the gap** (the same fail-closed posture as AC2's
   detect-and-degrade and AC10(c)'s no-lens surface), while cross-repo *artifact
   referencing* uses ADR-0022 (RFC-0049 OQ1; RFC-0048 § Amendments 2026-06-28).
-- [ ] **AC10 — the security & integrity contract (mirrors RFC-0053, extended for
+- [x] **AC10 — the security & integrity contract (mirrors RFC-0053, extended for
   the deploy boundary).** The skill / agent specify, as first-class controls:
   **(a) verdict write-authority** — the prod / irreversible consent verdict is
   written through a **harness-attested channel the agent holds no token for**
-  (omnigent HITL), and resume is gated on a verdict whose `human` provenance is
-  harness-attested, never a row the agent also writes;
+  (omnigent HITL). The defense is a **positive attestation cross-check, not just
+  append-only**: every `ratified_by: human` row carries a **harness-issued
+  attestation the agent cannot mint**, and resume **reads the set of
+  harness-attested verdicts from the untokened store and accepts a
+  `ratified_by: human` row only if it matches one** — an unattested
+  human-attributed row is rejected, **including an appended self-consistent one**
+  (the anchored hash-chain of (b) stops an in-place edit but not a clean append, so
+  the attestation lookup is what closes the append-forge path);
   **(b) decision-log as a real audit trail** — append-only, per-row actor
-  attestation, tamper-evidence (content-hash-chained rows or a harness immutable
-  log), trusted timestamp (the DORA / compliance trail); **paired with its
-  mechanical backstop** — where the log is in-repo, append-only is asserted by an
-  add-only **lint/CI check**; where it is harness-delegated, the spec names which
-  harness immutability guarantee is relied on (never append-only as prose only);
+  attestation, tamper-evidence, trusted timestamp (the DORA / compliance trail).
+  Because this pack **ships no engine** (Never-do; AC9), the **harness-delegated
+  branch is the shipped posture**: the loop names the **omnigent immutable-log /
+  HITL-store guarantee** it relies on, and — mirroring RFC-0053's load-bearing
+  sharpening — when the log is content-hash-chained the **chain *tip* is anchored
+  in the AC10(a) agent-untokened store** (or signed with a key the agent lacks),
+  because a bare `prev_hash`/`hash` chain is **not** tamper-evident against the
+  controller that writes it: that controller can re-chain a self-consistent log
+  after an in-place edit. The **in-repo add-only lint/CI check** is named as the
+  **adopter's option** when an adopter keeps the log in-repo — it is *not* a
+  feature mechanism this pack ships (it would collide with Never-do / the AC9
+  byte-unchanged scripts); the doctrine names it, the pack does not build it.
+  Append-only is never prose-only — it rests on either the named harness
+  guarantee or the adopter's add-only check;
   **(c) non-degradable security lens on a crossed boundary** — a deploy crossing
   auth / secrets / untrusted-input / network / regulated-data with no security
   lens installed **surfaces to the human**, not a silent degrade (RFC-0041 P5
   posture); **(d) telemetry / canary / log integrity** — a canary, telemetry, or
   log signal a lens or agent could poison is **advisory until the controller
   validates** it (lens proposes, controller promotes), **and deployed telemetry,
-  e2e output, and log lines are treated as data, not instructions** to the agent
-  (isolated/tagged, never concatenated into the prompt as commands) — so a
-  poisoned log line cannot become a forged build task on the AC7 finding→task
-  path or spoof convergence (OWASP LLM-01); **(e) auto-rollback circuit-breaker
-  with two independent triggers** — a rollback storm or non-settling
+  e2e output, and log lines are treated as data, not instructions** to the agent.
+  This is a **marking discipline, not a restated property** (RFC-0053 control 4):
+  a sidecar slot whose producer ingested deployed telemetry / e2e output / a log
+  line carries an explicit **`untrusted: true`** marker (paired with `produced_by`),
+  and an `untrusted` finding is **inert until the controller promotes it** — the
+  AC7 finding→task step honors that inert-promote rule, never concatenating the
+  raw signal into the prompt as a command — so a poisoned log line cannot become a
+  forged build task on the AC7 finding→task path or spoof convergence (OWASP
+  LLM-01); **(e) auto-rollback circuit-breaker** — a rollback storm or non-settling
   canary-analysis loop surfaces and **halts promotion** after **N consecutive
-  promote↔rollback oscillations** (an attempt threshold, *independent of* the cost
-  budget, so a flapping canary is bounded by attempts not only by spend) **and**
-  counts against the cost budget; **(f) teardown guarantee** — ephemeral envs are
+  promote↔rollback oscillations** — an **attempt threshold independent of, and
+  additional to, the AC8 cost cap**, so a flapping canary is bounded by **attempts**
+  even when it stays under budget (the cost cap alone would let a cheap flap churn);
+  oscillations also count against the cost budget; **(f) teardown guarantee** — ephemeral envs are
   torn down on cycle end, and a non-torn-down env surfaces (the cost-sprawl
   lever); **(g) deploy-credential tiering** — deploy credentials are
-  **broker-mediated and scoped to the ephemeral-env tier** (AGENTS.md's blessed
-  secrets-broker boundary), so **no prod/irreversible-tier credential is reachable
-  from the autonomous (ephemeral) zone**; an agent in the reversible zone holds no
+  **broker-mediated through AGENTS.md's blessed credential-broker boundary** (the
+  four-broker `credbroker` taxonomy — `env` / `cli` / `creds` / `sso-cookie`) and
+  **scoped to the ephemeral-env tier**, specified as a **falsifiable
+  harness-conformance precondition**, not "be careful with secrets": the
+  ephemeral-zone identity can assume **only** ephemeral-tier roles, and an attempt
+  to acquire a **prod / irreversible-tier** credential **from the reversible zone
+  is rejected or unavailable** (the AC12 validation run records that rejection).
+  Where the deploy path is the `cli` broker (shelling to `aws` / `kubectl` /
+  `gcloud`, which own the credential via a vendor session), the tier scope is a
+  property of the **vendor session / role the harness grants** — the spec names
+  that the autonomous-zone session is granted an ephemeral-tier role only, never a
+  role that can assume prod. So **no prod/irreversible-tier credential is reachable
+  from the autonomous (ephemeral) zone**: an agent in the reversible zone holds no
   token that can act past a consent gate — the credential-side enforcement of (a),
   so the carve's integrity rests on *inability*, not merely prohibition;
   **(h) ephemeral-env isolation is a carve precondition** — the AC3 isolation
   conditions (no prod reachability, no real data, isolated from other ephemeral
   envs) are the security floor under the "reversible" label, not just a reviewer
-  lens.
-- [ ] **AC11 — the company-OS composition + drift reconciliation.** The spec
+  lens; **(i) sidecar data-classification + state-branch integrity (mirrors
+  RFC-0053 control 7, the LINDDUN leg).** The release boundary reads **live
+  telemetry, e2e output, canary signals, and log lines** — which on a real-data or
+  regulated-tier deploy can carry PII, customer identifiers, or secrets — so each
+  sidecar slot (and the AC6b readiness record) is **classified**
+  (`public` / `internal` / `sensitive` / `regulated`), and a `sensitive` /
+  `regulated` slot is **redacted-or-surfaced *before* the write reaches a shared /
+  repo-backed store** (the check composes with the AC7 blackboard write and the
+  AC6b record pre-fill, both already AC10(d)-validated). Where the decision log /
+  sidecar is repo-backed, the **state branch is protected against history rewrite**
+  (force-push / amend) — the audit trail's integrity is a branch-protection
+  property, not only a per-row one.
+- [x] **AC11 — the company-OS composition + drift reconciliation.** The spec
   records `release-loop` as the **third loop-team** (SRE/ops) on RFC-0048's
   shared substrate (sidecar + gate arc + harness), with leads handing off
   **work→release at deploy** and **release→prod at G5**. The
@@ -376,7 +434,7 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   release-lead seat + pack home + agent shape now specified; the company-OS
   third seat confirmed; the work→release + release→prod handoffs wired) —
   the series-execution reconcile-drift obligation.
-- [ ] **AC11b — the inner/outer + minimum-regret ADR.** The RFC-0049 follow-on ADR
+- [x] **AC11b — the inner/outer + minimum-regret ADR.** The RFC-0049 follow-on ADR
   — **"the inner/outer loop split + the minimum-regret deploy carve"** — is
   authored in this PR (the sibling of RFC-0041's ADR-0031 / RFC-0053's coordinator
   ADR), recording the expensive-to-reverse architectural decision the carve
@@ -384,19 +442,25 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   RFC's child spec`, a circular gate this PR closes by resolving the OQs in
   RFC-0049 and authoring this spec together; whether RFC-0049 flips to `Accepted`
   in the same PR is the **operator's call** and is surfaced, not assumed.
-- [ ] **AC12 — no-engine validation.** A worked-example trace (`notes/`) walks
+- [x] **AC12 — no-engine validation.** A worked-example trace (`notes/`) walks
   **one full outer-loop cycle** (deploy → e2e finds a defect → finding to the
   blackboard → inner-loop fix → redeploy → canary + coverage + flake converge →
   surface the G5 consent gate) on the form omnigent stores, demonstrating every
   transition is a **file edit + a policy check**, no runtime. The trace reuses
   **RFC-0048 note-02's worked example (`example-assistant`)** as its subject, so
   the downstream demonstration is continuous with the upstream coordinator
-  prototype. The trace
-  **forces a cap-hit** (exercising the AC8 stall-surface path) **and** a
-  **security-boundary-with-no-lens** (exercising the AC10c surface path), and
-  **honestly flags** the single-example, single-operator limit (the residual
-  scale risk, mirroring RFC-0053's spike Threats).
-- [ ] **AC13 — projection + lint + release hygiene.** `make build-self`
+  prototype. The trace forces **four negative paths**, so the load-bearing
+  integrity controls are exercised and not merely asserted (the modelled-not-run
+  gap RFC-0053 named): **(1)** a **cap-hit** (the AC8 stall-surface path);
+  **(2)** a **security-boundary-with-no-lens** (the AC10(c) surface path);
+  **(3)** a **forged-consent attempt** — the controller tries to self-write a
+  `ratified_by: human` decision-log row / readiness-record verdict and the resume
+  step **rejects it** (the AC10(a) channel falsification); **(4)** a
+  **decision-log tamper attempt** — an in-place edit of a prior row is **detected**
+  by the anchored-tip check (the AC10(b) falsification). The trace **honestly
+  flags** the single-example, single-operator limit (the residual scale risk,
+  mirroring RFC-0053's spike Threats).
+- [x] **AC13 — projection + lint + release hygiene.** `make build-self`
   regenerates the projected agent + skill cleanly; `make build-check`,
   `python tools/lint-agent-artifacts.py`, and `python tools/lint-agents-md.py` all
   pass (the latter two not in `make build-check`; run by hand / in CI); any pack
