@@ -176,7 +176,7 @@ Sample reads, to calibrate the boundary:
   designing one. (Pressure test that reframed the whole spec; logged with a wide
   prior-art sweep in the spec's `notes/`.)
 
-*Sample reads appended by child-5 — the coordinator contract ([RFC-0053](../0053-the-coordinator-contract.md)):*
+*Sample reads appended by child-5 — the coordinator contract ([RFC-0053](../0053-the-discovery-loop.md)):*
 - *When the parent says "empirical, not paper," building the artifact IS the resolution —
   describing it is the failure the parent pre-named.* (Child-5.) RFC-0048 D7 asked for "a
   prototype ... not a paper design." The temptation was to author the RFC *asserting* the
