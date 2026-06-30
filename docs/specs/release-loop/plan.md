@@ -1,7 +1,8 @@
 # Plan: release-loop
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
+
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -80,6 +81,16 @@ doctrine correctness.
   `.claude-plugin/plugin.json` (valid manifest, version present). Verifies AC2.
 - `marketplace.json` lists the `release-engineering` pack after `make build-self`
   (goal-based: `grep release-engineering marketplace.json`). Verifies AC2 / AC13.
+- **Precondition (the "grep to verify before importing" rule, applied to module
+  names + sidecar slots):** confirm the six `operational-safety` REVIEW modules +
+  `cloud-implementation-craft` exist as files under
+  `packs/core/.apm/skills/operational-safety/references/`, and confirm the sidecar
+  slot field-names (blackboard · open-questions · traceability · decision-log +
+  the `meta` block `round` / `round_cap` / `cost_budget` / `cost_spent`) from
+  `packs/product-engineering/.apm/skills/discovery-loop/references/sidecar-schema.md`
+  **before** wiring them in T4/T2 — so the consume-by-convention claim is
+  falsifiable here, not mid-EXECUTE. (Verified during PLAN: all seven modules and
+  all four slots + the meta block exist.)
 
 **Approach:**
 - Create `packs/release-engineering/` with `pack.toml`, `.claude-plugin/plugin.json`
@@ -90,9 +101,21 @@ doctrine correctness.
   sidecar schema is consumed by convention (definition carried in
   `product-engineering`'s `discovery-loop`, not `core`), so it is **not** a manifest
   hard-dependency on `core` or `product-engineering`.
-- Mirror the self-host pack-scope rule: `release-engineering` is a user-scope-default
-  opt-in pack — it belongs in `marketplace.json` but **not** in this repo's
-  working-tree projection (the `make build-self` core+governance-extras scope).
+- **Two distinct scope axes — do not conflate them.** (1) **Adopter install
+  scope:** `release-engineering` is **`repo`-scope** (`pack.toml`
+  `[pack.install] default-scope = "repo"`, `allowed-scopes` including `repo`) —
+  this is **architecturally load-bearing** (AC2 / AC9): the pack installs into the
+  same build repo `work-loop` ran in, where `core` is repo-installed, so the reuse
+  of `core`'s repo-scope `quality-engineer` / `security-reviewer` /
+  `operational-safety` resolves at the same scope. This is the deliberate
+  scope-**inverse** of the user-scope `discovery-lead`. (2) **This repo's
+  self-host projection:** `release-engineering` is **not** in
+  `recipes/self-host.toml`'s `include` list, so `make build-self` does **not**
+  project its agent/skill into this repo's `.claude/` tree (the
+  core + governance-extras + user-guide-diataxis scope) — it is only advertised in
+  `marketplace.json` via aggregation. Setting `default-scope = "user"` to "match"
+  the non-projection would invert AC9's reuse soundness — the two axes are
+  orthogonal.
 
 **Done when:** `lint-packs` is green on the new pack and `marketplace.json`
 carries it after build-self.
@@ -102,9 +125,12 @@ carries it after build-self.
 **Depends on:** T1
 
 **Tests:**
-- `pack-activation-evals` entry: the skill activates on deploy / e2e / "ship the
-  integrated whole" / "iterate the deployed env" prompts, and **not** on
-  inner-loop local-build prompts. Verifies AC1 (legible inner/outer boundary).
+- Activation legibility (judgmental, the `discovery-loop` precedent — no
+  activation eval): the skill `description` carries the activating triggers
+  (deploy / e2e / "ship the integrated whole" / "iterate the deployed env") and a
+  disjoint `Do NOT use` clause fencing it off from the inner-loop build. Verifies
+  AC1 (legible inner/outer boundary). `release-loop` is **not** added to
+  `[pack.evals]` (supervisor-run loop skill, like `discovery-loop`).
 - `grep` presence checks against AC3–AC8: both carve zones, the convergence
   policy (canary + e2e coverage of changed surface + flake < 2%), DORA as health
   signal, the outer cap + stall-surface, the sidecar-consumption slots. Verifies
@@ -135,7 +161,8 @@ carries it after build-self.
 - Add `references/` modules only if the SKILL.md body would otherwise exceed the
   lean-prose bar — default to inline.
 
-**Done when:** the activation eval passes, the AC3–AC8 and AC6b grep checks are present,
+**Done when:** activation legibility reads clean (triggers + disjoint Do-NOT-use
+in the frontmatter), the AC3–AC8 and AC6b grep checks are present,
 and `lint-packs` is green.
 
 ### T3: The `release-lead` agent definition is the outer-loop supervisor
@@ -175,9 +202,10 @@ AC1 peer/non-conflation framing greps clean.
   pass on deploy diffs (AC10c); **no new reviewer agent** added under
   `packs/release-engineering/.apm/agents/` beyond `release-lead`; `loop-cohort.py` /
   `lint-spec-status.py` byte-unchanged. Verifies AC9 / AC10c.
-- `grep` presence of the nine controls (AC10 a–h + the AC7 artifact-provenance
-  control) in the skill/agent body — including (g) deploy-credential tiering and
-  (h) ephemeral-env-isolation-as-precondition. Verifies AC10.
+- `grep` presence of the AC10 controls (a–i) + the AC7 artifact-provenance
+  control in the skill/agent body — including (g) deploy-credential tiering (named
+  `credbroker` boundary + falsifiable tier scoping), (h) ephemeral-env-isolation-as-
+  precondition, and (i) sidecar data-classification + branch-protection. Verifies AC10.
 
 **Approach:**
 - In `release-loop` SKILL.md, wire the orchestrator-inlined
@@ -186,16 +214,21 @@ AC1 peer/non-conflation framing greps clean.
   the cycle raises, inline into the reviewer brief, never self-discovered), and
   wire `cloud-implementation-craft` (the EXECUTE-craft module) where the loop
   authors/scaffolds deploy/smoke/teardown artifacts.
-- Specify the nine security/integrity controls (AC10 a–h, plus the AC7 artifact
+- Specify the AC10 security/integrity controls (a–i, plus the AC7 artifact
   provenance) as loop doctrine: verdict write-authority (harness-attested);
-  append-only attested decision log **paired with its add-only lint/CI backstop**;
-  non-degradable security lens on a crossed boundary; telemetry/canary/log
-  integrity (advisory-until-validated **+ data-not-instructions**); auto-rollback
+  audit-trail decision log **(harness-delegated posture — named omnigent
+  immutable-log guarantee + anchored hash-chain tip; in-repo add-only lint named
+  as the adopter's option, not shipped)**; non-degradable security lens on a
+  crossed boundary; telemetry/canary/log integrity (advisory-until-validated **+
+  the `untrusted:` marking discipline + inert-promote**); auto-rollback
   circuit-breaker (**oscillation-attempt trigger + cost trigger**); teardown
-  guarantee; **deploy-credential tiering** (no prod-tier token reachable from the
-  ephemeral zone); **ephemeral-env isolation as a carve precondition**.
+  guarantee; **deploy-credential tiering** (named four-broker `credbroker`
+  boundary; no prod-tier token reachable from the ephemeral zone — falsifiable);
+  **ephemeral-env isolation as a carve precondition**; **sidecar
+  data-classification** (`public`/`internal`/`sensitive`/`regulated`,
+  redact-or-surface before a shared-store write + state-branch history protection).
 
-**Done when:** the AC9 + AC10 greps are present (all nine controls), no new
+**Done when:** the AC9 + AC10 greps are present (controls a–i + provenance), no new
 agent/engine is added, and the frozen scripts show empty `git diff`.
 
 ### T5: The worked-example trace demonstrates no-engine (cap-hit + security-surface forced)
@@ -206,9 +239,10 @@ agent/engine is added, and the frozen scripts show empty `git diff`.
 - The trace under `docs/specs/release-loop/notes/` walks **one full cycle**
   and shows every transition is a file edit + a policy check (no runtime).
   Verifies AC12.
-- The trace **forces a cap-hit** (AC8 stall-surface path) and a
-  **security-boundary-with-no-lens** (AC10c surface path), and **flags** the
-  single-example / single-operator limit. Verifies AC12.
+- The trace **forces four negative paths** — a cap-hit (AC8 stall-surface), a
+  security-boundary-with-no-lens (AC10(c) surface), a forged-consent attempt
+  rejected (AC10(a)), and an in-place decision-log tamper detected (AC10(b)) —
+  and **flags** the single-example / single-operator limit. Verifies AC12.
 
 **Approach:**
 - Author `notes/01-worked-example-trace.md`: a deployed e2e defect → finding to
@@ -217,8 +251,11 @@ agent/engine is added, and the frozen scripts show empty `git diff`.
   the four sidecar slots).
 - Re-use RFC-0048 note 02's worked example (`example-assistant`) as the subject so
   the trace is continuous with the upstream prototype.
-- State the Threats-to-validity honestly (one example, single operator, the cap
-  and security-surface paths exercised by injection not natural occurrence).
+- Inject the four negative paths: the cap-hit, the no-lens surface, a controller
+  self-write of a `ratified_by: human` row that resume rejects, and an in-place
+  edit of a prior decision-log row that the anchored-tip check detects.
+- State the Threats-to-validity honestly (one example, single operator, the four
+  negative paths exercised by injection not natural occurrence).
 
 **Done when:** the trace exists, exercises the two forced paths, and reads as a
 no-engine demonstration with its limits flagged.
@@ -288,9 +325,22 @@ updated.
   as Never-do / Ask-first; the worked example references but does not author
   local-infra-equivalents.
 - **The security/integrity controls under-specified.** The `security-reviewer`
-  spec-stage pass is the check; mirror RFC-0049's nine-control depth exactly.
+  spec-stage pass is the check; mirror the AC10 control set's depth exactly
+  (controls a–i + the AC7 artifact-provenance control).
 
 ## Changelog
 
 - 2026-06-26: initial plan (resolves RFC-0049 OQ1 + OQ2; mirrors RFC-0053's
   agent-def + skill + no-engine shape downstream).
+- 2026-06-30: pre-EXECUTE review sharpenings folded into the contract before
+  implementation. T1: declared the pack **`repo`-scope** (was mis-described as
+  user-scope-default — that conflated install-scope with this repo's self-host
+  projection; repo-scope is load-bearing for AC9 reuse soundness) + a precondition
+  test (verify the named `operational-safety` modules + sidecar slots exist).
+  AC10 sharpened: (b) harness-delegated posture + anchored hash-chain tip, in-repo
+  lint named as the adopter's option not shipped; (d) the `untrusted:` marking
+  discipline + inert-promote; (g) named four-broker `credbroker` boundary +
+  falsifiable tier-scoping; new (i) sidecar data-classification + redact-or-surface
+  + state-branch protection (the RFC-0053 control-7 LINDDUN leg, dropped before).
+  AC12 extended to force four negative paths (added forged-consent-rejected +
+  decision-log-tamper-detected). Count-coupled "nine" prose made count-free.
