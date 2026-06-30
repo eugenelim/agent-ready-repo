@@ -1,10 +1,10 @@
 # RFC-0053: the discovery loop — `discovery-lead`, the typed sidecar, and the no-engine coordinator contract (spine prototype-confirmed; D1–D6 extensions specified-in-shape)
 
-- **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-26
-- **Date closed:**
+- **Date closed:** 2026-06-30
 - **Decision weight:** heavy <!-- light | standard | heavy — sets the upstream orchestration contract the whole operating model hangs from, ships a new agent + skill + a versioned sidecar schema, and carries a security/integrity + data-classification surface; explicit Approver sign-off is warranted. -->
 - **Related:**
   - **Foundation:** [RFC-0048](0048-autonomous-product-team-operating-model.md) — the foundation; this is **child 5**, the coordinator spike→RFC for Decisions 7 + 8; the provisional foundation this drift-aligns back to.
@@ -1254,7 +1254,7 @@ Filled in on acceptance.
   (skill) + a carried sidecar-schema contract (in the skill, not `core`) — no new runtime
   engine, spike-confirmed; the sidecar is the connectedness verifier" (the sibling of
   RFC-0041's ADR-0031 / RFC-0049's coordinator ADR).
-- **Spec:** `docs/specs/coordinator-contract/` (or `discovery-loop/`) — the `discovery-lead`
+- **Spec:** [`docs/specs/discovery-loop/`](../specs/discovery-loop/spec.md) (slug resolved to `discovery-loop`, matching the skill name; `coordinator-contract` was the offered alternative) — the `discovery-lead`
   agent def + the `discovery-loop` skill (the gate state machine, the rejection/recovery +
   cascade-invalidation transition, the cap), **AC0 the carried sidecar-schema `references/`
   file** (in the skill, not a `core` doctrine file — RFC-0048 § Amendments 2026-06-26),
