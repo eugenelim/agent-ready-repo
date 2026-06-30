@@ -170,13 +170,14 @@ jobs:
         working-directory: packs/atlassian/.apm/skills/confluence-crawler/scripts
         run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
 
-      - name: design-craft framework-agnosticism lint + self-test (design-craft-pack AC8)
-        # RFC-0033: proves the design-craft agnosticism linter behaves on
-        # Windows. `python` (not `python3`) is the safe cross-platform
-        # invocation — Windows has no `python3` on PATH.
+      - name: experience framework-agnosticism lint + self-test (design-craft-pack AC8)
+        # RFC-0033: proves the experience agnosticism linter (renamed from
+        # design-craft, ADR-0038) behaves on Windows. `python` (not `python3`)
+        # is the safe cross-platform invocation — Windows has no `python3` on
+        # PATH. The (design-craft-pack AC8) tag stays pinned (frozen-spec cite).
         run: |
-          python tools/test-lint-design-craft-agnostic.py
-          python tools/lint-design-craft-agnostic.py
+          python tools/test-lint-experience-agnostic.py
+          python tools/lint-experience-agnostic.py
 
       - name: pre-pr aggregator (linters + spec termination check)
         # Same script adopters run locally; the canonical parity oracle.

@@ -1,0 +1,21 @@
+[
+  {"query": "Design how the login form behaves — feedback, validation, and error recovery", "should_trigger": true},
+  {"query": "What happens when the user taps the submit button on the checkout screen?", "should_trigger": true},
+  {"query": "Map the state machine for this onboarding wizard", "should_trigger": true},
+  {"query": "Design the micro-interactions for our product card component", "should_trigger": true},
+  {"query": "How should the search bar feel to use — typeahead, loading states, and zero results?", "should_trigger": true},
+  {"query": "Design the loading and error states for the dashboard feed", "should_trigger": true},
+  {"query": "Model the behavior of the file-upload component — idle, uploading, success, and failure", "should_trigger": true},
+  {"query": "How should the drawer animate when it opens and closes on mobile?", "should_trigger": true},
+  {"query": "Design the in-form validation flow — when does each field show an error?", "should_trigger": true},
+
+  {"query": "Structure the information architecture for the settings section", "should_trigger": false},
+  {"query": "Lay out the navigation hierarchy for this multi-level app", "should_trigger": false},
+  {"query": "Map which screens follow which in the registration flow", "should_trigger": false},
+  {"query": "Name the emotional direction and brand goals for this product", "should_trigger": false},
+  {"query": "Make it feel more premium — what's the aesthetic direction?", "should_trigger": false},
+  {"query": "Which states must every screen in this flow handle?", "should_trigger": false},
+  {"query": "Do a heuristic evaluation of this existing dashboard screen", "should_trigger": false},
+  {"query": "Critique this design and tell me what usability principles it violates", "should_trigger": false},
+  {"query": "Map the customer journey from awareness to first purchase", "should_trigger": false}
+]
