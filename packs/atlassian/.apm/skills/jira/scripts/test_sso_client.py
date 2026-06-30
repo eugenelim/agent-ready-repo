@@ -1,10 +1,10 @@
-"""jira cookie-path client — mock-transport security contract (spec task T5).
+"""jira cookie-path client — mock-transport security contract.
 
-Covers AC4/AC5 (cookie confinement on the outbound request), AC6 (send-host +
-https guard at construction), AC7 (no Authorization header), AC8 (CA-bundle
-precedence), AC9 (GET/HEAD allowlist incl. raw("POST")), AC10 (jar not rewritten),
-AC11 (401 remediation, no cookie in error), AC13 (token path unchanged), AC20
-(follow_redirects=False — off-domain 302 leaks no cookie).
+Covers cookie confinement on the outbound request, the send-host +
+https guard at construction, no Authorization header, CA-bundle
+precedence, the GET/HEAD allowlist (incl. raw("POST")), the jar not being rewritten,
+401 remediation (no cookie in error), the token path unchanged, and
+follow_redirects=False (an off-domain 302 leaks no cookie).
 
 All HTTP assertions are made on the *outbound request* via httpx.MockTransport,
 not on internal client attributes.
@@ -71,7 +71,7 @@ def _cookie_client(monkeypatch, handler, sso: SsoConfig = SSO) -> _client.JiraCl
     return _client.JiraClient.from_sso_cookies(sso)
 
 
-# --- AC7 / AC4 / AC5: no Authorization, confined cookies on the outbound request
+# --- no Authorization, confined cookies on the outbound request
 
 def test_no_authorization_header_and_confined_cookies(broker_jar, monkeypatch):
     seen: list[httpx.Request] = []
@@ -86,14 +86,14 @@ def test_no_authorization_header_and_confined_cookies(broker_jar, monkeypatch):
 
     asyncio.run(go())
     req = seen[0]
-    assert "authorization" not in {k.lower() for k in req.headers}  # AC7
+    assert "authorization" not in {k.lower() for k in req.headers}
     cookie = req.headers.get("cookie", "")
     assert "JSESSIONID=sess1" in cookie  # in-domain (subdomain) kept
     assert "crowd.token_key=tok1" in cookie  # in-domain (dotted) kept
-    assert "_ga" not in cookie and "near" not in cookie  # AC4/AC5 over-broad dropped
+    assert "_ga" not in cookie and "near" not in cookie  # over-broad dropped
 
 
-# --- AC9: GET/HEAD allowlist refuses writes (incl. raw("POST")) before the wire
+# --- GET/HEAD allowlist refuses writes (incl. raw("POST")) before the wire
 
 @pytest.mark.parametrize("method", ["POST", "PUT", "DELETE", "PATCH"])
 def test_writes_refused_records_zero_requests(broker_jar, monkeypatch, method):
@@ -112,7 +112,7 @@ def test_writes_refused_records_zero_requests(broker_jar, monkeypatch, method):
     assert seen == []  # nothing reached the wire
 
 
-# --- AC9 accept arm: raw("GET") reaches the wire with confined cookies, no auth
+# --- accept arm: raw("GET") reaches the wire with confined cookies, no auth
 
 def test_raw_get_reaches_wire_with_confined_cookies(broker_jar, monkeypatch):
     seen: list[httpx.Request] = []
@@ -132,7 +132,7 @@ def test_raw_get_reaches_wire_with_confined_cookies(broker_jar, monkeypatch):
     assert "JSESSIONID=sess1" in req.headers.get("cookie", "")
 
 
-# --- AC20: follow_redirects=False — an off-domain 302 leaks no cookie
+# --- follow_redirects=False — an off-domain 302 leaks no cookie
 
 def test_off_domain_redirect_not_followed(broker_jar, monkeypatch):
     seen: list[httpx.Request] = []
@@ -153,7 +153,7 @@ def test_off_domain_redirect_not_followed(broker_jar, monkeypatch):
     assert seen[0].url.host == "jira.corp.example.com"
 
 
-# --- AC11: 401 surfaces the re-register remediation; no cookie value in the error
+# --- 401 surfaces the re-register remediation; no cookie value in the error
 
 def test_401_surfaces_reregister_without_cookie_value(broker_jar, monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
@@ -170,7 +170,7 @@ def test_401_surfaces_reregister_without_cookie_value(broker_jar, monkeypatch):
     assert "sess1" not in msg and "tok1" not in msg  # no cookie bytes in the error
 
 
-# --- AC6: send-host + https guards fail closed at construction
+# --- send-host + https guards fail closed at construction
 
 def test_base_host_outside_cookie_domains_fails_closed(broker_jar, monkeypatch):
     bad = replace(SSO, base_url="https://jira.evil.net")
@@ -184,7 +184,7 @@ def test_non_https_base_url_fails_closed(broker_jar, monkeypatch):
         _cookie_client(monkeypatch, lambda r: httpx.Response(200), bad)
 
 
-# --- AC10: the broker jar file is read, never rewritten
+# --- the broker jar file is read, never rewritten
 
 def test_jar_not_rewritten(broker_jar, monkeypatch):
     before = broker_jar.read_bytes()
@@ -200,7 +200,7 @@ def test_jar_not_rewritten(broker_jar, monkeypatch):
     assert broker_jar.read_bytes() == before
 
 
-# --- AC8: CA-bundle precedence + trust-store wiring
+# --- CA-bundle precedence + trust-store wiring
 
 def test_ca_bundle_precedence(monkeypatch):
     monkeypatch.setenv("SSL_CERT_FILE", "/etc/ssl/sslcert.pem")
@@ -221,7 +221,7 @@ def test_ssl_context_is_built():
     assert isinstance(_client._sso_ssl_context(), ssl.SSLContext)
 
 
-# --- AC13: token path is byte-identical (Authorization header, no cookies)
+# --- token path is byte-identical (Authorization header, no cookies)
 
 def test_token_path_unchanged(monkeypatch):
     seen: list[httpx.Request] = []
@@ -252,7 +252,7 @@ def test_token_path_unchanged(monkeypatch):
 
 def test_token_path_follows_redirects(monkeypatch):
     # The token path keeps follow_redirects=True (unchanged); the cookie path
-    # deliberately disables it (AC20). Pin the difference: a 302 is followed.
+    # deliberately disables it. Pin the difference: a 302 is followed.
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:

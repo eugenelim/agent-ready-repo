@@ -1,4 +1,4 @@
-"""SSO config loader + ``auth_default`` selector (RFC-0035; spec task T3).
+"""SSO config loader + ``auth_default`` selector.
 
 Reads ``references/sso-config.toml``, validates the ``[sso]`` connection params
 with the shared ``credbroker`` confinement primitives, and decides the auth path.
