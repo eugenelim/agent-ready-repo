@@ -241,6 +241,8 @@ def _repo_root() -> Path:
         if r.returncode == 0 and r.stdout.strip():
             return Path(r.stdout.strip())
     except FileNotFoundError:
+        # `git` may be unavailable on PATH; fall through to the
+        # script-relative root, which is the intended fallback.
         pass
     return Path(__file__).resolve().parent.parent
 

@@ -89,7 +89,7 @@ def confine(path: Path, root: Path) -> Path:
 def build_context(text: str) -> dict:
     """Project a Markdown artifact onto a docxtpl Jinja context.
 
-    Mapping (RFC-0036): front-matter ``key: value`` lines → top-level scalars
+    Mapping: front-matter ``key: value`` lines → top-level scalars
     (for ``{{ key }}``); the first list → ``items`` (for a ``{%p for %}``
     paragraph loop); the first Markdown table → ``rows`` as a list of
     ``{column: value}`` dicts (for a ``{%tr for %}`` row loop). A ``sections``
