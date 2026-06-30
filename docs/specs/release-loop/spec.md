@@ -21,7 +21,8 @@ verification); `release-loop` is the **outer loop** — it deploys the
 integrated whole to an **ephemeral environment**, runs e2e, observes telemetry,
 feeds deployed findings back to the inner loop (no human relay), redeploys, and
 **iterates until the deployed whole converges**, then stops at the **human gate**
-for the prod ship (G5). Convergence up to that gate is judged by **policy**
+for the prod ship (G5) — which it surfaces as a **release-readiness record** (the
+launch PRR) for the human to ratify, not a bare go/no-go. Convergence up to that gate is judged by **policy**
 (canary metric analysis + e2e coverage of the changed surface + flake < 2%), not
 by a human; **DORA** is the health signal. Autonomy is carved by
 **minimum-regret**: the agent runs the inner *and* the outer loop on ephemeral
@@ -249,6 +250,35 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   not waive it. **DORA** (deploy frequency, lead time, change-fail rate, MTTR, +
   the 2025 rework rate) is named as the **health signal**, explicitly *not* a
   per-promotion gate.
+- [ ] **AC6b — the release-readiness gate (the launch PRR before G5).** Before
+  surfacing the **G5** prod-ship consent gate, `release-lead` assembles a
+  **readiness record** consolidating, for the changed surface: the **AC6
+  convergence-policy result**, the **AC9 `operational-safety` review verdicts**
+  (observability / rollback / blast-radius / state-idempotency / isolation), the
+  **AC10(c) security verdict**, and the service's **cumulative error-budget
+  status** — a defined reliability target with the budget **not exhausted**. This
+  is **distinct from AC6's per-promotion canary SLO thresholds**: AC6 judges the
+  single deploy's success/error/latency metrics; AC6b reads **budget-burn over the
+  trailing window** (an exhausted budget is a **surface-to-human / halt-releases**
+  signal — Google's error-budget policy — not an autonomous promote). The
+  telemetry-derived fields entering the record are subject to **AC10(d)
+  (advisory-until-validated, data-not-instructions)** before they are recorded, so
+  the pre-fill cannot launder an unvalidated or poisoned signal into the ratified
+  record. The human **ratifies the readiness record** through the **AC10(a)**
+  harness-attested channel — the agent **holds no token to write the verdict**; G5
+  is a *ratify-a-record* gate, not a bare go/no-go. The agent **resolves** what it
+  can (pre-filling the record from AC10(d)-validated telemetry + the reviewer
+  verdicts) and **surfaces** the irreducible (the self-coverage resolve-vs-surface
+  disposition, applied at the prod boundary). The gate is a **consolidation of
+  checks the loop already runs + the error-budget input**, not a new reviewer or
+  engine. The error-budget **artifact** is supplied by a follow-on SLO-authoring
+  capability (home **provisional** — RFC-0049 § Follow-on; a scope call its sibling
+  RFC settles); **until it exists the record carries an explicit
+  `error-budget: not-defined` field the human sees** (the absence is *recorded and
+  visible*, not silently omitted — distinguishing it from a satisfied record),
+  never a silent pass. This is the *launch* PRR (pre-prod, in scope here); ongoing
+  error-budget monitoring + on-call ownership belong to the future operate/incident
+  loop, not this spec.
 - [ ] **AC7 — the inner↔outer feedback seam + sidecar consumption.** A deployed
   finding is written to the **sidecar blackboard** and fed back to `work-loop` as
   a build task (observability-driven, **no human relay**); the loop then
