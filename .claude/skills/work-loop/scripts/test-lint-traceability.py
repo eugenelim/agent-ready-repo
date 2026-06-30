@@ -487,6 +487,220 @@ def case_dangling_up_field_still_fires() -> None:
 
 
 # --------------------------------------------------------------------------
+# Root→leaf reachability (sidecar mode) — the AC34 disconnected-subtree backstop
+# --------------------------------------------------------------------------
+
+# A healthy chain (root=o → spec-h → comp-h, a real component leaf) shared by the
+# reachability fixtures so a clean terminus exists; each case bolts a broken branch
+# onto the root `o`.
+_HEALTHY_NODES = [
+    {"id": "o", "kind": "outcome"},
+    {"id": "spec-h", "kind": "spec"},
+    {"id": "comp-h", "kind": "component"},
+]
+_HEALTHY_EDGES = [{"from": "o", "to": "spec-h"}, {"from": "spec-h", "to": "comp-h"}]
+
+
+def case_reach_dead_end_subtree_whole_not_just_tip() -> None:
+    """The preconverge "whole subtree" case: a locally-edged dead-end branch where
+    every interior node has a producer AND a consumer edge, but the branch never
+    reaches a leaf. Presence flags only the tip (no out-edge); reachability flags
+    the stranded interior the presence check passes — union = the whole subtree."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = _HEALTHY_NODES + [
+            {"id": "cap-d", "kind": "capability"},
+            {"id": "scr-d", "kind": "screen"},
+            {"id": "svc-d", "kind": "service"},  # tip — no out-edge
+        ]
+        edges = _HEALTHY_EDGES + [
+            {"from": "o", "to": "cap-d"}, {"from": "cap-d", "to": "scr-d"},
+            {"from": "scr-d", "to": "svc-d"},
+        ]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="o")
+        rc, out, err = run(root)
+        # Presence flags ONLY the tip; the interior is passed by presence.
+        expect("ORPHAN svc-d" in out and "no consumer" in out,
+               f"presence flags the tip svc-d: {out}")
+        expect("ORPHAN cap-d" not in out and "ORPHAN scr-d" not in out,
+               f"presence passes the interior nodes: {out}")
+        # Reachability flags the interior (which presence passed) — not just the tip.
+        expect("UNREACHABLE cap-d" in out and "UNREACHABLE scr-d" in out,
+               f"reachability flags the stranded interior: {out}")
+        # AC9 — one break, one class: the tip is the presence ORPHAN, not also
+        # double-reported as UNREACHABLE.
+        expect("UNREACHABLE svc-d" not in out,
+               f"tip is the presence orphan, not also UNREACHABLE: {out}")
+        # Union covers the whole subtree {cap-d, scr-d, svc-d}.
+        expect(rc == 0, f"reachability informational by default → exit 0, got {rc}")
+        rc2, _, _ = run(root, "--strict")
+        expect(rc2 == 1, f"UNREACHABLE + --strict → exit 1, got {rc2}")
+
+
+def case_reach_floating_subtree_disconnected_from_root() -> None:
+    """The forward-from-root clause: a subtree internally edged and even reaching a
+    leaf, but with no path from `root`, is flagged (its source is a presence
+    backward orphan; its leaf — passed by presence — is UNREACHABLE)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = _HEALTHY_NODES + [
+            {"id": "spec-f", "kind": "spec"},
+            {"id": "comp-f", "kind": "component"},
+        ]
+        edges = _HEALTHY_EDGES + [{"from": "spec-f", "to": "comp-f"}]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="o")
+        rc, out, err = run(root)
+        expect("ORPHAN spec-f" in out and "no producer" in out,
+               f"floating source is a presence backward orphan: {out}")
+        expect("UNREACHABLE comp-f" in out and "not forward-reachable" in out,
+               f"floating leaf flagged not-reachable-from-root: {out}")
+        expect(rc == 0, f"informational by default → exit 0, got {rc}")
+
+
+def case_reach_federated_resolved_terminus_not_flagged() -> None:
+    """Open-world: a branch whose leaf is a rollup-RESOLVED satisfied-by-reference
+    endpoint reaches a clean terminus across the boundary — never flagged."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = _HEALTHY_NODES + [{"id": "spec-x", "kind": "spec"}]
+        edges = _HEALTHY_EDGES + [
+            {"from": "o", "to": "spec-x"}, {"from": "spec-x", "to": "ext-comp@2"},
+        ]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="o")
+        write_rollup(root, ["| `ext-comp@2` | `r` · `s` | x@1 | delivered | y |\n"])
+        rc, out, err = run(root)
+        expect(rc == 0, f"federated resolved terminus → exit 0, got {rc}: {err}")
+        expect("satisfied-by-reference (pinned)" in out,
+               f"cross-repo leaf is a resolved reference: {out}")
+        expect("UNREACHABLE spec-x" not in out and "ORPHAN spec-x" not in out,
+               f"a federated branch is not flagged: {out}")
+        expect("DANGLING" not in err,
+               f"a cross-repo sidecar endpoint is not dangling: {err}")
+        rc2, _, _ = run(root, "--strict")
+        expect(rc2 == 0, f"--strict + only a resolved federated leaf → exit 0, got {rc2}")
+
+
+def case_reach_unresolvable_tip_surfaced_never_silently_green() -> None:
+    """The fabricated-edge boundary: a stranded tip whose only out-edge is an
+    UNRESOLVABLE (forged-eligible) cross-repo token is NOT a clean terminus — the
+    branch is surfaced as a distinct informational finding, never silently green and
+    never promoted by --strict (the untrusted-input control-integrity guard)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = _HEALTHY_NODES + [
+            {"id": "cap-u", "kind": "capability"},
+            {"id": "scr-u", "kind": "screen"},
+        ]
+        edges = _HEALTHY_EDGES + [
+            {"from": "o", "to": "cap-u"}, {"from": "cap-u", "to": "scr-u"},
+            {"from": "scr-u", "to": "forged/x"},  # unresolvable cross-repo token
+        ]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="o")
+        rc, out, err = run(root)
+        expect(rc == 0, f"unresolvable tip → never fatal, exit 0, got {rc}: {err}")
+        expect("DANGLING" not in err,
+               f"a well-formed cross-repo token is not dangling: {err}")
+        expect("unknown / not-yet-catalogued" in out,
+               f"the forged endpoint is surfaced honestly: {out}")
+        expect("reaches a leaf only via an unresolved cross-repo reference" in out,
+               f"the stranded branch is surfaced, not silently green: {out}")
+        expect("(informational)" in out, f"surfaced informationally: {out}")
+        # Critically NOT flagged as a clean pass and NOT promoted by --strict.
+        rc2, out2, _ = run(root, "--strict")
+        expect(rc2 == 0,
+               f"--strict does NOT promote an unresolvable hop, got {rc2}: {out2}")
+
+
+def case_reach_dangling_adjacent_not_double_reported() -> None:
+    """AC9 one-break-one-class: a node whose sole producer edge has a *dangling
+    source* (the producer is a missing-local target) is surfaced by the DANGLING
+    violation, not ALSO as UNREACHABLE."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = _HEALTHY_NODES + [{"id": "mid", "kind": "spec"}]
+        edges = _HEALTHY_EDGES + [
+            {"from": "ghostsrc", "to": "mid"},  # ghostsrc absent → dangling source
+            {"from": "mid", "to": "comp-h"},    # mid does reach a leaf
+        ]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="o")
+        rc, out, err = run(root)
+        expect(rc == 1, f"dangling source → exit 1 every mode, got {rc}")
+        expect("DANGLING" in err and "ghostsrc" in err,
+               f"the dangling edge is the hard violation: {err}")
+        expect("UNREACHABLE mid" not in out,
+               f"the dangling-edge consumer is not also UNREACHABLE (AC9): {out}")
+
+
+def case_reach_skips_without_root() -> None:
+    """Graceful, isolated degradation: a sidecar with no declared root, or a root
+    absent from the inventory, skips ONLY the reachability pass (a note, no crash)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = [{"id": "a", "kind": "spec"}, {"id": "comp", "kind": "component"}]
+        edges = [{"from": "a", "to": "comp"}]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="")  # → root None
+        rc, out, err = run(root)
+        expect("reachability skipped" in out and "no root" in out,
+               f"rootless sidecar skips reachability with a note: {out}")
+        expect("Traceback" not in err, f"no crash on a rootless sidecar: {err}")
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        nodes = [{"id": "a", "kind": "spec"}, {"id": "comp", "kind": "component"}]
+        edges = [{"from": "a", "to": "comp"}]
+        write_sidecar(root, nodes=nodes, edges=edges, root_id="ghost-root")
+        rc, out, err = run(root)
+        expect("reachability skipped" in out and "absent from inventory" in out,
+               f"absent declared root skips reachability with a note: {out}")
+        expect("Traceback" not in err, f"no crash on an absent-root sidecar: {err}")
+
+
+def case_reach_degenerate_cases() -> None:
+    """Degenerate graphs: a single-node root==leaf is clean; an empty-edge graph
+    strands non-root nodes (caught by presence; reachability adds nothing — the
+    non-overlap property); a self-loop is termination-safe."""
+    # (1) Single node, root == leaf → reachable/clean, no skip.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_sidecar(root, nodes=[{"id": "comp", "kind": "component"}], edges=[],
+                      root_id="comp")
+        rc, out, err = run(root)
+        expect(rc == 0 and "no structural orphans" in out,
+               f"single-node root==leaf is clean: {out}")
+        expect("UNREACHABLE" not in out and "reachability skipped" not in out,
+               f"root==leaf is reachable, pass runs: {out}")
+    # (2) Empty edges, multiple nodes → every non-root node is a presence orphan;
+    # reachability adds NO UNREACHABLE (all stranded nodes already presence orphans).
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_sidecar(root, nodes=[{"id": "o", "kind": "outcome"},
+                                   {"id": "x", "kind": "spec"},
+                                   {"id": "comp", "kind": "component"}],
+                      edges=[], root_id="o")
+        rc, out, err = run(root)
+        expect("ORPHAN x" in out and "ORPHAN comp" in out,
+               f"empty-edge non-root nodes are presence orphans: {out}")
+        expect("UNREACHABLE" not in out,
+               f"reachability is additive — no double-report on presence orphans: {out}")
+        expect("Traceback" not in err, f"no crash on an empty-edge sidecar: {err}")
+    # (3) Self-loop on an on-path node → termination-safe, not spuriously flagged
+    # (the self-edge itself is the hard violation; reachability must not hang).
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_sidecar(root, nodes=[{"id": "o", "kind": "outcome"},
+                                   {"id": "a", "kind": "spec"},
+                                   {"id": "comp", "kind": "component"}],
+                      edges=[{"from": "o", "to": "a"}, {"from": "a", "to": "a"},
+                             {"from": "a", "to": "comp"}], root_id="o")
+        rc, out, err = run(root)
+        expect(rc == 1 and "self-referential" in err.lower(),
+               f"self-edge is the hard violation: {err}")
+        expect("Traceback" not in err and "RecursionError" not in err,
+               f"reachability terminates on a self-loop: {err}")
+        expect("UNREACHABLE a" not in out and "UNREACHABLE comp" not in out,
+               f"on-path nodes not spuriously flagged despite the self-loop: {out}")
+
+
+# --------------------------------------------------------------------------
 # Container-embedded + file-backed recognition (AC1, AC2)
 # --------------------------------------------------------------------------
 
