@@ -69,6 +69,28 @@ Before de-risking, confirm:
    a child intent, let the kill bubble up to its parent. Either way, fold what the
    prototype revealed back into the intent.
 
+## The validation-hook field — desk-grounding is not validation
+
+The predeclared kill condition answers *what result would kill the bet*; a
+**validation hook** pairs it with **the real-world activity that would confirm or
+enrich it** — the interview, diary study, Wizard-of-Oz pilot, or usability test a
+human would run. Carry it as a **validation-hook field** on the de-risked intent:
+
+```
+validation_hook:
+  assumption: <the riskiest assumption, restated>
+  kill_condition: <the predeclared line, in the test's own currency>
+  activity: <the real-world activity that confirms or enriches it>
+```
+
+This is the field `plan-validation` consumes to build the validation plan, and the
+field the discovery loop's provisional spine (G2) reads to label each node
+**grounded** / **surfaced** / **to-validate** — making *converged ≠ validated* a
+structural property, not a footnote. **Running the activity is out of charter** —
+`de-risk-intent` *names* the hook; a human (or `plan-validation` scaffolding)
+runs it. A surviving bet whose only evidence is desk-grounding still carries a
+`to-validate` hook: desk-grounding is not validation.
+
 ## Anti-patterns to refuse
 
 - **Declaring the kill condition after seeing the result.** Post-hoc thresholds
