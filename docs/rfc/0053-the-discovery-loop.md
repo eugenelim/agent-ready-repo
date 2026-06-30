@@ -1,4 +1,4 @@
-# RFC-0053: the discovery loop — `discovery-lead`, the typed sidecar, and the no-engine coordinator contract, confirmed by prototype
+# RFC-0053: the discovery loop — `discovery-lead`, the typed sidecar, and the no-engine coordinator contract (spine prototype-confirmed; D1–D6 extensions specified-in-shape)
 
 - **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
@@ -23,8 +23,9 @@
 ## The ask
 
 *In plain terms: adopt the discovery-lead's rulebook (Decisions 1–6), ship it as instruction files
-rather than software, and trust it because a hand-run prototype already walked the whole loop with no
-engine.*
+rather than software, and trust it because a hand-run prototype already walked the loop's **spine**
+with no engine — the D1–D6 extensions added since (recursion, the verdict set, resume, the bounds, the
+divergence/validation scaffold) are confirmed in **shape**, modelled-not-yet-run.*
 
 **Recommendation (BLUF).** Adopt the **coordinator contract** the RFC-0048 Decision-7 spike
 was meant to validate — and **ship it the way RFC-0041/0049 ship their loops: a
@@ -73,8 +74,8 @@ architecture, safety.)*
 | **D1** | Ship the discovery process as **instructions, not software** — add an AI "discovery lead" + a "discovery-loop" playbook to the product pack; an existing harness runs them, with **no new engine, scheduler, or service**. | **Adopt** | The prototype ran the whole loop as edits to plain files + one small checker — nothing needed a custom engine, and this is the backbone everything upstream sits on. |
 | **D2** | Keep the loop's working state in **a few plain, typed files** (the design-so-far, the open questions, how everything links together, a decision log), carried *with the skill* rather than in the shared `core` pack. | **Adopt** | That typed state is what lets a tiny checker verify "the design actually holds together," and carrying it with the skill keeps the loop usable outside a code repo. |
 | **D3** | Define **how the loop pauses for human sign-off and handles the verdict** — it pauses at sign-off points and resumes after the answer, where the answer is a **typed set** (approve / approve-with-constraint / redirect / explore-alternatives / park / abandon / extend-override), and any answer that changes things **shows its blast radius first** and is recorded before the loop proceeds. | **Adopt** | The prototype did this as simple file edits; tracking what-depends-on-what scopes the blast radius, and a typed verdict lets the human steer (not just yes/no) without the loop jumping ahead. |
-| **D4** | Give the loop **bounds** (round cap + cost budget, per-initiative *and* per-node), where hitting any bound **pauses and asks** — extend / narrow / park / abandon — never a silent stop or silent continue; plus a concentration + depth/breadth guard so one deep sub-idea can't drain the budget. | **Adopt** (≈12 rounds + a budget + ~40% concentration, tunable) | A safety valve that can neither churn forever *nor* dead-end; pausing for confirm/override keeps the human in control of spend and scope (shape **C**, note 13). |
-| **D5** | Let **one** discovery lead run it, scaling to **a small team of specialist "lenses"** only when needed — **inside the loop** they coordinate through the shared discovery-workspace, not free-form chat-to-consensus. (*Across* loops / at company-OS scale, coordination is via durable contract artifacts and structured agent protocols / an agentic mesh — the harness's layer; this contract ships **mesh-ready** artifacts, not the mesh.) | **Adopt** | Free-form chat-to-consensus is the multi-agent failure mode; a blackboard is the right *structured* pattern for interdependent convergence — and structured protocols (A2A/ACP) handle scale (note 14). |
+| **D4** | Give the loop **bounds** (round cap + cost budget, per-initiative *and* per-node), where hitting any bound **pauses and asks** — extend / narrow / park / abandon — never a silent stop or silent continue; plus a concentration + depth/breadth guard so one deep sub-idea can't drain the budget. | **Adopt** (a round cap, a budget, and a concentration fraction — all spec-tunable; defaults in D4) | A safety valve that can neither churn forever *nor* dead-end; pausing for confirm/override keeps the human in control of spend and scope (shape **C**, note 13). |
+| **D5** | Let **one** discovery lead run it, scaling to **a small team of specialist "lenses"** only when needed — **inside the loop** they coordinate through the shared discovery-workspace, not free-form chat-to-consensus. (*Across* loops / at company-OS scale, coordination is via durable contract artifacts and structured agent protocols / an agentic mesh — the harness's layer; this contract ships the **stable-id substrate** a mesh consumes — not a full mesh-readiness claim (a mesh must still add capability discovery) — not the mesh.) | **Adopt** | Free-form chat-to-consensus is the multi-agent failure mode; a blackboard is the right *structured* pattern for interdependent convergence — and structured protocols (A2A/ACP) handle scale (note 14). |
 | **D6** | **Explore several product directions before narrowing, and label the result as a hypothesis to validate** — first generate a handful of candidate product shapes and pick one, then run the loop, then hand off a brief that flags exactly what still needs real-customer validation. | **Adopt** (new this round) | Dogfood runs showed the loop otherwise locks onto the first idea and misses better ones — and a "finished" design is still a coherent guess until real users test it. Adds **two thin new skills** (`explore-options`, `plan-validation`) but no new engine, agent, or reviewer. |
 
 ## Problem & goals
@@ -181,7 +182,7 @@ this check is run**, not as a member of the converged-means set:
 | --- | --- | --- |
 | Artifact converging | the diff | the **blackboard** (the whole design graph) |
 | Verifier | tests + lint/typecheck + adversarial review | **connectedness lint** (traceability + open-questions) + **human consent gates**, with the **self-coverage gate as the pre-G2 phase** that gates entry to the check |
-| "Converged" means (O6) | gates green, review clean | (1) open-questions queue **empty** · (2) traceability graph **fully connected** root→leaf, no orphans · (3) **saturation** — a full pass invalidates no slot |
+| "Converged" means (O6) | gates green, review clean | (1) open-questions queue **empty** · (2) traceability graph **fully connected** root→leaf, no orphans *(reachability is enforced mechanically only once child-4's lint ships its root→leaf pass; the current demonstrator checks edge **presence** only, so until then (2) rests on presence + the human's eye)* · (3) **saturation** — a full pass invalidates no slot |
 | One iteration (a *round*) | edit code → run gates → fix | run the next **lens** → it writes slots + raises open-questions → route each to the discipline that answers it → that lens edits its slot → if the edit breaks a downstream slot, **cascade-invalidate along traceability edges** + re-run only the affected lenses → re-check the three conditions |
 | "Fix" means | make a failing test pass | **answer an open question** or **close an orphan edge** |
 | Bound | iteration cap | **outer round cap + cost budget** (Decision 4); on cap-with-unconverged → stall record + surface to the human |
@@ -267,7 +268,11 @@ the `discovery-loop` skill ships a **plan-tree template** (a carried *asset* —
 intent-node scaffold with its status lifecycle + the sub-idea index, Decision 2) the controller
 **instantiates and fills in** per initiative. That is what makes "HTN-over-blackboard, no engine"
 concrete rather than hand-wavy — there is a defined, lint-checkable structure to *fill*, not a
-planner to *run*. **Scheduling many concurrent or
+planner to *run*. **Honest risk:** what the *controller* still does in-context — choose the next node,
+account spend per branch, decide descend-vs-surface — is itself a form of scheduling, and the spike's
+single solo example does not evidence it **at depth**; so the no-engine win is a **defensible bet on a
+shallow tree**, gated conservatively by D4's depth/breadth bounds until a recursive walk is actually
+run (named in Risks). **Scheduling many concurrent or
 long-parked threads, and resuming them across sessions, stays the harness's job** — the same division
 as `loop-cohort` scheduling `work-loop` tasks (omnigent's documented gap), not this contract's. This
 refines the "one run = one brief" framing in Non-goals: *one initiative is recursive **inside**; the
@@ -342,7 +347,10 @@ with their schemas as the prototype instantiated them ([`0053-notes/spike/`](005
 implementing spec partitions them): a **slot status** (`draft|proposed|ratified|stale|rejected`); the
 plan-tree **node lifecycle** (`draft→diverging→converging→ratified|stale`, plus `parked`/`abandoned`)
 and its **validation status** (`hypothesis→validating→validated|refuted`); and a **meta gate-state**
-(`awaiting-human` / `paused-at-bound` / `stalled-at-cap`). They are not a single set.
+(`awaiting-human` / `paused-at-bound` / `stalled-at-cap`). They are not a single set, and a single
+verdict transition typically writes across more than one (e.g. `abandon` sets a node `abandoned` *and*
+its slots `stale`): the **per-verdict cross-namespace write-set is an implementing-spec table** — the
+RFC fixes the partition, the spec fixes the writes.
 
 The sidecar is the **connectedness verifier**: the prototype's `check_sidecar.py`
 (child-4's lint shape) read the traceability + open-questions slots and reported orphans
@@ -544,8 +552,14 @@ The contract, no-engine (a load + a status read, not a runtime):
    gate, round, cost). If `_state/` was torn down, **re-hydrate from the committed Tier-2 record** —
    the intent tree + decision log + the backlog's parked entry carry the node, its status, its decision
    history, and its place in the tree (via stable ids), enough to **reconstruct a working node**.
-   Re-hydration is what the "the repo remembers" claim rests on, so *Tier-2 must be sufficient to
-   reconstruct a resumable node* — an implementing-spec AC.
+   **But the live `meta` counters (round, `cost_spent`, saturation) and per-node slot statuses are
+   Tier-1 state** — for a faithful resume Tier-2 must carry a **per-gate snapshot of `meta` + per-node
+   status** (cheap: written into the decision-log option card / the backlog entry at each gate commit).
+   *Absent that snapshot, cross-teardown resume is **gate-granularity only** — it re-enters at the last
+   committed gate with the round/cost counters **reset**, not mid-convergence.* Which of the two
+   (faithful snapshot vs. gate-granularity reset) is an **implementing-spec AC**; the default
+   recommended here is the per-gate snapshot, since D4's bounds and "resume where it stopped" depend on
+   the counters surviving.
 3. **Re-entry point.** The plan-tree's **per-node status says exactly where to resume**: `awaiting-human`
    → read the verdict from the decision log and apply its D3 transition; `parked` → re-activate the node
    and re-enter its phase; `stalled-at-cap` (D4) → resume after the human adjusts budget/scope;
@@ -643,8 +657,11 @@ coordination + verification, never free-form chat-negotiation-to-consensus** —
   + an event bus) — teams *do* discover and interact dynamically, defensibly, **because it is
   typed/contract-bound/verified**, the opposite of free-form chat.
 The mesh / protocol layer is the **harness's / platform's (CHARTER Principle 3)**: this RFC ships
-blackboard-coordinated loop-teams **+ mesh-ready stable-id artifacts** (a mesh consumes exactly those
-briefs / `contract@version` ids / backlogs), **not** the mesh itself.
+blackboard-coordinated loop-teams **+ the stable-id substrate a mesh would need** (the briefs /
+`contract@version` ids / backlogs a mesh resolves against), **not** the mesh itself. This is **not** a
+full mesh-readiness claim: a mesh layer must still add what this contract does not specify — a
+capability advertisement / discovery descriptor and a typed binding interface (the stable ids are
+necessary, not sufficient).
 
 The discovery roster is **loop-scoped** and authoritatively defined by RFC-0048's roster
 table — this RFC adds no roster of its own. The discovery **security/compliance** and
@@ -729,7 +746,7 @@ skills are warranted is decided here**.
 
 ### Usage — how to invoke the loop
 
-`discovery-loop` is built to run **end-to-end from a single high-level prompt**: name the idea and
+`discovery-loop` is **designed to run from a single high-level prompt** (the gated tutorial demonstrates the end-to-end walk): name the idea and
 ask `discovery-lead` to scaffold it; the loop walks G0→G2 and **pauses at the consent gates**
 (G0 vision, G1.5 altitude/MVP, G2 the "what") where your input is the referent. You do **not** need
 to break it into pieces up front.
@@ -887,7 +904,13 @@ RFC ships no code, so it specifies the controls, it does not implement them):
   and auto-advancing a consent gate the human never saw. **AC:** the human verdict is written
   through a **harness-attested channel the agent has no token for** (omnigent's HITL pause
   writing the verdict), and resume is gated on a verdict whose `human` provenance is
-  harness-attested, not self-asserted in a file the agent also writes.
+  harness-attested, not self-asserted in a file the agent also writes. **This is a hard
+  harness-conformance precondition, not a demonstrated property:** in the spike the agent maintained the
+  worktree files *by hand* (it wrote the decision-log itself), and omnigent is confirmed only to
+  *pause* for HITL — that its pause writes the verdict into a store the agent has no token for is
+  **required, not established**. An adopter whose harness cannot provide an agent-untokened verdict
+  channel **cannot run the loop unattended safely**; the implementing-spec AC must test the *channel*
+  (the agent provably cannot forge the row), not merely the slot's append-only-ness.
 - **Decision-log as a real audit trail.** **AC:** the decision-log slot is **append-only**
   with **per-row actor attestation** and **tamper-evidence** (content-hash-chained rows, or
   the integrity delegated to a harness-provided immutable log) and a **trusted timestamp**.
@@ -1049,8 +1072,17 @@ the *downstream* outer loop (`release-lead` + `release-loop` + the harness); Met
   example is still owed at spec time.
 - *The cap transition is modelled, not run* — O12's stall-surfaces-to-human path was not
   exercised because the happy path converged early. **Mitigation:** the transition is a
-  counter-compare grounded in `work-loop`'s cap; a spec-time test should force a cap hit. The
-  RFC states this honestly rather than claiming "ran".
+  counter-compare grounded in `work-loop`'s cap; a spec-time test should force a cap hit —
+  specifically the **concentration-bound + pause-at-bound-resume** path (the recursion-specific
+  behaviour the flat-cap counter-compare does not cover), not just the flat cap. The RFC states this
+  honestly rather than claiming "ran".
+- *Recursive tree-walking is controller-in-context scheduling whose depth-reliability is unproven* —
+  the no-engine claim shows the plan-tree is *data*, but choosing the next node, per-branch budget
+  accounting, and descend-vs-surface are work the **controller does in-context**, and the single solo
+  example does not evidence it **at depth**. **Mitigation:** it is a *defensible bet on a shallow
+  tree*, gated conservatively by D4's depth/breadth bounds; the second-example spec run should walk a
+  genuinely recursive (≥2-level) tree, and the RFC states this as a risk-acceptance, not a settled
+  win.
 - *The sidecar schema drifts from child-4's lint / RFC-0049's reuse* — three efforts touch
   the same typed state. **Mitigation:** the producing `discovery-loop` skill carries the one
   schema *definition* (Decision 2); child-4's lint and RFC-0049's release loop *consume the
@@ -1103,13 +1135,14 @@ worktree files); a different harness must map the slots to its store.
 
 ## Evidence & prior art
 
-**In plain terms.** Why we believe this works: a hand-run prototype walked the whole loop using only
-plain files + one small checker (no engine), plus prior art from inside the repo and from published
-research on multi-agent systems and self-driving labs.
+**In plain terms.** Why we believe this works: a hand-run prototype walked the loop's **spine** using
+only plain files + one small checker (no engine); the D1–D6 extensions are confirmed in *shape*
+(modelled, not yet run). Plus prior art from inside the repo and from published research on
+multi-agent systems and self-driving labs.
 
 **Spike / de-risk result — the load-bearing evidence.** The riskiest assumption is the
 coordinator's **no-engine / Principle-3 fit** (RFC-0048's own framing: demonstrated for
-D1–D6, *hypothesized* for the coordinator). The prototype ([`0053-notes/`](0053-notes/))
+RFC-0048's D1–D6, *hypothesized* for the coordinator). The prototype ([`0053-notes/`](0053-notes/))
 ran `discovery-loop` against the worked example on the form omnigent stores and **supported
 the framing on that one example**: walking G0→G2 as one reasoning context, with over-scope
 and an unbacked security-sensitive screen injected, every transition was a plain-file edit,
@@ -1117,7 +1150,10 @@ and the only executable was a ~60-line lint (`check_sidecar.py`, child-4's shape
 *reproducibly* — flagged 2 dangling service leaves pre-recovery and reported CONVERGED after
 recovery + ripple. Each note-09 paper resolution mapped to a confirmed (O2/O3/O4/O5/O7/O11/
 A1/A2 + the ripple) or honestly-qualified (O12 modelled-not-run; O6's "no invalidating edit"
-clause stays a judgment) result — see [`0053-notes/01-spike-report.md`](0053-notes/01-spike-report.md)
+clause stays a judgment; **and O5's "live lenses" ran as `core`'s code-reviewers-in-a-mode — *not* the
+bespoke `discovery-threat-reviewer` / `discovery-reliability-reviewer` roster D5 now specifies, so that
+required floor is specified-not-demonstrated and the second-example run must exercise the actual
+discovery reviewers**) result — see [`0053-notes/01-spike-report.md`](0053-notes/01-spike-report.md)
 for the table and the Threats-to-validity (one example, single operator, cap not hit live).
 **Conclusion:** the no-engine framing is **demonstrated on one worked example plus a
 reproducible connectedness lint** — stronger than RFC-0048's bare hypothesis, weaker than a
