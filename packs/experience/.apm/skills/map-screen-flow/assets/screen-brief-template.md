@@ -29,6 +29,10 @@ surface: <responsive-web | iOS | Android | cross-platform>
 # Screen brief: <screen-name>   ·   <product-slug>   ·   surface: <responsive-web | iOS | Android | cross-platform>
 
 ## Place in the whole
+<!-- Traceability marker. The structural-orphan lint reads this exact bold-body
+     field (NOT the frontmatter `type:`) to recognize this artifact as a `screen`
+     chain node — by marker, not path. Keep the value exactly `screen-brief`. -->
+- **Type:** screen-brief
 - Journey step(s): <which step(s) of the journey this serves>
 - Enters from: <screen(s) / entry points>      Exits to: <screen(s) / next actions>
 - Traces to outcome: <the outcome/JTBD this screen advances>   (traceability ↑)

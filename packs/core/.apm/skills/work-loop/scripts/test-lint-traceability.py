@@ -744,6 +744,33 @@ def case_container_and_file_recognition() -> None:
                f"exactly the 8 recognized nodes: {out}")
 
 
+def case_screen_nested_brief_recognized() -> None:
+    """A per-screen brief nested under a flow folder
+    (`screens/<slug>/<screen>.md` — the shape `map-screen-flow` emits) is
+    recognized: `recognize_screens` walks the screens base recursively (the
+    `recognize_contracts` precedent), so the brief is found by marker even though
+    it is not a flat `screens/*.md` file. A nested screen-flow *file*
+    (`type: screen-flow`, no bold-body `**Type:** screen-brief`) is NOT a screen."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # nested per-screen brief — the real producer output path
+        write(root / "docs" / "product" / "screens" / "checkout" / "confirm.md",
+              "# Screen brief\n\n## Place in the whole\n- **Type:** screen-brief\n")
+        # a flat flow file carrying the document-level frontmatter type only
+        write(root / "docs" / "product" / "screens" / "checkout-flow.md",
+              "---\ntype: screen-flow\n---\n\n# Flow\n")
+        # a populated below-layer (journey action) so the recognized screen surfaces
+        # by id as a forward orphan — the unambiguous recognition signal.
+        write(root / "docs" / "product" / "journeys" / "j.md",
+              "# J\n\n- **Action:** checkout\n")
+        rc, out, err = run(root)
+        expect("ORPHAN screen:confirm" in out,
+               f"nested per-screen brief recognized by marker: {out}")
+        expect("screen:checkout-flow" not in out and "screen:flow" not in out,
+               f"a screen-flow file is not a screen node: {out}")
+        expect("DANGLING" not in err, f"no dangling on a nested-brief fixture: {err}")
+
+
 # --------------------------------------------------------------------------
 # Structural-only / output-shape / stdlib / no-hardcoded-path NFRs
 # --------------------------------------------------------------------------

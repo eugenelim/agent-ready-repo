@@ -40,6 +40,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The discovery-side producer skills now emit the traceability markers the
+  structural-orphan lint reads (experience 0.3.0, product-engineering 0.10.0).**
+  `map-screen-flow`'s per-screen brief carries a bold-body `- **Type:** screen-brief`;
+  `map-customer-journey` records each frontstage action as a `- **Action:** <slug>`
+  marker and `blueprint-service` each backstage service as a `- **Service:** <slug>`
+  marker; `frame-intent`'s intent template gains an optional `- **Kind:**
+  outcome|opportunity` field (beside the existing `Level:`), and `decompose-intent`
+  carries `Kind:`/`Level:` onto decomposed child intents. `work-loop`'s
+  `lint-traceability.py` recognizes each producer node **by marker, not path** —
+  previously only `frame-domain` emitted markers, so a fail-closed traceability
+  up-edge would have been load-bearing on markers that didn't exist. Three
+  reconciliations ride along: **CONVENTIONS § 4** is corrected to describe the
+  marker as the **bold-body field** the lint reads (it had said "frontmatter
+  `type:`" — a factual erratum); the lint's **`recognize_screens` now recurses**
+  (`core` 0.7.1 → 0.7.2) so a real nested per-screen brief
+  (`screens/<slug>/<screen>.md`) is found, not only a flat one; and the
+  **intent↔chain rung mapping** is documented in `product-engineering`'s
+  `intent-model.md` (`Kind:` → outcome/opportunity rung, `Level: capability` →
+  capability rung), landing the `recognize_ladder` docstring. (Closes the
+  `discovery-loop-type-marker-producers` and `screen-brief-nested-path-glob`
+  backlog items; RFC-0053 AC36 / DRIFT-G, RFC-0048 note 04 + § Amendments 2026-06-30.)
+
 - **`new-rfc` now drafts RFCs that read from zero prior context and hands you
   decisions you can make in the chat message itself (governance-extras 0.5.0).**
   The skill glosses every project-coined term, acronym, and sibling-RFC

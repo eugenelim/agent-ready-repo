@@ -74,7 +74,9 @@ Confirm all four before drafting; if any fails, resolve it first.
    states, data, actions, copy pointer). The shared contract is what keeps N
    independently-generated screens coherent. Each action names its backing
    service (the tie down to `blueprint-service`); each screen names the journey
-   step it serves (the tie up to `map-customer-journey`).
+   step it serves (the tie up to `map-customer-journey`). Each brief carries the
+   bold-body `- **Type:** screen-brief` traceability marker the template ships — the
+   structural-orphan lint reads it to recognize the brief as a `screen` chain node.
 6. **Resolve the path and surface it.** Resolve `<parent>` following the
    three-tier procedure in `references/agentbundle-layout.md`. Expand to a full
    absolute path, reject any `..` escape, and **surface the resolved path before
