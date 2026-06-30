@@ -5,7 +5,7 @@
   1. RFC-0053's implementing spec lands **AC0**: the carried sidecar-schema contract (DRIFT-I, at user scope).
   2. RFC-0053's implementing spec lands the `docs/discovery/<initiative>/` layout key (DRIFT-C).
   3. RFC-0053's implementing spec lands the backlog-decomposition + `loop-cohort`-ingestion ACs (DRIFT-H).
-  4. The CONVENTIONS / `new-spec` follow-on lands the `Discovery:` header + discovery `type:` markers (DRIFT-G).
+  4. RFC-0053's implementing spec lands the `Discovery:` header + discovery `type:` markers (DRIFT-G) — the spec→discovery up-edge producer — in the spec-format contract (CONVENTIONS § 4) + the `new-spec` skill, and sequences the traceability lint's `--strict` flip after it (folded into RFC-0053, § Amendments 2026-06-29).
 - **Acceptance note** — the child-set reconciliation is complete (pass dated 2026-06-26): the
   child set (experience · frame-domain · self-coverage · traceability-lint · coordinator ·
   release-loop) was **reconciled as one operating system** — a G0→G5 composed pressure test
@@ -21,7 +21,7 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
 - **Date closed:**
-- **Decision weight:** heavy <!-- light | standard | heavy — sets catalogue-wide product-team doctrine, edits CONVENTIONS + work-loop, names a multi-RFC roadmap, and carries a rename + migration tail; a one-way-ish foundation, so explicit Approver sign-off and the named acceptance blockers gate it. -->
+- **Decision weight:** heavy <!-- light | standard | heavy — sets catalogue-wide product-team doctrine carried in the loop skills (work-loop + discovery/release), names a multi-RFC roadmap, and carries a rename + migration tail; a one-way-ish foundation, so explicit Approver sign-off and the named acceptance blockers gate it. -->
 - **Related:** RFC-0043 (product rung — the `product-vision`/`product-strategy` altitudes this model's G0/G1 build on) · RFC-0030 (the `product-engineering` pack) · RFC-0041 (infra-aware `work-loop` — the *doctrine + reference-library + reuse-existing-reviewer, no new runtime* precedent this RFC mirrors) · RFC-0025 (`work-loop` light/full mode + risk triggers — the gate model this extends) · RFC-0019 (`receive-brief` — the brief→spec join, and its coverage-lint the traceability lint generalizes) · ADR-0019 (intent ontology) · `design-craft` pack (renamed by a follow-on ADR) · promoted research in [`0048-notes/`](0048-notes/)
 
 ## Reviewer brief
@@ -29,11 +29,11 @@
 - **Decision:** whether to adopt an operating model that lets the catalogue act as an autonomous product team from vision → deploy-ready code, delivered as doctrine + pure-markdown skills + reference libraries (no new runtime), plus the child-effort roadmap that builds it.
 - **Recommended outcome:** accept — Open → Accepted once the named acceptance blockers land.
 - **Change if accepted:**
-  - Adopt the two-regime gate ladder (G0–G5) + surfacing predicate + three-act human boundary as `work-loop` / CONVENTIONS doctrine.
+  - Adopt the two-regime gate ladder (G0–G5) + surfacing predicate + three-act human boundary as **per-loop skill doctrine** — each loop carries its share in its own skill (`work-loop`, `discovery-loop`, `release-loop`), not a CONVENTIONS operating-model section.
   - Add four primitives — the `experience` pack (rename + connective UX skills), `frame-domain`, the self-coverage gate, the traceability lint — plus the `discovery-lead` agent + `discovery-loop` skill.
   - Spike (not build) the coordinator on the `omnigent` harness behind a carried sidecar-schema contract.
-- **Affected surface:** CONVENTIONS (the operating model), `work-loop` doctrine, the `experience` / `product-engineering` / `core` packs, four new skills + a user-scope discovery reviewer roster; **no runtime / daemon / service**.
-- **Stakes:** costly-to-reverse — it sets catalogue-wide product-team doctrine and a multi-RFC roadmap, and the rename + CONVENTIONS edits carry a migration tail; acceptance is gated by named blockers, not a single one-way door.
+- **Affected surface:** the **loop skills** that carry the operating-model doctrine (`work-loop` in `core`, `discovery-loop` in `product-engineering`, `release-loop` in `release-engineering`), the `experience` / `product-engineering` / `core` packs, four new skills + a user-scope discovery reviewer roster; **no CONVENTIONS operating-model section, no runtime / daemon / service**.
+- **Stakes:** costly-to-reverse — it sets catalogue-wide product-team doctrine and a multi-RFC roadmap, and the rename carries a migration tail; acceptance is gated by named blockers, not a single one-way door.
 - **Review focus:** (1) the human-gate boundary is exactly the three irreducible acts and nothing substitutable leaks across it; (2) the no-runtime claim holds for every *delivered* artifact (the coordinator is spiked, not built).
 - **Not in scope:** a new orchestration runtime / daemon / service; building the coordinator here; the G4→G5 release/deploy loop + G5 ship mechanics ([RFC-0049](0049-the-release-loop-and-company-os.md)); PMM / go-to-market seats; a 1:1 agent-per-role org chart; pixel/Figma comps; between-gate autonomy for regulated / high-assurance work.
 
@@ -46,7 +46,8 @@ RFC-0041 and RFC-0043 delivered comparable cross-cutting capability: **as doctri
 pure-markdown skills + reference libraries — no new runtime engine.** This RFC *decides the model and the roadmap*; each artifact is built
 by a named child effort, not here. Concretely it adopts (a) the **two-regime principle** + a
 **judgment-decomposition→equipping map** + a **risk-calibrated gate ladder and
-surfacing predicate** as `work-loop`/CONVENTIONS doctrine; (b) the rename
+surfacing predicate** as **per-loop skill doctrine** (each loop carries its share in its
+own skill — `work-loop`, `discovery-loop`, `release-loop` — not a CONVENTIONS section); (b) the rename
 `design-craft → experience` plus its connective UX skills; (c) three primitives
 (frame-domain, self-coverage gate, traceability lint); and (d) a **coordinator
 spike — not a build** — gating any orchestration RFC behind a design pass.
@@ -497,8 +498,9 @@ MetaGPT and ChatDev are C-shape and the MAST study measures their failure cost
 - *The doctrine framing passes Principle 3* — see the spike result below.
 
 **Drawbacks.** More skills to maintain; the rename's migration tail; added conceptual
-surface in CONVENTIONS (the operating model); risk of over-process on a tiny product —
-mitigated by right-sizing the ladder the way `work-loop` right-sizes light vs full.
+surface in the loop skills (the operating-model doctrine each loop carries); risk of
+over-process on a tiny product — mitigated by right-sizing the ladder the way `work-loop`
+right-sizes light vs full.
 
 ## Evidence & prior art
 
@@ -598,8 +600,8 @@ the child efforts*. As of **2026-06-26 the child set is complete and reconciled*
 snapshot — the RFC index rows and the child RFC/spec paths — is pinned in § Evidence & prior art →
 *Source pins for current-state claims*; see also the
 Acceptance note at the top and the § Amendments discharge block), and the model is aligned;
-**acceptance is blocked** only by the owner-assigned follow-ons (the CONVENTIONS
-`Discovery:` edit; RFC-0053's implementing spec carrying AC0 + the layout key + the backlog
+**acceptance is blocked** only by the owner-assigned follow-ons (the spec-metadata
+`Discovery:` edit, DRIFT-G; RFC-0053's implementing spec carrying AC0 + the layout key + the backlog
 ACs), at which point Open → Accepted is a one-line status change over an already-aligned
 model.
 
@@ -641,12 +643,21 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
 - **[RFC-0049](0049-the-release-loop-and-company-os.md) (child — deploy):** the
   release (outer) loop + minimum-regret deploy carve + company-OS composition.
   *Already drafted; amends this RFC's gate arc / company-OS framing on landing.*
-- **CONVENTIONS edit:** the operating model (two regimes, gate ladder, surfacing
-  predicate). *(The minimum-regret deploy boundary — reversible ⇒ autonomous; irreversible
-  ⇒ human — is RFC-0049's CONVENTIONS slice; the two land as one operating-model section.)*
-  **Also carries the `new-spec` `Discovery:` up-edge header + the `type:` markers on discovery
-  artifacts (§ Amendments DRIFT-G)** — the producer the traceability lint walks at G3; it must
-  land before the lint is wired fail-closed (`--strict`) at a convergence gate.
+- **Loop-skill doctrine (not a CONVENTIONS edit):** the operating model (two regimes, gate
+  ladder, surfacing predicate, three-act human boundary) is carried **in the loop skills that
+  run it** — `work-loop` (`core`), `discovery-loop` (`product-engineering`), `release-loop`
+  (`release-engineering`) — each carrying its own loop-appropriate share, **not a shared
+  CONVENTIONS operating-model section** (§ Amendments 2026-06-29). *(The minimum-regret deploy
+  boundary — reversible ⇒ autonomous; irreversible ⇒ human — is `release-loop`'s share,
+  RFC-0049.)*
+- **Spec→discovery up-edge / DRIFT-G — owned by RFC-0053's implementing spec** (folded in,
+  § Amendments 2026-06-29): the `new-spec` `Discovery:` up-edge header + the `type:` markers on
+  discovery artifacts land in the **spec-metadata format contract** (`docs/CONVENTIONS.md` § 4,
+  where `Brief:`/`Status:` already live) and in the `new-spec` skill + spec template — a spec
+  *format* addition, not operating-model doctrine. It is the producer the traceability lint
+  walks at G3; RFC-0053's spec lands it **before** the lint is wired fail-closed (`--strict`) at
+  a convergence gate, and sequences that `--strict` flip (producer-before-consumer). See
+  [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts → *Spec→discovery up-edge (DRIFT-G)*.
 
 ## Rollout and backout plan
 
@@ -676,7 +687,7 @@ reconciliation state table's *Owner / blocker* column.
 | `design-craft → experience` rename | RFC-0050 / ADR-0038 implementing-spec owner | Wave 1. Rename dirs + manifests + cross-links + layout key in one change; bridge frozen governance via ADR-0038 errata. No install-time alias. | Revert the rename patch before acceptance. No install-time alias means there is no partial-compatibility mode to maintain — the old name is either fully live or fully historical. |
 | Carried sidecar schema (DRIFT-I) | RFC-0053 implementing-spec owner | Land the schema reference first as **AC0**; consumers stay convention-tolerant (read by convention + a `schema_version` stamp) until compatibility checks exist. | Keep consumers in convention-only mode; do not require `schema_version` compatibility checks until AC0 passes. |
 | `docs/discovery/<initiative>/` layout key (DRIFT-C) | RFC-0053 implementing-spec owner | Add the layout key, then update producers to read it; default + marker remains the fallback until it binds. | Remove/ignore the config key; default + marker behavior stays valid. |
-| `Discovery:` header + discovery `type:` markers (DRIFT-G) | CONVENTIONS / `new-spec` follow-on owner | Add producers first (`new-spec` emits the header + markers); the traceability lint reports warnings before it runs `--strict`. | Keep the lint non-strict; specs without headers remain warnings, not failures. |
+| `Discovery:` header + discovery `type:` markers (DRIFT-G) | RFC-0053 implementing-spec owner (folded in — § Amendments 2026-06-29) | Add producers first (`new-spec` emits the header + markers; the field lands in CONVENTIONS § 4 spec-format contract); the traceability lint reports warnings before it runs `--strict`. | Keep the lint non-strict; specs without headers remain warnings, not failures. |
 | Backlog → `loop-cohort` ingestion (DRIFT-H) | RFC-0053 implementing-spec owner | Add the decomposition AC, then the ingestion AC; validate on the worked example before anything depends on it. | Keep the handoff as a manual work-item list; do not route through `loop-cohort` automatically. |
 
 ## Amendments (foundation reconciliations)
@@ -700,12 +711,13 @@ contract:
 | Sidecar data handling | Sidecar slots are a **data-classification surface**; regulated/secret-bearing artifacts surface to the human / `discovery-threat-reviewer` lens before shared repo-backed writes (`_state/`). | RFC-0053 implementing spec owns per-slot classification, redaction, retention/export (R10) |
 | Discovery layout | The `docs/discovery/<initiative>/` config key is owned by RFC-0053's implementing spec; default + marker only until it binds. | RFC-0053 implementing spec (DRIFT-C) |
 | Discovery reviewers | `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope, distinct-named); `core`'s depth libraries are optional detect-and-degrade enhancers. | RFC-0053 / `discovery-loop` (DRIFT-E) |
-| Spec up-edge | `new-spec` produces the `Discovery:` header + discovery `type:` markers; must land before the traceability lint runs `--strict`. | CONVENTIONS / `new-spec` follow-on (DRIFT-G) |
+| Spec up-edge | `new-spec` produces the `Discovery:` header + discovery `type:` markers (a spec-format addition in CONVENTIONS § 4, not operating-model doctrine); must land before the traceability lint runs `--strict`. **Owned by RFC-0053's implementing spec** (the up-edge's consumer; folded in 2026-06-29), which also sequences the `--strict` flip. | RFC-0053 implementing spec (DRIFT-G) |
 | Backlog handoff | RFC-0053's implementing spec owns decision-brief → work-item decomposition and `loop-cohort` cross-component ingestion. | RFC-0053 implementing spec (DRIFT-H) |
 | Release-loop reviewer reuse | `release-engineering` is **repo-scope**, installed in the build repo; `release-lead` therefore **reuses** `core`'s repo-scope `quality-engineer` / `security-reviewer` / `operational-safety` — sound because release runs **downstream, in the build repo** where `core` is installed. The scope-inverse of discovery's own-reviewer resolution (user-scope, pre-repo); same footgun rule, opposite scope. | RFC-0049 / [release-loop spec](../specs/release-loop/spec.md) |
 | Agent-addition governance | The reviewer-ceiling reading is **generalized** into a loop/work-type-keyed agent-addition policy ([ADR-0042](../adr/0042-agent-additions-keyed-to-loop-and-work-type.md), supersedes ADR-0023): add an agent only where it clears a value test (independence / parallelism / distinct surface-cadence); the core `work-loop` code-review gate stays capped at three lenses. The discovery roster and any new design-time reviewer are decided *within* this policy. | ADR-0042 (Accepted) / RFC-0050 D7 |
 | UX/design design-time reviewer | **RFC-0050 D7 adopted** (binds on RFC-0050 acceptance): the UX/design lens gains an opt-in forked `experience-reviewer` (collision-hardened, *not* `design-reviewer`) for autonomous design review between human-value-add gates; `design-critique` stays the authoring-time skill. | RFC-0050 D7 |
 | Self-coverage scope + packaging | **A cross-loop goal realized per loop, packaged as per-loop co-scoped doctrine — not a shared `core` library** (reframes + revises D5). *Goal:* each loop maximizes autonomy by substituting rigorous checklists for human-surfacing (resolve-vs-surface). *Instantiation:* `discovery-loop` runs the **full seven-module gate** (its native design-convergence altitude), while `work-loop` adopts only the **net-new slice** (a resolve-vs-surface disposition record + conditional domain-grounding) atop the passes it already runs; the **release loop** realizes the same goal through an **operational composite** (`operational-safety` + `security-reviewer` + `quality-engineer` + the convergence policy + the minimum-regret carve) — RFC-0049. *Packaging:* each loop carries its own copy co-scoped (`work-loop` in `core`/repo; `discovery-loop` in `product-engineering`/user when built; release in `release-engineering`/repo), no shared library, no cross-pack coupling. "Run by every loop controller" (D5) means **every loop runs the same goal** through a loop-appropriate instantiation, not that they read one file — because `core` is repo-scope but `discovery-loop` is user-scope/pre-repo, and a non-skippable gate cannot detect-and-degrade. | RFC-0051 (child 3, owns the goal + seam + the full seven-module design-convergence gate, discovery's home) / RFC-0049 (release-loop instantiation) / RFC-0053 (wires discovery) |
+| Operating-model doctrine home | **Carried as per-loop skill doctrine, not a CONVENTIONS operating-model section** (operator direction, § Amendments 2026-06-29). Each loop carries its share in its own skill: `work-loop` (`core`), `discovery-loop` (`product-engineering`), `release-loop` (`release-engineering`). CONVENTIONS keeps only the spec-metadata format contract (§ 4) + the existing "how we do non-trivial work" pointer; **no `core`-pack capability relies on a CONVENTIONS edit to ship.** The DRIFT-G `Discovery:` header + `type:` markers stay a **spec-format** addition (§ 4), not operating-model doctrine. | RFC-0051 (`work-loop`) / RFC-0053 (`discovery-loop`) / RFC-0049 (`release-loop`) |
 
 ### Amendment history / audit trail
 
@@ -970,6 +982,49 @@ superseded wording, the current-state table above wins.
   RFC-0053 (wires `discovery-loop`'s copy); RFC-0049 (the release-loop operational instantiation).
   **Not** an RFC-0048 acceptance blocker. See [RFC-0051](0051-the-self-coverage-gate.md) § The ask
   (*What self-coverage is*) + § Proposal + § Follow-on artifacts.
+- **2026-06-29 — operating-model doctrine relocated out of CONVENTIONS into the loop skills
+  (operator direction).** D1's body and the original Follow-on list framed the operating model
+  (two regimes, gate ladder G0–G5, surfacing predicate, three-act human boundary, the
+  minimum-regret deploy carve) as **a CONVENTIONS edit** — "the two land as one operating-model
+  section." The operator's direction: **a `core`-pack capability should not rely on a CONVENTIONS
+  edit to ship; the doctrine belongs within the skills themselves.** **Resolution:** the
+  operating-model doctrine is carried as **per-loop skill doctrine**, each loop in its own skill —
+  `work-loop` (`core`) carries the two-regime / risk-trigger / light-full share it already holds
+  plus self-coverage's thin slice; `discovery-loop` (`product-engineering`) carries the gate ladder
+  + surfacing predicate at design altitude; `release-loop` (`release-engineering`) carries the
+  minimum-regret carve + operational composite. **No CONVENTIONS operating-model section is
+  authored.** This is the exact generalization of the 2026-06-29 self-coverage entry above (carry
+  the method in the producing skill; don't share a cross-cutting layer) and of the 2026-06-26
+  scope-decoupling entry — applied now to the operating-model doctrine as a whole, not just the
+  self-coverage gate. CONVENTIONS **keeps** only its established cross-cutting roles: the
+  **spec-metadata format contract** (§ 4 — status vocabulary, the `Brief:`/`Status:`/`Discovery:`
+  headers, discovery `type:` markers) and the existing "how we do non-trivial work" pointer to
+  `work-loop`. The **DRIFT-G** `new-spec` `Discovery:` header + `type:` markers therefore stay a
+  **spec-format addition** (CONVENTIONS § 4 + the `new-spec` skill), **not** operating-model
+  doctrine — the one CONVENTIONS touch this model still carries, because spec format is a
+  cross-skill authority no single loop owns, enforced by `lint-spec-status.py`. **Revises** D1's
+  delivery framing and the Follow-on list; **re-opens no value call** (the operating model itself
+  is unchanged — only its *home* moves from a CONVENTIONS section to the loop skills). **Owners:**
+  the loop-skill efforts that carry each share — RFC-0051 (`work-loop`), RFC-0053
+  (`discovery-loop`), RFC-0049 (`release-loop`). **Not** an RFC-0048 acceptance blocker. See
+  § Follow-on artifacts → *Loop-skill doctrine (not a CONVENTIONS edit)*.
+- **2026-06-29 — DRIFT-G (the spec→discovery `Discovery:` up-edge producer) folded into
+  RFC-0053's implementing spec (operator direction).** Acceptance blocker #4 — the `new-spec`
+  `Discovery:` header + discovery `type:` markers — previously carried a **generic owner** ("the
+  `new-spec` / spec-metadata follow-on owner") with no concrete owning spec: the
+  resolved-by-a-named-effort-that-never-bound-it orphan shape this section's discharge block
+  explicitly warns against. **Resolution:** assign it to **RFC-0053's implementing spec**, which
+  is the **consumer** of that up-edge (the brief/spec→discovery edge the traceability lint walks
+  at G3), so the producer is owned beside its consumer. RFC-0053's implementing spec therefore
+  now owns **all four** acceptance blockers (AC0/DRIFT-I, DRIFT-C, DRIFT-H, and DRIFT-G), and the
+  same spec **sequences the traceability lint's `--strict` flip** after the header lands
+  (producer-before-consumer; `--strict` stays off until then). DRIFT-G **remains a spec-format
+  addition** (CONVENTIONS § 4 + the `new-spec` skill), **not** operating-model doctrine — the
+  2026-06-29 doctrine-relocation entry above is unaffected. **Re-opens no value call** (only the
+  owner moves from generic to a named spec). The acceptance-blocker list, the Rollout table, the
+  Current-reconciliation-state *Spec up-edge* row, and the discharge prose all now name RFC-0053's
+  implementing spec. See [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts →
+  *Spec→discovery up-edge (DRIFT-G)*.
 
 ### Foundation reconciliation discharge — the composed-set reconciliation (2026-06-26)
 
@@ -1062,15 +1117,16 @@ Cross-referenced as **DRIFT-x** in note 10.
   produced artifact (a third `frame-domain` artifact, or a `frame-persona` step) is a
   named, deferred option, not a present orphan.
 - **DRIFT-G — the `spec → discovery` (`Discovery:`) up-edge producer is the O8 `new-spec`
-  `Discovery:` header + discovery-artifact `type:` markers, owned by a named follow-on and
-  sequenced before the traceability lint runs `--strict`.** The lint
+  `Discovery:` header + discovery-artifact `type:` markers, owned by RFC-0053's implementing
+  spec and sequenced before the traceability lint runs `--strict`.** The lint
   ([traceability-lint spec](../specs/traceability-lint/spec.md)) is the mechanical backstop for
   "no spec without a discovery parent," but the `Discovery:` header it walks at G3 is authored
   by no skill in the current set (the lint degrades gracefully where absent — so the G3
   backstop is silently inert until the header lands). **Resolution:** the producer is
   [note 09 O8](0048-notes/09-gap-resolutions.md)'s `new-spec` `Discovery:` header (+ the
-  `type:` markers on discovery artifacts), carried by the **CONVENTIONS-edit follow-on** in the
-  list below; it is a **Wave-1 dependency of child-4's `--strict` gate** and must land before
+  `type:` markers on discovery artifacts), **folded into RFC-0053's implementing spec** (the
+  up-edge's consumer — § Amendments 2026-06-29; it was previously a generic "spec-metadata
+  follow-on"); it is a **Wave-1 dependency of child-4's `--strict` gate** and must land before
   the lint is wired fail-closed at a convergence gate. Recorded so the backstop's strength is
   explicit, not assumed.
 - **DRIFT-H — the backlog producer step (decision-brief → work items) and `loop-cohort`'s
@@ -1103,8 +1159,9 @@ Cross-referenced as **DRIFT-x** in note 10.
 nobody"):** RFC-0053's implementing spec gains AC0 (sidecar-schema contract carried at user scope,
 DRIFT-I revised), the
 discovery-tree layout key (DRIFT-C), and the backlog-decomposition + `loop-cohort`-ingestion
-ACs (DRIFT-H); the **CONVENTIONS-edit follow-on** gains the `new-spec` `Discovery:` header +
-discovery `type:` markers (DRIFT-G), sequenced before the traceability lint's `--strict` gate.
+ACs (DRIFT-H); **RFC-0053's implementing spec (DRIFT-G, folded in 2026-06-29)** also adds the
+`new-spec` `Discovery:` header + discovery `type:` markers, sequenced before the traceability
+lint's `--strict` gate.
 These are added to the Follow-on artifacts list. DRIFT-A/B/D/E/F are resolved in-text here (and
 the note-02/note-04 freeze-reading sources corrected to match).
 
@@ -1115,7 +1172,8 @@ sufficient* (the model's success is judged against the Success criteria in § Pr
 **blocked** (operator's call, 2026-06-26) until the owner-assigned follow-ons land:
 RFC-0053's implementing spec (AC0 the carried sidecar-schema contract; the
 `docs/discovery/<initiative>/` layout key, DRIFT-C; the backlog-decomposition + `loop-cohort`
-ACs, DRIFT-H/I) and the CONVENTIONS-edit `new-spec` `Discovery:` header (DRIFT-G). Once those
+ACs, DRIFT-H/I; and the `new-spec` `Discovery:` header + `type:` markers, DRIFT-G, folded in
+2026-06-29) — all four blockers now owned by that one spec. Once those
 close the assigned seams, acceptance is a one-line status flip (Open → Accepted) over an
 already-aligned model — no further reconciliation owed. Until then RFC-0048 stays **Open**
 (governance, amendable), so any drift the owed specs surface is still reconciled *here*.

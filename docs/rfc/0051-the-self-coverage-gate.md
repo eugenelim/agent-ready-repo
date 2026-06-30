@@ -585,8 +585,15 @@ Filled in on acceptance.
   sample-bank) in `product-engineering` at user scope, right-sized by its own progressive mode,
   implementing the seam + the seven-module instantiation specified here (the gate as
   `discovery-loop`'s pre-convergence G2 gate) — *not* a file it imports from `core`.
-- **CONVENTIONS touch:** name the self-coverage gate in the operating-model section
-  (RFC-0048's CONVENTIONS slice), as the floor-raiser each loop carries.
+- **No CONVENTIONS touch — the gate is skill-resident.** The self-coverage gate is named and
+  defined entirely within the consuming loop's own skill (`work-loop`'s SKILL.md + its
+  `references/self-coverage/`), as per-loop co-scoped doctrine (Decision 1). The `core` pack
+  ships the gate **without any edit to `docs/CONVENTIONS.md`**: the operating model's doctrine
+  lives in the loop skills that run it, not in a CONVENTIONS operating-model section. CONVENTIONS
+  keeps only its existing role — the spec-metadata format contract (§ 4) and the "how we do
+  non-trivial work" pointer to `work-loop` — neither of which this RFC touches. (RFC-0048
+  § Amendments 2026-06-29 relocates the operating-model doctrine from a planned CONVENTIONS
+  section into the loop skills; this RFC's skill-resident packaging is the `work-loop` instance.)
 - **Changelog:** `docs/product/changelog.md` `[Unreleased]` entry for the `work-loop`
   behavior change.
 - **Pack version:** bump `core` (the thin `work-loop` SKILL.md edits + the seeded
