@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`agentbundle list-installed` — see what you actually have installed (CLI 0.10.0).**
+  A new read-only command lists every installed `(pack, adapter)` row across the
+  user and repo scope with its version and an `up-to-date` / `upgrade-available`
+  / `unknown` status against the catalogue. The status check runs by default and
+  degrades to `unknown` (never an error) when the catalogue can't be resolved;
+  `--no-check` / `--offline` skips it for a fast, network-free listing; `--scope`
+  filters to one scope; `--check-drift` adds a per-row count of files edited
+  locally since install. Closes the gap where no command could report installed
+  state — only what a *catalogue* offered.
+
 ### Changed
 
 - **Shipped skill content is now self-contained — internal RFC/ADR citations removed.**
@@ -30,6 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   left intact. Also: the `.claude/skills/` README inventory now matches the projected
   skill set, the scaffolded `docs/product/roadmap.md` is marked as a template, and the
   `work-loop` activation hook's docstring points at `tools/hooks/README.md` for wiring.
+- **`agentbundle upgrade` reports honestly, and its multi-adapter refusal is
+  actionable (CLI 0.10.0).** A same-version re-apply no longer prints
+  `upgraded: X -> X`; it reads `re-applied: <pack> @ <scope> <version>
+  (already current)`, or names the count of locally edited files kept as
+  `.upstream` companions when there were edits — and an upfront notice before the
+  confirm tells you how many edits will be preserved. The "pass --adapter"
+  refusal (also in `diff` / `uninstall`) now lists each installed adapter **with
+  its version**, e.g. `claude-code (0.9.0), codex (0.9.0)`, so the next command
+  is obvious without a second lookup.
 - **The traceability lint gains a root→leaf reachability pass (core 0.7.1).** On the
   authoritative sidecar graph, `work-loop`'s `lint-traceability.py` now flags every
   node that does not lie on a path from `root` to a leaf — a **`UNREACHABLE`

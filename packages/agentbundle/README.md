@@ -37,6 +37,12 @@ The install auto-detects your agent (`--adapter` overrides). Multi-IDE? Install 
 agentbundle list-packs
 agentbundle list-profiles
 
+# See what YOU have installed — pack, adapter, scope, version, and whether
+# an upgrade is available (both scopes by default)
+agentbundle list-installed
+agentbundle list-installed --no-check       # skip the catalogue check (offline, fast)
+agentbundle list-installed --check-drift    # also count locally edited files
+
 # Install a whole curated profile — a single-scope set of packs — in one command
 agentbundle install --profile inception
 
@@ -51,6 +57,8 @@ agentbundle upgrade --pack core --yes  # skip the prompt (CI)
 agentbundle uninstall --pack core --dry-run
 agentbundle uninstall --pack core --yes
 ```
+
+**`list-installed`** reads your state files (not the catalogue) and reports every installed `(pack, adapter)` at each scope with its version and an `up-to-date` / `upgrade-available` / `unknown` status; it degrades to `unknown` (never an error) when the catalogue can't be resolved, and `--no-check` skips the check entirely.
 
 A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply. **Upgrade takes no version** — the target is whatever the catalogue you point at declares; to pin a past version, point the catalogue at that git ref. Install a pack that's **already there** and `agentbundle` offers to `upgrade` it instead (`--yes` runs it straight away).
 

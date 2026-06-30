@@ -39,13 +39,15 @@ pip-installable `credbroker` library per RFC-0023; see
 
 ## The CLI surface
 
-Thirteen verbs, all stdlib-only. The catalogue layer is read-only — `install`,
-`upgrade`, and `uninstall` are the only verbs that touch the working tree.
+The verbs below are all stdlib-only. The catalogue layer is read-only —
+`install`, `upgrade`, and `uninstall` are the only verbs that touch the working
+tree.
 
 | Verb | What it does |
 | --- | --- |
 | `list-packs` | Enumerate packs in a catalogue source. |
 | `list-targets` | Print the names of the four shipped adapter targets (`claude_code`, `codex`, `copilot`, `kiro`), derived from the runtime registry. |
+| `list-installed` | Read state files (both scopes) and report each installed `(pack, adapter)` with its version and an up-to-date / upgrade-available / unknown status. Read-only. |
 | `scaffold` | Drop a pack's `seeds/` into a target path (brownfield governance). |
 | `install` | Project a pack's primitives into the target. Drops `.adapt-install-marker.toml`, chains to `adapt`. |
 | `validate` | Schema + semantic conformance. `--strict` runs fixture checks. |

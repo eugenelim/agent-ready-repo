@@ -145,6 +145,7 @@ def test_yes_runs_real_upgrade_end_to_end(tmp_path):
     _install_alpha(tmp_path)
     rc, out, err = _run_install(_install_args(str(tmp_path), yes=True))
     assert rc == 0, f"real upgrade handoff failed: {err}"
-    # upgrade prints an `upgraded: <pack> @ <scope> <from> -> <to>` recap —
-    # assert the specific recap so a silent no-op / error can't pass.
-    assert "upgraded: alpha @ repo" in out, f"missing upgrade recap; stdout={out!r}"
+    # install→upgrade of an already-installed pack at the same version is a
+    # re-apply, not a version change: the recap reads `re-applied: … (already
+    # current)`, never `upgraded: X -> X` (install-state-visibility AC10).
+    assert "re-applied: alpha @ repo" in out, f"missing re-apply recap; stdout={out!r}"

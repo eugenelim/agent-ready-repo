@@ -141,9 +141,12 @@ def run(args: "argparse.Namespace") -> int:
     elif len(rows) == 1:
         target_adapter = next(iter(rows))
     else:
+        from agentbundle.commands._common import format_adapter_versions
+
         print(
             f"uninstall: {pack_name} installed for multiple adapters at "
-            f"{effective_scope} scope ({', '.join(sorted(rows))}); pass --adapter",
+            f"{effective_scope} scope; pass --adapter to pick one: "
+            f"{format_adapter_versions(rows)}",
             file=sys.stderr,
         )
         return 1
