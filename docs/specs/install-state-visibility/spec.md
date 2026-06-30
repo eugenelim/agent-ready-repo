@@ -1,6 +1,6 @@
 # Spec: install-state-visibility
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0052, ADR-0039
@@ -101,49 +101,52 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] `agentbundle list-installed` prints a deterministic table with columns
+- [x] `agentbundle list-installed` prints a deterministic table with columns
   PACK, ADAPTER, SCOPE, INSTALLED, LATEST, STATUS, covering every
   `(pack, adapter)` row across **both** user and repo scope by default.
-- [ ] `--scope user` / `--scope repo` filters the listing to that scope.
-- [ ] STATUS is `up-to-date` when installed == latest, `upgrade-available` when
+- [x] `--scope user` / `--scope repo` filters the listing to that scope.
+- [x] STATUS is `up-to-date` when installed == latest, `upgrade-available` when
   latest > installed, and `unknown` when the catalogue (or that pack's
   catalogue entry) can't be resolved or fails its spec-version gate.
-- [ ] When the catalogue is unresolvable, `list-installed` still lists every
+- [x] When the catalogue is unresolvable, `list-installed` still lists every
   installed row (LATEST `—`, STATUS `unknown`) and exits 0 — it does not fail.
-- [ ] `--no-check` (alias `--offline`) skips catalogue resolution and prints the
+- [x] `--no-check` (alias `--offline`) skips catalogue resolution and prints the
   state-only columns (PACK, ADAPTER, SCOPE, INSTALLED) without LATEST/STATUS.
-- [ ] `--check-drift` adds a DRIFT column reporting, per row, the count of
+- [x] `--check-drift` adds a DRIFT column reporting, per row, the count of
   installed files whose on-disk SHA differs from the SHA recorded in state
   (Tier-2 / locally edited); `0` when clean.
-- [ ] With no packs installed at the selected scope(s), `list-installed` prints a
+- [x] With no packs installed at the selected scope(s), `list-installed` prints a
   clear "no packs installed" line and exits 0.
-- [ ] The upgrade multi-adapter disambiguator names each installed adapter **with
+- [x] The upgrade multi-adapter disambiguator names each installed adapter **with
   its installed version**, e.g. `… pass --adapter to pick one: claude-code
   (0.9.0), codex (0.9.0)`; the parallel `diff` and `uninstall` disambiguators
   carry the same enrichment.
-- [ ] When upgrade changes the version, the recap reads
+- [x] When upgrade changes the version, the recap reads
   `upgraded: <pack> @ <scope> <from> -> <to>`.
-- [ ] When the installed version already equals the catalogue version and the
+- [x] When the installed version already equals the catalogue version and the
   re-apply preserved no locally edited files (no `*.upstream` companions dropped),
   the recap reads `re-applied: <pack> @ <scope> <version> (already current)` — it
   never prints `upgraded: … X -> X`. (The recap does not claim "no changes":
   the walk re-writes bundle-owned files unconditionally, so the honest signal is
   "already at this version, no local edits preserved", not "nothing touched disk".)
-- [ ] When a same-version re-apply preserves locally edited files, the recap names
+- [x] When a same-version re-apply preserves locally edited files, the recap names
   the count kept as `*.upstream` companions (e.g.
   `re-applied: <pack> @ <scope> <version> — N file(s) had local edits, kept as
   .upstream companions`).
-- [ ] The same-version confirm prompt replaces the bare "repairs local drift"
+- [x] The same-version confirm prompt replaces the bare "repairs local drift"
   text with a plain description of what re-applying does and that local edits are
   preserved (e.g. `… is already at <version>. Re-apply to restore missing or
   reset unmodified bundle files? Your local edits are preserved as .upstream
   companions. [y/N]`).
-- [ ] Before the upgrade confirm (both the version-change and re-apply prompts),
-  when one or more installed files have local edits, the CLI prints an upfront
-  notice naming the count that will be preserved as companions; the notice is
-  computed from on-disk-vs-state SHAs (no catalogue render required) and is
-  suppressed when the count is zero.
-- [ ] `agentbundle list-installed --help` documents the command and its flags;
+- [x] Before a **whole-pack** upgrade confirm (both the version-change and
+  re-apply prompts), when one or more installed files have local edits, the CLI
+  prints an upfront notice naming the count that will be preserved as companions;
+  the notice is computed from on-disk-vs-state SHAs (no catalogue render required)
+  and is suppressed when the count is zero. A per-primitive upgrade
+  (`--skill`/`--agent`/…) re-applies only that primitive's files, so the
+  whole-pack notice is deliberately not printed there (a whole-pack count would
+  mislead a single-primitive run).
+- [x] `agentbundle list-installed --help` documents the command and its flags;
   the PyPI README (`packages/agentbundle/README.md`) and
   `docs/product/changelog.md` record the new command and the upgrade-messaging
   change; `pyproject.toml` version and `agentbundle/version.py` `CLI_VERSION` are

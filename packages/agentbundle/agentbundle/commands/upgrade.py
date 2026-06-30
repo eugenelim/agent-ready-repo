@@ -337,8 +337,9 @@ def run(args: "argparse.Namespace") -> int:
         _drifted = count_drifted_files(pack_state, root)
         if _drifted:
             print(
-                f"upgrade: {_drifted} installed file(s) have local edits; "
-                f"re-applying preserves them as .upstream companions.",
+                f"upgrade: {_drifted} installed file(s) have local edits; your "
+                f"edits are preserved as .upstream companions where the file "
+                f"still ships.",
                 file=sys.stderr,
             )
 

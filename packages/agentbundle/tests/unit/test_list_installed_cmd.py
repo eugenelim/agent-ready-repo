@@ -263,3 +263,44 @@ def test_cli_no_check_runs_against_empty_repo(tmp_path):
     )
     assert proc.returncode == 0, proc.stderr
     assert "no packs installed at repo scope" in (proc.stdout + proc.stderr)
+
+
+def test_cli_populated_table_and_check_drift_via_subprocess(tmp_path):
+    """End-to-end through argparse (not in-process run()): a populated repo
+    state lists its row, and --check-drift counts an edited file. Closes the
+    gap the in-process tests leave (they bypass --check-drift/--scope wiring)."""
+    from agentbundle.safety import sha256_bytes
+
+    # A clean install: file on disk matches the recorded SHA.
+    rel = ".claude/skills/x/SKILL.md"
+    (tmp_path / ".claude/skills/x").mkdir(parents=True)
+    (tmp_path / rel).write_text("orig\n", encoding="utf-8")
+    sha = sha256_bytes(b"orig\n")
+    _write_state(
+        tmp_path / ".agentbundle-state.toml",
+        State(
+            packs={
+                ("architect", "codex"): PackState(
+                    installed_version="0.9.0", files={rel: {"sha": sha}}
+                )
+            }
+        ),
+    )
+    # Edit the file so it drifts.
+    (tmp_path / rel).write_text("edited\n", encoding="utf-8")
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "agentbundle", "list-installed",
+         "--scope", "repo", "--no-check", "--check-drift", "--root", str(tmp_path)],
+        cwd=PACKAGE_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    out = proc.stdout
+    for col in ("PACK", "ADAPTER", "SCOPE", "INSTALLED", "DRIFT"):
+        assert col in out
+    assert "architect" in out and "codex" in out and "0.9.0" in out
+    # The architect row's DRIFT cell is the count 1 (one edited file).
+    row = [ln for ln in out.splitlines() if ln.startswith("architect")][0]
+    assert row.split()[-1] == "1", row

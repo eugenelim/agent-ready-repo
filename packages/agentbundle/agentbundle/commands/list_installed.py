@@ -175,6 +175,11 @@ def _status_for(installed: str, latest: str | None, *, catalogue_resolved: bool)
     a, b = _version_key(installed), _version_key(latest)
     if a is None or b is None:
         return "unknown"
+    # Zero-pad to equal length so `0.9` vs `0.9.0` compares equal rather than
+    # `(0,9) < (0,9,0)` reading as upgrade-available.
+    width = max(len(a), len(b))
+    a += (0,) * (width - len(a))
+    b += (0,) * (width - len(b))
     return "upgrade-available" if b > a else "up-to-date"
 
 
