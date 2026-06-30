@@ -1,7 +1,7 @@
 # Plan: self-coverage-gate
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -15,7 +15,7 @@ dependency, no CONVENTIONS edit. The shape: edit `packs/core/.apm/skills/work-lo
 to (a) **name** the passes it already runs as the self-coverage gate's steps, (b) add the two
 net-new spec-time/DECIDE checks (the resolve-vs-surface **disposition record** and the
 **conditional domain-grounding** check), and (c) add **one** refusal item to the end-of-session
-checklist; then seed a self-contained `references/self-coverage/resolve-vs-surface-sample-bank.md`
+checklist; then seed a self-contained `references/self-coverage/resolve-vs-surface.md`
 from note 09; then `make build-self` to project, bump `core`, and record the changelog entry.
 The riskiest part is **discipline, not difficulty**: keeping the slice genuinely *thin* — naming
 existing passes rather than duplicating REVIEW, and routing everything net-new through the
@@ -40,7 +40,7 @@ dogfood pass that produces the gate's own coverage record for this spec.
 
 **Integration tests:** none beyond per-task checks (the change ships no executable code).
 **Manual verification:** the T6 dogfood — produce the resolve-vs-surface disposition record for
-this spec and append it as a sample read to the seeded bank; record the produced record.
+this spec and append it as a read to the seeded reference; record the produced record.
 
 ## Design (LLD)
 
@@ -55,7 +55,7 @@ this spec and append it as a sample read to the seeded bank; record the produced
 - **Non-skippability = named phase + one mechanical refusal.** Reuse the exact shape the
   done-checklist already enforces (reviewer-clean, doc-drift); the coverage record's absence is
   mechanically detectable, joining refusals the loop already honors. Traces to: AC4, AC6.
-- **Self-contained sample-bank.** The bank states its own append-only discipline inline so the
+- **Self-contained resolve-vs-surface reference.** The reference states its own append-only discipline inline so the
   `core` pack ships with zero CONVENTIONS dependency; `patterns.jsonl` is cited as precedent,
   not required as a contract. Traces to: AC5, AC7.
 - **Ship as ordinary pack content.** The edits project through `make build-self` like every
@@ -70,8 +70,9 @@ this spec and append it as a sample read to the seeded bank; record the produced
 **Depends on:** none
 
 **Tests:**
-- Goal-based: `grep` the source SKILL.md shows the self-coverage gate **named as a phase the
-  loop runs** (not a self-discovered skill) — the phase-naming half of AC6 — with
+- Goal-based: `grep` the source SKILL.md shows the literal phrase **"self-coverage gate"**
+  **named as a phase the loop runs** (not a self-discovered skill) — the phase-naming half of
+  AC6, keyed on that exact token — with
   REVIEW identified as the fresh-context-adversarial step, the PLAN assumption trio +
   declined-pattern register as the pre-mortem hook, and `Surface` + DECIDE's apply/defer routing
   as the resolve-vs-surface bones (AC1, AC6). No new pass is introduced (the PLAN/REVIEW/DECIDE
@@ -82,8 +83,13 @@ this spec and append it as a sample read to the seeded bank; record the produced
   (a named phase the loop runs, not a skill it may discover) that points at the existing
   passes by name, with a one-line cross-reference each. Keep it lean — no restating of REVIEW.
 
-**Done when:** the grep above passes and the diff adds naming/cross-references only (no
-duplicated pass body).
+**Negative check (the thinness guarantee):** scope `git diff origin/main` to the existing
+REVIEW / PLAN / DECIDE section bodies — those bodies are byte-unchanged except for added
+naming/cross-reference lines. A duplicated pass body (the risk this AC exists to forbid) shows
+up as a body-line change and fails the check.
+
+**Done when:** the grep above passes, the negative check holds (no REVIEW/PLAN/DECIDE body
+line changed beyond added cross-references), and the diff adds naming/cross-references only.
 
 ### T2: Add the resolve-vs-surface disposition record + conditional domain-grounding
 
@@ -102,7 +108,13 @@ duplicated pass body).
 - Add the two checks to the PLAN (spec-time) / DECIDE prose, each one short paragraph, each
   noting it is governed by the existing light/full mode (small in both).
 
-**Done when:** both greps pass and neither check introduces a new mode or knob.
+**Negative check (no second knob — Boundary `spec.md` Never-do):** `git diff origin/main` adds
+no new mode *definition* — the two checks reference the existing light/full mode but introduce
+no added `light`/`full` mode-definition heading or new right-sizing knob (references are fine,
+a new definition is not).
+
+**Done when:** both greps pass, the negative check holds, and neither check introduces a new
+mode or knob.
 
 ### T3: Add the one end-of-session-checklist refusal item
 
@@ -117,24 +129,28 @@ duplicated pass body).
 **Approach:**
 - Insert the single refusal line into the existing checklist; touch no other refusal item.
 
-**Done when:** the checklist has exactly one added line and the light-mode paragraph references
-it consistently.
+**Counted check:** `git diff origin/main` on the end-of-session checklist block
+(`SKILL.md` § DECIDE) shows exactly **one** added refusal bullet — a line-count delta of one on
+that list, so a second slipped-in item fails the check mechanically, not by eyeball.
 
-### T4: Seed the self-contained resolve-vs-surface sample-bank
+**Done when:** the checklist has exactly one added line (verified by the counted check) and the
+light-mode paragraph references it consistently.
+
+### T4: Seed the self-contained resolve-vs-surface resolve-vs-surface reference
 
 **Depends on:** none
 
 **Tests:**
-- Goal-based: `packs/core/.apm/skills/work-loop/references/self-coverage/resolve-vs-surface-sample-bank.md`
-  exists, carries the sample reads seeded from note 09, states its own
+- Goal-based: `packs/core/.apm/skills/work-loop/references/self-coverage/resolve-vs-surface.md`
+  exists, carries the reads seeded from note 09, states its own
   append-only/supersede-by-new-entry discipline inline (citing `patterns.jsonl` as precedent),
   and names no `docs/CONVENTIONS.md` edit as a precondition (AC5, AC7).
 - Goal-based: it is the **only** file added under `references/self-coverage/` — no heavy
   design-convergence module ships (AC8).
 
 **Approach:**
-- Create the `references/self-coverage/` dir under the `work-loop` source; write the bank with
-  a short header stating the discipline, then the seeded sample reads lifted from note 09.
+- Create the `references/self-coverage/` dir under the `work-loop` source; write the reference with
+  a short header stating the discipline, then the seeded reads lifted from note 09.
 
 **Done when:** the file exists with the seeded content + inline discipline, and it is the sole
 addition under `references/self-coverage/`.
@@ -145,38 +161,49 @@ addition under `references/self-coverage/`.
 
 **Tests:**
 - Goal-based: `make build-self` runs clean; the projected `.claude/skills/work-loop/` SKILL.md
-  and sample-bank match the source; the dry-run drift gate is clean (AC11).
+  and resolve-vs-surface reference match the source; the dry-run drift gate is clean (AC11). **Authoritative
+  verification path:** local `make build-self` in a Conductor worktree runs the *sibling* (main)
+  editable install and a stray `__pycache__` red-fails it (reference memory *Local make
+  build-check uses site-packages* + *stray `__pycache__` breaks local build-check*); so confirm
+  the projection by (a) clearing `__pycache__` under `packs/` + `.claude/`, then (b) treating
+  CI's `pip install -e` projection — or a fresh `origin/main` worktree diff — as authoritative,
+  not the bare local run.
 - Goal-based: the PR diff touches no `docs/CONVENTIONS.md` line, adds no new agent file, and
-  adds no new dependency (AC7-guardrails: AC7, AC9, AC10).
-- Goal-based: `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the
-  bumped version; `marketplace.json` is reconciled via build-self; `docs/product/changelog.md`
-  `[Unreleased]` has the `work-loop` behavior entry (AC12).
+  adds no new dependency — **AC7, AC9, and AC10 are jointly verified by this single
+  diff-absence grep** (one artifact, three ACs; map them as a set).
+- Goal-based: the **`[pack] version`** line of `packs/core/pack.toml` (the `0.5.0` line that
+  matches `plugin.json`, **not** the `[contract] version` line) and
+  `packs/core/.claude-plugin/plugin.json` carry the bumped version; `marketplace.json` is
+  reconciled via build-self; `docs/product/changelog.md` `[Unreleased]` has the `work-loop`
+  behavior entry (AC12).
 
 **Approach:**
-- Bump `core` in `pack.toml` + `plugin.json`; run `make build-self`; add the changelog entry;
-  confirm the absence-greps.
+- Bump `core`'s `[pack] version` in `pack.toml` (leave the `[contract] version` line untouched)
+  + `plugin.json`; run `make build-self`; add the changelog entry; confirm the absence-greps.
 
 **Done when:** build-self is clean, the version bump + changelog are present, and the guardrail
 greps confirm no CONVENTIONS edit / new agent / new dependency.
 
-### T6: Dogfood — produce this spec's own coverage record + append a sample read
+### T6: Dogfood — produce this spec's own coverage record + append a read
 
 **Depends on:** T1, T2, T3, T4
 
 **Tests:**
 - Manual QA: a resolve-vs-surface disposition record for *this very spec* is produced (every
   open item resolved-with-referent or surfaced-with-reason) and recorded as the observed
-  artifact (exercises AC2); the **conditional domain-grounding check is exercised on both
-  branches** — one item that rests on an ungrounded load-bearing domain claim (fires) and one
-  the spec already grounds (degrades) — recording which branch each took (exercises AC3); and a
-  corresponding sample read is appended to the seeded bank (the RFC-0048 D9 series-execution
+  artifact (exercises AC2); the **conditional domain-grounding check is exercised on whichever
+  branch(es) this spec honestly presents** — recording which branch each open item took, and
+  recording **explicitly** if the fire branch has no honest instance on this doctrine-only spec
+  (the empirical claims it rests on are RFC-0051's, already referent-grounded — the degrade
+  branch) rather than fabricating a synthetic ungrounded claim (exercises AC3); and a
+  corresponding read is appended to the seeded reference (the RFC-0048 D9 series-execution
   obligation).
 
 **Approach:**
 - Walk this spec's open items through the gate; write the disposition record; append one
-  calibrated sample read to `resolve-vs-surface-sample-bank.md` (append-only).
+  calibrated read to `resolve-vs-surface.md` (append-only).
 
-**Done when:** the disposition record exists and the bank carries the new appended read.
+**Done when:** the disposition record exists and the reference carries the new appended read.
 
 ## Rollout
 
@@ -186,8 +213,10 @@ greps confirm no CONVENTIONS edit / new agent / new dependency.
 - **Infrastructure:** none.
 - **External-system integration:** none.
 - **Deployment sequencing:** source edit → `make build-self` → version bump + changelog, in one
-  PR. Merge is gated on RFC-0051 / RFC-0048 acceptance (the standard series sequencing); until
-  then resolve-vs-surface appends continue in note 09 per RFC-0051 Decision 6.
+  PR. Merge is gated on RFC-0051 / RFC-0048 acceptance (the standard series sequencing). This PR
+  creates the `work-loop` per-loop reference and writes its first entry (the T6 dogfood read); the
+  "appends continue in note 09 until RFC-0048 Accepted" rule (RFC-0051 Decision 6) governs the
+  separate note-09 *series* reads, not this loop's own reference.
 
 ## Risks
 
