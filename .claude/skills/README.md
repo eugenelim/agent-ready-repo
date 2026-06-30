@@ -18,14 +18,18 @@ tool, used often enough to stick — live in
 | Skill | What it does |
 | ----- | ------------ |
 | [`work-loop`](work-loop/SKILL.md) | The standard plan → execute → verify → review loop for non-trivial work. Start here for any feature, fix, or refactor. |
-| [`new-adr`](new-adr/SKILL.md) | Create a new ADR with the next available number, from the template |
-| [`new-rfc`](new-rfc/SKILL.md) | Open a new RFC with a research-phase gate (repo + external sweep, recommendations on unresolved questions) before drafting |
 | [`new-spec`](new-spec/SKILL.md) | Scaffold a new spec directory, surface assumptions, then fill `spec.md` and `plan.md` |
 | [`bug-fix`](bug-fix/SKILL.md) | Fix a defect — reproduce → failing test → root cause → minimum fix → root-vs-symptom verify → commit body documents *why* |
-| [`new-package`](new-package/SKILL.md) | Scaffold a new package in `packages/` |
+| [`new-adr`](new-adr/SKILL.md) | Create a new ADR with the next available number, from the template |
+| [`new-rfc`](new-rfc/SKILL.md) | Open a new RFC with a research-phase gate (repo + external sweep, recommendations on unresolved questions) before drafting |
 | [`update-conventions`](update-conventions/SKILL.md) | Open an RFC to change `docs/CONVENTIONS.md` |
+| [`new-guide`](new-guide/SKILL.md) | Draft a new user-facing guide under `docs/guides/<quadrant>/` following the Diátaxis framework |
+| [`init-project`](init-project/SKILL.md) | Turn an idea into a structured new repo — trigger/value gates, a foundation ADR plus a golden-path `reference.md`, a walking-skeleton spec, then hand off to the build loop |
+| [`receive-brief`](receive-brief/SKILL.md) | Turn an externally-authored multi-feature brief (PRD, handoff) into shippable specs — elicit the load-bearing fields, decompose by shippability, run each slice through `new-spec` then `work-loop` |
 | [`adapt-to-project`](adapt-to-project/SKILL.md) | Walk the adopter through the four classes of post-install change (substitution, `.upstream` companion merges, discovery + restructuring, within-layout consolidation). Per-scope; class-1 shells out to `agentbundle adapt` |
-| [`new-guide`](new-guide/SKILL.md) | *(stub — full body in a follow-on PR)* Draft a new user-facing guide under `docs/guides/<quadrant>/` following the Diátaxis framework |
+| [`contract-acquisition`](contract-acquisition/SKILL.md) | Acquire an unfamiliar contract (a CLI flag, a schema shape, a library signature) before generating code against it, via the tiered version → type-checker → curated-skill → versioned-docs → runtime-probe protocol |
+| [`security-checklists`](security-checklists/SKILL.md) | Boundary-keyed security-depth modules the `security-reviewer` reasons from; the orchestrator inlines only the modules a change's boundaries match (not a reviewer prompt itself) |
+| [`operational-safety`](operational-safety/SKILL.md) | Orchestrator-loaded reliability/ops depth library for infra review (and the `cloud-implementation-craft` EXECUTE module) — feeds the existing `quality-engineer`, no new reviewer |
 
 ## Authoring skills
 

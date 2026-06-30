@@ -708,7 +708,7 @@ def _csv_scalar(value: Any) -> str:
 
 
 async def _run(args: argparse.Namespace) -> int:
-    # Auth selector (RFC-0035): an sso-config.toml with auth_default = "sso-cookie"
+    # Auth selector: an sso-config.toml with auth_default = "sso-cookie"
     # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
         sso_config = load_sso_config()

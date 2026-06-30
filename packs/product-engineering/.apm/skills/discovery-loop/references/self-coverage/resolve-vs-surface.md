@@ -4,7 +4,7 @@ The calibration reference for the [self-coverage gate](coverage-record.md)'s
 coverage record. The loop reaches the right resolve-vs-surface call only about half
 the time without a scaffold; an explicit rubric plus calibrated examples climbs
 that rate. This is `discovery-loop`'s **own per-loop copy** — a distinct file from
-`work-loop`'s, conforming to the **same cross-loop seam** RFC-0051 fixes, never
+`work-loop`'s, conforming to the **same cross-loop seam**, never
 re-worded.
 
 ## The rubric
@@ -57,6 +57,6 @@ referent or trigger, and the **tell** — the cue that should have fired.
   (over the fan-out threshold; impact-before-blast). *Tell: a large blast radius is
   itself a surface trigger, however correct the edge-walk.*
 - *Parent pre-decided the value calls → resolve, don't re-surface.* When every
-  candidate surface item traces to a referent RFC-0053 / RFC-0048 already cited, the
+  candidate surface item traces to a referent already cited, the
   honest output is a recommendation, not a question. *Tell: a child must not
   re-litigate what the foundation settled.*

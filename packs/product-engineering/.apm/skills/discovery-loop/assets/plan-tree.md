@@ -4,10 +4,10 @@ This is the **instantiable scaffold** for the recursive intent tree
 (`_state/plan-tree.json`). `discovery-lead` **copies it to start an initiative**
 and fills it in as the loop runs. It is what makes "HTN-over-blackboard, no
 engine" a *concrete artifact the controller fills and the traceability lint
-walks* — **there is no planner engine; the template is the mechanism.** *(AC6.)*
+walks* — **there is no planner engine; the template is the mechanism.**
 
-A **node** is an `intent` slot + `parent_id` (so the tree nests — Decision 1) +
-a **per-node status lifecycle** + the **Decision 6** shapes (a candidate set +
+A **node** is an `intent` slot + `parent_id` (so the tree nests) +
+a **per-node status lifecycle** + the **two extension** shapes (a candidate set +
 selection, and a validation status + hook). One plan-tree per initiative; relate
 initiatives by stable id, never by sharing a tree.
 
@@ -23,7 +23,7 @@ Each node carries (and the conformance lint walks):
 - **`candidates` + `selection`** (at a divergence point) — N sibling candidate
   shapes under a `diverging` parent, and the one promoted to `converging`. The
   **not-chosen are retained** as `rejected` / `parked` **with rationale** — never
-  deleted, so they stay revivable (D3 persistence + `decision-archaeology`'s
+  deleted, so they stay revivable (durable persistence + `decision-archaeology`'s
   revival check).
 - **`validation_hook`** — the kill-condition + the real-world activity that would
   confirm or enrich the node's load-bearing assumption.
@@ -109,14 +109,14 @@ node knows where it is from its `lifecycle` + `validation_status`.
 2. **Account spend per branch.** Increment the node's `round` / `cost_spent`; the
    `meta` block bounds the whole initiative. A node exceeding the **concentration
    bound** (~40% of budget) or the **depth/breadth** structural bounds pauses the
-   loop at `paused-at-bound` (Decision 4) — never a silent stop.
+   loop at `paused-at-bound` — never a silent stop.
 3. **Validate, don't just converge.** When a node ratifies, set its
    `validation_status` and attach a `validation_hook` (via `plan-validation`); the
    provisional spine at G2 labels every node **grounded** / **surfaced** /
    **to-validate**.
 4. **Surface descend-vs-park.** Choosing the next node, accounting spend, and
    deciding descend-vs-surface is itself scheduling the controller does
-   in-context — **a defensible bet on a shallow tree**, gated by the D4
+   in-context — **a defensible bet on a shallow tree**, gated by the
    depth/breadth bounds. Scheduling many concurrent / long-parked threads stays
    the **harness's** job.
 

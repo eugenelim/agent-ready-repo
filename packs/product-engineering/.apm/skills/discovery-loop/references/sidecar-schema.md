@@ -12,7 +12,7 @@ self-discovered skill, and **not** duplicated as prose in `work-loop`.
 > read the produced `_state/` instances **by slot-name + the `schema_version`
 > stamp** and check compatibility. They never import this file. A schema bump
 > moves this definition and its producing skill (`discovery-loop`) **atomically**,
-> so there is one owner and no cross-pack version skew. *(AC3.)*
+> so there is one owner and no cross-pack version skew.
 
 **Current `schema_version`: `0.1`.** This is the value the traceability lint
 recognizes (`lint-traceability`'s `KNOWN_SCHEMA_VERSIONS`); an instance carrying
@@ -36,7 +36,6 @@ the bump.
 
 Working state and durable record are split into two tiers, and there is **one
 plan-tree per initiative** — a *forest*, never one master tree the loop walks.
-*(AC7.)*
 
 - **Tier 1 — the working store (`_state/`).** Durable while the initiative is
   active; the live plan-tree, slot statuses, the `meta` counters. Torn down on
@@ -69,16 +68,15 @@ default, else elicited; **dirs created lazily on first write**):
 ```
 
 **Initiatives that relate cross-link by stable ids** — slug / `contract@version`
-/ Backstage `kind:namespace/name` (the ADR-0022 cross-boundary convention) —
+/ Backstage `kind:namespace/name` (the cross-boundary convention) —
 **never by sharing a tree**. A portfolio index across initiatives is **not** a
 contract file; it is the harness's (concurrency/scheduling) or an adopter
 roadmap.
 
 ## The five working slots
 
-Field-sets are given as the prototype instantiated them
-(`<rfc-0053-notes>/spike/`). All working slots carry `initiative` and
-`schema_version`.
+Field-sets are given as the prototype instantiated them. All working slots carry
+`initiative` and `schema_version`.
 
 ### 1. `blackboard` — the typed artifact slots
 
@@ -108,7 +106,7 @@ The artifact inventory. Each slot:
 | `lens` | `product \| research \| ux \| design \| tech \| controller \| security \| reliability` |
 | `path?` | the Tier-2 committed artifact's path, when it has one |
 | `round_last_touched` | the convergence round it last changed in |
-| `parent_id?` | **the optional pointer that makes `intent` slots nest into a recursive tree** (Decision 1) |
+| `parent_id?` | **the optional pointer that makes `intent` slots nest into a recursive tree** |
 
 The blackboard carries a **`meta` block** (or a sibling `meta.json`) — see slot 5.
 
@@ -135,7 +133,7 @@ chat** (the MAST guardrail). Each entry:
 
 **This slot is the lint-authoritative file** (`_state/traceability.json`,
 **JSON**). The traceability lint reads it by convention + the `schema_version`
-stamp; the D3 cascade transition walks **the same edges**.
+stamp; the cascade transition walks **the same edges**.
 
 ```json
 {
@@ -157,15 +155,14 @@ stamp; the D3 cascade transition walks **the same edges**.
 
 - **typed `nodes`** — each `{id, kind, backed_by}`. `backed_by ∈ file | container
   | ladder`: `file` (its own file), `container` (an entry embedded in a
-  journey-map / service-blueprint), `ladder` (a rung of the intent ladder — the
-  child-4 reconciliation that four chain rungs are intent-ladder rungs, not
-  files).
+  journey-map / service-blueprint), `ladder` (a rung of the intent ladder — four
+  chain rungs are intent-ladder rungs, not files).
 - **`edges`** — `{from = producer, to = consumer}`.
 - **`root`** (exempt from an in-edge) and **`leaf_kind`** (exempt from an
   out-edge); every other node needs both.
 - **Node ids are stable and location-independent** (slug / `contract@version` /
   `kind:namespace/name`), so the chain crosses repo boundaries by convention, not
-  path (the ADR-0022 reuse).
+  path (the cross-boundary id reuse).
 
 The canonical chain the lint walks is
 `outcome → opportunity → capability → screen → action → service → contract →
@@ -195,17 +192,16 @@ properties below. Canonical field order:
 | `gate` | the gate the decision was made at (`G0`, `G1.5`, `G2`, a bound pause, …) |
 | `decision` | the verdict (one of the typed verdict set — see the skill) |
 | `ratified_by` | `human \| discovery-lead` — **per-row actor attestation** |
-| `reversibility_class` | the enumeration `reversible \| costly-to-reverse \| one-way-door` (never free text — AC30) |
+| `reversibility_class` | the enumeration `reversible \| costly-to-reverse \| one-way-door` (never free text) |
 | `rationale` | why |
-| `prev_hash`, `hash` | **the hash-chain** — each row's `hash` is a **SHA-256** over the row's canonical-field-order JSON **plus the prior row's `hash`** (AC26 option (a)). Tamper-evident **only when the chain tip is anchored** in the agent-untokened / harness-immutable store (see below) |
+| `prev_hash`, `hash` | **the hash-chain** — each row's `hash` is a **SHA-256** over the row's canonical-field-order JSON **plus the prior row's `hash`** (the anchored-hash-chain option). Tamper-evident **only when the chain tip is anchored** in the agent-untokened / harness-immutable store (see below) |
 
-**Integrity properties (each a hard AC the skill enforces):**
+**Integrity properties (each a hard requirement the skill enforces):**
 
 - **Append-only** — paired with a lint/CI assertion that the slot's commits are
   add-only.
 - **Per-row actor attestation** — the `ratified_by` field, and a **`human` row
-  the controller cannot forge** (written through the harness-attested channel —
-  AC25).
+  the controller cannot forge** (written through the harness-attested channel).
 - **Tamper-evidence — verified, not asserted.** The schema ships a **hash-chain**
   (`prev_hash`/`hash`, SHA-256 over canonical-field-order JSON + the prior hash) so
   an in-place edit of a prior row's `rationale`/`decision` that keeps the
@@ -216,7 +212,7 @@ properties below. Canonical field order:
   token to rewrite it** (the same agent-untokened / harness-immutable store as the
   verdict channel, or a signature over a key the agent lacks). Alternatively, an
   adopter whose harness provides an **immutable log** may delegate the chain to it
-  — recorded as an explicit harness-conformance precondition (AC26 option (b)). See
+  — recorded as an explicit harness-conformance precondition (the immutable-log option). See
   `security-and-integrity.md` control 2.
 - **Trusted timestamp** — the `ts` field, ideally harness-provided.
 
@@ -239,28 +235,28 @@ Carried on the blackboard (or a sibling `meta.json`):
 `status` carries the **meta gate-state** namespace — `awaiting-human` /
 `paused-at-bound` / `stalled-at-cap` (plus working values like `converged`). The
 counters (`round`/`round_cap`, `cost_budget`/`cost_spent`) are **data the
-controller increments — no runtime** (Decision 4). Each plan-tree node carries
+controller increments — no runtime**. Each plan-tree node carries
 its own `round`/`round_cap` + `cost_spent` too (per-node spend for observability
 + the concentration bound).
 
-## Two extension slots (Decision 6)
+## Two extension slots
 
 - **`validation-plan`** — the assumption → kill-condition → real-world-activity
   ledger `plan-validation` produces. Each entry `{assumption, kill_condition,
   activity, validation_status}` where `validation_status ∈ hypothesis →
   validating → validated | refuted`. This makes *converged ≠ validated* a
-  **structural property** of the workspace. *(AC22, AC23.)*
+  **structural property** of the workspace.
 - **The `decision-brief`'s required success-metrics / North-Star slot.** The
   decision-brief slot carries a **required, structured** `success_metrics` field
   (the outcome + its North-Star + done-criterion). A brief **cannot reach G3
   without it** — so the build loop always has a done-criterion to iterate
   against. It is **not** a new skill (`frame-intent` / `decompose-intent` already
   name outcomes); it is a required slot. Metric *instrumentation* stays downstream
-  / out of charter. *(AC24.)*
+  / out of charter.
 
 ## Three status namespaces, not one drifting enum
 
-The statuses live on **distinct fields** *(AC5)*:
+The statuses live on **distinct fields**:
 
 | Namespace | Field | Values |
 | --- | --- | --- |
@@ -275,14 +271,14 @@ A single verdict typically writes across **more than one** namespace.
 
 Which fields each verdict writes (the controller is the writer; every
 blackboard-changing row **reuses the one cascade mechanism** — walk traceability
-out-edges → mark `stale` → re-run only the affected lenses) *(AC5, AC12)*:
+out-edges → mark `stale` → re-run only the affected lenses):
 
 | Verdict | Slot status | Node lifecycle | Meta / log |
 | --- | --- | --- | --- |
 | **approve** | gate's slots → `ratified` | node → `ratified` | log row; advance |
 | **approve-with-constraint** | constrained slots re-run; touched → `proposed`→`ratified` on re-converge | node stays `converging` until re-converged | record constraint in Scope Boundary; **do not advance** |
 | **redirect / steer** | obsoleted slots → `stale` (after impact-before-blast confirm) | node re-enters `converging` with the steer | new `intent` steer; cascade the scoped set |
-| **explore-alternatives** | — | node → `diverging` (route back to D6) | regenerate candidate shapes |
+| **explore-alternatives** | — | node → `diverging` (route back to divergence) | regenerate candidate shapes |
 | **abandon** | subtree slots → `stale` | node → `abandoned` | log kill + rationale; close node |
 | **park / defer** | — | node → `parked` (in the sub-idea index) | resumable; advance siblings |
 | **extend / override** | — | node resumes prior lifecycle | grant `round_cap`/`cost_budget` or lift a bound; the row used at a `paused-at-bound` gate |
@@ -291,7 +287,7 @@ out-edges → mark `stale` → re-run only the affected lenses) *(AC5, AC12)*:
 
 The would-be writers are **not all in one pack** (lenses span `experience` /
 `architect` / `contracts`), so same-pack co-location cannot be the guarantee.
-Drift is prevented structurally *(AC9)*:
+Drift is prevented structurally:
 
 1. **The controller is the principal slot-writer.** Cross-pack lenses emit their
    **native artifacts** (a journey map, a C4 model) and *propose* through the
@@ -315,12 +311,12 @@ A lens may only **propose** (`status: proposed`); **only the controller
 promotes** to `ratified`. Lens-asserted traceability edges are **advisory until
 the controller validates** them. Any lens ingesting untrusted external content
 (web `research`, adopter docs) is a **trust boundary** whose output is **data,
-not instructions**, to the controller. *(AC28.)*
+not instructions**, to the controller.
 
 ## Data classification & handling
 
 Each slot carries — or the skill assigns at write time — a **data-classification
-level** *(AC31)*:
+level**:
 
 | Level | Examples in this schema | Handling |
 | --- | --- | --- |
@@ -336,7 +332,7 @@ level** *(AC31)*:
   retention/export policy; the state branch is **protected against history
   rewrite** (so the decision-log's append-only/hash-chain properties hold).
 - **The classification check is a precondition on the per-round/per-gate
-  checkpoint write** (it composes with the D2 checkpoint requirement, not a
+  checkpoint write** (it composes with the checkpoint requirement, not a
   separate later step): a `sensitive`/`regulated` slot is **redacted-or-surfaced
   before** it reaches the shared store. The two requirements **compose** — they
   are not independently satisfiable.
