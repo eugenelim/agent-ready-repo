@@ -55,7 +55,12 @@ The bias is **reuse + a few new pure-markdown skills**, never a new runtime — 
   new skill.
 
 ### `experience` (renamed from `design-craft` — OQ1)
-- ✦ **`map-journey`** · ✦ **`blueprint-service`** · ✦ **`inventory-screens`** — the
+> **Shipped names (RFC-0050).** The rename and the connective layer shipped as the
+> `experience` pack; the journey skill is `map-customer-journey` and the screen skill is
+> `map-screen-flow`. RFC-0050 additionally added `map-internal-process` (D9, internal
+> business-process flows) and `interaction-design` (D10, single-screen interaction craft),
+> beyond the trio this note scoped.
+- ✦ **`map-customer-journey`** · ✦ **`blueprint-service`** · ✦ **`map-screen-flow`** — the
   connective layer; all three carry the **platform/surface axis** (web · iOS · Android ·
   cross-platform).
 - ⊕ **`aesthetic-direction`** — grounded in persona + precedent + standards + platform
@@ -63,7 +68,7 @@ The bias is **reuse + a few new pure-markdown skills**, never a new runtime — 
 - ⊕ **`design-critique`** — evidence-grounded taste mode + platform-fit; can run as the
   design-artifact reviewer.
 - ✓ **`design-system-foundations`, `layout-and-information-architecture`, handle-all-states
-  floor** — reused (states defer here from `inventory-screens`).
+  floor** — reused (states defer here from `map-screen-flow`).
 
 ### `architect`
 - ⊕ **`architect-design` / `architect-diagram`** — consume the service blueprint;
@@ -80,7 +85,7 @@ The bias is **reuse + a few new pure-markdown skills**, never a new runtime — 
 - ✓ `new-rfc` / `new-adr` produce the child RFCs/ADRs.
 
 ### Net
-- **New:** 4 skills (`map-journey`, `blueprint-service`, `inventory-screens`,
+- **New:** 4 skills (`map-customer-journey`, `blueprint-service`, `map-screen-flow`,
   `frame-domain`) + 1 reference-library/doctrine (self-coverage gate) + 1 tool
   (traceability lint) + `product-engineering`'s own user-scope discovery design
   reviewers (agents — § Amendments 2026-06-26).
