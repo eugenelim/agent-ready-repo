@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0049 (the parent — the release (outer) loop + minimum-regret deploy carve + company-OS composition; resolves its OQ1 pack-home + OQ2 agent-shape) · RFC-0048 (the provisional foundation — the G4→G5 arc, the sidecar substrate, the company-OS framing) · RFC-0053 (the sibling — the sidecar *schema* this loop consumes by convention (carried in `product-engineering`'s `discovery-loop` skill, not `core`; RFC-0048 § Amendments 2026-06-26), and the `agent-def + skill + no-engine` pattern + § Security & integrity contract shape it mirrors downstream) · RFC-0041 + ADR-0031 (the *doctrine + reference-library + reuse-existing-reviewers, no engine / no new reviewer* precedent; the deploy *flavor* this graduates into a proper outer loop; P5's non-skippable security posture) · ADR-0018 (the orchestrator-inlined progressive-disclosure depth mechanism the reuse rides) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey)
+- **Constrained by:** RFC-0049 (the parent — the release (outer) loop + minimum-regret deploy carve + company-OS composition; resolves its OQ1 pack-home + OQ2 agent-shape) · RFC-0048 (the foundation, **Accepted 2026-06-30** — the G4→G5 arc, the sidecar substrate, the company-OS framing) · RFC-0053 (the sibling — the sidecar *schema* this loop consumes by convention (carried in `product-engineering`'s `discovery-loop` skill, not `core`; RFC-0048 § Amendments 2026-06-26), and the `agent-def + skill + no-engine` pattern + § Security & integrity contract shape it mirrors downstream) · RFC-0041 + ADR-0031 (the *doctrine + reference-library + reuse-existing-reviewers, no engine / no new reviewer* precedent; the deploy *flavor* this graduates into a proper outer loop; P5's non-skippable security posture) · ADR-0018 (the orchestrator-inlined progressive-disclosure depth mechanism the reuse rides) · RFC-0025 (`work-loop` light/full + the iteration cap this loop's outer cap mirrors) · RFC-0040 (the three-tier layout resolution the sidecar paths obey)
 - **Brief:** none
 - **Contract:** none — the loop *consumes* the sidecar schema by convention (RFC-0053: blackboard · open-questions · traceability · decision-log; the schema *definition* is carried in `product-engineering`'s `discovery-loop` skill, not `core`, and consumed by reading produced `_state/` instances + a `schema_version` stamp); it authors no new `contracts/<type>/` surface.
 - **Shape:** n/a — content/methodology change (a new `release-engineering` pack holding a `release-lead` agent definition + a `release-loop` skill); no application LLD. The "contract" is the loop's state machine + the minimum-regret carve + the security/integrity controls, specified below as Acceptance Criteria.
@@ -410,10 +410,13 @@ of change, and the worked-example validation RFC-0053's coordinator spike used.
   RFC-0049 (the parent) sanctions exactly this one pack via OQ1, so no further RFC
   is needed for the directory (source: AGENTS.md § Check before acting; RFC-0049
   OQ1).
-- Process: this spec resolves the OQs and reconciles drift back into RFC-0048/0049
-  in the same PR, per the series-execution standard — RFC-0049 stays Open until
-  its OQs resolve; RFC-0048 stays provisional until its child set aligns (source:
-  RFC-0048 D9 + Amendments section; RFC-0053's reconciliation precedent).
+- Process: this spec resolves RFC-0049's OQ1/OQ2 and reconciles drift back into
+  RFC-0048/0049 in the same PR, per the series-execution standard. **RFC-0048 is now
+  Accepted (2026-06-30)** — its child-set reconciliation already treats this seat as
+  *modelled* (§ Amendments 2026-06-26 / 2026-06-28), so 0048's acceptance did not wait
+  on this spec; **RFC-0049 stays Open** until this implementing PR lands (whether it
+  flips to Accepted then is the operator's call — AC11b) (source: RFC-0048 D9 +
+  Amendments section; RFC-0053's reconciliation precedent).
 - Product: the release loop ships as an **opt-in** capability for adopters who
   deploy to ephemeral envs — not a `core`-wide default — because ephemeral-env
   infra is a real adopter prerequisite (source: RFC-0049 Drawbacks; the
