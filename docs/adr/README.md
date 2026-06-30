@@ -48,6 +48,7 @@
 | 0040 | [Route cohort skills (codex, cursor, gemini, copilot) to the shared `.agents/skills/` home — supersedes the skill-home sub-decision of ADR-0013/0015/0016; agent/hook/command projection stands](0040-route-cohort-skills-to-shared-agents-skills-home.md) | Accepted |
 | 0041 | [ADR template gains optional first-screen summary, revisit trigger, and structured Confirmation — extends ADR-0027 (lean-compatible additions, not superseded)](0041-adr-template-optional-summary-revisit-confirmation.md) | Accepted |
 | 0042 | [Agent additions are keyed to loop and work type, not a global cap (supersedes ADR-0023)](0042-agent-additions-keyed-to-loop-and-work-type.md) | Accepted |
+| 0043 | [The upstream discovery coordinator is an agent + a skill + a carried sidecar-schema contract — no new runtime engine, spike-confirmed; the sidecar is the connectedness verifier](0043-the-discovery-coordinator-is-an-agent-plus-skill-plus-carried-sidecar-no-engine.md) | Accepted |
 
 ## Adding a new ADR
 

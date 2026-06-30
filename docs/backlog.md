@@ -1081,3 +1081,51 @@ worked-example run — so this is a consistency gap, not a shipped-AC gap. **Unb
 when:** someone adds a minimal eval mirroring the sibling pattern (e.g. asserting
 skill activation on a domain-framing prompt and that both typed artifacts with
 their markers are produced).
+
+## `discovery-loop`
+
+### discovery-loop-eval-coverage
+
+**Spec:** [discovery-loop](specs/discovery-loop/spec.md)
+
+The three new `product-engineering` skills (`discovery-loop`, `explore-options`,
+`plan-validation`) ship without `evals/eval_queries.json` and are not in
+`[pack.evals]` — matching the `frame-domain` precedent above, and no acceptance
+criterion or gate requires it (allowlist completeness is hand-maintained, not
+enforced). **Unblocks when:** someone adds minimal evals mirroring the sibling
+pattern (assert skill activation on a "scaffold the product vision for X" /
+"diverge on the product shape" / "plan the validation" prompt) and adds the
+user-triggered ones to `[pack.evals]`.
+
+### discovery-loop-traceability-reachability
+
+**The AC34 cross-spec gap.** **Spec:** [discovery-loop](specs/discovery-loop/spec.md) (AC34) ·
+[traceability-lint](specs/traceability-lint/spec.md) (child-4, the owner)
+
+AC34 names a dependency on child-4's traceability lint performing a **root→leaf
+reachability** pass so the cascade/backstop can detect a disconnected-subtree /
+fabricated-edge failure. The **shipped** lint (`lint-traceability.py`
+`classify_sidecar`) does per-node edge-**presence**, not reachability — confirmed
+by the `0053-notes/spike/traceability.preconverge.json` comment ("the presence-check
+lint flags the tip … a reachability-to-leaf refinement would flag the whole
+subtree"). The `discovery-loop` skill **names the dependency** (AC34 met) and flags
+the gap. **Unblocks when:** child-4 (`traceability-lint`) adds the root→leaf
+reachability pass, at which point the discovery backstop catches the whole broken
+subtree, not just its orphan tip.
+
+### discovery-loop-type-marker-producers
+
+**Spec:** [discovery-loop](specs/discovery-loop/spec.md) (AC36, DRIFT-G)
+
+CONVENTIONS § 4 now documents the discovery-artifact `type:` marker grammar, and
+the traceability lint already recognizes `type:` / `Kind:` / `Level:` markers — but
+only `frame-domain` currently *emits* a `type:` marker (`type: domain-framing` /
+`type: scope-boundary`). The other producer artifacts the lint can recognize
+(screens via `type: screen-brief`, journey/blueprint container entries, intent-ladder
+rungs) are not all wired to emit their markers yet. AC36 scopes `discovery-loop` as
+the *consumer* of the up-edge grammar, so no shipped AC requires full producer
+wiring — this is a latent consistency gap. **Unblocks when:** the producer skills
+(`map-screen-flow`, the journey/blueprint emitters, `frame-intent` /
+`decompose-intent` for the ladder) emit their `type:`/`Kind:`/`Level:` markers, so a
+future fail-closed traceability up-edge is not load-bearing on markers that don't
+exist.

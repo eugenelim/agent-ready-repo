@@ -69,7 +69,19 @@ Before decomposing, confirm:
    wire contract is pinned at the spec stage** via the existing `Contract:` seam,
    where the component's full context lives. Don't author OpenAPI/AsyncAPI here.
 
-5. **Project onto a tracker (optional, one-way).** If the team uses a tracker,
+5. **Rank the children (optional).** When a decomposition produces several
+   children that compete for the same appetite — and the order they ship in is a
+   real call, not obvious from dependencies alone — apply a lightweight
+   **prioritization/ranking** step over them: the adopter's own rubric (RICE,
+   Torres's opportunity-sizing, a custom decision matrix), recorded as a `rank`
+   on each child with its one-line rationale. This is the multi-criteria ranking
+   the appetite + Scope Boundary do *not* do (constraint-setting, not ranking). It
+   is **optional** — skip it when dependencies already order the children, or when
+   there is one child. The rubric is the adopter's; this skill ships the *step*, not
+   a fixed scoring formula. Discovery's backlog bridge reads the `rank` to order the
+   handoff to `work-loop`.
+
+6. **Project onto a tracker (optional, one-way).** If the team uses a tracker,
    render the tree onto it per `references/tracker-projection.md` — `none`
    (markdown only), Linear (lean; collapse), or Jira Align (deep; expand). The
    canonical tree is the source; the tracker is a render. **One-way only** —
