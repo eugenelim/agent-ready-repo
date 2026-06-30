@@ -309,6 +309,17 @@ mechanical rule.
   — a spec authored directly omits it and stays valid. The brief's coverage map
   rolls up from these back-links automatically; never hand-write a spec's status
   into the brief.
+- **Discovery up-edge (optional).** A spec descended from an upstream
+  product-discovery artifact (a decision brief or intent produced by an upstream
+  discovery process) carries a `- **Discovery:**` header naming that artifact by
+  its stable id. Like `Brief:` it records *upstream provenance* — the producer
+  edge a traceability check walks from the discovery side into the spec — and is
+  additive and optional: a spec authored directly omits it (or `none`) and stays
+  valid. The discovery-side producer artifacts themselves (intents, screens,
+  journeys, blueprints) carry a frontmatter `type:` marker naming their kind
+  (e.g. `type: screen-brief`, `type: domain-framing`) so a traceability check
+  recognizes them **by marker, not path**. This is a **format** convention — the
+  header field and the `type:` grammar — not doctrine about *when* discovery runs.
 - **Story trace (optional).** When the brief carries user stories (Shape B), an
   acceptance criterion that satisfies a story appends a `Satisfies: US-n` marker
   so coverage is story-granular. Optional — omit it for a no-stories brief or a
