@@ -95,9 +95,9 @@ Lenses the coordinator switches between in ONE context (per MAST — not arguing
 **UX lens:**
 | Step | Skill | Artifact | Status |
 | --- | --- | --- | --- |
-| Journey map (onboard→setup→plan→review/swap→list→fulfill→complete→approve-learning) | `map-journey` | journey map | **✗ GAP-P1** |
+| Journey map (onboard→setup→plan→review/swap→list→fulfill→complete→approve-learning) | `map-customer-journey` | journey map | **✗ GAP-P1** |
 | Service blueprint (frontstage screen ↔ backstage service, line of visibility) | `blueprint-service` | service blueprint | **✗ GAP-P2** |
-| Screen inventory + per-screen state matrix (empty/loading/error/success/permission) | `inventory-screens` | screen inventory | **✗ GAP-P3** |
+| Screen inventory + per-screen state matrix (empty/loading/error/success/permission) | `map-screen-flow` | screen inventory | **✗ GAP-P3** |
 | Microcopy per screen-state | `voice-and-microcopy` | copy deck | ~ exists, **not wired to consume a screen inventory → GAP-C1** |
 
 **Tech lens** — `architect-design`/`architect-diagram` ✓ + a managed-agent-platform skill:
@@ -115,16 +115,20 @@ Designs the *runtime* learning loop (human-approved write to long-term Memory).
 
 ### The "answer each other" ripple (connectedness pressure test)
 
-`inventory-screens` emits *learning-approval screen* → `blueprint-service` must back it
+`map-screen-flow` emits *learning-approval screen* → `blueprint-service` must back it
 → tech lens: "gated Memory write" → **security lens fires**: unapproved input writing to
 agent memory = prompt-injection self-modification (OWASP LLM-01/08) → OQ routed to product
 → `decompose-intent` defines "what makes a learning approvable + who audits" → tech adds
-approval aggregate + audit log → `inventory-screens` adds audit view → `voice-and-microcopy`
+approval aggregate + audit log → `map-screen-flow` adds audit view → `voice-and-microcopy`
 writes approval/audit copy. **Ripple settles → converged.**
 
-> **GAP-O5 (live lens invocation):** `security-reviewer` ✓ and `quality-engineer` ✓ today
-> run at *gates on a spec/diff*, not as live lenses on the *blackboard* (journey/blueprint).
-> To participate in the ripple they must be invokable mid-loop on a non-code artifact.
+> **GAP-O5 (live lens invocation):** the design-time security/quality lenses must be invokable
+> as **live lenses mid-loop on a non-code artifact** (journey/blueprint), not just at gates on a
+> spec/diff. **Reconciled (DRIFT-E; RFC-0048 § Amendments 2026-06-26):** this is filled by
+> `product-engineering`'s **distinct, user-scope discovery reviewers** —
+> `discovery-threat-reviewer` + `discovery-reliability-reviewer` — **not** by `core`'s code
+> `security-reviewer` / `quality-engineer` run "in a mode" (those stay code-only). The discovery
+> reviewers degrade to `core`'s `security-checklists` / `operational-safety` depth when present.
 
 ## G2 — Convergence  [HUMAN CONSENT GATE — always surfaces]
 
@@ -167,7 +171,7 @@ writes approval/audit copy. **Ripple settles → converged.**
 
 **Primitive gaps (build first — each usable standalone):**
 - **GAP-P4 frame-domain** — wire `research` applied mode as a mandatory pre-convergence gate + a typed Domain Framing artifact lenses must consume. (The single biggest correctness lever: stops the agent hallucinating the domain.)
-- GAP-P1 `map-journey` · GAP-P2 `blueprint-service` · GAP-P3 `inventory-screens` (experience pack)
+- GAP-P1 `map-customer-journey` · GAP-P2 `blueprint-service` · GAP-P3 `map-screen-flow` (experience pack)
 - GAP-C1 wire `voice-and-microcopy` to consume a screen inventory
 - GAP-O4 traceability lint (tool) · GAP-O6 generalize saturation stop-signal
 
