@@ -1160,4 +1160,3 @@ those three commands to *messaging-only* changes; rewiring their resolution logi
 (which carries subtle scope-inference differences pinned by existing tests) is a
 refactor in its own right. **Unblocks when:** taken as a focused refactor PR with
 its own regression pass over upgrade/diff/uninstall scope resolution.
->>>>>>> 93cbcc35 (test+refactor(install-state-visibility): address quality-engineer review)
