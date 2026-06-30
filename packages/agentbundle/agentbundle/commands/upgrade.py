@@ -38,7 +38,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
-    from agentbundle.config import State
     from agentbundle.user_config import UserConfig
 
 
@@ -182,9 +181,12 @@ def run(args: "argparse.Namespace") -> int:
     elif len(_rows) == 1:
         target_adapter = next(iter(_rows))
     elif len(_rows) > 1:
+        from agentbundle.commands._common import format_adapter_versions
+
         print(
             f"upgrade: {pack_name} installed for multiple adapters at "
-            f"{effective_scope} scope ({', '.join(sorted(_rows))}); pass --adapter",
+            f"{effective_scope} scope; pass --adapter to pick one: "
+            f"{format_adapter_versions(_rows)}",
             file=sys.stderr,
         )
         return 1
@@ -322,6 +324,24 @@ def run(args: "argparse.Namespace") -> int:
     # write happens either way) and rare; left as-is to keep the confirm above
     # the expensive render.
 
+    # Upfront drift notice (whole-pack only): before the user confirms, tell
+    # them how many installed files have local edits that re-applying will
+    # preserve as `*.upstream` companions. Computed from on-disk-vs-state SHAs
+    # (no render needed); suppressed at zero and on a dry run (which writes
+    # nothing and already names companion actions in its plan). Gated to the
+    # whole-pack case: a per-primitive upgrade re-applies only that primitive's
+    # files, so a whole-pack count would mislead.
+    if not is_per_primitive and not getattr(args, "dry_run", False):
+        from agentbundle.commands._common import count_drifted_files
+
+        _drifted = count_drifted_files(pack_state, root)
+        if _drifted:
+            print(
+                f"upgrade: {_drifted} installed file(s) have local edits; "
+                f"re-applying preserves them as .upstream companions.",
+                file=sys.stderr,
+            )
+
     # Confirm before the first write — unless ``--yes`` or ``--dry-run`` (which
     # writes nothing). A non-interactive stdin cannot answer the prompt, so
     # refuse and explain rather than block on ``input()``. ``--dry-run``
@@ -330,8 +350,10 @@ def run(args: "argparse.Namespace") -> int:
     if not getattr(args, "yes", False) and not getattr(args, "dry_run", False):
         if already_current:
             question = (
-                f"{confirm_label} is already at {to_version}. Re-apply at "
-                f"{effective_scope} scope (repairs local drift)? [y/N] "
+                f"{confirm_label} is already at {to_version} at "
+                f"{effective_scope} scope. Re-apply to restore any missing or "
+                f"reset any unmodified bundle files? Your local edits are kept "
+                f"as .upstream companions. [y/N] "
             )
         else:
             question = (
@@ -727,21 +749,59 @@ def run(args: "argparse.Namespace") -> int:
 
     if is_per_primitive:
         ptype, _src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]
-        print(
-            f"upgraded: {pack_name} {ptype}/{prim_name} @ "
-            f"{effective_scope} {from_version} -> {to_version}"
-        )
+        recap_label = f"{pack_name} {ptype}/{prim_name}"
     else:
-        print(
-            f"upgraded: {pack_name} @ {effective_scope} "
-            f"{from_version} -> {to_version}"
+        recap_label = pack_name
+    print(
+        _format_recap(
+            recap_label,
+            effective_scope,
+            from_version,
+            to_version,
+            already_current=already_current,
+            companion_count=len(companions),
         )
+    )
     return 0
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _format_recap(
+    label: str,
+    scope: str,
+    from_version: str,
+    to_version: str,
+    *,
+    already_current: bool,
+    companion_count: int,
+) -> str:
+    """Render the post-upgrade recap line, honestly distinguishing the cases.
+
+    Three verdicts, driven by the only signals available without changing what
+    the walk writes (the walk re-writes bundle-owned files unconditionally, so
+    "nothing changed on disk" is not knowable):
+
+      - version changed → ``upgraded: <label> @ <scope> <from> -> <to>``
+      - same version, no local edits preserved →
+        ``re-applied: <label> @ <scope> <version> (already current)``
+      - same version, local edits preserved as companions →
+        ``re-applied: <label> @ <scope> <version> — N file(s) had local edits,
+        kept as .upstream companions``
+
+    It never prints ``upgraded: … X -> X`` for a same-version re-apply.
+    """
+    if not already_current:
+        return f"upgraded: {label} @ {scope} {from_version} -> {to_version}"
+    if companion_count:
+        return (
+            f"re-applied: {label} @ {scope} {to_version} — "
+            f"{companion_count} file(s) had local edits, kept as .upstream companions"
+        )
+    return f"re-applied: {label} @ {scope} {to_version} (already current)"
 
 
 def _compute_new_wiring_rows(

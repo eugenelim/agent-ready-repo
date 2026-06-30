@@ -28,8 +28,10 @@ if TYPE_CHECKING:
 
 def run(args: "argparse.Namespace") -> int:
     """Entry point for ``agentbundle list-installed``."""
+    import sys
+
     from agentbundle import scope as scope_mod
-    from agentbundle.config import load_state
+    from agentbundle.config import ConfigError, load_state
 
     requested_scope = getattr(args, "scope", None)
     scopes = [requested_scope] if requested_scope else ["user", "repo"]
@@ -41,16 +43,23 @@ def run(args: "argparse.Namespace") -> int:
     scope_states: list[tuple[str, Path, "State"]] = []
     for sc in scopes:
         if sc == "repo":
-            state = load_state(repo_root / ".agentbundle-state.toml")
-            scope_states.append(("repo", repo_root, state))
+            base, state_path = repo_root, repo_root / ".agentbundle-state.toml"
         else:  # user
             try:
-                user_root = scope_mod.resolve_user_root()
+                base = scope_mod.resolve_user_root()
             except scope_mod.UserScopeUnresolvable:
                 # No resolvable home → no user-scope state to list. Not an error.
                 continue
-            state = load_state(user_root / ".agentbundle" / "state.toml")
-            scope_states.append(("user", user_root, state))
+            state_path = base / ".agentbundle" / "state.toml"
+        try:
+            state = load_state(state_path)
+        except ConfigError as exc:
+            # An incompatible (e.g. legacy-schema) state file is a hard refusal
+            # on read (RFC-0052). Warn and skip that scope rather than abort —
+            # the other scope stays listable.
+            print(f"list-installed: skipping {sc} scope: {exc}", file=sys.stderr)
+            continue
+        scope_states.append((sc, base, state))
 
     rows = _collect_rows(scope_states)
     if not rows:
@@ -170,23 +179,12 @@ def _status_for(installed: str, latest: str | None, *, catalogue_resolved: bool)
 
 
 def _drift_count(pack_state: "PackState", root: Path) -> int:
-    """Count the row's files whose on-disk SHA differs from the recorded SHA.
+    """Row-scoped count of locally edited files. Thin delegate to the shared
+    ``_common.count_drifted_files`` so list-installed and the upgrade drift
+    notice compute drift identically."""
+    from agentbundle.commands._common import count_drifted_files
 
-    Row-scoped (compares against this row's own ``PackState.file_sha``), not
-    ``safety.classify`` — which resolves against the SHA set across *all* rows
-    and would undercount a co-owned path. A file absent on disk is not drift.
-    """
-    from agentbundle.safety import sha256_file
-
-    count = 0
-    for relpath in pack_state.files:
-        on_disk = root / relpath
-        if not on_disk.exists():
-            continue
-        recorded = pack_state.file_sha(relpath)
-        if recorded is not None and sha256_file(on_disk) != recorded:
-            count += 1
-    return count
+    return count_drifted_files(pack_state, root)
 
 
 def _print_table(
