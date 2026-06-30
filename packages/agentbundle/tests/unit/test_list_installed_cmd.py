@@ -13,6 +13,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from agentbundle.commands import list_installed as li
+from agentbundle.commands._common import count_drifted_files
 from agentbundle.config import PackState, State, dump_state
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent  # packages/agentbundle
@@ -68,7 +69,7 @@ def _write(root: Path, relpath: str, content: bytes) -> str:
 def test_drift_count_clean(tmp_path):
     sha = _write(tmp_path, "a/x.md", b"hello\n")
     ps = PackState(installed_version="1.0", files={"a/x.md": {"sha": sha}})
-    assert li._drift_count(ps, tmp_path) == 0
+    assert count_drifted_files(ps, tmp_path) == 0
 
 
 def test_drift_count_edited(tmp_path):
@@ -76,12 +77,12 @@ def test_drift_count_edited(tmp_path):
     # Now edit on disk away from the recorded sha.
     (tmp_path / "a/x.md").write_bytes(b"edited\n")
     ps = PackState(installed_version="1.0", files={"a/x.md": {"sha": sha}})
-    assert li._drift_count(ps, tmp_path) == 1
+    assert count_drifted_files(ps, tmp_path) == 1
 
 
 def test_drift_count_absent_is_not_drift(tmp_path):
     ps = PackState(installed_version="1.0", files={"a/x.md": {"sha": "deadbeef"}})
-    assert li._drift_count(ps, tmp_path) == 0
+    assert count_drifted_files(ps, tmp_path) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -193,6 +194,34 @@ def test_unresolvable_catalogue_degrades_to_unknown(tmp_path, capsys):
     assert rc == 0
     assert "unknown" in out
     assert "—" in out  # LATEST sentinel
+
+
+def test_resolved_catalogue_missing_pack_is_unknown(tmp_path, capsys):
+    # Catalogue resolves but does not contain the installed pack → unknown
+    # (AC3's "that pack's catalogue entry can't be resolved" case).
+    _write_state(
+        tmp_path / ".agentbundle-state.toml",
+        State(packs={("architect", "codex"): PackState(installed_version="0.9.0")}),
+    )
+    cat = _write_catalogue(tmp_path / "cat", {"some-other-pack": "1.0.0"})
+    args = _make_args(root=str(tmp_path), scope="repo", catalogue=str(cat))
+    rc = li.run(args)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "architect" in out and "unknown" in out
+
+
+def test_legacy_state_in_one_scope_is_skipped_not_fatal(tmp_path, capsys):
+    # An incompatible (legacy-schema) repo state file is warned-and-skipped,
+    # not a hard abort — list-installed still exits 0.
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        'schema-version = "0.1"\n', encoding="utf-8"
+    )
+    args = _make_args(root=str(tmp_path), scope="repo", no_check=True)
+    rc = li.run(args)
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "skipping repo scope" in captured.err
 
 
 def test_check_drift_column(tmp_path, capsys):

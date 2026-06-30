@@ -1145,3 +1145,19 @@ unreached by path. The recognizer now **walks the screens base recursively** (th
 `- **Type:** screen-brief` is recognized; a screen-flow *index* file (`type: screen-flow`,
 no bold-body marker) is not. The self-test gained a nested-brief case. This tombstone is
 **retained** because the spec's AC11 records it.
+
+### Share the scope→state-path resolver across read commands
+
+**Spec:** [install-state-visibility](specs/install-state-visibility/spec.md) (follow-up)
+
+`list-installed` resolves `user → <home>/.agentbundle/state.toml` and
+`repo → <root>/.agentbundle-state.toml` itself; `upgrade` / `diff` / `uninstall`
+each resolve the same two paths inline (intertwined with their own scope-inference
+and multi-scope disambiguation). This is now the third+ copy of the path mapping.
+A shared `_common.resolve_state_path(scope, root)` would remove the duplication.
+**Deferred** out of the `install-state-visibility` PR because its Boundaries scope
+those three commands to *messaging-only* changes; rewiring their resolution logic
+(which carries subtle scope-inference differences pinned by existing tests) is a
+refactor in its own right. **Unblocks when:** taken as a focused refactor PR with
+its own regression pass over upgrade/diff/uninstall scope resolution.
+>>>>>>> 93cbcc35 (test+refactor(install-state-visibility): address quality-engineer review)

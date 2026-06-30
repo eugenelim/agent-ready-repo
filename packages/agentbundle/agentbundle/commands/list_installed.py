@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
-    from agentbundle.config import PackState, State
+    from agentbundle.config import State
 
 
 def run(args: "argparse.Namespace") -> int:
@@ -75,8 +75,10 @@ def run(args: "argparse.Namespace") -> int:
 
     # ── Drift count (only when requested) ─────────────────────────────────────
     if want_drift:
+        from agentbundle.commands._common import count_drifted_files
+
         for row in rows:
-            row["drift"] = _drift_count(row["_pack_state"], row["_root"])
+            row["drift"] = count_drifted_files(row["_pack_state"], row["_root"])
 
     _print_table(rows, check=check, want_drift=want_drift,
                  catalogue_resolved=catalogue_resolved, latest_by_pack=latest_by_pack)
@@ -155,7 +157,12 @@ def _resolve_latest(args: "argparse.Namespace") -> tuple[bool, dict[str, str | N
 
 
 def _version_key(version: str) -> tuple[int, ...] | None:
-    """Parse a dotted version into a comparable int tuple, or None if not numeric."""
+    """Parse a dotted version into a comparable int tuple, or None if not numeric.
+
+    A non-numeric segment (a pre-release / build tag like ``1.2.0-rc1`` or
+    ``1.2.post1``) intentionally yields ``None`` → the row reads ``unknown``
+    rather than risking a wrong comparison; packs ship plain numeric versions.
+    """
     parts = version.lstrip("v").split(".")
     try:
         return tuple(int(p) for p in parts)
@@ -181,15 +188,6 @@ def _status_for(installed: str, latest: str | None, *, catalogue_resolved: bool)
     a += (0,) * (width - len(a))
     b += (0,) * (width - len(b))
     return "upgrade-available" if b > a else "up-to-date"
-
-
-def _drift_count(pack_state: "PackState", root: Path) -> int:
-    """Row-scoped count of locally edited files. Thin delegate to the shared
-    ``_common.count_drifted_files`` so list-installed and the upgrade drift
-    notice compute drift identically."""
-    from agentbundle.commands._common import count_drifted_files
-
-    return count_drifted_files(pack_state, root)
 
 
 def _print_table(
