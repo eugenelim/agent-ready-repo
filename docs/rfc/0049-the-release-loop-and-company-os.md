@@ -17,7 +17,7 @@
   - Split the loop into **inner** (`work-loop`, local with local-infra-equivalents) and **outer** (`release-loop`, ephemeral deploy + e2e + iterate-to-converge).
   - Add a `release-lead` agent + `release-loop` skill in a new opt-in, **repo-scope** `release-engineering` pack, reusing `operational-safety` + `quality-engineer` + `security-reviewer` + the RFC-0053 sidecar — **no new runtime, no new reviewer** (the reuse of `core`'s repo-scope reviewers is sound because the pack is **repo-scope and co-located in the build repo** where `core` is installed — see OQ1).
   - Carve autonomy by **minimum-regret**: agents run inner + outer loops on ephemeral envs unwatched; humans gate prod / data / spend / security / irreversible (G5).
-- **Affected surface:** a new **repo-scope** `release-engineering` pack (installed into the build repo) + agent + skill; CONVENTIONS (the inner/outer split + the minimum-regret deploy carve); reuse of `core`'s operational/security reviewers + the RFC-0053 sidecar; the `omnigent` harness (ephemeral envs).
+- **Affected surface:** a new **repo-scope** `release-engineering` pack (installed into the build repo) + agent + skill carrying the inner/outer split + the minimum-regret deploy carve as **`release-loop` skill doctrine** (not a CONVENTIONS edit — RFC-0048 § Amendments 2026-06-29); reuse of `core`'s operational/security reviewers + the RFC-0053 sidecar; the `omnigent` harness (ephemeral envs).
 - **Stakes:** costly-to-reverse — it sets deploy-to-prod autonomy doctrine (an irreversible + security boundary); the prod-ship step itself stays human-gated, so the irreversible move is bounded.
 - **Review focus:** (1) the minimum-regret carve draws the agent/human line correctly (reversible ⇒ autonomous on ephemeral; irreversible ⇒ human); (2) the no-new-runtime / no-new-reviewer claim holds for the release loop.
 - **Not in scope:** building the harness; the exact `release-lead` agent shape (OQ2 — resolved by the child spec; the pack home, OQ1, already resolves to a new `release-engineering` pack); RFC-0048's G0–G4 discovery+build foundation (this is its G4→G5 extension).
@@ -261,4 +261,4 @@ Filled on acceptance:
 - Amendment back into RFC-0048: reconcile its gate arc / company-OS framing once this lands.
   *Recorded — see RFC-0048 § Amendments, 2026-06-26 (the release-lead seat + pack home +
   agent shape now specified; the company-OS third (SRE/ops) seat confirmed).*
-- CONVENTIONS: the minimum-regret autonomy boundary (reversible ⇒ autonomous; irreversible ⇒ human).
+- Loop-skill doctrine (not a CONVENTIONS edit): the minimum-regret autonomy boundary (reversible ⇒ autonomous; irreversible ⇒ human) is carried in the `release-loop` skill (`release-engineering`), this loop's share of the operating model — RFC-0048 § Amendments 2026-06-29.

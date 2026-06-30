@@ -47,8 +47,8 @@ contract it enforces); the **sidecar schema** is RFC-0053's artifact, carried in
 `product-engineering`'s `discovery-loop` skill (not `core`; RFC-0048 § Amendments
 2026-06-26) — this loop consumes the produced instances by convention, never forks
 the definition; **G5 cloud-specific deploy mechanics / IaC** are
-the adopter's, tool-neutral here; the **CONVENTIONS edit** naming the minimum-regret
-boundary is a follow-on (RFC-0049's CONVENTIONS slice); **running the live
+the adopter's, tool-neutral here; the minimum-regret boundary is carried as **`release-loop`
+skill doctrine** (not a CONVENTIONS edit — RFC-0048 § Amendments 2026-06-29); **running the live
 product-as-a-managed-service** long-term is adopter ops (RFC-0049 non-goal).
 
 ## Boundaries

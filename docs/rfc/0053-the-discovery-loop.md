@@ -565,11 +565,27 @@ Filled in on acceptance.
   write-authority; append-only-attested decision log; non-degradable security lens on a
   boundary; lens-write integrity; cascade circuit-breaker; `reversibility-class`
   enumeration), and the G3 / self-coverage-gate / traceability-lint (incl. its root→leaf
-  reachability AC) / backlog seams.
+  reachability AC) / backlog seams, **and the spec→discovery `Discovery:` up-edge (DRIFT-G —
+  next bullet)**.
+- **Spec→discovery up-edge (DRIFT-G) — folded in here.** RFC-0053's implementing spec **owns**
+  the `new-spec` `Discovery:` up-edge header + the discovery-artifact `type:` markers (a
+  spec-format addition in `docs/CONVENTIONS.md` § 4 + the `new-spec` skill, **not** operating-model
+  doctrine). `discovery-loop` is the **consumer** of that up-edge (the brief/spec→discovery edge
+  the traceability lint walks at G3), so its implementing spec is the right home for the producer.
+  Producer-before-consumer: `new-spec` emits the header + markers **first**, and only then is
+  child-4's traceability lint wired **fail-closed (`--strict`)** at the G2/convergence gate — the
+  `--strict` flip is therefore also sequenced here, downstream of the header landing (until then
+  the lint stays warn-only; specs without the header are warnings, not failures). This **resolves
+  RFC-0048 acceptance blocker #4** and discharges the previously generic "spec-metadata / `new-spec`
+  follow-on owner" (RFC-0048 § Amendments 2026-06-29; rollout-table + reconciliation-state rows
+  now name RFC-0053's implementing spec).
 - **`discovery-loop` ↔ self-coverage gate:** wire RFC-0051's gate as the pre-G2 phase (the
   seam RFC-0051 specified, this RFC's consumer).
-- **CONVENTIONS touch:** name the two-loop split (discovery vs delivery) + the surfacing
-  predicate's stall clause in the operating-model section (RFC-0048's CONVENTIONS slice).
+- **Loop-skill doctrine (not a CONVENTIONS edit):** the two-loop split (discovery vs delivery) +
+  the surfacing predicate's stall clause are carried in the **`discovery-loop` skill doctrine**
+  (`product-engineering`), as this loop's share of the operating model — not a CONVENTIONS
+  operating-model section (RFC-0048 § Amendments 2026-06-29, *operating-model doctrine relocated
+  into the loop skills*).
 - **Changelog:** `docs/product/changelog.md` `[Unreleased]` entry for the new
   `discovery-lead` / `discovery-loop` capability.
 - **Pack version:** bump `product-engineering` (new agent + skill + the carried
