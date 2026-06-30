@@ -31,7 +31,10 @@ Before decomposing, confirm:
    - If the intent is above feature level, produce **child intents** (a lower
      `Level:`), each inheriting the parent's outcome/scope context and a
      `Parent intent:` back-link. Each child re-enters the loop at `frame-intent`
-     → `de-risk-intent` → `decompose-intent`. Don't skip levels.
+     → `de-risk-intent` → `decompose-intent`. Don't skip levels. When running the
+     discovery-traceability chain, carry the `Kind:` (`outcome | opportunity`) and
+     `Level:` markers on each child (the same markers `frame-intent`'s template
+     ships) so the structural-orphan lint places each decomposed rung on the chain.
    - If the intent is a **feature** (the leaf), produce the **spec/slice** — the
      shippable, agent-buildable unit (one coherent scope, vertical, ships and
      tests on its own). Cut by **shippability**, never by component or layer.

@@ -829,6 +829,26 @@ superseded wording, the current-state table above wins.
   per-node edge-**presence** (the discovery-loop skill names the dependency and flags the gap; a
   child-4 follow-up owns closing it). This *implements* D7/D8; no contradiction. See
   [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts and `docs/specs/discovery-loop/`.
+- **2026-06-30 — discovery *producer* markers landed + the intent↔chain rung mapping
+  reconciled (the DRIFT-G producer side).** DRIFT-G's spec-side consumer (`new-spec`'s
+  `Discovery:` header) shipped with child-5; this lands the **producer** side. The
+  discovery producers — `map-screen-flow` / `map-customer-journey` / `blueprint-service`
+  (`experience` 0.3.0) and `frame-intent` / `decompose-intent` (`product-engineering`
+  0.10.0) — now emit the rendered **bold-body field** markers the traceability lint
+  reads (`**Type:** screen-brief`; the container-embedded `**Action:**` / `**Service:**`;
+  the intent-ladder `**Kind:** outcome|opportunity` / `**Level:** capability`), so a
+  future `--strict` up-edge is not load-bearing on markers that don't exist. Three
+  reconciliations rode along: **(a)** CONVENTIONS § 4's marker-form description was
+  corrected from "frontmatter `type:`" to the bold-body field the lint actually reads
+  (a **factual erratum**, not operating-model doctrine — the doctrine-home entry above
+  is unaffected); **(b)** the lint's `recognize_screens` now walks the screens base
+  **recursively** so a nested `screens/<slug>/<screen>.md` brief is found (`core`
+  0.7.1 → 0.7.2, self-test extended); **(c)** the OST rung mapping the
+  `recognize_ladder` docstring left "degrading until it lands" is now documented in
+  `product-engineering`'s `intent-model.md` (`Kind:` → the outcome/opportunity rung,
+  `Level: capability` → the capability rung, **orthogonal** to the intent's internal
+  outcome+opportunity structure) — *implementing* note 04's OST, **no new value call**.
+  See [`docs/specs/discovery-producer-type-markers/`](../specs/discovery-producer-type-markers/spec.md).
 - **2026-06-26 — the company-OS third (SRE/ops) seat specified, by RFC-0049's child spec.**
   RFC-0048's end-to-end table and diagram name the **G4→G5 release/deploy loop + ship**
   as [RFC-0049](0049-the-release-loop-and-company-os.md)'s, deferring the

@@ -47,6 +47,21 @@ surface: <responsive-web | iOS | Android | cross-platform>
 
 ---
 
+## Frontstage actions
+
+<!-- Traceability markers. Emit one bold-body Action field per distinct frontstage
+     action above — the literal form is the placeholder line below — as a stable
+     kebab-case slug (the first token is the id). The structural-orphan lint reads
+     each such Action line as an `action` chain node; map-screen-flow ties each
+     screen action to one. Index the per-stage Actions rows here: one line per
+     action, not per stage. (Don't write the bold marker inside a comment — the
+     lint scans every line, so a commented example would mint a phantom node.) -->
+
+- **Action:** <action-slug>
+- **Action:** <action-slug>
+
+---
+
 ## Emotional arc
 
 <!-- Summarize the emotional trajectory across stages — where is the lowest
