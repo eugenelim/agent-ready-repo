@@ -81,7 +81,12 @@ summary:
   sub-5-min budget tolerates; push the rest to the outer loop.
 - **Outer loop = `release-loop`** under `release-lead`: deploy the integrated whole
   to an **ephemeral environment** → run e2e → observe telemetry (observability-driven) →
-  feed findings back to the inner loop → redeploy → **converge**.
+  feed findings back to the inner loop → redeploy → **converge** → assemble a
+  **release-readiness record** (the *launch* PRR — the convergence result + the
+  operational + security review verdicts + SLO/error-budget status, consolidating
+  checks the loop already runs) → **G5** ship, where the human **ratifies the
+  record** rather than a bare go/no-go. (This elaborates the existing G5 human gate;
+  ongoing error-budget monitoring + on-call ownership stay with the future operate/incident loop.)
 - **Minimum-regret carve** (the autonomy law applied to deploy): reversible (ephemeral)
   ⇒ autonomous; irreversible (prod/data/spend/security) ⇒ human.
 - **Company OS:** three loop-teams on 0048's substrate; the release-loop is the SRE/ops
@@ -256,9 +261,21 @@ Filled on acceptance:
   home → opt-in `release-engineering` pack) + OQ2 (distinct `release-lead` agent +
   `release-loop` skill); specifies the deploy + e2e + iterate-to-converge loop, the
   minimum-regret carve, the reuse of `operational-safety` + `quality-engineer` +
-  `security-reviewer`, the sidecar consumption by convention (schema carried in `discovery-loop`, not `core`), and a 9-part security/integrity
-  contract. 14 ACs / 6 tasks.*
+  `security-reviewer`, the sidecar consumption by convention (schema carried in `discovery-loop`, not `core`), a 9-part security/integrity
+  contract, and the **release-readiness gate** (AC6b — the launch PRR consolidated
+  before G5). 15 ACs / 6 tasks.*
 - Amendment back into RFC-0048: reconcile its gate arc / company-OS framing once this lands.
   *Recorded — see RFC-0048 § Amendments, 2026-06-26 (the release-lead seat + pack home +
   agent shape now specified; the company-OS third (SRE/ops) seat confirmed).*
 - Loop-skill doctrine (not a CONVENTIONS edit): the minimum-regret autonomy boundary (reversible ⇒ autonomous; irreversible ⇒ human) is carried in the `release-loop` skill (`release-engineering`), this loop's share of the operating model — RFC-0048 § Amendments 2026-06-29.
+- Follow-on candidate: an **SLO / error-budget-authoring capability** — supplies the
+  SLI/SLO + error-budget-policy artifact the **AC6b release-readiness gate** consumes.
+  It is the one net-new input the gate needs beyond checks the loop already runs.
+  **Pack home is provisional** (a skill in `release-engineering`, vs. part of the
+  operate/incident loop below, vs. its own pack) — that scope call is **deferred to the
+  sibling RFC**, not decided here; AC6b consumes the artifact **by convention** and, until
+  it exists, records an explicit `error-budget: not-defined` field for the human (never a
+  silent pass). This is the first candidate of the broader SRE build-out — an
+  **operate/incident loop** carrying the same minimum-regret carve generalized to
+  remediation — which, because it re-opens the live-service scope this RFC makes a
+  non-goal, is owed its **own sibling RFC**, not folded in here.
