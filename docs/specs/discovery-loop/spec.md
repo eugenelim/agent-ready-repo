@@ -342,14 +342,16 @@ end-to-end validation run that is the load-bearing gate for the modelled-not-run
   non-skippable coverage record). It runs the full battery (unlike `work-loop`'s net-new slice).
 - [x] **AC34.** **The traceability slot** this spec defines is consumed by **child-4's lint**
   (`docs/specs/traceability-lint/`), and the D3 cascade transition walks the **same edges**. **Child-4
-  dependency — named, with the gap flagged honestly:** the disconnected-subtree / fabricated-edge
-  backstop relies on a **root→leaf reachability** pass; this spec **names that dependency** (in the
-  skill's traceability seam) — but the **currently-shipped** child-4 lint does per-node
-  edge-**presence**, not reachability, so the backstop today catches the orphan *tip* of a broken
-  subtree, not the whole subtree. The reachability pass is tracked as a child-4 follow-up
-  (`docs/backlog.md` → `discovery-loop-traceability-reachability`). *This spec's obligation — consume
-  the slot, walk the same edges, name the dependency, and not be load-bearing on a claim that isn't
-  true — is met; closing the reachability gap is child-4's.*
+  dependency — now MET:** the disconnected-subtree backstop relies on a **root→leaf reachability**
+  pass, and child-4's lint **now performs it** (`traceability-lint`, amended 2026-06-30 — the
+  `reachability_sidecar` pass on the authoritative sidecar graph). The cascade backstop therefore
+  catches the **whole** disconnected subtree, not merely the orphan *tip* the earlier per-node
+  presence check flagged. Scoped honestly: reachability **closes** the disconnected-subtree half and
+  **surfaces** (informationally, never silently green — it cannot mechanically distinguish a forged
+  cross-repo token from a not-yet-catalogued one in an open-world graph) the fabricated-edge half.
+  *This spec's obligation — consume the slot, walk the same edges, and rest only on a claim that is
+  now true — is met; the formerly-tracked gap is resolved
+  (`docs/backlog.md` → `discovery-loop-traceability-reachability`).*
 - [x] **AC35.** **The backlog bridge**: the decision brief decomposes into an **ordered, dependency-aware
   backlog** (parked sub-ideas carried as first-class entries); `loop-cohort` orders it; `work-loop`
   pulls one item at a time.
@@ -432,10 +434,10 @@ end-to-end validation run that is the load-bearing gate for the modelled-not-run
   are transcribed from RFC-0053 §§ Decision 2 / Decision 3 / Security & integrity contract (source:
   `docs/rfc/0053-the-discovery-loop.md`, read 2026-06-30); the prototype artifacts demonstrating the
   connectedness lint live in `docs/rfc/0053-notes/spike/`.
-- Process: child-4's traceability lint is owned by `docs/specs/traceability-lint/` (Shipped 2026-06-29);
-  this spec **depends on** its **root→leaf reachability** pass for the backstop claim and sequences the
-  `--strict` flip after the `Discovery:` header lands (source: RFC-0053 § Security & integrity contract
-  + § Follow-on DRIFT-G).
+- Process: child-4's traceability lint is owned by `docs/specs/traceability-lint/` (Shipped 2026-06-29;
+  amended 2026-06-30 to add the **root→leaf reachability** pass this spec's backstop claim depends on —
+  the dependency is now MET) and sequences the `--strict` flip after the `Discovery:` header lands
+  (source: RFC-0053 § Security & integrity contract + § Follow-on DRIFT-G).
 - Process/governance: the spec slug is `discovery-loop/` (RFC-0053 § Follow-on offered
   `coordinator-contract/` or `discovery-loop/`; resolved to the skill-matching name — a naming call the
   RFC authorized either way) (source: RFC-0053 § Follow-on → Spec; resolve-vs-surface disposition,
