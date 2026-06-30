@@ -230,6 +230,50 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("list_targets"))
 
+    # --- list-installed --- (state-file reader; both scopes by default)
+    sp = subparsers.add_parser(
+        "list-installed",
+        help=(
+            "List installed packs across user and repo scope with version and "
+            "up-to-date status (vs. a catalogue). Read-only."
+        ),
+    )
+    sp.add_argument(
+        "catalogue",
+        nargs="?",
+        default=None,
+        help=(
+            "Catalogue URI to compare installed versions against. Optional: when "
+            "omitted, the source is resolved from your config, an editable clone, "
+            "or the packaged default (RFC-0047). Ignored under --no-check."
+        ),
+    )
+    sp.add_argument("--root", default=".")
+    sp.add_argument(
+        "--scope",
+        choices=("repo", "user"),
+        help="Limit the listing to one scope. Default: both user and repo.",
+    )
+    sp.add_argument(
+        "--no-check",
+        "--offline",
+        dest="no_check",
+        action="store_true",
+        help=(
+            "Skip the catalogue up-to-date check (no network): print only "
+            "pack/adapter/scope/installed, omitting LATEST and STATUS."
+        ),
+    )
+    sp.add_argument(
+        "--check-drift",
+        action="store_true",
+        help=(
+            "Add a DRIFT column counting installed files locally edited since "
+            "install (on-disk SHA differs from the recorded SHA)."
+        ),
+    )
+    sp.set_defaults(func=_lazy("list_installed"))
+
     # --- scaffold --- (no --scope; always repo-targeted)
     sp = subparsers.add_parser(
         "scaffold",
