@@ -1,11 +1,11 @@
 # RFC-0049: The release loop — deployed e2e validation, the minimum-regret deploy carve, and the company-OS composition
 
-- **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
-- **Parent:** a **child of [RFC-0048](0048-autonomous-product-team-operating-model.md)** (**Accepted 2026-06-30**). RFC-0048's child-set reconciliation treated this RFC as *modelled* — the `release-lead` seat is specified by the drafted [release-loop spec](../specs/release-loop/spec.md) and recorded at RFC-0048 § Amendments (the 2026-06-26 SRE-seat entry + the 2026-06-28 reviewer-reuse scope) — so 0048 could accept on RFC-0053's blockers **without** waiting on this RFC's implementation. **This RFC itself remains Open** (the release-loop spec is Draft, unimplemented); it may still amend 0048 (the gate arc, the company-OS framing) as it lands.
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+- **Parent:** a **child of [RFC-0048](0048-autonomous-product-team-operating-model.md)** (**Accepted 2026-06-30**). RFC-0048's child-set reconciliation treated this RFC as *modelled* — the `release-lead` seat is specified by the drafted [release-loop spec](../specs/release-loop/spec.md) and recorded at RFC-0048 § Amendments (the 2026-06-26 SRE-seat entry + the 2026-06-28 reviewer-reuse scope) — so 0048 could accept on RFC-0053's blockers **without** waiting on this RFC's implementation. **This RFC is now Accepted (2026-06-30)** — its implementing PR landed the `release-engineering` pack (the `release-lead` agent + `release-loop` skill), resolved OQ1/OQ2 in this RFC per their recommended defaults, authored the follow-on ADR-0044, and recorded the reconciling amendment into RFC-0048 (the gate arc, the company-OS framing).
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
-- **Date closed:**
+- **Date closed:** 2026-06-30
 - **Decision weight:** heavy <!-- light | standard | heavy — defines deploy-to-prod autonomy doctrine (an irreversible + security boundary) and adds a new opt-in pack + agent; it reuses existing reviewers and runtime, but the prod / data / spend / irreversible gating is the heavy part, so explicit Approver sign-off is warranted. -->
 - **Related:** [RFC-0048](0048-autonomous-product-team-operating-model.md) (the discovery+build foundation this extends — it details G0–G4; this details G4→G5) · RFC-0041 (infra-aware `work-loop` — whose deploy *flavor* this graduates into a proper outer loop) · RFC-0025 (`work-loop`) · `operational-safety` pack (the reliability/observability reference library this reuses) · [RFC-0051](0051-the-self-coverage-gate.md) (the self-coverage *goal* this loop realizes through a deploy-appropriate composite — see *Self-coverage — the release loop's guiding goal*) · omnigent (the harness; ephemeral-env + option-card support) · promoted design in [`0049-notes/`](0049-notes/)
 
@@ -254,19 +254,26 @@ rather than re-litigates.*
 ## Follow-on artifacts
 
 Filled on acceptance:
-- ADR: the inner/outer loop split + the minimum-regret deploy carve. *Owed by the child
-  spec (its AC11b); not yet authored.*
-- Spec: `release-loop` + `release-lead` (+ its pack). *Drafted:
-  [`docs/specs/release-loop/`](../specs/release-loop/spec.md) — resolves OQ1 (pack
-  home → opt-in `release-engineering` pack) + OQ2 (distinct `release-lead` agent +
-  `release-loop` skill); specifies the deploy + e2e + iterate-to-converge loop, the
-  minimum-regret carve, the reuse of `operational-safety` + `quality-engineer` +
-  `security-reviewer`, the sidecar consumption by convention (schema carried in `discovery-loop`, not `core`), a 9-part security/integrity
-  contract, and the **release-readiness gate** (AC6b — the launch PRR consolidated
-  before G5). 15 ACs / 6 tasks.*
-- Amendment back into RFC-0048: reconcile its gate arc / company-OS framing once this lands.
+- ADR: the inner/outer loop split + the minimum-regret deploy carve. *Authored:
+  [ADR-0044](../adr/0044-inner-outer-loop-split-and-minimum-regret-deploy-carve.md)
+  (Accepted 2026-06-30) — the sibling of RFC-0041's ADR-0031 / RFC-0053's ADR-0043,
+  recording the expensive-to-reverse architectural decision the carve embodies.*
+- Spec: `release-loop` + `release-lead` (+ its pack). *Shipped:
+  [`docs/specs/release-loop/`](../specs/release-loop/spec.md) — implemented in this
+  PR, all 15 ACs checked —
+  resolves OQ1 (pack home → opt-in `release-engineering` pack) + OQ2 (distinct
+  `release-lead` agent + `release-loop` skill); specifies the deploy + e2e +
+  iterate-to-converge loop, the minimum-regret carve, the reuse of
+  `operational-safety` + `quality-engineer` + `security-reviewer`, the sidecar
+  consumption by convention (schema carried in `discovery-loop`, not `core`), the
+  security/integrity control set (controls a–i + the AC7 artifact-provenance
+  control), and the **release-readiness gate** (AC6b — the launch PRR consolidated
+  before G5).*
+- Amendment back into RFC-0048: reconcile its gate arc / company-OS framing as this lands.
   *Recorded — see RFC-0048 § Amendments, 2026-06-26 (the release-lead seat + pack home +
-  agent shape now specified; the company-OS third (SRE/ops) seat confirmed).*
+  agent shape specified; the company-OS third (SRE/ops) seat confirmed) and the
+  2026-06-30 entry (RFC-0049 implemented — the `release-engineering` pack built, the
+  work→release + release→prod handoffs wired).*
 - Loop-skill doctrine (not a CONVENTIONS edit): the minimum-regret autonomy boundary (reversible ⇒ autonomous; irreversible ⇒ human) is carried in the `release-loop` skill (`release-engineering`), this loop's share of the operating model — RFC-0048 § Amendments 2026-06-29.
 - Follow-on candidate: an **SLO / error-budget-authoring capability** — supplies the
   SLI/SLO + error-budget-policy artifact the **AC6b release-readiness gate** consumes.
