@@ -1,6 +1,6 @@
 # Spec: traceability-lint
 
-- **Status:** Shipped (2026-06-29) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (2026-06-29; amended 2026-06-30 — root→leaf reachability pass) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0048 (governing — Decision 6); RFC-0053 (the traceability slot, the `schema_version` convention, and the child-4-consumes-the-slot relationship); RFC-0040, RFC-0019, RFC-0025, RFC-0030, ADR-0022, RFC-0049 (mechanism precedent)
@@ -55,9 +55,15 @@ open-world posture every federated catalog takes.
 Success is: the maintainer runs one command — in a single module repo, or in the
 meta-repo over the federated rollup — and learns exactly which nodes are
 disconnected and in which direction, which references cross a repo boundary and
-whether they are pinned, and which targets are not yet catalogued. A strict mode
-fails a convergence or CI gate when the local chain must be closed; graceful
-silence in a workspace with no chain artifacts at all. The lint checks *structure
+whether they are pinned, and which targets are not yet catalogued. On the
+authoritative sidecar graph the lint goes one step further than per-node edge
+presence and runs a **root→leaf reachability** pass: a node that has both a local
+producer and consumer edge but sits on a branch that never reaches a leaf is
+*stranded*, and presence alone catches only the orphan **tip** of such a subtree —
+reachability flags the whole disconnected subtree, the refinement the
+discovery-loop cascade backstop (`docs/specs/discovery-loop/`, AC34) depends on. A
+strict mode fails a convergence or CI gate when the local chain must be closed;
+graceful silence in a workspace with no chain artifacts at all. The lint checks *structure
 only*; whether a node is parented to the **right** outcome (semantic scope-creep)
 is never its call — structural presence is mechanizable, semantic correctness is
 not (the established traceability split).
@@ -114,8 +120,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Never invent a parallel cross-repo pointer or id scheme** — reuse the
   value-stream / Backstage conventions; a second scheme forks the graph.
 - **Never treat a well-formed cross-repo reference as a dangling edge**, nor a
-  not-yet-catalogued target as silently satisfied — the two opposite false
-  verdicts a naive single-tree scan produces.
+  not-yet-catalogued target as silently satisfied **— for endpoint resolution *or*
+  for reachability** (an unresolvable cross-repo endpoint is never a clean
+  reachability terminus; the subtree it terminates is surfaced informationally, not
+  counted closed) — the two opposite false verdicts a naive single-tree scan
+  produces.
 - **Never wire the lint into the projected `pre-pr` hook body** — that body
   projects to adopter trees and would mis-fire (no PR-open hook event in an adopter
   repo); the agent-invoked finish-time checklist and an explicit CI gate are the
@@ -132,6 +141,24 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Structural-orphan detection (up/backward, down/forward, terminal exemption,
   layer-skip): TDD.** A compressible invariant over a graph — fixture workspaces
   in, exact orphan list out. The core of the lint.
+- **Root→leaf reachability (sidecar mode): TDD.** Fixtures pin each discriminator:
+  (a) a locally-edged **dead-end subtree** — every interior node carries a producer
+  and a consumer edge, but the branch never reaches a `leaf_kind` node — asserts
+  presence passes the interior nodes and flags only the tip, while reachability
+  flags the stranded interior (union = the whole subtree); (b) a **floating subtree
+  disconnected from `root`** (internally edged, even reaching a leaf) asserts the
+  forward-from-root clause flags it; (c) a **federated branch whose leaf is a
+  rollup-resolved satisfied-by-reference** endpoint asserts the branch is **not**
+  flagged (clean open-world terminus); (d) a stranded tip carrying a **forged /
+  unresolvable** cross-repo out-edge asserts it is surfaced as
+  `reaches a leaf only via an unresolved cross-repo reference` (informational, exit
+  0 even under `--strict`) and **never silently green** — the fabricated-edge
+  boundary; (e) a sidecar with no / absent `root` asserts graceful skip; (f) the **degenerate
+  cases** — a single-node sidecar whose `root` is itself `leaf_kind` is
+  reachable/clean, an empty-edge multi-node sidecar strands every non-root node, and
+  a self-loop node is termination-safe (visited-set) and not a clean terminus; and
+  the exit-code matrix asserts `UNREACHABLE` is informational by default and exit 1
+  under `--strict`.
 - **The three endpoint states (local / satisfied-by-reference / unresolvable) and
   the three defect classes (orphan / dangling / cycle): TDD.** Each is
   deterministic; fixtures cover the discriminators — a well-formed cross-repo
@@ -204,11 +231,80 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] An **unresolvable cross-repo endpoint** (and a not-yet-catalogued rollup row)
   is reported as **`unknown / not-yet-catalogued`** — **informational, never fatal
   and never silently satisfied** (the open-world, federated-catalog posture).
-- [x] **Exit codes are coherent:** default mode — structural orphans are
-  **informational (exit 0)**; **`--strict`** — any structural orphan **exits 1**
-  (the convergence-/CI-gate enforcing "traceability closed", RFC-0048 O6); dangling
-  edges and cycles **exit 1 in every mode**; unresolvable-cross-repo, unpinned
-  references, and drift are **never fatal**.
+- [x] **Exit codes are coherent:** default mode — structural orphans **and
+  `UNREACHABLE` reachability findings** are **informational (exit 0)**, each named
+  in its own one-line summary count on stdout (a `--strict` exit-1 caused by
+  reachability alone is legible, not folded into the orphan count); **`--strict`** —
+  any structural orphan **or `UNREACHABLE` finding exits 1** (the
+  convergence-/CI-gate enforcing "traceability closed", RFC-0048 O6); dangling edges
+  and cycles **exit 1 in every mode**; unresolvable-cross-repo, the
+  `reaches a leaf only via an unresolved cross-repo reference` finding, unpinned
+  references, and drift are **never fatal** (not promoted by `--strict`).
+- [x] **Reachability — every node lies on a root→leaf path (sidecar-authoritative
+  mode).** Beyond per-node edge *presence*, the lint runs a **root→leaf
+  reachability** pass on the authoritative sidecar graph: a node is *reachable* iff
+  it is **forward-reachable from `root`** (following edges) **and can reach a clean
+  terminus** (a node of `leaf_kind`, or a **rollup-resolved satisfied-by-reference**
+  endpoint — see the next AC). A node that is reachable from neither direction — not
+  forward-reachable from `root`, **or** unable to reach any terminus — is a **new
+  finding class, `UNREACHABLE` (disconnected subtree)**, distinct from a presence
+  orphan. The pass is computed by **two bounded iterative traversals over the
+  identical edge set `classify_sidecar` uses** — a forward BFS/DFS from `root` and a
+  backward BFS/DFS from the terminus set, each with an explicit stack and a visited
+  set, terminating in **O(V+E)** on cyclic or deep untrusted graphs (mirroring
+  `_find_cycles`'s iterative posture — no recursion-limit DoS). Reachability is
+  **strictly additive and non-overlapping**: the reported `UNREACHABLE` set is the
+  stranded nodes **minus** every node `classify_sidecar` already returned as a
+  presence orphan **and minus** every node adjacent to a dangling edge — its source
+  *or* its consumer (one break, one class — AC9). So a presence orphan flags the orphan *tip* of a broken local
+  subtree and `UNREACHABLE` flags the stranded **interior** ancestors a presence
+  check passes (a node carrying both a local producer and consumer edge yet on a
+  branch that never reaches a leaf); their union is the whole local disconnected
+  subtree. The pass runs **only in sidecar-authoritative mode**, where `root` and
+  `leaf_kind` are explicitly declared and the graph is a closed, single-rooted DAG;
+  the **standalone derive-from-artifacts mode keeps presence + layer-skip only** — a
+  derived graph is legitimately partial and multi-root (no single declared root),
+  so a strict root→leaf pass there would false-fail an ordinary partial single-repo
+  chain. This closes the RFC-0048 § Amendments (2026-06-30) cross-spec gap and the
+  `discovery-loop` AC34 **disconnected-subtree** backstop dependency: the cascade
+  backstop now catches a whole disconnected subtree, not just its orphan tip.
+  Reachability **degrades gracefully and in isolation** — a sidecar with no declared
+  `root`, or a `root` absent from the node inventory, reports the degradation
+  informationally and skips **only** the reachability pass (never a crash, and never
+  the top-level `except` that would degrade the whole lint to a false-green exit 0);
+  an edge endpoint absent from `nodes` is tolerated (it is the existing
+  `sidecar edge endpoint not in inventory` dangling case), never a `KeyError`.
+- [x] **Reachability is open-world across a repo boundary — only a *resolved*
+  reference terminates cleanly; an *unresolvable* one is surfaced, never silently
+  green.** A node whose only forward path to a leaf crosses a repo boundary into a
+  **rollup-resolved satisfied-by-reference** endpoint (**pinned or unpinned** —
+  pinning is the orthogonal soft-warning flag, never a reachability gate) is
+  **reachable, clean** — the lint cannot follow the chain into another repo, and the
+  value-stream rollup vouches for the target, so it must never declare a
+  legitimately **federated** graph "can't reach a leaf" (the open-world posture this
+  spec already takes for endpoint *resolution*, extended to *reachability*). An
+  **unresolvable** cross-repo endpoint (well-formed shape, **not** rollup-resolved)
+  is **NOT a clean terminus** — because the sidecar graph is **untrusted input**, a
+  hand-authored fabricated `x/y` / `a@1` out-edge on a stranded tip would otherwise
+  false-green the backstop (the *fabricated-edge* evasion). Instead a node whose
+  only escape from a dead branch is an unresolvable hop is surfaced as a **distinct
+  informational finding, `reaches a leaf only via an unresolved cross-repo
+  reference`** — **never silently counted as closed, and never fatal** (consistent
+  with this spec's standing "unresolvable is informational, never fatal, never
+  silently satisfied" posture; `--strict` does not promote it, mirroring
+  unpinned/unresolvable). This bounds the AC34 claim honestly: reachability closes
+  the **disconnected-subtree** half of the backstop and **surfaces** (does not
+  hard-catch) the **fabricated-edge** half — an open-world graph cannot
+  mechanically distinguish a forged token from a not-yet-catalogued one, so it makes
+  the gap *visible* rather than *forgeably green*. To make this real in sidecar mode,
+  a sidecar edge endpoint absent from the local inventory is **resolved against the
+  value-stream rollup**: a well-formed cross-repo reference is recorded as a
+  **satisfied-by-reference / unresolvable external terminus (never a dangling
+  edge)** — aligning sidecar mode with this spec's standing *Never treat a
+  well-formed cross-repo reference as a dangling edge* boundary; a non-inventory
+  endpoint that is **not** a well-formed cross-repo reference (a bare/malformed
+  token) stays a **dangling** hard violation in every mode. A reference (external)
+  endpoint is **never** itself orphan- or reachability-checked.
 - [x] The lint runs in **two postures**: **single-repo** (checks the local
   sub-chain and validates that outbound cross-repo pointers are well-formed — carry
   a stable-id — reporting an unpinned outbound pointer informationally), and
@@ -295,6 +391,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   (RFC-0048 D7) with a **derive-from-artifacts standalone mode when absent**; the
   refinement is reconciled into RFC-0048 as a tracked amendment per its
   provisional-foundation note (source: RFC-0048 D7 + the shippable-standalone goal).
+- Technical/governance: **reachability is a sidecar-authoritative-mode pass** —
+  `root` + `leaf_kind` are declared there and the graph is a closed single-rooted
+  DAG; the standalone derived graph is legitimately partial / multi-root, so it
+  keeps presence + layer-skip and no strict root→leaf pass. A cross-repo reference
+  (satisfied-by-reference pinned or unpinned, or unresolvable) is a valid
+  reachability terminus — the open-world rule that prevents false-failing a
+  federated graph (source: the AC34 cross-spec gap, RFC-0048 § Amendments
+  2026-06-30; the preconverge spike comment
+  `docs/rfc/0053-notes/spike/traceability.preconverge.json` — "a
+  reachability-to-leaf refinement would flag the whole subtree; the presence-check
+  lint flags the tip").
 - Process: the structural-vs-semantic split is grounded — structural link presence
   is mechanizable, semantic link correctness is not reliably so (the SoK
   traceability survey; ReqToCode's "structural presence, not semantic correctness";

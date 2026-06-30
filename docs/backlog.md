@@ -1099,19 +1099,18 @@ user-triggered ones to `[pack.evals]`.
 
 ### discovery-loop-traceability-reachability
 
-**The AC34 cross-spec gap.** **Spec:** [discovery-loop](specs/discovery-loop/spec.md) (AC34) ·
-[traceability-lint](specs/traceability-lint/spec.md) (child-4, the owner)
-
-AC34 names a dependency on child-4's traceability lint performing a **root→leaf
-reachability** pass so the cascade/backstop can detect a disconnected-subtree /
-fabricated-edge failure. The **shipped** lint (`lint-traceability.py`
-`classify_sidecar`) does per-node edge-**presence**, not reachability — confirmed
-by the `0053-notes/spike/traceability.preconverge.json` comment ("the presence-check
-lint flags the tip … a reachability-to-leaf refinement would flag the whole
-subtree"). The `discovery-loop` skill **names the dependency** (AC34 met) and flags
-the gap. **Unblocks when:** child-4 (`traceability-lint`) adds the root→leaf
-reachability pass, at which point the discovery backstop catches the whole broken
-subtree, not just its orphan tip.
+**Resolved 2026-06-30.** Child-4's traceability lint
+([traceability-lint](specs/traceability-lint/spec.md), amended 2026-06-30) gained the
+**root→leaf reachability** pass (`reachability_sidecar`): on the authoritative
+sidecar graph a node off every root→leaf path is `UNREACHABLE`, so the
+`discovery-loop` cascade backstop (AC34) now catches the **whole** disconnected
+subtree, not just the orphan *tip* the per-node presence check flagged — exactly the
+refinement the `0053-notes/spike/traceability.preconverge.json` comment predicted.
+Scoped honestly: reachability closes the disconnected-subtree half and *surfaces*
+(informationally, never silently green) the fabricated-edge half — an open-world
+graph cannot mechanically tell a forged cross-repo token from a not-yet-catalogued
+one. This tombstone is **retained** (not removed) because the discovery-loop spec's
+checked AC34 links this `#anchor`.
 
 ### discovery-loop-type-marker-producers
 

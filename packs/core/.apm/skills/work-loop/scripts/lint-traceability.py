@@ -50,16 +50,28 @@ Two sources, one classifier:
   A matrix↔artifact disagreement is reported as **drift, warn-only** until the
   sidecar schema is pinned (deferred: sidecar-drift-hard-fail).
 
+On the authoritative sidecar graph the lint also runs a **root→leaf reachability**
+pass (`reachability_sidecar`): a node is reachable iff it is forward-reachable from
+`root` AND can reach a clean terminus (a `leaf_kind` node or a rollup-resolved
+`satisfied-by-reference` endpoint). A node off every root→leaf path is `UNREACHABLE`
+(the disconnected-subtree finding the discovery-loop cascade backstop depends on,
+RFC-0053 AC34) — additive to, and non-overlapping with, the presence orphans. An
+*unresolvable* cross-repo hop is **not** a clean terminus (the sidecar is untrusted
+input — a forged out-edge must not silently green a stranded subtree); a node whose
+only escape is such a hop is surfaced informationally, never fatal. Reachability is
+sidecar-only — a standalone derived graph is legitimately partial / multi-root.
+
 Exit codes:
-  0 = clean / reported. Structural orphans are informational in default mode;
-      unresolvable cross-repo endpoints, unpinned references, and drift are
-      never fatal.
+  0 = clean / reported. Structural orphans and `UNREACHABLE` findings are
+      informational in default mode; unresolvable cross-repo endpoints, the
+      `reaches a leaf only via an unresolved cross-repo reference` finding,
+      unpinned references, and drift are never fatal.
   1 = a hard violation — a dangling edge (a pointer to a missing local target,
       or malformed) or a cycle, **in every mode**; or, under `--strict`, any
-      structural orphan (the convergence-/CI-gate enforcing "traceability
-      closed", RFC-0048 O6). `--strict` degrades gracefully where the producer
-      `Discovery:` headers / `type:` markers are absent (a separate CONVENTIONS
-      follow-on lands those).
+      structural orphan or `UNREACHABLE` node (the convergence-/CI-gate enforcing
+      "traceability closed", RFC-0048 O6). `--strict` degrades gracefully where the
+      producer `Discovery:` headers / `type:` markers are absent (a separate
+      CONVENTIONS follow-on lands those).
 
 No chain artifacts at all → exit 0 with no diagnostic (the
 `lint-brief-coverage.py` no-brief precedent).
@@ -749,11 +761,15 @@ def classify_sidecar(g: Graph) -> list[tuple[str, str, str]]:
     `check_sidecar` rule (RFC-0053 spike): `root` is exempt from an in-edge,
     `leaf_kind` from an out-edge, everything else needs both. The sidecar's
     edges already encode any layer-skip explicitly, so no populated-layer
-    inference is applied."""
+    inference is applied. A **reference (external) endpoint** registered by
+    `resolve_sidecar_endpoints` is never orphan-checked — it is the cross-repo
+    boundary, not a chain node owing a local producer/consumer."""
     has_in = {to for _, to in g.edges}
     has_out = {frm for frm, _ in g.edges}
     orphans: list[tuple[str, str, str]] = []
     for nid, kind in sorted(g.nodes.items()):
+        if nid in g.ref_state:  # external reference endpoint — never orphan-checked
+            continue
         missing: list[str] = []
         if nid != g.root and nid not in has_in:
             missing.append("no producer (up-edge)")
@@ -765,10 +781,128 @@ def classify_sidecar(g: Graph) -> list[tuple[str, str, str]]:
 
 
 def sidecar_dangling(g: Graph) -> list[str]:
-    """Sidecar edge endpoints naming a node absent from the inventory."""
+    """Sidecar edge endpoints naming a node absent from the inventory. After
+    `resolve_sidecar_endpoints` has run, a well-formed cross-repo reference is in
+    the inventory as an `external` node, so only a bare/malformed missing-local
+    token remains here — a hard violation in every mode."""
     return sorted({
         p for e in g.edges for p in e if p not in g.nodes
     })
+
+
+def resolve_sidecar_endpoints(g: Graph, rollup: dict[str, bool]) -> None:
+    """Resolve each sidecar edge endpoint absent from the local inventory against
+    the value-stream rollup (the open-world cross-repo posture, extended from
+    endpoint *resolution* to *reachability*). A well-formed cross-repo reference
+    becomes a `satisfied-by-reference` / `unresolvable` **external** node — so it is
+    no longer a `sidecar_dangling` endpoint and can serve as a reachability terminus
+    — while a bare / malformed token is left out of inventory for `sidecar_dangling`
+    to flag (hard, every mode). Mirrors the standalone `_wire` endpoint handling;
+    reuses `resolve_endpoint`, never a parallel scheme. The sidecar graph is
+    untrusted input, so this only ever *adds* a clearly-labelled external node — it
+    never silences a missing-local target."""
+    local_ids = set(g.nodes)
+    for a, b in sorted(g.edges):
+        for ep in (a, b):
+            if ep in local_ids or ep in g.ref_state:
+                continue
+            state, pinned, _ = resolve_endpoint(ep, local_ids, rollup)
+            if state in ("satisfied-by-reference", "unresolvable"):
+                g.ref_state[ep] = state
+                g.ref_pinned[ep] = pinned
+                g.nodes.setdefault(ep, "external")
+
+
+def _reach(seeds: set[str], adj: dict[str, list[str]]) -> set[str]:
+    """Iterative (explicit-stack) reachability over adjacency `adj` from `seeds`
+    (seeds included). A visited set bounds it to **O(V+E)** and terminates on a
+    cyclic or deep untrusted graph — the same posture as `_find_cycles`, no
+    recursion-limit DoS."""
+    seen = set(seeds)
+    stack = list(seeds)
+    while stack:
+        node = stack.pop()
+        for nxt in adj.get(node, ()):
+            if nxt not in seen:
+                seen.add(nxt)
+                stack.append(nxt)
+    return seen
+
+
+def reachability_sidecar(
+    g: Graph,
+) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]], list[str]]:
+    """Root→leaf reachability over the authoritative sidecar graph (sidecar mode
+    only — `root` + `leaf_kind` are declared there and the graph is a closed,
+    single-rooted DAG; the standalone derived graph is legitimately partial /
+    multi-root and keeps presence + layer-skip).
+
+    A node is *reachable* iff it is **forward-reachable from `root`** AND **can reach
+    a clean terminus** — a node of `leaf_kind`, or a rollup-resolved
+    `satisfied-by-reference` endpoint. Returns `(unreachable, soft, notes)`:
+
+    - `unreachable` — `(id, kind, reason)` for a node not on any root→leaf path
+      (not forward-reachable, or reaches no terminus at all): the `UNREACHABLE`
+      disconnected-subtree finding. The caller subtracts presence orphans + dangling
+      sources so the two diagnostics stay non-overlapping (one break, one class).
+    - `soft` — `(id, kind, reason)` for a node whose only escape from a dead branch
+      is an **`unresolvable`** cross-repo hop. Because the sidecar is untrusted
+      input, a forged `x/y` out-edge must not silently green a stranded subtree, so
+      an unresolvable hop is **not** a clean terminus: it is surfaced as a distinct
+      informational finding (never fatal — `--strict` does not promote it), making
+      the fabricated-edge gap *visible* rather than forgeably green.
+
+    Degrades in isolation (a note, empty findings) when no `root` is declared / in
+    inventory, or no `leaf_kind` terminus exists — never a crash, never the
+    whole-lint exit-0 backstop."""
+    notes: list[str] = []
+    if not g.root or g.root not in g.nodes:
+        notes.append(
+            f"reachability skipped — declared root '{g.root}' absent from inventory"
+            if g.root else "reachability skipped — sidecar declares no root"
+        )
+        return [], [], notes
+
+    clean_termini = {nid for nid, kind in g.nodes.items() if kind == g.leaf_kind}
+    clean_termini |= {nid for nid, st in g.ref_state.items()
+                      if st == "satisfied-by-reference"}
+    if not clean_termini:
+        # No leaf to reach — presence (a bottom node with no consumer is a forward
+        # orphan) already covers a leaf-less chain; flagging every node here is noise.
+        notes.append("reachability skipped — no leaf_kind terminus in inventory")
+        return [], [], notes
+    soft_termini = {nid for nid, st in g.ref_state.items() if st == "unresolvable"}
+
+    fwd: dict[str, list[str]] = {}
+    rev: dict[str, list[str]] = {}
+    for a, b in g.edges:
+        fwd.setdefault(a, []).append(b)
+        rev.setdefault(b, []).append(a)
+    forward = _reach({g.root}, fwd)              # forward-reachable from root
+    reach_clean = _reach(clean_termini, rev)     # can reach a clean terminus
+    reach_any = _reach(clean_termini | soft_termini, rev)  # … incl. via unresolved
+
+    unreachable: list[tuple[str, str, str]] = []
+    soft: list[tuple[str, str, str]] = []
+    for nid, kind in sorted(g.nodes.items()):
+        # The root anchors the graph (never "unreachable"); a reference endpoint is
+        # the cross-repo boundary — neither is itself reachability-checked.
+        if nid == g.root or nid in g.ref_state or kind == "external":
+            continue
+        in_fwd = nid in forward
+        if in_fwd and nid in reach_clean:
+            continue  # cleanly on a root→leaf path
+        if in_fwd and nid in reach_any:
+            soft.append((nid, kind,
+                         "reaches a leaf only via an unresolved cross-repo reference"))
+            continue
+        why: list[str] = []
+        if not in_fwd:
+            why.append("not forward-reachable from root")
+        if nid not in reach_any:
+            why.append("reaches no leaf")
+        unreachable.append((nid, kind, "; ".join(why) or "off the root→leaf path"))
+    return unreachable, soft, notes
 
 
 # --------------------------------------------------------------------------
@@ -944,6 +1078,10 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
 
     if not using_sidecar:
         build_standalone(root, layout, g, rollup)
+    else:
+        # Resolve any cross-repo edge endpoint against the rollup so a federated
+        # sidecar's external leaf is a reachability terminus, not a dangling edge.
+        resolve_sidecar_endpoints(g, rollup)
 
     # No chain anchor at all → no-op clean (the lint-brief-coverage no-brief
     # precedent). The anchor is a *discovery-side* artifact — a sidecar, a
@@ -978,6 +1116,27 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
                      for d in sidecar_dangling(g)]
     cycles = _find_cycles(g)
 
+    # Root→leaf reachability (sidecar-authoritative mode only). The reported set is
+    # additive: stranded nodes minus the presence orphans and dangling-edge sources
+    # already reported, so a single break is one class, never two (AC9). Its own
+    # degradations are notes; it never crashes or fails the whole lint.
+    unreachable: list[tuple[str, str, str]] = []
+    soft_unresolved: list[tuple[str, str, str]] = []
+    if using_sidecar:
+        unreach, soft, rnotes = reachability_sidecar(g)
+        g.notes.extend(rnotes)
+        orphan_ids = {nid for nid, _, _ in orphans}
+        dangling_set = set(sidecar_dangling(g))
+        # One break, one class (AC9): a node adjacent to a dangling edge — whether
+        # the edge's source (its target is missing) or its consumer (its producer
+        # is missing) — is already surfaced by that DANGLING violation, so it is not
+        # also reported as UNREACHABLE.
+        dangling_adjacent = ({a for a, b in g.edges if b in dangling_set}
+                             | {b for a, b in g.edges if a in dangling_set})
+        skip = orphan_ids | dangling_adjacent
+        unreachable = [t for t in unreach if t[0] not in skip]
+        soft_unresolved = [t for t in soft if t[0] not in skip]
+
     for nid, st in sorted(g.ref_state.items()):
         if st == "satisfied-by-reference":
             flag = "pinned" if g.ref_pinned.get(nid) else "unpinned (soft warning)"
@@ -991,6 +1150,12 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
 
     for nid, kind, why in orphans:
         out.append(f"  - ORPHAN {nid} [{kind}]: {why}")
+
+    for nid, kind, why in unreachable:
+        out.append(f"  - UNREACHABLE {nid} [{kind}]: {why}")
+
+    for nid, kind, why in soft_unresolved:
+        out.append(f"  - {nid} [{kind}]: {why} (informational)")
 
     # Drift cross-check: sidecar present AND artifacts derivable — warn-only
     # until the matrix schema is pinned (deferred: sidecar-drift-hard-fail).
@@ -1006,6 +1171,14 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
         out.append("lint-traceability: no structural orphans — every node has "
                    "a producer and a consumer.")
 
+    # Reachability summary on its own line — a --strict exit caused by a
+    # disconnected subtree is legible, not folded into the orphan count.
+    if unreachable:
+        verb = ("disconnected subtree — FAIL (--strict)" if strict
+                else "disconnected subtree (informational)")
+        out.append(f"lint-traceability: {len(unreachable)} unreachable node(s), "
+                   f"{verb}.")
+
     for d in dangling:
         hard.append(f"DANGLING — {d}")
     for c in cycles:
@@ -1014,7 +1187,7 @@ def check(root: Path, strict: bool) -> tuple[list[str], list[str], int]:
     exit_hint = 0
     if hard:
         exit_hint = 1
-    elif orphans and strict:
+    elif (orphans or unreachable) and strict:
         exit_hint = 1
     return out, hard, exit_hint
 

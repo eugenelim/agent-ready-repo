@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The traceability lint gains a root→leaf reachability pass (core 0.7.1).** On the
+  authoritative sidecar graph, `work-loop`'s `lint-traceability.py` now flags every
+  node that does not lie on a path from `root` to a leaf — a **`UNREACHABLE`
+  (disconnected subtree)** finding, additive to and non-overlapping with the
+  existing per-node orphan check. Where the presence check caught only the orphan
+  *tip* of a broken branch, reachability catches the **whole** stranded subtree —
+  the refinement the `discovery-loop` cascade backstop depends on (RFC-0053 AC34).
+  A cross-repo reference resolved through the value-stream rollup is a clean
+  terminus (a legitimately federated graph is never failed); an *unresolvable*
+  cross-repo hop is surfaced informationally, **never silently counted as closed**
+  (the sidecar is untrusted input — a fabricated edge must not green a stranded
+  subtree). `UNREACHABLE` joins the `--strict` tier (exit 1); dangling edges and
+  cycles stay hard in every mode. Reachability runs in sidecar mode only — a
+  standalone derived graph is legitimately partial and multi-root. The
+  `discovery-loop` skill's traceability seam is updated to record the dependency as
+  met. *(Amends the `traceability-lint` spec; closes the
+  `discovery-loop-traceability-reachability` backlog item and the RFC-0048
+  § Amendments 2026-06-30 cross-spec gap.)*
+
 ### Added
 
 - **`new-rfc` now drafts RFCs that read from zero prior context and hands you
