@@ -89,3 +89,26 @@ builds. At `app` Scale a leaf feature intent *is* an ordinary `core` brief;
 `receive-brief` → `new-spec` → `work-loop` take it from there. The tree is
 deeper than any tracker, and projects **one-way** onto trackers (see
 `decompose-intent`'s `references/tracker-projection.md`).
+
+## Placing an intent on the traceability chain
+
+When you run the discovery-traceability chain, the structural-orphan lint walks the
+nine-node product chain `outcome → opportunity → capability → screen → action →
+service → contract → spec → component` (RFC-0048 note 04 — the opportunity-solution
+tree viewed as a structural chain, with the North-Star **outcome** as its root and
+**opportunities** as its children). An intent declares which **chain rung** it
+occupies through two **optional** markers the lint reads:
+
+- **`Kind: outcome`** → the `outcome` rung (the North Star / chain root).
+- **`Kind: opportunity`** → the `opportunity` rung (a need in the OST).
+- **`Level: capability`** → the `capability` rung (the capability altitude already
+  carries it — no separate `Kind:` needed).
+- A **feature** intent maps downstream to a brief/spec, not a ladder node; an
+  intent at a level with no chain rung simply carries no marker.
+
+The chain rung (`Kind:`) is **orthogonal to the intent's internal structure**: every
+intent frames *both* an Outcome and an Opportunity section (above) regardless of
+which rung it occupies — `Kind:` says which rung *this intent realizes on the chain*,
+not that the intent has only one of the two. The markers are additive and prompt-only;
+omit them when you are not running the chain. This is a **format** convention (the
+producer side of the traceability up-edge), not a change to the intent model.

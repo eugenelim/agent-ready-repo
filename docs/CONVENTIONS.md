@@ -316,10 +316,16 @@ mechanical rule.
   edge a traceability check walks from the discovery side into the spec — and is
   additive and optional: a spec authored directly omits it (or `none`) and stays
   valid. The discovery-side producer artifacts themselves (intents, screens,
-  journeys, blueprints) carry a frontmatter `type:` marker naming their kind
-  (e.g. `type: screen-brief`, `type: domain-framing`) so a traceability check
-  recognizes them **by marker, not path**. This is a **format** convention — the
-  header field and the `type:` grammar — not doctrine about *when* discovery runs.
+  journeys, blueprints) carry a **rendered bold-body field marker** naming their
+  kind — `- **Type:** screen-brief` for a screen brief, the container-embedded
+  `- **Action:** <slug>` / `- **Service:** <slug>` for journey/blueprint entries,
+  and `- **Kind:** outcome|opportunity` / `- **Level:** capability` for
+  intent-ladder rungs — so a traceability check recognizes them **by marker, not
+  path** (the lint matches the rendered `**Label:**` field, not a YAML frontmatter
+  key). (`frame-domain` additionally stamps a document-level frontmatter
+  `type: domain-framing` / `type: scope-boundary`; that is a discover-by-marker
+  *anchor*, not one of the chain recognizers' fields.) This is a **format**
+  convention — the field grammar — not doctrine about *when* discovery runs.
 - **Story trace (optional).** When the brief carries user stories (Shape B), an
   acceptance criterion that satisfies a story appends a `Satisfies: US-n` marker
   so coverage is story-granular. Optional — omit it for a no-stories brief or a

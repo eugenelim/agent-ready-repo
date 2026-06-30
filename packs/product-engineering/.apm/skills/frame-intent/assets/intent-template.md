@@ -10,6 +10,7 @@
 
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename -->
 - **Level:** `<product-vision | product-strategy | capability | feature>` <!-- the altitude this intent sits at; an open recognized set, not a closed enum — name an intervening altitude if your org has one -->
+- **Kind:** `<outcome | opportunity>` <!-- optional, additive: the discovery-traceability chain rung this intent occupies on the opportunity-solution tree (outcome = the North Star / chain root; opportunity = a need in the OST). The structural-orphan lint reads this bold-body field to place the intent on the chain. Distinct from Level: (the altitude) — a `Level: capability` intent is placed by Level instead, and a feature intent maps downstream to a brief/spec. Omit it when not running the discovery-traceability chain; an intent still carries both an Outcome and an Opportunity section regardless. -->
 - **Scale:** `<app | business-unit>` <!-- resolved at intake by frame-intent -->
 - **Maturity:** `<greenfield | brownfield>` <!-- brownfield unlocks current-state inputs -->
 - **Parent intent:** <!-- optional: the higher-level intent this was decomposed from; omit at the top of the tree -->
