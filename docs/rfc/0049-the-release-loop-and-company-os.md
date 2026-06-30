@@ -1,7 +1,7 @@
 # RFC-0049: The release loop — deployed e2e validation, the minimum-regret deploy carve, and the company-OS composition
 
 - **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
-- **Provisional:** a **child of [RFC-0048](0048-autonomous-product-team-operating-model.md)**, which stays provisional until its children (this included) are modelled and drift-aligned. This RFC may amend 0048 (the gate arc, the company-OS framing) as it lands.
+- **Parent:** a **child of [RFC-0048](0048-autonomous-product-team-operating-model.md)** (**Accepted 2026-06-30**). RFC-0048's child-set reconciliation treated this RFC as *modelled* — the `release-lead` seat is specified by the drafted [release-loop spec](../specs/release-loop/spec.md) and recorded at RFC-0048 § Amendments (the 2026-06-26 SRE-seat entry + the 2026-06-28 reviewer-reuse scope) — so 0048 could accept on RFC-0053's blockers **without** waiting on this RFC's implementation. **This RFC itself remains Open** (the release-loop spec is Draft, unimplemented); it may still amend 0048 (the gate arc, the company-OS framing) as it lands.
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-25
