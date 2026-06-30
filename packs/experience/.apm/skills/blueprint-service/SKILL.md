@@ -72,7 +72,10 @@ Confirm all three before proceeding; if any fails, resolve it first.
      billing infrastructure, third-party integrations).
 
 4. **Name backstage services as candidates for component decomposition.** Each
-   distinct backstage service entry is a named candidate:
+   distinct backstage service entry is a named candidate. Record each as a
+   `- **Service:** <service-slug>` marker in the template's `## Named backstage
+   services` block — the structural-orphan lint reads each `**Service:**` line as a
+   `service` chain node (a screen action ties down to one):
    - **When `architect` or `contracts` are present in this session:** name each
      service by-reference (a short, stable name matching the component the
      `architect` skill would use — e.g. "Order Service", "Auth Service"). Do not

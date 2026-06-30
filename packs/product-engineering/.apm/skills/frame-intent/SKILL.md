@@ -86,7 +86,11 @@ Before framing, confirm:
 
 7. **Hand off.** Resolve `parent` using the config-driven procedure below and
    record the intent at `<parent>/intents/<slug>.md` (file-per-slug — a single
-   file handed downstream, not a per-topic folder). Point the user at
+   file handed downstream, not a per-topic folder). When running the
+   discovery-traceability chain, stamp the intent's optional `Kind:`
+   (`outcome | opportunity`) so the structural-orphan lint can place it on the
+   opportunity-solution tree; a `capability`-level intent is placed by `Level:`
+   instead, and a feature intent maps downstream to a brief/spec. Point the user at
    `de-risk-intent` (to test the riskiest assumption) or, once it survives,
    `decompose-intent` (to break it down). See
    `examples/feature-intent-to-brief.md` for a worked app-scale walk-through.
