@@ -118,19 +118,29 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
      source, fetch it and confirm it resolves *and* contains the borrowed
      claim before that claim enters the findings. Never pass an unverified
      citation through.
-   - **Recommend per decision.** For each decision/subpoint: the question,
-     what repo precedent suggests, what external prior art suggests, and a
-     recommended answer with one-sentence reasoning + owner + decide-by. Cap
-     genuinely-open questions at ~3.
+   - **Recommend per decision — and make each one decidable in this message.**
+     Present enough per decision that the human can decide *here*, without
+     opening a file: the question in plain language; the concrete options with
+     their real trade-offs and what accepting each one costs; what repo
+     precedent and external prior art suggest; and a recommended answer with
+     one- or two-sentence reasoning + owner + decide-by. A bare list of option
+     *names* is not decidable — give the trade-offs and the consequence of each.
+     Cap genuinely-open questions at ~3.
 
-   Emit the findings under exactly these headings:
+   Emit the findings under exactly these headings. Each decision is
+   self-contained — a reader decides from the block alone:
 
    ```
    RESEARCH FINDINGS:
 
    ## Decisions / subpoints
-   1. **<subpoint>** — options (MECE along <axis>, prior-art-grounded): …
-      · recommendation: … · owner: … · decide-by: …
+   1. **<subpoint — the decision, as a plain-language question>**
+      - Options (MECE along <axis>, prior-art-grounded; always include do-nothing):
+        - **<option A>** — <what it is, in plain terms> · trade-off: <what it
+          buys vs. costs> · if accepted: <the concrete consequence>
+        - **<option B>** — … · trade-off: … · if accepted: …
+      - Recommendation: **<option>** — <one or two sentences of why, from the
+        evidence below> · owner: … · decide-by: …
 
    ## Prior art (in repo)
    - …
@@ -173,6 +183,17 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    adversarial-review logs — summarize its conclusion in the body and move the
    detail to the optional `NNNN-notes/` companion (step 2). Default the body to
    the argument and link the proof.
+
+   **Write for a cold reader — define coined terms on first use.** An RFC must be
+   readable by someone who has *not* read the related RFCs. Every project-coined
+   term, acronym, or back-reference to a sibling RFC gets a plain-language gloss
+   the first time it appears in the body — **inline, in a few words, not in a
+   separate glossary section**. Don't lean on vocabulary inherited from related
+   RFCs as if the reader already holds it: a reviewer arrives at the RFC from the
+   index, cold. (RFC-0053 is the cautionary case — it had to be hand-patched with
+   inline glosses *after* drafting because the draft assumed its siblings' terms;
+   the cold-reader check in the gate, step 6, exists to catch this before
+   handoff.)
 
    Sections to push hardest on:
    - **Reviewer brief.** The fixed first-screen orientation grid, above The ask,
@@ -230,6 +251,17 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
      reports clean; add `security-reviewer` if the RFC touches a security
      boundary. If no such subagent is installed, note it in the summary
      rather than skipping silently.
+   - **Cold-reader readability check.** Dispatch a **generic** subagent in a
+     fresh context, given **only the RFC text** and told *not* to read the
+     project docs, `CLAUDE.md`/`AGENTS.md`, or sibling RFCs — its sole job is to
+     list every term, acronym, or back-reference it cannot resolve from the RFC
+     alone. Gloss each flagged item (step 5's cold-reader rule) before handoff.
+     This is a *generic* dispatch with a context-denial prompt, **not** a named
+     reviewer role, and it runs **in addition to** — never as a substitute for —
+     the adversarial pass above (which loads project conventions by design and so
+     cannot be the cold-reader instrument). If the harness offers no subagent
+     dispatch at all, do the cold read in a fresh pass and note it rather than
+     skipping silently.
 
    **Hand back a reviewer-friendly readiness summary, not a compliance dump.**
    The checks above are run to build the *reviewer's* confidence, so report
@@ -247,6 +279,7 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
    - Citations checked: yes/no
    - Open questions owned: yes/no
    - Adversarial pass: clean | issues linked
+   - Cold-reader check: clean | terms glossed | skipped (no subagent)
    ```
 
 7. Set status to `Draft` until the user is ready to circulate, then `Open`.
@@ -359,3 +392,12 @@ present rules without diffing the whole log by hand:
 - A title that carries the whole abstract → shorten it to *identify* the
   proposal; the explanation lives in **The ask**, and a scannable RFC index
   depends on it.
+- Leaning on vocabulary inherited from sibling RFCs — a coined term, acronym, or
+  back-reference the cold reader can't resolve — without glossing it on first use
+  → the reviewer arrives from the index, not from the related RFC; define it
+  inline (step 5), and let the gate's cold-reader check (step 6) catch what you
+  missed.
+- Handing the human a decision too terse to decide from — a bare list of option
+  *names* with no trade-offs and no consequence-of-each → the research phase
+  already produced the trade-offs; put them in the chat handoff so the decision
+  can be made in the message, not after opening files (step 4).
