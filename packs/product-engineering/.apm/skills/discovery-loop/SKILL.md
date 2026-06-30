@@ -303,13 +303,12 @@ with the round/cost counters reset. *(AC15.)*
   **until the header is in place the lint stays warn-only** (specs without the
   header are warnings, not failures). Producer-before-consumer: the header lands
   first, the `--strict` flip is sequenced after. *(AC37.)* **Child-4
-  dependency:** the backstop against a disconnected-subtree / fabricated-edge
-  failure relies on the lint's **root→leaf reachability** pass — named here so this
-  loop's backstop claim is not load-bearing on a weaker presence check. *(AC34.)*
-  *(Caveat — the currently-shipped lint is a per-node edge-**presence** check, not
-  full root→leaf reachability; until child-4 adds the reachability pass the
-  backstop catches the orphan **tip** of a broken subtree, not the whole subtree.
-  Flagged as a cross-spec gap.)*
+  dependency (MET):** the backstop against a disconnected-subtree failure relies on
+  the lint's **root→leaf reachability** pass — and the lint now performs it, so the
+  backstop catches the **whole** disconnected subtree, not just the orphan tip a
+  presence check flags. A fabricated cross-repo edge is *surfaced* informationally
+  (an open-world graph cannot tell a forged token from a not-yet-catalogued one),
+  never silently green. *(AC34.)*
 - **The backlog bridge:** the decision brief decomposes into an ordered,
   dependency-aware backlog (parked sub-ideas carried as **first-class entries**);
   `loop-cohort` orders it; `work-loop` pulls one item at a time. *(AC35.)*
