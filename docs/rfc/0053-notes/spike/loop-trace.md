@@ -32,13 +32,13 @@ traceability matrix has the upstream edges; the OQ queue has 2 resolved rows.
 ## Round 2 — convergence opens; two defects appear
 
 The product lens runs `decompose-intent` at feature altitude and the UX lens runs
-`map-journey` -> `inventory-screens` -> `blueprint-service`. Two things go wrong — exactly
+`map-customer-journey` -> `map-screen-flow` -> `blueprint-service`. Two things go wrong — exactly
 the two failure modes RFC-0048 names:
 
 1. **Over-scope.** A `cap.external-fulfillment` capability and a `screen:fulfillment` get
    proposed (the myopic-greedy-commitment / scope-creep mode). The traceability matrix at
    this point is `traceability.preconverge.json`.
-2. **An unbacked security-sensitive screen.** `inventory-screens` emits a
+2. **An unbacked security-sensitive screen.** `map-screen-flow` emits a
    `learning-review` screen whose backing service has no contract yet — `OQ-3` opens.
 
 Running the checker on the round-2 snapshot (reproducible):
@@ -84,7 +84,7 @@ a queue status change + a blackboard edit:
 - product (`decompose-intent`): approval criteria + auditor = the owner
 - tech (`architect-design`): adds an approval aggregate + an audit log; `contract:
   learning-approval@2`
-- UX (`inventory-screens`): adds `screen:audit-view`
+- UX (`map-screen-flow`): adds `screen:audit-view`
 - design (`voice-and-microcopy`): writes approval/audit microcopy
 
 `OQ-3` -> `resolved`. The new nodes + edges close the dangling `service:learning-approval`.
