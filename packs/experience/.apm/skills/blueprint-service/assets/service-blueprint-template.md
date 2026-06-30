@@ -50,6 +50,17 @@ date: "<YYYY-MM-DD>"
 | --- | --- | --- |
 | <Service Name> | <one-line role> | `architect` / `contracts` / spec LLD |
 
+<!-- Traceability markers. Emit one bold-body Service field per distinct backstage
+     service above — the literal form is the placeholder line below — as a stable
+     kebab-case slug (the first token is the id). The structural-orphan lint reads
+     each such Service line as a `service` chain node; a screen action ties down to
+     one. Keep the slugs in sync with the service names in the table above. (Don't
+     write the bold marker inside a comment — the lint scans every line, so a
+     commented example would mint a phantom node.) -->
+
+- **Service:** <service-slug>
+- **Service:** <service-slug>
+
 ---
 
 ## Hand-off
