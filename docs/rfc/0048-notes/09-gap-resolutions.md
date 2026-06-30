@@ -290,6 +290,38 @@ reconciliation ([`0048-notes/10`](10-composed-end-to-end-walkthrough.md); RFC-00
   RFC is "aligned" when nothing is owned-by-nobody and the spine is internally consistent; the
   named follow-ons land on their own lifecycles and are not freeze preconditions.
 
+*Appended by RFC-0053's implementing PR (child-5 — the discovery-loop build):*
+
+- *Making `product-engineering` ship agents (it was "pure-markdown") is resolve, not
+  surface.* Adding `discovery-lead` + the two discovery reviewers makes the pack ship agent
+  primitives for the first time. → **resolve** (referent: the `experience` pack already ships
+  `experience-reviewer` at user scope with `allowed-adapters` and `[pack.adapter-contract]`
+  unchanged — the precedent settles both the posture and the no-bump). The tell: a "first of its
+  kind for this pack" change is still referent-grounded when a sibling pack already did it.
+- *A spec AC that asserts a dependency's behaviour can be a failed referent.* AC34 states "the
+  shipped [child-4] lint performs a root→leaf reachability pass"; the shipped lint actually does
+  per-node edge-**presence** (confirmed in `classify_sidecar` and the `traceability.preconverge.json`
+  fixture comment). → **surface as a cross-spec finding** (the referent the AC names says the
+  opposite of the AC's claim) — name the reachability dependency as AC34 requires *and* flag that
+  the current backstop is presence-level until child-4 adds reachability. The tell: quote the
+  referent (the code + the fixture), don't trust the AC's own description of it.
+- *A core-pack format edit that adds a user-facing field is a release decision → surface.* DRIFT-G
+  adds the optional `Discovery:` spec header to `new-spec` + CONVENTIONS § 4 (core). → **surface**
+  the core-release decision (does this user-facing addition warrant a `core` bump + changelog?) —
+  the implementing PR makes the additive, backward-compatible edit, but cutting the release is the
+  owner's call. The tell: discharging an in-scope AC doesn't auto-authorize a published-package
+  version bump; name it.
+- *An ungated coverage gap is a tracked follow-up, not a blocker → resolve.* The three new skills
+  are not added to `[pack.evals]` / ship no `eval_queries.json`. → **resolve** (referent:
+  `frame-domain` — a newer PE skill — already ships without eval coverage and no gate enforces
+  allowlist completeness); record eval coverage as a tracked follow-up. The tell: a missing-but-
+  ungated quality item matching an existing precedent is a backlog entry, not a stop.
+- *Discharging an RFC's acceptance blockers enables, but does not authorize, the status flip →
+  surface.* This PR resolves RFC-0048's last open blockers (DRIFT-G, AC0, the backlog ACs), and the
+  acceptance note says "Open → Accepted is a one-line status change." → **surface** the Open→Accepted
+  flip to the owner rather than making it in the implementing PR. The tell: clearing the precondition
+  for a governance status change is not the same as being authorized to make it.
+
 **Why this is logged as a scaffold, not left to recall:** in practice the AI loop reaches
 the right resolve-vs-surface call only ~half the time without a nudge (anchoring + the
 knowing-doing gap — notes/03). So the lens is made an *explicit checklist step* (it lives

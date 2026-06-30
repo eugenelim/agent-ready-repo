@@ -1,7 +1,7 @@
 # RFC-0048: The autonomous product-team operating model — gate doctrine, the `experience` pack, and a child-effort roadmap
 
-- **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
-- **Acceptance blockers** — this RFC may move Open → Accepted only after each of these lands:
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+- **Acceptance blockers — all four discharged 2026-06-30 by RFC-0053's implementing PR; RFC moved Open → Accepted.** The record of what had to land (each now shipped):
   1. RFC-0053's implementing spec lands **AC0**: the carried sidecar-schema contract (DRIFT-I, at user scope).
   2. RFC-0053's implementing spec lands the `docs/discovery/<initiative>/` layout key (DRIFT-C).
   3. RFC-0053's implementing spec lands the backlog-decomposition + `loop-cohort`-ingestion ACs (DRIFT-H).
@@ -599,11 +599,12 @@ recommendation the approver ratifies at acceptance:*
 the child efforts*. As of **2026-06-26 the child set is complete and reconciled** (the
 snapshot — the RFC index rows and the child RFC/spec paths — is pinned in § Evidence & prior art →
 *Source pins for current-state claims*; see also the
-Acceptance note at the top and the § Amendments discharge block), and the model is aligned;
-**acceptance is blocked** only by the owner-assigned follow-ons (the spec-metadata
-`Discovery:` edit, DRIFT-G; RFC-0053's implementing spec carrying AC0 + the layout key + the backlog
-ACs), at which point Open → Accepted is a one-line status change over an already-aligned
-model.
+Acceptance note at the top and the § Amendments discharge block), and the model is aligned.
+**As of 2026-06-30 all four owner-assigned follow-ons have landed** (DRIFT-G the spec-metadata
+`Discovery:` edit; AC0 the carried sidecar schema; DRIFT-C the minted `[discovery]` layout key
++ default/marker fallback; DRIFT-H the backlog ACs) in RFC-0053's implementing PR, so **this RFC
+has moved Open → Accepted** — the one-line status change over the already-aligned model the
+acceptance note anticipated.
 
 ## Follow-on artifacts
 
@@ -709,7 +710,7 @@ contract:
 | --- | --- | --- |
 | Sidecar schema | Carried in `discovery-loop` at user scope; consumers read instances by convention + a `schema_version` stamp. | RFC-0053 implementing spec **AC0** (DRIFT-I) |
 | Sidecar data handling | Sidecar slots are a **data-classification surface**; regulated/secret-bearing artifacts surface to the human / `discovery-threat-reviewer` lens before shared repo-backed writes (`_state/`). | RFC-0053 implementing spec owns per-slot classification, redaction, retention/export (R10) |
-| Discovery layout | The `docs/discovery/<initiative>/` config key is owned by RFC-0053's implementing spec; default + marker only until it binds. | RFC-0053 implementing spec (DRIFT-C) |
+| Discovery layout | The `[discovery] parent` adopter-file key (default `docs/discovery/`) is **minted** by RFC-0053's implementing spec (`discovery-loop/references/agentbundle-layout.md`); default + marker is the fallback until an adopter binds it. | RFC-0053 implementing spec (DRIFT-C) — **shipped** |
 | Discovery reviewers | `discovery-threat-reviewer` + `discovery-reliability-reviewer` (user-scope, distinct-named); `core`'s depth libraries are optional detect-and-degrade enhancers. | RFC-0053 / `discovery-loop` (DRIFT-E) |
 | Spec up-edge | `new-spec` produces the `Discovery:` header + discovery `type:` markers (a spec-format addition in CONVENTIONS § 4, not operating-model doctrine); must land before the traceability lint runs `--strict`. **Owned by RFC-0053's implementing spec** (the up-edge's consumer; folded in 2026-06-29), which also sequences the `--strict` flip. | RFC-0053 implementing spec (DRIFT-G) |
 | Backlog handoff | RFC-0053's implementing spec owns decision-brief → work-item decomposition and `loop-cohort` cross-component ingestion. | RFC-0053 implementing spec (DRIFT-H) |
@@ -802,6 +803,32 @@ superseded wording, the current-state table above wins.
   controls it lands as an acceptance criterion in RFC-0053's implementing spec — **not** an
   RFC-0048 acceptance blocker. See [RFC-0053](0053-the-discovery-loop.md)
   § Security &amp; integrity contract.
+- **2026-06-30 — D7/D8 implemented by child-5's implementing PR (the `discovery-loop` build).**
+  The amendments above wrote the controls and the no-engine shape as *acceptance criteria the
+  implementing spec would carry*; that spec is now **built**. The `discovery-loop` skill +
+  `discovery-lead` agent + the two discovery reviewers
+  (`discovery-threat-reviewer` / `discovery-reliability-reviewer`) + the carried sidecar-schema
+  reference + the plan-tree asset ship in `product-engineering` (0.9.0), with the two D6 skills
+  (`explore-options` / `plan-validation`) and the `de-risk-intent` / `decompose-intent`
+  extensions; the coordinator shape is recorded in
+  [ADR-0043](../adr/0043-the-discovery-coordinator-is-an-agent-plus-skill-plus-carried-sidecar-no-engine.md)
+  (the sibling of ADR-0031). The security & integrity + data-handling amendments above land as
+  the spec's hard ACs; the validation run records the **executed** traceability-lint
+  orphan → CONVERGED transition (and the `--strict` convergence-gate behaviour) and **models**
+  the cap-pause + the three security negative paths on a recursive tree. **This discharges the
+  owner-assigned acceptance blockers** — DRIFT-G (the `Discovery:` up-edge header + discovery
+  `type:` markers, format-only in `new-spec` + CONVENTIONS § 4, with the lint's `--strict` flip
+  sequenced *after* the header lands), AC0 (the carried sidecar schema), the layout key, and the
+  backlog ACs — so the RFC **has moved Open → Accepted** (this change; the Status line + the
+  acceptance-blocker record updated to reflect the discharge). DRIFT-C is discharged concretely:
+  the implementing spec **mints the `[discovery]` adopter-file table**
+  (`discovery-loop/references/agentbundle-layout.md`), with default + marker the fallback until an
+  adopter binds it. The DRIFT-G `new-spec`/CONVENTIONS edit carries a **`core` 0.7.0** bump. **One
+  cross-spec gap surfaced:** AC34 names a
+  dependency on child-4's lint performing **root→leaf reachability**, but the shipped lint does
+  per-node edge-**presence** (the discovery-loop skill names the dependency and flags the gap; a
+  child-4 follow-up owns closing it). This *implements* D7/D8; no contradiction. See
+  [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts and `docs/specs/discovery-loop/`.
 - **2026-06-26 — the company-OS third (SRE/ops) seat specified, by RFC-0049's child spec.**
   RFC-0048's end-to-end table and diagram name the **G4→G5 release/deploy loop + ship**
   as [RFC-0049](0049-the-release-loop-and-company-os.md)'s, deferring the

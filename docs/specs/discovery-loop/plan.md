@@ -1,7 +1,7 @@
 # Plan: discovery-loop
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -32,10 +32,12 @@ projection), with the traceability lint as the one executable conformance check 
 end-to-end run as the load-bearing gate for the cap / recursion / forged-consent / tamper / fan-out
 transitions the spike modelled but did not run live.
 
-> **Authoring note.** This PR authors `spec.md` + `plan.md` and flips RFC-0053 to **Accepted**; the
-> tasks below are the *implementation* work-breakdown for the gated follow-on PR(s) that build the
-> capability. The spec is **Draft** until that build lands (the `release-loop` / `experience-pack`
-> precedent: author the contract now, build as the gated follow-on).
+> **Authoring note (updated for the implementing PR).** The spec + plan were authored against an
+> already-Accepted RFC-0053; **this PR is the implementing PR** — it builds the capability the tasks
+> below describe (the agent + skills + carried schema + asset + DRIFT-G + guides + ADR-0043 +
+> packaging + the validation-run record), so the spec is now **Shipped** and this plan **Done**. The
+> earlier "author now, build as the gated follow-on" framing (the `release-loop` / `experience-pack`
+> precedent) applied to the authoring PR; it no longer holds here — the build has landed.
 
 ## Constraints
 
@@ -364,3 +366,16 @@ and the lint transition observed.
   brief-template slot (AC24) + the coordinator ADR (AC39), and strengthened the security ACs
   (tamper-evidence hash-chain + test, verdict-forgery negative test, cascade fan-out default + forced
   test, classification gate on the checkpoint write) — all reconciled into the task AC references here.
+- 2026-06-30: **implemented.** This PR built T1–T10 — the `discovery-loop` skill + references +
+  self-coverage modules + plan-tree asset, the `discovery-lead` agent + the two discovery reviewers,
+  the `explore-options` / `plan-validation` skills + the `de-risk-intent` / `decompose-intent`
+  extensions, the DRIFT-G `Discovery:` up-edge producer (with the `--strict` flip sequenced after),
+  the four Diátaxis guides, ADR-0043, the PE 0.9.0 bump + changelog, and the validation-run record
+  (the executed traceability-lint orphan→CONVERGED transition + the modelled cap-pause / security
+  negative paths). Spec → **Shipped**, plan → **Done**. Adversarial + security + quality review
+  applied: anchored the decision-log hash-chain (the bare chain is re-chainable by the writing agent),
+  pinned resume to re-derive `human` provenance from the untokened store, added an absolute-count
+  companion to the cascade fan-out gate, required an untrusted-content marker for lens writes, made
+  the validation-run negative paths honest (`degraded — harness-conformance precondition, not
+  demonstrated`), corrected the AC34 reachability claim to name-the-dependency + flag the child-4 gap,
+  and surfaced two follow-ups (eval coverage; child-4 reachability) in `docs/backlog.md`.
