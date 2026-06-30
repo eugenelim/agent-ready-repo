@@ -155,8 +155,8 @@ the referent the scope guard and the human use to reject the fulfillment temptat
 ## Stage 3 · Discovery convergence — the lens-team on the blackboard
 
 **Driver:** DL as controller; **solo** here (small discovery — the spike ran solo), with
-the design-time lenses switched in one context per [RFC-0053 D5](../0053-the-coordinator-contract.md).
-The sidecar (schema carried in `discovery-loop`, not `core`, [RFC-0053 D2](../0053-the-coordinator-contract.md)) threads it.
+the design-time lenses switched in one context per [RFC-0053 D5](../0053-the-discovery-loop.md).
+The sidecar (schema carried in `discovery-loop`, not `core`, [RFC-0053 D2](../0053-the-discovery-loop.md)) threads it.
 
 ### 3a · Product lens — features
 `decompose-intent`: `cap:resource-state` → features add/edit/view item, auto-decrement on
@@ -305,7 +305,7 @@ inventory-screens emits screen:learning-review
 
 The traceability slot's `check_sidecar` lint flags `service:learning-approval` +
 `service:fulfillment` as orphans **pre-ripple**, reports CONVERGED after — connectedness is
-checkable in ~60 lines, no engine ([RFC-0053 D2](../0053-the-coordinator-contract.md)).
+checkable in ~60 lines, no engine ([RFC-0053 D2](../0053-the-discovery-loop.md)).
 
 ▶ **DRIFT-G (Discovery edge).** The chain the lint walks closes the *discovery* edges here.
 But the **`spec → discovery` up-edge** (the `Discovery:` header on the eventual spec) is
@@ -317,7 +317,7 @@ edge — so the G3 backstop is only as strong as that follow-on. Assigned at **D
 
 OQ-2 ("is external-fulfillment in appetite?") is a **scope/value call** — not
 referent-settled — so the surfacing predicate **surfaces it** at G1.5; **H rejects**.
-Recovery, in the controller's context, no engine ([RFC-0053 D3](../0053-the-coordinator-contract.md)):
+Recovery, in the controller's context, no engine ([RFC-0053 D3](../0053-the-discovery-loop.md)):
 mark `cap:external-fulfillment` rejected → **cascade-invalidate** `screen:fulfillment` +
 `service:fulfillment` stale by walking the traceability out-edges → drop their edges → re-run
 only the UX lens. The edge set scopes the blast radius. A markdown+JSON edit, not a framework call.

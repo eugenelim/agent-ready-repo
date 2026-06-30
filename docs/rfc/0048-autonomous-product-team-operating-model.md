@@ -70,7 +70,7 @@ can the catalogue become an autonomous product team without violating Principle 
 | D2 | Frame D1, D3–D6 as doctrine + pure-markdown skills + reference libraries (no new runtime engine), with the build loop reusing `core`'s code reviewers and discovery shipping its own distinct-named user-scope design-time reviewers? | Adopt (the coordinator's no-engine fit is excepted — it is the Decision-7 spike) | The Accepted RFC-0041/0043 precedent; leaves the CHARTER three-reviewer ceiling untouched | RFC accept | Confirm the no-runtime framing + the loop-scoped discovery reviewer roster |
 | D3 | Grow the design/UX seat (`map-customer-journey`, `blueprint-service`, `inventory-screens`, `map-internal-process` + grounding/taste + voice wiring + the `experience-reviewer`) and rename `design-craft → experience`? | Adopt; rename adopted (v0.1.1 user-scope ⇒ low migration cost; `contract-acquisition` precedent — rename dirs + a governance erratum, no install-time alias) | The missing column is the design/UX seat, and `experience` names it better | RFC accept (records ADR-0038) | Confirm the seat additions + the rename + its migration path (modelled in RFC-0050) |
 | D4 | Add the `frame-domain` primitive — one skill producing two typed artifacts (Domain Framing + Scope Boundary)? | Adopt (split into two artifacts — § Amendments 2026-06-26) | The single biggest correctness lever against domain-hallucination and over-scoping | RFC accept | Confirm the two-artifact split |
-| D5 | Add the self-coverage gate — a `core` reference library + doctrine, run by both loop controllers, non-skippable, no new reviewer? | Adopt | Fixes the knowing-doing gap that lets errors compound between human gates | RFC accept | Confirm the non-skippable packaging |
+| D5 | Add **self-coverage** — the goal that each loop maximizes autonomy by substituting rigorous checklists for human-surfacing (**resolve-vs-surface**) — realized **per loop with loop-appropriate checklists** (design/build loops run the seven-module gate; the release loop its operational composite) and packaged as **per-loop controller doctrine** (each loop carries its own; no shared `core` library, no cross-pack coupling), non-skippable, no new reviewer? | Adopt (reframed as a cross-loop goal + packaging revised by child-3 — see § Amendments 2026-06-29) | Fixes the knowing-doing gap that lets errors compound between human gates; per-loop co-scoping keeps it present wherever each controller runs (a `core` library would be absent for the user-scope/pre-repo discovery loop) | RFC accept | Confirm the goal + the non-skippable per-loop packaging |
 | D6 | Add the traceability lint — structural-orphan detection generalizing `receive-brief`'s coverage lint? | Adopt (semantic scope-creep deferred to the coordinator spike / O10; MVP stays a human call at G1.5) | Mechanizes the chain's structural integrity | RFC accept | Confirm the structural-only scope |
 | D7 | Adopt `omnigent` as the (temporary) harness and run a sidecar + chief-loop validation — a spike, not a from-scratch coordinator build? | Sidecar-prototype-first (validate the typed sidecar, the chief, and consent rejection/recovery + outer cap against the worked example) | The sidecar is the connectedness verifier | RFC accept | Confirm spike-first, not build |
 | D8 | Ship the chief — `discovery-lead` — as an agent + the `discovery-loop` convergence-loop skill, in `product-engineering`? | Adopt (shape confirmed by the Decision-7 prototype) | The user-facing orchestrator is content, not infra; the two-loop split keeps each loop honest | RFC accept | Confirm the agent+skill shape, the `product-engineering` home, and the G3 hand-off to `work-loop` |
@@ -177,9 +177,11 @@ connective skills (`map-customer-journey`, `blueprint-service`, `inventory-scree
 grounding/taste enhancements. The full producer→consumer artifact inventory (8 product
 + 10 design artifacts; 4 net-new) is in [`0048-notes/04`](0048-notes/04-artifact-inventory.md).
 
-**D4–D6 — primitives.** Domain-anchor (typed artifact + `research` wiring); the
-self-coverage gate (reference library + `work-loop` doctrine, no new reviewer);
-the traceability/scope-creep lint (a tool).
+**D4–D6 — primitives.** Domain-anchor (typed artifact + `research` wiring); self-coverage
+(the cross-loop goal — autonomy via checklists that substitute for human-surfacing — realized
+per loop with loop-appropriate checklists; design/build loops run the seven-module gate, the
+release loop its operational composite; no new reviewer; packaging revised by child-3,
+§ Amendments 2026-06-29); the traceability/scope-creep lint (a tool).
 
 **D7 / D8 — the two loops, the `discovery-lead`, and the sidecar (design proposal).**
 
@@ -423,6 +425,20 @@ runtime, a workflow engine, or a CI matrix are all valid hosts — none is codif
   its reviewers hold the quality bar a human would otherwise hold — which is exactly why each design-time
   discipline needs its own forked reviewer (the RFC-0050 D7 roster correction), decided within
   ADR-0042's loop/work-type agent-addition policy.
+- **Self-coverage is the goal that pushes the autonomy boundary outward.** Reviewers hold the bar;
+  *self-coverage* is each loop's own discipline for **substituting rigorous checklists for what
+  would otherwise be surfaced to a human** — resolve autonomously everything a referent or checklist
+  can resolve (**resolve-vs-surface**), and surface only the irreducible (value origination,
+  irreversible risk, value conflict). It is realized **per loop, with loop-appropriate checklists**:
+  the design/build loops (`work-loop`, `discovery-loop`) run the **seven-module gate**
+  ([RFC-0051](0051-the-self-coverage-gate.md) owns the primitive — wired in `work-loop`, and for
+  discovery in [RFC-0053](0053-the-discovery-loop.md)); the **release loop** realizes the same
+  goal through an **operational composite** — `operational-safety` + `security-reviewer` +
+  `quality-engineer` + the automated convergence policy + the minimum-regret carve as its
+  resolve-vs-surface disposition ([RFC-0049](0049-the-release-loop-and-company-os.md)). The shared
+  cross-loop **seam** is the goal + resolve-vs-surface + a non-skippable coverage record; each loop
+  carries its own instantiation co-scoped (Decision 5; packaging revised by child-3 — § Amendments
+  2026-06-29). No new runtime, no new reviewer.
 
 So "deploy the autonomous product team" = stand up one environment per loop (per initiative for
 discovery, per module for build, per build-repo for release), wire them through the backlog + the
@@ -569,8 +585,10 @@ recommendation the approver ratifies at acceptance:*
 - `design-craft` → **`experience`** rename — adopted (Decision 3; migration via the
   `contract-acquisition` precedent).
 - the chief's name **`discovery-lead`** — adopted (Decision 8).
-- **self-coverage gate packaging** — resolved: reference library + doctrine in `core`,
-  loaded by both loop controllers, non-skippable (Decision 5).
+- **self-coverage gate packaging** — resolved (Decision 5), **packaging revised by child-3**:
+  per-loop co-scoped doctrine (each loop carries the gate in its own skill at its own scope),
+  non-skippable, no shared `core` library, no cross-pack coupling. See § Amendments (2026-06-29) +
+  [RFC-0051](0051-the-self-coverage-gate.md).
 - **build→deploy boundary** — **delegated to [RFC-0049](0049-the-release-loop-and-company-os.md)**
   (the release loop + minimum-regret deploy carve); out of 0048's scope.
 
@@ -600,16 +618,17 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   *Drafted: [`docs/specs/frame-domain/`](../specs/frame-domain/spec.md) — the three-component
   typed artifact wrapping `research` applied mode; surfaced the `docs/discovery/` layout-key
   drift reconciled at § Amendments DRIFT-C.*
-- **RFC (child 3):** the self-coverage gate (doctrine + reference library). *Wave 1,
-  parallel.* *Drafted (Open): [`0051-the-self-coverage-gate.md`](0051-the-self-coverage-gate.md)
-  — the non-skippable `core` coverage library both loop controllers run; no drift surfaced
-  against D5.*
+- **RFC (child 3):** the self-coverage gate (per-loop controller doctrine + reference modules).
+  *Wave 1, parallel.* *Drafted (Open): [`0051-the-self-coverage-gate.md`](0051-the-self-coverage-gate.md)
+  — the non-skippable coverage gate each loop controller carries in its own skill at its own
+  scope; **amends D5's packaging** (shared `core` library → per-loop co-scoped doctrine, no
+  cross-pack coupling) — recorded at § Amendments (2026-06-29).*
 - **Spec (child 4):** the traceability + scope-creep lint. *Wave 1, parallel.*
   *Drafted: [`docs/specs/traceability-lint/`](../specs/traceability-lint/spec.md)
   (structural orphans only; semantic scope-creep stays the human call at G1.5 per
   Decision 6 / O10).*
 - **Spike → RFC (child 5):** the coordinator contract. *Wave 2; depends on 1–4.*
-  *Drafted (Open): [`0053-the-coordinator-contract.md`](0053-the-coordinator-contract.md)
+  *Drafted (Open): [`0053-the-discovery-loop.md`](0053-the-discovery-loop.md)
   — the spike ran (the typed sidecar + `discovery-loop` prototyped against the worked
   example; no-engine framing demonstrated on one example + a reproducible lint); the
   contract (sidecar schema · gate state machine · rejection/recovery + cascade-invalidation
@@ -685,6 +704,7 @@ contract:
 | Release-loop reviewer reuse | `release-engineering` is **repo-scope**, installed in the build repo; `release-lead` therefore **reuses** `core`'s repo-scope `quality-engineer` / `security-reviewer` / `operational-safety` — sound because release runs **downstream, in the build repo** where `core` is installed. The scope-inverse of discovery's own-reviewer resolution (user-scope, pre-repo); same footgun rule, opposite scope. | RFC-0049 / [release-loop spec](../specs/release-loop/spec.md) |
 | Agent-addition governance | The reviewer-ceiling reading is **generalized** into a loop/work-type-keyed agent-addition policy ([ADR-0042](../adr/0042-agent-additions-keyed-to-loop-and-work-type.md), supersedes ADR-0023): add an agent only where it clears a value test (independence / parallelism / distinct surface-cadence); the core `work-loop` code-review gate stays capped at three lenses. The discovery roster and any new design-time reviewer are decided *within* this policy. | ADR-0042 (Accepted) / RFC-0050 D7 |
 | UX/design design-time reviewer | **RFC-0050 D7 adopted** (binds on RFC-0050 acceptance): the UX/design lens gains an opt-in forked `experience-reviewer` (collision-hardened, *not* `design-reviewer`) for autonomous design review between human-value-add gates; `design-critique` stays the authoring-time skill. | RFC-0050 D7 |
+| Self-coverage scope + packaging | **A cross-loop goal realized per loop, packaged as per-loop co-scoped doctrine — not a shared `core` library** (reframes + revises D5). *Goal:* each loop maximizes autonomy by substituting rigorous checklists for human-surfacing (resolve-vs-surface). *Instantiation:* the design/build loops (`work-loop`, `discovery-loop`) run the **seven-module gate**; the **release loop** realizes the same goal through an **operational composite** (`operational-safety` + `security-reviewer` + `quality-engineer` + the convergence policy + the minimum-regret carve) — RFC-0049. *Packaging:* each loop carries its own copy co-scoped (`work-loop` in `core`/repo; `discovery-loop` in `product-engineering`/user when built; release in `release-engineering`/repo), no shared library, no cross-pack coupling. "Run by every loop controller" (D5) means **every loop runs the same goal** through a loop-appropriate instantiation, not that they read one file — because `core` is repo-scope but `discovery-loop` is user-scope/pre-repo, and a non-skippable gate cannot detect-and-degrade. | RFC-0051 (child 3, owns the goal + seam + design/build gate) / RFC-0049 (release-loop instantiation) / RFC-0053 (wires discovery) |
 
 ### Amendment history / audit trail
 
@@ -725,7 +745,7 @@ superseded wording, the current-state table above wins.
   See [`docs/specs/traceability-lint/spec.md`](../specs/traceability-lint/spec.md) +
   its `notes/cross-repo-traceability-research.md`.
 - **2026-06-26 — D7/D8 spike-confirmed by child-5 (the coordinator contract,
-  [RFC-0053](0053-the-coordinator-contract.md)).** Decision 7 authorized a *spike, not a
+  [RFC-0053](0053-the-discovery-loop.md)).** Decision 7 authorized a *spike, not a
   build*, and Decisions 7–8 wrote the coordinator's no-engine fit as a default to be
   *confirmed empirically*. Child-5 ran that prototype — the typed sidecar +
   `discovery-loop` against the worked example ([`02`](0048-notes/02-worked-example-flow-trace.md))
@@ -736,7 +756,7 @@ superseded wording, the current-state table above wins.
   moves from hypothesis to demonstrated-on-one-example** (single operator, not replicated;
   the O12 stall path modelled not run — honest limits carried into RFC-0053's spec as a
   second-example validation run). No contradiction with D7/D8; this *confirms* them.
-  See [RFC-0053](0053-the-coordinator-contract.md) § Evidence + [`0053-notes/`](0053-notes/).
+  See [RFC-0053](0053-the-discovery-loop.md) § Evidence + [`0053-notes/`](0053-notes/).
 - **2026-06-26 — reviewer-ceiling scope clarified, by child-5.** D7/D8's body framed the
   discovery loop's design-time lens roster (~5 disciplines, incl. a security/compliance
   lens distinct from `work-loop`'s code `security-reviewer`) as carrying its own roster
@@ -754,7 +774,7 @@ superseded wording, the current-state table above wins.
   blackboard poisoning, a cascade-invalidation circuit-breaker, and a `reversibility-class`
   enumeration. These *extend* D7's "decision log doubles as the audit trail" and the O5
   live-lens claim rather than contradicting them, and land as acceptance criteria in
-  RFC-0053's implementing spec. See [RFC-0053](0053-the-coordinator-contract.md)
+  RFC-0053's implementing spec. See [RFC-0053](0053-the-discovery-loop.md)
   § Security &amp; integrity contract.
 - **2026-06-28 — D7's sidecar contract extended with a data-handling / privacy boundary (R10).**
   A review pass found the sidecar/coordinator contract covered integrity and authorization
@@ -767,7 +787,7 @@ superseded wording, the current-state table above wins.
   guidance, and retention/export rules. This *extends* D7's sidecar doctrine and the
   2026-06-26 security/integrity surface rather than contradicting either; like those integrity
   controls it lands as an acceptance criterion in RFC-0053's implementing spec — **not** an
-  RFC-0048 acceptance blocker. See [RFC-0053](0053-the-coordinator-contract.md)
+  RFC-0048 acceptance blocker. See [RFC-0053](0053-the-discovery-loop.md)
   § Security &amp; integrity contract.
 - **2026-06-26 — the company-OS third (SRE/ops) seat specified, by RFC-0049's child spec.**
   RFC-0048's end-to-end table and diagram name the **G4→G5 release/deploy loop + ship**
@@ -900,6 +920,48 @@ superseded wording, the current-state table above wins.
   roster (RFC-0048:235) and the *Current reconciliation state* table; it **binds on RFC-0050's
   acceptance**. Neither item re-opens a Decision's value call: (1) generalizes the governance
   reading, (2) corrects a roster asymmetry. See [RFC-0050](0050-the-experience-pack.md) § D7.
+- **2026-06-29 — self-coverage reframed as a cross-loop goal + repackaged per-loop (revises D5),
+  by child-3 ([RFC-0051](0051-the-self-coverage-gate.md)).** D5's body framed self-coverage as "a
+  reference library + doctrine in `core`, loaded by both loop controllers" — both a too-narrow
+  *scope* (a single design-flavored gate for two controllers) and a *packaging* that does not
+  survive this RFC's scope split (the D5 row, the D4–D6 summary, and the new operating-model
+  *self-coverage is the goal* bullet now carry the revised wording in-body, this RFC being Open and
+  editable; this entry is the audit trail of why). **Reframe:** self-coverage is a *goal* — each
+  loop maximizes autonomy by substituting rigorous checklists for what would otherwise be surfaced
+  to a human (resolve-vs-surface) — realized **per loop with loop-appropriate checklists**: the
+  design/build loops (`work-loop`, `discovery-loop`) run the **seven-module gate**; the **release
+  loop** realizes the *same goal* through an **operational composite** (`operational-safety` +
+  `security-reviewer` + `quality-engineer` + the convergence policy + the minimum-regret carve as
+  its resolve-vs-surface disposition — [RFC-0049](0049-the-release-loop-and-company-os.md)). So
+  self-coverage spans **all three loops**, not two. Child-3's design pass
+  found the original packaging does not survive **this RFC's own scope
+  split**: `work-loop` is repo-scope (it lives in `core`), but `discovery-loop` is **user-scope and
+  possibly pre-repo** (the operating-model section's "PM/designer environment, possibly pre-repo").
+  A repo-scope `core` library is **absent** when `discovery-loop` runs outside a `core`-installed
+  workspace — and a *non-skippable* gate whose depth can be absent is a contradiction, because the
+  only fallback (detect-and-degrade) is the very posture this section reserves for the discovery
+  *reviewers'* optional depth and that is self-defeating for the floor-raiser itself. This is the
+  **same scope-decoupling correction** the 2026-06-26 entry above already applied to the sidecar
+  schema and the discovery reviewers (a user-scope, workspace-portable capability cannot assume a
+  repo-scope `core` install; carry-in-the-producing-skill, don't share a cross-pack layer).
+  **Resolution:** the gate is **per-loop controller doctrine** — each loop carries it in its own
+  skill at its own scope (`work-loop` in `core`/repo; `discovery-loop` in `product-engineering`/user
+  when built), as a named phase + progressive-disclosure reference modules + a **per-loop**
+  sample-bank — with **no shared library and no `core`↔`product-engineering` coupling**, so each
+  pack stands alone (the release loop's composite lives co-scoped in `release-engineering`). D5's
+  "run by every loop controller" is reconciled to mean **every loop runs the same goal** through a
+  loop-appropriate instantiation, not that they read one file. The shared cross-loop **seam** is the
+  *goal + resolve-vs-surface + the non-skippable coverage record* (not the seven steps — those are
+  the design/build instantiation, shared by `work-loop` and `discovery-loop` only). This is sound
+  because, *unlike* `operational-safety` (consumed by a Skill-less subagent that needs the modules
+  inlined into its brief), the gate runs in the **controller's own context** and needs no external
+  shareable skill. **Revises + widens D5** on scope grounds; re-opens no value call (the gate's
+  existence, non-skippability, and no-new-reviewer framing are unchanged — only its scope widens to
+  three loops and its packaging goes per-loop). **Owners:** RFC-0051 (the goal + seam + the
+  design/build gate + its implementing spec `docs/specs/self-coverage-gate/`, wiring `work-loop`);
+  RFC-0053 (wires `discovery-loop`'s copy); RFC-0049 (the release-loop operational instantiation).
+  **Not** an RFC-0048 acceptance blocker. See [RFC-0051](0051-the-self-coverage-gate.md) § The ask
+  (*What self-coverage is*) + § Proposal + § Follow-on artifacts.
 
 ### Foundation reconciliation discharge — the composed-set reconciliation (2026-06-26)
 
@@ -923,7 +985,7 @@ Cross-referenced as **DRIFT-x** in note 10.
   → component`; `code` ([`0048-notes/02`](0048-notes/02-worked-example-flow-trace.md)'s
   worked-example terminus) is the **component's content, not a separate node** (the form the
   [traceability-lint spec](../specs/traceability-lint/spec.md) § Assumptions and
-  [RFC-0053 D2](0053-the-coordinator-contract.md) already use). Note 02's `…spec→code` line
+  [RFC-0053 D2](0053-the-discovery-loop.md) already use). Note 02's `…spec→code` line
   (and its GAP-O4 reference) is corrected to the `component` terminus so the canonical
   freeze-reading source no longer disagrees with the lint that walks the chain.
 - **DRIFT-B — the sidecar *store*: `_state/` is the harness-neutral in-repo default; the
@@ -968,7 +1030,7 @@ Cross-referenced as **DRIFT-x** in note 10.
   distinct-named, user-scope reviewer agents, not `core`'s code reviewers overloaded with a
   mode.** Earlier drafts variously phrased these as the existing `security-reviewer` +
   `quality-engineer` "in a design-artifact mode" *and* (in D7/D8's body and
-  [RFC-0053 D5](0053-the-coordinator-contract.md)) as "a different agent" — leaving a reader
+  [RFC-0053 D5](0053-the-discovery-loop.md)) as "a different agent" — leaving a reader
   unable to tell which primitive to build. **Resolution:** because `product-engineering` is
   user-scope, the discovery security/quality lenses ship as a discovery-owned, **user-scope
   reviewer set with collision-hardened names** (`discovery-threat-reviewer` /
