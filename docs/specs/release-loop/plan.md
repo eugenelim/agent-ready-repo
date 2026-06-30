@@ -109,6 +109,11 @@ carries it after build-self.
   policy (canary + e2e coverage of changed surface + flake < 2%), DORA as health
   signal, the outer cap + stall-surface, the sidecar-consumption slots. Verifies
   AC3–AC8.
+- `grep` presence of the **release-readiness gate** (AC6b): the readiness-record
+  assembly before G5 (convergence result + operational + security verdicts +
+  cumulative error-budget status), the *ratify-a-record* framing, the AC10(d)
+  advisory-until-validated constraint on the telemetry pre-fill, and the explicit
+  `error-budget: not-defined` recorded field when the artifact is absent. Verifies AC6b.
 - `lint-packs` + `tools/lint-agent-artifacts.py` pass on the SKILL.md frontmatter.
 
 **Approach:**
@@ -117,7 +122,11 @@ carries it after build-self.
   blackboard → back to `work-loop` inner loop → redeploy → converge), the
   minimum-regret carve (two zones, AC3/AC4), the reversibility primitives (AC5),
   convergence by policy + DORA (AC6), the inner↔outer feedback seam + sidecar
-  consumption (AC7), the outer cap + cost budget + stall-surface (AC8).
+  consumption (AC7), the outer cap + cost budget + stall-surface (AC8), and the
+  **release-readiness gate** (AC6b — assemble the readiness record consolidating
+  the convergence + operational + security verdicts + cumulative error-budget
+  status, AC10(d)-validated telemetry, ratified at G5; record an explicit
+  `error-budget: not-defined` field when the artifact is absent).
 - Keep every sentence **harness- and tool-neutral**; name omnigent + cloud/IaC
   tools only as *illustrative* (Principle 1).
 - Cross-link `operational-safety`'s modules + the `quality-engineer` /
@@ -126,7 +135,7 @@ carries it after build-self.
 - Add `references/` modules only if the SKILL.md body would otherwise exceed the
   lean-prose bar — default to inline.
 
-**Done when:** the activation eval passes, the AC3–AC8 grep checks are present,
+**Done when:** the activation eval passes, the AC3–AC8 and AC6b grep checks are present,
 and `lint-packs` is green.
 
 ### T3: The `release-lead` agent definition is the outer-loop supervisor
