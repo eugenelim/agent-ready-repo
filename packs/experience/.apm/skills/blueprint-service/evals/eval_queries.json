@@ -1,0 +1,21 @@
+[
+  {"query": "Create a service blueprint for our checkout journey", "should_trigger": true},
+  {"query": "Map the backstage services that back this screen", "should_trigger": true},
+  {"query": "Blueprint the service behind our account-registration flow", "should_trigger": true},
+  {"query": "What services and systems support our onboarding journey?", "should_trigger": true},
+  {"query": "Build a service blueprint — frontstage, backstage, support rows", "should_trigger": true},
+  {"query": "Show me what's behind the line of visibility for this user flow", "should_trigger": true},
+  {"query": "Map the backstage actions and support systems for our booking journey", "should_trigger": true},
+  {"query": "Service blueprint this — I need to know what backs each screen", "should_trigger": true},
+  {"query": "Blueprint the service: what backs each step in our password-reset flow?", "should_trigger": true},
+
+  {"query": "Map the stages and emotions in our customer's journey", "should_trigger": false},
+  {"query": "Sequence our screens and show the transitions between them", "should_trigger": false},
+  {"query": "Map our internal business process for order fulfilment", "should_trigger": false},
+  {"query": "Critique this checkout screen for usability issues", "should_trigger": false},
+  {"query": "Design the interaction behavior for this form", "should_trigger": false},
+  {"query": "Write copy for the empty and error states of this screen", "should_trigger": false},
+  {"query": "Design the token taxonomy for our design system", "should_trigger": false},
+  {"query": "Create a C4 component diagram for our payment service", "should_trigger": false},
+  {"query": "Name the aesthetic direction for our product — make it feel calm and premium", "should_trigger": false}
+]

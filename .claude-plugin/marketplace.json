@@ -109,19 +109,20 @@
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "design",
-      "description": "Framework-agnostic design-craft discipline for interaction/visual designers \u2014 authors of the upstream design intent the build consumes. Four skills (aesthetic-direction, design-system-foundations, layout-and-information-architecture, design-critique) plus a shared quality-floor checklist (handle-all-states, accessibility floor, reduced-motion principle). Pure method: no stack, no values tables \u2014 points to WCAG / W3C Design Tokens, never reprints them.",
-      "displayName": "Design Craft",
+      "description": "The design/UX seat for product teams \u2014 the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (map-customer-journey \u2192 map-screen-flow \u2192 blueprint-service) and map the inside-out sibling (map-internal-process); craft skills design each screen (aesthetic-direction, design-system-foundations, layout-and-information-architecture, interaction-design) and critique it (design-critique), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps \u2014 points to WCAG / W3C Design Tokens / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
+      "displayName": "Experience",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
+        "customer-journey",
+        "service-blueprint",
+        "interaction-design",
         "design-systems",
-        "aesthetic-direction",
-        "information-architecture",
         "heuristic-evaluation"
       ],
       "license": "Apache-2.0 OR MIT",
-      "name": "design-craft",
+      "name": "experience",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.1"
+      "version": "0.2.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -187,7 +188,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "product-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.7.0"
+      "version": "0.8.0"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",

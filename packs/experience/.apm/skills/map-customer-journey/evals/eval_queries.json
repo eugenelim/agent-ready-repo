@@ -1,0 +1,21 @@
+[
+  {"query": "Map the customer journey for someone signing up for our product", "should_trigger": true},
+  {"query": "Create a journey map for our onboarding flow", "should_trigger": true},
+  {"query": "What does the user go through when they first use the app?", "should_trigger": true},
+  {"query": "Map out the experience stages for a first-time buyer", "should_trigger": true},
+  {"query": "I need a customer journey map for our checkout flow on iOS", "should_trigger": true},
+  {"query": "What are the customer touchpoints and pain points in this flow?", "should_trigger": true},
+  {"query": "Journey map this experience — from discovery to first value", "should_trigger": true},
+  {"query": "Map the customer's emotional arc through the registration process", "should_trigger": true},
+  {"query": "Build a journey map showing where customers feel friction in our mobile app", "should_trigger": true},
+
+  {"query": "Blueprint the backing services for the checkout screen", "should_trigger": false},
+  {"query": "Map the screen flow for the onboarding steps", "should_trigger": false},
+  {"query": "Design the internal business process for our support team", "should_trigger": false},
+  {"query": "Map the internal process for order fulfillment", "should_trigger": false},
+  {"query": "Critique this design and tell me what usability problems it has", "should_trigger": false},
+  {"query": "Name the aesthetic direction for this product", "should_trigger": false},
+  {"query": "Design the interaction behavior for this form", "should_trigger": false},
+  {"query": "Derive the token taxonomy for this design system", "should_trigger": false},
+  {"query": "Structure the information architecture for this page", "should_trigger": false}
+]

@@ -1,0 +1,21 @@
+[
+  {"query": "Map the screen flow for this onboarding journey", "should_trigger": true},
+  {"query": "What screens do we need for the checkout journey, and how do they connect?", "should_trigger": true},
+  {"query": "Sequence the screens for this flow and route what happens when an action fails", "should_trigger": true},
+  {"query": "Turn this customer journey into a screen-to-screen flow with per-screen briefs", "should_trigger": true},
+  {"query": "Design the screen flow — transitions, error states, and a brief per screen", "should_trigger": true},
+  {"query": "Where does the user land if this payment fails? Map the screen flow", "should_trigger": true},
+  {"query": "Lay out the screens and their navigation for the signup experience", "should_trigger": true},
+  {"query": "Give me a per-screen brief for each screen in this flow", "should_trigger": true},
+  {"query": "Map the screens this journey implies and walk the whole flow to check it holds", "should_trigger": true},
+
+  {"query": "Map the customer journey for our onboarding", "should_trigger": false},
+  {"query": "Blueprint the services behind these screens", "should_trigger": false},
+  {"query": "Map our internal claims-handling business process", "should_trigger": false},
+  {"query": "Design how this form behaves — its feedback, validation, and state machine", "should_trigger": false},
+  {"query": "Run a heuristic critique of this screen", "should_trigger": false},
+  {"query": "Name the aesthetic direction for this product", "should_trigger": false},
+  {"query": "Derive a spacing and type scale from these goals", "should_trigger": false},
+  {"query": "Structure the information architecture for this page", "should_trigger": false},
+  {"query": "What should this error message say?", "should_trigger": false}
+]

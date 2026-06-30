@@ -780,9 +780,10 @@ coverage today: **`core`** (5 skills, Tier-A activation), **`converters`**
 **`architect`** (3 skills, Tier-A activation **+** Tier-4 LLM-judge),
 **`product-engineering`** (5 skills, Tier-A activation **+** Tier-4 LLM-judge),
 **`contracts`** (2 skills, Tier-A activation), **`figma`** (1 skill, Tier-A
-activation), **`atlassian`** (8 skills, Tier-A activation), **`design-craft`**
-(4 skills, Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite since the
-four skills are judgment/authoring), **`governance-extras`** (3 skills,
+activation), **`atlassian`** (8 skills, Tier-A activation), **`experience`**
+(9 skills — renamed from `design-craft`, RFC-0050; Tier-A activation **+** Tier-4
+LLM-judge — both layers, no B-lite since the skills are judgment/authoring),
+**`governance-extras`** (3 skills,
 Tier-A activation **+** Tier-4 LLM-judge — both layers, no B-lite; the three
 skills are governance authoring/judgment), **`user-guide-diataxis`**
 (1 skill — `new-guide` — Tier-A activation **+** Tier-4 LLM-judge — both
@@ -805,8 +806,8 @@ Remaining work, tiered by what it needs:
   no deps/execution).** Remaining: `monorepo-extras` (1)
   needs `evals/eval_queries.json` + a `[pack.evals]`
   block (the same ~8–10-each-way near-miss pattern as `core`). `architect` (3),
-  `product-engineering` (5), `contracts` (2), `design-craft`
-  (4), `governance-extras` (3), `user-guide-diataxis` (1, `new-guide`), and
+  `product-engineering` (5), `contracts` (2), `experience`
+  (9), `governance-extras` (3), `user-guide-diataxis` (1, `new-guide`), and
   `research` (8 — 7 scoping/synthesis/decision skills + `research-project-start`;
   the 3 project-interior steps excluded per its `[pack.evals]` coverage note) are
   **done**; the credentialed/backend `figma` (1) and `atlassian` (8) Tier-A
@@ -824,14 +825,14 @@ Remaining work, tiered by what it needs:
   needs recorded cassettes / a test backend → see
   `behavior-check-for-backend-skills`.
 - **Tier 4 — judgment / agent-workflow skills** (`core` 5, `architect`,
-  `research`, `product-engineering`, `design-craft`, `governance-extras`,
+  `research`, `product-engineering`, `experience`, `governance-extras`,
   `new-guide`, `new-package`): produce specs/diagrams/research/critiques by
   judgment, not a deterministic artifact. The **LLM-judge mechanism now exists**
   (RFC-0037 § Errata E4, `--mode judge`, config-driven multi-adapter) — so the
   remaining work here is **(a)** a per-skill **lens map** (point each skill at
   the right rubric / reviewer lens — e.g. `architect-review` for `architect-design`),
   authoring the `expected_output`/`assertions` rubrics — **done for all of
-  `architect` (3), `product-engineering` (5), `design-craft` (4),
+  `architect` (3), `product-engineering` (5), `experience` (9),
   `governance-extras` (3), `user-guide-diataxis` (`new-guide`), and `research`
   (8 — the 7 artifact-emitting judgment skills + `research-project-synthesize`'s
   governance brief)**;

@@ -117,3 +117,26 @@ Ask your agent, for example:
 ---
 
 → **Go deeper:** the [`product-engineering` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-engineering/).
+
+---
+
+## Cross-pack: `experience`
+
+`voice-and-microcopy` is the **content layer of the design seat** — the words
+live here, in `product-engineering`, while the design methods, screen flow, and
+per-screen briefs live in the `experience` pack. The two packs read as one seat:
+
+- **`experience`'s `map-screen-flow`** produces the per-screen state matrix
+  (one row per screen × state: empty / loading / error / success / partial /
+  disabled / permission-denied). Pass that matrix to `voice-and-microcopy` and
+  it writes copy keyed to every cell.
+- **Without a screen flow**, `voice-and-microcopy` is still fully useful —
+  it degrades to naming the states inline. The pairing is additive, not required.
+
+Install both packs to run the full design-to-copy thread:
+
+```bash
+agentbundle install experience product-engineering
+```
+
+→ See the [`experience` pack README](../experience/README.md).
