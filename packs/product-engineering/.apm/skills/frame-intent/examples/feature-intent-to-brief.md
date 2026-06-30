@@ -13,10 +13,10 @@ login flow already exists, so **Maturity: brownfield**.
 ```
 # Intent: cut password-reset support load with self-serve reset
 
-- Slug: self-serve-password-reset
-- Level: feature
-- Scale: app
-- Maturity: brownfield
+- **Slug:** self-serve-password-reset
+- **Level:** feature
+- **Scale:** app
+- **Maturity:** brownfield
 
 ## Outcome
 - Input (steerable): % of reset requests completed without an agent

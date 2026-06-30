@@ -1114,17 +1114,34 @@ checked AC34 links this `#anchor`.
 
 ### discovery-loop-type-marker-producers
 
-**Spec:** [discovery-loop](specs/discovery-loop/spec.md) (AC36, DRIFT-G)
+**Resolved 2026-06-30** by the
+[discovery-producer-type-markers](specs/discovery-producer-type-markers/spec.md) spec
+(experience 0.3.0, product-engineering 0.10.0). Every producer the lint can recognize
+now emits its marker in the on-disk form the recognizer reads — a **bold-body field**,
+not frontmatter: `map-screen-flow`'s per-screen brief carries `- **Type:** screen-brief`;
+`map-customer-journey` and `blueprint-service` carry `- **Action:** <slug>` /
+`- **Service:** <slug>` container entries; `frame-intent`'s intent template gains an
+optional `- **Kind:** outcome|opportunity` field (beside the existing
+`- **Level:** capability`), carried onto child intents by `decompose-intent`. So a
+future fail-closed traceability up-edge is no longer load-bearing on markers that don't
+exist. This tombstone is **retained** (not removed) because the `discovery-loop` spec's
+AC36 / DRIFT-G links this `#anchor`. The same spec also resolved the three items the
+first cut had surfaced: the **CONVENTIONS § 4** marker-form drift (corrected to the
+bold-body field as a factual erratum), the **screen glob↔nested-path gap** (the lint's
+`recognize_screens` now recurses — see `screen-brief-nested-path-glob` below), and the
+**intent↔chain rung mapping** (documented in `product-engineering`'s `intent-model.md`;
+the lint's `recognize_ladder` docstring landed). `core` 0.7.1 → 0.7.2 carries the lint
+change.
 
-CONVENTIONS § 4 now documents the discovery-artifact `type:` marker grammar, and
-the traceability lint already recognizes `type:` / `Kind:` / `Level:` markers — but
-only `frame-domain` currently *emits* a `type:` marker (`type: domain-framing` /
-`type: scope-boundary`). The other producer artifacts the lint can recognize
-(screens via `type: screen-brief`, journey/blueprint container entries, intent-ladder
-rungs) are not all wired to emit their markers yet. AC36 scopes `discovery-loop` as
-the *consumer* of the up-edge grammar, so no shipped AC requires full producer
-wiring — this is a latent consistency gap. **Unblocks when:** the producer skills
-(`map-screen-flow`, the journey/blueprint emitters, `frame-intent` /
-`decompose-intent` for the ladder) emit their `type:`/`Kind:`/`Level:` markers, so a
-future fail-closed traceability up-edge is not load-bearing on markers that don't
-exist.
+### screen-brief-nested-path-glob
+
+**Resolved 2026-06-30** by the
+[discovery-producer-type-markers](specs/discovery-producer-type-markers/spec.md) spec
+(`core` 0.7.2). `recognize_screens` (in `work-loop`'s `lint-traceability.py`) globbed
+`<screens-base>/*.md` **non-recursively**, but `map-screen-flow` writes per-screen
+briefs at `<parent>/screens/<slug>/<screen>.md` (nested one level), so a real brief was
+unreached by path. The recognizer now **walks the screens base recursively** (the
+`recognize_contracts` `_iter_dirs` precedent, symlink-safe), so a nested brief carrying
+`- **Type:** screen-brief` is recognized; a screen-flow *index* file (`type: screen-flow`,
+no bold-body marker) is not. The self-test gained a nested-brief case. This tombstone is
+**retained** because the spec's AC11 records it.

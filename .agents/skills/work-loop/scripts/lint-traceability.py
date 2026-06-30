@@ -434,14 +434,22 @@ def recognize_briefs(base: Path, root: Path, g: Graph) -> dict[str, Path]:
 
 
 def recognize_screens(base: Path, root: Path, g: Graph) -> None:
-    """File-backed `screen` nodes: `<screens-base>/*.md` carrying
-    `**Type:** screen-brief`. Id `screen:<stem>`."""
-    for p in sorted(_confined(base.glob("*.md"), root)):
-        if p.name.startswith("_"):
+    """File-backed `screen` nodes carrying `**Type:** screen-brief`, found
+    **recursively** under `<screens-base>`. `map-screen-flow` nests a per-screen
+    brief at `screens/<slug>/<screen>.md`, so the walk mirrors
+    `recognize_contracts` (symlink-safe `_iter_dirs`, the issue #190 rglob gap)
+    rather than a flat `*.md` glob. Id `screen:<stem>`. A screen-flow *index*
+    file (`type: screen-flow` frontmatter, no bold-body `**Type:** screen-brief`)
+    is not matched."""
+    for d in _iter_dirs(base):
+        if not _within(d, root):
             continue
-        text = _read(p)
-        if text and (_first(text, _TYPE_RE) or "").lower() == "screen-brief":
-            g.add(_slug_id("screen", p.stem), "screen")
+        for p in sorted(_confined(d.glob("*.md"), root)):
+            if p.name.startswith("_"):
+                continue
+            text = _read(p)
+            if text and (_first(text, _TYPE_RE) or "").lower() == "screen-brief":
+                g.add(_slug_id("screen", p.stem), "screen")
 
 
 def recognize_contracts(base: Path, root: Path, g: Graph) -> None:
@@ -467,9 +475,10 @@ def recognize_ladder(base: Path, root: Path, g: Graph) -> dict[str, Path]:
     `outcome`/`opportunity` *kinds* across `vision`/`strategy`/`capability`/
     `feature` *levels*, so `capability` is a level while the other two are
     kinds. The extractor maps `**Kind:** outcome|opportunity` → that chain node,
-    and `**Level:** capability` → the `capability` node — reconciled against the
-    `frame-intent`/`decompose-intent` format, degrading until it lands. Returns
-    slug→path for edge build."""
+    and `**Level:** capability` → the `capability` node — the producer format the
+    `frame-intent`/`decompose-intent` intent template now emits (see
+    `product-engineering`'s `intent-model.md` § Placing an intent on the
+    traceability chain). Returns slug→path for edge build."""
     found: dict[str, Path] = {}
     for p in sorted(_confined(base.glob("*.md"), root)):
         if p.name.startswith("_"):
