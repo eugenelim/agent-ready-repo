@@ -32,6 +32,9 @@ is not validation; the loop says so structurally.
 - **The plan-tree template** — [`assets/plan-tree.md`](assets/plan-tree.md), the
   instantiable recursive intent-tree scaffold the controller copies per
   initiative.
+- **The discovery layout key** — [`references/agentbundle-layout.md`](references/agentbundle-layout.md),
+  the adopter-owned `[discovery]` table (the discovery-tree layout key this spec
+  mints; default + marker until an adopter binds it).
 - **Depth references** (load on demand): the gate state machine + verdict set +
   cascade + resume in full — [`references/gate-state-machine.md`](references/gate-state-machine.md);
   the security & integrity controls as enforced behaviour —

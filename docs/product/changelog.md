@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wired as its pre-G2 phase. *(Eval coverage for the three new skills is a tracked
   follow-up, matching the `frame-domain` precedent.)*
 - **`new-spec` and the spec-metadata contract gain an optional `Discovery:` up-edge
-  header + discovery-artifact `type:` markers (core, format-only — DRIFT-G).** A
+  header + discovery-artifact `type:` markers (core 0.7.0, format-only — DRIFT-G).** A
   spec descended from an upstream discovery artifact records it in a `Discovery:`
   header (the discovery-side sibling of `Brief:`), the producer edge a traceability
   check walks; discovery-side artifacts carry a `type:` marker so a check finds them
