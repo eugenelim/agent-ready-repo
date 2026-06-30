@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The `work-loop` skill now carries the self-coverage gate as a thin, named
+  phase (core 0.6.0, implementing RFC-0051 for the `work-loop` slice).** The loop
+  doctrine now names its existing passes as the gate's steps (REVIEW *is* the
+  fresh-context-adversarial step; the PLAN assumption trio + declined-pattern
+  register *are* the pre-mortem hook; `Surface` + DECIDE's apply/defer routing
+  *are* the resolve-vs-surface bones), and adds two net-new spec-time checks
+  governed by the existing light/full mode — a **resolve-vs-surface disposition
+  record** (every open item is resolved-with-referent or surfaced-with-reason) and
+  a **conditional domain-grounding** check (fires only on an ungrounded
+  load-bearing domain claim, else degrades). One new end-of-session-checklist
+  refusal item makes the disposition record non-skippable. A self-contained
+  `references/self-coverage/resolve-vs-surface.md` calibrates the
+  resolve-vs-surface call. No new reviewer, no new pack, no `docs/CONVENTIONS.md`
+  change, no second right-sizing knob; the heavy seven-module design-convergence
+  battery stays `discovery-loop`'s, never bolted onto the build loop.
 - **The `design-craft` pack grows up into the `experience` pack — the design/UX
   seat that carries the whole design thread from journey to realization
   (experience 0.2.0, implementing RFC-0050 D1–D10; the rename is bridged by the
