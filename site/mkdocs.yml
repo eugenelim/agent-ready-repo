@@ -1,0 +1,285 @@
+site_name: agent-ready-repo
+site_description: The complete AI operating model for software teams — from first idea to production.
+site_url: https://eugenelim.github.io/agent-ready-repo/
+repo_url: https://github.com/eugenelim/agent-ready-repo
+repo_name: eugenelim/agent-ready-repo
+edit_uri: ""
+
+docs_dir: docs
+site_dir: built
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/robot-outline
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/eugenelim/agent-ready-repo
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/agentbundle/
+  generator: false
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search:
+      lang: en
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.snippets
+
+nav:
+  - Home: index.md
+  - Get Started:
+    - getting-started/index.md
+    - Install: getting-started/install.md
+    - The Three Loops: getting-started/three-loops.md
+  - Packs:
+    - packs/index.md
+    - "Core — Build Loop": packs/core.md
+    - "Product Engineering": packs/product-engineering.md
+    - "Release Engineering": packs/release-engineering.md
+    - Research: packs/research.md
+    - Architect: packs/architect.md
+    - Experience: packs/experience.md
+    - Contracts: packs/contracts.md
+    - Converters: packs/converters.md
+    - Atlassian: packs/atlassian.md
+    - Figma: packs/figma.md
+    - "Governance Extras": packs/governance-extras.md
+    - "User Guide Diataxis": packs/user-guide-diataxis.md
+    - "Monorepo Extras": packs/monorepo-extras.md
+    - "Credential Brokers": packs/credential-brokers.md
+  - Guides:
+    - guides/README.md
+    - "The Build Loop (core)":
+      - guides/core/README.md
+      - Explanation:
+        - The Core Pack: guides/core/explanation/core-pack.md
+        - Foundation vs Map: guides/core/explanation/foundation-vs-map.md
+        - Token Economy: guides/core/explanation/token-economy.md
+        - Walking Skeleton: guides/core/explanation/walking-skeleton-vs-throwaway.md
+        - Why a Brief Layer: guides/core/explanation/why-a-brief-layer.md
+        - Why the Plan Owns LLD: guides/core/explanation/why-the-plan-owns-the-lld.md
+      - How-to:
+        - Adapt to Project: guides/core/how-to/adapt-to-project.md
+        - Bug Fix: guides/core/how-to/bug-fix.md
+        - Plan and Execute: guides/core/how-to/plan-and-execute-non-trivial-work.md
+        - Receive a Brief: guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md
+        - Record Foundation: guides/core/how-to/record-your-foundation-during-inception.md
+        - Review a PR: guides/core/how-to/review-someone-elses-pr.md
+      - Reference:
+        - Product Brief Fields: guides/core/reference/product-brief-fields.md
+        - Spec Shape & LLD: guides/core/reference/spec-shape-and-lld.md
+      - Tutorials:
+        - Start a New Project: guides/core/tutorials/start-a-new-project.md
+    - "Product Discovery":
+      - guides/product-engineering/README.md
+      - Explanation:
+        - The Discovery Loop: guides/product-engineering/explanation/the-discovery-loop.md
+        - The Intent Tree: guides/product-engineering/explanation/the-intent-tree.md
+      - How-to:
+        - Frame a Product Vision: guides/product-engineering/how-to/frame-a-product-vision.md
+        - Run a Discovery: guides/product-engineering/how-to/run-a-discovery.md
+        - Shape a Feature Intent: guides/product-engineering/how-to/shape-a-feature-intent.md
+        - Shape a Product Strategy: guides/product-engineering/how-to/shape-a-product-strategy.md
+        - Run a Value Stream: guides/product-engineering/how-to/run-a-capability-across-a-value-stream.md
+        - Write Microcopy: guides/product-engineering/how-to/write-product-microcopy.md
+      - Reference:
+        - Sidecar & Roster: guides/product-engineering/reference/discovery-sidecar-and-roster.md
+        - Intent Fields: guides/product-engineering/reference/intent-fields-and-modes.md
+      - Tutorials:
+        - Walk a Discovery: guides/product-engineering/tutorials/walk-a-discovery-end-to-end.md
+    - "Release Engineering":
+      - guides/release-engineering/README.md
+      - Explanation:
+        - The Release Loop: guides/release-engineering/explanation/the-release-loop.md
+      - How-to:
+        - Run a Release: guides/release-engineering/how-to/run-a-release.md
+      - Reference:
+        - Readiness Record: guides/release-engineering/reference/release-readiness-record.md
+      - Tutorials:
+        - Your First Release: guides/release-engineering/tutorials/your-first-release.md
+    - Research:
+      - guides/research/README.md
+      - Explanation:
+        - Episodic vs Project: guides/research/explanation/episodic-vs-project-research.md
+        - Research Methodology: guides/research/explanation/research-methodology.md
+      - How-to:
+        - Research Pipelines: guides/research/how-to/research-pipelines.md
+        - Research into an RFC: guides/research/how-to/run-a-research-project-into-an-rfc.md
+      - Reference:
+        - Research Pack: guides/research/reference/research-pack.md
+      - Tutorials:
+        - First Research Session: guides/research/tutorials/research-first-session.md
+        - First Research Project: guides/research/tutorials/your-first-research-project.md
+    - Architect:
+      - guides/architect/README.md
+      - How-to:
+        - Diagram a System: guides/architect/how-to/diagram-a-system.md
+        - Establish Reference Architecture: guides/architect/how-to/establish-reference-architecture.md
+        - Review an Architecture: guides/architect/how-to/review-an-architecture-artifact.md
+        - Shape a Concept: guides/architect/how-to/shape-an-architecture-concept.md
+      - Reference:
+        - Reference Architecture: guides/architect/reference/reference-architecture.md
+      - Tutorials:
+        - Create Reference Arch: guides/architect/tutorials/create-your-reference-architecture.md
+    - Experience:
+      - guides/experience/README.md
+      - Explanation:
+        - The Experience Thread: guides/experience/explanation/the-experience-thread.md
+      - How-to:
+        - Author Design Intent: guides/experience/how-to/author-design-intent.md
+      - Reference:
+        - Experience Pack: guides/experience/reference/experience.md
+    - Contracts:
+      - guides/contracts/README.md
+      - Explanation:
+        - Contract-First Design: guides/contracts/explanation/contract-first-design.md
+      - How-to:
+        - Generate an API Contract: guides/contracts/how-to/generate-an-api-contract.md
+        - Author an Event Contract: guides/contracts/how-to/author-an-event-contract.md
+      - Reference:
+        - Contract Skills: guides/contracts/reference/contract-skills.md
+    - Converters:
+      - guides/converters/README.md
+      - How-to:
+        - Documents to Markdown: guides/converters/how-to/convert-documents-to-markdown.md
+        - Markdown to HTML: guides/converters/how-to/convert-markdown-to-html-and-email.md
+        - Markdown to Office: guides/converters/how-to/publish-markdown-to-office.md
+        - Render Mermaid: guides/converters/how-to/render-mermaid-diagrams.md
+      - Reference:
+        - Converter Skills: guides/converters/reference/converter-skills.md
+    - Atlassian:
+      - guides/atlassian/README.md
+      - Explanation:
+        - The Atlassian Pack: guides/atlassian/explanation/atlassian-pack.md
+      - How-to:
+        - Authenticate with SSO: guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md
+        - Crawl Confluence: guides/atlassian/how-to/crawl-and-publish-confluence.md
+        - DORA Metrics: guides/atlassian/how-to/measure-flow-and-dora-metrics.md
+        - Work with Jira: guides/atlassian/how-to/work-with-jira.md
+      - Reference:
+        - Atlassian Skills: guides/atlassian/reference/atlassian-skills.md
+    - Figma:
+      - guides/figma/README.md
+      - How-to:
+        - Inspect a Figma File: guides/figma/how-to/inspect-a-figma-file.md
+      - Reference:
+        - Figma Skill: guides/figma/reference/figma-skill.md
+    - "Governance Extras":
+      - guides/governance-extras/README.md
+      - How-to:
+        - New ADR: guides/governance-extras/how-to/new-adr.md
+        - New RFC: guides/governance-extras/how-to/new-rfc.md
+    - "Monorepo Extras":
+      - guides/monorepo-extras/README.md
+      - How-to:
+        - Scaffold a Package: guides/monorepo-extras/how-to/scaffold-a-new-package.md
+      - Reference:
+        - new-package: guides/monorepo-extras/reference/new-package.md
+    - "Credential Brokers":
+      - guides/credential-brokers/README.md
+      - Explanation:
+        - Credentialed Skills: guides/credential-brokers/explanation/credentialed-skills.md
+      - How-to:
+        - Add a Credentialed Skill: guides/credential-brokers/how-to/add-a-credentialed-skill.md
+    - "User Guide (Diataxis)":
+      - guides/user-guide-diataxis/README.md
+      - Explanation:
+        - The Diataxis Framework: guides/user-guide-diataxis/explanation/the-diataxis-framework.md
+      - How-to:
+        - Write a Guide: guides/user-guide-diataxis/how-to/write-a-guide.md
+    - Cross-cutting:
+      - Overview: guides/_shared/README.md
+      - Explanation:
+        - The Three Loops: guides/_shared/explanation/the-three-loops.md
+        - File Safety Contract: guides/_shared/explanation/file-safety-contract.md
+        - Install Routes: guides/_shared/explanation/install-routes.md
+        - Pack Catalogue: guides/_shared/explanation/pack-catalogue.md
+        - Shaping an Engagement: guides/_shared/explanation/shaping-a-new-engagement.md
+      - How-to:
+        - Author a Skill: guides/_shared/how-to/author-a-skill.md
+        - Build an Org Pack: guides/_shared/how-to/build-an-org-stack-pack.md
+        - Install a Profile: guides/_shared/how-to/install-a-profile.md
+        - Install from Clone: guides/_shared/how-to/install-agentbundle-from-clone.md
+        - Install User Scope (Codex): guides/_shared/how-to/install-user-scope-pack-into-codex.md
+        - Install User Scope (Kiro): guides/_shared/how-to/install-user-scope-pack-into-kiro.md
+        - Preview Install: guides/_shared/how-to/preview-install-or-upgrade.md
+        - Run a Full Inception: guides/_shared/how-to/run-a-full-inception.md
+        - Upgrade Packs: guides/_shared/how-to/upgrade-packs.md
+      - Reference:
+        - Adapter Support Matrix: guides/_shared/reference/adapter-support.md
+        - agentbundle CLI: guides/_shared/reference/agentbundle.md
+  - Changelog: changelog.md
+  - Contributing: contributing.md

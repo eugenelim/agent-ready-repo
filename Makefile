@@ -185,3 +185,20 @@ zipapp:
 
 release-preflight: lint-packs
 	@bash tools/release-check.sh
+
+# ── Site publishing ──────────────────────────────────────────────────────────
+# Requires: pip install -r site/requirements.txt
+
+.PHONY: site-sync site-build site-serve site-deploy
+
+site-sync:  ## Aggregate repo content into site/docs/ (run before build/serve)
+	$(PYTHON) tools/build-site.py
+
+site-build: site-sync  ## Build static site → site/built/ (strict, matches CI)
+	mkdocs build --config-file site/mkdocs.yml --strict
+
+site-serve: site-sync  ## Start live-reload dev server at http://localhost:8000
+	mkdocs serve --config-file site/mkdocs.yml
+
+site-deploy: site-sync  ## Deploy to gh-pages branch (CI uses pages.yml instead)
+	mkdocs gh-deploy --config-file site/mkdocs.yml --force

@@ -1,0 +1,94 @@
+/* ── Hero landing page ─────────────────────────────────────────────────── */
+
+.hero-actions {
+  margin: 1.5rem 0 2rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Large button variant */
+.md-button--large {
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+}
+
+/* Landing page: wider content area, no sidebar clutter */
+[data-md-color-scheme] .md-content__inner {
+  max-width: 900px;
+}
+
+/* ── Pack catalogue cards ──────────────────────────────────────────────── */
+
+.grid.cards > ul > li,
+.grid.cards > ol > li {
+  border-radius: 8px;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.grid.cards > ul > li:hover,
+.grid.cards > ol > li:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+[data-md-color-scheme="slate"] .grid.cards > ul > li:hover,
+[data-md-color-scheme="slate"] .grid.cards > ol > li:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Code blocks ───────────────────────────────────────────────────────── */
+
+.md-typeset code {
+  border-radius: 4px;
+}
+
+.md-typeset pre > code {
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* ── Navigation ────────────────────────────────────────────────────────── */
+
+.md-nav__title {
+  font-weight: 700;
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────── */
+
+.md-typeset table:not([class]) {
+  font-size: 0.875rem;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  font-weight: 600;
+}
+
+/* ── Scope badges inline ───────────────────────────────────────────────── */
+
+.scope-badge {
+  display: inline-block;
+  padding: 0.1em 0.5em;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 600;
+  font-family: var(--md-code-font-family);
+  background: var(--md-accent-fg-color--transparent);
+  color: var(--md-accent-fg-color);
+  vertical-align: middle;
+  margin-left: 0.25em;
+}
+
+/* ── Home page section headings ────────────────────────────────────────── */
+
+.md-typeset h2 {
+  margin-top: 2.5rem;
+}
+
+/* ── Announcement bar (optional) ────────────────────────────────────────── */
+
+.md-banner {
+  font-size: 0.875rem;
+}
