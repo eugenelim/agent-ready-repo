@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`msg-to-markdown` is now a pure-Python skill that also reads `.eml`, and
+  emits the unified output contract (converters 0.6.0).** The Outlook `.msg`
+  converter is re-hosted from Node.js onto Python: `.msg` is read via `olefile` +
+  first-party MAPI decoding (replacing the `msg-parser`/`extract-msg`/npm readers
+  — see ADR-0046), and MIME `.eml` is now supported through the same render path
+  (multipart bodies, nested `message/rfc822`, richer headers). Every conversion
+  now carries the same versioned frontmatter contract (`contract-version`, `tier:
+  0-no-ml`, `content-type`, `ingestion-quality`) that `file-to-markdown` emits, so
+  email ingests into a context layer exactly like documents. It preserves headers
+  (From/To/CC/**BCC**/Date/Importance), the body (HTML reduced to Markdown, or
+  plain text), and an attachments table, and it **closes the attachment-extraction
+  path-traversal sink** the old Node script carried (every write is basename-
+  reduced and confined). No Node.js, no ML/OCR model, no network call.
+
 - **`file-to-markdown` gains three opt-in higher-fidelity capabilities
   (converters 0.5.0).** All three are **off by default** — the default one command
   (`python scripts/convert.py "<file>"`) is unchanged. (1) **`--enrich`** turns on
