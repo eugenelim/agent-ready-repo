@@ -1,9 +1,8 @@
 """Tests for convert.py — the tiered document surface.
 
-Covers the dispatch + contract-wrapping + confined write (T3/AC3, AC8, AC12),
-Tier-0 PDF (T4/AC4, AC6, AC13), Tier-0 Office lib + stdlib paths (T5/AC5, AC9,
-AC13), the D7 formats (T6/AC7), the Docling in-process identity (T7/AC10), and
-the no-ML property (AC4/AC5). Unit tests exercise the pure extractors; the E2E
+Covers the dispatch + contract-wrapping + confined write,
+Tier-0 PDF, Tier-0 Office lib + stdlib paths, the D7 formats, the Docling in-process identity, and
+the no-ML property. Unit tests exercise the pure extractors; the E2E
 tests spawn the documented `python scripts/convert.py <file>` invocation.
 
 Run with `python -m pytest` from this directory.
@@ -157,7 +156,7 @@ def test_write_output_routes_through_confine(tmp_path, monkeypatch):
 
 
 def test_full_document_body_injection_is_content_not_contract(tmp_path):
-    """AC8: a body containing `---` and a forged `contract-version:` line is
+    """A body containing `---` and a forged `contract-version:` line is
     read as content — a frontmatter parser sees only the builder's leading
     block."""
     hostile_body = "Intro paragraph.\n\n---\ncontract-version: \"9.9\"\ntier: \"3-managed-api\"\n\nMore."
@@ -165,7 +164,7 @@ def test_full_document_body_injection_is_content_not_contract(tmp_path):
         body=hostile_body, tier=contract.TIER_0, content_type="pdf",
         confidence="high", requires_review=False,
     )
-    # AC8 names the assemble+write path — assert on the on-disk artifact.
+    # Assert on the on-disk artifact — the assemble+write path.
     out = convert.write_output(tmp_path / "in.pdf", convert.assemble(result, "in.pdf"))
     fm, body = frontmatter_and_body(out.read_text())
     assert 'contract-version: "1.0"' in fm
@@ -203,8 +202,8 @@ def test_extract_pdf_sparse_escalates(tmp_path):
     assert r.confidence == "low"
     assert r.requires_review is True
     assert r.escalation == contract.TIER_1
-    # AC6 is an observable-output contract: the escalation target must reach the
-    # emitted frontmatter, not just the ExtractResult.
+    # The escalation target is an observable-output contract: it must reach
+    # the emitted frontmatter, not just the ExtractResult.
     fm, _ = frontmatter_and_body(convert.assemble(r, "scan.pdf"))
     assert f'escalation-target: "{contract.TIER_1}"' in fm
 
@@ -327,7 +326,7 @@ def test_office_row_ceiling(tmp_path, monkeypatch):
     monkeypatch.setattr(convert, "MAX_SHEET_ROWS", 1)
     r = convert._extract_xlsx(p)
     assert "truncated" in r.body
-    # A row-truncated sheet is not fully extracted — AC13 requires it flagged.
+    # A row-truncated sheet is not fully extracted — it must be flagged.
     assert r.requires_review is True
     assert r.confidence == "low"
 
@@ -344,7 +343,7 @@ def test_office_guard_order_bomb_renamed_docx(tmp_path):
 
 def test_office_corrupt_zip_renamed_docx_is_flagged(tmp_path):
     """A non-zip file renamed `.docx` is refused as a flagged result, not a
-    bare BadZipFile crash (adversarial round-1 finding 4)."""
+    bare BadZipFile crash."""
     p = tmp_path / "corrupt.docx"
     p.write_bytes(b"this is plainly not a zip archive")
     r = convert._extract_docx(p)
@@ -354,7 +353,7 @@ def test_office_corrupt_zip_renamed_docx_is_flagged(tmp_path):
 
 def test_office_lib_path_rejects_dtd(tmp_path):
     """The ordinary-lib path is DTD-gated before the lib's transitive lxml
-    parses — a DOCTYPE in any XML member is refused (security round-1 finding 2)."""
+    parses — a DOCTYPE in any XML member is refused."""
     if not convert._lib_available("docx"):
         pytest.skip("python-docx not installed")
     p = tmp_path / "xxe.docx"
@@ -442,7 +441,7 @@ def test_extract_odt(tmp_path):
 
 def test_extract_odf_rejects_dtd(tmp_path):
     """A DTD in content.xml is refused as a flagged result, consistent with the
-    Office path (quality round-1 finding 1)."""
+    Office path."""
     p = tmp_path / "xxe.odt"
     write_zip(p, {
         "content.xml": (
@@ -505,7 +504,7 @@ def test_extract_epub_flags_guard_skipped_member(tmp_path):
 
 
 def test_docling_body_passed_through_unmodified(tmp_path, monkeypatch):
-    """AC10: the body handed to the builder equals Docling's export verbatim;
+    """The body handed to the builder equals Docling's export verbatim;
     only the two contract keys are added."""
     docling_md = "# Doc\n\nText with a --- rule\n\ncontract-version: not-real\n"
     install_fake_docling(monkeypatch, docling_md)
@@ -521,7 +520,7 @@ def test_docling_body_passed_through_unmodified(tmp_path, monkeypatch):
 
 
 def test_tier0_paths_import_no_docling(tmp_path, no_docling):
-    """AC4/AC5: representative Tier-0 extractors run with docling unimportable."""
+    """Representative Tier-0 extractors run with docling unimportable."""
     (tmp_path / "p.html").write_text("<p>hi there friend</p>")
     assert convert._extract_html(tmp_path / "p.html").tier == contract.TIER_0
     (tmp_path / "d.csv").write_text("a,b\n1,2\n")

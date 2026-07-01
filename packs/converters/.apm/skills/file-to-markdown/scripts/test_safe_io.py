@@ -1,8 +1,8 @@
 """Tests for safe_io.py — the defensive parsing + confinement helpers.
 
-Covers AC9 (XXE-safe XML; decompression-bomb guard on every axis; path-join /
-traversal guard; no nested-archive recursion), AC12 (output-path confinement,
-including the sibling-prefix case), and AC13 (input-size ceiling).
+Covers (XXE-safe XML; decompression-bomb guard on every axis; path-join /
+traversal guard; no nested-archive recursion), (output-path confinement,
+including the sibling-prefix case), and (input-size ceiling).
 
 Run with `python -m pytest` from this directory.
 """
@@ -17,7 +17,7 @@ import pytest
 import safe_io
 
 
-# --- AC9: XXE-safe XML ------------------------------------------------------
+# --- XXE-safe XML ------------------------------------------------------
 
 
 def test_parse_xml_reads_plain_xml():
@@ -49,7 +49,7 @@ def test_parse_xml_refuses_internal_entity_dtd():
 
 def test_parse_xml_refuses_dtd_past_a_fixed_window():
     """A DOCTYPE padded past any fixed prolog window is still refused — the scan
-    is whole-buffer, not the first 64 KB (security round-1 finding 2)."""
+    is whole-buffer, not the first 64 KB."""
     padded = (
         b'<?xml version="1.0"?>' + b"<!-- " + b" " * 200_000 + b" -->"
         + b'<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]><r/>'
@@ -58,7 +58,7 @@ def test_parse_xml_refuses_dtd_past_a_fixed_window():
         safe_io.parse_xml(padded)
 
 
-# --- AC9: decompression-bomb guard, per axis --------------------------------
+# --- decompression-bomb guard, per axis --------------------------------
 
 
 def _write_zip(path: Path, members: dict[str, bytes], compression=zipfile.ZIP_DEFLATED):
@@ -172,7 +172,7 @@ def test_harden_untrusted_enforces_member_cap(tmp_path):
             sz.harden_untrusted()
 
 
-# --- AC12: output-path confinement -----------------------------------------
+# --- output-path confinement -----------------------------------------
 
 
 def test_confine_accepts_in_root(tmp_path):
@@ -210,7 +210,7 @@ def test_confine_rejects_sibling_prefix(tmp_path):
         safe_io.confine(sibling / "out.md", root)
 
 
-# --- AC13: input-size ceiling -----------------------------------------------
+# --- input-size ceiling -----------------------------------------------
 
 
 def test_check_input_size_refuses_oversized(tmp_path):

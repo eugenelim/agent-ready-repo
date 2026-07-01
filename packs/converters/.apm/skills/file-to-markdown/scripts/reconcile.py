@@ -359,10 +359,10 @@ def render_markdown(
     else:
         overall_confidence = "medium"
 
-    # The image branch is an in-session agent-vision read (RFC-0058 Tier 1).
+    # The image branch is an in-session agent-vision read.
     # The shared builder prepends contract-version + tier and owns the
     # ingestion-quality block; everything else is this branch's own ordered
-    # fields, byte-identical to the pre-contract output (spec AC2).
+    # fields, byte-identical to the pre-contract output.
     yaml = contract.build_frontmatter(
         tier=contract.TIER_1,
         extraction_confidence=overall_confidence,

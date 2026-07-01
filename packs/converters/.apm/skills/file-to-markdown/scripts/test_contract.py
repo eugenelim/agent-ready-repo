@@ -1,11 +1,11 @@
 """Tests for contract.py — the shared unified-output-contract builder.
 
 Covers:
-  AC1 — every required key present, versioned, tier from the enum.
-  AC2 — byte-parity: applied to the image branch's current extras, the builder
+  every required key present, versioned, tier from the enum.
+  byte-parity: applied to the image branch's current extras, the builder
         reproduces today's reconcile.py frontmatter exactly, plus only the two
         added leading keys (proves the refactor didn't reorder / re-quote).
-  AC8 — injection safety: hostile values (---, newlines, a forged
+  injection safety: hostile values (---, newlines, a forged
         `contract-version:` line) are escaped/quoted, the fence is intact, and
         the real builder values win.
 
@@ -27,7 +27,7 @@ def _doc_fields():
     }
 
 
-# --- AC1: required keys, version, tier enum --------------------------------
+# --- required keys, version, tier enum --------------------------------
 
 
 def test_all_required_keys_present():
@@ -53,7 +53,7 @@ def test_contract_version_is_string_one_point_oh():
 
 
 def test_now_iso_is_seconds_precision():
-    """AC2 byte-parity depends on now_iso() keeping the timespec='seconds'
+    """byte-parity depends on now_iso() keeping the timespec='seconds'
     shape reconcile.py emitted before the refactor — pin it so a future edit
     that changed the precision would fail here."""
     import re
@@ -105,10 +105,10 @@ def test_fields_cannot_shadow_builder_owned_keys():
         )
 
 
-# --- AC2: byte-parity with today's reconcile.py frontmatter ----------------
+# --- byte-parity with today's reconcile.py frontmatter ----------------
 
 # Captured from the CURRENT reconcile.py `_yaml_block` for a representative
-# image-branch `front` dict (see spec AC2 / plan T1). The builder must
+# image-branch `front` dict. The builder must
 # reproduce this block verbatim below the two added leading keys.
 GOLDEN_IMAGE_BLOCK_AFTER_NEW_KEYS = """\
 title: "My Diagram"
@@ -170,7 +170,7 @@ def test_byte_parity_image_branch():
     assert block == expected
 
 
-# --- AC8: injection safety --------------------------------------------------
+# --- injection safety --------------------------------------------------
 
 
 def test_hostile_values_are_escaped_and_fence_is_intact():

@@ -3,7 +3,7 @@
 convert.py — convert documents and images to Markdown, tiered and no-ML-first.
 
 The skill's document surface. It routes each input to the lowest tier that can
-handle it (RFC-0058):
+handle it:
 
   * **Tier 0 (no ML)** — pure-Python / stdlib extractors for digital PDFs
     (``pypdf``), Office files (``python-docx`` / ``openpyxl`` / ``python-pptx``,
@@ -57,11 +57,11 @@ DOCLING_EXTS = {".xls"} | IMAGE_EXTS
 # Images wider or taller than this are pre-scaled before Docling processes them.
 MAX_IMAGE_DIM = 4000
 
-# Sparse-text threshold (AC6): a digital PDF yielding fewer than this many words
+# Sparse-text threshold: a digital PDF yielding fewer than this many words
 # is treated as image-only / low-quality and escalated, not silently emitted.
 SPARSE_WORD_THRESHOLD = 20
 
-# Coarse per-parser ceilings (AC13).
+# Coarse per-parser ceilings.
 MAX_PDF_PAGES = 5_000
 MAX_SHEET_ROWS = 1_000_000
 MAX_CSV_ROWS = 1_000_000
@@ -107,9 +107,9 @@ def supported_exts() -> set[str]:
 
 def _refused_result(content_type: str, message: str) -> ExtractResult:
     """A refused-but-flagged result: the input was not fully parsed — a resource
-    ceiling (AC13) or a defensive-parse refusal (a DTD, a decompression bomb;
-    AC9). The output carries requires-review + the reason rather than passing
-    silently or crashing the batch."""
+    ceiling or a defensive-parse refusal (a DTD, a decompression bomb). The
+    output carries requires-review + the reason rather than passing silently
+    or crashing the batch."""
     return ExtractResult(
         body=f"> **Not extracted.** {message}\n",
         tier=contract.TIER_0,
@@ -147,7 +147,7 @@ def _assess_text(text: str) -> tuple[str, bool, str | None]:
     """Map extracted text to (confidence, requires_review, escalation).
 
     Sparse or empty text escalates honestly to Tier 1 (agent-vision) rather
-    than emitting silent low-quality Markdown (AC6)."""
+    than emitting silent low-quality Markdown."""
     if len(text.split()) < SPARSE_WORD_THRESHOLD:
         return "low", True, contract.TIER_1
     return "high", False, None
@@ -157,9 +157,8 @@ def _extract_pdf(path: Path) -> ExtractResult:
     if (over := _guard_size(path, "pdf")) is not None:
         return over
     if not _lib_available("pypdf"):
-        # No stdlib PDF text path — degrade to the sparse/escalation path
-        # (Boundaries: "PDF → the sparse-text escalation path") rather than
-        # importing Docling or hard-failing.
+        # No stdlib PDF text path — degrade to the sparse-text escalation path
+        # rather than importing Docling or hard-failing.
         return ExtractResult(
             body=(
                 "> **Tier-0 PDF text extraction needs `pypdf`, which is not "
@@ -205,7 +204,7 @@ def _extract_pdf(path: Path) -> ExtractResult:
 # Every Office file is opened through safe_io.open_safe_zip first (the
 # decompression-bomb axes) and its XML members are DTD-gated, so no DTD ever
 # reaches the ordinary library's transitive lxml parser — the stdlib-XXE-safe
-# resolution applied to the library path (spec AC9 / Assumptions).
+# resolution applied to the library path.
 
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 _A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
@@ -230,7 +229,7 @@ def _harden_for_lib(sz: "safe_io.SafeZip", content_type: str) -> ExtractResult |
     """Before an ordinary Office library re-opens the raw file, fully validate
     every member through SafeZip — the per-member + cumulative decompression
     caps and the whole-buffer DTD refusal that the library path would otherwise
-    bypass (spec AC9). Returns an ExtractResult on refusal, else None."""
+    bypass. Returns an ExtractResult on refusal, else None."""
     try:
         sz.harden_untrusted()
     except safe_io.ZipBombError as exc:
@@ -320,7 +319,7 @@ def _extract_xlsx(path: Path) -> ExtractResult:
         sz.close()
     body = body or "> **No cell values found.**\n"
     # A row-truncated sheet is not fully extracted — flag it for review rather
-    # than silently dropping the tail (AC13).
+    # than silently dropping the tail.
     if truncated:
         confidence = "low"
     return ExtractResult(body, contract.TIER_0, "xlsx", confidence, truncated)
@@ -416,7 +415,7 @@ class _TextHTMLParser:
 
     Emits block-level breaks for common structural tags and drops script/style
     content, which is enough for a context-layer floor (fidelity is Tier 2's
-    job, per § Risks)."""
+    job)."""
 
     def __init__(self) -> None:
         from html.parser import HTMLParser
@@ -647,7 +646,7 @@ def _extract_docling(input_path: Path) -> ExtractResult:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
     # The Docling body is passed through unmodified — the builder wraps, never
-    # rewrites (AC10).
+    # rewrites.
     return ExtractResult(
         body=markdown,
         tier=contract.TIER_2,
@@ -664,8 +663,7 @@ def assemble(result: ExtractResult, source_name: str) -> str:
     """Wrap an extraction in the unified output contract (frontmatter + body).
 
     The frontmatter is the leading ``---``-fenced block only; the body sits
-    below it, so a ``---`` line in the body is content, not a second block
-    (AC8)."""
+    below it, so a ``---`` line in the body is content, not a second block."""
     fields: dict[str, object] = {
         "source-file": source_name,
         "content-type": result.content_type,
@@ -684,7 +682,7 @@ def assemble(result: ExtractResult, source_name: str) -> str:
 
 def write_output(input_path: Path, text: str) -> Path:
     """Write ``<basename>.md`` next to the input, confined to the input's
-    resolved directory (realpath + component containment, AC12)."""
+    resolved directory (realpath + component containment)."""
     root = input_path.resolve().parent
     output_path = safe_io.confine(root / (input_path.stem + ".md"), root)
     output_path.write_text(text, encoding="utf-8")

@@ -6,21 +6,21 @@ Every extraction `file-to-markdown` produces — across both of its output
 shapes (``convert.py``'s document + image-via-Docling path, and
 ``reconcile.py``'s diagram/image branch) — carries one YAML frontmatter block
 recording provenance and a quality/confidence signal. This module is the single
-builder that emits it, so the call sites cannot drift (spec AC1).
+builder that emits it, so the call sites cannot drift.
 
-Design notes (spec § Boundaries, RFC-0058 D3):
+Design notes:
   * **No PyYAML.** The emitter is the skill's existing hand-rolled stdlib
     emitter (lifted from ``reconcile.py``), extended here. ``yaml.safe_dump``
     would add a dependency the skill deliberately avoids *and* reorder keys
-    alphabetically, breaking the image branch's byte-stability (AC2/AC10).
-  * **Injection-safe (AC8).** Every string *value* is escaped/quoted —
+    alphabetically, breaking the image branch's byte-stability.
+  * **Injection-safe.** Every string *value* is escaped/quoted —
     backslash, double-quote, and (the load-bearing fix over the original
     emitter) newline / carriage-return / tab — so extracted content containing
     ``---``, a newline, or a ``key:`` line cannot break out of its scalar and
     forge or truncate the contract. The contract is the *leading* ``---``-fenced
     block only; the extracted body sits below it, and a compliant frontmatter
     parser stops at the first closing ``---``.
-  * **Additive + byte-stable (AC2).** The two new keys (``contract-version``,
+  * **Additive + byte-stable.** The two new keys (``contract-version``,
     ``tier``) are top-level; the quality signal stays nested under
     ``ingestion-quality`` on both branches. A caller passes its own ordered
     top-level ``fields`` (so the image branch's existing key order is preserved
@@ -37,7 +37,7 @@ from typing import Any, Mapping
 # changing its *meaning* is a contract change (hence the field). Starts at 1.0.
 CONTRACT_VERSION = "1.0"
 
-# Tier enum (RFC-0058). The skill only ever emits 0/1/2; Tier 3 (managed API)
+# Tier enum. The skill only ever emits 0/1/2; Tier 3 (managed API)
 # is unreachable from this code — there is no network egress.
 TIER_0 = "0-no-ml"           # stdlib / ordinary parsers, no model
 TIER_1 = "1-agent-vision"    # in-session agent vision read (the image branch)
@@ -64,8 +64,8 @@ def build_frontmatter(
 
     ``fields`` is the branch's ordered top-level keys and MUST include
     ``source-file``, ``content-type``, and ``ingestion-date`` (the required
-    fields whose position differs per branch, so the caller owns their order —
-    AC2). The builder prepends ``contract-version`` + ``tier`` and appends the
+    fields whose position differs per branch, so the caller owns their order).
+    The builder prepends ``contract-version`` + ``tier`` and appends the
     ``ingestion-quality`` block ({extraction-confidence, *extras, requires-review}),
     so the quality signal is builder-owned and identical across branches.
     """
@@ -108,7 +108,7 @@ def now_iso() -> str:
 
 
 # --- Hand-rolled stdlib YAML emitter (no PyYAML) ---------------------------
-# Lifted from reconcile.py and extended with newline/CR/tab escaping (AC8).
+# Lifted from reconcile.py and extended with newline/CR/tab escaping.
 
 
 def _yaml_block(d: Mapping[str, Any]) -> str:
@@ -144,7 +144,7 @@ def _escape(s: str) -> str:
     Backslash first (so we don't double-escape the backslashes the later
     replacements insert), then the double-quote, then the whitespace escapes.
     Escaping the newline is the load-bearing fix over the original emitter: a
-    raw newline inside a ``"..."`` scalar would break the fence (AC8)."""
+    raw newline inside a ``"..."`` scalar would break the fence."""
     return (
         s.replace("\\", "\\\\")
         .replace('"', '\\"')

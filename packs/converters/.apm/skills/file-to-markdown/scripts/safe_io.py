@@ -4,15 +4,14 @@ safe_io.py — defensive helpers for parsing untrusted document input.
 
 The Tier-0 floor treats document inputs as **untrusted** (they are fed into AI
 context layers, where the local-files-trusted carve-out does not hold). This
-module centralizes the three guards every reader routes through (spec AC9,
-AC12, AC13):
+module centralizes the three guards every reader routes through :
 
   * ``parse_xml`` — an XXE- and entity-expansion-safe XML read. Uses only
     stdlib ``xml.etree.ElementTree`` (which does not resolve external entities),
     and refuses any DTD/DOCTYPE up front — so both external-entity (XXE) and
     internal-entity (billion-laughs) attacks are closed, since both require a
     DTD to declare the entity. ``lxml`` / ``minidom`` / ``sax`` at defaults are
-    never used (spec § Never do).
+    never used.
   * ``SafeZip`` / ``open_safe_zip`` — a decompression-bomb-guarded zip reader.
     Refuses, *before* full decompression, on every axis: an implausible
     declared-vs-compressed size ratio, a total-cumulative-uncompressed cap, and
@@ -22,7 +21,7 @@ AC12, AC13):
   * ``confine`` — realpath + path-*component* containment output confinement
     (not a string-prefix check), mirroring the ``markdown-to-office-publishing``
     benchmark; a sibling like ``root-evil`` is rejected against root ``root``.
-  * ``check_input_size`` — the coarse max-input-bytes ceiling (AC13) shared by
+  * ``check_input_size`` — the coarse max-input-bytes ceiling shared by
     every Tier-0 parser.
 """
 from __future__ import annotations
@@ -33,7 +32,7 @@ from pathlib import Path
 from typing import Iterable
 from xml.etree import ElementTree as ET
 
-# --- Coarse resource ceilings (AC13) ---------------------------------------
+# --- Coarse resource ceilings ---------------------------------------
 
 MAX_INPUT_BYTES = 200 * 1024 * 1024        # 200 MB — coarse input-file ceiling
 MAX_ZIP_ENTRIES = 10_000                   # OOXML/ODF/EPUB have many members, not this many
@@ -50,22 +49,22 @@ _NESTED_ARCHIVE_EXTS = {
 
 
 class ResourceCeilingError(ValueError):
-    """An input exceeded a coarse resource ceiling (AC13)."""
+    """An input exceeded a coarse resource ceiling."""
 
 
 class ZipBombError(ValueError):
-    """A zip tripped a decompression-bomb guard (AC9)."""
+    """A zip tripped a decompression-bomb guard."""
 
 
 class XmlSafetyError(ValueError):
-    """XML carried a DTD/DOCTYPE (XXE / entity-expansion guard, AC9)."""
+    """XML carried a DTD/DOCTYPE (XXE / entity-expansion guard)."""
 
 
 # --- Input-size ceiling -----------------------------------------------------
 
 
 def check_input_size(path: Path, *, max_bytes: int = MAX_INPUT_BYTES) -> int:
-    """Refuse an oversized input up front; return its size in bytes (AC13)."""
+    """Refuse an oversized input up front; return its size in bytes."""
     size = path.stat().st_size
     if size > max_bytes:
         raise ResourceCeilingError(
@@ -79,7 +78,7 @@ def check_input_size(path: Path, *, max_bytes: int = MAX_INPUT_BYTES) -> int:
 
 
 def parse_xml(data: bytes | str) -> ET.Element:
-    """Parse untrusted XML into an ElementTree Element, XXE/DTD-safe (AC9).
+    """Parse untrusted XML into an ElementTree Element, XXE/DTD-safe.
 
     stdlib ``ElementTree`` does not resolve external entities; the DTD refusal
     below additionally blocks internal-entity (billion-laughs) *definitions*,
@@ -164,7 +163,7 @@ class SafeZip:
         axes miss), and whole-buffer-scan every XML-looking member for a DTD —
         by extension *or* by an ``<`` prolog, since ``lxml`` will parse XML
         content regardless of suffix. Nested-archive and traversal members are
-        skipped, never recursed into (spec AC9)."""
+        skipped, never recursed into."""
         for name in self._names:
             if not _is_safe_member_name(name) or _is_nested_archive(name):
                 # Nested-archive members are skipped, never recursed into (the
@@ -222,7 +221,7 @@ def open_safe_zip(
     max_member_bytes: int = MAX_ZIP_MEMBER_BYTES,
 ) -> SafeZip:
     """Open a zip, refusing on every decompression-bomb axis *before* any
-    member is decompressed (AC9). Reads use the zip's central-directory
+    member is decompressed. Reads use the zip's central-directory
     metadata only, which requires no decompression."""
     zf = zipfile.ZipFile(path)
     try:
@@ -264,7 +263,7 @@ def confine(path: Path, root: Path) -> Path:
 
     Path-*component* containment (``root`` is the resolved path or among its
     ``.parents``), not a string-prefix check, so a sibling like ``root-evil``
-    is rejected against root ``root``. Raises ``ValueError`` on escape (AC12)."""
+    is rejected against root ``root``. Raises ``ValueError`` on escape."""
     resolved = path.resolve()
     root_resolved = root.resolve()
     if resolved == root_resolved or root_resolved in resolved.parents:

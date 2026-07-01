@@ -1,9 +1,9 @@
 """Tests for reconcile.py — the deterministic per-tile merge.
 
-Locks the two silent-data-loss fixes (spec converters-extraction-fixes):
-  AC1 — distinct same-(type,name) nodes with disjoint bboxes stay separate,
+Locks the two silent-data-loss fixes:
+  distinct same-(type,name) nodes with disjoint bboxes stay separate,
         while the same node seen across overlapping tiles still merges to one.
-  AC2 — unnamed elements are retained (not silently dropped) and rendered
+  unnamed elements are retained (not silently dropped) and rendered
         with a visible "(unlabeled)" label.
 
 reconcile.py is a standalone script (no relative imports), so importing its
@@ -26,7 +26,7 @@ import reconcile
 HERE = Path(__file__).resolve().parent
 
 
-# AC2 byte-parity locked to the REAL producer (reconcile.render_markdown), not
+# Byte-parity locked to the REAL producer (reconcile.render_markdown), not
 # just the builder: if render_markdown's field dict or nesting drifts, this goes
 # red. The block below is today's image-branch frontmatter with only the two
 # additive keys prepended.
@@ -93,7 +93,7 @@ def _raw(name, bbox, crop=CROP, tile="tile_W0_R0_C0", type_="step", conf="high")
 
 
 def test_distinct_same_label_nodes_are_preserved():
-    """AC1: two 'Validate' steps far apart (IoU 0) must not collapse into one."""
+    """two 'Validate' steps far apart (IoU 0) must not collapse into one."""
     raw = [
         _raw("Validate", {"x": 10, "y": 10, "w": 80, "h": 40}),
         _raw("Validate", {"x": 900, "y": 700, "w": 80, "h": 40}),
@@ -105,7 +105,7 @@ def test_distinct_same_label_nodes_are_preserved():
 
 
 def test_same_node_across_overlapping_tiles_still_merges():
-    """AC1 regression: one node seen in two overlapping tiles → one element."""
+    """regression: one node seen in two overlapping tiles → one element."""
     crop1 = {"x": 0, "y": 0, "w": 1200, "h": 900}
     crop2 = {"x": 80, "y": 0, "w": 1200, "h": 900}
     raw = [
@@ -123,7 +123,7 @@ def test_same_node_across_overlapping_tiles_still_merges():
 
 
 def test_unnamed_element_is_retained():
-    """AC2: an unnamed box is kept, not silently dropped."""
+    """an unnamed box is kept, not silently dropped."""
     raw = [_raw("", {"x": 400, "y": 400, "w": 80, "h": 40}, type_="box")]
     canonical, _ = reconcile.reconcile_elements(raw)
     assert len(canonical) == 1, "unnamed element was dropped"
@@ -142,7 +142,7 @@ def test_zero_area_same_name_boxes_collapse():
 
 
 def test_end_to_end_cli(tmp_path: Path):
-    """AC1 + AC2 through the documented `python scripts/reconcile.py` form."""
+    """+ through the documented `python scripts/reconcile.py` form."""
     manifest = {
         "source_image": "x.png", "viewport": 1200, "stride": 800,
         "overlap_pct": 0.33,
@@ -179,7 +179,7 @@ def test_end_to_end_cli(tmp_path: Path):
     md = out_md.read_text()
     assert "(unlabeled)" in md, "unnamed element not rendered"
     # The image branch now emits the unified contract: the two new keys plus
-    # the pre-existing block, intact (AC1/AC2).
+    # the pre-existing block, intact.
     assert 'contract-version: "1.0"' in md
     assert 'tier: "1-agent-vision"' in md
     assert "ingestion-quality:" in md
