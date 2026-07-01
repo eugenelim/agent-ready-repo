@@ -27,6 +27,42 @@ def _doc_fields():
     }
 
 
+# --- build_fields: the shared field-set + validation source ------------------
+
+
+def test_build_fields_is_the_source_build_frontmatter_emits():
+    """build_frontmatter's YAML is exactly _yaml_block(build_fields(...)) — one
+    source for the field set, so the YAML and JSONL paths cannot drift."""
+    kw = dict(tier=contract.TIER_2, extraction_confidence="high",
+              requires_review=False, fields=_doc_fields())
+    block = contract.build_fields(**kw)
+    assert block["contract-version"] == "1.0"
+    assert block["tier"] == contract.TIER_2
+    assert block["source-file"] == "report.pdf"
+    assert block["ingestion-quality"]["extraction-confidence"] == "high"
+    assert block["ingestion-quality"]["requires-review"] is False
+    # the wrapper is a thin YAML emit over the same dict
+    assert contract.build_frontmatter(**kw) == contract._yaml_block(block)
+
+
+def test_build_fields_validates_so_the_jsonl_path_inherits_it():
+    """Validation lives in build_fields (not build_frontmatter), so the chunk-JSONL
+    path — which never calls build_frontmatter — still cannot forge the contract."""
+    with pytest.raises(ValueError, match="unknown tier"):
+        contract.build_fields(tier="9-bogus", extraction_confidence="high",
+                              requires_review=False, fields=_doc_fields())
+    with pytest.raises(ValueError, match="unknown extraction-confidence"):
+        contract.build_fields(tier=contract.TIER_2, extraction_confidence="perfect",
+                              requires_review=False, fields=_doc_fields())
+    with pytest.raises(ValueError, match="builder-owned keys"):
+        contract.build_fields(tier=contract.TIER_2, extraction_confidence="high",
+                              requires_review=False,
+                              fields={**_doc_fields(), "tier": "forged"})
+    with pytest.raises(ValueError, match="missing required key"):
+        contract.build_fields(tier=contract.TIER_2, extraction_confidence="high",
+                              requires_review=False, fields={"content-type": "pdf"})
+
+
 # --- required keys, version, tier enum --------------------------------
 
 

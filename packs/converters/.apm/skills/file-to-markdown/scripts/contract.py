@@ -37,12 +37,14 @@ from typing import Any, Mapping
 # changing its *meaning* is a contract change (hence the field). Starts at 1.0.
 CONTRACT_VERSION = "1.0"
 
-# Tier enum. The skill only ever emits 0/1/2; Tier 3 (managed API)
-# is unreachable from this code — there is no network egress.
+# Tier enum. Automatic routing (`convert.py:dispatch`) only ever emits 0/1/2;
+# Tier 3 (managed API) is never auto-reached — it is constructed solely by the
+# explicit, declaration-gated `tier3.assemble_tier3` path. The skill itself makes
+# no network call; Tier-3 egress is the adopter's provisioned transport.
 TIER_0 = "0-no-ml"           # stdlib / ordinary parsers, no model
 TIER_1 = "1-agent-vision"    # in-session agent vision read (the image branch)
 TIER_2 = "2-approved-ml"     # Docling (approved ML)
-TIER_3 = "3-managed-api"     # managed OCR/extraction API — never reached here
+TIER_3 = "3-managed-api"     # managed OCR/extraction API — explicit --tier3 only
 TIERS = frozenset({TIER_0, TIER_1, TIER_2, TIER_3})
 
 CONFIDENCE_LEVELS = frozenset({"high", "medium", "low"})
@@ -52,15 +54,20 @@ CONFIDENCE_LEVELS = frozenset({"high", "medium", "low"})
 _RESERVED = frozenset({"contract-version", "tier", "ingestion-quality"})
 
 
-def build_frontmatter(
+def build_fields(
     *,
     tier: str,
     extraction_confidence: str,
     requires_review: bool,
     fields: Mapping[str, Any],
     ingestion_quality_extra: Mapping[str, Any] | None = None,
-) -> str:
-    """Return the fenced YAML frontmatter block (no trailing newline).
+) -> "OrderedDict[str, Any]":
+    """Return the validated, ordered contract field set as an ``OrderedDict``.
+
+    This is the **single source** for the contract's field set and validation.
+    ``build_frontmatter`` emits its YAML; the chunk-JSONL path ``json.dumps`` it —
+    so both output shapes share one builder and one set of checks, and the JSONL
+    path (which never calls ``build_frontmatter``) cannot fork or forge the contract.
 
     ``fields`` is the branch's ordered top-level keys and MUST include
     ``source-file``, ``content-type``, and ``ingestion-date`` (the required
@@ -98,8 +105,28 @@ def build_frontmatter(
             iq[k] = v
     iq["requires-review"] = bool(requires_review)
     block["ingestion-quality"] = iq
+    return block
 
-    return _yaml_block(block)
+
+def build_frontmatter(
+    *,
+    tier: str,
+    extraction_confidence: str,
+    requires_review: bool,
+    fields: Mapping[str, Any],
+    ingestion_quality_extra: Mapping[str, Any] | None = None,
+) -> str:
+    """Return the fenced YAML frontmatter block (no trailing newline).
+
+    Thin wrapper over ``build_fields`` — the field set and all validation live
+    there, so the YAML and JSONL output paths cannot drift."""
+    return _yaml_block(build_fields(
+        tier=tier,
+        extraction_confidence=extraction_confidence,
+        requires_review=requires_review,
+        fields=fields,
+        ingestion_quality_extra=ingestion_quality_extra,
+    ))
 
 
 def now_iso() -> str:
