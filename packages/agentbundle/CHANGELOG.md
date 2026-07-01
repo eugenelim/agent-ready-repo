@@ -8,6 +8,17 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.10.2] — 2026-06-30
+
+### Fixed
+
+- **`install --adapter X` now carries that adapter through when it hands off to
+  `upgrade`.** Installing a pack that is already present, with `--adapter`
+  specified, offers to upgrade instead — but the hand-off dropped the adapter,
+  so a pack installed for more than one adapter at that scope hit upgrade's
+  "pass `--adapter` to pick one" disambiguator even though you had just passed
+  it. The offered upgrade now targets the adapter you named.
+
 ## [0.10.1] — 2026-06-30
 
 ### Fixed
