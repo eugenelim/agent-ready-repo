@@ -1,6 +1,6 @@
 # Spec: extraction-higher-tiers
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0058, ADR-0045, ADR-0034 (no bundled per-vendor data / models), RFC-0007 (the converters pack this changes), and the two predecessor slices `extraction-tier0-and-output-contract` (whose `contract.py` builder, tier enum, and `safe_io` confinement this reuses) and `extraction-general-image-mode` (whose Tier-1 agent-vision path this leaves unchanged and sits above)
@@ -289,7 +289,7 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Docling enrichment is opt-in, off by default, and stamps Tier 2.**
+- [x] **AC1 — Docling enrichment is opt-in, off by default, and stamps Tier 2.**
   A new explicit flag enables Docling enrichment on the Tier-2 path — formulas →
   LaTeX (`do_formula_enrichment`), code (`do_code_enrichment`), figure
   classification (`do_picture_classification`), and figure captioning
@@ -298,7 +298,7 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   against the plain Tier-2 body proves the default path is untouched). Enriched
   output carries the unified contract with `tier: "2-approved-ml"`.
 
-- [ ] **AC2 — Enrichment is local-model-only; it can never egress (security
+- [x] **AC2 — Enrichment is local-model-only; it can never egress (security
   boundary).** On **both** the default and the enrichment path, Docling's
   remote-services path is never activated: `enable_remote_services` is never set to
   `True` and `PictureDescriptionApiOptions` (or any remote-VLM option class) is
@@ -311,7 +311,7 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   Tier-2 path so enrichment cannot bypass the Tier-3 gate. `security-reviewer`
   reviews this AC at spec and on the diff.
 
-- [ ] **AC3 — Tier 3 is never auto-reached (security boundary).** `convert.py` has no
+- [x] **AC3 — Tier 3 is never auto-reached (security boundary).** `convert.py` has no
   tier-*selection* function with a candidate set — `dispatch()` routes by file
   extension to a Tier-0 extractor or falls through to Docling (Tier 2). The invariant
   is asserted two ways. **Behaviorally:** a unit test over the full input-class matrix
@@ -330,7 +330,7 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   and never from `dispatch`. So no degradation/upgrade path can fail *open* into egress.
   `security-reviewer` reviews this AC.
 
-- [ ] **AC4 — Enabling Tier 3 requires a validated egress declaration; its provenance
+- [x] **AC4 — Enabling Tier 3 requires a validated egress declaration; its provenance
   values are injection-safe (security boundary).** Tier 3 is reached only by an
   explicit entry point (`--tier3`) that takes the adopter-obtained OCR text (a file
   path), the source name, and the egress declaration. The `--ocr-text` input path is
@@ -380,7 +380,7 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   **and an injection-bearing `--source` name**; and the valid case. `security-reviewer`
   reviews this AC.
 
-- [ ] **AC5 — The skill ships no network client, holds no secret, and leaks nothing to
+- [x] **AC5 — The skill ships no network client, holds no secret, and leaks nothing to
   logs (security boundary).** No HTTP client, vendor SDK, or socket is imported on any
   path and no vendor endpoint string is bundled (a grep/AST guard asserts this). The
   guard **enumerates the skill's production `*.py` scripts by directory glob, not a
@@ -396,14 +396,14 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   gates and declares; the adopter's transport enforces the socket. `security-reviewer`
   reviews this AC.
 
-- [ ] **AC6 — No bundled models or per-vendor data (ADR-0034).** No ML model,
+- [x] **AC6 — No bundled models or per-vendor data (ADR-0034).** No ML model,
   managed-OCR vendor endpoint, vendor SDK, per-vendor config, or per-vendor knowledge
   base ships with the pack. Docling enrichment models are adopter-provisioned via the
   already-documented Docling install; the chunker tokenizer is the adopter's
   `docling-core[chunking]` extra; the Tier-3 vendor is adopter config. The pack ships
   the tier **interface**, not a chosen vendor.
 
-- [ ] **AC7 — Retention/no-train + transport-binding are recorded controls; redaction
+- [x] **AC7 — Retention/no-train + transport-binding are recorded controls; redaction
   is out of scope.** The Tier-3 grounding doc (a shipped `references/` doc) makes the
   adopter (a) verify and record the vendor's data-retention and no-training-on-input
   terms as part of vendor approval, (b) **configure their transport to egress only to
@@ -416,7 +416,7 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   redaction hook (RFC Open-Q3 residual) is recorded as a deferred backlog item, not
   built. `security-reviewer` reviews this AC.
 
-- [ ] **AC8 — Structure-preserving chunk output at Tier 2 is opt-in and emitted
+- [x] **AC8 — Structure-preserving chunk output at Tier 2 is opt-in and emitted
   as-is, as a JSONL sidecar (D6).** A new explicit flag (`--chunk`) makes a Tier-2 run
   write Docling's `HybridChunker` output (tokenizer-aware, structure-preserving chunks)
   to a **`<basename>.chunks.jsonl` sidecar** — one JSON record per chunk. Each record
@@ -430,14 +430,14 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   `docling-core[chunking]` tokenizer extra; when it is absent the run errors clearly
   (no crash). Off by default — the default stays a single Markdown file.
 
-- [ ] **AC9 — Below Tier 2, structure-preserving output is section-aware Markdown; no
+- [x] **AC9 — Below Tier 2, structure-preserving output is section-aware Markdown; no
   neutral chunk schema (D6, Open-Q1).** When chunk-mode is requested below Tier 2 (no
   `DoclingDocument` available), the output is **section-aware (heading-structured)
   Markdown**, not chunk records. No pack-defined neutral chunk schema is introduced —
   Docling's chunk shape is passed through as-is (a goal-based check asserts no neutral
   schema was added).
 
-- [ ] **AC10 — Every higher-tier output carries the unified contract, honestly.**
+- [x] **AC10 — Every higher-tier output carries the unified contract, honestly.**
   The enriched Tier-2 and Tier-3-assembled `.md` outputs emit the versioned unified
   contract via `contract.build_frontmatter(...)`; the chunked JSONL records carry the
   **same field set** as JSON (AC8), produced by a **single shared field-set builder in
@@ -462,13 +462,13 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   or parameter by which a caller could. A byte-parity golden test proves the existing
   Tier-0/1/2 frontmatter blocks are unchanged (additive-only).
 
-- [ ] **AC11 — Opt-in default is unchanged (no regression).** A no-flag `python
+- [x] **AC11 — Opt-in default is unchanged (no regression).** A no-flag `python
   scripts/convert.py "<input-file>"` run produces exactly the slice-2 output for every
   input class (plain Tier-2 body when Docling runs, Tier-0/1 as before) — no
   enrichment, no chunking, no Tier-3. A goal-based check confirms the documented
   default invocation is still the single one-command form.
 
-- [ ] **AC12 — Enriched output is untrusted, inert content (security boundary).**
+- [x] **AC12 — Enriched output is untrusted, inert content (security boundary).**
   Docling enrichment output — a figure caption, formula, or code block — is
   model-generated from an untrusted document image, so it is emitted as body content
   that cannot forge the contract: a fixture whose caption/formula/code contains
@@ -478,7 +478,7 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   grounding doc / SKILL.md note that enriched captions are untrusted model output to be
   treated as data, never instructions, downstream. `security-reviewer` reviews this AC.
 
-- [ ] **AC13 — Release hygiene + progressive-disclosure default.** The converters pack
+- [x] **AC13 — Release hygiene + progressive-disclosure default.** The converters pack
   is bumped 0.4.0 → 0.5.0 across `pack.toml`, `plugin.json`, and the regenerated
   `marketplace.json`; `lint-packs`, `validate`, `build`, and `pytest` are green;
   `docs/product/changelog.md` records the user-visible additions; SKILL.md documents

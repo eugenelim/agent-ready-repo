@@ -196,6 +196,30 @@ def test_injection_bearing_source_name_is_escaped(tmp_path):
     assert not any(ln.strip().startswith("injected:") for ln in fm)
 
 
+def test_injection_bearing_source_with_surviving_suffix_is_escaped(tmp_path):
+    """The source-file value carries the injecting bytes and is escaped; the
+    derived content-type is normalized to the safe alphanumeric suffix."""
+    ocr = tmp_path / "out.txt"
+    ocr.write_text("body")
+    md = tier3.assemble_tier3(ocr, 'x\n---\ninjected: true.pdf', _valid_decl())
+    fm, _ = frontmatter_and_body(md)
+    fm_text = "\n".join(fm)
+    assert not any(ln.strip().startswith("injected:") for ln in fm)  # source escaped
+    assert 'content-type: "pdf"' in fm_text  # suffix survives, normalized + safe
+
+
+def test_content_type_normalizes_stray_suffix(tmp_path):
+    """A trailing-space / non-ASCII suffix falls back to the managed-ocr sentinel."""
+    ocr = tmp_path / "out.txt"
+    ocr.write_text("body")
+    for src in ["scan.PDF ", "report.名", "x.we!rd"]:
+        fm, _ = frontmatter_and_body(tier3.assemble_tier3(ocr, src, _valid_decl()))
+        fm_text = "\n".join(fm)
+        # "scan.PDF " → "pdf" (lowercased, stripped); the others → managed-ocr
+        assert ('content-type: "pdf"' in fm_text
+                or 'content-type: "managed-ocr"' in fm_text)
+
+
 # --- AC7: the grounding doc records the three adopter controls --------------
 
 _GROUNDING = (Path(__file__).resolve().parent.parent / "references"

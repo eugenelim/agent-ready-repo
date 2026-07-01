@@ -834,6 +834,17 @@ def test_chunk_mode_tokenizer_extra_absent_errors_clearly(tmp_path, monkeypatch)
         convert._extract_docling(tmp_path / "d.xls", chunk=True)
 
 
+def test_enrich_below_tier2_warns_not_applied(tmp_path, capsys):
+    """--enrich on a Tier-0 input is a no-op; the run signals it (observability)
+    rather than silently dropping the request."""
+    src = tmp_path / "data.csv"
+    src.write_text("name,age\nAda,36\n")
+    convert.convert_file(src, enrich=True)
+    out = capsys.readouterr().out
+    assert (tmp_path / "data.md").exists()
+    assert "--enrich needs Tier 2" in out
+
+
 def test_chunk_below_tier2_yields_markdown_not_chunks(tmp_path, monkeypatch, capsys):
     """AC9: --chunk requested below Tier 2 (a Tier-0 CSV) produces the ordinary
     section-aware Markdown — no chunk records, no sidecar."""
@@ -1048,7 +1059,10 @@ def test_higher_tier_outputs_stamp_contract_honestly(tmp_path, monkeypatch):
         {"endpoint-allowlist": ["ok.example"], "residency-region": "eu"}))[0])
     assert f'tier: "{contract.TIER_3}"' in fm
     assert 'extraction-confidence: "low"' in fm and "requires-review: true" in fm
-    assert "high" not in fm
+    # pin the confidence field, not a bare "high" substring (which an endpoint or
+    # source value could contain)
+    assert 'extraction-confidence: "high"' not in fm
+    assert "requires-review: false" not in fm
 
 
 def test_tier0_frontmatter_byte_parity_golden():

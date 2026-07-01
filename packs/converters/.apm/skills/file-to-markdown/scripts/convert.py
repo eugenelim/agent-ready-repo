@@ -849,6 +849,11 @@ def convert_file(input_path: Path, *, enrich: bool = False, chunk: bool = False)
         # DoclingDocument to chunk); the ordinary section-aware Markdown stands.
         print("WARNING: --chunk needs Tier 2 (Docling); no DoclingDocument for this "
               "input — wrote section-aware Markdown, no chunk sidecar")
+    if enrich and result.tier != contract.TIER_2:
+        # --enrich only applies on the Docling (Tier-2) path; signal the no-op so an
+        # agent parsing markers isn't left thinking enrichment ran.
+        print("WARNING: --enrich needs Tier 2 (Docling); this input took a lower "
+              "tier — enrichment not applied")
     if result.requires_review:
         target = f" — escalate to Tier {result.escalation}" if result.escalation else ""
         print(f"WARNING: extraction flagged requires-review (low confidence){target}")
@@ -968,6 +973,7 @@ def _run_tier3(ns: argparse.Namespace) -> int:
     out_path.write_text(text, encoding="utf-8")
     print(f"OUTPUT: {out_path}")
     print(f"LINES: {len(text.splitlines())}")
+    print(f"WORDS: {len(text.split())}")
     print("WARNING: Tier-3 output is unverified vendor OCR (requires-review: true)")
     return 0
 

@@ -60,11 +60,18 @@ def _reject_endpoint_element(raw: str) -> str | None:
     metadata/loopback hostnames, and IP literals that resolve to a loopback /
     link-local / private / metadata / reserved range (IPv4, IPv6, and IPv4-mapped
     IPv6 uniformly, by rule). A CIDR or otherwise malformed IP-looking element is
-    rejected rather than silently treated as a hostname."""
+    rejected rather than silently treated as a hostname.
+
+    OUT OF SCOPE (the adopter transport's connect-time block is authoritative —
+    see the grounding doc): alternate-radix IP encodings of an internal target
+    (octal ``0177.0.0.1``, decimal ``2130706433``, hex ``0x7f000001``) that
+    ``ipaddress`` does not parse are treated as ordinary hostnames here."""
     host = raw.strip()
     if host in _REJECT_LITERALS:
         return f"wildcard / empty / catch-all endpoint {raw!r}"
-    low = host.lower()
+    # Canonicalize a trailing-dot FQDN (`metadata.google.internal.` resolves
+    # identically) before the hostname list.
+    low = host.rstrip(".").lower()
     if low in _REJECT_HOSTS or any(low.endswith(sfx) for sfx in _REJECT_HOST_SUFFIXES):
         return f"metadata/loopback hostname {raw!r}"
     if "/" in host:
@@ -119,9 +126,13 @@ def validate_declaration(declaration: Mapping[str, object]) -> tuple[list[str], 
 
 def _content_type_from_source(source: str) -> str:
     """Derive content-type from the source name's suffix; fall back to
-    ``managed-ocr`` when indeterminate."""
-    suffix = Path(source).suffix.lower().lstrip(".")
-    return suffix or "managed-ocr"
+    ``managed-ocr`` when indeterminate. The suffix is normalized to lowercase
+    alphanumerics so a stray space or non-ASCII character can't reach a consumer
+    keying on ``content-type`` (the value is escaped either way)."""
+    suffix = Path(source).suffix.lower().lstrip(".").strip()
+    if not suffix or not (suffix.isascii() and suffix.isalnum()):
+        return "managed-ocr"
+    return suffix
 
 
 def assemble_tier3(
