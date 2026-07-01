@@ -13,8 +13,20 @@ notation is the most common reason a diagram is unreadable.
 | "What is the shape of the data" — model | Entity-relationship | `erDiagram` |
 | "Where does it run" — deployment / infra | Deployment view | `flowchart TB` with subgraph nesting for region / VPC / subnet |
 | "Who decided what when" — workflow / approvals | Flowchart with decision diamonds | `flowchart TD` |
+| "What happened when" — roadmap / chronology / release history | Timeline † | `timeline` |
+| "Prioritize these" — 2×2 / effort-vs-impact / positioning | Quadrant † | `quadrantChart` |
+| "Break this down" — decomposition / hierarchy / mind map | Mindmap † | `mindmap` |
 | Comparison ("X vs Y") | Markdown table — **not** Mermaid | — |
 | Internal class structure | Class diagram | `classDiagram` *(rarely the right answer for architecture; usually means the question is "code" not "architecture")* |
+
+† **Newer grammars — offer with a rendering caveat, don't default.**
+`timeline`, `quadrantChart`, and `mindmap` are the same class as
+`architecture-beta`: they render inconsistently across enterprise wikis.
+Route to them by intent, but offer them the same way — only when the venue
+is confirmed to render them, otherwise fall back (timeline → date/milestone
+table; quadrant → effort/impact table; mindmap → nested bullet list). Load
+`references/mermaid-{timeline,quadrant,mindmap}.md` for the per-type
+skeleton, the fallback, and the complexity budget.
 
 ## Mode interaction
 
