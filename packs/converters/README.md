@@ -5,7 +5,10 @@ including publishing a Markdown artifact back out as a branded Office file.
 
 ## What's inside
 
-- `file-to-markdown` — documents and images → Markdown.
+- `file-to-markdown` — documents and images → Markdown, at a no-ML **Tier-0**
+  floor (PDF/Office/HTML/EPUB/CSV/ODF/`.eml` via pure-Python or stdlib parsers),
+  falling through to Docling only for `.xls` and images. Every output carries a
+  versioned frontmatter contract (provenance + a quality/confidence signal).
 - `markdown-to-html` — Markdown → styled HTML.
 - `markdown-to-docx` — Markdown → a branded Word document (fills a `.docx` template).
 - `markdown-to-pptx` — Markdown → a branded PowerPoint deck (fills a `.pptx` template).

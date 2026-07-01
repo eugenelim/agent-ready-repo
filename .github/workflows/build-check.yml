@@ -427,6 +427,19 @@ jobs:
         working-directory: packs/converters/.apm/skills/markdown-to-xlsx/scripts
         run: python -m pytest test_render.py
 
+      # file-to-markdown skill scripts (extraction-tier0-and-output-contract):
+      # the shared output-contract builder, the defensive-parsing helpers, the
+      # tiered dispatch + Tier-0 extractors, and the image-branch reconciler.
+      # CI does not auto-discover skill-script pytest, so wire them explicitly
+      # or the contract / no-ML-floor / defensive-parsing behaviour never gates.
+      # pypdf is the Tier-0 PDF library (pip-on-demand at runtime, pinned here);
+      # the Office libraries installed above cover the docx/xlsx/pptx lib paths.
+      - name: pip install the Tier-0 PDF library (extraction-tier0)
+        run: pip install 'pypdf==5.1.0'
+      - name: pytest file-to-markdown extraction (extraction-tier0-and-output-contract)
+        working-directory: packs/converters/.apm/skills/file-to-markdown/scripts
+        run: python -m pytest test_contract.py test_safe_io.py test_convert.py test_reconcile.py
+
       - name: profiles lint + self-test (pack-profiles AC9)
         # RFC-0034: profiles must be scope-homogeneous, dependency-complete
         # (incl. version), and deps-first ordered. The self-test proves the
