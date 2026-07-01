@@ -1,6 +1,6 @@
 # Spec: extraction-tier0-and-output-contract
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0058, ADR-0045, ADR-0034 (no bundled per-vendor data / models), RFC-0007 (the converters pack this changes; § Errata)
@@ -165,7 +165,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Unified output contract, versioned.** Both of `file-to-markdown`'s
+- [x] **AC1 — Unified output contract, versioned.** Both of `file-to-markdown`'s
   output shapes — `convert.py` (the document path *and* the image-via-Docling
   path, one `convert_file` shape) and `reconcile.py` (the diagram/image branch) —
   emit YAML frontmatter carrying at minimum `contract-version` (a string, e.g.
@@ -175,7 +175,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   sites cannot drift. (`msg-to-markdown` is Node.js and adopts the contract in a
   follow-on Python-port slice — deferred: extraction-msg-to-markdown-python-contract.)
 
-- [ ] **AC2 — Additive and byte-stable for the image branch (no consumer break).**
+- [x] **AC2 — Additive and byte-stable for the image branch (no consumer break).**
   Every frontmatter key `reconcile.py` emits today (`title`, `source-file`,
   `content-type`, `content-category`, `ingestion-date`, `diagram-type`,
   `processing.*`, `ingestion-quality.*`) is still present and unchanged in name,
@@ -184,34 +184,34 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   pre-existing block (proving the shared-builder refactor did not reorder or
   re-quote it).
 
-- [ ] **AC3 — Document branch is context-layer-ready.** `convert.py` (the
+- [x] **AC3 — Document branch is context-layer-ready.** `convert.py` (the
   document branch) emits the unified frontmatter above its Markdown body — where
   today it emits none. Its `extraction-confidence` and `requires-review` reflect
   the extraction (see AC6).
 
-- [ ] **AC4 — Tier-0 digital-PDF text extraction with no ML.** A digital
+- [x] **AC4 — Tier-0 digital-PDF text extraction with no ML.** A digital
   (text-layer) PDF is converted to Markdown using `pypdf` — a pure-Python,
   no-model dependency — with `tier: "0-no-ml"` in the frontmatter, and without
   importing Docling or any ML/OCR model.
 
-- [ ] **AC5 — Tier-0 Office extraction, degrading to stdlib.** `.docx`, `.xlsx`,
+- [x] **AC5 — Tier-0 Office extraction, degrading to stdlib.** `.docx`, `.xlsx`,
   and `.pptx` are converted to Markdown at Tier 0. When `python-docx` /
   `openpyxl` / `python-pptx` are present the extractor uses them (verified via a
   `--check` import-probe mirroring the sibling `markdown-to-*` skills); when they
   are absent the extractor degrades to stdlib `zipfile`+XML and still produces
   Markdown. Neither path imports an ML model.
 
-- [ ] **AC6 — Sparse-text self-assessment escalates honestly.** When Tier-0 PDF
+- [x] **AC6 — Sparse-text self-assessment escalates honestly.** When Tier-0 PDF
   extraction returns empty or sparse text (below a defined threshold), the output
   is marked `extraction-confidence: low` and `requires-review: true`, and the
   skill's output names Tier 1 (agent-vision) as the escalation target — it does
   not silently emit low-quality Markdown.
 
-- [ ] **AC7 — Tier-0 format coverage (D7).** HTML, EPUB, CSV/TSV, OpenDocument
+- [x] **AC7 — Tier-0 format coverage (D7).** HTML, EPUB, CSV/TSV, OpenDocument
   (ODT/ODS/ODP), and `.eml` inputs each convert to Markdown at Tier 0 using
   stdlib or ordinary libraries (no ML), each carrying the unified frontmatter.
 
-- [ ] **AC8 — Extracted content cannot forge the contract.** The hand-rolled
+- [x] **AC8 — Extracted content cannot forge the contract.** The hand-rolled
   emitter escapes/quotes every frontmatter *value* — including embedded newlines,
   `"`, and `\` — so a value can never break out of its scalar and split the block
   (a raw `\n` inside a `"..."` scalar would break the fence; escaping it is the
@@ -224,7 +224,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   test whose extracted *body* contains `---` and `contract-version:` lines,
   asserting a frontmatter parser reads only the builder's leading block.
 
-- [ ] **AC9 — Defensive parsing of untrusted input.** The skill's own XML reads
+- [x] **AC9 — Defensive parsing of untrusted input.** The skill's own XML reads
   use only an XXE-safe parser (stdlib `xml.etree.ElementTree` or `defusedxml`);
   `lxml`/`minidom`/`sax` at defaults are not used (see Boundaries). Reading a
   zip-based format is refused **before full decompression** on every axis — an
@@ -238,7 +238,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   nested-archive bomb axis and legitimate EPUB/ODF structure are reconciled (AC7).
   Tests exercise the XXE guard, each bomb axis, and a `../`-entry-name fixture.
 
-- [ ] **AC10 — Docling path body is passed through unmodified.** The Docling
+- [x] **AC10 — Docling path body is passed through unmodified.** The Docling
   (Tier-2) path gains only the two additive contract keys (`contract-version`,
   `tier: "2-approved-ml"`); an **in-process identity assertion** proves the
   Markdown body handed to the builder equals the body Docling returned (byte-parity
@@ -246,7 +246,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   a Docling-running environment behaves identically apart from the richer
   frontmatter.
 
-- [ ] **AC11 — Tests + release hygiene + progressive-disclosure default.** New
+- [x] **AC11 — Tests + release hygiene + progressive-disclosure default.** New
   tests cover AC1–AC10, AC12, AC13 (unit + per-format end-to-end subprocess runs
   of the documented invocations) and pass; the converters pack version is bumped
   consistently across `pack.toml`, `.claude-plugin/plugin.json`, and the
@@ -256,7 +256,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   confirms its documented **default invocation is still the single
   `python scripts/convert.py "<input-file>"` form**.
 
-- [ ] **AC12 — Output-path confinement.** The written `.md` path is resolved
+- [x] **AC12 — Output-path confinement.** The written `.md` path is resolved
   (`Path.resolve()`/realpath) and confined to the intended output directory by
   path-component containment (not string-prefix); a target path escaping via `..`
   traversal or via a symlink is refused. Tests cover the `..`-traversal, the
@@ -265,7 +265,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   component-containment must reject), mirroring the `markdown-to-office-publishing`
   benchmark.
 
-- [ ] **AC13 — Resource ceiling on Tier-0 parsers.** Each Tier-0 parser enforces
+- [x] **AC13 — Resource ceiling on Tier-0 parsers.** Each Tier-0 parser enforces
   a coarse upper bound (max input bytes and/or max pages/rows/entries); an input
   exceeding it is refused with an actionable error and `requires-review` rather
   than parsed unbounded, so an attacker-supplied huge file cannot hang context

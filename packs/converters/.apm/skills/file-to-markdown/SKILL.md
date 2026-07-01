@@ -1,55 +1,99 @@
 ---
 name: file-to-markdown
-description: Convert documents and images to Markdown. Documents (PDF, DOCX, PPTX, XLSX, XLS) go through Docling text extraction (`scripts/convert.py`); images (PNG, JPG, JPEG, TIFF, BMP, WEBP, GIF) go through a two-pass sliding-window vision pipeline whose tiling and reconciliation are deterministic (`scripts/split_image.py` and `scripts/reconcile.py`). The agent's job is the per-tile vision read; tile dedup and ordering are handled by the script.
+description: Convert documents and images to Markdown for AI context layers. Documents (PDF, DOCX, XLSX, PPTX, HTML, EPUB, CSV/TSV, OpenDocument, .eml) go through `scripts/convert.py`, which extracts at a no-ML Tier-0 floor (pure-Python / stdlib parsers) and falls through to Docling (Tier 2) only for .xls and images; images go through a two-pass sliding-window vision pipeline whose tiling and reconciliation are deterministic (`scripts/split_image.py` and `scripts/reconcile.py`). Every output carries a versioned frontmatter contract (provenance + a quality/confidence signal). The agent's job is the per-tile vision read; tile dedup and ordering are handled by the script.
 ---
 
 # File to Markdown
 
-A skill with two branches:
-
-| Input | Branch | Owner |
-|---|---|---|
-| PDF, DOCX, PPTX, XLSX, XLS | document | `scripts/convert.py` (Docling) |
-| PNG, JPG, JPEG, TIFF, BMP, WEBP, GIF | image | `scripts/split_image.py` + agent vision + `scripts/reconcile.py` |
-
-## Prerequisites
-
-The document branch needs Docling; both branches need Pillow:
-
-```bash
-python -m pip install docling Pillow
-```
-
-Before the document branch, confirm Docling is importable:
-
-```bash
-python -c "import docling"
-```
-
-Exit 0 → proceed. Non-zero → it's not installed; tell the user to run
-the `pip install` above and stop. Don't install it for them.
-
-First Docling run downloads ML models (~1–2 min). Subsequent runs are
-fast. Image-only flows need only Pillow.
-
----
-
-## Document branch
+Convert documents and images to Markdown for AI context layers. The default,
+covering almost every case, is one command:
 
 ```bash
 python scripts/convert.py "<input-file>"
 ```
 
-Writes `<basename>.md` next to the input. Stdout markers:
+Writes `<basename>.md` next to the input. Don't pre-process; don't merge
+multiple inputs in one call — loop the command.
+
+| Input | Branch | Owner |
+|---|---|---|
+| PDF, DOCX, XLSX, PPTX, HTML, EPUB, CSV/TSV, ODT/ODS/ODP, `.eml`, `.xls`, images | document | `scripts/convert.py` |
+| PNG, JPG, JPEG, TIFF, BMP, WEBP, GIF (diagram extraction) | image | `scripts/split_image.py` + agent vision + `scripts/reconcile.py` |
+
+## Tiers — no ML first (progressive disclosure)
+
+`convert.py` routes each input to the lowest tier that can handle it. You do
+not choose a tier; the script does.
+
+| Tier | What runs | Handles |
+|---|---|---|
+| **0 — no ML** | pure-Python / stdlib parsers, no model | PDF (text layer, via `pypdf`), DOCX/XLSX/PPTX, HTML, EPUB, CSV/TSV, ODT/ODS/ODP, `.eml` |
+| **1 — agent vision** | in-session per-tile vision read | the image branch below; also the escalation target when Tier-0 PDF text is sparse |
+| **2 — approved ML** | Docling | `.xls` and image OCR (the fall-through) |
+| **3 — managed API** | — | never reached; the skill makes no network calls |
+
+**Why this matters:** in a locked-down environment where Docling's ML models are
+banned or un-fetchable, Tier 0 still converts a digital PDF, an Office file, and
+the everyday text formats using only ordinary libraries or the standard library.
+
+Tier-0 PDF and Office use libraries that install on demand (never auto-installed):
+
+```bash
+python scripts/convert.py --check          # report which optional libs are present
+```
+
+`pypdf` (PDF) and `python-docx` / `openpyxl` / `python-pptx` (Office) are each
+optional. When an Office library is absent the extractor degrades to a stdlib
+`zipfile` + XML path and still produces Markdown; when `pypdf` is absent PDF
+extraction escalates to Tier 1 rather than failing. These libraries install into
+*your* environment on demand, so they sit outside this repo's dependency lockfile
+and its SCA scanning — keep them current yourself. Docling (Tier 2) is only
+needed for `.xls` and images:
+
+```bash
+python -m pip install docling Pillow    # only if you need the Tier-2 fall-through
+```
+
+## The output contract
+
+Every conversion — document *and* image branch — writes a leading YAML
+frontmatter block recording provenance and a quality signal, then the Markdown
+body below it:
+
+```yaml
+---
+contract-version: "1.0"
+tier: "0-no-ml"
+source-file: "report.pdf"
+content-type: "pdf"
+ingestion-date: "2026-06-30T12:00:00+00:00"
+ingestion-quality:
+  extraction-confidence: "high"   # high | medium | low
+  requires-review: false
+---
+```
+
+`contract-version` is how a consumer detects the shape. When extraction is
+sparse or degraded, `extraction-confidence` is `low`, `requires-review` is
+`true`, and an `escalation-target` names the tier to retry at — so low-quality
+output is flagged, never emitted silently.
+
+Stdout markers:
 
 | Marker | Meaning |
 |---|---|
 | `OUTPUT: <path>` | Path to the written Markdown file |
 | `LINES: <n>` / `WORDS: <n>` | Counts |
-| `WARNING: <msg>` | Non-fatal (e.g., sparse text). Surface to user. |
+| `WARNING: <msg>` | Non-fatal (e.g., `requires-review`). Surface to user. |
 
-That's it. Don't pre-process. Don't merge multiple inputs in one call —
-loop the command.
+## Trust posture
+
+Document inputs are treated as **untrusted** (they feed AI context layers): XML
+is parsed with an XXE-safe stdlib parser (DTDs refused), zip-based formats are
+guarded against decompression bombs before decompression, the output path is
+confined to the input's directory, and each parser enforces a coarse resource
+ceiling. This is a deliberate divergence from the image branch's
+local-files-trusted stance.
 
 ---
 
@@ -172,8 +216,8 @@ re-extract).
 |---|---|
 | Image ≤ 1200 px on both dims | Skip overview; run `detail` with `--viewport <max-dim>` and `--stride <max-dim>` so you get a single tile. |
 | Source > 8000 px on a side | The script auto-prescales before tiling and records the scale factor in the manifest. No agent action needed. |
-| First Docling run | Warn the user about the one-time model download (1–2 min). |
-| Scanned PDF | Docling applies OCR automatically; output may be lower quality. Surface any `WARNING:` line. |
+| First Docling run (`.xls` / image only) | Warn the user about the one-time model download (1–2 min). |
+| Scanned / image-only PDF | Tier 0 finds little or no text layer, so the output is flagged `extraction-confidence: low` + `requires-review: true` and names Tier 1 (agent vision) as the escalation target. Surface the `WARNING:` line. |
 | Password-protected file | Document branch fails fast. Tell the user to remove the password first. |
 | Detail pass > 100 tiles | `split_image.py` warns. Increase `--stride` or reduce `--viewport`. |
 | Tile read fails | Skip the tile; the reconciler reports the gap as a missing region in `ambiguities`. |
