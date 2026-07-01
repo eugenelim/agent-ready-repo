@@ -8,12 +8,35 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.10.1] — 2026-06-30
+
 ### Fixed
 
 - **The "no catalogue source" error no longer sends you to a `--catalogue` flag
   that doesn't exist.** The catalogue is a trailing positional argument; when no
   source resolves, the recovery text now reads "pass a catalogue argument …" so
   following it actually works.
+
+## [0.10.0] — 2026-06-30
+
+_Backfilled: 0.10.0 shipped (tag `agentbundle-v0.10.0`) without a changelog
+entry; recorded here for the history._
+
+### Added
+
+- **`agentbundle list-installed` — a read-only view of what's actually installed.**
+  Lists every installed `(pack, adapter)` row across the user and repo scope with
+  its version and an `up-to-date` / `upgrade-available` / `unknown` status against
+  the catalogue; the check degrades to `unknown` (never an error) when the
+  catalogue can't be resolved. `--no-check` / `--offline` skips it, `--scope`
+  filters to one scope, and `--check-drift` adds a per-row count of files edited
+  locally since install (#468).
+
+### Changed
+
+- **Upgrade messaging now reports per-adapter versions and distinguishes a
+  re-applied install from a genuine upgrade**, and flags local drift from the
+  installed baseline (#468).
 
 ## [0.9.0] — 2026-06-26
 
