@@ -12,6 +12,11 @@ check, not a suggestion.
 
 - [ ] **Fits one screen.** ≤15 nodes. If the system needs more, split
       into multiple diagrams with explicit scope sentences.
+- [ ] **Accent restraint.** At most **2** emphasized elements — count one
+      `classDef` application (or one coloured / bolded node) as one accent.
+      Past two, nothing stands out; the accent stops meaning "look here."
+- [ ] **Edge budget.** Roughly **≤20 edges**. A diagram whose edges dwarf its
+      nodes is a hairball; split by scope sentence before adding more.
 - [ ] **Title or scope sentence** above the diagram tells the reader
       *what they are looking at* without scrolling.
 - [ ] **No fabricated names** in document mode. Where a name is
@@ -73,6 +78,34 @@ check, not a suggestion.
 - [ ] **Trust boundaries dashed**, others solid.
 - [ ] **Cross-region or cross-account arrows labeled** with what
       crosses (data, RPC, replication).
+
+## Timeline (`timeline`)
+
+- [ ] **Time-ordered, not comparative.** The axis carries chronology; if the
+      point is a side-by-side comparison, it's a table, not a timeline.
+- [ ] **Budget: ≤6 periods, ≤3 events each.** Beyond that the axis crowds —
+      split into scoped timelines.
+- [ ] **Rendering caveat applied.** Offered contingent on the venue rendering
+      it; a date→milestone table named as the fallback.
+
+## Quadrant (`quadrantChart`)
+
+- [ ] **Both axes labelled** low→high, and all four quadrants named.
+- [ ] **Two dimensions only.** A 2×2 forced onto three axes lies — use a table.
+- [ ] **Budget: ≤8 plotted points.** More than eight and the eye can't group
+      them; cluster or switch to a table.
+- [ ] **Rendering caveat applied.** Offered contingent on the venue; an
+      effort/impact table named as the fallback.
+
+## Mindmap (`mindmap`)
+
+- [ ] **A tree, not a graph.** No sideways links, no second parent — if things
+      connect across branches it's a `flowchart`.
+- [ ] **One distinctive root**; sub-nodes not over-decorated with shapes.
+- [ ] **Budget: ≤3 levels deep, ≤5 branches off the root.** Deeper splits into
+      a scoped child mindmap.
+- [ ] **Rendering caveat applied.** Offered contingent on the venue; a nested
+      bullet list named as the fallback.
 
 ## Cloud-aware add-ons
 
