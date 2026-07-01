@@ -6,9 +6,18 @@ How the code is *currently* organized. Not why (that's in
 
 - [`overview.md`](overview.md) — the map of the monorepo. What's in
   `packages/`, `tools/`, `packs/`, and how they relate. Read this first.
+- [`catalogue.md`](catalogue.md) — what a catalogue *is* on disk, how
+  `agentbundle` resolves one (the four-layer chain), and how to point it
+  at your own. The starting point for standing up your own catalogue.
+- [`skill-and-pack-format.md`](skill-and-pack-format.md) — the format map:
+  the agentskills.io skill standard we conform to, the pack envelope that
+  wraps it, and the projection that fans it out to every agent.
 - [`pack-layout.md`](pack-layout.md) — the canonical shape of a single
   pack: `pack.toml`, `.claude-plugin/`, `.apm/<primitive>/`, `seeds/`.
   What each directory contains and how the bundler reads it.
+- [`pack-manifest.md`](pack-manifest.md) — `pack.toml` as the single
+  source of truth for pack metadata, and how the build projects a lossy
+  subset into each route's manifest and the catalogue listing.
 - [`agentbundle.md`](agentbundle.md) — the `agentbundle` Python package:
   CLI verbs, bundler internals (recipes → adapters → projections), the
   adapter contract, and the install→adapt chain.
