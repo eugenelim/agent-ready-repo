@@ -865,6 +865,33 @@ def test_chunk_mode_emits_no_neutral_schema(tmp_path, monkeypatch):
     assert rec["chunk-text"] == "Passed-through chunk."
 
 
+# --- T3: Tier 3 is never auto-reached (behavioral matrix) -------------------
+
+
+def test_dispatch_constructs_only_tiers_0_1_2(tmp_path, monkeypatch):
+    """AC3: across the input-class matrix, every automatic path (dispatch + the
+    Docling fall-through) constructs only Tier-0/1/2 results — never Tier 3."""
+    install_fake_docling(monkeypatch, "# Docling body\n")
+    lower_tiers = {contract.TIER_0, contract.TIER_1, contract.TIER_2}
+
+    # Tier-0 extractors across representative input classes.
+    (tmp_path / "d.csv").write_text("a,b\n1,2\n")
+    (tmp_path / "p.html").write_text("<p>hello there friend indeed</p>")
+    (tmp_path / "m.eml").write_bytes(b"From: a@b.c\r\nSubject: S\r\n\r\nBody.\r\n")
+    digital = tmp_path / "doc.pdf"
+    digital.write_bytes(make_pdf("plenty of words here to clear the sparse threshold ok"))
+    scan = tmp_path / "scan.pdf"
+    scan.write_bytes(make_pdf("Hi"))  # sparse → Tier-0 result escalating to Tier 1
+    xls = tmp_path / "legacy.xls"      # the Docling (Tier-2) fall-through
+    xls.write_bytes(b"stub")
+
+    for p in [tmp_path / "d.csv", tmp_path / "p.html", tmp_path / "m.eml",
+              digital, scan, xls]:
+        r = convert.dispatch(p)
+        assert r.tier in lower_tiers, f"{p.name} produced {r.tier}"
+        assert r.tier != contract.TIER_3
+
+
 # --- AC4/AC8: no new egress, no installed OCR/ML model, no AGPL pymupdf -----
 
 import re as _re

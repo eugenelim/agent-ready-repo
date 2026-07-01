@@ -908,7 +908,68 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--chunk", action="store_true",
                    help="Tier-2 only: also write structure-preserving HybridChunker "
                         "chunks to a <basename>.chunks.jsonl sidecar")
+    # Tier-3 (managed-API) assembly — explicit-only, never auto-reached. The skill
+    # makes no network call; the adopter runs the vendor and hands over the OCR text.
+    tier3_group = p.add_argument_group(
+        "Tier 3 (managed API — explicit, transport-free)")
+    tier3_group.add_argument("--tier3", action="store_true",
+                             help="assemble adopter-obtained managed-OCR text into the "
+                                  "unified contract (requires --ocr-text/--endpoint/"
+                                  "--residency; the positional arg is the source name)")
+    tier3_group.add_argument("--ocr-text", metavar="PATH",
+                             help="path to the adopter-obtained OCR text file")
+    tier3_group.add_argument("--endpoint", metavar="HOST[,HOST]",
+                             help="egress endpoint allowlist (comma-separated hosts)")
+    tier3_group.add_argument("--residency", metavar="REGION",
+                             help="data-residency / region the vendor processes in")
     return p
+
+
+def _run_tier3(ns: argparse.Namespace) -> int:
+    """Explicit Tier-3 assembly path. Manual post-parse validation (a flat parser
+    can't express 'required only when --tier3'); refuses fail-closed with a clear
+    error and no output stamped on any malformed invocation."""
+    import tier3
+
+    problems: list[str] = []
+    if ns.enrich or ns.chunk:
+        problems.append("--tier3 cannot be combined with --enrich / --chunk")
+    if len(ns.files) != 1:
+        problems.append("--tier3 needs exactly one source name (a single positional)")
+    if not ns.ocr_text:
+        problems.append("--tier3 needs --ocr-text <path>")
+    if not ns.endpoint:
+        problems.append("--tier3 needs --endpoint <host[,host]>")
+    if not ns.residency:
+        problems.append("--tier3 needs --residency <region>")
+    if problems:
+        for p in problems:
+            print(f"ERROR: {p}", file=sys.stderr)
+        return 1
+
+    source = ns.files[0]
+    declaration = {
+        "endpoint-allowlist": ns.endpoint.split(","),
+        "residency-region": ns.residency,
+    }
+    try:
+        text = tier3.assemble_tier3(ns.ocr_text, source, declaration)
+    except FileNotFoundError:
+        print(f"ERROR: --ocr-text file not found: {ns.ocr_text}", file=sys.stderr)
+        return 1
+    except (tier3.DeclarationError, ValueError, OSError) as exc:
+        # fail-closed: no output stamped on a refused declaration / oversized input
+        print(f"ERROR: Tier-3 assembly refused: {exc}", file=sys.stderr)
+        return 1
+
+    ocr_path = Path(ns.ocr_text)
+    root = ocr_path.resolve().parent
+    out_path = safe_io.confine(root / (Path(source).stem + ".md"), root)
+    out_path.write_text(text, encoding="utf-8")
+    print(f"OUTPUT: {out_path}")
+    print(f"LINES: {len(text.splitlines())}")
+    print("WARNING: Tier-3 output is unverified vendor OCR (requires-review: true)")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -917,6 +978,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.check is not None:
         return cmd_check(ns.check)
+    if ns.tier3:
+        return _run_tier3(ns)
     if not ns.files:
         print("Usage: convert.py <file> [file2 ...] [--enrich] [--chunk] "
               "| --check [library ...]", file=sys.stderr)
