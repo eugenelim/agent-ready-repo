@@ -1181,3 +1181,33 @@ those three commands to *messaging-only* changes; rewiring their resolution logi
 (which carries subtle scope-inference differences pinned by existing tests) is a
 refactor in its own right. **Unblocks when:** taken as a focused refactor PR with
 its own regression pass over upgrade/diff/uninstall scope resolution.
+
+## `extraction-tier0-and-output-contract`
+
+### extraction-msg-to-markdown-python-contract
+
+**Source:** spec-stage adversarial review of
+[`extraction-tier0-and-output-contract`](specs/extraction-tier0-and-output-contract/spec.md).
+RFC-0058 D3 / Open-Q2 recommended `msg-to-markdown` adopt the unified output
+contract. It was **removed from the floor spec** once review confirmed
+`msg-to-markdown` is a **Node.js** skill (`scripts/convert.js` +
+`@nicecode/msg-reader`), so it cannot import the floor's shared **Python**
+frontmatter builder — a JS reimplementation would fork the contract and break
+the floor spec's "single builder, no drift" property (AC1). **Decision (owner:
+eugenelim):** adopt the contract by **porting `msg-to-markdown` to Python** (e.g.
+a pure-Python `.msg` reader such as `extract-msg`, swapping the npm dependency +
+Node runtime), so it shares the one builder — done as its **own slice** with its
+own adversarial + quality review and a **parity check** against today's Node
+output, not bundled into the floor. **Unblocks when:** the floor spec's
+`contract.py` builder ships (the interface to share) and the Python `.msg`-reader
+dependency clears the pack's dependency bar. Also folds in the `.eml`/MIME
+ingestion deferral below if MIME parsing lands in the same Python skill.
+
+### extraction-tier0-eml-mime
+
+**Source:** RFC-0058 Open-Q2. The floor spec adds `.eml` as a **file-to-markdown
+input format** at Tier 0 (D7; spec AC7). Full **MIME** handling for
+`msg-to-markdown` (multipart bodies, nested messages, richer header mapping
+beyond a flat `.eml` read) is **deferred** — it belongs with the
+`msg-to-markdown` Python port above, not the file-to-markdown floor. **Unblocks
+when:** the `msg-to-markdown` Python-port slice is picked up.
