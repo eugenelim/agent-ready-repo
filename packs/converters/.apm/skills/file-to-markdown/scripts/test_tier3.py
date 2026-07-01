@@ -194,3 +194,27 @@ def test_injection_bearing_source_name_is_escaped(tmp_path):
     md = tier3.assemble_tier3(ocr, 'doc\n---\ninjected: "true"', _valid_decl())
     fm, _ = frontmatter_and_body(md)
     assert not any(ln.strip().startswith("injected:") for ln in fm)
+
+
+# --- AC7: the grounding doc records the three adopter controls --------------
+
+_GROUNDING = (Path(__file__).resolve().parent.parent / "references"
+              / "tier3-managed-api.md")
+
+
+def test_grounding_doc_names_the_three_adopter_controls():
+    """AC7: the Tier-3 grounding doc makes the adopter (a) record vendor
+    retention/no-training terms, (b) bind the transport to the declared endpoint +
+    residency, and (c) own redaction (documents sent unmodified)."""
+    text = _GROUNDING.read_text("utf-8").lower()
+    # (a) retention / no-training-on-input
+    assert "retention" in text and "training" in text
+    # (b) transport-binding — egress only to the declared destination
+    assert "transport" in text and "egress only to the" in text
+    assert "residency" in text
+    # (c) redaction is the adopter's responsibility; documents sent unmodified
+    assert "redaction" in text and "unmodified" in text
+    assert "classification" in text
+    # never-auto-reach posture stated
+    assert "never reached by automatic" in text or "never auto" in text or \
+           "explicit-only" in text
