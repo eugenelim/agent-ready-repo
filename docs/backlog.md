@@ -1227,6 +1227,21 @@ only relocated the code into `_extract_docling`). **Unblocks when:** a follow-on
 hardens the image branch's trust posture — refuse a hard pixel ceiling *before*
 decode rather than disabling `MAX_IMAGE_PIXELS` unconditionally.
 
+### extraction-msg-realworld-sample
+
+**Source:** implementation of
+[`extraction-msg-to-markdown-python-contract`](specs/extraction-msg-to-markdown-python-contract/spec.md)
+(AC3). AC3 originally required a **numbered real-world `.msg` + `.eml`
+manual-verification artifact** as the absolute-fidelity signal, since a generated
+corpus shares blind spots with the parser that emits it. **Deferred:** no PII-free
+real-world `.msg` was obtainable in the build environment. The blind-spot concern
+is instead closed in-PR by an **independent-implementation oracle** — the same
+generated corpus is read by the mature Node `msgreader` package and the Python
+`olefile`+MAPI extraction is asserted field-equal to it (a different codebase
+reading the same bytes catches a parser blind spot). **Unblocks when:** a PII-free
+real-world `.msg`/`.eml` sample is available to record a manual-verification run
+against the shipped converter.
+
 ## `extraction-higher-tiers`
 
 ### extraction-tier3-pre-egress-redaction-hook
