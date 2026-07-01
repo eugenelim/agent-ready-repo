@@ -233,8 +233,10 @@ behaviour only proves out across the install boundary, so it is named at
   (resolved cwd-relative via `Path.resolve()`), per the trust-boundary carve-out;
   that is not the resolver consulting cwd on its own.
 - [x] When **no** layer yields a source, the command errors clearly with text
-  naming all three recovery paths:
-  `no catalogue source: pass --catalogue, run 'agentbundle config set source …', or pip install -e the catalogue`.
+  naming all three recovery paths (the user-facing text names the real surface —
+  a trailing catalogue argument — not the `--catalogue` shorthand this spec uses
+  elsewhere, since no such flag exists):
+  `no catalogue source: pass a catalogue argument, run 'agentbundle config set source …', or pip install -e the catalogue`.
 - [x] Resolution writes nothing on **any** path — a one-off `--catalogue` (or any
   auto-resolved layer) does **not** persist to the user config (no
   write-on-install), including the editable-detected-but-deferred (diagnostic) and

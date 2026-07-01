@@ -8,6 +8,13 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+### Fixed
+
+- **The "no catalogue source" error no longer sends you to a `--catalogue` flag
+  that doesn't exist.** The catalogue is a trailing positional argument; when no
+  source resolves, the recovery text now reads "pass a catalogue argument …" so
+  following it actually works.
+
 ## [0.9.0] — 2026-06-26
 
 ### Changed

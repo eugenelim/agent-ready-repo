@@ -133,7 +133,7 @@ Loop engineering relocates judgment, it doesn't remove it — keeping every piec
 
 ## A foundation to build on
 
-Adopt the catalogue as-is, or fork it as your own. The same bundler that installs these packs can publish yours: write your house conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — the loop, the reviewers, and the standards come out identical on every machine and in every agent. That makes this a foundation for an organization's AI dev kit, not just a set of defaults to consume.
+Adopt the catalogue as-is, or fork it as your own. The same bundler that installs these packs can publish yours: write your house conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — the loop, the reviewers, and the standards come out identical on every machine and in every agent. That makes this a foundation for an organization's AI dev kit, not just a set of defaults to consume. [What a catalogue is, and how to stand up your own →](docs/architecture/catalogue.md)
 
 ## How a pack is laid out
 
@@ -165,6 +165,8 @@ Full documentation lives in **[`docs/guides/`](docs/guides/)**, organized by pac
 | Upgrading an installed pack | [upgrade packs](docs/guides/_shared/how-to/upgrade-packs.md) |
 | Updating the agentbundle CLI itself — `pip install --upgrade agentbundle` | [PyPI](https://pypi.org/project/agentbundle/) |
 | Mission, scope, and the four principles | [`docs/CHARTER.md`](docs/CHARTER.md) |
+| What a catalogue is, and how to stand up your own | [the catalogue](docs/architecture/catalogue.md) |
+| The skill & pack format, layer by layer | [skill & pack format](docs/architecture/skill-and-pack-format.md) |
 | The catalogue distribution model | [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) |
 
 Skills follow the [agentskills.io specification](https://agentskills.io/specification) — each a self-contained folder with closed frontmatter and no hidden cross-skill dependencies, so they install, copy, and audit cleanly.
