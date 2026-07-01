@@ -38,7 +38,7 @@ def test_valid_declaration_returns_cleaned_endpoints_and_residency():
     assert residency == "eu-west-1"
 
 
-@pytest.mark.parametrize("bad", ["", " ", "*", ".", "0.0.0.0", "::"])
+@pytest.mark.parametrize("bad", ["", " ", "*", ".", "0.0.0.0", "::"])  # nosec B104
 def test_rejects_wildcard_and_catchall_endpoints(bad):
     decl = {"endpoint-allowlist": [bad], "residency-region": "eu"}
     with pytest.raises(tier3.DeclarationError):

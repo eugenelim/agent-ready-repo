@@ -38,8 +38,9 @@ import safe_io
 # material (`authorization`, `x-api-key`, …) can be smuggled in beside them.
 _ALLOWED_KEYS = frozenset({"endpoint-allowlist", "residency-region"})
 
-# Wildcard / scheme-less catch-alls rejected outright.
-_REJECT_LITERALS = frozenset({"", "*", ".", "0.0.0.0", "::"})
+# Wildcard / scheme-less catch-alls rejected outright. (B104 false positive:
+# `0.0.0.0` here is a value we REJECT from the egress allowlist, not a bind.)
+_REJECT_LITERALS = frozenset({"", "*", ".", "0.0.0.0", "::"})  # nosec B104
 
 # Metadata / loopback hostnames rejected in disguise. NON-EXHAUSTIVE — the
 # connect-time block in the adopter transport is authoritative; this only reduces
