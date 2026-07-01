@@ -25,6 +25,15 @@ agentbundle install --pack research <catalogue>
 It projects to every shipped adapter that supports the skill primitive
 (Claude Code, Codex, Copilot, Cursor, Gemini, Kiro).
 
+> **Claude Code only — grant web tools to the retrieval subagents.** On Claude
+> Code, add **`WebSearch`** and **`WebFetch`** to your `permissions.allow` so the
+> `evidence-retriever` and `source-extractor` subagents can do live web
+> retrieval — a non-interactive subagent cannot surface the approval prompt, so
+> without the grant those tools are denied. This is a one-time note, not
+> bundle-managed machinery: `permissions.allow` is yours to own. Other adapters
+> (Copilot, Cursor, Gemini, Codex, Kiro) pass the web tools through or bake them
+> in at build time and need no such step.
+
 ## Usage
 
 Ask your agent, for example:

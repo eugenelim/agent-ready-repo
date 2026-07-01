@@ -49,7 +49,7 @@ Front-matter the agent reads and writes by hand — there is no engine behind it
 ---
 question: <the research question, one sentence>
 working_hypothesis: <a claim to test — MAY BE EMPTY at start>
-shape: <survey | comparison | decision | structural | adjudication>
+shape: <survey | comparison | decision | structural | adjudication | methodology>
 phase: capture
 stop_signal: not-yet-assessed
 # verdict_status: <optional, written only by /research-project-check>
