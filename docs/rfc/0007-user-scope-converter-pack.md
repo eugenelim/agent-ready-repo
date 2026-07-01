@@ -200,3 +200,24 @@ On acceptance:
 - **`msg-to-markdown` evals follow-up (issue, not PR).** Adds an evals suite sourced from real `.msg` fixtures (not synthesised). No owner committed in this RFC; tracked in the implementation spec's "known gaps" section.
 - **No ADR.** This RFC is a consumer of contract decisions already recorded in [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md); no new architectural choice is made by landing the first consumer.
 - **No CONVENTIONS edit.** The pack-author rule "drop source-catalogue attribution from imported skills" already lives in `feedback_no_external_catalog_attribution` memory and is reinforced by the spec's checklist; promoting it to CONVENTIONS is a separate decision if attribution leaks recur outside `packs/converters/`.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections and later-revisited judgments are appended here,
+Approver-signed.
+
+- **2026-06-30 (Approver: eugenelim) — the § Drawbacks judgment that a
+  locked-down adopter "simply doesn't invoke the affected converter" is
+  reversed for `file-to-markdown` by [RFC-0058](0058-capability-tiered-document-extraction.md).**
+  The first Drawbacks bullet ("Adopters carry the runtime-dependency burden")
+  accepted that where Docling's ML models are banned or un-fetchable, the
+  document branch has no path at all, on the reasoning that conversion is an
+  opt-in capability per skill. RFC-0058 (Accepted 2026-06-30) reverses that for
+  the locked-down segment: `file-to-markdown` becomes **capability-tiered** — a
+  no-ML Tier-0 floor (`pypdf` + ordinary Office parsers, degrading to stdlib)
+  works where ML is banned, degrading up to Docling (now a tier, not the base)
+  where the environment permits it. The rest of this RFC — the pack, its
+  user-scope mechanics, the other converters — is unchanged. See
+  [ADR-0045](../adr/0045-capability-tiered-document-extraction.md) for the
+  recorded doctrine.
