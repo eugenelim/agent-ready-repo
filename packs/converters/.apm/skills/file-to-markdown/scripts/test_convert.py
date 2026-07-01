@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import builtins
 import io
+import json
 import subprocess
 import sys
 import types
@@ -165,6 +166,30 @@ def install_fake_docling_enrich(monkeypatch, markdown: str, capture: dict):
         ("docling.datamodel.pipeline_options", popts_mod),
     ]:
         monkeypatch.setitem(sys.modules, name, mod)
+
+
+def install_fake_chunker(monkeypatch, chunk_texts, *, raises=None):
+    """Fake `docling.chunking.HybridChunker`. If `raises` is set, HybridChunker()
+    raises it (simulating the missing docling-core[chunking] tokenizer backend)."""
+    chunking = types.ModuleType("docling.chunking")
+
+    class _Chunk:
+        def __init__(self, text):
+            self.text = text
+
+    class HybridChunker:
+        def __init__(self, *a, **k):
+            if raises is not None:
+                raise raises
+
+        def chunk(self, dl_doc=None):
+            return iter([_Chunk(t) for t in chunk_texts])
+
+        def contextualize(self, chunk=None):
+            return chunk.text
+
+    chunking.HybridChunker = HybridChunker
+    monkeypatch.setitem(sys.modules, "docling.chunking", chunking)
 
 
 def frontmatter_and_body(text: str):
@@ -749,11 +774,95 @@ def test_main_no_args_prints_usage():
 def test_main_enrich_flag_threads_to_convert_file(tmp_path, monkeypatch):
     called: dict = {}
     monkeypatch.setattr(convert, "convert_file",
-                        lambda p, *, enrich=False: called.update(path=p, enrich=enrich))
+                        lambda p, *, enrich=False, chunk=False:
+                        called.update(path=p, enrich=enrich, chunk=chunk))
     convert.main(["--enrich", str(tmp_path / "x.pdf")])
-    assert called["enrich"] is True
-    convert.main([str(tmp_path / "y.pdf")])
-    assert called["enrich"] is False
+    assert called["enrich"] is True and called["chunk"] is False
+    convert.main(["--chunk", str(tmp_path / "y.pdf")])
+    assert called["chunk"] is True and called["enrich"] is False
+
+
+# --- T2: structure-preserving chunk output (HybridChunker as-is at Tier 2) ---
+
+
+def test_chunk_mode_writes_jsonl_sidecar_with_contract_fields(tmp_path, monkeypatch):
+    """AC8: --chunk on a Tier-2 run writes <basename>.chunks.jsonl, one JSON record
+    per chunk carrying the full contract field set + chunk text, confined."""
+    install_fake_docling(monkeypatch, "# Doc body\n")
+    install_fake_chunker(monkeypatch, ["First chunk text.", "Second chunk text."])
+    src = tmp_path / "paper.xls"
+    src.write_bytes(b"stub")
+    r = convert._extract_docling(src, chunk=True)
+    assert r.chunks == ["First chunk text.", "Second chunk text."]
+    out = convert.write_chunks(src, r, "paper.xls")
+    assert out == (tmp_path / "paper.chunks.jsonl").resolve()
+    records = [json.loads(ln) for ln in out.read_text().splitlines()]
+    assert len(records) == 2
+    r0 = records[0]
+    # the full unified contract field set, as JSON (not YAML) — same shape as the
+    # frontmatter builder, from the shared build_fields
+    assert r0["contract-version"] == "1.0"
+    assert r0["tier"] == contract.TIER_2
+    assert r0["source-file"] == "paper.xls"
+    assert r0["ingestion-quality"]["extraction-confidence"] == "high"
+    assert r0["chunk-index"] == 0
+    assert r0["chunk-text"] == "First chunk text."
+
+
+def test_chunk_mode_routes_through_confine(tmp_path, monkeypatch):
+    """AC8: the sidecar write goes through safe_io.confine."""
+    install_fake_docling(monkeypatch, "# Doc\n")
+    install_fake_chunker(monkeypatch, ["c"])
+    src = tmp_path / "d.xls"
+    src.write_bytes(b"stub")
+    r = convert._extract_docling(src, chunk=True)
+
+    def boom(path, root):
+        raise ValueError("confine called")
+
+    monkeypatch.setattr(safe_io, "confine", boom)
+    with pytest.raises(ValueError, match="confine called"):
+        convert.write_chunks(src, r, "d.xls")
+
+
+def test_chunk_mode_tokenizer_extra_absent_errors_clearly(tmp_path, monkeypatch):
+    """AC8: --chunk with the docling-core[chunking] tokenizer extra absent errors
+    clearly (no crash) and names the extra to install."""
+    install_fake_docling(monkeypatch, "# Doc\n")
+    install_fake_chunker(monkeypatch, [], raises=ModuleNotFoundError("No module named 'transformers'"))
+    with pytest.raises(RuntimeError, match=r"docling-core\[chunking\]"):
+        convert._extract_docling(tmp_path / "d.xls", chunk=True)
+
+
+def test_chunk_below_tier2_yields_markdown_not_chunks(tmp_path, monkeypatch, capsys):
+    """AC9: --chunk requested below Tier 2 (a Tier-0 CSV) produces the ordinary
+    section-aware Markdown — no chunk records, no sidecar."""
+    src = tmp_path / "data.csv"
+    src.write_text("name,age\nAda,36\n")
+    convert.convert_file(src, chunk=True)
+    out = capsys.readouterr().out
+    assert (tmp_path / "data.md").exists()
+    assert not (tmp_path / "data.chunks.jsonl").exists()
+    assert "CHUNKS:" not in out
+    assert "--chunk needs Tier 2" in out
+
+
+def test_chunk_mode_emits_no_neutral_schema(tmp_path, monkeypatch):
+    """AC9 (goal-based): the chunk record carries Docling's contextualized text
+    as-is under `chunk-text`; no pack-defined neutral chunk schema is introduced —
+    the record is contract fields + chunk-index + chunk-text, nothing more."""
+    install_fake_docling(monkeypatch, "# Doc\n")
+    install_fake_chunker(monkeypatch, ["Passed-through chunk."])
+    src = tmp_path / "d.xls"
+    src.write_bytes(b"stub")
+    r = convert._extract_docling(src, chunk=True)
+    rec = json.loads(convert.write_chunks(src, r, "d.xls").read_text().splitlines()[0])
+    extra_keys = set(rec) - {
+        "contract-version", "tier", "source-file", "content-type",
+        "ingestion-date", "ingestion-quality", "chunk-index", "chunk-text",
+    }
+    assert extra_keys == set(), f"unexpected neutral-schema keys: {extra_keys}"
+    assert rec["chunk-text"] == "Passed-through chunk."
 
 
 # --- AC4/AC8: no new egress, no installed OCR/ML model, no AGPL pymupdf -----
