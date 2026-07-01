@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`file-to-markdown` gains a no-ML Tier-0 floor and a versioned output
+  contract (converters 0.3.0).** Where Docling's ML models are banned or
+  un-fetchable, `file-to-markdown` can now convert a digital PDF (via `pypdf`),
+  Office files (`.docx`/`.xlsx`/`.pptx`, degrading to a stdlib path when the
+  ordinary library is absent), and the everyday text formats (HTML, EPUB,
+  CSV/TSV, OpenDocument, `.eml`) to Markdown using only pure-Python or standard-
+  library parsers — no ML model, no network. Docling stays as the higher-
+  fidelity Tier 2 for `.xls` and images. Every extraction, across both the
+  document and image branches, now carries one versioned YAML frontmatter
+  contract recording provenance and a quality signal (`contract-version`,
+  `tier`, `extraction-confidence`, `requires-review`), so a scanned PDF that
+  yields sparse text is flagged `requires-review` and pointed at an escalation
+  tier instead of passing silently. The default invocation is unchanged
+  (`python scripts/convert.py "<input-file>"`); the Tier-0 PDF/Office libraries
+  install on demand (`python scripts/convert.py --check`), and untrusted input
+  is parsed defensively (XXE-safe XML, decompression-bomb guards, output-path
+  confinement, resource ceilings).
+
 ### Fixed
 
 - **`file-to-markdown` image extraction no longer silently loses elements

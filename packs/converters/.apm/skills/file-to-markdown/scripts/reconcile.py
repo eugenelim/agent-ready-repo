@@ -32,9 +32,10 @@ import json
 import re
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+import contract
 
 # --- IO --------------------------------------------------------------------
 
@@ -358,30 +359,35 @@ def render_markdown(
     else:
         overall_confidence = "medium"
 
-    front = {
-        "title": title,
-        "source-file": source_image,
-        "content-type": "image",
-        "content-category": CONTENT_CATEGORY.get(strategy, strategy),
-        "ingestion-date": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "diagram-type": diagram_type,
-        "processing": {
-            "strategy": "two-pass-sliding-window",
-            "extraction-strategy": strategy,
-            "viewport": detail_manifest.get("viewport"),
-            "stride": detail_manifest.get("stride"),
-            "overlap-pct": detail_manifest.get("overlap_pct"),
-            "tile-count": len(detail_manifest.get("tiles", [])),
+    # The image branch is an in-session agent-vision read.
+    # The shared builder prepends contract-version + tier and owns the
+    # ingestion-quality block; everything else is this branch's own ordered
+    # fields, byte-identical to the pre-contract output.
+    yaml = contract.build_frontmatter(
+        tier=contract.TIER_1,
+        extraction_confidence=overall_confidence,
+        requires_review=len(ambiguities) > 0 or not canonical,
+        fields={
+            "title": title,
+            "source-file": source_image,
+            "content-type": "image",
+            "content-category": CONTENT_CATEGORY.get(strategy, strategy),
+            "ingestion-date": contract.now_iso(),
+            "diagram-type": diagram_type,
+            "processing": {
+                "strategy": "two-pass-sliding-window",
+                "extraction-strategy": strategy,
+                "viewport": detail_manifest.get("viewport"),
+                "stride": detail_manifest.get("stride"),
+                "overlap-pct": detail_manifest.get("overlap_pct"),
+                "tile-count": len(detail_manifest.get("tiles", [])),
+            },
         },
-        "ingestion-quality": {
-            "extraction-confidence": overall_confidence,
+        ingestion_quality_extra={
             "elements-by-confidence": {"high": high, "medium": med, "low": low},
             "ambiguity-count": len(ambiguities),
-            "requires-review": len(ambiguities) > 0 or not canonical,
         },
-    }
-
-    yaml = _yaml_block(front)
+    )
 
     # Markdown body — group by element type for readability.
     by_type: dict[str, list[Element]] = {}
@@ -427,34 +433,6 @@ def render_markdown(
         body_parts.append("")
 
     return yaml + "\n" + "\n".join(body_parts) + "\n"
-
-
-def _yaml_block(d: dict) -> str:
-    """Minimal YAML emitter for our flat-with-one-level-of-nesting frontmatter.
-    No unicode quoting heroics, no anchors, no multi-line strings."""
-    lines = ["---"]
-    _emit(d, lines, 0)
-    lines.append("---")
-    return "\n".join(lines)
-
-
-def _emit(d: dict, lines: list[str], indent: int) -> None:
-    pad = "  " * indent
-    for k, v in d.items():
-        if isinstance(v, dict):
-            lines.append(f"{pad}{k}:")
-            _emit(v, lines, indent + 1)
-        elif isinstance(v, bool):
-            lines.append(f"{pad}{k}: {'true' if v else 'false'}")
-        elif v is None:
-            lines.append(f"{pad}{k}: null")
-        elif isinstance(v, (int, float)):
-            lines.append(f"{pad}{k}: {v}")
-        else:
-            # Escape backslashes first so we don't double-escape the
-            # backslash inserted by the quote-escape on the next line.
-            s = str(v).replace("\\", "\\\\").replace('"', '\\"')
-            lines.append(f'{pad}{k}: "{s}"')
 
 
 def _md_escape(s: str) -> str:
