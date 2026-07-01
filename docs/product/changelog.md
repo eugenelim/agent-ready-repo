@@ -36,6 +36,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`architect-diagram` now draws timeline, quadrant, and mindmap diagrams (architect 0.10.0).**
+  The diagram skill routes three new intents to Mermaid: a **timeline** for
+  roadmaps / chronologies / release history, a **quadrant** (`quadrantChart`)
+  for 2×2 prioritization and positioning, and a **mindmap** for hierarchical
+  decomposition — joining the existing C4 / sequence / state / ER / flowchart
+  set. Each has its own on-demand syntax reference and rubric budget. Because
+  the three are newer Mermaid grammars with uneven enterprise-wiki rendering,
+  the skill offers them with the same rendering-support caveat it already
+  applies to `architecture-beta` (with a table / bullet-list fallback), so
+  flowchart and C4 stay the defaults. The diagram rubric also gains explicit
+  per-type complexity budgets plus additive accent- and edge-count caps.
 - **`agentbundle list-installed` — see what you actually have installed (CLI 0.10.0).**
   A new read-only command lists every installed `(pack, adapter)` row across the
   user and repo scope with its version and an `up-to-date` / `upgrade-available`
