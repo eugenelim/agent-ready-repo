@@ -343,8 +343,8 @@ def test_all_layers_empty_raises_with_recovery_paths():
         )
     msg = str(exc.value)
     assert (
-        "no catalogue source: pass --catalogue, run 'agentbundle config set "
-        "source …', or pip install -e the catalogue" in msg
+        "no catalogue source: pass a catalogue argument, run 'agentbundle config "
+        "set source …', or pip install -e the catalogue" in msg
     )
     assert "config unset source" in msg  # the stale-value recovery path
 
