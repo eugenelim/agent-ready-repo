@@ -36,8 +36,10 @@ Errors go to stderr; exit code 1 on failure, 2 on a missing probed library.
 """
 from __future__ import annotations
 
+import argparse
 import csv as csvmod
 import io
+import json
 import sys
 import tempfile
 import zipfile
@@ -83,6 +85,9 @@ class ExtractResult(NamedTuple):
     confidence: str           # high | medium | low
     requires_review: bool
     escalation: str | None = None   # e.g. contract.TIER_1 when text is sparse
+    # HybridChunker records (contextualized chunk text), populated only on a
+    # Tier-2 `--chunk` run; None means "no chunk sidecar for this output".
+    chunks: list[str] | None = None
 
 
 # --- Extractor registry -----------------------------------------------------
@@ -90,12 +95,19 @@ class ExtractResult(NamedTuple):
 _EXTRACTORS: dict[str, Callable[[Path], ExtractResult]] = {}
 
 
-def dispatch(path: Path) -> ExtractResult:
-    """Route an input to its Tier-0 extractor, or fall through to Docling."""
+def dispatch(path: Path, *, enrich: bool = False, chunk: bool = False) -> ExtractResult:
+    """Route an input to its Tier-0 extractor, or fall through to Docling.
+
+    ``enrich`` and ``chunk`` only affect the Docling (Tier-2) fall-through; Tier-0
+    extractors ignore them (below Tier 2 there is no DoclingDocument to chunk, so a
+    ``--chunk`` request there yields the ordinary section-aware Markdown, not chunk
+    records — AC9). This function constructs only Tiers 0–2 — Tier 3 is never
+    reachable from here (it is produced solely by ``tier3.assemble_tier3`` via
+    ``--tier3``)."""
     extractor = _EXTRACTORS.get(path.suffix.lower())
     if extractor is not None:
         return extractor(path)
-    return _extract_docling(path)
+    return _extract_docling(path, enrich=enrich, chunk=chunk)
 
 
 def supported_exts() -> set[str]:
@@ -617,7 +629,76 @@ def _prescale_image(input_path: Path, tmp_dir: str) -> Path:
         return out_path
 
 
-def _extract_docling(input_path: Path) -> ExtractResult:
+# The local-model Docling enrichment options this skill turns on with `--enrich`.
+# NB: `enable_remote_services` and `PictureDescriptionApiOptions` (Docling's
+# remote-VLM captioning path) are deliberately ABSENT — enrichment is
+# local-model-only, so it can never become a covert data-egress channel inside
+# Tier 2 that bypasses the Tier-3 gate (security boundary; see spec AC2).
+ENRICH_OPTIONS = (
+    "do_formula_enrichment",       # formulas → LaTeX
+    "do_code_enrichment",          # code understanding
+    "do_picture_classification",   # figure classification
+    "do_picture_description",      # figure captioning (local model only)
+)
+
+
+def _configure_enrichment(opts: object) -> object:
+    """Turn on the local-model enrichment flags on a Docling PdfPipelineOptions.
+
+    Sets only the four ``do_*`` enrichment flags; it never touches
+    ``enable_remote_services`` and never constructs a remote-VLM option class, so
+    figure captioning uses Docling's *local* picture-description model. Pure
+    (a function of the options object) so it is unit-testable without Docling."""
+    for name in ENRICH_OPTIONS:
+        setattr(opts, name, True)
+    return opts
+
+
+def _build_enriched_converter():
+    """A Docling DocumentConverter with local-model enrichment on for PDF + image
+    inputs. The remote-services path is never enabled (see ``_configure_enrichment``)."""
+    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.pipeline_options import PdfPipelineOptions
+    from docling.document_converter import DocumentConverter, PdfFormatOption
+
+    opts = _configure_enrichment(PdfPipelineOptions())
+    fmt = PdfFormatOption(pipeline_options=opts)
+    return DocumentConverter(format_options={InputFormat.PDF: fmt, InputFormat.IMAGE: fmt})
+
+
+def _chunk_document(doc) -> list[str]:
+    """Run Docling's HybridChunker over a DoclingDocument, returning the
+    contextualized chunk texts as-is (RFC-0058 Open-Q1 — no neutral chunk schema).
+
+    HybridChunker's tokenizer is the adopter's ``docling-core[chunking]`` extra,
+    resolved on demand; when it (or its transformers/tokenizers backend) is absent
+    the run raises a clear, actionable error rather than crashing."""
+    try:
+        from docling.chunking import HybridChunker
+    except ImportError as exc:
+        raise RuntimeError(
+            "structure-preserving chunking (--chunk) needs the tokenizer extra "
+            "'docling-core[chunking]', which is not installed. Install it "
+            "(pip install 'docling-core[chunking]') or drop --chunk."
+        ) from exc
+    try:
+        chunker = HybridChunker()
+        chunks = list(chunker.chunk(dl_doc=doc))
+        return [chunker.contextualize(chunk=c) for c in chunks]
+    except (ImportError, ModuleNotFoundError) as exc:
+        # The tokenizer backend (transformers / tokenizers) resolves lazily inside
+        # HybridChunker; a missing backend surfaces here, not at import.
+        raise RuntimeError(
+            "structure-preserving chunking (--chunk) needs the tokenizer extra "
+            "'docling-core[chunking]' and its tokenizer backend, which is not "
+            "available. Install it (pip install 'docling-core[chunking]') or drop "
+            "--chunk."
+        ) from exc
+
+
+def _extract_docling(
+    input_path: Path, *, enrich: bool = False, chunk: bool = False
+) -> ExtractResult:
     try:
         from docling.document_converter import DocumentConverter
     except ImportError:
@@ -636,9 +717,15 @@ def _extract_docling(input_path: Path) -> ExtractResult:
         if convert_path != input_path:
             print(f"WARNING: image pre-scaled to fit {MAX_IMAGE_DIM}px before OCR")
     try:
-        converter = DocumentConverter()
+        # Enrichment adds local models to the pipeline; the default path stays the
+        # bare converter so its Tier-2 body is byte-identical to slice 2.
+        converter = _build_enriched_converter() if enrich else DocumentConverter()
         result = converter.convert(str(convert_path))
-        markdown = result.document.export_to_markdown()
+        document = result.document
+        markdown = document.export_to_markdown()
+        # HybridChunker needs the DoclingDocument only Tier 2 produces; chunk records
+        # ride in a JSONL sidecar (written by write_chunks), never the .md body.
+        chunks = _chunk_document(document) if chunk else None
     finally:
         if tmp_dir:
             import shutil
@@ -646,13 +733,16 @@ def _extract_docling(input_path: Path) -> ExtractResult:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
     # The Docling body is passed through unmodified — the builder wraps, never
-    # rewrites.
+    # rewrites. Enriched captions/formulas/code land here as inert body content
+    # (the leading-block-only contract makes them un-forgeable), never as
+    # instructions: they are model output derived from an untrusted document image.
     return ExtractResult(
         body=markdown,
         tier=contract.TIER_2,
         content_type="image" if is_image else input_path.suffix.lower().lstrip("."),
         confidence="high",
         requires_review=False,
+        chunks=chunks,
     )
 
 
@@ -689,7 +779,38 @@ def write_output(input_path: Path, text: str) -> Path:
     return output_path
 
 
-def convert_file(input_path: Path) -> None:
+def write_chunks(input_path: Path, result: ExtractResult, source_name: str) -> Path:
+    """Write the HybridChunker output as a ``<basename>.chunks.jsonl`` sidecar,
+    confined to the input's directory (like ``write_output``).
+
+    One JSON object per line = the **full unified contract field set** (from the
+    shared ``contract.build_fields`` builder — same field set + validation the YAML
+    path uses, so the JSONL cannot fork the contract) plus the ``chunk-index`` and
+    ``chunk-text``. JSON records, not YAML frontmatter, so the leading-block-only
+    invariant is never violated by packing many records into one file."""
+    ingestion_date = contract.now_iso()
+    lines: list[str] = []
+    for i, text in enumerate(result.chunks or []):
+        record = contract.build_fields(
+            tier=result.tier,
+            extraction_confidence=result.confidence,
+            requires_review=result.requires_review,
+            fields={
+                "source-file": source_name,
+                "content-type": result.content_type,
+                "ingestion-date": ingestion_date,
+            },
+        )
+        record["chunk-index"] = i
+        record["chunk-text"] = text
+        lines.append(json.dumps(record, ensure_ascii=False))
+    root = input_path.resolve().parent
+    out_path = safe_io.confine(root / (input_path.stem + ".chunks.jsonl"), root)
+    out_path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    return out_path
+
+
+def convert_file(input_path: Path, *, enrich: bool = False, chunk: bool = False) -> None:
     if not input_path.exists():
         print(f"ERROR: File not found: {input_path}", file=sys.stderr)
         sys.exit(1)
@@ -702,7 +823,7 @@ def convert_file(input_path: Path) -> None:
         sys.exit(1)
 
     try:
-        result = dispatch(input_path)
+        result = dispatch(input_path, enrich=enrich, chunk=chunk)
     except Exception as exc:
         print(
             f"ERROR: could not convert {input_path.name}: {exc}\n"
@@ -719,6 +840,20 @@ def convert_file(input_path: Path) -> None:
     print(f"OUTPUT: {output_path}")
     print(f"LINES: {len(text.splitlines())}")
     print(f"WORDS: {len(result.body.split())}")
+    if result.chunks is not None:
+        chunks_path = write_chunks(input_path, result, input_path.name)
+        print(f"CHUNKS: {chunks_path}")
+        print(f"CHUNK_COUNT: {len(result.chunks)}")
+    elif chunk:
+        # --chunk was asked for but the input took a below-Tier-2 path (no
+        # DoclingDocument to chunk); the ordinary section-aware Markdown stands.
+        print("WARNING: --chunk needs Tier 2 (Docling); no DoclingDocument for this "
+              "input — wrote section-aware Markdown, no chunk sidecar")
+    if enrich and result.tier != contract.TIER_2:
+        # --enrich only applies on the Docling (Tier-2) path; signal the no-op so an
+        # agent parsing markers isn't left thinking enrichment ran.
+        print("WARNING: --enrich needs Tier 2 (Docling); this input took a lower "
+              "tier — enrichment not applied")
     if result.requires_review:
         target = f" — escalate to Tier {result.escalation}" if result.escalation else ""
         print(f"WARNING: extraction flagged requires-review (low confidence){target}")
@@ -760,16 +895,106 @@ _EXTRACTORS.update({
 })
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="convert.py",
+        description="Convert documents and images to Markdown, tiered and no-ML-first.",
+    )
+    p.add_argument("files", nargs="*",
+                   help="input file(s); each is converted to <basename>.md")
+    # `--check` keeps its documented positional library-name form: absent → None;
+    # `--check` alone → [] (probe all optional libs); `--check pypdf` → ["pypdf"].
+    # nargs="*" keeps the library names off the `files` positional.
+    p.add_argument("--check", nargs="*", default=None, metavar="LIB",
+                   help="probe optional Tier-0 libraries (all if none named) and exit")
+    p.add_argument("--enrich", action="store_true",
+                   help="Tier-2 only: turn on local-model Docling enrichment "
+                        "(formulas→LaTeX, code, figure classification + captioning)")
+    p.add_argument("--chunk", action="store_true",
+                   help="Tier-2 only: also write structure-preserving HybridChunker "
+                        "chunks to a <basename>.chunks.jsonl sidecar")
+    # Tier-3 (managed-API) assembly — explicit-only, never auto-reached. The skill
+    # makes no network call; the adopter runs the vendor and hands over the OCR text.
+    tier3_group = p.add_argument_group(
+        "Tier 3 (managed API — explicit, transport-free)")
+    tier3_group.add_argument("--tier3", action="store_true",
+                             help="assemble adopter-obtained managed-OCR text into the "
+                                  "unified contract (requires --ocr-text/--endpoint/"
+                                  "--residency; the positional arg is the source name)")
+    tier3_group.add_argument("--ocr-text", metavar="PATH",
+                             help="path to the adopter-obtained OCR text file")
+    tier3_group.add_argument("--endpoint", metavar="HOST[,HOST]",
+                             help="egress endpoint allowlist (comma-separated hosts)")
+    tier3_group.add_argument("--residency", metavar="REGION",
+                             help="data-residency / region the vendor processes in")
+    return p
+
+
+def _run_tier3(ns: argparse.Namespace) -> int:
+    """Explicit Tier-3 assembly path. Manual post-parse validation (a flat parser
+    can't express 'required only when --tier3'); refuses fail-closed with a clear
+    error and no output stamped on any malformed invocation."""
+    import tier3
+
+    problems: list[str] = []
+    if ns.enrich or ns.chunk:
+        problems.append("--tier3 cannot be combined with --enrich / --chunk")
+    if len(ns.files) != 1:
+        problems.append("--tier3 needs exactly one source name (a single positional)")
+    if not ns.ocr_text:
+        problems.append("--tier3 needs --ocr-text <path>")
+    if not ns.endpoint:
+        problems.append("--tier3 needs --endpoint <host[,host]>")
+    if not ns.residency:
+        problems.append("--tier3 needs --residency <region>")
+    if problems:
+        for p in problems:
+            print(f"ERROR: {p}", file=sys.stderr)
+        return 1
+
+    source = ns.files[0]
+    declaration = {
+        "endpoint-allowlist": ns.endpoint.split(","),
+        "residency-region": ns.residency,
+    }
+    try:
+        text = tier3.assemble_tier3(ns.ocr_text, source, declaration)
+    except FileNotFoundError:
+        print(f"ERROR: --ocr-text file not found: {ns.ocr_text}", file=sys.stderr)
+        return 1
+    except (tier3.DeclarationError, ValueError, OSError) as exc:
+        # fail-closed: no output stamped on a refused declaration / oversized input
+        print(f"ERROR: Tier-3 assembly refused: {exc}", file=sys.stderr)
+        return 1
+
+    ocr_path = Path(ns.ocr_text)
+    root = ocr_path.resolve().parent
+    out_path = safe_io.confine(root / (Path(source).stem + ".md"), root)
+    out_path.write_text(text, encoding="utf-8")
+    # WORDS counts the OCR body only (frontmatter excluded) for parity with the
+    # main convert_file path, which counts result.body.
+    body = text.split("\n---\n\n", 1)[-1]
+    print(f"OUTPUT: {out_path}")
+    print(f"LINES: {len(text.splitlines())}")
+    print(f"WORDS: {len(body.split())}")
+    print("WARNING: Tier-3 output is unverified vendor OCR (requires-review: true)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if not args:
-        print("Usage: convert.py <file> [file2 ...] | --check [library ...]",
-              file=sys.stderr)
+    ns = _build_parser().parse_args(args)
+
+    if ns.check is not None:
+        return cmd_check(ns.check)
+    if ns.tier3:
+        return _run_tier3(ns)
+    if not ns.files:
+        print("Usage: convert.py <file> [file2 ...] [--enrich] [--chunk] "
+              "| --check [library ...]", file=sys.stderr)
         return 1
-    if args[0] == "--check":
-        return cmd_check(args[1:])
-    for arg in args:
-        convert_file(Path(arg))
+    for arg in ns.files:
+        convert_file(Path(arg), enrich=ns.enrich, chunk=ns.chunk)
     return 0
 
 
