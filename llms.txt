@@ -1,0 +1,44 @@
+# agent-ready-repo
+
+> A loop your coding agent can't cut corners in, and a catalogue of installable
+> kits (skills, subagents, hooks) for the jobs around the code. `agentbundle`
+> installs packs from a catalogue into any agent (Claude Code, Codex, Cursor,
+> Copilot, Gemini, Kiro); `credbroker` resolves secrets without leaking them to
+> the model. This file indexes the docs so a tool can read the few relevant
+> pages instead of scanning the whole tree. Links point at raw file content.
+
+## Start here
+
+- [README](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/README.md): what the project is, quick start, the catalogue table.
+- [AGENTS.md](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/AGENTS.md): the canonical agent-context file — how to work in this repo.
+- [Charter](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/CHARTER.md): mission, scope, and the principles that gate what gets built.
+- [Conventions](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/CONVENTIONS.md): how we work — the loop, commits, the doc hierarchy.
+
+## Architecture
+
+- [Overview](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/architecture/overview.md): the map of the monorepo — packages, packs, docs. Read first.
+- [Catalogue](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/architecture/catalogue.md): what a catalogue is, how agentbundle finds one, and how to stand up your own.
+- [Skill & pack format](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/architecture/skill-and-pack-format.md): the format in three layers — the agentskills.io skill standard, the pack envelope, projection.
+- [Pack layout](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/architecture/pack-layout.md): the on-disk shape of a single pack and what each file does.
+- [Pack manifest](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/architecture/pack-manifest.md): how pack.toml projects into each route's listing.
+- [agentbundle](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/architecture/agentbundle.md): the CLI + build pipeline (recipes → adapters → projections).
+- [Credentials](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/architecture/credentials.md): the credbroker resolver and the credentialed-primitive model.
+
+## Format contracts
+
+- [Adapter contract](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/contracts/adapter.toml): the machine-readable per-adapter projection rules and primitive types.
+- [Pack schema](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/contracts/pack.schema.json): the JSON Schema for pack.toml.
+- [Distribution adapters spec](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/specs/distribution-adapters/spec.md): the authoritative spec for the projection modes.
+
+## Guides
+
+- [Guides index](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/README.md): the Diátaxis guide set, organized by pack.
+- [Author a skill](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/_shared/how-to/author-a-skill.md): the hands-on how-to for writing a SKILL.md, including evals.
+- [Build an org stack pack](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/_shared/how-to/build-an-org-stack-pack.md): the full recipe for standing up your own catalogue.
+- [Why a catalogue](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/guides/_shared/explanation/pack-catalogue.md): the adopter-facing explanation of the catalogue model.
+
+## Optional
+
+- [RFC index](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/rfc/README.md): proposals and their status — the project's governance history.
+- [ADR index](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/adr/README.md): frozen architecture decisions and their rationale.
+- [Backlog](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/backlog.md): the top-level index of open spec items.

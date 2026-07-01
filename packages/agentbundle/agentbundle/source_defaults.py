@@ -38,10 +38,13 @@ _WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 _MARKER_DIR = "packs"
 _MARKER_FILE = (".claude-plugin", "marketplace.json")
 
-# The exact substring the spec pins for the all-layers-empty error.
+# The exact substring the spec pins for the all-layers-empty error. Names the
+# real surface: the catalogue is a trailing positional argument, not a
+# `--catalogue` flag (no such flag exists), so the recovery text must not send
+# the user to one.
 _NO_SOURCE_MSG = (
-    "no catalogue source: pass --catalogue, run 'agentbundle config set "
-    "source …', or pip install -e the catalogue"
+    "no catalogue source: pass a catalogue argument, run 'agentbundle config "
+    "set source …', or pip install -e the catalogue"
 )
 
 # Sentinel: distinguishes "caller did not pass a distribution" (load it
