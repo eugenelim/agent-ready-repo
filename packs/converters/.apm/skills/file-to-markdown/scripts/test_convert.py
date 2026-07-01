@@ -901,8 +901,12 @@ _SCRIPTS = Path(__file__).resolve().parent
 # is excluded from the ML check only because Docling (Tier 2) legitimately lives
 # there; it is still covered by the no-network and no-pymupdf checks.
 _TIER1_FILES = ["rasterize_pdf.py", "reconcile.py", "text_crosscheck.py"]
-_ALL_SCRIPTS = ["convert.py", "reconcile.py", "rasterize_pdf.py",
-                "text_crosscheck.py", "contract.py", "safe_io.py", "split_image.py"]
+# Enumerate the skill's production scripts by GLOB (not a hard-coded list) so a new
+# module — e.g. tier3.py, the one most likely to reach for a network client — is
+# covered by construction and can never be silently skipped (AC5).
+_ALL_SCRIPTS = sorted(
+    p.name for p in _SCRIPTS.glob("*.py") if not p.name.startswith("test_")
+)
 
 _NET_IMPORT = _re.compile(
     r"^\s*(?:import|from)\s+(socket|urllib|http|requests|httpx|aiohttp|ssl|ftplib|"
@@ -933,3 +937,151 @@ def test_pymupdf_appears_nowhere_as_code():
     for name in _ALL_SCRIPTS:
         src = (_SCRIPTS / name).read_text("utf-8")
         assert not ml.search(src), f"{name} imports pymupdf/fitz (AGPL — rejected)"
+
+
+# --- T5: cross-cutting security guards (AST-based, ignore prose) -------------
+
+import ast as _ast
+
+
+def test_glob_covers_new_high_risk_modules():
+    """AC5: the production-script glob picks up tier3.py + contract.py (so the
+    no-network guard cannot silently skip a new module)."""
+    assert "tier3.py" in _ALL_SCRIPTS
+    assert "contract.py" in _ALL_SCRIPTS and "convert.py" in _ALL_SCRIPTS
+
+
+def _ast_names_attrs_and_strings(name: str):
+    """Return (referenced Name/Attribute identifiers, string-literal values) for a
+    production module — AST-based, so `#` comments never match (only real code +
+    docstring/string constants, which we return separately)."""
+    tree = _ast.parse((_SCRIPTS / name).read_text("utf-8"))
+    idents: set[str] = set()
+    strings: list[str] = []
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.Name):
+            idents.add(node.id)
+        elif isinstance(node, _ast.Attribute):
+            idents.add(node.attr)
+        elif isinstance(node, _ast.Constant) and isinstance(node.value, str):
+            strings.append(node.value)
+    return idents, strings
+
+
+def test_no_remote_services_symbols_referenced_anywhere():
+    """AC2: Docling's remote-VLM symbols are referenced in no production code path
+    (AST — a `#` comment naming the forbidden symbol as prose does not count)."""
+    forbidden = {"enable_remote_services", "PictureDescriptionApiOptions"}
+    for name in _ALL_SCRIPTS:
+        idents, _ = _ast_names_attrs_and_strings(name)
+        hit = forbidden & idents
+        assert not hit, f"{name} references remote-VLM symbol(s) {hit}"
+
+
+def test_tier3_constructed_only_in_tier3_module():
+    """AC3: the name/attribute TIER_3 is referenced in no production module except
+    tier3.py, and the string literal "3-managed-api" appears only in contract.py's
+    enum definition — checked as two distinct AST node classes."""
+    for name in _ALL_SCRIPTS:
+        idents, strings = _ast_names_attrs_and_strings(name)
+        # tier3.py constructs it; contract.py is the enum definition (name + the
+        # TIERS frozenset membership) — every other production module must not
+        # reference the name at all.
+        if name not in ("tier3.py", "contract.py"):
+            assert "TIER_3" not in idents, f"{name} references the TIER_3 name"
+        # the literal string lives only at contract.py's enum definition.
+        if name != "contract.py":
+            assert "3-managed-api" not in strings, \
+                f"{name} carries the \"3-managed-api\" literal"
+
+
+def test_no_bundled_ml_model_or_vendor_artifact():
+    """AC6: no ML-model weight file or per-vendor config ships in the skill tree."""
+    skill_root = _SCRIPTS.parent
+    model_exts = {".pt", ".onnx", ".safetensors", ".bin", ".gguf", ".pth", ".h5", ".ckpt"}
+    offenders = [p for p in skill_root.rglob("*") if p.suffix.lower() in model_exts]
+    assert not offenders, f"bundled model/vendor artifacts: {offenders}"
+
+
+def test_no_endpoint_logged_at_default_verbosity(tmp_path, capsys):
+    """AC5: at default verbosity the Tier-3 path writes the endpoint only to the
+    intended provenance field, never to a log line (stdout/stderr)."""
+    src = tmp_path / "ocr.txt"
+    src.write_text("vendor text")
+    rc = convert.main(["--tier3", "--ocr-text", str(src),
+                       "--endpoint", "secret.vendor.example",
+                       "--residency", "eu", "s.pdf"])
+    out = capsys.readouterr()
+    assert rc == 0
+    assert "secret.vendor.example" not in out.out
+    assert "secret.vendor.example" not in out.err
+    # but it IS in the intended provenance field of the output file
+    assert 'egress-endpoint: "secret.vendor.example"' in (tmp_path / "s.md").read_text()
+
+
+# --- T5: contract stamping across the three higher-tier paths ----------------
+
+
+def test_higher_tier_outputs_stamp_contract_honestly(tmp_path, monkeypatch):
+    """AC10 consolidation: enriched Tier-2 + chunked Tier-2 stay tier-2/high;
+    Tier-3-assembled is tier-3/low/requires-review — never auto-high."""
+    import tier3
+    # enriched Tier-2
+    cap: dict = {}
+    install_fake_docling_enrich(monkeypatch, "# Enriched\n", cap)
+    r_enr = convert._extract_docling(tmp_path / "e.xls", enrich=True)
+    assert r_enr.tier == contract.TIER_2 and r_enr.confidence == "high"
+    # chunked Tier-2 JSONL record
+    install_fake_docling(monkeypatch, "# Doc\n")
+    install_fake_chunker(monkeypatch, ["chunk one"])
+    src = tmp_path / "c.xls"
+    src.write_bytes(b"stub")
+    r_ch = convert._extract_docling(src, chunk=True)
+    rec = json.loads(convert.write_chunks(src, r_ch, "c.xls").read_text().splitlines()[0])
+    assert rec["tier"] == contract.TIER_2
+    assert rec["ingestion-quality"]["extraction-confidence"] == "high"
+    # Tier-3 assembled — honest low + requires-review, never high
+    ocr = tmp_path / "o.txt"
+    ocr.write_text("vendor text")
+    fm = "\n".join(frontmatter_and_body(tier3.assemble_tier3(
+        ocr, "s.pdf",
+        {"endpoint-allowlist": ["ok.example"], "residency-region": "eu"}))[0])
+    assert f'tier: "{contract.TIER_3}"' in fm
+    assert 'extraction-confidence: "low"' in fm and "requires-review: true" in fm
+    assert "high" not in fm
+
+
+def test_tier0_frontmatter_byte_parity_golden():
+    """AC10: the existing Tier-0 frontmatter block is byte-stable (additive-only —
+    no key rename/reorder from the build_fields refactor)."""
+    block = contract.build_frontmatter(
+        tier=contract.TIER_0, extraction_confidence="high", requires_review=False,
+        fields={"source-file": "report.pdf", "content-type": "pdf",
+                "ingestion-date": "2026-06-30T12:00:00+00:00"})
+    expected = (
+        '---\n'
+        'contract-version: "1.0"\n'
+        'tier: "0-no-ml"\n'
+        'source-file: "report.pdf"\n'
+        'content-type: "pdf"\n'
+        'ingestion-date: "2026-06-30T12:00:00+00:00"\n'
+        'ingestion-quality:\n'
+        '  extraction-confidence: "high"\n'
+        '  requires-review: false\n'
+        '---'
+    )
+    assert block == expected
+
+
+def test_default_no_flag_run_writes_only_markdown(tmp_path, monkeypatch):
+    """AC11: a no-flag run produces exactly the slice-2 single-.md output — no
+    chunk sidecar, no enrichment — for a Tier-2 (Docling) input."""
+    install_fake_docling(monkeypatch, "# Plain Docling body\n")
+    src = tmp_path / "legacy.xls"
+    src.write_bytes(b"stub")
+    convert.convert_file(src)  # no enrich, no chunk
+    assert (tmp_path / "legacy.md").exists()
+    assert not (tmp_path / "legacy.chunks.jsonl").exists()
+    md = (tmp_path / "legacy.md").read_text()
+    assert 'tier: "2-approved-ml"' in md
+    assert "Plain Docling body" in md
