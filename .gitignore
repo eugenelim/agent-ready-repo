@@ -55,6 +55,7 @@ build/
 # __pycache__ stays ignored everywhere (must come *after* the
 # build/** override so it applies inside the exception too).
 __pycache__/
+.pytest_cache/
 
 # Build pipeline output.
 dist/
