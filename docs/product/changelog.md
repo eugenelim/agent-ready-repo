@@ -19,6 +19,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`file-to-markdown` gains three opt-in higher-fidelity capabilities
+  (converters 0.5.0).** All three are **off by default** — the default one command
+  (`python scripts/convert.py "<file>"`) is unchanged. (1) **`--enrich`** turns on
+  Docling's **local-model** enrichment on the Tier-2 path — formulas → LaTeX, code
+  understanding, figure classification and captioning. It is local-model-only by
+  construction (Docling's remote-services / remote-VLM path is never enabled), so
+  enrichment can never become a hidden data-egress channel; enriched captions are
+  treated as untrusted model output (inert body content, never instructions).
+  (2) **`--chunk`** also writes Docling `HybridChunker` output (tokenizer-aware,
+  structure-preserving chunks) to a `<basename>.chunks.jsonl` sidecar — one JSON
+  record per chunk carrying the full contract field set — so an extraction can feed
+  a retrieval store as chunks, not just a flat file (needs the
+  `docling-core[chunking]` tokenizer extra, installed on demand). (3) **`--tier3`**
+  assembles adopter-obtained managed-OCR text into the unified contract with
+  `tier: "3-managed-api"` and `requires-review: true`. Tier 3 crosses a
+  **data-egress boundary**, so it is **explicit-only and never auto-reached**, and
+  the skill itself **makes no network call** — you run the approved vendor through
+  your own transport, and the skill validates an egress declaration
+  (`{endpoint-allowlist, residency-region}`), stamps the contract, and records the
+  destination in provenance. See the skill's `references/tier3-managed-api.md` for
+  the adopter controls (vendor retention/no-training, transport-binding, and
+  redaction as your responsibility — documents are sent unmodified). No ML model or
+  per-vendor data ships with the pack.
+
 - **`file-to-markdown` reads scans and non-diagram images via agent-vision
   (converters 0.4.0).** The image branch gains a general **`text-table`**
   strategy for non-diagram content — a screenshot of prose, a table image, a

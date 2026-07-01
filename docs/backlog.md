@@ -1226,3 +1226,19 @@ to the Tier-0 document floor). The behavior is also **pre-existing** (the floor
 only relocated the code into `_extract_docling`). **Unblocks when:** a follow-on
 hardens the image branch's trust posture — refuse a hard pixel ceiling *before*
 decode rather than disabling `MAX_IMAGE_PIXELS` unconditionally.
+
+## `extraction-higher-tiers`
+
+### extraction-tier3-pre-egress-redaction-hook
+
+**Source:** RFC-0058 D5 / Open-Q3, carried through the
+[`extraction-higher-tiers`](specs/extraction-higher-tiers/spec.md) spec (AC7).
+D5 decides pre-egress redaction is **out of scope** — Tier-3 documents are sent
+to the managed vendor **unmodified**, and adopters gate what may reach a vendor
+at their own document-classification layer. The residual, recorded here per
+Open-Q3's recommended default (*don't build it in this slice*), is whether to
+offer an **optional** pre-egress redaction / PII-scrubbing hook an adopter can
+wire in. **Not built.** **Unblocks when:** an adopter needs an in-skill redaction
+hook rather than gating at their classification layer — at which point it is its
+own slice with its own security review (it changes the egress boundary
+`security-reviewer` gates).
