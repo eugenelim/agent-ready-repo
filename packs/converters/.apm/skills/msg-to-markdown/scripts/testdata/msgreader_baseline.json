@@ -1,0 +1,44 @@
+{
+  "plain": {
+    "subject": "Plain hello",
+    "recipientEmails": [
+      "bob@corp.com"
+    ],
+    "attachmentNames": []
+  },
+  "html_tocc_bcc": {
+    "subject": "HTML report",
+    "recipientEmails": [
+      "bob@corp.com",
+      "carol@corp.com",
+      "dan@corp.com"
+    ],
+    "attachmentNames": []
+  },
+  "attach_inline": {
+    "subject": "With attachments",
+    "recipientEmails": [
+      "bob@corp.com"
+    ],
+    "attachmentNames": [
+      "data.pdf",
+      "logo.png"
+    ]
+  },
+  "nonascii": {
+    "subject": "Café — déjà vu ☕",
+    "recipientEmails": [
+      "bob@corp.com"
+    ],
+    "attachmentNames": []
+  },
+  "embedded": {
+    "subject": "Has embedded",
+    "recipientEmails": [
+      "bob@corp.com"
+    ],
+    "attachmentNames": [
+      "fwd.msg"
+    ]
+  }
+}

@@ -1,92 +1,141 @@
 ---
 name: msg-to-markdown
-description: Convert Outlook .msg email files to Markdown, preserving email headers (From, To, CC, Date), body content, and attachment metadata. Use when the user wants to convert, read, or process a .msg email file into Markdown format.
+description: Convert Outlook .msg and MIME .eml email files to Markdown with a versioned output contract, preserving headers (From, To, CC, BCC, Date, Importance), the body (HTML reduced to Markdown, or plain text), and an attachments table. Use when the user wants to convert, read, or process a .msg or .eml email into Markdown, or extract its attachments.
 ---
 
-# Outlook MSG to Markdown Converter
+# Email (.msg / .eml) to Markdown Converter
 
-Convert Outlook `.msg` email files to clean, structured Markdown preserving headers, body, and attachment metadata.
+Convert Outlook `.msg` and MIME `.eml` email into clean, structured Markdown at
+**Tier 0 (no ML)**, preserving headers, body, and attachment metadata. Every
+output carries the same versioned **unified output contract** (YAML frontmatter:
+`contract-version`, `tier`, `source-file`, `content-type`, `ingestion-date`, and a
+nested `ingestion-quality` block) that `file-to-markdown` emits, so a downstream
+context layer ingests email exactly as it ingests documents.
+
+This is a pure-Python skill. `.msg` is read via `olefile` + first-party MAPI
+decoding; `.eml` via the Python stdlib. No Node.js, no ML/OCR model, no network
+call. (See ADR-0046 for the reader decision.)
 
 ## Prerequisites
 
-The converter runs on Node.js and reads `.msg` files through an npm
-package — `@nicecode/msg-reader` (preferred) or `msgreader` as an
-alternative. `scripts/convert.js` uses whichever is installed. Install
-the preferred one once:
+`.eml` conversion needs only the Python standard library. `.msg` conversion needs
+**`olefile`** (BSD-2-Clause), resolved pip-on-demand — never auto-installed. Check
+and install:
 
 ```bash
-npm install @nicecode/msg-reader
+python scripts/convert.py --check          # exit 0 = present, 2 = absent
+python -m pip install 'olefile>=0.47'       # if absent
 ```
 
 ## Instructions
 
-You are a document conversion agent. When the user provides a `.msg` file path via `$ARGUMENTS`, convert it to Markdown that captures the full email structure.
+When the user provides an email file path, convert it to Markdown that captures
+the full email structure.
 
 ### Step 1: Verify the environment
 
-Confirm Node.js and a reader package are available. From the skill's own
-directory, check for either supported package (mirroring what
-`convert.js` resolves):
+For a `.msg` file, run `python scripts/convert.py --check`. Exit 0 → proceed. Exit
+2 → tell the user to install `olefile` (command above), or run it once **with
+their consent**; don't install it silently. `.eml` needs no check.
+
+### Step 2: Convert
 
 ```bash
-node -e "try{require.resolve('@nicecode/msg-reader')}catch{require.resolve('msgreader')}"
+python scripts/convert.py "<path>"          # .msg or .eml; more than one path is fine
 ```
 
-- Exit 0 → at least one reader is installed; proceed to Step 2.
-- Non-zero → neither is installed. Confirm `npm` is available
-  (`npm --version`); if npm is missing, tell the user to install
-  Node.js and stop. Otherwise tell the user to run the install command
-  from Prerequisites (or, **with their consent**, run it once and
-  re-verify). Don't install it silently.
+It writes `<basename>.md` next to the input (confined to the input's directory)
+and prints:
 
-### Step 2: Extract the email data
-
-Run the conversion script, replacing `$ARGUMENTS` with the input file path:
-
-```bash
-node scripts/convert.js "$ARGUMENTS"
-```
+- `WROTE: <path>` — the Markdown file
+- `SUMMARY: <json>` — subject, from, to, date, body type, attachment/recipient counts
+- `WARNING: …` — printed when the output is flagged `requires-review`
 
 ### Step 3: Extract attachments (if requested)
 
-If the user asks to extract attachments, run the attachments script:
-
 ```bash
-node scripts/extract-attachments.js "$ARGUMENTS"
+python scripts/convert.py --attachments "<path>"
 ```
+
+Each attachment is written into `<basename>_attachments/` **confined** to that
+directory: the stored filename is reduced to a basename (a traversal name like
+`../evil` becomes `evil`; an absolute, drive, UNC, empty, or `.`/`..` name is
+refused) and re-checked against the directory. Prints `EXTRACTED: <path>` or
+`SKIPPED: <reason>` per attachment. Embedded messages have no flat byte stream and
+are skipped (convert them by running this skill on the parent again, or on an
+exported copy).
 
 ### Step 4: Report the result
 
-After conversion:
+1. Show the user a summary: subject, sender, date, recipient count, body type
+   (HTML vs plain), and attachment count (from the `SUMMARY:` line).
+2. If the body was HTML, mention it was reduced to Markdown and some complex
+   formatting (embedded CSS, conditional Outlook markup) may have been simplified.
+3. If there are attachments, list them and offer to extract them (Step 3).
+4. If there are embedded messages (forwarded emails), the output carries a note;
+   offer to convert them too.
+5. Offer adjustments: stripping signature blocks, extracting inline images, a
+   meeting-notes template, or batch-converting a folder (loop over each file).
 
-1. Show the user a summary: subject, sender, date, recipient count, body type (HTML vs plain text), and attachment count
-2. If the email had an HTML body, mention that it was converted from HTML and some complex formatting (e.g., embedded CSS styles, conditional Outlook markup) may have been simplified
-3. If there are attachments, list them and ask if the user wants them extracted to a folder
-4. If there are embedded `.msg` files (forwarded emails), offer to recursively convert those too
-5. Ask if they'd like adjustments:
-   - Including or stripping email signature blocks
-   - Extracting inline images
-   - Converting the email into a more structured format (e.g., meeting notes template)
-   - Batch-converting a folder of `.msg` files
+## Output contract
 
-### Input format
+The leading `---`-fenced block is the unified contract; the extracted body sits
+below it. `tier` is always `0-no-ml`; `content-type` is `msg` or `eml`.
+`ingestion-quality.requires-review` is `true` (and `extraction-confidence` `low`)
+when the input was refused (oversized / malformed / resource-capped) or the body
+is RTF-only. Because the frontmatter is emitted through the shared builder, hostile
+subject/body content cannot forge or truncate it.
 
-The user provides the argument as a file path, e.g.:
+## Security & limits
 
-- `emails/important-update.msg`
-- `./meeting-invite.msg`
-- `/absolute/path/to/forwarded-chain.msg`
+`.msg`/`.eml` input is treated as untrusted. The skill enforces its **own**
+resource ceilings around the reader (a `.msg` is an OLE2/CFBF file, not a zip, so
+the zip-bomb guards do not apply): a per-stream byte cap that distrusts the
+declared size, an OLE2 stream/storage-count cap, a cumulative-output budget, and a
+`PidTagRtfCompressed` LZFu **declared-size** cap (RTF is never decompressed).
+Embedded-message recursion is bounded to a **depth of 3** and a **total of 20**
+(`MAX_EMBED_DEPTH` / `MAX_EMBED_COUNT` in `mapi.py`); beyond it the output surfaces
+a note. Malformed input fails soft to `requires-review`, never a crash. No
+attachment or MIME-part payload is parsed as XML.
 
-If the user provides a glob pattern like `emails/*.msg`, loop through each file and convert them individually.
+## Edge cases to handle
 
-### Edge cases to handle
+- **RTF-only body**: some older messages store the body only in compressed RTF.
+  This Tier-0 converter does **not** decompress RTF; it surfaces a note and flags
+  `requires-review`. Suggest opening in Outlook and re-saving as HTML/plain text.
+- **Winmail.dat / TNEF**: TNEF-encoded content is not decoded; it appears as an
+  attachment. Note it and suggest a dedicated TNEF tool if the user needs it.
+- **Inline images**: images referenced via `cid:` are attachments with a content
+  ID; they are flagged `(inline)` in the attachments table. Markdown shows broken
+  image references unless the attachments are extracted.
+- **Email chains / quoted replies**: the body may contain quoted replies
+  (`-----Original Message-----`, `>`-prefixed lines). They are preserved as body text.
+- **Calendar invites (.ics)**: a `.ics` attachment is listed; offer to parse the
+  event details into a structured section if the user wants.
+- **Character encoding**: `.msg` string properties are UTF-16LE (or codepage);
+  decoding is non-raising, so malformed text degrades rather than crashing.
+- **Distribution lists**: To/CC may reference display names without addresses;
+  they are preserved as-is.
+- **Sensitivity labels / receipts**: not specially parsed; the message class and
+  any surfaced properties appear in the output as-is.
 
-- **RTF body**: Some older Outlook messages store the body only in RTF format (no HTML or plain text). If both `htmlBody` and `body` are empty, note that the email likely uses RTF-only encoding and suggest the user open it in Outlook to re-save as HTML, or install an RTF parser.
-- **Winmail.dat / TNEF**: Some `.msg` files contain TNEF-encoded content. If the reader fails to parse, suggest the `node-tnef` package as an alternative.
-- **Inline images**: Images referenced via `cid:` URLs in the HTML body are stored as attachments with a `contentId`. Flag these separately from regular attachments and note that the Markdown will show broken image references unless attachments are extracted.
-- **Email chains / conversation threads**: The body may contain quoted replies. Look for patterns like `From:` headers mid-body, `>` prefixed lines, or `-----Original Message-----` dividers. Preserve these as nested blockquotes in the Markdown.
-- **Calendar invites (.ics)**: If an attachment is a `.ics` file, mention it's a calendar invite and offer to parse the event details (date, time, location, attendees) into a structured Markdown section.
-- **Character encoding**: `.msg` files may use various encodings. If the output contains garbled text, try reading string properties with different encodings (UTF-8, UTF-16LE, Windows-1252).
-- **Distribution lists**: The To/CC fields may reference Outlook distribution lists rather than individual addresses. These may appear as display names without email addresses — preserve them as-is.
-- **Sensitivity / classification labels**: Some corporate emails have sensitivity labels (Confidential, Internal, etc.). If present in the message properties, include them in the metadata table.
-- **Read receipts / delivery receipts**: These are special message types. If the message class indicates a receipt rather than a normal email, format the output accordingly with the receipt metadata.
+## Scripts
+
+- `scripts/convert.py` — the CLI (convert, `--attachments`, `--check`).
+- `scripts/mapi.py` — bounded `olefile`-based MAPI reader (the resource wrap).
+- `scripts/html_md.py` — HTML → Markdown reducer (stdlib `html.parser`).
+- `scripts/contract.py`, `scripts/safe_io.py` — **vendored verbatim** from
+  `file-to-markdown` (a drift-guard test keeps them byte-identical; edit the
+  originals, then re-sync — do not edit these copies).
+- `scripts/msg_fixtures.py`, `scripts/test_*.py`, `scripts/testdata/` — the test
+  corpus generator, tests, and the independent-reader (Node `msgreader`) oracle
+  baseline.
+
+## Relationship to `file-to-markdown`
+
+`file-to-markdown` ships a **flat** `.eml` reader at Tier 0 (headers + preferred
+body). This skill is the **richer email specialist**: it also reads `.msg`, walks
+multipart bodies and nested `message/rfc822` parts, maps richer headers, and lists
+attachments — but for a shared simple `.eml` the **contract frontmatter is
+identical** across both (a test pins this); this skill's body/header output is a
+documented superset. `file-to-markdown`'s flat route is unchanged.

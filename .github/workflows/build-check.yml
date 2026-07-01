@@ -440,6 +440,18 @@ jobs:
         working-directory: packs/converters/.apm/skills/file-to-markdown/scripts
         run: python -m pytest test_contract.py test_safe_io.py test_convert.py test_reconcile.py
 
+      # msg-to-markdown skill scripts (extraction-msg-to-markdown-python-contract):
+      # the vendored-builder drift guard, the .msg (olefile + hand-rolled MAPI)
+      # and .eml converters, the untrusted-input security wrap, and the parity
+      # cross-check. olefile is the Tier-0 .msg reader (pip-on-demand at runtime,
+      # pinned here — ADR-0046). CI does not auto-discover skill-script pytest.
+      - name: pip install the Tier-0 .msg reader (extraction-msg olefile, ADR-0046)
+        # Exact pin for CI reproducibility; the runtime hint floor is olefile>=0.47.
+        run: pip install 'olefile==0.47'
+      - name: pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)
+        working-directory: packs/converters/.apm/skills/msg-to-markdown/scripts
+        run: python -m pytest test_drift.py test_convert.py test_security.py test_parity.py
+
       - name: profiles lint + self-test (pack-profiles AC9)
         # RFC-0034: profiles must be scope-homogeneous, dependency-complete
         # (incl. version), and deps-first ordered. The self-test proves the
