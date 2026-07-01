@@ -1,10 +1,10 @@
 # RFC-0057: Research methodology shape
 
-- **Status:** Open <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+- **Status:** Accepted <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-30
-- **Date closed:** <!-- filled in when status reaches a terminal state -->
+- **Date closed:** 2026-06-30
 - **Decision weight:** standard <!-- extends (does not reverse) RFC-0039/ADR-0029; additive; two surfaces but prompt-only, reversible -->
 - **Related:** RFC-0039 (research project mode + typed artifacts — the two-axis model this extends), ADR-0029 (depth × lifecycle), `packs/research` (the pack this extends), `packs/converters` skill `markdown-to-pptx` (the downstream slide consumer), `packs/product-engineering` skill `frame-domain` and `packs/experience` skill `map-internal-process` (the two neighbours this fences off)
 
@@ -192,8 +192,7 @@ The shape's distinctness (the riskiest assumption) is argued definitionally abov
 
 ## Follow-on artifacts
 
-Filled in on acceptance. Anticipated:
-- **ADR** — a *new* ADR (which *references*, never edits, the immutable Accepted ADR-0029) recording that shapes/types are the extension point for new output topologies and that `methodology` is the first to span both surfaces — only if the decision warrants its own record.
-- **Spec** — `docs/specs/research-methodology-shape/`: the six-section template, the episodic row, the project-mode `shape:` value + synthesize branch, the D4 disambiguation edits, the D5 handoff note.
-- **Reference** — `packs/research/.apm/skills/research/references/methodology-shape-template.md` (named distinctly from the existing `methodologies.md` to avoid misfiling): the artifact template + disciplinary grounding + worked exemplar.
-- **Pack bump** — `packs/research` minor version; `docs/product/changelog.md` `[Unreleased]` entry.
+- **Spec** — ✅ authored: [`docs/specs/research-methodology-shape/`](../specs/research-methodology-shape/spec.md) (+ [`plan.md`](../specs/research-methodology-shape/plan.md) and a `notes/adapter-web-tools-scope.md`). Encodes the six-section template, the episodic row, the project-mode `shape:` value + synthesize branch, the D4 disambiguation edits (including the `frame-domain`-wraps-`research` fence), and the D5 handoff note; also folds in the research-pack web-tools install nudge (Claude-Code-scoped).
+- **ADR** — anticipated (not yet authored): a *new* ADR (which *references*, never edits, the immutable Accepted ADR-0029) recording that shapes/types are the extension point for new output topologies and that `methodology` is the first to span both surfaces — only if the decision warrants its own record.
+- **Reference** — implementing follow-on: `packs/research/.apm/skills/research/references/methodology-shape-template.md` (named distinctly from the existing `methodologies.md` to avoid misfiling): the artifact template + disciplinary grounding + worked exemplar.
+- **Pack bump** — implementing follow-on: `packs/research` minor version (`0.5.1` → `0.6.0`); `docs/product/changelog.md` `[Unreleased]` entry.
