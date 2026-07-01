@@ -137,15 +137,16 @@ def reconcile_elements(
     raw_elements: list of (tile_id, crop_box, element_dict).
     Returns (canonical_elements, ambiguities).
     """
-    # Stage 1: collapse exact (type, normalized_name) duplicates first.
-    by_key: dict[tuple[str, str], list[Element]] = {}
+    # Stage 1: group by (type, normalized_name), then split each group into
+    # spatial sub-clusters. This preserves legitimately repeated labels (the
+    # same name at different places on the diagram — common in process/
+    # architecture diagrams) while still collapsing the same node seen across
+    # overlapping tiles. Unnamed elements are grouped under an empty name and
+    # deduped spatially rather than dropped — dropping them loses real content.
+    by_key: dict[tuple[str, str], list[tuple[Element, dict]]] = {}
     for tile_id, crop_box, raw in raw_elements:
         e_type = (raw.get("type") or "").strip().lower() or "element"
         name = (raw.get("name") or "").strip()
-        if not name:
-            # Skip elements without a name — cannot dedupe sensibly
-            continue
-        key = (e_type, _normalize(name))
         gbbox = to_global_bbox(raw.get("bbox_in_tile"), crop_box)
         elem = Element(
             type=e_type,
@@ -158,16 +159,63 @@ def reconcile_elements(
                    if k not in {"type", "name", "description", "confidence",
                                 "bbox_in_tile"}},
         )
-        by_key.setdefault(key, []).append((elem, crop_box))
+        by_key.setdefault((e_type, _normalize(name)), []).append((elem, crop_box))
 
     canonical: list[Element] = []
-    for (e_type, _norm), group in by_key.items():
-        canonical.append(_pick_canonical(group))
+    for group in by_key.values():
+        for subcluster in _spatial_subclusters(group, iou_threshold):
+            canonical.append(_pick_canonical(subcluster))
 
-    # Stage 2: within the same type, merge anything with IoU > threshold.
+    # Stage 2: within the same type, merge anything with IoU >= threshold.
     canonical, ambiguities = _merge_by_iou(canonical, iou_threshold)
 
     return canonical, ambiguities
+
+
+def _spatial_subclusters(
+    group: list[tuple[Element, dict]], threshold: float
+) -> list[list[tuple[Element, dict]]]:
+    """Split one (type, name) group into spatially-distinct sub-clusters.
+
+    Elements whose global bboxes overlap (IoU >= threshold, transitively) are
+    the same instance seen across tiles and cluster together. Spatially
+    disjoint elements with the same name are distinct instances and stay
+    separate. Elements with no bbox cannot be distinguished, so they collapse
+    into a single cluster of their own.
+    """
+    # A zero-area bbox (w or h == 0) can't be spatially distinguished — IoU is
+    # 0 against everything — so treat it like a missing bbox and collapse it
+    # into the group's single no-bbox cluster rather than emitting duplicates.
+    def _has_area(e: Element) -> bool:
+        b = e.global_bbox
+        return bool(b) and b.get("w", 0) > 0 and b.get("h", 0) > 0
+
+    with_bbox = [(e, c) for (e, c) in group if _has_area(e)]
+    without_bbox = [(e, c) for (e, c) in group if not _has_area(e)]
+
+    clusters: list[list[tuple[Element, dict]]] = []
+    used = [False] * len(with_bbox)
+    for i in range(len(with_bbox)):
+        if used[i]:
+            continue
+        cluster = [with_bbox[i]]
+        used[i] = True
+        changed = True
+        while changed:  # transitively absorb anything overlapping the cluster
+            changed = False
+            for j in range(len(with_bbox)):
+                if used[j]:
+                    continue
+                if any(iou(m[0].global_bbox, with_bbox[j][0].global_bbox) >= threshold
+                       for m in cluster):
+                    cluster.append(with_bbox[j])
+                    used[j] = True
+                    changed = True
+        clusters.append(cluster)
+
+    if without_bbox:
+        clusters.append(without_bbox)
+    return clusters
 
 
 def _pick_canonical(group: list[tuple[Element, dict]]) -> Element:
@@ -359,8 +407,9 @@ def render_markdown(
         body_parts.append("|---|------|-------------|--------------|------------|")
         for i, e in enumerate(by_type[e_type], 1):
             tiles = ", ".join(e.tile_sources) or "-"
+            name = _md_escape(e.name) or "(unlabeled)"
             body_parts.append(
-                f"| {i} | {_md_escape(e.name)} | "
+                f"| {i} | {name} | "
                 f"{_md_escape(e.description)} | {tiles} | {e.confidence} |"
             )
         body_parts.append("")
