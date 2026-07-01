@@ -105,10 +105,11 @@ def supported_exts() -> set[str]:
 # --- Shared guards ----------------------------------------------------------
 
 
-def _ceiling_result(content_type: str, message: str) -> ExtractResult:
-    """A refused-but-flagged result: the input tripped a resource ceiling, so we
-    do not parse it unbounded; the output carries requires-review + the reason
-    (AC13) rather than passing silently or crashing the batch."""
+def _refused_result(content_type: str, message: str) -> ExtractResult:
+    """A refused-but-flagged result: the input was not fully parsed — a resource
+    ceiling (AC13) or a defensive-parse refusal (a DTD, a decompression bomb;
+    AC9). The output carries requires-review + the reason rather than passing
+    silently or crashing the batch."""
     return ExtractResult(
         body=f"> **Not extracted.** {message}\n",
         tier=contract.TIER_0,
@@ -116,6 +117,13 @@ def _ceiling_result(content_type: str, message: str) -> ExtractResult:
         confidence="low",
         requires_review=True,
     )
+
+
+# Two call-site vocabularies (resource-ceiling vs defensive-parse refusal), one
+# flagged shape — aliased so the two intents read distinctly at the call site
+# without duplicating the body.
+_ceiling_result = _refused_result
+_defensive_result = _refused_result
 
 
 def _guard_size(path: Path, content_type: str) -> ExtractResult | None:
@@ -124,18 +132,6 @@ def _guard_size(path: Path, content_type: str) -> ExtractResult | None:
     except safe_io.ResourceCeilingError as exc:
         return _ceiling_result(content_type, str(exc))
     return None
-
-
-def _defensive_result(content_type: str, message: str) -> ExtractResult:
-    """A refused-but-flagged result for a defensive-parse refusal (a DTD, a
-    decompression bomb): flagged requires-review, never silently emitted."""
-    return ExtractResult(
-        body=f"> **Not extracted.** {message}\n",
-        tier=contract.TIER_0,
-        content_type=content_type,
-        confidence="low",
-        requires_review=True,
-    )
 
 
 def _lib_available(import_name: str) -> bool:
@@ -281,6 +277,10 @@ def _extract_docx(path: Path) -> ExtractResult:
             confidence = "medium"
     finally:
         sz.close()
+    # An empty extraction keeps requires_review=False deliberately: unlike a
+    # sparse PDF (where an image-only page is the escalation signal), an empty
+    # Office body emits a visible "No text found" placeholder a reader sees, and
+    # a legitimately text-free doc should not be forced to review.
     body = body or "> **No text found in the document.**\n"
     return ExtractResult(body, contract.TIER_0, "docx", confidence, False)
 
@@ -519,12 +519,14 @@ def _extract_epub(path: Path) -> ExtractResult:
         )
         parser = _TextHTMLParser
         parts: list[str] = []
+        dropped = False
         for name in xhtml:
             try:
                 # DTD-gate each member, then reduce its (X)HTML to text.
                 data = sz.read_member(name)
                 safe_io._reject_dtd(data)
             except (safe_io.XmlSafetyError, safe_io.ZipBombError):
+                dropped = True  # a guard skipped content — flag it, don't drop silently
                 continue
             text = parser().feed(data.decode("utf-8", errors="replace"))
             if text:
@@ -532,7 +534,11 @@ def _extract_epub(path: Path) -> ExtractResult:
     finally:
         sz.close()
     body = "\n\n".join(parts) or "> **No readable text found in the EPUB.**\n"
-    return ExtractResult(body, contract.TIER_0, "epub", "medium", False)
+    if dropped:
+        body += ("\n\n> **Some content was skipped by a safety guard "
+                 "(DTD or decompression-bomb) — review the source.**\n")
+    return ExtractResult(body, contract.TIER_0, "epub",
+                         "low" if dropped else "medium", dropped)
 
 
 def _extract_odf(path: Path) -> ExtractResult:

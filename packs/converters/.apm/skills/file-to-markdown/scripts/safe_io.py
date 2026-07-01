@@ -167,6 +167,13 @@ class SafeZip:
         skipped, never recursed into (spec AC9)."""
         for name in self._names:
             if not _is_safe_member_name(name) or _is_nested_archive(name):
+                # Nested-archive members are skipped, never recursed into (the
+                # nested-bomb axis). They are intentionally outside the read-time
+                # cap: the ordinary Office libs never decompress an embedded
+                # archive member (openpyxl reads xl/*, python-docx word/*,
+                # python-pptx ppt/*), so an understated nested member is never
+                # actually expanded — only its declared-size axes in
+                # open_safe_zip apply, which is sufficient.
                 continue
             data = self.read_member(name)  # per-member + cumulative caps
             looks_xml = (

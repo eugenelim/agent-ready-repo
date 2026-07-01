@@ -469,6 +469,38 @@ def test_extract_eml(tmp_path):
     assert r.content_type == "eml"
 
 
+def test_extract_eml_html_body_is_reduced(tmp_path):
+    """An HTML-only email body is reduced to text (tags stripped)."""
+    p = tmp_path / "html.eml"
+    p.write_bytes(
+        b"From: x@y.z\r\nSubject: HTML mail\r\n"
+        b"Content-Type: text/html; charset=utf-8\r\n\r\n"
+        b"<html><body><p>Hello <b>bold</b> world.</p>"
+        b"<script>evil()</script></body></html>\r\n"
+    )
+    r = convert._extract_eml(p)
+    assert "Hello" in r.body and "world." in r.body
+    assert "<b>" not in r.body and "evil()" not in r.body
+
+
+def test_extract_epub_flags_guard_skipped_member(tmp_path):
+    """An EPUB member carrying a DTD is skipped by the guard, and the result is
+    flagged requires-review rather than silently returning partial text."""
+    p = tmp_path / "book.epub"
+    write_zip(p, {
+        "mimetype": b"application/epub+zip",
+        "OEBPS/ok.xhtml": b"<html><body><p>Good chapter.</p></body></html>",
+        "OEBPS/xxe.xhtml": (
+            b'<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]>'
+            b"<html><body><p>bad</p></body></html>"
+        ),
+    })
+    r = convert._extract_epub(p)
+    assert "Good chapter." in r.body
+    assert r.requires_review is True
+    assert "skipped by a safety guard" in r.body
+
+
 # --- T7: Docling identity + no-ML -------------------------------------------
 
 
