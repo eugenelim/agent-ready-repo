@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`file-to-markdown` image extraction no longer silently loses elements
+  (converters 0.2.3).** The image reconciler used to collapse every element
+  that shared a `(type, name)` into one before checking where it sat — so two
+  genuinely distinct nodes with the same label (a second "Validate" step, a
+  repeated "Queue") were merged into a single element with no warning, and
+  elements the model saw but couldn't label were dropped entirely. The
+  reconciler now clusters by position: same-named nodes that overlap across
+  tiles still merge, but spatially distinct ones are kept as separate elements,
+  and unlabeled elements are retained and shown as `(unlabeled)`. The document
+  branch (`convert.py`) now fails with actionable guidance — naming
+  password-protection/encryption and corruption as likely causes — instead of a
+  bare stack trace, and the image branch warns (to stderr; stdout stays clean)
+  when handed a multi-frame image (animated GIF, multi-page TIFF) that only its
+  first frame is read.
+
 ### Added
 
 - **`agentbundle list-installed` — see what you actually have installed (CLI 0.10.0).**
