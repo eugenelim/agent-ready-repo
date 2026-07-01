@@ -86,7 +86,10 @@ def parse_xml(data: bytes | str) -> ET.Element:
     """
     raw = data.encode("utf-8") if isinstance(data, str) else data
     _reject_dtd(raw)
-    return ET.fromstring(raw)
+    # The DTD refusal above is the compensating control — with no DTD, no
+    # external or internal entity can be declared, so ElementTree (which does
+    # not resolve external entities anyway) has nothing to expand.
+    return ET.fromstring(raw)  # nosec B314
 
 
 def _reject_dtd(data: bytes) -> None:
