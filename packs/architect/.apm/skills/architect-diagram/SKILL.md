@@ -1,6 +1,6 @@
 ---
 name: architect-diagram
-description: Use when the user asks for a diagram of a system, integration, flow, state, data model, or deployment topology. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
+description: Use when the user asks for a diagram of a system, integration, flow, state, data model, deployment topology, roadmap, prioritization matrix, or decomposition. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine", "roadmap", "2×2", "mind map". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram, plus timeline, quadrantChart, and mindmap for roadmaps, prioritization, and hierarchical decomposition) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
 ---
 
 # Skill: architect-diagram
@@ -59,8 +59,11 @@ If two modes plausibly fit, ask once which the user wants.
 
 4. **Load the syntax reference for the chosen notation** —
    `references/mermaid-{flowchart,sequence,c4,state,er}.md`, one file
-   per notation, on demand. For C4 Container drafts, the starter
-   shape is in `assets/c4-container.mmd`.
+   per notation, on demand. For the three newer product/roadmap
+   grammars, load `references/mermaid-{timeline,quadrant,mindmap}.md`
+   — each carries the rendering caveat, the table/bullet-list fallback,
+   and the per-type complexity budget. For C4 Container drafts, the
+   starter shape is in `assets/c4-container.mmd`.
 
 5. **Load cross-cloud patterns for any cloud-aware diagram.** Load
    `references/cloud-patterns.md` whenever the diagram crosses cloud

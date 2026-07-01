@@ -337,6 +337,27 @@ scenarios can run end-to-end against real detection for each skill.
   work above:** when the stub-surface fixture lands, extend the driver with a
   contradicting fact so rail (c) gets scenario-level proof like (a)/(b).
 
+## `architect-diagram-product-types`
+
+### editorial-svg-diagram-output-path
+
+**Source:** deferred design alternative from the `architect-diagram-product-types`
+spec (spec § Boundaries → *Ask first*; the "do A / defer the SVG path" call,
+2026-06-30). `architect-diagram` is deliberately **Mermaid-only** — diffable,
+version-controlled, renders in enterprise wikis. A separate class of diagram
+(**pyramid / funnel, venn, org-chart, layer-stack**) is not expressible in
+native Mermaid and needs a **bespoke SVG/HTML output path** — self-contained,
+brand-styled, editorial-quality — to draw. That path is attractive for one
+reason in particular: **distributing our artifacts** (design docs, roadmaps,
+reviews) as polished, self-contained visuals rather than wiki-rendered Mermaid.
+**Deferred because** it is a new *output surface* (an SVG primitive library +
+templates + a brand/style story), not an additive routing change, and it
+raises a charter question (are we an engineering-governance catalogue, or also
+a visual-artifact producer?). **Unblocks when:** an RFC scopes the SVG/HTML
+output path — the diagram-type set, the styling/brand model, how it coexists
+with the Mermaid default, and the distribution story — and the charter fit is
+settled. Not a routing add to `architect-diagram`; a distinct capability.
+
 ## Cross-spec / outside-the-spec-tree
 
 Open items called out by accepted RFCs or multiple specs, without a spec
