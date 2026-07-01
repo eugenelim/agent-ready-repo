@@ -36,6 +36,8 @@ from pathlib import Path
 from typing import Any
 
 import contract
+import safe_io
+import text_crosscheck
 
 # --- IO --------------------------------------------------------------------
 
@@ -130,21 +132,56 @@ def confidence_rank(c: str) -> int:
 # --- Reconciliation -------------------------------------------------------
 
 
+def _diagram_key(e_type: str, name: str, extra: dict) -> tuple[str, str]:
+    """Diagram-branch dedup key: same (type, normalized name) is the same node."""
+    return (e_type, _normalize(name))
+
+
+def _general_key(e_type: str, name: str, extra: dict) -> tuple[str, str]:
+    """General-mode (text/table) dedup key.
+
+    Prose paragraphs and table rows have no stable *name* the diagram key relies
+    on, so the same block seen across two overlapping tiles would never collapse
+    on ``(type, name)`` alone. Key instead on the **content**: a text block on its
+    normalized text, a table on the normalized signature of its rows. Same content
+    seen across tiles → same key → collapses; distinct content stays separate."""
+    if e_type == "table":
+        rows = extra.get("rows") or []
+        sig = "\n".join(
+            " | ".join(str(c) for c in row) for row in rows if isinstance(row, list)
+        )
+        return ("table", _normalize(sig))
+    text = extra.get("text") or name or ""
+    return (e_type, _normalize(text))
+
+
 def reconcile_elements(
     raw_elements: list[tuple[str, dict, dict]],
     iou_threshold: float = 0.5,
+    *,
+    key_fn=None,
+    cross_name_merge: bool = True,
 ) -> tuple[list[Element], list[dict]]:
     """
     raw_elements: list of (tile_id, crop_box, element_dict).
     Returns (canonical_elements, ambiguities).
+
+    ``key_fn(e_type, name, extra) -> hashable`` selects the Stage-1 dedup key;
+    it defaults to the diagram key ``(type, normalized_name)``. The general
+    (text/table) mode passes ``_general_key`` and ``cross_name_merge=False`` —
+    same pipeline (translate → subcluster → pick → merge), a content-based key,
+    and no cross-name IoU merge (prose blocks that briefly overlap at a tile seam
+    are distinct content, not the same node seen twice).
     """
-    # Stage 1: group by (type, normalized_name), then split each group into
-    # spatial sub-clusters. This preserves legitimately repeated labels (the
-    # same name at different places on the diagram — common in process/
-    # architecture diagrams) while still collapsing the same node seen across
-    # overlapping tiles. Unnamed elements are grouped under an empty name and
-    # deduped spatially rather than dropped — dropping them loses real content.
-    by_key: dict[tuple[str, str], list[tuple[Element, dict]]] = {}
+    if key_fn is None:
+        key_fn = _diagram_key
+    # Stage 1: group by the keying function, then split each group into spatial
+    # sub-clusters. This preserves legitimately repeated content (the same name at
+    # different places on the diagram; distinct paragraphs in the general mode)
+    # while still collapsing the same block seen across overlapping tiles. Unnamed
+    # elements are grouped and deduped spatially rather than dropped — dropping
+    # them loses real content.
+    by_key: dict[Any, list[tuple[Element, dict]]] = {}
     for tile_id, crop_box, raw in raw_elements:
         e_type = (raw.get("type") or "").strip().lower() or "element"
         name = (raw.get("name") or "").strip()
@@ -160,7 +197,7 @@ def reconcile_elements(
                    if k not in {"type", "name", "description", "confidence",
                                 "bbox_in_tile"}},
         )
-        by_key.setdefault((e_type, _normalize(name)), []).append((elem, crop_box))
+        by_key.setdefault(key_fn(e_type, name, elem.extra), []).append((elem, crop_box))
 
     canonical: list[Element] = []
     for group in by_key.values():
@@ -168,7 +205,10 @@ def reconcile_elements(
             canonical.append(_pick_canonical(subcluster))
 
     # Stage 2: within the same type, merge anything with IoU >= threshold.
-    canonical, ambiguities = _merge_by_iou(canonical, iou_threshold)
+    if cross_name_merge:
+        canonical, ambiguities = _merge_by_iou(canonical, iou_threshold)
+    else:
+        ambiguities = []
 
     return canonical, ambiguities
 
@@ -345,19 +385,9 @@ def render_markdown(
     layout = (structural_map or {}).get("layout") or "unspecified"
     diagram_type = (structural_map or {}).get("diagram_type") or strategy
 
-    confidences = [e.confidence for e in canonical]
-    high = sum(1 for c in confidences if c == "high")
-    med = sum(1 for c in confidences if c == "medium")
-    low = sum(1 for c in confidences if c == "low")
-
-    if not canonical:
-        overall_confidence = "low"
-    elif high >= len(canonical) * 0.6:
-        overall_confidence = "high"
-    elif low > med + high:
-        overall_confidence = "low"
-    else:
-        overall_confidence = "medium"
+    # Shared with the general path — one confidence ladder, so a future tweak to
+    # the cutoffs applies to both renders (byte-stability locked by the golden).
+    overall_confidence, high, med, low = _overall_confidence(canonical)
 
     # The image branch is an in-session agent-vision read.
     # The shared builder prepends contract-version + tier and owns the
@@ -439,6 +469,126 @@ def _md_escape(s: str) -> str:
     return (s or "").replace("|", "\\|").replace("\n", " ").strip()
 
 
+# --- General text/table rendering (Tier-1 agent-vision, non-diagram) -------
+
+
+def _overall_confidence(canonical: list[Element]) -> tuple[str, int, int, int]:
+    """Aggregate per-element confidence into one document-level signal."""
+    high = sum(1 for e in canonical if e.confidence == "high")
+    med = sum(1 for e in canonical if e.confidence == "medium")
+    low = sum(1 for e in canonical if e.confidence == "low")
+    if not canonical:
+        overall = "low"
+    elif high >= len(canonical) * 0.6:
+        overall = "high"
+    elif low > med + high:
+        overall = "low"
+    else:
+        overall = "medium"
+    return overall, high, med, low
+
+
+def _render_md_table(rows: list, header: list | None) -> str:
+    """Render a GFM table from row lists, escaping every cell as body data."""
+    body_rows = [r for r in rows if isinstance(r, list)]
+    if header:
+        head = list(header)
+    elif body_rows:
+        head, body_rows = body_rows[0], body_rows[1:]
+    else:
+        return ""
+    ncol = max([len(head)] + [len(r) for r in body_rows], default=len(head))
+    head = head + [""] * (ncol - len(head))
+    lines = ["| " + " | ".join(_md_escape(str(c)) for c in head) + " |",
+             "| " + " | ".join("---" for _ in head) + " |"]
+    for r in body_rows:
+        r = list(r) + [""] * (ncol - len(r))
+        lines.append("| " + " | ".join(_md_escape(str(c)) for c in r) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def render_markdown_general(
+    *,
+    title: str,
+    source_image: str,
+    canonical: list[Element],
+    detail_manifest: dict,
+    requires_review: bool = False,
+    review_notes: list[str] | None = None,
+) -> str:
+    """Render the general (text/table) read as Markdown prose + tables.
+
+    A Tier-1 agent-vision read of a non-diagram image/page. The extracted text is
+    **untrusted data**: it is emitted only into the body *below* the closing
+    frontmatter fence — never into a frontmatter value — so an injected
+    ``---`` / ``key:`` / "ignore prior instructions" line is content, not contract.
+    The leading ``---`` block (built by ``contract.build_frontmatter``, whose
+    values are escaped) is the only frontmatter; a compliant parser stops at the
+    first closing fence.
+    """
+    review_notes = review_notes or []
+    overall, high, med, low = _overall_confidence(canonical)
+    # A low-confidence, empty, or cross-check-contested read is flagged — never
+    # emitted as a confident read silently (AC5). A mostly-low read is suspect
+    # even with elements present and no text layer to cross-check against.
+    flag = requires_review or not canonical or overall == "low"
+
+    yaml = contract.build_frontmatter(
+        tier=contract.TIER_1,
+        extraction_confidence=overall,
+        requires_review=flag,
+        fields={
+            "title": title,
+            "source-file": source_image,
+            "content-type": "image",
+            "content-category": "general-text-table",
+            "ingestion-date": contract.now_iso(),
+            "processing": {
+                "strategy": "two-pass-sliding-window",
+                "extraction-strategy": "text-table",
+                "viewport": detail_manifest.get("viewport"),
+                "stride": detail_manifest.get("stride"),
+                "overlap-pct": detail_manifest.get("overlap_pct"),
+                "tile-count": len(detail_manifest.get("tiles", [])),
+            },
+        },
+        ingestion_quality_extra={
+            "elements-by-confidence": {"high": high, "medium": med, "low": low},
+        },
+    )
+
+    body_parts = [f"# {title}\n"]
+    for e in canonical:
+        if e.type == "table":
+            table = _render_md_table(e.extra.get("rows") or [], e.extra.get("header"))
+            if table:
+                body_parts.append(table)
+        else:
+            text = (e.extra.get("text") or e.name or "").strip()
+            if text:
+                body_parts.append(text + "\n")
+
+    if flag:
+        # The surfaced reason always travels with the flag — an operator seeing
+        # requires-review should never have to guess why.
+        notes = list(review_notes)
+        if not notes:
+            if not canonical:
+                notes.append("Empty read — no content was extracted from the "
+                             "image/page.")
+            elif overall == "low":
+                notes.append("Low-confidence read — most blocks were read with low "
+                             "confidence; verify against the source.")
+            else:
+                notes.append("Flagged for review.")
+        body_parts.append("## Review Items\n")
+        for note in notes:
+            body_parts.append(f"- {note}")
+        body_parts.append("")
+
+    return yaml + "\n" + "\n".join(body_parts) + "\n"
+
+
 # --- CLI ------------------------------------------------------------------
 
 
@@ -454,14 +604,23 @@ def main() -> int:
                    help="Per-tile extractions JSON written by the agent.")
     p.add_argument("--strategy", required=True,
                    choices=("architecture", "event-storm", "process",
-                            "domain", "conceptual"),
-                   help="Extraction strategy used for the tile reads.")
+                            "domain", "conceptual", "text-table"),
+                   help="Extraction strategy used for the tile reads. "
+                        "'text-table' is the general (non-diagram) Tier-1 mode.")
     p.add_argument("--overview-manifest", type=Path, default=None,
                    help="Optional overview_manifest.json (informational).")
     p.add_argument("--title", default=None,
                    help="Document title. Defaults to source image basename.")
     p.add_argument("--output-json", type=Path, required=True)
     p.add_argument("--output-md", type=Path, required=True)
+    p.add_argument("--output-root", type=Path, default=None,
+                   help="Confinement root for the outputs (realpath + component "
+                        "containment). Defaults to each output's own parent.")
+    p.add_argument("--text-layer", type=Path, default=None,
+                   help="Optional digital text-layer file (e.g. the pypdf text of "
+                        "a rasterized PDF). When given with --strategy text-table, "
+                        "the vision read is cross-checked against it and flagged "
+                        "requires-review on substantial disagreement.")
     p.add_argument("--iou-threshold", type=float, default=0.5,
                    help="IoU threshold for spatial dedup (default 0.5).")
     args = p.parse_args()
@@ -491,9 +650,16 @@ def main() -> int:
             if isinstance(elem, dict):
                 raw_elements.append((tile_id, tile["crop_box"], elem))
 
-    canonical, ambiguities = reconcile_elements(
-        raw_elements, iou_threshold=args.iou_threshold,
-    )
+    is_general = args.strategy == "text-table"
+    if is_general:
+        canonical, ambiguities = reconcile_elements(
+            raw_elements, iou_threshold=args.iou_threshold,
+            key_fn=_general_key, cross_name_merge=False,
+        )
+    else:
+        canonical, ambiguities = reconcile_elements(
+            raw_elements, iou_threshold=args.iou_threshold,
+        )
 
     structural_map = extractions.get("structural_map") or {}
     canonical = sort_canonical(canonical, structural_map.get("layout") or "")
@@ -525,25 +691,63 @@ def main() -> int:
         ],
         "ambiguities": ambiguities,
     }
-    args.output_json.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+    _write_confined(args.output_json, json.dumps(merged, indent=2), args.output_root)
 
-    md = render_markdown(
-        title=title,
-        source_image=source_image,
-        strategy=args.strategy,
-        structural_map=structural_map,
-        canonical=canonical,
-        ambiguities=ambiguities,
-        detail_manifest=detail,
-        overview_manifest=overview,
-    )
-    args.output_md.write_text(md, encoding="utf-8")
+    requires_review = False
+    if is_general:
+        review_notes: list[str] = []
+        if args.text_layer is not None:
+            layer_text = args.text_layer.read_text("utf-8", errors="replace")
+            vision_text = "\n".join(
+                (e.extra.get("text") or e.name or "") if e.type != "table"
+                else "\n".join(" ".join(str(c) for c in row)
+                               for row in (e.extra.get("rows") or [])
+                               if isinstance(row, list))
+                for e in canonical
+            )
+            requires_review, note = text_crosscheck.crosscheck(vision_text, layer_text)
+            if note:
+                review_notes.append(note)
+        md = render_markdown_general(
+            title=title,
+            source_image=source_image,
+            canonical=canonical,
+            detail_manifest=detail,
+            requires_review=requires_review,
+            review_notes=review_notes,
+        )
+    else:
+        md = render_markdown(
+            title=title,
+            source_image=source_image,
+            strategy=args.strategy,
+            structural_map=structural_map,
+            canonical=canonical,
+            ambiguities=ambiguities,
+            detail_manifest=detail,
+            overview_manifest=overview,
+        )
+    out_md = _write_confined(args.output_md, md, args.output_root)
 
     print(f"OUTPUT_JSON: {args.output_json}")
-    print(f"OUTPUT_MD: {args.output_md}")
+    print(f"OUTPUT_MD: {out_md}")
     print(f"ELEMENTS: {len(canonical)}")
     print(f"AMBIGUITIES: {len(ambiguities)}")
+    if is_general and requires_review:
+        print("WARNING: text-layer cross-check flagged requires-review")
     return 0
+
+
+def _write_confined(path: Path, text: str, root: Path | None) -> Path:
+    """Write ``text`` to ``path`` after realpath + component-containment
+    confinement (``safe_io.confine``). ``root`` defaults to the output's own
+    resolved parent (which still rejects a symlink at the output path whose
+    target escapes); pass ``--output-root`` for a fixed root that also rejects
+    ``..`` traversal and the sibling-prefix case."""
+    confine_root = root if root is not None else path.parent
+    dest = safe_io.confine(path, confine_root)
+    dest.write_text(text, encoding="utf-8")
+    return dest
 
 
 if __name__ == "__main__":

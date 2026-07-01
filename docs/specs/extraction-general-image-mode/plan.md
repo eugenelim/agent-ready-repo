@@ -1,7 +1,7 @@
 # Plan: extraction-general-image-mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -397,6 +397,16 @@ drift-clean.
   cross-check (T3); untrusted-data defense on the read reference (T4);
   SKILL.md orchestration (T5); no-egress/no-ML guard + release (T6). `pymupdf`
   rejected (AGPL) per user MIT constraint; `pypdfium2` flagged as a follow-on.
+- 2026-07-01: implemented (converters 0.4.0). All 6 tasks landed; 105 pack tests
+  pass; lint-packs + build + lint-spec-status clean. Implementation review to Clean
+  across three reviewers: adversarial (6 findings → 0 — AC5 low-confidence flag,
+  spec/plan/README metadata, AC10 DPI-clamp wording, DPI-cap location, mutable
+  default); security (1 concern + 1 nit → 0 — a **per-page pixel cap** closing the
+  attacker-controlled-page-dimension axis DPI-clamp can't, since Poppler decodes in
+  a subprocess where Pillow's bomb guard never fires; default-root symlink test);
+  quality (2 concerns + 3 nits → 0 — confidence-ladder dedupe, keyed review note,
+  partial-PNG cleanup on refusal, empty-page-branch test, direct-DPI-clamp test).
+  Spec AC10 + Boundaries updated to name the per-page-pixel axis.
 - 2026-07-01: spec-stage review (adversarial + security). Hardened: (S1/AC11)
   `reconcile.py`'s writes are *unconfined today* — route them through `safe_io.confine`
   rather than claiming reuse; (S2/AC11) confine the rasterizer's page-image work dir +

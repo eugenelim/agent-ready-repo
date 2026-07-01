@@ -1,6 +1,6 @@
 # Spec: extraction-general-image-mode
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0058, ADR-0045, ADR-0034 (no bundled per-vendor data / models), RFC-0007 (the converters pack this changes), and the predecessor slice `extraction-tier0-and-output-contract` (whose `contract.py` builder, tier enum, `safe_io` guards, and Tier-1 escalation hook this reuses)
@@ -84,11 +84,11 @@ nothing) — the skill itself makes no network call and never reaches Tier 3.
   retains the Tier-0 `.md` `convert.py` already wrote** (per SKILL.md) rather than
   discarding it — the "keep the Tier-0 output" degradation is the agent's, not the
   standalone script's.
-- Bound rasterization on **more than page count**: a capped render DPI (bounding
-  per-page pixels) and a cumulative output-byte ceiling across pages, plus a coarse
-  page cap — because a low-page-count PDF at pathological page dimensions or DPI is still
-  unbounded allocation (the floor guarded resource exhaustion on multiple axes for
-  the same reason).
+- Bound rasterization on **more than page count**: a capped render DPI, a per-page
+  pixel cap, and a cumulative output-byte ceiling across pages, plus a coarse page
+  cap — because a low-page-count PDF at pathological page *dimensions* is still
+  unbounded allocation (Poppler decodes in a subprocess, so a capped DPI alone does
+  not bound per-page pixels), the same multi-axis reasoning the floor used.
 - **Route every output write through `safe_io.confine`** (realpath + component
   containment). `reconcile.py`'s `--output-md` / `--output-json` writes are
   *unconfined today* — this slice adds the guard there (mirroring `convert.py`), so
@@ -188,7 +188,7 @@ from the Objective pairs with a mode:
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — General text/table strategy (D4), with a distinguishable output
+- [x] **AC1 — General text/table strategy (D4), with a distinguishable output
   shape.** The image branch gains a sixth strategy for non-diagram inputs (prose,
   table, form, receipt, scan), selected by the existing overview classification. Its
   per-tile read emits text blocks and tables; `reconcile.py` renders them as Markdown
@@ -199,7 +199,7 @@ from the Objective pairs with a mode:
   to fall through to the literal strategy name), which this AC pins as the observable
   contract for the sixth strategy. The five existing diagram strategies are unchanged.
 
-- [ ] **AC2 — Reuse of tiling + reconcile pipeline, with a general-mode dedup key.**
+- [x] **AC2 — Reuse of tiling + reconcile pipeline, with a general-mode dedup key.**
   The general mode reuses `split_image.py` tiling and `reconcile.py`'s
   bbox-translate → dedup → reading-order **pipeline** — no second tiling engine,
   reconcile engine, or frontmatter builder. But the diagram core keys dedup on
@@ -210,12 +210,12 @@ from the Objective pairs with a mode:
   the general shape; the guarantee is scoped to what that keying delivers (it does
   not claim byte-identical prose across tiles will always merge on IoU alone).
 
-- [ ] **AC3 — Tier-1 PDF-page rasterization.** A scanned / image-only PDF is
+- [x] **AC3 — Tier-1 PDF-page rasterization.** A scanned / image-only PDF is
   rasterized **page by page** to images and fed through the general read path; the
   assembled output carries `tier: "1-agent-vision"`. This is the path the Tier-0
   floor's sparse-text escalation (`escalation-target: 1-agent-vision`) points at.
 
-- [ ] **AC4 — Rasterizer is MIT and pip-on-demand; no AGPL, no installed model;
+- [x] **AC4 — Rasterizer is MIT and pip-on-demand; no AGPL, no installed model;
   degradation owned correctly.** The rasterizer is **`pdf2image`** (MIT), resolved
   through a `--check` / `PIP_INSTALL` import-probe carrying a **pinned floor version**
   (never auto-installed, not a hard `pack.toml` dep); its system Poppler prerequisite
@@ -228,13 +228,13 @@ from the Objective pairs with a mode:
   test asserts only the no-crash message). `pymupdf` (AGPL) is not used, and no
   OCR/ML model is imported on this path.
 
-- [ ] **AC5 — `tier: "1-agent-vision"` + honest confidence/requires-review.** Every
+- [x] **AC5 — `tier: "1-agent-vision"` + honest confidence/requires-review.** Every
   Tier-1 extraction emits the unified contract via `contract.build_frontmatter(...,
   tier=contract.TIER_1)` with `extraction-confidence` and `requires-review`
   reflecting the read; a low-confidence, sparse, or contested read is flagged, never
   emitted as a confident read silently.
 
-- [ ] **AC6 — Cross-check against the text layer bounds hallucination, with a named
+- [x] **AC6 — Cross-check against the text layer bounds hallucination, with a named
   threshold and granularity.** When the source PDF has an extractable text layer (the
   `pypdf` text the floor extracts), the Tier-1 read is compared against it using a
   **defined overlap metric and numeric threshold** — Jaccard token-set overlap below
@@ -246,7 +246,7 @@ from the Objective pairs with a mode:
   true scan), the comparator is a no-op and the read stands on its own confidence
   signal.
 
-- [ ] **AC7 — Untrusted-data / prompt-injection defense (security boundary).** The
+- [x] **AC7 — Untrusted-data / prompt-injection defense (security boundary).** The
   **primary control is the read reference** (`strategy_text-table.md`): it wraps the
   rasterized/extracted document content in an explicit **delimiter** (a tagged
   `<document_content>…</document_content>` region) and directs the in-session model
@@ -264,29 +264,35 @@ from the Objective pairs with a mode:
   which lives in the reference wording and is exercised as a documented eval.
   `security-reviewer` reviews this AC at spec and on the diff.
 
-- [ ] **AC8 — No new egress; Tier 1 is "no *new* egress," not "no egress."** The
+- [x] **AC8 — No new egress; Tier 1 is "no *new* egress," not "no egress."** The
   skill makes no network call anywhere (grep/AST guard); the vision read runs in the
   agent's already-running session. SKILL.md states the egress nuance plainly: an
   air-gapped/local in-session model sends nothing; a cloud-hosted one sends document
   content to the *already-approved* endpoint. Tier 3 is unreachable.
 
-- [ ] **AC9 — The escalation hook now has a real path.** The Tier-0 floor's
+- [x] **AC9 — The escalation hook now has a real path.** The Tier-0 floor's
   `escalation-target: 1-agent-vision` on sparse-PDF-text is actionable: SKILL.md
   documents that, on seeing the `requires-review` + escalation signal, the agent
   runs the rasterize → read → reconcile Tier-1 flow — closing the loop the floor
   left open.
 
-- [ ] **AC10 — Multi-axis rasterization ceiling (resource exhaustion).** Rasterizing
-  is bounded on the three axes that actually gate allocation, not page count alone: a
-  **capped render DPI** (which bounds per-page pixels), a **cumulative output-byte
-  ceiling** across pages, *and* a coarse **page cap** (`MAX_RASTER_PAGES`) — the last
-  **calibrated for
-  rasterization cost, not reused from the floor's `MAX_PDF_PAGES = 5000`** (rendering
-  a page is far costlier than reading its text layer, so the cap is low-hundreds
-  order, pinned at implementation). Any axis exceeded refuses with `requires-review`
-  and an actionable message, never rasterizes unbounded.
+- [x] **AC10 — Multi-axis rasterization ceiling (resource exhaustion).** Rasterizing
+  is bounded on the three axes that actually gate allocation, not page count alone.
+  The **render DPI is capped** — a requested DPI above the cap is *clamped down*
+  (rendering always happens at ≤ the cap), rather than refused. Because PDF *page
+  dimensions* are attacker-controlled (a page can be hundreds of inches) and
+  Poppler decodes in a subprocess where Pillow's own decompression-bomb guard never
+  fires, a capped DPI alone does not bound per-page pixels — so a **per-page pixel
+  cap** (`MAX_PAGE_PIXELS`), the **page cap** (`MAX_RASTER_PAGES`), and the
+  **cumulative output-byte ceiling** across pages each **refuse** with
+  `requires-review` and an actionable message when exceeded (cleaning up any
+  partial page images), never rasterizing unbounded. The page cap is **calibrated
+  for rasterization cost, not reused from the floor's `MAX_PDF_PAGES = 5000`**
+  (rendering a page is far costlier than reading its text layer, so the cap is
+  low-hundreds order, pinned at implementation). The DPI clamp lives in the
+  enforcement function, not only the CLI, so a non-CLI caller cannot bypass it.
 
-- [ ] **AC11 — Output-path confinement (added, not assumed) + contract + diagram
+- [x] **AC11 — Output-path confinement (added, not assumed) + contract + diagram
   byte-stability.** Both write surfaces are confined: (a) `reconcile.py`'s
   `--output-md` / `--output-json` writes — **unconfined today** — are routed through
   `safe_io.confine` (realpath + component containment, mirroring `convert.py`), with
@@ -298,7 +304,7 @@ from the Objective pairs with a mode:
   write path does not alter emitted bytes; the general strategy is a new branch, not
   an edit to theirs).
 
-- [ ] **AC12 — Tests + release hygiene + progressive-disclosure default.** New tests
+- [x] **AC12 — Tests + release hygiene + progressive-disclosure default.** New tests
   cover AC1–AC11's deterministic pieces (general render, rasterization invocation +
   degradation, `--check` probe, cross-check comparator, injection-as-data, page
   ceiling, byte-stability, no-egress/no-ML guard) and pass; the converters pack is
