@@ -63,6 +63,16 @@ skill **consumes and shapes** the applied-mode findings into the *Real-world
 activity* section of Domain Framing; it does **not** re-implement retrieval and
 it does **not** treat the survey itself as the Domain Framing artifact.
 
+**This wrapped call stays an `applied` survey — the `research` methodology shape
+does not fire on it.** `research` carries a separate `methodology` output shape
+(a staged best-practice *method*) for direct process-shaped questions. That shape
+fires only on a *direct* user request; a `research` call issued **by**
+`frame-domain` for grounding is never reshaped into a methodology artifact, so
+this grounding pass reliably returns the `applied` survey this section consumes.
+(Use `research`'s methodology shape when the ask is *"the best way to do X, end to
+end"* as a standalone question, not for product/MVP grounding — that is this
+skill.)
+
 The *Real-world activity* section captures three things:
 
 - **How the activity is really done** — its cadence/horizon, and the gap between
