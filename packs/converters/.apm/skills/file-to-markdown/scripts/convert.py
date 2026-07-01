@@ -971,9 +971,12 @@ def _run_tier3(ns: argparse.Namespace) -> int:
     root = ocr_path.resolve().parent
     out_path = safe_io.confine(root / (Path(source).stem + ".md"), root)
     out_path.write_text(text, encoding="utf-8")
+    # WORDS counts the OCR body only (frontmatter excluded) for parity with the
+    # main convert_file path, which counts result.body.
+    body = text.split("\n---\n\n", 1)[-1]
     print(f"OUTPUT: {out_path}")
     print(f"LINES: {len(text.splitlines())}")
-    print(f"WORDS: {len(text.split())}")
+    print(f"WORDS: {len(body.split())}")
     print("WARNING: Tier-3 output is unverified vendor OCR (requires-review: true)")
     return 0
 

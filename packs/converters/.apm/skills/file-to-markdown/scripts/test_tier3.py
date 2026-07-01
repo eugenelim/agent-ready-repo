@@ -62,6 +62,16 @@ def test_rejects_internal_ip_targets(ip):
         tier3.validate_declaration(decl)
 
 
+@pytest.mark.parametrize("host", ["169.254.169.254.", "127.0.0.1.",
+                                  "metadata.google.internal."])
+def test_rejects_trailing_dot_forms(host):
+    """A trailing-dot FQDN / IP literal resolves identically to its dotless form,
+    so it is canonicalized and rejected the same way."""
+    decl = {"endpoint-allowlist": [host], "residency-region": "eu"}
+    with pytest.raises(tier3.DeclarationError):
+        tier3.validate_declaration(decl)
+
+
 @pytest.mark.parametrize("host", ["localhost", "sub.localhost", "metadata",
                                   "metadata.google.internal", "svc.internal"])
 def test_rejects_metadata_and_loopback_hostnames(host):

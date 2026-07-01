@@ -66,12 +66,13 @@ def _reject_endpoint_element(raw: str) -> str | None:
     see the grounding doc): alternate-radix IP encodings of an internal target
     (octal ``0177.0.0.1``, decimal ``2130706433``, hex ``0x7f000001``) that
     ``ipaddress`` does not parse are treated as ordinary hostnames here."""
-    host = raw.strip()
+    # Canonicalize a trailing dot up front (`metadata.google.internal.` and
+    # `169.254.169.254.` resolve identically to their dotless forms) so both the
+    # hostname list AND the IP-literal parse below see the canonical value.
+    host = raw.strip().rstrip(".")
     if host in _REJECT_LITERALS:
         return f"wildcard / empty / catch-all endpoint {raw!r}"
-    # Canonicalize a trailing-dot FQDN (`metadata.google.internal.` resolves
-    # identically) before the hostname list.
-    low = host.rstrip(".").lower()
+    low = host.lower()
     if low in _REJECT_HOSTS or any(low.endswith(sfx) for sfx in _REJECT_HOST_SUFFIXES):
         return f"metadata/loopback hostname {raw!r}"
     if "/" in host:
