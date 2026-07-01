@@ -79,6 +79,7 @@ def test_offer_accept_runs_upgrade_with_full_handoff(tmp_path, monkeypatch):
     assert ns.yes is True
     assert ns.dry_run is False
     assert ns.skill is ns.agent is ns.hook is ns.seed is ns.command is None
+    assert ns.adapter is None, "handoff must carry the install-side --adapter (None here)"
     assert hasattr(ns, "_user_config")
 
 

@@ -1888,9 +1888,9 @@ def _offer_upgrade(
     ``yes=True``. Builds the FULL attribute set ``upgrade.run`` reads — mapping
     ``install.output`` → ``upgrade.root``, pinning the concrete install-resolved
     ``scope`` (never ``None`` so upgrade's own multi-scope disambiguator is a
-    no-op), threading ``_user_config`` so adapter resolution matches a direct
-    ``upgrade`` invocation, and leaving all five primitive flags unset
-    (whole-pack). Returns ``upgrade.run``'s exit code.
+    no-op), forwarding ``--adapter`` and threading ``_user_config`` so adapter
+    resolution matches a direct ``upgrade`` invocation, and leaving all five
+    primitive flags unset (whole-pack). Returns ``upgrade.run``'s exit code.
     """
     import argparse as _argparse
 
@@ -1904,6 +1904,11 @@ def _offer_upgrade(
     ns.catalogue = catalogue_uri
     ns.root = getattr(args, "output", ".")
     ns.scope = scope
+    # RFC-0052: forward the install-side `--adapter` so upgrade targets the same
+    # adapter the user picked. Without this, a pack installed for multiple
+    # adapters at one scope trips upgrade's multi-adapter disambiguator even
+    # though the operator already passed `--adapter` to `install`.
+    ns.adapter = getattr(args, "adapter", None)
     ns.yes = True
     ns.dry_run = False
     ns.skill = ns.agent = ns.hook = ns.seed = ns.command = None

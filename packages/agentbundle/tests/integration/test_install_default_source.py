@@ -106,6 +106,24 @@ def test_offer_upgrade_hands_off_resolved_uri(monkeypatch):
     assert captured["ns"].catalogue == "git+https://resolved/x"
 
 
+def test_offer_upgrade_forwards_adapter(monkeypatch):
+    # RFC-0052 regression: the install→upgrade-offer hand-off must forward the
+    # install-side `--adapter`, otherwise upgrade's multi-adapter disambiguator
+    # demands `--adapter` even though the operator passed it to `install`.
+    from agentbundle.commands import upgrade as _upgrade
+
+    captured = {}
+    monkeypatch.setattr(_upgrade, "run", lambda ns: captured.setdefault("ns", ns) and 0)
+
+    args = argparse.Namespace(
+        catalogue=None, output=".", _user_config=None, adapter="claude-code"
+    )
+    install._offer_upgrade(
+        args, pack_name="research", scope="user", catalogue_uri="git+https://resolved/x"
+    )
+    assert captured["ns"].adapter == "claude-code"
+
+
 def test_bare_list_packs_resolves_default_source(tmp_path):
     # RFC-0047: a bare `list-packs` (no catalogue) resolves the source via the
     # same chain and lists the catalogue's packs.
