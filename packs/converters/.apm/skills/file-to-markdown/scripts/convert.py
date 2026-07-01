@@ -36,6 +36,7 @@ Errors go to stderr; exit code 1 on failure, 2 on a missing probed library.
 """
 from __future__ import annotations
 
+import argparse
 import csv as csvmod
 import io
 import sys
@@ -90,12 +91,16 @@ class ExtractResult(NamedTuple):
 _EXTRACTORS: dict[str, Callable[[Path], ExtractResult]] = {}
 
 
-def dispatch(path: Path) -> ExtractResult:
-    """Route an input to its Tier-0 extractor, or fall through to Docling."""
+def dispatch(path: Path, *, enrich: bool = False) -> ExtractResult:
+    """Route an input to its Tier-0 extractor, or fall through to Docling.
+
+    ``enrich`` only affects the Docling (Tier-2) fall-through; Tier-0 extractors
+    ignore it. This function constructs only Tiers 0–2 — Tier 3 is never reachable
+    from here (it is produced solely by ``tier3.assemble_tier3`` via ``--tier3``)."""
     extractor = _EXTRACTORS.get(path.suffix.lower())
     if extractor is not None:
         return extractor(path)
-    return _extract_docling(path)
+    return _extract_docling(path, enrich=enrich)
 
 
 def supported_exts() -> set[str]:
@@ -617,7 +622,44 @@ def _prescale_image(input_path: Path, tmp_dir: str) -> Path:
         return out_path
 
 
-def _extract_docling(input_path: Path) -> ExtractResult:
+# The local-model Docling enrichment options this skill turns on with `--enrich`.
+# NB: `enable_remote_services` and `PictureDescriptionApiOptions` (Docling's
+# remote-VLM captioning path) are deliberately ABSENT — enrichment is
+# local-model-only, so it can never become a covert data-egress channel inside
+# Tier 2 that bypasses the Tier-3 gate (security boundary; see spec AC2).
+ENRICH_OPTIONS = (
+    "do_formula_enrichment",       # formulas → LaTeX
+    "do_code_enrichment",          # code understanding
+    "do_picture_classification",   # figure classification
+    "do_picture_description",      # figure captioning (local model only)
+)
+
+
+def _configure_enrichment(opts: object) -> object:
+    """Turn on the local-model enrichment flags on a Docling PdfPipelineOptions.
+
+    Sets only the four ``do_*`` enrichment flags; it never touches
+    ``enable_remote_services`` and never constructs a remote-VLM option class, so
+    figure captioning uses Docling's *local* picture-description model. Pure
+    (a function of the options object) so it is unit-testable without Docling."""
+    for name in ENRICH_OPTIONS:
+        setattr(opts, name, True)
+    return opts
+
+
+def _build_enriched_converter():
+    """A Docling DocumentConverter with local-model enrichment on for PDF + image
+    inputs. The remote-services path is never enabled (see ``_configure_enrichment``)."""
+    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.pipeline_options import PdfPipelineOptions
+    from docling.document_converter import DocumentConverter, PdfFormatOption
+
+    opts = _configure_enrichment(PdfPipelineOptions())
+    fmt = PdfFormatOption(pipeline_options=opts)
+    return DocumentConverter(format_options={InputFormat.PDF: fmt, InputFormat.IMAGE: fmt})
+
+
+def _extract_docling(input_path: Path, *, enrich: bool = False) -> ExtractResult:
     try:
         from docling.document_converter import DocumentConverter
     except ImportError:
@@ -636,7 +678,9 @@ def _extract_docling(input_path: Path) -> ExtractResult:
         if convert_path != input_path:
             print(f"WARNING: image pre-scaled to fit {MAX_IMAGE_DIM}px before OCR")
     try:
-        converter = DocumentConverter()
+        # Enrichment adds local models to the pipeline; the default path stays the
+        # bare converter so its Tier-2 body is byte-identical to slice 2.
+        converter = _build_enriched_converter() if enrich else DocumentConverter()
         result = converter.convert(str(convert_path))
         markdown = result.document.export_to_markdown()
     finally:
@@ -646,7 +690,9 @@ def _extract_docling(input_path: Path) -> ExtractResult:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
     # The Docling body is passed through unmodified — the builder wraps, never
-    # rewrites.
+    # rewrites. Enriched captions/formulas/code land here as inert body content
+    # (the leading-block-only contract makes them un-forgeable), never as
+    # instructions: they are model output derived from an untrusted document image.
     return ExtractResult(
         body=markdown,
         tier=contract.TIER_2,
@@ -689,7 +735,7 @@ def write_output(input_path: Path, text: str) -> Path:
     return output_path
 
 
-def convert_file(input_path: Path) -> None:
+def convert_file(input_path: Path, *, enrich: bool = False) -> None:
     if not input_path.exists():
         print(f"ERROR: File not found: {input_path}", file=sys.stderr)
         sys.exit(1)
@@ -702,7 +748,7 @@ def convert_file(input_path: Path) -> None:
         sys.exit(1)
 
     try:
-        result = dispatch(input_path)
+        result = dispatch(input_path, enrich=enrich)
     except Exception as exc:
         print(
             f"ERROR: could not convert {input_path.name}: {exc}\n"
@@ -760,16 +806,36 @@ _EXTRACTORS.update({
 })
 
 
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="convert.py",
+        description="Convert documents and images to Markdown, tiered and no-ML-first.",
+    )
+    p.add_argument("files", nargs="*",
+                   help="input file(s); each is converted to <basename>.md")
+    # `--check` keeps its documented positional library-name form: absent → None;
+    # `--check` alone → [] (probe all optional libs); `--check pypdf` → ["pypdf"].
+    # nargs="*" keeps the library names off the `files` positional.
+    p.add_argument("--check", nargs="*", default=None, metavar="LIB",
+                   help="probe optional Tier-0 libraries (all if none named) and exit")
+    p.add_argument("--enrich", action="store_true",
+                   help="Tier-2 only: turn on local-model Docling enrichment "
+                        "(formulas→LaTeX, code, figure classification + captioning)")
+    return p
+
+
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if not args:
-        print("Usage: convert.py <file> [file2 ...] | --check [library ...]",
+    ns = _build_parser().parse_args(args)
+
+    if ns.check is not None:
+        return cmd_check(ns.check)
+    if not ns.files:
+        print("Usage: convert.py <file> [file2 ...] [--enrich] | --check [library ...]",
               file=sys.stderr)
         return 1
-    if args[0] == "--check":
-        return cmd_check(args[1:])
-    for arg in args:
-        convert_file(Path(arg))
+    for arg in ns.files:
+        convert_file(Path(arg), enrich=ns.enrich)
     return 0
 
 

@@ -1,6 +1,6 @@
 # Spec: extraction-higher-tiers
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0058, ADR-0045, ADR-0034 (no bundled per-vendor data / models), RFC-0007 (the converters pack this changes), and the two predecessor slices `extraction-tier0-and-output-contract` (whose `contract.py` builder, tier enum, and `safe_io` confinement this reuses) and `extraction-general-image-mode` (whose Tier-1 agent-vision path this leaves unchanged and sits above)
@@ -83,6 +83,15 @@ never as instructions to follow.
   slice 2 — plain Docling body passed through unmodified at Tier 2, no enrichment,
   no chunking, no Tier-3. Enrichment, chunking, and Tier 3 are each reached only by
   an explicit flag / declaration.
+- **Rework `main()`'s argument parsing so the flags are live.** Today `main()`
+  special-cases only `--check` and otherwise treats **every** token as a file path
+  (`for arg in args: convert_file(...)`), so a bare `--enrich` / `--chunk` / `--tier3`
+  would be passed to `convert_file(Path("--enrich"))` and fail. Restructure `main()`
+  (argparse, matching the sibling `reconcile.py`) so `--enrich` and `--chunk` are
+  optional flags that coexist with the **positional multi-file batch** form
+  (`convert.py <file> [file2 …]`) and the `--check` probe, and `--tier3` is a distinct
+  mode taking `--ocr-text`, `--endpoint`, `--residency`, and the source name. The
+  no-flag positional-batch behavior stays byte-for-byte what it is after slice 2.
 - **Force Docling enrichment to local models only.** When enrichment is enabled,
   set the selected `do_*_enrichment` / `do_picture_*` pipeline options **and**
   ensure Docling's remote-services path stays off — `enable_remote_services` is
@@ -305,40 +314,81 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
 - [ ] **AC3 — Tier 3 is never auto-reached (security boundary).** `convert.py` has no
   tier-*selection* function with a candidate set — `dispatch()` routes by file
   extension to a Tier-0 extractor or falls through to Docling (Tier 2). The invariant
-  is therefore asserted at construction: a unit test over the full input-class matrix
+  is asserted two ways. **Behaviorally:** a unit test over the full input-class matrix
   (digital PDF, scan, Office, image, unsupported) asserts every automatic path
-  constructs only `TIER_0` / `TIER_1` / `TIER_2` results, and a grep/AST-plus-call-
-  graph guard asserts `contract.TIER_3` is constructed **nowhere except**
-  `tier3.assemble_tier3`, which is reachable **only** via the explicit `--tier3` entry
-  point and never from `dispatch`. So no degradation/upgrade path can fail *open* into
-  egress. `security-reviewer` reviews this AC.
+  (`dispatch` + the Docling fall-through) constructs only `TIER_0` / `TIER_1` /
+  `TIER_2` results. **Structurally:** an **AST guard** (`ast.walk`, not a text regex —
+  a regex would false-match the `TIER_3` enum *definition* in `contract.py`, the
+  "never reached here" docstrings, and the hostile `"3-managed-api"` string in an
+  existing test fixture) parses each **production** module and checks two node classes
+  separately, since production code references the *name* while the *literal* lives at
+  the enum definition: (1) the **name/attribute** `TIER_3` / `contract.TIER_3`
+  (`ast.Name` / `ast.Attribute`) is referenced **nowhere except** `tier3.py`; (2) the
+  **string literal** `"3-managed-api"` (`ast.Constant`) appears **nowhere except**
+  `contract.py`'s single enum definition. Test modules are out of scope for both. `tier3.assemble_tier3` (the
+  sole construction site) is reachable **only** via the explicit `--tier3` entry point
+  and never from `dispatch`. So no degradation/upgrade path can fail *open* into egress.
+  `security-reviewer` reviews this AC.
 
 - [ ] **AC4 — Enabling Tier 3 requires a validated egress declaration; its provenance
   values are injection-safe (security boundary).** Tier 3 is reached only by an
   explicit entry point (`--tier3`) that takes the adopter-obtained OCR text (a file
-  path), the source name, and the egress declaration. The assembly path refuses —
-  clear, actionable error, **no output stamped** — unless the declaration is
-  well-formed: (a) a **non-empty hostname allowlist** that rejects a wildcard and a
-  scheme-less catch-all (the rejected forms are enumerated: empty string, `*`, `.`,
-  bare `0.0.0.0` / `::`) **and rejects loopback / link-local / private-range / bare-IP
-  metadata targets** (`127.0.0.0/8`, `::1`, `169.254.0.0/16` incl. `169.254.169.254`,
-  RFC-1918 ranges) so the declaration cannot bless an SSRF-adjacent internal
-  destination; (b) a **non-empty residency-region string**; and (c) **no unknown
-  fields** (a credential-smuggling guard). When valid it stamps `tier:
-  "3-managed-api"`, sets `content-type` from the `--source` name's suffix (falling back
-  to `managed-ocr` when indeterminate), and echoes the declared endpoint (as a
-  **comma-joined scalar**, so the hand-rolled emitter's scalar escaping applies and the
-  value stays auditable and parseable) + region into provenance. Those echoed values
-  pass through the predecessors' injection-safe frontmatter escaping, so an endpoint
-  element containing `\n---\ninjected: true` is escaped and cannot break the block.
-  Tests cover missing declaration; empty/`*`/`.`/`0.0.0.0` endpoint; a loopback /
-  metadata-IP endpoint; absent residency; an unknown field; an injection-bearing
-  endpoint element; and the valid case. `security-reviewer` reviews this AC.
+  path), the source name, and the egress declaration. The `--ocr-text` input path is
+  read through the existing `safe_io.check_input_size` ceiling (an unbounded-read DoS
+  guard on operator-supplied input, reusing the blessed helper). The assembly path
+  refuses — clear, actionable error, **no output stamped** — unless the declaration is
+  well-formed:
+  - (a) a **non-empty hostname allowlist**. Each element is **stripped of surrounding
+    whitespace first**, then rejected if it is a wildcard / scheme-less catch-all (empty
+    or whitespace-only string, `*`, `.`, `0.0.0.0`, `::`) or a **loopback / link-local /
+    private / metadata target**. IP-literal elements are validated by a **rule, not an
+    enumerated list**: parse via `ipaddress.ip_address` (canonicalizing IPv4-mapped IPv6
+    such as `::ffff:169.254.169.254` to its embedded IPv4) and reject if any of
+    `is_loopback`, `is_link_local`, `is_private`, `is_multicast`, `is_unspecified`, or
+    `is_reserved` — so IPv4, IPv6 link-local (`fe80::/10`), ULA (`fc00::/7`), and
+    IPv4-mapped forms are covered uniformly by construction rather than by an example
+    list an implementer could ship gaps against. An element that **looks like an IP/CIDR
+    literal but fails `ipaddress.ip_address` parsing** (e.g. a `::/0` or `0.0.0.0/0`
+    CIDR, which is not a bare address) is **rejected, not silently treated as a
+    hostname**, so a malformed-but-suggestive literal cannot bypass the IP rule. Hostname
+    elements that are metadata/loopback names in disguise are also rejected by an
+    exact/suffix list (`localhost`, `*.localhost`, `metadata`, `metadata.google.internal`,
+    `*.internal`; **non-exhaustive — the connect-time block in AC7 is authoritative**).
+    **This string validation is a footgun-reducer, not the SSRF control** — the skill
+    opens no socket and never resolves a hostname, so a hostname that *resolves* to a
+    metadata/private IP still passes the string check; the resolve-time / connect-time
+    block is the adopter transport's obligation, recorded in AC7. The rejection is
+    deliberate provenance-hygiene defense-in-depth over RFC-0058 D5, recorded in
+    Assumptions.
+  - (b) a **non-empty residency-region string**.
+  - (c) **no unknown fields** — the declaration's key set must **equal exactly**
+    `{endpoint-allowlist, residency-region}` (an allowlist-of-keys check, not a denylist
+    of credential-looking names, so `authorization` / `x-api-key` cannot slip through);
+    this is the credential-smuggling guard.
+
+  When valid it stamps `tier: "3-managed-api"`, sets `content-type` from the `--source`
+  name's suffix (falling back to `managed-ocr` when indeterminate), and echoes the
+  declared endpoint (as a **comma-joined scalar**, so the hand-rolled emitter's scalar
+  escaping applies and the value stays auditable and parseable) + region into
+  provenance. **All three echoed-into-frontmatter values — endpoint, region, and the
+  `--source`-derived `content-type` — pass through the predecessors' injection-safe
+  frontmatter escaping** (`contract.build_frontmatter`'s `_escape`), so an element
+  containing `\n---\ninjected: true` is escaped and cannot break the block. Tests cover
+  missing declaration; empty/`*`/`.`/`0.0.0.0` endpoint; a loopback / metadata-IP
+  endpoint (IPv4 **and** an IPv4-mapped-IPv6 form); a `localhost` / metadata-hostname
+  endpoint; absent residency; an unknown field; an injection-bearing endpoint element
+  **and an injection-bearing `--source` name**; and the valid case. `security-reviewer`
+  reviews this AC.
 
 - [ ] **AC5 — The skill ships no network client, holds no secret, and leaks nothing to
   logs (security boundary).** No HTTP client, vendor SDK, or socket is imported on any
-  path and no vendor endpoint string is bundled (a grep/AST guard asserts this); Tier-3
-  egress is the adopter's provisioned transport. The skill **accepts, stores, logs, or
+  path and no vendor endpoint string is bundled (a grep/AST guard asserts this). The
+  guard **enumerates the skill's production `*.py` scripts by directory glob, not a
+  hard-coded file list**, so the new `tier3.py` (and any future module) is covered by
+  construction — the existing static `_ALL_SCRIPTS` list in `test_convert.py` is
+  replaced by (or augmented to derive from) the glob, closing the false-green where a
+  new high-risk module is silently skipped. Tier-3 egress is the adopter's provisioned
+  transport. The skill **accepts, stores, logs, or
   echoes no auth material** — the declaration validator rejects unknown fields, and
   authentication is entirely the transport's concern. At default verbosity the skill
   writes **no document body / OCR text and no endpoint** to logs; the endpoint appears
@@ -371,11 +421,11 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   write Docling's `HybridChunker` output (tokenizer-aware, structure-preserving chunks)
   to a **`<basename>.chunks.jsonl` sidecar** — one JSON record per chunk. Each record
   carries the **full unified contract field set** (`contract-version`, `source-file`,
-  `content-type`, `tier: "2-approved-ml"`, `ingestion-date`, and the
-  `ingestion-quality` block `build_frontmatter` requires) **serialized as JSON**, plus
-  the chunk text — reusing the contract field set (the dict the builder consumes), not
-  calling `build_frontmatter` (which returns YAML), so no leading-block-only invariant
-  is violated by packing many records into one file. Written to a path validated by
+  `content-type`, `tier: "2-approved-ml"`, `ingestion-date`, and the nested
+  `ingestion-quality` block) **serialized as JSON**, plus the chunk text — produced by
+  the **shared `contract.build_fields(...)` builder** (AC10), not by calling
+  `build_frontmatter` (which returns YAML), so the field set has one source and no
+  leading-block-only invariant is violated by packing many records into one file. Written to a path validated by
   `safe_io.confine`, separate from the default `.md`. Chunking requires the adopter's
   `docling-core[chunking]` tokenizer extra; when it is absent the run errors clearly
   (no crash). Off by default — the default stays a single Markdown file.
@@ -390,14 +440,26 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
 - [ ] **AC10 — Every higher-tier output carries the unified contract, honestly.**
   The enriched Tier-2 and Tier-3-assembled `.md` outputs emit the versioned unified
   contract via `contract.build_frontmatter(...)`; the chunked JSONL records carry the
-  same field set as JSON (AC8). Each carries the correct `tier` value, and confidence
-  is stamped honestly, not optimistically: the enriched / chunked Tier-2 paths
-  **inherit the existing plain-Tier-2 confidence stamp** (this slice adds no new
-  confidence-assessment logic, so Docling's happy path stays `high` as it does today —
-  enrichment adds fidelity, not risk), while the **Tier-3-assembled** path — where the
-  skill neither performs nor verifies the vendor OCR — **defaults `requires-review:
-  true`** (a caller may pass an explicit confidence; the skill never auto-claims `high`
-  for output it did not produce). A byte-parity golden test proves the existing
+  **same field set** as JSON (AC8), produced by a **single shared field-set builder in
+  `contract.py`** (`build_fields(...) -> OrderedDict`) that both `build_frontmatter`
+  (which then emits YAML) and the JSONL writer (which then `json.dumps`) consume — so
+  the contract-version prepend, the `tier` key, the nested `ingestion-quality` block,
+  **and the contract validation** (tier / confidence enum membership, reserved-key
+  shadowing, required-key presence) all have **one source in `build_fields`**; the JSONL
+  path — which never calls `build_frontmatter` — still inherits every validation, so it
+  cannot fork or forge the contract. (`build_fields` validates the caller-assembled
+  `fields`; it does not synthesize them, so each JSONL per-record field set must itself
+  carry `source-file` / `content-type` / `ingestion-date` for the inherited presence
+  check to pass.) Each output carries
+  the correct `tier` value, and confidence is stamped honestly, not optimistically: the
+  enriched / chunked Tier-2 paths **inherit the existing plain-Tier-2 confidence stamp**
+  (this slice adds no new confidence-assessment logic, so Docling's happy path stays
+  `high` as it does today — enrichment adds fidelity, not risk), while the
+  **Tier-3-assembled** path — where the skill neither performs nor verifies the vendor
+  OCR — is stamped **`requires-review: true` non-negotiably** with a fixed
+  `extraction-confidence: "low"`, with **no caller override**: the skill never claims
+  `high` / `requires-review: false` for output it did not produce, and there is no flag
+  or parameter by which a caller could. A byte-parity golden test proves the existing
   Tier-0/1/2 frontmatter blocks are unchanged (additive-only).
 
 - [ ] **AC11 — Opt-in default is unchanged (no regression).** A no-flag `python
@@ -416,17 +478,15 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   grounding doc / SKILL.md note that enriched captions are untrusted model output to be
   treated as data, never instructions, downstream. `security-reviewer` reviews this AC.
 
-- [ ] **AC13 — Tests + release hygiene + progressive-disclosure default.** New tests
-  cover AC1–AC12's deterministic pieces (opt-in gating, local-only enforcement,
-  never-auto-reach, declaration validation + injection-safe provenance, no-network /
-  no-secret / no-leaky-log guard, chunk-as-is JSONL sidecar, enriched-caption
-  non-forgery, contract stamping, byte-stability) and pass; the converters pack is
-  bumped 0.4.0 → 0.5.0
-  across `pack.toml`, `plugin.json`, and the regenerated `marketplace.json`;
+- [ ] **AC13 — Release hygiene + progressive-disclosure default.** The converters pack
+  is bumped 0.4.0 → 0.5.0 across `pack.toml`, `plugin.json`, and the regenerated
+  `marketplace.json`; `lint-packs`, `validate`, `build`, and `pytest` are green;
   `docs/product/changelog.md` records the user-visible additions; SKILL.md documents
   the three opt-ins, the egress boundary, the local-only enrichment posture, and the
   Tier-3 declaration + doctrine as progressive disclosure, with the default invocation
-  still the single `python scripts/convert.py "<input-file>"` form.
+  still the single `python scripts/convert.py "<input-file>"` form. (Test coverage of
+  AC1–AC12's deterministic pieces is the Testing Strategy's obligation, verified under
+  each of those ACs — not re-asserted here as a meta-criterion.)
 
 ## Assumptions
 
@@ -481,6 +541,15 @@ grounding — is. Each user-visible outcome from the Objective pairs with a mode
   doc — AC7). This is a deliberate spec-vs-RFC reinterpretation, recorded here rather
   than left as silent drift, and `security-reviewer` signs off on it. *(source: RFC-0058
   D5 line 87 + user steer 2026-07-01; security-reviewer spec-stage pass.)*
+- Process (spec-over-RFC hardening): the declaration validator's rejection of
+  loopback / link-local / private / metadata / IPv4-mapped-IPv6 targets and
+  metadata/loopback hostnames (AC4) is a **deliberate addition over RFC-0058 D5**,
+  which requires only an endpoint allowlist + residency. Because the skill is
+  transport-free it opens no socket and resolves no hostname, so this is
+  **provenance-hygiene defense-in-depth (a footgun-reducer), not a socket-level SSRF
+  control** — the connect-time metadata/private-range block is the adopter transport's
+  obligation (AC7). Recorded here rather than left as silent gold-plating.
+  *(source: spec-stage adversarial + security review 2026-07-01.)*
 - Product: redaction is out of scope (documents sent unmodified); the *optional*
   pre-egress redaction hook (RFC Open-Q3 residual) is deferred, not built. *(source:
   RFC-0058 D5 + Open-Q3 recommended default; user confirmation 2026-07-01.)*

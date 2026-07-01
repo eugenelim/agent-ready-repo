@@ -1,7 +1,7 @@
 # Plan: extraction-higher-tiers
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -62,10 +62,12 @@ Most construction tests live per-task below. Cross-cutting ones:
 
 **Integration tests:**
 - **No-network / no-secret / no-leaky-log guard** (AC5) — a grep/AST guard over the
-  whole skill asserts no network-client package (`requests`, `httpx`, `urllib`,
-  `http.client`, `socket`, a vendor SDK) is imported on any path and no vendor
-  endpoint string is bundled; a unit test asserts no auth field is accepted and no
-  document body/endpoint is logged at default verbosity. Spans every module.
+  skill's production `*.py` scripts, **enumerated by directory glob (not a hard-coded
+  list)** so `tier3.py` and any future module are covered by construction, asserts no
+  network-client package (`requests`, `httpx`, `urllib`, `http.client`, `socket`, a
+  vendor SDK) is imported on any path and no vendor endpoint string is bundled; a unit
+  test asserts no auth field is accepted and no document body/endpoint is logged at
+  default verbosity. Spans every module.
 - **No-remote-services guard** (AC2) — a grep/AST guard asserts `enable_remote_services`
   and `PictureDescriptionApiOptions` (and any remote-VLM option class) appear nowhere
   in the skill, complementing T1's attribute-level truthiness assertion. Spans
@@ -111,21 +113,27 @@ emitter, pip-on-demand for optional libs).
 
 ### Data & schema
 - **Tier-3 egress declaration** (adopter-facing config, validated, not persisted):
-  `{endpoint-allowlist: [host, …], residency-region: str}`. Endpoint = non-empty
-  hostname list; rejects wildcard / scheme-less catch-all (empty, `*`, `.`,
-  `0.0.0.0`/`::`) **and** loopback / link-local / private-range / bare-IP metadata
-  targets (`127.0.0.0/8`, `::1`, `169.254.0.0/16`, RFC-1918) — SSRF-adjacent
-  hardening. Residency = non-empty string; **unknown fields rejected**
-  (credential-smuggling guard — no auth material accepted). Echoed into provenance as
-  scalars (endpoint **comma-joined**, `content-type` from `--source` suffix or
-  `managed-ocr`) through `contract.build_frontmatter`, inheriting the predecessors'
-  injection-safe escaping. Not a `contracts/` interface. Traces to: AC4 · AC5 · AC10.
+  `{endpoint-allowlist: [host, …], residency-region: str}`. Key set must **equal
+  exactly** those two keys (allowlist-of-keys credential-smuggling guard, not a
+  denylist). Endpoint = non-empty list; rejects wildcard / scheme-less catch-all
+  (empty, `*`, `.`, `0.0.0.0`, `::`), metadata/loopback hostnames (`localhost`,
+  `*.internal`, `metadata.google.internal`), and IP-literal elements that
+  `ipaddress.ip_address` (IPv4-mapped-IPv6 canonicalized) resolves to
+  `is_loopback | is_link_local | is_private | is_multicast | is_unspecified |
+  is_reserved` — a **rule, not an enumerated list**, so IPv6 link-local/ULA/mapped
+  forms are covered by construction. This is provenance-hygiene defense-in-depth (a
+  footgun-reducer), **not** the socket-level SSRF control (the skill never resolves or
+  connects — that is AC7's adopter transport). Residency = non-empty string. Echoed
+  into provenance as scalars (endpoint **comma-joined**, `content-type` from `--source`
+  suffix or `managed-ocr`) through `contract.build_frontmatter`, inheriting the
+  predecessors' injection-safe escaping. The `--ocr-text` input is read through
+  `safe_io.check_input_size`. Not a `contracts/` interface. Traces to: AC4 · AC5 · AC10.
 - **Chunk output** — Docling `HybridChunker` chunk records written to a
   `<basename>.chunks.jsonl` sidecar (one JSON object per line = the **full contract
-  field set serialized as JSON** — reusing the dict `build_frontmatter` consumes, not
-  the YAML emitter — plus chunk text) to a path validated by `safe_io.confine`; JSON,
-  not YAML frontmatter, so the leading-block-only invariant holds. No pack-defined
-  chunk schema. Traces to: AC8 · AC9.
+  field set serialized as JSON** — from the shared `contract.build_fields(...)` builder,
+  not the YAML emitter — plus chunk text) to a path validated by `safe_io.confine`;
+  JSON, not YAML frontmatter, so the leading-block-only invariant holds. No pack-defined
+  chunk schema. Traces to: AC8 · AC9 · AC10.
 
 ### Interfaces & contracts
 - The consumer contract is the existing YAML frontmatter (`contract.py`), extended
@@ -176,6 +184,17 @@ emitter, pip-on-demand for optional libs).
   the frontmatter (AC12).
 
 **Approach:**
+- **First, rework `main()`'s arg parsing** (currently `--check`-special-cased, every
+  other token a file path). Move to `argparse` (as `reconcile.py` already does): a
+  positional `files` (`nargs="*"`) preserving the multi-file batch loop, and the opt-in
+  `--enrich` / `--chunk` flags (T2) plus the `--tier3` mode (T3). **`--check` keeps its
+  documented positional library-name form** (`convert.py --check pypdf`) — model it as
+  `--check` with `nargs="*"`, `default=None` (absent → `None`; `--check` alone → `[]` =
+  probe all; `--check pypdf` → `["pypdf"]`), so its library names are NOT captured by
+  the `files` positional. A T1/T5 regression asserts `convert.py --check pypdf` still
+  probes `pypdf` (not treats it as a missing file). The no-flag positional-batch path
+  stays byte-for-byte the slice-2 behavior — the default-unchanged regression (T5)
+  proves it.
 - Add an explicit `--enrich` (opt-in) flag to `convert.py`; thread it into
   `_extract_docling`, populating `PdfPipelineOptions` with the selected `do_*`
   flags only when set.
@@ -193,9 +212,13 @@ green and the default (no-flag) Tier-2 body is byte-identical to slice 2.
 
 **Depends on:** T1
 
-**Touches:** packs/converters/.apm/skills/file-to-markdown/scripts/convert.py, packs/converters/.apm/skills/file-to-markdown/scripts/test_convert.py
+**Touches:** packs/converters/.apm/skills/file-to-markdown/scripts/convert.py, packs/converters/.apm/skills/file-to-markdown/scripts/contract.py, packs/converters/.apm/skills/file-to-markdown/scripts/test_convert.py, packs/converters/.apm/skills/file-to-markdown/scripts/test_contract.py
 
 **Tests:**
+- `contract.build_fields(...)` returns the same ordered dict `build_frontmatter`
+  emits (contract-version prepended, `tier` key, nested `ingestion-quality`); a
+  test asserts `build_frontmatter` output is derivable from `build_fields` output
+  (one source, no fork).
 - With Docling monkeypatched: `--chunk` on a Tier-2 run writes a
   `<basename>.chunks.jsonl` sidecar (one JSON record per chunk carrying the full
   contract field set as JSON + chunk text) to a path validated by `safe_io.confine`
@@ -208,14 +231,23 @@ green and the default (no-flag) Tier-2 body is byte-identical to slice 2.
   Docling's chunk shape is passed through (AC9).
 
 **Approach:**
+- **Extract `contract.build_fields(...) -> OrderedDict` first**: pull the field-set
+  assembly (contract-version prepend + `tier` + the nested `ingestion-quality` block)
+  **and all of `build_frontmatter`'s current validation** (tier ∈ `TIERS`,
+  confidence ∈ `CONFIDENCE_LEVELS`, reserved-key-shadowing rejection, required-key
+  presence) into the shared builder; `build_frontmatter` becomes
+  `_yaml_block(build_fields(...))`. Validation MUST live in `build_fields`, not in
+  `build_frontmatter`, so the JSONL path (which calls `build_fields` then `json.dumps`,
+  never `build_frontmatter`) inherits it and cannot emit an unvalidated/forgeable field
+  set — this is what actually closes the "JSONL forks the contract" gap. A test asserts
+  `build_fields` rejects a reserved-key-shadowing field and an unknown tier/confidence.
 - Add an explicit `--chunk` flag; when set on the Tier-2 path, run
   `HybridChunker().chunk(doc)` over the `DoclingDocument` and serialize each chunk
-  (contextualized text + Docling's own metadata) as one JSON line carrying the **full
-  contract field set** (the dict `build_frontmatter` consumes — `contract-version`,
-  `source-file`, `content-type`, `tier`, `ingestion-date`, `ingestion-quality`) as
-  JSON, into `<basename>.chunks.jsonl` at a path validated by `safe_io.confine`. Reuse
-  the field-set assembly, **not** `build_frontmatter` (which returns YAML) — JSON
-  records, so the leading-block-only invariant is never violated.
+  (contextualized text + Docling's own metadata) as one JSON line: `json.dumps` of
+  `build_fields(...)` (the **shared** field dict) merged with the chunk text, into
+  `<basename>.chunks.jsonl` at a path validated by `safe_io.confine`. **Not**
+  `build_frontmatter` (which returns YAML) — JSON records, so the leading-block-only
+  invariant is never violated.
 - Probe the tokenizer extra with a clear error path when `docling-core[chunking]` is
   absent (mirroring the pip-on-demand posture).
 - Below Tier 2, produce section-aware Markdown from the existing extracted body
@@ -234,34 +266,59 @@ below-Tier-2 Markdown) and default output shape is unchanged.
 **Tests:**
 - Across the full input-class matrix (digital PDF, scan, Office, image, unsupported),
   every automatic path (`dispatch` + Docling fall-through) constructs only
-  `TIER_0`/`TIER_1`/`TIER_2` results; a grep/AST-plus-call-graph guard asserts
-  `contract.TIER_3` is constructed nowhere except `tier3.assemble_tier3`, reached only
-  via `--tier3` (AC3).
+  `TIER_0`/`TIER_1`/`TIER_2` results; an **AST guard** (`ast.walk`, not a text regex)
+  asserts `TIER_3` / `contract.TIER_3` / the `"3-managed-api"` literal is referenced in
+  no production module except `tier3.py` (excluding `contract.py`'s enum definition;
+  test modules out of scope) (AC3).
 - Tier-3 assembly refuses (clear, actionable error, **no output stamped**) on: missing
-  declaration; empty/`*`/`.`/`0.0.0.0` endpoint; a loopback / private-range /
-  metadata-IP endpoint (SSRF-adjacent); absent residency; an unknown field
-  (credential-smuggling guard) (AC4).
+  declaration; empty/`*`/`.`/`0.0.0.0`/`::` endpoint; a loopback / private-range /
+  metadata-IP endpoint **as IPv4 and as an IPv4-mapped-IPv6 form**
+  (`::ffff:169.254.169.254`); a `localhost` / `metadata.google.internal` hostname
+  endpoint; absent residency; a declaration whose key set ≠ exactly
+  `{endpoint-allowlist, residency-region}` (credential-smuggling guard) (AC4).
 - Valid declaration ⇒ output stamped `tier: "3-managed-api"`, `content-type` from the
-  `--source` suffix (else `managed-ocr`), `requires-review: true` by default (the skill
-  did not verify the OCR), with the endpoint (comma-joined scalar) + region echoed into
-  provenance; an injection-bearing endpoint element (`\n---\ninjected: true`) is escaped
-  by the contract emitter and cannot break the block (AC4, AC10).
+  `--source` suffix (else `managed-ocr`), **`requires-review: true` + fixed
+  `extraction-confidence: "low"`, no caller override** (the skill did not verify the
+  OCR), with the endpoint (comma-joined scalar) + region echoed into provenance; an
+  injection-bearing endpoint element **and an injection-bearing `--source` name**
+  (`\n---\ninjected: true`) are escaped by the contract emitter and cannot break the
+  block (AC4, AC10).
 - No network-client package or vendor SDK is imported by `tier3.py`; no vendor
   endpoint string is bundled; no auth field is accepted; no document text/endpoint is
   logged at default verbosity (AC5).
 
 **Approach:**
-- New `tier3.py`: `validate_declaration({endpoint-allowlist, residency-region})`
-  (non-empty hostname list; reject wildcard / scheme-less catch-all / loopback /
-  link-local / private-range / bare-IP metadata targets; non-empty residency; reject
-  unknown fields) and `assemble_tier3(ocr_text_path, source, declaration)` that returns
-  the unified contract-wrapped Markdown with `tier=contract.TIER_3`, `content-type`
-  from the source suffix (else `managed-ocr`), `requires-review: true` by default, and
-  the destination in provenance (endpoint comma-joined scalar, escaped by
-  `contract.build_frontmatter`) — only after validation passes.
+- New `tier3.py`: `validate_declaration({endpoint-allowlist, residency-region})` and
+  `assemble_tier3(ocr_text_path, source, declaration)`.
+- `validate_declaration`: the key set must **equal exactly**
+  `{endpoint-allowlist, residency-region}` (allowlist-of-keys, not a credential
+  denylist); endpoint is a non-empty list; each element is **stripped first**, then
+  rejected if it is a wildcard / scheme-less catch-all (empty-or-whitespace, `*`, `.`,
+  `0.0.0.0`, `::`), a metadata/loopback hostname (`localhost`, `*.localhost`,
+  `metadata`, `metadata.google.internal`, `*.internal`; non-exhaustive), or — for
+  IP-literal elements — parses via `ipaddress.ip_address` (canonicalizing IPv4-mapped
+  IPv6 to embedded IPv4) to a value that is `is_loopback | is_link_local | is_private |
+  is_multicast | is_unspecified | is_reserved`. An element that **looks like an IP/CIDR
+  literal but fails `ipaddress.ip_address` parse** (e.g. `::/0`) is rejected, not
+  treated as a hostname. Residency is a non-empty string. This is a footgun-reducer,
+  not a socket-level SSRF control (the skill never resolves/connects — AC7).
+- `assemble_tier3`: read `ocr_text_path` through `safe_io.check_input_size` (DoS
+  ceiling), then return the unified contract-wrapped Markdown with
+  `tier=contract.TIER_3`, `content-type` from the source suffix (else `managed-ocr`),
+  **`extraction-confidence="low"` + `requires_review=True` fixed (no override)**, and
+  the destination in provenance (endpoint comma-joined scalar) — all echoed values
+  (endpoint, region, content-type) go through `contract.build_frontmatter`'s escaping —
+  only after `validate_declaration` passes.
 - CLI: `python scripts/convert.py --tier3 --ocr-text <path> --endpoint <host[,host]>
   --residency <region> "<source>"` — the adopter runs the vendor, saves the OCR text,
   and hands the path + declaration to the skill; there is no auto path to `--tier3`.
+- **`--tier3` mode gating is manual post-parse validation, not a subparser** (a flat
+  `argparse` cannot express "these three args required only when `--tier3` is set"):
+  after parsing, if `--tier3` is set, require exactly one positional (the source name)
+  plus `--ocr-text` / `--endpoint` / `--residency`, and reject `--enrich` / `--chunk`
+  in the same invocation — each missing/conflicting case raises a **clear, actionable
+  error with no output stamped** (AC4). A test asserts a bare `--tier3` missing
+  `--endpoint` / `--residency` / `--ocr-text` errors clearly rather than stamping.
 - Keep `convert.py`'s `dispatch()` constructing only Tiers 0–2; expose Tier 3 only via
   the explicit entry point, never from `dispatch`/degradation/upgrade.
 - Import nothing that can open a socket; accept no auth material; log no document
@@ -291,7 +348,9 @@ gated path and its provenance values are injection-safe.
   posture, the retention/no-train recorded control, the **transport-binding** adopter
   control (carries RFC D5's "egress only to the named destination" under option B),
   and the redaction-out-of-scope doctrine — all vendor-neutral (no vendor named as
-  fact; ADR-0034).
+  fact; ADR-0034). Note the `content-type: "managed-ocr"` fallback sentinel (emitted
+  when the `--source` suffix is indeterminate) so consumers keying on `content-type`
+  know it can appear.
 - Add to `docs/backlog.md` a `## extraction-higher-tiers` section with a
   `### extraction-tier3-pre-egress-redaction-hook` anchor (matching the existing
   `## <spec-name>` → `### <anchor>` convention) for the RFC Open-Q3 residual.
@@ -305,27 +364,39 @@ section + anchor exist.
 
 **Touches:** packs/converters/.apm/skills/file-to-markdown/scripts/test_convert.py, packs/converters/.apm/skills/file-to-markdown/scripts/test_contract.py
 
+T5 holds the **static / structural / integration** complements to the behavioral
+per-path tests in T1 (AC2 attribute-level, AC12 non-forgery) and T3 (AC3 matrix, AC4
+declaration, AC5 tier3-module import) — it does not duplicate them. Per AC:
+
 **Tests:**
-- No-network / no-secret / no-leaky-log guard: no network-client import on any path;
-  no bundled endpoint; no auth field accepted; no document body/OCR text and no
-  endpoint written to logs at default verbosity (AC5).
-- No-remote-services guard: `enable_remote_services` / `PictureDescriptionApiOptions`
-  appear nowhere (AC2), complementing T1's attribute-level assertion.
-- No-bundled-artifact guard: no ML model, vendor endpoint/SDK, or per-vendor config
-  file ships in the pack; enrichment models / chunker tokenizer / vendor are all
-  adopter-provisioned (AC6).
-- Never-auto-reach-Tier-3: automatic paths construct only Tiers 0–2; `contract.TIER_3`
-  constructed only in `tier3.assemble_tier3` (AC3).
-- Every higher-tier output (enriched Tier-2, chunked Tier-2 JSONL, Tier-3-assembled)
-  carries the unified contract with the correct `tier` and an honest
-  confidence/`requires-review`; none auto-stamps `high` (AC10).
-- Byte-parity golden test: existing Tier-0/1/2 frontmatter blocks unchanged (AC10).
-- Default-unchanged regression: no-flag run reproduces slice-2 output per input
-  class (AC11).
+- **No-network / no-secret / no-leaky-log guard (AC5, new — the static complement):**
+  a guard that **enumerates the skill's production `*.py` scripts by directory glob**
+  (replacing the hard-coded `_ALL_SCRIPTS` list so `tier3.py` and any future module are
+  covered by construction) and asserts no network-client import on any of them; no
+  bundled endpoint string; no auth field accepted; no document body/OCR text and no
+  endpoint written to logs at default verbosity.
+- **No-remote-services guard (AC2, static complement to T1's attribute-level test):**
+  `enable_remote_services` / `PictureDescriptionApiOptions` appear nowhere (text/AST
+  scan over the glob).
+- **No-bundled-artifact guard (AC6, new):** no ML model, vendor endpoint/SDK, or
+  per-vendor config file ships in the pack.
+- **Never-auto-reach-Tier-3 (AC3, static complement to T3's matrix test):** the
+  `ast.walk` guard asserting `TIER_3` / `"3-managed-api"` is referenced only in
+  `tier3.py` (excluding `contract.py`'s enum definition; test modules out of scope).
+- **Contract stamping across paths (AC10, new — the consolidation):** every higher-tier
+  output (enriched Tier-2, chunked Tier-2 JSONL, Tier-3-assembled) carries the unified
+  contract with the correct `tier` and an honest confidence/`requires-review`; the
+  Tier-3 path is `requires-review: true` + `low`, never `high`.
+- **Byte-parity golden test (AC10, new):** existing Tier-0/1/2 frontmatter blocks
+  unchanged.
+- **Default-unchanged regression (AC11, new):** no-flag run reproduces slice-2 output
+  per input class.
 
 **Approach:**
-- Add the grep/AST guards (network / secret / remote-services / call-graph) and the
-  byte-parity + default-unchanged regression tests.
+- Add the glob-derived no-network / no-secret / no-remote-services / no-bundled-artifact
+  guards, the `ast.walk` never-auto-reach guard, and the byte-parity + default-unchanged
+  regression tests. These are net-new structural/static assertions, not re-imports of
+  the T1/T3 behavioral tests.
 - Consolidate the contract-stamping assertions across the three higher-tier paths.
 
 **Done when:** all T5 guards + regressions are green.
@@ -395,3 +466,26 @@ unchanged.
   per user steer; enrichment forced local-model-only; chunking emits HybridChunker
   as-is (Open-Q1); redaction out of scope with an optional-hook backlog deferral
   (Open-Q3).
+- 2026-07-01: pre-EXECUTE review pass (adversarial + security spec-stage) folded in.
+  T1 now specifies the `main()` argparse rework (the flags were dead against the
+  existing file-path-only arg loop). AC4 declaration validator hardened: IP rejection
+  is an `ipaddress`-rule (covers IPv6 link-local/ULA/IPv4-mapped) not an enumerated
+  list, metadata/loopback hostnames rejected, unknown-field guard is exact-set-of-keys,
+  `--ocr-text` read through `check_input_size`, `content-type` echo routed through the
+  injection-safe emitter; the SSRF-adjacent rejection recorded as deliberate
+  provenance-hygiene (footgun-reducer, not socket enforcement). AC10 drops the Tier-3
+  confidence override — `requires-review: true` + fixed `low`, non-negotiable — and
+  names a shared `contract.build_fields(...)` builder so the JSONL path cannot fork the
+  contract (T2). AC5's no-network guard switches from a hard-coded file list to a
+  directory glob so `tier3.py` is covered. AC3's guard mechanism pinned to `ast.walk`
+  (a regex would false-match the enum def + docstrings + a test fixture). AC13 scoped to
+  release hygiene + progressive disclosure (was a meta-criterion over AC1–12).
+- 2026-07-01: second pre-EXECUTE review pass. Fixed a Blocker the argparse amendment
+  introduced (`--check`'s positional lib-name form must survive via `nargs="*"`
+  `default=None`, with a regression). Moved the contract *validation* into the shared
+  `build_fields` so the JSONL path inherits it (else the fork gap reopens). Specified
+  `--tier3` mode gating as manual post-parse validation (a flat parser can't express
+  required-in-mode). Split the AST guard into a name/attribute check and a separate
+  string-literal check. Hardened AC4: strip elements before the empty check, reject an
+  IP/CIDR-literal-looking element that fails `ipaddress` parse, mark the
+  metadata-hostname list non-exhaustive (AC7 authoritative).
