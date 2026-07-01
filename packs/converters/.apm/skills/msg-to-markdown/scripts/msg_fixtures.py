@@ -405,7 +405,9 @@ def corpus():
 
 if __name__ == "__main__":  # smoke check
     import olefile
-    p = write_msg("/tmp/fx.msg", message_spec(
+    import tempfile
+
+    p = write_msg(str(Path(tempfile.mkdtemp()) / "fx.msg"), message_spec(
         subject="Hi", sender_name="A", sender_email="a@x.com", body="hello",
         recipients=[recipient("B", "b@x.com", "to")],
         attachments=[attachment("r.pdf", "application/pdf", b"%PDF")]))
