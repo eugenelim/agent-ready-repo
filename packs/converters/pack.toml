@@ -1,6 +1,6 @@
 [pack]
 name = "converters"
-version = "0.2.2"
+version = "0.2.3"
 description = "File-format conversion skills: documents and images → Markdown; Markdown → styled HTML and to branded Word, PowerPoint, and Excel; Outlook .msg → Markdown."
 readme = "README.md"
 display_name = "Converters"

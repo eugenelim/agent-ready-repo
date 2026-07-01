@@ -92,9 +92,19 @@ def convert_file(input_path: Path) -> None:
             print(f"WARNING: image pre-scaled from {orig_w}×{orig_h} to {scaled_w}×{scaled_h} before OCR")
 
     try:
-        converter = DocumentConverter()
-        result = converter.convert(str(convert_path))
-        markdown = result.document.export_to_markdown()
+        try:
+            converter = DocumentConverter()
+            result = converter.convert(str(convert_path))
+            markdown = result.document.export_to_markdown()
+        except Exception as e:
+            print(
+                f"ERROR: could not convert {input_path.name}: {e}\n"
+                "If the file is password-protected or encrypted, remove the "
+                "protection and retry. If it may be corrupt, confirm it opens "
+                "in its native application.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
     finally:
         if tmp_dir:
             import shutil
