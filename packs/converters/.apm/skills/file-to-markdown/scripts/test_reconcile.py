@@ -116,4 +116,10 @@ def test_end_to_end_cli(tmp_path: Path):
     )
     assert r.returncode == 0, r.stderr
     assert "ELEMENTS: 3" in r.stdout, r.stdout
-    assert "(unlabeled)" in out_md.read_text(), "unnamed element not rendered"
+    md = out_md.read_text()
+    assert "(unlabeled)" in md, "unnamed element not rendered"
+    # The image branch now emits the unified contract: the two new keys plus
+    # the pre-existing block, intact (AC1/AC2).
+    assert 'contract-version: "1.0"' in md
+    assert 'tier: "1-agent-vision"' in md
+    assert "ingestion-quality:" in md

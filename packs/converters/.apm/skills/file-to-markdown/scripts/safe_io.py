@@ -143,6 +143,25 @@ class SafeZip:
     def namelist(self) -> list[str]:
         return list(self._names)
 
+    def peek_member(self, name: str, n: int = _DTD_SCAN_BYTES) -> bytes:
+        """Read at most ``n`` bytes of a member (its prolog), for a cheap
+        DTD/DOCTYPE pre-scan without decompressing the whole member."""
+        if not _is_safe_member_name(name) or _is_nested_archive(name):
+            raise ZipBombError(f"refusing to peek unsafe member {name!r}")
+        if name not in self._names:
+            raise KeyError(name)
+        with self._zf.open(name) as f:
+            return f.read(n)
+
+    def reject_dtds(self) -> None:
+        """Refuse the archive if any XML/rels member carries a DTD/DOCTYPE in
+        its prolog. Used to gate an ordinary Office library (whose transitive
+        ``lxml`` parser we do not control) so no DTD ever reaches it — the
+        stdlib-XXE-safe resolution applied to the library path (spec AC9)."""
+        for name in self._names:
+            if name.lower().endswith((".xml", ".rels")):
+                _reject_dtd(self.peek_member(name))
+
     def read_member(self, name: str) -> bytes:
         """Read one member fully in-memory by its exact known name.
 
