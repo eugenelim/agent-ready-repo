@@ -47,6 +47,17 @@ def test_parse_xml_refuses_internal_entity_dtd():
         safe_io.parse_xml(bomb)
 
 
+def test_parse_xml_refuses_dtd_past_a_fixed_window():
+    """A DOCTYPE padded past any fixed prolog window is still refused — the scan
+    is whole-buffer, not the first 64 KB (security round-1 finding 2)."""
+    padded = (
+        b'<?xml version="1.0"?>' + b"<!-- " + b" " * 200_000 + b" -->"
+        + b'<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]><r/>'
+    )
+    with pytest.raises(safe_io.XmlSafetyError):
+        safe_io.parse_xml(padded)
+
+
 # --- AC9: decompression-bomb guard, per axis --------------------------------
 
 
@@ -113,6 +124,52 @@ def test_zip_member_byte_cap_catches_understated_size(tmp_path):
     with safe_io.open_safe_zip(z, max_member_bytes=1000) as sz:
         with pytest.raises(safe_io.ZipBombError):
             sz.read_member("m.bin")
+
+
+def test_zip_cumulative_actual_read_cap(tmp_path):
+    """Many members each under the per-member cap but exceeding the cumulative
+    cap when actually read are refused (understated-size, multi-member). Built
+    on SafeZip directly so the *read-time* cap is what fires, not the declared
+    central-directory cap (which open_safe_zip enforces separately)."""
+    z = tmp_path / "many.zip"
+    _write_zip(z, {f"m{i}.bin": os.urandom(2000) for i in range(5)},
+               compression=zipfile.ZIP_STORED)
+    sz = safe_io.SafeZip(zipfile.ZipFile(z), max_member_bytes=4000,
+                         max_total_uncompressed=5000)
+    with sz:
+        with pytest.raises(safe_io.ZipBombError):
+            for i in range(5):
+                sz.read_member(f"m{i}.bin")
+
+
+def test_harden_untrusted_reads_all_members_and_scans_dtd(tmp_path):
+    z = tmp_path / "ok.zip"
+    _write_zip(z, {
+        "word/document.xml": b"<r>hi</r>",
+        "docProps/app.xml": b"<Properties/>",
+    })
+    with safe_io.open_safe_zip(z) as sz:
+        sz.harden_untrusted()  # clean archive: no raise
+
+
+def test_harden_untrusted_refuses_dtd_in_any_member(tmp_path):
+    z = tmp_path / "xxe.zip"
+    _write_zip(z, {
+        "word/document.xml": (
+            b'<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]><r/>'
+        ),
+    })
+    with safe_io.open_safe_zip(z) as sz:
+        with pytest.raises(safe_io.XmlSafetyError):
+            sz.harden_untrusted()
+
+
+def test_harden_untrusted_enforces_member_cap(tmp_path):
+    z = tmp_path / "bomb.zip"
+    _write_zip(z, {"big.bin": os.urandom(10_000)}, compression=zipfile.ZIP_STORED)
+    with safe_io.open_safe_zip(z, max_member_bytes=1000) as sz:
+        with pytest.raises(safe_io.ZipBombError):
+            sz.harden_untrusted()
 
 
 # --- AC12: output-path confinement -----------------------------------------

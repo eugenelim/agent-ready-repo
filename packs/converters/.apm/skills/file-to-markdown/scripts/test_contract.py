@@ -52,6 +52,16 @@ def test_contract_version_is_string_one_point_oh():
     assert contract.CONTRACT_VERSION == "1.0"
 
 
+def test_now_iso_is_seconds_precision():
+    """AC2 byte-parity depends on now_iso() keeping the timespec='seconds'
+    shape reconcile.py emitted before the refactor — pin it so a future edit
+    that changed the precision would fail here."""
+    import re
+
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00",
+                        contract.now_iso())
+
+
 def test_unknown_tier_rejected():
     with pytest.raises(ValueError):
         contract.build_frontmatter(

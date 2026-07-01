@@ -40,6 +40,7 @@ import csv as csvmod
 import io
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 from typing import Callable, NamedTuple
 
@@ -216,19 +217,31 @@ _S = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 
 def _open_office(path: Path, content_type: str):
-    """Open an Office file with the bomb guards, gate its DTDs, and report
-    whether the ordinary library is available. Returns (SafeZip, use_lib) or an
-    ExtractResult on a defensive refusal."""
+    """Open an Office file with the decompression-bomb guards. Returns a SafeZip
+    or an ExtractResult on a defensive refusal (bomb, or a file that is not a
+    valid zip — e.g. a corrupt or mislabeled ``.docx``)."""
     if (over := _guard_size(path, content_type)) is not None:
         return over
     try:
-        sz = safe_io.open_safe_zip(path)
-        sz.reject_dtds()
+        return safe_io.open_safe_zip(path)
+    except safe_io.ZipBombError as exc:
+        return _defensive_result(content_type, f"decompression-bomb guard: {exc}")
+    except zipfile.BadZipFile as exc:
+        return _defensive_result(content_type, f"not a valid Office (zip) file: {exc}")
+
+
+def _harden_for_lib(sz: "safe_io.SafeZip", content_type: str) -> ExtractResult | None:
+    """Before an ordinary Office library re-opens the raw file, fully validate
+    every member through SafeZip — the per-member + cumulative decompression
+    caps and the whole-buffer DTD refusal that the library path would otherwise
+    bypass (spec AC9). Returns an ExtractResult on refusal, else None."""
+    try:
+        sz.harden_untrusted()
     except safe_io.ZipBombError as exc:
         return _defensive_result(content_type, f"decompression-bomb guard: {exc}")
     except safe_io.XmlSafetyError as exc:
         return _defensive_result(content_type, f"XML safety guard: {exc}")
-    return sz
+    return None
 
 
 def _local(tag: str) -> str:
@@ -242,6 +255,8 @@ def _extract_docx(path: Path) -> ExtractResult:
     sz = opened
     try:
         if _lib_available("docx"):
+            if (guard := _harden_for_lib(sz, "docx")) is not None:
+                return guard
             import docx
 
             document = docx.Document(str(path))
@@ -275,8 +290,11 @@ def _extract_xlsx(path: Path) -> ExtractResult:
     if isinstance(opened, ExtractResult):
         return opened
     sz = opened
+    truncated = False
     try:
         if _lib_available("openpyxl"):
+            if (guard := _harden_for_lib(sz, "xlsx")) is not None:
+                return guard
             import openpyxl
 
             wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
@@ -286,6 +304,7 @@ def _extract_xlsx(path: Path) -> ExtractResult:
                 for i, row in enumerate(ws.iter_rows(values_only=True)):
                     if i >= MAX_SHEET_ROWS:
                         rows.append(f"> _(truncated at {MAX_SHEET_ROWS} rows)_")
+                        truncated = True
                         break
                     cells = ["" if c is None else str(c) for c in row]
                     if any(cells):
@@ -296,14 +315,18 @@ def _extract_xlsx(path: Path) -> ExtractResult:
             body = "\n\n".join(sections)
             confidence = "high"
         else:
-            body, confidence = _extract_xlsx_stdlib(sz)
+            body, confidence, truncated = _extract_xlsx_stdlib(sz)
     finally:
         sz.close()
     body = body or "> **No cell values found.**\n"
-    return ExtractResult(body, contract.TIER_0, "xlsx", confidence, False)
+    # A row-truncated sheet is not fully extracted — flag it for review rather
+    # than silently dropping the tail (AC13).
+    if truncated:
+        confidence = "low"
+    return ExtractResult(body, contract.TIER_0, "xlsx", confidence, truncated)
 
 
-def _extract_xlsx_stdlib(sz: "safe_io.SafeZip") -> tuple[str, str]:
+def _extract_xlsx_stdlib(sz: "safe_io.SafeZip") -> tuple[str, str, bool]:
     # Shared strings table (cells with t="s" index into it).
     shared: list[str] = []
     if sz.has_member("xl/sharedStrings.xml"):
@@ -315,12 +338,14 @@ def _extract_xlsx_stdlib(sz: "safe_io.SafeZip") -> tuple[str, str]:
         if n.startswith("xl/worksheets/") and n.endswith(".xml")
     )
     sections: list[str] = []
+    truncated = False
     for name in sheet_names:
         root = safe_io.parse_xml(sz.read_member(name))
         rows: list[str] = []
         for i, row in enumerate(root.iter(f"{_S}row")):
             if i >= MAX_SHEET_ROWS:
                 rows.append(f"> _(truncated at {MAX_SHEET_ROWS} rows)_")
+                truncated = True
                 break
             cells: list[str] = []
             for c in row.iter(f"{_S}c"):
@@ -337,7 +362,7 @@ def _extract_xlsx_stdlib(sz: "safe_io.SafeZip") -> tuple[str, str]:
                 rows.append(" | ".join(cells))
         if rows:
             sections.append("\n".join(rows))
-    return "\n\n".join(sections), "medium"
+    return "\n\n".join(sections), "medium", truncated
 
 
 def _extract_pptx(path: Path) -> ExtractResult:
@@ -347,6 +372,8 @@ def _extract_pptx(path: Path) -> ExtractResult:
     sz = opened
     try:
         if _lib_available("pptx"):
+            if (guard := _harden_for_lib(sz, "pptx")) is not None:
+                return guard
             import pptx
 
             prs = pptx.Presentation(str(path))
@@ -521,6 +548,10 @@ def _extract_odf(path: Path) -> ExtractResult:
             return ExtractResult("> **No content.xml in the document.**\n",
                                  contract.TIER_0, ct, "low", True)
         root = safe_io.parse_xml(sz.read_member("content.xml"))
+    except safe_io.XmlSafetyError as exc:
+        return _defensive_result(ct, f"XML safety guard: {exc}")
+    except safe_io.ZipBombError as exc:
+        return _defensive_result(ct, f"decompression-bomb guard: {exc}")
     finally:
         sz.close()
     # OpenDocument text lives in <text:p>/<text:h>; join their text content.

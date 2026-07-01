@@ -1211,3 +1211,18 @@ input format** at Tier 0 (D7; spec AC7). Full **MIME** handling for
 beyond a flat `.eml` read) is **deferred** — it belongs with the
 `msg-to-markdown` Python port above, not the file-to-markdown floor. **Unblocks
 when:** the `msg-to-markdown` Python-port slice is picked up.
+
+### extraction-image-pixel-bomb-guard
+
+**Source:** implementation-stage security review of
+[`extraction-tier0-and-output-contract`](specs/extraction-tier0-and-output-contract/spec.md)
+(finding 3). `convert.py`'s `_prescale_image` disables PIL's decompression-bomb
+guard (`Image.MAX_IMAGE_PIXELS = None`) with no dimension ceiling before decode,
+so a pixel-flood image is fully decoded before the `MAX_IMAGE_DIM` downscale can
+help. **Deferred — out of this floor's scope:** this is the **Tier-2 image
+branch**, which the floor spec's Assumptions deliberately keep under the image
+branch's *local-files-trusted* carve-out (the untrusted-input posture is scoped
+to the Tier-0 document floor). The behavior is also **pre-existing** (the floor
+only relocated the code into `_extract_docling`). **Unblocks when:** a follow-on
+hardens the image branch's trust posture — refuse a hard pixel ceiling *before*
+decode rather than disabling `MAX_IMAGE_PIXELS` unconditionally.

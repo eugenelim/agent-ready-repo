@@ -41,9 +41,6 @@ MAX_ZIP_TOTAL_UNCOMPRESSED = 500 * 1024 * 1024   # 500 MB cumulative uncompresse
 MAX_ZIP_RATIO = 200                        # declared:compressed ratio (text ~10-20x; bombs 1000x+)
 MAX_ZIP_MEMBER_BYTES = 150 * 1024 * 1024   # 150 MB for a single member (e.g. document.xml)
 
-# Only the leading prolog can legitimately carry a DOCTYPE; scan a bounded window.
-_DTD_SCAN_BYTES = 64 * 1024
-
 # Member extensions we refuse to hand back — a member that is itself an archive
 # is the nested-archive bomb axis; the readers never recurse into one.
 _NESTED_ARCHIVE_EXTS = {
@@ -94,7 +91,12 @@ def parse_xml(data: bytes | str) -> ET.Element:
 
 
 def _reject_dtd(data: bytes) -> None:
-    if re.search(rb"<!DOCTYPE", data[:_DTD_SCAN_BYTES], re.IGNORECASE):
+    # Scan the whole buffer, not a fixed prolog window: a DOCTYPE legitimately
+    # precedes the root element, and an attacker can pad the prolog with
+    # whitespace/comments past any fixed window before declaring the DTD.
+    # OOXML/ODF/EPUB members never carry a literal `<!DOCTYPE`, so a whole-buffer
+    # scan cannot false-positive on their content.
+    if re.search(rb"<!DOCTYPE", data, re.IGNORECASE):
         raise XmlSafetyError(
             "XML DTD/DOCTYPE is not allowed (external-entity / billion-laughs guard)"
         )
@@ -123,9 +125,17 @@ class SafeZip:
     per-member decompression cap. Construct via :func:`open_safe_zip`, which
     enforces the global (entry-count / cumulative / ratio) axes first."""
 
-    def __init__(self, zf: zipfile.ZipFile, *, max_member_bytes: int) -> None:
+    def __init__(
+        self,
+        zf: zipfile.ZipFile,
+        *,
+        max_member_bytes: int,
+        max_total_uncompressed: int = MAX_ZIP_TOTAL_UNCOMPRESSED,
+    ) -> None:
         self._zf = zf
         self._max_member_bytes = max_member_bytes
+        self._max_total = max_total_uncompressed
+        self._read_total = 0  # cumulative ACTUAL bytes decompressed via read_member
         self._names = set(zf.namelist())
 
     def __enter__(self) -> "SafeZip":
@@ -143,24 +153,28 @@ class SafeZip:
     def namelist(self) -> list[str]:
         return list(self._names)
 
-    def peek_member(self, name: str, n: int = _DTD_SCAN_BYTES) -> bytes:
-        """Read at most ``n`` bytes of a member (its prolog), for a cheap
-        DTD/DOCTYPE pre-scan without decompressing the whole member."""
-        if not _is_safe_member_name(name) or _is_nested_archive(name):
-            raise ZipBombError(f"refusing to peek unsafe member {name!r}")
-        if name not in self._names:
-            raise KeyError(name)
-        with self._zf.open(name) as f:
-            return f.read(n)
+    def harden_untrusted(self) -> None:
+        """Fully validate every member before an ordinary Office library (whose
+        transitive ``lxml`` parser we do not control) re-opens the raw file.
 
-    def reject_dtds(self) -> None:
-        """Refuse the archive if any XML/rels member carries a DTD/DOCTYPE in
-        its prolog. Used to gate an ordinary Office library (whose transitive
-        ``lxml`` parser we do not control) so no DTD ever reaches it — the
-        stdlib-XXE-safe resolution applied to the library path (spec AC9)."""
+        The library path bypasses :meth:`read_member`, so this is where the
+        per-member cap, the cumulative-actual-bytes cap, and the DTD refusal are
+        enforced for it: read each safe, non-nested member through the capped
+        path (catching an *understated* declared size that the central-directory
+        axes miss), and whole-buffer-scan every XML-looking member for a DTD —
+        by extension *or* by an ``<`` prolog, since ``lxml`` will parse XML
+        content regardless of suffix. Nested-archive and traversal members are
+        skipped, never recursed into (spec AC9)."""
         for name in self._names:
-            if name.lower().endswith((".xml", ".rels")):
-                _reject_dtd(self.peek_member(name))
+            if not _is_safe_member_name(name) or _is_nested_archive(name):
+                continue
+            data = self.read_member(name)  # per-member + cumulative caps
+            looks_xml = (
+                name.lower().endswith((".xml", ".rels"))
+                or data.lstrip()[:1] == b"<"
+            )
+            if looks_xml:
+                _reject_dtd(data)
 
     def read_member(self, name: str) -> bytes:
         """Read one member fully in-memory by its exact known name.
@@ -182,6 +196,12 @@ class SafeZip:
             raise ZipBombError(
                 f"zip member {name!r} exceeds the {self._max_member_bytes}-byte "
                 f"per-member cap (declared size may have been understated)"
+            )
+        self._read_total += len(data)
+        if self._read_total > self._max_total:
+            raise ZipBombError(
+                f"cumulative decompressed bytes exceed the {self._max_total}-byte "
+                f"cap (declared sizes may have been understated across members)"
             )
         return data
 
@@ -222,7 +242,11 @@ def open_safe_zip(
     except BaseException:
         zf.close()
         raise
-    return SafeZip(zf, max_member_bytes=max_member_bytes)
+    return SafeZip(
+        zf,
+        max_member_bytes=max_member_bytes,
+        max_total_uncompressed=max_total_uncompressed,
+    )
 
 
 # --- Output-path confinement ------------------------------------------------

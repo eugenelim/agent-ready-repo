@@ -45,7 +45,9 @@ python scripts/convert.py --check          # report which optional libs are pres
 `pypdf` (PDF) and `python-docx` / `openpyxl` / `python-pptx` (Office) are each
 optional. When an Office library is absent the extractor degrades to a stdlib
 `zipfile` + XML path and still produces Markdown; when `pypdf` is absent PDF
-extraction escalates to Tier 1 rather than failing. Docling (Tier 2) is only
+extraction escalates to Tier 1 rather than failing. These libraries install into
+*your* environment on demand, so they sit outside this repo's dependency lockfile
+and its SCA scanning — keep them current yourself. Docling (Tier 2) is only
 needed for `.xls` and images:
 
 ```bash

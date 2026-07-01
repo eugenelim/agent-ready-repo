@@ -156,7 +156,7 @@ def test_write_output_routes_through_confine(tmp_path, monkeypatch):
         convert.write_output(src, "hello")
 
 
-def test_full_document_body_injection_is_content_not_contract():
+def test_full_document_body_injection_is_content_not_contract(tmp_path):
     """AC8: a body containing `---` and a forged `contract-version:` line is
     read as content — a frontmatter parser sees only the builder's leading
     block."""
@@ -165,8 +165,9 @@ def test_full_document_body_injection_is_content_not_contract():
         body=hostile_body, tier=contract.TIER_0, content_type="pdf",
         confidence="high", requires_review=False,
     )
-    doc = convert.assemble(result, "in.pdf")
-    fm, body = frontmatter_and_body(doc)
+    # AC8 names the assemble+write path — assert on the on-disk artifact.
+    out = convert.write_output(tmp_path / "in.pdf", convert.assemble(result, "in.pdf"))
+    fm, body = frontmatter_and_body(out.read_text())
     assert 'contract-version: "1.0"' in fm
     assert not any('9.9' in ln for ln in fm)
     assert any('contract-version: "9.9"' in ln for ln in body)
@@ -202,6 +203,10 @@ def test_extract_pdf_sparse_escalates(tmp_path):
     assert r.confidence == "low"
     assert r.requires_review is True
     assert r.escalation == contract.TIER_1
+    # AC6 is an observable-output contract: the escalation target must reach the
+    # emitted frontmatter, not just the ExtractResult.
+    fm, _ = frontmatter_and_body(convert.assemble(r, "scan.pdf"))
+    assert f'escalation-target: "{contract.TIER_1}"' in fm
 
 
 def test_extract_pdf_missing_lib_degrades(tmp_path, monkeypatch):
@@ -322,6 +327,9 @@ def test_office_row_ceiling(tmp_path, monkeypatch):
     monkeypatch.setattr(convert, "MAX_SHEET_ROWS", 1)
     r = convert._extract_xlsx(p)
     assert "truncated" in r.body
+    # A row-truncated sheet is not fully extracted — AC13 requires it flagged.
+    assert r.requires_review is True
+    assert r.confidence == "low"
 
 
 def test_office_guard_order_bomb_renamed_docx(tmp_path):
@@ -332,6 +340,36 @@ def test_office_guard_order_bomb_renamed_docx(tmp_path):
     r = convert._extract_docx(p)
     assert r.requires_review is True
     assert "bomb" in r.body
+
+
+def test_office_corrupt_zip_renamed_docx_is_flagged(tmp_path):
+    """A non-zip file renamed `.docx` is refused as a flagged result, not a
+    bare BadZipFile crash (adversarial round-1 finding 4)."""
+    p = tmp_path / "corrupt.docx"
+    p.write_bytes(b"this is plainly not a zip archive")
+    r = convert._extract_docx(p)
+    assert r.requires_review is True
+    assert "zip" in r.body.lower()
+
+
+def test_office_lib_path_rejects_dtd(tmp_path):
+    """The ordinary-lib path is DTD-gated before the lib's transitive lxml
+    parses — a DOCTYPE in any XML member is refused (security round-1 finding 2)."""
+    if not convert._lib_available("docx"):
+        pytest.skip("python-docx not installed")
+    p = tmp_path / "xxe.docx"
+    write_zip(p, {
+        "[Content_Types].xml": b'<?xml version="1.0"?><Types/>',
+        "word/document.xml": (
+            b'<?xml version="1.0"?>'
+            b'<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]>'
+            b'<w:document xmlns:w="http://schemas.openxmlformats.org/'
+            b'wordprocessingml/2006/main"><w:body/></w:document>'
+        ),
+    })
+    r = convert._extract_docx(p)
+    assert r.requires_review is True
+    assert "XML safety" in r.body
 
 
 # --- T6: D7 formats ---------------------------------------------------------
@@ -400,6 +438,23 @@ def test_extract_odt(tmp_path):
     r = convert._extract_odf(p)
     assert "Heading" in r.body and "Paragraph body." in r.body
     assert r.content_type == "odt"
+
+
+def test_extract_odf_rejects_dtd(tmp_path):
+    """A DTD in content.xml is refused as a flagged result, consistent with the
+    Office path (quality round-1 finding 1)."""
+    p = tmp_path / "xxe.odt"
+    write_zip(p, {
+        "content.xml": (
+            b'<?xml version="1.0"?>'
+            b'<!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]>'
+            b'<office:document-content '
+            b'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"/>'
+        ),
+    })
+    r = convert._extract_odf(p)
+    assert r.requires_review is True
+    assert "XML safety" in r.body
 
 
 def test_extract_eml(tmp_path):
@@ -503,6 +558,17 @@ def test_e2e_eml(tmp_path):
     md = (tmp_path / "m.md").read_text()
     assert 'content-type: "eml"' in md
     assert "Body line." in md
+
+
+def test_e2e_sparse_pdf_warns_and_flags(tmp_path):
+    pdf = tmp_path / "scan.pdf"
+    pdf.write_bytes(make_pdf("Hi"))  # sparse
+    r = _run(pdf)
+    assert r.returncode == 0, r.stderr
+    assert "WARNING:" in r.stdout and "requires-review" in r.stdout
+    md = (tmp_path / "scan.md").read_text()
+    assert "requires-review: true" in md
+    assert 'escalation-target: "1-agent-vision"' in md
 
 
 def test_e2e_check_probe():

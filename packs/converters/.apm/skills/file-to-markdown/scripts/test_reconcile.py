@@ -20,9 +20,69 @@ import subprocess
 import sys
 from pathlib import Path
 
+import contract
 import reconcile
 
 HERE = Path(__file__).resolve().parent
+
+
+# AC2 byte-parity locked to the REAL producer (reconcile.render_markdown), not
+# just the builder: if render_markdown's field dict or nesting drifts, this goes
+# red. The block below is today's image-branch frontmatter with only the two
+# additive keys prepended.
+EXPECTED_IMAGE_FRONTMATTER = """\
+---
+contract-version: "1.0"
+tier: "1-agent-vision"
+title: "My Diagram"
+source-file: "diagram.png"
+content-type: "image"
+content-category: "architecture-diagram"
+ingestion-date: "2026-06-30T12:00:00+00:00"
+diagram-type: "architecture"
+processing:
+  strategy: "two-pass-sliding-window"
+  extraction-strategy: "architecture"
+  viewport: 1200
+  stride: 800
+  overlap-pct: 0.33
+  tile-count: 4
+ingestion-quality:
+  extraction-confidence: "high"
+  elements-by-confidence:
+    high: 10
+    medium: 2
+    low: 1
+  ambiguity-count: 0
+  requires-review: false
+---"""
+
+
+def test_render_markdown_frontmatter_byte_parity(monkeypatch):
+    monkeypatch.setattr(contract, "now_iso", lambda: "2026-06-30T12:00:00+00:00")
+    elems = (
+        [reconcile.Element(type="component", name=f"h{i}", confidence="high")
+         for i in range(10)]
+        + [reconcile.Element(type="component", name=f"m{i}", confidence="medium")
+           for i in range(2)]
+        + [reconcile.Element(type="component", name="l0", confidence="low")]
+    )
+    md = reconcile.render_markdown(
+        title="My Diagram",
+        source_image="diagram.png",
+        strategy="architecture",
+        structural_map={"diagram_type": "architecture"},
+        canonical=elems,
+        ambiguities=[],
+        detail_manifest={"viewport": 1200, "stride": 800, "overlap_pct": 0.33,
+                         "tiles": [{}, {}, {}, {}]},
+        overview_manifest=None,
+    )
+    # The frontmatter is the leading block up to and including the second fence.
+    lines = md.splitlines()
+    end = lines.index("---", 1)
+    block = "\n".join(lines[: end + 1])
+    assert block == EXPECTED_IMAGE_FRONTMATTER
 
 CROP = {"x": 0, "y": 0, "w": 1200, "h": 900}
 
