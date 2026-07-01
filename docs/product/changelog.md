@@ -47,6 +47,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   applies to `architecture-beta` (with a table / bullet-list fallback), so
   flowchart and C4 stay the defaults. The diagram rubric also gains explicit
   per-type complexity budgets plus additive accent- and edge-count caps.
+- **Docs now call out the catalogue and skill/pack format as first-class, and ship an `llms.txt`.**
+  New `docs/architecture/catalogue.md` names what a catalogue *is* on disk (the
+  `packs/` + `.claude-plugin/marketplace.json` markers), how `agentbundle`
+  resolves one through its four-layer chain, and how to point it at your own —
+  the starting point for standing up your own catalogue. New
+  `docs/architecture/skill-and-pack-format.md` maps the format in three layers
+  (the agentskills.io skill standard, the pack envelope, projection). A root
+  `llms.txt` indexes the key docs so an agent can read the relevant pages
+  instead of scanning the whole repo. The architecture and top-level READMEs
+  route to both.
 - **`agentbundle list-installed` — see what you actually have installed (CLI 0.10.0).**
   A new read-only command lists every installed `(pack, adapter)` row across the
   user and repo scope with its version and an `up-to-date` / `upgrade-available`
