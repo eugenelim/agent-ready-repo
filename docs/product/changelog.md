@@ -57,6 +57,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `llms.txt` indexes the key docs so an agent can read the relevant pages
   instead of scanning the whole repo. The architecture and top-level READMEs
   route to both.
+- **The `methodology` output shape for research (research 0.6.0).** Ask
+  *"the best way to do / run / build / train X, end to end, for my situation"*
+  and `/research` now answers with a **method, not a reading list** — a staged,
+  contingency-adapted, maturity-aware, evidence-graded description of how the
+  activity is done. The shape produces `<topic-slug>-methodology.md` (episodic) or
+  `methodology.md` (project mode) from six sections, each grounded in a discipline:
+  a SIPOC scope frame, a stage spine, **mandatory** contingency branches
+  (which path *your* situation takes) and a **mandatory** maturity ladder
+  (novice→expert, or crawl→walk→run for one-off deliverables), failure modes, and
+  GRADE evidence tags. It defaults to `applied` depth, is slide-ready for
+  `markdown-to-pptx` with no reshaping (sections at H1, stages at H2, no H3), and
+  is fenced against `frame-domain` (product/MVP grounding) and
+  `map-internal-process` (your own operations). Prompt-only — no new dependency,
+  no runtime engine.
 - **`agentbundle list-installed` — see what you actually have installed (CLI 0.10.0).**
   A new read-only command lists every installed `(pack, adapter)` row across the
   user and repo scope with its version and an `up-to-date` / `upgrade-available`

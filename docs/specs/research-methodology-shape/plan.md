@@ -1,7 +1,7 @@
 # Plan: research-methodology-shape
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -139,9 +139,11 @@ link to the template — is delivered in T2**, the skill-edit task.)
   `requires`/import/version pin) (D5 AC1).
 - A diff/grep shows **no new executable** added to the research pack for this
   shape (D1 AC3).
-- A diff confirms the `research` skill's Modes / Cue-precedence blocks and the
-  closed cue tuples in `test_research_retrievers_conformance.py` are **unchanged**
-  — the shape adds a `<type>`, not a depth mode (D3 negative-check AC).
+- A **section-scoped** diff confirms the `## Modes` table + `### Cue precedence`
+  block in `research/SKILL.md` are byte-unchanged (the file itself changes — this
+  check is scoped to those two sections, not the whole file), and the closed cue
+  tuples in `test_research_retrievers_conformance.py` are **unchanged** — the shape
+  adds a `<type>`, not a depth mode (D3 negative-check AC).
 
 **Approach:**
 - Add the vocabulary row and the trigger prose to `research/SKILL.md`.
@@ -163,6 +165,10 @@ byte-unchanged.
   comment — the two surfaces must not drift (D6 AC1).
 - `grep` confirms `research-project-synthesize/SKILL.md` has a `methodology`
   branch that writes `methodology.md` (bare-named in the folder) (D6 AC2).
+- `grep -l methodology` across all **three** lockstep surfaces returns all three:
+  `research-project-start`'s `shape:` frontmatter enum, its `overview.md` schema
+  comment, and `research-project-synthesize`'s shape→file branch — the anti-drift
+  check (D6 AC1 + AC2 together).
 - Diff review confirms no existing artifact is renamed and no consumer changed —
   migration: none (D6 AC3).
 
@@ -189,10 +195,10 @@ additive-only.
 - `grep` in `research/SKILL.md` and `frame-domain/SKILL.md` confirms both state
   that the methodology shape **does not fire on `frame-domain`'s wrapped
   `research` applied-mode call** — the wrapped grounding pass stays an `applied`
-  survey (D4 wrapped-call AC). `frame-domain` wraps `research` applied mode at
-  `packs/product-engineering/.apm/skills/frame-domain/SKILL.md:51-62`, so the
-  reciprocal pointer alone is insufficient — the no-fire-on-wrapped-call rule is
-  explicit.
+  survey (D4 wrapped-call AC). `frame-domain` wraps `research` applied mode in its
+  `## Wrapping research applied mode — the real-world-activity half` section (cited
+  by heading, not line number, so the reference survives edits), so the reciprocal
+  pointer alone is insufficient — the no-fire-on-wrapped-call rule is explicit.
 
 **Approach:**
 - Add the "do NOT use" pointers and the boundary explanation (source+direction +

@@ -1,6 +1,6 @@
 # Spec: research-methodology-shape
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0057, RFC-0039, ADR-0029
@@ -106,7 +106,7 @@ the agent produces by following the skill.
 
 ## Acceptance Criteria
 
-<!-- All open at authoring time; the implementing PR checks them. -->
+<!-- All checked: the implementing PR (this one) satisfies every criterion. -->
 
 **Verification mode per criterion:** every AC below (D1–D6, Open Question 1,
 Web-tools nudge, Ship mechanics) is **goal-based** — checked by the `grep` /
@@ -116,61 +116,63 @@ is **post-ship validation, not an AC** (see Testing Strategy).
 
 ### D1 — the episodic `methodology` shape
 
-- [ ] `packs/research/.apm/skills/research/SKILL.md` "Type vocabulary" table
+- [x] `packs/research/.apm/skills/research/SKILL.md` "Type vocabulary" table
   gains a `process / methodology / lifecycle` row mapping to
   `<topic-slug>-methodology.md`.
-- [ ] The `research` skill body documents the shape's trigger phrasing — *"the
+- [x] The `research` skill body documents the shape's trigger phrasing — *"the
   best way to do / run / build / train X"*, *"the process / lifecycle / playbook
   for X"*, *"how do you go about X end to end"*.
-- [ ] The filename is produced by the agent following the skill — no script, no
+- [x] The filename is produced by the agent following the skill — no script, no
   code added (Charter Principle 3): a `grep` shows no new executable added to the
   research pack for this shape.
 
 ### D2 — the six-section artifact template
 
-- [ ] A new reference
+- [x] A new reference
   `packs/research/.apm/skills/research/references/methodology-shape-template.md`
   exists, encoding the six sections, each grounded 1:1 in its discipline: §1
   Scope frame (SIPOC) · §2 Stage spine (process discovery + hierarchical task
   decomposition) · §3 Contingency branches (situational method engineering) · §4
   Maturity ladder (Dreyfus) · §5 Failure modes (cognitive task analysis) · §6
   Evidence & confidence (GRADE, inherited unchanged).
-- [ ] The template is authored heading-per-section (`H1`) and heading-per-stage
+- [x] The template is authored heading-per-section (`H1`) and heading-per-stage
   (`H2`), with sub-steps as bullet lists and **no `H3`**.
-- [ ] §3 (contingency) and §4 (maturity) are marked **mandatory** with worked
+- [x] §3 (contingency) and §4 (maturity) are marked **mandatory** with worked
   exemplars; the template states a methodology artifact missing them is a survey
   with headings and is flagged incomplete.
-- [ ] The template carries at least one **worked exemplar** of the full
+- [x] The template carries at least one **worked exemplar** of the full
   six-section artifact.
-- [ ] The template is named distinctly from the existing
+- [x] The template is named distinctly from the existing
   `references/methodologies.md` (which catalogues the pack's *research-method*
   disciplines and is **not** edited), and the `research` skill body points at the
   new template.
 
 ### D3 — defaults to `applied` depth
 
-- [ ] The methodology shape defaults to **`applied`** depth, and the skill body
+- [x] The methodology shape defaults to **`applied`** depth, and the skill body
   states scholarly domains override to `standard`/`deep` via the ordinary depth
   cues.
-- [ ] The shape **does not touch the depth-cue vocabulary or the mode
-  machinery** — a diff confirms the `research` skill's Modes / Cue-precedence
-  blocks and the closed cue tuples in
-  `test_research_retrievers_conformance.py` are unchanged (RFC-0039/ADR-0029
+- [x] The shape **does not touch the depth-cue vocabulary or the mode
+  machinery**. Because T2 edits `research/SKILL.md` (the vocabulary row, trigger
+  prose, template link), the check is **section-scoped, not whole-file**: the
+  `## Modes` table + `### Cue precedence` block in `research/SKILL.md` are
+  byte-unchanged, and the closed cue tuples in
+  `test_research_retrievers_conformance.py` are untouched (RFC-0039/ADR-0029
   two-axis invariant).
 
 ### D4 — fenced against the two neighbours
 
-- [ ] The methodology shape's trigger prose carries explicit **"do NOT use"**
+- [x] The methodology shape's trigger prose carries explicit **"do NOT use"**
   pointers to `frame-domain` (product/MVP grounding) and `map-internal-process`
   (an org's own operations).
-- [ ] Reciprocal disambiguation lines are added to the `frame-domain` and
+- [x] Reciprocal disambiguation lines are added to the `frame-domain` and
   `map-internal-process` skills pointing back to the methodology shape.
-- [ ] The boundary is documented as resting on **source + direction**
+- [x] The boundary is documented as resting on **source + direction**
   (world best-practice, outside-in, any domain vs *your own* operations,
   inside-out) plus the three non-shared disciplines (contingency §3, maturity §4,
   failure-modes §5); the honest SIPOC + process-discovery overlap with
   `map-internal-process` is named, not hidden.
-- [ ] The **`frame-domain`-wraps-`research` interaction** is fenced: because
+- [x] The **`frame-domain`-wraps-`research` interaction** is fenced: because
   `frame-domain` internally invokes `research` in `applied` mode to ground its
   real-world-activity half, the methodology shape **does not fire on that wrapped
   call** — the wrapped invocation stays an `applied` survey. The methodology
@@ -180,29 +182,39 @@ is **post-ship validation, not an AC** (see Testing Strategy).
 
 ### D5 — structure-only PowerPoint handoff
 
-- [ ] The methodology skill body names `markdown-to-pptx` as the natural slide
+- [x] The methodology skill body names `markdown-to-pptx` as the natural slide
   consumer **by reference only** — no import, no `requires`, no version pin;
   `research` gains no dependency on `converters`.
-- [ ] The artifact structure keeps sections at `H1` and stages at `H2` with
+- [x] The artifact structure keeps sections at `H1` and stages at `H2` with
   finer detail as bullets, so the handoff is a one-prompt operation.
 
 ### D6 — both surfaces
 
-- [ ] `packs/research/.apm/skills/research-project-start/SKILL.md` gains
-  `methodology` in **both** the `shape:` frontmatter vocabulary and the
-  `overview.md` schema comment that documents it (today both read
-  `survey | comparison | decision | structural | adjudication`) — the two must
-  not drift.
-- [ ] `packs/research/.apm/skills/research-project-synthesize/SKILL.md` gains a
+- [x] `packs/research/.apm/skills/research-project-start/SKILL.md` gains
+  `methodology` in its `shape:` vocabulary line (today
+  `survey | comparison | decision | structural | adjudication`). This single line
+  sits inside the `overview.md` schema block and is *both* the frontmatter
+  vocabulary and the documented schema — one line, so there is nothing to drift
+  *within* this file; the cross-file lockstep with synthesize is checked below.
+- [x] `packs/research/.apm/skills/research-project-synthesize/SKILL.md` gains a
   branch: a `methodology` shape writes `methodology.md` (bare-named inside the
   project folder, per the existing convention) alongside the `<topic-slug>-brief.md`
-  governance handoff.
-- [ ] The change is purely additive: no existing artifact is renamed, no existing
+  governance handoff. Here the shape-name **equals** the type-stem (unlike
+  `adjudication → hypotheses.md`, the one name≠file exception), so `methodology`
+  shape → `methodology.md` follows the ordinary `<shape-name>.md` rule, not the
+  exception.
+- [x] The two surfaces that must carry `methodology` in lockstep are checked
+  together, so a future shape addition cannot update one and silently miss the
+  other: (a) `research-project-start`'s `shape:` line — a single line inside the
+  `overview.md` schema block that serves as both the frontmatter vocabulary and
+  the documented schema (there is one such line, not two separate ones); and (b)
+  `research-project-synthesize`'s shape→file branch.
+- [x] The change is purely additive: no existing artifact is renamed, no existing
   consumer changes (**migration: none**).
 
 ### Open Question 1 — maturity ladder for one-off deliverables
 
-- [ ] The template resolves RFC-0057 Open Question 1 with **reframe, never omit
+- [x] The template resolves RFC-0057 Open Question 1 with **reframe, never omit
   silently**: when skill-progression does not apply (a one-off deliverable), §4
   is authored as an adoption/capability-maturity axis (crawl → walk → run of the
   deliverable) so the "journey" section/slide always exists.
@@ -215,7 +227,7 @@ is **post-ship validation, not an AC** (see Testing Strategy).
 > with a one-line reason. It is distinct from the methodology shape (different
 > subagents, `README.md` vs skill bodies).
 
-- [ ] The research pack's `README.md` carries a one-line note that names
+- [x] The research pack's `README.md` carries a one-line note that names
   **`WebSearch`** and **`WebFetch`**, the two retrieval subagents
   (`evidence-retriever`, `source-extractor`), and **Claude Code** as the scope,
   telling adopters to grant those two tools before the subagents can do live web
@@ -227,11 +239,11 @@ is **post-ship validation, not an AC** (see Testing Strategy).
 
 ### Ship mechanics
 
-- [ ] `packs/research` version is bumped **minor** (`0.5.1` → `0.6.0`) in **both**
+- [x] `packs/research` version is bumped **minor** (`0.5.1` → `0.6.0`) in **both**
   `pack.toml` and `.claude-plugin/plugin.json`.
-- [ ] `docs/product/changelog.md` `[Unreleased]` carries an entry describing the
+- [x] `docs/product/changelog.md` `[Unreleased]` carries an entry describing the
   new methodology shape (user-visible skill capability).
-- [ ] The version bump's drift into top-level `marketplace.json` is reconciled,
+- [x] The version bump's drift into top-level `marketplace.json` is reconciled,
   and the pack gate is green — `lint-packs` + `validate` + `build` + `pytest`
   pass and `build-check` is clean.
 

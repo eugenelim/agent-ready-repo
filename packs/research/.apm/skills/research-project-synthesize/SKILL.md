@@ -35,8 +35,12 @@ The project's own verdict, named by the project's **shape** (from
 `overview.md`), using the `/research` type vocabulary (§ Typed, topic-named
 artifacts): a `survey` shape writes `survey.md`, a `comparison`/`decision` shape
 writes `comparison-matrix.md`, an `adjudication` shape writes `hypotheses.md`,
-a `structural` shape writes `blueprint.md`. **Bare-named inside the folder** (the
-folder namespaces the topic). Every material claim carries GRADE confidence and
+a `structural` shape writes `blueprint.md`, a `methodology` shape writes
+`methodology.md` (authored from
+`../research/references/methodology-shape-template.md` — here the shape-name
+equals the type-stem, so `methodology → methodology.md` follows the ordinary
+`<shape-name>.md` rule, not the `adjudication → hypotheses.md` exception).
+**Bare-named inside the folder** (the folder namespaces the topic). Every material claim carries GRADE confidence and
 is backed by **≥3-source triangulation** per the `/research` confidence schema;
 the optional `reliability`/`credibility` provenance axes inform the rating.
 
