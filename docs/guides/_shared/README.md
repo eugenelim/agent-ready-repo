@@ -18,6 +18,7 @@ Guides about the catalogue itself — installing it, upgrading it, seeing what e
 
 ## Explanation
 
+- [The three loops as a system](explanation/the-three-loops.md) — how discovery, build, and release compose into a complete operating model, and why each loop is a peer supervisor.
 - [Install routes](explanation/install-routes.md) — the four ways pack content reaches a repo, and where each lands.
 - [The pack catalogue](explanation/pack-catalogue.md) — what a pack is, how the catalogue is composed, and how you build your own.
 - [The file-safety contract](explanation/file-safety-contract.md) — why your edits are never silently overwritten.
