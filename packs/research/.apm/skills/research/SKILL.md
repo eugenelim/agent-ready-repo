@@ -169,11 +169,13 @@ shape of the answer:
 | ranked candidates | `<topic-slug>-shortlist.md` |
 | spatial / structural | `<topic-slug>-blueprint.md` |
 | hypothesis adjudication | `<topic-slug>-hypotheses.md` |
+| process / methodology / lifecycle | `<topic-slug>-methodology.md` |
 
 `survey` is the default standard/applied/deep stem; the other stems fire when
 the answer takes that shape — a `fact-check` verdict, a decision
 `comparison-matrix`, a ranked `shortlist`, a structural `blueprint`, a
-`hypotheses` adjudication. The scoping and rationale skills
+`hypotheses` adjudication, a process `methodology` (see
+[§ The methodology shape](#the-methodology-shape) below). The scoping and rationale skills
 (`/identify-perspectives`, `/build-outline`, `/source-map`,
 `/decision-archaeology`) take the same `<topic-slug>-` prefix on their own
 type-descriptive stems (`perspectives`, `outline`, `sources`, `archaeology`).
@@ -186,6 +188,73 @@ it.
 
 The filename is produced by the agent following this rule, never by a script
 (Charter Principle 3).
+
+## The methodology shape
+
+A **process-shaped** question wants a *method*, not a reading list. When the ask
+is *"the best way to do / run / build / train X, end to end, for my situation,"*
+the answer is a **staged, contingency-adapted, maturity-aware, evidence-graded
+description of how the activity is done** — the `methodology` shape — written to
+`<topic-slug>-methodology.md`.
+
+**Trigger phrasing.** Fire the methodology shape when the prompt asks for a
+process or playbook, not a claim survey:
+
+- *"the best way to do / run / build / train X"*
+- *"the process / lifecycle / playbook for X"*
+- *"how do you go about X end to end"*
+
+**Depth.** The methodology shape defaults to **`applied`** depth — it is a
+practitioner "how is this really done" question, so the grey-literature overlay
+applies. Scholarly domains override to `standard` / `deep` via the ordinary depth
+cues; the shape selects an *output topology* and does **not** touch the depth
+axis, the Modes table, or Cue precedence.
+
+**Structure — six sections, authored from the template.** Follow
+[`references/methodology-shape-template.md`](references/methodology-shape-template.md),
+which encodes the six sections, each grounded 1:1 in a discipline: §1 Scope frame
+(SIPOC) · §2 Stage spine (process discovery + hierarchical task decomposition) ·
+§3 Contingency branches (situational method engineering) · §4 Maturity ladder
+(Dreyfus) · §5 Failure modes (cognitive task analysis) · §6 Evidence & confidence
+(GRADE). **§3 and §4 are mandatory** — they plus the direction axis are the entire
+differentiator from an `applied` survey; an artifact missing them is a survey with
+headings and is incomplete.
+
+**Slide-ready by reference to `markdown-to-pptx`.** Author sections at `H1`,
+stages at `H2`, and all finer detail as bullets — **never an `H3`** — so the
+artifact drops into `markdown-to-pptx` (one prompt, no reshaping). That converter
+is named as the natural slide consumer **by reference only**: no import, no
+`requires`, no version pin; `research` gains no dependency on `converters`, and a
+repo without the converters pack still gets a good markdown artifact.
+
+**Do NOT use the methodology shape for two neighbouring "process" jobs:**
+
+- **`frame-domain`** (in `product-engineering`) — grounding a *product* in its
+  real-world activity and bounding its **MVP** before design. That is
+  product/MVP grounding, not a world-best-practice method; use `frame-domain`.
+- **`map-internal-process`** (in `experience`) — documenting **your own
+  organisation's** operations as an as-is/to-be swimlane. That is inside-out
+  operations, not outside-in best practice; use `map-internal-process`.
+
+**Where the boundary rests — source + direction.** The methodology shape
+describes **world best-practice, outside-in, for any domain** — how the activity
+is done *well, anywhere*. `map-internal-process` describes **your own operations,
+inside-out** — how *this org* does it today and wants to. The **honest overlap is
+real and named, not hidden**: both use a SIPOC scope frame (§1) and a
+process-discovery spine (§2). The boundary therefore does *not* rest on those
+shared bones — it rests on **source + direction** (best-practice/outside-in vs
+own-ops/inside-out) plus the **three non-shared disciplines** the methodology
+shape adds and an internal-process map does not: contingency branches (§3),
+maturity ladder (§4), and failure modes (§5).
+
+**The `frame-domain`-wraps-`research` fence.** `frame-domain` internally invokes
+`research` in `applied` mode to ground its real-world-activity half (its
+*Wrapping research applied mode* section). The **methodology shape does not fire
+on that wrapped call** — a `research` invocation issued *by* `frame-domain` stays
+an ordinary `applied` survey, which `frame-domain` then shapes into its Domain
+Framing artifact. Reshaping that grounding pass into a methodology artifact would
+silently break `frame-domain`; the shape fires only on a *direct*
+process-shaped user request, never on `frame-domain`'s wrapped grounding call.
 
 ## Pipeline
 
