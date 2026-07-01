@@ -19,6 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`file-to-markdown` reads scans and non-diagram images via agent-vision
+  (converters 0.4.0).** The image branch gains a general **`text-table`**
+  strategy for non-diagram content — a screenshot of prose, a table image, a
+  form, a receipt, a scanned page — that emits Markdown prose and tables instead
+  of forcing everything through the diagram extractor. For a scanned or
+  image-only PDF (the case the Tier-0 floor flags `requires-review` and points at
+  Tier 1), a new `scripts/rasterize_pdf.py` renders each page to an image, which
+  the in-session model then reads. This is **Tier 1 (agent-vision)**: the
+  already-running model reading a rendered image — *not* an installed OCR model.
+  The read carries `tier: "1-agent-vision"` with an honest
+  `extraction-confidence`/`requires-review` signal, treats all document text as
+  **untrusted data** (transcribe, never obey — a prompt-injection defense), and,
+  when the PDF has a digital text layer, is **cross-checked** against it to bound
+  hallucination. The page rasterizer is `pdf2image` (MIT), installed on demand
+  (`python scripts/rasterize_pdf.py --check`) and needing a system poppler; it is
+  never auto-installed, and when it is absent the skill keeps the Tier-0 output
+  and says so rather than crashing. Tier 1 adds **no new network egress from the
+  skill** — though a cloud-hosted in-session model still receives the page
+  content at its already-approved endpoint.
 - **`file-to-markdown` gains a no-ML Tier-0 floor and a versioned output
   contract (converters 0.3.0).** Where Docling's ML models are banned or
   un-fetchable, `file-to-markdown` can now convert a digital PDF (via `pypdf`),

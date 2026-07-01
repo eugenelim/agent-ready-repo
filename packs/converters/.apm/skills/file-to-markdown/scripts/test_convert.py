@@ -609,3 +609,46 @@ def test_e2e_check_probe():
     )
     assert "pypdf:" in r.stdout
     assert r.returncode in (0, 2)
+
+
+# --- AC4/AC8: no new egress, no installed OCR/ML model, no AGPL pymupdf -----
+
+import re as _re
+
+_SCRIPTS = Path(__file__).resolve().parent
+# The Tier-1 path must import no network client and no OCR/ML model. convert.py
+# is excluded from the ML check only because Docling (Tier 2) legitimately lives
+# there; it is still covered by the no-network and no-pymupdf checks.
+_TIER1_FILES = ["rasterize_pdf.py", "reconcile.py", "text_crosscheck.py"]
+_ALL_SCRIPTS = ["convert.py", "reconcile.py", "rasterize_pdf.py",
+                "text_crosscheck.py", "contract.py", "safe_io.py", "split_image.py"]
+
+_NET_IMPORT = _re.compile(
+    r"^\s*(?:import|from)\s+(socket|urllib|http|requests|httpx|aiohttp|ssl|ftplib|"
+    r"smtplib|telnetlib)\b", _re.MULTILINE)
+_ML_IMPORT = _re.compile(
+    r"^\s*(?:import|from)\s+(docling|fitz|pymupdf|pytesseract|tesserocr|easyocr|"
+    r"rapidocr\w*|paddleocr)\b", _re.MULTILINE)
+_PYMUPDF = _re.compile(r"\b(pymupdf|fitz)\b")
+
+
+def test_no_network_import_anywhere():
+    for name in _ALL_SCRIPTS:
+        src = (_SCRIPTS / name).read_text("utf-8")
+        assert not _NET_IMPORT.search(src), f"{name} imports a network client"
+
+
+def test_tier1_path_imports_no_ocr_ml_model():
+    for name in _TIER1_FILES:
+        src = (_SCRIPTS / name).read_text("utf-8")
+        assert not _ML_IMPORT.search(src), f"{name} imports an OCR/ML model"
+
+
+def test_pymupdf_appears_nowhere_as_code():
+    """AGPL pymupdf/fitz is rejected — it must not appear as an import in any
+    script (prose mentions in docstrings that name the rejection are fine, so we
+    check import statements, not the word)."""
+    ml = _re.compile(r"^\s*(?:import|from)\s+(pymupdf|fitz)\b", _re.MULTILINE)
+    for name in _ALL_SCRIPTS:
+        src = (_SCRIPTS / name).read_text("utf-8")
+        assert not ml.search(src), f"{name} imports pymupdf/fitz (AGPL — rejected)"
