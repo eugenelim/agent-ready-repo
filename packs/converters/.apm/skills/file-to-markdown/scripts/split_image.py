@@ -81,7 +81,14 @@ def _validate_image(path: Path) -> Image.Image:
         sys.exit(f"ERROR: File not found: {path}")
     if path.suffix.lower() not in SUPPORTED_FORMATS:
         sys.exit(f"ERROR: Unsupported format: {path.suffix}")
-    return Image.open(path)
+    img = Image.open(path)
+    n_frames = getattr(img, "n_frames", 1)
+    if n_frames > 1:
+        print(
+            f"WARNING: {path.name} has {n_frames} frames; only the first is processed",
+            file=sys.stderr,
+        )
+    return img
 
 
 def _position_label(x: int, y: int, w: int, h: int, img_w: int, img_h: int) -> str:
