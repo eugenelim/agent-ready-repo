@@ -1,0 +1,17 @@
+[
+  {"query": "Scaffold the product vision for a team-scheduling tool", "should_trigger": true},
+  {"query": "Run a discovery for the new expense reporting product", "should_trigger": true},
+  {"query": "Diverge on the product shape then converge to a brief", "should_trigger": true},
+  {"query": "Take this raw idea for a developer onboarding tool to a decision brief", "should_trigger": true},
+  {"query": "Resume the task-management discovery from where we left off", "should_trigger": true},
+  {"query": "We have a rough idea — run it through the full discovery loop and give us a brief to hand off", "should_trigger": true},
+  {"query": "Before we build, scaffold a discovery: what product shapes should we explore for the notifications system?", "should_trigger": true},
+
+  {"query": "Generate candidate product shapes for the scheduling feature", "should_trigger": false},
+  {"query": "Write a spec for the notifications system", "should_trigger": false},
+  {"query": "Break this intent down into deliverable specs", "should_trigger": false},
+  {"query": "What's the riskiest assumption in this intent?", "should_trigger": false},
+  {"query": "Frame the domain before we design", "should_trigger": false},
+  {"query": "Plan the validation for these assumptions", "should_trigger": false},
+  {"query": "Design the architecture for the scheduling service", "should_trigger": false}
+]
