@@ -1,11 +1,11 @@
 """Loader API and stdlib ``.env`` parser for credentialed primitives.
 
 This is ``credbroker``'s stdlib-only resolution core — a near-verbatim
-lift of the former build-projected ``credentials_shim`` (RFC-0023). It is
+lift of the former build-projected ``credentials_shim``. It is
 imported in-process by credentialed consumers via the package's public
 surface (``from credbroker import …``); the public names are re-exported
 from ``credbroker/__init__.py``. The lift preserves the resolver's
-semantics exactly (RFC-0006 tiers, Win32 error matrix, atomic-write
+semantics exactly (three tiers, Win32 error matrix, atomic-write
 discipline); what changed is *delivery* (a pip library, not a byte-copied
 sibling), not behaviour.
 
@@ -893,7 +893,7 @@ def _relative_schema_path(
     )
 
 
-# ── Public write API (RFC-0023 T8) ─────────────────────────────────────
+# ── Public write API (T8) ──────────────────────────────────────────────
 #
 # credential-setup (the interactive write skill) consumed the shim's private
 # write surface; these public functions replace it. All are non-interactive —
