@@ -16,6 +16,14 @@ fixed token set, no pixel comps). The skills point to the recognized
 standards — WCAG, the W3C Design Tokens interchange shape, Apple HIG, Material
 3, APQC, BPMN — and ship the method to *derive* your design, never the values.
 
+**Correctness is the floor, not the ceiling.** Accessibility compliance,
+information hierarchy, and usability heuristics (WCAG, Nielsen, Laws of UX)
+are non-negotiable — but meeting them alone produces correct-but-tasteless
+work. The `aesthetic-direction` skill is the gate between the two: it grounds
+goals in persona, precedent, *and* visual voice — surface treatment, type scale
+ambition, color philosophy, and elevation philosophy. A direction doc that only
+names correctness goals has not cleared the gate.
+
 ## What's inside
 
 **The connective thread** — map the flow from outcome to realization:
