@@ -1,21 +1,55 @@
-/* ── Hero landing page ─────────────────────────────────────────────────── */
+/* ── Hero section ───────────────────────────────────────────────────────── */
+
+.hero-section {
+  padding: 2rem 0 0.5rem;
+}
+
+.hero-section h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.75rem;
+}
+
+.hero-section p {
+  font-size: 1.075rem;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0;
+  line-height: 1.6;
+}
+
+/* ── Hero CTA buttons ───────────────────────────────────────────────────── */
 
 .hero-actions {
-  margin: 1.5rem 0 2rem;
+  margin: 1.75rem 0 2.5rem;
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-/* Large button variant */
 .md-button--large {
   padding: 0.75rem 1.75rem;
   font-size: 1rem;
 }
 
-/* Landing page: wider content area, no sidebar clutter */
+/* Explicit focus-visible for custom-styled interactive elements */
+.hero-actions .md-button:focus-visible {
+  outline: 3px solid var(--md-accent-fg-color);
+  outline-offset: 3px;
+}
+
+/* ── Page content width ─────────────────────────────────────────────────── */
+
 [data-md-color-scheme] .md-content__inner {
   max-width: 900px;
+}
+
+/* ── Section rhythm ─────────────────────────────────────────────────────── */
+
+.md-typeset h2 {
+  margin-top: 3rem;
+  letter-spacing: -0.015em;
 }
 
 /* ── Pack catalogue cards ──────────────────────────────────────────────── */
@@ -66,29 +100,25 @@
   font-weight: 600;
 }
 
-/* ── Scope badges inline ───────────────────────────────────────────────── */
-
-.scope-badge {
-  display: inline-block;
-  padding: 0.1em 0.5em;
-  border-radius: 4px;
-  font-size: 0.75em;
-  font-weight: 600;
-  font-family: var(--md-code-font-family);
-  background: var(--md-accent-fg-color--transparent);
-  color: var(--md-accent-fg-color);
-  vertical-align: middle;
-  margin-left: 0.25em;
-}
-
-/* ── Home page section headings ────────────────────────────────────────── */
-
-.md-typeset h2 {
-  margin-top: 2.5rem;
-}
-
 /* ── Announcement bar (optional) ────────────────────────────────────────── */
 
 .md-banner {
   font-size: 0.875rem;
+}
+
+/* ── Reduce-motion: honour system preference ────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .grid.cards > ul > li,
+  .grid.cards > ol > li {
+    transition: none;
+  }
+  /* Neutralise position shift on hover — use shadow-only affordance */
+  .grid.cards > ul > li:hover,
+  .grid.cards > ol > li:hover,
+  [data-md-color-scheme="slate"] .grid.cards > ul > li:hover,
+  [data-md-color-scheme="slate"] .grid.cards > ol > li:hover {
+    transform: none;
+    box-shadow: 0 0 0 2px var(--md-primary-fg-color);
+  }
 }
