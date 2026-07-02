@@ -220,6 +220,25 @@ adopters receive on first install via brownfield rules):
    step 1 always trips it. Either commit the seed edits first, or run
    `FORCE=1 make build-self` — `FORCE=1` overrides the dirty-tree check only,
    and is the right call when the tree is dirty *because* you just edited seeds.
+   Direct equivalent (when Make is unavailable):
+   ```bash
+   python3 tools/build_gate_chain.py build-self --force --packs-dir packs
+   ```
+   **Critical ordering for mixed-edit sessions (seed + non-seed pack source):**
+   When a session edits both seeds *and* non-seed pack source files (e.g.,
+   `.apm/**` files, `pack.toml`, user-libs) in the same working tree, run
+   `build-self --force` AFTER all edits are applied — not between them. Build-self
+   is a full pack-build pipeline that can regenerate files in `packs/` from
+   cached or templated sources, silently reverting edits made before it ran. The
+   safe pattern: apply all edits → `FORCE=1 make build-self` → verify with
+   `git status` that the edits survived → `make build-check` → commit.
+   **Vendored copies and canonical sources (credbroker example):**
+   `packs/credential-brokers/.apm/user-libs/credbroker/` is byte-synced from
+   `packages/credbroker/credbroker/` (the canonical pip package source) by
+   build-self; `build-check` hard-fails on any divergence. To edit these files,
+   always edit `packages/credbroker/credbroker/*.py` (the canonical source) and
+   let `build-self --force` propagate to the vendored copy — never edit the
+   `.apm/user-libs/` copy directly.
 3. Run `make build-check` to confirm zero drift before committing.
 
 **How to discover the seed for a path you're unsure about:**
