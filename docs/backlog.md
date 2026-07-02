@@ -1311,3 +1311,71 @@ standard reviewer roster.
 `work-loop` skill is updated with a user-facing-surface risk trigger. Needs
 discussion on whether the experience loop is a mandatory gate or a recommended
 gate (suggested: mandatory for net-new pages, recommended for content changes).
+### content-strategy-and-marketing-copy-lens
+
+**Source:** Session 2026-07-01 — building the GitHub Pages site exposed a gap:
+no skill in the catalogue covers marketing copy writing, conversion architecture,
+or digital evangelism voice. The current hero headline and above-fold content
+were written without any disciplined content-strategy method.
+
+**Gap analysis — covered vs. not:**
+
+*Covered in existing packs:*
+- UI microcopy (error/empty/label states): `product-engineering` → `voice-and-microcopy`
+- Brand voice character axes (formality/humor/respect/enthusiasm): `voice-and-microcopy`
+- Visual voice: `experience` → `aesthetic-direction`
+- Product vision/positioning as an intent: `product-engineering` → `frame-intent`
+
+*Not covered anywhere:*
+1. **Marketing copy / hero headline writing** — no skill for writing or critiquing
+   positioning headlines, taglines, or above-fold marketing copy. The "tweet test"
+   (can the headline stand alone as a conviction statement?) has no home.
+2. **Copy voice critique** — `design-critique` covers visual/UX heuristics; nothing
+   covers whether copy pulls, motivates, or communicates clearly to a skeptical
+   evaluator scanning in 5 seconds.
+3. **Conversion architecture** — above-fold order (social proof, feature hierarchy,
+   urgency, CTA specificity); no skill for thinking about the reader's evaluation
+   sequence or what belongs above vs. below the fold.
+4. **Digital evangelism / devrel voice** — the tone that builds community vs. just
+   documents: changelog entries that create excitement, README copy that spreads,
+   announcement copy. Different from `voice-and-microcopy`'s UI scope.
+5. **SEO semantics** — keyword intent targeting, meta descriptions, page titles.
+   "AI Operating Model" is our invented category; no skill interrogates whether
+   it's what the target audience actually searches for.
+
+*Concrete example — current site's above-fold:*
+- Headline "The Complete AI Operating Model for Software Teams" — "Complete"
+  is an unverified claim; "AI Operating Model" is invented category language,
+  not search-native; "for Software Teams" excludes individual practitioners.
+- Subtitle describes features (loops, packs, agents) not outcomes for the reader.
+- Zero social proof above the fold (no install count, no logos, no quotes).
+- CTAs "Get started" / "Browse packs" — generic, no urgency, no specificity.
+
+**What can be jerry-rigged from existing pack coverage:**
+- `aesthetic-direction` extended to produce a `copy-direction` doc as its twin:
+  same interrogation structure (vibe → named goals → grounding → arbitration) but
+  for copy voice: manifesto-grade vs. instructional vs. warm; what would the
+  corporate-bad version sound like; what does the headline feel like in the first
+  3 seconds? This is within the spirit of the experience pack and could be a
+  ride-along to an RFC.
+- `design-critique` could add a "marketing clarity" criterion: does the headline
+  pass the tweet test? Does the above-fold answer the three evaluator questions
+  in 5 seconds (what is this / who is it for / should I care)?
+
+**Proposed direction:**
+Two separate work items:
+1. **`copy-direction` skill** (experience pack extension): the copy twin of
+   `aesthetic-direction` — a skill that runs the same interrogation for copy
+   voice and produces a copy-direction doc grounded in persona, copy precedents
+   (Stripe's "The new standard in online payments"; Linear's "The issue tracker
+   you'll enjoy using"), and recognized persuasion standards. Ride-along to
+   `aesthetic-direction` in the same session. Route as an RFC (`work-loop` full
+   mode — new skill, public interface).
+2. **Conversion + SEO** (open, not in experience pack scope): belongs in a future
+   `growth` or `content-strategy` pack, or as an opt-in rider on
+   `product-engineering`. Blocked on charter decision — is growth/marketing within
+   the company OS scope?
+
+**Unblocks when:** RFC for `copy-direction` skill is opened; charter decision on
+growth scope resolves item 2.
+
