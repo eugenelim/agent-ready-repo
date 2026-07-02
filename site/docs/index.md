@@ -7,7 +7,7 @@ hide:
 <div class="hero-section" markdown>
 # Discovery. Build. Release.<br>The full SDLC, agent-driven and supervised.
 
-An unattended loop makes unattended mistakes. These fourteen packs install hard mechanical gates, cold-read specialist reviewers, and mandatory human checkpoints across the full SDLC — so the agent cannot self-certify its own work.
+An unattended loop makes unattended mistakes. These supervised loops and curated packs install hard mechanical gates, cold-read specialist reviewers, and mandatory human checkpoints across the full SDLC — so the agent cannot self-certify its own work.
 
 <div class="hero-actions" markdown>
 [Install the core loop :octicons-arrow-right-24:](getting-started/index.md){ .md-button .md-button--primary .md-button--large }
@@ -55,12 +55,22 @@ Software delivery needs more than one loop. Three peer supervisors span the full
 
 </div>
 
+```mermaid
+flowchart LR
+    classDef loop fill:#5e6ad2,stroke:#4c5bbc,color:#fff,rx:6
+    PE["`**product-engineering**
+    discovery-lead
+    Raw idea → Brief`"]:::loop
+    CO["`**core**
+    work-loop
+    Spec → Shipped`"]:::loop
+    RE["`**release-engineering**
+    release-lead
+    Built → Production`"]:::loop
+    PE -->|"G3 — Decision Brief"| CO -->|"G4 — Shipped build"| RE
 ```
-product-engineering           core                    release-engineering
-───────────────────           ────                    ───────────────────
-discovery-lead                work-loop               release-lead
-Raw idea → Brief       ─G3─▶  Spec → Shipped   ─G4─▶  Built → Production
-```
+
+> **Gates:** G3 is the human hand-off from discovery to build — a ratified brief, not a validated solution. G4 is the hand-off from build to release — a green CI build, not a prod deploy. G5 (not shown) is the final human prod-ship approval; it is never autonomous.
 
 ## Install in one line
 
@@ -94,7 +104,7 @@ One command lands the loop in your repo. Any agent that reads a skill file inher
 
 ## The catalogue
 
-Fourteen curated packs — each distilled from the best practices of its discipline through research and architecture decisions. `repo` packs install into the current repository; `user` packs install once for all repos.
+A curated catalogue of packs — each distilled from the best practices of its discipline through research and architecture decisions. `repo` packs install into the current repository; `user` packs install once for all repos.
 
 **Start with the loops:**
 
@@ -120,7 +130,7 @@ Fourteen curated packs — each distilled from the best practices of its discipl
 
 </div>
 
-**Add what your team needs:**
+**Install once, works across all your repos:** `user`-scope packs follow you everywhere.
 
 <div class="grid cards" markdown>
 
@@ -166,6 +176,18 @@ Fourteen curated packs — each distilled from the best practices of its discipl
 
     [:octicons-arrow-right-24: Figma](packs/figma.md)
 
+-   **Credential Brokers** `user`
+
+    Credential resolution. Environment variable → OS keyring → dotfile. Cleartext never reaches the model.
+
+    [:octicons-arrow-right-24: Credential Brokers](packs/credential-brokers.md)
+
+</div>
+
+**Install per project:** `repo`-scope packs live in the repo, enforced consistently for the whole team.
+
+<div class="grid cards" markdown>
+
 -   **Governance Extras** `repo`
 
     Decision trail. `new-rfc`, `new-adr`, `update-conventions`, RFC/ADR ceremony for long-lived repos.
@@ -183,12 +205,6 @@ Fourteen curated packs — each distilled from the best practices of its discipl
     Package scaffolding. `new-package`, example package template.
 
     [:octicons-arrow-right-24: Monorepo Extras](packs/monorepo-extras.md)
-
--   **Credential Brokers** `user`
-
-    Credential resolution. Environment variable → OS keyring → dotfile. Cleartext never reaches the model.
-
-    [:octicons-arrow-right-24: Credential Brokers](packs/credential-brokers.md)
 
 </div>
 

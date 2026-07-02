@@ -37,5 +37,16 @@
         "When a ## Confirmation section is present it is concrete (a named Mode/Signal/Owner) or explicitly Mode: none with a one-line reason — not aspirational, and not silently omitted where a reader would expect a conformance check"
       ]
     }
+    ,
+    {
+      "id": 4,
+      "prompt": "Record a short, simple architecture decision as an ADR — a small, obvious choice with one clear winner and no long-term drift risk (e.g. 'we agreed to use Python Black as our code formatter with its default settings; the whole team runs it identically and there's nothing to revisit unless Black ceases to be maintained').",
+      "expected_output": "Because the ADR is short enough that the Decision is visible on the first screen, the skill omits the `## Decision summary` block — it would be pure redundancy on a decision this compact. For a decision that won't age, it writes the explicit `Revisit if: stable — no foreseeable trigger` in Consequences rather than omitting the line entirely (omitting it would leave the reader uncertain whether the field was overlooked). The `## Confirmation` section, if present, is honest about the decision's lightweight checkability: a one-line `Mode: none` with a reason (a formatter choice that passes CI doesn't need a separate conformance audit) or the section is omitted for a genuinely non-checkable choice — not left aspirational.",
+      "assertions": [
+        "A ## Decision summary block is present when the ADR is long enough that the Decision is not visible on the first screen, and is omitted on a short ADR where it would be pure redundancy",
+        "A Revisit if: trigger is present in Consequences for a decision likely to age, with 'stable — no foreseeable trigger' as the valid explicit value when it will not",
+        "When a ## Confirmation section is present it is concrete (a named Mode/Signal/Owner) or explicitly Mode: none with a one-line reason — not aspirational, and not silently omitted where a reader would expect a conformance check"
+      ]
+    }
   ]
 }
