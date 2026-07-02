@@ -1257,3 +1257,49 @@ wire in. **Not built.** **Unblocks when:** an adopter needs an in-skill redactio
 hook rather than gating at their classification layer — at which point it is its
 own slice with its own security review (it changes the egress boundary
 `security-reviewer` gates).
+
+## `github-pages-site`
+
+### aesthetic-rubrics-research
+
+**Source:** Session 2026-07-01 — aesthetic direction pass on the GitHub Pages
+site surfaced rubrics borrowed from external precedent that are not yet encoded
+in the `aesthetic-direction` skill's grounding references.
+
+Used in this session (documented in memory `reference_aesthetic_direction_rubrics.md`):
+Nielsen information-scent, Hick's Law, Miller's Law / progressive disclosure,
+Hemingway iceberg rule, Stripe/Linear/Vercel/MDN precedents, WCAG 2.1 AA +
+specific SCs (1.4.1 color, 1.4.3 contrast, 2.4.7 focus, 2.3.3 reduced-motion).
+
+**Open:** Research and encode a complete, MECE aesthetic rubric set into the
+`aesthetic-direction` skill's reference files — covering information architecture,
+typographic standards, authority/brand signals, and the quality floor with cited
+WCAG SCs. The skill currently provides procedure but not the grounding frameworks;
+future passes shouldn't need to re-derive them from external precedent.
+
+**Unblocks when:** a research session (using `/research`) catalogues the canonical
+rubric set and the `aesthetic-direction` skill's `references/grounding.md` is
+updated in the same PR. Route through `work-loop` light mode.
+
+### experience-loop-trigger-for-site-changes
+
+**Source:** Session 2026-07-01 — question raised about when `experience` pack
+skills should trigger for frontend or product changes that affect user-facing
+surfaces including this docs site.
+
+**Open:** Define the trigger points for experience pack skills (`aesthetic-direction`,
+`design-critique`, `experience-reviewer`) in the context of:
+- Changes to this GitHub Pages site (`site/docs/`, `site/mkdocs.yml`, `tools/build-site.py`)
+- Changes to user-facing product docs (`docs/guides/`, `docs/product/`)
+- New pack additions or removals that change the catalogue content
+
+**Working hypothesis:** experience pack trigger belongs in `work-loop`'s risk
+triggers — specifically under "Structural or public-interface change" when that
+change crosses a user-facing surface. The check would be: *does this change what
+a reader sees on the site?* If yes → experience reviewer runs in addition to the
+standard reviewer roster.
+
+**Unblocks when:** an RFC or ADR establishes the trigger contract and the
+`work-loop` skill is updated with a user-facing-surface risk trigger. Needs
+discussion on whether the experience loop is a mandatory gate or a recommended
+gate (suggested: mandatory for net-new pages, recommended for content changes).
