@@ -67,19 +67,19 @@ must clear, regardless of direction:
 - **1.4.1 Use of Color** — information must not be conveyed by color alone;
   a goal around "color as the identity signal" must pair color with shape or
   label.
-- **1.4.3 Contrast Minimum** — text at 4.5:1 (normal), 3:1 (large ≥ 18 pt /
-  14 pt bold). A goal of "low-contrast, airy typography" is constrained by
-  this floor; name the tension explicitly.
+- **1.4.3 Contrast Minimum** — text must meet the WCAG-defined thresholds for
+  normal and large/bold text respectively. A goal of "low-contrast, airy
+  typography" is constrained by this floor; name the tension explicitly.
 - **1.4.11 Non-text Contrast** — interactive components and their focus
-  indicators at 3:1 against adjacent colors. A "borderless" aesthetic must
-  still clear this for inputs and buttons.
+  indicators must meet the Non-text Contrast threshold against adjacent
+  colors. A "borderless" aesthetic must still clear this for inputs and buttons.
 - **2.4.7 Focus Visible** — keyboard focus must be visually apparent. A
   dark-on-dark direction must name how focus is expressed without breaking
   the palette.
 - **2.3.3 Animation from Interactions (WCAG 2.1 AAA)** — non-essential
-  animation triggered by interaction must honor `prefers-reduced-motion`.
-  A goal with motion as a core quality should name the reduced-motion
-  fallback up front.
+  animation triggered by interaction must honor the OS-level reduced-motion
+  preference. A goal with motion as a core quality should name the
+  reduced-motion fallback up front.
 - **APCA (Accessible Perceptual Contrast Algorithm)** — where WCAG
   contrast is the regulatory floor, APCA gives a perceptual complement
   that better models how lightness differences read. For large display text
@@ -105,7 +105,7 @@ goal to a field-recognized mechanism:
 
 **Typography canon.** For goals with a typographic quality dimension:
 
-- **Optical sizing** — display text (≥ 32 pt) benefits from optically-sized
+- **Optical sizing** — display text at headline sizes benefits from optically-sized
   variants (`font-optical-sizing: auto` or explicit axis `opsz`); body text
   is set at the text optical size. A "premium, crafted" goal at large scale
   names whether the typeface has an optical size axis.
