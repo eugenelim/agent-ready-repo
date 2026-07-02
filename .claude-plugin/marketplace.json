@@ -39,6 +39,23 @@
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
+      "category": "governance",
+      "description": "Catalogue-operator skills: assimilate external primitives, survey repos, propose packs, and export white-label / attributed derivatives of the catalogue.",
+      "displayName": "Catalogue Curation",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "catalogue",
+        "assimilate",
+        "white-label",
+        "fork"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "catalogue-curation",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "version": "0.1.0"
+    },
+    {
+      "author": "eugenelim <eugenelim@users.noreply.github.com>",
       "category": "api-design",
       "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract).",
       "displayName": "Contracts",
