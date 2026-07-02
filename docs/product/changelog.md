@@ -50,6 +50,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the standard select-or-note fallback when the experience pack is absent. Decision
   recorded in ADR-0047.
 
+- **New `catalogue-curation` pack — the catalogue-operator's toolkit (opt-in, repo-scope).**
+  Skills to grow and maintain an agent-skill catalogue: `propose-catalogue-pack`
+  (stand up a new pack), `assimilate-primitive` / `assimilate-repo` (bring
+  external skills/agents/hooks in — safely, and reshaped to the repo's craft,
+  resumable via a ledger), and `export-catalogue` (produce a white-label or
+  attributed derivative for another org or domain, with a fail-closed leak
+  check). Ingested code runs the repo's own lints + SAST/SCA before it lands; a
+  guard blocks any change to the `agentbundle` engine or credential brokers
+  through the pack. Domain-agnostic — the same toolkit serves a non-SDLC
+  catalogue. Requires `core` + `governance-extras`; not in any default profile.
+  (RFC-0059, ADR-0048.)
 - **`msg-to-markdown` is now a pure-Python skill that also reads `.eml`, and
   emits the unified output contract (converters 0.6.0).** The Outlook `.msg`
   converter is re-hosted from Node.js onto Python: `.msg` is read via `olefile` +

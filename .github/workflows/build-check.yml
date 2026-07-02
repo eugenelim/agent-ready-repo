@@ -462,6 +462,35 @@ jobs:
           python3 tools/test-lint-profiles.py
           python3 tools/lint-profiles.py --root .
 
+      - name: catalogue-curation guard lint + self-test (RFC-0059 D6)
+        # RFC-0059: the catalogue-curation skills must never change this repo's
+        # agentbundle engine behaviour or credential-brokers. Two honest layers:
+        # a presence lint (every skill carries its scoped refusal clause) and a
+        # path-gate (a changeset touching packages/agentbundle/** behavioural code
+        # or packs/credential-brokers/** fails without the 'Engine-Change-RFC:'
+        # exemption trailer; build/recipes/** is carved out as config). The
+        # self-test proves the pure logic; the lint scans the tree + diff. Python,
+        # invoked directly (not via bash), so the same step works on Windows.
+        run: |
+          python3 tools/test-lint-catalogue-curation-guard.py
+          python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main
+
+      - name: catalogue-curation skill-script tests (RFC-0059 security ACs)
+        # The deterministic helpers behind the catalogue-curation skills:
+        # SSRF allowlist + write-jail (assimilate-primitive), the resumable
+        # ledger (assimilate-repo), and the fail-closed export verify
+        # (export-catalogue). Pure-stdlib pytest; run from each scripts/ dir so
+        # the local modules import (agentbundle is on the path for write_jail).
+        # PYTHONDONTWRITEBYTECODE + -p no:cacheprovider so pytest leaves no
+        # __pycache__ in the pack source — otherwise the self-host drift gate
+        # would flag the projected .pyc (a known gotcha).
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          (cd packs/catalogue-curation/.apm/skills/assimilate-primitive/scripts && python -m pytest -q -p no:cacheprovider)
+          (cd packs/catalogue-curation/.apm/skills/assimilate-repo/scripts && python -m pytest -q -p no:cacheprovider)
+          (cd packs/catalogue-curation/.apm/skills/export-catalogue/scripts && python -m pytest -q -p no:cacheprovider)
+
       - name: experience framework-agnosticism lint + self-test (design-craft-pack AC8)
         # RFC-0033: the experience pack (renamed from design-craft, ADR-0038)
         # ships portable design method, never a stack or a values table. The
