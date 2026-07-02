@@ -54,17 +54,90 @@ reference itself.
 
 What recognized design principles or bodies of guidance align with this goal?
 
-Standards are the named, external bodies of guidance the field recognizes —
-interaction-design principles (Nielsen heuristics, Laws of UX), accessibility
-guidance (WCAG, APCA), motion guidance, typography research. Point to
-the standard that the goal respects or draws from; do not reprint its
-values.
+Standards are the named, external bodies of guidance the field recognizes.
+Point to the standard the goal respects or draws from; do not reprint its
+values. A goal aligned with a recognized standard is more defensible — it
+can be explained without reference to taste. When a goal has no standard
+behind it, it is either purely expressive (record that honestly) or not yet
+sharp enough (push back to Stage 2 of the interrogation).
 
-A goal aligned with a recognized standard is more defensible than one
-that is not — it can be explained without reference to taste. When a
-goal has no standard behind it, it is either purely expressive
-(record that honestly) or not yet sharp enough (push back to Stage 2
-of the interrogation).
+**Accessibility floor (WCAG 2.1 / 2.2).** Named SCs that aesthetic goals
+must clear, regardless of direction:
+
+- **1.4.1 Use of Color** — information must not be conveyed by color alone;
+  a goal around "color as the identity signal" must pair color with shape or
+  label.
+- **1.4.3 Contrast Minimum** — text at 4.5:1 (normal), 3:1 (large ≥ 18 pt /
+  14 pt bold). A goal of "low-contrast, airy typography" is constrained by
+  this floor; name the tension explicitly.
+- **1.4.11 Non-text Contrast** — interactive components and their focus
+  indicators at 3:1 against adjacent colors. A "borderless" aesthetic must
+  still clear this for inputs and buttons.
+- **2.4.7 Focus Visible** — keyboard focus must be visually apparent. A
+  dark-on-dark direction must name how focus is expressed without breaking
+  the palette.
+- **2.3.3 Animation from Interactions (WCAG 2.1 AAA)** — non-essential
+  animation triggered by interaction must honor `prefers-reduced-motion`.
+  A goal with motion as a core quality should name the reduced-motion
+  fallback up front.
+- **APCA (Accessible Perceptual Contrast Algorithm)** — where WCAG
+  contrast is the regulatory floor, APCA gives a perceptual complement
+  that better models how lightness differences read. For large display text
+  or decorative low-contrast intent, cite both: "clears 1.4.3 at X:1;
+  APCA Lc Y for this usage."
+
+**Interaction-design principles.** Heuristic anchors that connect a named
+goal to a field-recognized mechanism:
+
+- **Nielsen's 10 Heuristics** — especially #1 Visibility of System Status
+  (a "calm" goal should name how loading / error / success states express
+  calm, not just idle state), #4 Consistency and Standards (a "distinctive"
+  goal must name what it is distinctive *against*), and #8 Aesthetic and
+  Minimalist Design (every element competes for attention — the goal should
+  name what earns its place).
+- **Hick's Law** — time to decide grows with the number of options. A goal
+  of "effortless first run" is grounded by naming how choice cost is reduced
+  at key decision points (progressive disclosure, sensible defaults, default
+  opt-in paths).
+- **Information-scent (Peter Pirolli)** — users follow the path of highest
+  perceived information-scent; a navigation goal is grounded when it names
+  how the labeling strategy maximizes scent to the target content.
+
+**Typography canon.** For goals with a typographic quality dimension:
+
+- **Optical sizing** — display text (≥ 32 pt) benefits from optically-sized
+  variants (`font-optical-sizing: auto` or explicit axis `opsz`); body text
+  is set at the text optical size. A "premium, crafted" goal at large scale
+  names whether the typeface has an optical size axis.
+- **Fluid type scale via `clamp()`** — `font-size: clamp(min, preferred-vw,
+  max)` produces a scale that grows smoothly between breakpoints. A goal of
+  "consistent reading rhythm across viewports" is grounded by naming the
+  scale strategy (min/max values and the preferred rate of growth).
+- **Variable-font weight axes** — if the direction uses weight to carry
+  hierarchy (heavy display / light body), name whether the chosen typeface
+  has a `wght` axis for continuous interpolation rather than a step-function
+  optical weight jump.
+- **Line-length and leading** — body text reads best at 45–75 characters per
+  line (Bringhurst); leading of 1.4–1.6 × the font-size for body, tighter
+  (1.1–1.2) for display. A goal of "effortless reading" is grounded by
+  naming the target measure and leading.
+
+**Information-architecture rubrics.**
+
+- **Progressive disclosure** — reveal only what the user needs at each
+  decision point, surfacing complexity on demand. A "simple but powerful"
+  goal should name the disclosure strategy: what is shown at first glance
+  vs. one interaction deeper vs. in settings.
+- **Diátaxis framework** (Procida) — for product documentation surfaces:
+  tutorials (learning), how-to guides (doing), reference (information),
+  explanations (understanding). A goal of "trustworthy documentation" is
+  grounded by naming which Diátaxis quadrant the current surface belongs to
+  and the structural standards that quadrant imposes.
+- **Card sorting / IA testing** — when a goal involves navigation or
+  categorization, name whether open-card-sort evidence (user-generated
+  categories) or closed-card-sort validation (user-sorted into proposed
+  categories) has informed the structure. Without evidence, the goal is a
+  hypothesis.
 
 ### 4 — Platform conventions
 
@@ -74,17 +147,38 @@ The target surface (`responsive-web`, `iOS`, `Android`, or
 `cross-platform`) determines which platform guidance is relevant. For
 each goal, name how the platform's guidance shapes or bounds it:
 
-- **iOS** — Apple Human Interface Guidelines (HIG) shape navigation
-  patterns, gestures, and visual hierarchy on the platform. Point to
-  the HIG guidance that the goal aligns with or must account for.
-- **Android** — Material 3 provides the component vocabulary and
-  adaptive-layout guidance. Point to the relevant Material 3 guidance.
-- **responsive-web** — MDN's responsive-design documentation and, where
-  relevant, PWA conventions. Point to the relevant MDN guidance.
+- **iOS (Apple HIG)** — The HIG's visual voice is *clarity, deference,
+  depth*: the UI recedes so content is primary, spatial cues (depth,
+  translucency) signal context. Named tensions with common aesthetic goals:
+  a "branded, distinctive" direction must justify departing from system
+  font (SF Pro) and system colors — the HIG calls this out as a legibility
+  and trust risk. The **visionOS Spatial Design guidelines** extend this into
+  three-dimensional surfaces where depth is a first-class layout axis.
+  Cite the HIG chapter (e.g. "Visual Design → Color") rather than
+  paraphrasing.
+- **Android (Material 3 / Material You)** — Material 3's visual voice is
+  *personal, adaptive, expressive*: dynamic color (extracted from the
+  user's wallpaper) means brand color must coexist with user-sourced
+  palettes. The **Expressive tier** (2024) introduces bolder, more
+  personality-forward defaults — shapes, colors, and type at higher
+  contrast ratios than Material 2. A goal of "distinctive brand color" must
+  name how it degrades when the system overrides with dynamic color. Point
+  to the Material 3 spec section (e.g. "Color System → Dynamic Color").
+- **responsive-web** — MDN's Responsive Design guide and, where relevant,
+  PWA conventions. For visual voice: the Stripe / Linear / Vercel design
+  language has established a *dark hero + high-contrast type + single
+  chromatic accent* pattern as the default "serious developer product"
+  voice; a direction choosing this vocabulary should name what specifically
+  is taken and what differentiates from that default (else the product reads
+  as a Vercel clone). The **Inter** and **Geist** type families are now the
+  de-facto "modern web app" signal; choosing them is a convention, not a
+  distinction.
 - **cross-platform** — design the shared intent once, then name the
   per-surface adaptations the goal requires. Each surface's platform
   guidance applies to its own adaptation; the shared goal must clear
-  all of them.
+  all of them. A "consistent brand across iOS + web" goal must name
+  the tension point: SF Pro on iOS vs. brand typeface on web, and
+  how brand color interacts with HIG's color semantics on iOS.
 
 Platform conventions are not a ceiling — they are a floor and a
 vocabulary. A goal that contradicts a platform's strong conventions

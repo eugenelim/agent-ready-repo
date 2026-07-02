@@ -384,13 +384,12 @@ of their own yet.
   `import re` (matches install.py's local-import idiom; hoist if the module is
   ever refactored to module-level imports). Neither affects behaviour.
 
-- **`lint-plan-deps.py` is unwired (RFC-0015 / `wave-scheduled-supervisor` AC7).**
-  AC7's deliverable `tools/lint-plan-deps.py` (repo-wide plan-DAG sweep) is invoked
-  by **no gate** — not in `Makefile`, `.github/workflows/`, or `pre-pr` — and has no
-  test; `adopter-clean-enforcement-gate` removed its last anchor (the `new-spec`
-  `plan.md` template now points adopters at the shipped per-spec `loop-cohort
-  schedule`). Decide in `wave-scheduled-supervisor`: wire it into `build-check` to
-  enforce AC7 continuously, or retire it as redundant with `loop-cohort schedule`.
+- **`lint-plan-deps.py` — Resolved 2026-07-02.** Retired as redundant in
+  `eb0e538a` (`chore(tools): remove orphan lint-plan-deps.py`): it re-ran
+  `loop-cohort`'s `detect_cycles` / `detect_forward_refs` — the same engine
+  already invoked at dispatch and per-spec by `pre-pr.py` — with no unique
+  coverage, no test, and no gate wiring. The `adopter-clean-enforcement-gate`
+  spec records the deliberate non-touch. The "retire" option has been taken.
 - **Credentialed-authoring skills don't belong in adopter-facing `core` (RFC-0013 /
   `credential-broker-contract`).** From first principles the adopter artifact for
   *authoring* a credentialed skill is the **how-to** — which already exists
@@ -812,17 +811,15 @@ increment, and `research` is this one (all `pack-eval-coverage-rollout`).
 Remaining work, tiered by what it needs:
 
 - **Tier 1 — activation (Tier-A) for the rest of the catalogue (tractable now,
-  no deps/execution).** Remaining: `monorepo-extras` (1)
-  needs `evals/eval_queries.json` + a `[pack.evals]`
-  block (the same ~8–10-each-way near-miss pattern as `core`). `architect` (3),
-  `product-engineering` (5), `contracts` (2), `experience`
-  (9), `governance-extras` (3), `user-guide-diataxis` (1, `new-guide`), and
-  `research` (8 — 7 scoping/synthesis/decision skills + `research-project-start`;
-  the 3 project-interior steps excluded per its `[pack.evals]` coverage note) are
-  **done**; the credentialed/backend `figma` (1) and `atlassian` (8) Tier-A
-  activation is **done** too (see Tier 3). Exclude
-  reviewer-internal / non-prompt skills (`security-checklists`, `work-loop`,
-  `credential-setup`), as `core` does.
+  no deps/execution).** **All packs now done (2026-07-02):** `monorepo-extras`
+  (`new-package` eval_queries.json + `[pack.evals]` block added). `architect` (3),
+  `product-engineering` (5 + 4 new discovery/frame skills), `contracts` (2),
+  `experience` (9), `governance-extras` (3), `user-guide-diataxis` (1, `new-guide`),
+  and `research` (8 — 7 scoping/synthesis/decision skills + `research-project-start`;
+  the 3 project-interior steps excluded per its `[pack.evals]` coverage note) were
+  already **done**; the credentialed/backend `figma` (1) and `atlassian` (8) Tier-A
+  activation is **done** too (see Tier 3). Reviewer-internal / non-prompt skills
+  (`security-checklists`, `work-loop`, `credential-setup`) excluded, as `core` does.
 - **Tier 2 — B-lite behavior for other *deterministic* skills.** Assess
   `contracts` (`api-contract` / `event-contract` — do they deterministically
   emit/validate a contract artifact? if so, add an `expect` block + fixture).
@@ -1062,19 +1059,11 @@ single-thread reclaim, not the multi-process race).
 
 **Spec:** [adr-template-right-sizing](specs/adr-template-right-sizing/spec.md)
 
-The three behavioral evals (AC5) are pinned verbatim and each carries a
-two-branch assertion (present-when-long / omitted-when-short; trigger-present /
-`stable — no foreseeable trigger`). The authored eval scenario (`evals.json`
-id 3) prompts a single long, aging, conformance-expected ADR, so an LLM judge
-can only observe the first branch of each assertion — the omit-on-a-short-ADR
-and the explicit-`stable` branches are never exercised. AC5's contract (the
-three assertions present, parsing, contract-pinned) is fully met; this is the
-spec's deliberate pinned-string tradeoff and matches the existing id 1 / id 2
-multi-clause-against-single-prompt style, so it is a coverage Concern, not a
-shipped-AC gap. **Unblocks when:** someone adds a second eval scenario whose
-prompt is a *short* ADR (and a not-likely-to-age decision), reusing the same
-pinned assertion strings, so the judge can observe the omit / explicit-`stable`
-branches the assertions promise.
+**Resolved 2026-07-02.** Eval scenario id 4 added to
+`packs/governance-extras/.apm/skills/new-adr/evals/evals.json`: a short,
+stable, non-aging ADR (formatter choice) that exercises the omit-summary
+and explicit-`stable` branches the existing id 3 scenario never reaches.
+Reuses the same three pinned assertion strings from id 3.
 
 ## `frame-domain`
 
@@ -1082,29 +1071,18 @@ branches the assertions promise.
 
 **Spec:** [frame-domain](specs/frame-domain/spec.md)
 
-The `frame-domain` skill ships with `examples/` (the recorded worked-example QA)
-but no `evals/`, unlike its `product-engineering` siblings (`frame-intent`,
-`decompose-intent`, `de-risk-intent`). No acceptance criterion requires an eval —
-the spec's verification is the AC1–AC9 structural greps plus the AC2/AC6 recorded
-worked-example run — so this is a consistency gap, not a shipped-AC gap. **Unblocks
-when:** someone adds a minimal eval mirroring the sibling pattern (e.g. asserting
-skill activation on a domain-framing prompt and that both typed artifacts with
-their markers are produced).
+**Resolved 2026-07-02.** `packs/product-engineering/.apm/skills/frame-domain/evals/eval_queries.json`
+added (9 true / 8 false queries mirroring the sibling pattern). `frame-domain`
+added to `product-engineering`'s `[pack.evals].skills` list.
 
 ## `discovery-loop`
 
 ### discovery-loop-eval-coverage
 
-**Spec:** [discovery-loop](specs/discovery-loop/spec.md)
-
-The three new `product-engineering` skills (`discovery-loop`, `explore-options`,
-`plan-validation`) ship without `evals/eval_queries.json` and are not in
-`[pack.evals]` — matching the `frame-domain` precedent above, and no acceptance
-criterion or gate requires it (allowlist completeness is hand-maintained, not
-enforced). **Unblocks when:** someone adds minimal evals mirroring the sibling
-pattern (assert skill activation on a "scaffold the product vision for X" /
-"diverge on the product shape" / "plan the validation" prompt) and adds the
-user-triggered ones to `[pack.evals]`.
+**Resolved 2026-07-02.** `eval_queries.json` added for all three skills
+(`discovery-loop`: 7/7; `explore-options`: 7/7; `plan-validation`: 8/7 queries).
+All three added to `product-engineering`'s `[pack.evals].skills` list alongside
+`frame-domain`.
 
 ### discovery-loop-traceability-reachability
 
@@ -1302,32 +1280,24 @@ reviews against a design system but doesn't author one).
 
 ### aesthetic-rubrics-research
 
-**Source:** Session 2026-07-01 — aesthetic direction pass on the GitHub Pages
-site surfaced rubrics not yet encoded in the `aesthetic-direction` skill.
+**Resolved 2026-07-02.** All four open research areas encoded into
+`packs/experience/.apm/skills/aesthetic-direction/references/grounding.md`
+Standards and Platform-conventions sections:
 
-**Already added to `references/grounding.md` (ride-along, 2026-07-01):**
-- Visual voice as a grounding dimension distinct from correctness rubrics:
-  surface treatment (dark hero + grid texture + ambient glow pattern),
-  type scale philosophy (display vs. document, `clamp()`, letter-spacing),
-  color philosophy (one chromatic accent), elevation philosophy (border-not-shadow).
-- Stage 1.5 ambition-axis probe added to `references/interrogation-sequence.md`:
-  document-to-product-site spectrum, surface treatment claim, example treatments.
-- Memory `reference_aesthetic_direction_rubrics.md` captures what was used.
-
-**Still open — needs a dedicated research session (`/research`):**
-1. MECE correctness rubric set with cited WCAG SCs (1.4.1, 1.4.3, 2.4.7, 2.3.3
-   etc.) so they can be applied from memory rather than re-derived each pass.
-2. Platform-specific visual voice precedents beyond responsive-web (iOS HIG,
-   Material 3 expressive tier, Android adaptive).
-3. Information architecture rubrics (Diátaxis, card-sorting, progressive
-   disclosure quantification) as grounding standards — currently absent from
-   the skill's Standards referent list.
-4. Typography research canon (optical sizing, variable-font weight axes,
-   fluid type scales via `clamp()` best practice).
-
-**Unblocks when:** `/research` catalogues the above four areas and the
-`aesthetic-direction` skill's reference files are updated in a single PR,
-routed through `work-loop` light mode.
+1. **WCAG SCs** — 1.4.1, 1.4.3, 1.4.11, 2.4.7, 2.3.3 now cited with their
+   named tension against common aesthetic goals; APCA noted as the perceptual
+   complement.
+2. **Platform visual voice** — iOS HIG (*clarity, deference, depth*; SF Pro
+   legibility risk for branded directions; visionOS extension), Android
+   Material 3 Expressive tier (dynamic color coexistence, 2024 expressive
+   defaults), responsive-web (Stripe/Linear/Vercel vocabulary named explicitly
+   with the differentiation question).
+3. **IA rubrics** — Progressive disclosure, Diátaxis framework (four quadrant
+   types + structural standards), card-sorting (open vs. closed, evidence
+   requirement) added to Standards section.
+4. **Typography canon** — optical sizing (`opsz` axis), fluid type scale via
+   `clamp()`, variable `wght` axis for weight hierarchy, line-length (45–75
+   chars) and leading (1.4–1.6 × body, 1.1–1.2 × display) encoded.
 
 ### experience-loop-trigger-for-site-changes
 
@@ -1419,21 +1389,18 @@ growth scope resolves item 2.
 
 ### site-catalogue-hierarchy
 
-**Source:** experience-reviewer finding (session 2026-07-01). "Fourteen" appears three times before the two-tier progressive-disclosure split ("start with loops / add what your team needs"). Hick's Law: presenting 14 equal-weight choices maximises perceived choice cost. The 11 "add what you need" cards have no sub-grouping.
-
-**Open work:**
-- Drop count from hero subtitle (already done in session: "These fourteen packs" → acceptable, but "fourteen" still appears in the catalogue section header). Consider "a curated catalogue" vs. naming the count up front.
-- Sub-group the 11 secondary cards — the `repo`/`user` scope tags already exist as a natural axis. Alternatively, group by discipline cluster (data/docs/infra/design/governance).
-
-**Unblocks when:** taken as a copy-only PR with experience-reviewer review.
+**Resolved 2026-07-02.** All three "fourteen" occurrences removed from
+`site/docs/index.md`: hero subtitle → "these supervised loops and curated packs";
+catalogue header → "A curated catalogue of packs". Secondary cards split into two
+labelled groups by scope: "Install once, works across all your repos" (`user`: 8
+cards) and "Install per project" (`repo`: 3 cards).
 
 ### site-handoff-diagram
 
-**Source:** experience-reviewer finding (session 2026-07-01). The G3→G4→G5 handoff chain is rendered as a plain ASCII code fence — reads as a debug artifact on a site claiming "leading developer site" polish. Gate labels (G0/G1.5/G2/G3/G4/G5) also lack a first-use definition anywhere outside the card bodies.
-
-**Working approach:** Replace the ASCII fence with a Mermaid diagram (the site already supports `superfences`/Mermaid rendering via MkDocs Material). Use `#5e6ad2` accent nodes to tie it to the visual voice. Add a short legend defining the Gx gate notation.
-
-**Unblocks when:** taken as a content PR. Mermaid support is already wired; no build changes needed.
+**Resolved 2026-07-02.** ASCII code fence replaced with a Mermaid `flowchart LR`
+diagram in `site/docs/index.md`: three nodes styled with `#5e6ad2` accent fill,
+G3/G4 edge labels, G5 gate definition added as an inline blockquote legend below
+the diagram.
 
 ### site-design-system-spec
 
