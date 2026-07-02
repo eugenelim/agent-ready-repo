@@ -1,0 +1,16 @@
+[
+  {"query": "Create a new package called auth-utils in the monorepo", "should_trigger": true},
+  {"query": "Scaffold a new library for shared database helpers", "should_trigger": true},
+  {"query": "Add a new package for the PDF generation utilities", "should_trigger": true},
+  {"query": "New package: event-bus, for the shared messaging primitives", "should_trigger": true},
+  {"query": "I need a package for the rate-limiting logic that's shared across services", "should_trigger": true},
+  {"query": "Add a library called validation-utils under packages/", "should_trigger": true},
+  {"query": "Create a shared logging package for the monorepo", "should_trigger": true},
+
+  {"query": "Create a new top-level directory for infrastructure scripts", "should_trigger": false},
+  {"query": "Add a new app for the admin dashboard", "should_trigger": false},
+  {"query": "Scaffold a new microservice for the payment flow", "should_trigger": false},
+  {"query": "Write a spec for the auth-utils package", "should_trigger": false},
+  {"query": "Fix the failing tests in the existing logging package", "should_trigger": false},
+  {"query": "Refactor the database helper to use connection pooling", "should_trigger": false}
+]

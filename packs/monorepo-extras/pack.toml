@@ -28,6 +28,13 @@ catalogue = "agent-ready-repo"
 pack = "core"
 version = "^0.1"
 
+# pack-activation-evals (RFC-0037 / ADR-0028): Tier-A activation-eval coverage.
+# new-package is the only user-prompt-triggered skill; it is repo-scope so the
+# prompt is always "scaffold a new library/package" — a narrow, unambiguous
+# trigger. The reviewer-internal skills (none in this pack) are excluded.
+[pack.evals]
+skills = ["new-package"]
+
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
 [pack.links]
