@@ -340,8 +340,7 @@ passing silently. Docling stays available and unchanged as the higher-fidelity
   to Python. The port is the right move but is a distinct, sizable change (new
   Python `.msg` dependency, full rewrite, parity validation) that belongs in its
   own slice, not this floor (deferred:
-  extraction-msg-to-markdown-python-contract). `.eml`/MIME for that skill defers
-  with it (deferred: extraction-tier0-eml-mime); `.eml` as a *file-to-markdown
+  extraction-msg-to-markdown-python-contract). `.eml` as a *file-to-markdown
   input format* stays in this spec at Tier 0 (AC7).
 - Tempted to add a general HTML→Markdown dependency (e.g. `markdownify`) for
   richer D7 HTML output; declining unless a stdlib `html.parser`-based reduction
