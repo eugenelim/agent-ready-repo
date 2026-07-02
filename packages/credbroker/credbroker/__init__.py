@@ -1,7 +1,7 @@
 """credbroker — a standalone, pip-installable credential resolver.
 
-RFC-0023 replaces the build-projected ``credentials_shim`` (byte-copied into
-every credentialed skill's ``scripts/`` by the build pipeline) with this
+This library replaces the build-projected ``credentials_shim`` (byte-copied into
+every credentialed skill's ``scripts/`` by the build pipeline) with an
 in-process library. The stdlib-only core resolves credentials through three
 tiers — environment variable, OS keyring, then a ``0600`` dotfile floor — with
 the same public surface the shim exposed, so consumer call sites change only
@@ -48,12 +48,12 @@ from ._core import (
 from ._core import _parse_schema as parse_schema
 from ._core import _tier2_backend_label as tier2_backend_label
 
-# SSO web-session cookie family (RFC-0035) — a second consumer-resolution family
-# alongside the token ``creds`` family above. Resolves a captured SSO session to
-# an on-disk cookie-jar path via the unchanged ``sso-broker.py`` engine, with
-# reusable validation primitives for the consumer's ``sso-config.toml`` and the
-# load-time cookie-domain confinement. Imported eagerly: ``_sso`` is stdlib-only,
-# so it keeps the base import graph free of any third-party dependency.
+# SSO web-session cookie family — a second consumer-resolution family alongside
+# the token ``creds`` family above. Resolves a captured SSO session to an on-disk
+# cookie-jar path via the unchanged ``sso-broker.py`` engine, with reusable
+# validation primitives for the consumer's ``sso-config.toml`` and the load-time
+# cookie-domain confinement. Imported eagerly: ``_sso`` is stdlib-only, so it
+# keeps the base import graph free of any third-party dependency.
 from ._sso import (
     SsoBrokerNotInstalledError,
     SsoConfigError,
@@ -96,13 +96,13 @@ __all__ = [
     "source_vault_master",
     "store_vault_master",
     "store_in_vault",
-    # SSO web-session cookie family (RFC-0035).
+    # SSO web-session cookie family.
     "load_sso_cookies",
     "SsoError",
     "SsoBrokerNotInstalledError",
     "SsoSessionUnavailableError",
     "SsoConfigError",
-    # SSO confinement primitives (RFC-0035; security-control surface).
+    # SSO confinement primitives (security-control surface).
     "validate_https_url",
     "validate_root_relative_endpoint",
     "domain_in_cookie_domains",

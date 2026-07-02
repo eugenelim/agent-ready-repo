@@ -39,7 +39,7 @@ parent = "docs/product"
 # evals/eval_queries.json and is measured by tools/run-pack-evals.py. All five
 # skills are user-prompt-triggered, so none are excluded.
 [pack.evals]
-skills = ["frame-intent", "de-risk-intent", "decompose-intent", "align-value-stream", "voice-and-microcopy"]
+skills = ["frame-intent", "de-risk-intent", "decompose-intent", "align-value-stream", "voice-and-microcopy", "frame-domain", "discovery-loop", "explore-options", "plan-validation"]
 
 # enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

@@ -1,0 +1,17 @@
+[
+  {"query": "Give me candidate product shapes for the notifications system before we commit", "should_trigger": true},
+  {"query": "Diverge on the product shape — what are the options?", "should_trigger": true},
+  {"query": "What are the alternatives before we lock in on this approach?", "should_trigger": true},
+  {"query": "Explore alternatives for the scheduling feature — don't converge yet", "should_trigger": true},
+  {"query": "We have a rough idea — generate a few very different product shapes to compare", "should_trigger": true},
+  {"query": "What product shapes exist before we commit to the marketplace model?", "should_trigger": true},
+  {"query": "Give us three divergent approaches to the onboarding problem", "should_trigger": true},
+
+  {"query": "Scaffold the product vision and take it all the way to a brief", "should_trigger": false},
+  {"query": "Which of these shapes should we pick?", "should_trigger": false},
+  {"query": "Decompose the chosen product shape into specs", "should_trigger": false},
+  {"query": "What's the riskiest assumption in the marketplace model?", "should_trigger": false},
+  {"query": "Frame the domain for the scheduling product", "should_trigger": false},
+  {"query": "Write a spec for the notifications feature", "should_trigger": false},
+  {"query": "Play devil's advocate on this product direction", "should_trigger": false}
+]

@@ -1,0 +1,20 @@
+[
+  {"query": "Frame the domain for a task management app before we start designing", "should_trigger": true},
+  {"query": "Ground this product in how people actually manage tasks today — the real-world activity", "should_trigger": true},
+  {"query": "What's in and what's out of scope for the MVP before we draw any screens?", "should_trigger": true},
+  {"query": "Frame the domain we're entering with this invoicing tool", "should_trigger": true},
+  {"query": "Bound the MVP — what's the scope boundary for the first release?", "should_trigger": true},
+  {"query": "How is expense reporting really done today? Ground us before we design", "should_trigger": true},
+  {"query": "Draw the scope boundary for the scheduling feature before we spec it", "should_trigger": true},
+  {"query": "We're building a time-tracking tool — what's the real-world activity we're modeling?", "should_trigger": true},
+  {"query": "What are the naive failure modes if we build this without understanding the domain first?", "should_trigger": true},
+
+  {"query": "Shape this idea into a product intent", "should_trigger": false},
+  {"query": "What's the riskiest assumption in this feature?", "should_trigger": false},
+  {"query": "Break this capability down into shippable specs", "should_trigger": false},
+  {"query": "Generate candidate product shapes for the scheduling feature", "should_trigger": false},
+  {"query": "Write a spec for the task management feature", "should_trigger": false},
+  {"query": "What should the empty state say?", "should_trigger": false},
+  {"query": "Design the data model for the invoicing system", "should_trigger": false},
+  {"query": "Plan the validation for this intent's assumptions", "should_trigger": false}
+]
