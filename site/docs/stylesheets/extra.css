@@ -1,0 +1,433 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DESIGN SYSTEM — COLOR TOKEN ROLES
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Each token has ONE zone. Using a token outside its zone is a design error.
+ *
+ * DARK ZONE (#0f172a)  — navbar, tabs, hero ONLY. Never in content area.
+ * SURFACE-0 (#ffffff)  — page background.
+ * SURFACE-1 (#f8fafc)  — card backgrounds, slightly lifted off white.
+ * SURFACE-2 (#f0f4f8)  — table headers, more elevated neutral areas.
+ * ACCENT    (#5e6ad2)  — ONE chromatic color: links, focus rings, hover
+ *                        borders, primary CTA on light bg. Never large fills.
+ * TEXT-HIGH  (#1a202c) — headings, primary labels.
+ * TEXT-MID   (rgba(0,0,0,0.72)) — body, secondary labels.
+ * TEXT-LOW   (rgba(0,0,0,0.45)) — muted, captions.
+ *
+ * DARK MODE equivalents:
+ * SURFACE-0  (#0f1011), SURFACE-1 (#141516), ACCENT (#818cf8)
+ *
+ * Rubrics applied:
+ * 1. Navbar-hero cohesion — header and hero share the DARK ZONE (#0f172a).
+ *    Generic indigo header = template tell.
+ * 2. Hero full-bleed — 100vw negative margin, no border-radius.
+ *    Card-hero = document; full-bleed = product.
+ * 3. Content area lift — cards use SURFACE-1, table headers use SURFACE-2.
+ *    DARK ZONE never appears in the content area.
+ * 4. One accent, neutral everything else — ACCENT resolves through CSS custom
+ *    properties so Material's own components inherit it.
+ * 5. Surface ladder (dark mode) — 3+ elevation steps, not flat dark gray.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/* ── Accent token — single source of truth ──────────────────────────────── */
+/*
+ * MkDocs Material resolves links and focus rings through --md-accent-fg-color
+ * and --md-typeset-a-color. Without these overrides, Material's default
+ * indigo/cyan (from mkdocs.yml palette) would leak into body links, focus
+ * rings, and the active-nav marker — violating Rubric 4.
+ */
+
+:root,
+[data-md-color-scheme="default"] {
+  --md-accent-fg-color:              #5e6ad2;
+  --md-accent-fg-color--transparent: rgba(94, 106, 210, 0.1);
+  --md-typeset-a-color:              #5e6ad2;
+}
+
+/* ── Dark mode surface ladder ───────────────────────────────────────────── */
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color:            #0f1011;
+  --md-code-bg-color:               #141516;
+  --md-default-fg-color--lightest:  rgba(255, 255, 255, 0.07);
+  --md-default-fg-color--lighter:   rgba(255, 255, 255, 0.16);
+  /* Slightly lighter on dark surface for 4.5:1 contrast */
+  --md-accent-fg-color:              #818cf8;
+  --md-accent-fg-color--transparent: rgba(129, 140, 248, 0.1);
+  --md-typeset-a-color:              #818cf8;
+}
+
+/* ── Header: dark unified zone matching the hero ────────────────────────── */
+/*
+ * Rubric: the navbar is the first thing the eye hits. Generic Material blue
+ * announces "template." Dark header (#0f172a) creates navbar-hero cohesion —
+ * the dark zone extends from top of page to end of hero.
+ */
+
+.md-header {
+  background-color: #0f172a !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.md-header .md-header__title {
+  color: #f8fafc;
+}
+
+.md-header .md-header__button,
+.md-header .md-header-nav__button {
+  color: rgba(248, 250, 252, 0.85);
+}
+
+.md-header .md-header__button:hover {
+  color: #f8fafc;
+}
+
+/* Search input in dark header */
+.md-header .md-search__input {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(248, 250, 252, 0.9);
+  border-radius: 6px;
+}
+
+.md-header .md-search__input::placeholder {
+  color: rgba(248, 250, 252, 0.45);
+}
+
+/* Nav tabs — same dark zone as the header */
+.md-tabs {
+  background-color: #0f172a !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.md-tabs .md-tabs__item {
+  color: rgba(248, 250, 252, 0.65);
+}
+
+.md-tabs .md-tabs__item--active,
+.md-tabs .md-tabs__link--active {
+  color: #f8fafc;
+}
+
+.md-tabs .md-tabs__link:hover {
+  color: #f8fafc;
+  opacity: 1;
+}
+
+/* ── Hero section — full-bleed dark panel ───────────────────────────────── */
+/*
+ * Rubric: full-bleed (100vw negative margin) signals "product site hero."
+ * A card floating on white signals "section in a document." No border-radius.
+ * Grid texture (28px, 4% opacity lines) + radial glow from accent: the
+ * "one non-neutral move" that separates leading from traditional.
+ */
+
+.hero-section {
+  /* Full-bleed: break out of the 900px content container */
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  box-sizing: border-box;
+
+  /* Horizontally center the inner content column */
+  padding-top: 5rem;
+  padding-bottom: 4.5rem;
+  padding-left: max(2rem, calc(50vw - 450px));
+  padding-right: max(2rem, calc(50vw - 450px));
+
+  /* Visual treatment */
+  background-color: #0f172a;
+  background-image:
+    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(94, 106, 210, 0.2) 0%, transparent 65%),
+    linear-gradient(rgba(255, 255, 255, 0.038) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
+  background-size: 100% 100%, 28px 28px, 28px 28px;
+  border-radius: 0;
+  margin-bottom: 4rem;
+  color: #f8fafc;
+}
+
+.hero-section h1 {
+  color: #f8fafc;
+  font-size: clamp(2.4rem, 5vw, 3.75rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.028em;
+  margin-bottom: 1.25rem;
+  max-width: 800px;
+}
+
+.hero-section p {
+  color: rgba(248, 250, 252, 0.65);
+  font-size: 1.1rem;
+  line-height: 1.65;
+  margin-bottom: 0;
+  max-width: 620px;
+}
+
+/* ── Hero CTA buttons — inverted for dark context ───────────────────────── */
+
+.hero-section .hero-actions {
+  margin-top: 2.25rem;
+  margin-bottom: 0;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hero-section .md-button--primary {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #f8fafc !important;
+  font-weight: 600;
+}
+
+.hero-section .md-button--primary:hover {
+  background-color: #e2e8f0 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.hero-section .md-button:not(.md-button--primary) {
+  background-color: transparent !important;
+  border-color: rgba(248, 250, 252, 0.25) !important;
+  color: rgba(248, 250, 252, 0.8) !important;
+}
+
+.hero-section .md-button:not(.md-button--primary):hover {
+  background-color: rgba(248, 250, 252, 0.08) !important;
+  border-color: rgba(248, 250, 252, 0.45) !important;
+  color: #f8fafc !important;
+}
+
+.hero-section .md-button:focus-visible {
+  outline: 3px solid rgba(248, 250, 252, 0.7);
+  outline-offset: 3px;
+}
+
+/* ── Standalone hero-actions (outside hero-section) ─────────────────────── */
+
+.hero-actions {
+  margin: 1.75rem 0 2.5rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.md-button--large {
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+}
+
+/* ── Page content width ─────────────────────────────────────────────────── */
+/*
+ * Center the article in the grid column (margin: auto) instead of Material's
+ * default left-aligned margin: 0 .8rem. This is required for the hero's
+ * full-bleed math to work: the negative-margin trick assumes the article is
+ * symmetrically centered in the viewport; left-aligned layout breaks it.
+ * Without centering, the hero undershoots the right edge by ~.8rem.
+ */
+
+.md-content__inner {
+  max-width: 900px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Remove ALL top spacing when the page starts with a full-bleed hero,
+ * so the dark zone is continuous from navbar bottom to hero bottom.
+ * Three layers to cancel: md-main__inner padding, md-content__inner padding,
+ * and any residual via a negative margin on the hero itself. */
+
+/* Layer 1 — .md-main__inner has padding-top: 1.2rem by default */
+.md-main:has(.hero-section) > .md-main__inner {
+  padding-top: 0;
+}
+
+/* Layer 2 — .md-content__inner (the article) also has padding-top */
+article.md-content__inner:has(> .hero-section) {
+  padding-top: 0;
+}
+
+/* Layer 3 — belt-and-suspenders negative margin in case :has() misses */
+.md-content__inner > .hero-section {
+  margin-top: -1.5rem;
+}
+
+/* ── Mobile — hero scale ────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .hero-section {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .hero-section h1 {
+    font-size: clamp(1.9rem, 8vw, 2.6rem);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .hero-section p {
+    font-size: 1rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .md-button--large {
+    padding: 0.65rem 1.4rem;
+    font-size: 0.95rem;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+}
+
+/* Code blocks in the handoff diagram — prevent horizontal overflow on mobile */
+.md-typeset pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Section rhythm ─────────────────────────────────────────────────────── */
+/*
+ * Material 9.x applies a bottom-border separator on h2 using
+ * --md-default-fg-color--lightest. On a white background this is acceptable,
+ * but the aesthetic direction (Vercel/Linear) uses whitespace — not rules —
+ * as section separators. Remove the border; the 3rem top-margin provides rhythm.
+ */
+
+.md-typeset h2 {
+  margin-top: 3rem;
+  letter-spacing: -0.015em;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* ── Cards — lifted tint + border reveal on hover ───────────────────────── */
+/*
+ * Rubric: cards on pure white have no visual weight (same plane as background).
+ * A tinted background (#f8fafc) lifts the card. Border (not shadow) names the
+ * card edge precisely. On hover: border brightens to the accent color (#5e6ad2).
+ * Shadow reserved for elevated overlays (modals, dropdowns), never cards.
+ */
+
+.grid.cards > ul > li,
+.grid.cards > ol > li {
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  box-shadow: none;
+  transition: border-color 150ms ease, transform 100ms ease;
+}
+
+.grid.cards > ul > li:hover,
+.grid.cards > ol > li:hover {
+  border-color: #5e6ad2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(94, 106, 210, 0.12);
+}
+
+[data-md-color-scheme="slate"] .grid.cards > ul > li,
+[data-md-color-scheme="slate"] .grid.cards > ol > li {
+  background: #141516;
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+[data-md-color-scheme="slate"] .grid.cards > ul > li:hover,
+[data-md-color-scheme="slate"] .grid.cards > ol > li:hover {
+  border-color: rgba(94, 106, 210, 0.5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Code blocks ───────────────────────────────────────────────────────── */
+
+.md-typeset code {
+  border-radius: 4px;
+}
+
+.md-typeset pre > code {
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* ── Inline code inside cards — accent-tinted chip ──────────────────────── */
+/*
+ * Design system rule: inline code in cards (scope tags like `user`/`repo`,
+ * skill names like `work-loop`) uses a subtle ACCENT fill so these chips
+ * read as an intentional design element, not the default gray code style.
+ * Keeps the one-accent rule: same #5e6ad2 family, 7% opacity fill.
+ */
+
+.grid.cards > ul > li code,
+.grid.cards > ol > li code {
+  background: rgba(94, 106, 210, 0.07);
+  color: #3a4ab8;
+  font-size: 0.78rem;
+  border-radius: 4px;
+}
+
+[data-md-color-scheme="slate"] .grid.cards > ul > li code,
+[data-md-color-scheme="slate"] .grid.cards > ol > li code {
+  background: rgba(129, 140, 248, 0.1);
+  color: #a5b4fc;
+}
+
+/* ── Navigation ────────────────────────────────────────────────────────── */
+
+.md-nav__title {
+  font-weight: 700;
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────── */
+/*
+ * Table headers use a light neutral tint — the same family as cards (#f8fafc).
+ * Dark navy (#0f172a) belongs only in the navbar/hero zone, not the content area.
+ */
+
+.md-typeset table:not([class]) {
+  font-size: 0.875rem;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: #f0f4f8;
+  color: #1a202c;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background-color: #141516;
+  color: rgba(248, 250, 252, 0.87);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Announcement bar ────────────────────────────────────────────────────── */
+
+.md-banner {
+  font-size: 0.875rem;
+}
+
+/* ── Reduce-motion: honour system preference ────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .grid.cards > ul > li,
+  .grid.cards > ol > li {
+    transition: none;
+  }
+  .grid.cards > ul > li:hover,
+  .grid.cards > ol > li:hover,
+  [data-md-color-scheme="slate"] .grid.cards > ul > li:hover,
+  [data-md-color-scheme="slate"] .grid.cards > ol > li:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #5e6ad2;
+  }
+}
