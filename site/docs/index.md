@@ -5,13 +5,13 @@ hide:
 ---
 
 <div class="hero-section" markdown>
-# The Complete AI Operating Model<br>for Software Teams
+# Discovery. Build. Release.<br>The full SDLC, agent-driven and supervised.
 
-Three supervised loops, fourteen curated packs, any agent, any stack — from first idea to production.
+An unattended loop makes unattended mistakes. These fourteen packs install hard mechanical gates, cold-read specialist reviewers, and mandatory human checkpoints across the full SDLC — so the agent cannot self-certify its own work.
 
 <div class="hero-actions" markdown>
-[Get started :octicons-arrow-right-24:](getting-started/index.md){ .md-button .md-button--primary .md-button--large }
-[Browse packs :octicons-arrow-right-24:](packs/index.md){ .md-button .md-button--large }
+[Install the core loop :octicons-arrow-right-24:](getting-started/index.md){ .md-button .md-button--primary .md-button--large }
+[See what's inside :octicons-arrow-right-24:](packs/index.md){ .md-button .md-button--large }
 </div>
 </div>
 
@@ -29,7 +29,7 @@ Software delivery needs more than one loop. Three peer supervisors span the full
 
     `product-engineering` · `discovery-lead`
 
-    Raw idea → ratified brief. Five candidate shapes explored in parallel, collapsed through product, UX, architecture, and safety lenses. Human gates at G0, G1.5, G2. A connected hypothesis with validation hooks — not a validated solution.
+    Raw idea → ratified brief. Five candidate shapes explored in parallel, collapsed through product, UX, architecture, and safety lenses. Human consent gates at G0 (go/no-go), G1.5 (shape sign-off), and G2 (brief ratification). A connected hypothesis with validation hooks — not a validated solution.
 
     [:octicons-arrow-right-24: Product Engineering](packs/product-engineering.md)
 
@@ -203,7 +203,8 @@ One adapter pipeline projects the same skills and subagents into the layout ever
 | Cursor | Yes | Yes | Yes | No |
 | Copilot | Yes | Yes | Yes | No |
 | Gemini CLI | Yes | Yes | Yes | No |
-| Kiro | Yes | Yes | No | No |
+| Kiro IDE | Yes | Yes | Yes | No |
+| Kiro CLI | Yes | Yes | Yes | No |
 
 ## Built on solid foundations
 

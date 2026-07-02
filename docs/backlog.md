@@ -1258,6 +1258,101 @@ hook rather than gating at their classification layer — at which point it is i
 own slice with its own security review (it changes the egress boundary
 `security-reviewer` gates).
 
+## `experience-pack`
+
+Open items for the `experience` pack skills — skill additions, amendments, and gaps in the
+design thread coverage. These are pack-level concerns, not site-specific; the site items that
+have an experience-pack implication are cross-referenced from `## github-pages-site` below.
+
+### copy-direction-skill-rfc
+
+**Source:** Session 2026-07-01 — building the GitHub Pages site exposed that `aesthetic-direction`
+covers visual voice but has no copy twin. The experience pack's design thread (journey → realization)
+is silent on copy: what the product says, not just how it looks.
+
+**Gap:** `aesthetic-direction` produces named visual goals grounded in persona, precedent, and
+platform standards. There is no equivalent skill for copy voice — no interrogation sequence for
+manifesto vs. instructional vs. warm, no tweet-test criterion, no grounding in copy precedents
+(Stripe's "The new standard in online payments"; Linear's "The issue tracker you'll enjoy using").
+The full gap analysis with concrete site examples is in
+[`content-strategy-and-marketing-copy-lens`](#content-strategy-and-marketing-copy-lens) below.
+
+**Proposed work:**
+A `copy-direction` skill in the `experience` pack — the copy twin of `aesthetic-direction`. Same
+interrogation structure (vibe → named goals → grounding → arbitration) applied to copy voice and
+positioned copy. Produces a `copy-direction.md` doc grounded in persona, copy precedents, and
+recognized persuasion standards (painkiller-first framing, tweet test, five-second evaluator scan).
+
+**Unblocks when:** RFC opened for the new skill (new skill = public interface = full-mode
+work-loop trigger). RFC should address: scope boundary relative to `voice-and-microcopy` (which
+covers UI microcopy but not marketing/conversion copy), and whether conversion architecture (CTA
+specificity, above-fold order, SEO semantics) belongs in this skill or a separate `growth-pack`
+track.
+
+### design-system-foundations-skill-gap
+
+**Source:** Session 2026-07-01 — `aesthetic-direction` anti-patterns explicitly refuse to produce
+token values ("no palette, font name, or spacing value here — hand off to `design-system-foundations`").
+But `design-system-foundations` does not exist in the catalogue.
+
+**Gap:** The experience pack's declared design thread ends at `aesthetic-direction` (named goals)
+with an explicit handoff to `design-system-foundations` — which is not a skill anyone can invoke.
+An adopter who runs `aesthetic-direction` has goals but no path to tokens. The gap was exposed
+building this site's CSS design token set from scratch with no skill guidance.
+
+**Proposed work:** Either (a) author `design-system-foundations` as the next skill in the experience
+pack — takes the direction doc as input, produces a token set (color roles, type scale, spacing
+rhythm, elevation, motion) grounded in the goals — or (b) extend `aesthetic-direction` to produce
+a lightweight token scaffold in addition to the direction doc, removing the phantom handoff.
+Option (a) is the cleaner skill decomposition; option (b) avoids a new skill that may be scope-creep
+(design-system-foundations is broader than aesthetic guidance).
+
+**Unblocks when:** RFC scopes the option decision and the boundary with `design-critique` (which
+reviews against a design system but doesn't author one).
+
+### design-critique-marketing-clarity-criterion
+
+**Source:** Session 2026-07-01 — `design-critique` covers UX/visual heuristics (Nielsen's 10,
+WCAG SCs, Hick's Law, Fitts's Law). It does not cover whether copy motivates, communicates to a
+skeptical evaluator, or passes basic conversion architecture tests.
+
+**Gap:** A reviewer using `design-critique` today would not flag "hero subtitle describes features
+not outcomes" or "zero social proof above the fold" — those are copy/conversion concerns, not
+UX/visual ones. The heuristics covering them (tweet test, five-second evaluator scan, painkiller
+framing) are absent from the skill's criterion set.
+
+**Proposed work (amendment, not a new skill):** Add a "marketing clarity" criterion section to
+`design-critique`: tweet test (headline stands alone as a conviction statement), five-second scan
+(does the above-fold answer: what is this / who is it for / should I care?), and painkiller-first
+structure check (does the copy lead with the reader's problem, not the author's feature list). This
+is a bounded amendment — no new skill file, no RFC needed unless the change crosses a public
+interface. Route as a normal PR with `adversarial-reviewer` pass.
+
+**Unblocks when:** taken as a `design-critique` skill amendment PR.
+
+### experience-reviewer-as-work-loop-gate
+
+**Source:** Session 2026-07-01 — no formal mechanism routes work-loop's reviewer roster to include
+`experience-reviewer` when a change crosses a user-facing surface. The reviewer is available but
+never auto-triggered.
+
+**Gap:** Work-loop's risk triggers fire specialist reviewers (security-reviewer for auth/secrets,
+quality-engineer for testability). There is no analogous trigger for changes that affect what a
+reader sees — a new docs page, a site redesign, a pack card rewrite. The experience reviewer exists
+but must be invoked manually; the SDLC gate is missing.
+
+**Proposed work:** Define a "user-facing surface" risk trigger in work-loop: *does this change what
+a reader or adopter sees?* If yes → `experience-reviewer` runs as a mandatory gate alongside the
+standard reviewer roster. The full working hypothesis and governance implications are in
+[`experience-loop-trigger-for-site-changes`](#experience-loop-trigger-for-site-changes) in the
+site section. This is the pack-level policy decision; the site section is the concrete example.
+
+**Unblocks when:** ADR or RFC establishes the trigger contract and work-loop skill is updated.
+Needs a decision on mandatory vs. recommended (suggested: mandatory for net-new user-facing pages,
+recommended for copy changes).
+
+---
+
 ## `github-pages-site`
 
 ### aesthetic-rubrics-research
@@ -1378,4 +1473,50 @@ Two separate work items:
 
 **Unblocks when:** RFC for `copy-direction` skill is opened; charter decision on
 growth scope resolves item 2.
+
+**Research findings (session 2026-07-01):** Agent skills for UX writing are well-established (segmented style-guide training + character-limit enforcement); marketing/conversion copy has no formal agent skill — best-available is a 5-step pipeline (VOC mining → competitive gap → value prop painkiller framing → brand voice training → creative-director output structure). No anthropic-cookbook examples exist for content/UX. Sources: UX Writing Hub (Sarah Kessler chained GPT pairs), aufaitux.com (Figma-resident UX writing agents), msitarzewski/agency-agents (Brand Guardian / Ad Strategist persona cards), Social Media Examiner (5-step conversion copy pipeline). Passable today: hero headline formulas, VOC extraction prompts, role-based persona subagent cards. Needs original work: formal SKILL.md for hero headline writing, copy critique with scoring rubrics, conversion architecture review as an agent workflow.
+
+### site-social-proof-band
+
+**Source:** experience-reviewer finding (session 2026-07-01). Page ships zero social proof or credibility signal — no version/recency signal, no install count, no adopter logos, no dogfooding claim. For a skeptical technical buyer this is the largest missing conversion lever.
+
+**Working approach:** The strongest available honest signal is dogfooding — the catalogue builds and governs *itself* (RFC/ADR trail, self-host projection, PyPI package recency, adapter count). A "proof band" section between the hero and the loops section could carry: `agentbundle` PyPI version badge, install count if available, "built with itself" dogfooding statement, adapter count. No fabricated logos.
+
+**Unblocks when:** someone decides what signal is available and honest enough to publish, then adds the band as a static section in `site/docs/index.md`. Does not require a formal spec; a normal PR with experience-reviewer review is sufficient.
+
+### site-catalogue-hierarchy
+
+**Source:** experience-reviewer finding (session 2026-07-01). "Fourteen" appears three times before the two-tier progressive-disclosure split ("start with loops / add what your team needs"). Hick's Law: presenting 14 equal-weight choices maximises perceived choice cost. The 11 "add what you need" cards have no sub-grouping.
+
+**Open work:**
+- Drop count from hero subtitle (already done in session: "These fourteen packs" → acceptable, but "fourteen" still appears in the catalogue section header). Consider "a curated catalogue" vs. naming the count up front.
+- Sub-group the 11 secondary cards — the `repo`/`user` scope tags already exist as a natural axis. Alternatively, group by discipline cluster (data/docs/infra/design/governance).
+
+**Unblocks when:** taken as a copy-only PR with experience-reviewer review.
+
+### site-handoff-diagram
+
+**Source:** experience-reviewer finding (session 2026-07-01). The G3→G4→G5 handoff chain is rendered as a plain ASCII code fence — reads as a debug artifact on a site claiming "leading developer site" polish. Gate labels (G0/G1.5/G2/G3/G4/G5) also lack a first-use definition anywhere outside the card bodies.
+
+**Working approach:** Replace the ASCII fence with a Mermaid diagram (the site already supports `superfences`/Mermaid rendering via MkDocs Material). Use `#5e6ad2` accent nodes to tie it to the visual voice. Add a short legend defining the Gx gate notation.
+
+**Unblocks when:** taken as a content PR. Mermaid support is already wired; no build changes needed.
+
+### site-design-system-spec
+
+**Source:** Session 2026-07-01 — design system lens applied. The CSS now has inline token roles documented (DARK ZONE / SURFACE-0/1/2 / ACCENT / TEXT-HIGH/MID/LOW), but there is no machine-readable token spec.
+
+**Open work:**
+- Author a `site/design-system.md` or `site/tokens.json` that formalizes: color tokens + their zones, typography scale (base/h1–h4/code), spacing rhythm, component vocabulary (card, badge, button, table), dark mode equivalents.
+- Wire a lint that catches zone violations (e.g. `#0f172a` appearing in a non-header/hero selector).
+- Audit all third-party components Material injects (search, announce bar, cookie consent if added) against the token spec.
+- Decide: card icon parity — the three "loop" cards use Material icons, the eleven "catalogue" cards do not. Either add icons to all, or remove from the three. The current split reads as two separate design systems inside one page.
+
+**Unblocks when:** someone opens this as a normal PR (no RFC needed — this is internal docs tooling, not a pack or skill change).
+
+### site-mobile-responsiveness
+
+**Source:** User request (session 2026-07-01). Mobile CSS was added for the hero section (reduced padding, stacked buttons, font-size clamp). Needs a full mobile audit pass: cards grid on narrow viewports, navigation on mobile, code block overflow for the ASCII diagram, table horizontal scroll, tab-panel usability on touch.
+
+**Unblocks when:** screened on actual mobile viewport (375px / 390px / 430px widths) and on a physical device. The dev server is accessible locally via `make site-serve`; use Chrome DevTools device emulation for an initial pass.
 
