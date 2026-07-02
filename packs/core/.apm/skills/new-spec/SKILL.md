@@ -234,6 +234,46 @@ look like?" before any code.
    The headings in `## Design (LLD)` stay universal; the prose under them is the
    stack-specific instance you resolved here.
 
+4d. **Design-readiness check (ui-shaped trigger).** Fires when `Shape: ui` is
+   confirmed (step 4c). Before writing the spec body — especially the Acceptance
+   Criteria — settle two design-readiness questions and weave the result into the spec.
+
+   If the experience pack is absent (`aesthetic-direction` and `design-critique`
+   unavailable): **proceed and note it** in the spec's Assumptions —
+   `experience pack not installed; design intent for this surface is ungrounded` —
+   then skip the rest of this step. Absence is a named gap, not a silent pass.
+
+   - **Check for a grounded aesthetic reference.** Search the repo for an aesthetic-
+     direction doc (any file whose first heading matches `# Aesthetic direction:`).
+     If none exists, offer to run `aesthetic-direction` before writing design-facing
+     ACs. A UI spec's design-intent ACs are unverifiable without a grounded reference;
+     the direction doc is what lets "this screen should feel <goal>" be checkable. If
+     the user declines or has a direction outside the repo, ask them to name the ranked
+     goals so you can reference them concretely in the spec.
+   - **Check whether existing screens or flows are affected.** If the spec modifies
+     an existing surface, offer to run `design-critique` on it before writing ACs.
+     Findings from the existing surface establish the design debt the implementation
+     must clear — surfacing them as explicit ACs is better than discovering them post-ship.
+   - **Weave design intent into the spec.** Once design-readiness is settled:
+     - In the **Objective**: name the primary user task the surface supports *and* the
+       aesthetic goal from the grounded reference it must satisfy.
+     - In the **Acceptance Criteria**: include at least one design-intent AC whose
+       outcome is observable from the rendered surface — not derivable from the code.
+       Concrete shapes: *"Above-fold copy passes the five-second scan for <persona>"*;
+       *"Screen clears the quality-floor and Nielsen heuristics with no severity-3+
+       findings"*; *"Taste critique against the <named aesthetic goal> passes with no
+       Major findings."* An AC like "component renders without errors" is not a
+       design-intent AC.
+
+   This step is the spec-time analogue of `work-loop`'s pre-EXECUTE design-intent pass
+   — establishing design intent before the ACs are written, rather than recommending
+   it before code is written. Both target the same failure mode (technically correct
+   surfaces with no design sense); this step catches it earlier.
+
+   **Mixed-shape note.** Step 4d fires on `Shape: ui` only. For a `mixed`-shaped spec
+   that includes a user-facing screen or flow, apply the same design-readiness questions
+   to that sub-surface — it is not covered automatically.
+
 5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
    - Break the work into tasks small enough to be a single PR each.
