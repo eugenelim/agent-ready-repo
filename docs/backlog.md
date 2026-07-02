@@ -229,18 +229,6 @@ jobs: build-and-smoke / publish-pypi / publish-artifactory). One AC remains
 open (AC14, Artifactory first-firing); the PyPI-side deferrals below resolved
 with the first publish (`agentbundle-v0.2.0`, 2026-06-07) + PR-B.
 
-### readme-route3-after-first-publish
-
-**Resolved by PR-B (2026-06-07).** AC11 — README install-route-3 headline now
-names `pip install agentbundle` directly; landed after the first PyPI publish
-made the claim true.
-
-### pypi-first-publish-gesture
-
-**Resolved 2026-06-07.** AC13 — first PyPI publish (`agentbundle-v0.2.0`) via
-Trusted-Publisher OIDC succeeded; clean-venv `pip install agentbundle` +
-`agentbundle --help` smoke confirmed.
-
 ### artifactory-first-publish-gesture
 
 AC14 — corp Artifactory publish first-firing. **Unblocks when:** the three
@@ -1184,34 +1172,6 @@ its own regression pass over upgrade/diff/uninstall scope resolution.
 
 ## `extraction-tier0-and-output-contract`
 
-### extraction-msg-to-markdown-python-contract
-
-**Source:** spec-stage adversarial review of
-[`extraction-tier0-and-output-contract`](specs/extraction-tier0-and-output-contract/spec.md).
-RFC-0058 D3 / Open-Q2 recommended `msg-to-markdown` adopt the unified output
-contract. It was **removed from the floor spec** once review confirmed
-`msg-to-markdown` is a **Node.js** skill (`scripts/convert.js` +
-`@nicecode/msg-reader`), so it cannot import the floor's shared **Python**
-frontmatter builder — a JS reimplementation would fork the contract and break
-the floor spec's "single builder, no drift" property (AC1). **Decision (owner:
-eugenelim):** adopt the contract by **porting `msg-to-markdown` to Python** (e.g.
-a pure-Python `.msg` reader such as `extract-msg`, swapping the npm dependency +
-Node runtime), so it shares the one builder — done as its **own slice** with its
-own adversarial + quality review and a **parity check** against today's Node
-output, not bundled into the floor. **Unblocks when:** the floor spec's
-`contract.py` builder ships (the interface to share) and the Python `.msg`-reader
-dependency clears the pack's dependency bar. Also folds in the `.eml`/MIME
-ingestion deferral below if MIME parsing lands in the same Python skill.
-
-### extraction-tier0-eml-mime
-
-**Source:** RFC-0058 Open-Q2. The floor spec adds `.eml` as a **file-to-markdown
-input format** at Tier 0 (D7; spec AC7). Full **MIME** handling for
-`msg-to-markdown` (multipart bodies, nested messages, richer header mapping
-beyond a flat `.eml` read) is **deferred** — it belongs with the
-`msg-to-markdown` Python port above, not the file-to-markdown floor. **Unblocks
-when:** the `msg-to-markdown` Python-port slice is picked up.
-
 ### extraction-image-pixel-bomb-guard
 
 **Source:** implementation-stage security review of
@@ -1257,3 +1217,266 @@ wire in. **Not built.** **Unblocks when:** an adopter needs an in-skill redactio
 hook rather than gating at their classification layer — at which point it is its
 own slice with its own security review (it changes the egress boundary
 `security-reviewer` gates).
+
+## `experience-pack`
+
+Open items for the `experience` pack skills — skill additions, amendments, and gaps in the
+design thread coverage. These are pack-level concerns, not site-specific; the site items that
+have an experience-pack implication are cross-referenced from `## github-pages-site` below.
+
+### copy-direction-skill-rfc
+
+**Source:** Session 2026-07-01 — building the GitHub Pages site exposed that `aesthetic-direction`
+covers visual voice but has no copy twin. The experience pack's design thread (journey → realization)
+is silent on copy: what the product says, not just how it looks.
+
+**Gap:** `aesthetic-direction` produces named visual goals grounded in persona, precedent, and
+platform standards. There is no equivalent skill for copy voice — no interrogation sequence for
+manifesto vs. instructional vs. warm, no tweet-test criterion, no grounding in copy precedents
+(Stripe's "The new standard in online payments"; Linear's "The issue tracker you'll enjoy using").
+The full gap analysis with concrete site examples is in
+[`content-strategy-and-marketing-copy-lens`](#content-strategy-and-marketing-copy-lens) below.
+
+**Proposed work:**
+A `copy-direction` skill in the `experience` pack — the copy twin of `aesthetic-direction`. Same
+interrogation structure (vibe → named goals → grounding → arbitration) applied to copy voice and
+positioned copy. Produces a `copy-direction.md` doc grounded in persona, copy precedents, and
+recognized persuasion standards (painkiller-first framing, tweet test, five-second evaluator scan).
+
+**Unblocks when:** RFC opened for the new skill (new skill = public interface = full-mode
+work-loop trigger). RFC should address: scope boundary relative to `voice-and-microcopy` (which
+covers UI microcopy but not marketing/conversion copy), and whether conversion architecture (CTA
+specificity, above-fold order, SEO semantics) belongs in this skill or a separate `growth-pack`
+track.
+
+### design-system-foundations-skill-gap
+
+**Source:** Session 2026-07-01 — `aesthetic-direction` anti-patterns explicitly refuse to produce
+token values ("no palette, font name, or spacing value here — hand off to `design-system-foundations`").
+But `design-system-foundations` does not exist in the catalogue.
+
+**Gap:** The experience pack's declared design thread ends at `aesthetic-direction` (named goals)
+with an explicit handoff to `design-system-foundations` — which is not a skill anyone can invoke.
+An adopter who runs `aesthetic-direction` has goals but no path to tokens. The gap was exposed
+building this site's CSS design token set from scratch with no skill guidance.
+
+**Proposed work:** Either (a) author `design-system-foundations` as the next skill in the experience
+pack — takes the direction doc as input, produces a token set (color roles, type scale, spacing
+rhythm, elevation, motion) grounded in the goals — or (b) extend `aesthetic-direction` to produce
+a lightweight token scaffold in addition to the direction doc, removing the phantom handoff.
+Option (a) is the cleaner skill decomposition; option (b) avoids a new skill that may be scope-creep
+(design-system-foundations is broader than aesthetic guidance).
+
+**Unblocks when:** RFC scopes the option decision and the boundary with `design-critique` (which
+reviews against a design system but doesn't author one).
+
+### design-critique-marketing-clarity-criterion
+
+**Source:** Session 2026-07-01 — `design-critique` covers UX/visual heuristics (Nielsen's 10,
+WCAG SCs, Hick's Law, Fitts's Law). It does not cover whether copy motivates, communicates to a
+skeptical evaluator, or passes basic conversion architecture tests.
+
+**Gap:** A reviewer using `design-critique` today would not flag "hero subtitle describes features
+not outcomes" or "zero social proof above the fold" — those are copy/conversion concerns, not
+UX/visual ones. The heuristics covering them (tweet test, five-second evaluator scan, painkiller
+framing) are absent from the skill's criterion set.
+
+**Proposed work (amendment, not a new skill):** Add a "marketing clarity" criterion section to
+`design-critique`: tweet test (headline stands alone as a conviction statement), five-second scan
+(does the above-fold answer: what is this / who is it for / should I care?), and painkiller-first
+structure check (does the copy lead with the reader's problem, not the author's feature list). This
+is a bounded amendment — no new skill file, no RFC needed unless the change crosses a public
+interface. Route as a normal PR with `adversarial-reviewer` pass.
+
+**Unblocks when:** taken as a `design-critique` skill amendment PR.
+
+### experience-reviewer-as-work-loop-gate
+
+**Source:** Session 2026-07-01 — no formal mechanism routes work-loop's reviewer roster to include
+`experience-reviewer` when a change crosses a user-facing surface. The reviewer is available but
+never auto-triggered.
+
+**Gap:** Work-loop's risk triggers fire specialist reviewers (security-reviewer for auth/secrets,
+quality-engineer for testability). There is no analogous trigger for changes that affect what a
+reader sees — a new docs page, a site redesign, a pack card rewrite. The experience reviewer exists
+but must be invoked manually; the SDLC gate is missing.
+
+**Proposed work:** Define a "user-facing surface" risk trigger in work-loop: *does this change what
+a reader or adopter sees?* If yes → `experience-reviewer` runs as a mandatory gate alongside the
+standard reviewer roster. The full working hypothesis and governance implications are in
+[`experience-loop-trigger-for-site-changes`](#experience-loop-trigger-for-site-changes) in the
+site section. This is the pack-level policy decision; the site section is the concrete example.
+
+**Unblocks when:** ADR or RFC establishes the trigger contract and work-loop skill is updated.
+Needs a decision on mandatory vs. recommended (suggested: mandatory for net-new user-facing pages,
+recommended for copy changes).
+
+---
+
+## `github-pages-site`
+
+### aesthetic-rubrics-research
+
+**Source:** Session 2026-07-01 — aesthetic direction pass on the GitHub Pages
+site surfaced rubrics not yet encoded in the `aesthetic-direction` skill.
+
+**Already added to `references/grounding.md` (ride-along, 2026-07-01):**
+- Visual voice as a grounding dimension distinct from correctness rubrics:
+  surface treatment (dark hero + grid texture + ambient glow pattern),
+  type scale philosophy (display vs. document, `clamp()`, letter-spacing),
+  color philosophy (one chromatic accent), elevation philosophy (border-not-shadow).
+- Stage 1.5 ambition-axis probe added to `references/interrogation-sequence.md`:
+  document-to-product-site spectrum, surface treatment claim, example treatments.
+- Memory `reference_aesthetic_direction_rubrics.md` captures what was used.
+
+**Still open — needs a dedicated research session (`/research`):**
+1. MECE correctness rubric set with cited WCAG SCs (1.4.1, 1.4.3, 2.4.7, 2.3.3
+   etc.) so they can be applied from memory rather than re-derived each pass.
+2. Platform-specific visual voice precedents beyond responsive-web (iOS HIG,
+   Material 3 expressive tier, Android adaptive).
+3. Information architecture rubrics (Diátaxis, card-sorting, progressive
+   disclosure quantification) as grounding standards — currently absent from
+   the skill's Standards referent list.
+4. Typography research canon (optical sizing, variable-font weight axes,
+   fluid type scales via `clamp()` best practice).
+
+**Unblocks when:** `/research` catalogues the above four areas and the
+`aesthetic-direction` skill's reference files are updated in a single PR,
+routed through `work-loop` light mode.
+
+### experience-loop-trigger-for-site-changes
+
+**Source:** Session 2026-07-01 — question raised about when `experience` pack
+skills should trigger for frontend or product changes that affect user-facing
+surfaces including this docs site.
+
+**Open:** Define the trigger points for experience pack skills (`aesthetic-direction`,
+`design-critique`, `experience-reviewer`) in the context of:
+- Changes to this GitHub Pages site (`site/docs/`, `site/mkdocs.yml`, `tools/build-site.py`)
+- Changes to user-facing product docs (`docs/guides/`, `docs/product/`)
+- New pack additions or removals that change the catalogue content
+
+**Working hypothesis:** experience pack trigger belongs in `work-loop`'s risk
+triggers — specifically under "Structural or public-interface change" when that
+change crosses a user-facing surface. The check would be: *does this change what
+a reader sees on the site?* If yes → experience reviewer runs in addition to the
+standard reviewer roster.
+
+**Unblocks when:** an RFC or ADR establishes the trigger contract and the
+`work-loop` skill is updated with a user-facing-surface risk trigger. Needs
+discussion on whether the experience loop is a mandatory gate or a recommended
+gate (suggested: mandatory for net-new pages, recommended for content changes).
+### content-strategy-and-marketing-copy-lens
+
+**Source:** Session 2026-07-01 — building the GitHub Pages site exposed a gap:
+no skill in the catalogue covers marketing copy writing, conversion architecture,
+or digital evangelism voice. The current hero headline and above-fold content
+were written without any disciplined content-strategy method.
+
+**Gap analysis — covered vs. not:**
+
+*Covered in existing packs:*
+- UI microcopy (error/empty/label states): `product-engineering` → `voice-and-microcopy`
+- Brand voice character axes (formality/humor/respect/enthusiasm): `voice-and-microcopy`
+- Visual voice: `experience` → `aesthetic-direction`
+- Product vision/positioning as an intent: `product-engineering` → `frame-intent`
+
+*Not covered anywhere:*
+1. **Marketing copy / hero headline writing** — no skill for writing or critiquing
+   positioning headlines, taglines, or above-fold marketing copy. The "tweet test"
+   (can the headline stand alone as a conviction statement?) has no home.
+2. **Copy voice critique** — `design-critique` covers visual/UX heuristics; nothing
+   covers whether copy pulls, motivates, or communicates clearly to a skeptical
+   evaluator scanning in 5 seconds.
+3. **Conversion architecture** — above-fold order (social proof, feature hierarchy,
+   urgency, CTA specificity); no skill for thinking about the reader's evaluation
+   sequence or what belongs above vs. below the fold.
+4. **Digital evangelism / devrel voice** — the tone that builds community vs. just
+   documents: changelog entries that create excitement, README copy that spreads,
+   announcement copy. Different from `voice-and-microcopy`'s UI scope.
+5. **SEO semantics** — keyword intent targeting, meta descriptions, page titles.
+   "AI Operating Model" is our invented category; no skill interrogates whether
+   it's what the target audience actually searches for.
+
+*Concrete example — current site's above-fold:*
+- Headline "The Complete AI Operating Model for Software Teams" — "Complete"
+  is an unverified claim; "AI Operating Model" is invented category language,
+  not search-native; "for Software Teams" excludes individual practitioners.
+- Subtitle describes features (loops, packs, agents) not outcomes for the reader.
+- Zero social proof above the fold (no install count, no logos, no quotes).
+- CTAs "Get started" / "Browse packs" — generic, no urgency, no specificity.
+
+**What can be jerry-rigged from existing pack coverage:**
+- `aesthetic-direction` extended to produce a `copy-direction` doc as its twin:
+  same interrogation structure (vibe → named goals → grounding → arbitration) but
+  for copy voice: manifesto-grade vs. instructional vs. warm; what would the
+  corporate-bad version sound like; what does the headline feel like in the first
+  3 seconds? This is within the spirit of the experience pack and could be a
+  ride-along to an RFC.
+- `design-critique` could add a "marketing clarity" criterion: does the headline
+  pass the tweet test? Does the above-fold answer the three evaluator questions
+  in 5 seconds (what is this / who is it for / should I care)?
+
+**Proposed direction:**
+Two separate work items:
+1. **`copy-direction` skill** (experience pack extension): the copy twin of
+   `aesthetic-direction` — a skill that runs the same interrogation for copy
+   voice and produces a copy-direction doc grounded in persona, copy precedents
+   (Stripe's "The new standard in online payments"; Linear's "The issue tracker
+   you'll enjoy using"), and recognized persuasion standards. Ride-along to
+   `aesthetic-direction` in the same session. Route as an RFC (`work-loop` full
+   mode — new skill, public interface).
+2. **Conversion + SEO** (open, not in experience pack scope): belongs in a future
+   `growth` or `content-strategy` pack, or as an opt-in rider on
+   `product-engineering`. Blocked on charter decision — is growth/marketing within
+   the company OS scope?
+
+**Unblocks when:** RFC for `copy-direction` skill is opened; charter decision on
+growth scope resolves item 2.
+
+**Research findings (session 2026-07-01):** Agent skills for UX writing are well-established (segmented style-guide training + character-limit enforcement); marketing/conversion copy has no formal agent skill — best-available is a 5-step pipeline (VOC mining → competitive gap → value prop painkiller framing → brand voice training → creative-director output structure). No anthropic-cookbook examples exist for content/UX. Sources: UX Writing Hub (Sarah Kessler chained GPT pairs), aufaitux.com (Figma-resident UX writing agents), msitarzewski/agency-agents (Brand Guardian / Ad Strategist persona cards), Social Media Examiner (5-step conversion copy pipeline). Passable today: hero headline formulas, VOC extraction prompts, role-based persona subagent cards. Needs original work: formal SKILL.md for hero headline writing, copy critique with scoring rubrics, conversion architecture review as an agent workflow.
+
+### site-social-proof-band
+
+**Source:** experience-reviewer finding (session 2026-07-01). Page ships zero social proof or credibility signal — no version/recency signal, no install count, no adopter logos, no dogfooding claim. For a skeptical technical buyer this is the largest missing conversion lever.
+
+**Working approach:** The strongest available honest signal is dogfooding — the catalogue builds and governs *itself* (RFC/ADR trail, self-host projection, PyPI package recency, adapter count). A "proof band" section between the hero and the loops section could carry: `agentbundle` PyPI version badge, install count if available, "built with itself" dogfooding statement, adapter count. No fabricated logos.
+
+**Unblocks when:** someone decides what signal is available and honest enough to publish, then adds the band as a static section in `site/docs/index.md`. Does not require a formal spec; a normal PR with experience-reviewer review is sufficient.
+
+### site-catalogue-hierarchy
+
+**Source:** experience-reviewer finding (session 2026-07-01). "Fourteen" appears three times before the two-tier progressive-disclosure split ("start with loops / add what your team needs"). Hick's Law: presenting 14 equal-weight choices maximises perceived choice cost. The 11 "add what you need" cards have no sub-grouping.
+
+**Open work:**
+- Drop count from hero subtitle (already done in session: "These fourteen packs" → acceptable, but "fourteen" still appears in the catalogue section header). Consider "a curated catalogue" vs. naming the count up front.
+- Sub-group the 11 secondary cards — the `repo`/`user` scope tags already exist as a natural axis. Alternatively, group by discipline cluster (data/docs/infra/design/governance).
+
+**Unblocks when:** taken as a copy-only PR with experience-reviewer review.
+
+### site-handoff-diagram
+
+**Source:** experience-reviewer finding (session 2026-07-01). The G3→G4→G5 handoff chain is rendered as a plain ASCII code fence — reads as a debug artifact on a site claiming "leading developer site" polish. Gate labels (G0/G1.5/G2/G3/G4/G5) also lack a first-use definition anywhere outside the card bodies.
+
+**Working approach:** Replace the ASCII fence with a Mermaid diagram (the site already supports `superfences`/Mermaid rendering via MkDocs Material). Use `#5e6ad2` accent nodes to tie it to the visual voice. Add a short legend defining the Gx gate notation.
+
+**Unblocks when:** taken as a content PR. Mermaid support is already wired; no build changes needed.
+
+### site-design-system-spec
+
+**Source:** Session 2026-07-01 — design system lens applied. The CSS now has inline token roles documented (DARK ZONE / SURFACE-0/1/2 / ACCENT / TEXT-HIGH/MID/LOW), but there is no machine-readable token spec.
+
+**Open work:**
+- Author a `site/design-system.md` or `site/tokens.json` that formalizes: color tokens + their zones, typography scale (base/h1–h4/code), spacing rhythm, component vocabulary (card, badge, button, table), dark mode equivalents.
+- Wire a lint that catches zone violations (e.g. `#0f172a` appearing in a non-header/hero selector).
+- Audit all third-party components Material injects (search, announce bar, cookie consent if added) against the token spec.
+- Decide: card icon parity — the three "loop" cards use Material icons, the eleven "catalogue" cards do not. Either add icons to all, or remove from the three. The current split reads as two separate design systems inside one page.
+
+**Unblocks when:** someone opens this as a normal PR (no RFC needed — this is internal docs tooling, not a pack or skill change).
+
+### site-mobile-responsiveness
+
+**Source:** User request (session 2026-07-01). Mobile CSS was added for the hero section (reduced padding, stacked buttons, font-size clamp). Needs a full mobile audit pass: cards grid on narrow viewports, navigation on mobile, code block overflow for the ASCII diagram, table horizontal scroll, tab-panel usability on touch.
+
+**Unblocks when:** screened on actual mobile viewport (375px / 390px / 430px widths) and on a physical device. The dev server is accessible locally via `make site-serve`; use Chrome DevTools device emulation for an initial pass.
+
