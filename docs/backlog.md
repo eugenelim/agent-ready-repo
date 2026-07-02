@@ -1272,44 +1272,29 @@ reviews against a design system but doesn't author one).
 
 ### design-critique-marketing-clarity-criterion
 
-**Source:** Session 2026-07-01 — `design-critique` covers UX/visual heuristics (Nielsen's 10,
-WCAG SCs, Hick's Law, Fitts's Law). It does not cover whether copy motivates, communicates to a
-skeptical evaluator, or passes basic conversion architecture tests.
-
-**Gap:** A reviewer using `design-critique` today would not flag "hero subtitle describes features
-not outcomes" or "zero social proof above the fold" — those are copy/conversion concerns, not
-UX/visual ones. The heuristics covering them (tweet test, five-second evaluator scan, painkiller
-framing) are absent from the skill's criterion set.
-
-**Proposed work (amendment, not a new skill):** Add a "marketing clarity" criterion section to
-`design-critique`: tweet test (headline stands alone as a conviction statement), five-second scan
-(does the above-fold answer: what is this / who is it for / should I care?), and painkiller-first
-structure check (does the copy lead with the reader's problem, not the author's feature list). This
-is a bounded amendment — no new skill file, no RFC needed unless the change crosses a public
-interface. Route as a normal PR with `adversarial-reviewer` pass.
-
-**Unblocks when:** taken as a `design-critique` skill amendment PR.
+> **Shipped — experience 0.4.0 (2026-07-02).** Marketing clarity pass added to
+> `design-critique` as mode 3: tweet test, five-second scan, painkiller-first. Fires on
+> above-fold copy with a persuasion/conversion goal. See spec
+> `design-critique-marketing-clarity` and changelog `[Unreleased]`.
 
 ### experience-reviewer-as-work-loop-gate
 
-**Source:** Session 2026-07-01 — no formal mechanism routes work-loop's reviewer roster to include
-`experience-reviewer` when a change crosses a user-facing surface. The reviewer is available but
-never auto-triggered.
+> **Shipped — core 0.8.0 (2026-07-02).** `experience-reviewer` added to `work-loop`'s specialist
+> reviewer roster as a conditional gate for full-mode user-facing surface diffs (select-or-note,
+> same posture as `security-reviewer`). Pre-EXECUTE design-intent pass added to PLAN (advisory in
+> both modes). ADR-0047 records the decision including the trigger-scoping rationale (full-mode only;
+> net-new pages already route to full mode via the existing "Structural or public-interface change"
+> trigger). See spec `experience-reviewer-work-loop-gate` and changelog `[Unreleased]`.
 
-**Gap:** Work-loop's risk triggers fire specialist reviewers (security-reviewer for auth/secrets,
-quality-engineer for testability). There is no analogous trigger for changes that affect what a
-reader sees — a new docs page, a site redesign, a pack card rewrite. The experience reviewer exists
-but must be invoked manually; the SDLC gate is missing.
+### new-spec-ui-design-readiness
 
-**Proposed work:** Define a "user-facing surface" risk trigger in work-loop: *does this change what
-a reader or adopter sees?* If yes → `experience-reviewer` runs as a mandatory gate alongside the
-standard reviewer roster. The full working hypothesis and governance implications are in
-[`experience-loop-trigger-for-site-changes`](#experience-loop-trigger-for-site-changes) in the
-site section. This is the pack-level policy decision; the site section is the concrete example.
-
-**Unblocks when:** ADR or RFC establishes the trigger contract and work-loop skill is updated.
-Needs a decision on mandatory vs. recommended (suggested: mandatory for net-new user-facing pages,
-recommended for copy changes).
+> **Shipped — core 0.9.0 (2026-07-02).** New step 4d added to `new-spec`: when `Shape: ui`
+> is confirmed, checks for a grounded aesthetic reference before ACs are written, offers
+> `aesthetic-direction` if none exists, offers `design-critique` on affected existing surfaces,
+> and requires at least one design-intent AC observable from the rendered surface. Select-or-note
+> fallback when experience pack is absent. This closes the spec-authoring gap: design intent
+> is now established before ACs are written, not discovered post-ship. See spec
+> `new-spec-ui-design-readiness` and changelog `[Unreleased]`.
 
 ---
 
@@ -1346,26 +1331,14 @@ routed through `work-loop` light mode.
 
 ### experience-loop-trigger-for-site-changes
 
-**Source:** Session 2026-07-01 — question raised about when `experience` pack
-skills should trigger for frontend or product changes that affect user-facing
-surfaces including this docs site.
-
-**Open:** Define the trigger points for experience pack skills (`aesthetic-direction`,
-`design-critique`, `experience-reviewer`) in the context of:
-- Changes to this GitHub Pages site (`site/docs/`, `site/mkdocs.yml`, `tools/build-site.py`)
-- Changes to user-facing product docs (`docs/guides/`, `docs/product/`)
-- New pack additions or removals that change the catalogue content
-
-**Working hypothesis:** experience pack trigger belongs in `work-loop`'s risk
-triggers — specifically under "Structural or public-interface change" when that
-change crosses a user-facing surface. The check would be: *does this change what
-a reader sees on the site?* If yes → experience reviewer runs in addition to the
-standard reviewer roster.
-
-**Unblocks when:** an RFC or ADR establishes the trigger contract and the
-`work-loop` skill is updated with a user-facing-surface risk trigger. Needs
-discussion on whether the experience loop is a mandatory gate or a recommended
-gate (suggested: mandatory for net-new pages, recommended for content changes).
+> **Shipped — core 0.8.0 / ADR-0047 (2026-07-02).** Resolved by the
+> `experience-reviewer-as-work-loop-gate` item above. ADR-0047 establishes: net-new pages and
+> substantial redesigns route to full mode via the existing "Structural or public-interface
+> change" trigger → experience-reviewer gate fires as a conditional specialist reviewer. The
+> pre-EXECUTE design-intent pass (aesthetic-direction / design-critique) is advisory in both
+> modes. This applies to site changes, product docs, and pack card changes equally — the trigger
+> is surface-type, not directory-specific. The content-strategy-and-marketing-copy-lens item
+> below covers the remaining open gaps.
 ### content-strategy-and-marketing-copy-lens
 
 **Source:** Session 2026-07-01 — building the GitHub Pages site exposed a gap:

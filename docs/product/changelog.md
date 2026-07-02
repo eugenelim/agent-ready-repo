@@ -19,6 +19,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`design-critique` now includes a marketing clarity pass (experience 0.4.0).** A new
+  fourth mode runs when the artifact has above-fold copy with a persuasion/conversion
+  goal (landing pages, pack cards, product announcements — not settings screens or forms).
+  It checks the tweet test (headline stands alone as a conviction statement), the
+  five-second scan (above-fold answers what / who / should I care), and painkiller-first
+  structure (copy leads with the reader's problem, not the author's feature list). Each
+  finding maps to the violated criterion with a `marketing` source label and a 0–4
+  severity using the existing frequency × impact × persistence rubric, where impact means
+  conversion/persuasion cost.
+
+- **`new-spec` now prompts for design-readiness on ui-shaped specs (core 0.9.0).** When
+  `Shape: ui` is confirmed, a new step 4d checks whether a grounded aesthetic reference
+  (`aesthetic-direction` output) exists before the Acceptance Criteria are written,
+  offers to run `design-critique` on any existing affected surface, and requires at
+  least one design-intent AC whose outcome is observable from the rendered surface —
+  not derivable from code. If the experience pack is absent, it notes that in Assumptions
+  and proceeds. This is the spec-authoring complement to `work-loop`'s pre-EXECUTE
+  design-intent pass: both target the same failure mode (technically correct surfaces
+  with no design sense) at different stages of the loop.
+
+- **`work-loop` now includes a pre-EXECUTE design-intent pass and an `experience-reviewer`
+  gate for user-facing surface diffs (core 0.8.0).** When a change produces a user-facing
+  surface — a new page, a redesigned screen, a pack card, a docs page — the PLAN section
+  now recommends running `aesthetic-direction` and/or `design-critique` before writing
+  code (advisory in both light and full mode, analogous to "write the test first"). For
+  full-mode user-facing surface diffs, `experience-reviewer` is added to the specialist
+  reviewer roster alongside `security-reviewer` and `quality-engineer`: it receives the
+  rendered output plus the grounded aesthetic reference and constraints, and runs with
+  the standard select-or-note fallback when the experience pack is absent. Decision
+  recorded in ADR-0047.
+
 - **`msg-to-markdown` is now a pure-Python skill that also reads `.eml`, and
   emits the unified output contract (converters 0.6.0).** The Outlook `.msg`
   converter is re-hosted from Node.js onto Python: `.msg` is read via `olefile` +

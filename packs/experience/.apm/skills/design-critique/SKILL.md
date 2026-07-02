@@ -1,17 +1,18 @@
 ---
 name: design-critique
-description: "Use to evaluate an existing screen, flow, or mockup — an interactive, authoring-time heuristic critique that reviews against recognized usability principles, maps each issue to the principle it violates, rates severity, and returns a prioritized findings list with a fix per finding. Also supports a taste mode, an evidence-grounded critique of a screen against the grounded aesthetic reference (from aesthetic-direction) and platform fit. Triggers on 'critique this design', 'review this screen', 'what is wrong with this mockup', 'do a heuristic eval', 'is this usable', 'does this fit our aesthetic', 'does this feel right for the platform'. Do NOT use to name a felt direction (use aesthetic-direction), to derive tokens or scales (use design-system-foundations), or to structure hierarchy and reading flow (use layout-and-information-architecture)."
+description: "Evaluate an existing screen, flow, or mockup with a severity-rated findings list: quality-floor pass (states, a11y, motion), heuristic eval (Nielsen's 10), marketing clarity pass (tweet test, five-second scan, painkiller-first — fires on above-fold copy with a persuasion goal), and taste critique (grounded aesthetic reference + platform fit). Triggers on 'critique this design', 'review this screen', 'what is wrong with this mockup', 'do a heuristic eval', 'is this usable', 'does this fit our aesthetic', 'does this page convert', 'is this copy compelling', 'tweet test'. Do NOT use to name a felt direction (use aesthetic-direction), to derive tokens (use design-system-foundations), or to structure hierarchy (use layout-and-information-architecture)."
 ---
 
 # Skill: design-critique
 
 Runs a structured evaluation of a screen, flow, or mockup and returns a **prioritized, severity-rated findings list** — each issue mapped to the recognized usability principle or aesthetic reference it violates, with one concrete, portable recommendation. The list is the artifact: it turns "this feels off" into something a stakeholder can argue and a builder can act on.
 
-Three modes, always run in this order:
+Four modes, always run in this order:
 
 1. **Quality-floor pass** — mandatory; checks all states, accessibility, and reduced-motion.
 2. **Heuristic evaluation** — walks the surface against recognized usability principles.
-3. **Taste critique** (when a grounded aesthetic reference is present) — checks the screen against the grounded aesthetic reference and platform fit.
+3. **Marketing clarity pass** (when the artifact includes above-fold copy with a persuasion/conversion goal — a landing page, marketing page, or product announcement) — checks the copy against the tweet test, five-second scan, and painkiller-first structure. Does **not** fire for internal tools, forms, settings screens, or content pages with no conversion goal.
+4. **Taste critique** (when a grounded aesthetic reference is present) — checks the screen against the grounded aesthetic reference and platform fit.
 
 > **Authoring-time self-review.** This skill is an **interactive, authoring-time** tool — it runs in the session, with the author. It is **not** a fresh-context pass and **not** an adversarial reviewer; a same-session critique marks its own homework. The genuine fresh-context UX review is the forked-context **`experience-reviewer`** agent — invoke it for an independent pass after the authoring session.
 
@@ -29,11 +30,17 @@ Confirm all three before drafting; if any fails, resolve it first.
 2. **Apply the shared floor first.** Run the `quality-floor` checklist at `references/quality-floor.md` against the surface — handle all states, the accessibility floor, the reduced-motion principle. Each miss is a finding mapped to the floor commitment it breaches; accessibility misses start at major.
 3. **Run the heuristic evaluation.** Walk the surface against the recognized usability principles in `references/heuristics.md`. For each problem, record what you observed before you judge it.
 4. **Map and rate.** Map each finding to the single best-fit principle (or floor commitment) and assign a 0–4 severity, naming the frequency × impact × persistence factors that set it. See `references/heuristics.md`.
-5. **Run the taste critique** (when a grounded aesthetic reference from `aesthetic-direction` is available). See `references/taste-critique.md` for the full method. In brief:
+5. **Run the marketing clarity pass** (when the artifact includes above-fold copy with a persuasion/conversion goal). For each of the three criteria, record what you observed, then map and rate:
+   a. **Tweet test** — can the headline or tagline stand alone as a conviction statement? If you shared just that line with no surrounding context, would it communicate what this is and why it matters to the target reader? Failure: the line only describes the product, names a category without a reader benefit, or requires the page for meaning.
+   b. **Five-second scan** — after 5 seconds on the above-fold, can a first-time visitor answer: *what is this / who is it for / should I care?* All three must be answerable from the visible content alone, not inferred. Failure: one or more answers are absent, ambiguous, or below the fold.
+   c. **Painkiller-first structure** — does the copy lead with the reader's problem, pain, or desired outcome before naming the product's features? A painkiller solves a known hurt; a vitamin is a nice-to-have. Failure: copy leads with the author's feature list or product identity rather than the reader's recognized need.
+   
+   Map each finding to the criterion it violates and assign a 0–4 severity using the frequency × impact × persistence rubric, where **impact** means conversion/persuasion cost — how badly the miss hurts the reader's ability to determine fit and take the intended action. (This is a deliberate application of the same rubric to a persuasion-cost dimension; it is not a separate scale.) Label source mode `marketing`. A settings screen or internal tool that is out of scope for this pass produces no findings with this label.
+6. **Run the taste critique** (when a grounded aesthetic reference from `aesthetic-direction` is available). See `references/taste-critique.md` for the full method. In brief:
    a. **Check aesthetic alignment** — for each named goal in the grounded reference, ask whether the screen advances, is neutral to, or contradicts it. Ground each verdict in the recorded referent (persona + precedent + standards), never in a fresh opinion.
    b. **Check platform fit** — verify the screen respects the platform surface's (responsive-web / iOS / Android / cross-platform) conventions; point to the platform standard as the warrant, never reprint its values.
    c. **Map and rate taste findings** — each taste finding maps to the aesthetic goal it contradicts or the platform convention it violates; rate 0–4 by the same severity rubric (frequency × impact × persistence), with 0 reserved for genuine disagreement where the referent does not clearly resolve the call.
-6. **Prioritize and recommend.** Merge all findings from all three modes. Sort worst-first across modes, lead with a count-by-severity headline, and give each finding one concrete, portable recommendation expressed as design intent — never a stack-specific implementation. Label the source mode (floor / heuristic / taste) so the reader knows which lens each finding came from.
+7. **Prioritize and recommend.** Merge all findings from all modes. Sort worst-first across modes, lead with a count-by-severity headline, and give each finding one concrete, portable recommendation expressed as design intent — never a stack-specific implementation. Label the source mode (`floor` / `heuristic` / `marketing` / `taste`) so the reader knows which lens each finding came from.
 
 ## Anti-patterns to refuse
 

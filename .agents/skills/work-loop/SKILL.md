@@ -309,6 +309,16 @@ For anything beyond trivial, *think before you write code*. Concretely:
   [`references/pre-execute-review.md`](references/pre-execute-review.md) and the
   REVIEW `security-reviewer` bullet. Same Profile-A opt-out and `approve-plan`
   gate; fallback if no `security-reviewer` is installed: proceed and note it.
+- **Pre-EXECUTE design-intent pass (user-facing surface trigger).** When the
+  change produces a user-facing surface — a new page, a redesigned screen, a
+  component, a pack card, a docs page — establish design intent **before writing
+  code**. Run `aesthetic-direction` (if no grounded aesthetic reference exists
+  yet) and/or `design-critique` (if there is an existing surface to evaluate)
+  and record the design intent in the spec. This is the design analogue of
+  "write the test first": design intent before implementation prevents the
+  common failure mode of technically correct surfaces with no design sense. Applies
+  in both light and full mode as a recommendation; the mandatory fresh-context
+  gate (`experience-reviewer`) runs in REVIEW for full-mode work.
 - **Initialize the loop's state file.** Run this skill's bundled
   `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
   the bundled `assets/state.json` template into place, sets `feature`
@@ -656,6 +666,16 @@ note in the summary, not a blocker.
   infra wiring (the deferred `infra-contract-reviewer`, the `design-reviewer`
   spec-stage carve) in
   [`references/infra-verification.md`](references/infra-verification.md).
+- Match `experience-reviewer` — for diffs that change what a reader or adopter
+  sees (a new page, a redesigned screen, a pack card, a docs page) **in full-mode
+  work**. This is a design/experience lens, distinct from the three core
+  code-review lenses. Pass the **rendered output** (a described screen state, a
+  screenshot, or a path to the built artifact) **plus the grounded aesthetic
+  reference and constraints** (persona, outcome, platform surface) — not the
+  code diff; experience-reviewer reviews design artifacts, not code diffs, and
+  its confirm-before-reviewing gate requires the grounded reference. Fallback if
+  no `experience-reviewer` is installed (experience pack absent): proceed and
+  note it — absence of the experience pack is a named skip, not a silent pass.
 
 **Dispatch reviewers in parallel when you invoke more than one** per
 the [Parallel dispatch discipline](#parallel-dispatch-discipline)
@@ -723,8 +743,9 @@ mode below, then evaluate the terminal-state bullet last.
   - For each reviewer the diff warranted (`adversarial-reviewer`
     always; `security-reviewer` on security-boundary diffs;
     `quality-engineer` on every loop, plus a whole-spec pass on the
-    final loop of a multi-loop spec): either the subagent returned
-    `Clean — ready to commit.`, **or** no matching subagent was
+    final loop of a multi-loop spec; `experience-reviewer` on
+    user-facing surface diffs in full-mode work): either the subagent
+    returned `Clean — ready to commit.`, **or** no matching subagent was
     installed and the final summary names the missing review by its
     role label — e.g. `adversarial-reviewer: no matching subagent
     installed; review skipped`. *Silently skipping the reviewer is not
