@@ -1,0 +1,18 @@
+[
+  {"query": "Plan the validation for these load-bearing assumptions", "should_trigger": true},
+  {"query": "How do we validate the assumptions behind this decision brief?", "should_trigger": true},
+  {"query": "Turn the kill-conditions in this brief into a validation plan", "should_trigger": true},
+  {"query": "Scaffold an interview guide to test the core assumption", "should_trigger": true},
+  {"query": "What would confirm that users actually want self-serve onboarding?", "should_trigger": true},
+  {"query": "We have a converged brief — now plan how we'd validate it before building", "should_trigger": true},
+  {"query": "Create a usability-test plan for the assumption that admins will manage permissions themselves", "should_trigger": true},
+  {"query": "Scaffold the primary-research instruments for our hypothesis", "should_trigger": true},
+
+  {"query": "What's the riskiest assumption in this intent? Test whether the bet holds", "should_trigger": false},
+  {"query": "Scaffold the product vision and run a discovery", "should_trigger": false},
+  {"query": "Generate candidate product shapes before we commit", "should_trigger": false},
+  {"query": "Frame the domain before we design", "should_trigger": false},
+  {"query": "Write a spec for the onboarding feature", "should_trigger": false},
+  {"query": "Design the research study for customer interviews", "should_trigger": false},
+  {"query": "Analyze the interview transcripts and synthesize findings", "should_trigger": false}
+]

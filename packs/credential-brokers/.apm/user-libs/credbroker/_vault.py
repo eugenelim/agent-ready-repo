@@ -1,6 +1,6 @@
 """Encrypted-at-rest credential vault for the `credbroker[crypto]` extra.
 
-RFC-0023's Tier-3 floor upgrade: instead of a plaintext `0600` dotfile, the
+The optional `[crypto]` Tier-3 floor upgrade: instead of a plaintext `0600` dotfile, the
 optional `[crypto]` extra stores values in an AEAD-encrypted file. This module's
 own top level pulls in `cryptography` and `argon2`, so the resolution core imports
 the vault **module lazily** — only inside the functions that need it, never at the

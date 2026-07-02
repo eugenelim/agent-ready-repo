@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`aesthetic-direction` grounding reference now cites WCAG thresholds by name, not literal values (experience 0.4.1).** The Standards section of the grounding reference described contrast thresholds using specific ratio and point-size literals, which violated RFC-0033's portable-method rule. The section now refers to the named WCAG SC thresholds and the OS-level reduced-motion preference concept rather than reprinting the values table. No change to skill behavior — only the reference prose that informs the aesthetic-direction pass.
+
 ### Added
 
 - **`design-critique` now includes a marketing clarity pass (experience 0.4.0).** A new
