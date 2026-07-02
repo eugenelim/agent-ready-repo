@@ -1263,23 +1263,31 @@ own slice with its own security review (it changes the egress boundary
 ### aesthetic-rubrics-research
 
 **Source:** Session 2026-07-01 — aesthetic direction pass on the GitHub Pages
-site surfaced rubrics borrowed from external precedent that are not yet encoded
-in the `aesthetic-direction` skill's grounding references.
+site surfaced rubrics not yet encoded in the `aesthetic-direction` skill.
 
-Used in this session (documented in memory `reference_aesthetic_direction_rubrics.md`):
-Nielsen information-scent, Hick's Law, Miller's Law / progressive disclosure,
-Hemingway iceberg rule, Stripe/Linear/Vercel/MDN precedents, WCAG 2.1 AA +
-specific SCs (1.4.1 color, 1.4.3 contrast, 2.4.7 focus, 2.3.3 reduced-motion).
+**Already added to `references/grounding.md` (ride-along, 2026-07-01):**
+- Visual voice as a grounding dimension distinct from correctness rubrics:
+  surface treatment (dark hero + grid texture + ambient glow pattern),
+  type scale philosophy (display vs. document, `clamp()`, letter-spacing),
+  color philosophy (one chromatic accent), elevation philosophy (border-not-shadow).
+- Stage 1.5 ambition-axis probe added to `references/interrogation-sequence.md`:
+  document-to-product-site spectrum, surface treatment claim, example treatments.
+- Memory `reference_aesthetic_direction_rubrics.md` captures what was used.
 
-**Open:** Research and encode a complete, MECE aesthetic rubric set into the
-`aesthetic-direction` skill's reference files — covering information architecture,
-typographic standards, authority/brand signals, and the quality floor with cited
-WCAG SCs. The skill currently provides procedure but not the grounding frameworks;
-future passes shouldn't need to re-derive them from external precedent.
+**Still open — needs a dedicated research session (`/research`):**
+1. MECE correctness rubric set with cited WCAG SCs (1.4.1, 1.4.3, 2.4.7, 2.3.3
+   etc.) so they can be applied from memory rather than re-derived each pass.
+2. Platform-specific visual voice precedents beyond responsive-web (iOS HIG,
+   Material 3 expressive tier, Android adaptive).
+3. Information architecture rubrics (Diátaxis, card-sorting, progressive
+   disclosure quantification) as grounding standards — currently absent from
+   the skill's Standards referent list.
+4. Typography research canon (optical sizing, variable-font weight axes,
+   fluid type scales via `clamp()` best practice).
 
-**Unblocks when:** a research session (using `/research`) catalogues the canonical
-rubric set and the `aesthetic-direction` skill's `references/grounding.md` is
-updated in the same PR. Route through `work-loop` light mode.
+**Unblocks when:** `/research` catalogues the above four areas and the
+`aesthetic-direction` skill's reference files are updated in a single PR,
+routed through `work-loop` light mode.
 
 ### experience-loop-trigger-for-site-changes
 
