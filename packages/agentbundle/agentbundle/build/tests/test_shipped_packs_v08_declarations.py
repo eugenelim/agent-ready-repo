@@ -12,6 +12,8 @@ The `research` pack (shipped later by the `research-pack` spec) also
 declared v0.8 at birth. A future pack landing at v0.8 should add itself to
 ``V08_PACKS`` so this test surfaces the new declaration.
 
+  - ``catalogue-curation`` (RFC-0059) landed at v0.8 and is registered here.
+
 Packs in-tree NOT at v0.8:
 
   - ``credential-brokers``: still at v0.7 (RFC-0013 shipped on v0.7 and
@@ -37,6 +39,7 @@ PACKS_DIR = REPO_ROOT / "packs"
 
 V08_PACKS = (
     "atlassian",
+    "catalogue-curation",
     "contracts",
     "converters",
     "figma",
