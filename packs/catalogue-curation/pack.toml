@@ -1,0 +1,43 @@
+[pack]
+name = "catalogue-curation"
+version = "0.1.0"
+description = "Catalogue-operator skills: assimilate external primitives, survey repos, propose packs, and export white-label / attributed derivatives of the catalogue."
+readme = "README.md"
+display_name = "Catalogue Curation"
+license = "Apache-2.0 OR MIT"
+categories = ["governance", "tooling"]
+keywords = ["catalogue", "assimilate", "white-label", "fork"]
+
+# RFC-0059: a catalogue-operator pack — meta-tooling for growing/forking the
+# catalogue itself, one meta-level above governance-extras. Repo-only ceremony;
+# ships instance content (not a placeholder scaffold), so lint-seeds stays off.
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+
+# RFC-0059 D1: requires core (reviewers, adapt) AND governance-extras (two skills
+# emit RFCs). First pack-on-a-non-core dependency in the catalogue; resolves
+# compositionally under the existing dependency gate (governance-extras itself
+# gates core).
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "core"
+version = "^0.1"
+
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "governance-extras"
+version = "^0.1"
+
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/catalogue-curation/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
