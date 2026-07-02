@@ -1453,3 +1453,21 @@ growth scope resolves item 2.
 
 **Unblocks when:** screened on actual mobile viewport (375px / 390px / 430px widths) and on a physical device. The dev server is accessible locally via `make site-serve`; use Chrome DevTools device emulation for an initial pass.
 
+### catalogue-curation-retire-primitive
+
+**Source:** RFC-0059 Non-goals. The honest counterpart to assimilation — cleanly remove a skill/agent/hook (or deprecate a pack) with tombstones — deferred as rare; build it when the need is real, not speculatively.
+
+**Unblocks when:** a real retirement need arises; it lands as a new skill in the `catalogue-curation` pack (the pack is the home for catalogue operations as they come up).
+
+### catalogue-curation-audit-catalogue
+
+**Source:** RFC-0059 Non-goals. A cross-pack duplicate / activation-collision audit — deferred because it largely duplicates existing lints (`conventions-check`, `self-coverage-gate`, `lint-skill-spec`).
+
+**Unblocks when:** a gap the existing lints don't cover is demonstrated; otherwise stays rejected as duplicative.
+
+### catalogue-curation-ledger-stale-run-sweep
+
+**Source:** RFC-0059 / ADR-0047. The per-run assimilation ledger under `~/.agentbundle/catalogue-curation/<run-id>/` is purged on completion, but an interrupted run that is never resumed leaves a stale directory. A documented age-based stale-run sweep reclaims them.
+
+**Unblocks when:** `assimilate-repo`'s ledger I/O is implemented (spec `catalogue-curation` T2/T5); the sweep is a small addition to that helper.
+
