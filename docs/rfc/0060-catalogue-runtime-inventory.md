@@ -1,10 +1,10 @@
 # RFC-0060: Catalogue runtime inventory
 
-- **Status:** Open
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-07-02
-- **Date closed:**
+- **Date closed:** 2026-07-02
 - **Decision weight:** light
 - **Related:** [ADR-0021](../adr/0021-pack-manifest-source-of-truth-and-scoped-identity.md) (`pack.toml` is the metadata source of truth; `marketplace.json` is Anthropic's format, receiving only a *projection* — a one-directional, lossy copy of the subset it understands — this RFC deliberately does *not* extend that projection), [RFC-0031](0031-catalogue-package-manager-posture.md) (the catalogue's package-manager posture — how packs are versioned, resolved, and distributed), [`docs/specs/enriched-pack-manifest/`](../specs/enriched-pack-manifest/spec.md) (the spec that first projected `pack.toml` metadata into the manifests)
 
@@ -119,9 +119,15 @@ Prior art grounds the choices: package managers split "storage of truth" from "p
 
 ## Follow-on artifacts
 
-Filled in on acceptance:
+Produced on acceptance:
 
-- ADR — record the "derive live, do not persist / do not touch the Claude manifests" decision (extends ADR-0021's projection posture).
-- Spec: `docs/specs/catalogue-runtime-inventory/` — the `show` subcommand contract (flags, output shapes, degrade behavior, tests) built via `new-spec` → `work-loop`.
-- A `docs/product/changelog.md` `[Unreleased]` entry (new user-facing CLI command) and an `agentbundle` PyPI README update, in the implementing PR.
-- A separate future RFC for per-skill input/output contracts (the deferred non-goal).
+- **ADR — done.** [ADR-0049](../adr/0049-catalogue-runtime-inventory-derive-live.md) records the "derive live, persist nothing, touch no Claude manifest" decision (extends ADR-0021's projection posture).
+- **Spec — done.** [`docs/specs/catalogue-runtime-inventory/`](../specs/catalogue-runtime-inventory/spec.md) — the `show` subcommand contract (flags, output shapes, degrade behavior, tests), authored via `new-spec`. Status Draft; the build runs later via `work-loop`.
+
+Deferred to the implementing PR (the `work-loop` run against the spec above):
+
+- A `docs/product/changelog.md` `[Unreleased]` entry (new user-facing CLI command) and an `agentbundle` PyPI README update — both land with the code, not before it.
+
+Deferred to future work (the non-goal this RFC named):
+
+- A separate future RFC for per-skill input/output contracts.
