@@ -26,21 +26,21 @@ REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "site" / "docs"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
 
-PACKS: list[tuple[str, str, str]] = [
-    ("core",               "Core",                "repo"),
-    ("product-engineering","Product Engineering",  "user"),
-    ("release-engineering","Release Engineering",  "repo"),
-    ("research",           "Research",             "user"),
-    ("architect",          "Architect",            "user"),
-    ("experience",         "Experience",           "user"),
-    ("contracts",          "Contracts",            "user"),
-    ("converters",         "Converters",           "user"),
-    ("atlassian",          "Atlassian",            "user"),
-    ("figma",              "Figma",                "user"),
-    ("governance-extras",  "Governance Extras",    "repo"),
-    ("user-guide-diataxis","User Guide (Diataxis)", "repo"),
-    ("monorepo-extras",    "Monorepo Extras",       "repo"),
-    ("credential-brokers", "Credential Brokers",    "user"),
+PACKS: list[tuple[str, str, str, str]] = [
+    ("core",               "Core",                "repo", "The build loop — `work-loop`, `new-spec`, `bug-fix`, four specialist reviewers, hooks. **Install this first.**"),
+    ("product-engineering","Product Engineering",  "user", "The discovery loop — raw idea to ratified brief with human consent at G0, G1.5, G2."),
+    ("release-engineering","Release Engineering",  "repo", "The release loop — autonomous e2e convergence on ephemeral environments; prod gate is always human."),
+    ("research",           "Research",             "user", "Evidence-grounded research with typed artifacts, seven skills, and two retrieval subagents."),
+    ("architect",          "Architect",            "user", "System design, diagramming, and independent architecture review from a forked-context subagent."),
+    ("experience",         "Experience",           "user", "The full design thread: journey mapping, screen flows, aesthetic direction, WCAG quality floor."),
+    ("contracts",          "Contracts",            "user", "API-first design — OpenAPI 3.1 for HTTP, AsyncAPI for event streams."),
+    ("converters",         "Converters",           "user", "Document conversion: PDF/DOCX/PPTX/email → Markdown, Markdown → HTML/Word/PowerPoint/Excel."),
+    ("atlassian",          "Atlassian",            "user", "Jira and Confluence from the agent — SSO-cookie authenticated, flow and DORA metrics built in."),
+    ("figma",              "Figma",                "user", "Read and render Figma designs — files, nodes, variables, frame renders, FigJam → Mermaid."),
+    ("governance-extras",  "Governance Extras",    "repo", "RFC/ADR ceremony for long-lived repos: `new-rfc`, `new-adr`, `update-conventions`."),
+    ("user-guide-diataxis","User Guide (Diataxis)", "repo", "Diátaxis docs scaffold — four content modes with the `new-guide` skill."),
+    ("monorepo-extras",    "Monorepo Extras",       "repo", "Package scaffolding — `new-package` skill with an example package template."),
+    ("credential-brokers", "Credential Brokers",    "user", "In-process credential resolution: environment → OS keyring → dotfile. Cleartext never reaches the model."),
 ]
 
 PACK_INDEX_HEADER = """\
@@ -56,8 +56,8 @@ agentbundle install --pack <name>               # repo scope (default)
 agentbundle install --pack <name> --scope user  # user scope
 ```
 
----
-
+| Pack | Scope | Description |
+|---|---|---|
 """
 
 # ---------------------------------------------------------------------------
@@ -254,10 +254,8 @@ def mirror_dir(src: Path, dst: Path, rewriter=None, dry_run: bool = False) -> in
 
 def build_pack_index(packs_dir: Path, out_dir: Path, dry_run: bool = False) -> None:
     lines = [PACK_INDEX_HEADER]
-    for slug, display, scope in PACKS:
-        readme = packs_dir / slug / "README.md"
-        blurb = _extract_blurb(readme.read_text(encoding="utf-8")) if readme.exists() else "*(README not found)*"
-        lines.append(f"- **[{display}]({slug}.md)** `{scope}` — {blurb}\n")
+    for slug, display, scope, description in PACKS:
+        lines.append(f"| [**{display}**]({slug}.md) | `{scope}` | {description} |\n")
 
     content = "".join(lines)
     index_md = out_dir / "index.md"
@@ -265,21 +263,6 @@ def build_pack_index(packs_dir: Path, out_dir: Path, dry_run: bool = False) -> N
         print(f"  gen   site/docs/packs/index.md ({len(content)} bytes)")
     else:
         index_md.write_text(content, encoding="utf-8")
-
-
-def _extract_blurb(text: str) -> str:
-    in_code = False
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("```"):
-            in_code = not in_code
-            continue
-        if in_code or stripped.startswith("#") or stripped.startswith("|") or not stripped:
-            continue
-        if stripped.startswith(">"):
-            stripped = stripped.lstrip("> ").strip()
-        return stripped[:200] + ("…" if len(stripped) > 200 else "")
-    return ""
 
 
 def write_siteignore(paths: list[Path], dry_run: bool = False) -> None:
@@ -321,7 +304,7 @@ def main() -> None:
 
     print("build-site: copying pack READMEs …")
     packs_out.mkdir(parents=True, exist_ok=True)
-    for slug, _, _ in PACKS:
+    for slug, *_ in PACKS:
         src = packs_dir / slug / "README.md"
         dst = packs_out / f"{slug}.md"
         if src.exists():

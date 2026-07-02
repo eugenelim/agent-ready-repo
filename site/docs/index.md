@@ -4,20 +4,16 @@ hide:
   - toc
 ---
 
+<div class="hero-section" markdown>
 # The Complete AI Operating Model<br>for Software Teams
 
-**From first idea to production.** Three supervised loops. Fourteen curated packs. Any agent, any stack.
-
-[![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](#)
-[![Agents](https://img.shields.io/badge/agents-Claude%20%7C%20Codex%20%7C%20Cursor%20%7C%20Copilot%20%7C%20Gemini%20%7C%20Kiro-purple)](#adapters)
+Three supervised loops, fourteen curated packs, any agent, any stack — from first idea to production.
+</div>
 
 <div class="hero-actions" markdown>
 [Get started :octicons-arrow-right-24:](getting-started/index.md){ .md-button .md-button--primary .md-button--large }
 [Browse packs :octicons-arrow-right-24:](packs/index.md){ .md-button .md-button--large }
 </div>
-
----
 
 ## Three supervised loops. One handoff chain.
 
@@ -33,7 +29,7 @@ Software delivery needs more than one loop. Three peer supervisors span the full
 
     `product-engineering` · `discovery-lead`
 
-    Raw idea → ratified brief. Five candidate shapes explored in parallel, collapsed through product, UX, architecture, and safety lenses simultaneously. Human gates at G0, G1.5, G2. A **connected hypothesis with validation hooks** — not a validated solution.
+    Raw idea → ratified brief. Five candidate shapes explored in parallel, collapsed through product, UX, architecture, and safety lenses. Human gates at G0, G1.5, G2. A connected hypothesis with validation hooks — not a validated solution.
 
     [:octicons-arrow-right-24: Product Engineering](packs/product-engineering.md)
 
@@ -53,7 +49,7 @@ Software delivery needs more than one loop. Three peer supervisors span the full
 
     `release-engineering` · `release-lead`
 
-    Built → production. Autonomous e2e convergence on ephemeral environments. Deployed findings feed back to the build loop automatically. Prod ship always surfaces to a human — **G5 is never autonomous**.
+    Built → production. Autonomous e2e convergence on ephemeral environments. Deployed findings feed back to the build loop automatically. Prod ship always surfaces to a human — G5 is never autonomous.
 
     [:octicons-arrow-right-24: Release Engineering](packs/release-engineering.md)
 
@@ -65,8 +61,6 @@ product-engineering           core                    release-engineering
 discovery-lead                work-loop               release-lead
 Raw idea → Brief       ─G3─▶  Spec → Shipped   ─G4─▶  Built → Production
 ```
-
----
 
 ## Install in one line
 
@@ -98,11 +92,11 @@ Raw idea → Brief       ─G3─▶  Spec → Shipped   ─G4─▶  Built → 
 
 One command lands the loop in your repo. Any agent that reads a skill file inherits it automatically.
 
----
-
 ## The catalogue
 
-Fourteen curated packs — each distilled from the best practices of its discipline through research and architecture decisions.
+Fourteen curated packs — each distilled from the best practices of its discipline through research and architecture decisions. `repo` packs install into the current repository; `user` packs install once for all repos.
+
+**Start with the loops:**
 
 <div class="grid cards" markdown>
 
@@ -123,6 +117,12 @@ Fourteen curated packs — each distilled from the best practices of its discipl
     The release loop. `release-loop`, `release-lead`. Autonomous e2e convergence. Hard-depends on core.
 
     [:octicons-arrow-right-24: Release Engineering](packs/release-engineering.md)
+
+</div>
+
+**Add what your team needs:**
+
+<div class="grid cards" markdown>
 
 -   **Research** `user`
 
@@ -192,22 +192,18 @@ Fourteen curated packs — each distilled from the best practices of its discipl
 
 </div>
 
----
-
 ## Works with every major agent { #adapters }
 
 One adapter pipeline projects the same skills and subagents into the layout every agent expects.
 
 | Agent | Skills | Subagents | Hooks | Commands |
 |---|---|---|---|---|
-| Claude Code | ✓ | ✓ | ✓ | ✓ |
-| Codex | ✓ | ✓ | ✓ | — |
-| Cursor | ✓ | ✓ | ✓ | — |
-| Copilot | ✓ | ✓ | ✓ | — |
-| Gemini CLI | ✓ | ✓ | ✓ | — |
-| Kiro | ✓ | ✓ | — | — |
-
----
+| Claude Code | Yes | Yes | Yes | Yes |
+| Codex | Yes | Yes | Yes | No |
+| Cursor | Yes | Yes | Yes | No |
+| Copilot | Yes | Yes | Yes | No |
+| Gemini CLI | Yes | Yes | Yes | No |
+| Kiro | Yes | Yes | No | No |
 
 ## Built on solid foundations
 
@@ -235,8 +231,6 @@ The two pip packages underneath are standalone and useful beyond this repo:
 
 - **[`agentbundle`](https://pypi.org/project/agentbundle/)** — installs and upgrades packs, projects each primitive into the layout every agent expects, and builds catalogues of your own.
 - **[`credbroker`](https://pypi.org/project/credbroker/)** — credential resolution for credentialed skills. Resolves secrets through environment → OS keyring → dotfile. Cleartext never reaches the model.
-
----
 
 ## A foundation to build on
 
