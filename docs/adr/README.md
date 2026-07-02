@@ -51,6 +51,8 @@
 | 0043 | [The upstream discovery coordinator is an agent + a skill + a carried sidecar-schema contract — no new runtime engine, spike-confirmed; the sidecar is the connectedness verifier](0043-the-discovery-coordinator-is-an-agent-plus-skill-plus-carried-sidecar-no-engine.md) | Accepted |
 | 0044 | [Split the build loop from a deployed-validation outer loop, and carve deploy autonomy by minimum-regret](0044-inner-outer-loop-split-and-minimum-regret-deploy-carve.md) | Accepted |
 | 0045 | [Document extraction is capability-tiered and presence-checked — a no-ML floor degrades up through agent-vision, approved-ML, and an explicit-only managed-API tier](0045-capability-tiered-document-extraction.md) | Accepted |
+| 0046 | [The `.msg` reader is `olefile` + hand-rolled MAPI parsing — permissive, no copyleft, no Python-2-broken dependency](0046-msg-reader-is-olefile-plus-hand-rolled-mapi-permissive-no-copyleft.md) | Accepted |
+| 0047 | [experience-reviewer is a conditional specialist reviewer in work-loop for user-facing surface diffs — select-or-note, full-mode only](0047-experience-reviewer-as-work-loop-gate.md) | Accepted |
 
 ## Adding a new ADR
 
