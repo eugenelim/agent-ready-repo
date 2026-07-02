@@ -8,11 +8,11 @@ hide:
 # The Complete AI Operating Model<br>for Software Teams
 
 Three supervised loops, fourteen curated packs, any agent, any stack — from first idea to production.
-</div>
 
 <div class="hero-actions" markdown>
 [Get started :octicons-arrow-right-24:](getting-started/index.md){ .md-button .md-button--primary .md-button--large }
 [Browse packs :octicons-arrow-right-24:](packs/index.md){ .md-button .md-button--large }
+</div>
 </div>
 
 ## Three supervised loops. One handoff chain.
