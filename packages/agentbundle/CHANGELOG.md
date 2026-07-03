@@ -8,6 +8,21 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-07-03
+
+### Added
+
+- **New `agentbundle show <pack>` command — a pack's skills and agents, derived
+  live.** Answers "what does this pack contain?" by walking the pack's `.apm/`
+  source tree on each call, printing its `pack.toml` metadata alongside the full,
+  sorted skill and agent inventory. `--format json` emits a stable object
+  (`name`, `version`, `description`, `skills`, `agents`, `source`) for scripts and
+  agents. Nothing is persisted and no manifest is touched, so the answer can't
+  drift from what the pack ships. When the catalogue can't be resolved, an
+  *installed* pack still reports its inventory from the install-state files
+  (`source: installed-state`, recovered across both scopes and every adapter row);
+  a not-installed pack errors and exits non-zero. Implements RFC-0060 / ADR-0049.
+
 ## [0.10.2] — 2026-06-30
 
 ### Fixed
