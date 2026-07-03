@@ -274,6 +274,31 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("list_installed"))
 
+    # --- show --- (catalogue query; walks a pack's .apm/ tree live)
+    sp = subparsers.add_parser(
+        "show",
+        help=(
+            "Show a pack's skills and agents, derived live from its .apm/ tree. "
+            "Falls back to the install state when the catalogue is unresolvable."
+        ),
+    )
+    sp.add_argument("pack", help="Pack name to inspect (e.g. core).")
+    sp.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="Output format (default: table).",
+    )
+    sp.add_argument(
+        "--root",
+        default=".",
+        help=(
+            "Repo root used to locate the repo-scope install-state file for the "
+            "catalogue-unresolvable fallback. Default: current directory."
+        ),
+    )
+    sp.set_defaults(func=_lazy("show"))
+
     # --- scaffold --- (no --scope; always repo-targeted)
     sp = subparsers.add_parser(
         "scaffold",

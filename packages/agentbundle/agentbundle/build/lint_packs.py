@@ -35,6 +35,7 @@ import tomllib
 from typing import NamedTuple, Pattern
 from pathlib import Path
 
+from agentbundle.pack_inventory import apm_entries
 from agentbundle.safety import PathJailError, assert_portable_name
 
 # Subtrees in a pack that ship to adopters. `seeds/` is the
@@ -278,10 +279,10 @@ def _extract_frontmatter_fields(
 
 def _check_skill_metadata(pack_dir: Path, constraints: Constraints) -> list[str]:
     findings: list[str] = []
-    skills_dir = pack_dir / ".apm" / "skills"
-    if not skills_dir.is_dir():
-        return findings
-    for entry in sorted(skills_dir.iterdir()):
+    # Enumeration lives in one place (RFC-0060 AC9): the shared raw walk.
+    # Lint keeps its own per-entry filtering (it lints SKILL.md-less dirs too,
+    # which `show` excludes) — the walk is shared, the filter is not.
+    for entry in apm_entries(pack_dir, "skills"):
         if not entry.is_dir():
             continue
         dir_name = entry.name
@@ -331,10 +332,8 @@ def _check_skill_metadata(pack_dir: Path, constraints: Constraints) -> list[str]
 
 def _check_agent_metadata(pack_dir: Path, constraints: Constraints) -> list[str]:
     findings: list[str] = []
-    agents_dir = pack_dir / ".apm" / "agents"
-    if not agents_dir.is_dir():
-        return findings
-    for entry in sorted(agents_dir.iterdir()):
+    # Shared raw walk (RFC-0060 AC9); lint keeps its own .md-file filter.
+    for entry in apm_entries(pack_dir, "agents"):
         if not entry.is_file() or entry.suffix != ".md":
             continue
         stem = entry.stem
