@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentbundle"
-version = "0.10.2"
+version = "0.11.0"
 description = "npm for your coding agent. Install packs of skills, subagents, and hooks into any repo, for every major agent."
 requires-python = ">=3.11"
 dependencies = []
