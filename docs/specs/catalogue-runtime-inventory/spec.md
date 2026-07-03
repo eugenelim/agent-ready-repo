@@ -1,6 +1,6 @@
 # Spec: catalogue-runtime-inventory
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0049, ADR-0021, RFC-0060
@@ -73,44 +73,67 @@ not-installed pack fails with a clear one-line error rather than a crash.
   identically.
 - **CLI surface + real invocation (AC10):** goal-based (`agentbundle show --help`
   exits 0 and documents `--format`) plus manual QA — run `agentbundle show core`
-  end-to-end and record the observed output (the real-artifact happy path the
-  work-loop requires for a user-invoked CLI).
+  and `agentbundle show core --format json` end-to-end and record the observed
+  output (stdout + exit code) in the implementing PR's *How to verify* section (the
+  real-artifact happy path the work-loop requires for a user-invoked CLI).
 
 ## Acceptance Criteria
 
-- [ ] `agentbundle show <pack>` against a resolvable catalogue exits 0 and prints
+- [x] `agentbundle show <pack>` against a resolvable catalogue exits 0 and prints
   a human-readable block containing the pack's name, version, and description, and
   its skills and agents, each list sorted ascending.
-- [ ] The skills list is every `<pack>/.apm/skills/<name>/` directory containing a
+- [x] The skills list is every `<pack>/.apm/skills/<name>/` directory containing a
   `SKILL.md` (→ `<name>`); the agents list is every `<pack>/.apm/agents/<name>.md`
   file (→ `<name>`). The inventory is the full, untagged set: `show core` lists
   every skill present under `packs/core/.apm/skills/`, not the subset in
   `[pack.evals].skills`.
-- [ ] `--format json` emits a single JSON object on stdout with exactly the keys
+- [x] `--format json` emits a single JSON object on stdout with exactly the keys
   `name`, `version`, `description`, `skills`, `agents`, `source`; `skills` and
   `agents` are sorted arrays of strings; `source` is `"catalogue"` on the primary
   path. The output parses as valid JSON.
-- [ ] A pack with no `.apm/skills/` directory (or no `.apm/agents/` directory)
+- [x] A pack with no `.apm/skills/` directory (or no `.apm/agents/` directory)
   shows an empty list for that kind and does not error.
-- [ ] `show <unknown-pack>` against a resolvable catalogue prints a one-line error
-  to stderr, writes nothing to stdout, and exits non-zero.
-- [ ] When the catalogue is unresolvable and `<pack>` is installed
-  (`State.has_pack`), `show` recovers the inventory from the install state — the
-  union of skill and agent names across **all** of the pack's adapter rows
+- [x] `show <unknown-pack>` against a resolvable catalogue prints a one-line error
+  to stderr, writes nothing to stdout, and exits non-zero — including under
+  `--format json`, where stdout stays empty (a programmatic consumer distinguishes
+  success from failure by the exit code, not by parsing an error object on stdout).
+- [x] When the catalogue is unresolvable and `<pack>` is installed
+  (`State.has_pack` in **either** the user or repo scope — the fallback reads both,
+  mirroring `list-installed`, and unions across scopes as well as adapters), `show`
+  recovers the inventory from the install state — the union of skill and agent
+  names across **all** of the pack's adapter rows in both scopes
   (`State.rows_for_pack(<pack>)`, each row's `PackState.files`), deduped and sorted
-  — and exits 0. The result is marked derived-from-installed-state: JSON carries
-  `source: "installed-state"`; the table prints a `source: installed-state
-  (catalogue unavailable)` line and omits the version/description rows. Metadata
-  absent from the state (version, description) is null in JSON, never fabricated.
-- [ ] When the catalogue is unresolvable and `<pack>` is not installed, `show`
-  prints a one-line error to stderr and exits non-zero.
-- [ ] `show` persists nothing and touches no manifest: a `show` run writes no
-  files, and the implementing diff changes no `pack.schema.json`,
-  `plugin-manifest*.schema.json`, `pack.toml`, `plugin.json`, or `marketplace.json`.
-- [ ] The directory walk is a single shared helper; `build/lint_packs.py` and the
+  — and exits 0. Names are recovered from the projected relpaths **independent of
+  adapter extension**: a **skill** is the path segment immediately after a `skills/`
+  component of a projected `SKILL.md` relpath — the rule is layout-agnostic and
+  spans every skill home (`.claude/skills/<n>/SKILL.md`, the shared
+  `.agents/skills/<n>/SKILL.md` used by codex/copilot/cursor/gemini, and
+  `.kiro/skills/<n>/SKILL.md` → `<n>`); an **agent** is the filename
+  directly under an `agents/` component with its extension stripped by a single
+  **extension-agnostic** rule — strip the trailing `.agent.md` (copilot's
+  double-suffix) if present, else `Path.stem` (the single final extension). This
+  recovers `<n>` uniformly across `.claude/agents/<n>.md`, `.codex/agents/<n>.toml`,
+  `.kiro/agents/<n>.json`, and `.github/agents/<n>.agent.md` — never `<n>.agent` or
+  `<n>.json` — so co-installed rows dedupe to a single entry. The result
+  is marked derived-from-installed-state: JSON carries `source: "installed-state"`;
+  the table prints a `source: installed-state (catalogue unavailable)` line and
+  omits the version/description rows. `name` in the output is the pack argument
+  passed to `show`; `version` and `description` are `null` in JSON — never
+  fabricated from the install row's `installed_version` — and omitted from the table.
+- [x] When the catalogue is unresolvable and `<pack>` is not installed (in neither
+  scope), `show` prints a one-line error to stderr, writes nothing to stdout
+  (including under `--format json`, same exit-code contract as the unknown-pack
+  path), and exits non-zero.
+- [x] `show` persists nothing and touches no manifest. Verified two ways: (a) a
+  `show` run over a temp catalogue writes no files under the run root (runtime
+  assertion); and (b) per ADR-0049's Confirmation signal, the implementing diff
+  adds no write call (`open(..., "w")`, `.write_text`, `json.dump`, or a TOML dump)
+  targeting — and changes no — `pack.schema.json`, `plugin-manifest*.schema.json`,
+  `pack.toml`, `plugin.json`, or `marketplace.json` (goal-based grep of the diff).
+- [x] The directory walk is a single shared helper; `build/lint_packs.py` and the
   `show` command both enumerate through it, and `lint_packs`' existing behavior is
   unchanged.
-- [ ] `agentbundle show --help` exits 0 and documents the verb and
+- [x] `agentbundle show --help` exits 0 and documents the verb and
   `--format {table,json}`; the verb is registered in `cli.py` alongside the other
   subcommands.
 

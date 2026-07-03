@@ -1,7 +1,7 @@
 # Plan: catalogue-runtime-inventory
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Executing | Done -->
+- **Status:** Done <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -64,8 +64,13 @@ the design conforms to the established package structure (subparsers in `cli.py`
   not); `show` counts only SKILL.md-bearing directories as skills. A shared *raw
   walk* keeps the directory traversal in one place without a behavior flag —
   avoiding the "add an option only when a second caller needs to differ" trap,
-  because the two callers differ in the *filter*, not the *walk*. Traces to:
-  AC9 · none.
+  because the two callers differ in the *filter*, not the *walk*. Concretely the
+  primitive returns **raw sorted `Path` entries** (guarded by `is_dir()`), not
+  names — so `lint_packs` keeps its full per-entry loop intact (it reads `SKILL.md`
+  text, extracts frontmatter, and emits findings for `SKILL.md`-less directories,
+  which `show` excludes). AC9's "enumeration lives in one place" is therefore the
+  single guarded-`sorted(iterdir())` call the two callers share, not a semantic
+  inventory both consume. Traces to: AC9 · none.
 - **New neutral module `agentbundle/pack_inventory.py`.** `lint_packs` lives under
   `build/` and the command under `commands/`; a top-level pure module both import
   avoids a `build → commands` (or reverse) dependency. Alternative rejected:
@@ -76,9 +81,11 @@ the design conforms to the established package structure (subparsers in `cli.py`
 
 ### Interfaces & contracts
 
-- **CLI verb:** `agentbundle show <pack> [--format {table,json}]`. `<pack>` is a
-  required positional (the pack name); `--format` defaults to `table`. Registered
-  in `cli.py` next to `list-packs` via `subparsers.add_parser("show", ...)` +
+- **CLI verb:** `agentbundle show <pack> [--format {table,json}] [--root <path>]`.
+  `<pack>` is a required positional (the pack name); `--format` defaults to `table`;
+  `--root` (default `.`) locates the **repo-scope** install-state file for the
+  degrade path, mirroring `list-installed`'s `--root`. Registered in `cli.py` next
+  to `list-packs` via `subparsers.add_parser("show", ...)` +
   `sp.set_defaults(func=_lazy("show"))`.
 - **JSON output shape** (`--format json`): a single object
   `{"name": str, "version": str|null, "description": str|null, "skills": [str],
@@ -106,23 +113,34 @@ the design conforms to the established package structure (subparsers in `cli.py`
 ### State & control flow
 
 1. Resolve the catalogue URI (reuse `resolve_catalogue_uri` + `resolve_catalogue`).
-2. On success: find the pack dir via `_discover_pack_dirs`; if absent → one-line
-   error, exit 1. Else walk `.apm/`, read `pack.toml` metadata, render (`source:
-   catalogue`), exit 0.
-3. On `CatalogueError`: load install state; if `State.has_pack(<pack>)` → recover
-   skill/agent names from the union of `State.rows_for_pack(<pack>)` rows'
-   `PackState.files` (all adapter rows, deduped + sorted), render inventory-only
-   (`source: installed-state`), exit 0. Else → one-line error, exit 1.
+2. On success: enumerate `_discover_pack_dirs`, then **name-match** — pick the dir
+   whose `pack.toml` `[pack].name` (falling back to the dir name) equals `<pack>`;
+   if none matches → one-line error, exit 1 (AC5). Else walk `.apm/`, read
+   `pack.toml` metadata, render (`source: catalogue`), exit 0.
+3. On `CatalogueError`: load install state from **both scopes** — repo
+   (`<root>/.agentbundle-state.toml`) and user (`~/.agentbundle/state.toml` via
+   `scope.resolve_user_root`; `UserScopeUnresolvable` → skip that scope) — exactly
+   as `list-installed` gathers them. If `State.has_pack(<pack>)` in *either* scope
+   → recover skill/agent names from the union of `State.rows_for_pack(<pack>)` rows'
+   `PackState.files` across **all rows in both scopes** (deduped + sorted), render
+   inventory-only (`source: installed-state`), exit 0. Else → one-line error, exit 1.
 
 ### Failure, edge cases & resilience
 
 - Missing `.apm/skills/` or `.apm/agents/` → empty list, no crash (helper guards
   with `is_dir()`). Traces to: AC4.
 - Projected-path parsing for the fallback runs over **every** adapter row of the
-  pack (`State.rows_for_pack`): skill name = the path segment after a `skills/`
-  component, agent name = the stem of a file whose parent component is `agents/`;
-  union across rows, dedupe + sort. Adapter layouts vary (`.claude/`, `.codex/`,
-  `.cursor/`, …), so the primary (catalogue) path stays authoritative — see Risks.
+  pack in both scopes (`State.rows_for_pack`): **skill** name = the path segment
+  immediately after a `skills/` component of a projected `SKILL.md` relpath (keys
+  on the file, not the directory; layout-agnostic — spans `.claude/skills/`, the
+  shared `.agents/skills/` (codex/copilot/cursor/gemini), and `.kiro/skills/`);
+  **agent** name = the filename directly under an
+  `agents/` component with its extension stripped by a single **extension-agnostic**
+  rule — strip trailing `.agent.md` (copilot) if present, else `Path.stem`. This
+  covers `.md` / `.toml` / `.json` / `.agent.md` without a hard-coded suffix list,
+  so `claude` (`.md`) + `codex` (`.toml`) + `kiro` (`.json`) + `copilot`
+  (`.agent.md`) rows dedupe to one entry per logical agent. Union across rows,
+  dedupe + sort. The primary (catalogue) path stays authoritative — see Risks.
   Traces to: AC6.
 - Unknown pack / not-installed-and-unresolvable → clean one-line stderr, non-zero
   exit, no stdout. Traces to: AC5, AC7.
@@ -196,9 +214,10 @@ place (spec AC9).
 **Approach:**
 - Add `commands/show.py::run(args)` reusing `resolve_catalogue_uri`,
   `resolve_catalogue`, `_discover_pack_dirs`, `load_pack_toml`, and the shared
-  table renderer.
+  table renderer. After `_discover_pack_dirs`, apply the **name-match** step
+  (`[pack].name` or dir name == `<pack>`); no match → one-line stderr, exit 1 (AC5).
 - Register the subparser in `cli.py` (positional `pack`, `--format` choices
-  `table|json`, default `table`) with `_lazy("show")`.
+  `table|json`, default `table`, `--root` default `.`) with `_lazy("show")`.
 
 **Done when:** the T3 tests are green.
 
@@ -209,20 +228,27 @@ place (spec AC9).
 **Touches:** packages/agentbundle/agentbundle/commands/show.py, packages/agentbundle/tests/*
 
 **Tests:**
-- Unresolvable catalogue + installed pack (fabricated state) → inventory-only
-  result recovered from the pack's state rows, `source: "installed-state"`,
-  version/description null/omitted, exit 0 (spec AC6).
-- A pack installed under two adapters (e.g. `claude` + `codex` rows) → the union
-  of both rows' skill/agent names, deduped and sorted (spec AC6).
-- Unresolvable catalogue + not-installed pack → one-line stderr, exit non-zero
-  (spec AC7).
+- Unresolvable catalogue + installed pack (fabricated repo-scope state) →
+  inventory-only result recovered from the pack's state rows, `source:
+  "installed-state"`, `name` == the pack argument, version/description null/omitted,
+  exit 0 (spec AC6).
+- A pack installed under four adapters (`claude` `.md` + `codex` `.toml` + `kiro`
+  `.json` + `copilot` `.agent.md` rows) → the union collapses to one entry per
+  logical skill/agent, deduped and sorted — proving the extension-agnostic recovery
+  across every registered agent extension (spec AC6).
+- A pack installed only at **user scope** (state under the sandbox home) is still
+  recovered — the fallback reads both scopes (spec AC6).
+- Unresolvable catalogue + not-installed pack → empty stdout (also under
+  `--format json`), one-line stderr, exit non-zero (spec AC7).
 
 **Approach:**
 - Wrap the resolve in the `CatalogueError` handler that mirrors `list_installed`;
-  on catch, load install state, gate on `State.has_pack(<pack>)`, and recover names
-  from the union of `State.rows_for_pack(<pack>)` rows' `PackState.files` (all
-  adapters; skill = segment after `skills/`, agent = stem under `agents/`); dedupe
-  + sort.
+  on catch, gather install state from **both scopes** (repo `<root>` + user via
+  `scope.resolve_user_root`, `UserScopeUnresolvable` → skip), gate on
+  `State.has_pack(<pack>)` in either, and recover names from the union of
+  `State.rows_for_pack(<pack>)` rows' `PackState.files` across both scopes. Skill =
+  segment after `skills/`; agent = filename under `agents/` with a trailing known
+  suffix stripped (`.agent.md` before `.md`/`.toml`); dedupe + sort.
 
 **Done when:** the T4 tests are green.
 
@@ -278,3 +304,15 @@ pass, and changelog + README are updated.
 
 - 2026-07-02: initial plan (authored alongside spec + ADR-0049 on RFC-0060
   acceptance).
+- 2026-07-02: pre-EXECUTE adversarial review closed two Blockers + concerns before
+  code — specified the fallback's per-adapter name recovery (strip `.agent.md` /
+  `.toml`, dedupe), the two-scope install-state read (`--root` added for repo
+  scope), the AC5/AC7 empty-stdout-under-`--format json` contract, `name` = the
+  pack argument on the installed-state path, the AC8 grep-the-diff no-persist check,
+  and the `_discover_pack_dirs` name-match step. No approach change; sharper
+  contract.
+- 2026-07-02: second review round — the fallback agent-name rule is now
+  **extension-agnostic** (`Path.stem` with an `.agent.md` special-case) rather than
+  an enumerated suffix list, so it covers kiro/kiro-cli `.json` agents too; skill
+  recovery restated as keying on the projected `SKILL.md` file relpath across the
+  `.claude/` / `.agents/` / `.github/` layouts.
