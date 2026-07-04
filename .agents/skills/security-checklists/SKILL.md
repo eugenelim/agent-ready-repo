@@ -1,6 +1,6 @@
 ---
 name: security-checklists
-description: Progressive-disclosure security-depth modules for the security-reviewer. Holds boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
+description: Progressive-disclosure security-depth modules for the security-reviewer. Holds boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent, agentic-skills) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026, OWASP Agentic Skills Top 10 v1.0 (AST01–AST10)). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
 ---
 
 # Skill: security-checklists
@@ -97,6 +97,7 @@ copy. Match the trust boundary the change crosses to its module(s); the
 | [`config-misconfig`](references/config-misconfig.md) | CORS, IAM, IaC, server / framework / deploy config | OWASP A02:2025 |
 | [`exceptional-conditions`](references/exceptional-conditions.md) | error handling, retries, fallbacks, fail-open paths | **OWASP A10:2025 (new)** (+ A09 logging) |
 | [`llm-agent`](references/llm-agent.md) | prompts, model / tool exposure, MCP, model-output handling, agentic action | OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026 |
+| [`agentic-skills`](references/agentic-skills.md) | skill-file authoring / modification, skill metadata parsing, skill distribution packaging, skill execution sandbox config | OWASP Agentic Skills Top 10 v1.0 (AST01–AST10) |
 
 Threat modeling (STRIDE + LINDDUN for privacy) and design-time Insecure
 Design (A06 / Proactive Controls 2024) are **not** runtime modules: STRIDE +

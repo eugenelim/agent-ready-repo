@@ -4,7 +4,7 @@
 
 Three supervised loops covering the full software lifecycle. Fourteen curated packs for every job role. One installer. Any agent, any stack.
 
-[![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/) [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](#license)
+[![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/) [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](#license) [![OWASP Agentic Skills Top 10](https://img.shields.io/badge/OWASP-Agentic%20Skills%20Top%2010%20v1.0-blue)](https://owasp.org/www-project-agentic-skills-top-10/)
 
 [Quick Start](#quick-start) · [The Three Loops](#the-three-loops) · [The Catalogue](#the-catalogue) · [Build a Pack](#how-a-pack-is-laid-out) · [Docs](docs/guides/) · [Contributing](CONTRIBUTING.md)
 
