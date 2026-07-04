@@ -1,6 +1,10 @@
 ---
 name: assimilate-repo
 description: Use to survey a whole external repo or catalogue (local path or URL) for ingestion candidates and produce a reviewable RFC of per-candidate verdicts (assimilate, reject, or needs-new-pack), resumable across sessions and git worktrees via a ledger. Triggers on "survey this repo for skills we can adopt", "inventory this catalogue", "what can we assimilate from <repo>", "re-sync from <upstream>". Do NOT use for a single known unit (use assimilate-primitive) or to scaffold a proposed pack (use propose-catalogue-pack).
+metadata:
+  boundaries:
+    - network_fetch
+    - filesystem_write
 ---
 
 # Skill: assimilate-repo
@@ -48,6 +52,7 @@ each `assimilate` verdict; its own job is the **survey, the ledger, and the RFC*
 - Commit the ledger, let it travel in an export, or record verbatim source
   content / rejection prose in it.
 - Bypass `assimilate-primitive`'s per-unit safety (raw-body review, code confirm,
-  repo lints/scanners, `safety.write_jailed`) for an `assimilate` verdict.
+  repo lints/scanners, AST01-AST10 agentic-skills security review, `safety.write_jailed`)
+  for an `assimilate` verdict.
 
 _Depends on `core` + `governance-extras`. Repo-scope; not in any default profile._
