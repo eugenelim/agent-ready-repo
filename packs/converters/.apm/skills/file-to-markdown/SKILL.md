@@ -2,9 +2,7 @@
 name: file-to-markdown
 description: Convert documents and images to Markdown for AI context layers. Documents (PDF, DOCX, XLSX, PPTX, HTML, EPUB, CSV/TSV, OpenDocument, .eml) go through `scripts/convert.py`, which extracts at a no-ML Tier-0 floor (pure-Python / stdlib parsers) and falls through to Docling (Tier 2) only for .xls and images; images go through a two-pass sliding-window vision pipeline whose tiling and reconciliation are deterministic (`scripts/split_image.py` and `scripts/reconcile.py`). Every output carries a versioned frontmatter contract (provenance + a quality/confidence signal). The agent's job is the per-tile vision read; tile dedup and ordering are handled by the script.
 metadata:
-  boundaries:
-    - filesystem_read_untrusted
-    - filesystem_write
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
 
 # File to Markdown
