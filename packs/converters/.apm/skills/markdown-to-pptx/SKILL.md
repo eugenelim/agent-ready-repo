@@ -1,6 +1,9 @@
 ---
 name: markdown-to-pptx
 description: "Fill a branded PowerPoint template from a Markdown artifact — turn this into slides, build a slide deck or presentation, produce a branded .pptx. The deterministic script inspects the template's layout placeholders and projects your Markdown (front-matter, headings, lists, tables) onto them, so the user's slide master, theme, and placed assets survive. Use when the user wants a PowerPoint, a slide deck, or a presentation out of Markdown. Tier-1 on python-pptx (the user installs it; the skill detects it and stops if absent)."
+metadata:
+  boundaries:
+    - filesystem_write
 ---
 
 # Markdown to PowerPoint
