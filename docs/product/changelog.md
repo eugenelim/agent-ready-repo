@@ -23,6 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OWASP Agentic Skills Top 10 v1.0 compliance pass — all non-core packs.**
+  All non-core packs audited and hardened against AST01–AST10. Three classes of changes:
+  (1) AST05 — `research` skill now explicitly declares that fetched web content is untrusted
+  data, never instructions;
+  (2) AST06 — `confluence-crawler` and `jira` skills now declare the SSRF pre-flight host
+  check the agent must run before invoking a user-supplied base URL (scripts validate scheme
+  only; the agent verifies the host and rejects private-IP ranges and cloud-metadata endpoints);
+  (3) AST10 — all non-credentialed skills that cross a security boundary now carry
+  `metadata.boundaries` in their SKILL.md frontmatter (`network_fetch`, `filesystem_write`,
+  `filesystem_read_untrusted`, `network_egress`, or `deploy_action`). The `assimilate-primitive`
+  skill also gains an explicit AST01–AST10 security review step so any ingested primitive is
+  checked before landing. Compliance record in `docs/architecture/security.md`.
+
 - **New `agentic-skills` module in `security-checklists` — OWASP Agentic Skills Top 10 v1.0 coverage (core 0.10.0).**
   The `security-reviewer` now has control-altitude depth for the OWASP Agentic Skills Top 10
   v1.0 (AST01–AST10): malicious skill content (AST01), permission over-declaration (AST03),
