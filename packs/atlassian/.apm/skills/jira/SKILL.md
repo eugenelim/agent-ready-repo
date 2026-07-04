@@ -72,6 +72,17 @@ walks the schema interactively and writes the values where you choose.
 - If `check` exits with the "missing credentials" code, tell the
   user to run `credential-setup` skill themselves.
   It's interactive — do not run it for them.
+- **`JIRA_BASE_URL` is user-configured.** Before invoking the client,
+  verify the configured URL resolves to a known Jira host
+  (e.g. `*.atlassian.net` or `*.jira.com` for Cloud, the
+  organisation's known on-premises host for Server/DC) — not to a
+  private IP range (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`,
+  `127.0.0.0/8`) or a cloud-metadata endpoint (`169.254.0.0/16`). If
+  the user supplies an unexpected host, stop and ask them to confirm
+  before running. This is an **agent pre-flight check**: the scripts
+  validate only the URL scheme (`http://` or `https://`), not the
+  resolved host or IP range. On the token path `follow_redirects=True`
+  is active, so verify the initial host before invoking.
 
 This skill is **dual-auth** (`auth: sso-cookie` with a `creds` fallback): on a
 Data Center instance behind corporate SSO it authenticates by a captured web

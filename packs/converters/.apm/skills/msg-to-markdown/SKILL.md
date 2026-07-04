@@ -1,6 +1,10 @@
 ---
 name: msg-to-markdown
 description: Convert Outlook .msg and MIME .eml email files to Markdown with a versioned output contract, preserving headers (From, To, CC, BCC, Date, Importance), the body (HTML reduced to Markdown, or plain text), and an attachments table. Use when the user wants to convert, read, or process a .msg or .eml email into Markdown, or extract its attachments.
+metadata:
+  boundaries:
+    - filesystem_read_untrusted
+    - filesystem_write
 ---
 
 # Email (.msg / .eml) to Markdown Converter

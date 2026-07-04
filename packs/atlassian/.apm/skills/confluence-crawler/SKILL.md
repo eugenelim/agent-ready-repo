@@ -55,6 +55,17 @@ Populate any tier by running `credential-setup` skill.
 - If `--check` reports missing or invalid creds, tell the user to run
   `credential-setup` skill themselves.
   It's interactive — do not run it for them.
+- **`CONFLUENCE_BASE_URL` is user-configured.** Before invoking the
+  crawler, verify the configured URL resolves to a known Confluence
+  host (e.g. `*.atlassian.net` for Cloud, the organisation's known
+  on-premises host for Server) — not to a private IP range
+  (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`)
+  or a cloud-metadata endpoint (`169.254.0.0/16`). If the user
+  supplies an unexpected host, stop and ask them to confirm before
+  running. This is an **agent pre-flight check**: the scripts validate
+  only the URL scheme (`http://` or `https://`), not the resolved host
+  or IP range. On the token path `follow_redirects=True` is active, so
+  verify the initial host before invoking.
 
 This skill is **dual-auth** (`auth: sso-cookie` with a `creds` fallback): on a
 Data Center instance behind corporate SSO it authenticates by a captured web

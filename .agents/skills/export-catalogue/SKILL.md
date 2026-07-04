@@ -1,6 +1,9 @@
 ---
 name: export-catalogue
 description: Use to produce a redistributable derivative of this catalogue at a target path — an organization rebrand or a domain re-purposing (a non-SDLC catalogue) — in white-label mode (zero upstream trace) or attributed mode (credit upstream, to grow a public ecosystem), with a fail-closed leak check. Triggers on "export a white-label copy", "make an unbranded fork", "produce a <domain> catalogue from this", "export an attributed derivative". Do NOT use to ingest units (use assimilate-primitive) or to add a pack (use propose-catalogue-pack).
+metadata:
+  boundaries:
+    - filesystem_write
 ---
 
 # Skill: export-catalogue

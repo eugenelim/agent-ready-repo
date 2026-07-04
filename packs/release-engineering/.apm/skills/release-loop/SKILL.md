@@ -1,6 +1,10 @@
 ---
 name: release-loop
 description: Use to drive the deployed end-to-end validation outer loop — deploy the integrated whole to an ephemeral environment, run e2e, observe telemetry, feed deployed findings back to work-loop's inner loop, redeploy, and iterate until the deployed whole converges, then stop at the human consent gate for the prod ship. Run by the release-lead agent (a peer of work-loop's supervisor, not a work-loop mode). Triggers on "run the release loop", "deploy the integrated whole and iterate", "ship it to an ephemeral env and run e2e", "iterate the deployed env until it converges", "take this to a prod-ship readiness record". Autonomy is carved by minimum-regret — reversible ⇒ autonomous on ephemeral envs; irreversible ⇒ human. No engine. Do NOT use for the inner local build loop (use work-loop), to author a fidelity-ladder / local-infra-equivalents skill (that is the inner-loop obligation), or to run the live product as a managed service (adopter ops).
+metadata:
+  boundaries:
+    - deploy_action
+    - network_egress
 ---
 
 # Skill: release-loop
