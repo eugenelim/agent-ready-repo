@@ -23,6 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **New `agentic-skills` module in `security-checklists` — OWASP Agentic Skills Top 10 v1.0 coverage (core 0.10.0).**
+  The `security-reviewer` now has control-altitude depth for the OWASP Agentic Skills Top 10
+  v1.0 (AST01–AST10): malicious skill content (AST01), permission over-declaration (AST03),
+  insecure metadata parsing (AST04), external reference pinning (AST05), isolation declaration
+  (AST06), version drift (AST07), governance gaps (AST09), and cross-platform security metadata
+  (AST10). AST02 (Supply Chain) defers to the existing `supply-chain` module; AST08 (Poor
+  Scanning) is addressed by the three-bucket delegation legend. The module fires when a diff
+  authors or modifies a skill file, parses skill metadata, builds a distribution package, or
+  adds skill execution sandbox config. Accompanied by a new `docs/architecture/security.md`
+  reference documenting all enforced security frameworks.
+
 - **New `agentbundle show <pack>` command — a pack's skills and agents, derived live (agentbundle).**
   Answers "what does this pack contain?" by walking the pack's `.apm/` source tree on
   each call, printing its `pack.toml` metadata alongside the full, sorted skill and agent
