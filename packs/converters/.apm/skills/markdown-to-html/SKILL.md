@@ -1,6 +1,9 @@
 ---
 name: markdown-to-html
 description: Convert a Markdown file to a self-contained, styled HTML page (sticky header, sidebar nav, syntax-highlighted code, callout boxes, Mermaid diagrams, print-ready). Use when the user asks to render, convert, or export a `.md` file as a shareable HTML document -- not for slides, presentations, or pitch decks. Rendering is deterministic via `marked` + `highlight.js`; the agent only invokes the script.
+metadata:
+  boundaries:
+    - filesystem_write
 ---
 
 # Markdown to HTML
