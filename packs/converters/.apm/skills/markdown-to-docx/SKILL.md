@@ -1,6 +1,8 @@
 ---
 name: markdown-to-docx
 description: "Fill a branded Word template from a Markdown artifact — turn this Markdown into a Word doc, produce a report, a memo, a statement of work, or a branded .docx. The deterministic script fills the Jinja fill-points a designer placed in the template (front-matter, headings, lists, tables map onto them), so the cover page, styles, headers, and placed logo survive. Use when the user wants a Word document, report, memo, or .docx out of Markdown. Tier-1 on docxtpl (the user installs it; the skill detects it and stops if absent)."
+metadata:
+  boundaries: [filesystem_write]
 ---
 
 # Markdown to Word
