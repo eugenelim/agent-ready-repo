@@ -1,6 +1,8 @@
 ---
 name: mermaid-renderer
 description: Extract ` ```mermaid ` fenced blocks from a Markdown file, render each one to a PNG (or SVG) via the Mermaid CLI (`mmdc`), and write a rewritten Markdown file alongside with each fence replaced by an image reference. Use when the user wants Mermaid diagrams baked into images for downstream tools that don't render Mermaid natively (Confluence, PDF, slides). The agent only invokes the script.
+metadata:
+  boundaries: [filesystem_write]
 ---
 
 # Mermaid Renderer

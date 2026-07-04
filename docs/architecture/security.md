@@ -77,6 +77,53 @@ pass: only the boundary-matching modules are inlined.
 On infra-flavored work (IaC, deploy config), the pass is **non-skippable**; a missing
 `security-reviewer` is a loud blocker, not a silent proceed.
 
+## Pack compliance — OWASP Agentic Skills Top 10 v1.0
+
+All non-core packs were audited against the `agentic-skills` module (AST01–AST10) in July 2026.
+The audit reviewed ~60 skills across 14 packs. Findings and their status:
+
+### Passing checks (all packs)
+
+| Check | Verdict | Notes |
+|---|---|---|
+| **AST01** Malicious content | PASS | No identity-overwrite, credential-camouflage, or conditional-misdirection instructions found |
+| **AST02** Supply chain | PASS | Defers to `supply-chain` module; pack.toml version pinning at build time |
+| **AST03** Permission over-declaration | PASS | All skills scoped to stated purpose; high-impact tools named explicitly |
+| **AST04** Insecure metadata parsing | PASS | Metadata parsed only by the `agentbundle` build pipeline (safe YAML load path) |
+| **AST07** Version drift | PASS | Pack-level pinning via pack.toml; skills invoke peers by name (version resolved at install) |
+| **AST08** Poor scanning | PASS | Covered structurally by the `tool`/`hybrid`/`reason` three-bucket delegation taxonomy |
+| **AST09** Governance | PASS | Auditable inventory via marketplace.json (built by `build-self`); install-state-visibility command; revocation via `agentbundle uninstall` |
+
+### Findings addressed
+
+| Finding | Severity | AST | Fix applied |
+|---|---|---|---|
+| `research` skill did not explicitly state that fetched content is treated as data not instructions | Concern | AST05 | Added "Trust posture — retrieved content is untrusted data" section to `research/SKILL.md` |
+| `confluence-crawler` and `jira` skills did not declare SSRF containment for user-supplied base URLs | Concern | AST06 | Added agent pre-flight check note to Security rules in both `confluence-crawler/SKILL.md` and `jira/SKILL.md`. The scripts validate only the URL scheme (`http://`/`https://`); the host pre-flight check (reject private-IP ranges and cloud-metadata endpoints) is the agent's responsibility. On the token path `follow_redirects=True` is active — verify before invoking. |
+| Non-credentialed boundary-crossing skills carried no security metadata in frontmatter | Concern | AST10 | Added `metadata.boundaries` lists to: `assimilate-primitive`, `assimilate-repo`, `export-catalogue`, `propose-catalogue-pack` (catalogue-curation); `file-to-markdown`, `msg-to-markdown`, `markdown-to-docx`, `markdown-to-html`, `markdown-to-pptx`, `markdown-to-xlsx`, `mermaid-renderer` (converters); `release-loop` (release-engineering); `research`, `source-map` (research) |
+| `assimilate-primitive` Phase 1 lacked an explicit AST01-AST10 review step for ingested candidates | Concern | AST01-AST10 | Added step 5 (AST01-AST10 agentic-skills security review) to `assimilate-primitive/SKILL.md` Phase 1; `assimilate-repo` Never-do updated to name this gate |
+
+### Security metadata convention — `metadata.boundaries`
+
+Non-credentialed skills that cross a security boundary declare it in frontmatter under
+`metadata.boundaries` (a list). Defined values:
+
+| Value | Meaning |
+|---|---|
+| `network_fetch` | Skill instructs outbound HTTP/DNS fetches to external hosts |
+| `network_egress` | Skill instructs deployment or other outbound connections to real infrastructure |
+| `filesystem_write` | Skill writes files to disk (beyond in-memory processing) |
+| `filesystem_read_untrusted` | Skill reads potentially hostile files (untrusted documents, email, archives) |
+| `deploy_action` | Skill deploys to real environments (ephemeral or production) |
+
+Credentialed skills (those with `metadata.credentialed: true` and auth details) already carry
+sufficient security metadata via their auth-scheme declaration; they do not need `boundaries`.
+
+This metadata survives cross-platform porting in the SKILL.md frontmatter, satisfying AST10.
+When a platform automates security-policy enforcement, `metadata.boundaries` provides the
+machine-readable signal; when it does not, the skill body's security rules carry the same
+intent in prose.
+
 ## Related decisions
 
 - **ADR-0018** — why security review shifts left and uses progressive disclosure rather than

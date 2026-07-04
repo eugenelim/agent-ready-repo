@@ -1,6 +1,8 @@
 ---
 name: propose-catalogue-pack
 description: Use to justify and scaffold a NEW pack area for this catalogue — test that it is additive and fits the catalogue's declared coverage model plus the four charter principles, then scaffold the pack shell and emit an RFC with a per-primitive inventory, or reject it as non-additive. Triggers on "should we add a pack for <area>", "propose a new pack", "justify a <vendor/domain> pack". Do NOT use to ingest units (use assimilate-primitive or assimilate-repo).
+metadata:
+  boundaries: [filesystem_write]
 ---
 
 # Skill: propose-catalogue-pack

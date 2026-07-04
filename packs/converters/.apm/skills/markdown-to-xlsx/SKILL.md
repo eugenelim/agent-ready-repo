@@ -1,6 +1,8 @@
 ---
 name: markdown-to-xlsx
 description: "Fill a branded Excel template from a Markdown artifact — export this table to Excel, fill the .xlsx template, produce a spreadsheet or workbook. The deterministic script writes Markdown content into the named ranges and Excel Tables a designer defined (front-matter into single-cell names, a Markdown table into a Table data region), so the workbook's formatting, formulas, and charts survive. Use when the user wants Excel, a spreadsheet, or an .xlsx workbook out of Markdown. Tier-1 on openpyxl (the user installs it; the skill detects it and stops if absent)."
+metadata:
+  boundaries: [filesystem_write]
 ---
 
 # Markdown to Excel

@@ -35,7 +35,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "atlassian",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.3.1"
+      "version": "0.3.2"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -52,7 +52,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "catalogue-curation",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -87,7 +87,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "converters",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.6.0"
+      "version": "0.6.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -223,7 +223,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "release-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
@@ -240,7 +240,7 @@
       "license": "Apache-2.0 OR MIT",
       "name": "research",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "version": "0.6.0"
+      "version": "0.6.1"
     },
     {
       "author": "eugenelim <eugenelim@users.noreply.github.com>",
