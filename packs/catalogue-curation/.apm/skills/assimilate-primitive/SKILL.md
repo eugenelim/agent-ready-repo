@@ -2,9 +2,7 @@
 name: assimilate-primitive
 description: Use to bring a single external agent primitive — one skill, subagent, hook, or command (or a small connected bundle) — from a local path or URL into this catalogue. Fetches it, diagnoses the destination pack and lifecycle from the local charter, and migrates it to pack convention, or rejects it with a reason. Triggers on "assimilate this skill from <path/url>", "bring in this agent", "adopt this hook into a pack". Do NOT use to survey a whole repo (use assimilate-repo) or to justify a new pack (use propose-catalogue-pack).
 metadata:
-  boundaries:
-    - network_fetch
-    - filesystem_write
+  boundaries: [network_fetch, filesystem_write]
 ---
 
 # Skill: assimilate-primitive
