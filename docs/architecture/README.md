@@ -21,6 +21,9 @@ How the code is *currently* organized. Not why (that's in
 - [`agentbundle.md`](agentbundle.md) — the `agentbundle` Python package:
   CLI verbs, bundler internals (recipes → adapters → projections), the
   adapter contract, and the install→adapt chain.
+- [`security.md`](security.md) — the security-review posture: all enforced frameworks
+  (OWASP Top 10:2025 through OWASP Agentic Skills Top 10 v1.0), the three-bucket
+  delegation model, Module index routing, and the shift-left secure-design pass.
 - [`credentials.md`](credentials.md) — the credential-loading subsystem:
   three-tier storage, the `credbroker` library resolver (RFC-0023, which
   replaced the build-projected `credentials_shim` of RFC-0013),
