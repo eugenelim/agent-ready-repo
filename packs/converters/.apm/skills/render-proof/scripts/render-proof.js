@@ -210,6 +210,18 @@ hr { border: none; border-top: 1px solid var(--proof-border); margin: 2rem 0; }
 input[type="checkbox"] { pointer-events: none; }
 ol, ul { padding-left: 1.5rem; }
 li { margin: 0.25rem 0; }
+@media print {
+  @page { margin: 2cm; }
+  body.proof-body { background: #fff; color: #000; padding: 0; }
+  main.proof-main { max-width: 100%; margin: 0; }
+  pre, .shiki { background: #f5f5f4 !important; border-radius: 0; overflow-x: visible; }
+  pre code, .shiki code { white-space: pre-wrap; overflow-wrap: break-word; color: #000; }
+  .shiki span[style] { color: inherit !important; background: none !important; }
+  h2, h3, h4 { break-after: avoid; }
+  pre, blockquote, table, figure { break-inside: avoid; }
+  a { color: #000; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.8em; color: #555; }
+}
 `;
 
 // ─── renderProof ──────────────────────────────────────────────────────────────
