@@ -149,78 +149,118 @@ async function renderMarkdown(md, options) {
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 
+// Design language: white paper, hard hairlines, mono labels, Fraunces italic h1 accent,
+// zero radius. System-font fallbacks preserve offline capability; add a Google Fonts
+// @import for 'Fraunces' and 'JetBrains Mono' at the top to get the full PPT-proof look.
 const PROOF_CSS = `
 :root {
-  --proof-bg:      #fafaf9;
-  --proof-text:    #1c1917;
-  --proof-border:  #e7e5e4;
-  --proof-muted:   #78716c;
-  --proof-code-bg: #24292e;
+  --ink:      #000000;
+  --paper:    #ffffff;
+  --paper-warm: #fafafa;
+  --rule:     #d8d8d8;
+  --muted:    #555555;
+  --code-bg:  #1e1e1e;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 body.proof-body {
-  background: var(--proof-bg);
-  color: var(--proof-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 1rem;
-  line-height: 1.7;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
   margin: 0;
-  padding: 2rem 1rem;
+  padding: 32px 24px;
 }
 main.proof-main { max-width: 72ch; margin: 0 auto; }
-h1 { font-size: 1.8rem; font-weight: 800; margin-top: 0; }
-h2 { font-size: 1.4rem; font-weight: 700; border-bottom: 1px solid var(--proof-border); padding-bottom: 0.3rem; }
-h3 { font-size: 1.15rem; font-weight: 600; }
-h4 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+h1 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 2rem;
+  font-weight: 400;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 0.4rem;
+}
+h2 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.3rem;
+  margin-top: 2rem;
+}
+h3 { font-size: 1rem; font-weight: 700; margin-top: 1.5rem; }
+h4 {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-top: 1.25rem;
+}
 p { margin: 0.75rem 0; }
-a { color: #57534e; }
+a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 code:not(pre code) {
-  background: #f5f5f4;
-  color: #292524;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 0.875em;
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--paper-warm);
+  border: 1px solid var(--rule);
+  padding: 0.1em 0.35em;
 }
 pre {
-  border-radius: 8px;
   overflow-x: auto;
   margin: 1rem 0;
+  border: 1px solid var(--rule);
 }
 pre code {
   display: block;
   padding: 1rem;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 0.875em;
+  font-family: var(--mono);
+  font-size: 0.8rem;
 }
-.shiki { background: var(--proof-code-bg) !important; border-radius: 8px; overflow-x: auto; }
+.shiki { background: var(--code-bg) !important; border: none; overflow-x: auto; }
 .shiki code { padding: 1rem; display: block; }
 table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-th { background: var(--proof-border); padding: 0.5rem 0.75rem; text-align: left; border: 1px solid var(--proof-border); }
-td { padding: 0.5rem 0.75rem; border: 1px solid var(--proof-border); }
-tr:nth-child(even) td { background: #f5f5f4; }
+th {
+  background: var(--paper-warm);
+  padding: 5px 12px;
+  text-align: left;
+  border: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+td { padding: 6px 12px; border: 1px solid var(--rule); vertical-align: top; }
+tr:nth-child(even) td { background: var(--paper-warm); }
 blockquote {
-  border-left: 3px solid var(--proof-border);
-  color: var(--proof-muted);
-  background: var(--proof-bg);
+  border-left: 3px solid var(--rule);
+  color: var(--muted);
   margin: 1rem 0;
   padding: 0.5rem 1rem;
 }
-hr { border: none; border-top: 1px solid var(--proof-border); margin: 2rem 0; }
+hr { border: none; border-top: 1px solid var(--rule); margin: 2rem 0; }
 input[type="checkbox"] { pointer-events: none; }
 ol, ul { padding-left: 1.5rem; }
 li { margin: 0.25rem 0; }
 @media print {
   @page { margin: 2cm; }
-  body.proof-body { background: #fff; color: #000; padding: 0; }
+  body.proof-body { background: var(--paper); color: var(--ink); padding: 0; }
   main.proof-main { max-width: 100%; margin: 0; }
-  pre, .shiki { background: #f5f5f4 !important; border-radius: 0; overflow-x: visible; }
-  pre code, .shiki code { white-space: pre-wrap; overflow-wrap: break-word; color: #000; }
+  pre, .shiki { background: var(--paper-warm) !important; border: 1px solid var(--rule); overflow-x: visible; }
+  pre code, .shiki code { white-space: pre-wrap; overflow-wrap: break-word; color: var(--ink); }
   .shiki span[style] { color: inherit !important; background: none !important; }
   h2, h3, h4 { break-after: avoid; }
   pre, blockquote, table, figure { break-inside: avoid; }
-  a { color: #000; }
-  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.8em; color: #555; }
+  a { color: var(--ink); text-decoration: none; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.8em; color: var(--muted); }
 }
 `;
 
