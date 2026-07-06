@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@a2ui/react": "^0.10",
+    "@a2ui/web_core": "^0.10",
+    "react": "^19.0",
+    "react-dom": "^19.0",
+    "markdown-it": "^14.0",
+    "markdown-it-task-lists": "^2.0",
+    "shiki": "^1.0",
+    "dompurify": "^3.0",
+    "jsdom": "^25.0"
+  }
+}
