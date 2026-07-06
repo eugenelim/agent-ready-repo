@@ -1,0 +1,15 @@
+[
+  {"query": "Render this markdown for review", "should_trigger": true},
+  {"query": "Proof this draft", "should_trigger": true},
+  {"query": "Give me a proof of this document", "should_trigger": true},
+  {"query": "Make this markdown readable for a reviewer", "should_trigger": true},
+  {"query": "Show me this spec rendered as HTML", "should_trigger": true},
+  {"query": "Render this plan so I can review it offline", "should_trigger": true},
+
+  {"query": "Convert this Markdown to a PDF", "should_trigger": false},
+  {"query": "Make a slide deck from this document", "should_trigger": false},
+  {"query": "Export this markdown to Word format", "should_trigger": false},
+  {"query": "Turn this file into a PowerPoint", "should_trigger": false},
+  {"query": "Render the Mermaid diagrams to images", "should_trigger": false},
+  {"query": "Build a spreadsheet from this markdown table", "should_trigger": false}
+]
