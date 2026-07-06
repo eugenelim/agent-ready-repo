@@ -1,7 +1,7 @@
 # Plan: render-proof
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Shipped
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -222,7 +222,10 @@ async function run() {
   assert(!unsafeMime.includes('url(data:text/html'), 'unsafe data:text/html not stripped');
 
   // (m) javascript: href stripped by DOMPurify default URI scheme (AC6j)
-  const jsHref = await renderMarkdown('[click](javascript:alert(1))', {});
+  // Use raw HTML anchor (html: true) — markdown-it validateLink already blocks the md-link syntax,
+  // outputting javascript: as literal paragraph text (not an anchor); raw HTML tests DOMPurify's
+  // actual scheme sanitization path.
+  const jsHref = await renderMarkdown('<a href="javascript:alert(1)">click</a>', {});
   assert(!jsHref.includes('javascript:'), 'javascript: href not stripped by DOMPurify default');
 
   // (n) unknown lang fallback — no throw
@@ -354,12 +357,12 @@ run().catch(e => { console.error(e); process.exit(1); });
 const assert = require('assert');
 
 async function run() {
-  // Probe A2UI import (must not throw on browser globals)
-  const a2ui = require('@a2ui/react');           // (a) no throw = pass
-  const core = require('@a2ui/web_core');        // (b) no throw = pass
-  assert(typeof a2ui.A2uiSurface !== 'undefined', 'A2uiSurface not exported');
-  assert(typeof a2ui.MarkdownContext !== 'undefined', 'MarkdownContext not exported');
-  assert(typeof core.MessageProcessor === 'function', 'MessageProcessor not a function');
+  // Probe A2UI v0_9 import — the API lives at sub-exports, not the default package exports (v0_8)
+  const a2ui = require('@a2ui/react/v0_9');      // (a) no throw = pass
+  const core = require('@a2ui/web_core/v0_9');   // (b) no throw = pass
+  assert(typeof a2ui.A2uiSurface !== 'undefined', 'A2uiSurface not exported from @a2ui/react/v0_9');
+  assert(typeof a2ui.MarkdownContext !== 'undefined', 'MarkdownContext not exported from @a2ui/react/v0_9');
+  assert(typeof core.MessageProcessor === 'function', 'MessageProcessor not a function in @a2ui/web_core/v0_9');
 
   // Snapshot: message pair shapes (AC2) — must test production-built objects, not test-local literals
   // Export buildMessages(markdownString) from render-proof.js and assert its output shape here
@@ -656,11 +659,11 @@ console.log('All security tests pass');
 
 ## Rollout
 
-Single PR — no feature flag, no gradual rollout. The skill is a new directory; no existing file under `packs/converters/.apm/skills/` is modified. The pack version bump (0.6.0 → 0.7.0) is the marketplace release signal; no agentbundle PyPI publish is triggered (converters is a marketplace pack, not a PyPI package; the separate marketplace.json bump PR is the publication step).
+Single PR — no feature flag, no gradual rollout. The skill is a new directory; no existing file under `packs/converters/.apm/skills/` is modified. The pack version bump (0.6.1 → 0.7.0) is the marketplace release signal; no agentbundle PyPI publish is triggered (converters is a marketplace pack, not a PyPI package; the separate marketplace.json bump PR is the publication step).
 
 ## Risks
 
-1. **A2UI SSR incompatibility.** `@a2ui/react` ^0.10 components may access `window` or `document` at Node.js module import time, crashing before any rendering begins. Mitigation: T3 probes import before building the pipeline; the error is caught and surfaced to the human. **This risk must be resolved during T3 before any SSR code is written.** Fallback if confirmed blocked: DOMPurify-sanitized markdown-it + Shiki HTML passed directly to a `dangerouslySetInnerHTML` `<div>` via React SSR, bypassing `A2uiSurface` — loses the A2UI surface protocol for v1 but **retains the identical DOMPurify + uponSanitizeAttribute hook sanitization as the primary path** (all security guarantees must be preserved in any fallback).
+1. **A2UI SSR incompatibility — RESOLVED (fallback applied).** `A2uiSurface` uses `useSyncExternalStore` without `getServerSnapshot` and throws under all React SSR modes (`renderToStaticMarkup` and `renderToReadableStream`): "Missing getServerSnapshot, which is required for server-rendered content." T3 confirmed the incompatibility. Fallback applied: DOMPurify-sanitized `renderMarkdown()` output passed to `dangerouslySetInnerHTML={{ __html: preRendered }}` via `renderToStaticMarkup` on a `<div>` wrapper, bypassing `A2uiSurface`. `MessageProcessor` is still called for pipeline integrity. All DOMPurify + `uponSanitizeAttribute` hook security guarantees are identical to the primary path. A2UI API at `@a2ui/react/v0_9` and `@a2ui/web_core/v0_9` (not default package exports).
 
 2. **Async Shiki + synchronous `renderToStaticMarkup`.** If A2UI's `Text` component uses React 19's `use(promise)` to call the MarkdownContext renderer, `renderToStaticMarkup` may throw a Suspense-related error even when the Promise is pre-resolved. Mitigation: the pre-resolve closure (`Promise.resolve(alreadyRenderedHtml)`) should eliminate the Suspense boundary. If it does not, the fallback is `renderToReadableStream` + async stream collection — update plan.md changelog if this path is taken.
 
@@ -670,6 +673,7 @@ Single PR — no feature flag, no gradual rollout. The skill is a new directory;
 
 ## Changelog
 
+- 2026-07-06: implementation — Risk #1 confirmed: `A2uiSurface` uses `useSyncExternalStore` without `getServerSnapshot`; throws in both `renderToStaticMarkup` and `renderToReadableStream`; fallback applied (`dangerouslySetInnerHTML` + standalone `renderMarkdown()`). A2UI API at `@a2ui/react/v0_9` + `@a2ui/web_core/v0_9` (default exports are v0_8, missing `A2uiSurface`/`MessageProcessor`). `MessageProcessor` is a class (`new MessageProcessor()`), not a factory; `createSurface` message requires `catalogId: basicCatalog.id`. T3 test updated to v0_9 imports. Fixture (m) updated to raw HTML anchor — markdown-it `validateLink` blocks `javascript:` in link syntax; raw `<a href="...">` tests DOMPurify directly. Spec AC2/AC3/Objective and Risks #1 updated; all ACs checked; pack.toml bumped 0.6.1 → 0.7.0.
 - 2026-07-04: initial plan
 - 2026-07-04: rev 2 — applied adversarial + security review fixes: `ADD_ATTR` not `ALLOWED_ATTR` (was wrong in constraints); `fs.realpathSync()` + component containment for input path (replaces string-prefix + `path.resolve()`); allow-root confinement for output (replaces deny-list); added AC13 size cap; removed `render-proof` from `[pack.evals].skills` (deferred); added `docs/specs/README.md` to T6; redesigned AC5 offline checks (three `! grep -q` not one `grep -vq`); tightened AC6(d) test to assert exact `style="color:red"` on the specific span; added url() post-processing step to T2 and symlink test to T5
 - 2026-07-04: rev 3 — applied second-pass review fixes: url() post-processor changed from `https?://` deny-list to allow-list (preserving `data:` and `#` forms only); added AC6(e) protocol-relative `url(//)` test; added AC5d protocol-relative grep check; AC8 updated to `fs.realpathSync` on parent directory for symlink-aware output confinement; AC8c symlinked-output-dir test added to T5; T5 happy-path assertion now uses a temp file created by the test (fixture.md exists as T1 stub but test creates its own to be explicit); AC7b uses `os.tmpdir()` existing path to exercise containment branch; AC7 error assertion tightened to require canonical path in message; T6 grep fixed to `! grep -E '^skills =.*render-proof'`; repo-root `.gitignore` attribution corrected
