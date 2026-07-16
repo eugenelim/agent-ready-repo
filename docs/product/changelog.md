@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`frontend-engineering` skill added to core pack (core 0.11.0).** The work-loop now loads
+  inline craft rules — design pre-flight, HTML semantics, CSS token discipline,
+  accessibility, state completeness, and verification commands — whenever a
+  task's primary output is HTML, CSS, or JS. The design-intent pass is mandatory
+  (not a recommendation) for that surface.
+
 - **OWASP Agentic Skills Top 10 v1.0 compliance pass — all non-core packs.**
   All non-core packs audited and hardened against AST01–AST10. Three classes of changes:
   (1) AST05 — `research` skill now explicitly declares that fetched web content is untrusted
