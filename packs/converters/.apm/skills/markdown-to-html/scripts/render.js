@@ -223,7 +223,7 @@ function main() {
   renderer.code = function ({ text, lang }) {
     const language = (lang || '').trim().split(/\s+/)[0];
     if (language === 'mermaid') {
-      return `<div class="mermaid-wrap"><div class="mermaid">${text}</div></div>\n`;
+      return `<div class="mermaid-wrap"><div class="mermaid">${escapeHtml(text)}</div></div>\n`;
     }
     if (language && hljs.getLanguage(language)) {
       const highlighted = hljs.highlight(text, { language }).value;
@@ -261,11 +261,104 @@ function main() {
 
   const hasMermaid = args.mermaid && /<div class="mermaid">/.test(html);
   const mermaidScript = hasMermaid
-    ? '<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>'
+    ? '<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>'
     : '';
-  const mermaidInit = hasMermaid
-    ? `mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: { primaryColor: '${THEMES[args.theme].mid}', primaryTextColor: '#ffffff', primaryBorderColor: '${THEMES[args.theme].dark}', lineColor: '#64748b', fontFamily: 'inherit' } });`
-    : '';
+  const mermaidInit = hasMermaid ? `
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '${THEMES[args.theme].mid}',
+    primaryTextColor: '#ffffff',
+    primaryBorderColor: '${THEMES[args.theme].dark}',
+    lineColor: '#64748b',
+    fontFamily: 'inherit',
+    edgeLabelBackground: '#f8fafc',
+    tertiaryColor: '${THEMES[args.theme].light}',
+  },
+  securityLevel: 'antiscript',
+  flowchart:     { useMaxWidth: true, htmlLabels: true },
+  sequence:      { useMaxWidth: true },
+  gantt:         { useMaxWidth: true },
+  er:            { useMaxWidth: true },
+  pie:           { useMaxWidth: true },
+  gitGraph:      { useMaxWidth: true },
+  quadrantChart: { useMaxWidth: true },
+  xyChart:       { useMaxWidth: true },
+  block:         { useMaxWidth: true },
+  timeline:      { useMaxWidth: true },
+  mindmap:       { useMaxWidth: true },
+  packet:        { useMaxWidth: true },
+  requirement:   { useMaxWidth: true },
+  kanban:        { useMaxWidth: true },
+  class:         { useMaxWidth: true },
+  state:         { useMaxWidth: true },
+  journey:       { useMaxWidth: true },
+});
+(function () {
+  function makePanZoom(cv, getSvg) {
+    var sc = 1, ox = 0, oy = 0, drag = false, sx = 0, sy = 0;
+    function apply() { var s = getSvg(); if (s) s.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + sc + ')'; }
+    cv.addEventListener('wheel', function (e) { e.preventDefault(); sc = Math.min(4, Math.max(0.25, sc * (e.deltaY > 0 ? 0.9 : 1.11))); apply(); }, { passive: false });
+    cv.addEventListener('mousedown', function (e) { if (e.button) return; drag = true; sx = e.clientX - ox; sy = e.clientY - oy; cv.classList.add('panning'); });
+    window.addEventListener('mousemove', function (e) { if (!drag) return; ox = e.clientX - sx; oy = e.clientY - sy; apply(); });
+    window.addEventListener('mouseup', function () { drag = false; cv.classList.remove('panning'); });
+    return {
+      zoomIn:  function () { sc = Math.min(4, sc * 1.2); apply(); },
+      zoomOut: function () { sc = Math.max(0.25, sc / 1.2); apply(); },
+      reset:   function () { sc = 1; ox = 0; oy = 0; apply(); },
+    };
+  }
+  async function renderAll() {
+    var wraps = document.querySelectorAll('.mermaid-wrap');
+    for (var i = 0; i < wraps.length; i++) {
+      var wrap = wraps[i];
+      var src = wrap.querySelector('.mermaid');
+      if (!src) continue;
+      var code = src.textContent || '';
+      var tb = document.createElement('div');
+      tb.className = 'mermaid-toolbar';
+      tb.innerHTML = '<span class="mermaid-label">diagram</span>'
+        + '<button class="mmd-btn" data-a="zi" title="Zoom in">+</button>'
+        + '<button class="mmd-btn" data-a="zo" title="Zoom out">-</button>'
+        + '<button class="mmd-btn" data-a="r"  title="Reset view">reset</button>'
+        + '<button class="mmd-btn" data-a="cp" title="Copy SVG source">copy SVG</button>';
+      var cv = document.createElement('div');
+      cv.className = 'mermaid-canvas';
+      wrap.innerHTML = '';
+      wrap.appendChild(tb);
+      wrap.appendChild(cv);
+      try {
+        var res = await mermaid.render('mmd-' + i, code);
+        cv.innerHTML = res.svg;
+        var svgEl = cv.querySelector('svg');
+        if (svgEl) { svgEl.removeAttribute('width'); svgEl.removeAttribute('height'); svgEl.style.maxWidth = '100%'; }
+        (function (cv2, tb2) {
+          var pz = makePanZoom(cv2, function () { return cv2.querySelector('svg'); });
+          tb2.querySelector('[data-a=zi]').addEventListener('click', pz.zoomIn);
+          tb2.querySelector('[data-a=zo]').addEventListener('click', pz.zoomOut);
+          tb2.querySelector('[data-a=r]').addEventListener('click',  pz.reset);
+          tb2.querySelector('[data-a=cp]').addEventListener('click', function () {
+            var btn = tb2.querySelector('[data-a=cp]');
+            function show(t) { btn.textContent = t; setTimeout(function () { btn.textContent = 'copy SVG'; }, 1400); }
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(cv2.innerHTML).then(function () { show('copied!'); }).catch(function () { show('unavailable'); });
+            } else { show('unavailable'); }
+          });
+        })(cv, tb);
+      } catch (e) {
+        tb.style.display = 'none';
+        var errDiv = document.createElement('div');
+        errDiv.className = 'mermaid-error';
+        errDiv.textContent = 'Parse error: ' + (e.message || String(e));
+        wrap.appendChild(errDiv);
+      }
+    }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', renderAll); }
+  else { renderAll(); }
+})();
+` : '';
 
   // Stamp template — use function-form replace (via stamp()) so values
   // containing $&, $$, $', $` are not mis-interpreted as backref tokens.
