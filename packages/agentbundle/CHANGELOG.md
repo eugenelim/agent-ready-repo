@@ -8,6 +8,16 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+### Fixed
+
+- **`install` without `--adapter` now targets the auto-resolved adapter when
+  handing off to `upgrade`.** Installing a pack already present for multiple
+  adapters at a scope (e.g. `claude-code` and `codex`) without specifying
+  `--adapter` triggered upgrade's "pass `--adapter` to pick one" disambiguator,
+  even though install's probe had already selected the right row. The offered
+  upgrade now forwards the auto-resolved adapter, matching the behavior when
+  `--adapter` is explicit.
+
 ## [0.11.0] — 2026-07-03
 
 ### Added

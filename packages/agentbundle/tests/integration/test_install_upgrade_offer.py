@@ -15,9 +15,14 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import os
+import shutil
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 FIXTURE_CATALOGUE = (
     Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
@@ -150,3 +155,81 @@ def test_yes_runs_real_upgrade_end_to_end(tmp_path):
     # re-apply, not a version change: the recap reads `re-applied: … (already
     # current)`, never `upgraded: X -> X` (install-state-visibility AC10).
     assert "re-applied: alpha @ repo" in out, f"missing re-apply recap; stdout={out!r}"
+
+
+def test_install_run_forwards_resolved_adapter_when_multi_adapter_and_no_cli_adapter(
+    tmp_path, monkeypatch
+):
+    """Regression: install.run() must pass user_target_adapter as resolved_adapter
+    to _offer_upgrade when --adapter is omitted and the pack is already installed
+    for multiple adapters at user scope.
+
+    Without this, _offer_upgrade forwards ns.adapter=None, and upgrade's
+    multi-adapter disambiguator fires ("pass --adapter to pick one") even though
+    install already selected the right row via its auto-detection probe.
+    """
+    converters_src = REPO_ROOT / "packs" / "converters"
+    if not converters_src.is_dir():
+        pytest.skip("converters pack not present in this checkout")
+
+    home = tmp_path / "home"
+    (home / ".claude").mkdir(parents=True)  # probe → claude-code
+
+    agentbundle_dir = home / ".agentbundle"
+    agentbundle_dir.mkdir()
+    from agentbundle.config import PackState, State, dump_state
+
+    two_adapter_state = State(
+        packs={
+            ("converters", "claude-code"): PackState(
+                installed_version="0.8.0", adapter="claude-code", scope="user"
+            ),
+            ("converters", "codex"): PackState(
+                installed_version="0.8.0", adapter="codex", scope="user"
+            ),
+        }
+    )
+    (agentbundle_dir / "state.toml").write_text(
+        dump_state(two_adapter_state), encoding="utf-8"
+    )
+
+    cat = tmp_path / "catalogue"
+    (cat / "packs").mkdir(parents=True)
+    shutil.copytree(converters_src, cat / "packs" / "converters")
+    (tmp_path / "repo").mkdir()
+
+    captured: dict = {}
+
+    def _spy_offer(*_args, **kwargs):
+        captured.update(kwargs)
+        return 0
+
+    from agentbundle.commands import install as _install_mod
+
+    monkeypatch.setattr(_install_mod, "_offer_upgrade", _spy_offer)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "y")
+
+    with patch.dict(os.environ, {"HOME": str(home), "USERPROFILE": str(home)}):
+        args = argparse.Namespace(
+            pack="converters",
+            catalogue=str(cat),
+            output=str(tmp_path / "repo"),
+            scope="user",
+            force=False,
+            force_merge=False,
+            dry_run=False,
+            yes=False,
+            adapter=None,
+            emit_install_routes=False,
+        )
+        rc = _install_mod.run(args)
+
+    assert "resolved_adapter" in captured, (
+        f"_offer_upgrade was not called with resolved_adapter; "
+        f"install.run() may have exited before the offer (rc={rc})"
+    )
+    assert captured["resolved_adapter"] == "claude-code", (
+        f"expected resolved_adapter='claude-code' (probe picks ~/.claude/), "
+        f"got {captured['resolved_adapter']!r}"
+    )
