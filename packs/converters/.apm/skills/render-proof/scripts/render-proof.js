@@ -115,6 +115,9 @@ async function renderMarkdown(md, options) {
     const token = tokens[idx];
     const lang = (token.info || '').trim().split(/\s+/)[0];
     const code = token.content;
+    if (lang === 'mermaid') {
+      return `<div class="mermaid-wrap"><pre class="mermaid-source">${mdi.utils.escapeHtml(code)}</pre></div>`;
+    }
     if (highlighter) {
       try {
         return highlighter.codeToHtml(code, { lang: lang || 'text', theme: 'github-dark' });
@@ -250,6 +253,31 @@ hr { border: none; border-top: 1px solid var(--rule); margin: 2rem 0; }
 input[type="checkbox"] { pointer-events: none; }
 ol, ul { padding-left: 1.5rem; }
 li { margin: 0.25rem 0; }
+.mermaid-wrap {
+  margin: 1.5rem 0;
+  border: 1px solid var(--rule);
+  overflow: hidden;
+}
+.mermaid-source {
+  background: var(--paper-warm);
+  border: none;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.mermaid-canvas {
+  padding: 1.5rem;
+  text-align: center;
+}
+.mermaid-canvas svg { max-width: 100%; height: auto; }
+.mermaid-error {
+  padding: 0.75rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-top: 1px solid #fecaca;
+}
 @media print {
   @page { margin: 2cm; }
   body.proof-body { background: var(--paper); color: var(--ink); padding: 0; }
@@ -261,6 +289,9 @@ li { margin: 0.25rem 0; }
   pre, blockquote, table, figure { break-inside: avoid; }
   a { color: var(--ink); text-decoration: none; }
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.8em; color: var(--muted); }
+  .mermaid-wrap { break-inside: avoid; }
+  .mermaid-canvas { padding: 1rem 0; }
+  .mermaid-source { display: none !important; }
 }
 `;
 
@@ -279,6 +310,7 @@ async function renderProof(md, opts) {
 
   // Pre-render markdown to sanitized HTML
   const preRendered = await renderMarkdown(md, opts || {});
+  const hasMermaid = preRendered.includes('class="mermaid-source"');
 
   // Build and exercise the MessageProcessor pipeline (Risk #1 fallback:
   // A2uiSurface SSR throws; rendering falls back to dangerouslySetInnerHTML)
@@ -303,6 +335,58 @@ async function renderProof(md, opts) {
     ? titleMatch[1].replace(/<[^>]+>/g, '').trim()
     : 'Proof';
 
+  const mermaidRuntime = hasMermaid ? `
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+  mermaid.initialize({
+    startOnLoad: false, theme: 'neutral', securityLevel: 'antiscript',
+    flowchart:     { useMaxWidth: true, htmlLabels: true },
+    sequence:      { useMaxWidth: true },
+    gantt:         { useMaxWidth: true },
+    er:            { useMaxWidth: true },
+    pie:           { useMaxWidth: true },
+    gitGraph:      { useMaxWidth: true },
+    quadrantChart: { useMaxWidth: true },
+    xyChart:       { useMaxWidth: true },
+    block:         { useMaxWidth: true },
+    timeline:      { useMaxWidth: true },
+    mindmap:       { useMaxWidth: true },
+    packet:        { useMaxWidth: true },
+    requirement:   { useMaxWidth: true },
+    kanban:        { useMaxWidth: true },
+    class:         { useMaxWidth: true },
+    state:         { useMaxWidth: true },
+    journey:       { useMaxWidth: true },
+  });
+  (function () {
+    async function renderAll() {
+      var sources = document.querySelectorAll('.mermaid-source');
+      for (var i = 0; i < sources.length; i++) {
+        var pre = sources[i];
+        var wrap = pre.parentElement;
+        var code = pre.textContent || '';
+        try {
+          var res = await mermaid.render('proof-mmd-' + i, code);
+          var cv = document.createElement('div');
+          cv.className = 'mermaid-canvas';
+          cv.innerHTML = res.svg;
+          var svgEl = cv.querySelector('svg');
+          if (svgEl) { svgEl.removeAttribute('width'); svgEl.removeAttribute('height'); svgEl.style.maxWidth = '100%'; }
+          wrap.insertBefore(cv, pre);
+          pre.style.display = 'none';
+        } catch (e) {
+          var errDiv = document.createElement('div');
+          errDiv.className = 'mermaid-error';
+          errDiv.textContent = 'Parse error: ' + (e.message || String(e));
+          wrap.appendChild(errDiv);
+        }
+      }
+    }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', renderAll); }
+    else { renderAll(); }
+  })();
+  </script>` : '';
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -312,7 +396,7 @@ async function renderProof(md, opts) {
   <style>${PROOF_CSS}</style>
 </head>
 <body class="proof-body">
-  <main class="proof-main">${innerHtml}</main>
+  <main class="proof-main">${innerHtml}</main>${mermaidRuntime}
 </body>
 </html>`;
 

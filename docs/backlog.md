@@ -1490,3 +1490,19 @@ not, wire it. Do not rely on prose-level security review for the SCA class.
 
 **Unblocks when:** CI config confirms a wired SCA scanner for `packages/agentbundle`.
 
+
+### cdn-sri-mermaid
+
+**Source:** security-reviewer, mermaid-rendering-improvements spec.
+
+Both `markdown-to-html` and `render-proof` load `mermaid@11` from jsDelivr with a floating
+major-range specifier and no `integrity=` hash. A CDN compromise or MITM would inject
+arbitrary JS that runs in the generated page's origin and could also compromise the
+DOMPurify that sanitizes `res.svg`.
+
+**Fix:** pin an exact patch version (`mermaid@11.a.b`) and add `integrity="sha384-..."`
++ `crossorigin="anonymous"` to both script tags, or vendor mermaid locally for a genuinely
+offline artifact.
+
+**Unblocks when:** a mermaid minor is chosen to pin, the SRI hash is computed, and
+both skill scripts are updated. Revisit at the next Mermaid version bump.
