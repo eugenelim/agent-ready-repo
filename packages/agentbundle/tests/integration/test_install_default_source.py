@@ -118,10 +118,37 @@ def test_offer_upgrade_forwards_adapter(monkeypatch):
     args = argparse.Namespace(
         catalogue=None, output=".", _user_config=None, adapter="claude-code"
     )
+    # Pass a differing resolved_adapter to confirm CLI value wins over the fallback.
     install._offer_upgrade(
-        args, pack_name="research", scope="user", catalogue_uri="git+https://resolved/x"
+        args,
+        pack_name="research",
+        scope="user",
+        catalogue_uri="git+https://resolved/x",
+        resolved_adapter="codex",
     )
     assert captured["ns"].adapter == "claude-code"
+
+
+def test_offer_upgrade_uses_resolved_adapter_when_no_cli_adapter(monkeypatch):
+    # Regression: when --adapter is omitted, install auto-resolves a target adapter
+    # and the upgrade offer must forward it. Without this, upgrade's multi-adapter
+    # disambiguator fires and fails even though install already picked the row.
+    from agentbundle.commands import upgrade as _upgrade
+
+    captured = {}
+    monkeypatch.setattr(_upgrade, "run", lambda ns: captured.setdefault("ns", ns) and 0)
+
+    args = argparse.Namespace(
+        catalogue=None, output=".", _user_config=None, adapter=None
+    )
+    install._offer_upgrade(
+        args,
+        pack_name="research",
+        scope="user",
+        catalogue_uri="git+https://resolved/x",
+        resolved_adapter="codex",
+    )
+    assert captured["ns"].adapter == "codex"
 
 
 def test_bare_list_packs_resolves_default_source(tmp_path):

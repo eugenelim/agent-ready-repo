@@ -534,6 +534,9 @@ def run(args: "argparse.Namespace") -> int:
             pack_name=pack_name,
             scope=requested_scope,
             catalogue_uri=catalogue_uri,
+            resolved_adapter=(
+                user_target_adapter if requested_scope == "user" else repo_target_adapter
+            ),
         )
 
     # 4b. Already at the *other* scope, no --force → refuse cross-scope.
@@ -1880,7 +1883,12 @@ def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
 
 
 def _offer_upgrade(
-    args: "argparse.Namespace", *, pack_name: str, scope: str, catalogue_uri: str
+    args: "argparse.Namespace",
+    *,
+    pack_name: str,
+    scope: str,
+    catalogue_uri: str,
+    resolved_adapter: "str | None" = None,
 ) -> int:
     """Hand off an already-installed `install` to `upgrade` (CLI-hygiene AC11/12).
 
@@ -1891,6 +1899,11 @@ def _offer_upgrade(
     no-op), forwarding ``--adapter`` and threading ``_user_config`` so adapter
     resolution matches a direct ``upgrade`` invocation, and leaving all five
     primitive flags unset (whole-pack). Returns ``upgrade.run``'s exit code.
+
+    ``resolved_adapter`` is the adapter install auto-detected for this run (may
+    differ from ``args.adapter`` when ``--adapter`` was omitted). Used as a
+    fallback so the upgrade targets the same row the install would have written,
+    even when the pack is installed for multiple adapters at this scope.
     """
     import argparse as _argparse
 
@@ -1908,7 +1921,11 @@ def _offer_upgrade(
     # adapter the user picked. Without this, a pack installed for multiple
     # adapters at one scope trips upgrade's multi-adapter disambiguator even
     # though the operator already passed `--adapter` to `install`.
-    ns.adapter = getattr(args, "adapter", None)
+    # Fall back to `resolved_adapter` when --adapter was omitted: install
+    # auto-detects a target adapter and the upgrade offer must target that same
+    # row rather than leaving upgrade to re-disambiguate (and fail) when multiple
+    # adapter rows exist at this scope.
+    ns.adapter = getattr(args, "adapter", None) or resolved_adapter
     ns.yes = True
     ns.dry_run = False
     ns.skill = ns.agent = ns.hook = ns.seed = ns.command = None
