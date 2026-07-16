@@ -153,8 +153,14 @@ sast:
 		echo "pip-audit -r $$f"; \
 		pip-audit -r "$$f" || exit 1; \
 	done
-	# semgrep hard-pins mcp==1.23.3 (CVEs: 52870, 52869, 59950) and click~=8.1.8
-	# (PYSEC-2026-2132) — unfixable until semgrep ships updated deps; tracked in backlog.
+	# semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both carrying known CVEs
+	# (mcp: CVE-2026-52870, CVE-2026-52869, CVE-2026-59950; click: PYSEC-2026-2132).
+	# Attack surface is negligible: these packages are SAST-tooling transitive deps only,
+	# never present in shipped artifacts (which declare dependencies=[]); exploiting the
+	# mcp CVEs requires a Semgrep backend compromise + targeted CI attack; the click CVE
+	# requires controlling semgrep's CLI args (i.e. write access to this repo).
+	# Suppression is unblocked once semgrep ships mcp>=1.28.1 + click>=8.3.3 deps.
+	# Full diagnosis and unblock condition: docs/backlog.md § semgrep-mcp-cve-allowlist.
 	@echo "pip-audit -r tools/requirements-sast.txt (semgrep transitive-dep CVE allowlist applied)"
 	@pip-audit -r tools/requirements-sast.txt \
 		--ignore-vuln CVE-2026-52870 \
