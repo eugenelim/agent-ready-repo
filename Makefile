@@ -153,12 +153,13 @@ sast:
 		echo "pip-audit -r $$f"; \
 		pip-audit -r "$$f" || exit 1; \
 	done
-	# semgrep hard-pins mcp==1.23.3 (CVE-2026-52870, CVE-2026-52869) and click~=8.1.8
+	# semgrep hard-pins mcp==1.23.3 (CVEs: 52870, 52869, 59950) and click~=8.1.8
 	# (PYSEC-2026-2132) — unfixable until semgrep ships updated deps; tracked in backlog.
 	@echo "pip-audit -r tools/requirements-sast.txt (semgrep transitive-dep CVE allowlist applied)"
 	@pip-audit -r tools/requirements-sast.txt \
 		--ignore-vuln CVE-2026-52870 \
 		--ignore-vuln CVE-2026-52869 \
+		--ignore-vuln CVE-2026-59950 \
 		--ignore-vuln PYSEC-2026-2132
 	# Both shipped packages declare dependencies=[]; credbroker's optional
 	# [crypto] extra is the only third-party code either can pull, so audit it

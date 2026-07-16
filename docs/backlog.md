@@ -1491,6 +1491,31 @@ not, wire it. Do not rely on prose-level security review for the SCA class.
 **Unblocks when:** CI config confirms a wired SCA scanner for `packages/agentbundle`.
 
 
+### semgrep-mcp-cve-allowlist
+
+**Source:** CI SAST gate, 2026-07-16.
+
+`semgrep>=1.166` hard-pins `mcp==1.23.3` and `click~=8.1.8`. Multiple CVEs have been
+published against these versions (CVE-2026-52870, CVE-2026-52869, CVE-2026-59950 in mcp;
+PYSEC-2026-2132 in click); fix versions require mcp>=1.27.2/1.28.1 and click>=8.3.3.
+
+These packages are transitive deps of the **SAST tooling only** — they are never shipped to
+end users and are not reachable from the pack's installed artifacts (which have `dependencies = []`).
+The shipped packages are audited separately and are clean. Suppressing the CVEs is the correct
+posture while the upstream semgrep vendor has not released an update.
+
+**Risk profile:** Low. Exploiting these CVEs through semgrep would require an attacker to
+control MCP protocol messages from semgrep's backend (CVE-2026-52869/52870/59950) or CLI
+arguments to semgrep (PYSEC-2026-2132) inside an ephemeral CI runner. The CI environment
+is not an external attack surface.
+
+**Fix:** Remove the `--ignore-vuln` flags in the `sast` Makefile target once `semgrep` releases
+a version that depends on `mcp>=1.28.1` and `click>=8.3.3`. Check by running
+`pip show semgrep | grep Requires` and verifying the resolved transitive versions.
+
+**Unblocks when:** a semgrep release ships with updated mcp + click transitive dep pins.
+
+
 ### cdn-sri-mermaid
 
 **Source:** security-reviewer, mermaid-rendering-improvements spec.
