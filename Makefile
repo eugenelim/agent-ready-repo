@@ -149,10 +149,17 @@ sast:
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	bandit -r $(SAST_DIRS) -c bandit.yaml --severity-level medium --confidence-level medium -q
-	@for f in tools/requirements.txt tools/requirements-sast.txt $$(find packs -name requirements.txt | sort); do \
+	@for f in tools/requirements.txt $$(find packs -name requirements.txt | sort); do \
 		echo "pip-audit -r $$f"; \
 		pip-audit -r "$$f" || exit 1; \
 	done
+	# semgrep hard-pins mcp==1.23.3 (CVE-2026-52870, CVE-2026-52869) and click~=8.1.8
+	# (PYSEC-2026-2132) — unfixable until semgrep ships updated deps; tracked in backlog.
+	@echo "pip-audit -r tools/requirements-sast.txt (semgrep transitive-dep CVE allowlist applied)"
+	@pip-audit -r tools/requirements-sast.txt \
+		--ignore-vuln CVE-2026-52870 \
+		--ignore-vuln CVE-2026-52869 \
+		--ignore-vuln PYSEC-2026-2132
 	# Both shipped packages declare dependencies=[]; credbroker's optional
 	# [crypto] extra is the only third-party code either can pull, so audit it
 	# explicitly. Mirror packages/credbroker/pyproject.toml [crypto].
