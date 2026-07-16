@@ -319,6 +319,14 @@ For anything beyond trivial, *think before you write code*. Concretely:
   common failure mode of technically correct surfaces with no design sense. Applies
   in both light and full mode as a recommendation; the mandatory fresh-context
   gate (`experience-reviewer`) runs in REVIEW for full-mode work.
+  **Frontend surface exception — mandatory, not recommended.** When the task's
+  primary output is HTML, CSS, or JS (a new page, component, slide deck,
+  dashboard, or standalone web artifact), this pass is mandatory in both modes:
+  load the `frontend-engineering` skill inline before writing code. It carries
+  the design pre-flight requirements (named aesthetic reference, seed token
+  block, state matrix), the craft rules, and the GATES verification commands
+  for that surface. The judgment call — whether the output is "primary"
+  HTML/CSS/JS or incidental — is the implementer's; when in doubt, load it.
 - **Initialize the loop's state file.** Run this skill's bundled
   `scripts/loop-cohort.py init docs/specs/<feature>`; the tool copies
   the bundled `assets/state.json` template into place, sets `feature`
@@ -384,6 +392,12 @@ heavier infra-flavor layers fire only on the infra-flavored signal), and is for
 the *unfamiliar-contract* case — **not** every import, not familiar code whose
 contract the agent already holds. (Detail in
 [`references/infra-verification.md`](references/infra-verification.md).)
+
+**Frontend-triggered work (HTML/CSS/JS primary output).** When the frontend
+surface trigger fires, the `frontend-engineering` skill has already been
+loaded inline during PLAN. Its craft rules govern all HTML element selection,
+CSS token discipline, accessibility patterns, and state completeness during
+EXECUTE; its GATES section defines the verification commands to run at step 3.
 
 For each task, implement the smallest coherent unit of work toward the
 goal. Resist the urge to fix unrelated things you notice along the way;
