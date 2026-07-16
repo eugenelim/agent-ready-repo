@@ -118,6 +118,20 @@ async function run() {
     'sanitizeStyle: escaped \\) in unquoted url() — z-index leaked as standalone declaration after url() close (unquoted branch regex not fixed)'
   );
 
+  // (p) mermaid fence block — wrapped in .mermaid-wrap/.mermaid-source, not Shiki-highlighted
+  const mmd = await renderMarkdown('```mermaid\ngraph TD\n  A --> B\n```', {});
+  assert(mmd.includes('class="mermaid-wrap"'), 'mermaid fence not wrapped in .mermaid-wrap');
+  assert(mmd.includes('class="mermaid-source"'), 'mermaid fence source not in .mermaid-source');
+  assert(!mmd.includes('style='), 'mermaid fence must not be Shiki-highlighted');
+
+  // (q) renderProof: Mermaid CDN injected when diagram present; absent otherwise
+  // Verification mode: goal-based — tests the hasMermaid detection through the full renderProof pipeline
+  const { renderProof } = require('../scripts/render-proof.js');
+  const proofWith = await renderProof('# T\n\n```mermaid\ngraph TD\n  A --> B\n```\n', {});
+  assert(proofWith.html.includes('cdn.jsdelivr.net/npm/mermaid@11'), 'renderProof: CDN not injected when diagram present');
+  const proofWithout = await renderProof('# T\n\nHello world\n', {});
+  assert(!proofWithout.html.includes('cdn.jsdelivr.net'), 'renderProof: CDN injected when no diagram present');
+
   console.log('All renderer tests pass');
 }
 run().catch(e => { console.error(e); process.exit(1); });
