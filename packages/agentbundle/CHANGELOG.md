@@ -8,6 +8,8 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ## [Unreleased]
 
+## [0.11.1] — 2026-07-16
+
 ### Fixed
 
 - **`install` without `--adapter` now targets the auto-resolved adapter when
