@@ -1,0 +1,22 @@
+[
+  {"query": "Review this design doc and flag any issues", "should_trigger": true},
+  {"query": "What's wrong with this architecture proposal?", "should_trigger": true},
+  {"query": "Is this RFC any good? I pasted it below", "should_trigger": true},
+  {"query": "Critique the attached system design", "should_trigger": true},
+  {"query": "Here's our ADR — does the decision hold up?", "should_trigger": true},
+  {"query": "Can you do a well-architected review of this design?", "should_trigger": true},
+  {"query": "Tear apart this proposed caching strategy", "should_trigger": true},
+  {"query": "Assess whether this diagram captures the right abstraction", "should_trigger": true},
+  {"query": "Give me a verdict on this integration design", "should_trigger": true},
+  {"query": "Well-architected review of this serverless design — is the synchronous latency budget viable?", "should_trigger": true},
+
+  {"query": "How should we design the caching strategy?", "should_trigger": false},
+  {"query": "Draw a diagram of the integration", "should_trigger": false},
+  {"query": "Write an RFC proposing we move to gRPC", "should_trigger": false},
+  {"query": "Design the ingestion system from scratch", "should_trigger": false},
+  {"query": "Review this pull request for correctness bugs", "should_trigger": false},
+  {"query": "What's wrong with my failing test?", "should_trigger": false},
+  {"query": "Diagram the abstraction layers", "should_trigger": false},
+  {"query": "Record this architecture decision as an ADR", "should_trigger": false},
+  {"query": "Proofread this blog post about our architecture", "should_trigger": false}
+]

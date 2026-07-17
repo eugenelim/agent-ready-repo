@@ -1,0 +1,70 @@
+{
+  "skill_name": "markdown-to-xlsx",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Export this Markdown table to Excel using our workbook template metrics-template.xlsx.",
+      "expected_output": "The agent confirms openpyxl is installed (`render.py --check`), inspects the workbook's named ranges/tables, then invokes `python scripts/render.py render <markdown> --template metrics-template.xlsx`. It reports OUTPUT and FILLED. It does not hand-write the .xlsx.",
+      "assertions": [
+        "Agent runs `python scripts/render.py --check` (or otherwise confirms openpyxl) before rendering",
+        "Agent invokes `python scripts/render.py render` with `--template metrics-template.xlsx`",
+        "Agent does NOT hand-write the .xlsx or its XML",
+        "Agent reports the OUTPUT: path and FILLED: count back to the user"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Fill the .xlsx template — but it has a dashboard chart, don't break it.",
+      "expected_output": "The agent explains the script writes only into named ranges and Excel Table data cells and never touches chart objects or resizes ranges, so a chart reading those ranges keeps working. It advises re-opening the result to confirm complex Excel-authored shapes survived.",
+      "assertions": [
+        "Agent explains the renderer writes only to data ranges and does not manipulate the chart",
+        "Agent notes the range is not resized (so the chart wiring is preserved)",
+        "Agent advises re-opening to verify visuals for complex templates",
+        "Agent does NOT propose rebuilding the chart by hand"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Put this data into spreadsheet.xlsx — I just made a blank workbook.",
+      "expected_output": "The agent runs inspect, finds no named ranges or Tables, and relays the GUIDANCE about defining a Name and inserting a Table rather than silently converting.",
+      "assertions": [
+        "Agent invokes `python scripts/render.py inspect spreadsheet.xlsx`",
+        "Agent relays guidance to define named ranges / insert an Excel Table when there are no fill-points",
+        "Agent does NOT silently convert the Markdown into a fresh workbook, discarding formatting"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Which named ranges and tables does our workbook fill? Here's brand.xlsx.",
+      "expected_output": "The agent invokes `python scripts/render.py inspect brand.xlsx` and reports the FILLPOINTS lines (kind/name/ref), explaining front-matter fills single-cell names and a Markdown table fills a Table data region.",
+      "assertions": [
+        "Agent invokes `python scripts/render.py inspect brand.xlsx`",
+        "Agent reports the fill-points (named ranges and Excel Tables) with their refs",
+        "Agent does NOT guess the fill-points without running inspect"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "My table has 50 rows but the template's Excel Table only has 10 — what happens?",
+      "expected_output": "The agent explains the script fills the existing data region and truncates overflow with a WARNING rather than resizing the table, because resizing could break a chart that reads the range. It suggests enlarging the Table in Excel first if all rows are needed.",
+      "assertions": [
+        "Agent explains overflow rows are truncated with a WARNING, not auto-expanded",
+        "Agent ties the no-resize behavior to preserving chart wiring",
+        "Agent suggests enlarging the Excel Table in the template if all rows are required"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I don't have an Excel template — just convert sample.md to a .xlsx.",
+      "expected_output": "The agent confirms openpyxl (`render.py --check`), then renders template-less on the explicit opt-out: `python scripts/render.py render sample.md --output sample.xlsx`, printing OUTPUT/FILLED. It states the workbook is unbranded and does not invent named ranges.",
+      "files": ["evals/files/sample.md"],
+      "assertions": [
+        "Agent renders template-less only on the explicit no-template opt-out and says the workbook is unbranded"
+      ],
+      "expect": {
+        "produces": ["sample.xlsx"],
+        "output_contains": ["OUTPUT:", "FILLED:"]
+      }
+    }
+  ]
+}

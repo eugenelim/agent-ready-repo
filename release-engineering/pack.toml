@@ -1,0 +1,47 @@
+[pack]
+name = "release-engineering"
+version = "0.1.1"
+description = "The SRE/ops outer loop — deployed end-to-end validation above work-loop's inner build loop. Ships the `release-lead` agent and the `release-loop` skill: deploy the integrated whole to an ephemeral environment, run e2e, observe telemetry, feed deployed findings back to the inner loop (no human relay), redeploy, and iterate until the deployed whole converges — then stop at the human consent gate for the prod ship (G5), surfaced as a release-readiness record to ratify rather than a bare go/no-go. Autonomy is carved by minimum-regret: the agent runs the inner and outer loops on reversible ephemeral envs unwatched; humans gate the irreversible exits (first real users or data, data migrations, spend over threshold, security/auth-boundary changes, anything irreversible, and the prod ship). Reuses core's operational-safety depth modules + quality-engineer + security-reviewer, consumes the discovery sidecar schema by convention, and ships no new runtime engine and no new reviewer. Completes the company OS: product (discovery) → engineering (build) → SRE/ops (release). Markdown skill + agent definition, repo-scope."
+readme = "README.md"
+display_name = "Release Engineering"
+license = "Apache-2.0 OR MIT"
+categories = ["devops", "site-reliability-engineering"]
+keywords = ["release", "deploy", "sre", "ephemeral-environments", "canary"]
+
+# RFC-0004 contract metadata. release-loop is an agent definition + a loop skill
+# (the same shape as product-engineering's discovery-loop), so it tracks the same
+# contract revision.
+[pack.adapter-contract]
+version = "0.13"
+
+# RFC-0049 OQ1 + release-loop spec AC2: repo-scope is architecturally load-bearing.
+# release-engineering installs into the *build repo* — the same repo work-loop
+# (the inner loop) ran in, which holds the deploy-ready component and therefore has
+# `core` repo-installed. That co-location is what makes reusing core's repo-scope
+# quality-engineer / security-reviewer / operational-safety sound (the deliberate
+# scope-inverse of the user-scope discovery-lead, which ships its own reviewers
+# because it runs upstream in non-repo workspaces — RFC-0048 DRIFT-E).
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# Hard-depends on core (operational-safety reference modules + the quality-engineer
+# and security-reviewer agents). The discovery sidecar schema is consumed *by
+# convention* (the definition is carried in product-engineering's discovery-loop
+# skill, not core; RFC-0048 § Amendments 2026-06-26), so it is deliberately NOT a
+# manifest dependency on product-engineering.
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "core"
+version = "^0.1"
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links + maintainer.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/release-engineering/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

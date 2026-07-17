@@ -1,0 +1,34 @@
+{
+  "skill_name": "new-rfc",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Draft the RFC the user asked for, answer-first.",
+      "expected_output": "An answer-first RFC that leads with a '## Reviewer brief' orientation grid and then 'The ask' — a recommendation (BLUF) plus the decision the reviewer must make, SCQA framing, and the decisions rendered as a table (one row per decision, each carrying a recommended option + decide-by + reviewer action). The header carries a 'Decision weight' field (light | standard | heavy) sized to the change's stakes. Each decision/subpoint is independently backed by research (repo precedent + external prior art), and its option space is MECE along a stated axis, grounded in prior art, and includes do-nothing — not a small round number of invented categories. Problem & goals has real Non-goals (could-have-been-goals deliberately dropped). Risks is a genuine pre-mortem with falsifiable assumptions and honest drawbacks (not 'no drawbacks'). Evidence & prior art is non-empty and every citation is verifiable — fetched and confirmed to contain the claim, or it explicitly states web search was unavailable rather than fabricating sources. Open questions are capped (~3), each with a recommended default + owner + decide-by; no item is simultaneously a decided default and an open question; all internal cross-references resolve.",
+      "assertions": [
+        "Leads answer-first with 'The ask' — recommendation/BLUF plus the decision the reviewer must make",
+        "Each decision's option space is MECE along a stated axis, grounded in prior art, and includes do-nothing (not invented round-number categories)",
+        "Every decision/subpoint carries a recommendation; open questions are ~3 or fewer, each with a recommended default + owner + decide-by",
+        "Risks is a real pre-mortem with falsifiable assumptions and honest drawbacks, not 'no drawbacks'",
+        "Evidence & prior art is non-empty with verifiable citations (or explicitly notes web search was unavailable) — no fabricated references",
+        "No item is both a decided default and an open question, and internal cross-references resolve",
+        "Carries a 'Decision weight' header field (light | standard | heavy) sized to the change's stakes",
+        "Opens with a '## Reviewer brief' orientation section, above 'The ask', that orients rather than restating the BLUF",
+        "The decisions requested are rendered as a table (ID | Question | Recommendation | Why | Decide by | Reviewer action), not numbered prose",
+        "Reads from zero prior context: every project-coined term, acronym, or back-reference to a sibling RFC is glossed in plain language on first use (inline, not deferred to a glossary), so a reviewer who has not read the related RFCs can follow it"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Research and de-risk this proposal, then present the decisions for me to decide — don't draft the RFC body yet.",
+      "expected_output": "A chat-emitted 'RESEARCH FINDINGS' handoff (not an RFC body) whose '## Decisions / subpoints' section is self-contained — a reader can decide from the block alone, without opening a file. Each decision states the question in plain language; lists its options MECE along a stated axis (including do-nothing), each option carrying its real trade-off (what it buys vs. costs) and the concrete consequence of accepting it; and gives a recommendation with one or two sentences of reasoning plus owner + decide-by. Prior art (in repo) and (external) and a De-risk section (riskiest assumption + spike result or why none needed) follow. No RFC body section is written.",
+      "assertions": [
+        "Emits a chat 'RESEARCH FINDINGS' handoff and does NOT write any RFC body section yet",
+        "Each decision is self-contained/decidable from the block alone — states the question in plain language",
+        "Each decision lists options with their real trade-offs (buys vs. costs) and the concrete consequence of accepting each, not a bare list of option names",
+        "Options are MECE along a stated axis and include do-nothing",
+        "Each decision carries a recommendation with one-to-two-sentence reasoning plus owner + decide-by"
+      ]
+    }
+  ]
+}

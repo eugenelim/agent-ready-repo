@@ -1,0 +1,34 @@
+{
+  "id": "ai-adoption-report",
+  "name": "AI-adoption report",
+  "version": "1.0",
+  "description": "Pair flow-metrics JSON outputs, subtract, and render a Markdown comparison report in one of three modes: baseline (one scope, two windows — pre-AI vs current), cohort (within-window AI-cohort vs control split that flow-metrics already computed via --cohort-jql), and program (roll up many scopes for a single window). Read-only: consumes flow-metrics JSON files, never invokes flow-metrics / jira / jira-align, and writes only the Markdown report and an optional JSON sidecar. Stdlib only.",
+  "category": "workflows",
+  "tags": ["flow-metrics", "ai-adoption", "report", "workflow", "read-only"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "This skill consumes flow-metrics JSON FILES, not the flow-metrics skill at runtime. It makes no upstream skill invocations — the read-only contract tests in tests/test_t9_packaging.py enforce zero subprocess / Popen / os.spawn / os.system calls during a report run. deps.skills is [] for that reason. Generating fresh input JSONs is a separate step the user runs against the flow-metrics skill first.",
+    "skills": [],
+    "system": [
+      "python >= 3.10"
+    ],
+    "_pip_rationale": "No deps.pip entry: v1 is stdlib only. Same posture as flow-metrics — argparse, json, statistics, pathlib, tempfile, datetime are sufficient. The output schema is enforced by hand-written serialisation rules (see scripts/ai_adoption_report/render.py + scripts/ai_adoption_report/write.py), not a jsonschema validator."
+  },
+  "input": {
+    "arguments": "Required: subcommand MODE (one of baseline / cohort / program) plus --output FILE. baseline mode also requires --baseline PATH --current PATH; cohort mode requires --input PATH; program mode requires --inputs DIR --window FROM..TO. Common optional flags: --format {markdown,json,both} (default both), --overwrite (replace existing output without prompting), --title TITLE, --verbose. Mode-specific optional flags: --include-cohort-breakdown (baseline + program).",
+    "env": {
+      "AI_ADOPTION_REPORT_GENERATED_AT": "Optional. When set, the skill uses this ISO-8601 string verbatim for the report's meta.generated_at instead of reading the runtime clock. Intended for deterministic-build tests and golden-file diffs (the golden tests rely on this). Unset in normal operation."
+    },
+    "_invocation_note": "CLI is invoked as `python -m ai_adoption_report MODE ...` (the package's __main__.py shims to ai_adoption_report.main). Resolving the package as importable Python is the user's responsibility (typically PYTHONPATH pointed at scripts/)."
+  },
+  "output": {
+    "artifacts": [
+      "<--output> (default extension .md): canonical Markdown report with fixed section order — title, mode-specific header line, ## Summary, ## Metric deltas, ## Per-scope rows (program mode only), ## Cohort breakdown (when --include-cohort-breakdown), ## Notes, ## Provenance.",
+      "<--output with .md replaced by .json> (or <--output>.json if no extension): compact JSON sidecar — meta.skill_version, per-input provenance, the full deltas block in canonical metric order, optional per_scope (program mode), optional cohort_breakdown, sorted notes array. Object keys are codepoint-sorted at every level except deltas; floats are rounded to 4 decimal places.",
+      "Both files written atomically via tempfile.NamedTemporaryFile + os.replace within --output's parent directory. Pre-flight collision check fails the run before any write when either target exists and --overwrite was not supplied."
+    ]
+  },
+  "targets": {
+    "default": { "file": "SKILL.md" }
+  }
+}

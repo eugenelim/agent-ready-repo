@@ -1,0 +1,17 @@
+{
+  "skill_name": "frame-intent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Shape the idea the user gave into an intent.",
+      "expected_output": "A level-tagged intent: a clear OUTCOME (what changes, and for whom) plus the OPPORTUNITY/problem behind it — never a solution or a spec. The level is tagged from the open recognized set (product-vision, product-strategy, capability, or feature), Scale (app ↔ business-unit) is resolved, and the artifact stops at the intent: it does not jump ahead to a design, tasks, or de-risking. The outcome is concrete enough to later test as a bet.",
+      "assertions": [
+        "States an outcome (what changes, for whom) — not a solution or an implementation",
+        "Names the opportunity / problem behind the outcome",
+        "Is level-tagged from the open recognized set (product-vision / product-strategy / capability / feature) and resolves Scale (app ↔ business-unit)",
+        "Does NOT jump ahead to a design, a spec, tasks, or de-risking",
+        "The outcome is concrete/falsifiable enough to later de-risk as a bet"
+      ]
+    }
+  ]
+}

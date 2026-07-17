@@ -1,0 +1,25 @@
+{
+  "name": "release-engineering",
+  "version": "0.1.1",
+  "description": "The SRE/ops outer loop \u2014 deployed end-to-end validation above work-loop's inner build loop. Ships the `release-lead` agent and the `release-loop` skill: deploy the integrated whole to an ephemeral environment, run e2e, observe telemetry, feed deployed findings back to the inner loop (no human relay), redeploy, and iterate until the deployed whole converges \u2014 then stop at the human consent gate for the prod ship (G5), surfaced as a release-readiness record to ratify rather than a bare go/no-go. Autonomy is carved by minimum-regret: the agent runs the inner and outer loops on reversible ephemeral envs unwatched; humans gate the irreversible exits (first real users or data, data migrations, spend over threshold, security/auth-boundary changes, anything irreversible, and the prod ship). Reuses core's operational-safety depth modules + quality-engineer + security-reviewer, consumes the discovery sidecar schema by convention, and ships no new runtime engine and no new reviewer. Completes the company OS: product (discovery) \u2192 engineering (build) \u2192 SRE/ops (release). Markdown skill + agent definition, repo-scope.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+      }
+    ]
+  },
+  "author": "eugenelim <eugenelim@users.noreply.github.com>",
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/eugenelim/agent-ready-repo",
+  "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "keywords": [
+    "release",
+    "deploy",
+    "sre",
+    "ephemeral-environments",
+    "canary"
+  ],
+  "category": "devops",
+  "displayName": "Release Engineering"
+}

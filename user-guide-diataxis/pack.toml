@@ -1,0 +1,52 @@
+[pack]
+name = "user-guide-diataxis"
+version = "0.1.6"
+description = "Di\u00e1taxis-shaped user-guide skeleton: guides/ + tutorials/how-to/reference/explanation seed READMEs, new-guide skill."
+readme = "README.md"
+display_name = "User Guide (Diátaxis)"
+license = "Apache-2.0 OR MIT"
+categories = ["documentation"]
+keywords = ["diataxis", "tutorials", "how-to", "reference"]
+
+# Opt into the catalogue seed lint (RFC-0047 Decision 6 / ADR-0037 D4): a
+# first-party scaffold pack, so `tools/lint-catalogue-seeds.py` enforces the
+# RFC-0002 placeholder contract here. Catalogue-internal — not projected.
+lint-seeds = true
+
+# RFC-0004 v0.2 contract metadata. Scaffolds `docs/guides/` for *this*
+# project's users \u2014 no project, no scaffolding target \u2014 so the pack is
+# repo-only.
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+
+# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# coverage allowlist. The covered skill ships evals/eval_queries.json and is
+# measured by tools/run-pack-evals.py. new-guide is a user-triggered
+# judgment/authoring skill (it drafts Diátaxis guides — no deterministic
+# artifact), so it also ships a Tier-4 LLM-judge rubric (evals/evals.json,
+# graded via --mode judge); there is no Tier-B-lite layer (nothing
+# deterministic to re-derive). The pack has no reviewer-internal / non-prompt
+# skill to exclude.
+[pack.evals]
+skills = ["new-guide"]
+
+# Per adapt-to-project AC17/AC18.
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "core"
+version = "^0.1"
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/user-guide-diataxis/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

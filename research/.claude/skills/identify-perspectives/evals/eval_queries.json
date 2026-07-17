@@ -1,0 +1,21 @@
+[
+  {"query": "What are the named camps in the debate over remote vs in-office work?", "should_trigger": true},
+  {"query": "Enumerate the perspectives on whether AI coding assistants help or hurt junior developers", "should_trigger": true},
+  {"query": "Map the camps in the REST-vs-GraphQL debate, with their representative voices", "should_trigger": true},
+  {"query": "Lay out the contested positions on whether microservices are worth the complexity", "should_trigger": true},
+  {"query": "Who are the camps on nuclear power as a climate solution, and where are the irreducible tensions?", "should_trigger": true},
+  {"query": "Surface all the significant viewpoints on open-source AI model licensing", "should_trigger": true},
+  {"query": "Identify the perspectives and the do-not-resolve tensions in the privacy-vs-personalization debate", "should_trigger": true},
+  {"query": "Before we decide, enumerate the camps on monorepo vs polyrepo", "should_trigger": true},
+  {"query": "What are the dissenting and fringe positions on universal basic income, not just the mainstream two?", "should_trigger": true},
+
+  {"query": "Compare the competing hypotheses on why remote work affects productivity, with an evidence matrix", "should_trigger": false},
+  {"query": "Curate the authoritative sources on the remote-work productivity debate", "should_trigger": false},
+  {"query": "Look up the latest data on remote-work productivity", "should_trigger": false},
+  {"query": "Decompose 'should we go remote-first' into its sub-questions", "should_trigger": false},
+  {"query": "Why did we adopt a remote-first policy back in 2021?", "should_trigger": false},
+  {"query": "Argue against our remote-first policy", "should_trigger": false},
+  {"query": "Start a research project on the future of work", "should_trigger": false},
+  {"query": "Research with citations the evidence on remote-work burnout", "should_trigger": false},
+  {"query": "Record the decision to switch to a hybrid work model", "should_trigger": false}
+]

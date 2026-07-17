@@ -1,0 +1,24 @@
+{
+  "name": "credential-brokers",
+  "version": "0.2.0",
+  "description": "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+      }
+    ]
+  },
+  "author": "eugenelim <eugenelim@users.noreply.github.com>",
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/eugenelim/agent-ready-repo",
+  "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "keywords": [
+    "sso",
+    "secrets",
+    "broker",
+    "auth"
+  ],
+  "category": "credentials",
+  "displayName": "Credential Brokers"
+}

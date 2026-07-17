@@ -1,0 +1,89 @@
+[pack]
+name = "research"
+version = "0.6.1"
+description = "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
+readme = "README.md"
+display_name = "Research"
+license = "Apache-2.0 OR MIT"
+categories = ["research", "documentation"]
+keywords = ["osint", "synthesis", "citations", "evidence"]
+
+# RFC-0024 / docs/specs/copilot-full-parity made copilot a full-parity,
+# user-scope-capable adapter, so research's two retrieval subagents project to
+# `~/.copilot/agents/<name>.agent.md`. docs/specs/copilot-skills-and-web bumps
+# the contract to 0.12: research's skills now project as first-class Copilot
+# Agent Skills (`.github/skills/`, `~/.copilot/skills/`).
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# RFC-0011 / pack-allowed-adapters; copilot added by RFC-0024 / copilot-full-parity;
+# cursor added by RFC-0026 / cursor-full-parity (research is the catalogue's parity
+# validation surface — it ships the 2 retrieval subagents + skills the full-parity
+# adapters are checked against). Declared order is load-bearing (RFC-0011): append-only.
+# `kiro-ide` is the current name for the Kiro harness (RFC-0022 split; bare `kiro` deprecated).
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# Copilot projection note (docs/specs/copilot-skills-and-web / RFC-0024 § Errata
+# E1): the `evidence-retriever` and `source-extractor` subagents declare
+# `tools: …, WebFetch, WebSearch`. On the Copilot **CLI + app** these resolve to
+# Copilot's `web` tool (the custom-agents reference documents `web` aliasing
+# `WebSearch`/`WebFetch`), so the subagents keep live web access — they are
+# **not** degraded there. The read-only restriction is preserved (no
+# edit/execute). The one narrow non-coverage is the Copilot **cloud agent**
+# (served only via repo `.github/`), which has no `web` tool.
+
+# pack-eval-coverage-rollout: the Tier-A activation-eval coverage allowlist —
+# each listed skill ships evals/eval_queries.json and is measured by
+# tools/run-pack-evals.py. These are the prompt-triggered skills with a distinct
+# cold-prompt activation surface: the seven scoping / synthesis / decision-support
+# skills, plus research-project-start as the lifecycle entry point.
+#
+# Deliberately excluded (judgment, not oversight):
+#   - research-project-check / -digest / -synthesize — the *interior* steps of the
+#     project-mode lifecycle. They operate on state that only exists once
+#     research-project-start has scaffolded a project (a sources/ corpus, a
+#     synthesis matrix), and are reached by the human walking the
+#     capture -> digest -> synthesize lifecycle inside an active project folder,
+#     not by a distinct cold user-prompt surface. The headless activation detector
+#     projects the pack into an empty dir with no project folder, so it cannot
+#     reproduce the in-project context that legitimately routes to them — measuring
+#     them cold would conflate "no project exists" with "skill mis-routed". The
+#     lifecycle entry point (research-project-start) carries Tier-A coverage for the
+#     project-mode surface. (Mirrors how core excludes work-loop as discipline-loaded
+#     rather than prompt-surfaced — not security-checklists' reviewer-internal
+#     exclusion.)
+#
+# The Tier-4 LLM-judge rubrics (evals/evals.json — independent of the Tier-A
+# allowlist) attach to the artifact-emitting judgment skills. Within project mode
+# that is research-project-synthesize's governance brief (the terminal verdict,
+# where the gradeable verdict disciplines — GRADE confidence, >=3-source
+# triangulation — are applied per the skill body), NOT research-project-digest's
+# synthesis matrix + memos: those are the intermediate structuring artifact the
+# digest emits for -check and -synthesize to consume, and the pack applies the
+# confidence/triangulation rail downstream at synthesis, not at digest time.
+[pack.evals]
+skills = ["research", "source-map", "build-outline", "identify-perspectives", "compare-hypotheses", "devils-advocate", "decision-archaeology", "research-project-start"]
+
+# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# [research] section of an adopter-owned `agentbundle-layout.toml`. The repo
+# default is gitignored scratch — research commits the *decision* (the brief),
+# never the corpus, and never the committed repo tree. No `[pack.layout.user]`:
+# research's output is per-repo and there is no sensible *absolute* user base, so
+# the user-scope install append is a no-op (adopters write a user `[research]`
+# section by hand; see the skill's references/agentbundle-layout.md).
+[pack.layout.repo]
+parent = ".context/research"
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/research/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

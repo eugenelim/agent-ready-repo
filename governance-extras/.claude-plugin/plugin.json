@@ -1,0 +1,23 @@
+{
+  "name": "governance-extras",
+  "version": "0.5.0",
+  "description": "Governance skills (new-rfc, new-adr, update-conventions) and RFC/ADR templates + seed READMEs.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+      }
+    ]
+  },
+  "author": "eugenelim <eugenelim@users.noreply.github.com>",
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/eugenelim/agent-ready-repo",
+  "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "keywords": [
+    "rfc",
+    "adr",
+    "conventions"
+  ],
+  "category": "governance",
+  "displayName": "Governance Extras"
+}

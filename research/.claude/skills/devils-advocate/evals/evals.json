@@ -1,0 +1,17 @@
+{
+  "skill_name": "devils-advocate",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Adversarially review the finding or claim the user gave: search for counter-evidence, name the strongest objections, and route each to a verdict.",
+      "expected_output": "A counterpoints artifact that, per finding, states the strongest counter-position — a credible, well-evidenced opposing view, not a strawman — with cited counter-evidence (or [inference] where uncited), and routes each finding to exactly one of two verdicts: a confidence-rating downgrade that names the downgrade factor, OR a do-not-resolve verdict for an irreducible tension that names the different conditions under which each side holds. Do-not-resolve is reserved for tensions with substantive evidence on both sides; it is never used as cover for thin evidence (which is an [uncertain] rating or a known-unknown gap).",
+      "assertions": [
+        "Names the strongest objection / counter-position per finding — a credible, well-evidenced view, not a strawman",
+        "Counter-evidence carries citations, or is marked [inference] when uncited",
+        "Each finding routes to exactly one verdict: a confidence-rating downgrade OR a do-not-resolve verdict",
+        "A rating downgrade names the downgrade factor; a do-not-resolve names the conditions under which each side holds",
+        "Reserves do-not-resolve for irreducible tensions with substantive evidence on both sides, not as cover for thin evidence"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+# Local install-time scratch — written by `agentbundle install`,
+# consumed by the adapt-to-project skill at session start. The path
+# *is* the scope (repo-scope marker only here — user-scope marker
+# lives inside ~/.agentbundle/, outside any repo).
+.adapt-install-marker.toml
+
+# Work-loop session state — per-spec scratch, never committed.
+docs/specs/**/state.json
+
+# Supervisor-mode worktrees.
+.worktrees/
+
+# Implementer reports — session-scratch.
+docs/specs/**/notes/implementer-*.md
+
+# Personal Claude Code overrides.
+CLAUDE.local.md
+.claude/settings.local.json
+AGENTS.local.md
+
+# OS / editor noise.
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Python build artefacts.
+__pycache__/
+*.egg-info/
+*.pyc
+build/
+
+# Build pipeline output.
+dist/
+
+# Conductor scratch + per-workspace probe scaffolding.
+.context/

@@ -1,0 +1,29 @@
+{
+  "skill_name": "architect-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Design the system the user asked for and produce the design doc.",
+      "expected_output": "A Google-style design doc with the sections in order — TL;DR (≤3 sentences), Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions — with Mermaid where structure helps. Alternatives are considered honestly (each rejected with a concrete reason), Non-goals do real scoping work, every named risk is paired with a mitigation, the rollout is reversible/staged, and the proposal reasons about the design (trade-offs, NFRs) rather than restating the request.",
+      "assertions": [
+        "Has all the required sections, in order (TL;DR, Context, Goals, Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions)",
+        "Non-goals do real scoping work, not filler",
+        "Considers at least two alternatives, each rejected with a concrete reason",
+        "Every named risk is paired with a mitigation",
+        "Proposes a reversible or staged rollout",
+        "Reasons about the design (trade-offs / NFRs), not just a restatement of the ask"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Design a serverless system with a long-running operation behind a synchronous request path.",
+      "expected_output": "A design doc that loads the serverless workload-class lens and shapes the design against it: for the synchronous path it sums the worst-case latency across every hop and compares it to the binding front-door timeout, finds the long-running operation does not fit, and moves it off the synchronous path (stream / 202-accept-then-poll / fire-and-forget+callback). Every binding managed-service contract claim it depends on (timeout ceiling, scaling floor, cold-start behaviour) is grounded in an authoritative source with stated confidence rather than asserted from memory.",
+      "assertions": [
+        "For the synchronous path, sums worst-case latency across hops and compares it to the binding front-door timeout (the sync-vs-async viability gate fires)",
+        "Concludes the long-running operation is not viable synchronously and moves it off the request path (stream / accept-then-poll / fire-and-forget+callback)",
+        "Grounds each binding managed-service contract claim it depends on in an authoritative source with stated confidence, not model memory",
+        "Does not bundle a specific per-vendor binding number as fact; routes the exact figure to a platform skill / official docs"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "skill_name": "decompose-intent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Break the de-risked intent into the next level down.",
+      "expected_output": "A decomposition of exactly one level — child intents when the intent is above feature level (each a lower Level: with a Parent intent: back-link), or a shippable spec/slice at the leaf. The leaf is cut by shippability (a vertical unit that ships and tests on its own), never by component or layer. The decomposition decision is recorded (why the cut went this way, branches dropped). The leaf projects by Scale: app Scale → a single core brief; business-unit Scale → one per-component slice each stamped with parent-intent and contract@version. It only decomposes an intent whose riskiest assumption has survived de-risking.",
+      "assertions": [
+        "Decomposes exactly one level — child intents above feature, or a spec/slice at the leaf; does not skip levels",
+        "Cuts the leaf by shippability (a vertical unit that ships and tests on its own), never by component or layer",
+        "Records the decomposition decision — why the cut went this way, and any branch dropped",
+        "Projects the leaf by Scale — app → a single core brief; business-unit → per-component slices with parent-intent and contract@version",
+        "Only decomposes a de-risked intent (riskiest assumption survived)",
+        "Each child carries a Parent intent: back-link"
+      ]
+    }
+  ]
+}

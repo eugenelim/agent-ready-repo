@@ -1,0 +1,24 @@
+{
+  "name": "core",
+  "version": "0.11.0",
+  "description": "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+      }
+    ]
+  },
+  "author": "eugenelim <eugenelim@users.noreply.github.com>",
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/eugenelim/agent-ready-repo",
+  "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "keywords": [
+    "work-loop",
+    "spec-driven",
+    "reviewers",
+    "agents"
+  ],
+  "category": "governance",
+  "displayName": "Core"
+}

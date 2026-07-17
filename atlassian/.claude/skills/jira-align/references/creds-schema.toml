@@ -1,0 +1,31 @@
+# Credentials schema for the jira-align credentialed primitive.
+# Format: a [namespace] table plus one [[namespace.keys]] entry per key.
+#
+# Resolution: load_credentials("jiraalign", required_keys=[...]) walks
+# Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile. Env-var
+# shape is <NAMESPACE>_<KEY> — JIRAALIGN_BASE_URL, JIRAALIGN_API_TOKEN,
+# JIRAALIGN_FLAVOR.
+#
+# Namespace is ``jiraalign`` (no hyphen) so the uppercased env-var
+# prefix ``JIRAALIGN_`` remains a valid POSIX identifier. The skill
+# directory and SKILL.md ``name:`` use the hyphenated form
+# (``jira-align``) for readability — the two names are intentionally
+# distinct, the credential namespace is the env-var one.
+
+[namespace]
+name = "jiraalign"
+
+[[namespace.keys]]
+name = "BASE_URL"
+label = "Jira Align base URL (Cloud: https://<site>.jiraalign.com; on-prem: customer domain)"
+secret = false
+
+[[namespace.keys]]
+name = "API_TOKEN"
+label = "Personal API Token from Jira Align Profile → API Token"
+secret = true
+
+[[namespace.keys]]
+name = "FLAVOR"
+label = "Optional: cloud or onprem (auto-detected from URL by default)"
+secret = false

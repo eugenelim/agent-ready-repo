@@ -1,0 +1,22 @@
+[
+  {"query": "How should we architect the new notification service?", "should_trigger": true},
+  {"query": "We need to design the integration between our billing system and Stripe", "should_trigger": true},
+  {"query": "What's the right way to build a multi-tenant data layer?", "should_trigger": true},
+  {"query": "Help me weigh Postgres vs DynamoDB for the event store", "should_trigger": true},
+  {"query": "Design a rate-limiting approach for our public API", "should_trigger": true},
+  {"query": "We're adding real-time sync — how should we structure it?", "should_trigger": true},
+  {"query": "Write a design doc for the new ingestion pipeline", "should_trigger": true},
+  {"query": "What architecture should we use for the offline-first mobile client?", "should_trigger": true},
+  {"query": "Let's figure out the right approach for sharding the user database", "should_trigger": true},
+  {"query": "How should we design a serverless API that runs a long agent task behind a synchronous endpoint?", "should_trigger": true},
+
+  {"query": "Draw a diagram of the notification service", "should_trigger": false},
+  {"query": "Show me a sequence diagram for the checkout flow", "should_trigger": false},
+  {"query": "Review this design doc and tell me what's wrong with it", "should_trigger": false},
+  {"query": "Is this architecture any good? Here's the RFC", "should_trigger": false},
+  {"query": "Diagram the data model for the billing tables", "should_trigger": false},
+  {"query": "Critique my proposed approach to caching", "should_trigger": false},
+  {"query": "Write a spec for the CSV export feature", "should_trigger": false},
+  {"query": "Fix the bug where webhooks fire twice", "should_trigger": false},
+  {"query": "Record our decision to standardize on gRPC", "should_trigger": false}
+]

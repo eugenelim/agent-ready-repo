@@ -1,0 +1,14 @@
+---
+config:
+  layout: elk
+  elk:
+    mergeEdges: true
+    nodePlacementStrategy: LINEAR_SEGMENTS
+---
+flowchart LR
+    A[Service A] -->|"publishes events to"| Queue[[Order queue]]
+    Queue -->|"consumes"| B[Worker B]
+    Queue -->|"consumes"| C[Worker C]
+    B -->|"writes"| DB[(Orders DB)]
+    C -->|"writes"| DB
+    A -->|"reads"| DB

@@ -1,0 +1,57 @@
+[pack]
+name = "core"
+version = "0.11.0"
+description = "Core agent-ready-repo: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds."
+readme = "README.md"
+display_name = "Core"
+license = "Apache-2.0 OR MIT"
+categories = ["governance", "code-review", "testing"]
+keywords = ["work-loop", "spec-driven", "reviewers", "agents"]
+
+# Opt into the catalogue seed lint (RFC-0047 Decision 6 / ADR-0037 D4): this is
+# a first-party scaffold pack whose seeds must stay placeholder-shaped, so
+# `tools/lint-catalogue-seeds.py` enforces the RFC-0002 contract here. Catalogue-
+# internal metadata — not projected to plugin.json / marketplace.json.
+lint-seeds = true
+
+# RFC-0004 ships the v0.2 contract bump alongside this pack's metadata.
+# The four shipped packs all declare the same shape so the catalogue's
+# published packs and the CLI release land in lockstep. core is
+# repo-only by content — it ships hooks (Rail B would refuse user
+# scope) and AGENTS.md / CONVENTIONS seeds that reference this
+# project's vocabulary by name (the falsifiable user-scope test fails).
+# RFC-0024 / docs/specs/copilot-full-parity: copilot projects core's 4 subagents
+# (`.github/agents/`) + hook-wiring (`.github/hooks/`); only `command` stays
+# dropped (copilot-cli#618/#1113). docs/specs/copilot-skills-and-web bumps the
+# contract to 0.12: core's skills now project as first-class Copilot Agent Skills
+# (`.github/skills/<name>/SKILL.md`).
+[pack.adapter-contract]
+version = "0.12"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+
+# pack-activation-evals (RFC-0037 / ADR-0028): the Tier-A activation-eval
+# coverage allowlist. Each listed skill ships evals/eval_queries.json and is
+# measured by tools/run-pack-evals.py. Deliberately excluded:
+#   - security-checklists — reviewer-internal, never self-discovered (no
+#     user-prompt activation surface).
+#   - operational-safety — reviewer-internal, never self-discovered (the
+#     orchestrator inlines its modules into the quality-engineer brief; it has
+#     no user-prompt activation surface — exactly as security-checklists).
+#   - work-loop — loaded broadly by the plan→execute→review discipline, not by
+#     a narrow user-prompt surface; a clean negative set isn't writable for it.
+[pack.evals]
+skills = ["new-spec", "bug-fix", "receive-brief", "init-project", "adapt-to-project"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/core/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

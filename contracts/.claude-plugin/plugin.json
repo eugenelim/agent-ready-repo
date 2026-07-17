@@ -1,0 +1,24 @@
+{
+  "name": "contracts",
+  "version": "0.3.3",
+  "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+      }
+    ]
+  },
+  "author": "eugenelim <eugenelim@users.noreply.github.com>",
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/eugenelim/agent-ready-repo",
+  "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "keywords": [
+    "openapi",
+    "asyncapi",
+    "contracts",
+    "api"
+  ],
+  "category": "api-design",
+  "displayName": "Contracts"
+}

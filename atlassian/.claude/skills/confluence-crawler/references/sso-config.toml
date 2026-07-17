@@ -1,0 +1,34 @@
+# SSO web-session cookie config — Atlassian Data Center only.
+#
+# This file is PLACEHOLDER-SHAPED upstream: auth_default = "creds", *.invalid
+# hosts, and no cookie values. With it untouched, `confluence-crawler` behaves
+# exactly as today (token / `creds` auth) — the SSO-cookie path is dark until an
+# enterprise opts in.
+#
+# An enterprise pre-bakes its instance config here (a pack customization), then a
+# developer runs `python scripts/setup_sso.py` (drives `sso-broker register`)
+# once. Upgrades to a pre-baked file merge as an adapt-to-project `.upstream`
+# companion (class-2), so an org's edits survive a later catalogue release.
+#
+# auth_default selects the path: "creds" (token, the default) or "sso-cookie".
+
+auth_default = "creds"
+
+[sso]
+# The sso-broker profile name (passed to `sso-broker register/get-cookies`).
+profile = "confluence"
+# Data Center base URL. https only (a bearer cookie must never travel plaintext).
+base_url = "https://confluence.example.invalid"
+# Corporate SSO sign-in entry point (headed-browser capture lands here first).
+login_url = "https://sso.example.invalid/login"
+# Post-login landing URL the broker waits for to confirm a successful sign-in.
+success_url_pattern = "https://confluence.example.invalid/dashboard.action"
+# Cookie-domain confinement: the captured jar is filtered to these at load time,
+# and the request base host must be a member. Label-boundary match.
+cookie_domains = ["confluence.example.invalid"]
+# Root-relative read endpoint used to validate a live session (`sso-broker test`).
+validation_endpoint = "/rest/api/space"
+# Filename for the stored session jar under the broker's 0600 floor.
+session_filename = "confluence-session.json"
+# Advisory session lifetime hint (minutes); informational only.
+ttl_hint_minutes = 480

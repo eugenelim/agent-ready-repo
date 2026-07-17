@@ -1,0 +1,21 @@
+[
+  {"query": "Fix PROJ-123 end to end", "should_trigger": true},
+  {"query": "Work this bug ticket PROJ-88 and ship a fix", "should_trigger": true},
+  {"query": "Diagnose and ship a fix for defect PROJ-200", "should_trigger": true},
+  {"query": "Handle this Jira defect from diagnosis to PR", "should_trigger": true},
+  {"query": "Take PROJ-55, fix it, and update the ticket", "should_trigger": true},
+  {"query": "Resolve this bug ticket and link the PR back to Jira", "should_trigger": true},
+  {"query": "Pull PROJ-77, fix the root cause, open a PR, and transition it", "should_trigger": true},
+  {"query": "This defect ticket needs an end-to-end fix — PROJ-31", "should_trigger": true},
+  {"query": "Fix the bug in this Jira ticket and comment back with the PR", "should_trigger": true},
+
+  {"query": "Create a Jira issue for this defect", "should_trigger": false},
+  {"query": "Turn this epic into shippable specs", "should_trigger": false},
+  {"query": "Fix this bug in the codebase", "should_trigger": false},
+  {"query": "Implement the feature in PROJ-100", "should_trigger": false},
+  {"query": "What's the defect ratio this quarter?", "should_trigger": false},
+  {"query": "Transition PROJ-7 to Done", "should_trigger": false},
+  {"query": "Search Jira for all open defects", "should_trigger": false},
+  {"query": "Compare defect rates to pre-AI", "should_trigger": false},
+  {"query": "Diagnose why the login button does nothing", "should_trigger": false}
+]

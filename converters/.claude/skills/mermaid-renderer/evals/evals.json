@@ -1,0 +1,63 @@
+{
+  "skill_name": "mermaid-renderer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Render the Mermaid diagrams in report.md to PNGs.",
+      "expected_output": "The agent runs --check first; if mmdc is on PATH, invokes render_mermaid.py with --input report.md and a default --output-dir, then surfaces the DIAGRAMS count and the rewritten Markdown path.",
+      "assertions": [
+        "Agent runs `python scripts/render_mermaid.py --check` before rendering",
+        "Agent invokes `python scripts/render_mermaid.py --input report.md` (flag order may vary)",
+        "Agent does not write its own mmdc invocation directly",
+        "Agent surfaces the rewritten Markdown path and the diagram count"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Render the diagrams in design.md and put them next to the file.",
+      "expected_output": "When --check exits 2 because mmdc is not installed, the agent stops and tells the user to run `npm install -g @mermaid-js/mermaid-cli` themselves. The agent does not attempt to install it automatically.",
+      "assertions": [
+        "Agent stops after --check returns a non-zero exit indicating mmdc is missing",
+        "Agent tells the user to run `npm install -g @mermaid-js/mermaid-cli`",
+        "Agent does not invoke npm install via the Bash tool",
+        "Agent does not suggest a Mermaid Live Editor URL fallback"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Render the diagrams in arch.md to SVGs with the forest theme into ./out.",
+      "expected_output": "The agent passes --format svg, --theme forest, --output-dir ./out.",
+      "assertions": [
+        "Agent passes `--input arch.md`",
+        "Agent passes `--format svg`",
+        "Agent passes `--theme forest`",
+        "Agent passes `--output-dir ./out`",
+        "Agent does not also pass --background unless asked"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I'm going to publish report.md to Confluence — render the Mermaid blocks first so the publisher can attach the images.",
+      "expected_output": "The agent runs mermaid-renderer first, surfaces the rewritten Markdown and the list of PNG attachments, and notes that the next step is to invoke confluence-publisher with --attach for each image.",
+      "assertions": [
+        "Agent runs `python scripts/render_mermaid.py --input report.md` first",
+        "Agent surfaces the rewritten Markdown path and the image filenames",
+        "Agent explains the next step is confluence-publisher with --input <rewritten>.md --attach <each image>",
+        "Agent does not invoke confluence-publisher in this step (composition is the user's call)"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Bake the Mermaid diagram in diagram.md into a PNG.",
+      "expected_output": "The agent confirms mmdc (`render_mermaid.py --check`), then runs `python scripts/render_mermaid.py --input diagram.md --output-dir out`, which renders each fenced block to a PNG and writes a rewritten Markdown alongside, printing OUTPUT_DIR/REWRITTEN/DIAGRAMS. It reports the output directory.",
+      "files": ["evals/files/diagram.md"],
+      "assertions": [
+        "Agent invokes render_mermaid.py on diagram.md (does not hand-draw or fabricate the image)"
+      ],
+      "expect": {
+        "produces": ["out/mermaid-1.png", "out/diagram.md"],
+        "output_contains": ["DIAGRAMS:", "REWRITTEN:"]
+      }
+    }
+  ]
+}

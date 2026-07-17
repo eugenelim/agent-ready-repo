@@ -1,0 +1,754 @@
+#!/usr/bin/env python3
+"""
+reconcile.py — Merge per-tile agent extractions into one canonical document.
+
+What it does (deterministic, no LLM):
+    1. Reads the detail manifest produced by `split_image.py detail`
+       (maps each tile_id to its crop_box in source coordinates).
+    2. Reads the agent's per-tile extractions JSON (one record per tile,
+       each with a list of `elements`; each element optionally carries a
+       `bbox_in_tile` for spatial dedup).
+    3. Translates `bbox_in_tile` → `global_bbox` using the tile's crop_box.
+    4. Groups elements that are the same thing seen by multiple tiles:
+         (a) same normalized (type, name) → same element
+         (b) within the same type, IoU(global_bbox) > 0.5 → same element
+       Picks a canonical record per group (highest confidence first; on
+       tie, the tile where the element sits closest to its center).
+    5. Sorts the canonical elements by layout direction:
+         left-to-right → ascending global x
+         top-to-bottom → ascending global y
+         radial / unspecified → reading order (y, then x)
+    6. Emits a merged JSON and a Markdown file with YAML frontmatter,
+       built from a deterministic template.
+
+This is geometry + bookkeeping, not reasoning. The LLM's job is to fill
+in `name`, `description`, `confidence` per tile; the script handles the
+N→1 collapse the SKILL.md used to spend 60 lines explaining.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import contract
+import safe_io
+import text_crosscheck
+
+# --- IO --------------------------------------------------------------------
+
+
+def _load_json(path: Path) -> Any:
+    if not path.exists():
+        sys.exit(f"ERROR: file not found: {path}")
+    try:
+        return json.loads(path.read_text("utf-8"))
+    except json.JSONDecodeError as exc:
+        sys.exit(f"ERROR: {path} is not valid JSON: {exc}")
+
+
+# --- Domain types ----------------------------------------------------------
+
+
+@dataclass
+class Element:
+    type: str                              # component, event, command, entity, ...
+    name: str
+    description: str = ""
+    confidence: str = "medium"             # high | medium | low
+    tile_sources: list[str] = field(default_factory=list)
+    global_bbox: dict | None = None        # {x, y, w, h} in source coords
+    extra: dict = field(default_factory=dict)  # strategy-specific extras
+
+
+# --- Geometry --------------------------------------------------------------
+
+
+def to_global_bbox(bbox_in_tile: dict | None, crop_box: dict) -> dict | None:
+    if not bbox_in_tile:
+        return None
+    return {
+        "x": int(crop_box["x"] + bbox_in_tile.get("x", 0)),
+        "y": int(crop_box["y"] + bbox_in_tile.get("y", 0)),
+        "w": int(bbox_in_tile.get("w", 0)),
+        "h": int(bbox_in_tile.get("h", 0)),
+    }
+
+
+def iou(a: dict, b: dict) -> float:
+    """Intersection-over-union for two {x, y, w, h} boxes in shared coords."""
+    if not a or not b:
+        return 0.0
+    ax1, ay1 = a["x"], a["y"]
+    ax2, ay2 = a["x"] + a["w"], a["y"] + a["h"]
+    bx1, by1 = b["x"], b["y"]
+    bx2, by2 = b["x"] + b["w"], b["y"] + b["h"]
+    ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+    ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+    iw, ih = max(0, ix2 - ix1), max(0, iy2 - iy1)
+    inter = iw * ih
+    union = (a["w"] * a["h"]) + (b["w"] * b["h"]) - inter
+    return inter / union if union > 0 else 0.0
+
+
+def edge_distance(bbox: dict, crop: dict) -> float:
+    """How central is the element within its tile? Higher = more central.
+    Used as a tiebreaker so we pick the tile where the element wasn't
+    bisected at an edge."""
+    if not bbox:
+        return 0.0
+    cx = crop["x"] + crop["w"] / 2
+    cy = crop["y"] + crop["h"] / 2
+    ex = bbox["x"] + bbox["w"] / 2
+    ey = bbox["y"] + bbox["h"] / 2
+    half_w = crop["w"] / 2
+    half_h = crop["h"] / 2
+    if half_w == 0 or half_h == 0:
+        return 0.0
+    # Normalized distance from center, inverted so center→1, edges→0
+    dx = abs(ex - cx) / half_w
+    dy = abs(ey - cy) / half_h
+    return max(0.0, 1.0 - max(dx, dy))
+
+
+# --- Normalization --------------------------------------------------------
+
+
+def _normalize(s: str) -> str:
+    return re.sub(r"\s+", " ", s.strip().lower()).strip(" .,:;-_")
+
+
+CONFIDENCE_RANK = {"high": 3, "medium": 2, "low": 1}
+
+
+def confidence_rank(c: str) -> int:
+    return CONFIDENCE_RANK.get((c or "").lower(), 0)
+
+
+# --- Reconciliation -------------------------------------------------------
+
+
+def _diagram_key(e_type: str, name: str, extra: dict) -> tuple[str, str]:
+    """Diagram-branch dedup key: same (type, normalized name) is the same node."""
+    return (e_type, _normalize(name))
+
+
+def _general_key(e_type: str, name: str, extra: dict) -> tuple[str, str]:
+    """General-mode (text/table) dedup key.
+
+    Prose paragraphs and table rows have no stable *name* the diagram key relies
+    on, so the same block seen across two overlapping tiles would never collapse
+    on ``(type, name)`` alone. Key instead on the **content**: a text block on its
+    normalized text, a table on the normalized signature of its rows. Same content
+    seen across tiles → same key → collapses; distinct content stays separate."""
+    if e_type == "table":
+        rows = extra.get("rows") or []
+        sig = "\n".join(
+            " | ".join(str(c) for c in row) for row in rows if isinstance(row, list)
+        )
+        return ("table", _normalize(sig))
+    text = extra.get("text") or name or ""
+    return (e_type, _normalize(text))
+
+
+def reconcile_elements(
+    raw_elements: list[tuple[str, dict, dict]],
+    iou_threshold: float = 0.5,
+    *,
+    key_fn=None,
+    cross_name_merge: bool = True,
+) -> tuple[list[Element], list[dict]]:
+    """
+    raw_elements: list of (tile_id, crop_box, element_dict).
+    Returns (canonical_elements, ambiguities).
+
+    ``key_fn(e_type, name, extra) -> hashable`` selects the Stage-1 dedup key;
+    it defaults to the diagram key ``(type, normalized_name)``. The general
+    (text/table) mode passes ``_general_key`` and ``cross_name_merge=False`` —
+    same pipeline (translate → subcluster → pick → merge), a content-based key,
+    and no cross-name IoU merge (prose blocks that briefly overlap at a tile seam
+    are distinct content, not the same node seen twice).
+    """
+    if key_fn is None:
+        key_fn = _diagram_key
+    # Stage 1: group by the keying function, then split each group into spatial
+    # sub-clusters. This preserves legitimately repeated content (the same name at
+    # different places on the diagram; distinct paragraphs in the general mode)
+    # while still collapsing the same block seen across overlapping tiles. Unnamed
+    # elements are grouped and deduped spatially rather than dropped — dropping
+    # them loses real content.
+    by_key: dict[Any, list[tuple[Element, dict]]] = {}
+    for tile_id, crop_box, raw in raw_elements:
+        e_type = (raw.get("type") or "").strip().lower() or "element"
+        name = (raw.get("name") or "").strip()
+        gbbox = to_global_bbox(raw.get("bbox_in_tile"), crop_box)
+        elem = Element(
+            type=e_type,
+            name=name,
+            description=(raw.get("description") or "").strip(),
+            confidence=(raw.get("confidence") or "medium").lower(),
+            tile_sources=[tile_id],
+            global_bbox=gbbox,
+            extra={k: v for k, v in raw.items()
+                   if k not in {"type", "name", "description", "confidence",
+                                "bbox_in_tile"}},
+        )
+        by_key.setdefault(key_fn(e_type, name, elem.extra), []).append((elem, crop_box))
+
+    canonical: list[Element] = []
+    for group in by_key.values():
+        for subcluster in _spatial_subclusters(group, iou_threshold):
+            canonical.append(_pick_canonical(subcluster))
+
+    # Stage 2: within the same type, merge anything with IoU >= threshold.
+    if cross_name_merge:
+        canonical, ambiguities = _merge_by_iou(canonical, iou_threshold)
+    else:
+        ambiguities = []
+
+    return canonical, ambiguities
+
+
+def _spatial_subclusters(
+    group: list[tuple[Element, dict]], threshold: float
+) -> list[list[tuple[Element, dict]]]:
+    """Split one (type, name) group into spatially-distinct sub-clusters.
+
+    Elements whose global bboxes overlap (IoU >= threshold, transitively) are
+    the same instance seen across tiles and cluster together. Spatially
+    disjoint elements with the same name are distinct instances and stay
+    separate. Elements with no bbox cannot be distinguished, so they collapse
+    into a single cluster of their own.
+    """
+    # A zero-area bbox (w or h == 0) can't be spatially distinguished — IoU is
+    # 0 against everything — so treat it like a missing bbox and collapse it
+    # into the group's single no-bbox cluster rather than emitting duplicates.
+    def _has_area(e: Element) -> bool:
+        b = e.global_bbox
+        return bool(b) and b.get("w", 0) > 0 and b.get("h", 0) > 0
+
+    with_bbox = [(e, c) for (e, c) in group if _has_area(e)]
+    without_bbox = [(e, c) for (e, c) in group if not _has_area(e)]
+
+    clusters: list[list[tuple[Element, dict]]] = []
+    used = [False] * len(with_bbox)
+    for i in range(len(with_bbox)):
+        if used[i]:
+            continue
+        cluster = [with_bbox[i]]
+        used[i] = True
+        changed = True
+        while changed:  # transitively absorb anything overlapping the cluster
+            changed = False
+            for j in range(len(with_bbox)):
+                if used[j]:
+                    continue
+                if any(iou(m[0].global_bbox, with_bbox[j][0].global_bbox) >= threshold
+                       for m in cluster):
+                    cluster.append(with_bbox[j])
+                    used[j] = True
+                    changed = True
+        clusters.append(cluster)
+
+    if without_bbox:
+        clusters.append(without_bbox)
+    return clusters
+
+
+def _pick_canonical(group: list[tuple[Element, dict]]) -> Element:
+    """Group is a list of (Element, crop_box) for the same (type, name).
+    Pick the canonical record:
+      - highest confidence first
+      - among ties, the one whose bbox sits most centrally in its tile
+      - merge tile_sources from all duplicates
+    """
+    def score(item):
+        elem, crop = item
+        return (
+            confidence_rank(elem.confidence),
+            edge_distance(elem.global_bbox, crop),
+            len(elem.description),
+        )
+
+    group_sorted = sorted(group, key=score, reverse=True)
+    chosen, _ = group_sorted[0]
+    chosen.tile_sources = sorted({
+        t for elem, _ in group for t in elem.tile_sources
+    })
+    return chosen
+
+
+def _merge_by_iou(
+    elements: list[Element], threshold: float
+) -> tuple[list[Element], list[dict]]:
+    """Within the same type, merge elements with overlapping global_bboxes.
+    Records remaining cross-name overlaps as ambiguities."""
+    out: list[Element] = []
+    ambiguities: list[dict] = []
+    used = [False] * len(elements)
+
+    # Group by type so we don't merge a "component" with an "event"
+    by_type: dict[str, list[int]] = {}
+    for idx, e in enumerate(elements):
+        by_type.setdefault(e.type, []).append(idx)
+
+    for e_type, idxs in by_type.items():
+        for i_pos, i in enumerate(idxs):
+            if used[i]:
+                continue
+            cluster = [i]
+            for j in idxs[i_pos + 1:]:
+                if used[j]:
+                    continue
+                a, b = elements[i].global_bbox, elements[j].global_bbox
+                if a and b and iou(a, b) >= threshold:
+                    cluster.append(j)
+            if len(cluster) == 1:
+                out.append(elements[i])
+                used[i] = True
+                continue
+            # Merge cluster: keep highest-confidence representative,
+            # merge tile_sources, record name disagreement as ambiguity.
+            cluster_elems = [elements[k] for k in cluster]
+            primary = max(cluster_elems,
+                          key=lambda e: (confidence_rank(e.confidence),
+                                         len(e.description)))
+            primary.tile_sources = sorted({
+                t for ce in cluster_elems for t in ce.tile_sources
+            })
+            other_names = [ce.name for ce in cluster_elems if ce.name != primary.name]
+            if other_names:
+                ambiguities.append({
+                    "kind": "spatial_overlap_with_different_names",
+                    "type": e_type,
+                    "canonical_name": primary.name,
+                    "alternate_names": other_names,
+                    "global_bbox": primary.global_bbox,
+                })
+            out.append(primary)
+            for k in cluster:
+                used[k] = True
+
+    return out, ambiguities
+
+
+# --- Sorting --------------------------------------------------------------
+
+
+def sort_canonical(elements: list[Element], layout: str) -> list[Element]:
+    layout = (layout or "").lower()
+    if layout in {"left-to-right", "lr", "horizontal"}:
+        keyf = lambda e: (e.global_bbox["x"] if e.global_bbox else 0,
+                          e.global_bbox["y"] if e.global_bbox else 0,
+                          e.name)
+    elif layout in {"top-to-bottom", "tb", "vertical"}:
+        keyf = lambda e: (e.global_bbox["y"] if e.global_bbox else 0,
+                          e.global_bbox["x"] if e.global_bbox else 0,
+                          e.name)
+    else:
+        # Reading order (y, then x), and finally alphabetical for
+        # elements without bboxes.
+        keyf = lambda e: (
+            e.global_bbox["y"] if e.global_bbox else 9_999_999,
+            e.global_bbox["x"] if e.global_bbox else 9_999_999,
+            e.name,
+        )
+    return sorted(elements, key=keyf)
+
+
+# --- Markdown rendering ---------------------------------------------------
+
+CONTENT_CATEGORY = {
+    "architecture": "architecture-diagram",
+    "event-storm":  "event-storming-big-picture",
+    "process":      "process-diagram",
+    "domain":       "domain-model",
+    "conceptual":   "conceptual",
+}
+
+
+def render_markdown(
+    *,
+    title: str,
+    source_image: str,
+    strategy: str,
+    structural_map: dict,
+    canonical: list[Element],
+    ambiguities: list[dict],
+    detail_manifest: dict,
+    overview_manifest: dict | None,
+) -> str:
+    layout = (structural_map or {}).get("layout") or "unspecified"
+    diagram_type = (structural_map or {}).get("diagram_type") or strategy
+
+    # Shared with the general path — one confidence ladder, so a future tweak to
+    # the cutoffs applies to both renders (byte-stability locked by the golden).
+    overall_confidence, high, med, low = _overall_confidence(canonical)
+
+    # The image branch is an in-session agent-vision read.
+    # The shared builder prepends contract-version + tier and owns the
+    # ingestion-quality block; everything else is this branch's own ordered
+    # fields, byte-identical to the pre-contract output.
+    yaml = contract.build_frontmatter(
+        tier=contract.TIER_1,
+        extraction_confidence=overall_confidence,
+        requires_review=len(ambiguities) > 0 or not canonical,
+        fields={
+            "title": title,
+            "source-file": source_image,
+            "content-type": "image",
+            "content-category": CONTENT_CATEGORY.get(strategy, strategy),
+            "ingestion-date": contract.now_iso(),
+            "diagram-type": diagram_type,
+            "processing": {
+                "strategy": "two-pass-sliding-window",
+                "extraction-strategy": strategy,
+                "viewport": detail_manifest.get("viewport"),
+                "stride": detail_manifest.get("stride"),
+                "overlap-pct": detail_manifest.get("overlap_pct"),
+                "tile-count": len(detail_manifest.get("tiles", [])),
+            },
+        },
+        ingestion_quality_extra={
+            "elements-by-confidence": {"high": high, "medium": med, "low": low},
+            "ambiguity-count": len(ambiguities),
+        },
+    )
+
+    # Markdown body — group by element type for readability.
+    by_type: dict[str, list[Element]] = {}
+    for e in canonical:
+        by_type.setdefault(e.type, []).append(e)
+
+    body_parts = [f"# {title}\n"]
+    body_parts.append("## Overview\n")
+    summary = (structural_map or {}).get("summary") or (
+        f"Auto-extracted {len(canonical)} elements across "
+        f"{len(detail_manifest.get('tiles', []))} tiles using the "
+        f"`{strategy}` strategy."
+    )
+    body_parts.append(summary + "\n")
+
+    body_parts.append("## Diagram Type\n")
+    body_parts.append(f"{diagram_type}. Layout: {layout}.\n")
+
+    body_parts.append("## Elements\n")
+    for e_type in sorted(by_type):
+        body_parts.append(f"### {e_type.title()}\n")
+        body_parts.append("| # | Name | Description | Source Tiles | Confidence |")
+        body_parts.append("|---|------|-------------|--------------|------------|")
+        for i, e in enumerate(by_type[e_type], 1):
+            tiles = ", ".join(e.tile_sources) or "-"
+            name = _md_escape(e.name) or "(unlabeled)"
+            body_parts.append(
+                f"| {i} | {name} | "
+                f"{_md_escape(e.description)} | {tiles} | {e.confidence} |"
+            )
+        body_parts.append("")
+
+    if ambiguities:
+        body_parts.append("## Ambiguities and Review Items\n")
+        for a in ambiguities:
+            if a["kind"] == "spatial_overlap_with_different_names":
+                body_parts.append(
+                    f"- Spatial overlap (`{a['type']}`): kept "
+                    f"`{_md_escape(a['canonical_name'])}`, also seen as "
+                    + ", ".join(f"`{_md_escape(n)}`" for n in a["alternate_names"])
+                    + "."
+                )
+        body_parts.append("")
+
+    return yaml + "\n" + "\n".join(body_parts) + "\n"
+
+
+def _md_escape(s: str) -> str:
+    return (s or "").replace("|", "\\|").replace("\n", " ").strip()
+
+
+# --- General text/table rendering (Tier-1 agent-vision, non-diagram) -------
+
+
+def _overall_confidence(canonical: list[Element]) -> tuple[str, int, int, int]:
+    """Aggregate per-element confidence into one document-level signal."""
+    high = sum(1 for e in canonical if e.confidence == "high")
+    med = sum(1 for e in canonical if e.confidence == "medium")
+    low = sum(1 for e in canonical if e.confidence == "low")
+    if not canonical:
+        overall = "low"
+    elif high >= len(canonical) * 0.6:
+        overall = "high"
+    elif low > med + high:
+        overall = "low"
+    else:
+        overall = "medium"
+    return overall, high, med, low
+
+
+def _render_md_table(rows: list, header: list | None) -> str:
+    """Render a GFM table from row lists, escaping every cell as body data."""
+    body_rows = [r for r in rows if isinstance(r, list)]
+    if header:
+        head = list(header)
+    elif body_rows:
+        head, body_rows = body_rows[0], body_rows[1:]
+    else:
+        return ""
+    ncol = max([len(head)] + [len(r) for r in body_rows], default=len(head))
+    head = head + [""] * (ncol - len(head))
+    lines = ["| " + " | ".join(_md_escape(str(c)) for c in head) + " |",
+             "| " + " | ".join("---" for _ in head) + " |"]
+    for r in body_rows:
+        r = list(r) + [""] * (ncol - len(r))
+        lines.append("| " + " | ".join(_md_escape(str(c)) for c in r) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def render_markdown_general(
+    *,
+    title: str,
+    source_image: str,
+    canonical: list[Element],
+    detail_manifest: dict,
+    requires_review: bool = False,
+    review_notes: list[str] | None = None,
+) -> str:
+    """Render the general (text/table) read as Markdown prose + tables.
+
+    A Tier-1 agent-vision read of a non-diagram image/page. The extracted text is
+    **untrusted data**: it is emitted only into the body *below* the closing
+    frontmatter fence — never into a frontmatter value — so an injected
+    ``---`` / ``key:`` / "ignore prior instructions" line is content, not contract.
+    The leading ``---`` block (built by ``contract.build_frontmatter``, whose
+    values are escaped) is the only frontmatter; a compliant parser stops at the
+    first closing fence.
+    """
+    review_notes = review_notes or []
+    overall, high, med, low = _overall_confidence(canonical)
+    # A low-confidence, empty, or cross-check-contested read is flagged — never
+    # emitted as a confident read silently (AC5). A mostly-low read is suspect
+    # even with elements present and no text layer to cross-check against.
+    flag = requires_review or not canonical or overall == "low"
+
+    yaml = contract.build_frontmatter(
+        tier=contract.TIER_1,
+        extraction_confidence=overall,
+        requires_review=flag,
+        fields={
+            "title": title,
+            "source-file": source_image,
+            "content-type": "image",
+            "content-category": "general-text-table",
+            "ingestion-date": contract.now_iso(),
+            "processing": {
+                "strategy": "two-pass-sliding-window",
+                "extraction-strategy": "text-table",
+                "viewport": detail_manifest.get("viewport"),
+                "stride": detail_manifest.get("stride"),
+                "overlap-pct": detail_manifest.get("overlap_pct"),
+                "tile-count": len(detail_manifest.get("tiles", [])),
+            },
+        },
+        ingestion_quality_extra={
+            "elements-by-confidence": {"high": high, "medium": med, "low": low},
+        },
+    )
+
+    body_parts = [f"# {title}\n"]
+    for e in canonical:
+        if e.type == "table":
+            table = _render_md_table(e.extra.get("rows") or [], e.extra.get("header"))
+            if table:
+                body_parts.append(table)
+        else:
+            text = (e.extra.get("text") or e.name or "").strip()
+            if text:
+                body_parts.append(text + "\n")
+
+    if flag:
+        # The surfaced reason always travels with the flag — an operator seeing
+        # requires-review should never have to guess why.
+        notes = list(review_notes)
+        if not notes:
+            if not canonical:
+                notes.append("Empty read — no content was extracted from the "
+                             "image/page.")
+            elif overall == "low":
+                notes.append("Low-confidence read — most blocks were read with low "
+                             "confidence; verify against the source.")
+            else:
+                notes.append("Flagged for review.")
+        body_parts.append("## Review Items\n")
+        for note in notes:
+            body_parts.append(f"- {note}")
+        body_parts.append("")
+
+    return yaml + "\n" + "\n".join(body_parts) + "\n"
+
+
+# --- CLI ------------------------------------------------------------------
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(
+        prog="reconcile.py",
+        description="Merge per-tile image extractions into one canonical "
+                    "JSON + Markdown document.",
+    )
+    p.add_argument("--manifest", type=Path, required=True,
+                   help="detail_manifest.json from split_image.py detail.")
+    p.add_argument("--extractions", type=Path, required=True,
+                   help="Per-tile extractions JSON written by the agent.")
+    p.add_argument("--strategy", required=True,
+                   choices=("architecture", "event-storm", "process",
+                            "domain", "conceptual", "text-table"),
+                   help="Extraction strategy used for the tile reads. "
+                        "'text-table' is the general (non-diagram) Tier-1 mode.")
+    p.add_argument("--overview-manifest", type=Path, default=None,
+                   help="Optional overview_manifest.json (informational).")
+    p.add_argument("--title", default=None,
+                   help="Document title. Defaults to source image basename.")
+    p.add_argument("--output-json", type=Path, required=True)
+    p.add_argument("--output-md", type=Path, required=True)
+    p.add_argument("--output-root", type=Path, default=None,
+                   help="Confinement root for the outputs (realpath + component "
+                        "containment). Defaults to each output's own parent.")
+    p.add_argument("--text-layer", type=Path, default=None,
+                   help="Optional digital text-layer file (e.g. the pypdf text of "
+                        "a rasterized PDF). When given with --strategy text-table, "
+                        "the vision read is cross-checked against it and flagged "
+                        "requires-review on substantial disagreement.")
+    p.add_argument("--iou-threshold", type=float, default=0.5,
+                   help="IoU threshold for spatial dedup (default 0.5).")
+    args = p.parse_args()
+
+    detail = _load_json(args.manifest)
+    extractions = _load_json(args.extractions)
+    overview = _load_json(args.overview_manifest) if args.overview_manifest else None
+
+    tiles = {t["filename"].rsplit(".", 1)[0]: t
+             for t in detail.get("tiles", [])}
+    # Also accept tile ids of the form "W0_R0_C0" (basename without extension)
+    # or full filename.
+    def resolve_tile(tile_id: str) -> dict | None:
+        if tile_id in tiles:
+            return tiles[tile_id]
+        return tiles.get(tile_id.rsplit(".", 1)[0])
+
+    raw_elements: list[tuple[str, dict, dict]] = []
+    for rec in extractions.get("tiles", []):
+        tile_id = rec.get("tile_id") or rec.get("filename") or ""
+        tile = resolve_tile(tile_id)
+        if not tile:
+            print(f"warning: extraction references unknown tile {tile_id!r}; "
+                  f"skipping", file=sys.stderr)
+            continue
+        for elem in rec.get("elements") or []:
+            if isinstance(elem, dict):
+                raw_elements.append((tile_id, tile["crop_box"], elem))
+
+    is_general = args.strategy == "text-table"
+    if is_general:
+        canonical, ambiguities = reconcile_elements(
+            raw_elements, iou_threshold=args.iou_threshold,
+            key_fn=_general_key, cross_name_merge=False,
+        )
+    else:
+        canonical, ambiguities = reconcile_elements(
+            raw_elements, iou_threshold=args.iou_threshold,
+        )
+
+    structural_map = extractions.get("structural_map") or {}
+    canonical = sort_canonical(canonical, structural_map.get("layout") or "")
+
+    source_image = detail.get("source_image", "")
+    if args.title:
+        title = args.title
+    elif source_image:
+        title = Path(source_image).stem
+    else:
+        title = "Diagram"
+
+    merged = {
+        "title": title,
+        "source_image": source_image,
+        "strategy": args.strategy,
+        "structural_map": structural_map,
+        "elements": [
+            {
+                "type": e.type,
+                "name": e.name,
+                "description": e.description,
+                "confidence": e.confidence,
+                "global_bbox": e.global_bbox,
+                "tile_sources": e.tile_sources,
+                **({"extra": e.extra} if e.extra else {}),
+            }
+            for e in canonical
+        ],
+        "ambiguities": ambiguities,
+    }
+    _write_confined(args.output_json, json.dumps(merged, indent=2), args.output_root)
+
+    requires_review = False
+    if is_general:
+        review_notes: list[str] = []
+        if args.text_layer is not None:
+            layer_text = args.text_layer.read_text("utf-8", errors="replace")
+            vision_text = "\n".join(
+                (e.extra.get("text") or e.name or "") if e.type != "table"
+                else "\n".join(" ".join(str(c) for c in row)
+                               for row in (e.extra.get("rows") or [])
+                               if isinstance(row, list))
+                for e in canonical
+            )
+            requires_review, note = text_crosscheck.crosscheck(vision_text, layer_text)
+            if note:
+                review_notes.append(note)
+        md = render_markdown_general(
+            title=title,
+            source_image=source_image,
+            canonical=canonical,
+            detail_manifest=detail,
+            requires_review=requires_review,
+            review_notes=review_notes,
+        )
+    else:
+        md = render_markdown(
+            title=title,
+            source_image=source_image,
+            strategy=args.strategy,
+            structural_map=structural_map,
+            canonical=canonical,
+            ambiguities=ambiguities,
+            detail_manifest=detail,
+            overview_manifest=overview,
+        )
+    out_md = _write_confined(args.output_md, md, args.output_root)
+
+    print(f"OUTPUT_JSON: {args.output_json}")
+    print(f"OUTPUT_MD: {out_md}")
+    print(f"ELEMENTS: {len(canonical)}")
+    print(f"AMBIGUITIES: {len(ambiguities)}")
+    if is_general and requires_review:
+        print("WARNING: text-layer cross-check flagged requires-review")
+    return 0
+
+
+def _write_confined(path: Path, text: str, root: Path | None) -> Path:
+    """Write ``text`` to ``path`` after realpath + component-containment
+    confinement (``safe_io.confine``). ``root`` defaults to the output's own
+    resolved parent (which still rejects a symlink at the output path whose
+    target escapes); pass ``--output-root`` for a fixed root that also rejects
+    ``..`` traversal and the sibling-prefix case."""
+    confine_root = root if root is not None else path.parent
+    dest = safe_io.confine(path, confine_root)
+    dest.write_text(text, encoding="utf-8")
+    return dest
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

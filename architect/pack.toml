@@ -1,0 +1,58 @@
+[pack]
+name = "architect"
+version = "0.12.0"
+description = "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
+readme = "README.md"
+display_name = "Architect"
+license = "Apache-2.0 OR MIT"
+categories = ["architecture", "documentation"]
+keywords = ["design-docs", "diagrams", "mermaid", "critique"]
+
+# RFC-0024 contract level (v0.10) — pure-markdown skills, multi-adapter.
+# Bumped from v0.6 so listing `copilot` is honest: copilot's skill
+# primitive gained its user-scope target (`~/.copilot/instructions/`) at
+# v0.10, and architect is user-scope-default. Mirrors `research`/`core`.
+[pack.adapter-contract]
+version = "0.10"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
+# travels with every shipped adapter that projects the skill primitive.
+# Current adapter names: RFC-0022 split `kiro` into `kiro-ide`/`kiro-cli`
+# (the bare `kiro` alias is deprecated); RFC-0024 made `copilot`
+# user-scope-capable; RFC-0026 / cursor-full-parity added `cursor`; RFC-0027 /
+# gemini-full-parity added `gemini` (both project skills via existing modes — no
+# `[pack.adapter-contract]` bump). Declared order is load-bearing (RFC-0011):
+# `kiro-ide` precedes `kiro-cli` so a Kiro user's `~/.kiro/` auto-probe resolves
+# to the IDE; `cursor` then `gemini` appended last (append-only).
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# [architect] section of an adopter-owned `agentbundle-layout.toml`. Each design
+# effort lands in its own per-effort folder <parent>/<topic-slug>/ under the base.
+# No `[pack.layout.user]`: architect's output is per-repo (design docs belong in
+# the repository they describe) and there is no sensible *absolute* user base, so
+# the user-scope install append is a no-op (adopters write an [architect] section
+# by hand; see the skill's references/agentbundle-layout.md).
+[pack.layout.repo]
+parent = "docs/design"
+
+# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# the Tier-A activation-eval coverage allowlist. Each listed skill ships
+# evals/eval_queries.json and is measured by tools/run-pack-evals.py. All three
+# architect skills are user-prompt-triggered, so none are excluded.
+[pack.evals]
+skills = ["architect-design", "architect-diagram", "architect-review"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/architect/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

@@ -1,0 +1,21 @@
+[
+  {"query": "Export this Markdown table to Excel", "should_trigger": true},
+  {"query": "Fill our .xlsx template with this Markdown data", "should_trigger": true},
+  {"query": "Produce a spreadsheet from this Markdown table", "should_trigger": true},
+  {"query": "Turn this Markdown into an Excel workbook", "should_trigger": true},
+  {"query": "Generate an .xlsx from this Markdown using the template", "should_trigger": true},
+  {"query": "I need an Excel spreadsheet out of this Markdown table", "should_trigger": true},
+  {"query": "Write this Markdown table into the named ranges of our workbook", "should_trigger": true},
+  {"query": "Convert this Markdown table into a branded Excel file", "should_trigger": true},
+  {"query": "Make a workbook from this Markdown data", "should_trigger": true},
+
+  {"query": "Turn this Markdown into a Word document", "should_trigger": false},
+  {"query": "Build a slide deck from this Markdown", "should_trigger": false},
+  {"query": "Convert this Markdown to an HTML page", "should_trigger": false},
+  {"query": "Turn this XLSX file into Markdown", "should_trigger": false},
+  {"query": "Make a .docx report from this Markdown", "should_trigger": false},
+  {"query": "Produce a PowerPoint from this Markdown", "should_trigger": false},
+  {"query": "Render the Mermaid charts to images", "should_trigger": false},
+  {"query": "Read this .msg email into Markdown", "should_trigger": false},
+  {"query": "Convert this existing spreadsheet into a Markdown table", "should_trigger": false}
+]

@@ -1,0 +1,52 @@
+{
+  "skill_name": "new-adr",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Record the architecture decision the user described as a new ADR.",
+      "expected_output": "An ADR created from the template with an H1 that names the problem AND the chosen solution together — kept short, identifying the decision without encoding the whole rationale — and frontmatter filled in (status Proposed, today's date, Decision-makers) and kept pointer-like (Consulted/Related are short reference lists, not prose). The Decision section leads with a single declarative sentence stating the choice (ADR/MADR layout puts Context before the Decision, so 'at the top' means leading its own section, not the document); Context lists the actual constraints driving the choice; Consequences include honest negatives (what is given up), not only upsides; at least one viable alternative is recorded, each rejected against a stated reason. The record is for a decision already made or formally proposed (not an open debate — that would be an RFC), there is a concrete tradeoff (more than one option was viable), and it is one decision wide (not three-plus load-bearing sub-decisions packed into one ADR — that would be an umbrella RFC spawning smaller ADRs). After Accepted the body is immutable — a reversal is a new superseding ADR, never an edit.",
+      "assertions": [
+        "The Decision is stated as a single declarative sentence leading the Decision section",
+        "Context lists the actual constraints driving the choice, not hand-wavy filler",
+        "Consequences include honest negatives (what is given up), not only upsides",
+        "At least one viable alternative is recorded, each rejected with a stated reason",
+        "Records a decision already made or formally proposed — not an open-ended debate (which would be an RFC)",
+        "Frontmatter is filled (status, date, Decision-makers) and the H1 names the problem and the chosen solution together — kept short, identifying the decision without encoding the whole rationale",
+        "Frontmatter metadata (Consulted, Related) is pointer-like — short lists of handles and ADR/RFC/spec references, not prose; any explanation lives in Context or References",
+        "The record is one decision wide — not three or more load-bearing sub-decisions packed into a single ADR (that would be an umbrella RFC spawning smaller ADRs)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The user dumps a tangled decision to record as an ADR — rationale, history, and several load-bearing sub-decisions in one breath (e.g. 'record that we'll move to event sourcing, AND switch the message bus to Kafka, AND adopt CQRS for the read side — here's the whole backstory and the three options we weighed for each').",
+      "expected_output": "Before drafting, the skill isolates the decision rather than transcribing the dump. Because the request packs three or more load-bearing sub-decisions, the skill pushes back per the one-decision-wide check — asking whether this is really one decision or an umbrella that should be an RFC spawning several smaller ADRs (the RFC carries the debate; each ADR records one durable outcome). For a genuinely single-but-tangled decision, the skill instead reflects back a short decision frame (the decision in one sentence, the problem it resolves, the alternatives, the winning driver, the tradeoff, any prior ADR amended) and confirms it before writing — it does not silently absorb the rationale and history into a dense title or a prose metadata block. The offer-don't-force shape holds: a half-shaped decision is normal input, not a questionnaire to complete.",
+      "assertions": [
+        "Pushes back on packing three or more load-bearing sub-decisions into one ADR, pointing at an umbrella RFC that spawns smaller ADRs",
+        "Reflects back a short decision frame (decision sentence, problem, alternatives, winning driver, tradeoff, prior ADR) before drafting, rather than transcribing the dump verbatim",
+        "Does not absorb the rationale/history into an over-long title or a prose Consulted/Related metadata block",
+        "Frames by offering, not by forcing a fixed questionnaire — a half-shaped decision is accepted as normal input"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Record a substantial, long-lived architecture decision as an ADR — one whose Context is several paragraphs of constraints and whose decision is the kind that should be reconsidered when the world changes (e.g. 'we will run on a single managed cloud provider for the next two years to keep the two-person team focused, accepting lock-in, with the whole tradeoff and the constraints we weighed'). The decision is likely to age and a reader would expect a way to confirm conformance.",
+      "expected_output": "Because the ADR is long enough that the decision isn't on the first screen, the skill includes a `## Decision summary` first-screen block (Decision / Because / Applies to / Tradeoff accepted / Revisit if) — it would skip it on a short ADR where the lines would be pure redundancy. It gives the decision a named `Revisit if:` trigger in Consequences (the canonical home that survives deletion of the optional summary), mirrored verbatim into the summary; for a decision that genuinely wouldn't age it would write the explicit `Revisit if: stable — no foreseeable trigger` rather than omit the line. Because a reader would expect a conformance mechanism, it writes a concrete `## Confirmation` with a `Mode` (from `reviewer-checked | lint/CI | architecture fitness test | periodic audit | none`), `Signal`, and `Owner` — and where the decision is genuinely non-checkable it prefers an explicit `Mode: none` with a one-line reason over silently deleting the section. None of the three fields is treated as mandatory; each is keyed to the ADR's length, the decision's likelihood of aging, and whether a check is expected.",
+      "assertions": [
+        "A ## Decision summary block is present when the ADR is long enough that the Decision is not visible on the first screen, and is omitted on a short ADR where it would be pure redundancy",
+        "A Revisit if: trigger is present in Consequences for a decision likely to age, with 'stable — no foreseeable trigger' as the valid explicit value when it will not",
+        "When a ## Confirmation section is present it is concrete (a named Mode/Signal/Owner) or explicitly Mode: none with a one-line reason — not aspirational, and not silently omitted where a reader would expect a conformance check"
+      ]
+    }
+    ,
+    {
+      "id": 4,
+      "prompt": "Record a short, simple architecture decision as an ADR — a small, obvious choice with one clear winner and no long-term drift risk (e.g. 'we agreed to use Python Black as our code formatter with its default settings; the whole team runs it identically and there's nothing to revisit unless Black ceases to be maintained').",
+      "expected_output": "Because the ADR is short enough that the Decision is visible on the first screen, the skill omits the `## Decision summary` block — it would be pure redundancy on a decision this compact. For a decision that won't age, it writes the explicit `Revisit if: stable — no foreseeable trigger` in Consequences rather than omitting the line entirely (omitting it would leave the reader uncertain whether the field was overlooked). The `## Confirmation` section, if present, is honest about the decision's lightweight checkability: a one-line `Mode: none` with a reason (a formatter choice that passes CI doesn't need a separate conformance audit) or the section is omitted for a genuinely non-checkable choice — not left aspirational.",
+      "assertions": [
+        "A ## Decision summary block is present when the ADR is long enough that the Decision is not visible on the first screen, and is omitted on a short ADR where it would be pure redundancy",
+        "A Revisit if: trigger is present in Consequences for a decision likely to age, with 'stable — no foreseeable trigger' as the valid explicit value when it will not",
+        "When a ## Confirmation section is present it is concrete (a named Mode/Signal/Owner) or explicitly Mode: none with a one-line reason — not aspirational, and not silently omitted where a reader would expect a conformance check"
+      ]
+    }
+  ]
+}

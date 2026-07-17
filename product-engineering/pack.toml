@@ -1,0 +1,53 @@
+[pack]
+name = "product-engineering"
+version = "0.10.1"
+description = "Shape product intent into shippable specs — and into the words users read. Habits — frame-intent, de-risk-intent, decompose-intent — over a recursive, level-tagged `intent` (product-vision, product-strategy, capability, and feature intents are the same artifact at different levels — Level is an open recognized set decoupled from Scale): outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds — at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. `voice-and-microcopy` adds the content layer: characterize a product's voice and write blame-free, actionable UI copy. Upstream of the build loop, the `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief — diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks — no engine. Markdown skills + agent definitions, user-scope."
+readme = "README.md"
+display_name = "Product Engineering"
+license = "Apache-2.0 OR MIT"
+categories = ["product-management", "project-management"]
+keywords = ["intent", "specs", "prototyping", "decomposition"]
+
+# SKILL.md surface plus three agent definitions (discovery-lead and the two
+# discovery reviewers, added in 0.9.0). Agents project on every shipped adapter
+# that supports the agent primitive; the skills travel with every adapter that
+# projects the skill primitive. Declares the current contract level (skill
+# primitive first-class at copilot v0.12; cursor/gemini at v0.11/v0.12) — the
+# level is unchanged by adding agents.
+[pack.adapter-contract]
+version = "0.13"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+# RFC-0011 / pack-allowed-adapters. Declared order is load-bearing (append-only);
+# `kiro-ide` precedes the others so a Kiro user's auto-probe resolves to the IDE.
+allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# RFC-0040 / ADR-0030 / consolidated-pack-layout: the scope-keyed default for the
+# [product-engineering] section of an adopter-owned `agentbundle-layout.toml`.
+# The repo default is docs/product — the natural home for product intents and
+# rollups. No `[pack.layout.user]`: product-engineering's output is per-repo and
+# there is no sensible *absolute* user base, so the user-scope install append is
+# a no-op (adopters write a user `[product-engineering]` section by hand; see
+# the skill's references/agentbundle-layout.md).
+[pack.layout.repo]
+parent = "docs/product"
+
+# pack-activation-evals (RFC-0037 / ADR-0028) — pack-eval-coverage-rollout:
+# the Tier-A activation-eval coverage allowlist. Each listed skill ships
+# evals/eval_queries.json and is measured by tools/run-pack-evals.py. All five
+# skills are user-prompt-triggered, so none are excluded.
+[pack.evals]
+skills = ["frame-intent", "de-risk-intent", "decompose-intent", "align-value-stream", "voice-and-microcopy", "frame-domain", "discovery-loop", "explore-options", "plan-validation"]
+
+# enriched-pack-manifest (RFC-0031 / ADR-0021): catalogue-facing links
+# + maintainer, including the `documentation` link to the per-pack guide home.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/docs/guides/product-engineering/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"

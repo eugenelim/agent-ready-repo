@@ -1,0 +1,23 @@
+{
+  "name": "monorepo-extras",
+  "version": "0.1.2",
+  "description": "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py\" --install-route claude-plugins"
+      }
+    ]
+  },
+  "author": "eugenelim <eugenelim@users.noreply.github.com>",
+  "license": "Apache-2.0 OR MIT",
+  "homepage": "https://github.com/eugenelim/agent-ready-repo",
+  "repository": "https://github.com/eugenelim/agent-ready-repo",
+  "keywords": [
+    "monorepo",
+    "scaffolding",
+    "packages"
+  ],
+  "category": "devops",
+  "displayName": "Monorepo Extras"
+}

@@ -1,0 +1,28 @@
+{
+  "skill_name": "architect-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Critique the architecture artifact the user pasted.",
+      "expected_output": "A critique that opens with one of the four verdicts (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), then severity-tagged findings ordered by severity (not discovery order), each concrete and actionable (names the problem and what to change). Load-bearing claims asserted as fact with no cited source or 'unverified' marker are flagged. It closes with a 'what's working' section, and it critiques the artifact rather than rewriting it into a new one.",
+      "assertions": [
+        "Opens with one of the four verdicts (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT)",
+        "Findings are severity-tagged and ordered by severity, not by discovery order",
+        "Each finding is concrete and actionable — names the problem and what to change, not vague",
+        "Flags ungrounded load-bearing claims (asserted as fact with no source or 'unverified' marker)",
+        "Closes with a 'what's working' section — not criticism only",
+        "Critiques the artifact; does not rewrite it into a new artifact"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Run a well-architected review of a serverless design that omits the latency budget and asserts a managed-service limit with no cited source.",
+      "expected_output": "A WA-mode critique that, via the serverless lens, raises two findings: an unbudgeted synchronous long-operation path (a 🟥 blocker when the work cannot fit the binding front-door timeout — structurally impossible, not merely slow), and a load-bearing managed-service claim with no visible grounding (the reviewer re-derives or flags rather than trusting the design's own assertion). Findings carry the mechanical/judgment tag.",
+      "assertions": [
+        "Raises the unbudgeted synchronous long-operation path as a finding, a 🟥 blocker when it makes the design structurally impossible",
+        "Raises the ungrounded load-bearing managed-service claim as a finding, re-deriving or flagging rather than trusting the design's assertion",
+        "Tags each WA-mode finding mechanical (🔧) or judgment (🧭)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+---
+name: confluence-crawler
+description: Crawl an authenticated Confluence space (Atlassian Cloud or on-prem Server/Data Center) by page hierarchy and convert each page to clean Markdown with frontmatter. Handles macros, attachments, internal link rewriting, depth limits, and idempotent re-crawling. Use when the user wants to mirror, export, or ingest Confluence content.
+metadata:
+  credentialed: true
+  primitive-class: credentialed-cli
+  auth: sso-cookie
+  auth-fallback: creds
+  namespace: confluence
+  keys: ["API_TOKEN"]
+---
+
+# Confluence Crawler
+
+Crawl a Confluence space (Cloud or Server/Data Center) and write each page as Markdown with YAML frontmatter.
+
+## Instructions
+
+You are a Confluence export agent. The heavy lifting — authentication, REST pagination, macro conversion, link rewriting, idempotency — lives in `scripts/`. Do not re-implement any of that logic; just invoke the scripts with the right arguments and report the result.
+
+### Flavor support
+
+The skill works against both:
+
+- **Atlassian Cloud** (`*.atlassian.net`) — Basic auth with email + API token from `id.atlassian.com`. Base URL must include `/wiki` (setup adds it automatically).
+- **Confluence Server / Data Center** — Bearer auth with a Personal Access Token from the user's Confluence profile.
+
+Flavor is auto-detected from the base URL. Override via `CONFLUENCE_FLAVOR=cloud|server` if needed.
+
+### Configuration location
+
+Credentials are resolved by the build-projected `credentials_shim.load_credentials`
+through Tier 1 (env) → Tier 2 (OS keyring) → Tier 3 dotfile. The dotfile
+lives at `~/.agentbundle/credentials.env`. The declared schema is in
+`references/creds-schema.toml`:
+
+| Key | Required | Notes |
+|---|---|---|
+| `CONFLUENCE_BASE_URL` | yes | Cloud: `https://<site>.atlassian.net/wiki`. Server: `https://confluence.corp.example.com`. |
+| `CONFLUENCE_API_TOKEN` | yes | Cloud API token or Server PAT. |
+| `CONFLUENCE_EMAIL` | Cloud only | Atlassian account email. |
+| `CONFLUENCE_FLAVOR` | no | `cloud` or `server`. Auto-detected from URL host when unset. |
+
+Populate any tier by running `credential-setup` skill.
+
+### Security rules (non-negotiable)
+
+- Secrets live only in `~/.agentbundle/credentials.env`
+  (mode 0600 on POSIX; DACL-restricted on Windows), the OS keyring,
+  or process environment variables.
+  **Never** read that file, print it, or echo the token.
+- **Never** put the token on the command line. The primitive
+  refuses flags like `--token` / `--api-token` / `--bearer` /
+  `--pat` / `--password` and exits — do not work around it.
+- If `--check` reports missing or invalid creds, tell the user to run
+  `credential-setup` skill themselves.
+  It's interactive — do not run it for them.
+- **`CONFLUENCE_BASE_URL` is user-configured.** Before invoking the
+  crawler, verify the configured URL resolves to a known Confluence
+  host (e.g. `*.atlassian.net` for Cloud, the organisation's known
+  on-premises host for Server) — not to a private IP range
+  (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`)
+  or a cloud-metadata endpoint (`169.254.0.0/16`). If the user
+  supplies an unexpected host, stop and ask them to confirm before
+  running. This is an **agent pre-flight check**: the scripts validate
+  only the URL scheme (`http://` or `https://`), not the resolved host
+  or IP range. On the token path `follow_redirects=True` is active, so
+  verify the initial host before invoking.
+
+This skill is **dual-auth** (`auth: sso-cookie` with a `creds` fallback): on a
+Data Center instance behind corporate SSO it authenticates by a captured web
+session (cookie jar) resolved through the `sso-broker`; everywhere else it uses
+the token (`creds`) path above. On the SSO-cookie path:
+
+- The session cookie jar lives only under the broker's `0600` store; the skill
+  reads it in-process via the `credbroker` resolver, which returns a *path*, not
+  the bytes. **Never** read the jar file directly, print its contents, or echo
+  cookie values.
+- **Never** put a session cookie on the command line. The skill attaches cookies
+  to its HTTP client internally and sends no `Authorization` header on this path.
+- If the SSO session is missing or expired, tell the user to run
+  `python scripts/setup_sso.py` (which drives `sso-broker register`) themselves —
+  it opens a browser for interactive sign-in, so do not run any setup helper for
+  them.
+
+### Step 1: Verify the environment
+
+Check Python dependencies are installed. If not, install them:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Then verify connectivity:
+
+```bash
+python scripts/crawl_space.py --check
+```
+
+- Exit code 0 → authenticated, proceed.
+- Exit code 2 → the user must act (credentials missing/invalid/expired). Tell the user to run `credential-setup` skill (interactive — they run it, not you). Stop here.
+- Any other non-zero → see *When a request fails*.
+
+### When a request fails
+
+The CLI uses a banded exit-code contract; read the stderr message for the
+specific cause, then act on the band:
+
+| Exit | Band | What to do |
+|---|---|---|
+| 0 | success | proceed |
+| 1 | functional error — bad/missing args, server 5xx, transport, **a partial crawl (some pages failed)**, keychain hard-fail, unexpected | surface the message; for a partial crawl the per-page failures are in the log — report them, don't loop |
+| 2 | user must act — credentials missing/invalid/expired, 401/403 | tell the user to run `credential-setup` themselves (do not run it for them), then re-run `--check` |
+| 130 | interrupted (Ctrl-C) | the run was cancelled; nothing to fix |
+
+`Tier2HardFailError` (OS keyring unavailable) or an unprojected shim surface as
+exit 1 with a message naming the cause.
+
+### Step 2: Crawl the space
+
+Invoke the crawler with the user's arguments. Only these flags are supported:
+
+| Flag | Meaning |
+|---|---|
+| `--space KEY` | Space key, e.g. `ENG`. Required. |
+| `--root PAGE_ID` | Start from a specific page (default: space homepage). |
+| `--depth N` | Max hierarchy depth from root (default: unlimited). |
+| `--output DIR` | Output directory (default: `./confluence-out`). |
+| `--force` | Re-fetch and overwrite all pages, ignoring frontmatter version. |
+| `--no-attachments` | Skip attachment downloads. |
+| `--concurrency N` | Parallel requests (default: 4). |
+| `--min-delay-ms N` | Minimum ms between requests (default: 100). |
+| `--insecure` | Disable TLS verification. Only if the user explicitly asks. |
+| `--verbose` | Debug logging. |
+
+Example:
+
+```bash
+python scripts/crawl_space.py --space ENG --depth 3 --output ./out
+```
+
+### Step 3: Interpret the output
+
+The script writes:
+
+- `<output>/<slug>.md` per page, flat layout. Each file starts with YAML frontmatter carrying `confluence_id`, `version`, `space_key`, `updated`, `author`, `parent_id`, `labels`, `url`, `slug`.
+- `<output>/attachments/<page_id>/<filename>` for downloaded attachments.
+
+The final log line reports `wrote N pages (failed: X, skipped: Y)`. Relay this to the user. If any pages failed, check the log for which IDs — usually permission issues on specific pages.
+
+### Step 4: Re-crawling
+
+The script is idempotent. On re-run:
+
+- It compares each page's current `version.number` against the `version` field in the existing `.md` frontmatter.
+- Unchanged pages are skipped.
+- Changed pages are re-fetched and overwritten.
+- Pass `--force` to bypass the version check and re-fetch everything.
+
+### Behavior notes
+
+- **Depth** is measured in page hierarchy (parent → child), not link hops.
+- **Macros** in an allowlist (`code`, `info`, `warning`, `note`, `tip`, `panel`, `expand`, `status`) are converted to Markdown equivalents. Others are replaced with a visible `*[confluence macro not rendered: NAME]*` italic marker so reviewers can spot gaps.
+- **Internal links** to pages that were also crawled become relative `.md` paths. Links to pages outside the crawl set remain absolute Confluence URLs.
+- **Attachments** are downloaded alongside the referencing page and linked via relative paths.
+
+### Don't
+
+- Don't read `~/.agentbundle/credentials.env` from skill body.
+- Don't print or log the PAT.
+- Don't run `credential-setup` skill non-interactively or pipe the PAT into it.
+- Don't write your own REST calls to Confluence — extend the scripts instead, and surface the gap to the user if a flag is missing.
+- Don't assume `--insecure` is safe to add by default. Only when the user explicitly says they accept it.
+
+### Edge cases
+
+- **Cloud base URL without `/wiki`**: if the user's config somehow has `https://foo.atlassian.net` without `/wiki`, API calls will 404. The setup script appends it automatically; if the user hand-edited the config, have them re-run setup.
+- **Space has no homepage**: the script exits 2 and asks for `--root PAGE_ID`. Relay this to the user.
+- **Orphaned pages not in the hierarchy**: not crawled by design. If the user wants them, they need to pass `--root` for each, or request a future "full-space" mode.
+- **Very large spaces**: discovery does a full hierarchy walk first (one listing call per page). Expect a minute or two for thousands of pages. Fetch and convert then runs with bounded concurrency.
+- **Title changes between runs**: the old `<old-slug>.md` file remains on disk — the new run writes `<new-slug>.md` because slugs derive from the current title. Warn the user that old files may linger and let them clean up.
+- **Network failures mid-crawl**: the `.part` tempfile pattern prevents half-written `.md` files. Re-running resumes cleanly.
