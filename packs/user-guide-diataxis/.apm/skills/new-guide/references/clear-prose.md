@@ -32,6 +32,35 @@ search for once you know its shape.
   "This section explains how to rotate a token." The reader already read the
   heading. Start rotating the token.
 
+## Structural tells
+
+These are harder to catch than vocabulary tells because they survive a word-level
+pass. A draft can have zero inflated verbs and still read as machine-made if it
+falls into these patterns.
+
+- **Treadmill effect.** Each paragraph restates the previous one rather than
+  advancing the argument. The text circles the idea without arriving anywhere. Fix:
+  read the first and last sentence of each paragraph — the last should move past the
+  first, not echo it.
+- **Symmetrical lists.** Bullet items of identical length, parallel construction,
+  and equal weight — as if generated to fill a template rather than to capture
+  genuinely distinct points. A real list of three items is rarely three identical
+  sentences. Vary length and depth to match the actual shape of the content.
+- **False precision.** Authoritative framing — "research shows", "studies indicate",
+  "it's important to note" — without a grounded specific behind it. If you can't
+  name the study, the finding, or the number, replace the framing with a concrete
+  claim or cut it.
+- **Performative thoroughness.** Seven considerations when two drive the decision.
+  The extra five exist to signal completeness, not to inform. Cut the padding; leave
+  the two that matter.
+- **Nice-nice wrap.** Both sides of a conflict hedged to avoid commitment — the text
+  names a tension but refuses to land on a position. A reader should be able to
+  disagree with a claim in your doc. If there's nothing to push back on, there's
+  nothing being said.
+- **Subtext vacuum.** Flat, safe-for-any-audience prose with no implied reader.
+  Human writing carries a register — a sense of who it's for and what they already
+  know. Writing for everyone reads as writing for no one.
+
 ## Habits to keep
 
 - **One claim per sentence.** If a sentence has two "and"s and a "which", it's
@@ -63,6 +92,15 @@ Read the draft cold, ideally out loud. The sentences you stumble over are the
 ones to cut or split. If a paragraph could be three bullets, make it three
 bullets. If a sentence survives only because it sounds finished, it's filler —
 cut it.
+
+Run these four questions on the draft to catch structural tells a vocabulary pass
+will miss:
+
+1. Does the argument advance paragraph to paragraph, or restate?
+2. Does each list item earn its slot, or pad?
+3. Is there a position the text can be disagreed with?
+4. Is any specific detail grounded — a name, a date, a count, an observation —
+   or is specificity only performed?
 
 When your environment has subagents, the skill's optional copyedit pass hands
 the draft and this checklist to a fresh reader so the style read stays off your

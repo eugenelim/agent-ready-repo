@@ -126,12 +126,22 @@ The adopter-facing version of this craft ships in the `user-guide-diataxis`
 pack's `new-guide` skill (`references/clear-prose.md`); keep each in its own
 home rather than duplicating.
 
-- **Write prose that reads like a person wrote it.** Cut the tells that make
-  text feel machine-made: hedges ("it's worth noting"), uniform sentence
-  rhythm, em-dash overuse, the rule of three on a loop, throat-clearing
-  openers, inflated verbs ("leverage", "utilize", "delve"). Vary sentence
-  length, keep one claim per sentence, and prefer a concrete number or example
-  over an adjective.
+- **Write prose that reads like a person wrote it.** Cut the vocabulary tells:
+  hedges ("it's worth noting"), uniform sentence rhythm, em-dash overuse, the
+  rule of three on a loop, throat-clearing openers, inflated verbs ("leverage",
+  "utilize", "delve"). Vary sentence length, keep one claim per sentence, and
+  prefer a concrete number or example over an adjective.
+- **Also catch structural tells — these survive a vocabulary pass.** Check
+  each draft against four questions: (1) does the argument advance paragraph to
+  paragraph, or restate? (2) does each list item earn its slot, or pad? (3) is
+  there a position the text can be disagreed with? (4) is any specific detail
+  grounded (a name, a date, a count, an observation), or is specificity only
+  performed? Named patterns to watch for: treadmill effect (paragraphs circle
+  without arriving), symmetrical lists (identical-length bullets that pad a
+  template), false precision ("research shows" with nothing behind it),
+  performative thoroughness (seven points when two decide it), nice-nice wrap
+  (both sides hedged, no stance), subtext vacuum (written for everyone =
+  written for no one).
 - **State what is — don't leak rationale or identity.** An aside that
   justifies a choice mid-sentence ("organized this way because…") reads as
   internal thinking spilling onto the page; cut it, or give the *why* its own
