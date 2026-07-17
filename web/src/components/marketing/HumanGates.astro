@@ -3,6 +3,7 @@
 // comes from amber-bordered gate cards, not a dark band (aesthetic-direction.md:
 // one dark zone only; a light interruption between two dark bands disorients).
 import Section from '../layout/Section.astro';
+import { withBase } from '../../lib/paths';
 
 const gates = [
   { id: 'G0', name: 'Go / No-go', loop: 'Discovery', decide: 'Is this idea worth exploring?' },
@@ -37,7 +38,7 @@ const gates = [
     ))}
   </ul>
 
-  <a class="gates__cta" href="/journeys/core/">Explore a full journey <span aria-hidden="true">→</span></a>
+  <a class="gates__cta" href={withBase('/journeys/core/')}>Explore a full journey <span aria-hidden="true">→</span></a>
 </Section>
 
 <style>
