@@ -1,0 +1,5 @@
+flowchart LR
+    Raw[(Raw S3)] -->|"s3:GetObject"| Ingest[Ingest]
+    Ingest -->|"validates schema"| Validate[Validate]
+    Validate -->|"writes parquet"| Stage[(Stage S3)]
+    Stage -->|"loads rows"| DW[(Data warehouse)]
