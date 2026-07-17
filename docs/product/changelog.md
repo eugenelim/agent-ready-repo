@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`voice-and-microcopy` gains a human-craft structural-tell check (product-engineering 0.10.1).** A new reference file, `human-craft-check.md`, inlines six structural AI tells — treadmill effect, symmetrical lists, false precision, performative thoroughness, nice-nice wrap, subtext vacuum — and a four-question self-check for longer copy (onboarding text, feature descriptions, help text). The content checklist gains an eighth item, Human-crafted, that routes longer copy through this check. Self-contained within the pack; no cross-pack references.
+
 ### Changed
 
 - **`architect-diagram` gains portable Mermaid title, accessibility, and pipeline-orientation guidance (architect 0.11.0).** Three Mermaid-native additions to the skill's references: (1) `flowchart LR` is now explicitly the orientation for pipeline / ETL / CI-CD / data-flow diagrams (a decision-table row plus strengthened flowchart guidance); (2) the config-frontmatter `title:` is documented as the in-source diagram title (Mermaid ≥ 10.5), with the prose scope sentence kept as the always-portable baseline; (3) `accTitle` / `accDescr` are documented as the diagram's screen-reader alt text. The change also explicitly rejects three renderer-proprietary conventions (`:::external`, `label\|tech`, `%% title:`) that no-op or break in stock Mermaid (GitHub, Confluence, `mmdc`, and the repo's own renderers) — they contradict the skill's "survive enterprise wiki rendering" north star. Guidance only; no renderer or skill-contract change.
