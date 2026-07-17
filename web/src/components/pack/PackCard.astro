@@ -1,0 +1,91 @@
+---
+// Pack card used on /packs/ index grid. Shows name, scope badge, tagline; links
+// to the pack detail page.
+import { withBase } from '../../lib/paths';
+
+interface Props {
+  slug: string;
+  name: string;
+  scope: 'user' | 'repo';
+  tagline: string;
+}
+
+const { slug, name, scope, tagline } = Astro.props;
+---
+
+<li class="pack-card">
+  <a class="pack-card__link" href={withBase(`/packs/${slug}/`)}>
+    <div class="pack-card__head">
+      <h3 class="pack-card__name">{name}</h3>
+      <span class="scope-chip">{scope}</span>
+    </div>
+    <p class="pack-card__tagline">{tagline}</p>
+    <span class="pack-card__cta" aria-hidden="true">Explore →</span>
+  </a>
+</li>
+
+<style>
+  .pack-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+    transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
+  }
+
+  .pack-card:hover {
+    border-color: var(--ds-accent);
+  }
+
+  .pack-card__link {
+    display: block;
+    padding: var(--ds-space-6);
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+  }
+
+  .pack-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .pack-card__name {
+    font-size: var(--ds-type-h3);
+    color: var(--ds-on-surface);
+  }
+
+  .scope-chip {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    flex-shrink: 0;
+  }
+
+  .pack-card__tagline {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    margin-bottom: var(--ds-space-4);
+    line-height: var(--ds-lead-body);
+  }
+
+  .pack-card__cta {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pack-card {
+      transition: none;
+    }
+  }
+</style>

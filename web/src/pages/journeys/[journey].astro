@@ -1,0 +1,406 @@
+---
+import { getCollection, render } from 'astro:content';
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import Section from '../../components/layout/Section.astro';
+import JourneyHero from '../../components/journey/JourneyHero.astro';
+import GateDetail from '../../components/journey/GateDetail.astro';
+import { withBase } from '../../lib/paths';
+
+export async function getStaticPaths() {
+  const journeys = await getCollection('journeys');
+  return journeys.map((entry) => ({
+    params: { journey: entry.id.replace(/\.md$/, '') },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+// Human touches per session — from typicalSession frontmatter (author-specified)
+const totalHumanTouches = data.typicalSession.humanTouches;
+
+// Derived install command from pack slug + scope
+const installCommand =
+  data.scope === 'user'
+    ? `agentbundle install --pack ${data.pack} --scope user`
+    : `agentbundle install --pack ${data.pack}`;
+
+---
+
+<SiteLayout
+  title={`${data.pack} journey — agent-ready-repo`}
+  description={data.tagline}
+>
+  <!-- Section 1: Pack hero (light zone, amber accents) -->
+  <JourneyHero
+    name={data.pack}
+    scope={data.scope}
+    tagline={data.tagline}
+    skillCount={data.skills.length}
+    humanTouches={totalHumanTouches}
+    wallClockMinutes={data.typicalSession.wallClockMinutes}
+    packUrl={data.packUrl}
+    docsUrl={data.docsUrl}
+  />
+
+  <!-- Section 2: What changes when you install this -->
+  <Section tone="surface">
+    <div class="content-body">
+      <h2 class="section-h2">What changes when you install this</h2>
+      {data.whatChanges ? (
+        <p class="what-changes">{data.whatChanges}</p>
+      ) : (
+        <p class="what-changes">
+          After installing this pack, the skills and agents it provides are available in every session on the relevant scope.
+        </p>
+      )}
+
+      {data.prerequisitePacks.length > 0 && (
+        <div class="prereqs">
+          <p class="prereqs__label">Requires:</p>
+          <ul class="prereqs__list">
+            {data.prerequisitePacks.map((p) => (
+              <li><a href={withBase(`/packs/${p}/`)}><code>{p}</code></a></li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  </Section>
+
+  <!-- Section 3: Skills in this pack -->
+  <Section tone="surface-alt">
+    <div class="content-body">
+      <h2 class="section-h2">Skills in this pack</h2>
+      <ul class="skills-list" role="list">
+        {data.skills.map((skill) => (
+          <li class="skill-row">
+            <div class="skill-row__head">
+              <code class="skill-chip">{skill.name}</code>
+              {skill.humanTouches > 0 && (
+                <span class="skill-touches">
+                  {skill.humanTouches} {skill.humanTouches === 1 ? 'gate' : 'gates'}
+                </span>
+              )}
+            </div>
+            <p class="skill-desc">{skill.description}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </Section>
+
+  <!-- Section 4: The journey — staged narrative from markdown body -->
+  <Section tone="surface">
+    <div class="content-body">
+      <h2 class="section-h2">The journey</h2>
+      <div class="journey-narrative">
+        <Content />
+      </div>
+    </div>
+  </Section>
+
+  <!-- Section 5: Human gates (detailed) — amber-bordered cards on light bg -->
+  <Section tone="surface-alt">
+    <div class="content-body">
+      <h2 class="section-h2">Human gates</h2>
+      <p class="gates-intro">
+        For each gate, everything you need to make a confident decision.
+      </p>
+      <ul class="gates-list" role="list">
+        {data.humanGates.map((gate) => (
+          <li>
+            <GateDetail gate={gate} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  </Section>
+
+  <!-- Section 6: What good output looks like -->
+  <Section tone="surface">
+    <div class="content-body">
+      <h2 class="section-h2">What good output looks like</h2>
+      <p class="placeholder-note">
+        <em>Content authored progressively. A well-completed session produces: clean mechanical gates (lint, typecheck, tests), a reviewer report marked <code>Clean — ready to commit.</code>, a PR description that names what changed, what was deferred, and what was found mid-implementation, and a spec that matches the implementation.</em>
+      </p>
+    </div>
+  </Section>
+
+  <!-- Section 7: Typical session shape -->
+  <Section tone="surface-alt">
+    <div class="content-body">
+      <h2 class="section-h2">Typical session</h2>
+      <dl class="session-stats">
+        <div class="session-stat">
+          <dt>Agent turns</dt>
+          <dd>{data.typicalSession.agentTurns}</dd>
+        </div>
+        <div class="session-stat">
+          <dt>Human gates</dt>
+          <dd>{data.typicalSession.humanTouches}</dd>
+        </div>
+        <div class="session-stat">
+          <dt>Wall-clock time</dt>
+          <dd>{data.typicalSession.wallClockMinutes} min</dd>
+        </div>
+      </dl>
+    </div>
+  </Section>
+
+  <!-- Section 8: Install and next steps -->
+  <Section tone="surface">
+    <div class="content-body">
+      <h2 class="section-h2">Install and next steps</h2>
+      <div class="install-block">
+        <pre class="install-block__code"><code>{installCommand}</code></pre>
+      </div>
+
+      <nav class="next-steps" aria-label="Next steps">
+        <ul class="next-steps__list" role="list">
+          <li>
+            <a class="next-link" href={withBase(data.docsUrl)}>
+              Read the full reference <span aria-hidden="true">↗</span>
+            </a>
+          </li>
+          {data.relatedJourneys.map((slug) => (
+            <li>
+              <a class="next-link" href={withBase(`/journeys/${slug}/`)}>
+                Explore the {slug} journey <span aria-hidden="true">→</span>
+              </a>
+            </li>
+          ))}
+          <li>
+            <a class="next-link" href={withBase('/packs/')}>
+              Browse the pack catalogue <span aria-hidden="true">→</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </Section>
+</SiteLayout>
+
+<style>
+  .content-body {
+    max-width: 72ch;
+  }
+
+  .section-h2 {
+    font-size: var(--ds-type-h2);
+    letter-spacing: var(--ds-track-heading);
+    margin-bottom: var(--ds-space-5);
+    color: var(--ds-on-surface);
+  }
+
+  /* Section 2 */
+  .what-changes {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+    margin-bottom: var(--ds-space-5);
+  }
+
+  .prereqs {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ds-space-3);
+    font-size: var(--ds-type-sm);
+    flex-wrap: wrap;
+  }
+
+  .prereqs__label {
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .prereqs__list {
+    display: flex;
+    gap: var(--ds-space-3);
+    flex-wrap: wrap;
+  }
+
+  .prereqs__list a {
+    color: var(--ds-accent-deep);
+  }
+
+  /* Section 3 */
+  .skills-list {
+    display: grid;
+    gap: var(--ds-space-5);
+  }
+
+  .skill-row__head {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .skill-chip {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .skill-touches {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent-deep);
+    background-color: var(--ds-accent-subtle);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .skill-desc {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  /* Section 4 — journey narrative markdown */
+  .journey-narrative {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  .journey-narrative :global(h2) {
+    font-size: var(--ds-type-h3);
+    color: var(--ds-on-surface);
+    margin-top: var(--ds-space-7);
+    margin-bottom: var(--ds-space-3);
+    padding-bottom: var(--ds-space-2);
+    border-bottom: 1px solid var(--ds-border);
+  }
+
+  .journey-narrative :global(h2:first-child) {
+    margin-top: 0;
+  }
+
+  .journey-narrative :global(p) {
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .journey-narrative :global(strong) {
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .journey-narrative :global(code) {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .journey-narrative :global(hr) {
+    border: none;
+    border-top: 1px solid var(--ds-border);
+    margin-block: var(--ds-space-6);
+  }
+
+  /* Section 5 */
+  .gates-intro {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-muted);
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .gates-list {
+    display: grid;
+    gap: var(--ds-space-5);
+  }
+
+  /* Section 6 */
+  .placeholder-note {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-muted);
+    line-height: var(--ds-lead-body);
+    padding: var(--ds-space-5) var(--ds-space-6);
+    background-color: var(--ds-surface-alt);
+    border-radius: var(--ds-radius-md);
+    border: 1px solid var(--ds-border);
+  }
+
+  .placeholder-note :global(code) {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.3rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  /* Section 7 */
+  .session-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--ds-space-5);
+  }
+
+  .session-stat {
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5);
+  }
+
+  .session-stat dt {
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-muted);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .session-stat dd {
+    font-size: var(--ds-type-h3);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    font-family: var(--ds-font-mono);
+  }
+
+  /* Section 8 */
+  .install-block {
+    background-color: var(--ds-hero-bg);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5) var(--ds-space-6);
+    margin-bottom: var(--ds-space-7);
+  }
+
+  .install-block__code {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    color: var(--ds-hero-fg);
+    line-height: var(--ds-lead-mono);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+  }
+
+  .next-steps__list {
+    display: grid;
+    gap: var(--ds-space-4);
+  }
+
+  .next-link {
+    font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-accent-deep);
+    text-decoration: none;
+  }
+
+  .next-link:hover {
+    text-decoration: underline;
+  }
+</style>
