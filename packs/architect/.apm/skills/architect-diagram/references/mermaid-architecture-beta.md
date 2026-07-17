@@ -37,6 +37,8 @@ architecture-beta
 | Service / node | `service <id>(<icon>)[Label] in <group>` |
 | Junction (fan-in / fan-out) | `junction <id> in <group>` |
 | Edge | `<from>:<side> --> <side>:<to>` |
+| Group edge | `<from>{group}:<side> --> <side>:<to>` |
+| Bidirectional edge | `<from>:<side> <--> <side>:<to>` |
 
 Sides for connection points: `L`, `R`, `T`, `B` (left, right, top,
 bottom). The directional notation lets the renderer route edges
@@ -52,6 +54,25 @@ If iconify is available, vendor icons follow the pattern
 `logos:aws-lambda`, `logos:azure`, `logos:google-cloud`, etc.
 Confirm with the user before reaching for these — they fail silently
 on renderers without iconify.
+
+### Installing iconify packs for `mmdc`
+
+When rendering locally with the Mermaid CLI, install an icon pack and pass
+it via `--iconPacks`:
+
+```
+npm install @iconify-json/logos
+mmdc --iconPacks @iconify-json/logos -i diagram.mmd -o diagram.svg
+```
+
+| Pack | Install | Prefix |
+| --- | --- | --- |
+| Technology logos (AWS, Docker, GitHub…) | `npm i @iconify-json/logos` | `logos:` |
+| Material Design | `npm i @iconify-json/mdi` | `mdi:` |
+| Simple icons | `npm i @iconify-json/simple-icons` | `si:` |
+
+Usage: `service web(logos:docker)[Docker Container]`. Icon slugs follow the
+pack's own naming — check iconify.design for the exact name.
 
 ## When to use architecture-beta
 

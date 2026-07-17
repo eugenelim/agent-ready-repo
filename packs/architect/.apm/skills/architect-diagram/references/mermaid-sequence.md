@@ -99,6 +99,59 @@ loop every 30s
 end
 ```
 
+## Sequence numbers
+
+Add `autonumber` as the first statement to label every message with an
+incrementing number — useful in dense or nested flows where prose references
+"step 4":
+
+```
+sequenceDiagram
+    autonumber
+    User->>API: POST /login
+    API->>DB: query user
+    DB-->>API: user record
+    API-->>User: 200 OK + token
+```
+
+## Early exit — `break`
+
+`break` short-circuits the flow for a guard clause or validation failure.
+Different from `alt`: `break` is "stop here on this condition" (early
+return); `alt` is "take one of these paths" (branching).
+
+```
+sequenceDiagram
+    User->>API: POST /order
+    API->>Validator: check payload
+
+    break Payload invalid
+        API-->>User: 400 Bad Request
+    end
+
+    API->>DB: save order
+    DB-->>API: ok
+    API-->>User: 201 Created
+```
+
+## Participant links
+
+Attach a clickable link to a participant lane with `link`:
+
+```
+sequenceDiagram
+    participant API as Order API
+    link API: Docs @ https://docs.example.com/orders
+    link API: Runbook @ https://wiki.example.com/runbooks/orders
+
+    participant DB as Postgres
+    API->>DB: INSERT
+```
+
+Links render as clickable icons in renderers that support them. In
+unsupporting renderers the participant draws normally — links degrade
+gracefully.
+
 ## Common architecture pitfalls
 
 - **Happy path only.** Add at least one `alt` for the failure case

@@ -78,6 +78,7 @@ it, so treat it as reinforcement, never the sole carrier of meaning.
 | Diamond | `A{Label}` | Decision, conditional routing |
 | Hexagon | `A{{Label}}` | External system, third-party |
 | Circle | `A((Label))` | Junction, fan-in / fan-out |
+| Flag / banner | `A>Label]` | Annotation or event marker (use sparingly) |
 
 Be consistent across the diagram — pick one shape per *category* of
 thing and never mix.
@@ -92,9 +93,35 @@ thing and never mix.
 | `A --x B` | Failure path / terminates |
 | `A === B` | Strong / heavy coupling (used sparingly) |
 | `A -->|"label"| B` | Labeled edge — name the protocol or payload |
+| `A --- B` | Undirected link — dependency or association without direction |
+| `A ==> B` | Thick arrow — critical path or primary data flow |
+| `A ==Label==> B` | Labeled thick arrow |
 
 **Always label edges** that cross a trust boundary or carry data.
 "HTTPS" alone is fine; "gRPC orders.v2" is better; "uses" is wrong.
+
+### Edge semantic conventions
+
+Use these shapes consistently across diagrams in the same workspace so
+reviewers can read new diagrams without a legend:
+
+| Shape | Semantic |
+| --- | --- |
+| `-->` | Primary synchronous call / main data flow |
+| `-.->` | Asynchronous, optional, or out-of-band |
+| `==>` | Critical path — highlight the hot route |
+| `---` | Association or dependency (no direction implied) |
+
+### Multi-target shorthand
+
+Fan-out from a single source to several targets in one line:
+
+```
+A --> B & C & D
+```
+
+Equivalent to `A --> B`, `A --> C`, `A --> D`. Use when the edge carries
+the same label to all targets; create separate edges for different labels.
 
 ## Subgraphs — for boundaries
 
@@ -236,7 +263,8 @@ Lower it when long labels are clipping:
 ```
 
 Text-drives-layout: Mermaid derives node dimensions from label content —
-there is no per-node size override. Use `\n` to force a line break in a label.
+there is no per-node size override. Use `\n` to force a line break in a label
+(plain text output); use `<br/>` when the output is HTML or SVG.
 
 ## ELK renderer — for complex graphs
 

@@ -27,6 +27,10 @@ check, not a suggestion.
       unless the target venue is known to strip it.
 - [ ] **No fabricated names** in document mode. Where a name is
       genuinely missing, label `<unnamed>` or ask.
+- [ ] **No secrets in labels.** Node labels and edge labels never carry
+      real secret values, connection strings, API keys, or credentials.
+      Use a descriptive placeholder: `[secret key]`, `<conn-string>`,
+      `***`. A diagram with live credentials is a data leak.
 - [ ] **Renders.** Paste the Mermaid into the live editor and confirm
       it parses before showing the user.
 - [ ] **One notation per diagram.** No mixing `sequenceDiagram` blocks
