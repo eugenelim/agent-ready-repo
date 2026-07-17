@@ -6,7 +6,10 @@ repo_name: eugenelim/agent-ready-repo
 edit_uri: ""
 
 docs_dir: docs
-site_dir: built
+# Co-deployed with the Astro marketing site (RFC-0061): Astro builds into
+# `build/` first, then MkDocs writes here — `build/docs/` — as the `/docs/`
+# subsection. Astro's build cleans `build/`, so it MUST run before MkDocs.
+site_dir: ../build/docs
 
 theme:
   name: material

@@ -1,0 +1,169 @@
+/* ==========================================================================
+   Design tokens — agent-ready-repo platform site
+   Option B — Alternating Conviction. Source of truth:
+   docs/specs/platform-site/design-system-foundations.md
+   Three-tier architecture: Primitive → Semantic → Component.
+   Component CSS references SEMANTIC tokens only — never primitives directly.
+   ========================================================================== */
+
+/* ── Tier 1 — Primitive scale ─────────────────────────────────────────────── */
+:root {
+  /* Dark zone */
+  --prim-dark-950: #0b0e12;  /* hero canvas — neutral-cool near-black */
+  --prim-dark-900: #111520;  /* dark card / elevated on hero */
+  --prim-dark-800: #1a2035;  /* dark elevated overlay on hero */
+  --prim-dark-700: #232b40;  /* dark border-visible surface */
+
+  /* Neutral (light zone) */
+  --prim-neutral-50:  #fafaf9;  /* content surface — warm near-white */
+  --prim-neutral-100: #f0efed;  /* alt surface — card background */
+  --prim-neutral-200: #e0ddd9;  /* border on light */
+  --prim-neutral-300: #c4c0bb;  /* muted border */
+  --prim-neutral-400: #9c9891;  /* placeholder, disabled */
+  --prim-neutral-600: #6b6760;  /* secondary text */
+  --prim-neutral-800: #2e2c28;  /* primary text */
+  --prim-neutral-900: #1c1b18;  /* heading text */
+
+  /* Amber-gold — the single chromatic accent */
+  --prim-amber-50:  #fff8e8;
+  --prim-amber-100: #fdecc9;
+  --prim-amber-200: #fad49a;
+  --prim-amber-300: #f5bc6a;   /* light decorative glow */
+  --prim-amber-400: #e8952b;   /* primary accent — CTA, icon, stat */
+  --prim-amber-500: #c8780a;   /* darker variant */
+  --prim-amber-700: #8b5e0a;   /* text-safe on light (≥4.5:1 on neutral-50) */
+  --prim-amber-900: #4a3005;   /* deep, for dark-on-amber text */
+
+  /* Alpha tokens */
+  --prim-white-06:  rgba(255, 255, 255, 0.06);
+  --prim-white-10:  rgba(255, 255, 255, 0.10);
+  --prim-white-20:  rgba(255, 255, 255, 0.20);
+  --prim-white-60:  rgba(255, 255, 255, 0.60);
+  --prim-white-80:  rgba(255, 255, 255, 0.80);
+  --prim-black-06:  rgba(0, 0, 0, 0.06);
+  --prim-black-12:  rgba(0, 0, 0, 0.12);
+  --prim-amber-10:  rgba(232, 149, 43, 0.10);
+  --prim-amber-15:  rgba(232, 149, 43, 0.15);
+  --prim-amber-20:  rgba(232, 149, 43, 0.20);
+}
+
+/* ── Tier 2 — Semantic layer ──────────────────────────────────────────────── */
+:root {
+  /* ── Hero / dark zone ───────────────────────────────────────────── */
+  --ds-hero-bg:          var(--prim-dark-950);
+  --ds-hero-surface:     var(--prim-dark-900);   /* card on dark */
+  --ds-hero-elevated:    var(--prim-dark-800);   /* elevated card on dark */
+  --ds-hero-fg:          #ffffff;                /* primary text on dark */
+  --ds-hero-fg-2:        var(--prim-white-80);   /* secondary text on dark */
+  --ds-hero-fg-muted:    var(--prim-white-60);   /* muted / caption on dark */
+  --ds-hero-border:      var(--prim-white-06);   /* hairline divider on dark */
+  --ds-hero-border-card: var(--prim-white-10);   /* card border on dark */
+
+  /* ── Content / light zone ───────────────────────────────────────── */
+  --ds-surface:          var(--prim-neutral-50);
+  --ds-surface-alt:      var(--prim-neutral-100); /* card background */
+  --ds-on-surface:       var(--prim-neutral-900); /* heading text */
+  --ds-on-surface-2:     var(--prim-neutral-800); /* body text */
+  --ds-on-surface-muted: var(--prim-neutral-600); /* captions, metadata */
+  --ds-border:           var(--prim-neutral-200); /* card, section border */
+  --ds-border-subtle:    var(--prim-black-06);    /* hairline, lowest weight */
+
+  /* ── Accent — amber-gold, single chromatic ──────────────────────── */
+  --ds-accent:            var(--prim-amber-400);  /* icon, CTA fill on dark, stat */
+  --ds-accent-deep:       var(--prim-amber-700);  /* text-safe on light (4.5:1+) */
+  --ds-accent-subtle:     var(--prim-amber-10);   /* low-opacity fill on light */
+  --ds-accent-subtle-dk:  var(--prim-amber-15);   /* low-opacity fill on dark */
+  --ds-accent-glow:       var(--prim-amber-20);   /* ambient glow, gate pulses */
+
+  /* ── CTA buttons ────────────────────────────────────────────────── */
+  /* Primary on dark hero: amber fill, near-black text */
+  --ds-cta-primary-bg:    var(--prim-amber-400);
+  --ds-cta-primary-fg:    var(--prim-dark-950);
+  --ds-cta-primary-bg-hover: var(--prim-amber-300);
+
+  /* Ghost on dark hero: transparent fill, white border + text */
+  --ds-cta-ghost-border:  var(--prim-white-20);
+  --ds-cta-ghost-fg:      var(--prim-white-80);
+  --ds-cta-ghost-bg-hover: var(--prim-white-10);
+
+  /* Ghost on light: amber border, deep-amber text */
+  --ds-cta-ghost-light-border: var(--prim-amber-400);
+  --ds-cta-ghost-light-fg:     var(--prim-amber-700);
+
+  /* ── Type family ────────────────────────────────────────────────── */
+  --ds-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --ds-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code',
+    Menlo, Consolas, monospace;
+
+  /* ── Type scale ─────────────────────────────────────────────────── */
+  --ds-type-display:  clamp(2.75rem, 5.5vw, 4rem);      /* ~44–64px */
+  --ds-type-h2:       clamp(1.875rem, 3.5vw, 2.5rem);   /* ~30–40px */
+  --ds-type-h3:       clamp(1.25rem, 2vw, 1.5rem);      /* ~20–24px */
+  --ds-type-body-lg:  1.125rem;                          /* lead / intro */
+  --ds-type-body:     1rem;                              /* body */
+  --ds-type-sm:       0.875rem;                          /* captions, metadata */
+  --ds-type-xs:       0.75rem;                           /* labels, badges */
+  --ds-type-mono-sm:  0.8125rem;                         /* inline code, skill names */
+
+  /* Weight */
+  --ds-weight-regular: 400;
+  --ds-weight-medium:  500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold:    700;
+  --ds-weight-heavy:   800;
+
+  /* Tracking */
+  --ds-track-display:  -0.03em;   /* negative — required at display sizes */
+  --ds-track-heading:  -0.02em;   /* slightly negative at h2/h3 */
+  --ds-track-label:     0.08em;   /* uppercase monospace labels */
+  --ds-track-normal:    0em;      /* body — never deviate */
+
+  /* Leading */
+  --ds-lead-display: 1.1;   /* tight for display size */
+  --ds-lead-heading: 1.25;  /* slightly open for h2/h3 */
+  --ds-lead-body:    1.65;  /* comfortable reading */
+  --ds-lead-mono:    1.5;   /* code and terminal */
+
+  /* ── Spacing — 4px base, 8-step scale ──────────────────────────── */
+  --ds-space-1:  4px;
+  --ds-space-2:  8px;
+  --ds-space-3:  12px;
+  --ds-space-4:  16px;
+  --ds-space-5:  24px;
+  --ds-space-6:  32px;
+  --ds-space-7:  48px;
+  --ds-space-8:  64px;
+  --ds-space-9:  96px;
+  --ds-space-10: 128px;
+
+  /* Section rhythm — responsive */
+  --ds-section-gap:    clamp(5rem, 10vw, 8rem);   /* between major sections */
+  --ds-section-pad-y:  clamp(4rem, 8vw, 6rem);    /* internal section padding */
+  --ds-content-max:    1140px;                     /* max content width */
+  --ds-content-pad-x:  clamp(1.25rem, 5vw, 2.5rem); /* horizontal margin */
+
+  /* ── Radius ─────────────────────────────────────────────────────── */
+  --ds-radius-sm:   4px;   /* inline code, badges, chips */
+  --ds-radius-md:   8px;   /* cards, inputs */
+  --ds-radius-lg:   12px;  /* modals, large cards */
+  --ds-radius-pill: 9999px; /* CTA buttons */
+
+  /* ── Shadow — border-not-shadow philosophy ──────────────────────── */
+  --ds-shadow-overlay: 0 20px 60px rgba(0, 0, 0, 0.25);  /* modals, dropdowns */
+  --ds-shadow-none:    none;
+
+  /* ── Motion ─────────────────────────────────────────────────────── */
+  --ds-dur-quick:    120ms;
+  --ds-dur-moderate: 200ms;
+  --ds-dur-gentle:   300ms;
+  --ds-ease-std:     cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-ease-out:     cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Z-index scale ──────────────────────────────────────────────── */
+  --ds-z-base:    0;
+  --ds-z-raised:  10;
+  --ds-z-overlay: 100;
+  --ds-z-modal:   200;
+  --ds-z-toast:   300;
+}
