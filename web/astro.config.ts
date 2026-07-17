@@ -7,9 +7,11 @@ import { defineConfig } from 'astro/config';
 // Astro must build BEFORE MkDocs writes into `build/docs/`. See
 // .github/workflows/pages.yml.
 export default defineConfig({
-  // GitHub Pages origin. `base` is intentionally left at `/`: Phase 1 serves at
-  // the root locally (the pa11y gate targets http://localhost:4321) and the
-  // production deploy sub-path is still to be confirmed (information-architecture.md).
+  // GitHub Pages project site: served under the /agent-ready-repo/ sub-path, so
+  // `base` must match or absolute asset/link paths resolve against the origin
+  // root and 404. Astro auto-prefixes its own bundled assets with `base`;
+  // hardcoded internal hrefs go through src/lib/paths.ts `withBase()`.
   site: 'https://eugenelim.github.io',
+  base: '/agent-ready-repo',
   outDir: '../build',
 });

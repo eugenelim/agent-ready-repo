@@ -3,28 +3,32 @@
 // Mobile menu is a <details>/<summary> disclosure: zero JavaScript.
 // Nav structure from information-architecture.md:
 //   Logo | How it works | Packs | Journeys | Docs ↗ | [Install →]
+import { withBase } from '../../lib/paths';
 const links = [
-  { label: 'How it works', href: '/#three-loops' },
-  { label: 'Packs', href: '/packs/' },
-  { label: 'Journeys', href: '/journeys/' },
+  { label: 'How it works', href: withBase('/#three-loops') },
+  { label: 'Packs', href: withBase('/packs/') },
+  { label: 'Journeys', href: withBase('/journeys/') },
 ];
+const homeHref = withBase('/');
+const docsHref = withBase('/docs/');
+const installHref = withBase('/#install');
 ---
 
 <nav class="nav" aria-label="Primary">
   <div class="nav__inner">
-    <a class="nav__logo" href="/">agent-ready-repo</a>
+    <a class="nav__logo" href={homeHref}>agent-ready-repo</a>
 
     <ul class="nav__links">
       {links.map((l) => (
         <li><a class="nav__link" href={l.href}>{l.label}</a></li>
       ))}
       <li>
-        <a class="nav__link nav__link--docs" href="/docs/" rel="noopener">
+        <a class="nav__link nav__link--docs" href={docsHref} rel="noopener">
           Docs <span aria-hidden="true">↗</span>
         </a>
       </li>
       <li>
-        <a class="nav__cta" href="/#install">Install <span aria-hidden="true">→</span></a>
+        <a class="nav__cta" href={installHref}>Install <span aria-hidden="true">→</span></a>
       </li>
     </ul>
 
@@ -37,12 +41,12 @@ const links = [
           <li><a class="nav__link" href={l.href}>{l.label}</a></li>
         ))}
         <li>
-          <a class="nav__link nav__link--docs" href="/docs/" rel="noopener">
+          <a class="nav__link nav__link--docs" href={docsHref} rel="noopener">
             Docs <span aria-hidden="true">↗</span>
           </a>
         </li>
         <li>
-          <a class="nav__cta" href="/#install">Install <span aria-hidden="true">→</span></a>
+          <a class="nav__cta" href={installHref}>Install <span aria-hidden="true">→</span></a>
         </li>
       </ul>
     </details>
