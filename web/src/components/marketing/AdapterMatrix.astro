@@ -1,0 +1,117 @@
+---
+// Section 6 — WORKS WITH YOUR AGENT. Light zone. h3, not h2 — this is a trust
+// checkpoint, not a major section. Data from index.md adapter table.
+import Section from '../layout/Section.astro';
+
+const capabilities = ['Skills', 'Subagents', 'Hooks', 'Commands'];
+const agents = [
+  { name: 'Claude Code', caps: [true, true, true, true] },
+  { name: 'Codex', caps: [true, true, true, false] },
+  { name: 'Cursor', caps: [true, true, true, false] },
+  { name: 'Copilot', caps: [true, true, true, false] },
+  { name: 'Gemini CLI', caps: [true, true, true, false] },
+  { name: 'Kiro IDE', caps: [true, true, true, false] },
+  { name: 'Kiro CLI', caps: [true, true, true, false] },
+];
+---
+
+<Section tone="surface" labelledby="adapters-heading">
+  <h3 id="adapters-heading" class="adapters__headline">One install. Every major agent.</h3>
+
+  <div class="adapters__scroll">
+    <table class="adapters__table">
+      <thead>
+        <tr>
+          <th scope="col">Agent</th>
+          {capabilities.map((c) => <th scope="col">{c}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {agents.map((a) => (
+          <tr>
+            <th scope="row">{a.name}</th>
+            {a.caps.map((has) => (
+              <td>
+                {has ? (
+                  <><span class="cap cap--yes" aria-hidden="true">✓</span><span class="visually-hidden">Yes</span></>
+                ) : (
+                  <><span class="cap cap--no" aria-hidden="true">—</span><span class="visually-hidden">No</span></>
+                )}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="adapters__note">
+    Switch adapters with one flag. Your skills, subagents, and hooks project into the
+    layout each agent expects.
+  </p>
+</Section>
+
+<style>
+  .adapters__headline {
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .adapters__scroll {
+    overflow-x: auto;
+  }
+
+  .adapters__table {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    overflow: hidden;
+    min-width: 520px;
+  }
+
+  .adapters__table th,
+  .adapters__table td {
+    padding: var(--ds-space-3) var(--ds-space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--ds-border-subtle);
+  }
+
+  .adapters__table thead th {
+    background-color: var(--ds-surface-alt);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-muted);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .adapters__table thead th:not(:first-child),
+  .adapters__table td {
+    text-align: center;
+  }
+
+  .adapters__table tbody th {
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-sm);
+  }
+
+  .adapters__table tbody tr:last-child th,
+  .adapters__table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .cap--yes {
+    color: var(--ds-accent-deep);
+    font-weight: var(--ds-weight-bold);
+  }
+
+  .cap--no {
+    color: var(--ds-on-surface-muted);
+  }
+
+  .adapters__note {
+    margin-top: var(--ds-space-5);
+    color: var(--ds-on-surface-muted);
+    max-width: 60ch;
+  }
+</style>

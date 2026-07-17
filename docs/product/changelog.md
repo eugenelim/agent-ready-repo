@@ -27,6 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Platform marketing site — Phase 1 (Astro homepage).** A new Astro marketing
+  site in `web/` (approved as a top-level directory by [RFC-0061](../rfc/0061-web-top-level-directory.md),
+  toolchain recorded in [ADR-0050](../adr/0050-astro-marketing-site-toolchain-and-deploy.md))
+  becomes the platform anchor at `/`, with the existing MkDocs reference docs
+  co-deployed at `/docs/` from one GitHub Pages origin. The homepage ships all
+  nine sections from the platform-site spec in the amber-gold Option B aesthetic
+  (dark hero + stat strip, light content bands, dark closer); all interactions —
+  install tabs, catalogue expand, mobile nav — are CSS-only (zero JavaScript) and
+  the page passes `pa11y` WCAG 2.2 AA. The CI pipeline now builds Astro first,
+  then MkDocs, into a single `build/` artifact.
+
 - **`frontend-engineering` skill added to core pack (core 0.11.0).** The work-loop now loads
   inline craft rules — design pre-flight, HTML semantics, CSS token discipline,
   accessibility, state completeness, and verification commands — whenever a

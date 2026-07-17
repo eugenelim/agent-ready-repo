@@ -1,0 +1,110 @@
+---
+// Section 5 — HUMAN CONTROL POINTS. LIGHT zone (surface) — NOT dark. Emphasis
+// comes from amber-bordered gate cards, not a dark band (aesthetic-direction.md:
+// one dark zone only; a light interruption between two dark bands disorients).
+import Section from '../layout/Section.astro';
+
+const gates = [
+  { id: 'G0', name: 'Go / No-go', loop: 'Discovery', decide: 'Is this idea worth exploring?' },
+  { id: 'G1.5', name: 'Shape sign-off', loop: 'Discovery', decide: 'Does the chosen shape fit the product strategy?' },
+  { id: 'G2', name: 'Brief ratification', loop: 'Discovery', decide: 'Is the decision brief complete enough to build from?' },
+  { id: 'G3', name: 'Handoff to build', loop: 'Discovery → Build', decide: 'Is this brief specific enough to spec?' },
+  { id: 'Plan', name: 'Plan approval', loop: 'Build', decide: "Is the plan's trio correct? Do the risk triggers fire?" },
+  { id: 'G4', name: 'PR merge', loop: 'Build', decide: 'Is adversarial review clean? Does the spec match the implementation?' },
+  { id: 'G5', name: 'Prod ship', loop: 'Release', decide: 'Is this safe to put in front of users?' },
+];
+---
+
+<Section tone="surface" labelledby="gates-heading">
+  <h2 id="gates-heading" class="gates__headline">
+    Every loop surfaces to <span class="gates__accent">you</span> at exactly the right moment.
+  </h2>
+  <p class="gates__subhead">
+    Not as a workaround — as a design principle. The agent runs the loop; you control
+    the gates. Here is what each handoff asks of you.
+  </p>
+
+  <ul class="gates__grid">
+    {gates.map((g) => (
+      <li class="gate-card">
+        <div class="gate-card__top">
+          <span class="gate-card__id">{g.id}</span>
+          <span class="gate-card__loop">{g.loop}</span>
+        </div>
+        <h3 class="gate-card__name">{g.name}</h3>
+        <p class="gate-card__decide">{g.decide}</p>
+      </li>
+    ))}
+  </ul>
+
+  <a class="gates__cta" href="/journeys/core/">Explore a full journey <span aria-hidden="true">→</span></a>
+</Section>
+
+<style>
+  .gates__headline {
+    max-width: 20ch;
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .gates__accent {
+    color: var(--ds-accent-deep);
+  }
+
+  .gates__subhead {
+    font-size: var(--ds-type-body-lg);
+    max-width: 60ch;
+    margin-bottom: var(--ds-space-7);
+  }
+
+  .gates__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--ds-space-4);
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .gate-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5);
+  }
+
+  .gate-card__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .gate-card__id {
+    font-family: var(--ds-font-mono);
+    font-weight: var(--ds-weight-heavy);
+    color: var(--ds-accent-deep);
+    font-size: var(--ds-type-body-lg);
+  }
+
+  .gate-card__loop {
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .gate-card__name {
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .gate-card__decide {
+    color: var(--ds-on-surface-2);
+    font-size: var(--ds-type-body);
+  }
+
+  .gates__cta {
+    font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-body-lg);
+  }
+</style>

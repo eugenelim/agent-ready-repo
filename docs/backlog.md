@@ -1420,6 +1420,12 @@ the diagram.
 
 **Unblocks when:** screened on actual mobile viewport (375px / 390px / 430px widths) and on a physical device. The dev server is accessible locally via `make site-serve`; use Chrome DevTools device emulation for an initial pass.
 
+### github-pages-first-deploy-verification
+
+**Source:** platform-site spec Phase 1 (RFC-0061 / ADR-0050). The "single GitHub Pages deploy serves Astro at `/` and MkDocs at `/docs/`" acceptance criterion can only be confirmed on the first live deploy from `main`. Locally the combined artifact is verified (`build/index.html` + `build/docs/index.html` coexist after Astro-then-MkDocs), but the served result — including whether the site sits at the origin root or the `/agent-ready-repo/` project sub-path, which decides the Astro `base` setting — is only observable once Pages publishes.
+
+**Unblocks when:** Phase 1 merges to `main` and the Pages deploy runs; verify `/` serves the Astro homepage and `/docs/` serves MkDocs, then confirm/adjust `web/astro.config.ts` `site`/`base` for the actual origin path. Tied to the forward-link decision (nav/CTA links to `/packs/` and `/journeys/` go live with Phase 2).
+
 ### catalogue-curation-retire-primitive
 
 **Source:** RFC-0059 Non-goals. The honest counterpart to assimilation — cleanly remove a skill/agent/hook (or deprecate a pack) with tombstones — deferred as rare; build it when the need is real, not speculatively.
