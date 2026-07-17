@@ -12,6 +12,7 @@ notation is the most common reason a diagram is unreadable.
 | "What states does this go through" — lifecycle | State diagram | `stateDiagram-v2` |
 | "What is the shape of the data" — model | Entity-relationship | `erDiagram` |
 | "Where does it run" — deployment / infra | Deployment view | `flowchart TB` with subgraph nesting for region / VPC / subnet |
+| "How does data move through the stages" — pipeline / ETL / CI-CD / data-flow | Left-to-right flow | `flowchart LR` (reading order is the point) |
 | "Who decided what when" — workflow / approvals | Flowchart with decision diamonds | `flowchart TD` |
 | "What happened when" — roadmap / chronology / release history | Timeline † | `timeline` |
 | "Prioritize these" — 2×2 / effort-vs-impact / positioning | Quadrant † | `quadrantChart` |
