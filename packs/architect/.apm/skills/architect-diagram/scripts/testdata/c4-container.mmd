@@ -1,0 +1,24 @@
+C4Container
+    title Container view — Orders system
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+
+    Person(customer, "Customer")
+
+    System_Boundary(orders, "Orders system") {
+        Container(web, "Web app", "Next.js", "Customer-facing UI")
+        Container(api, "API", "Go 1.22, gRPC", "Order lifecycle")
+        ContainerDb(db, "Orders DB", "Postgres 16", "Orders, fulfilments")
+        Container(worker, "Fulfilment worker", "Go 1.22", "Async pick / pack")
+        ContainerQueue(queue, "Fulfilment queue", "Kafka", "orders.v1 topic")
+    }
+
+    System_Ext(payments, "Stripe")
+
+    Rel(customer, web, "Browses, places orders", "HTTPS")
+    Rel(web, api, "API calls", "gRPC")
+    Rel(api, db, "Reads / writes orders", "SQL")
+    Rel(api, queue, "Publishes fulfilment events", "Kafka")
+    Rel(queue, worker, "Consumes", "Kafka")
+    Rel(worker, db, "Updates fulfilment state", "SQL")
+    Rel(api, payments, "Charges card", "HTTPS / webhook")

@@ -1,0 +1,17 @@
+%%{init: { 'flowchart': { 'nodeSpacing': 80, 'rankSpacing': 100, 'diagramPadding': 30 } } }%%
+flowchart TB
+    subgraph tier1["Presentation"]
+        Web[Web app]
+        Mobile[Mobile app]
+    end
+    subgraph tier2["Application"]
+        API[API service]
+    end
+    subgraph tier3["Data"]
+        DB[(Postgres)]
+        Cache[(Redis)]
+    end
+    Web -->|"gRPC"| API
+    Mobile -->|"gRPC"| API
+    API -->|"SQL"| DB
+    API -->|"GET/SET"| Cache

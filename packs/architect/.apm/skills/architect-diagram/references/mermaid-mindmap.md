@@ -71,6 +71,49 @@ mindmap
   `sequenceDiagram` or `stateDiagram-v2`.
 - **Data entities and relationships** → `erDiagram`.
 
+## Layout algorithms
+
+Mermaid ships two mindmap layout algorithms:
+
+| Algorithm | When it fires | Character |
+| --- | --- | --- |
+| `cose-bilkent` (default) | No `layout` config set | Force-directed; spacing expands to fill the canvas. Non-deterministic between renders — positions may shift slightly. Best for brainstorming and open-ended expansion. |
+| `tidy-tree` | `config: {layout: tidy-tree}` in frontmatter | Reingold-Tilford family; deterministic, symmetric, hierarchically compact. Best for structured decomposition where the tree shape must be stable. |
+
+Enable `tidy-tree` with YAML frontmatter (Mermaid ≥ 10.5):
+
+````
+```mermaid
+---
+config:
+  layout: tidy-tree
+---
+mindmap
+  root((Decision))
+    Context
+      Stakeholders
+      Constraints
+    Options
+      Option A
+      Option B
+```
+````
+
+**Venue caveat**: frontmatter config requires Mermaid ≥ 10.5. In older wiki
+integrations, fall back to a nested Markdown bullet list.
+
+For dense mindmaps where nodes overflow the canvas, two `%%{init}%%` keys
+help:
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `padding` | 10 | Space around each node shape |
+| `maxNodeWidth` | ~200 px | Maximum label width before text wraps |
+
+```
+%%{init: {'mindmap': {'padding': 20, 'maxNodeWidth': 150}}}%%
+```
+
 ## Complexity budget
 
 Keep it to **≤ 3 levels deep** and **≤ 5 branches** off the root. A

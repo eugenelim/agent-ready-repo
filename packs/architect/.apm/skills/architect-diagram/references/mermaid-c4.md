@@ -93,6 +93,48 @@ C4Container
   boundaries.
 - The audience doesn't know C4 — flowchart is universally legible.
 
+## Layout config
+
+The C4 renderer places shapes in rows. Two parameters control row density:
+
+| Parameter | Default | Effect |
+| --- | --- | --- |
+| `$c4ShapeInRow` | `4` | Maximum regular shapes (Container, System, Person) per row |
+| `$c4BoundaryInRow` | `2` | Maximum boundary boxes per row |
+
+Set them inline with `UpdateLayoutConfig()`, which may appear anywhere in the
+diagram body:
+
+````
+```mermaid
+C4Container
+    title Container view — Payments
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+
+    Person(customer, "Customer")
+    System_Boundary(payments, "Payments system") {
+        Container(api, "API", "Go", "Payment API")
+        ContainerDb(db, "Ledger DB", "Postgres", "Transactions")
+        Container(worker, "Reconciler", "Go", "Nightly reconciliation")
+    }
+    Rel(customer, api, "Initiates payment", "HTTPS")
+```
+````
+
+**Statement order influences approximate positioning.** The C4 renderer places
+elements roughly in the order they are declared. Declaring `Person` before
+`System_Boundary` tends to place the person above the boundary; declaring
+elements left-to-right within a boundary tends to keep that reading order.
+This is layout guidance, not a guarantee — `UpdateLayoutConfig()` and
+`$c4ShapeInRow` are the stronger levers.
+
+**Direction is not configurable.** Mermaid C4 does not support the `Lay_U`,
+`Lay_D`, `Lay_L`, `Lay_R` direction directives from the PlantUML C4 library —
+those tokens are silently ignored. Layout direction is fixed by the renderer.
+If you need a specific flow direction, fall back to a `flowchart TB` / `LR`
+with subgraphs.
+
 ## Common architecture pitfalls
 
 - **Treating C4 levels as a hierarchy you must climb.** Pick the

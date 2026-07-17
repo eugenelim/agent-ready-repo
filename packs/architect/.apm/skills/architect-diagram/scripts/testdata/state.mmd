@@ -1,0 +1,19 @@
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> InReview: submit
+
+    state InReview {
+        [*] --> AwaitingReviewer
+        AwaitingReviewer --> Reviewing: reviewer assigned
+        Reviewing --> [*]
+    }
+
+    note right of InReview
+        SLA: response within 48h
+    end note
+
+    InReview --> Approved: approve
+    InReview --> Rejected: reject
+    Rejected --> Draft: revise
+    Approved --> Published: publish
+    Published --> [*]

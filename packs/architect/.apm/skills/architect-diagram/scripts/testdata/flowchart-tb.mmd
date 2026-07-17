@@ -1,0 +1,11 @@
+flowchart TB
+    subgraph region["us-east-1"]
+        subgraph vpc["vpc-prod"]
+            ALB[ALB]
+            APP[App service]
+            DB[(Postgres)]
+        end
+    end
+    Internet((Internet)) -->|"HTTPS"| ALB
+    ALB -->|"HTTP/1.1"| APP
+    APP -->|"SQL"| DB

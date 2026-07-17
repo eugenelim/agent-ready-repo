@@ -1,0 +1,11 @@
+C4Context
+    title System Context — Orders
+
+    Person(customer, "Customer", "Places and tracks orders")
+    System(orders, "Orders system", "Receives, fulfils, and tracks orders")
+    System_Ext(payments, "Stripe", "Card payments processing")
+    System_Ext(warehouse, "Warehouse system", "Pick, pack, and ship")
+
+    Rel(customer, orders, "Places orders", "HTTPS")
+    Rel(orders, payments, "Charges card", "HTTPS / webhook")
+    Rel(orders, warehouse, "Submits fulfilment picks", "AS2")

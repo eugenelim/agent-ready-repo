@@ -1,0 +1,10 @@
+flowchart TB
+    subgraph pipeline["ETL pipeline"]
+        direction LR
+        Extract[Extract] -->|"raw rows"| Transform[Transform]
+        Transform -->|"clean rows"| Load[Load]
+    end
+    subgraph store["Data warehouse"]
+        direction LR
+        DW[(Warehouse)] -->|"aggregates"| Mart[(Data mart)]
+    end

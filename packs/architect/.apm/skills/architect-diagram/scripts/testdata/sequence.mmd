@@ -1,0 +1,24 @@
+sequenceDiagram
+    actor User
+    participant Web as Web app
+    participant API as API service
+    participant DB as Postgres
+
+    User->>+Web: submit order
+    Web->>+API: POST /orders
+    API->>+DB: INSERT order
+    DB-->>-API: row id
+    alt payment succeeds
+        API->>+Web: 201 Created
+        Web-->>-User: redirect /orders/123
+    else payment fails
+        API-->>Web: 402 Payment Required
+        Web-->>User: show error
+    end
+    deactivate API
+
+    par notify customer
+        API-)User: email confirmation
+    and notify warehouse
+        API-)Web: webhook order.created
+    end
