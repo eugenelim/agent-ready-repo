@@ -7,12 +7,22 @@ import { withBase } from '../../lib/paths';
 interface Props {
   title: string;
   description?: string;
+  ogImage?: string;
 }
 
 const {
   title,
   description = 'The supervised AI operating model for software teams — three peer loops across the full SDLC, with mechanical gates and human checkpoints the agent cannot bypass.',
+  ogImage,
 } = Astro.props;
+
+// Absolute URL for og:image — defaults to social.png in public/
+const ogImageUrl = ogImage
+  ? new URL(ogImage.startsWith('/') ? ogImage : withBase(ogImage), Astro.site).href
+  : new URL(withBase('/social.png'), Astro.site).href;
+
+// Canonical URL — constructed from site origin + full pathname (includes base)
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
 ---
 
 <!doctype html>
@@ -22,8 +32,19 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
     <meta name="generator" content={Astro.generator} />
+
+    <!-- Primary metadata -->
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:url" content={canonicalUrl} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
