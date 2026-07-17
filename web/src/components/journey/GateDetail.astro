@@ -1,0 +1,203 @@
+---
+// Gate detail card — Section 5 of the journey page. Light zone with amber left
+// border (task instruction: "amber-bordered gate cards on #fafaf9 background").
+// Uses <details>/<summary> for expandable what-to-check content — zero JS.
+
+interface Gate {
+  id: string;
+  globalGate: string | null;
+  label: string;
+  trigger: string;
+  duration: string;
+  whatToCheck: string[];
+  whatGoodLooksLike: string;
+  whatBadLooksLike: string;
+  consequence: string;
+}
+
+interface Props {
+  gate: Gate;
+}
+
+const { gate } = Astro.props;
+---
+
+<div class="gate-card">
+  <div class="gate-card__header">
+    <div class="gate-card__id-row">
+      <span class="gate-id">{gate.id}</span>
+      {gate.globalGate && <span class="global-gate">{gate.globalGate}</span>}
+    </div>
+    <h3 class="gate-card__label">{gate.label}</h3>
+    <dl class="gate-card__meta">
+      <dt>Trigger</dt>
+      <dd>{gate.trigger}</dd>
+      <dt>Time</dt>
+      <dd>{gate.duration}</dd>
+    </dl>
+  </div>
+
+  <details class="gate-card__details">
+    <summary class="gate-card__summary">What to check, good, bad, consequence</summary>
+
+    <div class="gate-card__body">
+      <section class="gate-section">
+        <h4 class="gate-section__title">What to check</h4>
+        <ul class="check-list">
+          {gate.whatToCheck.map((item) => (
+            <li class="check-list__item">
+              <span class="check-box" aria-hidden="true">□</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="gate-section">
+        <h4 class="gate-section__title gate-section__title--good">What good looks like</h4>
+        <p>{gate.whatGoodLooksLike}</p>
+      </section>
+
+      <section class="gate-section">
+        <h4 class="gate-section__title gate-section__title--bad">What bad looks like</h4>
+        <p>{gate.whatBadLooksLike}</p>
+      </section>
+
+      <section class="gate-section gate-section--consequence">
+        <h4 class="gate-section__title">Consequence of skipping</h4>
+        <p>{gate.consequence}</p>
+      </section>
+    </div>
+  </details>
+</div>
+
+<style>
+  .gate-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+  }
+
+  .gate-card__header {
+    padding: var(--ds-space-6);
+    padding-bottom: var(--ds-space-4);
+  }
+
+  .gate-card__id-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .gate-id {
+    font-family: var(--ds-font-mono);
+    font-weight: var(--ds-weight-heavy);
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-accent-deep);
+  }
+
+  .global-gate {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .gate-card__label {
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-4);
+    color: var(--ds-on-surface);
+  }
+
+  .gate-card__meta {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--ds-space-1) var(--ds-space-4);
+    font-size: var(--ds-type-sm);
+  }
+
+  .gate-card__meta dt {
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    font-size: var(--ds-type-xs);
+    align-self: baseline;
+  }
+
+  .gate-card__meta dd {
+    color: var(--ds-on-surface-2);
+  }
+
+  .gate-card__summary {
+    display: block;
+    padding: var(--ds-space-4) var(--ds-space-6);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    cursor: pointer;
+    border-top: 1px solid var(--ds-border);
+    list-style: none;
+  }
+
+  .gate-card__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .gate-card__details[open] .gate-card__summary {
+    border-bottom: 1px solid var(--ds-border);
+  }
+
+  .gate-card__body {
+    padding: var(--ds-space-6);
+    display: grid;
+    gap: var(--ds-space-5);
+  }
+
+  .gate-section__title {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-muted);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .check-list {
+    display: grid;
+    gap: var(--ds-space-2);
+  }
+
+  .check-list__item {
+    display: flex;
+    gap: var(--ds-space-3);
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    align-items: baseline;
+  }
+
+  .check-box {
+    color: var(--ds-accent-deep);
+    font-weight: var(--ds-weight-bold);
+    flex-shrink: 0;
+  }
+
+  .gate-section--consequence {
+    background-color: var(--ds-accent-subtle);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-4);
+    margin: 0;
+  }
+
+  .gate-section p {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+</style>
