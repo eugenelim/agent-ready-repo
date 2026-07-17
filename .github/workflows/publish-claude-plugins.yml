@@ -1,0 +1,49 @@
+name: Publish Claude plugin packages
+
+# Builds the per-pack claude-plugins output and publishes it to the
+# `claude-plugins-dist` branch so adopters can install any pack directly
+# with `claude plugin install <url>`.
+#
+# Excludes `catalogue-curation/` (operator-only pack) but includes
+# `marketplace.json` at the branch root for machine-readable discovery.
+#
+# Skips committing when content is byte-for-byte identical to the
+# previous publish; cancels in-flight runs when a newer push lands.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-claude-plugins
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so worktree can reach the target branch
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install agentbundle (dev editable)
+        run: pip install -e packages/agentbundle
+
+      - name: Build claude-plugin artifacts
+        run: make build
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish to claude-plugins-dist branch
+        run: python3 tools/publish-claude-plugins.py

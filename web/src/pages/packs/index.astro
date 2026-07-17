@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import PackCard from '../../components/pack/PackCard.astro';
+import { withBase } from '../../lib/paths';
 
 const allPacks = await getCollection('packs');
 const packs = allPacks.sort((a, b) => {
@@ -24,6 +25,15 @@ const packs = allPacks.sort((a, b) => {
       14 packs covering the full SDLC — discovery, build, release, and beyond.
       Start with the loops.
     </p>
+
+    <div class="packs__plugin-banner">
+      <span class="packs__plugin-banner-text">
+        Installing via Claude Code or Claude Desktop?
+      </span>
+      <a class="packs__plugin-link" href={withBase('/plugins/')}>
+        Browse the Claude plugin catalogue <span aria-hidden="true">→</span>
+      </a>
+    </div>
 
     <ul class="packs-grid">
       {packs.map((entry) => (
@@ -49,6 +59,35 @@ const packs = allPacks.sort((a, b) => {
     max-width: 60ch;
     margin-bottom: var(--ds-space-8);
     line-height: var(--ds-lead-body);
+  }
+
+  .packs__plugin-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-4);
+    flex-wrap: wrap;
+    background-color: var(--ds-accent-subtle);
+    border: 1px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    margin-bottom: var(--ds-space-7);
+  }
+
+  .packs__plugin-banner-text {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+  }
+
+  .packs__plugin-link {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    white-space: nowrap;
+  }
+
+  .packs__plugin-link:hover {
+    text-decoration: none;
+    color: var(--ds-accent);
   }
 
   .packs-grid {
