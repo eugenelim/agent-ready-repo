@@ -134,8 +134,8 @@
   box-sizing: border-box;
 
   /* Horizontally center the inner content column */
-  padding-top: 5rem;
-  padding-bottom: 4.5rem;
+  padding-top: 2.5rem;
+  padding-bottom: 2.25rem;
   padding-left: max(2rem, calc(50vw - 450px));
   padding-right: max(2rem, calc(50vw - 450px));
 
@@ -147,24 +147,24 @@
     linear-gradient(90deg, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
   background-size: 100% 100%, 28px 28px, 28px 28px;
   border-radius: 0;
-  margin-bottom: 4rem;
+  margin-bottom: 2.5rem;
   color: #f8fafc;
 }
 
 .hero-section h1 {
   color: #f8fafc;
-  font-size: clamp(2.4rem, 5vw, 3.75rem);
+  font-size: clamp(1.6rem, 2.4vw, 2.25rem);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.028em;
-  margin-bottom: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
   max-width: 800px;
 }
 
 .hero-section p {
   color: rgba(248, 250, 252, 0.65);
-  font-size: 1.1rem;
-  line-height: 1.65;
+  font-size: 0.975rem;
+  line-height: 1.55;
   margin-bottom: 0;
   max-width: 620px;
 }
@@ -172,7 +172,7 @@
 /* ── Hero CTA buttons — inverted for dark context ───────────────────────── */
 
 .hero-section .hero-actions {
-  margin-top: 2.25rem;
+  margin-top: 1.5rem;
   margin-bottom: 0;
   display: flex;
   gap: 0.75rem;
@@ -260,19 +260,32 @@ article.md-content__inner:has(> .hero-section) {
 /* ── Mobile — hero scale ────────────────────────────────────────────────── */
 
 @media (max-width: 600px) {
+  /* Match the hero's resolved left/right padding (max(2rem, calc(50vw - 450px))
+     = 2rem on mobile) so content aligns with the hero text above it. */
+  .md-content__inner {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+
   .hero-section {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
   }
 
   .hero-section h1 {
-    font-size: clamp(1.9rem, 8vw, 2.6rem);
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+    font-size: clamp(1.3rem, 5.5vw, 1.75rem);
+    letter-spacing: -0.016em;
+    line-height: 1.2;
+    margin-bottom: 0.6rem;
   }
 
   .hero-section p {
-    font-size: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .hero-section .hero-actions {
+    margin-top: 1.1rem;
   }
 
   .hero-actions {
