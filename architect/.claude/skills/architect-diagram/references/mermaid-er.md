@@ -76,7 +76,45 @@ in`. Bare lines fail the rubric.
 | `UK` | Unique key / unique constraint |
 
 Mark every PK and every FK. UK only where the constraint is
-load-bearing for the design.
+load-bearing for the design. `NN` is **not** a valid Mermaid modifier
+— express not-null in the quoted comment instead (see below).
+
+A fourth token in quotes adds a freeform comment — use it for constraints,
+defaults, or notes that the modifier set can't encode:
+
+```
+erDiagram
+    USER {
+        uuid id PK
+        varchar email UK "NOT NULL, indexed"
+        varchar status "DEFAULT 'active', CHECK IN ('active','suspended')"
+        timestamp deleted_at "NULLABLE — soft-delete sentinel"
+    }
+```
+
+The comment renders alongside the column in the diagram and survives as
+documentation in the source file.
+
+## Self-referencing (hierarchical) entities
+
+An entity can relate to itself — useful for trees, parent-child hierarchies,
+and adjacency-list patterns:
+
+```
+erDiagram
+    CATEGORY ||--o{ CATEGORY : "parent of"
+
+    CATEGORY {
+        uuid id PK
+        uuid parent_id FK "NULL for root nodes"
+        string name
+        int sort_order
+    }
+```
+
+The `parent_id FK` on `CATEGORY` referencing `CATEGORY` makes the
+self-relationship explicit. The relationship label names the direction —
+`"parent of"` reads from left (parent) to right (child).
 
 ## Common types
 

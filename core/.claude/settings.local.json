@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "python tools/hooks/session-start.py",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "python tools/hooks/work-loop-check.py",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

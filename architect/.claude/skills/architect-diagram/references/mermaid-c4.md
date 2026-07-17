@@ -70,6 +70,11 @@ C4Container
 | Container DB | `ContainerDb(id, "Name", "Tech", "Desc")` | Persistent store |
 | Container queue | `ContainerQueue(id, "Name", "Tech", "Desc")` | Async transport |
 | Relationship | `Rel(from, to, "Label", "Tech")` | Directed call / dependency |
+| Bidirectional | `BiRel(from, to, "Label", "Tech")` | Mutual / bidirectional call |
+| System DB | `SystemDb(id, "Name", "Desc")` | Database system at Context level |
+| System queue | `SystemQueue(id, "Name", "Desc")` | Queue / message bus at Context level |
+| System DB ext | `SystemDb_Ext(id, "Name", "Desc")` | External database system |
+| System queue ext | `SystemQueue_Ext(id, "Name", "Desc")` | External queue system |
 
 ## Non-negotiables (matches `diagram-rubric.md`)
 
@@ -134,6 +139,51 @@ This is layout guidance, not a guarantee — `UpdateLayoutConfig()` and
 those tokens are silently ignored. Layout direction is fixed by the renderer.
 If you need a specific flow direction, fall back to a `flowchart TB` / `LR`
 with subgraphs.
+
+## Relationship label positioning
+
+When relationship labels overlap in a dense Context diagram, nudge them with
+`UpdateRelStyle`:
+
+```
+UpdateRelStyle(customer, orders, $offsetX="-50", $offsetY="-30")
+```
+
+`$offsetX` and `$offsetY` move the label relative to the midpoint of the
+arrow. Values are strings (quoted integers). Use sparingly — a diagram that
+needs many label nudges is crowded enough to split.
+
+## C4 Component skeleton
+
+Component view describes the internal structure of one container. It earns
+its place when the question is *how is this service built* — not for most
+architecture reviews (that is a Container question).
+
+```
+C4Component
+    title Component view — Order Service
+
+    ContainerDb(db, "Orders DB", "Postgres", "Stores orders and fulfillments")
+    ContainerQueue(queue, "Fulfillment queue", "Kafka", "orders.v1 topic")
+    System_Ext(payments, "Stripe", "Card payment processing")
+
+    Container_Boundary(orders, "Order Service") {
+        Component(ctrl, "REST controller", "Go, net/http", "HTTP endpoints")
+        Component(svc, "Order service", "Go", "Order lifecycle logic")
+        Component(repo, "Order repository", "Go, pgx", "DB reads and writes")
+        Component(pub, "Event publisher", "Go, kafka-go", "Publishes fulfillment events")
+    }
+
+    Rel(ctrl, svc, "Delegates to")
+    Rel(svc, repo, "Reads / writes", "SQL")
+    Rel(svc, pub, "Publishes", "Kafka")
+    Rel(svc, payments, "Charges card", "HTTPS / webhook")
+    Rel(repo, db, "Reads / writes", "SQL / pgx")
+    Rel(pub, queue, "Publishes orders.v1", "Kafka")
+```
+
+The non-negotiables at Component level match those at Container level:
+every `Component` has a technology label; every `Rel` carries a protocol.
 
 ## Common architecture pitfalls
 
