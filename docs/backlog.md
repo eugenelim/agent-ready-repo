@@ -1422,9 +1422,7 @@ the diagram.
 
 ### github-pages-first-deploy-verification
 
-**Source:** platform-site spec Phase 1 (RFC-0061 / ADR-0050). The "single GitHub Pages deploy serves Astro at `/` and MkDocs at `/docs/`" acceptance criterion can only be confirmed on the first live deploy from `main`. Locally the combined artifact is verified (`build/index.html` + `build/docs/index.html` coexist after Astro-then-MkDocs), but the served result — including whether the site sits at the origin root or the `/agent-ready-repo/` project sub-path, which decides the Astro `base` setting — is only observable once Pages publishes.
-
-**Unblocks when:** Phase 1 merges to `main` and the Pages deploy runs; verify `/` serves the Astro homepage and `/docs/` serves MkDocs, then confirm/adjust `web/astro.config.ts` `site`/`base` for the actual origin path. Tied to the forward-link decision (nav/CTA links to `/packs/` and `/journeys/` go live with Phase 2).
+**Resolved 2026-07-16.** Phase 1 merged (PR #507) and deployed. The first deploy revealed the site is a GitHub Pages **project site** served under `/agent-ready-repo/`, so `base: '/'` produced root-relative asset paths that 404'd (unstyled homepage). Fixed by setting `base: '/agent-ready-repo'` in `web/astro.config.ts` (no custom domain — owner-confirmed) and routing internal hrefs through `src/lib/paths.ts` `withBase()`; redeployed and verified live: `/agent-ready-repo/` serves the styled Astro homepage, `/agent-ready-repo/docs/` serves MkDocs. Forward-links to `/packs/` and `/journeys/` remain 404 until Phase 2 (accepted).
 
 ### catalogue-curation-retire-primitive
 
