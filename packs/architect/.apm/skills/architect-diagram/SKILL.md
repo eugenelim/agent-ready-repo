@@ -1,6 +1,6 @@
 ---
 name: architect-diagram
-description: Use when the user asks for a diagram of a system, integration, flow, state, data model, deployment topology, roadmap, prioritization matrix, or decomposition. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine", "roadmap", "2×2", "mind map". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram, plus timeline, quadrantChart, and mindmap for roadmaps, prioritization, and hierarchical decomposition) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
+description: Use when the user asks for a diagram of a system, integration, flow, state, data model, deployment topology, roadmap, prioritization matrix, or decomposition. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine", "roadmap", "2×2", "mind map", "branching strategy", "gantt", "sprint plan". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram, gitGraph, gantt, plus timeline, quadrantChart, and mindmap for roadmaps, prioritization, and hierarchical decomposition) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
 ---
 
 # Skill: architect-diagram
@@ -58,8 +58,8 @@ If two modes plausibly fit, ask once which the user wants.
    cases (comparison, checklist, two-component flow).
 
 4. **Load the syntax reference for the chosen notation** —
-   `references/mermaid-{flowchart,sequence,c4,state,er}.md`, one file
-   per notation, on demand. For the three newer product/roadmap
+   `references/mermaid-{flowchart,sequence,c4,state,er,gitgraph,gantt}.md`,
+   one file per notation, on demand. For the three newer product/roadmap
    grammars, load `references/mermaid-{timeline,quadrant,mindmap}.md`
    — each carries the rendering caveat, the table/bullet-list fallback,
    and the per-type complexity budget. For C4 Container drafts, the
@@ -87,7 +87,23 @@ If two modes plausibly fit, ask once which the user wants.
    newer `architecture-beta` syntax as an alternative — load
    `references/mermaid-architecture-beta.md` for the trade-offs and
    skeleton before offering. Do not default to it; rendering is
-   inconsistent across enterprise wikis. **When the diagram
+   inconsistent across enterprise wikis. **To apply a theme, layout, or
+   look within the diagram itself**, use Mermaid's YAML frontmatter block
+   (Mermaid ≥ 10.5, mmdc v11+):
+
+   ```
+   ---
+   config:
+     theme: base        # default | forest | dark | neutral | base
+     layout: elk        # dagre (default) | elk — see mermaid-flowchart.md for venue caveats
+     look: handDrawn    # classic (default) | handDrawn
+   ---
+   ```
+
+   `look: handDrawn` signals "draft / not final" — offer it for informal
+   design artifacts, never default to it for documentation-grade diagrams.
+   The frontmatter and `%%{init}%%` produce identical output; prefer
+   frontmatter when setting two or more keys. **When the diagram
    distinguishes more than one category of thing or relationship, load
    `references/visual-encoding.md`** — map each visual channel (shape,
    grouping, position, edge style, marker) to meaning by data type, and
@@ -98,7 +114,10 @@ If two modes plausibly fit, ask once which the user wants.
    Container has a technology label; no bare relation labels; fits
    one screen (≤15 nodes); document mode never fabricates names;
    trust boundaries are visible (dashed subgraph border or explicit
-   comment).
+   comment). Also scan for `{}` in `%%` comment text — Mermaid silently
+   breaks on curly braces inside comments. Verify no token is misspelled:
+   the parser fails silently on unrecognised keywords, producing a blank
+   diagram with no error.
 
 8. **Offer to save.** Scan for an obvious home (`docs/architecture/`,
    `diagrams/`, `docs/`). Suggest a kebab-case `.mmd` filename.
