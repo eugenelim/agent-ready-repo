@@ -1,6 +1,6 @@
 # Spec: platform-site
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [plan.md](plan.md)
 - **Constrained by:** [aesthetic-direction.md](aesthetic-direction.md), [design-system-foundations.md](design-system-foundations.md), [information-architecture.md](information-architecture.md), [homepage-screen-flow.md](homepage-screen-flow.md), [journey-page-template.md](journey-page-template.md), [RFC-0061](../../rfc/0061-web-top-level-directory.md)
@@ -61,7 +61,7 @@ Two journey slugs differ from their pack slugs: `discovery` → `product-enginee
 
 | Artifact | Phase | Source |
 |---|---|---|
-| `/sitemap.xml` | 4 | `@astrojs/sitemap` integration |
+| `/sitemap-index.xml` | 4 | `@astrojs/sitemap` integration (also emits `/sitemap-0.xml`) |
 | `/robots.txt` | 4 | `web/public/robots.txt` |
 | `/social.png` | 4 | `web/public/social.png` (1200×630 og:image) |
 | `/404.html` | 1 | `web/src/pages/404.astro` (Astro emits `404.html` only when this page exists — not automatic); GitHub Pages uses it for unknown routes |
@@ -82,7 +82,7 @@ Two journey slugs differ from their pack slugs: `discovery` → `product-enginee
 | 1 — Astro scaffold + homepage | Astro in `web/`, 9 homepage sections, CI pipeline | Complete (all ACs met; shipped in Phase 1 PR) |
 | 2 — Pack catalogue + core journeys | 14 pack pages + journey index + 3 core journey pages | Complete (all ACs met) |
 | 3 — Priority-2 journeys | research, architect, experience, contracts, converters, atlassian | Complete (all ACs met) |
-| 4 — Remaining journeys + SEO | figma, governance-extras, credential-brokers, monorepo-extras, user-guide-diataxis; SEO metadata + sitemap | Planned (content-gated) |
+| 4 — Remaining journeys + SEO | figma, governance-extras, credential-brokers, monorepo-extras, user-guide-diataxis; SEO metadata + sitemap | Complete (all ACs met) |
 
 ## Objective
 
@@ -121,7 +121,7 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 - **Phase 1 (Astro homepage):** Goal-based — `astro build` exits 0; `build/index.html` exists. Visual/manual QA — `astro dev`, confirm all 9 sections render in order with correct zone colors; all interactions (install tabs, catalogue expand) work without JavaScript. Accessibility — `npx pa11y http://localhost:4321 --standard WCAG2AA` exits 0 errors.
 - **Phase 2 (Pack catalogue + journeys):** Goal-based — `astro build` generates all 14 pack routes and 3 journey routes. Visual/manual QA — spot-check pack index, one pack detail, one journey page; confirm pack detail shows a conditional "Journey coming soon" state for Phase-3 journeys. Accessibility — pa11y on pack index and one journey page, 0 errors.
 - **Phase 3 (Priority-2 journeys):** Goal-based — `astro build` generates all 6 new journey routes. Visual/manual QA — spot-check `research` and `atlassian` journey pages for all 8 sections. Accessibility — pa11y on each new journey page, 0 errors each.
-- **Phase 4 (Remaining journeys + SEO):** Goal-based — `build/sitemap.xml` lists all Astro routes; `build/robots.txt` and `build/social.png` exist; every Astro page includes `og:title`, `og:description`, `og:image`, `<link rel="canonical">`.
+- **Phase 4 (Remaining journeys + SEO):** Goal-based — `build/sitemap-index.xml` lists all Astro routes (via `sitemap-0.xml`); `build/robots.txt` and `build/social.png` exist; every Astro page includes `og:title`, `og:description`, `og:image`, `<link rel="canonical">`.
 - **CI pipeline:** Goal-based — GitHub Actions build exits 0 on `main`; `build/` contains `index.html` at root and `docs/index.html` from MkDocs.
 
 ## Acceptance Criteria
@@ -169,12 +169,12 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 
 ### Phase 4 — Remaining journey pages + SEO
 
-- [ ] Five final journey pages authored: `/journeys/figma`, `/journeys/governance-extras`, `/journeys/credential-brokers`, `/journeys/monorepo-extras`, `/journeys/user-guide-diataxis`
-- [ ] All 14 journey pages are live; journey index links to all 14
-- [ ] `sitemap.xml` generated and served at `/sitemap.xml` listing all Astro routes
-- [ ] `robots.txt` present at `/robots.txt`
-- [ ] Every Astro page has a complete `<head>`: `<meta name="description">`, `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:image">`; og:image is a static `social.png` in `web/public/`
-- [ ] `<link rel="canonical">` on every Astro page resolving to the correct GitHub Pages URL
+- [x] Five final journey pages authored: `/journeys/figma`, `/journeys/governance-extras`, `/journeys/credential-brokers`, `/journeys/monorepo-extras`, `/journeys/user-guide-diataxis`
+- [x] All 14 journey pages are live; journey index links to all 14
+- [x] Sitemap generated at `/sitemap-index.xml` (and `/sitemap-0.xml`) listing all Astro routes — `@astrojs/sitemap` always emits a sitemap index file; `sitemap-index.xml` is the correct entry point per the sitemaps.org standard
+- [x] `robots.txt` present at `/robots.txt`; Sitemap directive points to `sitemap-index.xml`
+- [x] Every Astro page has a complete `<head>`: `<meta name="description">`, `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:image">`; og:image is a static `social.png` in `web/public/`
+- [x] `<link rel="canonical">` on every Astro page resolving to the correct GitHub Pages URL
 
 ### CI + deploy (Phase 1 prerequisite)
 

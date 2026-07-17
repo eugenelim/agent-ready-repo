@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://eugenelim.github.io/agent-ready-repo/sitemap-index.xml

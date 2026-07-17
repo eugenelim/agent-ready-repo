@@ -1,35 +1,25 @@
 ---
-import { getCollection } from 'astro:content';
 import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
-const liveJourneys = await getCollection('journeys');
-const liveSlugSet = new Set(liveJourneys.map((e) => e.id.replace(/\.md$/, '')));
-
-// All 14 journey slugs in priority order; 9 are live (Phase 2 + 3), 5 are coming soon (Phase 4).
-const allJourneys = [
-  // Phase 2 — live
-  { slug: 'core', name: 'Core', phase: 2 },
-  { slug: 'discovery', name: 'Discovery (Product Engineering)', phase: 2 },
-  { slug: 'release', name: 'Release Engineering', phase: 2 },
-  // Phase 3 — live
-  { slug: 'research', name: 'Research', phase: 3 },
-  { slug: 'architect', name: 'Architect', phase: 3 },
-  { slug: 'experience', name: 'Experience', phase: 3 },
-  { slug: 'contracts', name: 'Contracts', phase: 3 },
-  { slug: 'converters', name: 'Converters', phase: 3 },
-  { slug: 'atlassian', name: 'Atlassian', phase: 3 },
-  // Phase 4 — coming soon
-  { slug: 'figma', name: 'Figma', phase: 4 },
-  { slug: 'governance-extras', name: 'Governance Extras', phase: 4 },
-  { slug: 'credential-brokers', name: 'Credential Brokers', phase: 4 },
-  { slug: 'monorepo-extras', name: 'Monorepo Extras', phase: 4 },
-  { slug: 'user-guide-diataxis', name: 'User Guide (Diátaxis)', phase: 4 },
+// All 14 journey slugs in display order — three supervised loops first, then alpha.
+const liveItems = [
+  { slug: 'core', name: 'Core' },
+  { slug: 'discovery', name: 'Discovery (Product Engineering)' },
+  { slug: 'release', name: 'Release Engineering' },
+  { slug: 'architect', name: 'Architect' },
+  { slug: 'atlassian', name: 'Atlassian' },
+  { slug: 'contracts', name: 'Contracts' },
+  { slug: 'converters', name: 'Converters' },
+  { slug: 'credential-brokers', name: 'Credential Brokers' },
+  { slug: 'experience', name: 'Experience' },
+  { slug: 'figma', name: 'Figma' },
+  { slug: 'governance-extras', name: 'Governance Extras' },
+  { slug: 'monorepo-extras', name: 'Monorepo Extras' },
+  { slug: 'research', name: 'Research' },
+  { slug: 'user-guide-diataxis', name: 'User Guide (Diátaxis)' },
 ];
-
-const liveItems = allJourneys.filter((j) => liveSlugSet.has(j.slug));
-const comingSoonItems = allJourneys.filter((j) => !liveSlugSet.has(j.slug));
 ---
 
 <SiteLayout
@@ -43,33 +33,16 @@ const comingSoonItems = allJourneys.filter((j) => !liveSlugSet.has(j.slug));
       does, what you do, and what each human gate asks of you.
     </p>
 
-    <div class="journeys__live">
-      <h2 class="journeys__group-title">Available now</h2>
-      <ul class="journeys-grid">
-        {liveItems.map((j) => (
-          <li class="journey-card">
-            <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
-              <h3 class="journey-card__name">{j.name}</h3>
-              <span class="journey-card__cta" aria-hidden="true">Read the journey →</span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-
-    {comingSoonItems.length > 0 && (
-      <div class="journeys__coming-soon">
-        <h2 class="journeys__group-title">Coming soon</h2>
-        <ul class="journeys-grid journeys-grid--muted">
-          {comingSoonItems.map((j) => (
-            <li class="journey-card journey-card--muted">
-              <span class="journey-card__name">{j.name}</span>
-              <span class="coming-soon-chip">Phase {j.phase}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
+    <ul class="journeys-grid">
+      {liveItems.map((j) => (
+        <li class="journey-card">
+          <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
+            <h2 class="journey-card__name">{j.name}</h2>
+            <span class="journey-card__cta" aria-hidden="true">Read the journey →</span>
+          </a>
+        </li>
+      ))}
+    </ul>
   </Section>
 </SiteLayout>
 
@@ -84,21 +57,6 @@ const comingSoonItems = allJourneys.filter((j) => !liveSlugSet.has(j.slug));
     max-width: 60ch;
     margin-bottom: var(--ds-space-8);
     line-height: var(--ds-lead-body);
-  }
-
-  .journeys__group-title {
-    font-size: var(--ds-type-h3);
-    margin-bottom: var(--ds-space-5);
-    color: var(--ds-on-surface);
-  }
-
-  .journeys__live {
-    margin-bottom: var(--ds-space-9);
-  }
-
-  .journeys__coming-soon {
-    padding-top: var(--ds-space-7);
-    border-top: 1px solid var(--ds-border);
   }
 
   .journeys-grid {
@@ -120,15 +78,6 @@ const comingSoonItems = allJourneys.filter((j) => !liveSlugSet.has(j.slug));
     border-color: var(--ds-accent);
   }
 
-  .journey-card--muted {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--ds-space-3);
-    opacity: 0.6;
-    border-left-color: var(--ds-border);
-  }
-
   .journey-card__link {
     display: block;
     text-decoration: none;
@@ -143,28 +92,10 @@ const comingSoonItems = allJourneys.filter((j) => !liveSlugSet.has(j.slug));
     margin-bottom: var(--ds-space-3);
   }
 
-  .journey-card--muted .journey-card__name {
-    font-size: var(--ds-type-body);
-    font-weight: var(--ds-weight-medium);
-    margin-bottom: 0;
-  }
-
   .journey-card__cta {
     font-size: var(--ds-type-sm);
     font-weight: var(--ds-weight-semibold);
     color: var(--ds-accent-deep);
-  }
-
-  .coming-soon-chip {
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-border);
-    color: var(--ds-on-surface-muted);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
-    flex-shrink: 0;
   }
 
   @media (prefers-reduced-motion: reduce) {
