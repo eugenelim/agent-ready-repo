@@ -1,0 +1,246 @@
+---
+// Section 8 — THE CATALOGUE. Light zone. Progressive disclosure: the 3 loops
+// are always visible (large cards); the remaining 11 packs live behind a
+// <details> expander — zero JS. 3-always + 11-on-reveal (homepage-screen-flow.md).
+import Section from '../layout/Section.astro';
+
+const loops = [
+  {
+    name: 'Core',
+    scope: 'repo',
+    desc: 'The build loop. work-loop, new-spec, bug-fix, four specialist reviewers, hooks. Install this even if you install nothing else.',
+    install: 'agentbundle install --pack core',
+    journey: '/journeys/core/',
+  },
+  {
+    name: 'Product Engineering',
+    scope: 'user',
+    desc: 'The discovery loop. discovery-loop, frame-intent, de-risk-intent, decompose-intent, voice-and-microcopy, align-value-stream.',
+    install: 'agentbundle install --pack product-engineering --scope user',
+    journey: '/journeys/discovery/',
+  },
+  {
+    name: 'Release Engineering',
+    scope: 'repo',
+    desc: 'The release loop. release-loop, release-lead. Autonomous e2e convergence. Hard-depends on core.',
+    install: 'agentbundle install --pack release-engineering',
+    journey: '/journeys/release/',
+  },
+];
+
+const userPacks = [
+  { name: 'Research', desc: 'Evidence-grounded research — surveys, source maps, competing-hypothesis analysis.' },
+  { name: 'Architect', desc: 'System design — design docs, diagrams, architecture review.' },
+  { name: 'Experience', desc: 'The full design thread — journey to realization, WCAG-aware quality floor.' },
+  { name: 'Contracts', desc: 'API-first design — OpenAPI 3.1 and AsyncAPI contracts.' },
+  { name: 'Converters', desc: 'Document conversion — PDF/DOCX/PPTX ↔ Markdown, HTML, Office, Mermaid.' },
+  { name: 'Atlassian', desc: 'Jira and Confluence from the agent — flow and DORA metrics, SSO-cookie auth.' },
+  { name: 'Figma', desc: 'Read and render Figma designs — files, nodes, variables, FigJam → Mermaid.' },
+  { name: 'Credential Brokers', desc: 'Credential resolution — env → OS keyring → dotfile. Cleartext never reaches the model.' },
+];
+
+const repoPacks = [
+  { name: 'Governance Extras', desc: 'Decision trail — new-rfc, new-adr, update-conventions for long-lived repos.' },
+  { name: 'User Guide (Diataxis)', desc: 'Docs scaffold — Diátaxis skeleton with new-guide.' },
+  { name: 'Monorepo Extras', desc: 'Package scaffolding — new-package, example package template.' },
+];
+---
+
+<Section tone="surface" labelledby="catalogue-heading">
+  <h2 id="catalogue-heading" class="catalogue__headline">The catalogue.</h2>
+  <p class="catalogue__subhead">
+    A curated library of packs — each shaped through practitioner research and RFC
+    governance. Start with the loops.
+  </p>
+
+  <ul class="loop-cards">
+    {loops.map((p) => (
+      <li class="loop-card">
+        <div class="loop-card__head">
+          <h3 class="loop-card__name">{p.name}</h3>
+          <span class="scope-chip">{p.scope}</span>
+        </div>
+        <p class="loop-card__desc">{p.desc}</p>
+        <p class="loop-card__install"><code>{p.install}</code></p>
+        <a class="loop-card__link" href={p.journey}>Read the journey <span aria-hidden="true">→</span></a>
+      </li>
+    ))}
+  </ul>
+
+  <details class="catalogue__more">
+    <summary class="catalogue__summary">
+      <span>See all 14 packs</span>
+      <span class="catalogue__summary-arrow" aria-hidden="true">→</span>
+    </summary>
+
+    <div class="catalogue__group">
+      <h3 class="catalogue__group-title">Install once, works across all your repos <span class="scope-chip">user</span></h3>
+      <ul class="pack-grid">
+        {userPacks.map((p) => (
+          <li class="pack-card">
+            <h4 class="pack-card__name">{p.name}</h4>
+            <p class="pack-card__desc">{p.desc}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="catalogue__group">
+      <h3 class="catalogue__group-title">Install per project <span class="scope-chip">repo</span></h3>
+      <ul class="pack-grid">
+        {repoPacks.map((p) => (
+          <li class="pack-card">
+            <h4 class="pack-card__name">{p.name}</h4>
+            <p class="pack-card__desc">{p.desc}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </details>
+</Section>
+
+<style>
+  .catalogue__headline {
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .catalogue__subhead {
+    font-size: var(--ds-type-body-lg);
+    max-width: 60ch;
+    margin-bottom: var(--ds-space-7);
+  }
+
+  .scope-chip {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    vertical-align: middle;
+  }
+
+  /* ── Tier 1 — the three loops ──────────────────────────────────────── */
+  .loop-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--ds-space-5);
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .loop-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+    padding: var(--ds-space-6);
+    transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
+  }
+
+  .loop-card:hover {
+    border-color: var(--ds-accent);
+  }
+
+  .loop-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .loop-card__name {
+    font-size: var(--ds-type-h3);
+  }
+
+  .loop-card__desc {
+    margin-bottom: var(--ds-space-4);
+    color: var(--ds-on-surface-2);
+  }
+
+  .loop-card__install {
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .loop-card__install code {
+    display: block;
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border-radius: var(--ds-radius-sm);
+    font-size: var(--ds-type-xs);
+    /* Commands wrap at spaces rather than clipping at the card edge. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: var(--ds-lead-mono);
+  }
+
+  .loop-card__link {
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  /* ── Tier 2/3 — expander ───────────────────────────────────────────── */
+  .catalogue__summary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    cursor: pointer;
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+    padding: var(--ds-space-3) 0;
+    list-style: none;
+  }
+
+  .catalogue__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .catalogue__summary-arrow {
+    transition: transform var(--ds-dur-moderate) var(--ds-ease-std);
+  }
+
+  .catalogue__more[open] .catalogue__summary-arrow {
+    transform: rotate(90deg);
+  }
+
+  .catalogue__group {
+    margin-top: var(--ds-space-6);
+  }
+
+  .catalogue__group-title {
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .pack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--ds-space-4);
+  }
+
+  .pack-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5);
+  }
+
+  .pack-card__name {
+    font-size: var(--ds-type-body-lg);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .pack-card__desc {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loop-card,
+    .catalogue__summary-arrow {
+      transition: none;
+    }
+  }
+</style>

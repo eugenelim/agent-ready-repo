@@ -55,6 +55,7 @@
 | 0047 | [experience-reviewer is a conditional specialist reviewer in work-loop for user-facing surface diffs — select-or-note, full-mode only](0047-experience-reviewer-as-work-loop-gate.md) | Accepted |
 | 0048 | [Assimilation state lives in a user-scope ledger — per-run purged, per-source durable](0048-catalogue-curation-assimilation-ledger.md) | Accepted |
 | 0049 | [Catalogue runtime inventory — derive live, persist nothing, touch no Claude manifest](0049-catalogue-runtime-inventory-derive-live.md) | Accepted |
+| 0050 | [Astro for the marketing site, co-deployed with MkDocs in one GitHub Pages origin](0050-astro-marketing-site-toolchain-and-deploy.md) | Accepted |
 
 ## Adding a new ADR
 

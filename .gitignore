@@ -41,6 +41,10 @@ AGENTS.local.md
 # skill from its real, deps-present directory).
 node_modules/
 package-lock.json
+# The Astro marketing site (web/, RFC-0061) is a real npm package, not a
+# skill's in-place deps: its lockfile IS committed so CI's `npm ci` is
+# reproducible.
+!web/package-lock.json
 
 # Python build artefacts.
 *.egg-info/

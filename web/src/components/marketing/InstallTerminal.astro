@@ -1,0 +1,170 @@
+---
+// Section 7 — INSTALL. Light zone (surface-alt). CSS-only tabs via a radio
+// group — zero JavaScript, keyboard-navigable (arrow keys move between radios).
+// Four tabs matching the MkDocs index.md install section.
+import Section from '../layout/Section.astro';
+
+const tabs = [
+  { id: 'flagship', label: 'Flagship loop', lines: ['pip install agentbundle', 'agentbundle install --pack core'] },
+  { id: 'discovery', label: 'With discovery', lines: ['agentbundle install --pack core', 'agentbundle install --pack product-engineering --scope user'] },
+  { id: 'inception', label: 'Full inception', lines: ['agentbundle install --profile inception'] },
+  { id: 'architect', label: 'Solution architect', lines: ['agentbundle install --profile solution-architect'] },
+];
+---
+
+<Section tone="surface-alt" id="install" labelledby="install-heading">
+  <h2 id="install-heading" class="install__headline">Start in one command.</h2>
+
+  <div class="terminal">
+    <div class="terminal__bar" aria-hidden="true">
+      <span class="terminal__dot"></span>
+      <span class="terminal__dot"></span>
+      <span class="terminal__dot"></span>
+    </div>
+
+    <div class="tabs" role="group" aria-label="Install options">
+      {tabs.map((t, i) => (
+        <>
+          <input
+            class="tabs__radio"
+            type="radio"
+            name="install-tabs"
+            id={`install-tab-${t.id}`}
+            checked={i === 0}
+          />
+          <label class="tabs__label" for={`install-tab-${t.id}`}>{t.label}</label>
+        </>
+      ))}
+
+      <div class="tabs__panels">
+        {tabs.map((t) => (
+          <div class={`tabs__panel tabs__panel--${t.id}`}>
+            {t.lines.map((line) => (
+              <div class="terminal__line">
+                <span class="terminal__prompt" aria-hidden="true">❯ </span><code>{line}</code>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <p class="install__note">
+    One command lands the loop. Any agent that reads a skill file inherits it automatically.
+  </p>
+</Section>
+
+<style>
+  .install__headline {
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .terminal {
+    background-color: var(--ds-hero-bg);
+    border: 1px solid var(--ds-hero-border-card);
+    border-radius: var(--ds-radius-lg);
+    overflow: hidden;
+    max-width: 760px;
+  }
+
+  .terminal__bar {
+    display: flex;
+    gap: var(--ds-space-2);
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border-bottom: 1px solid var(--ds-hero-border);
+  }
+
+  .terminal__dot {
+    width: 11px;
+    height: 11px;
+    border-radius: var(--ds-radius-pill);
+    background-color: var(--ds-hero-border-card);
+  }
+
+  /* ── CSS-only tabs ─────────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  /* Radios stay in the tab order for keyboard use, but are visually hidden. */
+  .tabs__radio {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+
+  .tabs__label {
+    padding: var(--ds-space-3) var(--ds-space-5);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+    color: var(--ds-hero-fg-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    user-select: none;
+  }
+
+  .tabs__label:hover {
+    color: var(--ds-hero-fg-2);
+  }
+
+  .tabs__panels {
+    flex-basis: 100%;
+    width: 100%;
+    border-top: 1px solid var(--ds-hero-border);
+  }
+
+  .tabs__panel {
+    display: none;
+    padding: var(--ds-space-5) var(--ds-space-5) var(--ds-space-6);
+    color: var(--ds-hero-fg);
+    overflow-x: auto;
+  }
+
+  .terminal__line {
+    white-space: nowrap;
+    line-height: var(--ds-lead-mono);
+  }
+
+  .terminal__line code {
+    color: var(--ds-hero-fg);
+    background: none;
+  }
+
+  .terminal__prompt {
+    color: var(--ds-accent);
+    font-weight: var(--ds-weight-bold);
+    font-family: var(--ds-font-mono);
+  }
+
+  /* Active tab label + its panel, driven by the checked radio. */
+  #install-tab-flagship:checked ~ .tabs__panels .tabs__panel--flagship,
+  #install-tab-discovery:checked ~ .tabs__panels .tabs__panel--discovery,
+  #install-tab-inception:checked ~ .tabs__panels .tabs__panel--inception,
+  #install-tab-architect:checked ~ .tabs__panels .tabs__panel--architect {
+    display: block;
+  }
+
+  #install-tab-flagship:checked + .tabs__label,
+  #install-tab-discovery:checked + .tabs__label,
+  #install-tab-inception:checked + .tabs__label,
+  #install-tab-architect:checked + .tabs__label {
+    color: var(--ds-accent);
+    border-bottom-color: var(--ds-accent);
+  }
+
+  /* Keyboard focus lands on the (hidden) radio — surface it on the label. */
+  .tabs__radio:focus-visible + .tabs__label {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: -2px;
+  }
+
+  .install__note {
+    margin-top: var(--ds-space-5);
+    color: var(--ds-on-surface-muted);
+    max-width: 60ch;
+  }
+</style>

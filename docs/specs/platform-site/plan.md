@@ -183,7 +183,7 @@ Fully static Astro site. Client-side interactivity is minimal and JS-free where 
 **Tests:**
 - Visual/manual QA: hero background is `#0b0e12`; continuous from viewport top to end of stat strip; no white gap between header and hero
 - Visual/manual QA: headline "The supervised AI operating model for software teams" (per [homepage-screen-flow.md](homepage-screen-flow.md)); subhead and two CTA buttons (amber primary, transparent secondary)
-- Visual/manual QA: stat strip reads `3 supervised loops · 7 adapters · 1 pip install · 0 self-certified builds`
+- Visual/manual QA: stat strip reads `3 supervised loops · 7 adapters · 1 pip install` (the `0 self-certified builds` stat was dropped at owner request 2026-07-16)
 - Accessibility: one `<h1>` on page; heading level correct; CTAs are `<a href>` not `<div onclick>`
 - Reduced-motion: hero opacity fade-in behind `@media (prefers-reduced-motion: no-preference)`; stat strip static
 
@@ -391,3 +391,23 @@ Fully static Astro site. Client-side interactivity is minimal and JS-free where 
 ## Changelog
 
 - 2026-07-16: initial plan; Phase 0 (CSS token swap) complete except T0b; Phase 1 and Phase 2 tasks fully planned
+- 2026-07-16: Phase 1 build (T2–T7). Deviations from the plan as written, all
+  minor: (a) T6 section 9 ("Build Your Org") lives in its own homepage-scoped
+  `BuildYourOrg.astro` rendered last in `index.astro` — NOT in `SiteFooter.astro`
+  as decomposed — because `SiteFooter` is shared across all marketing pages and
+  section 9 is homepage-specific; it still merges visually with the dark footer.
+  (b) Added a reusable `Section.astro` band wrapper (not in the decomposition) to
+  keep the six content sections DRY. (c) `astro.config` is `.ts` per the plan;
+  `base` left at `/` for Phase 1 (root-served, matching the pa11y gate) — the
+  production sub-path is still to be confirmed (information-architecture.md).
+  (d) RFC-0061 accepted; its follow-on ADR (Astro SSG + one-Pages-deploy + Node
+  dependency) and `web/AGENTS.md` dependency record co-land in this PR.
+  (e) PackCatalogue uses a `<details>` expander with a visible "See all 14 packs →"
+  summary (satisfying the spec's 3-visible + expand-11 AC and screen-flow's
+  "label visible in initial render" requirement), but does NOT implement the
+  finer "peek" refinement from homepage-screen-flow.md §8 (first Tier-2 row
+  partially visible behind a fade). Deferred: the peek adds meaningful CSS
+  complexity for a marginal disclosure gain; the visible summary already signals
+  more content. Revisit if the expander's discoverability tests poorly.
+  (f) Added `web/src/pages/404.astro` (Phase-1 spec-inventory deliverable;
+  Astro emits `404.html` only when this page exists).
