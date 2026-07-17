@@ -134,8 +134,8 @@
   box-sizing: border-box;
 
   /* Horizontally center the inner content column */
-  padding-top: 5rem;
-  padding-bottom: 4.5rem;
+  padding-top: 3rem;
+  padding-bottom: 2.75rem;
   padding-left: max(2rem, calc(50vw - 450px));
   padding-right: max(2rem, calc(50vw - 450px));
 
@@ -147,17 +147,17 @@
     linear-gradient(90deg, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
   background-size: 100% 100%, 28px 28px, 28px 28px;
   border-radius: 0;
-  margin-bottom: 4rem;
+  margin-bottom: 2.5rem;
   color: #f8fafc;
 }
 
 .hero-section h1 {
   color: #f8fafc;
-  font-size: clamp(2.4rem, 5vw, 3.75rem);
+  font-size: clamp(1.9rem, 3.5vw, 2.75rem);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.028em;
-  margin-bottom: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+  margin-bottom: 1rem;
   max-width: 800px;
 }
 
@@ -172,7 +172,7 @@
 /* ── Hero CTA buttons — inverted for dark context ───────────────────────── */
 
 .hero-section .hero-actions {
-  margin-top: 2.25rem;
+  margin-top: 1.5rem;
   margin-bottom: 0;
   display: flex;
   gap: 0.75rem;
@@ -261,12 +261,12 @@ article.md-content__inner:has(> .hero-section) {
 
 @media (max-width: 600px) {
   .hero-section {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
   }
 
   .hero-section h1 {
-    font-size: clamp(1.9rem, 8vw, 2.6rem);
+    font-size: clamp(1.6rem, 7vw, 2.1rem);
     letter-spacing: -0.02em;
     line-height: 1.15;
   }
