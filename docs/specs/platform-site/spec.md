@@ -81,7 +81,7 @@ Two journey slugs differ from their pack slugs: `discovery` → `product-enginee
 | 0 — MkDocs token alignment | Amber-gold CSS swap; global primary button override | Complete (all ACs met) |
 | 1 — Astro scaffold + homepage | Astro in `web/`, 9 homepage sections, CI pipeline | Complete (all ACs met; shipped in Phase 1 PR) |
 | 2 — Pack catalogue + core journeys | 14 pack pages + journey index + 3 core journey pages | Complete (all ACs met) |
-| 3 — Priority-2 journeys | research, architect, experience, contracts, converters, atlassian | Planned (content-gated) |
+| 3 — Priority-2 journeys | research, architect, experience, contracts, converters, atlassian | Complete (all ACs met) |
 | 4 — Remaining journeys + SEO | figma, governance-extras, credential-brokers, monorepo-extras, user-guide-diataxis; SEO metadata + sitemap | Planned (content-gated) |
 
 ## Objective
@@ -161,11 +161,11 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 
 ### Phase 3 — Priority-2 journey pages
 
-- [ ] Six journey pages authored and live: `/journeys/research`, `/journeys/architect`, `/journeys/experience`, `/journeys/contracts`, `/journeys/converters`, `/journeys/atlassian`
-- [ ] Each of the six pages renders the full 8-section structure from [journey-page-template.md](journey-page-template.md)
-- [ ] Journey index at `/journeys/` links to all 9 live journey pages (3 from Phase 2 + 6 from Phase 3); the remaining 5 show as "coming soon"
-- [ ] The six corresponding pack detail pages (`/packs/research`, `/packs/architect`, `/packs/experience`, `/packs/contracts`, `/packs/converters`, `/packs/atlassian`) show an active journey link (not "coming soon")
-- [ ] `npx pa11y http://localhost:4321/journeys/research --standard WCAG2AA` exits with 0 errors (verified on `research`; same template applies to all 6)
+- [x] Six journey pages authored and live: `/journeys/research`, `/journeys/architect`, `/journeys/experience`, `/journeys/contracts`, `/journeys/converters`, `/journeys/atlassian`
+- [x] Each of the six pages renders the full 8-section structure from [journey-page-template.md](journey-page-template.md)
+- [x] Journey index at `/journeys/` links to all 9 live journey pages (3 from Phase 2 + 6 from Phase 3); the remaining 5 show as "coming soon"
+- [x] The six corresponding pack detail pages (`/packs/research`, `/packs/architect`, `/packs/experience`, `/packs/contracts`, `/packs/converters`, `/packs/atlassian`) show an active journey link (not "coming soon")
+- [x] `npx pa11y http://localhost:4321/journeys/research --standard WCAG2AA` exits with 0 errors (verified on `research`; same template applies to all 6)
 
 ### Phase 4 — Remaining journey pages + SEO
 
