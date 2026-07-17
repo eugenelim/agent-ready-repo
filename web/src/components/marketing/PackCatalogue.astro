@@ -3,6 +3,7 @@
 // are always visible (large cards); the remaining 11 packs live behind a
 // <details> expander — zero JS. 3-always + 11-on-reveal (homepage-screen-flow.md).
 import Section from '../layout/Section.astro';
+import { withBase } from '../../lib/paths';
 
 const loops = [
   {
@@ -62,7 +63,7 @@ const repoPacks = [
         </div>
         <p class="loop-card__desc">{p.desc}</p>
         <p class="loop-card__install"><code>{p.install}</code></p>
-        <a class="loop-card__link" href={p.journey}>Read the journey <span aria-hidden="true">→</span></a>
+        <a class="loop-card__link" href={withBase(p.journey)}>Read the journey <span aria-hidden="true">→</span></a>
       </li>
     ))}
   </ul>
