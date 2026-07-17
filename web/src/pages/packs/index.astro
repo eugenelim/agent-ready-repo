@@ -1,0 +1,59 @@
+---
+import { getCollection } from 'astro:content';
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import Section from '../../components/layout/Section.astro';
+import PackCard from '../../components/pack/PackCard.astro';
+
+const allPacks = await getCollection('packs');
+const packs = allPacks.sort((a, b) => {
+  // Keep the three loops first, then alpha by name
+  const order = ['core', 'product-engineering', 'release-engineering'];
+  const ai = order.indexOf(a.id.replace(/\.md$/, ''));
+  const bi = order.indexOf(b.id.replace(/\.md$/, ''));
+  if (ai !== -1 && bi !== -1) return ai - bi;
+  if (ai !== -1) return -1;
+  if (bi !== -1) return 1;
+  return a.data.name.localeCompare(b.data.name);
+});
+---
+
+<SiteLayout title="Pack catalogue — agent-ready-repo" description="14 packs covering the full software development lifecycle — from discovery to build to release.">
+  <Section tone="surface" labelledby="packs-heading">
+    <h1 id="packs-heading" class="packs__headline">The pack catalogue.</h1>
+    <p class="packs__subhead">
+      14 packs covering the full SDLC — discovery, build, release, and beyond.
+      Start with the loops.
+    </p>
+
+    <ul class="packs-grid">
+      {packs.map((entry) => (
+        <PackCard
+          slug={entry.id.replace(/\.md$/, '')}
+          name={entry.data.name}
+          scope={entry.data.scope}
+          tagline={entry.data.tagline}
+        />
+      ))}
+    </ul>
+  </Section>
+</SiteLayout>
+
+<style>
+  .packs__headline {
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .packs__subhead {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
+    max-width: 60ch;
+    margin-bottom: var(--ds-space-8);
+    line-height: var(--ds-lead-body);
+  }
+
+  .packs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--ds-space-5);
+  }
+</style>

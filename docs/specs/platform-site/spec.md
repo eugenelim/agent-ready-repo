@@ -79,8 +79,8 @@ Two journey slugs differ from their pack slugs: `discovery` → `product-enginee
 | Phase | Scope | Status |
 |---|---|---|
 | 0 — MkDocs token alignment | Amber-gold CSS swap; global primary button override | Complete (all ACs met) |
-| 1 — Astro scaffold + homepage | Astro in `web/`, 9 homepage sections, CI pipeline | In progress (this PR — homepage + CI built; `/packs/` and `/journeys/` routes land in Phase 2) |
-| 2 — Pack catalogue + core journeys | 14 pack pages + journey index + 3 core journey pages | Planned |
+| 1 — Astro scaffold + homepage | Astro in `web/`, 9 homepage sections, CI pipeline | Complete (all ACs met; shipped in Phase 1 PR) |
+| 2 — Pack catalogue + core journeys | 14 pack pages + journey index + 3 core journey pages | Complete (all ACs met) |
 | 3 — Priority-2 journeys | research, architect, experience, contracts, converters, atlassian | Planned (content-gated) |
 | 4 — Remaining journeys + SEO | figma, governance-extras, credential-brokers, monorepo-extras, user-guide-diataxis; SEO metadata + sitemap | Planned (content-gated) |
 
@@ -153,11 +153,11 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 
 ### Phase 2 — Pack catalogue and journey pages
 
-- [ ] `/packs/` renders an index of all 14 packs with name, scope tag, and tagline
-- [ ] Each of the 14 packs has a `/packs/[slug]` page with: header, scope badge, skill list, install command, and journey link
-- [ ] Each pack detail page shows: pack name, scope badge (`user`|`repo`), full skill list, install command, and a link to its journey page (or a "coming soon" state for packs whose journey page is not yet live)
-- [ ] Journey page template renders the 8-section structure from [journey-page-template.md](journey-page-template.md)
-- [ ] Three core journey pages authored: `/journeys/core`, `/journeys/discovery`, `/journeys/release`
+- [x] `/packs/` renders an index of all 14 packs with name, scope tag, and tagline
+- [x] Each of the 14 packs has a `/packs/[slug]` page with: header, scope badge, skill list, install command, and journey link
+- [x] Each pack detail page shows: pack name, scope badge (`user`|`repo`), full skill list, install command, and a link to its journey page (or a "coming soon" state for packs whose journey page is not yet live)
+- [x] Journey page template renders the 8-section structure from [journey-page-template.md](journey-page-template.md)
+- [x] Three core journey pages authored: `/journeys/core`, `/journeys/discovery`, `/journeys/release`
 
 ### Phase 3 — Priority-2 journey pages
 
