@@ -12,7 +12,7 @@ dependencies are recorded here before they are added.
 
 | Dependency | Version | Why |
 | --- | --- | --- |
-| Node.js | `>=22.12.0` (see `package.json` `engines`) | Astro build/runtime toolchain |
+| Node.js | `>=24.0.0` (see `package.json` `engines`) | Astro build/runtime toolchain |
 | [`astro`](https://astro.build) | pinned `7.1.0` (exact, not a range) | Static-site generator for the marketing pages; pinned for reproducible CI |
 | [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/) | pinned `3.7.3` (exact, not a range) | Generates `sitemap-index.xml` + `sitemap-0.xml` at build time for SEO (Phase 4) |
 
