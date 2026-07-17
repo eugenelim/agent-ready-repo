@@ -1,0 +1,175 @@
+---
+import { getCollection } from 'astro:content';
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import Section from '../../components/layout/Section.astro';
+import { withBase } from '../../lib/paths';
+
+const liveJourneys = await getCollection('journeys');
+const liveSlugSet = new Set(liveJourneys.map((e) => e.id.replace(/\.md$/, '')));
+
+// All 14 journey slugs in priority order; 3 are live in Phase 2, 11 are coming soon.
+const allJourneys = [
+  // Phase 2 — live
+  { slug: 'core', name: 'Core', phase: 2 },
+  { slug: 'discovery', name: 'Discovery (Product Engineering)', phase: 2 },
+  { slug: 'release', name: 'Release Engineering', phase: 2 },
+  // Phase 3 — coming soon
+  { slug: 'research', name: 'Research', phase: 3 },
+  { slug: 'architect', name: 'Architect', phase: 3 },
+  { slug: 'experience', name: 'Experience', phase: 3 },
+  { slug: 'contracts', name: 'Contracts', phase: 3 },
+  { slug: 'converters', name: 'Converters', phase: 3 },
+  { slug: 'atlassian', name: 'Atlassian', phase: 3 },
+  // Phase 4 — coming soon
+  { slug: 'figma', name: 'Figma', phase: 4 },
+  { slug: 'governance-extras', name: 'Governance Extras', phase: 4 },
+  { slug: 'credential-brokers', name: 'Credential Brokers', phase: 4 },
+  { slug: 'monorepo-extras', name: 'Monorepo Extras', phase: 4 },
+  { slug: 'user-guide-diataxis', name: 'User Guide (Diátaxis)', phase: 4 },
+];
+
+const liveItems = allJourneys.filter((j) => liveSlugSet.has(j.slug));
+const comingSoonItems = allJourneys.filter((j) => !liveSlugSet.has(j.slug));
+---
+
+<SiteLayout
+  title="Journeys — agent-ready-repo"
+  description="Staged walkthroughs of what it's like to use each pack — plan approval, execution, review, and merge gates explained."
+>
+  <Section tone="surface" labelledby="journeys-heading">
+    <h1 id="journeys-heading" class="journeys__headline">Journeys.</h1>
+    <p class="journeys__subhead">
+      Each journey is a staged walkthrough of a real usage session — what the agent
+      does, what you do, and what each human gate asks of you.
+    </p>
+
+    <div class="journeys__live">
+      <h2 class="journeys__group-title">Available now</h2>
+      <ul class="journeys-grid">
+        {liveItems.map((j) => (
+          <li class="journey-card">
+            <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
+              <h3 class="journey-card__name">{j.name}</h3>
+              <span class="journey-card__cta" aria-hidden="true">Read the journey →</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    {comingSoonItems.length > 0 && (
+      <div class="journeys__coming-soon">
+        <h2 class="journeys__group-title">Coming soon</h2>
+        <ul class="journeys-grid journeys-grid--muted">
+          {comingSoonItems.map((j) => (
+            <li class="journey-card journey-card--muted">
+              <span class="journey-card__name">{j.name}</span>
+              <span class="coming-soon-chip">Phase {j.phase}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </Section>
+</SiteLayout>
+
+<style>
+  .journeys__headline {
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .journeys__subhead {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
+    max-width: 60ch;
+    margin-bottom: var(--ds-space-8);
+    line-height: var(--ds-lead-body);
+  }
+
+  .journeys__group-title {
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-5);
+    color: var(--ds-on-surface);
+  }
+
+  .journeys__live {
+    margin-bottom: var(--ds-space-9);
+  }
+
+  .journeys__coming-soon {
+    padding-top: var(--ds-space-7);
+    border-top: 1px solid var(--ds-border);
+  }
+
+  .journeys-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--ds-space-5);
+  }
+
+  .journey-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
+  }
+
+  .journey-card:hover {
+    border-color: var(--ds-accent);
+  }
+
+  .journey-card--muted {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    opacity: 0.6;
+    border-left-color: var(--ds-border);
+  }
+
+  .journey-card__link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .journey-card__name {
+    display: block;
+    font-size: var(--ds-type-body-lg);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .journey-card--muted .journey-card__name {
+    font-size: var(--ds-type-body);
+    font-weight: var(--ds-weight-medium);
+    margin-bottom: 0;
+  }
+
+  .journey-card__cta {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+  }
+
+  .coming-soon-chip {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    background-color: var(--ds-border);
+    color: var(--ds-on-surface-muted);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    flex-shrink: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .journey-card {
+      transition: none;
+    }
+  }
+</style>
