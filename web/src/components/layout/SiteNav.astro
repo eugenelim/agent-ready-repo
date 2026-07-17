@@ -1,0 +1,187 @@
+---
+// Primary navigation. Dark zone — continuous with the hero below it, no gap.
+// Mobile menu is a <details>/<summary> disclosure: zero JavaScript.
+// Nav structure from information-architecture.md:
+//   Logo | How it works | Packs | Journeys | Docs ↗ | [Install →]
+const links = [
+  { label: 'How it works', href: '/#three-loops' },
+  { label: 'Packs', href: '/packs/' },
+  { label: 'Journeys', href: '/journeys/' },
+];
+---
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav__inner">
+    <a class="nav__logo" href="/">agent-ready-repo</a>
+
+    <ul class="nav__links">
+      {links.map((l) => (
+        <li><a class="nav__link" href={l.href}>{l.label}</a></li>
+      ))}
+      <li>
+        <a class="nav__link nav__link--docs" href="/docs/" rel="noopener">
+          Docs <span aria-hidden="true">↗</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav__cta" href="/#install">Install <span aria-hidden="true">→</span></a>
+      </li>
+    </ul>
+
+    <details class="nav__mobile">
+      <summary class="nav__toggle" aria-label="Toggle navigation menu">
+        <span class="nav__burger" aria-hidden="true"></span>
+      </summary>
+      <ul class="nav__drawer">
+        {links.map((l) => (
+          <li><a class="nav__link" href={l.href}>{l.label}</a></li>
+        ))}
+        <li>
+          <a class="nav__link nav__link--docs" href="/docs/" rel="noopener">
+            Docs <span aria-hidden="true">↗</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav__cta" href="/#install">Install <span aria-hidden="true">→</span></a>
+        </li>
+      </ul>
+    </details>
+  </div>
+</nav>
+
+<style>
+  .nav {
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+    position: relative;
+  }
+
+  .nav__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+    padding: var(--ds-space-4) var(--ds-content-pad-x);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-5);
+  }
+
+  .nav__logo {
+    color: var(--ds-hero-fg);
+    font-weight: var(--ds-weight-bold);
+    font-size: var(--ds-type-body-lg);
+    letter-spacing: var(--ds-track-heading);
+    font-family: var(--ds-font-mono);
+  }
+
+  .nav__logo:hover {
+    text-decoration: none;
+    color: var(--ds-accent);
+  }
+
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-6);
+    margin: 0;
+  }
+
+  .nav__link {
+    color: var(--ds-hero-fg-2);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+  }
+
+  .nav__link:hover {
+    color: var(--ds-hero-fg);
+    text-decoration: none;
+  }
+
+  .nav__link--docs {
+    color: var(--ds-hero-fg-muted);
+  }
+
+  .nav__cta {
+    display: inline-block;
+    background-color: var(--ds-cta-primary-bg);
+    color: var(--ds-cta-primary-fg);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    padding: 0.55rem 1.1rem;
+    border-radius: var(--ds-radius-pill);
+  }
+
+  .nav__cta:hover {
+    background-color: var(--ds-cta-primary-bg-hover);
+    text-decoration: none;
+  }
+
+  /* ── Mobile disclosure — hidden on desktop ─────────────────────────── */
+  .nav__mobile {
+    display: none;
+  }
+
+  .nav__toggle {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+  }
+
+  .nav__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .nav__burger,
+  .nav__burger::before,
+  .nav__burger::after {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: var(--ds-hero-fg);
+    content: '';
+    position: relative;
+  }
+
+  .nav__burger::before {
+    position: absolute;
+    top: -7px;
+  }
+
+  .nav__burger::after {
+    position: absolute;
+    top: 7px;
+  }
+
+  .nav__drawer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-4);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .nav__links {
+      display: none;
+    }
+
+    .nav__mobile {
+      display: block;
+    }
+
+    /* Drawer breaks out of the row and spans full width below the bar. */
+    .nav__drawer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      background-color: var(--ds-hero-bg);
+      border-top: 1px solid var(--ds-hero-border);
+      padding: var(--ds-space-5) var(--ds-content-pad-x) var(--ds-space-6);
+      z-index: var(--ds-z-overlay);
+    }
+  }
+</style>
