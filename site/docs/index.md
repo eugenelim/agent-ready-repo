@@ -57,7 +57,7 @@ Software delivery needs more than one loop. Three peer supervisors span the full
 
 ```mermaid
 flowchart LR
-    classDef loop fill:#5e6ad2,stroke:#4c5bbc,color:#fff,rx:6
+    classDef loop fill:#e8952b,stroke:#c8780a,color:#0b0e12,rx:6
     PE["`**product-engineering**
     discovery-lead
     Raw idea → Brief`"]:::loop
