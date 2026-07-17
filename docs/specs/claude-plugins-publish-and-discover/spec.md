@@ -1,6 +1,6 @@
 # Spec: claude-plugins-publish-and-discover
 
-- **Status:** Shipped
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (CI/CD structural change, user-facing website surface)
