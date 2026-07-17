@@ -18,6 +18,11 @@ const { data } = entry;
 const { Content } = await render(entry);
 
 const hasJourney = !!data.journeyUrl;
+
+const PLUGIN_BRANCH = 'claude-plugins-dist';
+const REPO = 'eugenelim/agent-ready-repo';
+const packSlug = entry.id.replace(/\.md$/, '');
+const pluginInstallCmd = `claude plugin install https://github.com/${REPO}/tree/${PLUGIN_BRANCH}/${packSlug}`;
 ---
 
 <SiteLayout
@@ -53,11 +58,32 @@ const hasJourney = !!data.journeyUrl;
       <!-- Install -->
       <div class="pack-section">
         <h2 class="pack-section__title">Install</h2>
+
+        <!-- agentbundle route -->
+        <p class="install-route-label">Via agentbundle CLI</p>
         <div class="install-block">
           <pre class="install-block__code"><code>{data.installCommand}</code></pre>
         </div>
         <p class="install-note">
           Requires <a href={withBase('/docs/getting-started/')}>agentbundle</a>.
+        </p>
+
+        <!-- Claude plugin route -->
+        <p class="install-route-label install-route-label--spaced">Via Claude Code / Claude Desktop</p>
+        <div class="install-block">
+          <div class="install-block__plugin-row">
+            <pre class="install-block__code install-block__code--light"><code>{pluginInstallCmd}</code></pre>
+            <button
+              class="install-copy-btn"
+              data-cmd={pluginInstallCmd}
+              aria-label="Copy Claude plugin install command"
+              type="button"
+            >Copy</button>
+          </div>
+        </div>
+        <p class="install-note">
+          No extra tooling required — works directly in <a href="https://claude.ai/code" rel="noopener noreferrer">Claude Code</a> or Claude Desktop.
+          <a href={withBase('/plugins/')}>Browse all plugins →</a>
         </p>
       </div>
 
@@ -151,6 +177,69 @@ const hasJourney = !!data.journeyUrl;
     color: var(--ds-on-surface-muted);
   }
 
+  .install-route-label {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-muted);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .install-route-label--spaced {
+    margin-top: var(--ds-space-5);
+  }
+
+  .install-block__plugin-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    min-width: 0;
+  }
+
+  .install-block__code--light {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .install-copy-btn {
+    flex-shrink: 0;
+    background-color: var(--ds-hero-elevated);
+    border: 1px solid var(--ds-hero-border-card);
+    border-radius: var(--ds-radius-sm);
+    color: var(--ds-hero-fg-muted);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-medium);
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    transition:
+      background-color var(--ds-dur-quick) var(--ds-ease-std),
+      color var(--ds-dur-quick) var(--ds-ease-std),
+      border-color var(--ds-dur-quick) var(--ds-ease-std);
+  }
+
+  .install-copy-btn:hover {
+    background-color: var(--ds-accent-subtle-dk);
+    border-color: var(--ds-accent);
+    color: var(--ds-accent);
+  }
+
+  .install-copy-btn--success {
+    background-color: var(--ds-accent-subtle-dk);
+    border-color: var(--ds-accent);
+    color: var(--ds-accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .install-copy-btn {
+      transition: none;
+    }
+  }
+
   .journey-link {
     display: flex;
     align-items: center;
@@ -229,3 +318,23 @@ const hasJourney = !!data.journeyUrl;
     }
   }
 </style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.install-copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const cmd = btn.dataset.cmd ?? '';
+      try {
+        await navigator.clipboard.writeText(cmd);
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('install-copy-btn--success');
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.classList.remove('install-copy-btn--success');
+        }, 2000);
+      } catch {
+        // Clipboard API unavailable — command is still selectable in the code block.
+      }
+    });
+  });
+</script>
