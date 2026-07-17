@@ -48,6 +48,8 @@ The reviewers are diff-source-agnostic — the work loop points them at your own
 
 Plus a sibling skill that runs alongside the six: **`bug-fix`** ships in `core` too and runs a parallel discipline (reproduce → red test → root vs. symptom → minimum fix → regression test stays) without entering the spec / loop pipeline. It composes with `work-loop` when the fix grows past one file. See [how to fix a bug](../how-to/bug-fix.md).
 
+And a depth skill the loop reaches for by surface: **`frontend-engineering`** is loaded inline by `work-loop` whenever a task's primary output is HTML, CSS, or JS. It carries the design pre-flight (a named aesthetic reference, a seed token block, the six-state matrix), the codified craft rules that govern EXECUTE, and the GATES verification commands (html-validate, pa11y/axe, stylelint) — and it upgrades the design-intent pass from a recommendation to mandatory for that surface. It has no user-prompt activation surface of its own; the loop pulls it in, the way it pulls in `security-checklists` and `operational-safety` for the reviewers.
+
 ## How they tie together
 
 A feature lifecycle, end to end, with the parts named:
