@@ -30,7 +30,7 @@ Concretely:
 - `web/astro.config.ts` sets `outDir: '../build'`; `site/mkdocs.yml` sets `site_dir: ../build/docs`.
 - **Build order is load-bearing:** `astro build` cleans its `outDir` (`build/`) on every run, so Astro MUST build before MkDocs writes into `build/docs/` — otherwise MkDocs output is silently wiped. `.github/workflows/pages.yml` sequences Node/Astro steps before the Python/MkDocs steps and uploads `./build`.
 - The design-system `--ds-*` token block is the sole colour/spacing authority on the Astro surface; **no CSS framework** (Tailwind, Bootstrap, UnoCSS) is used.
-- For Phase 1 the Astro `base` is left at `/` (root-served); the production sub-path (`/agent-ready-repo/`) is still to be confirmed (information-architecture.md) and is the trigger to set `base`.
+- The site is a GitHub Pages **project site** served under `/agent-ready-repo/`, so `web/astro.config.ts` sets `base: '/agent-ready-repo'`. Astro auto-prefixes its own bundled assets with `base`; hardcoded internal hrefs go through `src/lib/paths.ts` `withBase()`. (No custom domain — confirmed 2026-07-16.)
 
 ## Decision drivers
 
