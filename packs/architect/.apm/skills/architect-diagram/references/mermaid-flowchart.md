@@ -17,8 +17,53 @@ flowchart TB
 ````
 
 `flowchart TB` is top-to-bottom — best for deployment hierarchies.
-`flowchart LR` is left-to-right — best for request flows. Pick one
+`flowchart LR` is left-to-right — best for anything with a reading
+order: request flows, and **pipelines / ETL / CI-CD stages /
+data-flow** where the eye should track stages start-to-finish. Pick one
 and stick with it within a diagram.
+
+## Title and accessibility metadata
+
+Give the diagram an in-source title with Mermaid's **config frontmatter**
+(a YAML block fenced by `---` at the very top of the Mermaid source,
+Mermaid ≥ 10.5) — it renders as a heading above the diagram:
+
+````
+```mermaid
+---
+title: Order ingestion pipeline
+---
+flowchart LR
+    Ingest --> Validate --> Ledger
+```
+````
+
+This is the portable version of a diagram title — it renders in current
+Mermaid (`mmdc` and the repo's `render-proof` / `markdown-to-html`
+renderers pin `mermaid@11`). It is still a version-dependent feature, so
+carry the same venue caveat the skill applies to `architecture-beta` /
+`timeline` and friends: **the prose scope sentence above the diagram
+stays the always-portable baseline** — the frontmatter title augments it,
+it doesn't replace it. Do **not** reach for a `%% title:` comment: `%%`
+is Mermaid's comment marker and is dropped by every renderer.
+
+For screen-reader accessibility, add `accTitle` (short) and `accDescr`
+(longer) inside the diagram body — they emit to the SVG's `<title>` /
+`<desc>` and are supported across diagram types (flowchart, sequence,
+state, er, …), not just flowcharts:
+
+````
+```mermaid
+flowchart LR
+    accTitle: Order ingestion pipeline
+    accDescr: Ingest validates each order, then writes it to the ledger.
+    Ingest --> Validate --> Ledger
+```
+````
+
+Recommended for any diagram that will ship in a docs page or wiki; it is
+the diagram analogue of alt text. Renderers vary in whether they expose
+it, so treat it as reinforcement, never the sole carrier of meaning.
 
 ## Node shapes (architecture-relevant)
 

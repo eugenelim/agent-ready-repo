@@ -18,7 +18,13 @@ check, not a suggestion.
 - [ ] **Edge budget.** Roughly **≤20 edges**. A diagram whose edges dwarf its
       nodes is a hairball; split by scope sentence before adding more.
 - [ ] **Title or scope sentence** above the diagram tells the reader
-      *what they are looking at* without scrolling.
+      *what they are looking at* without scrolling. A prose sentence is
+      the always-portable baseline; a Mermaid config-frontmatter `title:`
+      (see `references/mermaid-flowchart.md`) is the in-source option and
+      augments it. Never a `%% title:` comment — `%%` is dropped.
+- [ ] **Accessibility metadata.** A diagram shipping in a docs page or
+      wiki carries `accTitle` / `accDescr` — the diagram's alt text —
+      unless the target venue is known to strip it.
 - [ ] **No fabricated names** in document mode. Where a name is
       genuinely missing, label `<unnamed>` or ask.
 - [ ] **Renders.** Paste the Mermaid into the live editor and confirm

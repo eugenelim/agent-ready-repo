@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`architect-diagram` gains portable Mermaid title, accessibility, and pipeline-orientation guidance (architect 0.11.0).** Three Mermaid-native additions to the skill's references: (1) `flowchart LR` is now explicitly the orientation for pipeline / ETL / CI-CD / data-flow diagrams (a decision-table row plus strengthened flowchart guidance); (2) the config-frontmatter `title:` is documented as the in-source diagram title (Mermaid ≥ 10.5), with the prose scope sentence kept as the always-portable baseline; (3) `accTitle` / `accDescr` are documented as the diagram's screen-reader alt text. The change also explicitly rejects three renderer-proprietary conventions (`:::external`, `label\|tech`, `%% title:`) that no-op or break in stock Mermaid (GitHub, Confluence, `mmdc`, and the repo's own renderers) — they contradict the skill's "survive enterprise wiki rendering" north star. Guidance only; no renderer or skill-contract change.
+
 ### Fixed
 
 - **`aesthetic-direction` grounding reference now cites WCAG thresholds by name, not literal values (experience 0.4.1).** The Standards section of the grounding reference described contrast thresholds using specific ratio and point-size literals, which violated RFC-0033's portable-method rule. The section now refers to the named WCAG SC thresholds and the OS-level reduced-motion preference concept rather than reprinting the values table. No change to skill behavior — only the reference prose that informs the aesthetic-direction pass.
