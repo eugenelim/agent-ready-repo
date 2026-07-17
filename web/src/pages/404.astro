@@ -3,6 +3,7 @@
 // when this file exists (it is NOT automatic). Listed as a Phase-1 deliverable
 // in the platform-site spec inventory.
 import SiteLayout from '../components/layout/SiteLayout.astro';
+import { withBase } from '../lib/paths';
 ---
 
 <SiteLayout title="Page not found — agent-ready-repo">
@@ -15,8 +16,8 @@ import SiteLayout from '../components/layout/SiteLayout.astro';
         homepage or browse the reference docs.
       </p>
       <div class="notfound__actions">
-        <a class="notfound__cta notfound__cta--primary" href="/">Back home</a>
-        <a class="notfound__cta notfound__cta--ghost" href="/docs/">Read the docs</a>
+        <a class="notfound__cta notfound__cta--primary" href={withBase('/')}>Back home</a>
+        <a class="notfound__cta notfound__cta--ghost" href={withBase('/docs/')}>Read the docs</a>
       </div>
     </div>
   </section>

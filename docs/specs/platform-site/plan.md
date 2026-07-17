@@ -398,8 +398,10 @@ Fully static Astro site. Client-side interactivity is minimal and JS-free where 
   section 9 is homepage-specific; it still merges visually with the dark footer.
   (b) Added a reusable `Section.astro` band wrapper (not in the decomposition) to
   keep the six content sections DRY. (c) `astro.config` is `.ts` per the plan;
-  `base` left at `/` for Phase 1 (root-served, matching the pa11y gate) — the
-  production sub-path is still to be confirmed (information-architecture.md).
+  `base` set to `/agent-ready-repo` (GitHub Pages project sub-path, no custom
+  domain — owner-confirmed 2026-07-16) after the first deploy showed root-relative
+  asset paths 404 at the sub-path; internal hrefs routed through
+  `src/lib/paths.ts` `withBase()`; dev server + pa11y now target `/agent-ready-repo/`.
   (d) RFC-0061 accepted; its follow-on ADR (Astro SSG + one-Pages-deploy + Node
   dependency) and `web/AGENTS.md` dependency record co-land in this PR.
   (e) PackCatalogue uses a `<details>` expander with a visible "See all 14 packs →"

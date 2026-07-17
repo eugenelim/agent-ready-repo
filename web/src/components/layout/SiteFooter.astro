@@ -1,6 +1,7 @@
 ---
 // Footer — dark zone. Section 9 ("Build Your Org") closer is added in T6 above
 // these links; for now this is the minimal footer (GitHub, PyPI, Docs).
+import { withBase } from '../../lib/paths';
 const year = new Date().getFullYear();
 ---
 
@@ -8,7 +9,7 @@ const year = new Date().getFullYear();
   <div class="footer__inner">
     <p class="footer__brand">agent-ready-repo</p>
     <nav class="footer__links" aria-label="Footer">
-      <a href="/docs/" rel="noopener">Docs</a>
+      <a href={withBase('/docs/')} rel="noopener">Docs</a>
       <a href="https://github.com/eugenelim/agent-ready-repo" rel="noopener">GitHub</a>
       <a href="https://pypi.org/project/agentbundle/" rel="noopener">PyPI</a>
     </nav>

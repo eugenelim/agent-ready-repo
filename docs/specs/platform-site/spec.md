@@ -148,7 +148,7 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 - [x] Install section renders 4 tabs: Flagship loop, With discovery, Full inception, Solution architect (CSS-only radio-group tabs, zero JS)
 - [x] Nav matches [information-architecture.md](information-architecture.md): `Logo | How it works | Packs | Journeys | Docs ↗ | [Install →]`
 - [x] No inline `style=""` attributes and no hardcoded color values outside the token block; layout spacing (section/card padding, gaps, margins) uses the `--ds-space-*` / `--ds-radius-*` scale, except values the scale does not cover: media-query breakpoints, 1px/2px hairline borders, decorative icon sizing, component `max-width`s, the CTA padding `0.7rem 1.6rem` from design-system-foundations.md, and the sub-`--ds-space-1` micro-padding on inline chips/badges/pills, inline code, and the compact nav CTA (values below the 4px scale floor, where a token would be less legible than the literal)
-- [x] `npx pa11y http://localhost:4321 --standard WCAG2AA` exits with 0 errors
+- [x] `npx pa11y http://localhost:4321/agent-ready-repo/ --standard WCAG2AA` exits with 0 errors (the dev server serves under the configured `base`; the root path 404s by design)
 - [x] `/404.html` branded 404 page emitted (via `web/src/pages/404.astro`)
 
 ### Phase 2 — Pack catalogue and journey pages
@@ -180,7 +180,7 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 
 - [x] GitHub Actions workflow: Astro builds first → MkDocs builds second → artifact uploaded from `build/` (verified locally end-to-end: `build/index.html` and `build/docs/index.html` coexist, proving Astro's outDir clean does not wipe MkDocs output)
 - [x] `site/mkdocs.yml` `site_dir` is `../build/docs`
-- [ ] Single GitHub Pages deploy serves Astro at `/` and MkDocs at `/docs/` (deferred: github-pages-first-deploy-verification — artifact structure verified locally, live serving confirmed on first deploy from `main`)
+- [x] Single GitHub Pages deploy serves Astro at `/` (project sub-path `/agent-ready-repo/`) and MkDocs at `/docs/` — verified live after the first deploy from `main`; `base: '/agent-ready-repo'` set in `astro.config.ts` so assets/links resolve under the sub-path
 
 ## Assumptions
 
