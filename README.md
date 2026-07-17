@@ -25,6 +25,18 @@ agentbundle install --pack core
 
 ## Quick start
 
+**Install via Claude Code / Claude Desktop** (no extra tooling required):
+
+```bash
+# Install any pack directly — no CLI to set up
+claude plugin install https://github.com/eugenelim/agent-ready-repo/tree/claude-plugins-dist/core
+
+# Browse all available packs with install commands
+# → https://eugenelim.github.io/agent-ready-repo/plugins/
+```
+
+**Or install via agentbundle CLI** (supports all agent adapters):
+
 ```bash
 # Install the CLI (one-time)
 pip install agentbundle
@@ -54,6 +66,8 @@ agentbundle install --pack core --dry-run
 `--dry-run` previews every file before anything is written — one line per file, then a `create`/`overwrite` count. Installs auto-detect your agent and fall back to Claude Code; [configure a different default →](docs/guides/_shared/how-to/configure-adapter.md)
 
 Every source verb defaults to this catalogue when you don't name one; pass a git URL or local path to use a different one, or `agentbundle config set source <catalogue>` to change the default.
+
+**Machine-readable catalogue:** `https://raw.githubusercontent.com/eugenelim/agent-ready-repo/claude-plugins-dist/marketplace.json`
 
 ## The three loops
 
