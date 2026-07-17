@@ -1,0 +1,57 @@
+---
+// Reusable band wrapper. `tone` picks the surface: light content (surface /
+// surface-alt) or the dark closer (dark). Hard-cut boundaries — no gradients
+// between bands. Alternating-band model from aesthetic-direction.md.
+interface Props {
+  tone?: 'surface' | 'surface-alt' | 'dark';
+  id?: string;
+  labelledby?: string;
+  'aria-label'?: string;
+  class?: string;
+}
+const {
+  tone = 'surface',
+  id,
+  labelledby,
+  'aria-label': ariaLabel,
+  class: className,
+} = Astro.props;
+---
+
+<section
+  class:list={['section', `section--${tone}`, className]}
+  id={id}
+  aria-labelledby={labelledby}
+  aria-label={ariaLabel}
+>
+  <div class="section__inner">
+    <slot />
+  </div>
+</section>
+
+<style>
+  .section {
+    padding-block: var(--ds-section-pad-y);
+  }
+
+  .section--surface {
+    background-color: var(--ds-surface);
+    color: var(--ds-on-surface-2);
+  }
+
+  .section--surface-alt {
+    background-color: var(--ds-surface-alt);
+    color: var(--ds-on-surface-2);
+  }
+
+  .section--dark {
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+  }
+
+  .section__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+    padding-inline: var(--ds-content-pad-x);
+  }
+</style>
