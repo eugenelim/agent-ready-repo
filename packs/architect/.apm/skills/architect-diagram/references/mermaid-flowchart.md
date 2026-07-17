@@ -133,6 +133,155 @@ Stick to defaults. The exception is the trust-boundary `classDef`
 above. Heavy theming rots fast and doesn't reproduce across wiki
 renderers.
 
+## Edge routing — curve style
+
+Mermaid's default edge curve is `basis` — smooth Bézier paths. For
+architecture diagrams, orthogonal routing removes visual clutter inside
+nested subgraphs:
+
+| Value | Route shape | When to use |
+| --- | --- | --- |
+| `basis` (default) | Smooth Bézier | Informal diagrams, general use |
+| `step` | Right-angle bends at midpoint | **Architecture default** — deployment, cloud topology, boundary diagrams |
+| `stepBefore` | Right angle near the source | Flow enters node laterally |
+| `stepAfter` | Right angle near the target | Flow leaves node laterally |
+| `linear` | Straight lines | Compact diagrams with many parallel edges |
+
+Set it with the `%%{init}%%` directive at the top of the diagram:
+
+````
+```mermaid
+%%{init: {'flowchart': {'curve': 'step'}}}%%
+flowchart TB
+    subgraph vpc["VPC"]
+        APP[App] --> DB[(DB)]
+    end
+    Client --> APP
+```
+````
+
+The `%%{init}%%` directive is Mermaid's original configuration path and is
+still fully supported. The YAML `---` frontmatter block (Mermaid ≥ 10.5) is
+the more readable alternative when setting two or more keys; both produce
+identical output.
+
+## Layout control
+
+### Subgraph direction override
+
+A subgraph may declare its own layout direction as its first statement:
+
+```
+subgraph pipeline["Pipeline"]
+    direction LR
+    Ingest --> Transform --> Load
+end
+```
+
+**Critical constraint**: the direction override is silently ignored when any
+node inside the subgraph has an edge to a node *outside* that subgraph.
+Mermaid's dagre engine must resolve all ranks globally in that case and
+cannot honour the local override. Keep the override only on self-contained
+subgraphs with no external edges.
+
+Set `inheritDir: true` to make subgraphs without an explicit `direction`
+statement inherit the diagram's top-level direction:
+
+```
+%%{init: {'flowchart': {'inheritDir': true}}}%%
+flowchart LR
+    subgraph A ... end
+    subgraph B ... end
+    A --> B
+```
+
+### Spacing
+
+Three keys under the `flowchart` init key control spacing. All three are
+**diagram-global** — Mermaid applies one value across the whole canvas,
+not per-subgraph:
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `nodeSpacing` | 50 | Horizontal gap between nodes on the same rank |
+| `rankSpacing` | 50 | Vertical gap between ranks |
+| `diagramPadding` | 8 | Outer margin around the diagram canvas |
+| `padding` | 15 | Inner padding inside each node shape |
+
+```
+%%{init: {'flowchart': {'nodeSpacing': 80, 'rankSpacing': 100, 'diagramPadding': 30}}}%%
+```
+
+When the subgraph title collides with its first child node, `subGraphTitleMargin`
+is the targeted fix — it adds padding specifically below the title without
+stretching all inter-rank gaps:
+
+```
+%%{init: {'flowchart': {'subGraphTitleMargin': {'top': 5}}}}%%
+```
+
+Increase `rankSpacing` when ranks themselves are too close; `subGraphTitleMargin`
+is the right lever when only the title is crowding its children.
+
+**Placement bug**: spacing directives placed at the root of the `%%{init}%%`
+object are silently ignored. Always nest them under `'flowchart': {}`.
+
+### Label wrapping
+
+Mermaid auto-wraps node labels at `wrappingWidth` characters (default 200).
+Lower it when long labels are clipping:
+
+```
+%%{init: {'flowchart': {'wrappingWidth': 120}}}%%
+```
+
+Text-drives-layout: Mermaid derives node dimensions from label content —
+there is no per-node size override. Use `\n` to force a line break in a label.
+
+## ELK renderer — for complex graphs
+
+Mermaid ships a second optional layout engine, **ELK** (Eclipse Layout
+Kernel), available as the npm package `@mermaid-js/layout-elk`. Where dagre
+uses a barycentric Sugiyama rank assignment, ELK's default strategy
+(`BRANDES_KOEPF`) implements the Brandes-Köpf 2002 coordinate-assignment
+algorithm — minimises edge bends and produces more compact, visually balanced
+graphs at the cost of an extra npm dependency.
+
+Enable it with YAML frontmatter:
+
+````
+```mermaid
+---
+config:
+  layout: elk
+  elk:
+    mergeEdges: true
+    nodePlacementStrategy: BRANDES_KOEPF
+---
+flowchart LR
+    ...
+```
+````
+
+| ELK option | Values | Effect |
+| --- | --- | --- |
+| `mergeEdges` | `true` / `false` (default) | Bundle parallel edges — reduces clutter for hub-and-spoke graphs |
+| `nodePlacementStrategy` | `BRANDES_KOEPF` (default) · `LINEAR_SEGMENTS` · `NETWORK_SIMPLEX` · `SIMPLE` | `BRANDES_KOEPF`: compact + balanced (Brandes-Köpf 2002); `LINEAR_SEGMENTS`: consistent row alignment; `NETWORK_SIMPLEX`: stronger crossing minimisation at higher cost; `SIMPLE`: fast, lower quality |
+
+**Venue caveat — ELK availability varies by environment.** The ELK engine
+requires `@mermaid-js/layout-elk` to be loaded. When absent, the renderer
+silently falls back to dagre. Confirmed availability:
+
+| Venue | ELK available |
+| --- | --- |
+| `mmdc` (Mermaid CLI) v11+ | Yes — bundled as a required dependency |
+| Mermaid Live Editor | Yes |
+| Mermaid Chart platform | Yes |
+| GitHub, Quarto, Joplin, Obsidian core | No — not bundled in their Mermaid build |
+| Self-hosted / custom installs | Depends — check whether `@mermaid-js/layout-elk` is installed |
+
+In venues where ELK is unavailable, tune `nodeSpacing` and `rankSpacing` instead.
+
 ## Common architecture pitfalls
 
 - **Top-down flowchart used as a request flow.** Switch to
@@ -142,3 +291,16 @@ renderers.
   abstract art.
 - **Mixing shapes inconsistently** — `[Service A]` and `(Service B)`
   for two services that play the same role. Pick one.
+- **Invisible links (`A ~~~ B`) as a layout crutch.** Invisible links
+  force node positioning by adding a hidden dependency. Their presence
+  signals the diagram has more nodes than the layout engine can place
+  sensibly — the right fix is to split the diagram, not add invisible
+  scaffolding.
+- **Edge labels that are not grammatical.** Labels like `"uses"` or
+  `"calls"` are meaningless. Use noun phrases naming the protocol or
+  payload (`"HTTPS"`, `"orders.v1 Kafka topic"`) or verb phrases naming
+  the action (`"submits pick request"`). Vague labels actively mislead.
+- **Edge label overlap.** When two edges cross or share a path segment,
+  their labels stack illegibly. Fix by increasing `rankSpacing` or
+  `nodeSpacing`, switching to `curve: step` for orthogonal routing, or
+  restructuring the diagram so the crossing doesn't occur.
