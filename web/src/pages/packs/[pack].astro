@@ -1,0 +1,231 @@
+---
+import { getCollection, render } from 'astro:content';
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import PackHero from '../../components/pack/PackHero.astro';
+import Section from '../../components/layout/Section.astro';
+import { withBase } from '../../lib/paths';
+
+export async function getStaticPaths() {
+  const packs = await getCollection('packs');
+  return packs.map((entry) => ({
+    params: { pack: entry.id.replace(/\.md$/, '') },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+const hasJourney = !!data.journeyUrl;
+---
+
+<SiteLayout
+  title={`${data.name} pack — agent-ready-repo`}
+  description={data.tagline}
+>
+  <PackHero
+    name={data.name}
+    scope={data.scope}
+    tagline={data.tagline}
+    skillCount={data.skills.length}
+  />
+
+  <Section tone="surface">
+    <div class="pack-body">
+      <!-- Description -->
+      <div class="pack-description">
+        <Content />
+      </div>
+
+      <!-- Skills -->
+      <div class="pack-section">
+        <h2 class="pack-section__title">Skills in this pack</h2>
+        <ul class="skills-list">
+          {data.skills.map((skill) => (
+            <li class="skill-item">
+              <code class="skill-name">{skill}</code>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Install -->
+      <div class="pack-section">
+        <h2 class="pack-section__title">Install</h2>
+        <div class="install-block">
+          <pre class="install-block__code"><code>{data.installCommand}</code></pre>
+        </div>
+        <p class="install-note">
+          Requires <a href={withBase('/docs/getting-started/')}>agentbundle</a>.
+        </p>
+      </div>
+
+      <!-- Journey -->
+      <div class="pack-section">
+        <h2 class="pack-section__title">Journey</h2>
+        {hasJourney ? (
+          <a class="journey-link" href={withBase(data.journeyUrl!)}>
+            <div class="journey-link__inner">
+              <span class="journey-link__label">Explore the {data.name} journey</span>
+              <span class="journey-link__sub">See what it's like to use this pack — staged narrative with gate-by-gate guidance.</span>
+            </div>
+            <span class="journey-link__arrow" aria-hidden="true">→</span>
+          </a>
+        ) : (
+          <div class="journey-coming-soon">
+            <span class="journey-coming-soon__label">Journey coming soon</span>
+            <p class="journey-coming-soon__sub">The narrative walkthrough for this pack is being authored. Check back after Phase 2.</p>
+          </div>
+        )}
+      </div>
+
+      <!-- Docs -->
+      <div class="pack-section">
+        <a class="docs-link" href={withBase(data.docsUrl)}>
+          Read the full reference <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </div>
+  </Section>
+</SiteLayout>
+
+<style>
+  .pack-body {
+    max-width: 72ch;
+    display: grid;
+    gap: var(--ds-space-9);
+  }
+
+  .pack-description {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  .pack-section__title {
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-4);
+    color: var(--ds-on-surface);
+  }
+
+  .skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-3);
+  }
+
+  .skill-item {
+    list-style: none;
+  }
+
+  .skill-name {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .install-block {
+    background-color: var(--ds-hero-bg);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-5) var(--ds-space-6);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .install-block__code {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    color: var(--ds-hero-fg);
+    line-height: var(--ds-lead-mono);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+  }
+
+  .install-note {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .journey-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-4);
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
+  }
+
+  .journey-link:hover {
+    border-color: var(--ds-accent);
+    border-left-color: var(--ds-accent);
+  }
+
+  .journey-link__label {
+    display: block;
+    font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .journey-link__sub {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    line-height: var(--ds-lead-body);
+  }
+
+  .journey-link__arrow {
+    font-size: var(--ds-type-h3);
+    color: var(--ds-accent);
+    flex-shrink: 0;
+  }
+
+  .journey-coming-soon {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+  }
+
+  .journey-coming-soon__label {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    background-color: var(--ds-border);
+    color: var(--ds-on-surface-muted);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .journey-coming-soon__sub {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    line-height: var(--ds-lead-body);
+  }
+
+  .docs-link {
+    font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-accent-deep);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .journey-link {
+      transition: none;
+    }
+  }
+</style>

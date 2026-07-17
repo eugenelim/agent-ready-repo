@@ -88,7 +88,7 @@ Every journey page uses this section sequence. Content varies; structure does no
 
 ### Section 1 — Pack hero
 **Component:** `JourneyHero.astro`  
-**Surface:** Dark zone
+**Surface:** Light zone (`--ds-surface-alt`) — override: owner decision (2026-07-16) — journey pages are fully light zone for consistency with the homepage Human Gates section; amber accents provide visual weight without a dark band
 
 Elements:
 - Pack name (display scale, amber)
@@ -122,58 +122,40 @@ Example for `core`:
 ---
 
 ### Section 4 — The journey (staged narrative)
-**Component:** `JourneyStage.astro` (one per stage)  
-**Surface:** Alternating light / slightly-lighter
+**Component:** Markdown body (`<Content />` rendered from the journey `.md` file)  
+**Surface:** Light zone
 
-**Job:** Walk through a real session. Each stage is a numbered step showing what the agent does and what the human does. This is the primary content — the rest is scaffolding for it.
+**Job:** Walk through a real session in past tense, second person. Each stage is a named step describing what happened — what the agent did and what the human did. This is the primary content — the rest is scaffolding for it.
 
-Each stage block contains:
+**Authoring convention (per journey `.md` body):**
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Stage N — [Stage label]                            │
-│  Initiated by: [human prompt / previous stage]      │
-├─────────────────────────────────────────────────────┤
-│  AGENT DOES                                         │
-│  [Bullet list — what the agent does, not will do]   │
-│                                                     │
-│  YOU DO          ← amber left-border, distinct bg   │
-│  [What the human does at this stage]                │
-│                                                     │
-│  ⚑ GATE: [gate label]  ← if this stage has a gate │
-│  [What to check — see gate detail below]            │
-└─────────────────────────────────────────────────────┘
-```
+- Use past tense, second person: "You opened a task. The agent activated `work-loop`."
+- Name the skill, not just the loop: "The agent ran `adversarial-reviewer` in a fresh session."
+- Name the failure mode at every gate — what does a bad plan look like? What does a bad PR look like?
+- Each stage has a `**You did:**` paragraph describing the human's active role — watching at key moments, redirecting, reading output, making decisions. Do not write "You did: Nothing."
 
 **Example stage sequence for `core` / `work-loop`:**
 
-**Stage 1 — Brief the loop**
-- Initiated by: You write a task description to your agent
-- Agent does: Activates `work-loop`. Checks whether it's light or full mode. Writes the lean inline spec (trio: problem, user, success criteria). Identifies risk triggers. Surfaces assumptions.
-- You do: Read the trio. Confirm the scope is correct. If a risk trigger fires, confirm the mode is right.
-- Gate: Plan approval (see gate detail below)
+```markdown
+## Stage 1 — Brief the loop
+You described the task. The agent activated `work-loop`, checked for risk triggers,
+wrote the inline spec (trio: problem, user, success criteria), and surfaced assumptions.
 
-**Stage 2 — Execution**
-- Initiated by: Your plan approval
-- Agent does: Implements against the spec. Runs lint, typecheck, and tests. If any gate fails, loops to fix before proceeding.
-- You do: Nothing during execution — the agent runs the gates. You'll be called back only if the agent hits a blocker it can't resolve.
+**You did:** Read the trio. Confirmed scope. Approved the plan. 5–10 minutes.
 
-**Stage 3 — Specialist review**
-- Initiated by: Mechanical gates passing
-- Agent does: Runs `adversarial-reviewer` in a fresh session. May also run `security-reviewer` or `quality-engineer` if risk triggers fired. Each reviewer reads the diff cold — no context from the build session.
-- You do: Nothing — reviewers run unattended. The loop iterates until the reviewer reports clean.
+## Stage 2 — Execution
+The agent implemented against the spec, running lint, typecheck, and tests after
+each logical change. When a gate failed, it fixed and re-ran before continuing.
 
-**Stage 4 — PR and merge**
-- Initiated by: All reviewers reporting clean
-- Agent does: Opens the PR with a description including: what changed, why, what was deferred, what was found mid-implementation.
-- You do: Review the PR. Check that the spec and implementation align. Merge when satisfied.
-- Gate: G4 — Merge the PR (see gate detail below)
+**You did:** Watched at key moments — skimmed output after each logical task.
+Answered quickly if the agent surfaced a question. Let it run when all was well.
+```
 
 ---
 
 ### Section 5 — Human gates (detailed)
 **Component:** `GateDetail.astro`  
-**Surface:** Dark zone (second dark band — visual weight signals importance)
+**Surface:** Light zone (`--ds-surface-alt`) — override: owner decision (2026-07-16) — amber left-border cards on light background provide the visual weight; no dark band needed
 
 **Job:** For each gate, give the human everything they need to make a confident decision. This is the section that makes the page distinctive — no other resource explains what the human actually does at each gate.
 
@@ -217,19 +199,18 @@ For `core`: Screenshot of a clean PR description showing the trio, what was defe
 ---
 
 ### Section 7 — Typical session shape
-**Component:** `StatStrip.astro` (reused)  
+**Component:** Inline `.session-stats` grid (bespoke, not a shared component)  
 **Surface:** Light zone
 
-Three or four stats from the frontmatter:
+Three stats from the `typicalSession` frontmatter field:
 - Agent turns (range)
 - Human touches
 - Wall-clock time
-- Gates passed (mechanical)
 
 ---
 
 ### Section 8 — Install and next steps
-**Component:** `InstallTerminal.astro` (reused, compact variant)  
+**Component:** Inline `.install-block` (bespoke, not a shared component)  
 **Surface:** Light zone (`--ds-surface-alt`)
 
 Install command from frontmatter.

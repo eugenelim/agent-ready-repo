@@ -1,0 +1,78 @@
+---
+// Header section for /packs/[slug] detail pages. Light zone — pack detail pages
+// do not use a dark hero band; amber accents provide the visual anchor.
+interface Props {
+  name: string;
+  scope: 'user' | 'repo';
+  tagline: string;
+  skillCount: number;
+}
+
+const { name, scope, tagline, skillCount } = Astro.props;
+---
+
+<header class="pack-hero">
+  <div class="pack-hero__inner">
+    <div class="pack-hero__meta">
+      <span class="scope-chip">{scope}</span>
+      <span class="skill-count">{skillCount} {skillCount === 1 ? 'skill' : 'skills'}</span>
+    </div>
+    <h1 class="pack-hero__name">{name}</h1>
+    <p class="pack-hero__tagline">{tagline}</p>
+  </div>
+</header>
+
+<style>
+  .pack-hero {
+    background-color: var(--ds-surface-alt);
+    border-bottom: 1px solid var(--ds-border);
+    padding-block: var(--ds-space-9);
+  }
+
+  .pack-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+    padding-inline: var(--ds-content-pad-x);
+  }
+
+  .pack-hero__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .scope-chip {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .skill-count {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-muted);
+    font-family: var(--ds-font-mono);
+  }
+
+  .pack-hero__name {
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    color: var(--ds-accent-deep);
+    letter-spacing: var(--ds-track-display);
+    line-height: var(--ds-lead-display);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .pack-hero__tagline {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
+    max-width: 60ch;
+    line-height: var(--ds-lead-body);
+  }
+</style>
