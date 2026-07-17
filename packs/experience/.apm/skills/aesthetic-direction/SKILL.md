@@ -18,13 +18,14 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 ## Procedure
 
-1. **Run the interrogation.** Open from the felt vibe, probe the emotions, associations, and brand attributes behind it, and converge on a short set of named goals — each a noun phrase a non-designer can recall. Sharpen each against its opposite. Load `references/interrogation-sequence.md`.
-2. **Ground each goal in stable referents.** For each named goal, name *what grounds it*: the persona it serves, any precedent that carries the quality, the standards it respects, and the platform conventions for the target surface. A goal without a referent is still a fresh opinion — ground it or push it back to Step 1. Load `references/grounding.md`.
-3. **Rank the goals.** Order them so a tie can break. The top goal is the dominant one that wins when goals conflict.
-4. **Record arbitration.** For each likely conflict, name which goal wins and why, so the build doesn't re-litigate it. Load `references/coherence-arbitration.md`.
-5. **Capture the doc.** Copy `assets/aesthetic-direction-template.md` into the user's repo and fill it: the surface, the ranked goals with their referents, what each means and what would violate it, the dominant goal, and open questions.
-6. **Hold the floor.** The direction must not fight the shared `quality-floor` checklist (`../design-critique/references/quality-floor.md`) — accessibility is not negotiable against aesthetics. If a goal pulls against the floor, the floor wins; record it as an open question, not a trade-off.
-7. **Hand off.** Once the goals are named, ranked, and grounded, hand to `design-system-foundations` to derive the tokens and scales that express them.
+1. **Map the audience.** Name each distinct reader type for this surface, write one JTBD sentence per type ("When {situation}, I want to {action}, so that {goal}"), and rank them (primary, secondary). Load `references/audience-jtbd.md`. Feed the ranked map into Step 2 — the vibe that emerges should serve the primary reader's cognitive mode. Record the map in the doc; it becomes the Persona referent for each named goal in Step 3.
+2. **Run the interrogation.** Open from the felt vibe, probe the emotions, associations, and brand attributes behind it, and converge on a short set of named goals — each a noun phrase a non-designer can recall. Sharpen each against its opposite. Load `references/interrogation-sequence.md`.
+3. **Ground each goal in stable referents.** For each named goal, name *what grounds it*: the persona it serves, any precedent that carries the quality, the standards it respects, and the platform conventions for the target surface. A goal without a referent is still a fresh opinion — ground it or push it back to Step 2. Load `references/grounding.md`.
+4. **Rank the goals.** Order them so a tie can break. The top goal is the dominant one that wins when goals conflict.
+5. **Record arbitration.** For each likely conflict, name which goal wins and why, so the build doesn't re-litigate it. Load `references/coherence-arbitration.md`.
+6. **Capture the doc.** Copy `assets/aesthetic-direction-template.md` into the user's repo and fill it: the surface, the ranked goals with their referents, what each means and what would violate it, the dominant goal, and open questions.
+7. **Hold the floor.** The direction must not fight the shared `quality-floor` checklist (`../design-critique/references/quality-floor.md`) — accessibility is not negotiable against aesthetics. If a goal pulls against the floor, the floor wins; record it as an open question, not a trade-off.
+8. **Hand off.** Once the goals are named, ranked, and grounded, hand to `design-system-foundations` to derive the tokens and scales that express them.
 
 ## Anti-patterns to refuse
 
