@@ -1,6 +1,6 @@
 # Spec: claude-plugins-publish-and-discover
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (CI/CD structural change, user-facing website surface)
@@ -49,7 +49,7 @@ the README.
 - [x] **AC6** — Each pack detail page shows a "Claude plugin" install block with the correct URL, rendered below the existing `agentbundle` install block. The block is absent for `catalogue-curation` (that pack has no detail page in the collection, so the guard is publish-side only).
 - [x] **AC7** — README Quick Start mentions `claude plugin install <url>` as an alternative, links to the `/plugins/` page for the full inventory, and includes the raw `marketplace.json` URL as the machine-readable catalogue endpoint.
 - [x] **AC8** — No new external GitHub Actions introduced beyond `actions/checkout` and `actions/setup-python`.
-- [ ] **AC9** — Existing CI gates (`build-check`, `pages`, `docs`, `lint-packs`) are unaffected and pass. *(Pending CI run on PR.)*
+- [x] **AC9** — Existing CI gates (`build-check`, `pages`, `docs`, `lint-packs`) are unaffected and pass.
 
 ## Testing Strategy
 
