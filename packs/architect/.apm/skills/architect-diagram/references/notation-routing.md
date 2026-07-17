@@ -19,6 +19,8 @@ notation is the most common reason a diagram is unreadable.
 | "Break this down" — decomposition / hierarchy / mind map | Mindmap † | `mindmap` |
 | Comparison ("X vs Y") | Markdown table — **not** Mermaid | — |
 | Internal class structure | Class diagram | `classDiagram` *(rarely the right answer for architecture; usually means the question is "code" not "architecture")* |
+| "How is version control structured" — branching strategy, merge / rebase workflow | Git graph | `gitGraph` |
+| "When does each task happen, what depends on what" — project schedule with durations | Gantt chart | `gantt` |
 
 † **Newer grammars — offer with a rendering caveat, don't default.**
 `timeline`, `quadrantChart`, and `mindmap` are the same class as
