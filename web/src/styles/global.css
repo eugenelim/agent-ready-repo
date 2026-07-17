@@ -1,0 +1,4 @@
+/* Global entry point — order matters: tokens define the custom properties that
+   base.css consumes. Imported once, from SiteLayout.astro. */
+@import './tokens.css';
+@import './base.css';
