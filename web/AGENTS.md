@@ -14,6 +14,7 @@ dependencies are recorded here before they are added.
 | --- | --- | --- |
 | Node.js | `>=22.12.0` (see `package.json` `engines`) | Astro build/runtime toolchain |
 | [`astro`](https://astro.build) | pinned `7.1.0` (exact, not a range) | Static-site generator for the marketing pages; pinned for reproducible CI |
+| [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/) | pinned `3.7.3` (exact, not a range) | Generates `sitemap-index.xml` + `sitemap-0.xml` at build time for SEO (Phase 4) |
 
 Build-time only. This is our own site infrastructure — not a primitive or
 framework prescribed to adopters (see RFC-0061's charter-neutrality analysis).
