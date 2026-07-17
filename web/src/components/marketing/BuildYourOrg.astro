@@ -1,0 +1,65 @@
+---
+// Section 9 — BUILD YOUR ORG. Dark zone (footer-adjacent closer). Renders
+// immediately above the dark SiteFooter, so the two merge into one continuous
+// dark band — the only second dark band, reading as closure not interruption
+// (aesthetic-direction.md / homepage-screen-flow.md §9).
+import Section from '../layout/Section.astro';
+---
+
+<Section tone="dark" labelledby="org-heading">
+  <div class="org">
+    <h2 id="org-heading" class="org__headline">Make it your team's operating model.</h2>
+    <p class="org__body">
+      Adopt the catalogue as-is, or fork it as your own. Write your house conventions
+      and review standards into <code>core</code>, add skills for your stack, and ship
+      one catalogue every engineer installs in a single line — the loop, the reviewers,
+      and the standards come out identical on every machine and in every agent.
+    </p>
+    <a class="org__cta" href="/docs/guides/_shared/how-to/build-an-org-stack-pack/">
+      How to build your org's catalogue <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</Section>
+
+<style>
+  .org {
+    max-width: 64ch;
+  }
+
+  .org__headline {
+    color: var(--ds-hero-fg);
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    line-height: var(--ds-lead-display);
+    letter-spacing: var(--ds-track-display);
+    margin-bottom: var(--ds-space-5);
+  }
+
+  .org__body {
+    color: var(--ds-hero-fg-2);
+    font-size: var(--ds-type-body-lg);
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .org__body code {
+    background-color: var(--ds-accent-subtle-dk);
+    color: var(--ds-accent);
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .org__cta {
+    display: inline-block;
+    background-color: var(--ds-cta-primary-bg);
+    color: var(--ds-cta-primary-fg);
+    font-weight: var(--ds-weight-semibold);
+    font-size: var(--ds-type-body);
+    padding: 0.7rem 1.6rem;
+    border-radius: var(--ds-radius-pill);
+  }
+
+  .org__cta:hover {
+    background-color: var(--ds-cta-primary-bg-hover);
+    text-decoration: none;
+  }
+</style>

@@ -1,0 +1,80 @@
+---
+// Section 2 — STAT STRIP. Dark zone, continuous with the hero (no visual break).
+// Specificity as trust signal.
+// Rendered text reads: 3 supervised loops · 7 adapters · 1 pip install
+const stats = [
+  { number: '3', label: 'supervised loops' },
+  { number: '7', label: 'adapters' },
+  { number: '1', label: 'pip install' },
+];
+---
+
+<section class="stats" aria-label="At a glance">
+  <ul class="stats__list">
+    {stats.map((s) => (
+      <li class="stats__item">
+        <span class="stats__number">{s.number}</span>
+        <span class="stats__label">{s.label}</span>
+      </li>
+    ))}
+  </ul>
+</section>
+
+<style>
+  .stats {
+    background-color: var(--ds-hero-bg);
+    border-top: 1px solid var(--ds-hero-border);
+  }
+
+  .stats__list {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+    padding: var(--ds-space-6) var(--ds-content-pad-x) var(--ds-space-8);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--ds-space-5) 0;
+  }
+
+  .stats__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-inline: var(--ds-space-7);
+    border-left: 1px solid var(--ds-hero-border);
+  }
+
+  .stats__item:first-child {
+    border-left: 0;
+  }
+
+  .stats__number {
+    font-family: var(--ds-font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--ds-type-h2);
+    font-weight: var(--ds-weight-heavy);
+    color: var(--ds-accent);
+    line-height: 1;
+  }
+
+  .stats__label {
+    margin-top: var(--ds-space-2);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-hero-fg-muted);
+  }
+
+  @media (max-width: 640px) {
+    .stats__item {
+      flex: 1 1 45%;
+      padding-inline: var(--ds-space-4);
+    }
+
+    /* Reset the vertical rule per two-per-row grid on small screens. */
+    .stats__item:nth-child(odd) {
+      border-left: 0;
+    }
+  }
+</style>

@@ -1,0 +1,35 @@
+---
+// Section 3 — THE PROBLEM. Light zone. Text is the whole section — no card,
+// no icon. The whitespace is the emphasis (Hemingway iceberg).
+import Section from '../layout/Section.astro';
+---
+
+<Section tone="surface" labelledby="problem-heading">
+  <div class="problem">
+    <h2 id="problem-heading" class="problem__headline">
+      An unattended loop makes unattended mistakes.
+    </h2>
+    <p class="problem__body">
+      Agent coding tools have moved the leverage from the prompt to the loop. But a
+      loop running unattended is also a loop making mistakes unattended — and it will
+      self-certify its way out of every check you give it. The answer is not a tighter
+      prompt. It is a supervised loop with mechanical gates the agent cannot bypass.
+    </p>
+  </div>
+</Section>
+
+<style>
+  .problem {
+    max-width: 42ch;
+  }
+
+  .problem__headline {
+    margin-bottom: var(--ds-space-5);
+  }
+
+  .problem__body {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface-2);
+    max-width: 62ch;
+  }
+</style>

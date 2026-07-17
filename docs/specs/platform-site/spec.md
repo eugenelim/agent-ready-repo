@@ -3,7 +3,7 @@
 - **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [plan.md](plan.md)
-- **Constrained by:** [aesthetic-direction.md](aesthetic-direction.md), [design-system-foundations.md](design-system-foundations.md), [information-architecture.md](information-architecture.md), [homepage-screen-flow.md](homepage-screen-flow.md), [journey-page-template.md](journey-page-template.md)
+- **Constrained by:** [aesthetic-direction.md](aesthetic-direction.md), [design-system-foundations.md](design-system-foundations.md), [information-architecture.md](information-architecture.md), [homepage-screen-flow.md](homepage-screen-flow.md), [journey-page-template.md](journey-page-template.md), [RFC-0061](../../rfc/0061-web-top-level-directory.md)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -64,7 +64,7 @@ Two journey slugs differ from their pack slugs: `discovery` → `product-enginee
 | `/sitemap.xml` | 4 | `@astrojs/sitemap` integration |
 | `/robots.txt` | 4 | `web/public/robots.txt` |
 | `/social.png` | 4 | `web/public/social.png` (1200×630 og:image) |
-| `/404.html` | 1 | Astro automatic; GitHub Pages uses this for unknown routes |
+| `/404.html` | 1 | `web/src/pages/404.astro` (Astro emits `404.html` only when this page exists — not automatic); GitHub Pages uses it for unknown routes |
 
 ### Shared surfaces
 
@@ -78,8 +78,8 @@ Two journey slugs differ from their pack slugs: `discovery` → `product-enginee
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 — MkDocs token alignment | Amber-gold CSS swap; global primary button override | In progress (one AC remaining) |
-| 1 — Astro scaffold + homepage | Astro in `web/`, 9 homepage sections, CI pipeline | Planned (blocked on `web/` RFC) |
+| 0 — MkDocs token alignment | Amber-gold CSS swap; global primary button override | Complete (all ACs met) |
+| 1 — Astro scaffold + homepage | Astro in `web/`, 9 homepage sections, CI pipeline | In progress (this PR — homepage + CI built; `/packs/` and `/journeys/` routes land in Phase 2) |
 | 2 — Pack catalogue + core journeys | 14 pack pages + journey index + 3 core journey pages | Planned |
 | 3 — Priority-2 journeys | research, architect, experience, contracts, converters, atlassian | Planned (content-gated) |
 | 4 — Remaining journeys + SEO | figma, governance-extras, credential-brokers, monorepo-extras, user-guide-diataxis; SEO metadata + sitemap | Planned (content-gated) |
@@ -139,16 +139,17 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 
 ### Phase 1 — Astro marketing homepage
 
-- [ ] `astro build` exits 0; output lands in `build/` with Astro files at root
-- [ ] Homepage renders all 9 sections from [homepage-screen-flow.md](homepage-screen-flow.md) in order
-- [ ] Dark hero section (`#0b0e12`) runs continuously from viewport top to end of stat strip with no gap
-- [ ] Stat strip text reads: `3 supervised loops · 7 adapters · 1 pip install · 0 self-certified builds`
-- [ ] All content sections between hero and footer-adjacent closer use `#fafaf9` surface — Human Gates section is light zone with amber-bordered cards, not a dark zone
-- [ ] Catalogue section shows exactly 3 pack cards always visible; expand affordance reveals the remaining 11
-- [ ] Install section renders 4 tabs: Flagship loop, With discovery, Full inception, Solution architect
-- [ ] Nav matches [information-architecture.md](information-architecture.md): `Logo | How it works | Packs | Journeys | Docs ↗ | [Install →]`
-- [ ] No inline `style=""` attributes or hardcoded hex/px values outside the token block
-- [ ] `npx pa11y http://localhost:4321 --standard WCAG2AA` exits with 0 errors
+- [x] `astro build` exits 0; output lands in `build/` with Astro files at root
+- [x] Homepage renders all 9 sections from [homepage-screen-flow.md](homepage-screen-flow.md) in order
+- [x] Dark hero section (`#0b0e12`) runs continuously from viewport top to end of stat strip with no gap — nav, hero, and stat strip all use `--ds-hero-bg` with no inter-band margin
+- [x] Stat strip text reads: `3 supervised loops · 7 adapters · 1 pip install` — rendered as number + label pairs separated by the design system's vertical rule (the `·` is notation for the stat row; separator is `1px solid --ds-hero-border` per design-system-foundations.md). The `0 self-certified builds` stat from the original screen-flow was dropped at owner request (2026-07-16); design-system-foundations.md permits a three-or-four-item strip.
+- [x] Content sections between hero and footer-adjacent closer use the **light zone** (`--ds-surface` `#fafaf9` / `--ds-surface-alt` `#f0efed` for band alternation, per homepage-screen-flow.md §4/§7) — never a dark band; the Human Gates section is light zone with amber-bordered cards
+- [x] Catalogue section shows exactly 3 pack cards always visible; expand affordance (`<details>` with a visible "See all 14 packs →" summary) reveals the remaining 11
+- [x] Install section renders 4 tabs: Flagship loop, With discovery, Full inception, Solution architect (CSS-only radio-group tabs, zero JS)
+- [x] Nav matches [information-architecture.md](information-architecture.md): `Logo | How it works | Packs | Journeys | Docs ↗ | [Install →]`
+- [x] No inline `style=""` attributes and no hardcoded color values outside the token block; layout spacing (section/card padding, gaps, margins) uses the `--ds-space-*` / `--ds-radius-*` scale, except values the scale does not cover: media-query breakpoints, 1px/2px hairline borders, decorative icon sizing, component `max-width`s, the CTA padding `0.7rem 1.6rem` from design-system-foundations.md, and the sub-`--ds-space-1` micro-padding on inline chips/badges/pills, inline code, and the compact nav CTA (values below the 4px scale floor, where a token would be less legible than the literal)
+- [x] `npx pa11y http://localhost:4321 --standard WCAG2AA` exits with 0 errors
+- [x] `/404.html` branded 404 page emitted (via `web/src/pages/404.astro`)
 
 ### Phase 2 — Pack catalogue and journey pages
 
@@ -177,9 +178,9 @@ This spec uses goal-based checks and visual/manual QA. The Astro marketing site 
 
 ### CI + deploy (Phase 1 prerequisite)
 
-- [ ] GitHub Actions workflow: Astro builds first → MkDocs builds second → artifact uploaded from `build/`
-- [ ] `site/mkdocs.yml` `site_dir` is `../build/docs`
-- [ ] Single GitHub Pages deploy serves Astro at `/` and MkDocs at `/docs/`
+- [x] GitHub Actions workflow: Astro builds first → MkDocs builds second → artifact uploaded from `build/` (verified locally end-to-end: `build/index.html` and `build/docs/index.html` coexist, proving Astro's outDir clean does not wipe MkDocs output)
+- [x] `site/mkdocs.yml` `site_dir` is `../build/docs`
+- [ ] Single GitHub Pages deploy serves Astro at `/` and MkDocs at `/docs/` (deferred: github-pages-first-deploy-verification — artifact structure verified locally, live serving confirmed on first deploy from `main`)
 
 ## Assumptions
 
