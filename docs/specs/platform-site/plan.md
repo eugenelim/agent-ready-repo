@@ -183,7 +183,7 @@ Fully static Astro site. Client-side interactivity is minimal and JS-free where 
 **Tests:**
 - Visual/manual QA: hero background is `#0b0e12`; continuous from viewport top to end of stat strip; no white gap between header and hero
 - Visual/manual QA: headline "The supervised AI operating model for software teams" (per [homepage-screen-flow.md](homepage-screen-flow.md)); subhead and two CTA buttons (amber primary, transparent secondary)
-- Visual/manual QA: stat strip reads `3 supervised loops · 7 adapters · 1 pip install · 0 self-certified builds`
+- Visual/manual QA: stat strip reads `3 supervised loops · 7 adapters · 1 pip install` (the `0 self-certified builds` stat was dropped at owner request 2026-07-16)
 - Accessibility: one `<h1>` on page; heading level correct; CTAs are `<a href>` not `<div onclick>`
 - Reduced-motion: hero opacity fade-in behind `@media (prefers-reduced-motion: no-preference)`; stat strip static
 
