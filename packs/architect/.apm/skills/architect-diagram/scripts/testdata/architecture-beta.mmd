@@ -1,0 +1,12 @@
+architecture-beta
+    group api(cloud)[API tier]
+    group data(database)[Data tier]
+
+    service web(server)[Web app] in api
+    service api_svc(server)[API service] in api
+    service cache(disk)[Cache] in data
+    service db(database)[Postgres] in data
+
+    web:R --> L:api_svc
+    api_svc:B --> T:db
+    api_svc:R --> L:cache
