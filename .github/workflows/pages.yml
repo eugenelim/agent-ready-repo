@@ -23,6 +23,24 @@ jobs:
         with:
           fetch-depth: 0  # full history for git-revision-date plugin
 
+      # ── Astro marketing site FIRST (RFC-0061) ───────────────────────────
+      # `astro build` cleans its outDir (build/) on every run, so it must run
+      # BEFORE MkDocs writes into build/docs/ — otherwise MkDocs output is wiped.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci --prefix web
+
+      - name: Build Astro marketing site
+        run: npm run build --prefix web  # writes build/ at repo root
+        env:
+          ASTRO_TELEMETRY_DISABLED: "1"
+
+      # ── MkDocs reference docs SECOND — writes into build/docs/ ───────────
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -44,7 +62,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site/built/
+          path: ./build
 
   deploy:
     if: github.ref == 'refs/heads/main'

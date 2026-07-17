@@ -52,13 +52,12 @@ Reference: `site/aesthetic-direction.md`, `.context/site-information-architectur
 | Number | Label |
 |---|---|
 | `3` | supervised loops |
-| `7` | agent adapters |
+| `7` | adapters |
 | `1` | pip install |
-| `0` | self-certified builds |
 
-The zero is the one that earns attention — it's the product claim in a number.
+> **Amended 2026-07-16 (owner request):** the original fourth stat `0 self-certified builds` was dropped. The strip now carries three stats; design-system-foundations.md permits a three-or-four-item strip.
 
-**Layout:** Horizontal strip, 4 items, separated by `1px solid --ds-hero-border`. Centered. Full-width.
+**Layout:** Horizontal strip, 3 items, separated by `1px solid --ds-hero-border`. Centered. Full-width.
 
 ---
 

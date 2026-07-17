@@ -1,0 +1,189 @@
+---
+// Section 4 — HOW IT WORKS (Three supervised loops). Light zone (surface-alt).
+// Staged, not a grid — one loop per moment, showing the handoff chain.
+import Section from '../layout/Section.astro';
+
+const loops = [
+  {
+    n: '01',
+    name: 'Discovery Loop',
+    pack: 'product-engineering · discovery-lead',
+    desc: 'Raw idea → ratified brief. Five candidate shapes explored in parallel, collapsed through product, UX, architecture, and safety lenses.',
+    gate: 'G3 — you approve a ratified decision brief, not a validated solution.',
+    href: '/journeys/discovery/',
+    linkLabel: 'Read the discovery journey',
+  },
+  {
+    n: '02',
+    name: 'Build Loop',
+    pack: 'core · work-loop',
+    desc: 'Spec → shipped code. Lint, typecheck, and tests must pass. Three specialist reviewers each read the diff cold, in a fresh session — adversarial by design.',
+    gate: 'G4 — you merge only when adversarial review is clean and all gates pass.',
+    href: '/journeys/core/',
+    linkLabel: 'Read the build journey',
+  },
+  {
+    n: '03',
+    name: 'Release Loop',
+    pack: 'release-engineering · release-lead',
+    desc: 'Built → production. Autonomous e2e convergence on ephemeral environments. Deployed findings feed back to the build loop automatically.',
+    gate: 'G5 — prod ship always surfaces to a human. Always.',
+    href: '/journeys/release/',
+    linkLabel: 'Read the release journey',
+  },
+];
+
+// Pipeline chain (decorative summary of the loops above): nodes joined by the
+// human gate that hands off between them. Discovery —G3→ Build —G4→ Release.
+const pipelineNodes = ['Discovery', 'Build', 'Release'];
+const pipelineGates = ['G3', 'G4'];
+---
+
+<Section tone="surface-alt" id="three-loops" labelledby="loops-heading">
+  <h2 id="loops-heading" class="loops__headline">
+    Three supervised peer loops. One handoff chain.
+  </h2>
+
+  <!-- Pipeline visualization — decorative; the loop cards below carry the real
+       content, so this is hidden from assistive tech. -->
+  <div class="pipeline" aria-hidden="true">
+    {pipelineNodes.map((node, i) => (
+      <>
+        <span class="pipeline__node">{node}</span>
+        {i < pipelineGates.length && (
+          <span class="pipeline__link">
+            <span class="pipeline__gate">{pipelineGates[i]}</span>
+            <span class="pipeline__arrow">→</span>
+          </span>
+        )}
+      </>
+    ))}
+  </div>
+
+  <ol class="loops">
+    {loops.map((l) => (
+      <li class="loop">
+        <span class="loop__n" aria-hidden="true">{l.n}</span>
+        <div class="loop__body">
+          <h3 class="loop__name">{l.name}</h3>
+          <p class="loop__pack"><code>{l.pack}</code></p>
+          <p class="loop__desc">{l.desc}</p>
+          <p class="loop__gate"><strong>Human gate.</strong> {l.gate}</p>
+          <a class="loop__link" href={l.href}>{l.linkLabel} <span aria-hidden="true">→</span></a>
+        </div>
+      </li>
+    ))}
+  </ol>
+</Section>
+
+<style>
+  .loops__headline {
+    margin-bottom: var(--ds-space-7);
+    max-width: 22ch;
+  }
+
+  /* ── Pipeline chain ────────────────────────────────────────────────── */
+  .pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-8);
+    font-family: var(--ds-font-mono);
+  }
+
+  .pipeline__node {
+    padding: var(--ds-space-2) var(--ds-space-4);
+    border: 1px solid var(--ds-accent);
+    border-radius: var(--ds-radius-pill);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .pipeline__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .pipeline__gate {
+    font-size: var(--ds-type-xs);
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent-deep);
+  }
+
+  .pipeline__arrow {
+    font-size: var(--ds-type-body-lg);
+  }
+
+  /* ── Loop list ─────────────────────────────────────────────────────── */
+  .loops {
+    display: grid;
+    gap: var(--ds-space-7);
+    counter-reset: loop;
+  }
+
+  .loop {
+    display: flex;
+    gap: var(--ds-space-5);
+    align-items: flex-start;
+  }
+
+  .loop__n {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-h3);
+    font-weight: var(--ds-weight-heavy);
+    color: var(--ds-accent-deep);
+    line-height: 1.2;
+  }
+
+  .loop__body {
+    max-width: 64ch;
+  }
+
+  .loop__name {
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .loop__pack {
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .loop__pack code {
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    letter-spacing: var(--ds-track-label);
+  }
+
+  .loop__desc {
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .loop__gate {
+    border-left: 4px solid var(--ds-accent);
+    padding: var(--ds-space-2) 0 var(--ds-space-2) var(--ds-space-4);
+    margin-bottom: var(--ds-space-4);
+    color: var(--ds-on-surface);
+    background-color: var(--ds-accent-subtle);
+  }
+
+  .loop__gate strong {
+    color: var(--ds-accent-deep);
+  }
+
+  .loop__link {
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  @media (max-width: 640px) {
+    .loop {
+      flex-direction: column;
+      gap: var(--ds-space-2);
+    }
+  }
+</style>
