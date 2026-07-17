@@ -16,6 +16,7 @@ skills:
   - research-project-synthesize
 installCommand: "agentbundle install --pack research --scope user"
 docsUrl: /docs/guides/research/
+journeyUrl: /journeys/research/
 ---
 
 Research installs eleven skills grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE). A single-query mode runs scoping, source curation, and synthesis in one session. A project mode runs sustained multi-week investigations through four lifecycle phases. Two retrieval subagents (`evidence-retriever`, `source-extractor`) fetch and synthesize external sources without polluting the main session context.

@@ -7,13 +7,13 @@ import { withBase } from '../../lib/paths';
 const liveJourneys = await getCollection('journeys');
 const liveSlugSet = new Set(liveJourneys.map((e) => e.id.replace(/\.md$/, '')));
 
-// All 14 journey slugs in priority order; 3 are live in Phase 2, 11 are coming soon.
+// All 14 journey slugs in priority order; 9 are live (Phase 2 + 3), 5 are coming soon (Phase 4).
 const allJourneys = [
   // Phase 2 — live
   { slug: 'core', name: 'Core', phase: 2 },
   { slug: 'discovery', name: 'Discovery (Product Engineering)', phase: 2 },
   { slug: 'release', name: 'Release Engineering', phase: 2 },
-  // Phase 3 — coming soon
+  // Phase 3 — live
   { slug: 'research', name: 'Research', phase: 3 },
   { slug: 'architect', name: 'Architect', phase: 3 },
   { slug: 'experience', name: 'Experience', phase: 3 },
