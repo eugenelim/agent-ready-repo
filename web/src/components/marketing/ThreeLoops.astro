@@ -2,6 +2,7 @@
 // Section 4 — HOW IT WORKS (Three supervised loops). Light zone (surface-alt).
 // Staged, not a grid — one loop per moment, showing the handoff chain.
 import Section from '../layout/Section.astro';
+import { withBase } from '../../lib/paths';
 
 const loops = [
   {
@@ -69,7 +70,7 @@ const pipelineGates = ['G3', 'G4'];
           <p class="loop__pack"><code>{l.pack}</code></p>
           <p class="loop__desc">{l.desc}</p>
           <p class="loop__gate"><strong>Human gate.</strong> {l.gate}</p>
-          <a class="loop__link" href={l.href}>{l.linkLabel} <span aria-hidden="true">→</span></a>
+          <a class="loop__link" href={withBase(l.href)}>{l.linkLabel} <span aria-hidden="true">→</span></a>
         </div>
       </li>
     ))}

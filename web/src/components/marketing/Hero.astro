@@ -3,6 +3,7 @@
 // nav above and the stat strip below. Radial amber glow + faint grid texture
 // (matching the MkDocs hero). One-shot 300ms opacity fade-in on load, guarded
 // by prefers-reduced-motion. No looping animation (aesthetic-direction.md).
+import { withBase } from '../../lib/paths';
 ---
 
 <section class="hero">
@@ -14,10 +15,10 @@
       can't certify its own work.
     </p>
     <div class="hero__actions">
-      <a class="hero__cta hero__cta--primary" href="/#install">
+      <a class="hero__cta hero__cta--primary" href={withBase('/#install')}>
         Install the core loop <span aria-hidden="true">→</span>
       </a>
-      <a class="hero__cta hero__cta--ghost" href="/packs/">
+      <a class="hero__cta hero__cta--ghost" href={withBase('/packs/')}>
         See the packs <span aria-hidden="true">→</span>
       </a>
     </div>

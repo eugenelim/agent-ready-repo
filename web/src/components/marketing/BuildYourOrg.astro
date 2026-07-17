@@ -4,6 +4,7 @@
 // dark band — the only second dark band, reading as closure not interruption
 // (aesthetic-direction.md / homepage-screen-flow.md §9).
 import Section from '../layout/Section.astro';
+import { withBase } from '../../lib/paths';
 ---
 
 <Section tone="dark" labelledby="org-heading">
@@ -15,7 +16,7 @@ import Section from '../layout/Section.astro';
       one catalogue every engineer installs in a single line — the loop, the reviewers,
       and the standards come out identical on every machine and in every agent.
     </p>
-    <a class="org__cta" href="/docs/guides/_shared/how-to/build-an-org-stack-pack/">
+    <a class="org__cta" href={withBase('/docs/guides/_shared/how-to/build-an-org-stack-pack/')}>
       How to build your org's catalogue <span aria-hidden="true">→</span>
     </a>
   </div>
