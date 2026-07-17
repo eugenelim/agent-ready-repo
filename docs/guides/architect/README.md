@@ -21,6 +21,10 @@ New here? [Establish your repo's reference architecture](how-to/establish-refere
 
 - [`reference.md` sections and the stack-pack contract](reference/reference-architecture.md) — every section of the golden-path file and how stack packs extend it.
 
+## Explanation
+
+- [Why the architect-diagram skill works the way it does](explanation/architect-diagram-skill-design.md) — the reasoning behind direction defaults, layout choices, visual encoding, notation routing, and the anti-pattern register.
+
 ---
 
 Installing and upgrading live in [`../_shared/`](../_shared/).
