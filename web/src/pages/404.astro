@@ -1,0 +1,96 @@
+---
+// GitHub Pages serves this for unknown routes. Astro emits build/404.html only
+// when this file exists (it is NOT automatic). Listed as a Phase-1 deliverable
+// in the platform-site spec inventory.
+import SiteLayout from '../components/layout/SiteLayout.astro';
+---
+
+<SiteLayout title="Page not found — agent-ready-repo">
+  <section class="notfound">
+    <div class="notfound__inner">
+      <p class="notfound__code" aria-hidden="true">404</p>
+      <h1 class="notfound__headline">This page isn't here.</h1>
+      <p class="notfound__body">
+        The link may be wrong, or the page may not be live yet. Head back to the
+        homepage or browse the reference docs.
+      </p>
+      <div class="notfound__actions">
+        <a class="notfound__cta notfound__cta--primary" href="/">Back home</a>
+        <a class="notfound__cta notfound__cta--ghost" href="/docs/">Read the docs</a>
+      </div>
+    </div>
+  </section>
+</SiteLayout>
+
+<style>
+  .notfound {
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+  }
+
+  .notfound__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+    padding: var(--ds-space-10) var(--ds-content-pad-x);
+  }
+
+  .notfound__code {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    color: var(--ds-accent);
+    line-height: 1;
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .notfound__headline {
+    color: var(--ds-hero-fg);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .notfound__body {
+    color: var(--ds-hero-fg-2);
+    font-size: var(--ds-type-body-lg);
+    max-width: 52ch;
+    margin-bottom: var(--ds-space-6);
+  }
+
+  .notfound__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-3);
+  }
+
+  .notfound__cta {
+    display: inline-block;
+    padding: 0.7rem 1.6rem;
+    border-radius: var(--ds-radius-pill);
+    font-weight: var(--ds-weight-semibold);
+    border: 1px solid transparent;
+  }
+
+  .notfound__cta:hover {
+    text-decoration: none;
+  }
+
+  .notfound__cta--primary {
+    background-color: var(--ds-cta-primary-bg);
+    color: var(--ds-cta-primary-fg);
+    border-color: var(--ds-cta-primary-bg);
+  }
+
+  .notfound__cta--primary:hover {
+    background-color: var(--ds-cta-primary-bg-hover);
+    border-color: var(--ds-cta-primary-bg-hover);
+  }
+
+  .notfound__cta--ghost {
+    color: var(--ds-cta-ghost-fg);
+    border-color: var(--ds-cta-ghost-border);
+  }
+
+  .notfound__cta--ghost:hover {
+    background-color: var(--ds-cta-ghost-bg-hover);
+    color: var(--ds-hero-fg);
+  }
+</style>
