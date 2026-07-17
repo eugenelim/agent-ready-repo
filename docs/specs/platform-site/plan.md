@@ -1,7 +1,7 @@
 # Plan: platform-site
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Executing
+- **Status:** Complete
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -413,3 +413,13 @@ Fully static Astro site. Client-side interactivity is minimal and JS-free where 
   more content. Revisit if the expander's discoverability tests poorly.
   (f) Added `web/src/pages/404.astro` (Phase-1 spec-inventory deliverable;
   Astro emits `404.html` only when this page exists).
+- 2026-07-17: Phase 4 build (T11–T12). Deviations from plan: (a) `@astrojs/sitemap`
+  generates `sitemap-index.xml` + `sitemap-0.xml` (not `sitemap.xml` as originally
+  specified); this is the sitemaps.org standard — updated robots.txt and spec AC
+  to reflect actual output. (b) Social card generated with Puppeteer (available
+  globally on the host) using an HTML template — committed to `web/public/social.png`
+  as a static asset. (c) `site` config updated from `https://eugenelim.github.io` to
+  `https://eugenelim.github.io/agent-ready-repo` — the full site URL per Astro docs
+  for GitHub Pages project sites; canonical URLs and og:image absolute URLs derive
+  from this via `new URL(pathname, Astro.site)`. (d) Generation script committed to
+  `web/scripts/generate-social.mjs` for future regeneration.
