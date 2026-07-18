@@ -97,7 +97,7 @@ After this batch: any input source (external email, shaped artifact, tracker cop
 |---|---|
 | `new-rfc` workspace prompt | Accepted-RFC path prompts "Add implementation specs to `workspace.toml` queue?" Degrades if absent. |
 | `docs/product/projects/_template.md` seed | Project index template. Batch 1 CONVENTIONS amendment should land first. |
-| Shaping + initiative artifact seeds (`docs/product/shaping/`, `findings/`, `initiatives/`) | Seed files for shaping artifacts. Bundle with the template — same PR. |
+| `findings/` and `initiatives/` directory seeds | `docs/product/shaping/` is intentionally untouched — its content is M2-produced by PE skills, not seeded by this batch. Bundle with the template — same PR. |
 
 **Recommended session order:** Batch 1 → Batch 2 (same or next session) → Batches 3, 4, 5 in any order or concurrently.
 
@@ -112,7 +112,7 @@ M2 skills should be built and used in sequence: each skill ships, then is immedi
 | M2.3 | `diverge-solutions` (step-3 option generation; resolve overlap with `explore-options`) | Run `diverge-solutions` on the workspace coordination design — generates solution options for M3+ shaping work |
 | M2.4 | `place-bet` (human commitment gate; betting table surface) | Run `place-bet` on the validated option from the M2.3 diverge-solutions output — produces a committed bet artifact that anchors the capability map |
 | M2.5 | `map-capabilities` (product vision → all capability areas) | Run `map-capabilities` on INI-002 using the M2.4 bet — produces a capability map in `docs/product/shaping/` that becomes the shaping anchor for M3–M6 |
-| M2.6 | Initiative brief artifact + `docs/product/initiatives/_template.md` + Lean Canvas | Use the bet from M2.5 to author the INI-002 initiative brief using the new template |
+| M2.6 | Initiative brief artifact + Lean Canvas | Use the bet from M2.5 to author the INI-002 initiative brief using the `docs/product/initiatives/_template.md` seeded in Batch 5 (do not recreate) |
 | M2.7 | JTBD framing embedded in `frame-intent` (shipped skill modification — own spec, not bundled with M2.6) | Run `frame-intent` on an existing project after the JTBD extension ships — verify functional / emotional / social job output appears in the frame-intent artifact |
 
 If implementing a skill reveals the RFC's AC was wrong or too narrow, write an **Errata** to RFC-0064 in the same PR per RFC-0055. Do not silently diverge.
@@ -319,9 +319,8 @@ queue   = [
   # Batch 4 — brief queue end-to-end (after workspace-core, independent of Batch 3)
   {path = "spec/m1-brief-queue",
    needs = "work:spec/m1-workspace-core"},
-  # Batch 5 — governance + shaping (independent)
+  # Batch 5 — governance integration (independent)
   "spec/m1-governance-integration",
-  "spec/m1-shaping-seeds",
 ]
 ```
 
@@ -404,7 +403,7 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 
 **Batch 5 — Governance integration + shaping home** (after Batch 1; independent of Batches 2–4)
 - [ ] `new-rfc` extended: Accepted path prompts "Add implementation specs to `workspace.toml` queue?"; degrades if absent
-- [ ] `docs/product/projects/_template.md` seed + shaping/findings/initiatives artifact seeds — one PR
+- [ ] `docs/product/projects/_template.md` seed + `findings/` directory seed + `initiatives/_template.md` seed — one PR (`docs/product/shaping/` is intentionally untouched: its content is M2-produced by PE skills, not seeded by this batch)
 - [ ] `workspace.toml` dependency model documented: inline `{path/slug, needs}` format; cross-queue prefix notation; cross-initiative prefix; `check-workspace` is the display surface; `work-loop` enforcement of DAG deferred to post-M1 backlog
 
 ### M2 · Strategic Shaping
@@ -415,7 +414,7 @@ ACs are grouped by delivery batch (see spec map above). Each batch ships as one 
 - [ ] `diverge-solutions` skill in PE pack; overlap with `explore-options` resolved per sub-RFC before this spec is authored
 - [ ] `place-bet` skill in PE pack: human commitment gate, betting table surface; overlap with `de-risk-intent` resolved per sub-RFC before this spec is authored
 - [ ] `map-capabilities` skill in PE pack: product vision → all capability areas in one pass
-- [ ] Initiative brief artifact + `docs/product/initiatives/_template.md` seed
+- [ ] Initiative brief artifact using the `docs/product/initiatives/_template.md` seeded in Batch 5 (do not recreate — sole ownership is Batch 5)
 - [ ] JTBD framing embedded in `frame-intent` — this is a modification to a shipped skill; backward-compatibility impact assessed in its own spec (not bundled with other M2.6 items); existing `frame-intent` outputs remain valid
 - [ ] Lean Canvas initiative framing template
 
