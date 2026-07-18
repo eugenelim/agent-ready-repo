@@ -35,22 +35,22 @@ relatedJourneys:
 
 ## Stage 1 — Trigger release loop
 
-A completed inner build loop (work-loop + adversarial review clean) triggered the release loop. The `release-lead` agent activated `release-loop` and deployed the integrated whole to an ephemeral environment.
+A completed inner build loop (work-loop + adversarial review clean) triggers the release loop. The `release-lead` agent activates `release-loop` and deploys the integrated whole to an ephemeral environment.
 
-**You did:** Watched the initial deploy log in the chat to confirm the right environment was targeted. You do not intervene in the deploy itself, but reading the first deploy confirms the agent is operating on the right branch and config. If the deploy target looks wrong, stop it early — it's cheaper than a mid-cycle redirect.
+**You:** Watch the initial deploy log in the chat to confirm the right environment is targeted. You do not intervene in the deploy itself, but reading the first deploy confirms the agent is operating on the right branch and config. If the deploy target looks wrong, stop it early — it's cheaper than a mid-cycle redirect.
 
 ---
 
 ## Stage 2 — E2E validation and convergence
 
-The agent ran end-to-end tests against the deployed environment, observed telemetry, and fed deployed findings back to the inner loop — no human relay. It redeployed after each inner-loop fix. It iterated until the deployed whole converged: e2e clean, telemetry stable.
+The agent runs end-to-end tests against the deployed environment, observes telemetry, and feeds deployed findings back to the inner loop — no human relay. It redeploys after each inner-loop fix. It iterates until the deployed whole converges: e2e clean, telemetry stable.
 
-**You did:** Checked in at the end of each outer loop iteration — after each redeploy, skim the e2e results and the telemetry snapshot. You're looking for anomalies the agent might not flag: a test that passes but whose assertion is too weak to catch a real failure, or a telemetry spike the agent marked as noise. The agent handles the mechanical convergence; you provide the judgment on what "stable" means for your service.
+**You:** Check in at the end of each outer loop iteration — after each redeploy, skim the e2e results and the telemetry snapshot. Look for anomalies the agent might not flag: a test that passes but whose assertion is too weak to catch a real failure, or a telemetry spike the agent marked as noise. The agent handles the mechanical convergence; you provide the judgment on what "stable" means for your service.
 
 ---
 
 ## Stage 3 — Release readiness record
 
-After the deployed whole converged, the agent generated a release readiness record: e2e results, telemetry snapshot, security review on the deployed diff, what was deferred, and any borderline gates.
+After the deployed whole converges, the agent generates a release readiness record: e2e results, telemetry snapshot, security review on the deployed diff, what was deferred, and any borderline gates.
 
-**You did:** At G5, read the full release readiness record — not just the summary. The borderline gates section is the one that matters most: these are cases where the agent decided "close enough" and you may decide differently. Ratified if satisfied. Rejected with a one-line reason if not — the agent will re-enter the loop. This gate is the only one between the ephemeral environment and production.
+**You:** At G5, read the full release readiness record — not just the summary. The borderline gates section is the one that matters most: these are cases where the agent decided "close enough" and you may decide differently. Ratify if satisfied. Reject with a one-line reason if not — the agent re-enters the loop. This gate is the only one between the ephemeral environment and production.
