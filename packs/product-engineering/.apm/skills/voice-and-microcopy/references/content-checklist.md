@@ -21,10 +21,9 @@ catch the misses and fix them. Each item is one question; a "no" is a fix.
 - [ ] **Inclusive and plain.** Plain language; no idioms that don't translate, no
       jargon the user didn't bring, no assumptions about who the user is.
 - [ ] **Human-crafted.** Does longer copy (onboarding text, help text, feature
-      descriptions) avoid the structural tells that make writing feel generated —
-      treadmill effect, symmetrical lists, false precision, performative
-      thoroughness, nice-nice wrap, subtext vacuum? See `human-craft-check.md`
-      for the full structural-tell rundown and four-question self-check.
+      descriptions) clear the structural tells, vocabulary tells, and voice
+      authenticity tests in `human-craft-check.md`? Run the three-pass editorial
+      methodology there before shipping any copy longer than a few sentences.
 
 ## How to use it
 

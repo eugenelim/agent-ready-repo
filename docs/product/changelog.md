@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`voice-and-microcopy` human-craft check gains vocabulary tells, an editorial methodology, and voice authenticity tests (product-engineering 0.11.0).** `human-craft-check.md` now covers three additional layers beyond its existing structural tells: a vocabulary-tell section (hollow verbs, inflated adjectives, abstract container nouns, hedging openers — each with a concrete replacement rule); a three-pass editorial methodology (vocabulary scan → delete the opening → specificity audit); and three voice authenticity tests (pub test, founder test, one-person test). Scoped to the same context as before — longer copy: onboarding text, feature descriptions, help text — not short UI strings.
+
 ### Added
 
 - **`voice-and-microcopy` gains a human-craft structural-tell check (product-engineering 0.10.1).** A new reference file, `human-craft-check.md`, inlines six structural AI tells — treadmill effect, symmetrical lists, false precision, performative thoroughness, nice-nice wrap, subtext vacuum — and a four-question self-check for longer copy (onboarding text, feature descriptions, help text). The content checklist gains an eighth item, Human-crafted, that routes longer copy through this check. Self-contained within the pack; no cross-pack references.
