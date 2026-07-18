@@ -34,16 +34,27 @@ What this project does:
   catalogue's build pipeline projects the bundled primitives onto this
   repo so what we ship to adopters and what we run ourselves cannot
   diverge by construction.
+- Ships opt-in **tech-stack accelerator packs** for common infrastructure
+  tooling, CI/CD platforms, and SaaS integrations — ready-to-run
+  scaffolding for adopters who have already chosen a stack, not a
+  prescription for those who haven't. Each accelerator pack clears the
+  four principles below, plus: a named maintainer, a stated maturity
+  scope (validated / contract-complete / experimental), and an
+  archiving/deprecation path. The `iac-terraform` pack is the
+  establishing precedent; future packs are judged against it.
 
 What this project does **not** do:
 
 - **Not a marketplace of specialized agents.** Three reviewers is the
   ceiling. New skills earn a place by clearing the four principles
   below; most candidates fail at least one.
-- **Not a framework that picks your tech stack.** Frontend, backend,
-  agentic, CLI, mobile, data — the structure works for any of them. The
-  conventions are aware of architectural layers (API, UI, CLI, agentic)
-  but never of specific frameworks.
+- **Not prescriptive about tech-stack choices through the default install.**
+  Frontend, backend, agentic, CLI, mobile, data — the core structure works
+  for any of them. Opt-in accelerator packs (above) are tech-stack-specific
+  by design; they serve adopters who have already picked a stack and want
+  governed scaffolding for it. What this project never does is impose a
+  stack choice through the default install or make core doctrine contingent
+  on a specific framework.
 - **Not a single-tool template.** `AGENTS.md` is the open format. Tools
   that read it natively (Cursor, Codex, Gemini CLI, Copilot) get the
   universal layer immediately; tools with their own primitives (Claude
@@ -61,8 +72,10 @@ Every artifact in the catalogue earns its place by clearing the same
 four bars. These are the canonical principles referenced everywhere
 else in this repo when we discuss what to add and what to refuse.
 
-1. **Universal across tech stacks.** Works for any adopter, not just
-   a specific framework or language.
+1. **Universal across tech stacks (core layer).** The core works for any
+   adopter, not just a specific framework or language. Opt-in accelerator
+   packs are tech-stack-specific by design — their specificity is the point;
+   they clear the remaining three principles instead of this one.
 2. **Substantive, not duplicative.** Adds what the template doesn't
    already encode somewhere.
 3. **A habit, not a tool.** Captures a way of working, not a piece of
