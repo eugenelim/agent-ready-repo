@@ -1,6 +1,6 @@
 # Spec: m1-governance-integration
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064 (governing — the M1 Workspace Foundation design, Batch 5 ACs, and the `workspace.toml` schema this batch surfaces)
@@ -153,60 +153,60 @@ structural file presence or an observable prose contract.
 
 **AC1 — `new-rfc` Accepted-path workspace prompt**
 
-- [ ] The `new-rfc` skill's post-acceptance step (currently "After acceptance"
+- [x] The `new-rfc` skill's post-acceptance step (currently "After acceptance"
   in the skill body) is extended to prompt the user: "Add implementation specs
   to `workspace.toml` queue?" before presenting the follow-on artifact list.
-- [ ] If the user answers yes, the skill reads `["<initiative-slug>".work].queue`
+- [x] If the user answers yes, the skill reads `["<initiative-slug>".work].queue`
   in the local `workspace.toml` and helps the user add entries in the
   `{path, needs}` format defined in RFC-0064 D7, then stages the file.
-- [ ] If `workspace.toml` is absent in the working directory, the prompt still
+- [x] If `workspace.toml` is absent in the working directory, the prompt still
   appears; the TOML write is skipped with the literal note "workspace.toml not
   found — add the entry manually when Batch 2 lands"; no error or exception
   is raised.
-- [ ] If `workspace.toml` is present but the target initiative section
+- [x] If `workspace.toml` is present but the target initiative section
   (`["<slug>"]`) is absent, the skill asks the user to confirm the initiative
   slug and offers to create the section with an empty `[work].queue` before
   appending. It does not silently skip and does not auto-create without
   confirmation.
-- [ ] The existing "After acceptance" follow-on artifact list (ADRs, specs,
+- [x] The existing "After acceptance" follow-on artifact list (ADRs, specs,
   CONVENTIONS edits) is preserved and runs as before; the queue-write step
   is additive.
-- [ ] `grep` of the source skill file confirms: the literal prompt string "Add
+- [x] `grep` of the source skill file confirms: the literal prompt string "Add
   implementation specs to `workspace.toml` queue?" is present; the literal
   skip-note "workspace.toml not found — add the entry manually when Batch 2
   lands" is present.
 
 **AC2 — `docs/product/` artifact seeds + workspace.toml cleanup**
 
-- [ ] `docs/product/projects/_template.md` exists and contains: a frontmatter
+- [x] `docs/product/projects/_template.md` exists and contains: a frontmatter
   block (or markdown header block) with `outcome`, `appetite`, `milestone`,
   and `brief` fields per CONVENTIONS §5b's project definition; and brief
   instructional prose referencing `workspace.toml` as the queue coordination
   artifact.
-- [ ] `docs/product/findings/` exists and contains at least one seed file
+- [x] `docs/product/findings/` exists and contains at least one seed file
   establishing the directory purpose (per CONVENTIONS §5b: "structured
   governance registers"), clearly marked as awaiting M3's register files
   (`rfc-candidates.md`, `roadmap-intents.md`). The seed contains **no** column
   schema and **no** register entries — those belong to M3.
-- [ ] `docs/product/initiatives/` exists and contains `_template.md` for an
+- [x] `docs/product/initiatives/` exists and contains `_template.md` for an
   initiative brief, shaped for altitude-1 shaping artifacts (cross-repo,
   multi-quarter scope; links to `workspace.toml` initiative section;
   per CONVENTIONS §5b's initiative brief definition). This is the sole owner
   of `initiatives/_template.md`; M2.6 uses this file, it does not recreate it.
-- [ ] `docs/product/shaping/` is left untouched (already contains two files
+- [x] `docs/product/shaping/` is left untouched (already contains two files
   from Batch 2; no new files added here). The RFC Batch 5 "shaping artifact
   seeds" clause is intentionally a no-op: shaping artifacts are M2-produced
   via PE skills, not seeded by templates; the two existing files are the M2
   priors, not Batch 5 deliverables.
-- [ ] `workspace.toml` no longer contains the `"spec/m1-shaping-seeds"` queue
+- [x] `workspace.toml` no longer contains the `"spec/m1-shaping-seeds"` queue
   entry — the pre-split entry is removed in the same PR because its work is
   collapsed into this spec.
-- [ ] All new files, the `workspace.toml` cleanup, the dependency model doc
+- [x] All new files, the `workspace.toml` cleanup, the dependency model doc
   (AC3), and the RFC-0064 amendments (AC4) land in the same PR as AC1.
 
 **AC3 — `workspace.toml` dependency model reference doc**
 
-- [ ] A reference doc exists at `docs/product/workspace-toml-deps.md` (or a
+- [x] A reference doc exists at `docs/product/workspace-toml-deps.md` (or a
   clearly discoverable path under `docs/product/`) that documents:
   - The inline object format: a queue entry is a **string** (no deps) or an
     **inline object** `{path = "...", needs = "..."}` (with deps); `needs` is
@@ -223,26 +223,26 @@ structural file presence or an observable prose contract.
   - That `work-loop` enforcement of the DAG is deferred to a post-M1
     milestone (per RFC-0064 D7), so the reference doc does not create a false
     expectation that `work-loop` enforces the DAG today.
-- [ ] `grep -E "ini-[0-9]{3}:work:"` of the doc matches (cross-initiative
+- [x] `grep -E "ini-[0-9]{3}:work:"` of the doc matches (cross-initiative
   prefix present in the worked example, as specified in RFC-0064 § Proposed
   design); also `grep` confirms `work:`, `shape:`, `brief:`, `research:`, and
   `strategy:` are present.
-- [ ] The doc links to RFC-0064 as the authoritative source for D7 (dependency
+- [x] The doc links to RFC-0064 as the authoritative source for D7 (dependency
   model) and D9 (shaping-type prefixes), and to `workspace.toml` as the living
   example.
 
 **AC4 — RFC-0064 Draft amendments**
 
-- [ ] RFC-0064 Batch 5 table and AC wording no longer imply a shaping-directory
+- [x] RFC-0064 Batch 5 table and AC wording no longer imply a shaping-directory
   seed (`docs/product/shaping/` is explicitly noted as intentionally untouched
   because shaping artifacts are PE-skill-produced, not templated).
-- [ ] RFC-0064 M2.6 JIT table row (~line 115) and M2 acceptance criterion
+- [x] RFC-0064 M2.6 JIT table row (~line 115) and M2 acceptance criterion
   (~line 418) are both updated to read as M2.6 *using* the Batch 5-seeded
   `initiatives/_template.md` rather than creating it; sole ownership of the
   seed is unambiguously this batch.
-- [ ] RFC-0064 Batch 5 AC bullet (~line 407) matches the amended Batch 5 table
+- [x] RFC-0064 Batch 5 AC bullet (~line 407) matches the amended Batch 5 table
   row (no shaping-directory seed implied).
-- [ ] RFC-0064 Bootstrap example queue (~line 324) no longer lists
+- [x] RFC-0064 Bootstrap example queue (~line 324) no longer lists
   `"spec/m1-shaping-seeds"` — the entry is removed to match the collapsed
   single-spec Batch 5 delivery.
 
