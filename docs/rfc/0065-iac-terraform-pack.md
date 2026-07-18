@@ -1,11 +1,11 @@
 # RFC-0065: The `iac-terraform` pack
 
-- **Status:** Open
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim <!-- repo owner; accepts the D2 charter-boundary
   self-approval flagged by review -->
 - **Date opened:** 2026-07-17
-- **Date closed:**
+- **Date closed:** 2026-07-18
 - **Decision weight:** heavy <!-- deliberately admits stack-specific content, which the CHARTER's "does NOT" list refuses in general; crosses a charter boundary → explicit Approver sign-off. -->
 - **Related:** `core` (work-loop / operational-safety / security-checklists), `governance-extras` (new-adr), packs `atlassian` / `figma` / `credential-brokers` (opt-in tool-specific precedent), profiles (default-profile exclusion)
 
