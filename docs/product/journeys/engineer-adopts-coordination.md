@@ -181,18 +181,18 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Action:** install-agentbundle
-- **Action:** read-agents-md
-- **Action:** run-frame-intent
-- **Action:** run-de-risk-intent
-- **Action:** receive-external-brief
-- **Action:** run-author-brief
-- **Action:** run-receive-brief
-- **Action:** pick-spec-from-queue
-- **Action:** run-work-loop
-- **Action:** submit-pr
-- **Action:** run-check-workspace
-- **Action:** resume-from-session-start
+- **Skill:** install-agentbundle
+- **Skill:** read-agents-md
+- **Skill:** run-frame-intent
+- **Skill:** run-de-risk-intent
+- **Skill:** receive-external-brief
+- **Skill:** run-author-brief
+- **Skill:** run-receive-brief
+- **Skill:** pick-spec-from-queue
+- **Skill:** run-work-loop
+- **Skill:** submit-pr
+- **Skill:** run-check-workspace
+- **Skill:** resume-from-session-start
 
 ---
 

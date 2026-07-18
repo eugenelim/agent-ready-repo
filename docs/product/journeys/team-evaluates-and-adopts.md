@@ -298,15 +298,15 @@ Until INI-005 ships, measure manually via periodic `check-workspace` output, per
 
 ## Frontstage actions
 
-- **Action:** discover-platform (peer / blog / GitHub)
-- **Action:** read-readme-and-assess-fit
-- **Action:** complete-your-first-workspace-tutorial
-- **Action:** seed-workspace-toml (first real spec)
-- **Action:** run-work-loop-first-spec
-- **Action:** prepare-demo-scenario (enterprise)
-- **Action:** deliver-live-demo (enterprise)
-- **Action:** execute-rollout-playbook (enterprise)
-- **Action:** run-check-workspace-at-session-start (habit)
+- **Skill:** discover-platform (peer / blog / GitHub)
+- **Skill:** read-readme-and-assess-fit
+- **Skill:** complete-your-first-workspace-tutorial
+- **Skill:** seed-workspace-toml (first real spec)
+- **Skill:** run-work-loop-first-spec
+- **Skill:** prepare-demo-scenario (enterprise)
+- **Skill:** deliver-live-demo (enterprise)
+- **Skill:** execute-rollout-playbook (enterprise)
+- **Skill:** run-check-workspace-at-session-start (habit)
 
 ---
 

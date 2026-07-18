@@ -186,16 +186,16 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Action:** install-ini-003-adapter-pack
-- **Action:** configure-adapter-per-harness
-- **Action:** verify-skill-loading-dry-run
-- **Action:** trigger-dispatch-job
-- **Action:** claim-spec-atomically
-- **Action:** execute-work-loop-headless
-- **Action:** write-completion-to-workspace
-- **Action:** run-check-workspace-as-supervisor
-- **Action:** detect-stalled-spec
-- **Action:** reassign-spec-to-new-agent
+- **Skill:** install-ini-003-adapter-pack
+- **Skill:** configure-adapter-per-harness
+- **Skill:** verify-skill-loading-dry-run
+- **Skill:** trigger-dispatch-job
+- **Skill:** claim-spec-atomically
+- **Skill:** execute-work-loop-headless
+- **Skill:** write-completion-to-workspace
+- **Skill:** run-check-workspace-as-supervisor
+- **Skill:** detect-stalled-spec
+- **Skill:** reassign-spec-to-new-agent
 
 ---
 
