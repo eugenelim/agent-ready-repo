@@ -152,6 +152,31 @@ checklist, and the iteration cap. **Everything below this section is full
 mode unless it says otherwise**; light mode reuses those steps verbatim
 except for the four trims named above.
 
+### Step 0. Orientation — read workspace context
+
+Before PLAN begins, orient to the current initiative and work queue:
+
+1. Look for `workspace.toml` in the working directory.
+   - **If present:** read it and surface the following in a clearly labelled
+     orientation block at the top of your response:
+     - **Initiative:** the `name` value from `["<slug>"]`
+       (e.g. `"Platform Core"`).
+     - **Milestone:** the `milestone` value from `["<slug>"]`
+       (e.g. `"M1 · Workspace Foundation"`).
+     - **Active spec:** the first path in `["<slug>".work].active`, if the
+       array is non-empty (e.g. `"spec/m1-work-queue"`). If the array is
+       empty, surface the initiative name and milestone only — no error.
+   - **If absent:** skip this step entirely. PLAN begins immediately with no
+     error, no diagnostic, and no behavioral change.
+
+> When multiple `["ini-NNN"]` sections exist, read all sections whose
+> `status = "active"` and surface each one.
+
+After orienting (or immediately, if `workspace.toml` is absent), proceed
+to step 1 (PLAN). The active spec path tells you which spec you are
+expected to be working on — read `docs/specs/<path>/spec.md` and `plan.md`
+as step 1 of PLAN.
+
 ### 1. PLAN — think before acting
 
 For anything beyond trivial, *think before you write code*. Concretely:
@@ -785,6 +810,17 @@ mode below, then evaluate the terminal-state bullet last.
     Python, run `scripts/lint-spec-status.py` (this skill's sibling to
     `loop-cohort.py`) to check these mechanically — it's the agent-invoked
     companion to the judgment check; no-ops without Python.
+  - **If `workspace.toml` is present** in the working directory and
+    `["<slug>".work].active` contains the current spec's path, edit
+    `workspace.toml` in the working directory: move that path from
+    `["<slug>".work].active` to `["<slug>".work].shipped`, and stage the
+    file as part of the shipping PR diff. Use a comment-preserving edit
+    (targeted insertion or `tomlkit` if available; never a full `tomllib` +
+    `tomli_w` round-trip that strips comments). If `workspace.toml` is
+    absent, skip this step — no edit, no error.
+  - **Reminder:** update `docs/product/roadmap.md` to reflect the shipped
+    spec (one line; the roadmap is the human-readable companion to the queue).
+    If `workspace.toml` is absent, skip this reminder.
   - Conventional commit format used; no force-push to shared branches.
   - Learnings captured per the next section (AGENTS.md, skill, or doc).
   - PR opened — or merged directly, if that's your workflow — with the
