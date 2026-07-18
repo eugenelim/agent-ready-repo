@@ -29,6 +29,8 @@ skill is still fully useful: it writes copy for the states you name directly
 > the `experience` pack's `map-screen-flow` skill for the per-screen state matrix
 > this skill can consume.
 
+> **Scope boundary — surface type is the dividing line.** For marketing/acquisition copy voice and positioned copy (hero headlines, above-fold narrative, taglines, announcement copy), use the `experience` pack's `copy-direction` skill; `voice-and-microcopy` covers product UI copy states (error, empty state, button labels, form labels). **Onboarding tri-point:** onboarding narrative arc and structure → `content-design` (experience pack); onboarding copy voice and register → `copy-direction` (experience pack); onboarding UI-state strings (loading, error, empty) → `voice-and-microcopy` (this skill).
+
 ## When to invoke
 
 Before writing, confirm:

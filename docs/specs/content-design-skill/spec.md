@@ -1,6 +1,6 @@
 # Spec: content-design-skill
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0062 (D1–D5), ADR-0024 (guardrails A+B, framework-agnosticism), RFC-0050 (experience pack design-thread completeness bar)
@@ -88,45 +88,47 @@ All verification is goal-based or manual QA — there is no testable runtime log
 
 ## Acceptance Criteria
 
-- [ ] `packs/experience/.apm/skills/content-design/SKILL.md` exists; frontmatter
+- [x] `packs/experience/.apm/skills/content-design/SKILL.md` exists; frontmatter
   includes `name: content-design` and a non-empty `description:` field; Procedure
   section has ≥5 numbered steps (verified by counting only within `## Procedure`,
   not the full file); Anti-patterns section present.
-- [ ] Acquisition sub-path procedure names: the Schwartz five-stage awareness ladder
+- [x] Acquisition sub-path procedure names: the Schwartz five-stage awareness ladder
   as the audience-level elicitation reference; StoryBrand and CCD as the two
   narrative-arc choices with their applicability conditions (audience awareness level
   drives the selection); scroll section assignment (each section gets one job:
   problem, guide proof, plan, stakes, CTA); above-fold structure contract (headline +
   subheadline answering what/who/why); primary and transitional CTA definition;
   success metric naming.
-- [ ] Product/reference sub-path procedure names: user task elicitation; content
+- [x] Product/reference sub-path procedure names: user task elicitation; content
   format selection (prose / steps / table / diagram, matched to task type); content
   hierarchy prioritisation using the Nava PBC must-say → probably-say → might-say
   model; completion metric (task completion rate or search resolution).
-- [ ] Artifact path `docs/design/content/<slug>.md` with `type: content-brief` is
+- [x] Artifact path `docs/design/content/<slug>.md` with `type: content-brief` is
   documented in SKILL.md and resolves via the three-tier layout contract (config →
   default → discover-by-marker) per RFC-0050 D6; `content-brief` is named as an
   extension to the pack's existing marker set.
-- [ ] `tools/lint-experience-agnostic.py` exits 0 on `packs/experience/` after the
+- [x] `tools/lint-experience-agnostic.py` exits 0 on `packs/experience/` after the
   skill lands; no stack token or values-table shape violation introduced.
-- [ ] `content-design` is listed in `[pack.evals] skills` in
+- [x] `content-design` is listed in `[pack.evals] skills` in
   `packs/experience/pack.toml`; `evals/eval_queries.json` and `evals/evals.json`
   exist under `packs/experience/.apm/skills/content-design/evals/`.
-- [ ] The skill is standalone-useful: it elicits persona and outcome inline when no
+- [x] The skill is standalone-useful: it elicits persona and outcome inline when no
   `map-customer-journey` output is provided; no upstream artifact is required to
   invoke it.
-- [ ] The skill's hand-off step names `copy-direction` (for copy voice grounding) and
+- [x] The skill's hand-off step names `copy-direction` (for copy voice grounding) and
   `map-screen-flow` (for screen sequencing) as the downstream consumers of the
   content brief.
-- [ ] SEO keyword targeting, CRO tooling, and user research production are explicitly
+- [x] SEO keyword targeting, CRO tooling, and user research production are explicitly
   listed as out of scope in the SKILL.md Anti-patterns or a clearly marked scope note.
-- [ ] Experience-reviewer scope extension (OQ1) is deferred to a follow-on RFC;
+- [x] Experience-reviewer scope extension (OQ1) is deferred to a follow-on RFC;
   the SKILL.md hand-off step notes this explicitly; a `docs/backlog.md` entry
   under `### experience-reviewer-content-brief-scope` tracks the deferral with a
   reference to RFC-0062 OQ1 as the open question.
-- [ ] This spec ships in the same PR as `copy-direction-skill` (the two skills
+- [x] This spec ships in the same PR as `copy-direction-skill` (the two skills
   share a single pack version bump at 0.4.2 → 0.5.0 and a single `build-self` run;
   landing content-design alone would add a public skill with no semver record).
+- [x] Acquisition sub-path elicitation in `references/surface-routing.md` includes an audience action goal step that names four action goals — Decision (commit), Understanding (grasp a concept), Execution (complete a task now), Belief shift (change mental model) — and states how each informs arc selection; SKILL.md Step 3's acquisition sub-path references this step.
+- [x] `references/narrative-arc.md` names the Pyramid Principle (conclusion-first, top-down hierarchy, logical clustering, structured progression) as a third named framework for analytical and structured product/reference surfaces where the reader's primary action goal is Decision or Understanding at high prior knowledge; SKILL.md Step 3's product/reference sub-path loads `references/narrative-arc.md` so the Pyramid Principle is reachable by that path.
 
 ## Assumptions
 

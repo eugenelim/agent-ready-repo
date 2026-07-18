@@ -1227,6 +1227,8 @@ covers UI microcopy but not marketing/conversion copy), and whether conversion a
 specificity, above-fold order, SEO semantics) belongs in this skill or a separate `growth-pack`
 track.
 
+**In-progress:** RFC-0062 opened 2026-07-18. Implementing as `copy-direction` skill in the `experience` pack (experience 0.5.0).
+
 ### design-system-foundations-skill-gap
 
 **Source:** Session 2026-07-01 — `aesthetic-direction` anti-patterns explicitly refuse to produce
@@ -1377,7 +1379,13 @@ Two separate work items:
 **Unblocks when:** RFC for `copy-direction` skill is opened; charter decision on
 growth scope resolves item 2.
 
+**In-progress (structural direction half):** RFC-0062 opened 2026-07-18. `content-design` skill implements the content-first / narrative-arc thread (acquisition sub-path with StoryBrand/CCD arc selection; product/reference sub-path with Nava PBC content hierarchy); SEO remains deferred per RFC-0062 D5.
+
 **Research findings (session 2026-07-01):** Agent skills for UX writing are well-established (segmented style-guide training + character-limit enforcement); marketing/conversion copy has no formal agent skill — best-available is a 5-step pipeline (VOC mining → competitive gap → value prop painkiller framing → brand voice training → creative-director output structure). No anthropic-cookbook examples exist for content/UX. Sources: UX Writing Hub (Sarah Kessler chained GPT pairs), aufaitux.com (Figma-resident UX writing agents), msitarzewski/agency-agents (Brand Guardian / Ad Strategist persona cards), Social Media Examiner (5-step conversion copy pipeline). Passable today: hero headline formulas, VOC extraction prompts, role-based persona subagent cards. Needs original work: formal SKILL.md for hero headline writing, copy critique with scoring rubrics, conversion architecture review as an agent workflow.
+
+### experience-reviewer-content-brief-scope
+
+**Deferred (RFC-0062 OQ1):** Extend `experience-reviewer`'s scope to include content briefs (`type: content-brief`) as a reviewable artifact type. The current `content-design` skill produces the artifact; the reviewer's scope extension is a follow-on RFC. Decide-by: spec authoring for `content-design` skill. Owner: eugenelim.
 
 ### site-social-proof-band
 

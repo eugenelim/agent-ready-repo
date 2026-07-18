@@ -1,6 +1,6 @@
 # Spec: copy-direction-skill
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0062 (D1–D5), ADR-0024 (guardrails A+B, framework-agnosticism), RFC-0050 (experience pack design-thread), RFC-0030 (voice-and-microcopy home stays in product-engineering)
@@ -106,38 +106,38 @@ All verification is goal-based or manual QA — there is no testable runtime log
 
 ## Acceptance Criteria
 
-- [ ] `packs/experience/.apm/skills/copy-direction/SKILL.md` exists; frontmatter
+- [x] `packs/experience/.apm/skills/copy-direction/SKILL.md` exists; frontmatter
   includes `name: copy-direction`; Procedure section has exactly 8 numbered steps
   (verified by counting within `## Procedure` only, not the full file); the step
   structure mirrors `aesthetic-direction`'s audience-map → interrogation → grounding
   → ranking → arbitration → capture → floor-check → hand-off; Anti-patterns section
   present.
-- [ ] Step 1 (audience map): maps each distinct reader type with a copy JTBD sentence
+- [x] Step 1 (audience map): maps each distinct reader type with a copy JTBD sentence
   and ranks them; feeds the ranked map into Step 2.
-- [ ] Step 2 (interrogation): converts felt vibe to named copy goals (short noun
+- [x] Step 2 (interrogation): converts felt vibe to named copy goals (short noun
   phrases); sharpens each against its opposite.
-- [ ] Step 3 (grounding): grounds each goal in ≥1 stable referent from: persona
+- [x] Step 3 (grounding): grounds each goal in ≥1 stable referent from: persona
   language (words the audience actually uses), copy precedents (cited as named
   examples, not reprinted), persuasion standards (painkiller-first framing, tweet
   test, five-second evaluator scan for above-fold copy).
-- [ ] Step 4 (ranking): orders goals so a tie can break; names the dominant goal.
-- [ ] Step 5 (arbitration): records which goal wins each named conflict type
+- [x] Step 4 (ranking): orders goals so a tie can break; names the dominant goal.
+- [x] Step 5 (arbitration): records which goal wins each named conflict type
   (urgency vs. warmth; brevity vs. completeness).
-- [ ] Step 7 (plain-language floor): verifies direction against named plain-language
+- [x] Step 7 (plain-language floor): verifies direction against named plain-language
   and inclusivity standards; a `references/plain-language-floor.md` file names the
   governing standards (GOV.UK Content Design plain-language guidance and the US
   Federal Plain Language Guidelines as the two stable named references) and defines
   the three specific checks the step applies: no jargon the reader didn't bring, no
   idioms that don't translate, no assumptions about the reader's identity.
-- [ ] VoC findings are taken as optional input: the SKILL.md procedure explicitly
+- [x] VoC findings are taken as optional input: the SKILL.md procedure explicitly
   states that when VoC is absent the skill elicits audience language inline (a short
   "what words does your audience use?" prompt) and flags the resulting goals as
   "directional — not backed by VoC research" — consistent with `aesthetic-direction`'s
   posture on persona as optional input.
-- [ ] Artifact path `docs/design/copy/<slug>.md` with `type: copy-direction` is
+- [x] Artifact path `docs/design/copy/<slug>.md` with `type: copy-direction` is
   documented in SKILL.md; `copy-direction` is named as an extension to the pack's
   discover-by-marker set alongside `content-brief`.
-- [ ] One-line cross-reference scope note added to
+- [x] One-line cross-reference scope note added to
   `packs/product-engineering/.apm/skills/voice-and-microcopy/SKILL.md`; note states
   the surface-type boundary: `copy-direction` owns marketing/acquisition copy voice
   and positioned copy (hero headlines, above-fold narrative, taglines);
@@ -145,25 +145,25 @@ All verification is goal-based or manual QA — there is no testable runtime log
   labels, form labels). Onboarding is explicitly carved: the onboarding narrative
   arc and structure → `content-design`; the onboarding copy voice and register →
   `copy-direction`; onboarding UI-state strings → `voice-and-microcopy`.
-- [ ] `copy-direction` is listed in `[pack.evals] skills` in
+- [x] `copy-direction` is listed in `[pack.evals] skills` in
   `packs/experience/pack.toml`; `evals/eval_queries.json` and `evals/evals.json`
   exist under `packs/experience/.apm/skills/copy-direction/evals/`.
-- [ ] `packs/experience/pack.toml` version is `0.5.0` (minor bump from 0.4.2,
+- [x] `packs/experience/pack.toml` version is `0.5.0` (minor bump from 0.4.2,
   reflecting two new public-interface skills); `packs/experience/.claude-plugin/plugin.json`
   version is also `0.5.0`; `make build-self` has been run to re-aggregate
   `marketplace.json` with the updated version.
-- [ ] `tools/lint-experience-agnostic.py` exits 0 on `packs/experience/` with both
+- [x] `tools/lint-experience-agnostic.py` exits 0 on `packs/experience/` with both
   new skills present.
-- [ ] `docs/backlog.md` entries `copy-direction-skill-rfc` and
+- [x] `docs/backlog.md` entries `copy-direction-skill-rfc` and
   `content-strategy-and-marketing-copy-lens` carry an in-progress marker referencing
   RFC-0062.
-- [ ] SEO keyword targeting, advertising copy templates, and brand identity
+- [x] SEO keyword targeting, advertising copy templates, and brand identity
   documentation production are explicitly listed as out of scope in the SKILL.md
   Anti-patterns or a clearly marked scope note (RFC-0062 D5 governs both skills).
-- [ ] The skill is standalone-useful: it elicits persona, surface type, and felt copy
+- [x] The skill is standalone-useful: it elicits persona, surface type, and felt copy
   vibe inline when no `content-design` output is provided; no upstream artifact is
   required to invoke it.
-- [ ] `docs/backlog.md` has an entry under `### experience-reviewer-content-brief-scope`
+- [x] `docs/backlog.md` has an entry under `### experience-reviewer-content-brief-scope`
   recording that experience-reviewer's scope extension to include content briefs is
   deferred (RFC-0062 OQ1), with a decide-by of "spec authoring for content-design."
 

@@ -1,0 +1,23 @@
+[
+  {"query": "What voice should our copy have? We're a developer tool and we sound too corporate", "should_trigger": true},
+  {"query": "Write a copy direction doc for our landing page — we know the vibe but can't name it", "should_trigger": true},
+  {"query": "How do we sound different from our competitors? They all sound the same", "should_trigger": true},
+  {"query": "What should our hero headline feel like? We want authority without sounding cold", "should_trigger": true},
+  {"query": "Copy vibe check — does our above-fold copy sound like us?", "should_trigger": true},
+  {"query": "We want to sound like a guide, not an expert. Help us name that direction", "should_trigger": true},
+  {"query": "What copy goals should drive our product launch announcement?", "should_trigger": true},
+  {"query": "Our marketing copy sounds like everyone else's — help us name a distinctive register", "should_trigger": true},
+  {"query": "Before we write the tagline, we need to name what it should feel like", "should_trigger": true},
+  {"query": "What's the copy arbitration rule when urgency and warmth conflict on our CTA?", "should_trigger": true},
+
+  {"query": "Write the error message for when login fails", "should_trigger": false},
+  {"query": "What should the empty state say when there are no projects yet?", "should_trigger": false},
+  {"query": "What's the visual aesthetic direction for the landing page?", "should_trigger": false},
+  {"query": "Write the button labels for the onboarding flow", "should_trigger": false},
+  {"query": "What SEO keywords should we target for our homepage?", "should_trigger": false},
+  {"query": "What should this landing page say — give me the full structure", "should_trigger": false},
+  {"query": "Map the customer journey for a new user signing up", "should_trigger": false},
+  {"query": "Write the CTA button copy for the pricing page", "should_trigger": false},
+  {"query": "Help me decide the narrative arc for our acquisition landing page", "should_trigger": false},
+  {"query": "Review this design and give me feedback on the layout", "should_trigger": false}
+]
