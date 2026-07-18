@@ -1,98 +1,17 @@
 ---
-import { getCollection } from 'astro:content';
-import SiteLayout from '../../components/layout/SiteLayout.astro';
-import Section from '../../components/layout/Section.astro';
-import PackCard from '../../components/pack/PackCard.astro';
+// This page has moved to /catalogue/ — see SiteNav.astro and catalogue/index.astro.
+// Pack detail pages (/packs/[pack]/) remain at their current URLs.
 import { withBase } from '../../lib/paths';
-
-const allPacks = await getCollection('packs');
-const packs = allPacks.sort((a, b) => {
-  // Keep the three loops first, then alpha by name
-  const order = ['core', 'product-engineering', 'release-engineering'];
-  const ai = order.indexOf(a.id.replace(/\.md$/, ''));
-  const bi = order.indexOf(b.id.replace(/\.md$/, ''));
-  if (ai !== -1 && bi !== -1) return ai - bi;
-  if (ai !== -1) return -1;
-  if (bi !== -1) return 1;
-  return a.data.name.localeCompare(b.data.name);
-});
+const url = withBase('/catalogue/');
 ---
-
-<SiteLayout title="Pack catalogue — agent-ready-repo" description="14 packs covering the full software development lifecycle — from discovery to build to release.">
-  <Section tone="surface" labelledby="packs-heading">
-    <h1 id="packs-heading" class="packs__headline">The pack catalogue.</h1>
-    <p class="packs__subhead">
-      14 packs covering the full SDLC — discovery, build, release, and beyond.
-      Start with the loops.
-    </p>
-
-    <div class="packs__plugin-banner">
-      <span class="packs__plugin-banner-text">
-        Installing via Claude Code or Claude Desktop?
-      </span>
-      <a class="packs__plugin-link" href={withBase('/plugins/')}>
-        Browse the Claude plugin catalogue <span aria-hidden="true">→</span>
-      </a>
-    </div>
-
-    <ul class="packs-grid">
-      {packs.map((entry) => (
-        <PackCard
-          slug={entry.id.replace(/\.md$/, '')}
-          name={entry.data.name}
-          scope={entry.data.scope}
-          tagline={entry.data.tagline}
-        />
-      ))}
-    </ul>
-  </Section>
-</SiteLayout>
-
-<style>
-  .packs__headline {
-    margin-bottom: var(--ds-space-3);
-  }
-
-  .packs__subhead {
-    font-size: var(--ds-type-body-lg);
-    color: var(--ds-on-surface-2);
-    max-width: 60ch;
-    margin-bottom: var(--ds-space-8);
-    line-height: var(--ds-lead-body);
-  }
-
-  .packs__plugin-banner {
-    display: flex;
-    align-items: center;
-    gap: var(--ds-space-4);
-    flex-wrap: wrap;
-    background-color: var(--ds-accent-subtle);
-    border: 1px solid var(--ds-accent);
-    border-radius: var(--ds-radius-md);
-    padding: var(--ds-space-4) var(--ds-space-5);
-    margin-bottom: var(--ds-space-7);
-  }
-
-  .packs__plugin-banner-text {
-    font-size: var(--ds-type-sm);
-    color: var(--ds-on-surface-2);
-  }
-
-  .packs__plugin-link {
-    font-size: var(--ds-type-sm);
-    font-weight: var(--ds-weight-semibold);
-    color: var(--ds-accent-deep);
-    white-space: nowrap;
-  }
-
-  .packs__plugin-link:hover {
-    text-decoration: none;
-    color: var(--ds-accent);
-  }
-
-  .packs-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--ds-space-5);
-  }
-</style>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content={`0;url=${url}`} />
+    <title>Redirecting to catalogue…</title>
+  </head>
+  <body>
+    <script define:vars={{ url }}>window.location.replace(url);</script>
+    <p>This page has moved. <a href={url}>Go to the pack catalogue →</a></p>
+  </body>
+</html>

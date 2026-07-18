@@ -1,13 +1,12 @@
 ---
 // Primary navigation. Dark zone — continuous with the hero below it, no gap.
 // Mobile menu is a <details>/<summary> disclosure: zero JavaScript.
-// Nav structure from information-architecture.md:
-//   Logo | How it works | Packs | Journeys | Docs ↗ | [Install →]
+// Nav structure:
+//   Logo | How it works | Catalogue | Journeys | Docs ↗ | [Install →]
 import { withBase } from '../../lib/paths';
 const links = [
   { label: 'How it works', href: withBase('/#three-loops') },
-  { label: 'Packs', href: withBase('/packs/') },
-  { label: 'Plugins', href: withBase('/plugins/') },
+  { label: 'Catalogue', href: withBase('/catalogue/') },
   { label: 'Journeys', href: withBase('/journeys/') },
 ];
 const homeHref = withBase('/');

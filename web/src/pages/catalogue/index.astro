@@ -1,0 +1,401 @@
+---
+import { getCollection } from 'astro:content';
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import Section from '../../components/layout/Section.astro';
+import { withBase } from '../../lib/paths';
+
+const PLUGIN_BRANCH = 'claude-plugins-dist';
+const REPO = 'eugenelim/agent-ready-repo';
+
+const allPacks = await getCollection('packs');
+const packs = allPacks
+  .sort((a, b) => {
+    const order = ['core', 'product-engineering', 'release-engineering'];
+    const ai = order.indexOf(a.id.replace(/\.md$/, ''));
+    const bi = order.indexOf(b.id.replace(/\.md$/, ''));
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.data.name.localeCompare(b.data.name);
+  })
+  .map((e) => {
+    const slug = e.id.replace(/\.md$/, '');
+    const pluginUrl = `https://github.com/${REPO}/tree/${PLUGIN_BRANCH}/${slug}`;
+    return {
+      slug,
+      name: e.data.name,
+      scope: e.data.scope,
+      tagline: e.data.tagline,
+      skillCount: e.data.skills.length,
+      cliCmd: e.data.installCommand,
+      pluginCmd: `claude plugin install ${pluginUrl}`,
+      detailUrl: withBase(`/packs/${slug}/`),
+    };
+  });
+---
+
+<SiteLayout
+  title="Pack catalogue — agent-ready-repo"
+  description={`${packs.length} packs covering the full SDLC. Install with agentbundle on the CLI, or as a Claude plugin in Claude Code and Claude Desktop.`}
+>
+  <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+  <section class="cat-hero" aria-labelledby="cat-hero-heading">
+    <div class="cat-hero__inner">
+      <span class="cat-hero__eyebrow">Pack catalogue</span>
+      <h1 id="cat-hero-heading" class="cat-hero__heading">
+        Every pack.<br />Your way.
+      </h1>
+      <p class="cat-hero__body">
+        {packs.length} packs for the full SDLC. Install with <code>agentbundle</code> for
+        the CLI path, or as a Claude plugin for Claude Code and Claude
+        Desktop — no extra configuration either way.
+      </p>
+      <p class="cat-hero__count">
+        {packs.length} packs available
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Catalogue grid ───────────────────────────────────────────────── -->
+  <Section tone="surface" labelledby="cat-grid-heading">
+    <h2 id="cat-grid-heading" class="visually-hidden">All packs</h2>
+
+    <ul class="cat-grid" role="list">
+      {packs.map((pack) => (
+        <li class="cat-card">
+          <!-- Card head — links to detail page -->
+          <a class="cat-card__head" href={pack.detailUrl}>
+            <div class="cat-card__name-row">
+              <h3 class="cat-card__name">{pack.name}</h3>
+              <span class="scope-chip">{pack.scope}</span>
+            </div>
+            <p class="cat-card__tagline">{pack.tagline}</p>
+            <div class="cat-card__meta">
+              <span class="cat-card__skills">
+                {pack.skillCount} skill{pack.skillCount !== 1 ? 's' : ''}
+              </span>
+              <span class="cat-card__detail-cta" aria-hidden="true">
+                View pack →
+              </span>
+            </div>
+          </a>
+
+          <!-- Install blocks — outside the navigating anchor -->
+          <div class="install-blocks">
+            <div class="install-block">
+              <div class="install-block__label">CLI</div>
+              <div class="install-block__row">
+                <code class="install-block__cmd">{pack.cliCmd}</code>
+                <button
+                  class="copy-btn"
+                  data-cmd={pack.cliCmd}
+                  aria-label={`Copy CLI install command for ${pack.name}`}
+                  type="button"
+                >
+                  <span class="copy-btn__icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+                      <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span class="copy-btn__label">Copy</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="install-block install-block--plugin">
+              <div class="install-block__label">Plugin</div>
+              <div class="install-block__row">
+                <code class="install-block__cmd install-block__cmd--truncate">{pack.pluginCmd}</code>
+                <button
+                  class="copy-btn"
+                  data-cmd={pack.pluginCmd}
+                  aria-label={`Copy Claude plugin install command for ${pack.name}`}
+                  type="button"
+                >
+                  <span class="copy-btn__icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+                      <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                  <span class="copy-btn__label">Copy</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </Section>
+</SiteLayout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const cmd = btn.dataset.cmd ?? '';
+      try {
+        await navigator.clipboard.writeText(cmd);
+        const label = btn.querySelector<HTMLElement>('.copy-btn__label');
+        if (label) {
+          label.textContent = 'Copied!';
+          btn.classList.add('copy-btn--success');
+          setTimeout(() => {
+            label.textContent = 'Copy';
+            btn.classList.remove('copy-btn--success');
+          }, 2000);
+        }
+      } catch {
+        // Clipboard API unavailable — command is still visible and selectable.
+      }
+    });
+  });
+</script>
+
+<style>
+  /* ── Hero ──────────────────────────────────────────────────────────── */
+  .cat-hero {
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+    padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
+  }
+
+  .cat-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+  }
+
+  .cat-hero__eyebrow {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .cat-hero__heading {
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    letter-spacing: var(--ds-track-display);
+    line-height: var(--ds-lead-display);
+    margin-bottom: var(--ds-space-5);
+    color: var(--ds-hero-fg);
+  }
+
+  .cat-hero__body {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-hero-fg-2);
+    max-width: 62ch;
+    line-height: var(--ds-lead-body);
+    margin-bottom: var(--ds-space-5);
+  }
+
+  .cat-hero__body code {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    color: var(--ds-accent);
+    background: none;
+  }
+
+  .cat-hero__count {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-sm);
+    color: var(--ds-hero-fg-muted);
+    margin: 0;
+  }
+
+  /* ── Grid ──────────────────────────────────────────────────────────── */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--ds-space-5);
+    margin-bottom: var(--ds-space-9);
+  }
+
+  /* ── Card ──────────────────────────────────────────────────────────── */
+  .cat-card {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color var(--ds-dur-moderate) var(--ds-ease-std);
+  }
+
+  .cat-card:hover {
+    border-color: var(--ds-accent);
+  }
+
+  .cat-card__head {
+    display: block;
+    padding: var(--ds-space-6);
+    flex: 1;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .cat-card__name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .cat-card__name {
+    font-size: var(--ds-type-h3);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+    letter-spacing: var(--ds-track-heading);
+  }
+
+  .scope-chip {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    background-color: var(--ds-accent-subtle);
+    color: var(--ds-accent-deep);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--ds-radius-sm);
+    flex-shrink: 0;
+  }
+
+  .cat-card__tagline {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .cat-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+  }
+
+  .cat-card__skills {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .cat-card__detail-cta {
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-accent-deep);
+  }
+
+  .cat-card__head:hover .cat-card__detail-cta {
+    color: var(--ds-accent);
+  }
+
+  /* ── Install blocks ─────────────────────────────────────────────────── */
+  .install-blocks {
+    border-top: 1px solid var(--ds-border);
+  }
+
+  .install-block {
+    background-color: var(--ds-hero-bg);
+    padding: var(--ds-space-3) var(--ds-space-5);
+  }
+
+  .install-block--plugin {
+    border-top: 1px solid var(--ds-hero-border);
+  }
+
+  .install-block__label {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-hero-fg-muted);
+    margin-bottom: var(--ds-space-1);
+  }
+
+  .install-block__row {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    min-width: 0;
+  }
+
+  .install-block__cmd {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    color: var(--ds-hero-fg);
+    flex: 1;
+    min-width: 0;
+    line-height: var(--ds-lead-mono);
+    user-select: all;
+  }
+
+  .install-block__cmd--truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── Copy button ────────────────────────────────────────────────────── */
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-1);
+    flex-shrink: 0;
+    background-color: var(--ds-hero-elevated);
+    border: 1px solid var(--ds-hero-border-card);
+    border-radius: var(--ds-radius-sm);
+    color: var(--ds-hero-fg-muted);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-medium);
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    transition:
+      background-color var(--ds-dur-quick) var(--ds-ease-std),
+      color var(--ds-dur-quick) var(--ds-ease-std),
+      border-color var(--ds-dur-quick) var(--ds-ease-std);
+  }
+
+  .copy-btn:hover {
+    background-color: var(--ds-accent-subtle-dk);
+    border-color: var(--ds-accent);
+    color: var(--ds-accent);
+  }
+
+  .copy-btn--success {
+    background-color: var(--ds-accent-subtle-dk);
+    border-color: var(--ds-accent);
+    color: var(--ds-accent);
+  }
+
+  .copy-btn__icon {
+    display: flex;
+    align-items: center;
+  }
+
+  /* ── Accessibility ──────────────────────────────────────────────────── */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cat-card,
+    .copy-btn {
+      transition: none;
+    }
+  }
+</style>
