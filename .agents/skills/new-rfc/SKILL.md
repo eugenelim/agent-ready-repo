@@ -289,8 +289,31 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 
 ## After acceptance
 
-When the RFC is accepted, the *follow-on artifacts* section should list
-concrete next steps — usually:
+When the RFC moves to Accepted, first offer to queue the follow-on
+implementation work in `workspace.toml`:
+
+**Prompt the user:** "Add implementation specs to `workspace.toml` queue?"
+
+- **If yes:** check for `workspace.toml` in the working directory.
+  - **If present:** read the target initiative section (`["<initiative-slug>"]`).
+    If the section is absent, ask the user to confirm the initiative slug and
+    offer to create the section with an empty `[work].queue` before appending —
+    do not silently skip and do not auto-create. Help the user add entries in
+    the `{path = "...", needs = "..."}` inline-object format (see
+    `docs/product/workspace-toml-deps.md` for the full entry format and prefix
+    notation). If
+    `[work].queue` already contains an entry for the same path, surface the
+    duplicate and ask whether to add anyway or skip. Stage the file. If
+    `workspace.toml` has more than one `status = "active"` initiative section,
+    ask which initiative's queue to append to.
+  - **If absent:** emit the literal note
+    "workspace.toml not found — add the entry manually when Batch 2 lands"
+    and continue to the follow-on artifact list. No error or exception.
+- **If no:** leave `workspace.toml` unchanged and continue to the
+  follow-on artifact list.
+
+Then present the *follow-on artifacts* section — the queue-write step is
+additive; the following list runs unchanged:
 
 - One or more ADRs to record the architectural decisions.
 - One or more specs in `docs/specs/` for features.
