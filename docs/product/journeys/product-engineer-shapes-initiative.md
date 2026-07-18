@@ -218,15 +218,15 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Action:** receive-signal-or-gap
-- **Action:** run-frame-situation
-- **Action:** run-identify-opportunities
-- **Action:** run-diverge-solutions
-- **Action:** validate-preferred-option
-- **Action:** run-place-bet
-- **Action:** run-map-capabilities
-- **Action:** run-author-brief
-- **Action:** run-receive-brief
+- **Skill:** receive-signal-or-gap
+- **Skill:** run-frame-situation
+- **Skill:** run-identify-opportunities
+- **Skill:** run-diverge-solutions
+- **Skill:** validate-preferred-option
+- **Skill:** run-place-bet
+- **Skill:** run-map-capabilities
+- **Skill:** run-author-brief
+- **Skill:** run-receive-brief
 
 ---
 
