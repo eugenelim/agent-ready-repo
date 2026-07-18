@@ -319,6 +319,14 @@ still holds: **runtime telemetry-driven** detection is release-loop's when prese
 **`reconcile-iac`** is the `plan`-based author-side reconcile that runs **with or
 without** release-loop.
 
+**Known blind spot: unmanaged resources.** `terraform plan` computes drift between
+state and the live control plane — but resources created entirely outside Terraform
+(ClickOps, console actions with *no state entry*) are invisible to `plan`.
+`reconcile-iac` inherits this limit; detecting unmanaged resources requires a
+separate layer (Snyk IaC / Driftctl lineage, platform-level health checks, or a
+`terraform import` discovery pass). The skill body must document this scope
+boundary and not imply full drift coverage.
+
 **Does `reconcile-iac` "audit and decide"? Audit + propose + route — never
 autonomously decide-and-apply** (that would break the no-autonomous-apply spine). It
 emits a **drift audit** (per drifted resource: cause-class + blast-radius against the
@@ -462,7 +470,11 @@ target cloud (ask — never guess), **engine** (`terraform | opentofu`, default
 `terraform`; emit the engine-neutral baseline unless a divergent feature is
 requested — §6a), environment(s) (default `dev`), region (ask), decision-record
 source (default: the repo's own ADR directory), CI system (default
-`github-actions`), state backend (derive from cloud).
+`github-actions`), state backend (derive from cloud), **account/tenant isolation
+model** (ask — shared account + workspaces vs. separate account/subscription/
+project per environment; this drives OIDC trust-policy scoping and the state
+backend key structure; default: separate account per environment; document the
+decision in the state ADR).
 
 **Reuse, do not duplicate.** The skill **references** `core`'s depth rather than
 re-stating it:
@@ -494,7 +506,7 @@ outer loop builds would duplicate the exact doctrine the pack reuses.
 | **infra/deploy — static preflight** (`fmt`·`validate`·`tflint`·policy-on-plan) | inner / `generate-iac` | **specify** (§3, §7) |
 | **goal-based — plan satisfies the stated goals** (the ADR-compliance table + policy-on-plan on plan JSON) | inner / `generate-iac` | **specify** (§5, §7) |
 | **infra/deploy — plan/preview** (`terraform plan`, the drift oracle) | inner / `generate-iac` (= the **G4** artifact) | **specify** (§2) |
-| **TDD — module/contract tests** (`terraform test` `.tftest.hcl` / Terratest / policy-as-code-as-test; the spec-ops "write validation tests first" discipline, §12) | inner, module-time / **reused** `quality-engineer` (test-author mode) + Terraform-native tooling | **refer + name the tooling** (a thin `references/` note; the *agent* is reused, nothing new shipped) |
+| **TDD — module/contract tests** (`terraform test` `.tftest.hcl` / Terratest / policy-as-code-as-test; the spec-ops "write validation tests first" discipline, §12) | inner, module-time / **reused** `quality-engineer` (test-author mode) + Terraform-native tooling | **refer + name the tooling** (a thin `references/` note; the *agent* is reused, nothing new shipped). Three tiers the `references/` note must help implementers choose between: **(1) unit** — `.tftest.hcl` with `command = plan` + mock providers (no cloud, no cost, fast); **(2) contract** — consumer-authored interface assertions in plan mode (subnet AZ coverage, output CIDR shape); **(3) E2E/integration** — Terratest or `.tftest.hcl` with `command = apply` against real resources (incurs cloud cost; the only tier that surfaces apply-time failures). Selection criterion: default to unit + contract for module authoring; E2E only when apply-time behavior is the unknown. |
 | **infra/deploy — idempotent convergent apply** (re-run converges, never collides) | outer / `release-loop` | **refer** (`infra-verification` GATES layer 3) |
 | **visual/manual-QA + goal-based — the data-plane probe** (write→read-back, or drive to the terminal user-visible result; in-network if private; readiness-aware with bounded backoff; self-teardown against a uniquely-named ephemeral target) | outer / **`release-loop` builds the probe** | **refer** (`infra-verification` V2) — the pack's only job is to **shape outputs so the probe is buildable** (§1b item 2) |
 | **infra/deploy — rollback** (named re-apply / targeted-destroy path; no atomic undo) | outer / `release-loop` runs; **named at plan-time** in the plan's Rollout | **refer** + the plan names the path |
@@ -535,6 +547,13 @@ oracle split, `terraform test`/Terratest, the drift `plan`) and (b) **points to*
 - **Least-privilege IAM inline per layer** — no god roles.
 - **Everything tagged/labeled** per the tagging standard.
 - **No secrets in code or state inputs** — reference a secret manager.
+  **`sensitive = true` suppresses CLI display only — sensitive output values are
+  still stored in plaintext in the state file.** Never output raw credentials;
+  output only references/ARNs. Encrypt the state backend at rest (S3 SSE-KMS;
+  GCS CMEK; Azure Storage Service Encryption + CMK).
+- **`terraform.tfvars.example` committed; `*.tfvars` git-ignored** (except
+  `*.tfvars.example`). Supply real values via `TF_VAR_*` from CI vaults or the
+  secret manager — never commit a `terraform.tfvars` with real values.
 - **`fmt` + `validate` clean; `plan` reviewed** before done.
 
 ### 4. Networking standard (progressive `references/`; binding)
@@ -628,9 +647,12 @@ repo. The contract each cloud reference satisfies — the **four-file shape**:
 service + locking; short-lived workload-identity primitive (no static keys);
 tags-vs-labels + naming/charset constraints; network/subnet/firewall/
 private-service-access/front-door equivalents; OIDC / workload-federation login
-per CI system; **and credential *tiering*** — the ephemeral/autonomous zone's
-identity can assume **ephemeral-tier roles only**, never a prod-assumable one
-(release-loop control (g), §1b).
+per CI system; **account/tenant isolation model** (shared account + workspaces vs.
+dedicated account/subscription/project per environment — drives OIDC trust-policy
+`sub` scoping, state key structure, and the `environment-isolation`
+operational-safety requirements); **and credential *tiering*** — the ephemeral/
+autonomous zone's identity can assume **ephemeral-tier roles only**, never a
+prod-assumable one (release-loop control (g), §1b).
 
 **Two acceptance bars — `contract-complete` vs `validated` (the split D5 rests on):**
 - **contract-complete** — the four files exist; the networking table has a column
@@ -815,9 +837,28 @@ lenient rule — so a security-relevant unknown-at-plan field gets a **compensat
 apply-time re-check** (or the residual false-negative is documented as accepted). A
 violation **fails the PR before any apply is possible**. The requirement is **mechanism-level, not tool-level** —
 a scanner must exist; the adopter picks it (HashiCorp Sentinel is an option but is
-paywalled behind HCP Terraform tiers).
+paywalled behind HCP Terraform tiers **and is incompatible with OpenTofu** — for
+OpenTofu users, OPA/Conftest is the only supported open-source path).
 This dovetails with `core`'s existing requirement that a policy-as-code / CSPM
 scanner exist as a preflight task-zero; here the pack ships starter rules.
+
+**Infracost as an optional economic-signal companion.** `infracost diff --path . --format json`
+runs against the plan and produces a cost delta — not a blocking gate (cost data
+quality varies; thresholds are org-specific), but a named pre-G4 companion for
+adopters with a budget-visibility requirement. Surfaces unexpected spend spikes
+alongside the policy-on-plan output and wires into the `cost-and-teardown`
+`operational-safety` module's blast-radius check. Mechanism-level, not
+tool-level — Infracost is the leading open-source option; the adopter picks.
+
+**AI plan-summarisation as a human-review companion.** Platforms including
+Spacelift, env0, and ControlMonkey now offer AI that reads `terraform plan` output
+and generates a plain-language change summary for human reviewers — addressing the
+*review bottleneck* (a human approving a large plan JSON without a summary is
+unlikely to catch intent-vs-output drift). Policy checks *whether* a change
+complies; plan-summarisation helps a human understand *what* will change. The
+pack's G4 handoff is the natural delivery point for this summary. Named here as a
+follow-on companion — `generate-iac` should produce a plain-language plan summary
+alongside the plan artifact in a later iteration.
 
 ### 8. Pipeline generators (per-CI `references/`, load target only — D9)
 
@@ -836,6 +877,16 @@ immutable numeric-ID form; trust policies written against the legacy name-only
 `sub` silently fail — the generator must emit `sub` conditions in the current form
 and flag this. GitHub Environments protection rules also require Team/Enterprise
 on private repos.
+
+**Shops running a Terraform GitOps platform** (Atlantis, Spacelift, env0,
+Terrateam) replace the generated CI YAML with their platform's plan/apply flow.
+For Atlantis, emit `atlantis.yaml` with per-repo/workspace config instead of a
+GitHub Actions workflow; the lock-and-comment-on-PR model differs from the
+environment-gate model above. The pack's three references target vanilla CI;
+Atlantis compatibility (and commercial platform configs) is a follow-on reference.
+The key invariant is identical across all platforms: `plan` before any `apply`,
+policy-on-plan as a non-skippable step, human approval before applying to any
+persistent environment.
 
 ### 9. `governance-extras` companions — and the shape each actually takes (D16)
 
