@@ -11,6 +11,9 @@ skills:
   - name: frame-intent
     description: "Establishes product framing — problem, user, outcome — before the loop begins."
     humanTouches: 1
+  - name: frame-domain
+    description: "Grounds the product in the real-world activity it serves and bounds the MVP — produces Domain Framing and Scope Boundary artifacts before the convergent design loop."
+    humanTouches: 1
   - name: de-risk-intent
     description: "Surfaces the riskiest assumption and designs a prototype approach to de-risk it before committing to build."
     humanTouches: 1
@@ -89,46 +92,46 @@ relatedJourneys:
 
 ## Stage 1 — Shape intent
 
-You described a product idea or problem to the `discovery-lead` agent. The agent activated `discovery-loop`, ran `frame-intent` to establish product framing (problem, user, outcome), and emitted an intent document.
+You describe a product idea or problem to the `discovery-lead` agent. The agent activates `discovery-loop`, runs `frame-intent` to establish product framing (problem, user, outcome), and emits an intent document.
 
-**You did:** Read the intent document — the framing is only a page. Gave concrete corrections if the problem statement was too vague ("users want to collaborate faster" → "the PM can't see which stories are blocked without checking three tools"). Provided the G0 consent once the framing was specific enough to eliminate candidates from. This gate sets the direction for everything that follows.
+**You:** Read the intent document — the framing is only a page. Give concrete corrections if the problem statement is too vague ("users want to collaborate faster" → "the PM can't see which stories are blocked without checking three tools"). Give G0 consent once the framing is specific enough to eliminate candidates from. This gate sets the direction for everything that follows.
 
 ---
 
 ## Stage 2 — Diverge
 
-The agent ran `explore-options` to generate candidate product shapes with distinct tradeoff profiles. Each candidate represented a meaningfully different approach to the problem.
+The agent runs `explore-options` to generate candidate product shapes with distinct tradeoff profiles. Each candidate represents a meaningfully different approach to the problem.
 
-**You did:** Watched as candidates appeared. If a candidate was obviously out-of-scope or repeated a prior approach, say so before the lens roster runs — it saves a review cycle. Otherwise, let the diverge step complete.
+**You:** Watch as candidates appear. If a candidate is obviously out-of-scope or repeats a prior approach, say so before the lens roster runs — it saves a review cycle. Otherwise, let the diverge step complete.
 
 ---
 
 ## Stage 3 — Lens roster
 
-After generating candidates, the agent ran two discovery reviewers — threat and reliability — against each candidate. Each reviewer read cold and returned findings. Candidates that failed the reviewers were eliminated.
+After generating candidates, the agent runs two discovery reviewers — threat and reliability — against each candidate. Each reviewer reads cold and returns findings. Candidates that fail the reviewers are eliminated.
 
-**You did:** Monitored the review output. If a candidate you wanted to keep was eliminated, read the finding that killed it — sometimes the finding is correct and you needed to hear it; sometimes it rests on a false premise you can correct with one sentence.
+**You:** Monitor the review output. If a candidate you want to keep is eliminated, read the finding that killed it — sometimes the finding is correct and you need to hear it; sometimes it rests on a false premise you can correct with one sentence.
 
 ---
 
 ## Stage 4 — Mid-discovery check
 
-The agent surfaced the surviving candidates for a mid-course human check. You reviewed which candidates remained and whether the field felt right.
+The agent surfaces the surviving candidates for a mid-course human check. You review which candidates remain and whether the field feels right.
 
-**You did:** At G1.5 you made a call. If only one candidate survived and it felt too easy, ask the agent to re-explore from a different angle. If the survivors felt genuinely distinct, confirm and let the loop converge. This is the last moment to expand the option space cheaply.
+**You:** At G1.5, make a call. If only one candidate survives and it feels too easy, ask the agent to re-explore from a different angle. If the survivors feel genuinely distinct, confirm and let the loop converge. This is the last moment to expand the option space cheaply.
 
 ---
 
 ## Stage 5 — Converge
 
-The agent ran `de-risk-intent` to surface the riskiest assumption and design a prototype approach to test it. It then ran `decompose-intent` to decompose the chosen direction into specs and briefs for the delivery loop.
+The agent runs `de-risk-intent` to surface the riskiest assumption and design a prototype approach to test it. It then runs `decompose-intent` to decompose the chosen direction into specs and briefs for the delivery loop.
 
-**You did:** Watched the assumption-test take shape. If the prototype approach the agent proposed was too expensive or wouldn't actually test the assumption, redirect. A bad de-risk approach means the brief reaches the delivery loop with an untested assumption at its core.
+**You:** Watch the assumption-test take shape. If the prototype approach the agent proposes is too expensive or won't actually test the assumption, redirect. A bad de-risk approach means the brief reaches the delivery loop with an untested assumption at its core.
 
 ---
 
 ## Stage 6 — Reconcile and commit
 
-The agent presented the full discovery sidecar — intent, assumption-test, validated candidate, decomposition. You reviewed the G2 reconciliation record and confirmed the decision brief was build-ready.
+The agent presents the full discovery sidecar — intent, assumption-test, validated candidate, decomposition. You review the G2 reconciliation record and confirm the decision brief is build-ready.
 
-**You did:** Read the full brief — all sections. At G2 you ratified the reconciliation record; at G3 you committed the brief to the delivery loop. These are two distinct decisions: G2 is "is this brief complete?" and G3 is "am I ready to build this?" A brief can be complete but still wrong.
+**You:** Read the full brief — all sections. At G2 you ratify the reconciliation record; at G3 you commit the brief to the delivery loop. These are two distinct decisions: G2 is "is this brief complete?" and G3 is "am I ready to build this?" A brief can be complete but still wrong.
