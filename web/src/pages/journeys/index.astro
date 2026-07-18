@@ -1,10 +1,11 @@
 ---
+import { getCollection } from 'astro:content';
 import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import { withBase } from '../../lib/paths';
 
-// All 14 journey slugs in display order — three supervised loops first, then alpha.
-const liveItems = [
+// Display order: three supervised loops first, then alpha by slug.
+const displayOrder = [
   { slug: 'core', name: 'Core' },
   { slug: 'discovery', name: 'Discovery (Product Engineering)' },
   { slug: 'release', name: 'Release Engineering' },
@@ -20,6 +21,16 @@ const liveItems = [
   { slug: 'research', name: 'Research' },
   { slug: 'user-guide-diataxis', name: 'User Guide (Diátaxis)' },
 ];
+
+const allJourneys = await getCollection('journeys');
+const taglineMap = Object.fromEntries(
+  allJourneys.map((j) => [j.id.replace(/\.md$/, ''), j.data.tagline])
+);
+
+const items = displayOrder.map((j) => ({
+  ...j,
+  tagline: taglineMap[j.slug] ?? '',
+}));
 ---
 
 <SiteLayout
@@ -34,11 +45,14 @@ const liveItems = [
     </p>
 
     <ul class="journeys-grid">
-      {liveItems.map((j) => (
+      {items.map((j) => (
         <li class="journey-card">
           <a class="journey-card__link" href={withBase(`/journeys/${j.slug}/`)}>
             <h2 class="journey-card__name">{j.name}</h2>
-            <span class="journey-card__cta" aria-hidden="true">Read the journey →</span>
+            {j.tagline && (
+              <p class="journey-card__tagline">{j.tagline}</p>
+            )}
+            <span class="journey-card__cta" aria-hidden="true">See the journey →</span>
           </a>
         </li>
       ))}
@@ -89,6 +103,13 @@ const liveItems = [
     font-size: var(--ds-type-body-lg);
     font-weight: var(--ds-weight-semibold);
     color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .journey-card__tagline {
+    font-size: var(--ds-type-sm);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
     margin-bottom: var(--ds-space-3);
   }
 
