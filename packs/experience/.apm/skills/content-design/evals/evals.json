@@ -1,0 +1,37 @@
+{
+  "skill_name": "content-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write a content brief for an acquisition surface — a landing page for a developer tool targeting technical team leads who are evaluating the product.",
+      "expected_output": "A structured content brief that: declares the surface type (acquisition), names the audience awareness level using the Schwartz five-stage ladder, selects a narrative arc (StoryBrand or CCD) with a stated applicability rationale, assigns each scroll section one content job (problem / guide proof / plan / stakes / CTA), states the above-fold structure contract (headline what/who/why + subheadline), names a primary and transitional CTA with label direction and next state, and names a success metric. The brief contains content direction — what to say, for whom, in what order — not finished copy. It ends with the artifact path docs/design/content/<slug>.md and names copy-direction and map-screen-flow as downstream consumers.",
+      "assertions": [
+        "Surface type declared as acquisition",
+        "Audience awareness level named using the Schwartz five-stage ladder with a rationale",
+        "Narrative arc selected (StoryBrand or CCD) with a one-sentence applicability rationale tied to awareness level",
+        "At least three scroll sections present, each with exactly one assigned job",
+        "Above-fold structure names the headline contract and what the subheadline adds",
+        "Primary CTA names the action and label direction; transitional CTA named",
+        "Success metric named as a rate (sign-up rate, trial start rate, or equivalent)",
+        "No finished copy strings — only direction, job descriptions, and structure contracts",
+        "Artifact path docs/design/content/<slug>.md stated",
+        "copy-direction named as downstream for copy voice; map-screen-flow named for screen sequencing"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Write a content brief for a product/reference surface — an API quickstart guide for developers integrating for the first time.",
+      "expected_output": "A structured content brief that: declares the surface type (product/reference), names the user task as a verb phrase, states the completion definition, selects a content format (numbered steps for a procedural task) with a format rationale, assigns each content item to a must-say / probably-say / might-say tier using the Nava PBC model, and names a completion metric. The brief contains content direction — what to include, in what format, in what priority order — not finished content.",
+      "assertions": [
+        "Surface type declared as product-or-reference",
+        "User task stated as a verb phrase (not a noun phrase)",
+        "Completion definition stated — what does done look like for the user",
+        "Content format selected with a one-sentence rationale tied to task type",
+        "Content items assigned to must-say / probably-say / might-say tiers",
+        "Completion metric named (task completion rate or search resolution rate)",
+        "No finished copy strings — direction and hierarchy only",
+        "copy-direction named as downstream for copy voice; map-screen-flow named for screen sequencing"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+[
+  {"query": "What should this landing page say to convert technical team leads?", "should_trigger": true},
+  {"query": "Write a content brief for our onboarding flow — we need to decide what it should communicate", "should_trigger": true},
+  {"query": "What's the narrative arc for this marketing page? We don't know what to say first", "should_trigger": true},
+  {"query": "What does our API quickstart page need to communicate to developers?", "should_trigger": true},
+  {"query": "Help me decide the above-fold structure for our pricing page", "should_trigger": true},
+  {"query": "We're redesigning our feature page — what should it say and in what order?", "should_trigger": true},
+  {"query": "Should we use StoryBrand or CCD for our new landing page?", "should_trigger": true},
+  {"query": "What's the content hierarchy for our help article — what must we say vs. what's optional?", "should_trigger": true},
+  {"query": "Before we start wireframing, what should this page actually say?", "should_trigger": true},
+  {"query": "We need to figure out our conversion architecture — what belongs above the fold?", "should_trigger": true},
+
+  {"query": "Write the hero headline for our landing page", "should_trigger": false},
+  {"query": "What should the error message say when login fails?", "should_trigger": false},
+  {"query": "Name the voice axes for our product — how formal should we be?", "should_trigger": false},
+  {"query": "Make the empty-state copy warmer and more encouraging", "should_trigger": false},
+  {"query": "Map the customer journey for a B2B SaaS trial user", "should_trigger": false},
+  {"query": "What keywords should we target for our SEO strategy?", "should_trigger": false},
+  {"query": "Build the screen flow for the checkout experience", "should_trigger": false},
+  {"query": "What does our A/B test data say about the CTA button colour?", "should_trigger": false},
+  {"query": "Write the button labels for the settings page", "should_trigger": false},
+  {"query": "What is the visual aesthetic direction for this landing page?", "should_trigger": false}
+]
