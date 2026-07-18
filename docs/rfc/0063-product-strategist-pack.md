@@ -1,4 +1,4 @@
-# RFC-0063: product-strategist pack
+# RFC-0063: product-strategy pack
 
 - **Status:** Draft
 - **Author:** eugenelim
@@ -10,7 +10,7 @@
 
 ## Reviewer brief
 
-- **Decision:** Create a `product-strategist` pack — a new, user-scope, pure-markdown pack housing the upstream strategy disciplines that sit above both the experience pack (which starts at journey mapping) and the product-engineering pack (which starts at product-vision intent).
+- **Decision:** Create a `product-strategy` pack — a new, user-scope, pure-markdown pack housing the upstream strategy disciplines that sit above both the experience pack (which starts at journey mapping) and the product-engineering pack (which starts at product-vision intent).
 - **Recommended outcome:** Accept — create the pack name, scope, and discipline taxonomy; defer individual skill specs to follow-on work.
 - **Change if accepted:** A new `packs/product-strategist/` directory scaffolded; `docs/rfc/README.md` updated; backlog items cross-referenced.
 - **Affected surface:** New top-level pack directory (requires `AGENTS.md` approval per convention — this RFC is that approval).
@@ -20,7 +20,7 @@
 
 ## The ask
 
-**Recommendation (BLUF — bottom line up front):** Create a `product-strategist` pack to house the upstream strategy disciplines — market/competitive strategy, UX strategy, experience mapping, and content strategy — that the current catalogue has no home for, with growth strategy as an open question (own pack vs. here).
+**Recommendation (BLUF — bottom line up front):** Create a `product-strategy` pack to house the upstream strategy disciplines — market/competitive strategy, UX strategy, experience mapping, and content strategy — that the current catalogue has no home for, with growth strategy as an open question (own pack vs. here).
 
 **Why now (SCQA — Situation, Complication, Question, Answer):** The experience pack starts at journey mapping and the product-engineering pack starts at product-vision intent. Both assume the upstream strategic context — who is the target market, what is the competitive position, what is the experience strategy, what is the content strategy — has already been resolved. Building the platform site (2026-07-01) and drafting RFC-0062 both surfaced this gap: the missing layer is not a skill in an existing pack but a strategist-role discipline set that precedes design and engineering entirely. The question is: what disciplines belong in this pack and how do they partition against what the existing packs already cover?
 
@@ -28,7 +28,7 @@
 
 | ID | Question | Recommendation | Why | Decide by | Reviewer action |
 |---|---|---|---|---|---|
-| D1 | Create a `product-strategist` pack as the home for upstream strategy disciplines? | Yes | Disciplines are strategist-role work, not designer- or engineer-role work; a separate pack keeps the existing packs coherent | This review | Confirm or rename |
+| D1 | Create a `product-strategy` pack as the home for upstream strategy disciplines? | Yes | Disciplines are strategist-role work, not designer- or engineer-role work; a separate pack keeps the existing packs coherent | This review | Confirm or rename |
 | D2 | Should the pack cover market/competitive strategy (competitive positioning, GTM, product-market fit) and UX strategy (NN/g vision + goals/measures + plan model) as the two primary pillars? | Yes — these two pillars as v1 scope | Both sit clearly upstream of product-engineering and experience; both have canonical discipline definitions and artifact chains; see Evidence & prior art | This review | Confirm or narrow |
 | D3 | Should content strategy (Halvorson quad: editorial + experience + structure + process) be a third pillar of this pack, distinct from content-design (what a page says, per RFC-0062)? | Yes — content strategy here; content-design in experience | Content strategy is a planning/governance discipline; content-design is a per-surface design discipline. RFC-0062 explicitly deferred content strategy to this pack. | This review | Confirm or adjust |
 | D4 | Does growth strategy (AARRR model, product-led growth, PMF testing) belong in this pack or in a separate `growth` pack? | Defer to OQ1 | Growth strategy is related to product strategy but has a distinct operational character (measurement, experimentation, activation loops) that may warrant its own pack | OQ1 decide-by | Rule on scope |
@@ -58,13 +58,13 @@ The gap: a strategist arriving at the catalogue has no skills for the upstream w
 
 ## Proposal
 
-**Pack name:** `product-strategist`
+**Pack name:** `product-strategy`
 
 **Pack type:** User-scope, pure-markdown, no engine — same posture as `experience` (ADR-0024 extended by analogy: no values tables, no platform primitives, no analytics engine).
 
 **Discipline taxonomy (v1):**
 
-*Pillar 1 — Market & competitive strategy:* skills that help a strategist understand the competitive landscape, define a positioning frame (Jobs to be Done market sizing, Blue Ocean strategy canvas, competitive feature matrix), articulate product-market fit hypotheses (Lean Canvas, Superhuman PMF methodology, Sean Ellis PMF survey), and sketch a go-to-market motion. Sits upstream of `product-engineering`'s `product-vision` intent.
+*Pillar 1 — Market & competitive strategy:* skills that help a strategist understand the competitive landscape (SWOT — Strengths, Weaknesses, Opportunities, Threats; Porter's Five Forces — supplier/buyer/entrant/substitute/rivalry analysis; PESTLE — Political, Economic, Social, Technological, Legal, Environmental macro scan; BCG Matrix — portfolio growth-share quadrants: Stars / Cash Cows / Question Marks / Dogs), define a positioning frame (Jobs to be Done market sizing, Blue Ocean strategy canvas, competitive feature matrix), align the organization to strategic objectives (OKR cascade — Objectives and Key Results from company level down to product and team level), articulate product-market fit hypotheses (Lean Canvas, Superhuman PMF methodology, Sean Ellis PMF survey), and sketch a go-to-market motion. Sits upstream of `product-engineering`'s `product-vision` intent.
 
 *Pillar 2 — UX strategy:* skills that bridge business goals and user experience design — the NN/g three-layer model (vision → goals + measures → plan), Jeff Gothelf/Josh Seiden's OKR-linked UX strategy approach, and Jaime Levy's UX strategy framework (business strategy + value innovation + validated user research + killer UX design). Sits upstream of `experience`'s `map-customer-journey`.
 
@@ -88,7 +88,7 @@ Axis: how to house upstream strategy disciplines in the catalogue.
 
 | Option | Description | Trade-off | Prior art |
 |---|---|---|---|
-| **A — `product-strategist` pack (recommended)** | New pack; three v1 pillars (market, UX, content strategy); growth deferred to OQ1 | Adds a new pack; clean discipline partition; no overlap with existing packs | Separate strategist-role discipline is standard in agency practice (Huge Inc, IDEO, Frog Design all separate strategy from design execution) |
+| **A — `product-strategy` pack (recommended)** | New pack; three v1 pillars (market, UX, content strategy); growth deferred to OQ1 | Adds a new pack; clean discipline partition; no overlap with existing packs | Separate strategist-role discipline is standard in agency practice (Huge Inc, IDEO, Frog Design all separate strategy from design execution) |
 | **B — Extend `product-engineering` with strategy skills** | Add market/UX/content strategy skills to `product-engineering` | Avoids a new pack; but `product-engineering` is already engineer-oriented — adding strategist-role skills blurs its audience | No prior art for bundling market strategy with spec authoring |
 | **C — Extend `experience` with UX strategy; extend `product-engineering` with market strategy** | Split across two existing packs | Closest match to current entry points; but cross-pack strategy discipline creates a "who do I invoke first?" confusion | None — content strategy in particular has no natural home in either existing pack |
 | **D — Do nothing; let users compose strategy ad-hoc** | Preserve current catalogue; no new pack | Cost: strategists using the catalogue have no skill home; the gap noted in this session and RFC-0062 persists unaddressed | — |
@@ -102,12 +102,12 @@ Axis: how to house upstream strategy disciplines in the catalogue.
 
 **Key assumptions (falsifiable):**
 - Market/competitive strategy, UX strategy, and content strategy are distinct enough to be separate skills, not a single "strategy" skill with surface-type routing.
-- A `product-strategist` audience (separate from designer or engineer) exists among adopters.
+- A strategist-role adopter audience (separate from designer or engineer) exists and reaches for this pack.
 - The pack can produce direction documents that clear ADR-0024's pure-markdown guardrails.
 
 **Drawbacks:**
 - A third strategy-adjacent pack (alongside `product-engineering` and `experience`) increases catalogue surface area.
-- The "strategist" persona may overlap with the "product manager" persona already served by `product-engineering`.
+- The strategist persona may overlap with the product manager persona already served by `product-engineering`.
 
 ## Evidence & prior art
 
@@ -130,15 +130,15 @@ Axis: how to house upstream strategy disciplines in the catalogue.
 
 ## Open questions
 
-**OQ1 — Does growth strategy (AARRR, PLG, PMF testing, Sean Ellis) belong in `product-strategist` or in a separate `growth` pack?**
-Growth strategy has strategic elements (GTM motion, growth model selection) and operational elements (experiment design, activation metrics, cohort analysis). The operational half may warrant a separate `growth` pack. Recommended default: defer growth entirely from `product-strategist` v1 and resolve the boundary in a follow-on RFC after the v1 skills are scoped. Owner: eugenelim. Decide-by: before `product-strategist` v1 spec authoring.
+**OQ1 — Does growth strategy (AARRR, PLG, PMF testing, Sean Ellis) belong in `product-strategy` or in a separate `growth` pack?**
+Growth strategy has strategic elements (GTM motion, growth model selection) and operational elements (experiment design, activation metrics, cohort analysis). The operational half may warrant a separate `growth` pack. Recommended default: defer growth entirely from `product-strategy` v1 and resolve the boundary in a follow-on RFC after the v1 skills are scoped. Owner: eugenelim. Decide-by: before `product-strategy` v1 spec authoring.
 
 **OQ2 — Should experience mapping (Adaptive Path model — cross-channel arc, distinct from a customer journey map) be a fourth pillar in v1, or deferred to a follow-on?**
-Experience mapping sits upstream of the experience pack's `map-customer-journey` skill but is closely related to it. It may make more sense as the experience pack's upstream entry point (extending RFC-0050) than as a product-strategist skill. Recommended default: defer experience mapping to the `experience` pack as an upstream extension (RFC-NNNN), not `product-strategist`. Owner: eugenelim. Decide-by: before `product-strategist` v1 spec authoring.
+Experience mapping sits upstream of the experience pack's `map-customer-journey` skill but is closely related to it. It may make more sense as the experience pack's upstream entry point (extending RFC-0050) than as a product-strategist skill. Recommended default: defer experience mapping to the `experience` pack as an upstream extension (RFC-NNNN), not `product-strategy`. Owner: eugenelim. Decide-by: before `product-strategy` v1 spec authoring.
 
 ## Follow-on artifacts
 
 - Spec: `docs/specs/product-strategist-pack/` (discipline taxonomy, pack contract, v1 skill list)
-- ADR-NNNN: `product-strategist` pack scope and discipline boundaries
+- ADR-NNNN: `product-strategy` pack scope and discipline boundaries
 - Amend `docs/backlog.md`: mark `content-strategy-and-marketing-copy-lens`'s content-strategy thread as in-progress (RFC opened); add growth-strategy thread as open
 - Cross-reference note added to `packs/product-engineering/` and `packs/experience/` README files noting the upstream pack
