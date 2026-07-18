@@ -54,30 +54,30 @@ relatedJourneys:
 
 ## Stage 1 — Establish the reference
 
-Before any design work began, the agent checked for a `reference.md` in the repo — the golden-path file that describes the stack, patterns, and constraints the architecture skills design against. If one didn't exist, the agent offered to create it.
+Before any design work begins, the agent checks for a `reference.md` in the repo — the golden-path file that describes the stack, patterns, and constraints the architecture skills design against. If one doesn't exist, the agent offers to create it.
 
-**You did:** Confirmed the reference was accurate for this task. A grounded `reference.md` is what keeps the agent's designs inside your actual architecture, not an idealized one. If the reference was stale or missing a key constraint, update it before the design session starts — the agent will design against whatever it finds.
+**You:** Confirm the reference is accurate for this task. A grounded `reference.md` keeps the agent's designs inside your actual architecture, not an idealized one. If the reference is stale or missing a key constraint, update it before the design session starts — the agent designs against whatever it finds.
 
 ---
 
 ## Stage 2 — Stage 0 concept
 
-You described the design problem. The agent ran `architect-design` in Stage 0 mode, producing a half-page concept framing the problem, naming constraints, and proposing a candidate approach with at least one alternative.
+You describe the design problem. The agent runs `architect-design` in Stage 0 mode, producing a half-page concept framing the problem, naming constraints, and proposing a candidate approach with at least one alternative.
 
-**You did:** Read the concept at the G-concept gate. If the framing missed the real constraint — for example, it proposed a new service when the constraint was "must run inside the existing Lambda" — redirect here, before the full write-up. The concept gate is the cheapest point to course-correct. If the alternatives section felt thin, ask for one more before approving.
+**You:** Read the concept at the G-concept gate. If the framing misses the real constraint — for example, it proposes a new service when the constraint is "must run inside the existing Lambda" — redirect here, before the full write-up. The concept gate is the cheapest point to course-correct. If the alternatives section feels thin, ask for one more before approving.
 
 ---
 
 ## Stage 3 — Full design document
 
-After concept approval, the agent wrote the full Stage 1 design document: problem statement, alternatives considered with rejection reasoning, proposed design, open questions, and success criteria. It grounded the design against the repo's `reference.md` throughout.
+After concept approval, the agent writes the full Stage 1 design document: problem statement, alternatives considered with rejection reasoning, proposed design, open questions, and success criteria. It grounds the design against the repo's `reference.md` throughout.
 
-**You did:** Watched the doc take shape. If the alternatives section omitted an approach the team had already discussed and ruled out, mention it — a design doc that doesn't address the alternatives an experienced reader would ask about is one that will generate questions in review. If the agent drifted from the approved concept, note it.
+**You:** Watch the doc take shape. If the alternatives section omits an approach the team has already discussed and ruled out, mention it — a design doc that doesn't address the alternatives an experienced reader would ask about generates questions in review. If the agent drifts from the approved concept, note it.
 
 ---
 
 ## Stage 4 — Independent review
 
-The agent ran `architect-review`, which dispatched the `design-reviewer` subagent in a forked context — a reviewer that had not seen the authoring session. The reviewer returned findings grouped by severity (Blockers, Concerns, Nits).
+The agent runs `architect-review`, which dispatches the `design-reviewer` subagent in a forked context — a reviewer that has not seen the authoring session. The reviewer returns findings grouped by severity (Blockers, Concerns, Nits).
 
-**You did:** Read the review findings at the G-review gate. For each Blocker, decide whether to fix it or provide a one-sentence reason it doesn't apply — "this is expected because the constraint was already accepted in the RFC." For Concerns and Nits, apply or defer with a reason. The independent read is the closest thing to "a colleague who just walked in" before the doc goes to stakeholders.
+**You:** Read the review findings at the G-review gate. For each Blocker, decide whether to fix it or provide a one-sentence reason it doesn't apply — "this is expected because the constraint was already accepted in the RFC." For Concerns and Nits, apply or defer with a reason. The independent read is the closest thing to "a colleague who just walked in" before the doc goes to stakeholders.

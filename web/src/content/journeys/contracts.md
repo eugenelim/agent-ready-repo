@@ -39,22 +39,22 @@ relatedJourneys:
 
 ## Stage 1 — Author the contract
 
-You described the API surface — the resources, actions, and consumers. The agent ran `api-contract` or `event-contract` with the pluggable house standard configured (Zalando guidelines by default). It produced a first-draft contract: endpoints, request/response schemas, error codes, and the consumer-perspective check.
+You describe the API surface — the resources, actions, and consumers. The agent runs `api-contract` or `event-contract` with the pluggable house standard configured (Zalando guidelines by default). It produces a first-draft contract: endpoints, request/response schemas, error codes, and the consumer-perspective check.
 
-**You did:** Watched the draft take shape and noted corrections as they arose — don't wait for the full draft to redirect on a naming convention or a missing error case. Small corrections mid-draft are faster than a full re-generate. If you knew the consumer would call this API in a specific way, say so before the agent finalizes the response schemas.
+**You:** Watch the draft take shape and note corrections as they arise — don't wait for the full draft to redirect on a naming convention or a missing error case. Small corrections mid-draft are faster than a full re-generate. If you know the consumer will call this API in a specific way, say so before the agent finalizes the response schemas.
 
 ---
 
 ## Stage 2 — Review from the consumer's perspective
 
-After the first complete draft, the agent ran a self-review against the house standard. You reviewed the contract at the G-contract gate — reading from the consumer's perspective, not the producer's.
+After the first complete draft, the agent runs a self-review against the house standard. You review the contract at the G-contract gate — reading from the consumer's perspective, not the producer's.
 
-**You did:** Read through the error responses first. The most common failure mode is a contract that specifies the happy path thoroughly but skips error cases — a 200 response with no corresponding 400, 404, or 500. If an error case was missing, name it explicitly: the agent can't infer which errors are real without domain knowledge. If the schema field names used inconsistent conventions (camelCase in some places, snake_case in others), correct them here before implementation begins.
+**You:** Read through the error responses first. The most common failure mode is a contract that specifies the happy path thoroughly but skips error cases — a 200 response with no corresponding 400, 404, or 500. If an error case is missing, name it explicitly: the agent can't infer which errors are real without domain knowledge. If the schema field names use inconsistent conventions (camelCase in some places, snake_case in others), correct them here before implementation begins.
 
 ---
 
 ## Stage 3 — Versioned output
 
-The ratified contract was emitted as a versioned OpenAPI 3.1 or AsyncAPI 2.x file, ready to commit alongside the implementation it governs.
+The ratified contract is emitted as a versioned OpenAPI 3.1 or AsyncAPI 2.x file, ready to commit alongside the implementation it governs.
 
-**You did:** Confirmed the contract file was placed alongside the service it governs — not in a separate repository or a documentation folder that would diverge from the service over time. A contract that lives apart from its implementation will drift silently until a consumer discovers the mismatch.
+**You:** Confirm the contract file is placed alongside the service it governs — not in a separate repository or a documentation folder that would diverge from the service over time. A contract that lives apart from its implementation drifts silently until a consumer discovers the mismatch.
