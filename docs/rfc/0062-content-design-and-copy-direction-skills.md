@@ -16,7 +16,7 @@
 - **Affected surface:** `packs/experience/` (two new skills); `packs/product-engineering/.apm/skills/voice-and-microcopy/SKILL.md` (scope note cross-reference only).
 - **Stakes:** Reversible — new skills can be amended or removed; no existing skill changes behavior; no cross-pack interface changes.
 - **Review focus:** (1) Whether `content-design`'s acquisition sub-path (conversion architecture) is within charter scope without triggering the blocked growth/marketing charter question. (2) Whether the `voice-and-microcopy` / `copy-direction` boundary is clean enough to eliminate confusion.
-- **Not in scope:** SEO (keyword targeting, meta descriptions); analytics/CRO tooling; user research production; pixel comps; any code output; the product-strategist pack's UX-strategy and content-strategy disciplines (a future pack, not yet built).
+- **Not in scope:** SEO (keyword targeting, meta descriptions); analytics/CRO tooling; user research production; pixel comps; any code output; the `product-strategy` pack's UX-strategy and content-strategy disciplines (RFC-0063, a future pack, not yet built).
 
 ## The ask
 
@@ -32,7 +32,7 @@
 | D2 | Should `content-design` cover both acquisition and product/reference surfaces via a `surface-type` input? | Yes — both, with `surface-type` flag | Same discipline applies to both surface types; one skill with two sub-paths is cleaner than two separate skills | This review | Confirm or narrow |
 | D3 | Does conversion architecture (above-fold order, scroll section arc, CTA placement) belong in `content-design`'s acquisition sub-path? | Yes — inside `content-design` | `content-design` fills a broken link in the chartered experience design thread (RFC-0050's design-flow completeness bar) and clears ADR-0024's guardrails — that is the design-scope argument. The growth-scope question: the backlog deferred conversion architecture alongside SEO as "not in experience pack scope" (see Evidence & prior art); this RFC splits that bundle — CTA placement and scroll-section sequencing are structural design-thread work (what to say in what order), not growth analytics or CRO (Conversion Rate Optimization) tooling. SEO stays deferred per D5 | This review | Confirm or defer |
 | D4 | Scope boundary: `copy-direction` owns marketing/acquisition copy voice; `voice-and-microcopy` owns product UI copy states — with surface type as the explicit boundary? | Yes — surface type as the boundary | Cleanest split with no overlap at steady state; both files carry a cross-reference | This review | Confirm or adjust |
-| D5 | SEO (keyword targeting, meta descriptions) explicitly out of scope for both skills? | Yes — deferred to product-strategist pack | Charter has no growth/marketing ruling; SEO requires specialized search-pattern research; out of scope per existing backlog decision | This review | Confirm |
+| D5 | SEO (keyword targeting, meta descriptions) explicitly out of scope for both skills? | Yes — deferred to `product-strategy` pack (RFC-0063) | Charter has no growth/marketing ruling; SEO requires specialized search-pattern research; out of scope per existing backlog decision | This review | Confirm |
 
 ## Problem & goals
 
