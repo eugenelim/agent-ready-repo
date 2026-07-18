@@ -29,15 +29,19 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 3. **Route to the sub-path and run elicitation.** Run the elicitation sequence for the confirmed surface type:
 
    **Acquisition sub-path:** Load `references/surface-routing.md` (acquisition questions) and `references/narrative-arc.md`. Elicit:
+   - Audience action goal — what is the primary outcome the reader must carry away? (Decision / Understanding / Execution / Belief shift). The action goal shapes the evidence type and emphasis; awareness level drives arc selection. See `references/surface-routing.md` step 0 for the full four-goal definitions.
    - Business objective — what is the one action this surface needs to drive?
-   - Primary reader awareness level using the Schwartz five-stage awareness ladder (Unaware → Problem-Aware → Solution-Aware → Product-Aware → Most Aware). The awareness level determines narrative arc selection.
+   - Primary reader awareness level using the Schwartz five-stage awareness ladder (Unaware → Problem-Aware → Solution-Aware → Product-Aware → Most Aware). Awareness level is the primary arc selection driver.
    - Narrative arc: StoryBrand (seven-element arc) is the right choice for cold and warm audiences (awareness levels 1–3); Conversion-Centered Design (seven principles) is the right choice for bottom-of-funnel audiences (levels 4–5). State the applicability rationale before selecting.
    - Scroll section assignment — each scroll section gets one job: problem, guide proof, plan, stakes, or CTA.
    - Above-fold structure — what is the headline contract (what/who/why in the first sentence), and what does the subheadline add?
    - Primary CTA and transitional CTA — what action, what label, what happens next?
    - Success metric — how do we know this surface worked?
 
-   **Product/reference sub-path:** Load `references/surface-routing.md` (product questions) and `references/content-hierarchy.md`. Elicit:
+   **Product/reference sub-path:** Load `references/surface-routing.md` (product questions), `references/content-hierarchy.md`, and `references/narrative-arc.md` (for the Pyramid Principle, applicable when the reader's action goal is Decision or Understanding at high prior knowledge). Elicit:
+   - Reader action goal — is the reader arriving to make a Decision, gain Understanding, complete an Execution task, or shift a Belief? This determines whether the Pyramid Principle applies.
+   - Prior knowledge level — does the reader arrive already knowing why the topic matters (high), or do they need context before the conclusion can land (low)?
+   - Content structure arc: if the action goal is Decision or Understanding at high prior knowledge, apply the Pyramid Principle (conclusion first, top-down hierarchy). Otherwise use the default task-completion structure (context before answer). State the applicability rationale.
    - User task — what is the user trying to accomplish? State it as a verb phrase.
    - Completion definition — what does "done" look like for the user on this surface?
    - Content format: which format matches the task type? (prose for conceptual explanation; numbered steps for procedural tasks; table for comparison or reference; diagram for relationships or flows)
@@ -53,7 +57,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 ## Anti-patterns to refuse
 
-- **Reprinting framework text verbatim.** Name the Schwartz awareness ladder, StoryBrand arc, CCD principles, or Nava PBC model as named references; never quote their framework text or list their elements as though they are the answer.
+- **Reprinting framework text verbatim.** Name the Schwartz awareness ladder, StoryBrand arc, CCD principles, Nava PBC model, or Pyramid Principle as named references; never quote their framework text or list their elements as though they are the answer.
 - **Producing copy templates or pre-written strings.** This skill produces content direction — what to say, in what order, to whom — not finished copy. If the output contains a written headline or label, it has overstepped.
 - **Producing an analytics or measurement framework.** Naming a success metric (task completion rate, sign-up rate) is in scope. Specifying tracking instrumentation, funnel metrics, or A/B test design is not.
 - **Running user research or VoC production.** This skill takes audience information as input; it does not produce it. If no persona exists, elicit inline at the level of a sketch — do not run a research project.

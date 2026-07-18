@@ -127,6 +127,8 @@ All verification is goal-based or manual QA — there is no testable runtime log
 - [x] This spec ships in the same PR as `copy-direction-skill` (the two skills
   share a single pack version bump at 0.4.2 → 0.5.0 and a single `build-self` run;
   landing content-design alone would add a public skill with no semver record).
+- [x] Acquisition sub-path elicitation in `references/surface-routing.md` includes an audience action goal step that names four action goals — Decision (commit), Understanding (grasp a concept), Execution (complete a task now), Belief shift (change mental model) — and states how each informs arc selection; SKILL.md Step 3's acquisition sub-path references this step.
+- [x] `references/narrative-arc.md` names the Pyramid Principle (conclusion-first, top-down hierarchy, logical clustering, structured progression) as a third named framework for analytical and structured product/reference surfaces where the reader's primary action goal is Decision or Understanding at high prior knowledge; SKILL.md Step 3's product/reference sub-path loads `references/narrative-arc.md` so the Pyramid Principle is reachable by that path.
 
 ## Assumptions
 

@@ -237,6 +237,26 @@ sets; lint clean.
 
 **Done when:** Lint clean; grep confirms pack.toml updated; both eval files present.
 
+---
+
+### T6: Audience action goal taxonomy + Pyramid Principle (spec amendment)
+
+**Depends on:** T3 (references directory exists)
+
+**Tests:**
+- `grep "Belief shift\|action goal" packs/experience/.apm/skills/content-design/references/surface-routing.md` returns a match
+- `grep "Pyramid" packs/experience/.apm/skills/content-design/references/narrative-arc.md` returns a match
+- `grep "narrative-arc" packs/experience/.apm/skills/content-design/SKILL.md` returns a match in the product/reference sub-path (Step 3)
+- `grep "action goal" packs/experience/.apm/skills/content-design/SKILL.md` returns a match in the acquisition sub-path (Step 3 acquisition bullet) — confirming step 0 is reachable from the skill's elicitation path, not only from the reference file
+- `python3 tools/lint-experience-agnostic.py` exits 0
+
+**Approach:**
+- `references/surface-routing.md` acquisition elicitation: add audience action goal step (step 0) before the business-objective question. Names four action goals (Decision / Understanding / Execution / Belief shift) with one sentence each on how the goal informs arc selection.
+- `references/narrative-arc.md`: add Pyramid Principle section scoped to product/reference surfaces — conclusion-first, top-down hierarchy, logical clustering, structured progression; applicability condition: reader action goal is Decision or Understanding at high prior knowledge. Clarify that narrative-arc.md applies to both acquisition (StoryBrand/CCD) and product/reference (Pyramid Principle) surfaces.
+- `SKILL.md` Step 3 product/reference sub-path: add `Load references/narrative-arc.md` alongside the existing `references/content-hierarchy.md` load, so the Pyramid Principle is reachable from the product/reference path.
+
+**Done when:** All three grep checks pass; lint clean; the product/reference sub-path in SKILL.md explicitly loads narrative-arc.md.
+
 ## Rollout
 
 Pure-markdown skill addition — no infrastructure, no data migration, no
