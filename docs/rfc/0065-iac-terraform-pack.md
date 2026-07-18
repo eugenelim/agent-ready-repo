@@ -67,7 +67,7 @@
   | ID | Question | Recommendation | Why | Decide by | Reviewer action |
   | --- | --- | --- | --- | --- | --- |
   | D1 | Add `iac-terraform` as an opt-in, repo-scope pack, excluded from every default profile? | Yes | Same posture as `atlassian`/`figma`/`credential-brokers` | this review | Confirm the exclusion + the pack boundary |
-  | D2 | Deliberately admit stack-specific content (Terraform + cloud) as a charter exception, opt-in only? | Yes | The value is high and frequently reached; opt-in contains the blast radius | this review | Rule on the charter-boundary precedent |
+  | D2 | Deliberately admit stack-specific content (Terraform + cloud) as a charter exception, opt-in only? | Yes | The value is high and frequently reached; opt-in contains the blast radius | **decided** | ✅ Charter exception accepted. Approver ruling: "it's foundational — the charter should cater for the most common tech stacks as an accelerator." Charter updated in this PR to make opt-in accelerator packs for common tech stacks explicitly in scope. RFC-0065 is the establishing precedent; future tool-specific packs are judged against it. |
   | D3 | Reuse `core` (infra-verification, operational-safety, security-checklists) rather than re-ship its doctrine? | Yes — hard requirement | Duplication would drift and violate "substantive not duplicative" | this review | Confirm the pack ships only scaffolding + a thin driver |
   | D4 | Harvest the tool-neutral habits (`governance-index`, `extension-contract`, `new-adr` infra mode) into `governance-extras` as separate items? | Yes — **shapes decided in D16** | They are tool-neutral and belong out of a Terraform pack | this review | Confirm the split (see D16 for the form each takes) |
   | D5 | v1 *validated* provider depth | **AWS + GCP + Databricks** validated (a passing worked example each), **and the AWS example validated on *both* `terraform` and `tofu`** (WA-review Major 2 — else OpenTofu is a headline feature with zero coverage); Azure + the other categories (§6b) contract-complete but unvalidated | Spans two hyperscalers (four-file contract) + one data-platform reference + both engines — proves the taxonomy across *categories* **and** the dual-engine claim | **decided** | ✅ AWS(+tofu) + GCP + Databricks |
@@ -1360,6 +1360,7 @@ _All in one PR (Q2 — companions ship with the pack)._
   `extension-contract` convention + one `architect-review` rubric line.
 - Add `iac-terraform` to the self-host recipe include list (declarative config).
 - Per-pack guide home `docs/guides/iac-terraform/` + changelog entry.
+- **Update `docs/CHARTER.md`** — reframe the "not a framework" scope line to make opt-in accelerator packs for common tech stacks explicitly in scope (D2 Approver ruling: "it's foundational"; applied in this PR).
 - Author `references/release-loop-integration.md` against the current `release-loop`
   contract (the seven integration items in §1b), **recording the targeted
   module-contract + reversibility-enum version** (WA Major 3).
