@@ -193,14 +193,14 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Action:** run-check-workspace
-- **Action:** run-work-loop
-- **Action:** review-plan
-- **Action:** approve-plan
-- **Action:** handle-gate-failure
-- **Action:** review-final-diff
-- **Action:** approve-pr-submission
-- **Action:** check-workspace-exit-state
+- **Skill:** run-check-workspace
+- **Skill:** run-work-loop
+- **Skill:** review-plan
+- **Skill:** approve-plan
+- **Skill:** handle-gate-failure
+- **Skill:** review-final-diff
+- **Skill:** approve-pr-submission
+- **Skill:** check-workspace-exit-state
 
 ---
 

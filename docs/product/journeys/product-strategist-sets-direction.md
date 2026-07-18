@@ -167,13 +167,13 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Action:** run-pestle-analysis
-- **Action:** run-porters-five-forces
-- **Action:** run-bcg-matrix
-- **Action:** run-swot
-- **Action:** write-prfaq
-- **Action:** run-okr-cascade
-- **Action:** prioritise-initiative-portfolio
+- **Skill:** run-pestle-analysis
+- **Skill:** run-porters-five-forces
+- **Skill:** run-bcg-matrix
+- **Skill:** run-swot
+- **Skill:** write-prfaq
+- **Skill:** run-okr-cascade
+- **Skill:** prioritise-initiative-portfolio
 
 ---
 
