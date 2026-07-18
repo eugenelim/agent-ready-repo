@@ -172,13 +172,13 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Action:** create-or-update-tracker-issue
-- **Action:** run-github-brief-intake
-- **Action:** run-linear-brief-intake
-- **Action:** run-jira-align-brief-intake
-- **Action:** answer-dor-gap-fill-prompts
-- **Action:** confirm-brief-queued
-- **Action:** verify-tracker-issue-closes-on-ship
+- **Skill:** create-or-update-tracker-issue
+- **Skill:** run-github-brief-intake
+- **Skill:** run-linear-brief-intake
+- **Skill:** run-jira-align-brief-intake
+- **Skill:** answer-dor-gap-fill-prompts
+- **Skill:** confirm-brief-queued
+- **Skill:** verify-tracker-issue-closes-on-ship
 
 ---
 
