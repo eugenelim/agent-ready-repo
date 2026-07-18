@@ -1,6 +1,6 @@
 # Spec: m1-brief-queue
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064
@@ -143,7 +143,7 @@ carries a compressible invariant — so verification is **goal-based** and
 
 ## Acceptance Criteria
 
-- [ ] **Brief template** at `packs/core/seeds/docs/product/briefs/_template.md`
+- [x] **Brief template** at `packs/core/seeds/docs/product/briefs/_template.md`
   gains four new fields:
 
   1. A **`Status:`** header field (sibling to `Received:` and `Owner:`) with
@@ -160,16 +160,16 @@ carries a compressible invariant — so verification is **goal-based** and
      upstream shaping artifacts (journey maps, screen flows, capability maps,
      opportunity assessments) that informed the brief.
 
-- [ ] The new fields are **additive and retroactively optional**: an existing
+- [x] The new fields are **additive and retroactively optional**: an existing
   brief without them passes `make build-check` and all brief-related lints
   without modification; `receive-brief` handles both the new shape and the old
   shape without error.
 
-- [ ] After `make build-self`, the updated template is projected to the
+- [x] After `make build-self`, the updated template is projected to the
   conventional adopter path (seeded to `docs/product/briefs/_template.md` in a
   fresh `agentbundle install`); `make build-check` exits 0.
 
-- [ ] **`receive-brief`** skill source at
+- [x] **`receive-brief`** skill source at
   `packs/core/.apm/skills/receive-brief/SKILL.md` documents an explicit
   workspace-write step that runs after decomposition is confirmed:
 
@@ -188,23 +188,23 @@ carries a compressible invariant — so verification is **goal-based** and
      it sets `Status: Ready` in the brief file only and logs that the path was
      not found in any `draft` list.
 
-- [ ] **`receive-brief` degrades gracefully** when `workspace.toml` is absent,
+- [x] **`receive-brief` degrades gracefully** when `workspace.toml` is absent,
   unparseable, or parseable but has no `brief_queue` sub-table for an active
   initiative: the skill proceeds with decomposition only (its previous
   behaviour); no error is thrown; the degrade condition and the named diagnostic
   are documented in the skill body.
 
-- [ ] **`author-brief`** skill ships at `packs/core/.apm/skills/author-brief/SKILL.md`
+- [x] **`author-brief`** skill ships at `packs/core/.apm/skills/author-brief/SKILL.md`
   with valid frontmatter that passes `tools/lint-skill-spec.py`; after
   `make build-self`, the skill is projected to `.claude/skills/author-brief/SKILL.md`.
 
-- [ ] `author-brief` accepts unstructured external input (email body, prose
+- [x] `author-brief` accepts unstructured external input (email body, prose
   description, Linear Issue text) as its starting material and elicits any
   missing DoR fields — **Outcome**, **Appetite**, and at least **one Rabbit hole**
   — conversationally, never rejecting input for non-conformance (same
   "meet-where-it-is" contract as `receive-brief`).
 
-- [ ] `author-brief` creates a compliant brief file at `docs/product/briefs/<slug>.md`
+- [x] `author-brief` creates a compliant brief file at `docs/product/briefs/<slug>.md`
   — shaped by the updated template — sets `Status: Draft`, and writes the brief's
   path into `[brief_queue].draft` in `workspace.toml` (edits in the working
   directory and stages the file). When `workspace.toml` contains more than one
@@ -215,17 +215,17 @@ carries a compressible invariant — so verification is **goal-based** and
   `author-brief` degrades with the same named diagnostic and manual-add
   instruction as the absent/unparseable case.
 
-- [ ] `author-brief` refuses (with a prompt) to create a brief file when
+- [x] `author-brief` refuses (with a prompt) to create a brief file when
   `docs/product/briefs/<slug>.md` already exists — it does not silently
   overwrite an existing brief.
 
-- [ ] **`author-brief` degrades gracefully** when `workspace.toml` is absent
+- [x] **`author-brief` degrades gracefully** when `workspace.toml` is absent
   or unparseable: the skill creates the brief file; it logs that the
   `workspace.toml` registration was skipped with a named diagnostic and a
   one-line instruction for the user to add the path manually as a list element
   in `[<initiative-slug>.brief_queue].draft`; no error is thrown.
 
-- [ ] The DoR gate is documented in both `author-brief` and the updated
+- [x] The DoR gate is documented in both `author-brief` and the updated
   `receive-brief` as the *eligibility condition* for the `Ready` transition: a
   brief is **eligible for `Ready`** when it carries **Outcome**, **Appetite**,
   **≥1 Rabbit hole**, and a **Spec map skeleton** (at minimum one placeholder
@@ -235,12 +235,12 @@ carries a compressible invariant — so verification is **goal-based** and
   is always `Status: Draft`; `receive-brief`'s write-back step is what sets
   `Status: Ready`.
 
-- [ ] `author-brief` does **not** run decomposition and does **not** set
+- [x] `author-brief` does **not** run decomposition and does **not** set
   `Status: Ready` — it creates and queues the brief as `Draft`, stopping before
   the `receive-brief` decompose step. The skill body explicitly names
   `receive-brief` as the next step to take after authoring.
 
-- [ ] `make build-self` runs cleanly; `make build-check`, and
+- [x] `make build-self` runs cleanly; `make build-check`, and
   `python tools/lint-skill-spec.py` on both skill files all exit 0.
 
 ## Assumptions

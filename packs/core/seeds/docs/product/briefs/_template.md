@@ -11,6 +11,7 @@
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename and the `Brief:` back-link on derived specs -->
 - **Received:** YYYY-MM-DD
 - **Owner:** <who owns delivering this repo's slice>
+- **Status:** Draft <!-- Draft | Ready | Executing | Shipped — set by hand at DoR gate and at ship; distinct from the auto-derived Spec map Status column -->
 - **Epic:** <!-- optional: id/link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. -->
 - **Parent intent:** <!-- optional: when this brief is one per-component slice of a larger product intent, the upstream `intent` it was projected from. Distinct from `Epic:` — `Epic:` names an external *coordinator*; this names the *product intent* upstream. Carried as provenance; never interpreted. Omit when there is none. -->
 
@@ -52,6 +53,23 @@ that don't fit the appetite get cut or flagged, not silently absorbed. -->
 
 <the appetite>
 
+## Rabbit holes
+
+<!-- Design traps, known uncertainties, and out-of-bound explorations to
+skip. At least one entry is required for the DoR gate (a brief with no named
+rabbit holes has not been shaped far enough to be Ready). -->
+
+-
+
+## Instrumentation
+
+<!-- How the team will *measure* whether the outcome actually landed — the
+telemetry, events, dashboards, or signals that make the Success metrics
+observable. Distinct from Success metrics (which state the *target* value;
+Instrumentation names the *measurement mechanism*). -->
+
+-
+
 ## User stories
 
 <!-- OPTIONAL (Shape B). When product supplies stories, give each an id
@@ -75,3 +93,13 @@ linking each row to the `US-n` it satisfies.) -->
 | Spec | Status |
 | --- | --- |
 | `<feature-slug>` | <auto> |
+
+## Design artifacts
+
+<!-- Links to upstream shaping artifacts (journey maps, screen flows, capability
+maps, opportunity assessments) that informed this brief. These are inputs that
+shaped what the brief asks for; link them here so the delivery team understands
+the design context without re-deriving it. Optional: omit if no upstream shaping
+artifacts were produced. -->
+
+-

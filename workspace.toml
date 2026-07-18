@@ -47,7 +47,6 @@ queue   = [
   # Batch 4 — brief queue end-to-end (after workspace-core, independent of Batch 3)
   {path = "spec/m1-brief-queue",
    needs = "work:spec/m1-workspace-core"},
-  # Batch 5 — governance + shaping (after Batch 1; independent of Batches 2–4)
+  # Batch 5 — governance integration (after Batch 1; independent of Batches 2–4)
   "spec/m1-governance-integration",
-  "spec/m1-shaping-seeds",
 ]
