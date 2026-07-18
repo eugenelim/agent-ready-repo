@@ -155,7 +155,7 @@ allowed-scopes = ["repo"]     # repo-scope: emits generated Terraform/pipeline o
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^0.11"
+version = "^0.1"
 
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
@@ -164,7 +164,7 @@ pack = "governance-extras"
 # mode + the extension-contract convention to governance-extras, so pin the NEW
 # minor those land in (bump governance-extras in the same PR) — never a range that
 # can resolve to a version predating them.
-version = ">=0.2"
+version = ">=0.6"
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
@@ -269,8 +269,10 @@ edge. (If a future decision wants first-class coupling, that is a follow-on, not
 **Two operating modes — state them plainly (the devil's-advocate pass, Finding 4,
 warned against overselling the outer loop as the baseline).** The loop-arc is the
 *ceiling*, conditional on `release-engineering` **and** an ephemeral-env harness:
-- **Full mode** (`release-loop` + ephemeral envs present): the iterative outer loop
-  catches the apply-time AWS failures — the headline benefit.
+- **Full mode** (`release-loop` + ephemeral envs present + the release-loop
+  conformance canary shipping): the iterative outer loop catches the apply-time
+  AWS failures — the headline benefit. Absent the canary, degraded mode is the
+  only *supported* mode in v1 (WA Major 3 risk).
 - **Degraded mode** (the common case today — neither present): the pack is a
   **corrected, loop-conventions-aligned generator** — `work-loop` inner loop +
   the generated human-gated pipeline for apply. Still a real improvement over the
@@ -635,7 +637,9 @@ identity can assume **ephemeral-tier roles only**, never a prod-assumable one
   for the cloud; the tagging notes cover tags-vs-labels + charset; the manifest lists
   it; the provider index lists it. *(No worked example required.)*
 - **validated** — contract-complete **plus** at least one worked example that passes
-  `terraform init -backend=false && fmt -check && validate`.
+  `terraform init -backend=false && fmt -check && validate`. For AWS, the example
+  must additionally pass on **both `terraform` and `tofu`** (D5 — the dual-engine
+  claim has zero coverage otherwise).
 
 In v1, **AWS + GCP are `validated`; Azure is `contract-complete` only** (D5) — and
 the two are distinct labels, not "done vs half-done."
@@ -1260,7 +1264,8 @@ Summary of the load-bearing findings:
 _All in one PR (Q2 — companions ship with the pack)._
 - Scaffold `packs/iac-terraform/` per §10 (via `propose-catalogue-pack`'s shell
   step), authoring the references from the §11 implementation spec; validate **AWS +
-  GCP + Databricks** worked examples (D5).
+  GCP + Databricks** worked examples (D5); validate AWS on **both `terraform` and
+  `tofu`** (D5 dual-engine requirement).
 - The **three `governance-extras` companions in the same PR** (D16): `governance-index`
   (convention + template + optional lint), `new-adr` infra mode, and the
   `extension-contract` convention + one `architect-review` rubric line.
@@ -1272,5 +1277,6 @@ _All in one PR (Q2 — companions ship with the pack)._
 - **CI: a scheduled staleness job** re-running `init -backend=false && fmt -check &&
   validate` per contract-complete reference against the latest provider release
   (WA Major 4), + a **`release-loop` conformance canary** (WA Major 3).
-- Decide **D17** (recalibrated: one skill + a reconcile-before-change preflight,
-  with runtime drift owned by `release-loop`) before authoring the skill.
+- Author both **`generate-iac`** (D8/D17) and **`reconcile-iac`** (D17) skills
+  sharing the references tree; `reconcile-iac` accepts both a before-change
+  preflight trigger and an on-demand/scheduled trigger (§2).
