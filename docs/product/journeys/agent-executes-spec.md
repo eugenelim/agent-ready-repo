@@ -182,15 +182,15 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Action:** run-check-workspace
-- **Action:** validate-spec-in-active-queue
-- **Action:** run-new-spec-if-needed
-- **Action:** write-plan
-- **Action:** execute-plan-tasks
-- **Action:** run-gates
-- **Action:** submit-pr
-- **Action:** update-workspace-on-ship
-- **Action:** run-check-workspace-exit-state
+- **Skill:** run-check-workspace
+- **Skill:** validate-spec-in-active-queue
+- **Skill:** run-new-spec-if-needed
+- **Skill:** write-plan
+- **Skill:** execute-plan-tasks
+- **Skill:** run-gates
+- **Skill:** submit-pr
+- **Skill:** update-workspace-on-ship
+- **Skill:** run-check-workspace-exit-state
 
 ---
 
