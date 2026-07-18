@@ -1,6 +1,6 @@
 # Spec: m1-work-queue
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064
@@ -105,7 +105,7 @@ invariant the language runtime can check).
 
 ## Acceptance Criteria
 
-- [ ] At **step 0** of work-loop (before PLAN begins), if `workspace.toml`
+- [x] At **step 0** of work-loop (before PLAN begins), if `workspace.toml`
   is present in the working directory, the skill reads it and surfaces, in
   a clearly labelled orientation block, the active initiative name (from
   `[<slug>].name`), the current milestone (from `[<slug>].milestone`), and
@@ -113,15 +113,15 @@ invariant the language runtime can check).
   non-empty). The block is bounded so the agent can identify and act on the
   context without ambiguity.
 
-- [ ] When `workspace.toml` is absent from the working directory, step 0 is
+- [x] When `workspace.toml` is absent from the working directory, step 0 is
   a no-op: the loop enters PLAN immediately, with no error, no diagnostic,
   and no behavioral change relative to the pre-change skill.
 
-- [ ] When `workspace.toml` is present but `[<slug>.work].active` is empty
+- [x] When `workspace.toml` is present but `[<slug>.work].active` is empty
   (no spec currently claimed), step 0 surfaces the initiative name and
   milestone only, and does not emit an error.
 
-- [ ] At the **ship step** (all GATES green, REVIEW clean, end-of-session
+- [x] At the **ship step** (all GATES green, REVIEW clean, end-of-session
   checklist reached), if `workspace.toml` is present and
   `[<slug>.work].active` contains a spec path matching the current work, the
   skill instructs the agent to edit `workspace.toml` in the working
@@ -129,24 +129,24 @@ invariant the language runtime can check).
   `[<slug>.work].shipped`, and stage the file change as part of the
   shipping PR diff.
 
-- [ ] After the `workspace.toml` edit instruction, the skill surfaces a
+- [x] After the `workspace.toml` edit instruction, the skill surfaces a
   one-line reminder: update `docs/product/roadmap.md` to reflect the shipped
   spec.
 
-- [ ] When `workspace.toml` is absent at ship time, the ship step completes
+- [x] When `workspace.toml` is absent at ship time, the ship step completes
   normally — no workspace.toml edit attempted, no roadmap reminder surfaced.
 
-- [ ] All existing work-loop behavior (PLAN, EXECUTE, GATES, REVIEW, DECIDE,
+- [x] All existing work-loop behavior (PLAN, EXECUTE, GATES, REVIEW, DECIDE,
   FIX, termination, capture-learnings, context hygiene, unattended loops,
   anti-patterns, and every reference-section link) is unaltered; a `diff`
   between the pre-change and post-change source shows only the additions at
   step 0 and the ship step.
 
-- [ ] After `make build-self`, the source at
+- [x] After `make build-self`, the source at
   `packs/core/.apm/skills/work-loop/SKILL.md` and the projected copy at
   `.claude/skills/work-loop/SKILL.md` are byte-identical.
 
-- [ ] `make build-check`, `python tools/lint-agent-artifacts.py`, and
+- [x] `make build-check`, `python tools/lint-agent-artifacts.py`, and
   `python tools/lint-agents-md.py` all exit 0.
 
 ## Assumptions
