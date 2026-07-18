@@ -498,6 +498,29 @@ right now?"
   *Document hierarchy*.
 - `personas.md` (optional) — who we're building for. Add only if it's
   actively used to make decisions; speculative personas rot.
+- `projects/` (optional) — project index. One file per project (per-repo
+  time-bounded outcome), seeded from `projects/_template.md`; tracks a
+  project's outcome, appetite, milestone map, and brief table. Add when a
+  project grows beyond what a roadmap entry can hold.
+- `shaping/` (optional) — upstream shaping artifacts: product vision docs,
+  opportunity assessments, capability maps, and initiative briefs. Produced by
+  the PE six-step shaping sequence and the product-strategy pack. Committed
+  here because shaping artifacts are decisions, not corpora — they belong in
+  the version-controlled tree alongside ADRs and specs.
+- `findings/` (optional) — structured governance registers: `rfc-candidates.md`
+  (candidate RFCs surfaced by work-loop scope-deferrals or `frame-situation`
+  escalations) and `roadmap-intents.md` (deferred roadmap items). `rfc-status`
+  surfaces the candidate count at session start.
+- `initiatives/` (optional) — initiative brief artifacts and their
+  `_template.md` seed. An initiative brief is the shaped output of the PE
+  six-step sequence at altitude 1 (quarters, cross-repo scope); it links to
+  the corresponding `workspace.toml` initiative section.
+- `research/<slug>/` (optional) — committed desk-research project output:
+  finding summaries, synthesis matrix, and analytic memos. Distinct from
+  `findings/` (governance registers) and from personal-workspace scratch
+  (gitignored ephemeral). Path configured via
+  `agentbundle-layout.toml [research] output_dir` or elicited at
+  `research-project-start` time.
 
 ### 5c. `docs/guides/` — for users
 
