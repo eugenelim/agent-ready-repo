@@ -385,14 +385,14 @@ The `[shaping_queue]` sits upstream of `[brief_queue]`. It holds all pre-brief u
 ACs are grouped by delivery batch (see spec map above). Each batch ships as one PR; batches within a group are independent.
 
 **Batch 1 — Foundation docs**
-- [ ] ADR authored recording D2 (`workspace.toml` TOML format) and revised D4 (`workspace.toml` on `main`; no umbrella branch; spec branches target `main` directly)
-- [ ] `CONVENTIONS.md §5b` amended: admit `projects/`, `shaping/`, `findings/`, `initiatives/`, `research/` under `docs/product/`
+- [x] ADR authored recording D2 (`workspace.toml` TOML format) and revised D4 (`workspace.toml` on `main`; no umbrella branch; spec branches target `main` directly)
+- [x] `CONVENTIONS.md §5b` amended: admit `projects/`, `shaping/`, `findings/`, `initiatives/`, `research/` under `docs/product/`
 
 **Batch 2 — Workspace core** ← *unlock; ship as one PR*
-- [ ] `workspace.toml` schema seed committed to `main` — repo-level artifact; per-initiative named sections (`["ini-002"]`, etc.); multi-initiative parallel sections supported; blank-file valid; closeout = remove the section when shipped
-- [ ] `agentbundle-layout.toml [product]` table: configurable paths (`projects/`, `shaping/`; briefs path stays pinned)
-- [ ] `check-workspace` skill: reads local `workspace.toml`; resolves DAG across all sections using `needs` fields and cross-initiative prefix (`ini-002:work:...`); surfaces (a) ready to start, (b) blocked with reason, (c) parallel candidates; surfaces each `[shaping_queue]` entry by `type` (`shape`/`research`/`strategy`/`signal`) with the matching skill prompt for the user's installed packs; `signal` entries surfaced as "active context" distinct from project-bound "ready to start" items (D9); offers to initialise if file absent; surfaces closeout prompt when all specs shipped
-- [ ] Pre-populated INI-002 queue committed in the same PR as the seed — all Batch 3–5 specs pre-seeded so `check-workspace` is immediately useful
+- [x] `workspace.toml` schema seed committed to `main` — repo-level artifact; per-initiative named sections (`["ini-002"]`, etc.); multi-initiative parallel sections supported; blank-file valid; closeout = remove the section when shipped
+- [x] `agentbundle-layout.toml [product]` table: configurable paths (`projects/`, `shaping/`; briefs path stays pinned)
+- [x] `check-workspace` skill: reads local `workspace.toml`; resolves DAG across all sections using `needs` fields and cross-initiative prefix (`ini-002:work:...`); surfaces (a) ready to start, (b) blocked with reason, (c) parallel candidates; surfaces each `[shaping_queue]` entry by `type` (`shape`/`research`/`strategy`/`signal`) with the matching skill prompt for the user's installed packs; `signal` entries surfaced as "active context" distinct from project-bound "ready to start" items (D9); offers to initialise if file absent; surfaces closeout prompt when all specs shipped
+- [x] Pre-populated INI-002 queue committed in the same PR as the seed — all Batch 3–5 specs pre-seeded so `check-workspace` is immediately useful
 
 **Batch 3 — Work queue end-to-end** (after Batch 2)
 - [ ] `work-loop` extended: reads `workspace.toml` at step 0 for initiative/milestone context; on ship, edits `workspace.toml` in working directory (`[work].active → [work].shipped`) and surfaces `roadmap.md` update reminder; degrades gracefully if file absent
