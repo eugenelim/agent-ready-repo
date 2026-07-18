@@ -42,6 +42,7 @@ for the design rationale.
 
 `core` is the loop itself. Ask your agent, for example:
 
+- "What should I work on next?" (`check-workspace` — orient at session start)
 - "Start a new spec for a rate-limiting feature." (`new-spec`)
 - "Implement this spec with the work-loop." (`work-loop`)
 - "Fix this bug: the importer drops the last row." (`bug-fix`)
