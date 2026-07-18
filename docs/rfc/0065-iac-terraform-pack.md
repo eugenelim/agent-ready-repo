@@ -319,6 +319,13 @@ still holds: **runtime telemetry-driven** detection is release-loop's when prese
 **`reconcile-iac`** is the `plan`-based author-side reconcile that runs **with or
 without** release-loop.
 
+**Recommended cadence (journey-derived):** (1) **Before every follow-on change** —
+mandatory preflight, not optional; (2) **weekly minimum** on a scheduled basis —
+provides a regular drift snapshot even in quiescent periods; (3) **immediately after
+a known out-of-band event** — break-glass action, console change, provider-managed
+service auto-modification, or a known pipeline failure. The weekly minimum is the
+floor; the other two are event-triggered supplements.
+
 **Known blind spot: unmanaged resources.** `terraform plan` computes drift between
 state and the live control plane — but resources created entirely outside Terraform
 (ClickOps, console actions with *no state entry*) are invisible to `plan`.
@@ -411,6 +418,11 @@ irreversible exits (§1b) — **not** a pack-defined gate.
   index* (a manifest mapping each decision domain → the ADR(s) + standard(s) that
   bind it — see §5) and read only those 2–3 files, not the whole repo. The plan
   must list which decision records it satisfies and why.
+  **First-time use (no governance-index.toml exists yet):** offer to bootstrap one
+  — scan `docs/adr/` for infrastructure-adjacent ADRs, scaffold the index structure
+  with their references, and confirm the bootstrap with the human before proceeding.
+  The bootstrapped index is a starting point; the human confirms completeness before
+  Stage 0 proceeds.
 - **Never invent a decision record.** If an intent conflicts with an existing ADR,
   or no ADR covers a material decision, **stop and surface it** — draft a new ADR
   via `governance-extras`' `new-adr`; do not silently resolve it.
@@ -464,6 +476,13 @@ irreversible exits (§1b) — **not** a pack-defined gate.
   installed, the generated pipeline's human-approval gate is the fallback
   realization — but the *doctrine* is the minimum-regret carve, not a pack-defined
   "two boundaries" rule.
+  **G4 handoff artifact set (IaC-specific):** (1) deploy-ready Terraform directory;
+  (2) pinned plan file (`terraform plan -out=tfplan`) with its digest
+  (`shasum -a 256 tfplan`); (3) OPA/Conftest exit-0 evidence (plan JSON run, checks
+  applied, zero violations); (4) Trivy/Checkov exit-0 evidence; (5) reversibility
+  hints per stateful resource (`reversible` / `costly-to-reverse` / `one-way-door`);
+  (6) optional Infracost cost delta JSON. The deploy step applies *exactly* the
+  pinned plan — never a re-run.
 
 **Inputs the skill collects** (ask if missing, else use the documented default):
 target cloud (ask — never guess), **engine** (`terraform | opentofu`, default
@@ -1309,6 +1328,25 @@ Summary of the load-bearing findings:
   Azure and the remaining categories ship contract-complete but unvalidated.
 
 *All open questions are now resolved.*
+
+## Journey
+
+The end-to-end experience of provisioning infrastructure with this pack — from a
+plain-language intent through governance gate, inner authoring loop, G4 handoff,
+release-loop outer cycle, G5 prod ship, and day-2 drift management — is mapped in:
+
+- **Rich source (journey analysis):** [`docs/product/journeys/engineer-provisions-infrastructure.md`](../../product/journeys/engineer-provisions-infrastructure.md)
+  — current-state pain points, to-be outcomes per stage, emotional arc, pains and opportunities, RFC anchors per stage.
+- **Rendered (web journey page):** [`web/src/content/journeys/iac-terraform.md`](../../../../web/src/content/journeys/iac-terraform.md)
+  — human gates with what-to-check / what-good-looks-like / consequence, stage narrative, typical session shape.
+
+**Journey-derived RFC additions (applied in this document):**
+- §2 Stage 0 hard rule — first-use bootstrapping: `generate-iac` offers to bootstrap
+  `governance-index.toml` from existing ADRs when none exists.
+- §2 G4 handoff — explicit artifact set: plan digest, policy-pass evidence, Trivy/Checkov
+  evidence, reversibility hints, optional Infracost delta.
+- §2 `reconcile-iac` — recommended cadence: before every follow-on change + weekly
+  minimum + immediately after any known out-of-band event.
 
 ## Follow-on artifacts
 

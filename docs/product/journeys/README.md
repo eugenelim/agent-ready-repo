@@ -81,6 +81,18 @@ All four journeys converge on the work queue — different actors, same `work-lo
 
 ---
 
+---
+
+## Specialist pack journeys
+
+These journeys cover the end-to-end experience of a specific optional pack, including its integration with the loop arc (work-loop + release-loop) and day-2 operations. They sit inside the build room — they are specialised variants of the `engineer-runs-work-loop` path for a specific domain.
+
+| Journey | Pack | Status | RFC |
+|---|---|---|---|
+| [Engineer provisions infrastructure](engineer-provisions-infrastructure.md) | `iac-terraform` — repo scope | planned | [RFC-0065](../../rfc/0065-iac-terraform-pack.md) |
+
+---
+
 ## How the journeys tie together
 
 ```mermaid
