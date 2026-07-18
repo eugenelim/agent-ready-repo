@@ -1,0 +1,53 @@
+# workspace.toml
+#
+# Declared-intent coordination artifact for this repo.
+# Each initiative gets its own named section. Skills read this file at session
+# start to orient to the current queue state — run `check-workspace` to surface
+# ready items, blocked items, and active signals.
+#
+# Queue entries are strings (no dependencies) or inline objects {path/slug, needs}
+# (with dependencies). `needs` uses queue-prefix notation:
+#   "work:<path>"      — depends on a work queue entry
+#   "shape:<slug>"     — depends on a shaping queue entry
+#   "research:<slug>"  — depends on a research entry
+#   "brief:<path>"     — depends on a brief queue entry
+# Cross-initiative deps prefix the initiative slug: "ini-002:work:spec/..."
+
+["ini-002"]
+name      = "Platform Core"
+status    = "active"
+milestone = "M1 · Workspace Foundation"
+parent    = "INI-001"
+
+["ini-002".shaping_queue]
+active  = []
+backlog = [
+  # Signal items — hand-authored by strategist; ongoing, non-graduating
+  {slug = "ai-native-regulatory-watch", type = "signal"},
+  # Research items — any user with the desk-research pack can pick these up
+  {slug = "adopter-persona",            type = "research"},
+  # Shaping items — PE picks up when upstream research is done
+  "ini-002-initiative-brief",
+  {slug = "opp-assessment-pe-pack",  needs = "work:spec/m2-frame-situation"},
+  {slug = "capability-map-ini-002",  needs = "work:spec/m2-map-capabilities"},
+]
+
+["ini-002".brief_queue]
+executing = ""
+ready     = []
+draft     = []
+
+["ini-002".work]
+active  = []
+shipped = ["spec/m1-workspace-core"]  # Batch 2 — workspace core ships with this file
+queue   = [
+  # Batch 3 — work queue end-to-end (after workspace-core)
+  {path = "spec/m1-work-queue",
+   needs = "work:spec/m1-workspace-core"},
+  # Batch 4 — brief queue end-to-end (after workspace-core, independent of Batch 3)
+  {path = "spec/m1-brief-queue",
+   needs = "work:spec/m1-workspace-core"},
+  # Batch 5 — governance + shaping (after Batch 1; independent of Batches 2–4)
+  "spec/m1-governance-integration",
+  "spec/m1-shaping-seeds",
+]

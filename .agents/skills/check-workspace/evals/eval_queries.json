@@ -1,0 +1,23 @@
+[
+  {"query": "What should I work on next?", "should_trigger": true},
+  {"query": "Orient me to the current workspace state", "should_trigger": true},
+  {"query": "check-workspace", "should_trigger": true},
+  {"query": "Show me what's ready to start in the queue", "should_trigger": true},
+  {"query": "What's blocking the work queue?", "should_trigger": true},
+  {"query": "Initialise workspace.toml for our new initiative", "should_trigger": true},
+  {"query": "What signals does the strategist have flagged?", "should_trigger": true},
+  {"query": "Give me a session-start orientation", "should_trigger": true},
+  {"query": "What's the current initiative status?", "should_trigger": true},
+  {"query": "Show me all queued specs and their dependencies", "should_trigger": true},
+
+  {"query": "Start a new spec for a rate-limiting feature", "should_trigger": false},
+  {"query": "Fix this failing test in the parser", "should_trigger": false},
+  {"query": "Write a new RFC for our authentication changes", "should_trigger": false},
+  {"query": "Record an architecture decision about our queue choice", "should_trigger": false},
+  {"query": "Run the work loop on this spec", "should_trigger": false},
+  {"query": "Decompose this product brief into specs", "should_trigger": false},
+  {"query": "Update the roadmap with the new milestone", "should_trigger": false},
+  {"query": "What does the CHARTER say about our scope?", "should_trigger": false},
+  {"query": "Adapt the installed packs to this repo", "should_trigger": false},
+  {"query": "Create a new ADR for the database schema decision", "should_trigger": false}
+]
