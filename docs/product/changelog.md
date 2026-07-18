@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`check-workspace` skill added to core pack (core 0.12.0).** A new session-start skill reads the repo-level `workspace.toml` and surfaces ready-to-start items, blocked items with reason, parallel candidates, and active signals — all in one command. Resolves the dependency DAG across all queues and initiatives using `needs` prefix notation (`work:`, `shape:`, `research:`, `brief:`, and cross-initiative `ini-xxx:work:` prefixes). Surfaces `type = "signal"` entries as "active context" separately from actionable "ready to start" items; surfaces each shaping entry with the matching skill invocation for the installed packs. Offers to initialise `workspace.toml` when absent. Run `check-workspace` at every session start from Batch 2 onward.
+- **`workspace.toml` committed to `main` as the repo-level declared-intent coordination artifact.** Pre-populated with the INI-002 (Platform Core) M1 bootstrap queue: three queues (`shaping_queue`, `brief_queue`, `work`) with all Batch 3–5 specs pre-seeded and their `needs` wiring in place. `spec/m1-workspace-core` is marked shipped (this PR). The `agentbundle-layout.toml [product]` table is documented in `check-workspace`'s reference file: `projects` and `shaping` paths are configurable; `briefs` stays pinned.
+
 ### Changed
 
 - **`voice-and-microcopy` human-craft check gains vocabulary tells, an editorial methodology, and voice authenticity tests (product-engineering 0.11.0).** `human-craft-check.md` now covers three additional layers beyond its existing structural tells: a vocabulary-tell section (hollow verbs, inflated adjectives, abstract container nouns, hedging openers — each with a concrete replacement rule); a three-pass editorial methodology (vocabulary scan → delete the opening → specificity audit); and three voice authenticity tests (pub test, founder test, one-person test). Scoped to the same context as before — longer copy: onboarding text, feature descriptions, help text — not short UI strings.
