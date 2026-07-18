@@ -20,6 +20,15 @@ skills:
   - name: contract-acquisition
     description: "Grounds agent code against an unfamiliar API or library contract before implementation — prevents guessed signatures."
     humanTouches: 0
+  - name: receive-brief
+    description: "Receives a structured brief from an external source and grounds it against the project scope and conventions before implementation begins."
+    humanTouches: 1
+  - name: init-project
+    description: "Initializes a new project with the full agent-ready-repo structure, conventions, and AGENTS.md."
+    humanTouches: 1
+  - name: adapt-to-project
+    description: "Adapts the agent-ready-repo conventions to an existing project's idioms and structure — the on-ramp for brownfield repos."
+    humanTouches: 1
 humanGates:
   - id: G-plan
     globalGate: null
@@ -59,30 +68,30 @@ relatedJourneys:
 
 ## Stage 1 — Brief the loop
 
-You opened a task and described it to your agent. The agent activated `work-loop`, checked whether risk triggers required full mode, wrote the lean inline spec (trio: problem, user, success criteria), identified risk triggers, and surfaced assumptions.
+You open a task and describe it. The agent activates `work-loop`, checks whether risk triggers require full mode, writes the lean inline spec — the **trio**: problem, user, success criteria — and surfaces its assumptions.
 
-**You did:** Read the trio in the chat. Confirmed the scope matched what you asked for — or redirected if the agent overreached. Checked that the correct mode (light or full) was selected. Approved the plan. 5–10 minutes of focused reading; this is the gate that costs least and protects most.
+**You:** Read the trio in the chat. Confirm the scope matches what you asked for — or redirect if the agent overreached. Check that the correct mode (light or full) was selected. Approve the plan. Five to ten minutes of focused reading; this is the gate that costs least and protects most.
 
 ---
 
 ## Stage 2 — Execution
 
-After your plan approval, the agent implemented against the spec. It ran lint, typecheck, and tests after each logical change. When a gate failed, it fixed the issue and re-ran the gate before continuing.
+After your plan approval, the agent implements against the spec. It runs lint, typecheck, and tests after each logical change. When a gate fails, it fixes the issue and re-runs the gate before continuing.
 
-**You did:** Watched the chat at key moments — after each logical task completes, skim the agent's output to catch early drift. You do not need to read every line; look for file names you didn't expect, for scope creep, and for the agent surfacing a question. If it surfaces, answer quickly — a blocked agent costs more time than a fast redirect. If all is well, let it run.
+**You:** Watch the chat at key moments. After each logical task completes, skim the agent's output to catch early drift. You don't need to read every line — look for file names you didn't expect, for scope creep, and for the agent surfacing a question. If it surfaces, answer quickly — a blocked agent costs more time than a fast redirect. If all is well, let it run.
 
 ---
 
 ## Stage 3 — Specialist review
 
-After all mechanical gates passed, the agent ran `adversarial-reviewer` in a fresh session. The reviewer read the diff cold — no context from the build session. It returned findings grouped by severity (Blockers, Concerns, Nits). The loop iterated on Blockers until the reviewer reported clean.
+After all mechanical gates pass, the agent runs `adversarial-reviewer` in a fresh session. The reviewer reads the diff cold — no context from the build session. It returns findings grouped by severity (Blockers, Concerns, Nits). The loop iterates on Blockers until the reviewer reports clean.
 
-**You did:** Monitored the review output as it landed. If the reviewer flagged a Blocker you disagreed with, provide a brief direction to the agent ("this is expected behavior because…") so the next fix targets the real issue. For Concerns and Nits, scan them — you may choose to apply or defer without waiting for the loop to finish.
+**You:** Monitor the review output as it lands. If the reviewer flags a Blocker you disagree with, provide a brief direction ("this is expected behavior because…") so the next fix targets the real issue. For Concerns and Nits, scan them — you may choose to apply or defer without waiting for the loop to finish.
 
 ---
 
 ## Stage 4 — PR and merge
 
-After all reviewers reported clean, the agent opened the PR with a description including: what changed, why, what was deferred, and what was found mid-implementation.
+After all reviewers report clean, the agent opens the PR with a description including: what changed, why, what was deferred, and what was found mid-implementation.
 
-**You did:** Reviewed the PR diff in GitHub or your editor. Read the description, not just the diff — the description tells you what the agent decided when it had choices. Checked that the spec and implementation aligned. Looked for anything in the diff that wasn't in the plan you approved. Merged when satisfied.
+**You:** Review the PR diff in GitHub or your editor. Read the description, not just the diff — the description tells you what the agent decided when it had choices. Check that the spec and implementation align. Look for anything in the diff that wasn't in the plan you approved. Merge when satisfied.
