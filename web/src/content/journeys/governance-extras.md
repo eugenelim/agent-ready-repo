@@ -66,22 +66,22 @@ relatedJourneys:
 
 ## Stage 1 — Identify the change and open an RFC
 
-You recognized a cross-cutting change — something that would affect more than one person, more than one package, or an established convention. The agent activated `new-rfc`, drafted the problem statement, and structured the proposer and objector perspectives.
+You recognize a cross-cutting change — something that affects more than one person, more than one package, or an established convention. The agent activates `new-rfc`, drafts the problem statement, and structures the proposer and objector perspectives.
 
-**You did:** Read the RFC draft at the G-draft gate. The most common error at this stage is confusing the solution with the problem — the RFC should name what's broken or missing, not what you want to adopt. If the draft led with the solution, redirected the agent to reframe around the underlying need. Circulated the draft to the relevant stakeholders after the draft gate passed.
+**You:** Read the RFC draft at the G-draft gate. The most common error at this stage is confusing the solution with the problem — the RFC should name what's broken or missing, not what you want to adopt. If the draft leads with the solution, redirect the agent to reframe around the underlying need. Circulate the draft to the relevant stakeholders after the draft gate passes.
 
 ---
 
 ## Stage 2 — Comment period and objection handling
 
-Stakeholders reviewed the RFC and raised objections. The agent helped document each objection and draft responses, keeping the RFC's objector section updated as the conversation evolved.
+Stakeholders review the RFC and raise objections. The agent helps document each objection and draft responses, keeping the RFC's objector section updated as the conversation evolves.
 
-**You did:** Managed the comment period — keeping it time-boxed, ensuring genuine objections got genuine responses, and preventing the RFC from accumulating comments without resolution. An RFC that's "still being discussed" with no decision date is a governance failure, not a process success.
+**You:** Manage the comment period — keep it time-boxed, ensure genuine objections get genuine responses, and prevent the RFC from accumulating comments without resolution. An RFC that's "still being discussed" with no decision date is a governance failure, not a process success.
 
 ---
 
 ## Stage 3 — Decision and follow-on ADR
 
-Once the comment period closed, you made the decision — Accept, Reject, or Defer — and the agent updated the RFC status. If accepted, the agent ran `new-adr` to record the architectural decision that resulted from the RFC.
+Once the comment period closes, you make the decision — Accept, Reject, or Defer — and the agent updates the RFC status. If accepted, the agent runs `new-adr` to record the architectural decision that resulted from the RFC.
 
-**You did:** Made the call at the G-accept gate. Verified the ADR at the G-merge gate: checked that it captured the actual decision and the honest forces behind it, not a post-hoc rationalization. Merged the ADR as part of the same PR or a directly following one — decisions and their documentation belong together.
+**You:** Make the call at the G-accept gate. Verify the ADR at the G-merge gate: check that it captures the actual decision and the honest forces behind it, not a post-hoc rationalization. Merge the ADR as part of the same PR or a directly following one — decisions and their documentation belong together.

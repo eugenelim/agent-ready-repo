@@ -78,22 +78,22 @@ relatedJourneys:
 
 ## Stage 1 — Scope the question
 
-You gave the agent a question and selected a depth mode. For a single-session query, the agent activated `/research` and ran a scoping pass — identifying what kind of question this was (factual, comparative, historical, open-ended) and which sources it should consult. For a project-mode investigation, it ran `research-project-start` to create a corpus folder and an initial source list.
+You give the agent a question and select a depth mode. For a single-session query, the agent activates `/research` and runs a scoping pass — identifying what kind of question this is (factual, comparative, historical, open-ended) and which sources to consult. For a project-mode investigation, it runs `research-project-start` to create a corpus folder and an initial source list.
 
-**You did:** Read the scope statement the agent produced before it began fetching. A bad scope leads to a confident answer to the wrong question — the cheapest fix is here, not after the synthesis returns. If the agent's framing missed the real question, redirect with one sentence before the retrieval subagents run.
+**You:** Read the scope statement the agent produces before it begins fetching. A bad scope leads to a confident answer to the wrong question — the cheapest fix is here, not after the synthesis returns. If the agent's framing misses the real question, redirect with one sentence before the retrieval subagents run.
 
 ---
 
 ## Stage 2 — Source curation
 
-The agent ran `source-map` or its equivalent, identifying the canonical sources for the question domain. Two retrieval subagents — `evidence-retriever` and `source-extractor` — fetched and synthesized source material without polluting the main session context.
+The agent runs `source-map` or its equivalent, identifying the canonical sources for the question domain. Two retrieval subagents — `evidence-retriever` and `source-extractor` — fetch and synthesize source material without polluting the main session context.
 
-**You did:** Watched the source list take shape. If a key source was missing — a specific industry report, a primary author's original paper, an internal standard you know exists — name it explicitly. The agent doesn't know what you know about your domain. A one-sentence nudge here is faster than a post-synthesis correction.
+**You:** Watch the source list take shape. If a key source is missing — a specific industry report, a primary author's original paper, an internal standard you know exists — name it explicitly. The agent doesn't know what you know about your domain. A one-sentence nudge here is faster than a post-synthesis correction.
 
 ---
 
 ## Stage 3 — Synthesis and grading
 
-After sources were captured, the agent synthesized a brief graded by confidence (GRADE A–D). Each claim cited its source. Unsupported claims were marked explicitly as gaps, not silently omitted.
+After sources are captured, the agent synthesizes a brief graded by confidence (GRADE A–D). Each claim cites its source. Unsupported claims are marked explicitly as gaps, not silently omitted.
 
-**You did:** Reviewed the synthesis at the G-synthesis gate. The confidence grades are the first thing to read — a GRADE-C synthesis needs a different follow-on action (narrow the question, run another retrieval pass, seek a domain expert) than a GRADE-A synthesis (act on it). If a claim lacked a source citation, check whether it's an inference the agent labeled correctly or an assertion it presented as fact.
+**You:** Review the synthesis at the G-synthesis gate. The confidence grades are the first thing to read — a GRADE-C synthesis needs a different follow-on action (narrow the question, run another retrieval pass, seek a domain expert) than a GRADE-A synthesis (act on it). If a claim lacks a source citation, check whether it's an inference the agent labeled correctly or an assertion it presented as fact.

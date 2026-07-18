@@ -85,38 +85,38 @@ relatedJourneys:
 
 ## Stage 1 — Map the customer journey
 
-You described the feature, user, and outcome. The agent ran `map-customer-journey` to produce the customer journey map — the current state (what happens today), the desired state (what should happen after this feature), and the key moments where the current journey breaks down.
+You describe the feature, user, and outcome. The agent runs `map-customer-journey` to produce the customer journey map — the current state (what happens today), the desired state (what should happen after this feature), and the key moments where the current journey breaks down.
 
-**You did:** Read the journey map and approved it at the G-journey gate. This is the most important gate in the experience thread — the screen list flows directly from it. If the map describes what the current product does rather than what the user is trying to achieve, redirect before the screen flow is derived. A one-sentence correction here saves a full design cycle.
+**You:** Read the journey map and approve it at the G-journey gate. This is the most important gate in the experience thread — the screen list flows directly from it. If the map describes what the current product does rather than what the user is trying to achieve, redirect before the screen flow is derived. A one-sentence correction here saves a full design cycle.
 
 ---
 
 ## Stage 2 — Derive the screen flow
 
-With the journey approved, the agent ran `map-screen-flow` to derive the screen inventory: what screens exist, what state each one handles (empty, loading, populated, error), and what the transitions between them are. Each screen got a per-screen brief: the user's goal, the information they need, the states to handle.
+With the journey approved, the agent runs `map-screen-flow` to derive the screen inventory: what screens exist, what state each one handles (empty, loading, populated, error), and what the transitions between them are. Each screen gets a per-screen brief: the user's goal, the information they need, the states to handle.
 
-**You did:** Checked that the screen list felt right — that it didn't add screens not implied by the journey, and didn't miss screens the journey required. If the agent added a screen that looked useful but wasn't derived from the journey, remove it here.
+**You:** Check that the screen list feels right — that it doesn't add screens not implied by the journey, and doesn't miss screens the journey requires. If the agent adds a screen that looks useful but isn't derived from the journey, remove it here.
 
 ---
 
 ## Stage 3 — Establish design intent
 
-Before designing any screen, the agent ran `aesthetic-direction` to establish the visual character of the surface — palette, typography, spacing — as a named aesthetic reference. It then ran `design-system-foundations` to derive the design token set.
+Before designing any screen, the agent runs `aesthetic-direction` to establish the visual character of the surface — palette, typography, spacing — as a named aesthetic reference. It then runs `design-system-foundations` to derive the design token set.
 
-**You did:** Approved the aesthetic direction at the G-aesthetic gate. An aesthetic direction that says "clean and professional" is not an aesthetic direction — it needs to name a specific visual character with enough specificity to say whether a given design decision is consistent or not. If the tokens introduced hardcoded values outside the semantic token system, reject them.
+**You:** Approve the aesthetic direction at the G-aesthetic gate. An aesthetic direction that says "clean and professional" is not an aesthetic direction — it needs to name a specific visual character with enough specificity to say whether a given design decision is consistent or not. If the tokens introduce hardcoded values outside the semantic token system, reject them.
 
 ---
 
 ## Stage 4 — Design each screen
 
-The agent ran `layout-and-information-architecture` and `interaction-design` on each screen in the flow, working from each screen's per-screen brief. It then ran `design-critique` on each screen before the independent review — a self-check against the quality floor.
+The agent runs `layout-and-information-architecture` and `interaction-design` on each screen in the flow, working from each screen's per-screen brief. It then runs `design-critique` on each screen before the independent review — a self-check against the quality floor.
 
-**You did:** Watched each screen take shape. If a screen was missing a state — no empty state for a list that could be empty, no loading state for an async action — name it. The agent will miss states not explicitly mentioned in the brief; that's what the experience-reviewer catches, but catching it here is cheaper.
+**You:** Watch each screen take shape. If a screen is missing a state — no empty state for a list that could be empty, no loading state for an async action — name it. The agent will miss states not explicitly mentioned in the brief; that's what the experience-reviewer catches, but catching it here is cheaper.
 
 ---
 
 ## Stage 5 — Independent review
 
-The agent ran the `experience-reviewer` subagent in a forked context — a reviewer that had not seen the authoring session. The reviewer returned findings on the full screen set: handle-all-states violations, accessibility failures, aesthetic inconsistencies.
+The agent runs the `experience-reviewer` subagent in a forked context — a reviewer that has not seen the authoring session. The reviewer returns findings on the full screen set: handle-all-states violations, accessibility failures, aesthetic inconsistencies.
 
-**You did:** Read the review findings at the G-experience-review gate. Handle-all-states violations are the most common finding — a screen that works for the happy path but has no designed error state. WCAG findings affect all users. Apply Blockers before the design intent feeds the build loop; they represent the floor the spec says all screens must clear.
+**You:** Read the review findings at the G-experience-review gate. Handle-all-states violations are the most common finding — a screen that works for the happy path but has no designed error state. WCAG findings affect all users. Apply Blockers before the design intent feeds the build loop; they represent the floor the spec says all screens must clear.

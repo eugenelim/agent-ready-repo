@@ -48,22 +48,22 @@ relatedJourneys:
 
 ## Stage 1 — Identify the documentation need and classify it
 
-You identified a gap in the project's documentation — something users needed to know that wasn't written down, or was written in the wrong form. The agent activated `new-guide`, asked what the guide needed to cover, and helped classify it into the correct Diátaxis category.
+You identify a gap in the project's documentation — something users need to know that isn't written down, or is written in the wrong form. The agent activates `new-guide`, asks what the guide needs to cover, and helps classify it into the correct Diátaxis category.
 
-**You did:** Made the classification decision at the G-classify gate. This is the most consequential decision in the documentation session — the wrong category means the wrong structure, the wrong voice, and the wrong reader. If you were unsure between how-to and tutorial, asked: is this reader learning, or is this reader doing? Learning → tutorial. Doing → how-to.
+**You:** Make the classification decision at the G-classify gate. This is the most consequential decision in the documentation session — the wrong category means the wrong structure, the wrong voice, and the wrong reader. If you're unsure between how-to and tutorial, ask: is this reader learning, or is this reader doing? Learning → tutorial. Doing → how-to.
 
 ---
 
 ## Stage 2 — Draft the guide
 
-With the category confirmed, the agent scaffolded the guide in the correct `guides/` subdirectory and drafted the content — entry conditions, steps or information organized by category structure, and exit conditions.
+With the category confirmed, the agent scaffolds the guide in the correct `guides/` subdirectory and drafts the content — entry conditions, steps or information organized by category structure, and exit conditions.
 
-**You did:** Watched the draft take shape. For how-tos: checked that every step was an action, not a paragraph of explanation. Explanation belongs in a linked explanation document. For tutorials: confirmed the reader could follow the steps sequentially and arrive at a working outcome, not just a theoretical understanding.
+**You:** Watch the draft take shape. For how-tos: check that every step is an action, not a paragraph of explanation. Explanation belongs in a linked explanation document. For tutorials: confirm the reader can follow the steps sequentially and arrive at a working outcome, not just a theoretical understanding.
 
 ---
 
 ## Stage 3 — Review and merge
 
-After the draft completed, you reviewed at the G-review gate for structure consistency and category fidelity, then the agent opened a PR.
+After the draft completes, you review at the G-review gate for structure consistency and category fidelity, then the agent opens a PR.
 
-**You did:** Read the guide as a first-time reader — not as the author who knows what it means. If you had to re-read a sentence twice to understand what action it was asking for, it needed rewriting. If a paragraph of background explanation appeared in the middle of a how-to, flagged it for extraction into a linked explanation document. Merged after the review gate passed.
+**You:** Read the guide as a first-time reader — not as the author who knows what it means. If you have to re-read a sentence twice to understand what action it's asking for, it needs rewriting. If a paragraph of background explanation appears in the middle of a how-to, flag it for extraction into a linked explanation document. Merge after the review gate passes.

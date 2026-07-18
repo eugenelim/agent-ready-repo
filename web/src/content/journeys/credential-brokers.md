@@ -35,22 +35,22 @@ relatedJourneys:
 
 ## Stage 1 — Identify the credential needed
 
-You decided to install a credentialed pack — figma, atlassian, or another service that requires an API key or personal access token. The agent walked you through identifying what credential type the service required and which resolution path to use.
+You decide to install a credentialed pack — figma, atlassian, or another service that requires an API key or personal access token. The agent walks you through identifying what credential type the service requires and which resolution path to use.
 
-**You did:** Decided where the credential would live — environment variable, OS keyring, or dotfile — based on your environment and security preferences. Read the `credential-setup` output to confirm the resolution path made sense. For most developer workstations, the OS keyring is the right choice: it persists across terminal sessions and is encrypted at rest. For CI environments, an environment variable is the right choice.
+**You:** Decide where the credential will live — environment variable, OS keyring, or dotfile — based on your environment and security preferences. Read the `credential-setup` output to confirm the resolution path makes sense. For most developer workstations, the OS keyring is the right choice: it persists across terminal sessions and is encrypted at rest. For CI environments, an environment variable is the right choice.
 
 ---
 
 ## Stage 2 — Set up and verify
 
-The agent ran `credential-setup`, prompted for the token value (which was never logged), and stored it via the configured resolution chain. It then ran a test invocation to confirm the credential resolved correctly before ending the session.
+The agent runs `credential-setup`, prompts for the token value (which is never logged), and stores it via the configured resolution chain. It then runs a test invocation to confirm the credential resolves correctly before ending the session.
 
-**You did:** Provided the token value when prompted — this is the one moment the credential passes through your clipboard or input. Verified the test invocation succeeded. If it failed, worked through the resolution chain with the agent: is the environment variable exported in the current shell? Is the keyring unlocked? Is the dotfile in the expected location and readable?
+**You:** Provide the token value when prompted — this is the one moment the credential passes through your clipboard or input. Verify the test invocation succeeded. If it fails, work through the resolution chain with the agent: is the environment variable exported in the current shell? Is the keyring unlocked? Is the dotfile in the expected location and readable?
 
 ---
 
 ## Stage 3 — Credential available to all sessions
 
-After setup, the credential resolved automatically in every subsequent session that needed it. No repeat entry. The token value was stored in the configured location and never passed through the model again.
+After setup, the credential resolves automatically in every subsequent session that needs it. No repeat entry. The token value is stored in the configured location and never passes through the model again.
 
-**You did:** Confirmed that the first real invocation of the credentialed skill worked end-to-end. The most common post-setup failure is a scope mismatch — the token was set up correctly but lacks the permissions the skill needs. If a skill returns an auth error after a successful setup, the first check is always: does this token have the right scope for this operation?
+**You:** Confirm that the first real invocation of the credentialed skill works end-to-end. The most common post-setup failure is a scope mismatch — the token was set up correctly but lacks the permissions the skill needs. If a skill returns an auth error after a successful setup, the first check is always: does this token have the right scope for this operation?

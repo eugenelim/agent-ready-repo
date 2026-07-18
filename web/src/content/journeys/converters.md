@@ -55,22 +55,22 @@ relatedJourneys:
 
 ## Stage 1 — Invoke the converter
 
-You named the source file and the target format. The agent invoked the appropriate skill: `file-to-markdown` for a PDF or Office document, `markdown-to-docx` or `markdown-to-pptx` for output artifacts, `mermaid-renderer` for diagrams embedded in a Markdown file.
+You name the source file and the target format. The agent invokes the appropriate skill: `file-to-markdown` for a PDF or Office document, `markdown-to-docx` or `markdown-to-pptx` for output artifacts, `mermaid-renderer` for diagrams embedded in a Markdown file.
 
-**You did:** Named the source file explicitly and confirmed the target format. For office output, also named which template to use — the agent cannot discover your organization's brand template without you pointing to it. If the source was a large PDF and you only needed a specific section, say so before the agent converts the whole document.
+**You:** Name the source file explicitly and confirm the target format. For office output, also name which template to use — the agent cannot discover your organization's brand template without you pointing to it. If the source is a large PDF and you only need a specific section, say so before the agent converts the whole document.
 
 ---
 
 ## Stage 2 — Tier selection (for file-to-markdown)
 
-For document extraction, the agent selected the appropriate capability tier: Tier 1 (no external tools — pure text extraction), Tier 2 (local tools like Pandoc or Poppler), or Tier 3 (agent vision for scanned or image-heavy documents). It reported which tier was used and why.
+For document extraction, the agent selects the appropriate capability tier: Tier 1 (no external tools — pure text extraction), Tier 2 (local tools like Pandoc or Poppler), or Tier 3 (agent vision for scanned or image-heavy documents). It reports which tier was used and why.
 
-**You did:** Confirmed the tier made sense for the document type. If the document was a scanned PDF and the agent selected Tier 1, the extracted Markdown would contain garbled text — redirect to Tier 3 or flag the document as needing OCR before extraction.
+**You:** Confirm the tier makes sense for the document type. If the document is a scanned PDF and the agent selects Tier 1, the extracted Markdown will contain garbled text — redirect to Tier 3 or flag the document as needing OCR before extraction.
 
 ---
 
 ## Stage 3 — Review the output
 
-The agent reported where the output landed and emitted a brief summary of what it converted.
+The agent reports where the output lands and emits a brief summary of what it converted.
 
-**You did:** Opened the output file and reviewed it at the G-output gate. The agent's report says "conversion complete" — what it cannot tell you is whether the resulting file is what you needed. Checked for truncation, structure loss, and template application. If a section was missing, re-run with an explicit instruction to include it.
+**You:** Open the output file and review it at the G-output gate. The agent's report says "conversion complete" — what it cannot tell you is whether the resulting file is what you needed. Check for truncation, structure loss, and template application. If a section is missing, re-run with an explicit instruction to include it.

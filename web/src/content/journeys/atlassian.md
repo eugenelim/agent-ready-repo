@@ -68,22 +68,22 @@ relatedJourneys:
 
 ## Stage 1 — Configure credentials and scope
 
-Before any API call, the agent checked that a credential was configured via `credential-brokers`. It then asked you to confirm the JQL scope or Confluence target before running the first query.
+Before any API call, the agent checks that a credential is configured via `credential-brokers`. It then asks you to confirm the JQL scope or Confluence target before running the first query.
 
-**You did:** Confirmed the credential was in place — or set it up if this was the first run. Named the JQL scope explicitly: project key, issue type, status, and date range. A scoped query takes 10 seconds to define; an unscoped query returns thousands of issues and the agent has to guess which ones to include.
+**You:** Confirm the credential is in place — or set it up if this is the first run. Name the JQL scope explicitly: project key, issue type, status, and date range. A scoped query takes 10 seconds to define; an unscoped query returns thousands of issues and the agent has to guess which ones to include.
 
 ---
 
 ## Stage 2 — Fetch and process
 
-With credentials and scope confirmed, the agent ran the appropriate skill. For `jira`, it ran the JQL query with auto-pagination and returned the result set. For `flow-metrics`, it computed cycle time, throughput, and DORA metrics over the scoped data. For `jira-brief-intake`, it read the epic and structured it into a brief.
+With credentials and scope confirmed, the agent runs the appropriate skill. For `jira`, it runs the JQL query with auto-pagination and returns the result set. For `flow-metrics`, it computes cycle time, throughput, and DORA metrics over the scoped data. For `jira-brief-intake`, it reads the epic and structures it into a brief.
 
-**You did:** Watched the fetch complete. If the result set looked wrong — too many issues, too few, or issues from the wrong project — stop the agent and restate the scope. It's faster to re-scope than to post-process a wrong result set.
+**You:** Watch the fetch complete. If the result set looks wrong — too many issues, too few, or issues from the wrong project — stop the agent and restate the scope. It's faster to re-scope than to post-process a wrong result set.
 
 ---
 
 ## Stage 3 — Review before publish or act
 
-The agent presented its output — a metrics table, a structured brief, or a proposed Confluence page — for review before taking any write action.
+The agent presents its output — a metrics table, a structured brief, or a proposed Confluence page — for review before taking any write action.
 
-**You did:** Reviewed the output at the G-output gate before the agent published to Confluence, posted a Jira update, or shared metrics. Atlassian skills operate on live systems; there is no draft mode for Confluence publishes. Check the content is correct, the target is right, and any Jira transitions are the ones you intended before approving the write.
+**You:** Review the output at the G-output gate before the agent publishes to Confluence, posts a Jira update, or shares metrics. Atlassian skills operate on live systems; there is no draft mode for Confluence publishes. Check the content is correct, the target is right, and any Jira transitions are the ones you intended before approving the write.

@@ -49,22 +49,22 @@ relatedJourneys:
 
 ## Stage 1 — Configure the credential
 
-Before the first API call, you confirmed the Figma Personal Access Token was configured in credential-brokers. The agent checked the credential resolved and would reach the target file.
+Before the first API call, you confirm the Figma Personal Access Token is configured in credential-brokers. The agent checks that the credential resolves and reaches the target file.
 
-**You did:** Ran `credential-brokers` setup if this was the first session, or confirmed the existing token was still valid. Named the file key or file URL you wanted the agent to work with. This is a one-time setup per service — once the token is in place, every subsequent figma session resolves it automatically.
+**You:** Run `credential-brokers` setup if this is the first session, or confirm the existing token is still valid. Name the file key or file URL you want the agent to work with. This is a one-time setup per service — once the token is in place, every subsequent figma session resolves it automatically.
 
 ---
 
 ## Stage 2 — Read the design artifact
 
-With the credential confirmed, the agent invoked the `figma` skill. It fetched the file structure, navigated to the target frame or component, and returned the design data — rendered image, node properties, variable values, or connector graph, depending on what you asked for.
+With the credential confirmed, the agent invokes the `figma` skill. It fetches the file structure, navigates to the target frame or component, and returns the design data — rendered image, node properties, variable values, or connector graph, depending on what you asked for.
 
-**You did:** Watched the fetch complete. If the agent returned data from the wrong frame — because a component name matched multiple instances in the file — redirected with the specific node ID or frame path. Figma's file tree uses human-readable names that aren't always unique; the node ID is the authoritative identifier.
+**You:** Watch the fetch complete. If the agent returns data from the wrong frame — because a component name matches multiple instances in the file — redirect with the specific node ID or frame path. Figma's file tree uses human-readable names that aren't always unique; the node ID is the authoritative identifier.
 
 ---
 
 ## Stage 3 — Review and use
 
-The agent presented the extracted artifact — a rendered frame image, a CSS variable set, a Mermaid connector diagram, or a structured property dump. You reviewed it at the G-output gate before passing it to the next step in your workflow.
+The agent presents the extracted artifact — a rendered frame image, a CSS variable set, a Mermaid connector diagram, or a structured property dump. You review it at the G-output gate before passing it to the next step in your workflow.
 
-**You did:** Checked that the extracted artifact matched the design you intended to capture. For FigJam diagrams, verified that all connectors and labels were preserved. For variable values, confirmed they matched the published (not draft) design system state. Passed the reviewed artifact to the next step — typically a design implementation task using the `experience` or `core` pack.
+**You:** Check that the extracted artifact matches the design you intended to capture. For FigJam diagrams, verify that all connectors and labels are preserved. For variable values, confirm they match the published (not draft) design system state. Pass the reviewed artifact to the next step — typically a design implementation task using the `experience` or `core` pack.
