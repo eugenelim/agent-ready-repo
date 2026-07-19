@@ -1,25 +1,30 @@
 ---
 name: reconcile-iac
-description: Use this skill to audit Terraform/OpenTofu drift, reconcile state, or run a pre-change preflight before a follow-on infrastructure change. Triggers on "reconcile my infrastructure", "check for drift", "drift audit", "what drifted", "before I change X check drift", "is my infra in sync". Never autonomously applies. Shares generate-iac's references and reviewers.
+description: Use this skill to audit Terraform/OpenTofu drift, reconcile state, run a pre-change preflight, or check an incoming IaC diff for ADR compliance. Triggers on "reconcile my infrastructure", "check for drift", "drift audit", "what drifted", "before I change X check drift", "is my infra in sync", "adr-check", "does this change comply", "check this diff against our ADRs", "compliance check this IaC change". Never autonomously applies. Shares generate-iac's references and reviewers.
 ---
 
 # Skill: reconcile-iac
 
-`plan`-based drift audit → proposed disposition → route. Audit and propose;
-a human (or the `release-loop` consent gate) decides. Never autonomously apply.
+`plan`-based drift audit → ADR compliance check → proposed disposition → route.
+Audit and propose; a human (or the `release-loop` consent gate) decides. Never
+autonomously apply.
 
-## Two triggers — both are first-class
+## Three triggers — all first-class
 
 | Trigger | When | What it does |
 | --- | --- | --- |
 | **Before-change preflight** | Before every follow-on infrastructure change (mandatory, not optional) | Runs a `plan` against live state to surface drift *before* the new change lands on top of it — prevents layering change on unknown drift |
 | **On-demand / scheduled** | On request or on a scheduled cadence | Standalone drift snapshot for quiescent infrastructure; the author-side safety net when `release-loop` is absent |
+| **ADR compliance check** | When an IaC diff arrives that was NOT authored by `generate-iac` (hand-edit, external PR, CI gate) | Checks the diff against the governance-index ADRs — covers the compliance gap for changes the generation skill didn't author |
 
-**Recommended cadence:** (1) Before every follow-on change — mandatory preflight;
-(2) Weekly minimum on a scheduled basis — regular drift snapshot even in
-quiescent periods; (3) Immediately after a known out-of-band event — break-glass
-action, console change, provider-managed auto-modification, or a known pipeline
-failure.
+**Recommended cadence (Triggers 1 and 2):** (1) Before every follow-on change —
+mandatory preflight; (2) Weekly minimum on a scheduled basis — regular drift
+snapshot even in quiescent periods; (3) Immediately after a known out-of-band
+event — break-glass action, console change, provider-managed auto-modification,
+or a known pipeline failure.
+
+**Trigger 3 fires on demand**, not on a cadence — invoke when a diff arrives
+that did not go through `generate-iac`.
 
 ## Known blind spot — document and do not hide
 
@@ -72,6 +77,53 @@ full drift coverage — the audit covers managed resources only.
 6. A human (or the release-loop consent gate) decides the disposition.
    Do not apply or destroy anything autonomously.
 ```
+
+## ADR compliance check procedure (Trigger 3)
+
+Use when an IaC diff arrives that was not authored by `generate-iac` — a
+hand-edited `.tf` file, an external PR, a CI gate check. The governance-index
+is the compliance oracle; this procedure is the enforcement path for changes
+that bypassed Stage 0.
+
+```
+1. Load the governance-index (governance-index.yaml / governance-index.toml).
+   If absent, surface it — offer to bootstrap via generate-iac Stage 0.
+
+2. Identify which governance domains the diff touches. Map by resource type:
+   • aws_iam_* / google_project_iam_* / azurerm_role_assignment → iam
+   • aws_vpc_* / google_compute_network / azurerm_virtual_network → networking
+   • terraform { backend } / aws_s3_bucket (state bucket) → state
+   • resource_group / project / aws_organizations_account → layout
+   • any provider block changes → layout
+   • aws_security_group / aws_security_group_rule → networking + policy
+   • tagging / labels arguments → tagging
+   • CI config changes (GitHub Actions / ADO / GitLab) → pipeline_auth
+
+3. For each touched domain, read the ADR(s) listed in the governance-index.
+   Focus on the ADR's Decision, Constraints, and Consequences sections.
+
+4. For each ADR, evaluate the diff against each constraint:
+   • COMPLIANT — diff honours the constraint
+   • VIOLATION — diff contradicts a constraint (e.g. introduces DynamoDB locking
+     when ADR mandates native S3 lockfile; uses static creds when ADR mandates OIDC)
+   • WARN — diff is in a grey area or the constraint is ambiguous
+
+5. Emit the ADR compliance report:
+   - Summary: N domains checked, M ADRs read, K violations, J warnings
+   - Per-violation: domain → ADR number → specific constraint violated →
+     diff lines that trigger it → recommended fix
+   - Per-warning: domain → ADR number → ambiguity + suggested clarification
+
+6. VIOLATION blocks the change — route to human to either:
+   (a) fix the diff to comply, or
+   (b) draft a new ADR (via new-adr, infra mode) to record a legitimate decision
+       change, then re-check.
+   Do not autonomously approve or suppress a VIOLATION.
+```
+
+**Domain-to-resource-type mapping is heuristic** — add a note in the report when
+a resource type spans multiple domains or doesn't map cleanly. Human confirms the
+domain assignment when ambiguous.
 
 ## Disposition decision guidance
 
