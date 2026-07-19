@@ -1,0 +1,21 @@
+[
+  {"query": "rfc status", "should_trigger": true},
+  {"query": "Show me the current RFC landscape", "should_trigger": true},
+  {"query": "What RFCs are open right now?", "should_trigger": true},
+  {"query": "How many RFCs are in draft?", "should_trigger": true},
+  {"query": "Give me an RFC dashboard", "should_trigger": true},
+  {"query": "Any RFC candidates in the findings register?", "should_trigger": true},
+  {"query": "What RFC candidates do we have queued?", "should_trigger": true},
+  {"query": "Show me which RFCs are active and which are accepted", "should_trigger": true},
+  {"query": "rfc report", "should_trigger": true},
+  {"query": "What governance work is in flight?", "should_trigger": true},
+
+  {"query": "Draft a new RFC for adopting trunk-based development", "should_trigger": false},
+  {"query": "Open RFC-0042 and read it", "should_trigger": false},
+  {"query": "Record the decision to use Postgres as an ADR", "should_trigger": false},
+  {"query": "What should I work on next?", "should_trigger": false},
+  {"query": "Update the conventions file", "should_trigger": false},
+  {"query": "Write a spec for the new caching feature", "should_trigger": false},
+  {"query": "Show the work queue from workspace.toml", "should_trigger": false},
+  {"query": "Fix the bug in the RFC template", "should_trigger": false}
+]
