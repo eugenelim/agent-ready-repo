@@ -33,6 +33,42 @@ Every layer and module contains:
 `name_prefix = <system>-<env>` for all resource names. Prevents collision
 across environments. Never hardcode a fixed resource name.
 
+## Module sourcing
+
+- **Private registry first.** If the org runs a private Terraform module
+  registry (Terraform Cloud / TFE / Artifactory), source modules from it rather
+  than from the public Terraform Registry. Org-internal modules encode
+  organisation-specific defaults (required tags, approved AMI filters, org
+  network conventions) that public modules don't enforce.
+  ```hcl
+  module "vpc" {
+    source  = "app.terraform.io/<org>/vpc/aws"  # private first
+    version = "~> 3.0"
+  }
+  ```
+- **Public registry only when no private equivalent exists.** Prefer
+  HashiCorp-authored or well-maintained community modules. Pin with `~>` (never
+  a loose `>=`). Record the rationale in the ADR if a public module is chosen
+  over a private one.
+- **Never `source = "./"` in production layers.** Local-path module references
+  are acceptable inside `modules/` but must not be used between layers.
+
+## Compliance framework extension
+
+The built-in standards cover security best practice; they do not map to
+compliance frameworks (CIS Benchmarks, NIST 800-53, PCI-DSS, HIPAA, FedRAMP,
+SOC 2). For regulated environments:
+
+1. Add a domain row to the governance-index for each applicable framework.
+2. Create a repo-local standards document (e.g. `docs/standards/pci-dss-iac.md`)
+   that maps each relevant control to the Terraform patterns that satisfy it.
+3. Reference it from the governance-index `standards:` field for that domain.
+4. The `generate-iac` skill will load it at Stage 0 alongside the built-in
+   standards.
+
+This is the extension seam (D15): the governance-index is the adopter's surface
+for adding compliance-framework content without forking the pack.
+
 ## State
 
 - **Remote state with locking.** Partial backend config in `backend.tf`;

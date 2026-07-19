@@ -10,6 +10,39 @@ The output is a deploy-ready Terraform directory with a pinned, clean `plan` —
 the G4 handoff to `release-loop` (or the generated human-gated pipeline where
 `release-loop` is absent). Apply is never in scope for this skill.
 
+## v1 scope — governed realization, not architectural design
+
+**In scope (v1):** governed HCL generation from a pre-formed architectural
+intent; provider-contract, tagging, naming, state, IAM, networking, and
+observability standards applied; OPA/Conftest policy gate; Trivy security scan;
+CI pipeline wiring (GitHub Actions / Azure DevOps / GitLab) with OIDC auth;
+plan-based drift audit via `reconcile-iac`.
+
+**Out of scope in v1 — bring a pre-formed architectural decision:**
+- **Workload selection.** RDS vs Aurora vs DynamoDB, EKS vs ECS vs Lambda, VM
+  vs container vs serverless. This skill governs and builds what you chose; it
+  does not evaluate requirements → service fit.
+- **Network topology design.** Hub-spoke vs flat, Transit Gateway vs VPC
+  peering, on-prem connectivity (DX / ExpressRoute / Interconnect), multi-region
+  topology. This skill consumes a network; it does not design one.
+- **Load balancer type/tier selection.** L4 vs L7, global vs regional,
+  health-check strategy, blue/green or canary traffic-shift. "Governed front
+  door only" means the skill wires an LB you specify.
+- **Multi-account / landing-zone orchestration.** AWS Control Tower, Azure
+  Landing Zones, GCP org-hierarchy. Account-isolation model is an input; the
+  org infrastructure is not provisioned here.
+- **Compliance-framework content.** CIS, NIST, PCI-DSS, HIPAA, FedRAMP, SOC 2
+  control mapping. Adopt via governance-index domain rows + custom standard
+  references; built-in standards are security-best-practice, not a
+  control-framework map.
+- **IAM guardrail layer.** AWS SCPs, AWS permission boundaries, Azure Policy at
+  management-group scope, GCP Org Policy constraints. The pack enforces
+  least-privilege role policies; org-level guardrails are an adopter addition
+  (see `security-iam-standard.md` § Organization-level guardrails).
+- **Autonomous apply / operational self-healing.** `reconcile-iac` v1 is
+  managed-drift detect-propose-approve (never autonomous). Runtime operational
+  self-healing (auto-remediate live service degradation) is not in scope.
+
 ## Hard rules — non-negotiable
 
 - **Stage 0 is mandatory and non-bypassable.** Before any Terraform, load the
@@ -125,6 +158,7 @@ Verification and provider shape:
 - `references/terraform-verify-and-iterate.md` — plan-vs-apply oracle, module tests
 - `references/provider-contract.md` — four-file shape + credential tiering + DoD
 - `references/release-loop-integration.md` — G4 artifact set, preflight-set shaping
+- `references/bootstrap-sequence.md` — **load for first bootstrap/ apply** — local-state → create-backend → migrate-state chicken-and-egg story
 
 Load per target (never all at once):
 - `references/providers/<cloud>.md` — cloud-specific config (aws / gcp / azure / …)

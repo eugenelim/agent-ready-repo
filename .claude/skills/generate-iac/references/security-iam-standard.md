@@ -48,6 +48,35 @@ Wire these into the CI pipeline as mandatory pre-apply gates:
 - Note: **Sentinel is incompatible with OpenTofu**. OPA/Conftest is the only
   open-source policy path that works on both Terraform and OpenTofu engines.
 
+## Organization-level guardrail layer (out of v1 scope)
+
+This pack enforces IAM **role policies** (least-privilege per layer) and
+**pipeline OIDC** (no static creds). It does **not** configure org-level
+guardrails — those are an adopter addition:
+
+| Guardrail | Mechanism | Where to configure |
+| --- | --- | --- |
+| AWS Service Control Policies (SCPs) | Deny/allow at OU or account level | AWS Organizations / Control Tower |
+| AWS permission boundaries | Max-permissions ceiling on roles/users | Added to each `aws_iam_role` resource in the bootstrap layer |
+| Azure Policy | Deny / audit / append at management-group scope | Azure Management Groups |
+| GCP Org Policy constraints | Deny/allow resource policies at org/folder | GCP Organization Policy |
+
+**Recommended practice:** add permission boundaries to the CI roles and
+workload roles created in the `bootstrap/` layer. A permission boundary limits
+what a role can delegate even if a policy grants more. For AWS, attach a
+boundary to every `aws_iam_role` the bootstrap layer creates:
+
+```hcl
+resource "aws_iam_role" "ci_plan" {
+  # ...
+  permissions_boundary = "arn:aws:iam::${var.account_id}:policy/OrgPermBoundary"
+}
+```
+
+Org-level SCPs and policy-as-code together form the guardrail layer the pack's
+inline policies operate within. Document the guardrail layer in an ADR (use
+`new-adr` infra mode, `iam` topic).
+
 ## Checklist (review before merge)
 
 - [ ] No static credentials in `.tf` files, CI environment variables, or

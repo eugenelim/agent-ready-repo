@@ -15,6 +15,27 @@ tactical **backlog**: per-instance, no pack-side source, surfaces as an
 Deferred acceptance criteria point here by anchor (the `(deferred: <anchor>)`
 marker — see RFC-0016).
 
+## `iac-terraform`
+
+### Azure provider validation {#iac-terraform-azure-validation}
+
+**Source:** source-author review (Mridula Juluri, 2026-07-18); D5 of RFC-0065.
+
+Azure shipped `contract-complete` in v1 — the four-file provider contract
+(`versions.tf` / `provider.tf` / `backend.tf` / `backend.hcl.example`) and
+`providers/azure.md` reference are authored, but no worked example has passed
+`terraform init -backend=false && terraform fmt -check && terraform validate`.
+The source material had validated Azure; v1 regressed to experimental pending
+actual validation runs.
+
+**Fix:** author `examples/azure/` (matching the shape of `examples/aws/` and
+`examples/gcp/`); run `terraform init -backend=false && fmt -check && validate`
+against it; remove the `experimental — not validated in v1` stamp from
+`providers/azure.md`; bump the provider index entry to `validated`.
+
+**Unblocks when:** Azure worked example is authored and passes the three-command
+validation gate.
+
 ## How this file is maintained
 
 - Every spec records its own `Status:` field and `Acceptance Criteria`
