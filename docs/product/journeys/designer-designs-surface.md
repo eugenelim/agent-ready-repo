@@ -6,7 +6,7 @@ outcome: genre-grounded-surface-design-ready-for-build
 surface: cross-platform
 status: planned
 initiative_links:
-  - id: RFC-0065
+  - id: RFC-0066
     name: Experience pack surface-genre uplift
     milestones: experience 0.6.0 (all stages)
     role: primary
@@ -39,7 +39,7 @@ Two paths share this journey:
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
 | experience | user | current (0.5.0) | 11 skills covering the design chain |
-| experience | user | planned (0.6.0 — RFC-0065) | + 7 new skills, 6 existing skills extended (7 additions), 9 renames, surface-genre contract + genre-specific brief sections |
+| experience | user | planned (0.6.0 — RFC-0066) | + 7 new skills, 6 existing skills extended (7 additions), 9 renames, surface-genre contract + genre-specific brief sections |
 
 **As-is setup (experience 0.5.0):**
 1. Install experience pack at user scope.
@@ -55,7 +55,7 @@ Two paths share this journey:
 
 ## Interaction model
 
-### Current state — experience 0.5.0 (before RFC-0065)
+### Current state — experience 0.5.0 (before RFC-0066)
 
 ```mermaid
 sequenceDiagram
@@ -81,7 +81,7 @@ sequenceDiagram
     Note over D: A/B: Different surface type? Same chain, no routing.
 ```
 
-### To-be state — experience 0.6.0 (after RFC-0065)
+### To-be state — experience 0.6.0 (after RFC-0066)
 
 ```mermaid
 sequenceDiagram
@@ -125,7 +125,7 @@ sequenceDiagram
 | **Pains** | "The journey map shows every pain equally. I don't know which one matters most." "There's no way to tell if this map is based on real research or assumptions." "The service blueprint doesn't show the artefacts customers actually receive — just the actors." |
 | **Opportunities** | Mark peak moments (highest negative and highest positive) explicitly; carry Kahneman peak-end rule into the map. Declare evidence level so downstream designers know confidence. Add evidence-of-service row to the service blueprint. |
 
-> **With RFC-0065 (D5a + D5c)** — `journey-mapping` gains: peak moment identification (the 1–3 stages with the steepest negative dip + the single most-positive peak, explicit in the artefact); evidence-level declaration (`observational` / `survey-backed` / `assumption-based` in frontmatter); surface-genre stage templates (canonical stage scaffolds for each of the 7 genres). `service-blueprint` gains: evidence-of-service row (physical/digital artefacts customers encounter at each frontstage touchpoint — notifications, receipts, error screens) and fail-point marking with design priority (critical / high / medium). Designer now leaves Stage 1 knowing **where to focus** and **how confident to be**.
+> **With RFC-0066 (D5a + D5c)** — `journey-mapping` gains: peak moment identification (the 1–3 stages with the steepest negative dip + the single most-positive peak, explicit in the artefact); evidence-level declaration (`observational` / `survey-backed` / `assumption-based` in frontmatter); surface-genre stage templates (canonical stage scaffolds for each of the 7 genres). `service-blueprint` gains: evidence-of-service row (physical/digital artefacts customers encounter at each frontstage touchpoint — notifications, receipts, error screens) and fail-point marking with design priority (critical / high / medium). Designer now leaves Stage 1 knowing **where to focus** and **how confident to be**.
 
 ---
 
@@ -140,7 +140,7 @@ sequenceDiagram
 | **Pains** | "Every design review re-litigates the same trade-offs — we never agreed on what to optimise for." "We have twelve insights from the research but nothing that tells us which direction to go." "Design reviews turn into opinion sessions because we have no shared criteria." |
 | **Opportunities** | A dedicated step that synthesises insights into 3–5 named design principles. These principles are decision arbiters: every later design choice is evaluated against them. One session of principle derivation replaces months of repeated debate. |
 
-> **With RFC-0065 (D3)** — New `design-principles` skill fills the absent Define phase. Consumes journey-mapping's peak moments and highest-opportunity pains; derives 3–5 named, actionable principles using the NNGroup four-step model (identify core values → articulate user impact → surface tradeoffs → draft + converge). Output: `docs/design/principles/<slug>.md`. Every downstream skill references these principles when making trade-off decisions. `design-review` maps each finding to the principle it was judged against. **This is the single highest-leverage gap the RFC closes** — the Define phase prevents relitigating at every review.
+> **With RFC-0066 (D3)** — New `design-principles` skill fills the absent Define phase. Consumes journey-mapping's peak moments and highest-opportunity pains; derives 3–5 named, actionable principles using the NNGroup four-step model (identify core values → articulate user impact → surface tradeoffs → draft + converge). Output: `docs/design/principles/<slug>.md`. Every downstream skill references these principles when making trade-off decisions. `design-review` maps each finding to the principle it was judged against. **This is the single highest-leverage gap the RFC closes** — the Define phase prevents relitigating at every review.
 
 ---
 
@@ -155,7 +155,7 @@ sequenceDiagram
 | **Pains** | "IA for a marketing page is completely different from IA for a docs site, but the skill treats them the same." "I know our hero needs to demo the product but the skill doesn't have any guidance for how to structure a marketing hero." "I'm designing a dashboard — the skill gives me a generic hierarchy but nothing about three-tier widget IA or Shneiderman's mantra." |
 | **Opportunities** | Genre-specific Direct skills for all six addressable genres. `information-architecture` with genre routing that reads the genre-specific skill output. |
 
-> **With RFC-0065 (D4 + D5d + D5f)** — Six new genre-specific Direct skills ship:
+> **With RFC-0066 (D4 + D5d + D5f)** — Six new genre-specific Direct skills ship:
 > - **`conversion-design`** (marketing): hero approach selection (5 patterns), above-fold 6-element spec, IC-first principle for developer tools, scroll story 7-zone structure, social proof 6-tier hierarchy calibrated to maturity stage.
 > - **`documentation-design`** (documentation): Diátaxis type mapping + density calibration, nav-at-scale strategy selection (3 strategies by complexity tier), TTFV as design target, onboarding path as numbered Start Here spine, machine-readability requirements.
 > - **`analytical-design`** (analytical): domain-model-first approach, business-question anchoring (3–5 explicit questions), three-tier widget hierarchy, Shneiderman's mantra (overview → zoom/filter → details on demand), role-based views, spatial layout grammar, per-widget state handling.
@@ -178,7 +178,7 @@ sequenceDiagram
 | **Pains** | "The screen brief template is the same for every surface — a marketplace brief needs different sections than a workspace brief." "Interaction-design has no guidance on multi-step wizards. I have to look it up every time." "There are no destructive action patterns in the skill — I'm re-deriving the 5-tier escalation from scratch for every project." "The analytical dashboard I'm designing needs widget-state patterns — the skill doesn't cover it." |
 | **Opportunities** | Surface-genre field in the screen brief contract (declared once, flows to all downstream skills). Five new interaction-design pattern families covering the most-absent patterns. |
 
-> **With RFC-0065 (D1 + D5b)** — `user-flow` (renamed from `map-screen-flow`) adds `surface-genre:` to every per-screen brief frontmatter, a new confirmation step (confirm genre before drafting briefs; elicit inline when absent), and a `## Genre-specific notes` conditional section at the end of each brief template. Downstream skills read the field automatically. `interaction-design` gains five new pattern families in `references/pattern-families.md`:
+> **With RFC-0066 (D1 + D5b)** — `user-flow` (renamed from `map-screen-flow`) adds `surface-genre:` to every per-screen brief frontmatter, a new confirmation step (confirm genre before drafting briefs; elicit inline when absent), and a `## Genre-specific notes` conditional section at the end of each brief template. Downstream skills read the field automatically. `interaction-design` gains five new pattern families in `references/pattern-families.md`:
 > 1. **Wizard and stepper**: linear stepper validation-on-exit, save-and-resume, conditional disclosure.
 > 2. **Data table**: four filter types, bulk operations, row-detail disclosure (5 options), alignment rules.
 > 3. **Destructive action 5-tier escalation**: inline confirmation → toast+undo → modal → typed confirmation → two-person/2FA.
@@ -200,7 +200,7 @@ sequenceDiagram
 | **Pains** | "We produce a list of critique findings but half of them become debates about direction. We have no agreed criteria." "The critique doesn't check documentation-specific concerns — density, sidebar depth, heading hierarchy." "Design principles we agreed on at the start of the project aren't referenced anywhere in the review." |
 | **Opportunities** | Design-review that explicitly references the design-principles artefact. Genre-specific review rubrics (documentation density targets, marketing conversion checks, analytical widget-state completeness). |
 
-> **With RFC-0065 (D7 rename + D5e + D5g)** — `design-critique` is renamed to `design-review`. D5(e) makes design-principles integration a mandatory first procedure step: load the design-principles artefact; map each finding to the principle it was judged against. Findings that can't be mapped either (a) identify a quality-floor violation, or (b) surface a new directional call. D5(g) adds genre-specific rubrics:
+> **With RFC-0066 (D7 rename + D5e + D5g)** — `design-critique` is renamed to `design-review`. D5(e) makes design-principles integration a mandatory first procedure step: load the design-principles artefact; map each finding to the principle it was judged against. Findings that can't be mapped either (a) identify a quality-floor violation, or (b) surface a new directional call. D5(g) adds genre-specific rubrics:
 >
 > - **documentation:** density matches Diátaxis type, TTFV path navigable, sidebar ≤ 3 levels, unique page descriptions, semantic heading hierarchy.
 > - **marketing:** all six above-fold elements present, CTA hierarchy unambiguous, first proof signal above fold, hero matches product type.
@@ -224,13 +224,13 @@ sequenceDiagram
 | **Pains** | "The handover template is generic — it doesn't tell engineering which patterns we decided on for the transactional flow." "Engineering asks me the same questions about interaction state that should already be in the briefs." |
 | **Opportunities** | Handoff that references the surface-genre and interaction patterns used, reducing back-and-forth with engineering. |
 
-> **With RFC-0065** — `user-flow` handover is unchanged in procedure but the briefs it produces now carry `surface-genre:` and reference the interaction-design patterns applied per genre. Engineering reads the brief and knows which pattern families were selected. Fewer "how does this wizard work?" conversations.
+> **With RFC-0066** — `user-flow` handover is unchanged in procedure but the briefs it produces now carry `surface-genre:` and reference the interaction-design patterns applied per genre. Engineering reads the brief and knows which pattern families were selected. Fewer "how does this wizard work?" conversations.
 
 ---
 
 ## Remaining gaps
 
-All six gaps identified in the original gap analysis are addressed in RFC-0065:
+All six gaps identified in the original gap analysis are addressed in RFC-0066:
 
 | # | Gap | Resolved by | Notes |
 |---|---|---|---|
@@ -308,7 +308,7 @@ Design quality signals that indicate the skill chain is working. These are proce
 
 **Feature design path:** The lowest point is Stage 1 (Discover) when the journey map has no peak moments — the designer knows there are problems but doesn't know which one to solve. The second lowest point is Stage 5 (Validate) when review findings have no criteria to anchor them to.
 
-**With RFC-0065:** All genres now have dedicated Direct skills. The remaining friction for the first-time user is Stage 3 (Direct) cognitive load — six new genre-specific skills mean more choices, more reading. The tradeoff is deliberate: depth over simplicity.
+**With RFC-0066:** All genres now have dedicated Direct skills. The remaining friction for the first-time user is Stage 3 (Direct) cognitive load — six new genre-specific skills mean more choices, more reading. The tradeoff is deliberate: depth over simplicity.
 
 **Peak moment (to-be):** Stage 2 (Define) — the first time a designer derives design principles and runs the arbitration test ("given two wireframes, which does this principle prefer?"), the value of the Define phase becomes immediate. Designers who have run it once do not skip it.
 
@@ -320,7 +320,7 @@ Design quality signals that indicate the skill chain is working. These are proce
 
 ## Open design questions (feeds follow-on RFCs)
 
-All original open design questions are resolved in RFC-0065. No open design questions remain for the 0.6.0 scope.
+All original open design questions are resolved in RFC-0066. No open design questions remain for the 0.6.0 scope.
 
 **Post-0.6.0 watch items** (not open questions — monitoring items for after the pack ships):
 
@@ -332,8 +332,8 @@ All original open design questions are resolved in RFC-0065. No open design ques
 
 ## Handoff notes
 
-**For RFC-0065 implementation PR:** All open questions are resolved in the RFC — no decisions remain for the implementation PR. The implementation PR implements exactly what the RFC specifies: 7 new skills, 7 extensions across 6 existing skills, D1 genre-specific notes template, D5(e/f/g) design-review + creative-direction extensions, D7 rename sweep (including content-design cross-refs at step 9), D8 0.5.0 → 0.6.0 bump.
+**For RFC-0066 implementation PR:** All open questions are resolved in the RFC — no decisions remain for the implementation PR. The implementation PR implements exactly what the RFC specifies: 7 new skills, 7 extensions across 6 existing skills, D1 genre-specific notes template, D5(e/f/g) design-review + creative-direction extensions, D7 rename sweep (including content-design cross-refs at step 9), D8 0.5.0 → 0.6.0 bump.
 
-**For marketing site update (post RFC-0065 implementation):** The skill list in `web/` names skills by their current slugs. After the 9 renames land, the marketing site must be updated — old skill names in the site copy will mismatch the installed pack. See RFC-0065 follow-on artifacts.
+**For marketing site update (post RFC-0066 implementation):** The skill list in `web/` names skills by their current slugs. After the 9 renames land, the marketing site must be updated — old skill names in the site copy will mismatch the installed pack. See RFC-0066 follow-on artifacts.
 
-**For docs site update (post RFC-0065 implementation):** `docs/guides/experience/` (4 files) contains user-facing guides that name skills by old slugs. These are explicitly in-scope for the D7 rename sweep but must also be verified as user-readable after the rename. New skills (`design-principles`, `conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`, `informational-design`, `workspace-design`) need guide stubs — these can ride with the implementation PR or follow as a separate PR.
+**For docs site update (post RFC-0066 implementation):** `docs/guides/experience/` (4 files) contains user-facing guides that name skills by old slugs. These are explicitly in-scope for the D7 rename sweep but must also be verified as user-readable after the rename. New skills (`design-principles`, `conversion-design`, `documentation-design`, `analytical-design`, `marketplace-design`, `informational-design`, `workspace-design`) need guide stubs — these can ride with the implementation PR or follow as a separate PR.
